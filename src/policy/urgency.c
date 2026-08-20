@@ -139,8 +139,8 @@ static bool s_any_client_urgent(list_td *surfaces)
                     return true;
                 }
             }
-        }
-    }
+        } /* ! for (di) */
+    } /* ! for (snode) */
 
     return false;
 }

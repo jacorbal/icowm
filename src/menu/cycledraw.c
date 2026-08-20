@@ -144,12 +144,15 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
      * as 'icon_offset' being 0 when 'show-pixmaps' is off. */
     if (style->icon_size > 0u && row_client != NULL &&
             g_cycle_menu.surface != NULL) {
-        int16_t icon_y = (int16_t) (row_y +
-                (WM_CYCLE_MENU_ROW_HEIGHT - (int) style->icon_size) / 2);
+        struct position_s icon_pos;
+
+        icon_pos.x = style->pad_x;
+        icon_pos.y = row_y +
+                (WM_CYCLE_MENU_ROW_HEIGHT - (int) style->icon_size) / 2;
 
         wmicon_draw_at(connection, g_cycle_menu.surface->ewmh,
                 row_client->window, g_cycle_menu.window,
-                style->pad_x, icon_y, style->icon_size,
+                icon_pos, style->icon_size,
                 (i == g_cycle_menu.selected) ? style->fg_sel
                     : style->fg_nor,
                 (i == g_cycle_menu.selected) ? style->bg_sel
@@ -170,8 +173,8 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
     }
 
     menu_draw_label(connection, g_cycle_menu.window,
-            text_x,
-            (int16_t) (row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4),
+            (struct position_s) { text_x,
+                row_y + WM_CYCLE_MENU_ROW_HEIGHT - 4 },
             label_buf);
 }
 
@@ -536,8 +539,8 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
                     g_cycle_menu.width);
             text_renderer_set_color(style.fg_sel, style.bg_nor);
             menu_draw_label(connection, g_cycle_menu.window,
-                    (int16_t) (g_cycle_menu.width / 2u - 4u),
-                    top_baseline_y,
+                    (struct position_s) {
+                        g_cycle_menu.width / 2u - 4u, top_baseline_y },
                     WM_CYCLE_MENU_SCROLL_UP_INDICATOR);
         } else {
             /* Clear the top padding area when no arrow is needed */
@@ -557,8 +560,9 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
                     g_cycle_menu.width);
             text_renderer_set_color(style.fg_sel, style.bg_nor);
             menu_draw_label(connection, g_cycle_menu.window,
-                    (int16_t) (g_cycle_menu.width / 2u - 4u),
-                    (int16_t) (bot_y + pad_y - text_font_descent()),
+                    (struct position_s) {
+                        g_cycle_menu.width / 2u - 4u,
+                        bot_y + pad_y - text_font_descent() },
                     WM_CYCLE_MENU_SCROLL_DOWN_INDICATOR);
         } else {
             /* Clear the bottom padding area when no arrow is needed */

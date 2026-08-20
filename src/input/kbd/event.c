@@ -240,16 +240,15 @@ static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
  * @param surface     Surface the menu will open on
  * @param under_mouse Whether to query the pointer at all, rather than
  *                    always using the surface center
- * @param out_x       Receives the resolved X position
- * @param out_y       Receives the resolved Y position
+ * @param out_pos     Receives the resolved position
  *
  * @note Complexity: @e O(1)
  */
 static void s_menu_position_resolve(surface_td *surface, bool under_mouse,
-        int16_t *restrict out_x, int16_t *restrict out_y)
+        struct position_s *restrict out_pos)
 {
-    *out_x = (int16_t) (surface->properties.dim.w / 2u);
-    *out_y = (int16_t) (surface->properties.dim.h / 2u);
+    out_pos->x = (int32_t) (surface->properties.dim.w / 2u);
+    out_pos->y = (int32_t) (surface->properties.dim.h / 2u);
 
     if (under_mouse && surface->screen != NULL) {
         xcb_query_pointer_cookie_t qc =
@@ -257,8 +256,8 @@ static void s_menu_position_resolve(surface_td *surface, bool under_mouse,
         xcb_query_pointer_reply_t *const qr =
             xcb_query_pointer_reply(surface->connection, qc, NULL);
         if (qr != NULL) {
-            *out_x = qr->root_x;
-            *out_y = qr->root_y;
+            out_pos->x = qr->root_x;
+            out_pos->y = qr->root_y;
             free(qr);
         }
     }
@@ -848,8 +847,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
 
             case KEYBIND_WM_ROOT_MENU:
                 if (surface != NULL && surface->connection != NULL) {
-                    int16_t mx;
-                    int16_t my;
+                    struct position_s pos;
 
                     /* When configured to appear under the cursor
                      * instead of always centered, query the current
@@ -859,17 +857,16 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                             config != NULL &&
                                 config->base.menus.root.position ==
                                     CONFIG_MENU_POSITION_UNDER_MOUSE,
-                            &mx, &my);
+                            &pos);
 
                     rootmenu_show(wm, surface->connection, surface,
-                            mx, my, config);
+                            pos, config);
                 }
                 return;
 
             case KEYBIND_WM_WINDOWS_MENU:
                 if (surface != NULL && surface->connection != NULL) {
-                    int16_t mx;
-                    int16_t my;
+                    struct position_s pos;
 
                     /* Same "under the cursor instead of a fixed point"
                      * behavior as the root menu (see
@@ -879,10 +876,10 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                             config != NULL &&
                                 config->base.menus.windows.position ==
                                     CONFIG_MENU_POSITION_UNDER_MOUSE,
-                            &mx, &my);
+                            &pos);
 
                     winlist_show(surface->connection, surface,
-                            mx, my, config);
+                            pos, config);
                 }
                 return;
 
@@ -903,12 +900,9 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
                         surface->connection != NULL) {
                     desktop_td *desktop =
                         lookup_current_desktop(surface);
-                    int16_t mx = (int16_t)
-                        client->layout.geometry.cur.pos.x;
-                    int16_t my = (int16_t)
-                        client->layout.geometry.cur.pos.y;
                     wincmenu_show(surface->connection, surface,
-                            desktop, client, mx, my, config);
+                            desktop, client,
+                            client->layout.geometry.cur.pos, config);
                 }
                 return;
             }

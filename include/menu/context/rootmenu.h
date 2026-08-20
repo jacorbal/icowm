@@ -106,7 +106,7 @@ void rootmenu_menu_json_free(void);
  * @brief Display the root desktop menu
  *
  * Combines the entries @a rootmenu_menu_json_load already parsed with
- * the fixed footer entries, and shows the result at (@p x, @p y).  Any
+ * the fixed footer entries, and shows the result at @p pos.  Any
  * previously open root menu is closed first.
  *
  * @param wm         Window manager instance, cached for the
@@ -114,15 +114,14 @@ void rootmenu_menu_json_free(void);
  *                    own callbacks
  * @param connection XCB connection
  * @param surface    Surface on which to display the menu
- * @param x          Requested X origin (root coordinates)
- * @param y          Requested Y origin (root coordinates)
+ * @param pos        Requested origin (root coordinates)
  * @param config     Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the total number of menu
  *       entries
  */
 void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
-        surface_td *surface, int16_t x, int16_t y,
+        surface_td *surface, struct position_s pos,
         const config_td *config);
 
 /**

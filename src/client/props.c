@@ -18,7 +18,6 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdlib.h>     /* free */
 #include <string.h>     /* memcpy, memset */
 

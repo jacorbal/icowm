@@ -168,8 +168,12 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
             (top_y + (row_h - (int) icon_size) / 2);
 
         if (icon_size > 0u && state->surface != NULL) {
+            struct position_s icon_pos;
+
+            icon_pos.x = text_x;
+            icon_pos.y = icon_y;
             wmicon_draw_at(conn, state->surface->ewmh, e->icon_window,
-                    state->window, text_x, icon_y, icon_size,
+                    state->window, icon_pos, icon_size,
                     fg, bg, e->icon_cache);
         }
         text_x = (int16_t) (text_x + icon_size +
@@ -185,8 +189,8 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
                 : state->config->theme.menu.unselected.font);
     text_renderer_set_color(fg, bg);
     menu_draw_label(conn, state->window,
-            text_x,
-            (int16_t) (top_y + WM_CTXMENU_ROW_HEIGHT - 5),
+            (struct position_s) { text_x,
+                top_y + WM_CTXMENU_ROW_HEIGHT - 5 },
             label_buf);
 
     if (e->type == CTXMENU_SUBMENU) {
@@ -195,8 +199,8 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
                 (uint16_t) state->config->theme.menu.padding.horizontal -
                 arrow_w);
         menu_draw_label(conn, state->window,
-                arrow_x,
-                (int16_t) (top_y + WM_CTXMENU_ROW_HEIGHT - 5),
+                (struct position_s) { arrow_x,
+                    top_y + WM_CTXMENU_ROW_HEIGHT - 5 },
                 MENU_CONTEXT_CTXMENU_SUBMENU_ARROW);
     }
 }

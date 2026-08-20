@@ -93,7 +93,7 @@
 /**
  * @brief Open the window context menu for a client
  *
- * Builds and displays a context menu for @p client at (@p x, @p y)
+ * Builds and displays a context menu for @p client at @p pos
  * (root coordinates).  Any previously open window context menu is
  * closed first.
  *
@@ -101,8 +101,7 @@
  * @param surface    Surface on which to display the menu
  * @param desktop    Desktop that currently contains @p client
  * @param client     Target client
- * @param x          Requested X origin (root coordinates)
- * @param y          Requested Y origin (root coordinates)
+ * @param pos        Requested origin (root coordinates)
  * @param config     Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops on
@@ -110,7 +109,7 @@
  */
 void wincmenu_show(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop, client_td *client,
-        int16_t x, int16_t y, const config_td *config);
+        struct position_s pos, const config_td *config);
 
 /**
  * @brief Close the window context menu

@@ -261,9 +261,9 @@ void handler_expose(xcb_connection_t *connection,
                         ? cfg->theme.icon.active.color.background
                         : cfg->theme.icon.inactive.color.background);
             text_draw_string(connection, client->icon_window, XCB_NONE,
-                    2,
-                    (int16_t) (WM_ICON_SQUARE_SIZE +
-                        WM_ICON_CAPTION_HEIGHT - 2u),
+                    (struct position_s) { 2,
+                        WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
+                            2u },
                     caption);
         }
 

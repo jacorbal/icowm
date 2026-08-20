@@ -23,6 +23,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* ADT includes */
 #include <adt/list.h>
 
@@ -34,7 +37,7 @@
 #include <surface.h>
 
 /* Local includes */
-#include <input/mouse.h>
+#include <input/mouse/event.h>
 #include <input/mouse/drag.h>
 
 

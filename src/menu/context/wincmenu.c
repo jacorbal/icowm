@@ -618,14 +618,13 @@ static int s_build_monitor_entries(surface_td *surface, client_td *client)
 {
     int n = 0;
     monitor_td cur_monitor;
-    int32_t center_x;
-    int32_t center_y;
+    struct position_s center_pos;
 
-    center_x = client->layout.geometry.cur.pos.x +
+    center_pos.x = client->layout.geometry.cur.pos.x +
         (int32_t) (client->layout.geometry.cur.dim.w / 2u);
-    center_y = client->layout.geometry.cur.pos.y +
+    center_pos.y = client->layout.geometry.cur.pos.y +
         (int32_t) (client->layout.geometry.cur.dim.h / 2u);
-    cur_monitor = surface_monitor_for_point(surface, center_x, center_y);
+    cur_monitor = surface_monitor_for_point(surface, center_pos);
 
     for (uint32_t m_idx = 0; m_idx < surface->monitor_count &&
             n < WINCMENU_MAX_MONITORS; ++m_idx) {
@@ -691,7 +690,7 @@ static void s_build_layer_entries(const client_td *client)
 /* Open the window context menu for a client */
 void wincmenu_show(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop, client_td *client,
-        int16_t x, int16_t y, const config_td *config)
+        struct position_s pos, const config_td *config)
 {
     int n;
     int desk_count;
@@ -893,7 +892,7 @@ void wincmenu_show(xcb_connection_t *connection,
     s_root.entries = s_entries;
     s_root.entry_count = n;
 
-    ctxmenu_show(connection, surface, &s_root, x, y, config);
+    ctxmenu_show(connection, surface, &s_root, pos, config);
 }
 
 

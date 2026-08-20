@@ -1,8 +1,7 @@
 /**
  * @file cmds/client/icon.c
  *
- * @brief Icon window creation, positioning, and slot-conflict
- *        detection
+ * @brief Icon window creation, positioning, and slot-conflict detection
  *
  * Split out of what used to be a single, flat @c cmds/client/basic.c.
  */
@@ -35,10 +34,13 @@
 #include <defs/icon.h>
 
 /* Windows & icons policy includes */
-#include <policy/placement.h>
+#include <policy/placement/icon.h>
 
 /* Utils includes */
 #include <utils/geom.h>
+
+/* Types includes */
+#include <types/pair.h>
 
 /* Project includes */
 #include <client.h>
@@ -57,27 +59,26 @@
 /**
  * @brief Whether a remembered icon position is already occupied
  *
- * Checks @p client's saved @p icon_x/@p icon_y against every other
+ * Checks @p client's saved @p icon_x / @p icon_y against every other
  * iconified client on the same desktop, so @c ccmd_client_iconify can
  * tell a genuinely free remembered spot from one that another window's
- * icon has since claimed (e.g., because that other window was
- * iconified while @p client was still restored, and happened to land
- * where @p client's own icon last was).
+ * icon has since claimed (e.g., because that other window was iconified
+ * while @p client was still restored, and happened to land where
+ * @p client's own icon last was).
  *
- * Checked against @a client_is_iconified rather than @c is_icon_mapped:
- * the latter only reflects whether a desktop's own icons are currently
+ * Checked against @a client_is_iconified rather than @c is_icon_mapped.
+ * The latter only reflects whether a desktop's own icons are currently
  * mapped on screen right now (@c false for every client on a desktop
  * that is not the one currently shown, @a surface_clients_hide,
  * surface/actions.c, clears it precisely for that reason), so relying
- * on it here would report every slot on a non-current desktop as
- * free regardless of how many icons already actually occupy it.
+ * on it here would report every slot on a non-current desktop as free
+ * regardless of how many icons already actually occupy it.
  *
- * @param client Client about to be iconified; its own @p icon_window
- *               may still be non-zero from a previous iconify, in
- *               which case it is skipped so it never collides with
- *               itself
- * @param icon_w Icon width, in pixels
- * @param icon_h Icon height, in pixels
+ * @param client   Client about to be iconified; its own @p icon_window
+ *                 may still be non-zero from a previous iconify, in
+ *                 which case it is skipped so it never collides with
+ *                 itself
+ * @param icon_dim Icon width/height, in pixels
  *
  * @return @c true if another icon already overlaps that position
  *
@@ -85,7 +86,7 @@
  *       the desktop
  */
 static bool s_icon_slot_is_taken(const client_td *client,
-        uint16_t icon_w, uint16_t icon_h)
+        struct dimensions_s icon_dim)
 {
     desktop_td *desktop;
     cdlist_item_td *node;
@@ -111,10 +112,10 @@ static bool s_icon_slot_is_taken(const client_td *client,
 
         if (other != NULL && other != client &&
                 other->icon_window != 0u && client_is_iconified(other) &&
-                geom_intersection_area(
-                        client->icon_x, client->icon_y, icon_w, icon_h,
-                        other->icon_x, other->icon_y, icon_w, icon_h)
-                    > 0u) {
+                geom_intersection_area( client->icon_x, client->icon_y,
+                    icon_dim.w, icon_dim.h,
+                    other->icon_x, other->icon_y,
+                    icon_dim.w, icon_dim.h) > 0u) {
             return true;
         }
         node = cdlist_next(node);
@@ -124,17 +125,17 @@ static bool s_icon_slot_is_taken(const client_td *client,
 }
 
 
-/* Relocate an already-iconified client's own icon if its current
- * spot is now occupied by another one */
+/* Relocate an already-iconified client's own icon if its current spot
+ * is now occupied by another one */
 void ccmd_client_relocate_icon_if_taken(client_td *client)
 {
     uint16_t icon_h;
     desktop_td *desktop;
     enum config_icon_placement_e policy = CONFIG_ICON_PLACEMENT_BOTTOM;
-    uint16_t screen_w = 1024u;
-    uint16_t screen_h = 768u;
-    int16_t ix;
-    int16_t iy;
+    struct dimensions_s screen_dim = { 1024u, 768u };
+    struct position_s icon_pos;
+    uint16_t screen_w;
+    uint16_t screen_h;
 
     if (client == NULL || client->theme == NULL ||
             client->icon_window == 0u || !client_is_iconified(client)) {
@@ -145,8 +146,8 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
             ((client->theme->icon.is_captioned)
              ? WM_ICON_CAPTION_HEIGHT : 0u));
 
-    if (!s_icon_slot_is_taken(client, (uint16_t) WM_ICON_SQUARE_SIZE,
-                icon_h)) {
+    if (!s_icon_slot_is_taken(client,
+                (struct dimensions_s) { WM_ICON_SQUARE_SIZE, icon_h })) {
         return;
     }
 
@@ -154,17 +155,22 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
     if (client->config_base != NULL) {
         policy = client->config_base->icons.placement_policy;
     }
+    screen_w = (uint16_t) screen_dim.w;
+    screen_h = (uint16_t) screen_dim.h;
     (void) ccmd_screen_dim(client, &screen_w, &screen_h);
+    screen_dim.w = screen_w;
+    screen_dim.h = screen_h;
 
-    place_icon(client, desktop, policy,
-            (uint16_t) WM_ICON_SQUARE_SIZE, icon_h,
-            screen_w, screen_h, &ix, &iy);
+    place_icon_apply(client, desktop, policy,
+            (struct dimensions_s) { WM_ICON_SQUARE_SIZE, icon_h },
+            screen_dim, &icon_pos);
 
-    client->icon_x = ix;
-    client->icon_y = iy;
+    client->icon_x = (int16_t) icon_pos.x;
+    client->icon_y = (int16_t) icon_pos.y;
 
     if (client->connection != NULL) {
-        const uint32_t vals[2] = { (uint32_t) ix, (uint32_t) iy };
+        const uint32_t vals[2] = {
+            (uint32_t) icon_pos.x, (uint32_t) icon_pos.y };
 
         xcb_configure_window(client->connection, client->icon_window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
@@ -261,50 +267,55 @@ void ccmd_client_ensure_icon_window(client_td *client,
 
         /* Re-use the saved position when the client was already
          * iconified once (and possibly manually repositioned by the
-         * user), UNLESS another client's icon has since claimed
-         * that exact spot (e.g., it was free when this client was
-         * last iconified, but has since been taken by a window that
-         * got iconified while this one was restored).  In that case
-         * fall through to 'place_icon' just like a client with no
-         * remembered position at all, so the two icons never
-         * overlap. */
+         * user), UNLESS another client's icon has since claimed that
+         * exact spot (e.g., it was free when this client was last
+         * iconified, but has since been taken by a window that got
+         * iconified while this one was restored).  In that case fall
+         * through to 'place_icon' just like a client with no remembered
+         * position at all, so the two icons never overlap. */
         desktop = wm_get_client_desktop(client);
         if (client->icon_x >= 0 && client->icon_y >= 0 &&
-                !s_icon_slot_is_taken(client, WM_ICON_SQUARE_SIZE,
-                    icon_h_out)) {
+                !s_icon_slot_is_taken(client,
+                    (struct dimensions_s) {
+                    WM_ICON_SQUARE_SIZE, icon_h_out })) {
             ix = client->icon_x;
             iy = client->icon_y;
         } else {
-            place_icon(client, desktop, policy,
-                    WM_ICON_SQUARE_SIZE, icon_h_out,
-                    screen_w, screen_h,
-                    &ix, &iy);
-            /* 'place_icon' works in a (0,0)-relative coordinate
-             * space bounded by 'screen_w'/'screen_h' alone; offset by
+            struct dimensions_s screen_dim;
+            struct position_s icon_pos;
+
+            screen_dim.w = screen_w;
+            screen_dim.h = screen_h;
+            place_icon_apply(client, desktop, policy,
+                    (struct dimensions_s) { WM_ICON_SQUARE_SIZE,
+                        icon_h_out },
+                    screen_dim, &icon_pos);
+            ix = (int16_t) icon_pos.x;
+            iy = (int16_t) icon_pos.y;
+            /* 'place_icon' works in a (0,0)-relative coordinate space
+             * bounded by 'screen_w'/'screen_h' alone; offset by
              * 'mx'/'my', the target monitor's own origin plus its
-             * top/left margin, so the icon lands on that monitor
-             * within the combined surface, past whatever margin is
-             * configured, rather than always in its raw top-left
-             * corner. */
+             * top/left margin, so the icon lands on that monitor within
+             * the combined surface, past whatever margin is configured,
+             * rather than always in its raw top-left corner. */
             ix = (int16_t) (ix + mx);
             iy = (int16_t) (iy + my);
         }
 
         /* The margin/strut-based shrink of 'screen_w'/'screen_h' above
-         * only ever accounts for the tray's own *reserved* strut,
-         * which stays all-zero whenever 'systray.reserve-space' is
-         * left at its own default of 'false' (see the comment right
-         * by 'partial' staying all-zero in 's_systray_strut_update',
+         * only ever accounts for the tray's own *reserved* strut, which
+         * stays all-zero whenever 'systray.reserve-space' is left at
+         * its own default of 'false' (see the comment right by
+         * 'partial' staying all-zero in 's_systray_strut_update',
          * systray/layout.c): the tray still visually occupies real
-         * screen space either way, so a final check against its
-         * actual current rectangle, the same one a drag or a config
-         * reload already goes through (see
-         * 'icon_avoid_systray_overlap''s comment), catches what that
-         * coarser shrink alone still misses.  A tray docked in
-         * a corner, reaching only partway along an edge, being the case
-         * that shrink cannot express at all: it only ever knows the
-         * tray's own side widths, nothing about how far along that edge
-         * it actually reaches. */
+         * screen space either way, so a final check against its actual
+         * current rectangle, the same one a drag or a config reload
+         * already goes through (see 'icon_avoid_systray_overlap''s
+         * comment), catches what that coarser shrink alone still
+         * misses.  A tray docked in a corner, reaching only partway
+         * along an edge, being the case that shrink cannot express at
+         * all: it only ever knows the tray's own side widths, nothing
+         * about how far along that edge it actually reaches. */
         if (surface != NULL) {
             int32_t tray_x;
             int32_t tray_y;
@@ -313,9 +324,11 @@ void ccmd_client_ensure_icon_window(client_td *client,
 
             if (systray_get_geometry(surface, &tray_x, &tray_y,
                         &tray_w, &tray_h)) {
-                (void) icon_avoid_systray_overlap(&ix, &iy,
-                        (uint16_t) WM_ICON_SQUARE_SIZE, icon_h_out,
-                        tray_x, tray_y, tray_w, tray_h,
+                (void) place_icon_avoid_systray_overlap(&ix, &iy,
+                        (struct dimensions_s) { WM_ICON_SQUARE_SIZE,
+                            icon_h_out },
+                        (struct geometry_s) {
+                            { tray_x, tray_y }, { tray_w, tray_h } },
                         (desktop != NULL) ? &desktop->workarea : NULL);
             }
         }

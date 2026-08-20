@@ -46,7 +46,7 @@
 #include <menu/dialog/info.h>
 
 /* Policy includes */
-#include <policy/placement.h>
+#include <policy/placement/window.h>
 
 /* Handler includes */
 #include <handler/internal.h>
@@ -276,23 +276,23 @@ void enact_desktop_clients_rearrange(const wm_td *wm,
 
             if (client != NULL && !client_is_locked(client)) {
                 /* Every client on the desktop goes through
-                 * 'place_apply'/'place_apply_cascade', the same
-                 * general-purpose placement engine a newly mapped
-                 * window is run through, not a simplified
+                 * 'place_window_apply'/'place_window_apply_cascade',
+                 * the same general-purpose placement engine a newly
+                 * mapped window is run through, not a simplified
                  * rearrange-only positioning routine.  That means
                  * a transient dialog among them (a client with its own
                  * 'transient_for' set) is not repositioned by the
                  * configured placement policy below at all.
                  *
-                 * 'place_apply' re-centers it over its own parent per
-                 * ICCCM §4.1.2.6 instead, the same as it would have
-                 * been placed there in the first place.  Finding that
-                 * parent is why this function needs the full 'wm_td'
-                 * rather than just 'desktop' or 'config'.  The parent
-                 * can live on a different surface entirely, so locating
-                 * it means searching 'wm->surfaces' as a whole (see
-                 * 's_place_transient_centered' in
-                 * 'policy/placement.c'). */
+                 * 'place_window_apply' re-centers it over its own
+                 * parent per ICCCM §4.1.2.6 instead, the same as it
+                 * would have been placed there in the first place.
+                 * Finding that parent is why this function needs the
+                 * full 'wm_td' rather than just 'desktop' or 'config'.
+                 * The parent can live on a different surface entirely,
+                 * so locating it means searching 'wm->surfaces' as
+                 * a whole (see 's_place_window_transient_centered' in
+                 * 'policy/placement/window.c'). */
 
                 /* 'centered'/'under-mouse' always resolve to the exact
                  * same single spot, so every client after the first
@@ -301,9 +301,9 @@ void enact_desktop_clients_rearrange(const wm_td *wm,
                  * rest fall back to cascade so the desktop ends up
                  * spread out instead of piled up */
                 if (single_spot_policy && !is_first) {
-                    place_apply_cascade(wm, surface, client);
+                    place_window_apply_cascade(wm, surface, client);
                 } else {
-                    place_apply(wm, surface, client);
+                    place_window_apply(wm, surface, client);
                 }
                 is_first = false;
             }

@@ -229,7 +229,7 @@ void rootmenu_menu_json_free(void)
 /* Display the root desktop menu; see this function's comment in
  * 'menu/context/rootmenu.h' */
 void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
-        surface_td *surface, int16_t x, int16_t y,
+        surface_td *surface, struct position_s pos,
         const config_td *config)
 {
     int n;
@@ -335,7 +335,7 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
     s_root.entries = s_entries;
     s_root.entry_count = s_entry_count;
 
-    ctxmenu_show(connection, surface, &s_root, x, y, config);
+    ctxmenu_show(connection, surface, &s_root, pos, config);
 }
 
 

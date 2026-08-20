@@ -26,7 +26,9 @@
  *
  * @note This header is private to the mouse input subsystem and must
  *       not be included outside of @c src/input/mouse/, for it is
- *       NOT part of the public API in @c input/mouse.h
+ *       NOT part of the public API in @c input/mouse/bind.h,
+ *       @c input/mouse/event.h, @c input/mouse/hover.h, or
+ *       @c input/mouse/cursor.h
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -46,6 +48,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Project includes */
 #include <client.h>
 
@@ -64,8 +69,7 @@
  *                   @p window belongs to
  * @param window     Window the crossing, motion, or poll was
  *                   evaluated for
- * @param root_x     Pointer X position in root-window coordinates
- * @param root_y     Pointer Y position in root-window coordinates
+ * @param root_pos   Pointer position in root-window coordinates
  *
  * @return The resolved client @p window belongs to, or @c NULL if it
  *         does not belong to a resizable client
@@ -73,8 +77,8 @@
  * @note Complexity: @e O(1)
  */
 client_td *im_update_resize_cursor(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window, int16_t root_x,
-        int16_t root_y);
+        list_td *surfaces, xcb_window_t window,
+        struct position_s root_pos);
 
 /**
  * @brief Start (or clear) hover-poll tracking of a window's resize

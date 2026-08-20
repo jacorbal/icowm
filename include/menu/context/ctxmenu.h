@@ -227,7 +227,7 @@ typedef struct ctxmenu_state_s {
 /**
  * @brief Create and show a context menu window
  *
- * Creates an XCB override-redirect popup window at (@p x, @p y),
+ * Creates an XCB override-redirect popup window at @p pos,
  * clamped so the menu never extends beyond the work area of @p surface.
  * The menu grabs the pointer.  Any previously open context menu at the
  * same nesting level is closed first.
@@ -236,15 +236,14 @@ typedef struct ctxmenu_state_s {
  * @param surface    Surface on which to display the menu
  * @param state      Menu state structure; @p entries and @p entry_count
  *                   must already be set by the caller
- * @param x          Requested X origin (root coordinates)
- * @param y          Requested Y origin (root coordinates)
+ * @param pos        Requested origin (root coordinates)
  * @param config     Active configuration (theme colors and font)
  *
  * @note Complexity: @e O(n), where @e n is @p entry_count
  */
 void ctxmenu_show(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
-        int16_t x, int16_t y, const config_td *config);
+        struct position_s pos, const config_td *config);
 
 /**
  * @brief Close a context menu and its entire descendant chain

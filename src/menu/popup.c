@@ -261,10 +261,14 @@ void popup_repaint(xcb_connection_t *connection,
             cfg->theme.overlay.font);
     text_renderer_set_color(cfg->theme.overlay.color.foreground,
             cfg->theme.overlay.color.background);
-    menu_draw_label(connection, s_popup_window, 8, 16, s_popup_lines[0]);
-    menu_draw_label(connection, s_popup_window, 8, 34, s_popup_lines[1]);
-    menu_draw_label(connection, s_popup_window, 8, 52, s_popup_lines[2]);
-    menu_draw_label(connection, s_popup_window, 8, 70, s_popup_lines[3]);
+    menu_draw_label(connection, s_popup_window,
+            (struct position_s) { 8, 16 }, s_popup_lines[0]);
+    menu_draw_label(connection, s_popup_window,
+            (struct position_s) { 8, 34 }, s_popup_lines[1]);
+    menu_draw_label(connection, s_popup_window,
+            (struct position_s) { 8, 52 }, s_popup_lines[2]);
+    menu_draw_label(connection, s_popup_window,
+            (struct position_s) { 8, 70 }, s_popup_lines[3]);
     xcb_flush(connection);
 }
 

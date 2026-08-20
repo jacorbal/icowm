@@ -20,6 +20,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Project includes */
 #include <client.h>
 #include <logger.h>
@@ -121,10 +124,9 @@ void enact_client_unfocus(client_td *client)
 
 
 /* Resize the client to a specific frame geometry */
-void enact_client_resize(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h)
+void enact_client_resize(client_td *client, struct geometry_s geom)
 {
-    ccmd_client_resize(client, x, y, w, h);
+    ccmd_client_resize(client, geom);
     if (client != NULL) {
         xcb_flush(client->connection);
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
@@ -134,10 +136,9 @@ void enact_client_resize(client_td *client, int32_t x, int32_t y,
 
 /* Resize the client to a specific frame geometry immediately,
  * bypassing any in-flight sync throttling */
-void enact_client_resize_force(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h)
+void enact_client_resize_force(client_td *client, struct geometry_s geom)
 {
-    ccmd_client_resize_force(client, x, y, w, h);
+    ccmd_client_resize_force(client, geom);
     if (client != NULL) {
         xcb_flush(client->connection);
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
@@ -146,9 +147,9 @@ void enact_client_resize_force(client_td *client, int32_t x, int32_t y,
 
 
 /* Move the client to a specific position */
-void enact_client_move(client_td *client, int32_t x, int32_t y)
+void enact_client_move(client_td *client, struct position_s pos)
 {
-    ccmd_client_move(client, x, y);
+    ccmd_client_move(client, pos);
     if (client != NULL) {
         xcb_flush(client->connection);
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);

@@ -20,6 +20,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Project includes */
 #include <surface.h>
 
@@ -37,13 +40,13 @@ uint16_t dlgutil_u16max(uint16_t a, uint16_t b)
 /* Draw a solid border outline around a button */
 void dlgutil_button_border_draw(xcb_connection_t *connection,
         xcb_window_t window, uint32_t color, uint32_t width,
-        int16_t x, int16_t y, uint16_t w, uint16_t h)
+        struct geometry_s geom)
 {
     xcb_gcontext_t gc;
     xcb_rectangle_t rect;
 
     if (connection == NULL || window == XCB_WINDOW_NONE ||
-            w == 0u || h == 0u || width == 0u) {
+            geom.dim.w == 0u || geom.dim.h == 0u || width == 0u) {
         return;
     }
 
@@ -52,10 +55,10 @@ void dlgutil_button_border_draw(xcb_connection_t *connection,
             XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH,
             (const uint32_t[]) { color, width });
 
-    rect.x = (int16_t) (x + (int16_t) (width / 2u));
-    rect.y = (int16_t) (y + (int16_t) (width / 2u));
-    rect.width = (uint16_t) (w - width);
-    rect.height = (uint16_t) (h - width);
+    rect.x = (int16_t) (geom.pos.x + (int16_t) (width / 2u));
+    rect.y = (int16_t) (geom.pos.y + (int16_t) (width / 2u));
+    rect.width = (uint16_t) (geom.dim.w - width);
+    rect.height = (uint16_t) (geom.dim.h - width);
     xcb_poly_rectangle(connection, window, gc, 1, &rect);
     xcb_free_gc(connection, gc);
 }
@@ -79,7 +82,7 @@ monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
         reply = xcb_query_pointer_reply(connection, cookie, NULL);
         if (reply != NULL) {
             monitor = surface_monitor_for_point(surface,
-                    reply->root_x, reply->root_y);
+                    (struct position_s) { reply->root_x, reply->root_y });
             free(reply);
         }
     }

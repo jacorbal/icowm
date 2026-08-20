@@ -29,38 +29,35 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 
 /**
  * @brief Begin an outline-mode drag: create and map the initial 4
  *        strip windows
  *
  * @param connection X connection
- * @param x Initial left edge, in root coordinates
- * @param y Initial top edge, in root coordinates
- * @param w Initial width
- * @param h Initial height
+ * @param geom Initial rectangle, in root coordinates
  *
  * @note No-op if @p connection is null
  * @note Complexity: @e O(1)
  */
 void drag_outline_start(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h);
+        struct geometry_s geom);
 
 /**
  * @brief Move the outline stand-in's own 4 strip windows to a new
  *        rectangle
  *
  * @param connection X connection
- * @param x New left edge, in root coordinates
- * @param y New top edge, in root coordinates
- * @param w New width
- * @param h New height
+ * @param geom New rectangle, in root coordinates
  *
  * @note No-op if @p connection is null
  * @note Complexity: @e O(1)
  */
 void drag_outline_move(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h);
+        struct geometry_s geom);
 
 /**
  * @brief End an outline-mode drag: destroy the 4 strip windows

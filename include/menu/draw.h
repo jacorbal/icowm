@@ -27,6 +27,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 
 /* Public interface */
 /**
@@ -51,13 +54,12 @@ void menu_draw_row_bg(xcb_connection_t *connection,
 /**
  * @brief Draw a text label at the given position
  *
- * Renders @p text at (@p x, @p y) inside @p window using the previously
+ * Renders @p text at @p pos inside @p window using the previously
  * configured text renderer colors.
  *
  * @param connection XCB connection
  * @param window     Target drawable window
- * @param x          Left margin in pixels
- * @param y          Baseline Y position in pixels
+ * @param pos        Left margin (x) and baseline Y position, in pixels
  * @param text       Null-terminated text to render
  *
  * @note The caller must have called @a text_renderer_init and
@@ -66,7 +68,7 @@ void menu_draw_row_bg(xcb_connection_t *connection,
  *       @p text
  */
 void menu_draw_label(xcb_connection_t *connection,
-        xcb_window_t window, int16_t x, int16_t y, const char *text);
+        xcb_window_t window, struct position_s pos, const char *text);
 
 /**
  * @brief Measure the pixel width of a text string

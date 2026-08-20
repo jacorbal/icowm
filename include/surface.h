@@ -239,8 +239,7 @@ void surface_refresh_monitors(surface_td *surface);
  * @brief Find which of the surface's monitors contains a point
  *
  * @param surface Pointer to the surface to search
- * @param x       X coordinate, in the surface's own space
- * @param y       Y coordinate, in the surface's own space
+ * @param pos     Coordinate, in the surface's own space
  *
  * @return The containing monitor, or, if the point falls outside every
  *         known monitor (e.g., a stale coordinate after a monitor was
@@ -251,7 +250,7 @@ void surface_refresh_monitors(surface_td *surface);
  * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
  */
 monitor_td surface_monitor_for_point(const surface_td *surface,
-        int32_t x, int32_t y);
+        struct position_s pos);
 
 /**
  * @brief Get the surface's primary monitor, if RandR flagged one

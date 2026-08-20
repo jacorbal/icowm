@@ -27,6 +27,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Default initial values */
 #include <defs/icon.h>
 
@@ -282,8 +285,9 @@ void drag_warp_tick(xcb_connection_t *connection)
             s_drag.client->config_base->windows.show_geom;
 
         if (s_drag.solid_drag) {
-            enact_client_move(s_drag.client, new_window_x,
-                    s_drag.client_cur_y);
+            enact_client_move(s_drag.client,
+                    (struct position_s) { new_window_x,
+                        s_drag.client_cur_y });
         } else {
             /* Same reasoning as the geometry overlay just below: left
              * untouched here, the outline would stay drawn wherever it
@@ -296,9 +300,10 @@ void drag_warp_tick(xcb_connection_t *connection)
              * runs for a plain move, never a resize (see the early
              * 'CLIENT_OPERATION_MOVING' guard above), so the size
              * itself never actually changes here at all. */
-            drag_outline_move(connection, new_window_x,
-                    s_drag.client_cur_y, s_drag.client_start_w,
-                    s_drag.client_start_h);
+            drag_outline_move(connection, (struct geometry_s) {
+                        { new_window_x, s_drag.client_cur_y },
+                        { s_drag.client_start_w,
+                            s_drag.client_start_h } });
         }
     }
 
@@ -313,14 +318,14 @@ void drag_warp_tick(xcb_connection_t *connection)
 
         (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
                 (int) new_window_x, (int) s_drag.client_cur_y);
-        drag_overlay_show(connection, is_icon,
-                new_window_x, s_drag.client_cur_y,
-                is_icon
-                    ? (uint16_t) WM_ICON_SQUARE_SIZE
-                    : s_drag.client_start_w,
-                is_icon
-                    ? drag_icon_height(s_drag.client)
-                    : s_drag.client_start_h,
+        drag_overlay_show(connection, is_icon, (struct geometry_s) {
+                    { new_window_x, s_drag.client_cur_y },
+                    { is_icon
+                        ? (uint16_t) WM_ICON_SQUARE_SIZE
+                        : s_drag.client_start_w,
+                      is_icon
+                        ? drag_icon_height(s_drag.client)
+                        : s_drag.client_start_h } },
                 geom_buf);
     }
 

@@ -38,9 +38,12 @@
 /* Utils includes */
 #include <utils/geom.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 /* Windows & icons policy includes */
 #include <policy/focus.h>
-#include <policy/placement.h>
+#include <policy/placement/icon.h>
 
 /* Default initial values */
 #include <defs/client.h>
@@ -59,7 +62,7 @@
 #include <wm.h>
 
 /* Local includes */
-#include <input/mouse.h>
+#include <input/mouse/cursor.h>
 #include <input/mouse/drag.h>
 #include <input/mouse/bounds.h>
 #include <input/mouse/drag/icon.h>
@@ -258,9 +261,9 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
      * rather than moving the real window live; see 's_drag.solid_drag'
      * itself for the config option this follows. */
     if (!s_drag.solid_drag) {
-        drag_outline_start(connection, s_drag.client_start_x,
-                s_drag.client_start_y, s_drag.client_start_w,
-                s_drag.client_start_h);
+        drag_outline_start(connection, (struct geometry_s) {
+                    { s_drag.client_start_x, s_drag.client_start_y },
+                    { s_drag.client_start_w, s_drag.client_start_h } });
     }
 
     xcb_grab_pointer(connection,
@@ -438,10 +441,10 @@ void drag_update(xcb_connection_t *connection,
 
             (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
                     (int) new_x, (int) new_y);
-            drag_overlay_show(connection, true,
-                    new_x, new_y,
-                    (uint16_t) WM_ICON_SQUARE_SIZE,
-                    drag_icon_height(client),
+            drag_overlay_show(connection, true, (struct geometry_s) {
+                        { new_x, new_y },
+                        { WM_ICON_SQUARE_SIZE,
+                            drag_icon_height(client) } },
                     geom_buf);
         } else {
             drag_overlay_hide(connection);
@@ -460,10 +463,13 @@ void drag_update(xcb_connection_t *connection,
         s_drag.client_cur_x = new_x;
         s_drag.client_cur_y = new_y;
         if (s_drag.solid_drag) {
-            enact_client_move(client, new_x, new_y);
+            enact_client_move(client,
+                    (struct position_s) { new_x, new_y });
         } else {
-            drag_outline_move(connection, new_x, new_y,
-                    s_drag.client_start_w, s_drag.client_start_h);
+            drag_outline_move(connection, (struct geometry_s) {
+                        { new_x, new_y },
+                        { s_drag.client_start_w,
+                            s_drag.client_start_h } });
         }
 
         if (show_geom) {
@@ -471,9 +477,10 @@ void drag_update(xcb_connection_t *connection,
 
             (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
                     (int) new_x, (int) new_y);
-            drag_overlay_show(connection, false,
-                    new_x, new_y,
-                    s_drag.client_start_w, s_drag.client_start_h,
+            drag_overlay_show(connection, false, (struct geometry_s) {
+                        { new_x, new_y },
+                        { s_drag.client_start_w,
+                            s_drag.client_start_h } },
                     geom_buf);
         } else {
             drag_overlay_hide(connection);
@@ -596,9 +603,12 @@ void drag_update(xcb_connection_t *connection,
         s_drag.client_cur_w = (int32_t) new_w;
         s_drag.client_cur_h = (int32_t) new_h;
         if (s_drag.solid_drag) {
-            enact_client_resize(client, new_x, new_y, new_w, new_h);
+            enact_client_resize(client,
+                    (struct geometry_s) {
+                        { new_x, new_y }, { new_w, new_h } });
         } else {
-            drag_outline_move(connection, new_x, new_y, new_w, new_h);
+            drag_outline_move(connection, (struct geometry_s) {
+                        { new_x, new_y }, { new_w, new_h } });
         }
         if (show_geom) {
             /* 'new_w'/'new_h' are the decorated frame's own total
@@ -652,9 +662,9 @@ void drag_update(xcb_connection_t *connection,
                 (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
                         content_w, content_h);
             }
-            drag_overlay_show(connection, false,
-                    new_x, new_y,
-                    geom_u16_sat(new_w), geom_u16_sat(new_h),
+            drag_overlay_show(connection, false, (struct geometry_s) {
+                        { new_x, new_y },
+                        { geom_u16_sat(new_w), geom_u16_sat(new_h) } },
                     geom_buf);
         } else {
             drag_overlay_hide(connection);
@@ -722,12 +732,16 @@ void drag_end(xcb_connection_t *connection,
                 if (surface != NULL &&
                         systray_get_geometry(surface, &tray_x, &tray_y,
                             &tray_w, &tray_h)) {
-                    pushed_out_of_tray = icon_avoid_systray_overlap(
-                            &new_icon_x, &new_icon_y,
-                            (uint16_t) WM_ICON_SQUARE_SIZE,
-                            (uint16_t) WM_ICON_SQUARE_SIZE,
-                            tray_x, tray_y, tray_w, tray_h,
-                            (desktop != NULL)
+                    struct geometry_s tray = {
+                        { tray_x, tray_y }, { tray_w, tray_h } };
+                    pushed_out_of_tray =
+                        place_icon_avoid_systray_overlap(
+                                &new_icon_x, &new_icon_y,
+                                (struct dimensions_s) {
+                                    WM_ICON_SQUARE_SIZE,
+                                    WM_ICON_SQUARE_SIZE },
+                                tray,
+                                (desktop != NULL)
                                 ? &desktop->workarea : NULL);
                 }
 
@@ -814,9 +828,9 @@ void drag_end(xcb_connection_t *connection,
                  * pointer moves). */
                 if (finalize_resize) {
                     enact_client_resize(s_drag.client,
-                            s_drag.client->layout.geometry.cur.pos.x,
-                            s_drag.client->layout.geometry.cur.pos.y,
-                            final_w, final_h);
+                            (struct geometry_s) {
+                                s_drag.client->layout.geometry.cur.pos,
+                                { final_w, final_h } });
                 }
             } else {
                 /* An outline drag never touched the real window until
@@ -837,11 +851,14 @@ void drag_end(xcb_connection_t *connection,
                  * live sequence of many resize calls along the way. */
                 if (finalize_resize) {
                     enact_client_resize_force(s_drag.client,
-                            s_drag.client_cur_x, s_drag.client_cur_y,
-                            final_w, final_h);
+                            (struct geometry_s) {
+                                { s_drag.client_cur_x,
+                                    s_drag.client_cur_y },
+                                { final_w, final_h } });
                 } else {
                     enact_client_move(s_drag.client,
-                            s_drag.client_cur_x, s_drag.client_cur_y);
+                            (struct position_s) { s_drag.client_cur_x,
+                                s_drag.client_cur_y });
                 }
                 drag_outline_end(connection);
             }

@@ -33,6 +33,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* ADT includes */
 #include <adt/list.h>
 
@@ -41,7 +44,7 @@
 
 /* Local includes */
 #include <input/mouse/internal.h>
-#include <input/mouse.h>
+#include <input/mouse/hover.h>
 
 
 /**
@@ -124,7 +127,9 @@ void mouse_hover_poll_tick(xcb_connection_t *connection,
     if (reply != NULL) {
         if (reply->same_screen) {
             (void) im_update_resize_cursor(connection, surfaces,
-                    s_hover_window, reply->root_x, reply->root_y);
+                    s_hover_window,
+                    (struct position_s) { reply->root_x,
+                        reply->root_y });
         }
         free(reply);
     }
@@ -142,7 +147,8 @@ void mouse_handle_motion_hover(xcb_connection_t *connection,
     }
 
     (void) im_update_resize_cursor(connection, surfaces,
-            event->event, event->root_x, event->root_y);
+            event->event,
+            (struct position_s) { event->root_x, event->root_y });
 }
 
 

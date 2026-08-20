@@ -21,6 +21,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Default initial values */
 #include <defs/input.h>
 
@@ -43,10 +46,7 @@
  *
  * @param connection XCB connection used to create or reconfigure the
  *                   strip windows
- * @param x      Left edge of the rectangle, in root coordinates
- * @param y      Top edge of the rectangle, in root coordinates
- * @param w      Width of the rectangle
- * @param h      Height of the rectangle
+ * @param geom   Rectangle, in root coordinates
  * @param create @c true to create and map the 4 strip windows,
  *               @c false to reconfigure the existing ones
  *
@@ -54,7 +54,7 @@
  * @note Complexity: @e O(1)
  */
 static void s_drag_outline_place(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h, bool create)
+        struct geometry_s geom, bool create)
 {
     uint32_t bw = (uint32_t) WM_DRAG_OUTLINE_BORDER_WIDTH;
     /* Each strip's own (x, y, w, h), in 'outline_windows''s own fixed
@@ -66,30 +66,33 @@ static void s_drag_outline_place(xcb_connection_t *connection,
     uint32_t strip_y[4];
     uint32_t strip_w[4];
     uint32_t strip_h[4];
-    uint32_t full_w = (w > 0u) ? w : 1u;
-    uint32_t full_h = (h > 0u) ? h : 1u;
+    uint32_t full_w = (geom.dim.w > 0u) ? geom.dim.w : 1u;
+    uint32_t full_h = (geom.dim.h > 0u) ? geom.dim.h : 1u;
 
     if (connection == NULL) {
         return;
     }
 
-    strip_x[0] = (uint32_t) x; /* top */
-    strip_y[0] = (uint32_t) y;
+    strip_x[0] = (uint32_t) geom.pos.x; /* top */
+    strip_y[0] = (uint32_t) geom.pos.y;
     strip_w[0] = full_w;
     strip_h[0] = bw;
 
-    strip_x[1] = (uint32_t) x; /* bottom */
-    strip_y[1] = (uint32_t) y + ((h > bw) ? h - bw : 0u);
+    strip_x[1] = (uint32_t) geom.pos.x; /* bottom */
+    strip_y[1] = (uint32_t) geom.pos.y +
+        ((geom.dim.h > bw) ? geom.dim.h - bw : 0u);
     strip_w[1] = full_w;
     strip_h[1] = bw;
 
-    strip_x[2] = (uint32_t) x; /* left */
-    strip_y[2] = (uint32_t) y;
+    strip_x[2] = (uint32_t) geom.pos.x; /* left */
+    strip_y[2] = (uint32_t) geom.pos.y;
     strip_w[2] = bw;
     strip_h[2] = full_h;
 
-    strip_x[3] = (uint32_t) x + ((w > bw) ? w - bw : 0u); /* right */
-    strip_y[3] = (uint32_t) y;
+    /* right */
+    strip_x[3] = (uint32_t) geom.pos.x +
+        ((geom.dim.w > bw) ? geom.dim.w - bw : 0u);
+    strip_y[3] = (uint32_t) geom.pos.y;
     strip_w[3] = bw;
     strip_h[3] = full_h;
 
@@ -135,18 +138,18 @@ static void s_drag_outline_place(xcb_connection_t *connection,
 /* Begin an outline-mode drag: create and map the initial 4 strip
  * windows */
 void drag_outline_start(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h)
+        struct geometry_s geom)
 {
-    s_drag_outline_place(connection, x, y, w, h, true);
+    s_drag_outline_place(connection, geom, true);
 }
 
 
 /* Move the outline stand-in's own 4 strip windows to a new
  * rectangle */
 void drag_outline_move(xcb_connection_t *connection,
-        int32_t x, int32_t y, uint32_t w, uint32_t h)
+        struct geometry_s geom)
 {
-    s_drag_outline_place(connection, x, y, w, h, false);
+    s_drag_outline_place(connection, geom, false);
 }
 
 

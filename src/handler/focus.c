@@ -46,7 +46,8 @@
 
 /* Input includes */
 #include <input/kbd/bind.h>
-#include <input/mouse.h>
+#include <input/mouse/bind.h>
+#include <input/mouse/event.h>
 
 /* Command includes */
 #include <cmds/client/state.h>

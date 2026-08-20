@@ -45,7 +45,7 @@
 
 /* Local includes */
 #include <input/modifier.h>
-#include <input/mouse.h>
+#include <input/mouse/bind.h>
 
 
 /* Module state */

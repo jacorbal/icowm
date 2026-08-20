@@ -563,7 +563,7 @@ void glyph_renderer_set_color(uint32_t fg, uint32_t bg)
 
 /* Draw a UTF-8 string at the specified baseline position */
 void glyph_draw_string(xcb_connection_t *connection,
-        xcb_drawable_t drawable, int16_t x, int16_t y, const char *text)
+        xcb_drawable_t drawable, struct position_s pos, const char *text)
 {
     uint32_t codepoints[GLYPH_MAX_STRING_LEN];
     uint32_t len;
@@ -599,7 +599,8 @@ void glyph_draw_string(xcb_connection_t *connection,
     stream = xcb_render_util_composite_text_stream(s_glyph.glyphset,
             len, 0u);
     if (stream != NULL) {
-        xcb_render_util_glyphs_32(stream, x, y, len, codepoints);
+        xcb_render_util_glyphs_32(stream, (int16_t) pos.x,
+                (int16_t) pos.y, len, codepoints);
         xcb_render_util_composite_text(connection,
                 XCB_RENDER_PICT_OP_OVER, s_glyph.fg_picture, dst_picture,
                 0u, 0, 0, stream);

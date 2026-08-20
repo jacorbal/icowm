@@ -19,6 +19,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -53,10 +56,7 @@ static s_mode_e s_mode = KBD_MODAL_NONE;
 static s_edge_e s_edge = KBD_EDGE_NONE;
 static xcb_connection_t *s_conn = NULL;
 static client_td *s_client = NULL;
-static int32_t s_saved_x = 0;
-static int32_t s_saved_y = 0;
-static uint32_t s_saved_w = 0u;
-static uint32_t s_saved_h = 0u;
+static struct geometry_s s_saved_geom = { { 0, 0 }, { 0u, 0u } };
 
 
 /**
@@ -83,10 +83,9 @@ static void s_geometry_restore(void)
         return;
     }
     if (s_mode == KBD_MODAL_MOVING) {
-        enact_client_move(s_client, s_saved_x, s_saved_y);
+        enact_client_move(s_client, s_saved_geom.pos);
     } else {
-        enact_client_resize(s_client,
-                s_saved_x, s_saved_y, s_saved_w, s_saved_h);
+        enact_client_resize(s_client, s_saved_geom);
     }
 }
 
@@ -101,10 +100,10 @@ static void s_modal_exit(void)
     s_edge = KBD_EDGE_NONE;
     s_conn = NULL;
     s_client = NULL;
-    s_saved_x = 0;
-    s_saved_y = 0;
-    s_saved_w = 0u;
-    s_saved_h = 0u;
+    s_saved_geom.pos.x = 0;
+    s_saved_geom.pos.y = 0;
+    s_saved_geom.dim.w = 0u;
+    s_saved_geom.dim.h = 0u;
 }
 
 
@@ -152,7 +151,7 @@ static void s_handle_move_key(xcb_keysym_t keysym, int32_t move_step)
         return;
     }
 
-    enact_client_move(s_client, x, y);
+    enact_client_move(s_client, (struct position_s) { x, y });
 }
 
 
@@ -279,8 +278,9 @@ static void s_handle_resize_key(xcb_keysym_t keysym, int32_t resize_step)
         nh = 1;
     }
 
-    enact_client_resize(s_client, nx, ny,
-            geom_dim_clamp(nw), geom_dim_clamp(nh));
+    enact_client_resize(s_client, (struct geometry_s) {
+                { nx, ny },
+                { geom_dim_clamp(nw), geom_dim_clamp(nh) } });
 }
 
 
@@ -316,10 +316,7 @@ static void s_modal_enter(xcb_connection_t *connection,
 
     s_conn = connection;
     s_client = client;
-    s_saved_x = client->layout.geometry.cur.pos.x;
-    s_saved_y = client->layout.geometry.cur.pos.y;
-    s_saved_w = client->layout.geometry.cur.dim.w;
-    s_saved_h = client->layout.geometry.cur.dim.h;
+    s_saved_geom = client->layout.geometry.cur;
     s_edge = KBD_EDGE_NONE;
     s_mode = mode;
 

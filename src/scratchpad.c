@@ -14,13 +14,15 @@
 
 #define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>  /* pid_t */
 #include <time.h>       /* clock_gettime, struct timespec */
+
+/* Type includes */
+#include <types/pair.h>
 
 /* Project includes */
 #include <client.h>
@@ -119,9 +121,9 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
 
     if (s_scratchpad_client == NULL) {
         pid_t launched_pid = (pid_t) -1;
-        if (s_awaiting_scratchpad) {
-            bool awaiting_expired = false;
+        bool awaiting_expired = false;
 
+        if (s_awaiting_scratchpad) {
             awaiting_expired =
                 (clock_ms_since(&s_awaiting_scratchpad_since) >=
                     (long) WM_SCRATCHPAD_AWAIT_TIMEOUT_SECONDS * 1000L);
@@ -386,7 +388,8 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
         break;
     }
 
-    enact_client_resize_force(client, x, y, width, height);
+    enact_client_resize_force(client,
+            (struct geometry_s) { { x, y }, { width, height } });
 }
 
 

@@ -222,9 +222,9 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
         if (caption[0] != '\0') {
             text_draw_string(desktop->connection,
                     client->icon_window, XCB_NONE,
-                    2,
-                    (int16_t) (WM_ICON_SQUARE_SIZE +
-                        WM_ICON_CAPTION_HEIGHT - 2u),
+                    (struct position_s) { 2,
+                        WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
+                            2u },
                     caption);
         }
     }
@@ -284,9 +284,9 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
                 client->theme->icon.active.color.foreground,
                 client->theme->icon.active.color.background);
         text_draw_string(connection, client->icon_window, XCB_NONE,
-                2,
-                (int16_t) (WM_ICON_SQUARE_SIZE +
-                    WM_ICON_CAPTION_HEIGHT - 2u),
+                (struct position_s) { 2,
+                    WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
+                        2u },
                 caption);
     }
 
@@ -403,8 +403,8 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
 
     letter_w = text_string_measure(letter);
     text_draw_string(connection, client->icon_window, XCB_NONE,
-            (int16_t) ((int32_t) WM_ICON_SQUARE_SIZE -
-                (int32_t) letter_w - 2),
-            (int16_t) (2 + text_font_ascent()),
+            (struct position_s) {
+                (int32_t) WM_ICON_SQUARE_SIZE - (int32_t) letter_w - 2,
+                2 + text_font_ascent() },
             letter);
 }

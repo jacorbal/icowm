@@ -25,6 +25,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 
 /* Public interface */
 /**
@@ -113,8 +116,7 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg);
  * @param connection Pointer to the XCB connection
  * @param drawable   Target drawable where the text will be drawn
  * @param gc         Graphics context to use, or @c XCB_NONE to use default
- * @param x          X coordinate of the text baseline
- * @param y          Y coordinate of the text baseline
+ * @param pos        Position of the text baseline
  * @param text       Null-terminated string to draw
  *
  * @note Strings longer than 255 bytes are truncated to fit the XCB text
@@ -123,7 +125,7 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg);
  */
 void text_draw_string(xcb_connection_t *connection,
         xcb_drawable_t drawable, xcb_gcontext_t gc,
-        int16_t x, int16_t y, const char *text);
+        struct position_s pos, const char *text);
 
 /**
  * @brief Measure the rendered width of a string

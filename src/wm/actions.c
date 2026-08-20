@@ -25,34 +25,37 @@
 /* Utils includes */
 #include <utils/config/json.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 /* Session includes */
-#include <session.h>
 
 /* Rules includes */
 #include <rules.h>
 
 /* Input includes */
 #include <input/kbd/bind.h>
-#include <input/mouse.h>
+#include <input/mouse/bind.h>
 
 /* Default initial values */
 #include <defs/icon.h>
 
 /* Project includes */
+#include <cctl/sn.h>
 #include <client.h>
 #include <config.h>
 #include <config/memguard.h>
 #include <desktop.h>
+#include <enact.h>
 #include <logger.h>
+#include <lookup.h>
+#include <session.h>
 #include <surface.h>
-#include <cctl/sn.h>
 #include <systray.h>
 #include <xsettings.h>
-#include <enact.h>
-#include <lookup.h>
 
 /* Policy includes */
-#include <policy/placement.h>
+#include <policy/placement/icon.h>
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
@@ -92,6 +95,7 @@ static void s_resync_after_reload(const wm_td *wm)
         int32_t tray_y;
         uint16_t tray_w;
         uint16_t tray_h;
+        struct geometry_s tray;
         /* Queried once per surface here, ahead of the desktop/client
          * loop below, rather than once per icon inside it.  This is
          * a synchronous round trip to the X server (see 'systray_get_
@@ -99,6 +103,11 @@ static void s_resync_after_reload(const wm_td *wm)
          * shares the identical tray rectangle regardless. */
         bool tray_visible = systray_get_geometry(s, &tray_x, &tray_y,
                 &tray_w, &tray_h);
+
+        tray.pos.x = tray_x;
+        tray.pos.y = tray_y;
+        tray.dim.w = tray_w;
+        tray.dim.h = tray_h;
 
         if (s->id >= cb->screen_count) {
             continue;
@@ -188,11 +197,12 @@ static void s_resync_after_reload(const wm_td *wm)
                                         WM_ICON_CAPTION_HEIGHT);
                             }
 
-                            if (icon_avoid_systray_overlap(&icon_x,
-                                        &icon_y,
-                                        (uint16_t) WM_ICON_SQUARE_SIZE,
-                                        icon_h, tray_x, tray_y, tray_w,
-                                        tray_h, &d->workarea)) {
+                            if (place_icon_avoid_systray_overlap(
+                                        &icon_x, &icon_y,
+                                        (struct dimensions_s) {
+                                            WM_ICON_SQUARE_SIZE, icon_h },
+                                        tray,
+                                        &d->workarea)) {
                                 uint32_t vals[2];
 
                                 //c->icon_x = icon_x;   /* 'tis a no-op */

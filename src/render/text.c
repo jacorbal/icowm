@@ -553,7 +553,7 @@ static size_t s_utf8_to_latin1(const char *restrict text,
 /* Draw a string at the specified position */
 void text_draw_string(xcb_connection_t *connection,
         xcb_drawable_t drawable, xcb_gcontext_t gc,
-        int16_t x, int16_t y, const char *text)
+        struct position_s pos, const char *text)
 {
     size_t len;
     xcb_generic_error_t *draw_error;
@@ -593,7 +593,7 @@ void text_draw_string(xcb_connection_t *connection,
     sanitized[len] = '\0';
 
     if (s_text.backend == S_BACKEND_GLYPH) {
-        glyph_draw_string(connection, drawable, x, y, sanitized);
+        glyph_draw_string(connection, drawable, pos, sanitized);
         return;
     }
 
@@ -609,7 +609,7 @@ void text_draw_string(xcb_connection_t *connection,
             xcb_image_text_8_checked(connection, (uint8_t) len,
                 drawable, (gc == XCB_NONE)
                     ? s_text.gc
-                    : gc, x, y, latin1));
+                    : gc, (int16_t) pos.x, (int16_t) pos.y, latin1));
     if (draw_error != NULL) {
         LOGGER_WARNING("'xcb_image_text_8' failed on drawable %#x" \
                 " (error=%u)",

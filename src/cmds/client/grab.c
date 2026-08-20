@@ -12,7 +12,7 @@
  */
 
 /* System includes */
-#include <stddef.h>     /* size_t */
+#include <stddef.h>     /* size_t, NULL */
 #include <stdint.h>
 
 /* XCB includes */

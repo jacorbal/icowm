@@ -24,6 +24,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* ADT includes */
 #include <adt/list.h>
 
@@ -39,7 +42,7 @@
 #include <surface.h>
 
 /* Local includes */
-#include <input/mouse.h>
+#include <input/mouse/event.h>
 #include <input/mouse/internal.h>
 
 
@@ -89,7 +92,8 @@ void mouse_handle_enter(xcb_connection_t *connection,
      * giving the resize-cursor logic a second, independent chance to
      * catch what motion alone might have missed. */
     entered = im_update_resize_cursor(connection, surfaces,
-            event->event, event->root_x, event->root_y);
+            event->event,
+            (struct position_s) { event->root_x, event->root_y });
 
     /* An undecorated client has no separate frame window to fall
      * back on at all: moving from its border to its interior (or

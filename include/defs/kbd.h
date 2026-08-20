@@ -123,7 +123,7 @@
  * Adjust this single constant to retune the pace; nothing else needs
  * to change.
  */
-#define KBD_LAUNCH_MIN_INTERVAL_MS (150u)
+#define KBD_LAUNCH_MIN_INTERVAL_MS (100u)
 
 
 #endif  /* ! DEFS_KBD_H */

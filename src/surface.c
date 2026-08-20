@@ -383,7 +383,7 @@ void surface_refresh_monitors(surface_td *surface)
 
 /* Find which of the surface's monitors contains a point */
 monitor_td surface_monitor_for_point(const surface_td *surface,
-        int32_t x, int32_t y)
+        struct position_s pos)
 {
     monitor_td fallback = {.x = 0, .y = 0, .w = 0u, .h = 0u};
     uint32_t closest = 0u;
@@ -406,13 +406,13 @@ monitor_td surface_monitor_for_point(const surface_td *surface,
         int64_t cy;
         int64_t dist;
 
-        if (x >= m->x && x < mright &&
-                y >= m->y && y < mbottom) {
+        if (pos.x >= m->x && pos.x < mright &&
+                pos.y >= m->y && pos.y < mbottom) {
             return *m;
         }
 
-        cx = m->x + (int32_t) (m->w / 2u) - x;
-        cy = m->y + (int32_t) (m->h / 2u) - y;
+        cx = m->x + (int32_t) (m->w / 2u) - pos.x;
+        cy = m->y + (int32_t) (m->h / 2u) - pos.y;
         dist = cx * cx + cy * cy;
         if (closest_dist < 0 || dist < closest_dist) {
             closest_dist = dist;
@@ -696,8 +696,7 @@ void surface_refresh_workareas(surface_td *surface)
 
         if (d != NULL) {
             desktop_update_workarea(d,
-                    surface->properties.dim.w,
-                    surface->properties.dim.h,
+                    surface->properties.dim,
                     (surface->config != NULL)
                         ? &surface->config->desktops : NULL,
                     systray_get_reserved_strut(surface),

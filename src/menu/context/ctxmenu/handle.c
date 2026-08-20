@@ -73,8 +73,7 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
             if (child_state != NULL &&
                     state->entries[sel].items != NULL &&
                     state->entries[sel].item_count > 0) {
-                int16_t sub_x;
-                int16_t sub_y;
+                struct position_s sub_pos;
 
                 if (state->child != NULL) {
                     ctxmenu_close(state->child);
@@ -84,12 +83,11 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
                 child_state->entry_count = state->entries[sel].item_count;
                 child_state->parent = state;
                 child_state->child = NULL;
-                sub_x = (int16_t) (state->origin_x +
-                        (int16_t) state->width);
-                sub_y = (int16_t) (state->origin_y +
-                        (int16_t) ctxmenu_entry_top_y(state, sel));
+                sub_pos.x = state->origin_x + (int32_t) state->width;
+                sub_pos.y = state->origin_y +
+                        ctxmenu_entry_top_y(state, sel);
                 ctxmenu_show(connection, surface, child_state,
-                        sub_x, sub_y, config);
+                        sub_pos, config);
                 state->child = child_state;
             }
         }
@@ -211,8 +209,7 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
     }
 
     if (state->entries[idx].type == CTXMENU_SUBMENU) {
-        int16_t sub_x;
-        int16_t sub_y;
+        struct position_s sub_pos;
 
         /* Open or re-open the child submenu to the right.
          * The caller stores the child 'ctxmenu_state_td' pointer in the
@@ -249,12 +246,12 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         child_state->parent = state;
         child_state->child = NULL;
 
-        sub_x = (int16_t) (state->origin_x + (int16_t) state->width);
-        sub_y = (int16_t) (state->origin_y +
-                (int16_t) ctxmenu_entry_top_y(state, idx));
+        sub_pos.x = state->origin_x + (int32_t) state->width;
+        sub_pos.y = state->origin_y +
+                ctxmenu_entry_top_y(state, idx);
 
         ctxmenu_show(connection, surface, child_state,
-                sub_x, sub_y, config);
+                sub_pos, config);
         state->child = child_state;
         return true;
     }

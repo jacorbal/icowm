@@ -57,13 +57,13 @@ void menu_draw_row_bg(xcb_connection_t *connection,
 
 /* Draw a text label at the given position */
 void menu_draw_label(xcb_connection_t *connection,
-        xcb_window_t window, int16_t x, int16_t y, const char *text)
+        xcb_window_t window, struct position_s pos, const char *text)
 {
     if (connection == NULL || text == NULL) {
         return;
     }
 
-    text_draw_string(connection, window, XCB_NONE, x, y, text);
+    text_draw_string(connection, window, XCB_NONE, pos, text);
 }
 
 

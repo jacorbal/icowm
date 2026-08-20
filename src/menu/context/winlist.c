@@ -136,7 +136,8 @@ static int s_entry_data_used = 0;
  *
  * @note Complexity: @e O(1)
  */
-static void s_switch_to_desktop(surface_td *surface, uint32_t desktop_id)
+static void s_switch_to_desktop(surface_td *surface,
+        uint32_t desktop_id)
 {
     enact_surface_desktop_switch(surface, desktop_id);
 }
@@ -181,7 +182,8 @@ static void s_cb_goto_desktop(xcb_connection_t *connection,
  * @param userdata   Pointer to a @c winlist_entry_data_td with the
  *                   target surface
  */
-static void s_cb_add_desktop(xcb_connection_t *connection, void *userdata)
+static void s_cb_add_desktop(xcb_connection_t *connection,
+        void *userdata)
 {
     winlist_entry_data_td *data;
 
@@ -446,7 +448,8 @@ static void s_appgroup_label(client_td * const *members, int member_n,
 
     name = NULL;
     for (int i = 0; i < member_n && name == NULL; ++i) {
-        if (members[i] != NULL && members[i]->info.class_name[1] != NULL &&
+        if (members[i] != NULL &&
+                members[i]->info.class_name[1] != NULL &&
                 members[i]->info.class_name[1][0] != '\0') {
             name = members[i]->info.class_name[1];
         }
@@ -746,7 +749,7 @@ static int s_count_appgroups_needed(surface_td *surface, int desktop_count)
 
 /* Open the window list menu */
 void winlist_show(xcb_connection_t *connection,
-        surface_td *surface, int16_t x, int16_t y,
+        surface_td *surface, struct position_s pos,
         const config_td *config)
 {
     uint32_t cur_did;
@@ -1057,7 +1060,7 @@ void winlist_show(xcb_connection_t *connection,
     s_root.entries = root_target;
     s_root.entry_count = n;
 
-    ctxmenu_show(connection, surface, &s_root, x, y, config);
+    ctxmenu_show(connection, surface, &s_root, pos, config);
 }
 
 

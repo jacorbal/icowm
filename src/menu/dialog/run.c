@@ -284,14 +284,13 @@ void run_handle_keypress(xcb_connection_t *connection,
  * @param window     Window to draw into
  * @param color      Fill color
  * @param x          Left edge, in pixels
- * @param w          Width, in pixels
- * @param h          Height, in pixels
+ * @param dim        Width/height, in pixels
  *
  * @note Complexity: @e O(1)
  */
 static void s_run_fill_rect(xcb_connection_t *connection,
         xcb_window_t window, uint32_t color,
-        int16_t x, uint16_t w, uint16_t h)
+        int16_t x, struct dimensions_s dim)
 {
     xcb_gcontext_t gc;
     xcb_rectangle_t rect;
@@ -303,8 +302,8 @@ static void s_run_fill_rect(xcb_connection_t *connection,
 
     rect.x = x;
     rect.y = 0;
-    rect.width = w;
-    rect.height = h;
+    rect.width = (uint16_t) dim.w;
+    rect.height = (uint16_t) dim.h;
     xcb_poly_fill_rectangle(connection, window, gc, 1, &rect);
 
     xcb_free_gc(connection, gc);
@@ -337,16 +336,17 @@ void run_draw(xcb_connection_t *connection, const config_td *cfg)
 
     s_run_fill_rect(connection, s_run.window,
             cfg->theme.prompt.label.color.background,
-            0, label_w, height);
+            0, (struct dimensions_s) { label_w, height });
     s_run_fill_rect(connection, s_run.window,
             cfg->theme.prompt.input.color.background,
-            input_x, (uint16_t) (WM_RUN_WIDTH - label_w), height);
+            input_x,
+            (struct dimensions_s) { WM_RUN_WIDTH - label_w, height });
 
     text_renderer_set_color(cfg->theme.prompt.label.color.foreground,
             cfg->theme.prompt.label.color.background);
     menu_draw_label(connection, s_run.window,
-            (int16_t) WM_RUN_PAD_X,
-            (int16_t) (WM_RUN_PAD_Y + WM_RUN_BAR_HEIGHT - 7),
+            (struct position_s) { WM_RUN_PAD_X,
+                WM_RUN_PAD_Y + WM_RUN_BAR_HEIGHT - 7 },
             prompt);
 
     snprintf(shown, sizeof(shown), "%s_", s_run.command);
@@ -355,8 +355,8 @@ void run_draw(xcb_connection_t *connection, const config_td *cfg)
     text_renderer_set_color(cfg->theme.prompt.input.color.foreground,
             cfg->theme.prompt.input.color.background);
     menu_draw_label(connection, s_run.window,
-            (int16_t) (input_x + WM_RUN_PAD_X / 2),
-            (int16_t) (WM_RUN_PAD_Y + WM_RUN_BAR_HEIGHT - 7),
+            (struct position_s) { input_x + WM_RUN_PAD_X / 2,
+                WM_RUN_PAD_Y + WM_RUN_BAR_HEIGHT - 7 },
             shown);
 
     xcb_flush(connection);

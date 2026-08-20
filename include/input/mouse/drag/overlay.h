@@ -24,6 +24,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 
 /** Horizontal padding, in pixels, inside the drag-position overlay */
 #define WM_DRAG_OVERLAY_PAD_X (8u)
@@ -58,18 +61,14 @@ void drag_overlay_hide(xcb_connection_t *connection);
  * @param connection XCB connection used to manage the overlay window
  * @param is_icon    Whether the overlay should use the active icon
  *                   theme
- * @param target_x   Left coordinate of the target rectangle
- * @param target_y   Top coordinate of the target rectangle
- * @param target_w   Width of the target rectangle
- * @param target_h   Height of the target rectangle
+ * @param target     Target rectangle to center the overlay within
  * @param text       Overlay text to display
  *
  * @note Complexity: @e O(1)
  */
 void drag_overlay_show(xcb_connection_t *connection,
         bool is_icon,
-        int32_t target_x, int32_t target_y,
-        uint16_t target_w, uint16_t target_h,
+        struct geometry_s target,
         const char *text);
 
 /**

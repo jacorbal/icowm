@@ -63,6 +63,9 @@
 #include <xcb/xcb_ewmh.h>
 #include <xcb/render.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 
 /**
  * @brief One client's cached icon state, an already built @c Picture or
@@ -201,9 +204,7 @@ void wmicon_draw(xcb_connection_t *connection,
  *                    @c WM_HINTS properties are read (not the icon
  *                    window itself)
  * @param drawable    Drawable to composite onto
- * @param x           X offset, within @p drawable, of the icon square's
- *                    own top-left corner
- * @param y           Y offset, within @p drawable, of the icon square's
+ * @param pos         Offset, within @p drawable, of the icon square's
  *                    own top-left corner
  * @param area_size   Side length, in pixels, of the square area the
  *                    icon is centered in and clipped to
@@ -217,7 +218,7 @@ void wmicon_draw(xcb_connection_t *connection,
  */
 void wmicon_draw_at(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
-        xcb_drawable_t drawable, int16_t x, int16_t y,
+        xcb_drawable_t drawable, struct position_s pos,
         uint16_t area_size, uint32_t frame_color, uint32_t bg_color,
         wmicon_cache_td *cache);
 

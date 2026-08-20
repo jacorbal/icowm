@@ -1,5 +1,5 @@
 /**
- * @file policy/tiling.c
+ * @file policy/placement/icon.c
  *
  * @brief Icon placement policy implementation
  *
@@ -39,6 +39,9 @@
 /* Utils includes */
 #include <utils/geom.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 /* Default initial values */
 #include <defs/icon.h>
 
@@ -50,8 +53,7 @@
 
 /* Local includes */
 #include <policy/internal.h>
-#include <policy/placement.h>
-
+#include <policy/placement/icon.h>
 
 
 /**
@@ -84,7 +86,7 @@
  *
  * @note Complexity: @e O(n), where @e n is @p occ_count
  */
-static bool s_icon_rect_overlaps_any(int32_t ix, int32_t iy,
+static bool s_place_icon_rect_overlaps_any(int32_t ix, int32_t iy,
         uint16_t icon_w, uint16_t icon_h, int32_t border_twice,
         const int32_t *restrict occ_x, const int32_t *restrict occ_y,
         uint16_t occ_count)
@@ -111,10 +113,10 @@ static bool s_icon_rect_overlaps_any(int32_t ix, int32_t iy,
  *        the non-SMART edge-anchored placement policies
  *
  * Shared by @c place_icon's own slot search (which needs every
- * candidate slot's pixel position to test for overlap; see
- * @c s_icon_rect_overlaps_any) and its final conversion of whichever
- * slot search ends up choosing, so the two can never disagree about
- * what a given slot index actually means on screen.
+ * candidate slot's pixel position to test for overlap) and its final
+ * conversion of whichever slot search ends up choosing, so the two can
+ * never disagree about what a given slot index actually means on
+ * screen.
  *
  * @param policy       Placement edge; @c CONFIG_ICON_PLACEMENT_SMART is
  *                     not valid here (handled entirely separately)
@@ -123,22 +125,20 @@ static bool s_icon_rect_overlaps_any(int32_t ix, int32_t iy,
  * @param margin       Fixed margin from the screen edge
  * @param step_x       Horizontal slot pitch (icon width plus margin)
  * @param step_y       Vertical slot pitch (icon height plus margin)
- * @param icon_w       Icon width, in pixels
- * @param icon_h       Icon height, in pixels
- * @param screen_w     Screen (or monitor) width
- * @param screen_h     Screen (or monitor) height
+ * @param icon_dim     Icon width/height, in pixels
+ * @param screen_dim   Screen (or monitor) width/height
  * @param border_twice Icon border width, doubled (both sides)
- * @param out_ix       Receives the slot's left edge
- * @param out_iy       Receives the slot's top edge
+ * @param out_pos      Receives the slot's own top-left corner
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a s_place_icon_rect_overlaps_any
  */
-static void s_icon_slot_to_pixel(enum config_icon_placement_e policy,
+static void s_place_icon_slot_to_pixel(enum config_icon_placement_e policy,
         uint16_t slot, uint16_t max_primary, uint16_t margin,
-        uint16_t step_x, uint16_t step_y, uint16_t icon_w,
-        uint16_t icon_h, uint16_t screen_w, uint16_t screen_h,
-        int32_t border_twice, int32_t *restrict out_ix,
-        int32_t *restrict out_iy)
+        uint16_t step_x, uint16_t step_y,
+        struct dimensions_s icon_dim, struct dimensions_s screen_dim,
+        int32_t border_twice, struct position_s *restrict out_pos)
 {
     uint16_t pri = (uint16_t) (slot % max_primary);
     uint16_t sec = (uint16_t) (slot / max_primary);
@@ -151,48 +151,54 @@ static void s_icon_slot_to_pixel(enum config_icon_placement_e policy,
      * path without adding a 'default:' case, which would silently
      * swallow a future enum member added without a case here instead of
      * letting '-Wswitch' catch the omission. */
-    *out_ix = (int32_t) margin;
-    *out_iy = (int32_t) margin;
+    out_pos->x = (int32_t) margin;
+    out_pos->y = (int32_t) margin;
 
     switch (policy) {
         case CONFIG_ICON_PLACEMENT_LEFT:
-            *out_ix = (int32_t) margin + (int32_t) sec * (int32_t) step_x;
-            *out_iy = (int32_t) margin + (int32_t) pri * (int32_t) step_y;
+            out_pos->x = (int32_t) margin +
+                (int32_t) sec * (int32_t) step_x;
+            out_pos->y = (int32_t) margin +
+                (int32_t) pri * (int32_t) step_y;
             break;
 
         case CONFIG_ICON_PLACEMENT_RIGHT:
-            *out_ix = (int32_t) screen_w - (int32_t) icon_w -
+            out_pos->x = (int32_t) screen_dim.w - (int32_t) icon_dim.w -
                 (int32_t) margin - border_twice -
                 (int32_t) sec * (int32_t) step_x;
-            *out_iy = (int32_t) margin + (int32_t) pri * (int32_t) step_y;
+            out_pos->y = (int32_t) margin +
+                (int32_t) pri * (int32_t) step_y;
             break;
 
         case CONFIG_ICON_PLACEMENT_BOTTOM:
-            *out_ix = (int32_t) margin + (int32_t) pri * (int32_t) step_x;
-            *out_iy = (int32_t) screen_h - (int32_t) margin -
-                (int32_t) icon_h - border_twice -
+            out_pos->x = (int32_t) margin +
+                (int32_t) pri * (int32_t) step_x;
+            out_pos->y = (int32_t) screen_dim.h - (int32_t) margin -
+                (int32_t) icon_dim.h - border_twice -
                 (int32_t) sec * (int32_t) step_y;
             break;
 
         case CONFIG_ICON_PLACEMENT_TOP:
         case CONFIG_ICON_PLACEMENT_SMART:
-            *out_ix = (int32_t) margin + (int32_t) pri * (int32_t) step_x;
-            *out_iy = (int32_t) margin + (int32_t) sec * (int32_t) step_y;
+            out_pos->x = (int32_t) margin +
+                (int32_t) pri * (int32_t) step_x;
+            out_pos->y = (int32_t) margin +
+                (int32_t) sec * (int32_t) step_y;
             break;
     }
 }
 
 
 /* Compute the icon window position for a newly iconified client */
-void place_icon(const client_td *client, desktop_td *desktop,
+void place_icon_apply(const client_td *client, desktop_td *desktop,
         enum config_icon_placement_e policy,
-        uint16_t icon_w, uint16_t icon_h,
-        uint16_t screen_w, uint16_t screen_h,
-        int16_t *restrict out_x, int16_t *restrict out_y)
+        struct dimensions_s icon_dim,
+        struct dimensions_s screen_dim,
+        struct position_s *restrict out_pos)
 {
     const uint16_t margin = (uint16_t) WM_ICON_GRID_MARGIN;
-    const uint16_t step_x = (uint16_t) (icon_w + margin);
-    const uint16_t step_y = (uint16_t) (icon_h + margin);
+    const uint16_t step_x = (uint16_t) (icon_dim.w + margin);
+    const uint16_t step_y = (uint16_t) (icon_dim.h + margin);
     uint64_t border_twice_u64;
     int32_t border_twice;
     uint16_t max_primary;
@@ -203,13 +209,12 @@ void place_icon(const client_td *client, desktop_td *desktop,
     int32_t ix;
     int32_t iy;
 
-    if (client == NULL || client->theme == NULL ||
-            out_x == NULL || out_y == NULL) {
+    if (client == NULL || client->theme == NULL || out_pos == NULL) {
         return;
     }
 
-    *out_x = (int16_t) margin;
-    *out_y = (int16_t) margin;
+    out_pos->x = margin;
+    out_pos->y = margin;
 
     border_twice_u64 =
         (uint64_t) client->theme->icon.active.border.width * 2u;
@@ -218,8 +223,8 @@ void place_icon(const client_td *client, desktop_td *desktop,
 
     /* Collect every already-mapped icon's own position once, shared by
      * both the SMART and non-SMART branches below: each candidate slot
-     * is tested against these via 's_icon_rect_overlaps_any' (real
-     * pixel overlap) rather than against a precomputed grid-index
+     * is tested against these via 's_place_icon_rect_overlaps_any'
+     * (real pixel overlap) rather than against a precomputed grid-index
      * table, so a candidate only a few pixels into an existing icon's
      * footprint is correctly rejected even when that icon's own saved
      * position is not itself grid-aligned (e.g., it sits on a monitor
@@ -277,35 +282,39 @@ void place_icon(const client_td *client, desktop_td *desktop,
         uint16_t sec;
 
         /* Compute max_primary for BOTTOM layout */
-        max_primary = (screen_w > step_x)
-            ? (uint16_t) ((screen_w - margin) / step_x) : 1u;
+        max_primary = (screen_dim.w > step_x)
+            ? (uint16_t) ((screen_dim.w - margin) / step_x) : 1u;
         if (max_primary == 0u) {
             max_primary = 1u;
         }
 
         iw_full = (border_twice > 0)
-            ? (uint32_t) icon_w + (uint32_t) border_twice
-            : (uint32_t) icon_w;
+            ? (uint32_t) icon_dim.w + (uint32_t) border_twice
+            : (uint32_t) icon_dim.w;
         ih_full = (border_twice > 0)
-            ? (uint32_t) icon_h + (uint32_t) border_twice
-            : (uint32_t) icon_h;
+            ? (uint32_t) icon_dim.h + (uint32_t) border_twice
+            : (uint32_t) icon_dim.h;
 
         /* Score every free slot by window overlap + compactness.
          * 'sec' (overflow row) is used as a compactness tie-breaker:
          * lower 'sec' means closer to the screen edge */
         chosen = 0u;
         for (uint16_t i = 0u; i < 256u; ++i) {
-            s_icon_slot_to_pixel(CONFIG_ICON_PLACEMENT_BOTTOM, i,
-                    max_primary, margin, step_x, step_y, icon_w,
-                    icon_h, screen_w, screen_h, border_twice,
-                    &ix, &iy);
+            struct position_s pos;
+
+            s_place_icon_slot_to_pixel(CONFIG_ICON_PLACEMENT_BOTTOM, i,
+                    max_primary, margin, step_x, step_y,
+                    icon_dim, screen_dim, border_twice, &pos);
+            ix = pos.x;
+            iy = pos.y;
 
             if (iy < (int32_t) margin) {
                 /* Slot is off the top of the screen; skip */
                 continue;
             }
 
-            if (s_icon_rect_overlaps_any(ix, iy, icon_w, icon_h,
+            if (s_place_icon_rect_overlaps_any(ix, iy,
+                        (uint16_t) icon_dim.w, (uint16_t) icon_dim.h,
                         border_twice, occ_x, occ_y, occ_count)) {
                 continue;
             }
@@ -354,25 +363,23 @@ void place_icon(const client_td *client, desktop_td *desktop,
         }
 
         /* Convert chosen slot to pixel coordinates (BOTTOM layout) */
-        s_icon_slot_to_pixel(CONFIG_ICON_PLACEMENT_BOTTOM, chosen,
-                max_primary, margin, step_x, step_y, icon_w, icon_h,
-                screen_w, screen_h, border_twice, &ix, &iy);
-        *out_x = (int16_t) ix;
-        *out_y = (int16_t) iy;
+        s_place_icon_slot_to_pixel(CONFIG_ICON_PLACEMENT_BOTTOM,
+                chosen, max_primary, margin, step_x, step_y,
+                icon_dim, screen_dim, border_twice, out_pos);
         pri = (uint16_t) (chosen % max_primary);
         sec = (uint16_t) (chosen / max_primary);
 
-        if (*out_x < (int16_t) margin) {
-            *out_x = (int16_t) margin;
+        if (out_pos->x < (int16_t) margin) {
+            out_pos->x = (int16_t) margin;
         }
-        if (*out_y < (int16_t) margin) {
-            *out_y = (int16_t) margin;
+        if (out_pos->y < (int16_t) margin) {
+            out_pos->y = (int16_t) margin;
         }
 
         LOGGER_DEBUG("Smart-placed icon (slot=%u, pri=%u, sec=%u," \
                 " pos=%+d%+d)",
                 (unsigned) chosen, (unsigned) pri, (unsigned) sec,
-                (int) *out_x, (int) *out_y);
+                (int) out_pos->x, (int) out_pos->y);
         return;
     }
 
@@ -382,11 +389,11 @@ void place_icon(const client_td *client, desktop_td *desktop,
      * rows for LEFT/RIGHT.  Secondary axis (overflow) is unlimited. */
     if (policy == CONFIG_ICON_PLACEMENT_LEFT ||
             policy == CONFIG_ICON_PLACEMENT_RIGHT) {
-        max_primary = (screen_h > step_y)
-            ? (uint16_t) ((screen_h - margin) / step_y) : 1u;
+        max_primary = (screen_dim.h > step_y)
+            ? (uint16_t) ((screen_dim.h - margin) / step_y) : 1u;
     } else {
-        max_primary = (screen_w > step_x)
-            ? (uint16_t) ((screen_w - margin) / step_x) : 1u;
+        max_primary = (screen_dim.w > step_x)
+            ? (uint16_t) ((screen_dim.w - margin) / step_x) : 1u;
     }
     if (max_primary == 0u) {
         max_primary = 1u;
@@ -394,16 +401,20 @@ void place_icon(const client_td *client, desktop_td *desktop,
 
     /* Find the first slot whose own pixel footprint does not overlap
      * any already-mapped icon's, testing real overlap via
-     * 's_icon_rect_overlaps_any' rather than a precomputed grid-index
-     * table for the same reason the SMART branch above does; see its
-     * own comment on 'occ_x'/'occ_y'. */
+     * 's_place_icon_rect_overlaps_any' rather than a precomputed
+     * grid-index table for the same reason the SMART branch above does;
+     * see its own comment on 'occ_x'/'occ_y'. */
     chosen = 0u;
     for (uint16_t i = 0u; i < 256u; ++i) {
-        s_icon_slot_to_pixel(policy, i, max_primary, margin, step_x,
-                step_y, icon_w, icon_h, screen_w, screen_h,
-                border_twice, &ix, &iy);
+        struct position_s pos;
 
-        if (!s_icon_rect_overlaps_any(ix, iy, icon_w, icon_h,
+        s_place_icon_slot_to_pixel(policy, i, max_primary, margin, step_x,
+                step_y, icon_dim, screen_dim, border_twice, &pos);
+        ix = pos.x;
+        iy = pos.y;
+
+        if (!s_place_icon_rect_overlaps_any(ix, iy,
+                    (uint16_t) icon_dim.w, (uint16_t) icon_dim.h,
                     border_twice, occ_x, occ_y, occ_count)) {
             chosen = i;
             break;
@@ -416,27 +427,25 @@ void place_icon(const client_td *client, desktop_td *desktop,
 
     /* Convert the chosen slot to pixel coordinates the same way its own
      * candidacy was tested above, so the two can never disagree */
-    s_icon_slot_to_pixel(policy, chosen, max_primary, margin,
-            step_x, step_y, icon_w, icon_h, screen_w, screen_h,
-            border_twice, &ix, &iy);
-    *out_x = (int16_t) ix;
-    *out_y = (int16_t) iy;
+    s_place_icon_slot_to_pixel(policy, chosen, max_primary, margin,
+            step_x, step_y, icon_dim, screen_dim,
+            border_twice, out_pos);
 
-    if (*out_x < (int16_t) margin) {
-        *out_x = (int16_t) margin;
+    if (out_pos->x < (int16_t) margin) {
+        out_pos->x = (int16_t) margin;
     }
-    if (*out_y < (int16_t) margin) {
-        *out_y = (int16_t) margin;
+    if (out_pos->y < (int16_t) margin) {
+        out_pos->y = (int16_t) margin;
     }
 }
 
 
 /* Push an icon's own proposed position away from the systray's current
  * rectangle, if the two would overlap there */
-bool icon_avoid_systray_overlap(const int16_t *restrict io_x,
+bool place_icon_avoid_systray_overlap(const int16_t *restrict io_x,
         int16_t *restrict io_y,
-        uint16_t icon_w, uint16_t icon_h,
-        int32_t tray_x, int32_t tray_y, uint16_t tray_w, uint16_t tray_h,
+        struct dimensions_s icon_dim,
+        struct geometry_s tray,
         const struct geometry_s *workarea)
 {
     int32_t workarea_top;
@@ -450,8 +459,8 @@ bool icon_avoid_systray_overlap(const int16_t *restrict io_x,
     }
 
     if (geom_intersection_area(*io_x, *io_y,
-                (uint32_t) icon_w, (uint32_t) icon_h,
-                tray_x, tray_y, tray_w, tray_h) == 0u) {
+                icon_dim.w, icon_dim.h,
+                tray.pos.x, tray.pos.y, tray.dim.w, tray.dim.h) == 0u) {
         return false;
     }
 
@@ -463,20 +472,20 @@ bool icon_avoid_systray_overlap(const int16_t *restrict io_x,
         workarea_bottom = INT32_MAX;
     }
 
-    tray_mid_y = tray_y + (int32_t) (tray_h / 2u);
+    tray_mid_y = tray.pos.y + (int32_t) (tray.dim.h / 2u);
     tray_in_upper_half = (workarea != NULL)
         ? (tray_mid_y < workarea_top + (int32_t) (workarea->dim.h / 2u))
         : true;
 
     new_y = (tray_in_upper_half)
-        ? tray_y + (int32_t) tray_h + (int32_t) WM_ICON_SYSTRAY_GAP
-        : tray_y - (int32_t) icon_h - (int32_t) WM_ICON_SYSTRAY_GAP;
+        ? tray.pos.y + (int32_t) tray.dim.h + (int32_t) WM_ICON_SYSTRAY_GAP
+        : tray.pos.y - (int32_t) icon_dim.h - (int32_t) WM_ICON_SYSTRAY_GAP;
 
     if (new_y < workarea_top) {
         new_y = workarea_top;
     }
-    if (new_y + (int32_t) icon_h > workarea_bottom) {
-        new_y = workarea_bottom - (int32_t) icon_h;
+    if (new_y + (int32_t) icon_dim.h > workarea_bottom) {
+        new_y = workarea_bottom - (int32_t) icon_dim.h;
     }
 
     *io_y = (int16_t) new_y;

@@ -37,7 +37,7 @@
 #include <defs/icon.h>
 
 /* Windows & icons policy includes */
-#include <policy/placement.h>
+#include <policy/placement/window.h>
 
 /* Utils includes */
 #include <utils/geom.h>

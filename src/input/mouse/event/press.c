@@ -30,6 +30,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* ADT includes */
 #include <adt/cdlist.h>
 #include <adt/list.h>
@@ -78,7 +81,8 @@
 #include <input/mouse/drag.h>
 #include <input/mouse/drag/icon.h>
 #include <input/mouse/bounds.h>
-#include <input/mouse.h>
+#include <input/mouse/bind.h>
+#include <input/mouse/event.h>
 
 
 /* State for double-click detection on titlebars.  A double-click on the
@@ -117,9 +121,8 @@ static void s_allow_and_flush(xcb_connection_t *connection,
  * bounding box, indicating that a border-drag resize should be
  * initiated.
  *
- * @param client Client whose geometry is used for the test
- * @param root_x Pointer X position in root-window coordinates
- * @param root_y Pointer Y position in root-window coordinates
+ * @param client   Client whose geometry is used for the test
+ * @param root_pos Pointer position in root-window coordinates
  *
  * @return @c true if the pointer is on the resize border
  *
@@ -128,7 +131,7 @@ static void s_allow_and_flush(xcb_connection_t *connection,
  * @see @a im_bounds_resize in @c input/mouse/bounds.h
  */
 static bool s_mouse_near_edge(const client_td *client,
-        int16_t root_x, int16_t root_y)
+        struct position_s root_pos)
 {
     im_resize_bounds_td b;
 
@@ -138,10 +141,10 @@ static bool s_mouse_near_edge(const client_td *client,
 
     b = im_bounds_resize(client);
 
-    return (int32_t) root_x < b.left + b.margin_left ||
-        (int32_t) root_x >= b.right - b.margin_right ||
-        (int32_t) root_y < b.top + b.margin_top ||
-        (int32_t) root_y >= b.bottom - b.margin_bottom;
+    return root_pos.x < b.left + b.margin_left ||
+        root_pos.x >= b.right - b.margin_right ||
+        root_pos.y < b.top + b.margin_top ||
+        root_pos.y >= b.bottom - b.margin_bottom;
 }
 
 
@@ -902,8 +905,8 @@ static void s_mouse_handle_titlebar(xcb_connection_t *connection,
             (xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3) {
         if (surface != NULL && desktop != NULL) {
             wincmenu_show(connection, surface, desktop, client,
-                    (int16_t) event->root_x,
-                    (int16_t) event->root_y, config);
+                    (struct position_s) { event->root_x, event->root_y },
+                    config);
         }
     }
 
@@ -953,7 +956,8 @@ static bool s_mouse_can_resize_client(const client_td *client,
     /* Undecorated: click within the resize-grab margin of any edge
      * (see 's_mouse_near_edge' and 'im_bounds_resize') */
     if (client->frame == 0 && window == client->window &&
-            s_mouse_near_edge(client, event->root_x, event->root_y)) {
+            s_mouse_near_edge(client,
+                (struct position_s) { event->root_x, event->root_y })) {
         return true;
     }
 
@@ -989,8 +993,8 @@ static void s_mouse_show_wincmenu_at_click(xcb_connection_t *connection,
 {
     if (surface != NULL && desktop != NULL) {
         wincmenu_show(connection, surface, desktop, client,
-                (int16_t) event->root_x,
-                (int16_t) event->root_y, config);
+                (struct position_s) { event->root_x, event->root_y },
+                config);
     }
     s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER, event->time);
 }
@@ -1072,7 +1076,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
 
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3) {
         rootmenu_show(wm, connection, surface,
-                (int16_t) event->root_x, (int16_t) event->root_y,
+                (struct position_s) { event->root_x, event->root_y },
                 config);
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
@@ -1103,7 +1107,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
 
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_2) {
         winlist_show(connection, surface,
-                (int16_t) event->root_x, (int16_t) event->root_y,
+                (struct position_s) { event->root_x, event->root_y },
                 config);
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
@@ -1263,8 +1267,9 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
             if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3 &&
                     client->frame == 0 &&
                     window == client->window &&
-                    s_mouse_near_edge(client, event->root_x,
-                        event->root_y)) {
+                    s_mouse_near_edge(client,
+                        (struct position_s) { event->root_x,
+                            event->root_y })) {
                 s_mouse_show_wincmenu_at_click(connection, surface,
                         desktop, client, event, config);
                 return;

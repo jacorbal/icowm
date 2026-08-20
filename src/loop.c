@@ -29,6 +29,9 @@
 #include <xcb/randr.h>
 #include <xcb/sync.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* ADT includes */
 #include <adt/list.h>
 
@@ -48,7 +51,9 @@
 /* Input includes */
 #include <input/kbd/bind.h>
 #include <input/kbd/event.h>
-#include <input/mouse.h>
+#include <input/mouse/bind.h>
+#include <input/mouse/event.h>
+#include <input/mouse/hover.h>
 #include <input/mouse/drag.h>
 #include <input/mouse/drag/warp.h>
 
@@ -142,9 +147,9 @@ static void s_loop_handle_leave_notify(const wm_td *wm,
     }
 
     /* Independent of focus-follows-mouse below: a resize-cursor poll
-     * target (see 'mouse_hover_poll_tick' in input/mouse.h) tracked
-     * for this window must stop being polled once the pointer has
-     * actually left it, regardless of whether hover also affects
+     * target (see 'mouse_hover_poll_tick' in input/mouse/hover.h)
+     * tracked for this window must stop being polled once the pointer
+     * has actually left it, regardless of whether hover also affects
      * focus. */
     mouse_hover_poll_clear(event->event);
 
@@ -540,9 +545,9 @@ void loop_run(wm_td *wm)
         s_loop_tighten_poll_timeout(&poll_timeout_ms, cctl_sn_ms_remaining());
 
         /* Shorter still while a resize-cursor poll target is being
-         * tracked (see 'mouse_hover_poll_tick' in input/mouse.h), so
-         * an undecorated client's cursor gets re-evaluated promptly
-         * as the pointer moves within it. */
+         * tracked (see 'mouse_hover_poll_tick' in
+         * input/mouse/hover.h), so an undecorated client's cursor gets
+         * re-evaluated promptly as the pointer moves within it. */
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 mouse_hover_poll_ms_remaining());
 

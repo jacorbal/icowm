@@ -621,7 +621,7 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
     }
 
     text_draw_string(connection, titlebar, XCB_NONE,
-            draw_x, text_y, buf);
+            (struct position_s) { draw_x, text_y }, buf);
 }
 
 

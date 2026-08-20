@@ -18,6 +18,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* ADT includes */
 #include <adt/list.h>
 
@@ -37,7 +40,7 @@
 /* Local includes */
 #include <input/mouse/bounds.h>
 #include <input/mouse/internal.h>
-#include <input/mouse.h>
+#include <input/mouse/cursor.h>
 
 
 /**
@@ -85,19 +88,17 @@ static xcb_cursor_t s_move_cursor;
  * buttons take priority over a border drag in the button-press handler
  * regardless of this function).
  *
- * @param client Client whose geometry is used for the test
- * @param root_x Pointer X position in root-window coordinates
- * @param root_y Pointer Y position in root-window coordinates
+ * @param client   Client whose geometry is used for the test
+ * @param root_pos Pointer position in root-window coordinates
  *
- * @return The matching zone, or @c S_RESIZE_ZONE_NONE when @p root_x /
- *         @p root_y fall outside every border zone (including entirely
- *         outside the client, its titlebar row, or its non-resizable
- *         interior)
+ * @return The matching zone, or @c S_RESIZE_ZONE_NONE when @p root_pos
+ *         falls outside every border zone (including entirely outside
+ *         the client, its titlebar row, or its non-resizable interior)
  *
  * @note Complexity: @e O(1)
  */
 static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
-        int16_t root_x, int16_t root_y)
+        struct position_s root_pos)
 {
     im_resize_bounds_td b;
     bool near_left;
@@ -118,14 +119,14 @@ static enum s_resize_zone_e s_mouse_resize_zone(const client_td *client,
      * disagree with X11's actual border hit-testing by one or more
      * pixels.
      */
-    near_left = (int32_t) root_x < b.left + b.margin_left;
-    near_right = (int32_t) root_x >= b.right - b.margin_right;
-    near_top = (int32_t) root_y < b.top + b.margin_top;
-    near_bottom = (int32_t) root_y >= b.bottom - b.margin_bottom;
+    near_left = root_pos.x < b.left + b.margin_left;
+    near_right = root_pos.x >= b.right - b.margin_right;
+    near_top = root_pos.y < b.top + b.margin_top;
+    near_bottom = root_pos.y >= b.bottom - b.margin_bottom;
 
     if (b.has_titlebar_row &&
-            (int32_t) root_y >= b.titlebar_row_top &&
-            (int32_t) root_y < b.titlebar_row_bottom) {
+            root_pos.y >= b.titlebar_row_top &&
+            root_pos.y < b.titlebar_row_bottom) {
         near_left = false;
         near_right = false;
     }
@@ -267,8 +268,7 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  *                   @p window belongs to
  * @param window     Window the crossing, motion, or poll was
  *                   evaluated for
- * @param root_x     Pointer X position in root-window coordinates
- * @param root_y     Pointer Y position in root-window coordinates
+ * @param root_pos   Pointer position in root-window coordinates
  *
  * @return The resolved client @p window belongs to, or @c NULL if it
  *         does not belong to a resizable client
@@ -276,8 +276,8 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  * @note Complexity: @e O(1)
  */
 client_td *im_update_resize_cursor(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window, int16_t root_x,
-        int16_t root_y)
+        list_td *surfaces, xcb_window_t window,
+        struct position_s root_pos)
 {
     client_td *client;
     surface_td *surface;
@@ -293,15 +293,16 @@ client_td *im_update_resize_cursor(xcb_connection_t *connection,
     if (client == NULL || !client_is_resizable(client)) {
         LOGGER_TRACE("No resizable client for resize cursor" \
                 " (window=0x%x, root=%+d%+d, client=%p)",
-                window, root_x, root_y, (void *) client);
+                window, root_pos.x, root_pos.y, (void *) client);
         return NULL;
     }
 
-    zone = s_mouse_resize_zone(client, root_x, root_y);
+    zone = s_mouse_resize_zone(client, root_pos);
 
     LOGGER_TRACE("Set resize cursor (window=0x%x, client-window=0x%x," \
             " frame=0x%x, root=%+d%+d, zone=%d, cursor=0x%x)",
-            window, client->window, client->frame, root_x, root_y,
+            window, client->window, client->frame,
+            root_pos.x, root_pos.y,
             (int) zone, s_resize_cursors[zone]);
 
     xcb_change_window_attributes(connection, window,

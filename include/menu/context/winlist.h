@@ -127,8 +127,7 @@
  *
  * @param connection XCB connection
  * @param surface    Surface whose clients are listed
- * @param x          Requested X origin (root coordinates)
- * @param y          Requested Y origin (root coordinates)
+ * @param pos        Requested origin (root coordinates)
  * @param config     Active configuration
  *
  * @note Complexity: @e O(n), where @e n is the total number of clients
@@ -137,7 +136,7 @@
  *       storage became dynamically sized
  */
 void winlist_show(xcb_connection_t *connection,
-        surface_td *surface, int16_t x, int16_t y,
+        surface_td *surface, struct position_s pos,
         const config_td *config);
 
 /**

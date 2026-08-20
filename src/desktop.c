@@ -100,7 +100,7 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
  * identically; each edge keeps whichever single source reserves the
  * most there, the struts are not summed together (unlike
  * @a config_desktop_s's @p margins, a deliberately different, additive
- * case.
+ * case).
  *
  * @param strut        Strut to fold in; a no-op when null
  * @param screen_max_x Screen's own maximum X coordinate, for the
@@ -421,7 +421,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
 /* Recompute work area from client struts */
 void desktop_update_workarea(desktop_td *desktop,
-        uint32_t screen_w, uint32_t screen_h,
+        struct dimensions_s screen_dim,
         const struct config_desktop_s *config_desktop,
         const struct strut_partial_s *systray_strut,
         bool ignore_struts)
@@ -440,8 +440,10 @@ void desktop_update_workarea(desktop_td *desktop,
         return;
     }
 
-    screen_max_x = (screen_w == 0u) ? -1 : (int32_t) (screen_w - 1u);
-    screen_max_y = (screen_h == 0u) ? -1 : (int32_t) (screen_h - 1u);
+    screen_max_x = (screen_dim.w == 0u)
+        ? -1 : (int32_t) (screen_dim.w - 1u);
+    screen_max_y = (screen_dim.h == 0u)
+        ? -1 : (int32_t) (screen_dim.h - 1u);
 
     if (!ignore_struts && desktop->stacking != NULL &&
             cdlist_size(desktop->stacking) > 0) {
@@ -492,8 +494,8 @@ void desktop_update_workarea(desktop_td *desktop,
         bottom += (int32_t) config_desktop->margins.bottom;
     }
 
-    new_w = (int32_t) screen_w - left - right;
-    new_h = (int32_t) screen_h - top  - bottom;
+    new_w = (int32_t) screen_dim.w - left - right;
+    new_h = (int32_t) screen_dim.h - top  - bottom;
 
     desktop->workarea.pos.x = left;
     desktop->workarea.pos.y = top;

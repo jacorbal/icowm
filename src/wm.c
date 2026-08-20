@@ -70,7 +70,7 @@
 #include <menu/dialog/message.h>
 
 /* Input includes */
-#include <input/mouse.h>
+#include <input/mouse/cursor.h>
 
 /* Local includes */
 #include <wm.h>

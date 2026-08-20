@@ -33,6 +33,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -314,17 +317,15 @@ static monitor_td s_systray_anchor_rect(void)
  * @p config.systray.reserve-space is @c false, for anyone who would
  * rather windows stayed free to maximize over or under the tray.
  *
- * @param x       Tray's own configured X position (root coordinates)
- * @param y       Tray's own configured Y position (root coordinates)
- * @param w       Tray's own current width, border excluded; zero
- *                clears the strut (the tray itself is unmapped)
- * @param h       Tray's own current height, border excluded
+ * @param geom    Tray's own current rectangle (root coordinates); a
+ *                zero dimension clears the strut (the tray itself
+ *                is unmapped)
  * @param border2 Total border thickness, both sides combined
  *
  * @note Complexity: @e O(1)
  */
-static void s_systray_strut_update(int16_t x, int16_t y, uint16_t w,
-        uint16_t h, int32_t border2)
+static void s_systray_strut_update(struct geometry_s geom,
+        int32_t border2)
 {
     xcb_ewmh_wm_strut_partial_t partial;
 
@@ -339,27 +340,27 @@ static void s_systray_strut_update(int16_t x, int16_t y, uint16_t w,
      * a stale value left over from whenever reservation was last
      * enabled. */
     if (s_tray.reserve_space && s_tray.surface != NULL &&
-            w > 0u && h > 0u) {
+            geom.dim.w > 0u && geom.dim.h > 0u) {
         switch (s_tray.position) {
             case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
             case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
-                partial.top = (uint32_t) ((int32_t) y + (int32_t) h +
-                        border2);
-                partial.top_start_x = (uint32_t) x;
-                partial.top_end_x = (uint32_t) ((int32_t) x +
-                        (int32_t) w + border2);
+                partial.top = (uint32_t) (geom.pos.y +
+                        (int32_t) geom.dim.h + border2);
+                partial.top_start_x = (uint32_t) geom.pos.x;
+                partial.top_end_x = (uint32_t) (geom.pos.x +
+                        (int32_t) geom.dim.w + border2);
                 break;
 
             case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
             case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT: {
-                uint32_t y_u = (uint32_t) y;
+                uint32_t y_u = (uint32_t) geom.pos.y;
                 uint32_t screen_h = s_tray.surface->properties.dim.h;
 
                 partial.bottom = (screen_h > y_u)
                     ? screen_h - y_u : 0u;
-                partial.bottom_start_x = (uint32_t) x;
-                partial.bottom_end_x = (uint32_t) ((int32_t) x +
-                        (int32_t) w + border2);
+                partial.bottom_start_x = (uint32_t) geom.pos.x;
+                partial.bottom_end_x = (uint32_t) (geom.pos.x +
+                        (int32_t) geom.dim.w + border2);
                 break;
             }
         }
@@ -436,7 +437,8 @@ void systray_layout_reflow(void)
             (s_tray.icon_count == 0u && !s_tray.clock_enabled &&
                 !s_tray.battery_enabled)) {
         xcb_unmap_window(s_tray.connection, s_tray.window);
-        s_systray_strut_update(0, 0, 0u, 0u, 0);
+        s_systray_strut_update((struct geometry_s) {
+                    { 0, 0 }, { 0u, 0u } }, 0);
         xcb_flush(s_tray.connection);
         return;
     }
@@ -446,7 +448,8 @@ void systray_layout_reflow(void)
     w = s_systray_content_width();
     if (w == 0u) {
         xcb_unmap_window(s_tray.connection, s_tray.window);
-        s_systray_strut_update(0, 0, 0u, 0u, 0);
+        s_systray_strut_update((struct geometry_s) {
+                    { 0, 0 }, { 0u, 0u } }, 0);
         xcb_flush(s_tray.connection);
         return;
     }
@@ -499,7 +502,8 @@ void systray_layout_reflow(void)
             XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT,
             geom_values);
-    s_systray_strut_update(x, y, w, h, border2);
+    s_systray_strut_update((struct geometry_s) {
+                { x, y }, { w, h } }, border2);
 
     /* Icons sit after the text block when it is on the left, or right
      * at the tray's own left edge otherwise (text block on the right,
@@ -584,7 +588,7 @@ void systray_layout_reflow(void)
             }
 
             text_draw_string(s_tray.connection, s_tray.window, XCB_NONE,
-                    pen_x, item_y, text);
+                    (struct position_s) { pen_x, item_y }, text);
             pen_x = (int16_t) (pen_x +
                     (int16_t) text_string_measure(text) +
                     (int16_t) s_tray.text_gap);

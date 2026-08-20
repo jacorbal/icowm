@@ -45,7 +45,7 @@
 /* Create and show a context menu window */
 void ctxmenu_show(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
-        int16_t x, int16_t y, const config_td *config)
+        struct position_s pos, const config_td *config)
 {
     uint32_t mask;
     uint32_t values[4];
@@ -112,8 +112,8 @@ void ctxmenu_show(xcb_connection_t *connection,
     max_x = (int32_t) (work_x + work_w) - (int32_t) state->width;
     max_y = (int32_t) (work_y + work_h) - (int32_t) state->height;
 
-    clamped_x = x;
-    clamped_y = y;
+    clamped_x = (int16_t) pos.x;
+    clamped_y = (int16_t) pos.y;
     if (clamped_x > (int16_t) max_x) { clamped_x = (int16_t) max_x; }
     if (clamped_y > (int16_t) max_y) { clamped_y = (int16_t) max_y; }
     if (clamped_x < (int16_t) work_x) { clamped_x = (int16_t) work_x; }

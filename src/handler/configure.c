@@ -215,25 +215,25 @@ static uint16_t s_handler_configure_wh_matches_current(
  * at all, for as long as the cooldown itself is still active.
  *
  * @param event           The 'ConfigureRequest' event itself, for the
- *                         same WIDTH/HEIGHT comparison
+ *                        same WIDTH/HEIGHT comparison
  * @param mask            Value mask bits still under consideration
  * @param transition_mask Bits this particular transition's own
- *                         cooldown should strip, if still active
+ *                        cooldown should strip, if still active
  * @param old_dim         Width/height the client itself had right
- *                         before this transition
+ *                        before this transition
  * @param is_reparented   Whether this client has a separate frame
- *                         window of its own
+ *                        window of its own
  * @param on_inner        Whether @p event targets the content window
- *                         directly rather than the frame
+ *                        directly rather than the frame
  * @param extents         This client's own current frame extents
  * @param transition_time Monotonic time the transition itself last
- *                         happened at
- * @param cooldown_ms      How long after @p transition_time a request
- *                         still counts as a stale echo
+ *                        happened at
+ * @param cooldown_ms     How long after @p transition_time a request
+ *                        still counts as a stale echo
  * @param window          Client window, for the debug log line alone
  * @param kind            Short, human-readable name of the transition
- *                         ("shade" or "fullscreen"), for the same log
- *                         line
+ *                        ("shade" or "fullscreen"), for the same log
+ *                        line
  *
  * @return @p mask, with @p transition_mask's own bits cleared as
  *         described above if the cooldown is still active; @p mask

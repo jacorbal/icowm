@@ -24,7 +24,6 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL */
 #include <stdint.h>
 #include <stdlib.h>     /* free */
 #include <time.h>       /* CLOCK_MONOTONIC, clock_gettime */
@@ -45,7 +44,7 @@
 #include <wm.h>
 
 /* Input includes */
-#include <input/mouse.h>
+#include <input/mouse/hover.h>
 
 /* Local includes */
 #include <cmds/client/basic.h>
@@ -768,7 +767,7 @@ void ccmd_client_toggle_decorate(client_td *client)
             (int) client_is_decorated(client));
 
     /* A resize-cursor poll target (see 'mouse_hover_poll_tick' in
-     * input/mouse.h) tracked for either of this client's windows
+     * input/mouse/hover.h) tracked for either of this client's windows
      * would otherwise keep polling and re-applying a cursor to
      * whichever one it was tracking before this toggle, oblivious to
      * decoration having just changed underneath it: if it was

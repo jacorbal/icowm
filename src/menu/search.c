@@ -763,8 +763,8 @@ static void s_search_draw_bar(xcb_connection_t *connection,
     text_renderer_set_color(cfg->theme.search.input.color.foreground,
             cfg->theme.search.input.color.background);
     menu_draw_label(connection, s_search.window,
-            (int16_t) WM_SEARCH_PAD_X,
-            (int16_t) (WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT - 7),
+            (struct position_s) { WM_SEARCH_PAD_X,
+                WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT - 7 },
             shown);
 }
 
@@ -804,12 +804,15 @@ static void s_search_draw_row(xcb_connection_t *connection,
     if (cfg->theme.menu.show_pixmaps && r->client != NULL &&
             s_search.surface != NULL) {
         uint16_t icon_size = (uint16_t) (WM_SEARCH_ROW_HEIGHT - 4);
-        int16_t icon_y = (int16_t) (row_y +
-                (WM_SEARCH_ROW_HEIGHT - (int) icon_size) / 2);
+        struct position_s icon_pos;
+
+        icon_pos.x = text_x;
+        icon_pos.y = row_y +
+                (WM_SEARCH_ROW_HEIGHT - (int) icon_size) / 2;
 
         wmicon_draw_at(connection, s_search.surface->ewmh,
                 r->client->window, s_search.window,
-                text_x, icon_y, icon_size, fg, bg,
+                icon_pos, icon_size, fg, bg,
                 &r->client->icon_pixmap_cache);
         text_x = (int16_t) (text_x + icon_size + WM_SEARCH_PAD_X);
     }
@@ -836,8 +839,9 @@ static void s_search_draw_row(xcb_connection_t *connection,
         }
         menu_draw_truncate(name_buf, name_max);
     }
-    menu_draw_label(connection, s_search.window, text_x,
-            (int16_t) (row_y + WM_SEARCH_ROW_HEIGHT - 4), name_buf);
+    menu_draw_label(connection, s_search.window,
+            (struct position_s) { text_x,
+                row_y + WM_SEARCH_ROW_HEIGHT - 4 }, name_buf);
 
     if (s_search.surface->desktop_count > 1u && r->desktop != NULL) {
         int16_t desk_x = (int16_t) (text_x +
@@ -855,8 +859,9 @@ static void s_search_draw_row(xcb_connection_t *connection,
             }
             menu_draw_truncate(desk_buf,
                     (uint16_t) (safe_right - desk_x));
-            menu_draw_label(connection, s_search.window, desk_x,
-                    (int16_t) (row_y + WM_SEARCH_ROW_HEIGHT - 4),
+            menu_draw_label(connection, s_search.window,
+                    (struct position_s) { desk_x,
+                        row_y + WM_SEARCH_ROW_HEIGHT - 4 },
                     desk_buf);
         }
     }
@@ -866,8 +871,9 @@ static void s_search_draw_row(xcb_connection_t *connection,
         int16_t hint_x = (int16_t) (WM_SEARCH_WIDTH - WM_SEARCH_PAD_X -
                 hint_w);
 
-        menu_draw_label(connection, s_search.window, hint_x,
-                (int16_t) (row_y + WM_SEARCH_ROW_HEIGHT - 4), r->hints);
+        menu_draw_label(connection, s_search.window,
+                (struct position_s) { hint_x,
+                    row_y + WM_SEARCH_ROW_HEIGHT - 4 }, r->hints);
     }
 }
 
@@ -924,8 +930,8 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
                     cfg->theme.search.selected.color.foreground,
                     cfg->theme.search.unselected.color.background);
             menu_draw_label(connection, s_search.window,
-                    (int16_t) (WM_SEARCH_WIDTH / 2 - 4),
-                    (int16_t) (up_y + text_font_ascent()),
+                    (struct position_s) { WM_SEARCH_WIDTH / 2 - 4,
+                        up_y + text_font_ascent() },
                     WM_SEARCH_MENU_SCROLL_UP_INDICATOR);
         }
 
@@ -935,9 +941,8 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
                     cfg->theme.search.selected.color.foreground,
                     cfg->theme.search.unselected.color.background);
             menu_draw_label(connection, s_search.window,
-                    (int16_t) (WM_SEARCH_WIDTH / 2 - 4),
-                    (int16_t) (down_y + WM_SEARCH_PAD_Y -
-                        text_font_descent()),
+                    (struct position_s) { WM_SEARCH_WIDTH / 2 - 4,
+                        down_y + WM_SEARCH_PAD_Y - text_font_descent() },
                     WM_SEARCH_MENU_SCROLL_DOWN_INDICATOR);
         }
     }

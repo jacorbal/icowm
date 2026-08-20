@@ -15,6 +15,9 @@
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* JSON includes */
 #include <cjson/cJSON.h>
 
@@ -117,7 +120,7 @@ cJSON *ipc_action_move_client(const wm_td *wm, const cJSON *args)
         return error;
     }
 
-    enact_client_move(client, x, y);
+    enact_client_move(client, (struct position_s) { x, y });
     return ipc_response_ok();
 }
 
@@ -169,7 +172,8 @@ cJSON *ipc_action_move_resize_client(const wm_td *wm, const cJSON *args)
         return error;
     }
 
-    enact_client_resize(client, x, y, w, h);
+    enact_client_resize(client,
+            (struct geometry_s) { { x, y }, { w, h } });
     return ipc_response_ok();
 }
 
@@ -193,7 +197,7 @@ cJSON *ipc_action_resize_client(const wm_td *wm, const cJSON *args)
         return error;
     }
 
-    enact_client_resize(client, client->layout.geometry.cur.pos.x,
-            client->layout.geometry.cur.pos.y, w, h);
+    enact_client_resize(client, (struct geometry_s) {
+                client->layout.geometry.cur.pos, { w, h } });
     return ipc_response_ok();
 }

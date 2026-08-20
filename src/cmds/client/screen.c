@@ -77,8 +77,7 @@ bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
         monitor_td *out_monitor)
 {
     surface_td *surface = NULL;
-    int32_t center_x;
-    int32_t center_y;
+    struct position_s center_pos;
     list_td *surfaces = wm_get_surfaces();
 
     if (client == NULL || out_monitor == NULL || surfaces == NULL) {
@@ -98,11 +97,11 @@ bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
         return false;
     }
 
-    center_x = client->layout.geometry.cur.pos.x +
+    center_pos.x = client->layout.geometry.cur.pos.x +
         (int32_t) (client->layout.geometry.cur.dim.w / 2u);
-    center_y = client->layout.geometry.cur.pos.y +
+    center_pos.y = client->layout.geometry.cur.pos.y +
         (int32_t) (client->layout.geometry.cur.dim.h / 2u);
-    *out_monitor = surface_monitor_for_point(surface, center_x, center_y);
+    *out_monitor = surface_monitor_for_point(surface, center_pos);
 
     if (out_surface != NULL) {
         *out_surface = surface;

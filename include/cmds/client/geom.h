@@ -17,6 +17,9 @@
 #define CMDS_CCMD_GEOM_H
 
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Project includes */
 #include <client.h>
 
@@ -26,12 +29,11 @@
  * @brief Move the client to a new position
  *
  * @param client Window to move
- * @param x      New X position
- * @param y      New Y position
+ * @param pos    New position
  *
  * @note Complexity: @e O(1)
  */
-void ccmd_client_move(client_td *client, int32_t x, int32_t y);
+void ccmd_client_move(client_td *client, struct position_s pos);
 
 /**
  * @brief Center the client on its current screen
@@ -80,15 +82,11 @@ void ccmd_client_move_to_next_monitor(client_td *client);
  * @brief Resize the client to new dimensions
  *
  * @param client Window to resize
- * @param x      New frame X position
- * @param y      New frame Y position
- * @param w      New frame width
- * @param h      New frame height
+ * @param geom   New frame position and dimensions
  *
  * @note Complexity: @e O(1)
  */
-void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h);
+void ccmd_client_resize(client_td *client, struct geometry_s geom);
 
 /**
  * @brief Resize the client to new dimensions immediately, bypassing
@@ -107,15 +105,11 @@ void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
  * should call this instead of @a ccmd_client_resize.
  *
  * @param client Window to resize
- * @param x      New frame X position
- * @param y      New frame Y position
- * @param w      New frame width
- * @param h      New frame height
+ * @param geom   New frame position and dimensions
  *
  * @note Complexity: @e O(1)
  */
-void ccmd_client_resize_force(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h);
+void ccmd_client_resize_force(client_td *client, struct geometry_s geom);
 
 /**
  * @brief Apply a client's pending @c (_NET_WM_SYNC_REQUEST)-throttled

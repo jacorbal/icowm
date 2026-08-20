@@ -55,7 +55,7 @@
 #include <wm.h>
 
 /* Input includes */
-#include <input/mouse.h>
+#include <input/mouse/cursor.h>
 
 /* Local includes */
 #include <client/internal.h>

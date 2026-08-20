@@ -21,6 +21,9 @@
 #include <xcb/xcb_ewmh.h>
 #include <xcb/sync.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Default initial values */
 #include <defs/client.h>     /* WM_SYNC_MAX_WAIT_TICKS */
 
@@ -40,7 +43,7 @@
 
 /* Move the client to a new position */
 /* Move the client to a new position */
-void ccmd_client_move(client_td *client, int32_t x, int32_t y)
+void ccmd_client_move(client_td *client, struct position_s pos)
 {
     xcb_window_t target;
 
@@ -52,9 +55,9 @@ void ccmd_client_move(client_td *client, int32_t x, int32_t y)
     target = ccmd_target_win(client);
     xcb_configure_window(client->connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-            (const uint32_t[]) { (uint32_t) x, (uint32_t) y });
-    client->layout.geometry.cur.pos.x = x;
-    client->layout.geometry.cur.pos.y = y;
+            (const uint32_t[]) { (uint32_t) pos.x, (uint32_t) pos.y });
+    client->layout.geometry.cur.pos.x = pos.x;
+    client->layout.geometry.cur.pos.y = pos.y;
     client->rule_position_locked = false;
 }
 
@@ -218,22 +221,19 @@ void ccmd_client_move_to_next_monitor(client_td *client)
  * @c _NET_WM_SYNC_REQUEST acknowledgement arrives (see
  * @c ccmd_client_resize_flush_pending).
  *
- * @param client Window to resize
- * @param req_x  Requested frame X
- * @param req_y  Requested frame Y
- * @param req_w  Requested frame width
- * @param req_h  Requested frame height
+ * @param client   Window to resize
+ * @param req_geom Requested frame position and dimensions
  */
 static void s_ccmd_resize_configure(client_td *client,
-        int32_t req_x, int32_t req_y, uint32_t req_w, uint32_t req_h)
+        struct geometry_s req_geom)
 {
     xcb_window_t target;
     uint16_t mask;
 
     target = ccmd_target_win(client);
     mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-    if (req_x != client->layout.geometry.cur.pos.x ||
-            req_y != client->layout.geometry.cur.pos.y) {
+    if (req_geom.pos.x != client->layout.geometry.cur.pos.x ||
+            req_geom.pos.y != client->layout.geometry.cur.pos.y) {
         mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     }
@@ -241,18 +241,15 @@ static void s_ccmd_resize_configure(client_td *client,
     xcb_configure_window(client->connection, target,
             mask,
             (mask == (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT))
-                ? (const uint32_t[]) {req_w, req_h}
+                ? (const uint32_t[]) {req_geom.dim.w, req_geom.dim.h}
                 : (const uint32_t[]) {
-                    (uint32_t) req_x,
-                    (uint32_t) req_y,
-                    req_w,
-                    req_h
+                    (uint32_t) req_geom.pos.x,
+                    (uint32_t) req_geom.pos.y,
+                    req_geom.dim.w,
+                    req_geom.dim.h
                 });
 
-    client->layout.geometry.cur.pos.x = req_x;
-    client->layout.geometry.cur.pos.y = req_y;
-    client->layout.geometry.cur.dim.w = req_w;
-    client->layout.geometry.cur.dim.h = req_h;
+    client->layout.geometry.cur = req_geom;
 
     /* For decorated (reparented) clients the inner window must be
      * repositioned and resized to match the new frame dimensions.
@@ -344,17 +341,14 @@ static void s_ccmd_resize_send_sync_request(client_td *client)
  * in @c ccmd_client_resize rather than dispatched immediately, so at
  * most one unacknowledged frame is ever in flight.
  *
- * @param client Client to resize
- * @param req_x  Requested frame X
- * @param req_y  Requested frame Y
- * @param req_w  Requested frame width
- * @param req_h  Requested frame height
+ * @param client   Client to resize
+ * @param req_geom Requested frame position and dimensions
  */
 static void s_ccmd_resize_dispatch_synced(client_td *client,
-        int32_t req_x, int32_t req_y, uint32_t req_w, uint32_t req_h)
+        struct geometry_s req_geom)
 {
     s_ccmd_resize_send_sync_request(client);
-    s_ccmd_resize_configure(client, req_x, req_y, req_w, req_h);
+    s_ccmd_resize_configure(client, req_geom);
 }
 
 
@@ -392,8 +386,7 @@ static bool s_ccmd_resize_allowed(client_td *client)
 
 
 /* Resize the client to new dimensions */
-void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h)
+void ccmd_client_resize(client_td *client, struct geometry_s geom)
 {
     bool synced;
 
@@ -404,12 +397,12 @@ void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
     synced = client->has_net_wm_sync_request && wm_sync_is_available();
 
     if (!synced) {
-        s_ccmd_resize_configure(client, x, y, w, h);
+        s_ccmd_resize_configure(client, geom);
         return;
     }
 
     if (!client->sync_waiting) {
-        s_ccmd_resize_dispatch_synced(client, x, y, w, h);
+        s_ccmd_resize_dispatch_synced(client, geom);
         return;
     }
 
@@ -422,22 +415,21 @@ void ccmd_client_resize(client_td *client, int32_t x, int32_t y,
     client->sync_wait_ticks += 1u;
     if (client->sync_wait_ticks > (uint8_t) WM_SYNC_MAX_WAIT_TICKS) {
         client->sync_has_pending = false;
-        s_ccmd_resize_dispatch_synced(client, x, y, w, h);
+        s_ccmd_resize_dispatch_synced(client, geom);
         return;
     }
 
-    client->sync_pending_geom.x = x;
-    client->sync_pending_geom.y = y;
-    client->sync_pending_geom.w = w;
-    client->sync_pending_geom.h = h;
+    client->sync_pending_geom.x = geom.pos.x;
+    client->sync_pending_geom.y = geom.pos.y;
+    client->sync_pending_geom.w = geom.dim.w;
+    client->sync_pending_geom.h = geom.dim.h;
     client->sync_has_pending = true;
 }
 
 
 /* Resize the client to new dimensions immediately, bypassing any
  * in-flight sync throttling */
-void ccmd_client_resize_force(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h)
+void ccmd_client_resize_force(client_td *client, struct geometry_s geom)
 {
     if (client == NULL || !s_ccmd_resize_allowed(client)) {
         return;
@@ -456,9 +448,9 @@ void ccmd_client_resize_force(client_td *client, int32_t x, int32_t y,
          * never waits on or queues behind that acknowledgment the
          * way 'ccmd_client_resize' does; see the header's own doc
          * comment for when this is the right call to make instead */
-        s_ccmd_resize_dispatch_synced(client, x, y, w, h);
+        s_ccmd_resize_dispatch_synced(client, geom);
     } else {
-        s_ccmd_resize_configure(client, x, y, w, h);
+        s_ccmd_resize_configure(client, geom);
     }
 }
 
@@ -478,9 +470,11 @@ void ccmd_client_resize_flush_pending(client_td *client)
     }
 
     client->sync_has_pending = false;
-    s_ccmd_resize_dispatch_synced(client,
-            client->sync_pending_geom.x, client->sync_pending_geom.y,
-            client->sync_pending_geom.w, client->sync_pending_geom.h);
+    s_ccmd_resize_dispatch_synced(client, (struct geometry_s) {
+                { client->sync_pending_geom.x,
+                    client->sync_pending_geom.y },
+                { client->sync_pending_geom.w,
+                    client->sync_pending_geom.h } });
 }
 
 

@@ -437,7 +437,7 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  * / @c _NET_WM_STRUT_PARTIAL values, folds in @p systray_strut (the
  * window manager's own built-in systray reservation, aggregated exactly
  * like a client's strut since the systray's own dock window is never
- * itself a managed client.
+ * itself a managed client).
  *
  * The same way, adds @p config_desktop's own @p margins on top of that
  * and subtracts the combined maximum reservation on each edge from the
@@ -455,8 +455,7 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  * available area.
  *
  * @param desktop        Desktop whose work area should be refreshed
- * @param screen_w       Full screen width in pixels
- * @param screen_h       Full screen height in pixels
+ * @param screen_dim     Full screen dimensions, in pixels
  * @param config_desktop Active desktop-behavior configuration, for
  *                       its @p margins; a @c NULL treats every margin
  *                       as @c 0, same as if none were configured
@@ -482,7 +481,7 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  *      screen space without publishing either property itself
  */
 void desktop_update_workarea(desktop_td *desktop,
-        uint32_t screen_w, uint32_t screen_h,
+        struct dimensions_s screen_dim,
         const struct config_desktop_s *config_desktop,
         const struct strut_partial_s *systray_strut,
         bool ignore_struts);

@@ -170,7 +170,7 @@ void notify_popup_repaint_centered(xcb_connection_t *connection,
             0, (uint16_t) height, (uint16_t) width);
     text_x = (int16_t) ((width - (int16_t) text_w) / 2);
     text_y = (int16_t) (height / 2 + 5);
-    menu_draw_label(connection, state->window, text_x, text_y,
-            state->text);
+    menu_draw_label(connection, state->window,
+            (struct position_s) { text_x, text_y }, state->text);
     xcb_flush(connection);
 }

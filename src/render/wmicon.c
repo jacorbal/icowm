@@ -149,42 +149,38 @@ static uint32_t s_premultiply(uint32_t argb)
  * rather than stretched, and every icon ends up the same size on screen
  * regardless of whatever size the source image happened to be.
  *
- * @param connection XCB connection
- * @param picture    Already created Picture to set the transform and
- *                   filter on
- * @param src_w      Source width, in pixels, @p picture was built from
- * @param src_h      Source height, in pixels, @p picture was built from
- * @param draw_size  Side length of the box the image is scaled to fit
- *                   within
- * @param out_dest_w Receives the actual scaled width, after fitting
- *                   @p src_w/@p src_h's own aspect ratio within
- *                   @p draw_size
- * @param out_dest_h Receives the actual scaled height (see @p out_dest_w)
+ * @param connection  XCB connection
+ * @param picture     Already created Picture to set the transform and
+ *                    filter on
+ * @param src_dim     Source width/height, in pixels, @p picture was
+ *                    built from
+ * @param draw_size   Side length of the box the image is scaled to fit
+ *                    within
+ * @param out_dest_dim Receives the actual scaled width/height, after
+ *                    fitting @p src_dim's own aspect ratio within
+ *                    @p draw_size
  *
  * @note Complexity: @e O(1)
  */
 static void s_icon_scale_apply(xcb_connection_t *connection,
-        xcb_render_picture_t picture, uint32_t src_w, uint32_t src_h,
-        uint16_t draw_size, uint16_t *restrict out_dest_w,
-        uint16_t *restrict out_dest_h)
+        xcb_render_picture_t picture, struct dimensions_s src_dim,
+        uint16_t draw_size, struct dimensions_s *restrict out_dest_dim)
 {
     xcb_render_transform_t transform;
     double scale_w;
     double scale_h;
     double scale;
-    uint16_t dest_w;
-    uint16_t dest_h;
 
-    scale_w = (double) draw_size / (double) src_w;
-    scale_h = (double) draw_size / (double) src_h;
+    scale_w = (double) draw_size / (double) src_dim.w;
+    scale_h = (double) draw_size / (double) src_dim.h;
     scale = (scale_w < scale_h) ? scale_w : scale_h;
-    dest_w = (uint16_t) ((double) src_w * scale + 0.5);
-    dest_h = (uint16_t) ((double) src_h * scale + 0.5);
-    if (dest_w == 0u) {
-        dest_w = 1u;
+    out_dest_dim->w = (uint16_t) ((double) src_dim.w * scale + 0.5);
+    out_dest_dim->h = (uint16_t) ((double) src_dim.h * scale + 0.5);
+    if (out_dest_dim->w == 0u) {
+        out_dest_dim->w = 1u;
     }
-    if (dest_h == 0u) {
-        dest_h = 1u;
+    if (out_dest_dim->h == 0u) {
+        out_dest_dim->h = 1u;
     }
 
     /* The transform maps each destination pixel back to the source
@@ -193,11 +189,13 @@ static void s_icon_scale_apply(xcb_connection_t *connection,
      * around).  Set once here and never touched again: it stays
      * attached to 'picture' for as long as the cache keeps that Picture
      * around, so a later cache hit does not need to reapply it. */
-    transform.matrix11 = s_double_to_fixed((double) src_w / dest_w);
+    transform.matrix11 = s_double_to_fixed(
+            (double) src_dim.w / out_dest_dim->w);
     transform.matrix12 = 0;
     transform.matrix13 = 0;
     transform.matrix21 = 0;
-    transform.matrix22 = s_double_to_fixed((double) src_h / dest_h);
+    transform.matrix22 = s_double_to_fixed(
+            (double) src_dim.h / out_dest_dim->h);
     transform.matrix23 = 0;
     transform.matrix31 = 0;
     transform.matrix32 = 0;
@@ -206,9 +204,6 @@ static void s_icon_scale_apply(xcb_connection_t *connection,
     xcb_render_set_picture_filter(connection, picture,
             (uint16_t) (sizeof(WMICON_FILTER_NAME) - 1u),
             WMICON_FILTER_NAME, 0u, NULL);
-
-    *out_dest_w = dest_w;
-    *out_dest_h = dest_h;
 }
 
 
@@ -261,6 +256,7 @@ static xcb_render_picture_t s_build_icon_picture(
     const xcb_render_pictforminfo_t *argb_info;
     xcb_render_picture_t src_picture;
     uint32_t *premultiplied;
+    struct dimensions_s dest_dim;
 
     if (width == 0u || height == 0u || width > WMICON_MAX_SIDE ||
             height > WMICON_MAX_SIDE || draw_size == 0u) {
@@ -309,8 +305,11 @@ static xcb_render_picture_t s_build_icon_picture(
             argb_info->id, 0u, NULL);
     xcb_free_pixmap(connection, pixmap);
 
-    s_icon_scale_apply(connection, src_picture, width, height,
-            draw_size, out_dest_w, out_dest_h);
+    s_icon_scale_apply(connection, src_picture,
+            (struct dimensions_s) { width, height }, draw_size,
+            &dest_dim);
+    *out_dest_w = (uint16_t) dest_dim.w;
+    *out_dest_h = (uint16_t) dest_dim.h;
     return src_picture;
 }
 
@@ -427,6 +426,8 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
         const xcb_render_pictforminfo_t *mask_info =
             xcb_render_util_find_standard_format(formats,
                     XCB_PICT_STANDARD_A_1);
+        struct dimensions_s dest_dim;
+
         if (mask_info == NULL) {
             free(pixmap_geom);
             return result;
@@ -435,8 +436,12 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
         result.mask = xcb_generate_id(connection);
         xcb_render_create_picture(connection, result.mask,
                 hints.icon_pixmap, mask_info->id, 0u, NULL);
-        s_icon_scale_apply(connection, result.mask, pixmap_geom->width,
-                pixmap_geom->height, draw_size, out_dest_w, out_dest_h);
+        s_icon_scale_apply(connection, result.mask,
+                (struct dimensions_s) { pixmap_geom->width,
+                    pixmap_geom->height },
+                draw_size, &dest_dim);
+        *out_dest_w = (uint16_t) dest_dim.w;
+        *out_dest_h = (uint16_t) dest_dim.h;
 
         result.src = xcb_generate_id(connection);
         xcb_render_create_solid_fill(connection, result.src, black);
@@ -449,6 +454,8 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
         const xcb_render_pictvisual_t *visual_info =
             xcb_render_util_find_visual_format(formats,
                     screen->root_visual);
+        struct dimensions_s dest_dim;
+
         if (visual_info == NULL) {
             free(pixmap_geom);
             return result;
@@ -457,18 +464,21 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
         result.src = xcb_generate_id(connection);
         xcb_render_create_picture(connection, result.src,
                 hints.icon_pixmap, visual_info->format, 0u, NULL);
-        s_icon_scale_apply(connection, result.src, pixmap_geom->width,
-                pixmap_geom->height, draw_size, out_dest_w, out_dest_h);
+        s_icon_scale_apply(connection, result.src,
+                (struct dimensions_s) { pixmap_geom->width,
+                    pixmap_geom->height },
+                draw_size, &dest_dim);
+        *out_dest_w = (uint16_t) dest_dim.w;
+        *out_dest_h = (uint16_t) dest_dim.h;
 
         if ((hints.flags & XCB_ICCCM_WM_HINT_ICON_MASK) &&
                 hints.icon_mask != XCB_NONE) {
             const xcb_render_pictforminfo_t *mask_info =
                 xcb_render_util_find_standard_format(formats,
                         XCB_PICT_STANDARD_A_1);
-            if (mask_info != NULL) {
-                uint16_t mask_dest_w;
-                uint16_t mask_dest_h;
+            struct dimensions_s mask_dest_dim;
 
+            if (mask_info != NULL) {
                 result.mask = xcb_generate_id(connection);
                 xcb_render_create_picture(connection, result.mask,
                         hints.icon_mask, mask_info->id, 0u, NULL);
@@ -481,8 +491,9 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
                  * second- guessed by a mask whose geometry turned out
                  * to disagree. */
                 s_icon_scale_apply(connection, result.mask,
-                        pixmap_geom->width, pixmap_geom->height,
-                        draw_size, &mask_dest_w, &mask_dest_h);
+                        (struct dimensions_s) { pixmap_geom->width,
+                            pixmap_geom->height },
+                        draw_size, &mask_dest_dim);
             }
         }
     }
@@ -504,13 +515,10 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
  * @param mask_picture RENDER mask to composite @p src_picture through,
  *                     or @c XCB_NONE to composite it as a fully opaque
  *                     rectangle
- * @param dest_w       Width @p src_picture was built to draw at
- * @param dest_h       Height @p src_picture was built to draw at
+ * @param dest_dim     Width/height @p src_picture was built to draw at
  * @param drawable     Drawable to composite onto
- * @param offset_x     X offset, within @p drawable, of the square
- *                     area's own top-left corner
- * @param offset_y     Y offset, within @p drawable, of the square
- *                     area's own top-left corner
+ * @param offset_pos   Position, within @p drawable, of the square
+ *                      area's own top-left corner
  * @param area_size    Side length of the square area to center in and
  *                     clip to
  *
@@ -521,9 +529,9 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
  */
 static void s_composite_cached(xcb_connection_t *connection,
         xcb_render_picture_t src_picture,
-        xcb_render_picture_t mask_picture, uint16_t dest_w,
-        uint16_t dest_h, xcb_drawable_t drawable,
-        int16_t offset_x, int16_t offset_y, uint16_t area_size)
+        xcb_render_picture_t mask_picture, struct dimensions_s dest_dim,
+        xcb_drawable_t drawable,
+        struct position_s offset_pos, uint16_t area_size)
 {
     xcb_screen_t *screen;
     const xcb_render_query_pict_formats_reply_t *formats;
@@ -553,28 +561,28 @@ static void s_composite_cached(xcb_connection_t *connection,
     xcb_render_create_picture(connection, dst_picture, drawable,
             visual_info->format, 0u, NULL);
 
-    /* Clip to the target square; with 'dest_w'/'dest_h' already at most
+    /* Clip to the target square; with 'dest_dim' already at most
      * 'area_size' (vid. 's_build_icon_picture'), this should rarely
      * trim anything in practice, but stays as a defensive backstop
      * against a scale computation bug rather than letting one spill the
      * icon into, for example, a caption strip below the square in the
      * icon-window case, or a neighboring row's own square when several
      * icons share one drawable (see 'wmicon_draw_at'). */
-    clip_rect.x = offset_x;
-    clip_rect.y = offset_y;
+    clip_rect.x = (int16_t) offset_pos.x;
+    clip_rect.y = (int16_t) offset_pos.y;
     clip_rect.width = area_size;
     clip_rect.height = area_size;
     xcb_render_set_picture_clip_rectangles(connection, dst_picture,
             0, 0, 1u, &clip_rect);
 
-    dst_x = (int16_t) (offset_x + ((area_size > dest_w)
-            ? (int16_t) ((area_size - dest_w) / 2u) : 0));
-    dst_y = (int16_t) (offset_y + ((area_size > dest_h)
-            ? (int16_t) ((area_size - dest_h) / 2u) : 0));
+    dst_x = (int16_t) (offset_pos.x + ((area_size > dest_dim.w)
+            ? (int16_t) ((area_size - dest_dim.w) / 2u) : 0));
+    dst_y = (int16_t) (offset_pos.y + ((area_size > dest_dim.h)
+            ? (int16_t) ((area_size - dest_dim.h) / 2u) : 0));
 
     xcb_render_composite(connection, XCB_RENDER_PICT_OP_OVER,
             src_picture, mask_picture, dst_picture, 0, 0, 0, 0,
-            dst_x, dst_y, dest_w, dest_h);
+            dst_x, dst_y, (uint16_t) dest_dim.w, (uint16_t) dest_dim.h);
 
     xcb_render_free_picture(connection, dst_picture);
 }
@@ -644,9 +652,7 @@ static xcb_gcontext_t s_get_default_icon_gc(xcb_connection_t *connection,
  *
  * @param connection  XCB connection
  * @param drawable    Drawable to draw into
- * @param x           X offset within @p drawable of the icon's own
- *                    top-left corner
- * @param y           Y offset within @p drawable of the icon's own
+ * @param pos         Offset within @p drawable of the icon's own
  *                    top-left corner
  * @param size        Side length, in pixels, of the (square) icon
  * @param frame_color Frame/titlebar color
@@ -656,7 +662,7 @@ static xcb_gcontext_t s_get_default_icon_gc(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 static void s_draw_default_icon(xcb_connection_t *connection,
-        xcb_drawable_t drawable, int16_t x, int16_t y, uint16_t size,
+        xcb_drawable_t drawable, struct position_s pos, uint16_t size,
         uint32_t frame_color, uint32_t bg_color)
 {
     xcb_gcontext_t gc;
@@ -687,8 +693,8 @@ static void s_draw_default_icon(xcb_connection_t *connection,
     xcb_change_gc(connection, gc, XCB_GC_FOREGROUND,
             (const uint32_t[]) { frame_color });
 
-    frame_rect.x = x;
-    frame_rect.y = y;
+    frame_rect.x = (int16_t) pos.x;
+    frame_rect.y = (int16_t) pos.y;
     frame_rect.width = size;
     frame_rect.height = size;
     xcb_poly_fill_rectangle(connection, drawable, gc, 1, &frame_rect);
@@ -708,8 +714,8 @@ static void s_draw_default_icon(xcb_connection_t *connection,
 
         xcb_change_gc(connection, gc, XCB_GC_FOREGROUND,
                 (const uint32_t[]) { bg_color });
-        body_rect.x = (int16_t) (x + margin);
-        body_rect.y = (int16_t) (y + margin + titlebar_h);
+        body_rect.x = (int16_t) (pos.x + margin);
+        body_rect.y = (int16_t) (pos.y + margin + titlebar_h);
         body_rect.width = inner;
         body_rect.height = (uint16_t) (inner - titlebar_h);
         xcb_poly_fill_rectangle(connection, drawable, gc, 1,
@@ -733,9 +739,7 @@ static void s_draw_default_icon(xcb_connection_t *connection,
  *
  * @param connection  XCB connection
  * @param drawable    Drawable to draw into
- * @param x           X offset, within @p drawable, of the icon square's
- *                    top-left corner
- * @param y           Y offset, within @p drawable, of the icon square's
+ * @param pos         Offset, within @p drawable, of the icon square's
  *                    top-left corner
  * @param area_size   Side length of the square the icon is centered
  *                    within
@@ -746,16 +750,18 @@ static void s_draw_default_icon(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 static void s_draw_default_icon_centered(xcb_connection_t *connection,
-        xcb_drawable_t drawable, int16_t x, int16_t y,
+        xcb_drawable_t drawable, struct position_s pos,
         uint16_t area_size, uint16_t draw_size, uint32_t frame_color,
         uint32_t bg_color)
 {
-    int16_t offset_x = (int16_t) (x + ((area_size > draw_size)
-            ? (int16_t) ((area_size - draw_size) / 2u) : 0));
-    int16_t offset_y = (int16_t) (y + ((area_size > draw_size)
-            ? (int16_t) ((area_size - draw_size) / 2u) : 0));
+    struct position_s offset_pos;
 
-    s_draw_default_icon(connection, drawable, offset_x, offset_y,
+    offset_pos.x = pos.x + ((area_size > draw_size)
+            ? (int16_t) ((area_size - draw_size) / 2u) : 0);
+    offset_pos.y = pos.y + ((area_size > draw_size)
+            ? (int16_t) ((area_size - draw_size) / 2u) : 0);
+
+    s_draw_default_icon(connection, drawable, offset_pos,
             draw_size, frame_color, bg_color);
 }
 
@@ -764,7 +770,7 @@ static void s_draw_default_icon_centered(xcb_connection_t *connection,
  * an explicit offset within 'drawable' */
 void wmicon_draw_at(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
-        xcb_drawable_t drawable, int16_t x, int16_t y,
+        xcb_drawable_t drawable, struct position_s pos,
         uint16_t area_size, uint32_t frame_color, uint32_t bg_color,
         wmicon_cache_td *cache)
 {
@@ -794,8 +800,9 @@ void wmicon_draw_at(xcb_connection_t *connection,
      * per-pixel premultiply, and pixmap upload entirely. */
     if (cache->picture != XCB_NONE && cache->draw_size == draw_size) {
         s_composite_cached(connection, cache->picture,
-                cache->mask_picture, cache->dest_w, cache->dest_h,
-                drawable, x, y, area_size);
+                cache->mask_picture,
+                (struct dimensions_s) { cache->dest_w, cache->dest_h },
+                drawable, pos, area_size);
         return;
     }
 
@@ -804,7 +811,7 @@ void wmicon_draw_at(xcb_connection_t *connection,
      * default icon straight away instead of repeating both fetches only
      * to reach that same answer again. */
     if (cache->has_no_icon && cache->draw_size == draw_size) {
-        s_draw_default_icon_centered(connection, drawable, x, y,
+        s_draw_default_icon_centered(connection, drawable, pos,
                 area_size, draw_size, frame_color, bg_color);
         return;
     }
@@ -868,7 +875,7 @@ void wmicon_draw_at(xcb_connection_t *connection,
         wmicon_invalidate(connection, cache);
         cache->draw_size = draw_size;
         cache->has_no_icon = true;
-        s_draw_default_icon_centered(connection, drawable, x, y,
+        s_draw_default_icon_centered(connection, drawable, pos,
                 area_size, draw_size, frame_color, bg_color);
         return;
     }
@@ -881,7 +888,8 @@ void wmicon_draw_at(xcb_connection_t *connection,
     cache->dest_h = dest_h;
 
     s_composite_cached(connection, cache->picture, cache->mask_picture,
-            cache->dest_w, cache->dest_h, drawable, x, y, area_size);
+            (struct dimensions_s) { cache->dest_w, cache->dest_h },
+            drawable, pos, area_size);
 }
 
 
@@ -893,7 +901,8 @@ void wmicon_draw(xcb_connection_t *connection,
         uint16_t area_size, uint32_t frame_color, uint32_t bg_color,
         wmicon_cache_td *cache)
 {
-    wmicon_draw_at(connection, ewmh, window, drawable, 0, 0, area_size,
+    wmicon_draw_at(connection, ewmh, window, drawable,
+            (struct position_s) { 0, 0 }, area_size,
             frame_color, bg_color, cache);
 }
 

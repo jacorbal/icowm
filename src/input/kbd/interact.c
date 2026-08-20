@@ -23,7 +23,6 @@
 
 #define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -31,6 +30,9 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* Type includes */
+#include <types/pair.h>
 
 /* ADT includes */
 #include <adt/list.h>
@@ -262,15 +264,12 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
  * its new geometry immediately.
  *
  * @param client Pointer to the client to resize
- * @param new_x  New frame X position (screen-relative)
- * @param new_y  New frame Y position (screen-relative)
- * @param new_w  New frame width
- * @param new_h  New frame height
+ * @param geom   New frame position and dimensions (screen-relative)
  *
  * @note This function flushes the XCB connection before returning.
  */
 static void s_kbd_resize_apply(client_td *client,
-        int32_t new_x, int32_t new_y, uint32_t new_w, uint32_t new_h)
+        struct geometry_s geom)
 {
     bool pos_changed;
     uint16_t mask;
@@ -294,8 +293,8 @@ static void s_kbd_resize_apply(client_td *client,
      * what the position correction ('new_y += old_h - new_h') was
      * computed for, causing the top edge of the window to shift by the
      * wrong amount on 'RESIZE_UP'. */
-    pos_changed = (new_x != client->layout.geometry.cur.pos.x ||
-                   new_y != client->layout.geometry.cur.pos.y);
+    pos_changed = (geom.pos.x != client->layout.geometry.cur.pos.x ||
+                   geom.pos.y != client->layout.geometry.cur.pos.y);
 
     /* Apply the new geometry to the correct X window.  Decorated
      * clients are reparented into a frame; undecorated clients are
@@ -306,24 +305,21 @@ static void s_kbd_resize_apply(client_td *client,
     if (pos_changed) {
         mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[0] = (uint32_t) new_x;
-        values[1] = (uint32_t) new_y;
-        values[2] = new_w;
-        values[3] = new_h;
+        values[0] = (uint32_t) geom.pos.x;
+        values[1] = (uint32_t) geom.pos.y;
+        values[2] = geom.dim.w;
+        values[3] = geom.dim.h;
     } else {
         mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[0] = new_w;
-        values[1] = new_h;
+        values[0] = geom.dim.w;
+        values[1] = geom.dim.h;
     }
     xcb_configure_window(client->connection, target_win, mask, values);
 
     /* Update the stored geometry after configuring X so that
      * 'client_decoration_layout_sync' and the synthetic
      * 'ConfigureNotify' both see the final values */
-    client->layout.geometry.cur.pos.x = new_x;
-    client->layout.geometry.cur.pos.y = new_y;
-    client->layout.geometry.cur.dim.w = new_w;
-    client->layout.geometry.cur.dim.h = new_h;
+    client->layout.geometry.cur = geom;
 
     /* Reposition and resize the inner window and titlebar to match the
      * new frame dimensions (no-op for undecorated clients) */
@@ -681,7 +677,7 @@ void ik_handle_move(enum wm_keybind_type_e btype,
             break;
     }
 
-    enact_client_move(client, new_x, new_y);
+    enact_client_move(client, (struct position_s) { new_x, new_y });
 }
 
 
@@ -861,8 +857,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
             break;
     }
 
-    s_kbd_resize_apply(client,
-            new_x, new_y,
-            geom_dim_clamp(new_w),
-            geom_dim_clamp(new_h));
+    s_kbd_resize_apply(client, (struct geometry_s) {
+                { new_x, new_y },
+                { geom_dim_clamp(new_w), geom_dim_clamp(new_h) } });
 }

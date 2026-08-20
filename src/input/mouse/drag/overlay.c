@@ -22,6 +22,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Default initial values */
 #include <defs/icon.h>
 
@@ -37,34 +40,28 @@
 /**
  * @brief Compute the centered overlay position for a target rectangle
  *
- * Centers an overlay of size @p overlay_w by @p overlay_h within the
- * target rectangle and stores the resulting top-left coordinates in
- * @p out_x and @p out_y.  Negative coordinates are clamped to zero
- * before conversion to @c int16_t.
+ * Centers an overlay of size @p overlay_dim within the target
+ * rectangle and stores the resulting top-left coordinates in
+ * @p out_pos.  Negative coordinates are clamped to zero before
+ * conversion to @c int16_t.
  *
- * @param target_x  Left coordinate of the target rectangle
- * @param target_y  Top coordinate of the target rectangle
- * @param target_w  Width of the target rectangle
- * @param target_h  Height of the target rectangle
- * @param overlay_w Width of the overlay rectangle
- * @param overlay_h Height of the overlay rectangle
- * @param out_x     Computed overlay X coordinate
- * @param out_y     Computed overlay Y coordinate
+ * @param target      Target rectangle
+ * @param overlay_dim Width/height of the overlay rectangle
+ * @param out_pos     Computed overlay position
  *
  * @note Complexity: @e O(1)
  */
-static void s_drag_overlay_rect(int32_t target_x, int32_t target_y,
-        uint16_t target_w, uint16_t target_h,
-        uint16_t overlay_w, uint16_t overlay_h,
-        int16_t *restrict out_x, int16_t *restrict out_y)
+static void s_drag_overlay_rect(struct geometry_s target,
+        struct dimensions_s overlay_dim,
+        struct position_s *restrict out_pos)
 {
     int32_t centered_x;
     int32_t centered_y;
 
-    centered_x = target_x +
-        ((int32_t) target_w - (int32_t) overlay_w) / 2;
-    centered_y = target_y +
-        ((int32_t) target_h - (int32_t) overlay_h) / 2;
+    centered_x = target.pos.x +
+        ((int32_t) target.dim.w - (int32_t) overlay_dim.w) / 2;
+    centered_y = target.pos.y +
+        ((int32_t) target.dim.h - (int32_t) overlay_dim.h) / 2;
 
     if (centered_x < 0) {
         centered_x = 0;
@@ -73,12 +70,12 @@ static void s_drag_overlay_rect(int32_t target_x, int32_t target_y,
         centered_y = 0;
     }
 
-    *out_x = (centered_x < INT16_MIN) ? INT16_MIN
+    out_pos->x = (centered_x < INT16_MIN) ? INT16_MIN
         : (centered_x > INT16_MAX) ? INT16_MAX
-        : (int16_t) centered_x;
-    *out_y = (centered_y < INT16_MIN) ? INT16_MIN
+        : centered_x;
+    out_pos->y = (centered_y < INT16_MIN) ? INT16_MIN
         : (centered_y > INT16_MAX) ? INT16_MAX
-        : (int16_t) centered_y;
+        : centered_y;
 }
 
 
@@ -98,14 +95,11 @@ void drag_overlay_hide(xcb_connection_t *connection)
 /* Show or reposition the drag overlay window */
 void drag_overlay_show(xcb_connection_t *connection,
         bool is_icon,
-        int32_t target_x, int32_t target_y,
-        uint16_t target_w, uint16_t target_h,
+        struct geometry_s target,
         const char *text)
 {
     uint16_t text_w;
-    uint16_t overlay_w;
-    int16_t overlay_x;
-    int16_t overlay_y;
+    struct geometry_s overlay_geom;
 
     if (connection == NULL || s_drag.client == NULL || text == NULL ||
             text[0] == '\0') {
@@ -121,13 +115,14 @@ void drag_overlay_show(xcb_connection_t *connection,
                 ? s_drag.client->theme->icon.active.font
                 : s_drag.client->theme->window.active.font);
     text_w = text_string_measure(s_drag.overlay_text);
-    overlay_w = (uint16_t) (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
-    if (overlay_w < WM_DRAG_OVERLAY_MIN_WIDTH) {
-        overlay_w = WM_DRAG_OVERLAY_MIN_WIDTH;
+    overlay_geom.dim.w = (uint16_t)
+        (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
+    if (overlay_geom.dim.w < WM_DRAG_OVERLAY_MIN_WIDTH) {
+        overlay_geom.dim.w = WM_DRAG_OVERLAY_MIN_WIDTH;
     }
+    overlay_geom.dim.h = WM_DRAG_OVERLAY_HEIGHT;
 
-    s_drag_overlay_rect(target_x, target_y, target_w, target_h,
-            overlay_w, WM_DRAG_OVERLAY_HEIGHT, &overlay_x, &overlay_y);
+    s_drag_overlay_rect(target, overlay_geom.dim, &overlay_geom.pos);
 
     if (s_drag.overlay_window == XCB_WINDOW_NONE) {
         uint16_t create_mask;
@@ -149,8 +144,10 @@ void drag_overlay_show(xcb_connection_t *connection,
                 XCB_COPY_FROM_PARENT,
                 s_drag.overlay_window,
                 s_drag.client->parent_id,
-                overlay_x, overlay_y,
-                overlay_w, WM_DRAG_OVERLAY_HEIGHT,
+                (int16_t) overlay_geom.pos.x,
+                (int16_t) overlay_geom.pos.y,
+                (uint16_t) overlay_geom.dim.w,
+                (uint16_t) overlay_geom.dim.h,
                 1,
                 XCB_WINDOW_CLASS_INPUT_OUTPUT,
                 XCB_COPY_FROM_PARENT,
@@ -162,10 +159,10 @@ void drag_overlay_show(xcb_connection_t *connection,
                 XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT |
                 XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) {
-                    (uint32_t) overlay_x,
-                    (uint32_t) overlay_y,
-                    overlay_w,
-                    WM_DRAG_OVERLAY_HEIGHT,
+                    (uint32_t) overlay_geom.pos.x,
+                    (uint32_t) overlay_geom.pos.y,
+                    overlay_geom.dim.w,
+                    overlay_geom.dim.h,
                     XCB_STACK_MODE_ABOVE
                 });
     }
@@ -262,5 +259,5 @@ void drag_overlay_repaint(xcb_connection_t *connection)
         (((int32_t) WM_DRAG_OVERLAY_HEIGHT + ascent - descent) / 2);
 
     text_draw_string(connection, s_drag.overlay_window, XCB_NONE,
-            text_x, text_y, s_drag.overlay_text);
+            (struct position_s) { text_x, text_y }, s_drag.overlay_text);
 }

@@ -578,7 +578,7 @@ void hi_handle_net_moveresize_window(const wm_td *wm,
 }
 
 
-/* Apply a @c _NET_SHOWING_DESKTOP request to one surface */
+/* Apply a '_NET_SHOWING_DESKTOP' request to one surface */
 void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 {
     desktop_td *desktop;

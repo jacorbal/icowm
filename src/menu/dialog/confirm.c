@@ -24,6 +24,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Default initial values */
 #include <defs/dialog.h>
 #include <defs/uistr.h>
@@ -345,7 +348,8 @@ static void s_confirm_draw(xcb_connection_t *connection,
             (s_confirm_selected == 0)
                 ? config->theme.dialog.button.selected.border.width
                 : config->theme.dialog.button.unselected.border.width,
-            lo->cancel_x, lo->btn_y, lo->btn_w, lo->btn_h);
+            (struct geometry_s) {
+                { lo->cancel_x, lo->btn_y }, { lo->btn_w, lo->btn_h } });
     dlgutil_button_border_draw(connection, s_confirm_window,
             (s_confirm_selected == 1)
                 ? config->theme.dialog.button.selected.border.color
@@ -353,13 +357,15 @@ static void s_confirm_draw(xcb_connection_t *connection,
             (s_confirm_selected == 1)
                 ? config->theme.dialog.button.selected.border.width
                 : config->theme.dialog.button.unselected.border.width,
-            lo->confirm_x, lo->btn_y, lo->btn_w, lo->btn_h);
+            (struct geometry_s) {
+                { lo->confirm_x, lo->btn_y }, { lo->btn_w, lo->btn_h } });
 
     /* Prompt text */
     text_renderer_init(connection, config->theme.dialog.label.font);
     text_renderer_set_color(config->theme.dialog.label.foreground, bg_win);
     menu_draw_label(connection, s_confirm_window,
-            lo->prompt_x, lo->prompt_y, lo->prompt);
+            (struct position_s) { lo->prompt_x, lo->prompt_y },
+            lo->prompt);
 
     /* Countdown line, only while a timeout is actually running; same
      * font as the prompt, sharing its own horizontal centering
@@ -380,7 +386,8 @@ static void s_confirm_draw(xcb_connection_t *connection,
                 ? (lo->w - timeout_w) / 2u
                 : config->theme.dialog.label.padding.horizontal);
         menu_draw_label(connection, s_confirm_window,
-                timeout_x, lo->timeout_y, timeout_text);
+                (struct position_s) { timeout_x, lo->timeout_y },
+                timeout_text);
     }
 
     /* Cancel label: font, and therefore width, depends on whether
@@ -405,7 +412,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
             (s_confirm_selected == 0) ? fg_sel : fg_nor,
             (s_confirm_selected == 0) ? bg_sel : bg_nor);
     menu_draw_label(connection, s_confirm_window,
-            label_x, label_y, lo->cancel_label);
+            (struct position_s) { label_x, label_y }, lo->cancel_label);
 
     /* Confirm label: same reasoning as the cancel label above */
     text_renderer_init(connection, (s_confirm_selected == 1)
@@ -423,7 +430,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
             (s_confirm_selected == 1) ? fg_sel : fg_nor,
             (s_confirm_selected == 1) ? bg_sel : bg_nor);
     menu_draw_label(connection, s_confirm_window,
-            label_x, label_y, lo->confirm_label);
+            (struct position_s) { label_x, label_y }, lo->confirm_label);
 
     xcb_flush(connection);
 }

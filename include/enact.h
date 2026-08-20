@@ -34,6 +34,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -93,15 +96,11 @@ void enact_client_unfocus(client_td *client);
  * @brief Resize the client to a specific frame geometry
  *
  * @param client Client to resize
- * @param x      New frame X position
- * @param y      New frame Y position
- * @param w      New frame width
- * @param h      New frame height
+ * @param geom   New frame position and dimensions
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_resize(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h);
+void enact_client_resize(client_td *client, struct geometry_s geom);
 
 /**
  * @brief Resize the client to a specific frame geometry immediately,
@@ -111,26 +110,21 @@ void enact_client_resize(client_td *client, int32_t x, int32_t y,
  *      @a enact_client_resize, is the right call to make
  *
  * @param client Client to resize
- * @param x      New frame X position
- * @param y      New frame Y position
- * @param w      New frame width
- * @param h      New frame height
+ * @param geom   New frame position and dimensions
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_resize_force(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h);
+void enact_client_resize_force(client_td *client, struct geometry_s geom);
 
 /**
  * @brief Move the client to a specific position
  *
  * @param client Client to move
- * @param x      New X position
- * @param y      New Y position
+ * @param pos    New position
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_move(client_td *client, int32_t x, int32_t y);
+void enact_client_move(client_td *client, struct position_s pos);
 
 /**
  * @brief Center the client on its current screen

@@ -22,6 +22,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Default initial values */
 #include <defs/uistr.h>
 #include <i18n.h>
@@ -505,7 +508,8 @@ static void s_message_draw(xcb_connection_t *connection,
             (lo->ok_selected)
                 ? config->theme.dialog.button.selected.border.width
                 : config->theme.dialog.button.unselected.border.width,
-            lo->btn_x, lo->btn_y, lo->btn_w, lo->btn_h);
+            (struct geometry_s) {
+                { lo->btn_x, lo->btn_y }, { lo->btn_w, lo->btn_h } });
 
     /* Message text, one call per wrapped line; each line uses the
      * same 'msg_x' (computed from the widest line) rather than being
@@ -527,7 +531,8 @@ static void s_message_draw(xcb_connection_t *connection,
                     (int16_t) DIALOG_MSG_LINE_GAP));
 
         menu_draw_label(connection, s_message_window,
-                lo->msg_x, line_y, lo->lines[lo->scroll_offset + i]);
+                (struct position_s) { lo->msg_x, line_y },
+                lo->lines[lo->scroll_offset + i]);
     }
 
     /* Footer, right below the last content row shown above: only
@@ -573,7 +578,7 @@ static void s_message_draw(xcb_connection_t *connection,
                 (unsigned int) lo->scroll_offset + shown,
                 (unsigned int) lo->line_count);
         menu_draw_label(connection, s_message_window,
-                lo->msg_x, status_y, status);
+                (struct position_s) { lo->msg_x, status_y }, status);
     }
 
     /* OK label: font, and therefore width, depends on whether the
@@ -599,7 +604,8 @@ static void s_message_draw(xcb_connection_t *connection,
             (lo->ok_selected) ? fg_sel : fg_btn_nor,
             (lo->ok_selected) ? bg_sel : bg_btn_nor);
     menu_draw_label(connection, s_message_window,
-            label_x, label_y, _(STR_DIALOG_MSG_LABEL_OK));
+            (struct position_s) { label_x, label_y },
+            _(STR_DIALOG_MSG_LABEL_OK));
 
     xcb_flush(connection);
 }

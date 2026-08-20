@@ -449,8 +449,9 @@ void surface_clients_reflow(surface_td *surface)
                 if (!still_on_a_monitor) {
                     monitor_td target_monitor =
                         surface_monitor_for_point(surface,
-                                cx + (int32_t) (cw / 2u),
-                                cy + (int32_t) (ch / 2u));
+                                (struct position_s) {
+                                    cx + (int32_t) (cw / 2u),
+                                    cy + (int32_t) (ch / 2u) });
                     int32_t mx0 = target_monitor.x;
                     int32_t my0 = target_monitor.y;
                     int32_t mx1 = mx0 + (int32_t) target_monitor.w;
