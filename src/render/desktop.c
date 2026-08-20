@@ -543,35 +543,39 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
  *
  * A title too wide for the available space is truncated one character
  * at a time until it fits, rather than letting it draw underneath the
- * right-hand buttons.
+ * right-hand buttons.  Whatever ends up actually drawn is kept in sync
+ * with @c _NET_WM_VISIBLE_NAME via @a client_sync_visible_name, so a
+ * pager showing the same title has a way to know it no longer matches
+ * @c _NET_WM_NAME verbatim.
  */
 static void s_titlebar_draw_title(xcb_connection_t *connection,
-        xcb_window_t titlebar, int16_t title_x, uint16_t title_w,
-        int16_t text_y, const char *text,
+        client_td *client, xcb_window_t titlebar, int16_t title_x,
+        uint16_t title_w, int16_t text_y, const char *text,
         enum config_titlebar_alignment_e alignment)
 {
     char buf[CONFIG_MAX_LENGTH_NAME];
     uint16_t text_w;
     int16_t draw_x;
+    bool can_sync;
 
     if (connection == NULL || text == NULL || text[0] == '\0' ||
             title_w == 0u) {
         return;
     }
 
-    safe_strncpy(buf, text, sizeof(buf));
+    can_sync = (client != NULL && client->ewmh != NULL);
+
+    text_truncate_to_width(buf, sizeof(buf), text, title_w);
     text_w = text_string_measure(buf);
 
-    if (text_w > title_w) {
-        size_t len = safe_strlen(buf);
-        while (len > 0u && text_w > title_w) {
-            --len;
-            buf[len] = '\0';
-            text_w = text_string_measure(buf);
-        }
-        if (len == 0u) {
-            return;
-        }
+    if (can_sync) {
+        client_sync_visible_name(client, client->info.visible_name,
+                text, buf, xcb_ewmh_set_wm_visible_name_checked,
+                client->ewmh->_NET_WM_VISIBLE_NAME);
+    }
+
+    if (buf[0] == '\0') {
+        return;
     }
 
     draw_x = title_x;
@@ -648,7 +652,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
     text_y = (int16_t) (((int16_t) title_h -
                 (int16_t) (text_font_ascent() + text_font_descent())) / 2 +
             text_font_ascent());
-    s_titlebar_draw_title(connection, client->titlebar,
+    s_titlebar_draw_title(connection, client, client->titlebar,
             title_x, title_w, text_y, client->info.name,
             theme->window.titlebar.alignment);
 

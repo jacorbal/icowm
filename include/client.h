@@ -451,6 +451,14 @@ typedef struct client_s {
      */
     struct {
         bool valid;         /**< True when hints were read from server */
+        bool has_position;  /**< True when the client itself requested
+                                  a position (@c USPosition or
+                                  @c PPosition) rather than leaving it
+                                  to this window manager's own policy */
+        int32_t req_x;      /**< Client-requested x, valid only when
+                                  @c has_position is true */
+        int32_t req_y;      /**< Client-requested y, valid only when
+                                  @c has_position is true */
         int32_t min_w;      /**< Minimum width  (0 = unset) */
         int32_t min_h;      /**< Minimum height (0 = unset) */
         int32_t max_w;      /**< Maximum width  (0 = unset) */
@@ -1020,6 +1028,46 @@ client_td *client_init(xcb_connection_t *connection,
  * @note Complexity: @e O(n), where @e n is the length of the name
  */
 void client_props_refresh_name(client_td *client);
+
+/**
+ * @brief Keep a cached, possibly-truncated display name and its
+ *        matching EWMH property (@c _NET_WM_VISIBLE_NAME or
+ *        @c _NET_WM_VISIBLE_ICON_NAME) in sync with whether @p
+ *        rendered actually differs from @p full_name right now
+ *
+ * Called every time something re-renders a name that may have needed
+ * truncating to fit (a titlebar too narrow for the full title, an
+ * icon caption under the same constraint): a no-op, without any XCB
+ * round trip, whenever @p rendered already matches what @p cached
+ * currently holds, which is the ordinary case on every repaint after
+ * the first where truncation itself has not changed.  When @p
+ * rendered equals @p full_name (no truncation needed), the property
+ * is deleted rather than set to a redundant copy of the underlying
+ * name, per this project's own reading of EWMH §5.4/5.5: nothing
+ * behaves incorrectly if a client only checks for the property's own
+ * presence rather than comparing its value.
+ *
+ * @param client    Client the property belongs to
+ * @param cached    @c client_td's own cached buffer for this name
+ *                   (@c info.visible_name or
+ *                   @c icon_info.visible_icon_name), at least
+ *                   @c CONFIG_MAX_LENGTH_NAME bytes
+ * @param full_name The client's own full, untruncated name
+ * @param rendered  What was actually just rendered, truncated or not
+ * @param set_fn    @c xcb_ewmh_set_wm_visible_name_checked or
+ *                   @c xcb_ewmh_set_wm_visible_icon_name_checked,
+ *                   whichever matches @p atom
+ * @param atom      @c client->ewmh->_NET_WM_VISIBLE_NAME or
+ *                   @c client->ewmh->_NET_WM_VISIBLE_ICON_NAME,
+ *                   whichever matches @p set_fn
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p rendered
+ */
+void client_sync_visible_name(client_td *client, char *cached,
+        const char *full_name, const char *rendered,
+        xcb_void_cookie_t (*set_fn)(xcb_ewmh_connection_t *,
+            xcb_window_t, uint32_t, const char *),
+        xcb_atom_t atom);
 
 /**
  * @brief Refresh the managed client's role from @c WM_WINDOW_ROLE

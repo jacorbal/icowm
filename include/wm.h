@@ -58,7 +58,7 @@ typedef struct session_s session_td;
  * program as well as the relationships between different screens and
  * their respective windows.
  *
- * Opaque outside @c wm.c and @c wm/instance.c: every field is reached
+ * Opaque outside @c wm.c and @c wm/instance.c.  Every field is reached
  * only through the accessor functions declared below, never through
  * direct member access.  @c wm/internal.h (private to @c wm.c and
  * @c wm/instance.c) holds the real definition.

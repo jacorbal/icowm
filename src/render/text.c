@@ -650,6 +650,36 @@ uint16_t text_string_measure(const char *text)
 }
 
 
+/* Copy text into a buffer, shortening it a character at a time from
+ * the end until it measures no wider than a given limit */
+void text_truncate_to_width(char *buf, size_t buf_size,
+        const char *text, uint16_t max_width)
+{
+    uint16_t w;
+
+    if (buf == NULL || buf_size == 0u) {
+        return;
+    }
+    if (text == NULL) {
+        buf[0] = '\0';
+        return;
+    }
+
+    safe_strncpy(buf, text, buf_size);
+    w = text_string_measure(buf);
+
+    if (w > max_width) {
+        size_t len = safe_strlen(buf);
+
+        while (len > 0u && w > max_width) {
+            --len;
+            buf[len] = '\0';
+            w = text_string_measure(buf);
+        }
+    }
+}
+
+
 /* Pixels the baseline sits below the top of a line, for the current
  * font */
 int16_t text_font_ascent(void)

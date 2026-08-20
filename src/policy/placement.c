@@ -357,6 +357,41 @@ static bool s_place_transient_centered(const wm_td *wm,
 
     fw = client->layout.geometry.cur.dim.w;
     fh = client->layout.geometry.cur.dim.h;
+    parent = NULL;
+
+    /* ICCCM: 'WM_TRANSIENT_FOR' set to the root window means this
+     * dialog is transient for its whole application group, not one
+     * specific window ("Window Managers should decide" how to handle
+     * this on their own, per the spec's own wording); prefer
+     * centering over whichever currently-mapped sibling shares the
+     * same group leader as this client, falling through to the
+     * ordinary geometry-based fallback further below (which, for the
+     * root window specifically, ends up centering on screen) when no
+     * such sibling is currently mapped. */
+    if (client->transient_for == surface->screen->root) {
+        xcb_window_t leader = client_group_leader(client);
+
+        if (leader != XCB_WINDOW_NONE) {
+            desktop_td *desktop =
+                surface_desktop_get(surface, surface->desktop_cur);
+
+            if (desktop != NULL && desktop->clients != NULL) {
+                void *elem;
+
+                ohtbl_foreach(desktop->clients, elem) {
+                    client_td *const sibling = (client_td *) elem;
+
+                    if (sibling != client &&
+                            client_group_leader(sibling) == leader &&
+                            sibling->properties.state !=
+                                (uint16_t) CLIENT_STATE_ICONIFIED) {
+                        parent = sibling;
+                        break;
+                    }
+                }
+            }
+        }
+    }
 
     /* Prefer the WM's stored frame geometry over
      * 'xcb_get_geometry': after reparenting the parent's inner
@@ -365,8 +400,10 @@ static bool s_place_transient_centered(const wm_td *wm,
      * the frame's root-relative screen position.  Using the stored
      * geometry correctly centers the dialog wherever the parent
      * window is on screen. */
-    parent = lookup_find_client(wm_surfaces(wm),
-            client->transient_for, NULL, NULL);
+    if (parent == NULL) {
+        parent = lookup_find_client(wm_surfaces(wm),
+                client->transient_for, NULL, NULL);
+    }
     if (parent != NULL) {
         int32_t px = parent->layout.geometry.cur.pos.x;
         int32_t py = parent->layout.geometry.cur.pos.y;
@@ -808,6 +845,18 @@ void place_apply(const wm_td *wm,
         wa_y = 0;
         wa_w = screen.w;
         wa_h = screen.h;
+    }
+
+    /* ICCCM 4.1.2.3: a client-requested position takes priority over
+     * every placement policy below, including the transient-centering
+     * convenience immediately following this: an explicit position
+     * request is the client's own most specific, deliberate statement
+     * of where it wants to appear, ahead of any convenience default
+     * this window manager would otherwise pick on its behalf. */
+    if (client->size_hints.has_position) {
+        s_place_finalize(wm, surface, client, wa_x, wa_y,
+                client->size_hints.req_x, client->size_hints.req_y);
+        return;
     }
 
     /* ICCCM §4.1.2.6: center transient dialogs over their parent */

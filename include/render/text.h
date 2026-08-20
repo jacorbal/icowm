@@ -19,6 +19,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stddef.h>     /* size_t */
 #include <stdint.h>
 
 /* XCB includes */
@@ -138,6 +139,23 @@ void text_draw_string(xcb_connection_t *connection,
  * @note Complexity: @e O(n), where @e n is the length of the text
  */
 uint16_t text_string_measure(const char *text);
+
+/**
+ * @brief Copy @p text into @p buf, shortening it one character at a
+ *        time from the end until it measures no wider than
+ *        @p max_width
+ *
+ * @param buf       Destination buffer
+ * @param buf_size  Size of @p buf in bytes
+ * @param text      Source string to copy and, if needed, shorten
+ * @param max_width Widest @p buf is allowed to measure afterward
+ *
+ * @note @p buf may end up empty if not even a single character of
+ *       @p text fits within @p max_width
+ * @note Complexity: @e O(n), where @e n is the length of @p text
+ */
+void text_truncate_to_width(char *buf, size_t buf_size,
+        const char *text, uint16_t max_width);
 
 /**
  * @brief Pixels the baseline sits below the top of a line, for

@@ -330,6 +330,19 @@ void client_props_refresh_normal_hints(client_td *client)
 
     client->size_hints.valid = true;
 
+    /* ICCCM 4.1.2.3: a client that sets 'USPosition' or 'PPosition'
+     * is making a specific, deliberate request for where it wants to
+     * appear, not leaving the decision to this window manager's own
+     * placement policy; both flags are honored the same way, since
+     * ICCCM itself does not require distinguishing a user's own
+     * explicit choice (US) from a program's own default (P) here. */
+    if (hints.flags & (XCB_ICCCM_SIZE_HINT_US_POSITION |
+                XCB_ICCCM_SIZE_HINT_P_POSITION)) {
+        client->size_hints.has_position = true;
+        client->size_hints.req_x = (int32_t) hints.x;
+        client->size_hints.req_y = (int32_t) hints.y;
+    }
+
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
         client->size_hints.min_w = (int32_t) hints.min_width;
         client->size_hints.min_h = (int32_t) hints.min_height;

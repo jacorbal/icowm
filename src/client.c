@@ -222,6 +222,40 @@ void client_update_user_time(client_td *client, uint32_t time)
 }
 
 
+/* Keep a cached visible name and its matching EWMH property in sync
+ * with whether the caller's own just-rendered text was truncated */
+void client_sync_visible_name(client_td *client, char *cached,
+        const char *full_name, const char *rendered,
+        xcb_void_cookie_t (*set_fn)(xcb_ewmh_connection_t *,
+            xcb_window_t, uint32_t, const char *),
+        xcb_atom_t atom)
+{
+    if (client == NULL || client->ewmh == NULL || cached == NULL ||
+            full_name == NULL || rendered == NULL || set_fn == NULL) {
+        return;
+    }
+
+    if (safe_strcmp(rendered, full_name) != 0) {
+        /* Actually truncated right now */
+        if (safe_strcmp(cached, rendered) == 0) {
+            return;
+        }
+        safe_strncpy(cached, rendered, CONFIG_MAX_LENGTH_NAME);
+        set_fn(client->ewmh, client->window,
+                (uint32_t) safe_strlen(rendered), rendered);
+    } else {
+        /* No longer (or never) truncated: the property should not be
+         * advertised at all, rather than set to a redundant copy of
+         * 'full_name' */
+        if (safe_strcmp(cached, full_name) == 0) {
+            return;
+        }
+        safe_strncpy(cached, full_name, CONFIG_MAX_LENGTH_NAME);
+        xcb_delete_property(client->connection, client->window, atom);
+    }
+}
+
+
 /* Apply a client's own themed border color and width to its own
  * window, honoring 'border_override' when set */
 void client_border_apply(client_td *client, bool use_active_style)
