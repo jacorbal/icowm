@@ -13,7 +13,6 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL */
 #include <stdint.h>
 #include <stdlib.h>     /* calloc, free */
 #include <string.h>     /* memset */

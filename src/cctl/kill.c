@@ -15,9 +15,8 @@
 
 
 /* System includes */
-#include <signal.h>     /* kill, SIGKILL */
+#include <signal.h>     /* kill, SIGKILL, size_t */
 #include <stdbool.h>
-#include <stddef.h>     /* size_t */
 #include <stdint.h>     /* uint32_t */
 #include <sys/types.h>  /* pid_t */
 #include <time.h>       /* clock_gettime, timespec */
@@ -39,7 +38,7 @@
 struct kill_pending_s {
     bool in_use;
     pid_t pid;
-    struct timespec deadline;   /* @c CLOCK_MONOTONIC */
+    struct timespec deadline;   /* 'CLOCK_MONOTONIC' */
 };
 
 /** Every process currently being watched for kill escalation */

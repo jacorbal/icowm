@@ -26,7 +26,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <time.h>       /* clock_gettime, struct timespec */
+#include <time.h>       /* clock_gettime, struct timespec, NULL */
 
 /* XCB includes */
 #include <xcb/xcb.h>

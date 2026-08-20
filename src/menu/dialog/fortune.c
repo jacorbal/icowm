@@ -15,7 +15,6 @@
 
 
 /* System includes */
-#include <stddef.h>     /* NULL, size_t */
 #include <stdio.h>      /* popen, pclose, FILE, fread, snprintf */
 
 /* XCB includes */

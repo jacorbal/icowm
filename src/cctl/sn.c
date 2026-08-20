@@ -17,7 +17,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>      /* snprintf */
+#include <stdio.h>      /* snprintf, NULL, size_t */
 #include <string.h>     /* memset, memcpy, strchr, strstr */
 #include <time.h>       /* CLOCK_MONOTONIC, clock_gettime, time */
 #include <unistd.h>     /* getpid */

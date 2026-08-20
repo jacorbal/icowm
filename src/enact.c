@@ -17,6 +17,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+/* System includes */
+#include <stddef.h>     /* NULL */
+
 /* Project includes */
 #include <wm.h>
 

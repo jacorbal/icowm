@@ -14,6 +14,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stddef.h>     /* NULL */
 #include <poll.h>       /* struct pollfd, poll, POLLIN */
 
 /* XCB includes */

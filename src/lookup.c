@@ -12,8 +12,10 @@
  */
 
 /* System includes */
+#include <stdbool.h>
+#include <stdlib.h>     /* NULL, free */
 #include <string.h>     /* memset */
-
+  
 /* ADT includes */
 #include <adt/cdlist.h>
 #include <adt/list.h>

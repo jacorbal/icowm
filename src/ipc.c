@@ -18,7 +18,7 @@
 #include <errno.h>
 #include <fcntl.h>      /* fcntl, F_SETFL, O_NONBLOCK */
 #include <stdbool.h>
-#include <stdio.h>      /* snprintf */
+#include <stdio.h>      /* NULL, snprintf */
 #include <stdlib.h>     /* free */
 #include <string.h>     /* memchr, memmove, memset, strerror */
 #include <sys/socket.h>

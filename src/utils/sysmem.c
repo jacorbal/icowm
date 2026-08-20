@@ -14,7 +14,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <stdio.h>      /* NULL */
 
 /* Utils includes */
 #include <utils/safe/safestr.h>

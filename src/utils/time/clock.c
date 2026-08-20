@@ -15,7 +15,6 @@
 
 
 /* System includes */
-#include <stddef.h>     /* NULL */
 #include <time.h>       /* clock_gettime, CLOCK_MONOTONIC, struct timespec */
 
 /* Local includes */

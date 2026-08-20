@@ -14,7 +14,6 @@
 /* System includes */
 #include <dirent.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdio.h>      /* fprintf, snprintf */
 
 /* Third-party includes */

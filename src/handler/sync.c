@@ -12,6 +12,7 @@
  */
 
 /* System includes */
+#include <stddef.h>     /* NULL */
 #include <stdint.h>
 
 /* XCB includes */

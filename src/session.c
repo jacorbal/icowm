@@ -17,12 +17,12 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <stdio.h>      /* snprintf, NULL */
 #include <stdlib.h>     /* free, calloc */
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <wordexp.h>
+#include <wordexp.h>    /* wordexp_t, wordexp */
 
 /* ADT includes */
 #include <adt/list.h>

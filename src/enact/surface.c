@@ -17,7 +17,7 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>
+#include <stddef.h>     /* NULL */
 
 /* Project includes */
 #include <surface.h>

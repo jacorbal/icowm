@@ -20,7 +20,6 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL */
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* calloc */
 

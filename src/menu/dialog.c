@@ -13,7 +13,6 @@
  */
 
 /* System includes */
-#include <stddef.h>     /* NULL */
 #include <stdint.h>
 #include <stdlib.h>     /* free */
 

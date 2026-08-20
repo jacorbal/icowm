@@ -14,7 +14,6 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* size_t */
 #include <stdlib.h>     /* NULL, free */
 #include <string.h>     /* memcpy, strcmp */
 

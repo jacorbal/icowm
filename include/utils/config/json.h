@@ -23,7 +23,7 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* size_t */
+#include <stddef.h>     /* size_t, NULL */
 #include <stdint.h>
 
 /* JSON includes */

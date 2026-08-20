@@ -21,7 +21,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>     /* memcpy, memset */
+#include <string.h>     /* memcpy, memset, NULL */
 #include <strings.h>    /* strcasecmp */
 
 /* XCB includes */

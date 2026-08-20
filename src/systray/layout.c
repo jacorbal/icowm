@@ -23,7 +23,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>     /* memset */
+#include <string.h>     /* memset, NULL */
 
 /* ADT includes */
 #include <adt/cdlist.h>

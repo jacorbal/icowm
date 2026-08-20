@@ -16,7 +16,7 @@
  */
 
 /* System includes */
-#include <stdlib.h>     /* free */
+#include <stdlib.h>     /* free, NULL */
 #include <stdbool.h>
 #include <stdint.h>
 

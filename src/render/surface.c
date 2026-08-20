@@ -13,6 +13,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stddef.h>     /* NULL */
 
 /* ADT includes */
 #include <adt/cdlist.h>

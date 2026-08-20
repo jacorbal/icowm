@@ -27,7 +27,7 @@
 
 /* System includes */
 #include <stdint.h>
-#include <stdlib.h>     /* free */
+#include <stdlib.h>     /* free, NULL */
 #include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */

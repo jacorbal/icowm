@@ -13,7 +13,6 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* size_t */
 #include <stdint.h>
 #include <stdio.h>      /* FILE, fopen, fseek, ftell, fread, fclose */
 #include <stdlib.h>     /* NULL, free, malloc */

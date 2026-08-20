@@ -30,8 +30,8 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stdint.h>
 #include <stddef.h>     /* NULL */
+#include <stdint.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>

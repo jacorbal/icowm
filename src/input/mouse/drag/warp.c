@@ -21,7 +21,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <stdio.h>      /* NULL */
 #include <time.h>
 
 /* XCB includes */

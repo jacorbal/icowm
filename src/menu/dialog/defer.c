@@ -16,7 +16,6 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL */
 #include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */

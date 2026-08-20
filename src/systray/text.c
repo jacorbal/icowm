@@ -21,7 +21,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <time.h>       /* strftime, localtime, time */
+#include <time.h>       /* strftime, localtime, time, NULL */
 
 /* Default initial values */
 #include <defs/loop.h>

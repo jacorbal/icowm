@@ -13,6 +13,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stddef.h>     /* NULL */
 #include <stdint.h>
 
 /* XCB includes */
@@ -31,8 +32,6 @@
 
 /* Local includes */
 #include <input/kbd/modal.h>
-
-
 
 
 /* Internal mode and edge enumerations */

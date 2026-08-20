@@ -18,8 +18,7 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL, size_t */
-#include <string.h>     /* strchr, strcspn */
+#include <string.h>     /* strchr, strcspn; NULL, size_t */
 
 /* Utils includes */
 #include <utils/safe/safestr.h>

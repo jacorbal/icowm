@@ -13,7 +13,6 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL, size_t */
 #include <stdlib.h>     /* free, calloc */
 
 /* JSON includes */

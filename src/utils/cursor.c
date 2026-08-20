@@ -14,6 +14,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdlib.h>     /* NULL, malloc, free */
+#include <stdint.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>

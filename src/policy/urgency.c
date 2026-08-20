@@ -16,8 +16,7 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL */
-#include <time.h>       /* clock_gettime, struct timespec */
+#include <time.h>       /* clock_gettime, struct timespec, NULL */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -169,7 +168,7 @@ static bool s_any_client_urgent(list_td *surfaces)
  * on a desktop currently visible on some surface (an urgent client
  * sitting on a desktop nobody is looking at right now has nothing to
  * visibly repaint at all.  Its own clients are not even mapped, leaving
- * every other client on that same desktop untouched.
+ * every other client on that same desktop untouched).
  *
  * @param surfaces All managed surfaces
  *

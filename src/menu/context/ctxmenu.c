@@ -22,7 +22,6 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL, size_t */
 #include <stdint.h>
 #include <stdlib.h>     /* free */
 

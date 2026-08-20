@@ -14,7 +14,6 @@
 /* System includes */
 #include <ctype.h>
 #include <stdbool.h>
-#include <stddef.h>     /* NULL */
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* free */

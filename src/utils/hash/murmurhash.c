@@ -6,7 +6,7 @@
 
 /* System includes */
 #include <stdint.h>     /* uint8_t, uint32_t */
-#include <string.h>     /* memcpy */
+#include <string.h>     /* memcpy, NULL */
 
 /* Local includes */
 #include <utils/hash/murmurhash.h>

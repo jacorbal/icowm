@@ -21,7 +21,7 @@
  */
 
 /* System includes */
-#include <stdlib.h>     /* free */
+#include <stdlib.h>     /* free, NULL */
 #include <string.h>     /* memset */
 
 /* XCB includes */

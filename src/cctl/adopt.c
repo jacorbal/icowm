@@ -13,7 +13,7 @@
 
 /* System includes */
 #include <stdint.h>
-#include <stdlib.h>     /* free */
+#include <stdlib.h>     /* NULL, free */
 
 /* XCB includes */
 #include <xcb/xcb.h>

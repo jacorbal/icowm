@@ -14,9 +14,9 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <stdio.h>      /* snprintf, NULL */
 #include <stdlib.h>     /* calloc, free */
-#include <string.h>
+#include <string.h>     /* memset */
 
 /* JSON includes */
 #include <cjson/cJSON.h>

@@ -11,6 +11,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+/* System includes */
+#include <stddef.h>     /* NULL */
+
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/randr.h>

@@ -20,6 +20,7 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stddef.h>     /* NULL */
 #include <stdint.h>
 
 /* XCB includes */

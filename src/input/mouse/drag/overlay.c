@@ -17,7 +17,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <stdio.h>      /* snprintf, NULL */
 
 /* XCB includes */
 #include <xcb/xcb.h>

@@ -13,7 +13,6 @@
 
 /* System includes */
 #include <stdbool.h>    /* bool, true, false */
-#include <stddef.h>     /* NULL, size_t */
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* getenv */
 

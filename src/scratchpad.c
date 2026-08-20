@@ -14,22 +14,27 @@
 
 #define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
 
+
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>  /* pid_t */
-#include <time.h>       /* clock_gettime, struct timespec */
+#include <time.h>       /* clock_gettime, struct timespec, NULL */
 
 /* Type includes */
 #include <types/pair.h>
 
-/* Project includes */
-#include <client.h>
+/* Command includes */
 #include <cmds/client/basic.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/meta.h>
 #include <cmds/client/state.h>
+
+/* Utils includes */
+#include <utils/time/clock.h>
+
+/* Project includes */
+#include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
@@ -37,9 +42,6 @@
 #include <policy/focus.h>
 #include <surface.h>
 #include <wm.h>
-
-/* Utils includes */
-#include <utils/time/clock.h>
 
 /* Default initial values */
 #include <defs/scratchpad.h>

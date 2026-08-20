@@ -15,7 +15,7 @@
 #include <dirent.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>     /* strtol */
+#include <stdlib.h>     /* strtol, NULL */
 #include <string.h>
 
 /* Utils includes */

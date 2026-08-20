@@ -12,7 +12,7 @@
  */
 
 /* System includes */
-#include <stdio.h>      /* snprintf */
+#include <stdio.h>      /* snprintf, NULL */
 
 /* Project includes */
 #include <desktop.h>

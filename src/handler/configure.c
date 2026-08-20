@@ -17,7 +17,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <time.h>       /* struct timespec */
+#include <time.h>       /* struct timespec, NULL */
 
 /* XCB includes */
 #include <xcb/xcb.h>

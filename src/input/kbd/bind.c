@@ -22,7 +22,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* free, strtol */
+#include <stdlib.h>     /* free, strtol, NULL, size_t */
 #include <string.h>     /* memcpy */
 #include <strings.h>    /* strcasecmp, strncasecmp */
 
