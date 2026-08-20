@@ -960,6 +960,8 @@ client_td *client_init(xcb_connection_t *connection,
     char net_wm_name[256];
     uint32_t ewmh_pid;
     uint32_t utime;
+    xcb_window_t user_time_window;
+    uint32_t user_time_window_raw;
 
     LOGGER_TRACE("Attempting to manage existing window %#x", window);
 
@@ -1088,10 +1090,27 @@ client_td *client_init(xcb_connection_t *connection,
         client->process.pid = (int) ewmh_pid;
     }
 
-    /* Read '_NET_WM_USER_TIME': used for initial focus policy */
+    /* Read '_NET_WM_USER_TIME': used for initial focus policy.
+     * Checked on '_NET_WM_USER_TIME_WINDOW' first: some toolkits
+     * (GTK among them) set the frequently-changing
+     * '_NET_WM_USER_TIME' on a dedicated, often-unmapped window
+     * instead of the client's own toplevel, specifically so that
+     * every tool interested in any of the toplevel's own other
+     * properties is not woken up on every keypress (EWMH §5.16); a
+     * client relying on that indirection would otherwise never have
+     * its genuine value seen here at all, always reading as the
+     * default 0 instead. */
     utime = 0u;
+    user_time_window = window;
+    user_time_window_raw = 0u;
+    if (xcb_ewmh_get_wm_user_time_window_reply(ewmh,
+                xcb_ewmh_get_wm_user_time_window(ewmh, window),
+                &user_time_window_raw, NULL) &&
+            user_time_window_raw != 0u) {
+        user_time_window = (xcb_window_t) user_time_window_raw;
+    }
     if (xcb_ewmh_get_wm_user_time_reply(ewmh,
-                xcb_ewmh_get_wm_user_time(ewmh, window),
+                xcb_ewmh_get_wm_user_time(ewmh, user_time_window),
                 &utime, NULL)) {
         client->user_time = utime;
     }

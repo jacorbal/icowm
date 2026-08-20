@@ -5,13 +5,13 @@
  *
  * Split out of what used to be a single, flat @c input/mouse/event.c;
  * everything here feeds @c mouse_handle_press specifically. Each
- * non-trivial responsibility inside it has been extracted into its
- * own static function so the public entry point reads as a
- * straightforward sequence of checks rather than a monolith. Button
- * release lives in @c input/mouse/event/release.c and enter-notify
- * (including its own, unrelated hover-focus state) lives in
- * @c input/mouse/event/enter.c instead, neither of which this file's
- * own static helpers are ever called from.
+ * non-trivial responsibility inside it has been extracted into its own
+ * static function so the public entry point reads as a straightforward
+ * sequence of checks rather than a monolith. Button release lives in
+ * @c input/mouse/event/release.c and enter-notify (including its own,
+ * unrelated hover-focus state) lives in @c input/mouse/event/enter.c
+ * instead, neither of which this file's own static helpers are ever
+ * called from.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -149,15 +149,15 @@ static bool s_mouse_near_edge(const client_td *client,
 
 /**
  * @brief Handle a button press on one already-open context menu type
- *        (window menu, root menu, or window list), forward the click
- *        if it landed on that menu, or close it otherwise
+ *        (window menu, root menu, or window list), forward the click if
+ *        it landed on that menu, or close it otherwise
  *
  * Shared by @a s_mouse_close_open_overlays' three near-identical
  * context-menu cases below, which only differ in which module's own
  * @a owns_window/handle_click/close functions to call; each of those
  * three menu types exposes the exact same signature for all three, so
- * passing them in directly loses no type safety over writing each
- * case out by hand.
+ * passing them in directly loses no type safety over writing each case
+ * out by hand.
  *
  * @param connection   XCB connection
  * @param surfaces     Surface list (for root lookup)
@@ -205,10 +205,10 @@ static void s_mouse_handle_open_ctxmenu_click(xcb_connection_t *connection,
  * @param event      Incoming button-press event
  * @param config     Active configuration (passed to cycle confirm)
  *
- * @return @c true when an overlay was open and the event was consumed;
- *         the caller must return without further processing;
- *         @c false when no overlay was open (or only the popup was
- *         closed)
+ * @return Status of the operation
+ * @retval  true when an overlay was open and the event was consumed;
+ *               the caller must return without further processing;
+ * @retval false when no overlay was open (or only the popup was closed)
  */
 static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
@@ -333,8 +333,8 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
  * @a focus_apply only updates @a client_active_id on the one @p desktop
  * passed to it.  For an ordinary client that is enough, but a sticky
  * one (visible on every desktop; see @a client_is_pinned) is expected
- * to keep showing as the active window no matter which desktop the
- * user switches to next.  Without this,
+ * to keep showing as the active window no matter which desktop the user
+ * switches to next.  Without this,
  * @a surface_clients_sticky_transfer_all's own "was this sticky client
  * active on the desktop being switched away from" check (see
  * surface/actions.c) would only see the single desktop @a focus_apply
@@ -449,8 +449,8 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
  * When the scroll is over a client's titlebar, @c DESKTOP_PREV shades
  * the window (and moves focus to the next client), while
  * @c DESKTOP_NEXT unshades it.  When the scroll is over the root or
- * over a client's content area, the desktop switch happens right
- * away, synchronously.
+ * over a client's content area, the desktop switch happens right away,
+ * synchronously.
  *
  * @param connection Active XCB connection
  * @param surfaces   Full surface list
@@ -465,7 +465,8 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
         client_td *client, desktop_td *desktop,
         enum wm_mousebind_type_e type, const config_td *config)
 {
-    surface_td *const surface = lookup_surface_for_root(surfaces, event->root);
+    surface_td *const surface =
+        lookup_surface_for_root(surfaces, event->root);
 
     if (client != NULL) {
         bool on_titlebar = false;
@@ -601,9 +602,9 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
  * @brief Mark a client, its own desktop, and its own surface as
  *        outdated together
  *
- * Shared by every titlebar-click and scroll case in @c s_mouse_hit_
- * titlebar_buttons that changes the client's state and needs the next
- * render pass to pick it up.
+ * Shared by every titlebar-click and scroll case in
+ * @c s_mouse_hit_titlebar_buttons that changes the client's state and
+ * needs the next render pass to pick it up.
  *
  * @param client  Client whose own visual state just changed, or
  *                @c NULL to skip
@@ -709,12 +710,12 @@ static void s_titlebar_button_action(enum config_titlebar_button_e button,
  *        button and dispatch its action
  *
  * Uses @c client_titlebar_layout to find each button's position, the
- * exact same computation @c desktop_titlebar_buttons_draw uses to
- * paint them, so a click can never land "between" where a button
- * looks like it is and where this function thinks it is.  If the
- * click lands on a button its action is dispatched and the function
- * returns @c true.  Scroll-wheel events (buttons 4 and 5) on the
- * titlebar area also count as a hit and are handled here.
+ * exact same computation @c desktop_titlebar_buttons_draw uses to paint
+ * them, so a click can never land "between" where a button looks like
+ * it is and where this function thinks it is.  If the click lands on
+ * a button its action is dispatched and the function returns @c true.
+ * Scroll-wheel events (buttons 4 and 5) on the titlebar area also count
+ * as a hit and are handled here.
  *
  * @param connection Active XCB connection (unused directly but kept for
  *                   symmetry)
@@ -745,7 +746,8 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     int fw = (frame_w > left_extent + right_extent)
         ? frame_w - left_extent - right_extent : 1;
     int title_h = (int) client->title_height;
-    int title_y = (top_extent > title_h) ? top_extent - title_h : 0;
+    int title_y = (top_extent > title_h)
+        ? top_extent - title_h : 0;
     bool can_maximize;
     bool hide_pin;
     enum config_titlebar_button_e button;
@@ -794,9 +796,10 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     /* Only test buttons when the click Y is within the button row */
     if (ey >= btn_y && ey < btn_y + (int) WM_DECOR_BTN_SIZE) {
         if (s_titlebar_button_at(left, left_n, (int16_t) ex, &button) ||
-                s_titlebar_button_at(right, right_n, (int16_t) ex,
-                    &button)) {
-            s_titlebar_button_action(button, client, can_maximize, event);
+                s_titlebar_button_at(right, right_n,
+                    (int16_t) ex, &button)) {
+            s_titlebar_button_action(button, client,
+                    can_maximize, event);
             s_mark_outdated(client, desktop, surface);
             return true;
         }
@@ -1046,7 +1049,8 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
  * @param event      Incoming button-press event
  * @param config     Active configuration
  */
-static void s_mouse_handle_root_press(wm_td *wm, xcb_connection_t *connection,
+static void s_mouse_handle_root_press(wm_td *wm,
+        xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *config)
 {
@@ -1125,8 +1129,8 @@ static void s_mouse_handle_root_press(wm_td *wm, xcb_connection_t *connection,
  * @see @a lookup_find_client
  */
 static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t event_win, xcb_window_t child_win,
-        desktop_td **out_desktop)
+        list_td *surfaces, xcb_window_t event_win,
+        xcb_window_t child_win, desktop_td **out_desktop)
 {
     client_td *client = NULL;
 
@@ -1313,8 +1317,10 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     }
 
     if (type == MOUSEBIND_RESIZE &&
-            (!client_is_resizable(client) || client_is_fullscreen(client) ||
-             client_is_maximized(client) || client_is_locked(client))) {
+            (!client_is_resizable(client) ||
+             client_is_fullscreen(client) ||
+             client_is_maximized(client) ||
+             client_is_locked(client))) {
         s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;
