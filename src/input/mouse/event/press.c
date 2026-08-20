@@ -404,26 +404,28 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_1) {
         xcb_get_geometry_cookie_t gc;
         xcb_get_geometry_reply_t *gr;
-        int32_t icon_x;
-        int32_t icon_y;
+        struct position_s icon_pos;
+        struct position_s root_pos;
+        struct dimensions_s screen_dim;
         const surface_td *surface;
 
         gc = xcb_get_geometry(connection, client->icon_window);
         gr = xcb_get_geometry_reply(connection, gc, NULL);
-        icon_x = (gr != NULL)
+        icon_pos.x = (gr != NULL)
             ? (int32_t) gr->x : (int32_t) client->icon_x;
-        icon_y = (gr != NULL)
+        icon_pos.y = (gr != NULL)
             ? (int32_t) gr->y : (int32_t) client->icon_y;
         if (gr != NULL) {
             free(gr);
         }
 
         surface = wm_get_surface_by_id(client->screen_id);
+        root_pos.x = event->root_x;
+        root_pos.y = event->root_y;
+        screen_dim.w = (surface != NULL) ? surface->properties.dim.w : 0u;
+        screen_dim.h = (surface != NULL) ? surface->properties.dim.h : 0u;
         drag_icon_start(connection, event->root, client, desktop,
-                icon_x, icon_y,
-                event->time, event->root_x, event->root_y,
-                (surface != NULL) ? surface->properties.dim.w : 0u,
-                (surface != NULL) ? surface->properties.dim.h : 0u);
+                icon_pos, event->time, root_pos, screen_dim);
     } else {
         /* Non-left-click: restore and focus */
         surface_td *surface;
@@ -876,14 +878,19 @@ static void s_mouse_handle_titlebar(xcb_connection_t *connection,
             /* Single left-click: start move drag */
             if (!client_is_maximized(client) &&
                     !client_is_fullscreen(client)) {
+                struct position_s root_pos;
+                struct dimensions_s screen_dim;
+
+                root_pos.x = event->root_x;
+                root_pos.y = event->root_y;
+                screen_dim.w = (surface != NULL)
+                    ? surface->properties.dim.w : 0u;
+                screen_dim.h = (surface != NULL)
+                    ? surface->properties.dim.h : 0u;
                 drag_start(connection, event->root, client, desktop,
                         CLIENT_OPERATION_MOVING,
                         event->time,
-                        event->root_x, event->root_y,
-                        (surface != NULL)
-                            ? surface->properties.dim.w : 0u,
-                        (surface != NULL)
-                            ? surface->properties.dim.h : 0u,
+                        root_pos, screen_dim,
                         (config != NULL)
                             ? config->base.windows.snap : 0u);
             }
@@ -910,8 +917,8 @@ static void s_mouse_handle_titlebar(xcb_connection_t *connection,
  * @brief Test whether a button press should initiate a resize drag
  *
  * Returns @c true when the client is resizable, not fullscreen or fully
- * maximized (a fixed-size state with no border left to drag at all, and
- * the click landed on the frame border or near the edge of an
+ * maximized (a fixed-size state with no border left to drag at all),
+ * and the click landed on the frame border or near the edge of an
  * undecorated window.  A client maximized on just one axis
  * (horizontal-only or vertical-only) is allowed here.  Its still-free
  * axis can be resized normally, while its maximized one gets locked out
@@ -1013,20 +1020,22 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
         const config_td *config)
 {
     surface_td *surface;
-    uint32_t screen_w;
-    uint32_t screen_h;
+    struct position_s root_pos;
+    struct dimensions_s screen_dim;
 
     if (client_is_shaded(client)) {
         ccmd_client_unshade(client);
     }
 
     surface = lookup_surface_for_root(surfaces, event->root);
-    screen_w = (surface != NULL) ? surface->properties.dim.w : 0u;
-    screen_h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    screen_dim.w = (surface != NULL) ? surface->properties.dim.w : 0u;
+    screen_dim.h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    root_pos.x = event->root_x;
+    root_pos.y = event->root_y;
 
     drag_start_resize_axis_locked(connection, event->root, client,
-            desktop, event->time, event->root_x, event->root_y,
-            screen_w, screen_h, config->base.windows.snap,
+            desktop, event->time, root_pos,
+            screen_dim, config->base.windows.snap,
             client_is_maximized_horz(client),
             client_is_maximized_vert(client));
 
@@ -1162,8 +1171,8 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     surface_td *surface = NULL;
     uint16_t state;
     enum wm_mousebind_type_e type = MOUSEBIND_NONE;
-    uint32_t screen_w;
-    uint32_t screen_h;
+    struct dimensions_s screen_dim;
+    struct position_s root_pos;
 
     if (connection == NULL || event == NULL || config == NULL) {
         return;
@@ -1352,8 +1361,10 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
         return;
     }
 
-    screen_w = (surface != NULL) ? surface->properties.dim.w : 0u;
-    screen_h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    screen_dim.w = (surface != NULL) ? surface->properties.dim.w : 0u;
+    screen_dim.h = (surface != NULL) ? surface->properties.dim.h : 0u;
+    root_pos.x = event->root_x;
+    root_pos.y = event->root_y;
 
     /* A window maximized on just one axis still allows this
      * binding to resize its free axis, the same as a plain
@@ -1363,16 +1374,14 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     if (type == MOUSEBIND_RESIZE) {
         drag_start_resize_axis_locked(connection, event->root,
                 client, desktop, event->time,
-                event->root_x, event->root_y,
-                screen_w, screen_h, config->base.windows.snap,
+                root_pos, screen_dim, config->base.windows.snap,
                 client_is_maximized_horz(client),
                 client_is_maximized_vert(client));
     } else {
         drag_start(connection, event->root, client, desktop,
                 CLIENT_OPERATION_MOVING,
                 event->time,
-                event->root_x, event->root_y,
-                screen_w, screen_h,
+                root_pos, screen_dim,
                 config->base.windows.snap);
     }
 }

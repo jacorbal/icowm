@@ -56,10 +56,10 @@ static void s_drag_icon_sync_active_visual(xcb_connection_t *connection)
 /* Begin a drag operation for an icon window */
 void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
         client_td *client, desktop_td *desktop,
-        int32_t icon_x, int32_t icon_y,
+        struct position_s icon_pos,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h)
+        struct position_s root_pos,
+        struct dimensions_s screen_dim)
 {
     if (connection == NULL || client == NULL) {
         return;
@@ -71,22 +71,22 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.desktop = desktop;
     s_drag.drag_window = client->icon_window;
     s_drag.operation = CLIENT_OPERATION_MOVING;
-    s_drag.pointer_start_x = root_x;
-    s_drag.pointer_start_y = root_y;
-    s_drag.client_start_x = icon_x;
-    s_drag.client_start_y = icon_y;
+    s_drag.pointer_start_x = (int16_t) root_pos.x;
+    s_drag.pointer_start_y = (int16_t) root_pos.y;
+    s_drag.client_start_x = icon_pos.x;
+    s_drag.client_start_y = icon_pos.y;
     s_drag.client_start_w = 0;
     s_drag.client_start_h = 0;
-    s_drag.client_cur_x = icon_x;
-    s_drag.client_cur_y = icon_y;
+    s_drag.client_cur_x = icon_pos.x;
+    s_drag.client_cur_y = icon_pos.y;
     /* Icon drags are always solid, regardless of 'windows.solid-drag':
      * moving just the small icon window live is cheap enough on its
      * own that the outline machinery would add complexity for no
      * real benefit here; see 'drag_end''s own comment on this same
      * exclusion. */
     s_drag.solid_drag = true;
-    s_drag.screen_w = screen_w;
-    s_drag.screen_h = screen_h;
+    s_drag.screen_w = screen_dim.w;
+    s_drag.screen_h = screen_dim.h;
     s_drag.icon_was_mapped = client->is_icon_mapped;
     s_drag.anchor_right = false;
     s_drag.anchor_bottom = false;

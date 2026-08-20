@@ -46,8 +46,7 @@ void mouse_handle_release(xcb_connection_t *connection,
     client_td *client;
     surface_td *surface = NULL;
     desktop_td *desktop = NULL;
-    int16_t root_x = 0;
-    int16_t root_y = 0;
+    struct position_s root_pos = { 0, 0 };
 
     (void) config;
 
@@ -56,8 +55,8 @@ void mouse_handle_release(xcb_connection_t *connection,
     }
 
     if (event != NULL) {
-        root_x = event->root_x;
-        root_y = event->root_y;
+        root_pos.x = event->root_x;
+        root_pos.y = event->root_y;
     }
 
     client = drag_client();
@@ -66,5 +65,5 @@ void mouse_handle_release(xcb_connection_t *connection,
                 &surface, &desktop);
     }
 
-    drag_end(connection, surface, desktop, root_x, root_y);
+    drag_end(connection, surface, desktop, root_pos);
 }

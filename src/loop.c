@@ -714,7 +714,8 @@ void loop_run(wm_td *wm)
                         me = (xcb_motion_notify_event_t *) event;
                     }
 
-                    drag_update(connection, me->root_x, me->root_y);
+                    drag_update(connection,
+                            (struct position_s) { me->root_x, me->root_y });
                     if (wincmenu_is_open()) {
                         wincmenu_handle_motion(me->event,
                                 me->event_x, me->event_y);

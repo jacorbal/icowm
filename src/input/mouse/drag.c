@@ -161,8 +161,8 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         client_td *client, desktop_td *desktop,
         enum window_operation_e operation,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h,
+        struct position_s root_pos,
+        struct dimensions_s screen_dim,
         uint32_t snap)
 {
     if (connection == NULL || client == NULL) {
@@ -175,8 +175,8 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.desktop = desktop;
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.operation = operation;
-    s_drag.pointer_start_x = root_x;
-    s_drag.pointer_start_y = root_y;
+    s_drag.pointer_start_x = (int16_t) root_pos.x;
+    s_drag.pointer_start_y = (int16_t) root_pos.y;
     s_drag.client_start_x = client->layout.geometry.cur.pos.x;
     s_drag.client_start_y = client->layout.geometry.cur.pos.y;
     s_drag.client_start_w =
@@ -191,8 +191,8 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.solid_drag = (client->config_base == NULL) ||
         client->config_base->windows.solid_drag;
     s_drag.outline_offscreened = false;
-    s_drag.screen_w = screen_w;
-    s_drag.screen_h = screen_h;
+    s_drag.screen_w = screen_dim.w;
+    s_drag.screen_h = screen_dim.h;
     s_drag.snap = snap;
     s_drag.has_last_pos = false;
     s_drag.warp_pending = false;
@@ -209,20 +209,20 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         int32_t cy = s_drag.client_start_y +
             (int32_t) (s_drag.client_start_h / 2u);
 
-        if ((int32_t) root_x < b.left + b.margin_left) {
+        if (root_pos.x < b.left + b.margin_left) {
             s_drag.anchor_right = true;
-        } else if ((int32_t) root_x >= b.right - b.margin_right) {
+        } else if (root_pos.x >= b.right - b.margin_right) {
             s_drag.anchor_right = false;
         } else {
-            s_drag.anchor_right = ((int32_t) root_x < cx);
+            s_drag.anchor_right = (root_pos.x < cx);
         }
 
-        if ((int32_t) root_y < b.top + b.margin_top) {
+        if (root_pos.y < b.top + b.margin_top) {
             s_drag.anchor_bottom = true;
-        } else if ((int32_t) root_y >= b.bottom - b.margin_bottom) {
+        } else if (root_pos.y >= b.bottom - b.margin_bottom) {
             s_drag.anchor_bottom = false;
         } else {
-            s_drag.anchor_bottom = ((int32_t) root_y < cy);
+            s_drag.anchor_bottom = (root_pos.y < cy);
         }
 
         /* Track which axes are actively resized.  An axis is active
@@ -232,10 +232,10 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
          * increment due to sub-increment pointer noise on the
          * orthogonal axis, which for size-hinted clients would produce
          * a 'ConfigureRequest' feedback loop */
-        s_drag.resize_w = ((int32_t) root_x < b.left + b.margin_left ||
-                (int32_t) root_x >= b.right - b.margin_right);
-        s_drag.resize_h = ((int32_t) root_y < b.top + b.margin_top ||
-                (int32_t) root_y >= b.bottom - b.margin_bottom);
+        s_drag.resize_w = (root_pos.x < b.left + b.margin_left ||
+                root_pos.x >= b.right - b.margin_right);
+        s_drag.resize_h = (root_pos.y < b.top + b.margin_top ||
+                root_pos.y >= b.bottom - b.margin_bottom);
         if (!s_drag.resize_w && !s_drag.resize_h) {
             s_drag.resize_w = true;
             s_drag.resize_h = true;
@@ -282,19 +282,19 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 
 
 /* Begin a resize drag with an explicit anchor, rather than one
- * 'drag_start' would infer from 'root_x' / 'root_y' */
+ * 'drag_start' would infer from 'root_pos' */
 void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
         client_td *client, desktop_td *desktop,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h,
+        struct position_s root_pos,
+        struct dimensions_s screen_dim,
         uint32_t snap,
         bool anchor_right, bool anchor_bottom,
         bool resize_w, bool resize_h)
 {
     drag_start(connection, root, client, desktop,
-            CLIENT_OPERATION_RESIZING, event_time, root_x, root_y,
-            screen_w, screen_h, snap);
+            CLIENT_OPERATION_RESIZING, event_time, root_pos,
+            screen_dim, snap);
 
     if (!s_drag.active) {
         return;
@@ -326,14 +326,14 @@ void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
 void drag_start_resize_axis_locked(xcb_connection_t *connection,
         xcb_window_t root, client_td *client, desktop_td *desktop,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h,
+        struct position_s root_pos,
+        struct dimensions_s screen_dim,
         uint32_t snap,
         bool axis_w_locked, bool axis_h_locked)
 {
     drag_start(connection, root, client, desktop,
-            CLIENT_OPERATION_RESIZING, event_time, root_x, root_y,
-            screen_w, screen_h, snap);
+            CLIENT_OPERATION_RESIZING, event_time, root_pos,
+            screen_dim, snap);
 
     if (!s_drag.active) {
         return;
@@ -370,7 +370,7 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
 
 /* Update the in-progress drag on a motion-notify event */
 void drag_update(xcb_connection_t *connection,
-        int16_t root_x, int16_t root_y)
+        struct position_s root_pos)
 {
     client_td *client;
     int32_t dx;
@@ -389,12 +389,12 @@ void drag_update(xcb_connection_t *connection,
      * Skipping it
      * here avoids repeating the same 'xcb_configure_window' and
      * 'xcb_flush' for a position that produces no visible change. */
-    if (s_drag.has_last_pos && root_x == s_drag.last_root_x &&
-            root_y == s_drag.last_root_y) {
+    if (s_drag.has_last_pos && root_pos.x == s_drag.last_root_x &&
+            root_pos.y == s_drag.last_root_y) {
         return;
     }
-    s_drag.last_root_x = root_x;
-    s_drag.last_root_y = root_y;
+    s_drag.last_root_x = (int16_t) root_pos.x;
+    s_drag.last_root_y = (int16_t) root_pos.y;
     s_drag.has_last_pos = true;
 
     client = s_drag.client;
@@ -413,8 +413,8 @@ void drag_update(xcb_connection_t *connection,
         s_drag.outline_offscreened = true;
     }
 
-    dx = (int32_t) root_x - (int32_t) s_drag.pointer_start_x;
-    dy = (int32_t) root_y - (int32_t) s_drag.pointer_start_y;
+    dx = root_pos.x - (int32_t) s_drag.pointer_start_x;
+    dy = root_pos.y - (int32_t) s_drag.pointer_start_y;
 
     if (s_drag.operation == CLIENT_OPERATION_MOVING &&
             s_drag.drag_window != XCB_WINDOW_NONE &&
@@ -446,7 +446,7 @@ void drag_update(xcb_connection_t *connection,
         } else {
             drag_overlay_hide(connection);
         }
-        drag_warp_edge_check(root_x);
+        drag_warp_edge_check((int16_t) root_pos.x);
         xcb_flush(connection);
     } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
         bool show_geom = client->config_base != NULL &&
@@ -478,7 +478,7 @@ void drag_update(xcb_connection_t *connection,
         } else {
             drag_overlay_hide(connection);
         }
-        drag_warp_edge_check(root_x);
+        drag_warp_edge_check((int16_t) root_pos.x);
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
         bool show_geom = client->config_base != NULL &&
             client->config_base->windows.show_geom;
@@ -666,7 +666,7 @@ void drag_update(xcb_connection_t *connection,
 /* Finish the drag on a button-release event */
 void drag_end(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop,
-        int16_t root_x, int16_t root_y)
+        struct position_s root_pos)
 {
     if (!s_drag.active) {
         return;
@@ -690,9 +690,9 @@ void drag_end(xcb_connection_t *connection,
 
         if (s_drag.drag_window != XCB_WINDOW_NONE &&
                 s_drag.drag_window == s_drag.client->icon_window) {
-            int32_t dx = (int32_t) root_x -
+            int32_t dx = root_pos.x -
                 (int32_t) s_drag.pointer_start_x;
-            int32_t dy = (int32_t) root_y -
+            int32_t dy = root_pos.y -
                 (int32_t) s_drag.pointer_start_y;
 
             if (dx * dx + dy * dy < WM_ICON_DRAG_THRESHOLD) {

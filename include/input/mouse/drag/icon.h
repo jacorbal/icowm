@@ -28,6 +28,9 @@
 #include <client.h>
 #include <desktop.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 
 /**
  * @brief Begin a drag operation for an icon window
@@ -43,24 +46,22 @@
  *                   @p desktops.warp_on_edge_drag (see
  *                   @a drag_warp_tick, @c drag/warp.h), the same as
  *                   @a drag_start's own @p desktop parameter
- * @param icon_x     Current icon window X (screen-relative)
- * @param icon_y     Current icon window Y (screen-relative)
+ * @param icon_pos   Current icon window position (screen-relative)
  * @param event_time Timestamp from the triggering button-press event
- * @param root_x     Root-relative X of the pointer at press time
- * @param root_y     Root-relative Y of the pointer at press time
- * @param screen_w   Surface width, for edge snapping and
+ * @param root_pos   Root-relative position of the pointer at press
+ *                   time
+ * @param screen_dim Surface dimensions, for edge snapping and
  *                   @p desktops.warp's own edge detection
- * @param screen_h   Surface height, for the same reason
  *
  * @note Complexity: @e O(1)
  */
 void drag_icon_start(xcb_connection_t *connection,
         xcb_window_t root,
         client_td *client, desktop_td *desktop,
-        int32_t icon_x, int32_t icon_y,
+        struct position_s icon_pos,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h);
+        struct position_s root_pos,
+        struct dimensions_s screen_dim);
 
 /**
  * @brief Query whether the active drag is on an icon window

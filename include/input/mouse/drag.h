@@ -36,6 +36,9 @@
 #include <desktop.h>
 #include <surface.h>
 
+/* Types includes */
+#include <types/pair.h>
+
 
 /* Public interface */
 /**
@@ -53,10 +56,8 @@
  * @param operation  @c CLIENT_OPERATION_MOVING or
  *                   @c CLIENT_OPERATION_RESIZING
  * @param event_time Timestamp from the triggering button-press event
- * @param root_x     Root-relative X of the pointer at press time
- * @param root_y     Root-relative Y of the pointer at press time
- * @param screen_w   Screen width in pixels (0 to disable snap)
- * @param screen_h   Screen height in pixels (0 to disable snap)
+ * @param root_pos   Root-relative position of the pointer at press time
+ * @param screen_dim Screen dimensions in pixels ((0, 0) to disable snap)
  * @param snap       Snap distance in pixels (0 to disable snap)
  *
  * @note Complexity: @e O(1)
@@ -65,13 +66,13 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         client_td *client, desktop_td *desktop,
         enum window_operation_e operation,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h,
+        struct position_s root_pos,
+        struct dimensions_s screen_dim,
         uint32_t snap);
 
 /**
  * @brief Begin a resize drag with an explicit anchor, rather than one
- *        @a drag_start would infer from @p root_x / @p root_y
+ *        @a drag_start would infer from @p root_pos
  *
  * For @c _NET_WM_MOVERESIZE (see @a hi_handle_net_wm_moveresize in
  * @c handler/ewmhmsg.c).  The requesting client names which edge or
@@ -90,10 +91,10 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
  * @param client        Client being resized
  * @param desktop       Desktop that owns @p client (may be null)
  * @param event_time    Timestamp from the triggering request
- * @param root_x        Root-relative X of the pointer at request time
- * @param root_y        Root-relative Y of the pointer at request time
- * @param screen_w      Screen width in pixels (0 to disable snap)
- * @param screen_h      Screen height in pixels (0 to disable snap)
+ * @param root_pos      Root-relative position of the pointer at
+ *                      request time
+ * @param screen_dim    Screen dimensions in pixels ((0, 0) to disable
+ *                      snap)
  * @param snap          Snap distance in pixels (0 to disable snap)
  * @param anchor_right  @c true if the right edge stays fixed (a left,
  *                      top-left, or bottom-left drag)
@@ -107,8 +108,8 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 void drag_start_directed(xcb_connection_t *connection,
         xcb_window_t root, client_td *client, desktop_td *desktop,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h,
+        struct position_s root_pos,
+        struct dimensions_s screen_dim,
         uint32_t snap,
         bool anchor_right, bool anchor_bottom,
         bool resize_w, bool resize_h);
@@ -124,36 +125,36 @@ void drag_start_directed(xcb_connection_t *connection,
  * fullscreen client cannot be resized at all.  The other, still-free
  * axis keeps working exactly as a normal border drag would.  Calls @c
  * drag_start for everything else (state recording, the pointer grab,
- * and its own normal per-axis inference from @p root_x / @p root_y),
- * then clears whichever axis flag(s) @p axis_w_locked /
- * @p axis_h_locked ask for; if that leaves neither axis resizable at all
- * (the grab point was only ever near the locked edge), the drag is
- * cancelled outright via @a drag_cancel rather than left running inert.
+ * and its own normal per-axis inference from @p root_pos), then clears
+ * whichever axis flag(s) @p axis_w_locked / @p axis_h_locked ask for;
+ * if that leaves neither axis resizable at all (the grab point was
+ * only ever near the locked edge), the drag is cancelled outright via
+ * @a drag_cancel rather than left running inert.
  *
  * @param connection    XCB connection
  * @param root          Root window on which to grab the pointer
  * @param client        Client being resized
  * @param desktop       Desktop that owns @p client (may be null)
  * @param event_time    Timestamp from the triggering request
- * @param root_x        Root-relative X of the pointer at request time
- * @param root_y        Root-relative Y of the pointer at request time
- * @param screen_w      Screen width in pixels (0 to disable snap)
- * @param screen_h      Screen height in pixels (0 to disable snap)
+ * @param root_pos      Root-relative position of the pointer at
+ *                      request time
+ * @param screen_dim    Screen dimensions in pixels ((0, 0) to disable
+ *                      snap)
  * @param snap          Snap distance in pixels (0 to disable snap)
  * @param axis_w_locked @c true to force the width axis unresizable
- *                      regardless of where @p root_x fell
+ *                      regardless of where @p root_pos fell
  * @param axis_h_locked @c true to force the height axis unresizable
- *                      regardless of where @p root_y fell
+ *                      regardless of where @p root_pos fell
  *
  * @note Cfr. Karp, O'Reilly, & Mott, 2005, 'Windows XP in a Nutshell',
- *       2nd ed., ch. 2: "Maximized windows can't be moved or resized")
+ *       2nd ed., ch. 2: "Maximized windows can't be moved or resized"
  * @note Complexity: @e O(1)
  */
 void drag_start_resize_axis_locked(xcb_connection_t *connection,
         xcb_window_t root, client_td *client, desktop_td *desktop,
         xcb_timestamp_t event_time,
-        int16_t root_x, int16_t root_y,
-        uint32_t screen_w, uint32_t screen_h,
+        struct position_s root_pos,
+        struct dimensions_s screen_dim,
         uint32_t snap,
         bool axis_w_locked, bool axis_h_locked);
 
@@ -165,13 +166,12 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
  * icon window directly via @c xcb_configure_window.
  *
  * @param connection XCB connection
- * @param root_x     Current root-relative X of the pointer
- * @param root_y     Current root-relative Y of the pointer
+ * @param root_pos   Current root-relative position of the pointer
  *
  * @note Complexity: @e O(1)
  */
 void drag_update(xcb_connection_t *connection,
-        int16_t root_x, int16_t root_y);
+        struct position_s root_pos);
 
 /**
  * @brief Finish the drag on a button-release event
@@ -184,14 +184,14 @@ void drag_update(xcb_connection_t *connection,
  * @param connection XCB connection
  * @param surface    Surface that owns the dragged client (may be null)
  * @param desktop    Desktop that owns the dragged client (may be null)
- * @param root_x     Root-relative X of the pointer at release time
- * @param root_y     Root-relative Y of the pointer at release time
+ * @param root_pos   Root-relative position of the pointer at release
+ *                   time
  *
  * @note Complexity: @e O(1)
  */
 void drag_end(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop,
-        int16_t root_x, int16_t root_y);
+        struct position_s root_pos);
 
 /**
  * @brief Cancel an in-progress drag when the dragged client disappears

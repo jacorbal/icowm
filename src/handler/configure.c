@@ -126,7 +126,7 @@ static void s_gravity_adjust_pos(int32_t *restrict out_x,
 
 /**
  * @brief Strip WIDTH and/or HEIGHT from @p mask when the requested
- *        value exactly matches @p cur_w/@p cur_h, regardless of any
+ *        value exactly matches @p cur_dim, regardless of any
  *        transition or cooldown
  *
  * Requesting a dimension the window itself already has right now is
@@ -137,20 +137,15 @@ static void s_gravity_adjust_pos(int32_t *restrict out_x,
  * reasoning holds regardless of which one (if either) might also
  * apply.
  *
- * @param event       Requested geometry to compare
- * @param mask        Value mask bits still under consideration
- * @param cur_w       Width the window manager currently has this
- *                    client set to
- * @param cur_h       Height the window manager currently has this
- *                    client set to
+ * @param event         Requested geometry to compare
+ * @param mask          Value mask bits still under consideration
+ * @param cur_dim       Width/height the window manager currently has
+ *                      this client set to
  * @param is_reparented Whether this client has a separate frame
- *                    window of its own
- * @param on_inner    Whether @p event targets the content window
- *                    directly rather than the frame
- * @param left        Frame extent to the left of the content window
- * @param right       Frame extent to the right of the content window
- * @param top         Frame extent above the content window
- * @param bottom      Frame extent below the content window
+ *                      window of its own
+ * @param on_inner      Whether @p event targets the content window
+ *                      directly rather than the frame
+ * @param extents       This client's own current frame extents
  *
  * @return @p mask, with WIDTH and/or HEIGHT cleared wherever its own
  *         requested value already matches what is currently set
@@ -159,26 +154,27 @@ static void s_gravity_adjust_pos(int32_t *restrict out_x,
  */
 static uint16_t s_handler_configure_wh_matches_current(
         const xcb_configure_request_event_t *event, uint16_t mask,
-        uint32_t cur_w, uint32_t cur_h, bool is_reparented,
-        bool on_inner, uint16_t left, uint16_t right, uint16_t top,
-        uint16_t bottom)
+        struct dimensions_s cur_dim, bool is_reparented,
+        bool on_inner, struct sides_s extents)
 {
     if (mask & XCB_CONFIG_WINDOW_WIDTH) {
         uint32_t req_w = (is_reparented && on_inner)
-            ? (uint32_t) event->width + left + right
+            ? (uint32_t) event->width + (uint16_t) extents.left +
+                (uint16_t) extents.right
             : (uint32_t) event->width;
 
-        if (req_w == cur_w) {
+        if (req_w == cur_dim.w) {
             mask = (uint16_t) (mask & ~XCB_CONFIG_WINDOW_WIDTH);
         }
     }
 
     if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
         uint32_t req_h = (is_reparented && on_inner)
-            ? (uint32_t) event->height + top + bottom
+            ? (uint32_t) event->height + (uint16_t) extents.top +
+                (uint16_t) extents.bottom
             : (uint32_t) event->height;
 
-        if (req_h == cur_h) {
+        if (req_h == cur_dim.h) {
             mask = (uint16_t) (mask & ~XCB_CONFIG_WINDOW_HEIGHT);
         }
     }
@@ -204,7 +200,7 @@ static uint16_t s_handler_configure_wh_matches_current(
  * WIDTH and HEIGHT specifically are only ever stripped here when the
  * request's own value, once adjusted the same way
  * @a s_handler_configure_wh_matches_current already is, also matches
- * @p old_w/@p old_h (the client's own dimensions right before this
+ * @p old_dim (the client's own dimensions right before this
  * transition): a request for some other, genuinely different size
  * arriving within the same cooldown window is let through rather
  * than blanket-suppressed, since only a value already known to be
@@ -223,20 +219,13 @@ static uint16_t s_handler_configure_wh_matches_current(
  * @param mask            Value mask bits still under consideration
  * @param transition_mask Bits this particular transition's own
  *                         cooldown should strip, if still active
- * @param old_w           Width the client itself had right before
- *                         this transition
- * @param old_h           Height the client itself had right before
- *                         this transition
+ * @param old_dim         Width/height the client itself had right
+ *                         before this transition
  * @param is_reparented   Whether this client has a separate frame
  *                         window of its own
  * @param on_inner        Whether @p event targets the content window
  *                         directly rather than the frame
- * @param left            Frame extent to the left of the content
- *                         window
- * @param right           Frame extent to the right of the content
- *                         window
- * @param top             Frame extent above the content window
- * @param bottom          Frame extent below the content window
+ * @param extents         This client's own current frame extents
  * @param transition_time Monotonic time the transition itself last
  *                         happened at
  * @param cooldown_ms      How long after @p transition_time a request
@@ -255,10 +244,10 @@ static uint16_t s_handler_configure_wh_matches_current(
  */
 static uint16_t s_handler_configure_cooldown_mask(
         const xcb_configure_request_event_t *event, uint16_t mask,
-        uint16_t transition_mask, uint32_t old_w, uint32_t old_h,
-        bool is_reparented, bool on_inner, uint16_t left, uint16_t right,
-        uint16_t top, uint16_t bottom, struct timespec transition_time,
-        unsigned int cooldown_ms, xcb_window_t window, const char *kind)
+        uint16_t transition_mask, struct dimensions_s old_dim,
+        bool is_reparented, bool on_inner, struct sides_s extents,
+        struct timespec transition_time, unsigned int cooldown_ms,
+        xcb_window_t window, const char *kind)
 {
     int64_t elapsed_ms;
     uint16_t strip_mask;
@@ -276,27 +265,29 @@ static uint16_t s_handler_configure_cooldown_mask(
     /* Every bit 'transition_mask' carries other than WIDTH/HEIGHT
      * (X, Y, and, for fullscreen, BORDER_WIDTH) stays exactly as
      * content-blind as before; only WIDTH/HEIGHT additionally
-     * require matching 'old_w'/'old_h' once found within the window
+     * require matching 'old_dim' once found within the window
      * at all. */
     strip_mask = (uint16_t) (transition_mask &
             ~(XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT));
 
     if ((transition_mask & mask & XCB_CONFIG_WINDOW_WIDTH)) {
         uint32_t req_w = (is_reparented && on_inner)
-            ? (uint32_t) event->width + left + right
+            ? (uint32_t) event->width + (uint16_t) extents.left +
+                (uint16_t) extents.right
             : (uint32_t) event->width;
 
-        if (req_w == old_w) {
+        if (req_w == old_dim.w) {
             strip_mask |= XCB_CONFIG_WINDOW_WIDTH;
         }
     }
 
     if ((transition_mask & mask & XCB_CONFIG_WINDOW_HEIGHT)) {
         uint32_t req_h = (is_reparented && on_inner)
-            ? (uint32_t) event->height + top + bottom
+            ? (uint32_t) event->height + (uint16_t) extents.top +
+                (uint16_t) extents.bottom
             : (uint32_t) event->height;
 
-        if (req_h == old_h) {
+        if (req_h == old_dim.h) {
             strip_mask |= XCB_CONFIG_WINDOW_HEIGHT;
         }
     }
@@ -426,9 +417,8 @@ void handler_configure_request(xcb_connection_t *connection,
          * see 's_handler_configure_wh_matches_current' itself for
          * why this alone is always safe. */
         mask = s_handler_configure_wh_matches_current(event, mask,
-                client->layout.geometry.cur.dim.w,
-                client->layout.geometry.cur.dim.h,
-                is_reparented, on_inner, left, right, top, bottom);
+                client->layout.geometry.cur.dim,
+                is_reparented, on_inner, client->layout.frame_extents);
         if (mask == 0) {
             if (connection != NULL && is_reparented) {
                 s_handler_send_synthetic_configure_notify(connection,
@@ -445,9 +435,8 @@ void handler_configure_request(xcb_connection_t *connection,
          * reaction to that transition than an independent resize it
          * actually wants. */
         mask = s_handler_configure_cooldown_mask(event, mask, geom_mask,
-                client->layout.geometry.old.dim.w,
-                client->layout.geometry.old.dim.h,
-                is_reparented, on_inner, left, right, top, bottom,
+                client->layout.geometry.old.dim,
+                is_reparented, on_inner, client->layout.frame_extents,
                 client->shade_transition_time,
                 (unsigned int) WM_SHADE_CONFIGURE_COOLDOWN_MS,
                 client->window, "shade");
@@ -472,9 +461,8 @@ void handler_configure_request(xcb_connection_t *connection,
          * unconditionally. */
         mask = s_handler_configure_cooldown_mask(event, mask,
                 (uint16_t) (geom_mask | XCB_CONFIG_WINDOW_BORDER_WIDTH),
-                client->layout.geometry.old.dim.w,
-                client->layout.geometry.old.dim.h,
-                is_reparented, on_inner, left, right, top, bottom,
+                client->layout.geometry.old.dim,
+                is_reparented, on_inner, client->layout.frame_extents,
                 client->fullscreen_transition_time,
                 (unsigned int) WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS,
                 client->window, "fullscreen");

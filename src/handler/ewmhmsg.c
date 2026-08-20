@@ -783,10 +783,8 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
         client_td *client, surface_td *surface, desktop_td *desktop)
 {
     uint32_t direction;
-    int32_t x_root;
-    int32_t y_root;
-    uint32_t screen_w;
-    uint32_t screen_h;
+    struct position_s root_pos;
+    struct dimensions_s screen_dim;
     uint32_t snap;
     bool anchor_right;
     bool anchor_bottom;
@@ -817,21 +815,21 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
         return;
     }
 
-    x_root = (int32_t) event->data.data32[0];
-    y_root = (int32_t) event->data.data32[1];
-    if (x_root < INT16_MIN) {
-        x_root = INT16_MIN;
-    } else if (x_root > INT16_MAX) {
-        x_root = INT16_MAX;
+    root_pos.x = (int32_t) event->data.data32[0];
+    root_pos.y = (int32_t) event->data.data32[1];
+    if (root_pos.x < INT16_MIN) {
+        root_pos.x = INT16_MIN;
+    } else if (root_pos.x > INT16_MAX) {
+        root_pos.x = INT16_MAX;
     }
-    if (y_root < INT16_MIN) {
-        y_root = INT16_MIN;
-    } else if (y_root > INT16_MAX) {
-        y_root = INT16_MAX;
+    if (root_pos.y < INT16_MIN) {
+        root_pos.y = INT16_MIN;
+    } else if (root_pos.y > INT16_MAX) {
+        root_pos.y = INT16_MAX;
     }
 
-    screen_w = surface->properties.dim.w;
-    screen_h = surface->properties.dim.h;
+    screen_dim.w = surface->properties.dim.w;
+    screen_dim.h = surface->properties.dim.h;
     snap = config->base.windows.snap;
 
     if (direction == XCB_EWMH_WM_MOVERESIZE_MOVE) {
@@ -839,8 +837,7 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
                 wm_get_client_desktop(client),
                 CLIENT_OPERATION_MOVING,
                 XCB_CURRENT_TIME,
-                (int16_t) x_root, (int16_t) y_root,
-                screen_w, screen_h, snap);
+                root_pos, screen_dim, snap);
         return;
     }
 
@@ -854,7 +851,6 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
     drag_start_directed(connection, surface->screen->root,
             client, wm_get_client_desktop(client),
             XCB_CURRENT_TIME,
-            (int16_t) x_root, (int16_t) y_root,
-            screen_w, screen_h, snap,
+            root_pos, screen_dim, snap,
             anchor_right, anchor_bottom, resize_w, resize_h);
 }
