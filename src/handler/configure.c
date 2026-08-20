@@ -11,13 +11,13 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+#define _POSIX_C_SOURCE 200112L /* struct timespec */
 
 
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <time.h>       /* CLOCK_MONOTONIC, clock_gettime, timespec */
+#include <time.h>       /* struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -42,6 +42,9 @@
 #include <surface.h>
 #include <systray.h>
 #include <lookup.h>
+
+/* Utils includes */
+#include <utils/time/clock.h>
 
 /* Local includes */
 #include <handler.h>
@@ -246,8 +249,7 @@ static uint16_t s_handler_configure_wh_matches_current(
  * @return @p mask, with @p transition_mask's own bits cleared as
  *         described above if the cooldown is still active; @p mask
  *         unchanged otherwise, including when @p mask does not
- *         overlap @p transition_mask to begin with, or the current
- *         time could not be read
+ *         overlap @p transition_mask to begin with
  *
  * @note Complexity: @e O(1)
  */
@@ -258,7 +260,6 @@ static uint16_t s_handler_configure_cooldown_mask(
         uint16_t top, uint16_t bottom, struct timespec transition_time,
         unsigned int cooldown_ms, xcb_window_t window, const char *kind)
 {
-    struct timespec now;
     int64_t elapsed_ms;
     uint16_t strip_mask;
 
@@ -266,17 +267,9 @@ static uint16_t s_handler_configure_cooldown_mask(
         return mask;
     }
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return mask;
-    }
+    elapsed_ms = (int64_t) clock_ms_since(&transition_time);
 
-    elapsed_ms =
-        ((int64_t) now.tv_sec - (int64_t) transition_time.tv_sec) *
-            1000 +
-        ((int64_t) now.tv_nsec - (int64_t) transition_time.tv_nsec) /
-            1000000;
-
-    if (elapsed_ms < 0 || elapsed_ms >= (int64_t) cooldown_ms) {
+    if (elapsed_ms >= (int64_t) cooldown_ms) {
         return mask;
     }
 

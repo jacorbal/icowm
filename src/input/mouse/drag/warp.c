@@ -37,6 +37,9 @@
 #include <surface.h>
 #include <wm.h>
 
+/* Utils includes */
+#include <utils/time/clock.h>
+
 /* Menu includes */
 #include <menu/notify/desktop.h>
 
@@ -107,22 +110,11 @@ void drag_warp_edge_check(int16_t root_x)
  * edge is due to switch desktops */
 int drag_warp_ms_remaining(void)
 {
-    struct timespec now;
-    long remaining_ms;
-
     if (!s_drag.warp_pending) {
         return -1;
     }
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return 0;
-    }
-
-    remaining_ms =
-        (long) (s_drag.warp_due.tv_sec - now.tv_sec) * 1000L +
-        (s_drag.warp_due.tv_nsec - now.tv_nsec) / 1000000L;
-
-    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
+    return (int) clock_ms_until(&s_drag.warp_due);
 }
 
 

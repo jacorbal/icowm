@@ -86,6 +86,41 @@
 
 
 /**
+ * @brief Perform a partial (outdated-only) surface update
+ *
+ * Re-renders only the surfaces that have been marked as outdated.
+ * Called on every iteration of the main event loop.
+ *
+ * @param wm Window manager state
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+static void s_loop_update(const wm_td *wm)
+{
+    list_td *surfaces = wm_surfaces(wm);
+
+    if (wm == NULL || surfaces == NULL) {
+        return;
+    }
+
+    for (list_item_td *node = list_head(surfaces);
+            node != NULL; node = list_next(node)) {
+        surface_td *const surface = (surface_td *) list_data(node);
+        if (surface == NULL) {
+            continue;
+        }
+
+        if (surface->is_outdated) {
+            if (surface_render_all_desktops(surface) != 0) {
+                LOGGER_ERROR("Failed to render surface %u",
+                        surface->id);
+            }
+        }
+    }
+}
+
+
+/**
  * @brief Handle pointer-leave notifications for focus-sloppy
  *
  * @param wm    Window-manager singleton
@@ -351,7 +386,7 @@ static void s_loop_update_full(const wm_td *wm)
         }
     }
 
-    loop_update(wm);
+    s_loop_update(wm);
 }
 
 
@@ -951,7 +986,7 @@ void loop_run(wm_td *wm)
             }
         }
 
-        loop_update(wm);
+        s_loop_update(wm);
         if (any_outdated) {
             wm_ewmh_sync(wm);
         }
@@ -960,30 +995,4 @@ void loop_run(wm_td *wm)
     LOGGER_DEBUG("Exiting event loop", L_NARG);
     xcb_key_symbols_free(keysyms);
     wm_set_keysyms(wm, NULL);
-}
-
-
-/* Perform a partial (outdated-only) surface update */
-void loop_update(const wm_td *wm)
-{
-    list_td *surfaces = wm_surfaces(wm);
-
-    if (wm == NULL || surfaces == NULL) {
-        return;
-    }
-
-    for (list_item_td *node = list_head(surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
-        if (surface == NULL) {
-            continue;
-        }
-
-        if (surface->is_outdated) {
-            if (surface_render_all_desktops(surface) != 0) {
-                LOGGER_ERROR("Failed to render surface %u",
-                        surface->id);
-            }
-        }
-    }
 }

@@ -41,17 +41,5 @@
  */
 void loop_run(wm_td *wm);
 
-/**
- * @brief Perform a partial (outdated-only) surface update
- *
- * Re-renders only the surfaces that have been marked as outdated.
- * Called on every iteration of the main event loop.
- *
- * @param wm Window manager state
- *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
- */
-void loop_update(const wm_td *wm);
-
 
 #endif  /* ! LOOP_H */

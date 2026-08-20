@@ -12,6 +12,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+
 
 /* System includes */
 #include <stdbool.h>
@@ -33,6 +35,9 @@
 #include <policy/focus.h>
 #include <surface.h>
 #include <wm.h>
+
+/* Utils includes */
+#include <utils/time/clock.h>
 
 /* Default initial values */
 #include <defs/scratchpad.h>
@@ -114,16 +119,12 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
 
     if (s_scratchpad_client == NULL) {
         pid_t launched_pid = (pid_t) -1;
-        struct timespec now;
-        bool awaiting_expired = false;
-
         if (s_awaiting_scratchpad) {
-            if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
-                long elapsed_seconds =
-                    now.tv_sec - s_awaiting_scratchpad_since.tv_sec;
-                awaiting_expired = (elapsed_seconds >=
-                        WM_SCRATCHPAD_AWAIT_TIMEOUT_SECONDS);
-            }
+            bool awaiting_expired = false;
+
+            awaiting_expired =
+                (clock_ms_since(&s_awaiting_scratchpad_since) >=
+                    (long) WM_SCRATCHPAD_AWAIT_TIMEOUT_SECONDS * 1000L);
             if (!awaiting_expired) {
                 return;
             }

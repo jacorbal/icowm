@@ -12,7 +12,7 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC */
+#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
 
 
 /* System includes */
@@ -37,6 +37,7 @@
 
 /* Utils includes */
 #include <utils/sysmem.h>
+#include <utils/time/clock.h>
 
 /* Menu includes */
 #include <menu/dialog/message.h>
@@ -159,11 +160,11 @@ void memguard_tick(xcb_connection_t *connection,
         return;
     }
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+    if (clock_ms_since(&s_last_check) <
+            (long) MEMGUARD_CHECK_INTERVAL_SECONDS * 1000L) {
         return;
     }
-    if ((now.tv_sec - s_last_check.tv_sec) <
-            MEMGUARD_CHECK_INTERVAL_SECONDS) {
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
         return;
     }
     s_last_check = now;

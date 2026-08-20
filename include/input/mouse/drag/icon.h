@@ -72,16 +72,6 @@ void drag_icon_start(xcb_connection_t *connection,
 bool drag_is_icon_drag(void);
 
 /**
- * @brief Repaint the dragged client's own icon in its selected
- *        (active) visual, for as long as an icon drag is in progress
- *
- * @param connection XCB connection used to repaint the icon
- *
- * @note Complexity: @e O(1)
- */
-void drag_icon_sync_active_visual(xcb_connection_t *connection);
-
-/**
  * @brief Return the full icon-window height for a dragged client
  *
  * Computes the icon height from the base icon square size and adds the

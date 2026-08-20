@@ -20,10 +20,13 @@
 #include <stddef.h>     /* size_t */
 #include <stdint.h>     /* uint32_t */
 #include <sys/types.h>  /* pid_t */
-#include <time.h>       /* clock_gettime, struct timespec */
+#include <time.h>       /* clock_gettime, timespec */
 
 /* Project includes */
 #include <logger.h>
+
+/* Utils includes */
+#include <utils/time/clock.h>
 
 /* Default initial values */
 #include <defs/kill.h>
@@ -43,39 +46,6 @@ struct kill_pending_s {
 static struct kill_pending_s s_kill_pending[WM_KILL_ESCALATE_MAX_PENDING];
 
 
-/**
- * @brief Milliseconds remaining until an absolute deadline, floored
- *        at zero rather than going negative once past it
- *
- * Same computation @c wm/shutdown.c's own @a s_shutdown_ms_until
- * already performs.  Kept as its own small copy here rather than
- * shared, the same way that one and @c menu/dialog/defer.c's own
- * equivalent already are two small copies of each other rather than
- * one shared utility.
- *
- * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure
- *            against
- *
- * @return Milliseconds remaining (never negative), or @c 0 if the
- *         clock itself could not be read
- *
- * @note Complexity: @e O(1)
- */
-static int s_kill_ms_until(const struct timespec *due)
-{
-    struct timespec now;
-    long remaining_ms;
-
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return 0;
-    }
-
-    remaining_ms =
-        (long) (due->tv_sec - now.tv_sec) * 1000L +
-        (due->tv_nsec - now.tv_nsec) / 1000000L;
-
-    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
-}
 
 
 /**
@@ -144,7 +114,7 @@ int cctl_kill_ms_remaining(void)
             continue;
         }
 
-        candidate_ms = s_kill_ms_until(&s_kill_pending[i].deadline);
+        candidate_ms = (int) clock_ms_until(&s_kill_pending[i].deadline);
         if (closest_ms < 0 || candidate_ms < closest_ms) {
             closest_ms = candidate_ms;
         }
@@ -162,7 +132,7 @@ void cctl_kill_tick(void)
             continue;
         }
 
-        if (s_kill_ms_until(&s_kill_pending[i].deadline) > 0) {
+        if (clock_ms_until(&s_kill_pending[i].deadline) > 0) {
             continue;
         }
 

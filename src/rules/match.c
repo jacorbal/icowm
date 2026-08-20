@@ -17,11 +17,13 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L
+#define _POSIX_C_SOURCE 200112L /* fnmatch */
+
 
 /* System includes */
-#include <fnmatch.h>
+#include <fnmatch.h>    /* fnmatch */
 #include <stdbool.h>
+#include <stddef.h>     /* NULL */
 #include <stdint.h>
 
 /* Project includes */

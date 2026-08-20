@@ -36,6 +36,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Utils includes */
+#include <utils/time/clock.h>
+
 /* Local includes */
 #include <input/mouse/internal.h>
 #include <input/mouse.h>
@@ -96,22 +99,11 @@ void mouse_hover_poll_clear(xcb_window_t window)
 /* Milliseconds until 's_hover_window' should next be polled */
 int mouse_hover_poll_ms_remaining(void)
 {
-    struct timespec now;
-    long remaining_ms;
-
     if (s_hover_window == XCB_WINDOW_NONE) {
         return -1;
     }
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return -1;
-    }
-
-    remaining_ms =
-        (long) (s_hover_next_poll.tv_sec - now.tv_sec) * 1000L +
-        (s_hover_next_poll.tv_nsec - now.tv_nsec) / 1000000L;
-
-    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
+    return (int) clock_ms_until(&s_hover_next_poll);
 }
 
 

@@ -474,8 +474,27 @@ static bool s_place_transient_centered(const wm_td *wm,
 }
 
 
-/* Find the best-scoring smart position for a newly mapped client */
-bool place_smart(const wm_td *wm,
+/**
+ * @brief Find a non-overlapping smart position for a newly mapped
+ *        client
+ *
+ * Searches the current desktop from top-left to bottom-right using
+ * a fixed grid step and returns the first position whose rectangle does
+ * not overlap any currently visible client.
+ *
+ * @param wm      Pointer to the window manager singleton
+ * @param surface Pointer to the surface where the client will appear
+ * @param client  Pointer to the client being placed
+ * @param out_x   Output pointer for the selected X coordinate
+ * @param out_y   Output pointer for the selected Y coordinate
+ *
+ * @return @c true if a free position was found, @c false otherwise
+ *
+ * @note Complexity: @e O(g * n), where @e g is the number of grid
+ *       positions tested and @e n is the number of clients on the
+ *       current desktop
+ */
+static bool s_place_smart(const wm_td *wm,
         surface_td *surface, client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y)
 {
@@ -951,7 +970,7 @@ void place_apply(const wm_td *wm,
             new_y = (s_sz.h > fh) ? (int32_t) (s_sz.h - fh) : s_wa.pos.y;
         }
     } else if (policy == CONFIG_PLACEMENT_POLICY_SMART &&
-            place_smart(wm, surface, client, &new_x, &new_y)) {
+            s_place_smart(wm, surface, client, &new_x, &new_y)) {
         /* Placement chosen by smart scan */
     } else if (policy == CONFIG_PLACEMENT_POLICY_CASCADE ||
             policy == CONFIG_PLACEMENT_POLICY_SMART) {

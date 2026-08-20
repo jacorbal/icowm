@@ -24,6 +24,7 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/time/clock.h>
 #include <utils/xcb/atom.h>
 
 /* Project includes */
@@ -71,7 +72,6 @@ xcb_window_t notify_popup_window(const struct notify_popup_state_s *state)
 int notify_popup_ms_remaining(const struct notify_popup_state_s *state,
         int timeout_ms)
 {
-    struct timespec now;
     long elapsed_ms;
 
     if (state == NULL || state->window == XCB_WINDOW_NONE) {
@@ -82,13 +82,7 @@ int notify_popup_ms_remaining(const struct notify_popup_state_s *state,
         return -1;
     }
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return -1;
-    }
-
-    elapsed_ms = (long)
-        ((now.tv_sec - state->open_time.tv_sec) * 1000L +
-         (now.tv_nsec - state->open_time.tv_nsec) / 1000000L);
+    elapsed_ms = clock_ms_since(&state->open_time);
     if (elapsed_ms >= (long) timeout_ms) {
         return 0;
     }

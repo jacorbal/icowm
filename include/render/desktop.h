@@ -93,31 +93,6 @@ bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
         xcb_atom_t atom);
 
 /**
- * @brief Draw all clients on a desktop
- *
- * Iterates through all clients in the desktop's stacking list and
- * configures their geometry.  Windows are only mapped (made visible)
- * when @p is_current is @c true; for a desktop that is not the one
- * currently displayed on its surface, only geometry/stacking is updated
- * so that a stale full-render pass (triggered by an unrelated
- * @p is_outdated flag, e.g., after moving/resizing a client) cannot
- * undo an explicit @a surface_clients_hide and make a client reappear
- * on top of the desktop the user actually switched to.
- *
- * @param desktop    Pointer to the desktop to draw
- * @param is_current Whether @p desktop is the surface's currently
- *                   displayed desktop; when @c false, clients are not
- *                   (re-)mapped, only their geometry is updated
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to draw clients
- *
- * @note Complexity: @e O(n), where @e n is the number of clients
- */
-int desktop_render_clients(desktop_td *desktop, bool is_current);
-
-/**
  * @brief Render, position, and decorate a single already-non-hidden
  *        client during a stacking-order render pass
  *
@@ -168,50 +143,6 @@ void desktop_render_one_client(desktop_td *desktop,
 int desktop_render_full(desktop_td *desktop, bool is_current);
 
 /**
- * @brief Draw the buttons configured in @c window.titlebar.buttons on
- *        a titlebar window
- *
- * Draws exactly the buttons in @p left (before the window title) and
- * @p right (after the window title), at the positions
- * @c client_titlebar_layout already computed for them.
- *
- * The position is never recomputed on by this function on its own, so
- * it can never disagree with the click hit-test, which uses the same
- * computed layout.  The fill color for most buttons is taken from
- * @p theme: @c window.active.color.foreground when @p is_focused is
- * @c true, @c window.inactive.color.foreground otherwise; the pin and
- * layer buttons instead reflect their own state (sticky/non-normal
- * layer) regardless of focus; maximize and fullscreen fall back to the
- * background color when @p can_maximize is @c false.
- *
- * @param connection   Active XCB connection
- * @param titlebar     XCB window identifier of the titlebar
- * @param btn_y        Y position every button shares, from
- *                     @c client_titlebar_layout
- * @param left         Left-side button layout from
- *                     @c client_titlebar_layout
- * @param left_n       Number of entries in @p left
- * @param right        Right-side button layout from
- *                     @c client_titlebar_layout
- * @param right_n      Number of entries in @p right
- * @param is_focused   Whether the owning client is currently focused
- * @param is_sticky    Whether the owning client has the sticky flag set
- * @param is_layered   Whether the client layer is above or below normal
- * @param can_maximize Whether the maximize button is enabled
- * @param theme        Pointer to the theme providing button colors
- *
- * @note Complexity: @e O(n), where @e n is @p left_n + @p right_n
- */
-void desktop_titlebar_buttons_draw(xcb_connection_t *connection,
-        xcb_window_t titlebar, int16_t btn_y,
-        const struct titlebar_button_layout_s *left,
-        uint8_t left_n,
-        const struct titlebar_button_layout_s *right,
-        uint8_t right_n,
-        bool is_focused, bool is_sticky, bool is_layered,
-        bool can_maximize, const struct config_theme_s *theme);
-
-/**
  * @brief Repaint a titlebar's background, text, and buttons
  *
  * The single place that does this: called from every titlebar repaint
@@ -223,7 +154,7 @@ void desktop_titlebar_buttons_draw(xcb_connection_t *connection,
  * @a s_titlebar_draw_title (alignment-aware & width-aware, so a title
  * too long for the space the buttons leave is truncated rather than
  * drawn underneath them) before calling
- * @a desktop_titlebar_buttons_draw.
+ * @a s_desktop_titlebar_buttons_draw.
  *
  * @param connection Active XCB connection
  * @param client     Client whose titlebar is to be repainted

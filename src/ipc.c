@@ -11,14 +11,13 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L
+#define _POSIX_C_SOURCE 200112L /* fcntl, F_SETFL, O_NONBLOCK */
 
 
 /* System includes */
 #include <errno.h>
 #include <fcntl.h>      /* fcntl, F_SETFL, O_NONBLOCK */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL */
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* free */
 #include <string.h>     /* memchr, memmove, memset, strerror */

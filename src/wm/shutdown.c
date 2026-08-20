@@ -35,6 +35,9 @@
 #include <surface.h>
 #include <wm.h>
 
+/* Utils includes */
+#include <utils/time/clock.h>
+
 /* Local includes */
 #include <wm/internal.h>
 #include <wm/shutdown.h>
@@ -80,40 +83,6 @@ static void s_shutdown_kill_client(client_td *client, void *userdata)
 }
 
 
-/**
- * @brief Milliseconds remaining until an absolute deadline, floored at
- *        zero rather than going negative once past it
- *
- * Same computation @c menu/dialog/confirm.c's own
- * @a s_confirm_ms_until already performs for its countdown.  Kept as
- * its own small copy here rather than shared, the same way that one and
- * @c menu/dialog/defer.c's own equivalent already are two small copies
- * of each other rather than one shared utility.
- *
- * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
- *
- * @return Milliseconds remaining (never negative), or @c 0 if the clock
- *         itself could not be read
- *
- * @note Complexity: @e O(1)
- */
-static int s_shutdown_ms_until(const struct timespec *due)
-{
-    struct timespec now;
-    long remaining_ms;
-
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return 0;
-    }
-
-    remaining_ms =
-        (long) (due->tv_sec - now.tv_sec) * 1000L +
-        (due->tv_nsec - now.tv_nsec) / 1000000L;
-
-    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
-}
-
-
 /* Begin a coordinated shutdown */
 void wm_shutdown_begin(const wm_td *wm)
 {
@@ -152,7 +121,7 @@ int wm_shutdown_ms_remaining(void)
         return -1;
     }
 
-    return s_shutdown_ms_until(&s_shutdown_deadline);
+    return (int) clock_ms_until(&s_shutdown_deadline);
 }
 
 
@@ -174,7 +143,7 @@ void wm_shutdown_tick(const wm_td *wm)
         return;
     }
 
-    if (s_shutdown_ms_until(&s_shutdown_deadline) > 0) {
+    if (clock_ms_until(&s_shutdown_deadline) > 0) {
         return;
     }
 

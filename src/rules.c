@@ -11,8 +11,6 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -331,4 +329,3 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
             rules_file);
     return 0;
 }
-

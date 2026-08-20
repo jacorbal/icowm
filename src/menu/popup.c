@@ -36,6 +36,7 @@
 #include <defs/popup.h>
 
 /* Utils includes */
+#include <utils/time/clock.h>
 #include <utils/xcb/atom.h>
 
 /* Local includes */
@@ -227,7 +228,6 @@ void popup_close(xcb_connection_t *connection)
 /* Return milliseconds until the popup should be auto-closed */
 int popup_ms_remaining(void)
 {
-    struct timespec now;
     long elapsed_ms;
 
     if (s_popup_window == XCB_WINDOW_NONE) {
@@ -238,12 +238,7 @@ int popup_ms_remaining(void)
         return -1;
     }
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return -1;
-    }
-
-    elapsed_ms = (long) ((now.tv_sec - s_popup_open_time.tv_sec) * 1000L +
-            (now.tv_nsec - s_popup_open_time.tv_nsec) / 1000000L);
+    elapsed_ms = clock_ms_since(&s_popup_open_time);
 
     if (elapsed_ms >= (long) WM_INFO_POPUP_TIMEOUT_MS) {
         return 0;

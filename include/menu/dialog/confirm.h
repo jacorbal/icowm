@@ -86,19 +86,6 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
         uint32_t timeout_seconds);
 
 /**
- * @brief Destroy the currently visible confirm dialog
- *
- * Closes the dialog window if it is open and resets all internal state.
- * Neither callback is invoked; use @a menu_confirm_dialog_cancel
- * instead for a close that should count as cancelling.
- *
- * @param connection XCB connection
- *
- * @note Complexity: @e O(1)
- */
-void menu_confirm_dialog_close(xcb_connection_t *connection);
-
-/**
  * @brief Repaint the confirm dialog from current state
  *
  * Called from the expose handler.  Redraws the prompt, both buttons,

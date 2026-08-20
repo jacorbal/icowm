@@ -22,6 +22,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/time/clock.h>
+
 /* Local includes */
 #include <menu/dialog/defer.h>
 
@@ -36,34 +39,6 @@ static bool s_defer_pending = false;
 /** Callback to run once @c s_defer_due arrives, valid only while
  *  @c s_defer_pending is true */
 static menu_dialog_defer_callback_td s_defer_callback = NULL;
-
-
-/**
- * @brief Milliseconds remaining until an absolute deadline, floored
- *        at zero rather than going negative once past it
- *
- * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
- *
- * @return Milliseconds remaining (never negative), or @c 0 if the
- *         clock itself could not be read
- *
- * @note Complexity: @e O(1)
- */
-static int s_defer_ms_until(const struct timespec *due)
-{
-    struct timespec now;
-    long remaining_ms;
-
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return 0;
-    }
-
-    remaining_ms =
-        (long) (due->tv_sec - now.tv_sec) * 1000L +
-        (due->tv_nsec - now.tv_nsec) / 1000000L;
-
-    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
-}
 
 
 /* Schedule 'callback' to run once 'delay_ms' milliseconds have
@@ -113,7 +88,7 @@ int menu_dialog_defer_ms_remaining(void)
     if (!s_defer_pending) {
         return -1;
     }
-    return s_defer_ms_until(&s_defer_due);
+    return (int) clock_ms_until(&s_defer_due);
 }
 
 
@@ -122,7 +97,7 @@ void menu_dialog_defer_tick(xcb_connection_t *connection)
 {
     menu_dialog_defer_callback_td callback;
 
-    if (!s_defer_pending || s_defer_ms_until(&s_defer_due) != 0) {
+    if (!s_defer_pending || clock_ms_until(&s_defer_due) != 0) {
         return;
     }
 

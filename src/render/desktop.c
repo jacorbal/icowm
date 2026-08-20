@@ -5,7 +5,7 @@
  *
  * @note Decoration constants come from @c defs/client.h, icon constants
  *       from @c defs/icon.h; button colors come from the theme passed
- *       to @c desktop_titlebar_buttons_draw
+ *       to @c s_desktop_titlebar_buttons_draw
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -440,8 +440,42 @@ static uint32_t s_titlebar_button_color(
 }
 
 
-/* Draw the decoration button squares on a titlebar window */
-void desktop_titlebar_buttons_draw(xcb_connection_t *connection,
+/**
+ * @brief Draw the buttons configured in @c window.titlebar.buttons on
+ *        a titlebar window
+ *
+ * Draws exactly the buttons in @p left (before the window title) and
+ * @p right (after the window title), at the positions
+ * @c client_titlebar_layout already computed for them.
+ *
+ * The position is never recomputed on by this function on its own, so
+ * it can never disagree with the click hit-test, which uses the same
+ * computed layout.  The fill color for most buttons is taken from
+ * @p theme: @c window.active.color.foreground when @p is_focused is
+ * @c true, @c window.inactive.color.foreground otherwise; the pin and
+ * layer buttons instead reflect their own state (sticky/non-normal
+ * layer) regardless of focus; maximize and fullscreen fall back to the
+ * background color when @p can_maximize is @c false.
+ *
+ * @param connection   Active XCB connection
+ * @param titlebar     XCB window identifier of the titlebar
+ * @param btn_y        Y position every button shares, from
+ *                     @c client_titlebar_layout
+ * @param left         Left-side button layout from
+ *                     @c client_titlebar_layout
+ * @param left_n       Number of entries in @p left
+ * @param right        Right-side button layout from
+ *                     @c client_titlebar_layout
+ * @param right_n      Number of entries in @p right
+ * @param is_focused   Whether the owning client is currently focused
+ * @param is_sticky    Whether the owning client has the sticky flag set
+ * @param is_layered   Whether the client layer is above or below normal
+ * @param can_maximize Whether the maximize button is enabled
+ * @param theme        Pointer to the theme providing button colors
+ *
+ * @note Complexity: @e O(n), where @e n is @p left_n + @p right_n
+ */
+static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
         xcb_window_t titlebar, int16_t btn_y,
         const struct titlebar_button_layout_s *left, uint8_t left_n,
         const struct titlebar_button_layout_s *right, uint8_t right_n,
@@ -658,7 +692,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
 
     can_maximize = !client_is_fullscreen(client) &&
         (bool) client_is_resizable(client);
-    desktop_titlebar_buttons_draw(connection, client->titlebar,
+    s_desktop_titlebar_buttons_draw(connection, client->titlebar,
             btn_y, left, left_n, right, right_n, is_focused,
             (bool) client_is_pinned(client),
             (client->properties.layer != CLIENT_LAYER_NORMAL),
@@ -1046,7 +1080,30 @@ void desktop_render_one_client(desktop_td *desktop,
 }
 
 
-int desktop_render_clients(desktop_td *desktop, bool is_current)
+/**
+ * @brief Draw all clients on a desktop
+ *
+ * Iterates through all clients in the desktop's stacking list and
+ * configures their geometry.  Windows are only mapped (made visible)
+ * when @p is_current is @c true; for a desktop that is not the one
+ * currently displayed on its surface, only geometry/stacking is updated
+ * so that a stale full-render pass (triggered by an unrelated
+ * @p is_outdated flag, e.g., after moving/resizing a client) cannot
+ * undo an explicit @a surface_clients_hide and make a client reappear
+ * on top of the desktop the user actually switched to.
+ *
+ * @param desktop    Pointer to the desktop to draw
+ * @param is_current Whether @p desktop is the surface's currently
+ *                   displayed desktop; when @c false, clients are not
+ *                   (re-)mapped, only their geometry is updated
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to draw clients
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients
+ */
+static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
 {
     cdlist_item_td *stacking_node;
     const cdlist_item_td *stacking_initial;
@@ -1150,7 +1207,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
     }
 
     /* Draw all clients */
-    if (desktop_render_clients(desktop, is_current) != 0) {
+    if (s_desktop_render_clients(desktop, is_current) != 0) {
         LOGGER_ERROR("Failed to render clients", L_NARG);
         return 1;
     }

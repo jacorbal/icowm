@@ -21,6 +21,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -34,6 +37,7 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+#include <utils/time/clock.h>
 
 /* Default initial values */
 #include <defs/kbd.h>
@@ -364,25 +368,26 @@ static void s_kbd_resize_apply(client_td *client,
 static struct timespec s_last_launch;
 
 /**
- * @brief Whether @p now is at least @c KBD_LAUNCH_MIN_INTERVAL_MS
- *        past @a s_last_launch, updating @a s_last_launch when it is
- *
- * @param now Current time, from @c CLOCK_MONOTONIC
+ * @brief Whether at least @c KBD_LAUNCH_MIN_INTERVAL_MS has passed
+ *        since @a s_last_launch, updating @a s_last_launch to now
+ *        when it has
  *
  * @return @c true if this launch may proceed
  *
  * @note Complexity: @e O(1)
  */
-static bool s_launch_pace_ok(struct timespec now)
+static bool s_launch_pace_ok(void)
 {
-    long elapsed_ms = (now.tv_sec - s_last_launch.tv_sec) * 1000L +
-        (now.tv_nsec - s_last_launch.tv_nsec) / 1000000L;
+    struct timespec now;
 
     if (s_last_launch.tv_sec != 0 &&
-            elapsed_ms < (long) KBD_LAUNCH_MIN_INTERVAL_MS) {
+            clock_ms_since(&s_last_launch) <
+                (long) KBD_LAUNCH_MIN_INTERVAL_MS) {
         return false;
     }
-    s_last_launch = now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
+        s_last_launch = now;
+    }
     return true;
 }
 
@@ -410,7 +415,6 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         surface_td *surface, const config_td *config)
 {
     const char *program = NULL;
-    struct timespec now;
 
     switch (btype) {
         /* To avoid warnings from the compiler, ALL cases must be here */
@@ -497,8 +501,7 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
             break;
     }
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0 &&
-            !s_launch_pace_ok(now)) {
+    if (!s_launch_pace_ok()) {
         return;
     }
 

@@ -33,30 +33,6 @@
 
 /* Public interface */
 /**
- * @brief Find a non-overlapping smart position for a newly mapped
- *        client
- *
- * Searches the current desktop from top-left to bottom-right using
- * a fixed grid step and returns the first position whose rectangle does
- * not overlap any currently visible client.
- *
- * @param wm      Pointer to the window manager singleton
- * @param surface Pointer to the surface where the client will appear
- * @param client  Pointer to the client being placed
- * @param out_x   Output pointer for the selected X coordinate
- * @param out_y   Output pointer for the selected Y coordinate
- *
- * @return @c true if a free position was found, @c false otherwise
- *
- * @note Complexity: @e O(g * n), where @e g is the number of grid
- *       positions tested and @e n is the number of clients on the
- *       current desktop
- */
-bool place_smart(const wm_td *wm,
-        surface_td *surface, client_td *client,
-        int32_t *restrict out_x, int32_t *restrict out_y);
-
-/**
  * @brief Apply the configured placement policy to a newly mapped client
  *
  * Selects and applies the placement algorithm configured in @p wm:

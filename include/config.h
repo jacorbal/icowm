@@ -1672,31 +1672,6 @@ config_td *config_init(void);
 void config_destroy(config_td *config);
 
 /**
- * @brief Populate the configuration structure with an ordinary
- *        session's own default values
- *
- * A thin dispatcher that delegates to each module's own
- * @a config_set_default_*_values (@c config/base/defaults.c,
- * @c config/randr.c, @c config/bindings.c, @c config/a11y.c,
- * @c config/theme.c), rather
- * than setting any field directly itself.
- *
- * @param config Pointer to the configuration structure to set the
- *               default values for
- *
- * @note Restricted-memory mode NEVER calls this
- * @note This function is loaded before user configuration, as
- *       a fail-safe for fields not yet configured manually
- * @note Complexity: @e O(n), where @e n is the number of fields that
- *       need to be set, across every module this delegates to
- *
- * @see @a config_set_default_values_memguard in @c config/memguard.h
- *      for its own completely separate profile, which this function
- *      knows nothing about.
- */
-void config_set_default_values(config_td *config);
-
-/**
  * @brief Populate default values for one theme structure
  *
  * Used both as the compiled-in fallback theme (via

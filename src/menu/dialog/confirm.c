@@ -31,6 +31,7 @@
 
 /* Util includes */
 #include <utils/safe/safestr.h>
+#include <utils/time/clock.h>
 #include <utils/xcb/atom.h>
 
 /* Project includes */
@@ -232,41 +233,6 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
 }
 
 
-/**
- * @brief Milliseconds remaining until an absolute deadline, floored
- *        at zero rather than going negative once past it
- *
- * The request/reply-free clock computation
- * @a s_confirm_timeout_ms_remaining needs against the running
- * countdown's own absolute deadline; the equivalent computation for the
- * click-triggered close/accept lives in @c menu/dialog/defer.c instead,
- * shared with every other dialog that defers one the same way.
- *
- * @param due Absolute deadline (@c CLOCK_MONOTONIC) to measure against
- *
- * @return Milliseconds remaining (never negative), or @c 0 if the
- *         clock itself could not be read
- *
- * @note Complexity: @e O(1)
- *
- * @see @p timeout_seconds on @a menu_confirm_dialog_show
- */
-static int s_confirm_ms_until(const struct timespec *due)
-{
-    struct timespec now;
-    long remaining_ms;
-
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
-        return 0;
-    }
-
-    remaining_ms =
-        (long) (due->tv_sec - now.tv_sec) * 1000L +
-        (due->tv_nsec - now.tv_nsec) / 1000000L;
-
-    return (remaining_ms < 0) ? 0 : (int) remaining_ms;
-}
-
 
 /**
  * @brief Milliseconds remaining until the running countdown timeout
@@ -282,7 +248,7 @@ static int s_confirm_timeout_ms_remaining(void)
     if (!s_confirm_timeout_active) {
         return -1;
     }
-    return s_confirm_ms_until(&s_confirm_timeout_due);
+    return (int) clock_ms_until(&s_confirm_timeout_due);
 }
 
 
@@ -463,6 +429,55 @@ static void s_confirm_draw(xcb_connection_t *connection,
 }
 
 
+/**
+ * @brief Destroy the currently visible confirm dialog
+ *
+ * Closes the dialog window if it is open and resets all internal state.
+ * Neither callback is invoked; use @a menu_confirm_dialog_cancel
+ * instead for a close that should count as cancelling.
+ *
+ * @param connection XCB connection
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_menu_confirm_dialog_close(xcb_connection_t *connection)
+{
+    if (connection == NULL || s_confirm_window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
+    xcb_destroy_window(connection, s_confirm_window);
+    xcb_flush(connection);
+
+    s_confirm_window = XCB_WINDOW_NONE;
+    s_confirm_selected = 0;
+    s_confirm_callback = NULL;
+    s_confirm_cancel_callback = NULL;
+
+    /* Restore whichever real X11 focus this dialog displaced when it
+     * opened; without this, focus reverts to 'PointerRoot' instead
+     * (per the revert_to mode 'menu_confirm_dialog_show' set it up
+     * with), which may land on a different client than the one the
+     * window manager's own bookkeeping still shows as active, or on
+     * nothing at all. */
+    if (s_confirm_prev_focus != XCB_WINDOW_NONE) {
+        xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
+                s_confirm_prev_focus, XCB_CURRENT_TIME);
+    }
+    s_confirm_prev_focus = XCB_WINDOW_NONE;
+
+    /* Also cancels any click-triggered close/accept still scheduled
+     * (see 'menu_dialog_defer_schedule' in menu_confirm_dialog_
+     * handle_click), so 'menu_dialog_defer_tick' has nothing left to
+     * do once this dialog is gone through some other path (e.g.,
+     * Escape) before that delay elapsed on its own. */
+    menu_dialog_defer_cancel();
+    s_confirm_timeout_active = false;
+    s_confirm_timeout_last_shown = -1;
+}
+
+
 /* Open the confirm dialog */
 void menu_confirm_dialog_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config,
@@ -586,45 +601,6 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
             XCB_INPUT_FOCUS_POINTER_ROOT,
             s_confirm_window, XCB_CURRENT_TIME);
     xcb_flush(connection);
-}
-
-
-/* Destroy the confirm dialog */
-void menu_confirm_dialog_close(xcb_connection_t *connection)
-{
-    if (connection == NULL || s_confirm_window == XCB_WINDOW_NONE) {
-        return;
-    }
-
-    xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
-    xcb_destroy_window(connection, s_confirm_window);
-    xcb_flush(connection);
-
-    s_confirm_window = XCB_WINDOW_NONE;
-    s_confirm_selected = 0;
-    s_confirm_callback = NULL;
-    s_confirm_cancel_callback = NULL;
-
-    /* Restore whichever real X11 focus this dialog displaced when it
-     * opened; without this, focus reverts to 'PointerRoot' instead
-     * (per the revert_to mode 'menu_confirm_dialog_show' set it up
-     * with), which may land on a different client than the one the
-     * window manager's own bookkeeping still shows as active, or on
-     * nothing at all. */
-    if (s_confirm_prev_focus != XCB_WINDOW_NONE) {
-        xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
-                s_confirm_prev_focus, XCB_CURRENT_TIME);
-    }
-    s_confirm_prev_focus = XCB_WINDOW_NONE;
-
-    /* Also cancels any click-triggered close/accept still scheduled
-     * (see 'menu_dialog_defer_schedule' in menu_confirm_dialog_
-     * handle_click), so 'menu_dialog_defer_tick' has nothing left to
-     * do once this dialog is gone through some other path (e.g.,
-     * Escape) before that delay elapsed on its own. */
-    menu_dialog_defer_cancel();
-    s_confirm_timeout_active = false;
-    s_confirm_timeout_last_shown = -1;
 }
 
 
@@ -778,7 +754,7 @@ void menu_confirm_dialog_accept(xcb_connection_t *connection)
     void (*confirm_cb)(xcb_connection_t *) = s_confirm_callback;
     void (*cancel_cb)(xcb_connection_t *) = s_confirm_cancel_callback;
 
-    menu_confirm_dialog_close(connection);
+    s_menu_confirm_dialog_close(connection);
     if (selected == 1) {
         if (confirm_cb != NULL) {
             confirm_cb(connection);
@@ -794,7 +770,7 @@ void menu_confirm_dialog_cancel(xcb_connection_t *connection)
 {
     void (*cancel_cb)(xcb_connection_t *) = s_confirm_cancel_callback;
 
-    menu_confirm_dialog_close(connection);
+    s_menu_confirm_dialog_close(connection);
     if (cancel_cb != NULL) {
         cancel_cb(connection);
     }

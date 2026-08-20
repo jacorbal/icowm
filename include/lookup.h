@@ -63,23 +63,6 @@ surface_td *lookup_surface_for_root(list_td *surfaces,
 desktop_td *lookup_current_desktop(surface_td *surface);
 
 /**
- * @brief Test whether an X window belongs to a managed client
- *
- * Checks whether the specified window matches any of the windows
- * associated with the client: client window, frame, titlebar, icon
- * window, or client identifier.
- *
- * @param client Pointer to the client to test
- * @param window Window ID to compare against the client
- *
- * @return @c true if the window belongs to the client
- *
- * @note Complexity: @e O(1)
- */
-bool lookup_client_matches_window(const client_td *client,
-        xcb_window_t window);
-
-/**
  * @brief Search all surfaces and desktops for a client by window ID
  *
  * @param surfaces    Singly-linked list of @c surface_td pointers
