@@ -185,25 +185,20 @@ const struct strut_partial_s
  * frame of a render or drag loop.
  *
  * @param surface Surface to query the tray's rectangle on
- * @param out_x   Receives the rectangle's left edge, root-relative
- *                (same coordinate space every top-level window this
- *                project creates, icon windows included, already
- *                shares)
- * @param out_y   Receives the rectangle's top edge, root-relative
- * @param out_w   Receives the rectangle's width
- * @param out_h   Receives the rectangle's height
+ * @param out_tray Receives the tray's own current rectangle,
+ *                root-relative (same coordinate space every top-level
+ *                window this project creates, icon windows included,
+ *                already shares)
  *
- * @return @c true and the rectangle filled in when @p surface is the
+ * @return @c true and @p out_tray filled in when @p surface is the
  *         one the tray is docked on and it is currently showing
- *         there; @c false otherwise, with none of the output
- *         parameters touched
+ *         there; @c false otherwise, with @p out_tray left untouched
  *
  * @note Complexity: @e O(1), plus one synchronous round trip to the
  *       X server
  */
 bool systray_get_geometry(const surface_td *surface,
-        int32_t *restrict out_x, int32_t *restrict out_y,
-        uint16_t *restrict out_w, uint16_t *restrict out_h);
+        struct geometry_s *restrict out_tray);
 
 /**
  * @brief Query whether @p window is a currently docked icon, and if

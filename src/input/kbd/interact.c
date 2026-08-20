@@ -704,8 +704,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
 {
     client_td *client;
     uint32_t resize_step;
-    int32_t new_x;
-    int32_t new_y;
+    struct position_s new_pos;
     uint32_t old_w;
     uint32_t old_h;
     int32_t new_w;
@@ -747,8 +746,8 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
 
     resize_step = (config->base.windows.resize_step > 0u)
         ? config->base.windows.resize_step : 1u;
-    new_x = client->layout.geometry.cur.pos.x;
-    new_y = client->layout.geometry.cur.pos.y;
+    new_pos.x = client->layout.geometry.cur.pos.x;
+    new_pos.y = client->layout.geometry.cur.pos.y;
 
     /* Operate in frame space (outer dimensions including decoration
      * extents).  's_kbd_resize_apply' converts to inner space
@@ -831,7 +830,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
             aspect_h = (uint32_t) new_h;
             client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
             new_h = (int32_t) aspect_h;
-            new_x += (int32_t) old_w - new_w;
+            new_pos.x += (int32_t) old_w - new_w;
             break;
         case KEYBIND_CLIENT_RESIZE_RIGHT:
             new_w = (int32_t) s_kb_resize_axis_target(client,
@@ -846,7 +845,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
             aspect_h = (uint32_t) new_h;
             client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
             new_h = (int32_t) aspect_h;
-            new_y += (int32_t) old_h - new_h;
+            new_pos.y += (int32_t) old_h - new_h;
             break;
         case KEYBIND_CLIENT_RESIZE_DOWN:
             new_h = (int32_t) s_kb_resize_axis_target(client,
@@ -858,6 +857,6 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
     }
 
     s_kbd_resize_apply(client, (struct geometry_s) {
-                { new_x, new_y },
+                new_pos,
                 { geom_dim_clamp(new_w), geom_dim_clamp(new_h) } });
 }

@@ -91,23 +91,13 @@ static void s_resync_after_reload(const wm_td *wm)
             snode != NULL; snode = list_next(snode)) {
         surface_td *const s = (surface_td *) list_data(snode);
         struct config_base_s *const cb = &(config->base);
-        int32_t tray_x;
-        int32_t tray_y;
-        uint16_t tray_w;
-        uint16_t tray_h;
         struct geometry_s tray;
         /* Queried once per surface here, ahead of the desktop/client
          * loop below, rather than once per icon inside it.  This is
          * a synchronous round trip to the X server (see 'systray_get_
          * geometry''s comment), and every icon on this same surface
          * shares the identical tray rectangle regardless. */
-        bool tray_visible = systray_get_geometry(s, &tray_x, &tray_y,
-                &tray_w, &tray_h);
-
-        tray.pos.x = tray_x;
-        tray.pos.y = tray_y;
-        tray.dim.w = tray_w;
-        tray.dim.h = tray_h;
+        bool tray_visible = systray_get_geometry(s, &tray);
 
         if (s->id >= cb->screen_count) {
             continue;

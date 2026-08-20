@@ -54,10 +54,7 @@ void ctxmenu_show(xcb_connection_t *connection,
     int16_t clamped_y;
     int32_t max_x;
     int32_t max_y;
-    uint32_t work_x;
-    uint32_t work_y;
-    uint32_t work_w;
-    uint32_t work_h;
+    struct geometry_s work;
     desktop_td *desktop;
     size_t entry_count;
 
@@ -97,27 +94,27 @@ void ctxmenu_show(xcb_connection_t *connection,
     state->height = ctxmenu_layout_build(state);
 
     /* Use the active desktop's work area to clamp position */
-    work_x = 0;
-    work_y = 0;
-    work_w = surface->properties.dim.w;
-    work_h = surface->properties.dim.h;
+    work = (struct geometry_s) { { 0, 0 }, surface->properties.dim };
     desktop = surface_desktop_get(surface, surface->desktop_cur);
     if (desktop != NULL) {
-        work_x = (uint32_t) desktop->workarea.pos.x;
-        work_y = (uint32_t) desktop->workarea.pos.y;
-        work_w = desktop->workarea.dim.w;
-        work_h = desktop->workarea.dim.h;
+        work = desktop->workarea;
     }
 
-    max_x = (int32_t) (work_x + work_w) - (int32_t) state->width;
-    max_y = (int32_t) (work_y + work_h) - (int32_t) state->height;
+    max_x = (int32_t) ((uint32_t) work.pos.x + work.dim.w) -
+        (int32_t) state->width;
+    max_y = (int32_t) ((uint32_t) work.pos.y + work.dim.h) -
+        (int32_t) state->height;
 
     clamped_x = (int16_t) pos.x;
     clamped_y = (int16_t) pos.y;
     if (clamped_x > (int16_t) max_x) { clamped_x = (int16_t) max_x; }
     if (clamped_y > (int16_t) max_y) { clamped_y = (int16_t) max_y; }
-    if (clamped_x < (int16_t) work_x) { clamped_x = (int16_t) work_x; }
-    if (clamped_y < (int16_t) work_y) { clamped_y = (int16_t) work_y; }
+    if (clamped_x < (int16_t) work.pos.x) {
+        clamped_x = (int16_t) work.pos.x;
+    }
+    if (clamped_y < (int16_t) work.pos.y) {
+        clamped_y = (int16_t) work.pos.y;
+    }
 
     state->origin_x = clamped_x;
     state->origin_y = clamped_y;

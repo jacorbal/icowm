@@ -540,7 +540,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
             text_renderer_set_color(style.fg_sel, style.bg_nor);
             menu_draw_label(connection, g_cycle_menu.window,
                     (struct position_s) {
-                        g_cycle_menu.width / 2u - 4u, top_baseline_y },
+                        g_cycle_menu.width / 2 - 4, top_baseline_y },
                     WM_CYCLE_MENU_SCROLL_UP_INDICATOR);
         } else {
             /* Clear the top padding area when no arrow is needed */
@@ -561,7 +561,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
             text_renderer_set_color(style.fg_sel, style.bg_nor);
             menu_draw_label(connection, g_cycle_menu.window,
                     (struct position_s) {
-                        g_cycle_menu.width / 2u - 4u,
+                        g_cycle_menu.width / 2 - 4,
                         bot_y + pad_y - text_font_descent() },
                     WM_CYCLE_MENU_SCROLL_DOWN_INDICATOR);
         } else {

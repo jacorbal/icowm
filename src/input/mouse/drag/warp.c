@@ -250,13 +250,13 @@ void drag_warp_tick(xcb_connection_t *connection)
     /* Move the dragged window or icon by the exact same delta the
      * pointer itself is about to jump, so it stays under the cursor
      * across the warp instead of being left behind on the old desktop's
-     * own edge.  Shifting 'client_cur_x' (the position 'drag_update'
-     * last actually applied, which already folds in any edge-snapping)
-     * is what 'pointer_start_x'/'client_start_x' being left untouched
-     * below relies on.
+     * own edge.  Shifting 'client_cur.pos.x' (the position
+     * 'drag_update' last actually applied, which already folds in any
+     * edge-snapping) is what 'pointer_start_x'/'client_start.pos.x'
+     * being left untouched below relies on.
      *
      * With both of those unchanged, the very next real motion notify's
-     * own 'new_x = client_start_x + (root_x - pointer_start_x)' is
+     * own 'new_x = client_start.pos.x + (root_x - pointer_start_x)' is
      * a plain linear function of 'root_x', so it naturally reflects the
      * same shift automatically, for adjusting either baseline here
      * instead would cancel that shift back out (the bug an earlier
@@ -265,10 +265,10 @@ void drag_warp_tick(xcb_connection_t *connection)
      * computed position identical before and after the warp, keeping
      * the dragged window or icon pinned at its old spot rather than
      * following the pointer to the new one). */
-    new_window_x = s_drag.client_cur_x +
+    new_window_x = s_drag.client_cur.pos.x +
         ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
 
-    s_drag.client_cur_x = new_window_x;
+    s_drag.client_cur.pos.x = new_window_x;
 
     if (is_icon) {
         uint32_t vals[2];
@@ -277,7 +277,7 @@ void drag_warp_tick(xcb_connection_t *connection)
             s_drag.client->config_base->icons.show_geom;
 
         vals[0] = (uint32_t) new_window_x;
-        vals[1] = (uint32_t) s_drag.client_cur_y;
+        vals[1] = (uint32_t) s_drag.client_cur.pos.y;
         xcb_configure_window(connection, s_drag.client->icon_window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
     } else {
@@ -287,23 +287,24 @@ void drag_warp_tick(xcb_connection_t *connection)
         if (s_drag.solid_drag) {
             enact_client_move(s_drag.client,
                     (struct position_s) { new_window_x,
-                        s_drag.client_cur_y });
+                        s_drag.client_cur.pos.y });
         } else {
             /* Same reasoning as the geometry overlay just below: left
              * untouched here, the outline would stay drawn wherever it
              * was right before the warp, on the old desktop's own
              * edge, until whatever real motion notify happens to come
              * next, rather than following the pointer across
-             * immediately.  Width/height stay 'client_start_w'/'_h'
-             * (never 'client_cur_w'/'_h'), the same as 'drag_update''s
-             * own MOVING branch, since this whole function only ever
-             * runs for a plain move, never a resize (see the early
-             * 'CLIENT_OPERATION_MOVING' guard above), so the size
-             * itself never actually changes here at all. */
+             * immediately.  Width/height stay 'client_start.dim.w'/
+             * '.h' (never 'client_cur.dim.w'/'.h'), the same as
+             * 'drag_update''s own MOVING branch, since this whole
+             * function only ever runs for a plain move, never
+             * a resize (see the early 'CLIENT_OPERATION_MOVING' guard
+             * above), so the size itself never actually changes here
+             * at all. */
             drag_outline_move(connection, (struct geometry_s) {
-                        { new_window_x, s_drag.client_cur_y },
-                        { s_drag.client_start_w,
-                            s_drag.client_start_h } });
+                        { new_window_x, s_drag.client_cur.pos.y },
+                        { s_drag.client_start.dim.w,
+                            s_drag.client_start.dim.h } });
         }
     }
 
@@ -317,15 +318,15 @@ void drag_warp_tick(xcb_connection_t *connection)
         char geom_buf[24];
 
         (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
-                (int) new_window_x, (int) s_drag.client_cur_y);
+                (int) new_window_x, (int) s_drag.client_cur.pos.y);
         drag_overlay_show(connection, is_icon, (struct geometry_s) {
-                    { new_window_x, s_drag.client_cur_y },
+                    { new_window_x, s_drag.client_cur.pos.y },
                     { is_icon
                         ? (uint16_t) WM_ICON_SQUARE_SIZE
-                        : s_drag.client_start_w,
+                        : s_drag.client_start.dim.w,
                       is_icon
                         ? drag_icon_height(s_drag.client)
-                        : s_drag.client_start_h } },
+                        : s_drag.client_start.dim.h } },
                 geom_buf);
     }
 

@@ -220,14 +220,12 @@ const struct strut_partial_s *systray_get_reserved_strut(
 /* Return the tray's own current on-screen rectangle on 'surface', or
  * 'false' when it is not currently showing there at all */
 bool systray_get_geometry(const surface_td *surface,
-        int32_t *restrict out_x, int32_t *restrict out_y,
-        uint16_t *restrict out_w, uint16_t *restrict out_h)
+        struct geometry_s *restrict out_tray)
 {
     xcb_get_geometry_cookie_t cookie;
     xcb_get_geometry_reply_t *reply;
 
-    if (surface == NULL || out_x == NULL || out_y == NULL ||
-            out_w == NULL || out_h == NULL ||
+    if (surface == NULL || out_tray == NULL ||
             !s_tray.window_ready || !s_tray.is_active ||
             s_tray.surface != surface) {
         return false;
@@ -244,10 +242,10 @@ bool systray_get_geometry(const surface_td *surface,
      * creates (icon windows included) shares, so directly comparable
      * against an icon's own root-relative position with no extra
      * translation needed */
-    *out_x = (int32_t) reply->x;
-    *out_y = (int32_t) reply->y;
-    *out_w = reply->width;
-    *out_h = reply->height;
+    out_tray->pos.x = (int32_t) reply->x;
+    out_tray->pos.y = (int32_t) reply->y;
+    out_tray->dim.w = reply->width;
+    out_tray->dim.h = reply->height;
 
     free(reply);
     return true;

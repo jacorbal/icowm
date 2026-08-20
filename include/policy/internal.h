@@ -3,9 +3,11 @@
  *
  * @brief Private constants and helpers shared across policy modules
  *
- * Declares cost-weight constants used by both
- * @c policy/placement/window.c (for window scoring) and
- * @c policy/placement/icon.c (for icon placement scoring).
+ * Declares cost-weight constants used by
+ * @c policy/placement/score.c (the shared overlap-scoring core both
+ * draw from) and by @c policy/placement/window.c and
+ * @c policy/placement/icon.c themselves, each passing its own weights
+ * to @a place_overlap_score rather than reading them directly.
  *
  * @note Must not be included outside of @c src/policy/
  */

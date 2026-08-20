@@ -570,10 +570,7 @@ int ci_create_decorations(client_td *client)
 {
     uint32_t mask;
     uint32_t values[3];
-    uint16_t frame_w;
-    uint16_t frame_h;
-    int16_t frame_x;
-    int16_t frame_y;
+    struct geometry_s frame;
     int32_t frame_x32;
     int32_t frame_y32;
     uint16_t left;
@@ -608,25 +605,25 @@ int ci_create_decorations(client_td *client)
     frame_y32 = client->layout.geometry.cur.pos.y - (int32_t) top;
 
     if (frame_x32 < INT16_MIN) {
-        frame_x = INT16_MIN;
+        frame.pos.x = INT16_MIN;
     } else if (frame_x32 > INT16_MAX) {
-        frame_x = INT16_MAX;
+        frame.pos.x = INT16_MAX;
     } else {
-        frame_x = (int16_t) frame_x32;
+        frame.pos.x = frame_x32;
     }
 
     if (frame_y32 < INT16_MIN) {
-        frame_y = INT16_MIN;
+        frame.pos.y = INT16_MIN;
     } else if (frame_y32 > INT16_MAX) {
-        frame_y = INT16_MAX;
+        frame.pos.y = INT16_MAX;
     } else {
-        frame_y = (int16_t) frame_y32;
+        frame.pos.y = frame_y32;
     }
 
-    frame_w =
-        (uint16_t) (client->layout.geometry.cur.dim.w + left + right);
-    frame_h =
-        (uint16_t) (client->layout.geometry.cur.dim.h + top + bottom);
+    frame.dim.w = (uint16_t)
+        (client->layout.geometry.cur.dim.w + left + right);
+    frame.dim.h = (uint16_t)
+        (client->layout.geometry.cur.dim.h + top + bottom);
 
     client->frame = xcb_generate_id(client->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
@@ -656,8 +653,8 @@ int ci_create_decorations(client_td *client)
             XCB_COPY_FROM_PARENT,
             client->frame,
             client->parent_id,
-            frame_x, frame_y,
-            frame_w, frame_h,
+            (int16_t) frame.pos.x, (int16_t) frame.pos.y,
+            (uint16_t) frame.dim.w, (uint16_t) frame.dim.h,
             0,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
@@ -721,10 +718,7 @@ int ci_create_decorations(client_td *client)
                 XCB_MOD_MASK_ANY);
     }
 
-    client->layout.geometry.cur.pos.x = frame_x;
-    client->layout.geometry.cur.pos.y = frame_y;
-    client->layout.geometry.cur.dim.w = frame_w;
-    client->layout.geometry.cur.dim.h = frame_h;
+    client->layout.geometry.cur = frame;
     client->layout.geometry.old = client->layout.geometry.cur;
     client_decoration_layout_sync(client);
 

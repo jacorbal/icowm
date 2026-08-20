@@ -20,7 +20,6 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
-#include <adt/cdlist.h>
 #include <adt/ohtbl.h>
 
 /* Utils includes */
@@ -40,15 +39,20 @@
 
 /* Local includes */
 #include <policy/internal.h>
+#include <policy/placement/score.h>
 #include <policy/placement/window.h>
 
 
 /**
  * @brief Score a candidate window position against existing clients
  *
- * Iterates visible clients on @p desktop and accumulates an overlap
- * penalty weighted by intersection area.  A small distance-to-center
- * penalty breaks ties in favor of the workarea center.
+ * The overlap penalty itself (@a place_overlap_score,
+ * @c policy/placement/score.h) is shared with
+ * @c place_icon_apply's own @c CONFIG_ICON_PLACEMENT_SMART search;
+ * only the tie-breaker below is specific to window placement.  A
+ * small distance-to-center penalty breaks ties in favor of the
+ * workarea center, staying much smaller than any overlap penalty so
+ * it only matters when two positions have equal overlap cost.
  *
  * @param desktop     Desktop whose clients are inspected
  * @param skip_client Client to ignore (the one being placed)
@@ -69,53 +73,14 @@ static uint64_t s_score_window_pos(const desktop_td *desktop,
         int32_t x, int32_t y, uint32_t fw, uint32_t fh,
         int32_t center_x, int32_t center_y)
 {
-    cdlist_item_td *node;
     uint64_t cost;
     int32_t dx;
     int32_t dy;
 
-    cost = 0u;
-
-    if (desktop != NULL && desktop->stacking != NULL &&
-            cdlist_size(desktop->stacking) != 0u) {
-        node = cdlist_head(desktop->stacking);
-        if (node != NULL) {
-            const cdlist_item_td *initial = node;
-
-            do {
-                const client_td *other =
-                    (const client_td *) cdlist_data(node);
-                if (other != NULL && other != skip_client &&
-                        !(other->properties.flags & CLIENT_FLAG_HIDDEN)) {
-                    if (other->properties.state !=
-                            (uint16_t) CLIENT_STATE_ICONIFIED) {
-                        /* Visible window: high overlap penalty */
-                        uint32_t area = geom_intersection_area(x, y,
-                                fw, fh,
-                                other->layout.geometry.cur.pos.x,
-                                other->layout.geometry.cur.pos.y,
-                                other->layout.geometry.cur.dim.w,
-                                other->layout.geometry.cur.dim.h);
-                        cost += (uint64_t) SMART_WIN_COST_PER_WIN_PIXEL *
-                            (uint64_t) area;
-                    } else if (other->icon_window != 0u &&
-                            other->is_icon_mapped &&
-                            other->icon_x >= 0 && other->icon_y >= 0) {
-                        /* Visible icon: lower overlap penalty */
-                        uint32_t area = geom_intersection_area(x, y,
-                                fw, fh,
-                                (int32_t) other->icon_x,
-                                (int32_t) other->icon_y,
-                                (uint32_t) SMART_WIN_ICON_SIZE,
-                                (uint32_t) SMART_WIN_ICON_SIZE);
-                        cost += (uint64_t) SMART_WIN_COST_PER_ICON_PIXEL *
-                            (uint64_t) area;
-                    }
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        }
-    }
+    cost = place_overlap_score(desktop, skip_client,
+            (struct geometry_s) { { x, y }, { fw, fh } },
+            (uint64_t) SMART_WIN_COST_PER_WIN_PIXEL,
+            (uint64_t) SMART_WIN_COST_PER_ICON_PIXEL);
 
     /* Secondary tie-breaker: Manhattan distance from workarea center.
      * Stays much smaller than any window-overlap penalty, so it only

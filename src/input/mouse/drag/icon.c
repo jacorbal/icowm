@@ -73,12 +73,10 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.operation = CLIENT_OPERATION_MOVING;
     s_drag.pointer_start_x = (int16_t) root_pos.x;
     s_drag.pointer_start_y = (int16_t) root_pos.y;
-    s_drag.client_start_x = icon_pos.x;
-    s_drag.client_start_y = icon_pos.y;
-    s_drag.client_start_w = 0;
-    s_drag.client_start_h = 0;
-    s_drag.client_cur_x = icon_pos.x;
-    s_drag.client_cur_y = icon_pos.y;
+    s_drag.client_start.pos = icon_pos;
+    s_drag.client_start.dim.w = 0;
+    s_drag.client_start.dim.h = 0;
+    s_drag.client_cur.pos = icon_pos;
     /* Icon drags are always solid, regardless of 'windows.solid-drag':
      * moving just the small icon window live is cheap enough on its
      * own that the outline machinery would add complexity for no

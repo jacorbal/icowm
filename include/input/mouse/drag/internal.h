@@ -45,6 +45,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -59,16 +62,15 @@ typedef struct {
                                  *   'XCB_WINDOW_NONE' for normal drag */
     int16_t pointer_start_x;
     int16_t pointer_start_y;
-    int32_t client_start_x;
-    int32_t client_start_y;
-    uint16_t client_start_w;
-    uint16_t client_start_h;
+    struct geometry_s client_start;
     uint32_t screen_w;          /**< Screen width for edge snap */
     uint32_t screen_h;          /**< Screen height for edge snap */
     uint32_t snap;              /**< Snap distance in pixels */
-    int32_t client_cur_x;       /**< Current X during drag (updated each
-                                     motion notify event) */
-    int32_t client_cur_y;       /**< Current Y during drag */
+    struct geometry_s client_cur; /**< Current geometry during drag
+                                     (updated each motion notify
+                                     event; only @c pos is meaningful
+                                     during an icon drag, which never
+                                     resizes) */
     bool anchor_right;          /**< Resize: right edge is fixed (resize
                                      from left) */
     bool anchor_bottom;         /**< Resize: bottom edge is fixed (resize
@@ -159,14 +161,6 @@ typedef struct {
                                            edge-warp desktop switch)
                                            can ever leave a stray
                                            artifact behind */
-    int32_t client_cur_w;       /**< Current width during a resize
-                                     drag (mirrors 'client_cur_x'/'_y'
-                                     above); needed because an outline
-                                     drag never touches the real client
-                                     until 'drag_end', so
-                                     'layout.geometry.cur' cannot be
-                                     relied on to hold it meanwhile */
-    int32_t client_cur_h;       /**< See 'client_cur_w' */
 } drag_state_td;
 
 

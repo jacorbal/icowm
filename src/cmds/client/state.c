@@ -32,6 +32,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
+/* Type includes */
+#include <types/pair.h>
+
 /* Default initial values */
 #include <defs/client.h>
 
@@ -72,8 +75,7 @@ static void s_client_enable_decoration(client_td *client,
 {
     uint32_t mask;
     uint32_t values[3];
-    int32_t frame_x;
-    int32_t frame_y;
+    struct geometry_s frame;
     int32_t frame_w;
     int32_t frame_h;
     uint32_t border_color;
@@ -98,8 +100,8 @@ static void s_client_enable_decoration(client_td *client,
         ? client->theme->window.inactive.color.background
         : 0x000000U;
 
-    frame_x = client->layout.geometry.cur.pos.x - bw;
-    frame_y = client->layout.geometry.cur.pos.y - (bw + th);
+    frame.pos.x = client->layout.geometry.cur.pos.x - bw;
+    frame.pos.y = client->layout.geometry.cur.pos.y - (bw + th);
     frame_w = (int32_t) client->layout.geometry.cur.dim.w + 2 * bw;
     frame_h = (int32_t) client->layout.geometry.cur.dim.h + 2 * bw + th;
 
@@ -109,6 +111,8 @@ static void s_client_enable_decoration(client_td *client,
     if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
         frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
     }
+    frame.dim.w = (uint32_t) frame_w;
+    frame.dim.h = (uint32_t) frame_h;
 
     ccmd_client_ungrab_buttons(client);
 
@@ -130,8 +134,8 @@ static void s_client_enable_decoration(client_td *client,
             XCB_COPY_FROM_PARENT,
             client->frame,
             client->parent_id,
-            (int16_t) frame_x, (int16_t) frame_y,
-            (uint16_t) frame_w, (uint16_t) frame_h,
+            (int16_t) frame.pos.x, (int16_t) frame.pos.y,
+            (uint16_t) frame.dim.w, (uint16_t) frame.dim.h,
             0,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT,
@@ -190,8 +194,8 @@ static void s_client_enable_decoration(client_td *client,
     xcb_map_window(client->connection, client->titlebar);
     xcb_map_window(client->connection, client->window);
 
-    client->layout.geometry.cur.pos.x = frame_x;
-    client->layout.geometry.cur.pos.y = frame_y;
+    client->layout.geometry.cur.pos.x = frame.pos.x;
+    client->layout.geometry.cur.pos.y = frame.pos.y;
     client->layout.geometry.cur.dim.w = (uint16_t) frame_w;
     client->layout.geometry.cur.dim.h = (uint16_t) frame_h;
     client->layout.frame_extents.left = bw;
@@ -797,10 +801,7 @@ void ccmd_client_toggle_decorate(client_td *client)
 
     if (client_is_decorated(client)) {  /* Remove decoration */
         if (client->frame != 0) {
-            int32_t inner_x = client->layout.geometry.cur.pos.x +
-                client->layout.frame_extents.left;
-            int32_t inner_y = client->layout.geometry.cur.pos.y +
-                client->layout.frame_extents.top;
+            struct geometry_s inner;
             int32_t inner_w =
                 (int32_t) client->layout.geometry.cur.dim.w -
                 client->layout.frame_extents.left -
@@ -810,12 +811,19 @@ void ccmd_client_toggle_decorate(client_td *client)
                 client->layout.frame_extents.top -
                 client->layout.frame_extents.bottom;
 
+            inner.pos.x = client->layout.geometry.cur.pos.x +
+                client->layout.frame_extents.left;
+            inner.pos.y = client->layout.geometry.cur.pos.y +
+                client->layout.frame_extents.top;
+
             if (inner_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
                 inner_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
             }
             if (inner_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
                 inner_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
             }
+            inner.dim.w = (uint32_t) inner_w;
+            inner.dim.h = (uint32_t) inner_h;
 
             if (client->titlebar != 0) {
                 xcb_destroy_window(client->connection, client->titlebar);
@@ -831,7 +839,7 @@ void ccmd_client_toggle_decorate(client_td *client)
             xcb_reparent_window(client->connection,
                     client->window,
                     client->parent_id,
-                    (int16_t) inner_x, (int16_t) inner_y);
+                    (int16_t) inner.pos.x, (int16_t) inner.pos.y);
 
             xcb_configure_window(client->connection, client->window,
                     XCB_CONFIG_WINDOW_X     |
@@ -840,16 +848,16 @@ void ccmd_client_toggle_decorate(client_td *client)
                     XCB_CONFIG_WINDOW_HEIGHT |
                     XCB_CONFIG_WINDOW_BORDER_WIDTH,
                     (const uint32_t[]) {
-                        (uint32_t) inner_x, (uint32_t) inner_y,
-                        (uint32_t) inner_w, (uint32_t) inner_h,
+                        (uint32_t) inner.pos.x, (uint32_t) inner.pos.y,
+                        inner.dim.w, inner.dim.h,
                         (uint32_t) bw
                     });
 
             xcb_destroy_window(client->connection, client->frame);
             client->frame = 0;
 
-            client->layout.geometry.cur.pos.x = inner_x;
-            client->layout.geometry.cur.pos.y = inner_y;
+            client->layout.geometry.cur.pos.x = inner.pos.x;
+            client->layout.geometry.cur.pos.y = inner.pos.y;
             client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
             client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
         } else {
@@ -870,14 +878,14 @@ void ccmd_client_toggle_decorate(client_td *client)
         if (client->frame == 0) {
             s_client_enable_decoration(client, bw, th);
         } else {
-            int32_t frame_x =
-                client->layout.geometry.cur.pos.x - bw;
-            int32_t frame_y =
-                client->layout.geometry.cur.pos.y - (bw + th);
+            struct geometry_s frame;
             int32_t frame_w =
                 (int32_t) client->layout.geometry.cur.dim.w + 2 * bw;
             int32_t frame_h =
                 (int32_t) client->layout.geometry.cur.dim.h + 2 * bw + th;
+
+            frame.pos.x = client->layout.geometry.cur.pos.x - bw;
+            frame.pos.y = client->layout.geometry.cur.pos.y - (bw + th);
 
             if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
                 frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
@@ -886,6 +894,8 @@ void ccmd_client_toggle_decorate(client_td *client)
             if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
                 frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
             }
+            frame.dim.w = (uint32_t) frame_w;
+            frame.dim.h = (uint32_t) frame_h;
 
             xcb_configure_window(client->connection, client->frame,
                     XCB_CONFIG_WINDOW_X     |
@@ -893,8 +903,8 @@ void ccmd_client_toggle_decorate(client_td *client)
                     XCB_CONFIG_WINDOW_WIDTH |
                     XCB_CONFIG_WINDOW_HEIGHT,
                     (const uint32_t[]) {
-                        (uint32_t) frame_x, (uint32_t) frame_y,
-                        (uint32_t) frame_w, (uint32_t) frame_h
+                        (uint32_t) frame.pos.x, (uint32_t) frame.pos.y,
+                        frame.dim.w, frame.dim.h
                     });
 
             xcb_configure_window(client->connection, client->window,
@@ -926,8 +936,8 @@ void ccmd_client_toggle_decorate(client_td *client)
             xcb_map_window(client->connection, client->frame);
             xcb_map_window(client->connection, client->window);
 
-            client->layout.geometry.cur.pos.x = frame_x;
-            client->layout.geometry.cur.pos.y = frame_y;
+            client->layout.geometry.cur.pos.x = frame.pos.x;
+            client->layout.geometry.cur.pos.y = frame.pos.y;
             client->layout.geometry.cur.dim.w = (uint16_t) frame_w;
             client->layout.geometry.cur.dim.h = (uint16_t) frame_h;
             client->layout.frame_extents.left = bw;

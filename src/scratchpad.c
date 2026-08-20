@@ -299,10 +299,7 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
         surface_td *surface)
 {
     const config_td *config;
-    int32_t area_x;
-    int32_t area_y;
-    uint32_t area_w;
-    uint32_t area_h;
+    struct geometry_s area;
     uint32_t border;
     uint32_t avail_w;
     uint32_t avail_h;
@@ -321,15 +318,9 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
     if (config->base.scratchpad.ignore_margins ||
             desktop->workarea.dim.w == 0u ||
             desktop->workarea.dim.h == 0u) {
-        area_x = 0;
-        area_y = 0;
-        area_w = surface->properties.dim.w;
-        area_h = surface->properties.dim.h;
+        area = (struct geometry_s) { { 0, 0 }, surface->properties.dim };
     } else {
-        area_x = desktop->workarea.pos.x;
-        area_y = desktop->workarea.pos.y;
-        area_w = desktop->workarea.dim.w;
-        area_h = desktop->workarea.dim.h;
+        area = desktop->workarea;
     }
 
     /* Per the X11 protocol ('ConfigureWindow'), 'x'/'y' name a window's
@@ -339,16 +330,17 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
      * to 'x + 2 * border + width' (equivalently for height),
      * '2 * border' wider/taller than 'width'/'height' alone.  Reserving
      * that much here, before 'width'/'height' are ever resolved against
-     * 'area_w'/'area_h' below (rather than only afterward, e.g., by
-     * shrinking a "max" result in place), keeps that full footprint
-     * within the configured edge's own area on every side, not just
-     * flush against whichever edge 'x'/'y' themselves already sit on.
+     * 'area.dim.w'/'area.dim.h' below (rather than only afterward,
+     * e.g., by shrinking a "max" result in place), keeps that full
+     * footprint within the configured edge's own area on every side,
+     * not just flush against whichever edge 'x'/'y' themselves already
+     * sit on.
      *
      * An unadjusted "max" width, say, already flush with the left edge
-     * at 'x == area_x', would otherwise still run its own right-hand
-     * border '2 * border' past 'area_x + area_w' on the right, off
-     * whatever the configured edge's own area was ever meant to stay
-     * within. */
+     * at 'x == area.pos.x', would otherwise still run its own
+     * right-hand border '2 * border' past 'area.pos.x + area.dim.w' on
+     * the right, off whatever the configured edge's own area was ever
+     * meant to stay within. */
     /* 'client_border_width' ('client.h') already reflects both
      * 'border_override' set just above in 'scratchpad_notice_
      * client_created' and any 'a11y.focus-indicator.min-border-width'
@@ -357,8 +349,8 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
      * could be narrower than what a11y ends up enforcing and so reserve
      * too little room here for it. */
     border = client_border_width(client, true, false);
-    avail_w = (area_w > 2u * border) ? area_w - 2u * border : 0u;
-    avail_h = (area_h > 2u * border) ? area_h - 2u * border : 0u;
+    avail_w = (area.dim.w > 2u * border) ? area.dim.w - 2u * border : 0u;
+    avail_h = (area.dim.h > 2u * border) ? area.dim.h - 2u * border : 0u;
 
     width = s_resolve_size(config->base.scratchpad.width, avail_w);
     height = s_resolve_size(config->base.scratchpad.height, avail_h);
@@ -371,20 +363,20 @@ void scratchpad_position(client_td *client, desktop_td *desktop,
 
     switch (config->base.scratchpad.edge) {
     case CONFIG_SCRATCHPAD_EDGE_BOTTOM:
-        x = area_x + (int32_t) ((avail_w - width) / 2u);
-        y = area_y + (int32_t) (avail_h - height);
+        x = area.pos.x + (int32_t) ((avail_w - width) / 2u);
+        y = area.pos.y + (int32_t) (avail_h - height);
         break;
     case CONFIG_SCRATCHPAD_EDGE_LEFT:
-        x = area_x;
-        y = area_y + (int32_t) ((avail_h - height) / 2u);
+        x = area.pos.x;
+        y = area.pos.y + (int32_t) ((avail_h - height) / 2u);
         break;
     case CONFIG_SCRATCHPAD_EDGE_RIGHT:
-        x = area_x + (int32_t) (avail_w - width);
-        y = area_y + (int32_t) ((avail_h - height) / 2u);
+        x = area.pos.x + (int32_t) (avail_w - width);
+        y = area.pos.y + (int32_t) ((avail_h - height) / 2u);
         break;
     case CONFIG_SCRATCHPAD_EDGE_TOP:
-        x = area_x + (int32_t) ((avail_w - width) / 2u);
-        y = area_y;
+        x = area.pos.x + (int32_t) ((avail_w - width) / 2u);
+        y = area.pos.y;
         break;
     }
 

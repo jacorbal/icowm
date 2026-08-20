@@ -57,6 +57,7 @@
 /* Local includes */
 #include <policy/internal.h>
 #include <policy/placement/icon.h>
+#include <policy/placement/score.h>
 
 
 /**
@@ -329,33 +330,17 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
             cost = (uint64_t) s *
                 (uint64_t) SMART_ICON_COST_PER_OVERFLOW_ROW;
 
-            /* Penalty for overlap with visible windows */
-            if (desktop != NULL && desktop->stacking != NULL) {
-                cdlist_item_td *node = cdlist_head(desktop->stacking);
-                const cdlist_item_td *initial = node;
-                if (node != NULL) {
-                    do {
-                        const client_td *other =
-                            (const client_td *) cdlist_data(node);
-                        if (other != NULL && other != client &&
-                                !(other->properties.flags &
-                                    CLIENT_FLAG_HIDDEN) &&
-                                other->properties.state !=
-                                (uint16_t) CLIENT_STATE_ICONIFIED) {
-                            uint32_t area = geom_intersection_area(
-                                    ix, iy, iw_full, ih_full,
-                                    other->layout.geometry.cur.pos.x,
-                                    other->layout.geometry.cur.pos.y,
-                                    other->layout.geometry.cur.dim.w,
-                                    other->layout.geometry.cur.dim.h);
-                            cost += (uint64_t)
-                                SMART_ICON_COST_PER_WIN_PIXEL *
-                                (uint64_t) area;
-                        }
-                        node = cdlist_next(node);
-                    } while (node != NULL && node != initial);
-                }
-            }
+            /* Overlap penalty against visible windows only: icon-vs-
+             * icon collision is rejected outright above
+             * ('s_place_icon_rect_overlaps_any'), not soft-costed
+             * here, hence 'icon_pixel_cost' 0 below.  The shared core
+             * (@a place_overlap_score, policy/placement/score.h)
+             * already excludes a locked client (the scratchpad) from
+             * counting as an obstacle. */
+            cost += place_overlap_score(desktop, client,
+                    (struct geometry_s) {
+                        { ix, iy }, { iw_full, ih_full } },
+                    (uint64_t) SMART_ICON_COST_PER_WIN_PIXEL, 0u);
 
             if (cost < best_cost) {
                 best_cost = cost;

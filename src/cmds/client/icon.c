@@ -320,18 +320,13 @@ void ccmd_client_ensure_icon_window(client_td *client,
          * all: it only ever knows the tray's own side widths, nothing
          * about how far along that edge it actually reaches. */
         if (surface != NULL) {
-            int32_t tray_x;
-            int32_t tray_y;
-            uint16_t tray_w;
-            uint16_t tray_h;
+            struct geometry_s tray;
 
-            if (systray_get_geometry(surface, &tray_x, &tray_y,
-                        &tray_w, &tray_h)) {
+            if (systray_get_geometry(surface, &tray)) {
                 (void) place_icon_avoid_systray_overlap(&ix, &iy,
                         (struct dimensions_s) { WM_ICON_SQUARE_SIZE,
                             icon_h_out },
-                        (struct geometry_s) {
-                            { tray_x, tray_y }, { tray_w, tray_h } },
+                        tray,
                         (desktop != NULL) ? &desktop->workarea : NULL);
             }
         }
