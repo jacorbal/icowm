@@ -408,16 +408,6 @@ msgstr ""
 "máis de %u xanela(s) á vez (véxase a opción de liña de ordes"
 "'-M').  Pecha unha xanela antes de abrir outra."
 
-#, fuzzy
-msgid ""
-"Could not finish creating a new window.  The graphics server has "
-"reached a resource limit, probably from having too many windows or "
-"applications open.  Close some before opening more."
-msgstr ""
-"Non se puido rematar de crear unha xanela nova.  O servidor gráfico "
-"alcanzou un límite de recursos, probablemente por ter demasiadas xanelas "
-"ou aplicacións abertas.  Pecha algunhas antes de abrir máis."
-
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."
 msgstr "Neste momento non hai ningunha xanela aberta nesta sesión."

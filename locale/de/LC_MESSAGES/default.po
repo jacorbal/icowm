@@ -410,16 +410,6 @@ msgstr ""
 "%u Fenster gleichzeitig (siehe die Befehlszeilenoption '-M').  "
 "Schließen Sie ein Fenster, bevor Sie ein weiteres öffnen."
 
-#, fuzzy
-msgid ""
-"Could not finish creating a new window.  The graphics server has "
-"reached a resource limit, probably from having too many windows or "
-"applications open.  Close some before opening more."
-msgstr ""
-"Ein neues Fenster konnte nicht fertig erstellt werden.  Der Grafikserver "
-"hat ein Ressourcenlimit erreicht, wahrscheinlich weil zu viele Fenster oder "
-"Anwendungen geöffnet sind.  Schließen Sie einige, bevor Sie weitere öffnen."
-
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."
 msgstr "Zurzeit sind in dieser Sitzung keine Fenster geöffnet."

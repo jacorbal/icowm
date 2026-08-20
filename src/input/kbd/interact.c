@@ -24,6 +24,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -33,6 +34,9 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+
+/* Default initial values */
+#include <defs/kbd.h>
 
 /* Command includes */
 #include <cmds/client/geom.h>
@@ -347,10 +351,55 @@ static void s_kbd_resize_apply(client_td *client,
 /* Program launch dispatch */
 
 /**
+ * @brief When @a ik_handle_launch last actually dispatched a program
+ *        launch, or the zero value from static initialization before
+ *        the first one
+ *
+ * Shared across every @c KEYBIND_LAUNCH_* binding rather than kept
+ * per binding: the goal is bounding how fast this window manager
+ * itself hands off new processes overall, not tracking each binding
+ * on its own, and a single held key is by far the common case this
+ * exists for regardless.
+ */
+static struct timespec s_last_launch;
+
+/**
+ * @brief Whether @p now is at least @c KBD_LAUNCH_MIN_INTERVAL_MS
+ *        past @a s_last_launch, updating @a s_last_launch when it is
+ *
+ * @param now Current time, from @c CLOCK_MONOTONIC
+ *
+ * @return @c true if this launch may proceed
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_launch_pace_ok(struct timespec now)
+{
+    long elapsed_ms = (now.tv_sec - s_last_launch.tv_sec) * 1000L +
+        (now.tv_nsec - s_last_launch.tv_nsec) / 1000000L;
+
+    if (s_last_launch.tv_sec != 0 &&
+            elapsed_ms < (long) KBD_LAUNCH_MIN_INTERVAL_MS) {
+        return false;
+    }
+    s_last_launch = now;
+    return true;
+}
+
+
+/**
  * @brief Launch a configured program for the given binding type
  *
  * Maps each @c KEYBIND_LAUNCH_* constant to its program string from the
- * configuration and calls @a cctl_launch_dispatch.
+ * configuration and calls @a cctl_launch_dispatch.  Holding the bound
+ * key down repeats this on every one of X11's own key-repeat events,
+ * exactly like it would for a plain, unmodified key in a text field;
+ * see @c KBD_LAUNCH_MIN_INTERVAL_MS's own doc comment (defs/kbd.h) for
+ * why an actual launch is paced rather than let through on every one
+ * of those.  @c KEYBIND_LAUNCH_LAUNCHER's own prompt-box path, when
+ * enabled, is deliberately left unpaced: it only ever opens (or
+ * re-opens) a dialog already guarded the same way every other dialog
+ * in this project is, never spawns a process by itself.
  *
  * @param btype   Keyboard binding type (one of the @c KEYBIND_LAUNCH_*
  *                constants)
@@ -361,6 +410,7 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         surface_td *surface, const config_td *config)
 {
     const char *program = NULL;
+    struct timespec now;
 
     switch (btype) {
         /* To avoid warnings from the compiler, ALL cases must be here */
@@ -445,6 +495,11 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         case KEYBIND_LAUNCH_EDITOR:
             program = config->base.programs.editor;
             break;
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0 &&
+            !s_launch_pace_ok(now)) {
+        return;
     }
 
     cctl_launch_dispatch(surface, program, NULL);

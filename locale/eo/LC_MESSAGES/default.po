@@ -408,16 +408,6 @@ msgstr ""
 "fenestro(j)n samtempe (vidu la komandlinian opcion '-M').  Fermu "
 "fenestron antaŭ ol malfermi alian."
 
-#, fuzzy
-msgid ""
-"Could not finish creating a new window.  The graphics server has "
-"reached a resource limit, probably from having too many windows or "
-"applications open.  Close some before opening more."
-msgstr ""
-"Ne eblis fini krei novan fenestron.  La grafika servilo atingis rimedan "
-"limon, verŝajne pro tro da fenestroj aŭ aplikaĵoj malfermitaj.  Fermu "
-"kelkajn antaŭ ol malfermi pliajn."
-
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."
 msgstr "Nuntempe ne ekzistas malfermitaj fenestroj en ĉi tiu seanco."

@@ -141,5 +141,25 @@
  */
 #define WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS (250)
 
+/**
+ * @brief How long, in milliseconds, @c client_init waits for the X
+ *        server to have an answer ready before giving up on any one
+ *        of its own blocking XCB reply calls
+ *
+ * A plain blocking XCB reply call waits for as long as it takes the
+ * server to answer, with no way to give up if it never does; the
+ * server, or the specific window or client a given call concerns,
+ * going away mid-request leaves that call blocked forever, and this
+ * window manager's whole event loop along with it.  An ordinary
+ * round trip on a healthy local connection finishes in a small
+ * fraction of a millisecond, so this leaves enormous margin above
+ * that; it exists purely to bound how long a genuinely unresponsive
+ * server can freeze this window manager for, not to react to
+ * everyday jitter.
+ *
+ * @see @a xcb_wait_readable, utils/xcb/wait.h
+ */
+#define WM_CLIENT_INIT_REPLY_TIMEOUT_MS (3000)
+
 
 #endif  /* ! DEFS_CLIENT_H */

@@ -410,17 +410,6 @@ msgstr ""
 "fenêtre(s) à la fois (voir l'option de ligne de commande '-M').  Fermez "
 "une fenêtre avant d'en ouvrir une autre."
 
-#, fuzzy
-msgid ""
-"Could not finish creating a new window.  The graphics server has "
-"reached a resource limit, probably from having too many windows or "
-"applications open.  Close some before opening more."
-msgstr ""
-"Impossible de terminer la création d'une nouvelle fenêtre.  Le serveur "
-"graphique a atteint une limite de ressources, probablement en raison d'un "
-"trop grand nombre de fenêtres ou d'applications ouvertes.  Fermez-en "
-"quelques-unes avant d'en ouvrir d'autres."
-
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."
 msgstr "Aucune fenêtre n'est actuellement ouverte dans cette session."

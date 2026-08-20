@@ -22,6 +22,91 @@ static char s_vacated;
 
 
 /**
+ * @brief Greatest common divisor of @p a and @p b, by Euclid's
+ *        algorithm
+ *
+ * @param a First value
+ * @param b Second value
+ *
+ * @return @c gcd(a, b)
+ *
+ * @note Complexity: @e O(log(min(a, b)))
+ */
+static size_t s_ohtbl_gcd(size_t a, size_t b)
+{
+    while (b != 0u) {
+        size_t remainder = a % b;
+
+        a = b;
+        b = remainder;
+    }
+    return a;
+}
+
+
+/**
+ * @brief Turn a raw secondary-hash value into a double-hashing step
+ *        guaranteed coprime with @p positions
+ *
+ * Double hashing only visits every one of a table's @p positions
+ * across a full probe (@c i from @c 0 to @c positions @c - @c 1) when
+ * the step @c i is multiplied by is itself coprime with @p positions;
+ * otherwise the probe cycles through only the limited, fixed subset
+ * of positions reachable from that step, which can be far short of
+ * the whole table.  @a s_h1 / @a s_h2 (desktop.c, the only @c h1 / @c
+ * h2 pair this project defines today) already forces its own raw
+ * value away from zero, but a hash function has no way to know
+ * @p positions in the first place (its own signature never receives
+ * it), so nothing before this point could have enforced coprimality
+ * with it specifically.  Left unenforced, a key whose own raw @c h2
+ * happens to share a factor with @p positions, an ordinary,
+ * unremarkable value for that key, no different from any other, can
+ * probe a table that is otherwise mostly empty and still never once
+ * land on a free slot, exactly as if it were genuinely full.
+ *
+ * Every one of @c ohtbl_insert / @c ohtbl_update / @c ohtbl_remove /
+ * @c ohtbl_lookup / @a s_ohtbl_resize's own rehashing calls this
+ * before ever using an @c h2 result as a step, so the exact same
+ * step a key was inserted under is always the one it is later
+ * searched or removed under too; only @p positions changing (a
+ * resize) ever legitimately changes it, and a resize rehashes every
+ * entry into the new table under its own new steps regardless.
+ *
+ * @param h2_raw    Unadjusted return value of @c htbl->h2
+ * @param positions Table size the step must be coprime with
+ *
+ * @return A step in @c [1, positions - 1] with
+ *         @c gcd(step, @c positions) @c == @c 1
+ *
+ * @note @p positions @c < @c 2 (a table with zero or one position)
+ *       is never actually probed with more than one candidate slot
+ *       to begin with, so this is never called in that case
+ * @note Complexity: @e O(positions) worst case, but see this
+ *       function's own doc comment above for why that bound is never
+ *       actually approached in practice
+ */
+static size_t s_ohtbl_step(size_t h2_raw, size_t positions)
+{
+    size_t step = h2_raw % positions;
+
+    if (step == 0u) {
+        step = 1u;
+    }
+
+    /* Guaranteed to terminate within at most 'positions' iterations:
+     * 'step' cycles through every value in [1, positions - 1] before
+     * ever repeating, and gcd(1, positions) is always 1, so a step of
+     * 1 itself is always an eventual, guaranteed exit if nothing
+     * sooner already was one. */
+    while (s_ohtbl_gcd(step, positions) != 1u) {
+        step = (step >= positions - 1u) ? 1u : step + 1u;
+    }
+
+    return step;
+}
+
+
+/**
  * @brief Cancel a shrink wait outstanding, if @p size has climbed
  *        back up to or above @c OHTBL_MIN_LOAD_FACTOR since it began
  *
@@ -81,10 +166,12 @@ static int s_ohtbl_resize(ohtbl_td *htbl, size_t new_positions)
         void *element = htbl->table[i];
         if (element != NULL && element != htbl->vacated) {
             /* Only re-insert valid elements */
+            size_t step = s_ohtbl_step(htbl->h2(element), new_positions);
+
             for (size_t j = 0; j < new_positions; ++j) {
                 /* Search new position */
-                size_t position = (htbl->h1(element) +
-                        (j * htbl->h2(element))) % new_positions;
+                size_t position =
+                    (htbl->h1(element) + (j * step)) % new_positions;
                 if (new_table[position] == NULL) {
                     /* Found empty position */
                     new_table[position] = element;
@@ -283,6 +370,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
 {
     size_t insert_pos = 0;
     bool has_insert_pos = false;
+    size_t step;
 
     /* Re-dimension the table if size is bigger than
      * ('OHTBL_MAX_LOAD_FACTOR' * 100)% of its positions */
@@ -298,9 +386,10 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
      * The first vacated slot is recorded as a candidate insertion
      * position; a null slot ends the probe chain (no duplicate can lie
      * beyond it), so we commit there immediately. */
+    step = s_ohtbl_step(htbl->h2(data), htbl->positions);
     for (size_t i = 0; i < htbl->positions; ++i) {
         size_t position = (htbl->h1(data) +
-                (i * htbl->h2(data))) % htbl->positions;
+                (i * step)) % htbl->positions;
 
         if (htbl->table[position] == NULL) {
             /* Empty slot ends the probe; prefer any earlier vacated
@@ -345,6 +434,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
 {
     size_t insert_pos = 0;
     bool has_insert_pos = false;
+    size_t step;
 
     /* Re-dimension the table if size is bigger than
      * ('OHTBL_MAX_LOAD_FACTOR' * 100)% of its positions */
@@ -356,9 +446,10 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
     }
 
     /* Same single-pass probe */
+    step = s_ohtbl_step(htbl->h2(data), htbl->positions);
     for (size_t i = 0; i < htbl->positions; ++i) {
         size_t position = (htbl->h1(data) +
-                (i * htbl->h2(data))) % htbl->positions;
+                (i * step)) % htbl->positions;
 
         if (htbl->table[position] == NULL) {
             /* Empty slot ends the probe; prefer any earlier vacated
@@ -404,9 +495,11 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
 /* Remove an item from the hash table */
 int ohtbl_remove(ohtbl_td *htbl, void **data)
 {
+    size_t step = s_ohtbl_step(htbl->h2(*data), htbl->positions);
+
     for (size_t i = 0; i < htbl->positions; ++i) {
         size_t position = (htbl->h1(*data) +
-                (i * htbl->h2(*data))) % htbl->positions;
+                (i * step)) % htbl->positions;
 
         if (htbl->table[position] == NULL) {
             /*  Return that the data was not found */
@@ -486,9 +579,11 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
 int ohtbl_lookup(const ohtbl_td *htbl, void **data)
 {
     /* Use double hashing to hash the key */
+    size_t step = s_ohtbl_step(htbl->h2(*data), htbl->positions);
+
     for (size_t i = 0; i < htbl->positions; ++i) {
         size_t position = (htbl->h1(*data) +
-                (i * htbl->h2(*data))) % htbl->positions;
+                (i * step)) % htbl->positions;
 
         if (htbl->table[position] == NULL) {
             /*  Return that the data was not found */

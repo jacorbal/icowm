@@ -23,5 +23,21 @@
  */
 #define WM_SCRATCHPAD_WM_CLASS "Scratchpad"
 
+/**
+ * @brief How long @c scratchpad_toggle waits for a launch it started to
+ *        produce a matching client before giving up and allowing
+ *        a fresh attempt
+ *
+ * A legitimate launch ('fork', 'exec', the application's own startup,
+ * connecting to the X server, and creating its first window) ordinarily
+ * finishes well under this.  The whole point of this timeout is only to
+ * recover from a launch that is never coming back (the process died
+ * before creating any window, or never managed to connect at all), not
+ * to second-guess an ordinary one still in progress, so this still
+ * leaves real margin above a typical launch rather than cutting it as
+ * close as the fastest ordinary case would allow.
+ */
+#define WM_SCRATCHPAD_AWAIT_TIMEOUT_SECONDS (4L)
+
 
 #endif  /* ! DEFS_SCRATCHPAD_H */

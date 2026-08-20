@@ -408,16 +408,6 @@ msgstr ""
 "més de %u finestra/es alhora (vegeu l'opció de línia d'ordres '-M').  "
 "Tanca una finestra abans d'obrir-ne una altra."
 
-#, fuzzy
-msgid ""
-"Could not finish creating a new window.  The graphics server has "
-"reached a resource limit, probably from having too many windows or "
-"applications open.  Close some before opening more."
-msgstr ""
-"No s'ha pogut acabar de crear una finestra nova.  El servidor gràfic ha "
-"arribat a un límit de recursos, probablement per tenir massa finestres o "
-"aplicacions obertes.  Tanca'n algunes abans d'obrir-ne més."
-
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."
 msgstr "En aquest moment no hi ha cap finestra oberta en aquesta sessió."

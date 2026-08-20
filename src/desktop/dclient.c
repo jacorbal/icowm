@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
 #include <stdlib.h>     /* NULL, setenv */
-#include <string.h>     /* strerror */
+#include <string.h>     /* strerror, memset */
 #include <strings.h>    /* strcasecmp */
 #include <sys/types.h>  /* pid_t */
 #include <unistd.h>     /* execvp, _exit, fork, close, pipe, read */
@@ -139,6 +139,9 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
 int desktop_action_client_add(desktop_td *desktop, client_td *client)
 {
     void *removed_client;
+    client_td existing_key;
+    client_td *existing;
+    int insert_rc;
 
     if (desktop == NULL || client == NULL) {
         LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
@@ -148,8 +151,65 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
     LOGGER_TRACE("Adding client 0x%08x ('%s') to desktop %u ('%s')",
             client->id, client->info.name, desktop->id, desktop->name);
 
+    /* If this key is already occupied, find out whether the window
+     * it belongs to still genuinely exists before ever attempting the
+     * real insert below.  A window whose own 'MapRequest' sat queued
+     * long enough that it was already gone by the time this window
+     * manager got to it (see the 'ghost window' reasoning throughout
+     * this project's own history) can leave exactly this kind of
+     * entry behind: nothing destroyed it from within this window
+     * manager, since nothing here ever considered it alive to begin
+     * with, so nothing here ever cleaned it up either, and it goes on
+     * occupying this exact key forever, blocking every later window
+     * whose own ID happens to be reused for it.  A single, ordinary
+     * blocking XCB call (the exact same one 'client_init' itself
+     * already relies on elsewhere, no timeout wrapped around it) is
+     * enough to tell a window that no longer exists (a NULL reply,
+     * most plausibly 'BadWindow') from one that still does; only in
+     * the former case is the stale entry actually removed and this
+     * insert retried, never on a guess. */
+    memset(&existing_key, 0, sizeof(existing_key));
+    existing_key.id = client->id;
+    existing = &existing_key;
+    if (ohtbl_lookup(desktop->clients, (void **) &existing) == 0 &&
+            existing != NULL) {
+        bool existing_is_stale = false;
+
+        if (existing->connection != NULL && existing->window != 0) {
+            xcb_get_window_attributes_reply_t *attr_reply =
+                xcb_get_window_attributes_reply(existing->connection,
+                        xcb_get_window_attributes(existing->connection,
+                                existing->window),
+                        NULL);
+
+            if (attr_reply == NULL) {
+                existing_is_stale = true;
+            } else {
+                free(attr_reply);
+            }
+        }
+
+        LOGGER_WARNING("Client 0x%08x: hash table already holds an" \
+                " entry for this key (existing: window=0x%x" \
+                " frame=0x%x titlebar=0x%x icon_window=0x%x" \
+                " name='%s' pid=%d); its own window %s", client->id,
+                existing->window, existing->frame, existing->titlebar,
+                existing->icon_window, existing->info.name,
+                (int) existing->process.pid,
+                existing_is_stale
+                    ? "no longer exists; removing the stale entry"
+                    : "still exists; leaving it in place");
+
+        if (existing_is_stale) {
+            desktop_action_client_rem(desktop, existing);
+            existing->window = 0;
+            client_destroy(existing);
+        }
+    }
+
     /* Add to hash table for quick lookup */
-    if (ohtbl_insert(desktop->clients, (void *) client) != 0) {
+    insert_rc = ohtbl_insert(desktop->clients, (void *) client);
+    if (insert_rc != 0) {
         LOGGER_ERROR("Failed to add client to hash table", L_NARG);
         return -1;
     }

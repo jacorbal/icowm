@@ -285,14 +285,6 @@
     "more than %u window(s) at once (see the '-M' command-line " \
     "option).  Close a window before opening another."
 
-/* Shown when the X server itself refuses to let this window manager
- * finish adopting a new client window, most often because it has run
- * out of room for more client connections; see 'client_init' */
-#define STR_SERVER_LIMIT_REACHED \
-    "Could not finish creating a new window.  The graphics server has " \
-    "reached a resource limit, probably from having too many windows " \
-    "or applications open.  Close some before opening more."
-
 /* Fuzzy window-search widget ('src/menu/search.c'): shown instead of
  * opening the widget itself when there is nothing to search for */
 #define STR_SEARCH_NO_WINDOWS \

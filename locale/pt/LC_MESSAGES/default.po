@@ -408,16 +408,6 @@ msgstr ""
 "gerir mais de %u janela(s) de cada vez (ver a opção de linha de "
 "comandos '-M').  Feche uma janela antes de abrir outra."
 
-#, fuzzy
-msgid ""
-"Could not finish creating a new window.  The graphics server has "
-"reached a resource limit, probably from having too many windows or "
-"applications open.  Close some before opening more."
-msgstr ""
-"Não foi possível terminar de criar uma nova janela.  O servidor gráfico "
-"atingiu um limite de recursos, provavelmente por ter demasiadas janelas ou "
-"aplicações abertas.  Feche algumas antes de abrir mais."
-
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."
 msgstr "Não há janelas abertas nesta sessão neste momento."

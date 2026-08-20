@@ -81,20 +81,6 @@ static pid_t s_awaiting_scratchpad_pid = (pid_t) -1;
  */
 static struct timespec s_awaiting_scratchpad_since;
 
-/**
- * @brief How long @a scratchpad_toggle waits for a launch it started
- *        to produce a matching client before giving up and allowing
- *        a fresh attempt
- *
- * Generous on purpose: a legitimate launch (fork, exec, the
- * application's own startup, connecting to the X server, and
- * creating its first window) can genuinely take a few seconds under
- * ordinary load without anything having gone wrong, and the whole
- * point of this timeout is only to recover from a launch that is
- * never coming back, not to second-guess an ordinary slow one.
- */
-#define SCRATCHPAD_AWAIT_TIMEOUT_SECONDS (10L)
-
 
 /**
  * @brief Resolve one dimension against the given available extent
@@ -136,7 +122,7 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
                 long elapsed_seconds =
                     now.tv_sec - s_awaiting_scratchpad_since.tv_sec;
                 awaiting_expired = (elapsed_seconds >=
-                        SCRATCHPAD_AWAIT_TIMEOUT_SECONDS);
+                        WM_SCRATCHPAD_AWAIT_TIMEOUT_SECONDS);
             }
             if (!awaiting_expired) {
                 return;
@@ -144,7 +130,7 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
             LOGGER_WARNING("Scratchpad launch never produced a" \
                     " matching client within %ld second(s);" \
                     " allowing a fresh attempt",
-                    SCRATCHPAD_AWAIT_TIMEOUT_SECONDS);
+                    WM_SCRATCHPAD_AWAIT_TIMEOUT_SECONDS);
         }
 
         s_awaiting_scratchpad =

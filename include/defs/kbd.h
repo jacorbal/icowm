@@ -1,8 +1,8 @@
 /**
  * @file defs/kbd.h
  *
- * @brief X11 keysym and modifier-mask constants used across the
- *        keyboard input subsystem
+ * @brief X11 keysym and modifier-mask constants, and other fixed
+ *        tunables, used across the keyboard input subsystem
  *
  * Every fixed X11 keysym value (as defined by the X11 protocol's own
  * @c keysymdef.h, never configurable) and modifier-mask alias this
@@ -104,6 +104,26 @@
 #define MOD_HYPER    XCB_MOD_MASK_5         /**< Hyper/Mod5 modifier */
 #define MOD_NUMLOCK  XCB_MOD_MASK_2         /**< Num_Lock/Mod2 (locking) */
 #define MOD_CAPSLOCK XCB_MOD_MASK_LOCK      /**< Caps_Lock (locking) */
+
+/**
+ * @brief Minimum time, in milliseconds, @a ik_handle_launch requires
+ *        between two program launches it actually dispatches
+ *
+ * Holding a @c KEYBIND_LAUNCH_* binding down repeats the same launch
+ * on every one of X11's own key-repeat events for as long as it stays
+ * held, exactly like a plain, unmodified key would in any text field;
+ * nothing about this window manager's own key handling distinguishes
+ * a genuine fresh press from a repeat.  Left unthrottled, this can
+ * launch new processes faster than this window manager, the X server,
+ * and the newly launched applications themselves can cleanly keep up
+ * with; empirically, an unthrottled hold repeats roughly every 120 ms
+ * on ordinary hardware, so this leaves real margin above that without
+ * making a deliberate, repeated hold feel sluggish.
+ *
+ * Adjust this single constant to retune the pace; nothing else needs
+ * to change.
+ */
+#define KBD_LAUNCH_MIN_INTERVAL_MS (150u)
 
 
 #endif  /* ! DEFS_KBD_H */

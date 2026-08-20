@@ -159,10 +159,14 @@ int surface_action_desktop_add(surface_td *surface)
  *        the way
  *
  * Reads @c cdlist_head repeatedly rather than snapshotting the list
- * first: each iteration's own @a desktop_action_client_rem already
+ * first: each iteration's own @a desktop_action_client_rem ordinarily
  * shrinks @p from_desktop's own stacking list by one, so the next
- * head is always the next client still needing to move, with no
- * separate bound on how many there can be.
+ * head is normally always the next client still needing to move.
+ * Bounded by the list's own starting size regardless, in case some
+ * client already sits in this stacking list without a matching hash
+ * table entry to remove, a state this function has no way to detect
+ * on its own; see the loop's own comment for what happens without
+ * that bound.
  *
  * @param from_desktop Desktop being emptied
  * @param to_desktop   Desktop every client moves to
@@ -175,14 +179,33 @@ int surface_action_desktop_add(surface_td *surface)
 static void s_surface_desktop_evacuate(desktop_td *from_desktop,
         desktop_td *to_desktop)
 {
+    size_t remaining;
+
     if (from_desktop == NULL || to_desktop == NULL ||
             from_desktop->stacking == NULL) {
         return;
     }
 
-    while (cdlist_size(from_desktop->stacking) > 0) {
+    /* Bounded by the list's own starting size, read once here, rather
+     * than by 'cdlist_size(from_desktop->stacking) > 0' checked fresh
+     * every iteration: the latter assumes 'desktop_action_client_rem'
+     * below always succeeds at shrinking the list by exactly one each
+     * time, which is true in the ordinary case this function exists
+     * for, but is not guaranteed if a client somehow already sits in
+     * this stacking list without a matching hash table entry to
+     * remove (a state this function has no way to detect on its own).
+     * Without this bound, that single inconsistency turns every
+     * further iteration into 'cdlist_head' handing back the exact
+     * same, never-shrinking client forever, an unconditional infinite
+     * loop with no I/O and nothing to wait on, pegging a CPU core
+     * indefinitely. */
+    remaining = cdlist_size(from_desktop->stacking);
+
+    while (remaining > 0u && cdlist_size(from_desktop->stacking) > 0u) {
         cdlist_item_td *const head = cdlist_head(from_desktop->stacking);
         client_td *const client = (client_td *) cdlist_data(head);
+
+        --remaining;
 
         if (client == NULL) {
             break;

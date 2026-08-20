@@ -409,15 +409,6 @@ msgstr ""
 "más de %u ventana(s) a la vez (véase la opción de línea de comandos "
 "'-M').  Cierra una ventana antes de abrir otra."
 
-msgid ""
-"Could not finish creating a new window.  The graphics server has "
-"reached a resource limit, probably from having too many windows or "
-"applications open.  Close some before opening more."
-msgstr ""
-"No se pudo terminar de crear una ventana nueva.  El servidor gráfico ha "
-"alcanzado un límite de recursos, probablemente por tener demasiadas "
-"ventanas o aplicaciones abiertas.  Cierra algunas antes de abrir más."
-
 #: include/defs/uistr.h:288;
 msgid "There are no open windows in this session at the moment."
 msgstr "No hay ventanas abiertas en esta sesión en este momento."
