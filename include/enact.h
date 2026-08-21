@@ -37,6 +37,9 @@
 /* Type includes */
 #include <types/pair.h>
 
+/* ADT includes */
+#include <adt/list.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -143,6 +146,60 @@ void enact_client_center(client_td *client);
  * @note Complexity: @e O(1)
  */
 void enact_client_move_next_monitor(client_td *client);
+
+/**
+ * @brief Move the client to the previous monitor on its surface
+ *
+ * @param client Client to move
+ *
+ * @note Complexity: @e O(1)
+ */
+void enact_client_move_prev_monitor(client_td *client);
+
+/**
+ * @brief Carry the client to the previous desktop, following it
+ *        there
+ *
+ * A silent no-op when there is no different desktop to move to at
+ * all (only one exists, or wrapping is disabled and this is already
+ * the first one); see @c s_enact_client_send_to_desktop's own doc
+ * comment, enact/client.c, for the fuller reasoning.
+ *
+ * @param client   Client to move
+ * @param surfaces Full surface list, passed through to @c focus_apply
+ *                 so this client, not whichever one the target
+ *                 desktop's own switch just restored on its own,
+ *                 ends up genuinely focused there
+ * @param config   Active configuration, passed through to @c
+ *                 focus_apply
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the client's own top parent's own desktop
+ */
+void enact_client_send_to_desktop_prev(client_td *client,
+        list_td *surfaces, const config_td *config);
+
+/**
+ * @brief Carry the client to the next desktop, following it there
+ *
+ * A silent no-op when there is no different desktop to move to at
+ * all (only one exists, or wrapping is disabled and this is already
+ * the last one); see @c s_enact_client_send_to_desktop's own doc
+ * comment, enact/client.c, for the fuller reasoning.
+ *
+ * @param client   Client to move
+ * @param surfaces Full surface list, passed through to @c focus_apply
+ *                 so this client, not whichever one the target
+ *                 desktop's own switch just restored on its own,
+ *                 ends up genuinely focused there
+ * @param config   Active configuration, passed through to @c
+ *                 focus_apply
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the client's own top parent's own desktop
+ */
+void enact_client_send_to_desktop_next(client_td *client,
+        list_td *surfaces, const config_td *config);
 
 /**
  * @brief Move the client to a specific monitor index

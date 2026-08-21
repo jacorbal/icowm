@@ -175,21 +175,25 @@ msgstr "[ Malfari ]"
 msgid "[ Keep ]"
 msgstr "[ Konservi ]"
 
-#: include/defs/uistr.h:120;
-msgid "[Window Manager]"
-msgstr "[Fenestrestro]"
+#: include/defs/uistr.h:127;
+msgid "Window Manager"
+msgstr "Fenestrestro"
 
-#: include/defs/uistr.h:121;
-msgid "[Launch]"
-msgstr "[Lanĉi]"
+#: include/defs/uistr.h:128;
+msgid "Desktop"
+msgstr "Labortablo"
 
-#: include/defs/uistr.h:122;
-msgid "[Window]"
-msgstr "[Fenestro]"
+#: include/defs/uistr.h:129;
+msgid "Launch"
+msgstr "Lanĉi"
 
-#: include/defs/uistr.h:123;
-msgid "[Cycle]"
-msgstr "[Ciklo]"
+#: include/defs/uistr.h:130;
+msgid "Window"
+msgstr "Fenestro"
+
+#: include/defs/uistr.h:131;
+msgid "Cycle"
+msgstr "Ciklo"
 
 #: include/defs/uistr.h:125;
 msgid "Root menu"
@@ -284,8 +288,20 @@ msgid "Info"
 msgstr "Informoj"
 
 #: include/defs/uistr.h:161;
+msgid "Previous monitor"
+msgstr "Antaŭa ekrano"
+
+#: include/defs/uistr.h:162;
 msgid "Next monitor"
 msgstr "Sekva ekrano"
+
+#: include/defs/uistr.h:163;
+msgid "Send to previous desktop"
+msgstr "Sendi al antaŭa labortablo"
+
+#: include/defs/uistr.h:164;
+msgid "Send to next desktop"
+msgstr "Sendi al sekva labortablo"
 
 #: include/defs/uistr.h:162;
 msgid "Pin"

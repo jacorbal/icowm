@@ -120,6 +120,24 @@ void ccmd_client_move_to_monitor(client_td *client,
 void ccmd_client_move_to_next_monitor(client_td *client);
 
 /**
+ * @brief Move the client to the previous monitor on its own surface
+ *
+ * Resolves @p client's current monitor, then calls
+ * @a ccmd_client_move_to_monitor with the previous index in the
+ * surface's monitor list, wrapping back to the last one before
+ * index @c 0.  Unlike @c windows.desktop's own move-to-desktop pair
+ * (@c enact_client_send_to_desktop_prev/@c _next, enact.h), this always
+ * wraps: a monitor list has no equivalent of that pair's own @c
+ * desktops.wrap-at-bounds setting to disable it.
+ *
+ * @param client Window to move
+ *
+ * @note A no-op on a surface with one monitor or none
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+void ccmd_client_move_to_prev_monitor(client_td *client);
+
+/**
  * @brief Resize the client to new dimensions
  *
  * @param client Window to resize

@@ -14,7 +14,6 @@
         "wm": {
             "search": "modc+mod1+mods+s",
             "scratchpad": "modc+mod1+mods+F12",
-            "show-desktop": "modc+mod4+mods+d",
             "redraw": "modc+mod1+mods+r",
             "reload": "modc+mod1+mods+c",
             "fortune": "modc+mod4+Backspace",
@@ -24,6 +23,13 @@
                 "root": "modc+mod1+mods+m",
                 "windows": "modc+mod1+mods+w"
             },
+            "toggle-strutless-maximization": ""
+        },
+
+        "desktop": {
+            "add": "modc+mod4+mods+Right",
+            "remove": "modc+mod4+mods+Left",
+            "show": "modc+mod4+mods+d",
             "go-to": {
                 "desktop0": "modc+mod1+0",
                 "desktop1": "modc+mod1+1",
@@ -35,13 +41,9 @@
                 "desktop7": "modc+mod1+7",
                 "desktop8": "modc+mod1+8",
                 "desktop9": "modc+mod1+9"
-            },
-            "desktop": {
-                "add": "modc+mod1+mods+Right",
-                "remove": "modc+mod1+mods+Left"
-            },
-            "toggle-strutless-maximization": ""
+            }
         },
+
         "launch": {
             "terminal": "modc+mod1+Enter",
             "launcher": "modc+mod1+r",
@@ -49,6 +51,7 @@
             "web-browser": "modc+mod1+w",
             "editor": "modc+mod1+e"
         },
+
         "window": {
             "arrange": "modc+mod1+mods+a",
             "close": "mod1+modc+c",
@@ -64,6 +67,16 @@
             "fullscreen": "modc+mod1+f",
             "pin": "modc+mod1+p",
             "shade": "modc+mod1+s",
+            "send-to": {
+                "desktop": {
+                    "prev": "modc+mod1+mods+Left",
+                    "next": "modc+mod1+mods+Right"
+                },
+                "monitor": {
+                    "prev": "modc+mod1+mod4+mods+Left",
+                    "next": "modc+mod1+mod4+mods+Right"
+                }
+            },
             "move": {
                 "relative": {
                     "left": "modc+mod1+h",
@@ -86,6 +99,7 @@
                 "right": "modc+mod1+mods+l"
             }
         },
+
         "cycle": {
             "desktop": {
                 "prev": "modc+mod1+Left",
@@ -108,6 +122,7 @@
             "lower": "mod1+button2",
             "resize": "mod1+button3"
         },
+
         "cycle": {
             "desktop": {
                 "prev": "button4",

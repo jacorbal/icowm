@@ -175,21 +175,25 @@ msgstr "[ Revenir ]"
 msgid "[ Keep ]"
 msgstr "[ Conserver ]"
 
-#: include/defs/uistr.h:120;
-msgid "[Window Manager]"
-msgstr "[Gestionnaire de fenêtres]"
+#: include/defs/uistr.h:127;
+msgid "Window Manager"
+msgstr "Gestionnaire de fenêtres"
 
-#: include/defs/uistr.h:121;
-msgid "[Launch]"
-msgstr "[Lancer]"
+#: include/defs/uistr.h:128;
+msgid "Desktop"
+msgstr "Bureau"
 
-#: include/defs/uistr.h:122;
-msgid "[Window]"
-msgstr "[Fenêtre]"
+#: include/defs/uistr.h:129;
+msgid "Launch"
+msgstr "Lancer"
 
-#: include/defs/uistr.h:123;
-msgid "[Cycle]"
-msgstr "[Parcourir]"
+#: include/defs/uistr.h:130;
+msgid "Window"
+msgstr "Fenêtre"
+
+#: include/defs/uistr.h:131;
+msgid "Cycle"
+msgstr "Parcourir"
 
 #: include/defs/uistr.h:125;
 msgid "Root menu"
@@ -284,8 +288,20 @@ msgid "Info"
 msgstr "Infos"
 
 #: include/defs/uistr.h:161;
+msgid "Previous monitor"
+msgstr "Écran précédent"
+
+#: include/defs/uistr.h:162;
 msgid "Next monitor"
 msgstr "Écran suivant"
+
+#: include/defs/uistr.h:163;
+msgid "Send to previous desktop"
+msgstr "Envoyer vers le bureau précédent"
+
+#: include/defs/uistr.h:164;
+msgid "Send to next desktop"
+msgstr "Envoyer vers le bureau suivant"
 
 #: include/defs/uistr.h:162;
 msgid "Pin"

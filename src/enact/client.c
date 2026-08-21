@@ -23,10 +23,16 @@
 /* Type includes */
 #include <types/pair.h>
 
+/* ADT includes */
+#include <adt/list.h>
+
 /* Project includes */
 #include <client.h>
 #include <logger.h>
+#include <policy/focus.h>
 #include <scratchpad.h>
+#include <surface.h>
+#include <wm.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -168,10 +174,111 @@ void enact_client_center(client_td *client)
 }
 
 
+/**
+ * @brief Shared logic for carrying the client to the previous or
+ *        next desktop, following it there
+ *
+ * @param client   Client to move
+ * @param surfaces Full surface list, passed through to @c focus_apply
+ * @param config   Active configuration, passed through to @c
+ *                 focus_apply
+ * @param forward  @c true for the next desktop, @c false for the
+ *                 previous one
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the client's own top parent's own desktop (see
+ *       @a enact_desktop_client_send's own doc comment)
+ */
+static void s_enact_client_send_to_desktop(client_td *client,
+        list_td *surfaces, const config_td *config, bool forward)
+{
+    surface_td *surface;
+    desktop_td *cur_desktop;
+    desktop_td *target_desktop;
+    bool cycle;
+
+    if (client == NULL) {
+        return;
+    }
+
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (surface == NULL) {
+        return;
+    }
+
+    cur_desktop = surface_desktop_get(surface, surface->desktop_cur);
+    if (cur_desktop == NULL) {
+        return;
+    }
+
+    cycle = (surface->config != NULL)
+        ? surface->config->desktops.wrap_at_bounds : true;
+
+    /* No different desktop to move to at all -- either genuinely
+     * only one exists (restricted-memory mode is always locked to
+     * exactly one; see 'surface_action_desktop_add''s own doc
+     * comment, surface/switch.c) or wrapping is disabled and this is
+     * already the first/last one -- is a silent no-op, the same as
+     * every other keybind here that finds nothing to act on. */
+    target_desktop = (forward)
+        ? surface_desktop_next(surface, cur_desktop->id, cycle)
+        : surface_desktop_prev(surface, cur_desktop->id, cycle);
+    if (target_desktop == NULL || target_desktop == cur_desktop) {
+        return;
+    }
+
+    enact_desktop_client_send(cur_desktop, client, target_desktop);
+    enact_surface_desktop_switch(surface, target_desktop->id);
+
+    /* 'enact_surface_desktop_switch' just above, via its own
+     * 'surface_clients_show', already restored real input focus on
+     * its own, to whichever client this target desktop's own
+     * 'client_active_id' still remembered from some earlier,
+     * unrelated visit -- not this client, freshly arrived on it as
+     * of the very call before this one.  Explicitly re-applied here,
+     * after the fact, rather than trying to somehow suppress that
+     * automatic restore instead: 'client' becomes this desktop's own
+     * newly active one, genuinely focused, and raised above whatever
+     * else that restore just raised in front of it (any client
+     * already there before this one arrived stays exactly where it
+     * was, simply no longer topmost), matching a plain click or any
+     * other deliberate focus request landing on it right after the
+     * move, not a stale leftover from before. */
+    focus_apply(surfaces, surface, target_desktop, client, true, config);
+}
+
+
+/* Carry the client to the previous desktop, following it there */
+void enact_client_send_to_desktop_prev(client_td *client,
+        list_td *surfaces, const config_td *config)
+{
+    s_enact_client_send_to_desktop(client, surfaces, config, false);
+}
+
+
+/* Carry the client to the next desktop, following it there */
+void enact_client_send_to_desktop_next(client_td *client,
+        list_td *surfaces, const config_td *config)
+{
+    s_enact_client_send_to_desktop(client, surfaces, config, true);
+}
+
+
 /* Move the client to the next monitor on its surface */
 void enact_client_move_next_monitor(client_td *client)
 {
     ccmd_client_move_to_next_monitor(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+        enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
+    }
+}
+
+
+/* Move the client to the previous monitor on its surface */
+void enact_client_move_prev_monitor(client_td *client)
+{
+    ccmd_client_move_to_prev_monitor(client);
     if (client != NULL) {
         xcb_flush(client->connection);
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);

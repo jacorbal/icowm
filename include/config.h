@@ -721,30 +721,12 @@ struct config_bindings_s {
              */
             char fortune[CONFIG_MAX_LENGTH_BINDING];
 
-            char show_desktop[CONFIG_MAX_LENGTH_BINDING];
-
             /**
              * @brief Toggles the scratchpad's own visibility
              *
              * @see @p scratchpad_toggle in @c scratchpad.h
              */
             char scratchpad[CONFIG_MAX_LENGTH_BINDING];
-
-            /* Direct desktop goto shortcuts (indices 0-9) */
-            struct {
-                char desktop[10][CONFIG_MAX_LENGTH_BINDING];
-            } go_to;
-
-            /**
-             * @brief Adds or removes the surface's own last desktop
-             *
-             * @see @a enact_surface_desktop_add,
-             *      @a enact_surface_desktop_remove (enact.h)
-             */
-            struct {
-                char add[CONFIG_MAX_LENGTH_BINDING];
-                char remove[CONFIG_MAX_LENGTH_BINDING];
-            } desktop;
 
             /**
              * @brief Toggles whether panel/tray struts are set aside
@@ -762,6 +744,43 @@ struct config_bindings_s {
              */
             char toggle_strutless_maximize[CONFIG_MAX_LENGTH_BINDING];
         } wm;
+
+        /**
+         * @brief Desktop-level actions: switching, adding/removing,
+         *        and the show-desktop toggle
+         *
+         * Its own top-level section, a sibling of @p window rather
+         * than nested under @p wm the way it used to be: none of
+         * these act on any one particular client the way everything
+         * under @p window does, but they are just as much their own
+         * coherent, frequently reached-for group as that one is, not
+         * really a good fit for @p wm's own remaining, much more
+         * disparate set of window-manager-lifecycle actions (@p quit,
+         * @p reload, @p redraw, and the like) either.
+         */
+        struct {
+            /**
+             * @brief Adds or removes the surface's own last desktop
+             *
+             * @see @a enact_surface_desktop_add,
+             *      @a enact_surface_desktop_remove (enact.h)
+             */
+            char add[CONFIG_MAX_LENGTH_BINDING];
+            char remove[CONFIG_MAX_LENGTH_BINDING];
+
+            /**
+             * @brief Hides all windows and shows the empty desktop,
+             *        toggling back on a second press
+             *
+             * @see @a enact_desktop_show (enact.h)
+             */
+            char show[CONFIG_MAX_LENGTH_BINDING];
+
+            /* Direct desktop goto shortcuts (indices 0-9) */
+            struct {
+                char desktop[10][CONFIG_MAX_LENGTH_BINDING];
+            } go_to;
+        } desktop;
 
         struct {
             char terminal[CONFIG_MAX_LENGTH_BINDING];
@@ -799,9 +818,6 @@ struct config_bindings_s {
             char layer[CONFIG_MAX_LENGTH_BINDING];
             char kill[CONFIG_MAX_LENGTH_BINDING];
             char maximize[CONFIG_MAX_LENGTH_BINDING];
-            char next_monitor[CONFIG_MAX_LENGTH_BINDING]; /**< Move
-                                                    focused client to
-                                                    the next monitor */
             char pin[CONFIG_MAX_LENGTH_BINDING];
             char shade[CONFIG_MAX_LENGTH_BINDING];
 
@@ -829,6 +845,48 @@ struct config_bindings_s {
                 char up[CONFIG_MAX_LENGTH_BINDING];
                 char down[CONFIG_MAX_LENGTH_BINDING];
             } resize;
+
+            /**
+             * @brief Carry the focused client somewhere else instead
+             *        of just moving it in place
+             */
+            struct {
+                /**
+                 * @brief Carry the focused client to the previous/
+                 *        next desktop, following it there
+                 *
+                 * Parallels @c cycle.desktop.prev/@c .next below,
+                 * which only switch the view itself, without moving
+                 * any client along; a silent no-op when there is no
+                 * different desktop to move to at all (see
+                 * @c enact_client_send_to_desktop_prev/@c _next's
+                 * own doc comment, enact.h, for the fuller
+                 * reasoning), the same as it naturally becomes in
+                 * restricted-memory mode, always locked to exactly
+                 * one desktop.
+                 */
+                struct {
+                    char prev[CONFIG_MAX_LENGTH_BINDING];
+                    char next[CONFIG_MAX_LENGTH_BINDING];
+                } desktop;
+
+                /**
+                 * @brief Move the focused client to the previous/
+                 *        next monitor on its own surface
+                 *
+                 * Always wraps, unlike @c desktop just above: a
+                 * monitor list has no equivalent of @c desktops.
+                 * wrap-at-bounds to disable that; see @c
+                 * ccmd_client_move_to_prev_monitor/@c _next_monitor's
+                 * own doc comment, cmds/client/geom.h, for the
+                 * fuller reasoning.  A no-op on a surface with one
+                 * monitor or none.
+                 */
+                struct {
+                    char prev[CONFIG_MAX_LENGTH_BINDING];
+                    char next[CONFIG_MAX_LENGTH_BINDING];
+                } monitor;
+            } send_to;
         } window;
 
         struct {

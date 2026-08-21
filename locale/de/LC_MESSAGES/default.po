@@ -175,21 +175,25 @@ msgstr "[ Zurücksetzen ]"
 msgid "[ Keep ]"
 msgstr "[ Beibehalten ]"
 
-#: include/defs/uistr.h:120;
-msgid "[Window Manager]"
-msgstr "[Fenstermanager]"
+#: include/defs/uistr.h:127;
+msgid "Window Manager"
+msgstr "Fenstermanager"
 
-#: include/defs/uistr.h:121;
-msgid "[Launch]"
-msgstr "[Starten]"
+#: include/defs/uistr.h:128;
+msgid "Desktop"
+msgstr "Arbeitsfläche"
 
-#: include/defs/uistr.h:122;
-msgid "[Window]"
-msgstr "[Fenster]"
+#: include/defs/uistr.h:129;
+msgid "Launch"
+msgstr "Starten"
 
-#: include/defs/uistr.h:123;
-msgid "[Cycle]"
-msgstr "[Durchschalten]"
+#: include/defs/uistr.h:130;
+msgid "Window"
+msgstr "Fenster"
+
+#: include/defs/uistr.h:131;
+msgid "Cycle"
+msgstr "Durchschalten"
 
 #: include/defs/uistr.h:125;
 msgid "Root menu"
@@ -284,8 +288,20 @@ msgid "Info"
 msgstr "Info"
 
 #: include/defs/uistr.h:161;
+msgid "Previous monitor"
+msgstr "Vorheriger Monitor"
+
+#: include/defs/uistr.h:162;
 msgid "Next monitor"
 msgstr "Nächster Monitor"
+
+#: include/defs/uistr.h:163;
+msgid "Send to previous desktop"
+msgstr "An vorherige Arbeitsfläche senden"
+
+#: include/defs/uistr.h:164;
+msgid "Send to next desktop"
+msgstr "An nächste Arbeitsfläche senden"
 
 #: include/defs/uistr.h:162;
 msgid "Pin"

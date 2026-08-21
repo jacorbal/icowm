@@ -101,9 +101,6 @@ void config_set_default_bindings_values(
             sizeof(config_bindings->keyboard.window.kill));
     safe_strncpy(config_bindings->keyboard.window.maximize,
             "modc+mod1+m", sizeof(config_bindings->keyboard.window.maximize));
-    safe_strncpy(config_bindings->keyboard.window.next_monitor,
-            "modc+mod1+mods+n",
-            sizeof(config_bindings->keyboard.window.next_monitor));
     safe_strncpy(config_bindings->keyboard.window.pin,
             "modc+mod1+p", sizeof(config_bindings->keyboard.window.pin));
     safe_strncpy(config_bindings->keyboard.window.layer,
@@ -139,18 +136,9 @@ void config_set_default_bindings_values(
     safe_strncpy(config_bindings->keyboard.wm.fortune,
             "modc+mod4+Backspace",
             sizeof(config_bindings->keyboard.wm.fortune));
-    safe_strncpy(config_bindings->keyboard.wm.show_desktop,
-            "modc+mod4+mods+d",
-            sizeof(config_bindings->keyboard.wm.show_desktop));
     safe_strncpy(config_bindings->keyboard.wm.scratchpad,
             "modc+mod1+mods+F12",
             sizeof(config_bindings->keyboard.wm.scratchpad));
-    safe_strncpy(config_bindings->keyboard.wm.desktop.add,
-            "modc+mod1+mods+Right",
-            sizeof(config_bindings->keyboard.wm.desktop.add));
-    safe_strncpy(config_bindings->keyboard.wm.desktop.remove,
-            "modc+mod1+mods+Left",
-            sizeof(config_bindings->keyboard.wm.desktop.remove));
 
     /* Deliberately empty: no key is bound to this out of the box,
      * unlike every other binding above.  Explicit here, the same way
@@ -159,38 +147,48 @@ void config_set_default_bindings_values(
     safe_strncpy(config_bindings->keyboard.wm.toggle_strutless_maximize,
             "", sizeof(config_bindings->keyboard.wm.toggle_strutless_maximize));
 
+    safe_strncpy(config_bindings->keyboard.desktop.add,
+            "modc+mod4+mods+Right",
+            sizeof(config_bindings->keyboard.desktop.add));
+    safe_strncpy(config_bindings->keyboard.desktop.remove,
+            "modc+mod4+mods+Left",
+            sizeof(config_bindings->keyboard.desktop.remove));
+    safe_strncpy(config_bindings->keyboard.desktop.show,
+            "modc+mod4+mods+d",
+            sizeof(config_bindings->keyboard.desktop.show));
+
     /* Predetermined goto-desktop shortcuts for desktops 0-9 */
     LOGGER_TRACE("Setting default go-to keybindings", L_NARG);
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[0],
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[0],
             "modc+mod1+0",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[0]));
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[1],
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[0]));
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[1],
             "modc+mod1+1",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[1]));
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[2],
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[1]));
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[2],
             "modc+mod1+2",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[2]));
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[3],
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[2]));
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[3],
             "modc+mod1+3",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[3]));
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[4],
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[3]));
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[4],
             "modc+mod1+4",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[4]));
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[5],
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[4]));
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[5],
             "modc+mod1+5",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[5]));
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[6],
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[5]));
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[6],
             "modc+mod1+6",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[6]));
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[7],
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[6]));
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[7],
             "modc+mod1+7",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[7]));
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[8],
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[7]));
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[8],
             "modc+mod1+8",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[8]));
-    safe_strncpy(config_bindings->keyboard.wm.go_to.desktop[9],
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[8]));
+    safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[9],
             "modc+mod1+9",
-            sizeof(config_bindings->keyboard.wm.go_to.desktop[9]));
+            sizeof(config_bindings->keyboard.desktop.go_to.desktop[9]));
 
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",
@@ -236,6 +234,22 @@ void config_set_default_bindings_values(
     safe_strncpy(config_bindings->keyboard.window.resize.down,
             "modc+mod1+mods+j",
             sizeof(config_bindings->keyboard.window.resize.down));
+    safe_strncpy(config_bindings->keyboard.window.send_to.desktop.prev,
+            "modc+mod1+mods+Left",
+            sizeof(config_bindings->keyboard.window.send_to.
+                    desktop.prev));
+    safe_strncpy(config_bindings->keyboard.window.send_to.desktop.next,
+            "modc+mod1+mods+Right",
+            sizeof(config_bindings->keyboard.window.send_to.
+                    desktop.next));
+    safe_strncpy(config_bindings->keyboard.window.send_to.monitor.prev,
+            "modc+mod1+mod4+mods+Left",
+            sizeof(config_bindings->keyboard.window.send_to.
+                    monitor.prev));
+    safe_strncpy(config_bindings->keyboard.window.send_to.monitor.next,
+            "modc+mod1+mod4+mods+Right",
+            sizeof(config_bindings->keyboard.window.send_to.
+                    monitor.next));
 
     /* Predetermined configuration for mouse bindings */
     LOGGER_TRACE("Setting default mouse bindings", L_NARG);
@@ -294,6 +308,7 @@ int config_load_bindings(const char *filename,
     keyboard = cJSON_GetObjectItem(json, "keyboard");
     if (keyboard != NULL) {
         cJSON *wm;
+        cJSON *desktop;
         cJSON *launch;
         cJSON *window;
         cJSON *cycle;
@@ -301,8 +316,6 @@ int config_load_bindings(const char *filename,
         wm = cJSON_GetObjectItem(keyboard, "wm");
         if (wm) {
             cJSON *wm_menus;
-            cJSON *go_to;
-            cJSON *wm_desktop;
 
             wm_menus = cJSON_GetObjectItem(wm, "menus");
             if (wm_menus) {
@@ -315,9 +328,6 @@ int config_load_bindings(const char *filename,
             }
             json_load_string(wm, "search",
                     config_bindings->keyboard.wm.search,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(wm, "show-desktop",
-                    config_bindings->keyboard.wm.show_desktop,
                     CONFIG_MAX_LENGTH_BINDING);
             json_load_string(wm, "scratchpad",
                     config_bindings->keyboard.wm.scratchpad,
@@ -338,10 +348,31 @@ int config_load_bindings(const char *filename,
                     config_bindings->keyboard.wm.fortune,
                     CONFIG_MAX_LENGTH_BINDING);
 
-            /* Direct go-to shortcuts 0-9.  Kept independent of
-             * whether 'window' below is present in the file at all:
-             * 'go-to' is its own field of 'wm', not of 'window'. */
-            go_to = cJSON_GetObjectItem(wm, "go-to");
+            json_load_string(wm, "toggle-strutless-maximization",
+                    config_bindings->keyboard.wm.toggle_strutless_maximize,
+                    CONFIG_MAX_LENGTH_BINDING);
+        }
+
+        /* Desktop-level actions: switching, adding/removing, and the
+         * show-desktop toggle; its own top-level sibling of 'wm'
+         * above, not nested under it, matching 'struct keyboard_s'
+         * itself (config.h). */
+        desktop = cJSON_GetObjectItem(keyboard, "desktop");
+        if (desktop) {
+            cJSON *go_to;
+
+            json_load_string(desktop, "add",
+                    config_bindings->keyboard.desktop.add,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(desktop, "remove",
+                    config_bindings->keyboard.desktop.remove,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(desktop, "show",
+                    config_bindings->keyboard.desktop.show,
+                    CONFIG_MAX_LENGTH_BINDING);
+
+            /* Direct go-to shortcuts 0-9 */
+            go_to = cJSON_GetObjectItem(desktop, "go-to");
             if (go_to != NULL) {
                 static const char *keys[10] = {
                     "desktop0", "desktop1", "desktop2",
@@ -351,27 +382,11 @@ int config_load_bindings(const char *filename,
                 };
                 for (int gi = 0; gi < 10; ++gi) {
                     json_load_string(go_to, keys[gi],
-                            config_bindings->keyboard.wm.go_to.desktop[gi],
+                        config_bindings->keyboard.desktop.go_to.
+                            desktop[gi],
                             CONFIG_MAX_LENGTH_BINDING);
                 }
             }
-
-            /* Add/remove the surface's own last desktop; independent
-             * of 'go-to' above the same way that one is independent
-             * of 'window' below. */
-            wm_desktop = cJSON_GetObjectItem(wm, "desktop");
-            if (wm_desktop != NULL) {
-                json_load_string(wm_desktop, "add",
-                        config_bindings->keyboard.wm.desktop.add,
-                        CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(wm_desktop, "remove",
-                        config_bindings->keyboard.wm.desktop.remove,
-                        CONFIG_MAX_LENGTH_BINDING);
-            }
-
-            json_load_string(wm, "toggle-strutless-maximization",
-                    config_bindings->keyboard.wm.toggle_strutless_maximize,
-                    CONFIG_MAX_LENGTH_BINDING);
         }
 
         launch = cJSON_GetObjectItem(keyboard, "launch");
@@ -397,6 +412,7 @@ int config_load_bindings(const char *filename,
         if (window) {
             cJSON *window_move;
             cJSON *window_resize;
+            cJSON *window_send_to;
 
             json_load_string(window, "close",
                     config_bindings->keyboard.window.close,
@@ -433,9 +449,6 @@ int config_load_bindings(const char *filename,
                     CONFIG_MAX_LENGTH_BINDING);
             json_load_string(window, "maximize",
                     config_bindings->keyboard.window.maximize,
-                    CONFIG_MAX_LENGTH_BINDING);
-            json_load_string(window, "next-monitor",
-                    config_bindings->keyboard.window.next_monitor,
                     CONFIG_MAX_LENGTH_BINDING);
             json_load_string(window, "pin",
                     config_bindings->keyboard.window.pin,
@@ -497,6 +510,38 @@ int config_load_bindings(const char *filename,
                 json_load_string(window_resize, "down",
                         config_bindings->keyboard.window.resize.down,
                         CONFIG_MAX_LENGTH_BINDING);
+            }
+
+            window_send_to = cJSON_GetObjectItem(window, "send-to");
+            if (window_send_to != NULL) {
+                cJSON *send_to_desktop;
+                cJSON *send_to_monitor;
+
+                send_to_desktop = cJSON_GetObjectItem(window_send_to,
+                        "desktop");
+                if (send_to_desktop != NULL) {
+                    json_load_string(send_to_desktop, "prev",
+                        config_bindings->keyboard.window.send_to.
+                            desktop.prev,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(send_to_desktop, "next",
+                        config_bindings->keyboard.window.send_to.
+                            desktop.next,
+                            CONFIG_MAX_LENGTH_BINDING);
+                }
+
+                send_to_monitor = cJSON_GetObjectItem(window_send_to,
+                        "monitor");
+                if (send_to_monitor != NULL) {
+                    json_load_string(send_to_monitor, "prev",
+                        config_bindings->keyboard.window.send_to.
+                            monitor.prev,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(send_to_monitor, "next",
+                        config_bindings->keyboard.window.send_to.
+                            monitor.next,
+                            CONFIG_MAX_LENGTH_BINDING);
+                }
             }
         }
 

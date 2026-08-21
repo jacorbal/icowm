@@ -116,11 +116,19 @@
 
 /* Keyboard-shortcuts list dialog ('src/menu/dialog/shortcuts.c'): one
  * section header, and one label per action, each paired at runtime with
- * that action's own configured key combo */
-#define STR_SHORTCUTS_HEADER_WM "[Window Manager]"
-#define STR_SHORTCUTS_HEADER_LAUNCH "[Launch]"
-#define STR_SHORTCUTS_HEADER_WINDOW "[Window]"
-#define STR_SHORTCUTS_HEADER_CYCLE "[Cycle]"
+ * that action's own configured key combo.  Deliberately the bare
+ * section name alone, without the surrounding brackets that appear
+ * around it in the dialog itself: those are fixed, structural
+ * formatting the code itself applies (see 's_append_line''s own
+ * "[%s]" format string, menu/dialog/shortcuts.c), not part of the
+ * translatable content, so a locale only ever needs to translate the
+ * word itself, never remember to also carry the brackets along with
+ * it. */
+#define STR_SHORTCUTS_HEADER_WM "Window Manager"
+#define STR_SHORTCUTS_HEADER_DESKTOP "Desktop"
+#define STR_SHORTCUTS_HEADER_LAUNCH "Launch"
+#define STR_SHORTCUTS_HEADER_WINDOW "Window"
+#define STR_SHORTCUTS_HEADER_CYCLE "Cycle"
 
 #define STR_SHORTCUTS_ROOT_MENU "Root menu"
 #define STR_SHORTCUTS_WINDOWS_MENU "Windows menu"
@@ -158,7 +166,10 @@
 #define STR_SHORTCUTS_INFO "Info"
 #define STR_SHORTCUTS_LAYER "Layer"
 #define STR_SHORTCUTS_MAXIMIZE "Maximize"
+#define STR_SHORTCUTS_PREV_MONITOR "Previous monitor"
 #define STR_SHORTCUTS_NEXT_MONITOR "Next monitor"
+#define STR_SHORTCUTS_SEND_TO_DESKTOP_PREV "Send to previous desktop"
+#define STR_SHORTCUTS_SEND_TO_DESKTOP_NEXT "Send to next desktop"
 #define STR_SHORTCUTS_PIN "Pin"
 #define STR_SHORTCUTS_SHADE "Shade"
 

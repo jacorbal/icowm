@@ -148,7 +148,7 @@ static void s_append_goto_desktop(char *buf, size_t buf_size,
         size_t *offset, const config_td *config)
 {
     const char (*desktop)[CONFIG_MAX_LENGTH_BINDING] =
-        config->bindings.keyboard.wm.go_to.desktop;
+        config->bindings.keyboard.desktop.go_to.desktop;
     size_t prefix_len = 0u;
     bool shared_prefix = (desktop[0][0] != '\0');
 
@@ -254,7 +254,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.mod1, config->bindings.mod4);
     s_append_blank_line(text, sizeof(text), &offset);
 
-    s_append_line(text, sizeof(text), &offset, "%s",
+    s_append_line(text, sizeof(text), &offset, "[%s]",
             _(STR_SHORTCUTS_HEADER_WM));
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_ROOT_MENU),
@@ -265,18 +265,6 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_SEARCH_WINDOWS),
             config->bindings.keyboard.wm.search);
-    s_append_binding(text, sizeof(text), &offset,
-            _(STR_SHORTCUTS_SHOW_DESKTOP),
-            config->bindings.keyboard.wm.show_desktop);
-    s_append_binding(text, sizeof(text), &offset,
-            _(STR_SHORTCUTS_DESKTOP_ADD),
-            config->bindings.keyboard.wm.desktop.add);
-    if (surface->desktop_count > 1u) {
-        s_append_binding(text, sizeof(text), &offset,
-                _(STR_SHORTCUTS_DESKTOP_REMOVE),
-                config->bindings.keyboard.wm.desktop.remove);
-        s_append_goto_desktop(text, sizeof(text), &offset, config);
-    }
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_TOGGLE_STRUTLESS_MAXIMIZE),
             config->bindings.keyboard.wm.toggle_strutless_maximize);
@@ -308,7 +296,23 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     }
 
     s_append_blank_line(text, sizeof(text), &offset);
-    s_append_line(text, sizeof(text), &offset, "%s",
+    s_append_line(text, sizeof(text), &offset, "[%s]",
+            _(STR_SHORTCUTS_HEADER_DESKTOP));
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_SHOW_DESKTOP),
+            config->bindings.keyboard.desktop.show);
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_DESKTOP_ADD),
+            config->bindings.keyboard.desktop.add);
+    if (surface->desktop_count > 1u) {
+        s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_DESKTOP_REMOVE),
+                config->bindings.keyboard.desktop.remove);
+        s_append_goto_desktop(text, sizeof(text), &offset, config);
+    }
+
+    s_append_blank_line(text, sizeof(text), &offset);
+    s_append_line(text, sizeof(text), &offset, "[%s]",
             _(STR_SHORTCUTS_HEADER_LAUNCH));
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_TERMINAL),
@@ -327,7 +331,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.keyboard.launch.editor);
 
     s_append_blank_line(text, sizeof(text), &offset);
-    s_append_line(text, sizeof(text), &offset, "%s",
+    s_append_line(text, sizeof(text), &offset, "[%s]",
             _(STR_SHORTCUTS_HEADER_WINDOW));
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_CLOSE),
@@ -367,13 +371,22 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.keyboard.window.maximize);
     if (surface->monitor_count > 1u) {
         s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_PREV_MONITOR),
+                config->bindings.keyboard.window.send_to.monitor.prev);
+        s_append_binding(text, sizeof(text), &offset,
                 _(STR_SHORTCUTS_NEXT_MONITOR),
-                config->bindings.keyboard.window.next_monitor);
+                config->bindings.keyboard.window.send_to.monitor.next);
     }
     if (surface->desktop_count > 1u) {
         s_append_binding(text, sizeof(text), &offset,
                 _(STR_SHORTCUTS_PIN),
                 config->bindings.keyboard.window.pin);
+        s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_SEND_TO_DESKTOP_PREV),
+                config->bindings.keyboard.window.send_to.desktop.prev);
+        s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_SEND_TO_DESKTOP_NEXT),
+                config->bindings.keyboard.window.send_to.desktop.next);
     }
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_SHADE),
@@ -410,7 +423,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             }, 4u);
 
     s_append_blank_line(text, sizeof(text), &offset);
-    s_append_line(text, sizeof(text), &offset, "%s",
+    s_append_line(text, sizeof(text), &offset, "[%s]",
             _(STR_SHORTCUTS_HEADER_CYCLE));
     if (surface->desktop_count > 1u) {
         s_append_group(text, sizeof(text), &offset,

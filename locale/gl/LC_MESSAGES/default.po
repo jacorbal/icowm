@@ -175,21 +175,25 @@ msgstr "[ Reverter ]"
 msgid "[ Keep ]"
 msgstr "[ Manter ]"
 
-#: include/defs/uistr.h:120;
-msgid "[Window Manager]"
-msgstr "[Xestor de xanelas]"
+#: include/defs/uistr.h:127;
+msgid "Window Manager"
+msgstr "Xestor de xanelas"
 
-#: include/defs/uistr.h:121;
-msgid "[Launch]"
-msgstr "[Iniciar]"
+#: include/defs/uistr.h:128;
+msgid "Desktop"
+msgstr "Escritorio"
 
-#: include/defs/uistr.h:122;
-msgid "[Window]"
-msgstr "[Fiestra]"
+#: include/defs/uistr.h:129;
+msgid "Launch"
+msgstr "Iniciar"
 
-#: include/defs/uistr.h:123;
-msgid "[Cycle]"
-msgstr "[Ciclar]"
+#: include/defs/uistr.h:130;
+msgid "Window"
+msgstr "Xanela"
+
+#: include/defs/uistr.h:131;
+msgid "Cycle"
+msgstr "Ciclar"
 
 #: include/defs/uistr.h:125;
 msgid "Root menu"
@@ -284,8 +288,20 @@ msgid "Info"
 msgstr "Información"
 
 #: include/defs/uistr.h:161;
+msgid "Previous monitor"
+msgstr "Anterior monitor"
+
+#: include/defs/uistr.h:162;
 msgid "Next monitor"
 msgstr "Seguinte monitor"
+
+#: include/defs/uistr.h:163;
+msgid "Send to previous desktop"
+msgstr "Enviar ao escritorio anterior"
+
+#: include/defs/uistr.h:164;
+msgid "Send to next desktop"
+msgstr "Enviar ao escritorio seguinte"
 
 #: include/defs/uistr.h:162;
 msgid "Pin"
@@ -309,7 +325,7 @@ msgstr "Iconas"
 
 #: include/defs/uistr.h:172;
 msgid "Windows"
-msgstr "Fiestras"
+msgstr "Xanelas"
 
 #: include/defs/uistr.h:186;
 msgid "Go to desktop 0-9: %.*s<0-9>"

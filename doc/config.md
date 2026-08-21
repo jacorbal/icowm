@@ -28,9 +28,10 @@ values, and built-in default value.
    - [3.3. `keyboard.launch`](#33-keyboardlaunch)
    - [3.4. `keyboard.window`](#34-keyboardwindow)
    - [3.5. `keyboard.wm`](#35-keyboardwm)
-   - [3.6. `keyboard.cycle`](#36-keyboardcycle)
-   - [3.7. `mouse.window`](#37-mousewindow)
-   - [3.8. `mouse.cycle`](#38-mousecycle)
+   - [3.6. `keyboard.desktop`](#36-keyboarddesktop)
+   - [3.7. `keyboard.cycle`](#37-keyboardcycle)
+   - [3.8. `mouse.window`](#38-mousewindow)
+   - [3.9. `mouse.cycle`](#39-mousecycle)
 4. [`themes/<name>.json`: Theme configuration](#4-themesnamejson-theme-configuration)
    - [4.1. `window`](#41-window)
    - [4.2. `icon`](#42-icon)
@@ -1023,7 +1024,6 @@ Actions performed on the currently focused window.
 | `arrange`       | `modc+mod1+mods+a`      | Re-apply the configured placement policy to every client on the current desktop, spreading them back out.  A transient dialog among them is re-centered over its own parent instead (ICCCM §4.1.2.6). |
 | `hide`          | `modc+mod1+mods+u`      | Hide the window without iconifying it. |
 | `maximize`      | `modc+mod1+m`           | Toggle maximize (full work area). |
-| `next-monitor`  | `modc+mod1+mods+n`      | Move the window to the next monitor, on a surface with more than one; no effect otherwise. |
 | `fullscreen`    | `modc+mod1+f`           | Toggle true fullscreen mode. |
 | `shade`         | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
 | `pin`           | `modc+mod1+p`           | Toggle sticky mode (window appears on all desktops). |
@@ -1065,6 +1065,48 @@ Resize the focused window by a fixed step in the given direction.
 | `up`    | `modc+mod1+mods+k` |
 | `down`  | `modc+mod1+mods+j` |
 
+#### `keyboard.window.send-to.desktop`
+
+Carry the focused window to the previous/next desktop, following it
+there.  Parallels `keyboard.cycle.desktop` (section 3.7), which only
+switches the view itself without moving any window along.  A silent
+no-op when there is no different desktop to move to at all: only one
+exists (always the case in restricted-memory mode), or wrapping is
+disabled (`desktops.wrap-at-bounds`, section 2) and this is already
+the first or last one.
+
+| Key    | Default binding        |
+|--------|------------------------|
+| `prev` | `modc+mod1+mods+Left`  |
+| `next` | `modc+mod1+mods+Right` |
+
+#### `keyboard.window.send-to.monitor`
+
+Move the focused window to the previous/next monitor on its own
+surface.  Always wraps, unlike `send-to.desktop` just above: a
+monitor list has no equivalent of `desktops.wrap-at-bounds` to
+disable that.  A no-op on a surface with one monitor or none.
+
+| Key    | Default binding             |
+|--------|-----------------------------|
+| `prev` | `modc+mod1+mod4+mods+Left`  |
+| `next` | `modc+mod1+mod4+mods+Right` |
+
+```json
+"window": {
+    "send-to": {
+        "desktop": {
+            "prev": "modc+mod1+mods+Left",
+            "next": "modc+mod1+mods+Right"
+        },
+        "monitor": {
+            "prev": "modc+mod1+mod4+mods+Left",
+            "next": "modc+mod1+mod4+mods+Right"
+        }
+    }
+}
+```
+
 ### 3.5. `keyboard.wm`
 
 Window manager control shortcuts.
@@ -1072,10 +1114,7 @@ Window manager control shortcuts.
 | Key                             | Default binding        | Action |
 |---------------------------------|------------------------|--------|
 | `search`                        | `modc+mod4+mods+s`     | Open the fuzzy window-search widget. |
-| `show-desktop`                  | `modc+mod4+mods+d`     | Hide all windows and show the empty desktop. |
 | `scratchpad`                    | `modc+mod1+mods+F12`   | Launch the scratchpad, or show/hide it if already running; see `scratchpad` (section 2.11). |
-| `desktop.add`                   | `modc+mod1+mods+Right` | Add a new, empty desktop to the end of the list. |
-| `desktop.remove`                | `modc+mod1+mods+Left`  | Remove the last desktop, moving any client still on it to the new last one first; refused while only one desktop remains. |
 | `toggle-strutless-maximization` | *(unbound)*            | Toggle whether panel/tray struts are set aside when computing work areas on this surface (strutless maximization); also reachable via IPC (`toggle_strutless_maximize`) and its own entry in the root menu. |
 | `redraw`                        | `modc+mod1+mods+r`     | Force a full redraw of all windows. |
 | `reload`                        | `modc+mod1+mods+c`     | Reload the configuration files (equivalent to `SIGHUP`). |
@@ -1125,7 +1164,44 @@ each one appears when opened this way).
 }
 ```
 
-#### `keyboard.wm.go-to`
+### 3.6. `keyboard.desktop`
+
+Desktop-level actions: switching, adding/removing, and the
+show-desktop toggle.  Its own top-level section, a sibling of
+`keyboard.window` rather than nested under `keyboard.wm`: none of
+these act on any one particular client the way everything under
+`keyboard.window` does, but they are just as much their own coherent,
+frequently reached-for group as that one is, not really a good fit
+for `keyboard.wm`'s own remaining, much more disparate set of
+window-manager-lifecycle actions (`quit`, `reload`, `redraw`, and the
+like) either.
+
+| Key      | Default binding        | Action |
+|----------|------------------------|--------|
+| `add`    | `modc+mod4+mods+Right` | Add a new, empty desktop to the end of the list. |
+| `remove` | `modc+mod4+mods+Left`  | Remove the last desktop, moving any client still on it to the new last one first; refused while only one desktop remains. |
+| `show`   | `modc+mod4+mods+d`     | Hide all windows and show the empty desktop. |
+
+`add`/`remove` always act on the surface's own last desktop: a new
+one is always appended at the end; removing one always takes the
+last one, moving any client still on it to the new last desktop
+first (its own EWMH `_NET_WM_DESKTOP` is updated to match, unless it
+is pinned, whose property already holds the EWMH "all desktops"
+sentinel).  Removing a specific desktop by index is not offered:
+with removal always affecting the last one, every existing index
+below it stays exactly where it was, so no other binding (`go-to`
+just below, a rule's own `desktop` match, and so on) is ever
+silently invalidated by a removal elsewhere in the list.
+
+```json
+"desktop": {
+    "add": "modc+mod4+mods+Right",
+    "remove": "modc+mod4+mods+Left",
+    "show": "modc+mod4+mods+d"
+}
+```
+
+#### `keyboard.desktop.go-to`
 
 Jump directly to a virtual desktop by index (0-9).  Desktops beyond
 index 9 are not reachable by these shortcuts.
@@ -1145,36 +1221,9 @@ index 9 are not reachable by these shortcuts.
 
 If the interest is to use a 1-based indexing system, a trick could be
 setting `inaugural` to `1`.  Another is to change every single
-`keyboard.wm.go-to` binding.
+`keyboard.desktop.go-to` binding.
 
-#### `keyboard.wm.desktop`
-
-Add or remove the surface's own last desktop.  A new desktop is always
-appended at the end; removing one always takes the last one, moving any
-client still on it to the new last desktop first (its own EWMH
-`_NET_WM_DESKTOP` is updated to match, unless it is pinned, whose
-property already holds the EWMH "all desktops" sentinel).  Removing
-a specific desktop by index is not offered: with removal always
-affecting the last one, every existing index below it stays exactly
-where it was, so no other binding (`go-to`, a rule's own `desktop`
-match, and so on) is ever silently invalidated by a removal elsewhere in
-the list.
-
-| Key      | Default binding        | Action                    |
-|----------|------------------------|---------------------------|
-| `add`    | `modc+mod1+mods+Right` | Add a new, empty desktop. |
-| `remove` | `modc+mod1+mods+Left`  | Remove the last desktop; refused while only one remains. |
-
-```json
-"wm": {
-    "desktop": {
-        "add": "modc+mod1+mods+Right",
-        "remove": "modc+mod1+mods+Left"
-    }
-}
-```
-
-### 3.6. `keyboard.cycle`
+### 3.7. `keyboard.cycle`
 
 Shortcuts for cycling through desktops, iconified windows, and open
 windows.
@@ -1205,7 +1254,7 @@ Cycle through iconified (minimized) windows only.
 | `prev` | `modc+mod1+mods+Tab` | Focus the previous icon. |
 | `next` | `modc+mod1+Tab`      | Focus the next icon.     |
 
-### 3.7. `mouse.window`
+### 3.8. `mouse.window`
 
 Mouse button bindings for window management.
 
@@ -1215,7 +1264,7 @@ Mouse button bindings for window management.
 | `lower`  | `mod1+button2`  | Lower the window to the bottom of the stack. |
 | `resize` | `mod1+button3`  | Click and drag to resize the window. |
 
-### 3.8. `mouse.cycle`
+### 3.9. `mouse.cycle`
 
 Mouse button bindings for switching virtual desktops.
 

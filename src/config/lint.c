@@ -292,27 +292,25 @@ static const config_lint_key_td s_schema_go_to[] = {
     {"desktop8", NULL, 0u}, {"desktop9", NULL, 0u}
 };
 
-static const config_lint_key_td s_schema_wm_desktop[] = {
-    {"add", NULL, 0u},
-    {"remove", NULL, 0u}
-};
-
 static const config_lint_key_td s_schema_kb_wm[] = {
     {"menus", s_schema_wm_menus,
         sizeof(s_schema_wm_menus) / sizeof(s_schema_wm_menus[0])},
     {"search", NULL, 0u},
-    {"show-desktop", NULL, 0u},
     {"scratchpad", NULL, 0u},
     {"redraw", NULL, 0u},
     {"reload", NULL, 0u},
     {"quit", NULL, 0u},
     {"shortcuts", NULL, 0u},
     {"fortune", NULL, 0u},
-    {"go-to", s_schema_go_to,
-        sizeof(s_schema_go_to) / sizeof(s_schema_go_to[0])},
-    {"desktop", s_schema_wm_desktop,
-        sizeof(s_schema_wm_desktop) / sizeof(s_schema_wm_desktop[0])},
     {"toggle-strutless-maximization", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_kb_desktop[] = {
+    {"add", NULL, 0u},
+    {"remove", NULL, 0u},
+    {"show", NULL, 0u},
+    {"go-to", s_schema_go_to,
+        sizeof(s_schema_go_to) / sizeof(s_schema_go_to[0])}
 };
 
 static const config_lint_key_td s_schema_kb_launch[] = {
@@ -341,6 +339,18 @@ static const config_lint_key_td s_schema_window_move[] = {
         sizeof(s_schema_move_absolute) / sizeof(s_schema_move_absolute[0])}
 };
 
+static const config_lint_key_td s_schema_prev_next[] = {
+    {"prev", NULL, 0u},
+    {"next", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_window_send_to[] = {
+    {"desktop", s_schema_prev_next,
+        sizeof(s_schema_prev_next) / sizeof(s_schema_prev_next[0])},
+    {"monitor", s_schema_prev_next,
+        sizeof(s_schema_prev_next) / sizeof(s_schema_prev_next[0])}
+};
+
 static const config_lint_key_td s_schema_kb_window[] = {
     {"arrange", NULL, 0u},
     {"close", NULL, 0u},
@@ -354,18 +364,15 @@ static const config_lint_key_td s_schema_kb_window[] = {
     {"kill", NULL, 0u},
     {"layer", NULL, 0u},
     {"maximize", NULL, 0u},
-    {"next-monitor", NULL, 0u},
     {"pin", NULL, 0u},
     {"shade", NULL, 0u},
     {"move", s_schema_window_move,
         sizeof(s_schema_window_move) / sizeof(s_schema_window_move[0])},
     {"resize", s_schema_move_relative,
-        sizeof(s_schema_move_relative) / sizeof(s_schema_move_relative[0])}
-};
-
-static const config_lint_key_td s_schema_prev_next[] = {
-    {"prev", NULL, 0u},
-    {"next", NULL, 0u}
+        sizeof(s_schema_move_relative) / sizeof(s_schema_move_relative[0])},
+    {"send-to", s_schema_window_send_to,
+        sizeof(s_schema_window_send_to) /
+            sizeof(s_schema_window_send_to[0])}
 };
 
 static const config_lint_key_td s_schema_kb_cycle[] = {
@@ -380,6 +387,8 @@ static const config_lint_key_td s_schema_kb_cycle[] = {
 static const config_lint_key_td s_schema_keyboard[] = {
     {"wm", s_schema_kb_wm,
         sizeof(s_schema_kb_wm) / sizeof(s_schema_kb_wm[0])},
+    {"desktop", s_schema_kb_desktop,
+        sizeof(s_schema_kb_desktop) / sizeof(s_schema_kb_desktop[0])},
     {"launch", s_schema_kb_launch,
         sizeof(s_schema_kb_launch) / sizeof(s_schema_kb_launch[0])},
     {"window", s_schema_kb_window,

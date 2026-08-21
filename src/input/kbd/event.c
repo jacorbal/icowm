@@ -438,6 +438,18 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             enact_client_move_next_monitor(client);
             return;
 
+        case KEYBIND_CLIENT_MOVE_PREV_MONITOR:
+            enact_client_move_prev_monitor(client);
+            return;
+
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_PREV:
+            enact_client_send_to_desktop_prev(client, surfaces, config);
+            return;
+
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_NEXT:
+            enact_client_send_to_desktop_next(client, surfaces, config);
+            return;
+
         case KEYBIND_CLIENT_SHADE:
             enact_client_toggle_shade(client);
             return;
@@ -921,6 +933,9 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_MAXIMIZE:
             case KEYBIND_CLIENT_CENTER:
             case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
+            case KEYBIND_CLIENT_MOVE_PREV_MONITOR:
+            case KEYBIND_CLIENT_SEND_TO_DESKTOP_PREV:
+            case KEYBIND_CLIENT_SEND_TO_DESKTOP_NEXT:
             case KEYBIND_CLIENT_SHADE:
             case KEYBIND_CLIENT_FULLSCREEN:
             case KEYBIND_CLIENT_PIN:

@@ -420,6 +420,9 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_MAXIMIZE:
         case KEYBIND_CLIENT_CENTER:
         case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
+        case KEYBIND_CLIENT_MOVE_PREV_MONITOR:
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_PREV:
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_NEXT:
         case KEYBIND_CLIENT_SHADE:
         case KEYBIND_CLIENT_FULLSCREEN:
         case KEYBIND_CLIENT_PIN:
@@ -594,6 +597,9 @@ void ik_handle_move(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_MAXIMIZE:
         case KEYBIND_CLIENT_CENTER:
         case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
+        case KEYBIND_CLIENT_MOVE_PREV_MONITOR:
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_PREV:
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_NEXT:
         case KEYBIND_CLIENT_SHADE:
         case KEYBIND_CLIENT_FULLSCREEN:
         case KEYBIND_CLIENT_PIN:
@@ -767,6 +773,9 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_MAXIMIZE:
         case KEYBIND_CLIENT_CENTER:
         case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
+        case KEYBIND_CLIENT_MOVE_PREV_MONITOR:
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_PREV:
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_NEXT:
         case KEYBIND_CLIENT_SHADE:
         case KEYBIND_CLIENT_FULLSCREEN:
         case KEYBIND_CLIENT_PIN:

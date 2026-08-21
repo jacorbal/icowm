@@ -297,6 +297,36 @@ void ccmd_client_move_to_next_monitor(client_td *client)
 }
 
 
+/* Move the client to the previous monitor on its own surface */
+void ccmd_client_move_to_prev_monitor(client_td *client)
+{
+    surface_td *surface = NULL;
+    monitor_td cur_monitor;
+    uint32_t cur_idx = 0u;
+
+    if (client == NULL) {
+        return;
+    }
+
+    if (!ccmd_client_monitor(client, &surface, &cur_monitor) ||
+            surface == NULL || surface->monitor_count <= 1u) {
+        return;
+    }
+
+    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
+        if (surface->monitors[i].x == cur_monitor.x &&
+                surface->monitors[i].y == cur_monitor.y) {
+            cur_idx = i;
+            break;
+        }
+    }
+
+    ccmd_client_move_to_monitor(client,
+            (cur_idx + surface->monitor_count - 1u) %
+                surface->monitor_count);
+}
+
+
 /**
  * @brief Configure a client to the given frame geometry
  *
