@@ -271,7 +271,6 @@ static void s_kbd_resize_apply(client_td *client,
 {
     bool pos_changed;
     uint16_t mask;
-    uint32_t values[4];
     xcb_window_t target_win;
 
     if (client == NULL) {
@@ -301,18 +300,16 @@ static void s_kbd_resize_apply(client_td *client,
         ? client->frame : client->window;
 
     if (pos_changed) {
-        mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-               XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[0] = (uint32_t) geom.pos.x;
-        values[1] = (uint32_t) geom.pos.y;
-        values[2] = geom.dim.w;
-        values[3] = geom.dim.h;
+        mask = (uint16_t) XCB_CONFIG_WINDOW_X |
+            (uint16_t) XCB_CONFIG_WINDOW_Y |
+            (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+            (uint16_t) XCB_CONFIG_WINDOW_HEIGHT;
     } else {
-        mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[0] = geom.dim.w;
-        values[1] = geom.dim.h;
+        mask = (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+            (uint16_t) XCB_CONFIG_WINDOW_HEIGHT;
     }
-    xcb_configure_window(client->connection, target_win, mask, values);
+    ccmd_client_apply_geometry(client, target_win, mask,
+            geom.pos.x, geom.pos.y, geom.dim.w, geom.dim.h, 0u);
 
     /* Update the stored geometry after configuring X so that
      * 'client_decoration_layout_sync' and the synthetic

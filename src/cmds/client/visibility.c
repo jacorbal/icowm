@@ -253,8 +253,7 @@ static void s_ccmd_client_iconify_one(client_td *client)
 
     /* Iconify per EWMH: window hidden with '_NET_WM_STATE_HIDDEN'.
      * Icon display handled by pager/desktop */
-    ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
-    ccmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+    ccmd_client_sync_states(client);
 
     ccmd_client_focus_fallback(client);
 
@@ -308,8 +307,7 @@ static void s_ccmd_client_hide_one(client_td *client)
     client_hide(client);
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
-    ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
-    ccmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+    ccmd_client_sync_states(client);
 
     ccmd_client_focus_fallback(client);
     wm_request_client_redraw(client);
@@ -348,7 +346,7 @@ static void s_ccmd_client_unhide_one(client_td *client)
     client_unhide(client);
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
-    ccmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
+    ccmd_client_sync_states(client);
 
     /* Raise the unhidden client to the top of the desktop stacking
      * order and give it real input focus, matching the deiconify

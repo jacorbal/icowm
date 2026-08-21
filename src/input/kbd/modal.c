@@ -261,6 +261,28 @@ static void s_handle_resize_key(xcb_keysym_t keysym, int32_t resize_step)
         } else {
             return;
         }
+
+        /* A client maximized on just one axis has nothing free to
+         * resize along the other: refuse picking an edge on the
+         * locked axis outright, resetting back to no active edge
+         * rather than leaving it set to one that will never actually
+         * move anything, so a later press on the still-free axis is
+         * free to start over as a genuine first press of its own.
+         * The same axis-lock every other interactive resize entry
+         * point in this project already applies (mouse border drag
+         * via 'drag_start_resize_axis_locked', input/mouse/drag.c;
+         * per-keypress resize in 's_kbd_resize_axis_target',
+         * input/kbd/interact.c). */
+        if ((s_edge == KBD_EDGE_TOP || s_edge == KBD_EDGE_BOTTOM) &&
+                client_is_maximized_vert(s_client)) {
+            s_edge = KBD_EDGE_NONE;
+            return;
+        }
+        if ((s_edge == KBD_EDGE_LEFT || s_edge == KBD_EDGE_RIGHT) &&
+                client_is_maximized_horz(s_client)) {
+            s_edge = KBD_EDGE_NONE;
+            return;
+        }
     }
 
     nx = s_client->layout.geometry.cur.pos.x;

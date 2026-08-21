@@ -607,14 +607,47 @@ static void s_search_confirm(xcb_connection_t *connection,
         return;
     }
 
-    if (client_is_iconified(client) ||
-            (client->properties.flags & CLIENT_FLAG_HIDDEN)) {
+    if (client_is_iconified(client)) {
+        /* Takes priority over the plain-hidden branch below: its own
+         * restore path (see 's_ccmd_client_restore_one', cmds/
+         * client/focus.c) already clears 'CLIENT_FLAG_HIDDEN' too
+         * along the way, in the unlikely case both ever happened to
+         * be set on the very same client at once. */
         enact_client_restore(client);
+    } else if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+        /* Deliberately 'unhide', not 'restore': a plain hide never
+         * touches 'layout.geometry.old' the way iconifying does (see
+         * 'client_geometry_save''s own call sites), so restoring
+         * from it here would apply whatever that field last held for
+         * an entirely different reason (stale, or never set at all)
+         * instead of leaving this client's own current geometry
+         * alone, the correct behavior 'ccmd_client_unhide' itself
+         * already provides. */
+        enact_client_unhide(client);
     }
     if (client_is_shaded(client)) {
         enact_client_unshade(client);
     }
-    if (desktop->id != surface->desktop_cur) {
+    if (client_is_pinned(client)) {
+        /* A pinned client is already visible on whichever desktop is
+         * currently shown -- pinning never actually moves a client
+         * between desktops, it stays registered under whichever one
+         * it was originally on forever; see 'ccmd_client_bring_
+         * family''s own doc comment, cmds/client/transient.c, for
+         * the fuller reasoning -- so there is nothing to switch to
+         * here.  Using its own recorded 'desktop' below instead
+         * (wherever it still happens to be registered) would switch
+         * away from right where the user already is, to bring up a
+         * window already sitting in front of them; 'focus_apply'
+         * itself already correctly brings any of its own un-pinned
+         * transient descendants onto this same current desktop via
+         * its own 'ccmd_client_bring_family' call, using 'surface->
+         * desktop_cur' exactly as this does. */
+        desktop = surface_desktop_get(surface, surface->desktop_cur);
+        if (desktop == NULL) {
+            return;
+        }
+    } else if (desktop->id != surface->desktop_cur) {
         enact_surface_desktop_switch(surface, desktop->id);
     }
 

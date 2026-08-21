@@ -73,7 +73,7 @@ static void s_ccmd_client_pin_one(client_td *client)
     uint32_t all_desktops;
 
     client_pin(client);
-    ccmd_add_states(client, 1, "_NET_WM_STATE_STICKY");
+    ccmd_client_sync_states(client);
     if (client->ewmh != NULL) {
         all_desktops = WM_DESKTOP_ID_ALL;
         xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
@@ -105,7 +105,7 @@ static void s_ccmd_client_unpin_one(client_td *client)
     xcb_window_t target;
 
     client_unpin(client);
-    ccmd_rem_states(client, 1, "_NET_WM_STATE_STICKY");
+    ccmd_client_sync_states(client);
     if (client->ewmh != NULL) {
         xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
                 client->window, client->ewmh->_NET_WM_DESKTOP,
@@ -290,7 +290,7 @@ void ccmd_client_urge(client_td *client)
     }
 
     client_urge(client);
-    ccmd_add_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
+    ccmd_client_sync_states(client);
 
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
@@ -322,7 +322,7 @@ void ccmd_client_unurge(client_td *client)
     }
 
     client_unurge(client);
-    ccmd_rem_states(client, 1, "_NET_WM_STATE_DEMANDS_ATTENTION");
+    ccmd_client_sync_states(client);
 
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {

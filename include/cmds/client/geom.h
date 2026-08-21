@@ -26,6 +26,47 @@
 
 /* Public interface */
 /**
+ * @brief Apply a client's geometry to its target window in a single
+ *        XCB call
+ *
+ * One shared function every geometry-changing operation in this
+ * project funnels through (move, resize, maximize in any of its
+ * three variants, shade/unshade, fullscreen/unfullscreen), matching
+ * Openbox's own @c client_configure (@c client.c): builds the
+ * correctly ordered values array @c xcb_configure_window itself
+ * requires from whichever @c XCB_CONFIG_WINDOW_* bits @p mask sets,
+ * rather than each caller building that same array by hand.  See the
+ * full reasoning in @c cmds/client/geom.c, right above the
+ * implementation.
+ *
+ * @param client       Client whose target window to configure
+ * @param target       Window to configure; @a ccmd_target_win's own
+ *                      result
+ * @param mask         Bitwise OR of whichever @c XCB_CONFIG_WINDOW_X/
+ *                      @c _Y/@c _WIDTH/@c _HEIGHT/@c _BORDER_WIDTH
+ *                      bits are actually changing
+ * @param x            New X position, only applied if @c XCB_CONFIG_
+ *                      WINDOW_X is set in @p mask
+ * @param y            New Y position, only applied if @c XCB_CONFIG_
+ *                      WINDOW_Y is set in @p mask
+ * @param w            New width, only applied if @c XCB_CONFIG_
+ *                      WINDOW_WIDTH is set in @p mask
+ * @param h            New height, only applied if @c XCB_CONFIG_
+ *                      WINDOW_HEIGHT is set in @p mask
+ * @param border_width New native border width, only applied if @c
+ *                      XCB_CONFIG_WINDOW_BORDER_WIDTH is set in
+ *                      @p mask
+ *
+ * @note A null @p client, one with no connection, or a @c XCB_WINDOW_
+ *       NONE @p target is a silent no-op
+ * @note Implemented in @c cmds/client/geom.c
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_apply_geometry(client_td *client, xcb_window_t target,
+        uint16_t mask, int32_t x, int32_t y, uint32_t w, uint32_t h,
+        uint32_t border_width);
+
+/**
  * @brief Move the client to a new position
  *
  * @param client Window to move

@@ -388,9 +388,26 @@ void handler_unmap_notify(xcb_connection_t *connection,
             client->ignore.unmap++;
             xcb_unmap_window(client->connection, client->titlebar);
         }
+        /* 'properties.state' itself, not just the published EWMH
+         * property, must also stop claiming fullscreen here: a
+         * fullscreen client that withdraws itself this way previously
+         * had only its own '_NET_WM_STATE_FULLSCREEN' atom stripped
+         * from the property below, with nothing here ever touching
+         * 'properties.state' itself, silently leaving the two
+         * disagreeing with each other from then on.  Reset to plain
+         * normal specifically, not iconified: 'client_hide' just
+         * above already marks 'CLIENT_FLAG_HIDDEN', which alone is
+         * enough for 'ccmd_client_sync_states' (cmds/client/ewmh.c)
+         * to correctly still publish '_NET_WM_STATE_HIDDEN' below;
+         * claiming 'CLIENT_STATE_ICONIFIED' here instead would make
+         * 'client_is_iconified' true for a client the window manager
+         * itself never actually iconified, with consequences well
+         * beyond this one property (the whole transient-family
+         * iconify/restore cascade among them). */
+        client->properties.state = CLIENT_STATE_NORMAL;
+
         ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
-        ccmd_rem_states(client, 1, "_NET_WM_STATE_FULLSCREEN");
-        ccmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+        ccmd_client_sync_states(client);
         /* 'wm_outdate_client'/'_surface'/'_desktop' directly, not
          * 'wm_request_client_redraw': 'surface' and 'desktop' are
          * already resolved locally above (from the same

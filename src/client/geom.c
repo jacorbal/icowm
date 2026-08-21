@@ -36,6 +36,9 @@
 #include <config.h>
 #include <wm.h>
 
+/* Command includes */
+#include <cmds/client/geom.h>
+
 /* Local includes */
 #include <client/internal.h>
 
@@ -366,20 +369,20 @@ void client_decoration_layout_sync(client_td *client)
         ? (uint16_t) (client->layout.geometry.cur.dim.h - top - bottom)
         : WM_MIN_WINDOW_DIMENSION;
 
-    xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-            (const uint32_t[]) {
-                left, top, inner_w, inner_h
-            });
+    ccmd_client_apply_geometry(client, client->window,
+            (uint16_t) XCB_CONFIG_WINDOW_X |
+                (uint16_t) XCB_CONFIG_WINDOW_Y |
+                (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
+            left, top, inner_w, inner_h, 0u);
 
     if (client->titlebar != 0) {
-        xcb_configure_window(client->connection, client->titlebar,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                (const uint32_t[]) {
-                    left, title_y, inner_w, title_h
-                });
+        ccmd_client_apply_geometry(client, client->titlebar,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                    (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                    (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
+                left, title_y, inner_w, title_h, 0u);
     }
 
     /* Force the reparented client area to repaint immediately after the
@@ -685,8 +688,9 @@ int ci_create_decorations(client_td *client)
             client->frame,
             (int16_t) left, (int16_t) top);
 
-    xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_BORDER_WIDTH, (const uint32_t[]) {0});
+    ccmd_client_apply_geometry(client, client->window,
+            (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
+            0, 0, 0u, 0u, 0u);
 
     /* Passive grab: selected button, any modifier, SYNC pointer mode.
      * With 'owner_events=0' button presses on the frame or any of its

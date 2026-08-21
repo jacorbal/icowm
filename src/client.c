@@ -40,6 +40,7 @@
 
 /* Command includes */
 #include <cmds/client/basic.h>
+#include <cmds/client/geom.h>
 
 /* Default initial values */
 #include <defs/config.h>
@@ -305,9 +306,9 @@ void client_border_apply(client_td *client, bool use_active_style)
 
     xcb_change_window_attributes(client->connection, client->window,
             XCB_CW_BORDER_PIXEL, &color);
-    xcb_configure_window(client->connection, client->window,
-            XCB_CONFIG_WINDOW_BORDER_WIDTH,
-            (const uint32_t[]) { width });
+    ccmd_client_apply_geometry(client, client->window,
+            (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
+            0, 0, 0u, 0u, width);
     atom_set_window_opacity(client->connection, client->window,
             config_theme_opacity_to_raw(opacity_percent));
 }
@@ -1117,10 +1118,10 @@ client_td *client_init(xcb_connection_t *connection,
 
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
             client->ewmh != NULL) {
-        ccmd_add_states(client, 3,
-                "_NET_WM_STATE_STICKY",
-                "_NET_WM_STATE_SKIP_TASKBAR",
-                "_NET_WM_STATE_SKIP_PAGER");
+        client_pin(client);
+        client_skip_taskbar(client);
+        client_skip_pager(client);
+        ccmd_client_sync_states(client);
     }
 
     /* Read the pre-existing '_NET_WM_STATE' property; see the sibling

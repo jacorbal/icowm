@@ -443,9 +443,16 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_FULLSCREEN:
-            /* No 'client_is_resizable' gate, unlike maximize above;
-             * see 'ccmd_client_fullscreen''s own comment for why
-             * fullscreen is deliberately exempt from it. */
+            /* Blocks entering, the same as maximize above, but not
+             * exiting: a client already fullscreen through its own
+             * EWMH request stays exitable here regardless of its own
+             * resizable flag, the one case 'ccmd_client_fullscreen'
+             * itself (cmds/client/state.c) still leaves ungated on
+             * purpose. */
+            if (!client_is_resizable(client) &&
+                    !client_is_fullscreen(client)) {
+                return;
+            }
             enact_client_toggle_fullscreen(client);
             return;
 

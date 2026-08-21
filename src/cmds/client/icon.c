@@ -53,6 +53,7 @@
 
 /* Local includes */
 #include <cmds/client/basic.h>
+#include <cmds/client/geom.h>
 #include <cmds/client/internal.h>
 
 
@@ -171,11 +172,10 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
     client->icon_pos.y = (int16_t) icon_pos.y;
 
     if (client->connection != NULL) {
-        const uint32_t vals[2] = {
-            (uint32_t) icon_pos.x, (uint32_t) icon_pos.y };
-
-        xcb_configure_window(client->connection, client->icon_window,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+        ccmd_client_apply_geometry(client, client->icon_window,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y,
+                icon_pos.x, icon_pos.y, 0u, 0u, 0u);
     }
 }
 
@@ -358,11 +358,9 @@ void ccmd_client_ensure_icon_window(client_td *client,
                 mask, values);
     } else {
         /* Re-map at the saved position (may have been dragged) */
-        xcb_configure_window(client->connection, client->icon_window,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-                (const uint32_t[]) {
-                (uint32_t) client->icon_pos.x,
-                (uint32_t) client->icon_pos.y
-                });
+        ccmd_client_apply_geometry(client, client->icon_window,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y,
+                client->icon_pos.x, client->icon_pos.y, 0u, 0u, 0u);
     }
 }

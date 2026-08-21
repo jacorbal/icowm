@@ -271,11 +271,10 @@ static void s_handle_wm_state_atom(client_td *client,
     if (is_modal) {
         if (s_wm_state_resolve_add(action, client_is_modal(client))) {
             client_mark_modal(client);
-            ccmd_add_states(client, 1, "_NET_WM_STATE_MODAL");
         } else {
             client_unmark_modal(client);
-            ccmd_rem_states(client, 1, "_NET_WM_STATE_MODAL");
         }
+        ccmd_client_sync_states(client);
         return;
     }
 }
@@ -721,7 +720,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                 changed_hidden_state = true;
                 ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL,
                         XCB_NONE);
-                ccmd_rem_states(client, 1, "_NET_WM_STATE_HIDDEN");
+                ccmd_client_sync_states(client);
             }
             node = cdlist_next(node);
         } while (node != NULL && node != initial);
@@ -748,7 +747,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                 changed_hidden_state = true;
                 ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC,
                         XCB_NONE);
-                ccmd_add_states(client, 1, "_NET_WM_STATE_HIDDEN");
+                ccmd_client_sync_states(client);
             }
             node = cdlist_next(node);
         } while (node != NULL && node != initial);

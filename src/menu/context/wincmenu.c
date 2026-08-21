@@ -852,17 +852,30 @@ void wincmenu_show(xcb_connection_t *connection,
                 client_is_fullscreen(client));
     ++n;
 
-    /* Never disabled, unlike maximize above: fullscreen is a
-     * WM-forced override of the client's own preferred geometry, not
-     * a user-convenience resize the client's own fixed size hints
-     * (client_is_resizable) have any say over; see
-     * 'ccmd_client_fullscreen''s own comment for the full reasoning. */
+    /* Disabled under the exact same condition as maximize above,
+     * unlike a client's own EWMH request to enter fullscreen itself
+     * (see 'ccmd_client_fullscreen''s own comment, cmds/client/
+     * state.c, for why that path stays unconditional: a fixed-size
+     * DOS-emulation or retro-game window legitimately requests its
+     * own fullscreen via alt+enter regardless of its own resizable
+     * flag).  This is a different question: whether the window
+     * manager's own user-facing fullscreen offer -- this very menu
+     * entry, matched by every keybinding and decoration button that
+     * also call 'ccmd_client_fullscreen' directly -- makes any sense
+     * to present at all for a client with no legitimate reason to
+     * ever cover the whole screen, a fixed-size confirmation dialog
+     * ("Are you sure you want to delete this file?") foremost among
+     * them: nothing about entering fullscreen from here overrides
+     * 'client_is_resizable' the way the client's own EWMH request
+     * does, so a client that can never resize itself gains nothing
+     * from it either way. */
     s_entry_command(&s_entries[n],
             (client_is_fullscreen(client))
                 ? _(STR_WINCMENU_UNFULLSCREEN)
                 : _(STR_WINCMENU_FULLSCREEN_ENTER),
             s_cb_send_action,
-            (void *) (intptr_t) ACTION_CLIENT_TOGGLE_FULLSCREEN, false);
+            (void *) (intptr_t) ACTION_CLIENT_TOGGLE_FULLSCREEN,
+            !client_is_resizable(client) && !client_is_fullscreen(client));
     ++n;
 
     s_entry_command(&s_entries[n],

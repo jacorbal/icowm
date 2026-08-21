@@ -79,6 +79,16 @@ typedef struct {
                                      changed in this drag */
     bool resize_h;              /**< Resize: height is actively being
                                      changed in this drag */
+    bool move_x_locked;         /**< Move: X position pinned to its
+                                     starting value for the whole drag
+                                     (a horizontally-maximized client's
+                                     width already fills its own
+                                     workarea, leaving no valid X but
+                                     the one it started at) */
+    bool move_y_locked;         /**< Move: Y position pinned to its
+                                     starting value for the whole drag
+                                     (a vertically-maximized client's
+                                     own analogous case) */
     xcb_window_t overlay_window;/**< Centered feedback overlay window */
     bool overlay_is_icon;       /**< Overlay belongs to icon drag */
     char overlay_text[32];      /**< Current overlay text */

@@ -157,10 +157,7 @@ static void s_ccmd_client_restore_one(client_td *client)
     xcb_delete_property(client->connection, client->window,
             icon_geom_atom);
 
-    ccmd_rem_states(client, 3,
-            "_NET_WM_STATE_HIDDEN",
-            "_NET_WM_STATE_MAXIMIZED_HORZ",
-            "_NET_WM_STATE_MAXIMIZED_VERT");
+    ccmd_client_sync_states(client);
 
     /* Re-enter whichever state this client was in right before it was
      * iconified (see 'pre_iconify_state''s own comment in client.h and
@@ -517,7 +514,8 @@ void ccmd_client_focus(client_td *client)
     }
 
     /* EWMH: advertise keyboard focus via '_NET_WM_STATE_FOCUSED' */
-    ccmd_add_states(client, 1, "_NET_WM_STATE_FOCUSED");
+    client_focus_mark(client);
+    ccmd_client_sync_states(client);
 
     xcb_map_window(client->connection, client->window);
     /* 'client_border_apply' ('client.h') preserves this same condition
@@ -563,7 +561,8 @@ void ccmd_client_unfocus(client_td *client)
     }
 
     /* EWMH: clear '_NET_WM_STATE_FOCUSED' when the window loses focus */
-    ccmd_rem_states(client, 1, "_NET_WM_STATE_FOCUSED");
+    client_unfocus_mark(client);
+    ccmd_client_sync_states(client);
 
     client_unfocus(client);
 

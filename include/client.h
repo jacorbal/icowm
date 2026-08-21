@@ -159,7 +159,29 @@ enum window_flags_e {
      */
     CLIENT_FLAG_NO_FOCUS_FALLBACK = 1 << 13,
 
-    CLIENT_FLAG_MAX = 14,
+    /**
+     * @brief This client currently holds real X11 input focus
+     *
+     * Set by @a ccmd_client_focus itself (@c cmds/client/focus.c),
+     * cleared by @a ccmd_client_unfocus, right alongside the real
+     * focus grant/revocation each one performs, rather than derived
+     * on demand from @c desktop->client_active_id: unlike every other
+     * flag in this @c enum, "is this the desktop's own active client"
+     * needs an external lookup (which desktop, and whether that
+     * desktop's own bookkeeping has actually been updated yet by
+     * whichever caller is in the middle of granting focus right now)
+     * that the other, genuinely self-contained flags never do, and
+     * that external dependency is exactly the kind of fragility
+     * @a ccmd_client_sync_states (@c cmds/client/ewmh.c) is built to
+     * avoid: every @c _NET_WM_STATE atom it publishes reads directly
+     * off @p client's own fields, this one included, with nothing
+     * else to go stale or disagree with it.
+     *
+     * @see @a client_is_focused below
+     */
+    CLIENT_FLAG_FOCUSED = 1 << 14,
+
+    CLIENT_FLAG_MAX = 15,
 };
 
 
@@ -1315,6 +1337,19 @@ void client_props_refresh_normal_hints(client_td *client);
     ((w)->properties.flags & CLIENT_FLAG_SHADED)
 
 /**
+ * @brief Macro that evaluates to whether this client currently holds
+ *        real X11 input focus
+ *
+ * @see @c CLIENT_FLAG_FOCUSED's own doc comment above for why this is
+ *      its own tracked flag rather than derived from @c desktop->
+ *      client_active_id on demand
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_focused(w) \
+    ((w)->properties.flags & CLIENT_FLAG_FOCUSED)
+
+/**
  * @brief Macro that evaluates to the client pinned flag
  *
  * @note Complexity: @e O(1)
@@ -1463,6 +1498,25 @@ void client_props_refresh_normal_hints(client_td *client);
 #define client_unlock(w) \
     safeflg_unset(&((w)->properties.flags), \
             CLIENT_FLAG_LOCKED, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that marks a client as currently holding real X11
+ *        input focus
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_focus_mark(w) \
+    safeflg_set(&((w)->properties.flags), \
+            CLIENT_FLAG_FOCUSED, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that clears a client's own currently-focused flag
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_unfocus_mark(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            CLIENT_FLAG_FOCUSED, (1 << CLIENT_FLAG_MAX))
 
 /**
  * @brief Macro that evaluates to the locked flag of a client

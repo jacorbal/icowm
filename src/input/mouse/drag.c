@@ -86,6 +86,8 @@ drag_state_td s_drag = {
     .anchor_bottom = false,
     .resize_w = false,
     .resize_h = false,
+    .move_x_locked = false,
+    .move_y_locked = false,
     .overlay_window = XCB_WINDOW_NONE,
     .overlay_is_icon = false,
     .overlay_text = {'\0'},
@@ -262,6 +264,21 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         s_drag.resize_w = false;
         s_drag.resize_h = false;
     }
+
+    /* A client maximized on just one axis has nothing valid to move
+     * to on that axis: its own width (horizontally maximized) or
+     * height (vertically maximized) already fills the whole
+     * workarea, the same reasoning 'drag_start_resize_axis_locked'
+     * already applies to resizing that same axis.  Set here,
+     * unconditionally, rather than via a second wrapper function
+     * mirroring that one: every move-start call site already passes
+     * 'client' itself, so its own current maximize state can be read
+     * directly right here instead of requiring each one to resolve
+     * and pass it through explicitly. */
+    s_drag.move_x_locked = operation == CLIENT_OPERATION_MOVING &&
+        client_is_maximized_horz(client);
+    s_drag.move_y_locked = operation == CLIENT_OPERATION_MOVING &&
+        client_is_maximized_vert(client);
 
     client->properties.operation = (uint16_t) operation;
 
@@ -470,6 +487,20 @@ void drag_update(xcb_connection_t *connection,
 
         drag_snap_move(&new_x, &new_y,
                 s_drag.client_start.dim.w, s_drag.client_start.dim.h);
+
+        /* A client maximized on just one axis has nothing valid to
+         * move to on that axis at all: its own width (horizontally
+         * maximized) or height (vertically maximized) already fills
+         * the whole workarea, so the one position that still fits is
+         * the one it started this drag at.  Pinned after snapping,
+         * not before, so nothing above can nudge it away from that
+         * exact starting value regardless. */
+        if (s_drag.move_x_locked) {
+            new_x = s_drag.client_start.pos.x;
+        }
+        if (s_drag.move_y_locked) {
+            new_y = s_drag.client_start.pos.y;
+        }
 
         s_drag.client_cur.pos.x = new_x;
         s_drag.client_cur.pos.y = new_y;

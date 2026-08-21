@@ -34,7 +34,6 @@
 /* ADT includes */
 #include <adt/cdlist.h>
 #include <adt/ohtbl.h>
-#include <adt/queue.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
@@ -387,68 +386,59 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
 /**
  * @brief Raise every transient descendant of a client along with it
  *
- * Breadth-first search through @p desktop's own stacking order: any
- * client whose own @c transient_for names @p client's window is
- * raised right after it, then the search continues from each of
- * those in turn, so a chain of dialogs (a dialog's own dialog, and
- * so on) rises together rather than only the direct child.
+ * Walks @p client's own @c transients tree directly (see its own doc
+ * comment, client.h), depth-first, rather than scanning @p desktop's
+ * own entire stacking order comparing raw @c transient_for window
+ * IDs the way this function used to: a chain of dialogs (a dialog's
+ * own dialog, and so on) rises together the same as before, just by
+ * following real pointers now instead of rediscovering the
+ * relationship from scratch on every call.
+ *
+ * Scoped to @p desktop, the same as before: a descendant registered
+ * under some other desktop (a pinned parent's own un-pinned dialog,
+ * say, still on whichever desktop it was originally created on; see
+ * @a ccmd_client_bring_family's own doc comment, cmds/client/
+ * transient.c, for the fuller reasoning) is left untouched here,
+ * since @a s_desktop_client_send_to_end itself only ever reorders
+ * @p desktop's own stacking list.
  *
  * @param desktop Desktop whose stacking order is searched and updated
- * @param client Client whose transient descendants get raised too
+ * @param client  Client whose transient descendants get raised too
+ * @param depth   Current recursion depth; the caller's own first
+ *                call always passes @c 0
  *
- * @note Bounded by @p desktop's own total client count, so a
- *       @c transient_for cycle (a misbehaving client announcing
- *       itself, directly or indirectly, transient for its own
- *       descendant) can never loop indefinitely; the bound alone is
- *       enough to guarantee termination, so no separate visited set
- *       is needed on top of it
- * @note Complexity: @e O(n ^ 2), where @e n is the number of clients
- *       on @p desktop
+ * @note A null @p client, one with no @c transients at all, or
+ *       exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH, is a silent no-op
+ * @note Complexity: @e O(f), where @e f is the number of @p client's
+ *       own transient descendants, at every depth combined, sharing
+ *       @p desktop with it
  */
 static void s_desktop_transients_raise(desktop_td *desktop,
-        const client_td *client)
+        client_td *client, uint32_t depth)
 {
-    queue_td *pending;
-    size_t max_iterations;
-    size_t processed;
+    cdlist_item_td *node;
+    const cdlist_item_td *initial;
 
-    pending = queue_init(NULL);
-    if (pending == NULL) {
+    if (client == NULL || client->transients == NULL ||
+            depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
         return;
     }
 
-    max_iterations = cdlist_size(desktop->stacking);
-    processed = 0;
-    (void) queue_enqueue(pending, client);
-
-    while (!queue_is_empty(pending) && processed < max_iterations) {
-        void *data;
-        const client_td *parent;
-        cdlist_item_td *node;
-        const cdlist_item_td *initial;
-
-        (void) queue_dequeue(pending, &data);
-        parent = (client_td *) data;
-        ++processed;
-
-        node = cdlist_head(desktop->stacking);
-        if (node == NULL) {
-            continue;
-        }
-        initial = node;
-        do {
-            client_td *const candidate = (client_td *) cdlist_data(node);
-            if (candidate != NULL &&
-                    candidate->transient_for == parent->window) {
-                (void) s_desktop_client_send_to_end(desktop, candidate,
-                        true);
-                (void) queue_enqueue(pending, candidate);
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+    node = cdlist_head(client->transients);
+    initial = node;
+    if (node == NULL) {
+        return;
     }
 
-    queue_destroy(pending);
+    do {
+        client_td *const child = (client_td *) cdlist_data(node);
+
+        if (child != NULL && child->desktop_id == desktop->id) {
+            (void) s_desktop_client_send_to_end(desktop, child, true);
+            s_desktop_transients_raise(desktop, child, depth + 1);
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
 }
 
 
@@ -462,7 +452,7 @@ int desktop_action_client_send_front(desktop_td *desktop,
 
     status = s_desktop_client_send_to_end(desktop, client, true);
     if (status == 0) {
-        s_desktop_transients_raise(desktop, client);
+        s_desktop_transients_raise(desktop, client, 0);
     }
 
     return status;

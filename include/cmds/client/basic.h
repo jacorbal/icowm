@@ -378,6 +378,29 @@ void ccmd_add_states(client_td *client, uint32_t num_states, ...);
 void ccmd_rem_states(client_td *client, uint32_t num_states, ...);
 
 /**
+ * @brief Republish every @c _NET_WM_STATE atom a client currently
+ *        holds, read straight off its own fields, in one single XCB
+ *        write
+ *
+ * Openbox's own real answer to keeping @c _NET_WM_STATE in sync
+ * (confirmed directly against its source, @c client_change_state in
+ * @c client.c): rebuild the whole list from scratch every time, from
+ * whichever of the client's own boolean fields are true right now,
+ * rather than reading the property back first to add or remove one
+ * specific atom.  See the full reasoning in @c cmds/client/ewmh.c,
+ * right above the implementation, for exactly how each atom maps to
+ * @p client's own fields.
+ *
+ * @param client Client whose current state to republish
+ *
+ * @note A null @p client or one with no @c ewmh connection is a
+ *       silent no-op
+ * @note Implemented in @c cmds/client/ewmh.c
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_sync_states(client_td *client);
+
+/**
  * @brief Walk down from a client to whichever mapped transient
  *        descendant should actually receive focus in its place
  *
