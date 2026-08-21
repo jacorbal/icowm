@@ -112,8 +112,8 @@ void drag_overlay_show(xcb_connection_t *connection,
 
     (void) text_renderer_init(connection,
             (is_icon)
-                ? s_drag.client->theme->icon.active.font
-                : s_drag.client->theme->window.active.font);
+                ? s_drag.client->config->theme.icon.active.font
+                : s_drag.client->config->theme.window.active.font);
     text_w = text_string_measure(s_drag.overlay_text);
     overlay_geom.dim.w = (uint16_t)
         (text_w + 2u * WM_DRAG_OVERLAY_PAD_X);
@@ -132,11 +132,11 @@ void drag_overlay_show(xcb_connection_t *connection,
         create_mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
             XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
         create_values[0] = (is_icon)
-            ? s_drag.client->theme->icon.active.color.background
-            : s_drag.client->theme->window.active.color.background;
+            ? s_drag.client->config->theme.icon.active.color.background
+            : s_drag.client->config->theme.window.active.color.background;
         create_values[1] = (is_icon)
-            ? s_drag.client->theme->icon.active.border.color
-            : s_drag.client->theme->window.active.border.color;
+            ? s_drag.client->config->theme.icon.active.border.color
+            : s_drag.client->config->theme.window.active.border.color;
         create_values[2] = 1u;
         create_values[3] = XCB_EVENT_MASK_EXPOSURE;
 
@@ -196,21 +196,21 @@ void drag_overlay_repaint(xcb_connection_t *connection)
 
     if (connection == NULL ||
             s_drag.overlay_window == XCB_WINDOW_NONE ||
-            s_drag.client == NULL || s_drag.client->theme == NULL ||
+            s_drag.client == NULL || s_drag.client->config == NULL ||
             s_drag.overlay_text[0] == '\0') {
         return;
     }
 
     if (s_drag.overlay_is_icon) {
-        bg = s_drag.client->theme->icon.active.color.background;
-        fg = s_drag.client->theme->icon.active.color.foreground;
-        border = s_drag.client->theme->icon.active.border.color;
-        font_name = s_drag.client->theme->icon.active.font;
+        bg = s_drag.client->config->theme.icon.active.color.background;
+        fg = s_drag.client->config->theme.icon.active.color.foreground;
+        border = s_drag.client->config->theme.icon.active.border.color;
+        font_name = s_drag.client->config->theme.icon.active.font;
     } else {
-        bg = s_drag.client->theme->window.active.color.background;
-        fg = s_drag.client->theme->window.active.color.foreground;
-        border = s_drag.client->theme->window.active.border.color;
-        font_name = s_drag.client->theme->window.active.font;
+        bg = s_drag.client->config->theme.window.active.color.background;
+        fg = s_drag.client->config->theme.window.active.color.foreground;
+        border = s_drag.client->config->theme.window.active.border.color;
+        font_name = s_drag.client->config->theme.window.active.font;
     }
 
     xcb_change_window_attributes(connection, s_drag.overlay_window,

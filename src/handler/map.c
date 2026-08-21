@@ -175,9 +175,7 @@ void handler_map_request(const wm_td *wm,
         return;
     }
 
-    client = client_init(connection, ewmh,
-            event->window, &config->theme, &config->base,
-            &config->a11y);
+    client = client_init(connection, ewmh, event->window, config);
     if (client == NULL) {
         s_map_unmanaged(connection, event->window);
         return;
@@ -219,13 +217,13 @@ void handler_map_request(const wm_td *wm,
 
     /* Dock/panel windows self-position; do not override their geometry */
     if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK &&
-            !client->rule_position_locked) {
+            !client->has_rule_position_locked) {
         place_window_apply(wm, surface, client);
     }
 
     /* ICCCM §4.1.2.4: honor 'WM_HINTS' 'initial_state' when
      * 'IconicState' */
-    if (client->initial_iconic) {
+    if (client->hints_icccm.hints.is_initial_iconic) {
         ccmd_client_iconify(client);
     } else {
         if (client->titlebar != 0) {
@@ -270,30 +268,30 @@ void handler_map_request(const wm_td *wm,
         xcb_clear_area(connection, 1, client->window, 0, 0, 0, 0);
 
         /* EWMH's own correct way for a client to request fullscreen
-         * from the outset (see 'initial_fullscreen''s own doc comment,
-         * client.h) rather than waiting for a 'ClientMessage' after
-         * mapping.  Deliberately last in this whole block, after the
-         * synthetic 'ConfigureNotify' just above: 'ccmd_client_fullscreen'
-         * sends its own with the true fullscreen geometry, and sending
-         * the ordinary one afterward would tell the client its old,
-         * pre-fullscreen position and size right after telling it the
-         * correct one. */
-        if (client->initial_fullscreen) {
+         * from the outset (see 'hints_ewmh.initial_state''s own doc
+         * comment, client.h) rather than waiting for a 'ClientMessage'
+         * after mapping.  Deliberately last in this whole block, after
+         * the synthetic 'ConfigureNotify' just above:
+         * 'ccmd_client_fullscreen' sends its own with the true
+         * fullscreen geometry, and sending the ordinary one afterward
+         * would tell the client its old, pre-fullscreen position and
+         * size right after telling it the correct one. */
+        if (client->hints_ewmh.initial_state.is_fullscreen) {
             ccmd_client_fullscreen(client);
-        } else if (client->initial_maximized_horz &&
-                client->initial_maximized_vert) {
-            /* Same reasoning as 'initial_fullscreen' just above, for
+        } else if (client->hints_ewmh.initial_state.is_maximized_horz &&
+                client->hints_ewmh.initial_state.is_maximized_vert) {
+            /* Same reasoning as 'is_fullscreen' just above, for
              * the same EWMH pre-existing-state mechanism applied to
-             * 'initial_maximized_horz'/'_vert' (client.h) instead; a
+             * 'is_maximized_horz'/'_vert' (client.h) instead; a
              * client requesting both at once is maximized on both
              * axes together, one call, rather than two in sequence
              * each sending its own synthetic 'ConfigureNotify' for an
              * intermediate, single-axis geometry the client never
              * actually asked for. */
             ccmd_client_maximize(client);
-        } else if (client->initial_maximized_horz) {
+        } else if (client->hints_ewmh.initial_state.is_maximized_horz) {
             ccmd_client_maximize_horz(client);
-        } else if (client->initial_maximized_vert) {
+        } else if (client->hints_ewmh.initial_state.is_maximized_vert) {
             ccmd_client_maximize_vert(client);
         }
     }
@@ -341,14 +339,14 @@ void handler_unmap_notify(xcb_connection_t *connection,
             &surface, &desktop);
     if (client != NULL) {
         if (event->window != client->window) {
-            if (client->ignore_unmap > 0) {
-                client->ignore_unmap--;
+            if (client->ignore.unmap > 0) {
+                client->ignore.unmap--;
             }
             return;
         }
 
-        if (client->ignore_unmap > 0) {
-            client->ignore_unmap--;
+        if (client->ignore.unmap > 0) {
+            client->ignore.unmap--;
             return;
         }
 
@@ -363,11 +361,11 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * ghost frame */
         client_hide(client);
         if (client->frame != 0) {
-            client->ignore_unmap++;
+            client->ignore.unmap++;
             xcb_unmap_window(client->connection, client->frame);
         }
         if (client->titlebar != 0) {
-            client->ignore_unmap++;
+            client->ignore.unmap++;
             xcb_unmap_window(client->connection, client->titlebar);
         }
         ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
@@ -453,12 +451,12 @@ void handler_destroy_notify(xcb_connection_t *connection,
          * exited or the app closed without a prior 'UnmapNotify').
          * Immediately destroy the WM-created frame (which takes its
          * titlebar child with it) so no ghost frame is left on screen.
-         * Increment 'ignore_unmap' so the 'UnmapNotify' the X server
+         * Increment 'ignore.unmap' so the 'UnmapNotify' the X server
          * generates for the mapped frame is swallowed and does not
          * re-enter the unmap handler.  Zero both pointers to prevent
          * client_destroy from issuing redundant destroy calls. */
         if (connection != NULL && client->frame != 0) {
-            client->ignore_unmap++;
+            client->ignore.unmap++;
             xcb_destroy_window(connection, client->frame);
             xcb_flush(connection);
         }

@@ -134,11 +134,11 @@ static void s_resync_after_reload(const wm_td *wm)
 
             /* Resize every already-decorated client's frame to match
              * whatever 'window.titlebar.height' and border width the
-             * just-reloaded theme now specifies.  'client->theme' is
-             * a shared pointer into 'wm_config(wm)->theme' that
-             * 'config_load' above already updated in place, so colors,
-             * fonts, and button lists all take effect on their own the
-             * next time each client repaints; only the cached
+             * just-reloaded theme now specifies.  'client->config' is
+             * a shared pointer into 'wm_config(wm)' that 'config_load'
+             * above already updated in place, so colors, fonts, and
+             * button lists all take effect on their own the next time
+             * each client repaints; only the cached
              * 'title_height'/'frame_extents' (and the frame size that
              * has to match them) need this explicit resync, since
              * nothing else re-derives those from the theme on its own
@@ -161,8 +161,8 @@ static void s_resync_after_reload(const wm_td *wm)
                          * changed a color or font, with every dimension
                          * unchanged, would otherwise never repaint
                          * anything already on screen even though
-                         * 'client->theme' itself already points at the
-                         * freshly reloaded values. */
+                         * 'client->config->theme' itself already points
+                         * at the freshly reloaded values. */
                         wm_request_client_redraw(c);
 
                         /* An icon left sitting exactly where the tray
@@ -176,13 +176,13 @@ static void s_resync_after_reload(const wm_td *wm)
                          * comment). */
                         if (tray_visible && c->is_icon_mapped &&
                                 c->icon_window != 0u) {
-                            int16_t icon_x = c->icon_x;
-                            int16_t icon_y = c->icon_y;
+                            int16_t icon_x = c->icon_pos.x;
+                            int16_t icon_y = c->icon_pos.y;
                             uint16_t icon_h = (uint16_t)
                                 WM_ICON_SQUARE_SIZE;
 
-                            if (c->theme != NULL &&
-                                    c->theme->icon.is_captioned) {
+                            if (c->config != NULL &&
+                                    c->config->theme.icon.is_captioned) {
                                 icon_h = (uint16_t) (icon_h +
                                         (uint16_t)
                                         WM_ICON_CAPTION_HEIGHT);
@@ -196,8 +196,8 @@ static void s_resync_after_reload(const wm_td *wm)
                                         &d->workarea)) {
                                 uint32_t vals[2];
 
-                                //c->icon_x = icon_x;   /* 'tis a no-op */
-                                c->icon_y = icon_y;
+                                //c->icon_pos.x = icon_x; /* 'tis a no-op */
+                                c->icon_pos.y = icon_y;
                                 vals[0] = (uint32_t) icon_x;
                                 vals[1] = (uint32_t) icon_y;
                                 xcb_configure_window(wm_connection(wm),

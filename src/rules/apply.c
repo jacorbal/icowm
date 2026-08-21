@@ -296,7 +296,7 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
 
         client->layout.geometry.cur.pos.x = x;
         client->layout.geometry.cur.pos.y = y;
-        client->rule_position_locked = true;
+        client->has_rule_position_locked = true;
         set_pos = true;
     }
 
@@ -472,7 +472,7 @@ bool rules_apply(const wm_td *wm, client_td *client,
              * frame's own separate 'UnmapNotify' never carries
              * 'event->window == client->window', so it needs no
              * token of its own. */
-            client->ignore_unmap += 2u;
+            client->ignore.unmap += 2u;
             xcb_unmap_window(connection, client->window);
             if (client->frame != 0) {
                 xcb_unmap_window(connection, client->frame);

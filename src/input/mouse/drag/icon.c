@@ -125,12 +125,12 @@ bool drag_is_icon_drag(void)
 /* Return the full icon-window height for a dragged client */
 uint16_t drag_icon_height(const client_td *client)
 {
-    if (client == NULL || client->theme == NULL) {
+    if (client == NULL || client->config == NULL) {
         return (uint16_t) WM_ICON_SQUARE_SIZE;
     }
 
     return (uint16_t) (WM_ICON_SQUARE_SIZE +
-            ((client->theme->icon.is_captioned)
+            ((client->config->theme.icon.is_captioned)
                 ? WM_ICON_CAPTION_HEIGHT
                 : 0u));
 }

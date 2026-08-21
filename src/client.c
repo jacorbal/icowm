@@ -91,16 +91,12 @@ static void s_client_heap_fields_release(client_td *client)
  * @param client        Client structure to initialize
  * @param connection    XCB connection
  * @param ewmh          EWMH connection
- * @param theme         Theme configuration
- * @param config_base   Base configuration
- * @param a11y          Accessibility (a11y) configuration
+ * @param config        Shared base/theme/a11y configuration
  */
 static void s_client_init_common(client_td *client,
         xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
-        struct config_theme_s *theme,
-        const struct config_base_s *config_base,
-        const struct config_a11y_s *a11y)
+        const config_td *config)
 {
     if (client == NULL) {
         return;
@@ -108,16 +104,14 @@ static void s_client_init_common(client_td *client,
 
     client->connection = connection;
     client->ewmh = ewmh;
-    client->theme = theme;
-    client->config_base = config_base;
-    client->a11y = a11y;
+    client->config = config;
     client->process.pid = -1;
-    client->wm_input_hint = true;
-    client->icon_x = -1;
-    client->icon_y = -1;
+    client->hints_icccm.hints.has_input_hint = true;
+    client->icon_pos.x = -1;
+    client->icon_pos.y = -1;
     client->layout.gravity =
-        (uint16_t) ((config_base != NULL)
-                ? config_base->windows.gravity
+        (uint16_t) ((config != NULL)
+                ? config->base.windows.gravity
                 : CONFIG_GRAVITY_NORTH_WEST);
     client->properties.flags =
         CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_RESIZABLE;
@@ -130,7 +124,7 @@ static void s_client_init_common(client_td *client,
      * once, regardless of what that value turns out to be
      * (vid. 'ri_render_client' in 'render/desktop.c') */
     client->last_border_width = UINT32_MAX;
-    ci_set_decoration_defaults(client, theme);
+    ci_set_decoration_defaults(client);
 }
 
 
@@ -179,9 +173,10 @@ void client_destroy(client_td *client)
      * connection (unlike the counter it watches, which belongs to the
      * client and is not ours to destroy), so it is not freed
      * automatically when the client window above is destroyed */
-    if (client->connection != NULL && client->sync_alarm != 0u) {
+    if (client->connection != NULL &&
+            client->hints_ewmh.sync.alarm != 0u) {
         xcb_sync_destroy_alarm(client->connection,
-                (xcb_sync_alarm_t) client->sync_alarm);
+                (xcb_sync_alarm_t) client->hints_ewmh.sync.alarm);
     }
 
     /* Destroy decorations if any */
@@ -265,7 +260,7 @@ void client_border_apply(client_td *client, bool use_active_style)
     uint8_t opacity_percent;
 
     if (client == NULL || client->connection == NULL ||
-            client->theme == NULL || client_is_fullscreen(client) ||
+            client->config == NULL || client_is_fullscreen(client) ||
             (client_is_decorated(client) && client->frame != 0)) {
         return;
     }
@@ -274,30 +269,28 @@ void client_border_apply(client_td *client, bool use_active_style)
         color = client->border_override.color;
         width = client->border_override.width;
     } else if (use_active_style) {
-        color = client->theme->window.active.border.color;
-        width = client->theme->window.active.border.width;
+        color = client->config->theme.window.active.border.color;
+        width = client->config->theme.window.active.border.width;
     } else {
-        color = client->theme->window.inactive.border.color;
-        width = client->theme->window.inactive.border.width;
+        color = client->config->theme.window.inactive.border.color;
+        width = client->config->theme.window.inactive.border.width;
     }
 
     if (use_active_style) {
         opacity_percent = (client->opacity_override.is_set_active)
             ? client->opacity_override.active
-            : client->theme->window.active.opacity;
+            : client->config->theme.window.active.opacity;
     } else {
         opacity_percent = (client->opacity_override.is_set_inactive)
             ? client->opacity_override.inactive
-            : client->theme->window.inactive.opacity;
+            : client->config->theme.window.inactive.opacity;
     }
 
     /* Accessibility: never let the focus indicator go thinner than
      * 'a11y.focus-indicator.min-border-width', regardless of
      * what the theme itself specifies */
-    if (client->a11y != NULL &&
-            width < client->a11y->focus_indicator
-                .min_border_width) {
-        width = client->a11y->focus_indicator.min_border_width;
+    if (width < client->config->a11y.focus_indicator.min_border_width) {
+        width = client->config->a11y.focus_indicator.min_border_width;
     }
 
     xcb_change_window_attributes(client->connection, client->window,
@@ -347,12 +340,12 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
     wm_take_focus_atom = atom_intern(connection, "WM_TAKE_FOCUS", true);
     net_wm_ping_atom = atom_intern(connection, "_NET_WM_PING", true);
 
-    client->wm_delete_atom = wm_delete_atom;
-    client->has_wm_delete_window = false;
-    client->wm_take_focus_atom = wm_take_focus_atom;
-    client->has_wm_take_focus = false;
-    client->has_net_wm_ping = false;
-    client->has_net_wm_sync_request = false;
+    client->hints_icccm.protocols.delete_atom = wm_delete_atom;
+    client->hints_icccm.protocols.has_delete = false;
+    client->hints_icccm.protocols.take_focus_atom = wm_take_focus_atom;
+    client->hints_icccm.protocols.has_take_focus = false;
+    client->hints_ewmh.ping.is_supported = false;
+    client->hints_ewmh.sync.is_supported = false;
 
     memset(&proto, 0, sizeof(proto));
     if (xcb_icccm_get_wm_protocols_reply(connection,
@@ -361,13 +354,13 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
                 &proto, NULL)) {
         for (uint32_t pi = 0; pi < proto.atoms_len; ++pi) {
             if (proto.atoms[pi] == wm_delete_atom) {
-                client->has_wm_delete_window = true;
+                client->hints_icccm.protocols.has_delete = true;
             } else if (proto.atoms[pi] == wm_take_focus_atom) {
-                client->has_wm_take_focus = true;
+                client->hints_icccm.protocols.has_take_focus = true;
             } else if (proto.atoms[pi] == net_wm_ping_atom) {
-                client->has_net_wm_ping = true;
+                client->hints_ewmh.ping.is_supported = true;
             } else if (proto.atoms[pi] == ewmh->_NET_WM_SYNC_REQUEST) {
-                client->has_net_wm_sync_request = true;
+                client->hints_ewmh.sync.is_supported = true;
             }
         }
         xcb_icccm_get_wm_protocols_reply_wipe(&proto);
@@ -382,11 +375,11 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
      * after finishing a redraw (see 'ccmd_client_resize' and
      * 'handler_sync_event').  These are unchecked requests, matching
      * the rest of this function, so an unsupported/misbehaving client
-     * or server at worst leaves 'has_net_wm_sync_request' effectively
-     * unusable, not a crash. */
-    client->sync_counter = 0u;
-    client->sync_alarm = 0u;
-    if (client->has_net_wm_sync_request && wm_sync_is_available()) {
+     * or server at worst leaves 'hints_ewmh.sync.is_supported'
+     * effectively unusable, not a crash. */
+    client->hints_ewmh.sync.counter = 0u;
+    client->hints_ewmh.sync.alarm = 0u;
+    if (client->hints_ewmh.sync.is_supported && wm_sync_is_available()) {
         xcb_get_property_cookie_t counter_cookie;
         xcb_get_property_reply_t *counter_reply;
 
@@ -399,16 +392,16 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
             if (counter_reply->format == 32 &&
                     xcb_get_property_value_length(counter_reply) >=
                         (int) sizeof(uint32_t)) {
-                client->sync_counter = *(uint32_t *)
+                client->hints_ewmh.sync.counter = *(uint32_t *)
                     xcb_get_property_value(counter_reply);
             }
             free(counter_reply);
         }
 
-        if (client->sync_counter != 0u) {
+        if (client->hints_ewmh.sync.counter != 0u) {
             uint32_t alarm_values[7];
 
-            client->sync_alarm = xcb_generate_id(connection);
+            client->hints_ewmh.sync.alarm = xcb_generate_id(connection);
             /* Per the XSync value-list order (ascending 'CA_*' bit pos.):
              * 'COUNTER', 'VALUE_TYPE', 'VALUE', 'TEST_TYPE', 'DELTA'.
              * 'VALUE' and 'DELTA' are each a 64-bit 'INT64' (hi-word,
@@ -421,7 +414,8 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
              * every resize silently falls back to only ever applying
              * once every 'WM_SYNC_MAX_WAIT_TICKS' attempts instead of
              * being acknowledged promptly. */
-            alarm_values[0] = client->sync_counter;         /* COUNTER */
+            alarm_values[0] =
+                client->hints_ewmh.sync.counter;         /* COUNTER */
             alarm_values[1] = (uint32_t) XCB_SYNC_VALUETYPE_RELATIVE;
                                                             /* VALUE_TYPE */
             alarm_values[2] = 0u;                           /* VALUE.hi */
@@ -432,7 +426,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
             alarm_values[5] = 0u;                           /* DELTA.hi */
             alarm_values[6] = 1u;                           /* DELTA.lo */
             xcb_sync_create_alarm(connection,
-                    (xcb_sync_alarm_t) client->sync_alarm,
+                    (xcb_sync_alarm_t) client->hints_ewmh.sync.alarm,
                     (uint32_t) (XCB_SYNC_CA_COUNTER |
                             XCB_SYNC_CA_VALUE_TYPE |
                             XCB_SYNC_CA_VALUE |
@@ -441,7 +435,8 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
                     alarm_values);
             LOGGER_DEBUG("Enabled '_NET_WM_SYNC_REQUEST' for" \
                     " window=0x%x (counter=0x%x, alarm=0x%x)", window,
-                    client->sync_counter, client->sync_alarm);
+                    client->hints_ewmh.sync.counter,
+                    client->hints_ewmh.sync.alarm);
         } else {
             /* Client advertised the protocol but never actually set
              * its counter property; treat it as unsupported rather
@@ -450,7 +445,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
                     " '_NET_WM_SYNC_REQUEST' but never set its" \
                     " counter property; treating it as unsupported",
                     window);
-            client->has_net_wm_sync_request = false;
+            client->hints_ewmh.sync.is_supported = false;
         }
     }
 }
@@ -487,14 +482,15 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
                 xcb_icccm_get_wm_hints(connection, window),
                 &wm_hints, NULL)) {
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
-            client->wm_input_hint = (wm_hints.input != 0);
+            client->hints_icccm.hints.has_input_hint =
+                (wm_hints.input != 0);
         }
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_STATE &&
                 wm_hints.initial_state == XCB_ICCCM_WM_STATE_ICONIC) {
-            client->initial_iconic = true;
+            client->hints_icccm.hints.is_initial_iconic = true;
         }
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_WINDOW_GROUP) {
-            client->group_leader = wm_hints.window_group;
+            client->hints_icccm.hints.group_leader = wm_hints.window_group;
         }
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) {
             client_urge(client);
@@ -505,7 +501,7 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
      * the 'WM_HINTS' window group above, to cluster windows belonging
      * to the same application for placement (see 'client_group_leader'
      * and 'place_window_apply') */
-    client->client_leader = XCB_WINDOW_NONE;
+    client->hints_icccm.hints.client_leader = XCB_WINDOW_NONE;
     client_leader_atom = atom_intern(connection, "WM_CLIENT_LEADER", true);
     if (client_leader_atom != XCB_ATOM_NONE) {
         xcb_get_property_reply_t *client_leader_reply;
@@ -519,7 +515,7 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
                     client_leader_reply->format == 32 &&
                     xcb_get_property_value_length(client_leader_reply) >=
                         (int) sizeof(xcb_window_t)) {
-                client->client_leader = *(xcb_window_t *)
+                client->hints_icccm.hints.client_leader = *(xcb_window_t *)
                     xcb_get_property_value(client_leader_reply);
             }
             free(client_leader_reply);
@@ -726,16 +722,16 @@ static void s_client_read_window_type(xcb_connection_t *connection,
  *
  * @param connection XCB connection
  * @param window     Window being adopted
- * @param theme      Active theme, to check @c window.is_decorated
- *                   before honoring a request to turn decorations on
- * @param client     Client being initialized; its decoration flag and
- *                   frame extents may be changed here
+ * @param client     Client being initialized; its decoration flag,
+ *                   frame extents, and own @c config (checked for
+ *                   @c window.is_decorated before honoring a request
+ *                   to turn decorations on) may be used or changed
+ *                   here
  *
  * @note Complexity: @e O(1)
  */
 static void s_client_read_motif_hints(xcb_connection_t *connection,
-        xcb_window_t window, const struct config_theme_s *theme,
-        client_td *client)
+        xcb_window_t window, client_td *client)
 {
     xcb_atom_t motif_hints_atom;
     xcb_get_property_cookie_t motif_ck;
@@ -764,8 +760,8 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
                         client_undecorate(client);
                         client->layout.frame_extents =
                             (struct sides_s) {0, 0, 0, 0};
-                    } else if (theme != NULL &&
-                            theme->window.is_decorated) {
+                    } else if (client->config != NULL &&
+                            client->config->theme.window.is_decorated) {
                         client_decorate(client);
                     }
                 }
@@ -861,11 +857,14 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
                     } else if (atoms[si] == atom_skip_pager) {
                         client_skip_pager(client);
                     } else if (atoms[si] == atom_fullscreen) {
-                        client->initial_fullscreen = true;
+                        client->hints_ewmh.initial_state.is_fullscreen =
+                            true;
                     } else if (atoms[si] == atom_max_horz) {
-                        client->initial_maximized_horz = true;
+                        client->hints_ewmh.initial_state
+                            .is_maximized_horz = true;
                     } else if (atoms[si] == atom_max_vert) {
-                        client->initial_maximized_vert = true;
+                        client->hints_ewmh.initial_state
+                            .is_maximized_vert = true;
                     } else if (atoms[si] == atom_demands_attention) {
                         client_urge(client);
                     }
@@ -879,9 +878,12 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
                                 CLIENT_FLAG_SKIP_TASKBAR) != 0u),
                         (int) ((client->properties.flags &
                                 CLIENT_FLAG_SKIP_PAGER) != 0u),
-                        (int) client->initial_fullscreen,
-                        (int) client->initial_maximized_horz,
-                        (int) client->initial_maximized_vert,
+                        (int) client->hints_ewmh.initial_state
+                            .is_fullscreen,
+                        (int) client->hints_ewmh.initial_state
+                            .is_maximized_horz,
+                        (int) client->hints_ewmh.initial_state
+                            .is_maximized_vert,
                         (int) client_is_urgent(client));
                 free(state_r);
             } /* ! if (!state_r) */
@@ -927,15 +929,15 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
  *
  * @param connection XCB connection
  * @param window     Window being adopted
- * @param theme      Active theme, for the border width; a @c NULL
- *                   theme (or a dock window) gets a zero-width border
- * @param client     Client being initialized, for its @c properties.type
+ * @param client     Client being initialized; its own @c config
+ *                   (checked for the active theme's border width; a
+ *                   @c NULL config or a dock window gets a zero-width
+ *                   border) and @c properties.type are read here
  *
  * @note Complexity: @e O(1)
  */
 static void s_client_events_subscribe(xcb_connection_t *connection,
-        xcb_window_t window, struct config_theme_s *theme,
-        client_td *client)
+        xcb_window_t window, client_td *client)
 {
     uint32_t values[2];
     uint32_t bw[1];
@@ -966,7 +968,8 @@ static void s_client_events_subscribe(xcb_connection_t *connection,
 
     bw[0] = (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK)
         ? 0u
-        : ((theme != NULL) ? theme->window.active.border.width : 0u);
+        : ((client->config != NULL)
+                ? client->config->theme.window.active.border.width : 0u);
     xcb_configure_window(connection, window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, bw);
 
@@ -983,9 +986,7 @@ static void s_client_events_subscribe(xcb_connection_t *connection,
 client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         xcb_window_t window,
-        struct config_theme_s *theme,
-        const struct config_base_s *config_base,
-        const struct config_a11y_s *a11y)
+        const config_td *config)
 {
     client_td *client;
     xcb_get_geometry_reply_t *geom_reply;
@@ -1020,8 +1021,7 @@ client_td *client_init(xcb_connection_t *connection,
         return NULL;
     }
 
-    s_client_init_common(client, connection, ewmh, theme, config_base,
-            a11y);
+    s_client_init_common(client, connection, ewmh, config);
 
     /* Use the X window ID as both window handle and hash/lookup key */
     client->window = window;
@@ -1103,7 +1103,7 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Read '_MOTIF_WM_HINTS': see the sibling function's comment for
      * the full rationale */
-    s_client_read_motif_hints(connection, window, theme, client);
+    s_client_read_motif_hints(connection, window, client);
 
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
             client->ewmh != NULL) {
@@ -1155,7 +1155,7 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Subscribe to events, apply border width, and set the default
      * cursor; see the sibling function's comment for more information */
-    s_client_events_subscribe(connection, window, theme, client);
+    s_client_events_subscribe(connection, window, client);
 
     /* Ignore return value, as decoration creation is non-fatal here */
     (void) ci_create_decorations(client);

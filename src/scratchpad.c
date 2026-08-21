@@ -226,7 +226,7 @@ void scratchpad_notice_client_created(client_td *client)
     client_skip_pager(client);
     ccmd_client_pin(client);
     client->properties.layer = CLIENT_LAYER_ABOVE;
-    client->rule_position_locked = true;
+    client->has_rule_position_locked = true;
 
     /* Removed here, before 'client_lock' below, rather than left for
      * whatever theme default 'ci_create_decorations' (vid. 'client.c')
@@ -250,8 +250,8 @@ void scratchpad_notice_client_created(client_td *client)
 
     /* Set here rather than left to whatever generic window border
      * 'ccmd_client_toggle_decorate' above just configured
-     * (client->theme->window.active/inactive.border, meant for an
-     * ordinary decorated client, not this always-undecorated one):
+     * (client->config->theme.window.active/inactive.border, meant for
+     * an ordinary decorated client, not this always-undecorated one):
      * the scratchpad themes its own border independently
      * ('config_theme_s::scratchpad.border', in 'config.h').
      *
@@ -272,12 +272,12 @@ void scratchpad_notice_client_created(client_td *client)
      * scratchpad launched, not this one still running (see
      * 'config.md''s note on this), since this whole block runs once,
      * right here. */
-    if (client->theme != NULL) {
+    if (client->config != NULL) {
         client->border_override.is_set = true;
         client->border_override.color =
-            client->theme->scratchpad.border.color;
+            client->config->theme.scratchpad.border.color;
         client->border_override.width =
-            client->theme->scratchpad.border.width;
+            client->config->theme.scratchpad.border.width;
         client_border_apply(client, true);
     }
 

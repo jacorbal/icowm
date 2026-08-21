@@ -105,8 +105,8 @@ static void s_drag_outline_place(xcb_connection_t *connection,
             s_drag.outline_windows[i] = xcb_generate_id(connection);
             create_mask = XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT;
             create_values[0] = (s_drag.client != NULL &&
-                    s_drag.client->theme != NULL)
-                ? s_drag.client->theme->window.active.border.color
+                    s_drag.client->config != NULL)
+                ? s_drag.client->config->theme.window.active.border.color
                 : 0u;
             create_values[1] = 1u;
 

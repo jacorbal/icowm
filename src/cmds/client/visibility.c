@@ -128,7 +128,7 @@ void ccmd_client_iconify(client_td *client)
      * below and the '_NET_WM_ICON_GEOMETRY' property published
      * further down */
     icon_h_out = (uint16_t) (WM_ICON_SQUARE_SIZE +
-            ((client->theme->icon.is_captioned)
+            ((client->config->theme.icon.is_captioned)
              ? WM_ICON_CAPTION_HEIGHT
              : 0u));
 
@@ -148,12 +148,12 @@ void ccmd_client_iconify(client_td *client)
      * 'handler_unmap_notify' with 'ignore_unmap' still zero, which
      * that handler reads as the client withdrawing itself rather
      * than the window manager iconifying it. */
-    client->ignore_unmap += 2u;
+    client->ignore.unmap += 2u;
     if (client->titlebar != 0) {
-        client->ignore_unmap += 1u;
+        client->ignore.unmap += 1u;
     }
     if (target != client->window) {
-        client->ignore_unmap += 2u;
+        client->ignore.unmap += 2u;
     }
 
     if (client->titlebar != 0) {
@@ -218,8 +218,8 @@ void ccmd_client_iconify(client_td *client)
 
         /* EWMH §5.9: publish icon geometry on the client window so
          * taskbars can animate the iconify transition */
-        icon_geom[0] = (uint32_t) client->icon_x;
-        icon_geom[1] = (uint32_t) client->icon_y;
+        icon_geom[0] = (uint32_t) client->icon_pos.x;
+        icon_geom[1] = (uint32_t) client->icon_pos.y;
         icon_geom[2] = WM_ICON_SQUARE_SIZE;
         icon_geom[3] = icon_h_out;
         icon_geom_atom = ccmd_intern_atom(client->connection,
@@ -276,12 +276,12 @@ void ccmd_client_hide(client_td *client)
      * 'SubstructureNotify'.  If 'target' is the frame, the content
      * window is also unmapped explicitly below, producing two more
      * events for 'client->window'. */
-    client->ignore_unmap += 2u;
+    client->ignore.unmap += 2u;
     if (client->titlebar != 0) {
-        client->ignore_unmap += 1u;
+        client->ignore.unmap += 1u;
     }
     if (target != client->window) {
-        client->ignore_unmap += 2u;
+        client->ignore.unmap += 2u;
     }
 
     if (client->titlebar != 0) {

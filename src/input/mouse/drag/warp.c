@@ -273,16 +273,16 @@ void drag_warp_tick(xcb_connection_t *connection)
     if (is_icon) {
         uint32_t vals[2];
 
-        show_geom = s_drag.client->config_base != NULL &&
-            s_drag.client->config_base->icons.show_geom;
+        show_geom = s_drag.client->config != NULL &&
+            s_drag.client->config->base.icons.show_geom;
 
         vals[0] = (uint32_t) new_window_x;
         vals[1] = (uint32_t) s_drag.client_cur.pos.y;
         xcb_configure_window(connection, s_drag.client->icon_window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
     } else {
-        show_geom = s_drag.client->config_base != NULL &&
-            s_drag.client->config_base->windows.show_geom;
+        show_geom = s_drag.client->config != NULL &&
+            s_drag.client->config->base.windows.show_geom;
 
         if (s_drag.solid_drag) {
             enact_client_move(s_drag.client,

@@ -415,9 +415,9 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
         gc = xcb_get_geometry(connection, client->icon_window);
         gr = xcb_get_geometry_reply(connection, gc, NULL);
         icon_pos.x = (gr != NULL)
-            ? (int32_t) gr->x : (int32_t) client->icon_x;
+            ? (int32_t) gr->x : (int32_t) client->icon_pos.x;
         icon_pos.y = (gr != NULL)
-            ? (int32_t) gr->y : (int32_t) client->icon_y;
+            ? (int32_t) gr->y : (int32_t) client->icon_pos.y;
         if (gr != NULL) {
             free(gr);
         }
@@ -761,7 +761,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     (void) title_x;
     (void) title_w;
 
-    if (client->theme == NULL) {
+    if (client->config == NULL) {
         return false;
     }
 
@@ -794,7 +794,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
      * determines 'btn_y' now that button rows can be vertically inset
      * by 'padding.vertical', not just centered in the full titlebar
      * height. */
-    client_titlebar_layout(client->theme, (uint16_t) fw,
+    client_titlebar_layout(&client->config->theme, (uint16_t) fw,
             (uint16_t) title_h, hide_pin,
             left, &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 

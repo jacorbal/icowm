@@ -93,11 +93,11 @@ static void s_client_enable_decoration(client_td *client,
         return;
     }
 
-    border_color = (client->theme != NULL)
-        ? client->theme->window.inactive.border.color
+    border_color = (client->config != NULL)
+        ? client->config->theme.window.inactive.border.color
         : 0x999999U;
-    bg_color = (client->theme != NULL)
-        ? client->theme->window.inactive.color.background
+    bg_color = (client->config != NULL)
+        ? client->config->theme.window.inactive.color.background
         : 0x000000U;
 
     frame.pos.x = client->layout.geometry.cur.pos.x - bw;
@@ -165,8 +165,8 @@ static void s_client_enable_decoration(client_td *client,
      *     window=content)
      *
      * Absorb both so focus is not stolen from the active window. */
-    client->ignore_unmap += 2u;
-    client->ignore_focus_unmap++;
+    client->ignore.unmap += 2u;
+    client->ignore.focus_unmap++;
 
     xcb_reparent_window(client->connection,
             client->window,
@@ -303,7 +303,7 @@ void ccmd_client_shade(client_td *client)
      * a second event unguarded, causing 'handler_unmap_notify' to
      * wrongly unmap the frame and titlebar and make the shaded titlebar
      * disappear. */
-    client->ignore_unmap += 2u;
+    client->ignore.unmap += 2u;
     xcb_unmap_window(client->connection, client->window);
 
     client->layout.geometry.cur.dim.h = (uint16_t) shaded_h;
@@ -570,7 +570,7 @@ void ccmd_client_fullscreen(client_td *client)
 void ccmd_client_unfullscreen(client_td *client)
 {
     xcb_window_t target;
-    uint16_t border_width;
+    uint32_t border_width;
     desktop_td *desktop;
 
     if (client == NULL) {
@@ -596,7 +596,7 @@ void ccmd_client_unfullscreen(client_td *client)
      * border theme color never disappears, there is simply no frame
      * pixel width left for it to occupy, the client's own content
      * drawn flush against the frame's outer edge instead. */
-    border_width = (uint16_t) client_border_width(client, true, true);
+    border_width = client_border_width(client, true, true);
 
     /* Configured BEFORE the frame/target itself shrinks further down,
      * for the same reason 'ccmd_client_fullscreen' now configures its
@@ -617,7 +617,7 @@ void ccmd_client_unfullscreen(client_td *client)
         uint16_t inner_w;
         uint16_t inner_h;
 
-        title_height = client->title_height;
+        title_height = (uint16_t) client->title_height;
         inner_w = (client->layout.geometry.cur.dim.w >
                 (uint16_t) (border_width * 2u))
             ? (uint16_t) (client->layout.geometry.cur.dim.w -
@@ -629,11 +629,11 @@ void ccmd_client_unfullscreen(client_td *client)
                     (uint16_t) (border_width * 2u + title_height))
             : (uint16_t) WM_MIN_WINDOW_DIMENSION;
 
-        client->layout.frame_extents.left = border_width;
-        client->layout.frame_extents.right = border_width;
+        client->layout.frame_extents.left = (int32_t) border_width;
+        client->layout.frame_extents.right = (int32_t) border_width;
         client->layout.frame_extents.top =
-            (uint16_t) (border_width + title_height);
-        client->layout.frame_extents.bottom = border_width;
+            (int32_t) (border_width + title_height);
+        client->layout.frame_extents.bottom = (int32_t) border_width;
 
         /* The frame's own X11-native border width must stay 0, always,
          * for a decorated client (see the main render pass in
@@ -834,8 +834,8 @@ void ccmd_client_toggle_decorate(client_td *client)
              * content window.  Absorb it so 'handler_unmap_notify' does
              * not mistake the event for a voluntary hide and does not
              * steal focus from the window. */
-            client->ignore_unmap += 2u;
-            client->ignore_focus_unmap++;
+            client->ignore.unmap += 2u;
+            client->ignore.focus_unmap++;
             xcb_reparent_window(client->connection,
                     client->window,
                     client->parent_id,

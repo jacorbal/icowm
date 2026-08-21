@@ -82,31 +82,32 @@ int ci_alloc_strings(client_td *client)
 
 
 /* Apply decoration defaults from the loaded theme */
-void ci_set_decoration_defaults(client_td *client,
-        struct config_theme_s *theme)
+void ci_set_decoration_defaults(client_td *client)
 {
-    uint16_t border_width = 0;
+    uint32_t border_width = 0;
     bool is_decorated;
+    bool has_config;
 
     if (client == NULL) {
         return;
     }
 
-    client->title_height = (theme != NULL)
-        ? (uint16_t) theme->window.titlebar.height
+    has_config = client->config != NULL;
+    client->title_height = has_config
+        ? client->config->theme.window.titlebar.height
         : WM_TITLEBAR_DEFAULT_HEIGHT;
-    if (theme != NULL) {
-        border_width = (uint16_t) theme->window.active.border.width;
+    if (has_config) {
+        border_width = client->config->theme.window.active.border.width;
     }
 
     /* Accessibility: never let the focus indicator go thinner than
      * 'a11y.focus-indicator.min-border-width', regardless of
      * what the theme itself specifies */
-    if (client->a11y != NULL &&
-            border_width < client->a11y->focus_indicator
+    if (has_config &&
+            border_width < client->config->a11y.focus_indicator
                 .min_border_width) {
-        border_width = (uint16_t)
-            client->a11y->focus_indicator.min_border_width;
+        border_width =
+            client->config->a11y.focus_indicator.min_border_width;
     }
 
     /* A theme's 'window.titlebar.height' of 0 is equivalent to
@@ -114,16 +115,16 @@ void ci_set_decoration_defaults(client_td *client,
      * nothing to draw and nowhere to put its buttons, so there is no
      * point pretending the window is still decorated just because the
      * theme's 'is-decorated' flag itself was left (or set) to true. */
-    is_decorated = theme != NULL && theme->window.is_decorated &&
-        client->title_height > 0u;
+    is_decorated = has_config && client->config->theme.window.is_decorated
+        && client->title_height > 0u;
 
     if (is_decorated) {
         client_decorate(client);
-        client->layout.frame_extents.left = border_width;
-        client->layout.frame_extents.right = border_width;
+        client->layout.frame_extents.left = (int32_t) border_width;
+        client->layout.frame_extents.right = (int32_t) border_width;
         client->layout.frame_extents.top =
-            (uint16_t) (border_width + client->title_height);
-        client->layout.frame_extents.bottom = border_width;
+            (int32_t) (border_width + client->title_height);
+        client->layout.frame_extents.bottom = (int32_t) border_width;
     } else {
         client_undecorate(client);
         client->layout.frame_extents = (struct sides_s) {0, 0, 0, 0};
@@ -135,38 +136,36 @@ void ci_set_decoration_defaults(client_td *client,
  * the current theme and focus state */
 void client_theme_layout_resync(client_td *client, bool is_active)
 {
-    uint16_t new_border;
-    uint16_t new_title_height;
+    uint32_t new_border;
+    uint32_t new_title_height;
     int32_t inner_x;
     int32_t inner_y;
     int32_t inner_w;
     int32_t inner_h;
 
-    if (client == NULL || client->theme == NULL ||
+    if (client == NULL || client->config == NULL ||
             !client_is_decorated(client) || client->frame == 0 ||
             client_is_fullscreen(client)) {
         return;
     }
 
-    new_border = (uint16_t) ((is_active)
-        ? client->theme->window.active.border.width
-        : client->theme->window.inactive.border.width);
-    new_title_height = (uint16_t) client->theme->window.titlebar.height;
+    new_border = (is_active)
+        ? client->config->theme.window.active.border.width
+        : client->config->theme.window.inactive.border.width;
+    new_title_height = client->config->theme.window.titlebar.height;
 
     /* Accessibility: never let the focus indicator go thinner than
      * 'a11y.focus-indicator.min-border-width', regardless of
      * what the theme itself specifies */
-    if (client->a11y != NULL &&
-            new_border < client->a11y->focus_indicator
+    if (new_border < client->config->a11y.focus_indicator
                 .min_border_width) {
-        new_border = (uint16_t)
-            client->a11y->focus_indicator.min_border_width;
+        new_border = client->config->a11y.focus_indicator.min_border_width;
     }
 
     /* 'left' alone is enough to detect "border width unchanged":
      * 'left', 'right', and 'bottom' are always set equal to each other
      * by 'ci_set_decoration_defaults' and by this same function */
-    if (new_border == client->layout.frame_extents.left &&
+    if (new_border == (uint32_t) client->layout.frame_extents.left &&
             new_title_height == client->title_height) {
         return;
     }
@@ -193,11 +192,11 @@ void client_theme_layout_resync(client_td *client, bool is_active)
         (int32_t) client->layout.frame_extents.bottom;
 
     client->title_height = new_title_height;
-    client->layout.frame_extents.left = new_border;
-    client->layout.frame_extents.right = new_border;
-    client->layout.frame_extents.bottom = new_border;
+    client->layout.frame_extents.left = (int32_t) new_border;
+    client->layout.frame_extents.right = (int32_t) new_border;
+    client->layout.frame_extents.bottom = (int32_t) new_border;
     client->layout.frame_extents.top =
-        (uint16_t) (new_border + new_title_height);
+        (int32_t) (new_border + new_title_height);
 
     client->layout.geometry.cur.pos.x = inner_x - (int32_t) new_border;
     client->layout.geometry.cur.pos.y =
@@ -358,7 +357,7 @@ void client_decoration_layout_sync(client_td *client)
     right = (uint16_t) client->layout.frame_extents.right;
     top = (uint16_t) client->layout.frame_extents.top;
     bottom = (uint16_t) client->layout.frame_extents.bottom;
-    title_h = client->title_height;
+    title_h = (uint16_t) client->title_height;
     title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
     inner_w = (client->layout.geometry.cur.dim.w > left + right)
         ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
@@ -397,37 +396,40 @@ void client_decoration_layout_sync(client_td *client)
 void client_aspect_ratio_clamp(const client_td *client,
         uint32_t width, uint32_t *height)
 {
-    if (client == NULL || height == NULL || !client->size_hints.valid) {
+    if (client == NULL || height == NULL ||
+            !client->hints_icccm.size.is_valid) {
         return;
     }
 
     /* Comparisons cross-multiply instead of dividing so no fractional
      * rounding of the ratio itself ever creeps in. */
-    if (client->size_hints.min_aspect_num > 0 &&
-            client->size_hints.min_aspect_den > 0) {
+    if (client->hints_icccm.size.aspect.min.num > 0 &&
+            client->hints_icccm.size.aspect.min.den > 0) {
         uint64_t lhs = (uint64_t) width *
-            (uint64_t) client->size_hints.min_aspect_den;
-        uint64_t rhs = (uint64_t) client->size_hints.min_aspect_num *
+            (uint64_t) client->hints_icccm.size.aspect.min.den;
+        uint64_t rhs = (uint64_t) client->hints_icccm.size.aspect.min.num *
             (uint64_t) *height;
 
         if (lhs < rhs) {
             *height = (uint32_t) (((uint64_t) width *
-                        (uint64_t) client->size_hints.min_aspect_den) /
-                    (uint64_t) client->size_hints.min_aspect_num);
+                        (uint64_t)
+                        client->hints_icccm.size.aspect.min.den) /
+                    (uint64_t) client->hints_icccm.size.aspect.min.num);
         }
     }
 
-    if (client->size_hints.max_aspect_num > 0 &&
-            client->size_hints.max_aspect_den > 0) {
+    if (client->hints_icccm.size.aspect.max.num > 0 &&
+            client->hints_icccm.size.aspect.max.den > 0) {
         uint64_t lhs = (uint64_t) width *
-            (uint64_t) client->size_hints.max_aspect_den;
-        uint64_t rhs = (uint64_t) client->size_hints.max_aspect_num *
+            (uint64_t) client->hints_icccm.size.aspect.max.den;
+        uint64_t rhs = (uint64_t) client->hints_icccm.size.aspect.max.num *
             (uint64_t) *height;
 
         if (lhs > rhs) {
             *height = (uint32_t) (((uint64_t) width *
-                        (uint64_t) client->size_hints.max_aspect_den) /
-                    (uint64_t) client->size_hints.max_aspect_num);
+                        (uint64_t)
+                        client->hints_icccm.size.aspect.max.den) /
+                    (uint64_t) client->hints_icccm.size.aspect.max.num);
         }
     }
 }
@@ -454,87 +456,89 @@ void client_size_constrain(const client_td *client,
      * client that measures itself in one (a terminal counting
      * character columns/rows, say, via 'width_inc'/'height_inc'),
      * or 'WM_MIN_WINDOW_DIMENSION' pixels otherwise. */
-    if (client->size_hints.valid && client->size_hints.inc_w > 1) {
-        uint32_t base_w = (client->size_hints.base_w > 0)
-            ? (uint32_t) client->size_hints.base_w
+    if (client->hints_icccm.size.is_valid &&
+            client->hints_icccm.size.inc.w > 1) {
+        uint32_t base_w = (client->hints_icccm.size.base.w > 0)
+            ? client->hints_icccm.size.base.w
             : 0u;
 
         if (req_w < base_w +
                 WM_MIN_WINDOW_DIMENSION_UNITS *
-                    (uint32_t) client->size_hints.inc_w) {
+                    client->hints_icccm.size.inc.w) {
             req_w = base_w +
                 WM_MIN_WINDOW_DIMENSION_UNITS *
-                    (uint32_t) client->size_hints.inc_w;
+                    client->hints_icccm.size.inc.w;
         }
     } else if (req_w < (uint32_t) WM_MIN_WINDOW_DIMENSION) {
         req_w = (uint32_t) WM_MIN_WINDOW_DIMENSION;
     }
 
-    if (client->size_hints.valid && client->size_hints.inc_h > 1) {
-        uint32_t base_h = (client->size_hints.base_h > 0)
-            ? (uint32_t) client->size_hints.base_h
+    if (client->hints_icccm.size.is_valid &&
+            client->hints_icccm.size.inc.h > 1) {
+        uint32_t base_h = (client->hints_icccm.size.base.h > 0)
+            ? client->hints_icccm.size.base.h
             : 0u;
 
         if (req_h < base_h +
                 WM_MIN_WINDOW_DIMENSION_UNITS *
-                    (uint32_t) client->size_hints.inc_h) {
+                    client->hints_icccm.size.inc.h) {
             req_h = base_h +
                 WM_MIN_WINDOW_DIMENSION_UNITS *
-                    (uint32_t) client->size_hints.inc_h;
+                    client->hints_icccm.size.inc.h;
         }
     } else if (req_h < (uint32_t) WM_MIN_WINDOW_DIMENSION) {
         req_h = (uint32_t) WM_MIN_WINDOW_DIMENSION;
     }
 
-    if (client->size_hints.valid) {
-        if (client->size_hints.min_w > 0 &&
-                req_w < (uint32_t) client->size_hints.min_w) {
-            req_w = (uint32_t) client->size_hints.min_w;
+    if (client->hints_icccm.size.is_valid) {
+        if (client->hints_icccm.size.min.w > 0 &&
+                req_w < client->hints_icccm.size.min.w) {
+            req_w = client->hints_icccm.size.min.w;
         }
 
-        if (client->size_hints.max_w > 0 &&
-                req_w > (uint32_t) client->size_hints.max_w) {
-            req_w = (uint32_t) client->size_hints.max_w;
+        if (client->hints_icccm.size.max.w > 0 &&
+                req_w > client->hints_icccm.size.max.w) {
+            req_w = client->hints_icccm.size.max.w;
         }
 
-        if (client->size_hints.min_h > 0 &&
-                req_h < (uint32_t) client->size_hints.min_h) {
-            req_h = (uint32_t) client->size_hints.min_h;
+        if (client->hints_icccm.size.min.h > 0 &&
+                req_h < client->hints_icccm.size.min.h) {
+            req_h = client->hints_icccm.size.min.h;
         }
 
-        if (client->size_hints.max_h > 0 &&
-                req_h > (uint32_t) client->size_hints.max_h) {
-            req_h = (uint32_t) client->size_hints.max_h;
+        if (client->hints_icccm.size.max.h > 0 &&
+                req_h > client->hints_icccm.size.max.h) {
+            req_h = client->hints_icccm.size.max.h;
         }
 
-        if (client->size_hints.inc_w > 1) {
+        if (client->hints_icccm.size.inc.w > 1) {
             uint32_t base;
             uint32_t inc;
             uint32_t over;
             /* ICCCM §4.1.2.3: when 'BASE_SIZE' is absent, 'MIN_SIZE'
              * serves as the base for the increment grid */
-            base = (client->size_hints.base_w > 0)
-                ? (uint32_t) client->size_hints.base_w
-                : ((client->size_hints.min_w > 0)
-                        ? (uint32_t) client->size_hints.min_w
+            base = (client->hints_icccm.size.base.w > 0)
+                ? client->hints_icccm.size.base.w
+                : ((client->hints_icccm.size.min.w > 0)
+                        ? client->hints_icccm.size.min.w
                         : 0u);
-            inc = (uint32_t) client->size_hints.inc_w;
+            inc = client->hints_icccm.size.inc.w;
             over = (req_w > base) ? (req_w - base) : 0u;
             req_w = base + (over / inc) * inc;
         }
 
-        if (client->size_hints.inc_h > 1) {
+        if (client->hints_icccm.size.inc.h > 1) {
             uint32_t base;
             uint32_t inc;
             uint32_t over;
             /* ICCCM §4.1.2.3: when 'BASE_SIZE' is absent, 'MIN_SIZE'
              * serves as the base for the increment grid */
-            base = (client->size_hints.base_h > 0)
-                ? (uint32_t) client->size_hints.base_h
-                : ((client->size_hints.min_h > 0)
-                        ? (uint32_t) client->size_hints.min_h
+            base = (client->hints_icccm.size.base.h > 0)
+                ? client->hints_icccm.size.base.h
+                : ((client->hints_icccm.size.min.h > 0)
+                        ? client->hints_icccm.size.min.h
                         : 0u);
-            inc = (uint32_t) client->size_hints.inc_h;
+            inc = client->hints_icccm.size.inc.h;
             over = (req_h > base) ? (req_h - base) : 0u;
             req_h = base + (over / inc) * inc;
         }
@@ -547,14 +551,14 @@ void client_size_constrain(const client_td *client,
          * other constraint above (including the grid and the second
          * 'min_w'/'min_h' floor just below), so nothing that runs
          * afterward can push the ratio back out of range again. */
-        if (client->size_hints.min_w > 0 &&
-                req_w < (uint32_t) client->size_hints.min_w) {
-            req_w = (uint32_t) client->size_hints.min_w;
+        if (client->hints_icccm.size.min.w > 0 &&
+                req_w < client->hints_icccm.size.min.w) {
+            req_w = client->hints_icccm.size.min.w;
         }
 
-        if (client->size_hints.min_h > 0 &&
-                req_h < (uint32_t) client->size_hints.min_h) {
-            req_h = (uint32_t) client->size_hints.min_h;
+        if (client->hints_icccm.size.min.h > 0 &&
+                req_h < client->hints_icccm.size.min.h) {
+            req_h = client->hints_icccm.size.min.h;
         }
 
         client_aspect_ratio_clamp(client, req_w, &req_h);
@@ -590,7 +594,7 @@ int ci_create_decorations(client_td *client)
     size_t nb = sizeof(s_grab_buttons) / sizeof(s_grab_buttons[0]);
 
     if (client == NULL || !client_is_decorated(client) ||
-            client->theme == NULL || client->parent_id == 0) {
+            client->config == NULL || client->parent_id == 0) {
         return 0;
     }
 
@@ -599,7 +603,7 @@ int ci_create_decorations(client_td *client)
     top = (uint16_t) client->layout.frame_extents.top;
     bottom = (uint16_t) client->layout.frame_extents.bottom;
     inner_w = (uint16_t) client->layout.geometry.cur.dim.w;
-    title_h = client->title_height;
+    title_h = (uint16_t) client->title_height;
     title_y = (top > title_h) ? (uint16_t) (top - title_h) : 0u;
     frame_x32 = client->layout.geometry.cur.pos.x - (int32_t) left;
     frame_y32 = client->layout.geometry.cur.pos.y - (int32_t) top;
@@ -627,8 +631,8 @@ int ci_create_decorations(client_td *client)
 
     client->frame = xcb_generate_id(client->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = client->theme->window.inactive.border.color;
-    values[1] = client->theme->window.inactive.border.color;
+    values[0] = client->config->theme.window.inactive.border.color;
+    values[1] = client->config->theme.window.inactive.border.color;
     /* 'XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT' is essential here, not
      * optional: once the client's own top-level window is reparented
      * into this frame, its *parent* for X11 purposes becomes the frame
@@ -662,7 +666,7 @@ int ci_create_decorations(client_td *client)
 
     client->titlebar = xcb_generate_id(client->connection);
     mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    values[0] = client->theme->window.inactive.color.background;
+    values[0] = client->config->theme.window.inactive.color.background;
     values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
         XCB_EVENT_MASK_ENTER_WINDOW;
     xcb_create_window(client->connection,

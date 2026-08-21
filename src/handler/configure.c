@@ -482,7 +482,7 @@ void handler_configure_request(xcb_connection_t *connection,
         if (mask & XCB_CONFIG_WINDOW_X) {
             int32_t req_x;
 
-            if (client->rule_position_locked) {
+            if (client->has_rule_position_locked) {
                 /* Position was fixed by a rule; reject the client's
                  * attempt to move the window and keep the locked X */
                 send_synth = is_reparented;
@@ -508,7 +508,7 @@ void handler_configure_request(xcb_connection_t *connection,
         if (mask & XCB_CONFIG_WINDOW_Y) {
             int32_t req_y;
 
-            if (client->rule_position_locked) {
+            if (client->has_rule_position_locked) {
                 /* Position was fixed by a rule; reject the client's
                  * attempt to move the window and keep the locked Y */
                 send_synth = is_reparented;
@@ -827,7 +827,8 @@ void handler_configure_notify(xcb_connection_t *connection,
                     desktop_repaint_frame_decoration(connection, client,
                             is_focused,
                             (desktop != NULL) ? desktop->config_theme
-                                              : client->theme);
+                                : ((client->config != NULL)
+                                        ? &client->config->theme : NULL));
                 }
                 if (connection != NULL) {
                     xcb_flush(connection);

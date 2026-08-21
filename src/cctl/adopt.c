@@ -106,16 +106,14 @@ void cctl_adopt_scan(const wm_td *wm)
                 if (desktop != NULL) {
                     client_td *const client = client_init(
                             connection, ewmh,
-                            children[i], &config->theme,
-                            &config->base,
-                            &config->a11y);
+                            children[i], config);
                     if (client != NULL) {
                         /* ReparentWindow on an already-mapped window
                          * generates an 'UnmapNotify'.  Absorb it so
                          * handler_unmap_notify does not wrongly unmap
                          * the new frame. */
                         if (client->frame != 0) {
-                            client->ignore_unmap++;
+                            client->ignore.unmap++;
                         }
 
                         client->screen_id = surface->id;

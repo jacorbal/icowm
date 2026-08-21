@@ -58,7 +58,7 @@ void ccmd_client_move(client_td *client, struct position_s pos)
             (const uint32_t[]) { (uint32_t) pos.x, (uint32_t) pos.y });
     client->layout.geometry.cur.pos.x = pos.x;
     client->layout.geometry.cur.pos.y = pos.y;
-    client->rule_position_locked = false;
+    client->has_rule_position_locked = false;
 }
 
 
@@ -107,7 +107,7 @@ void ccmd_client_center(client_td *client)
             (const uint32_t[]) {(uint32_t) x, (uint32_t) y});
     client->layout.geometry.cur.pos.x = x;
     client->layout.geometry.cur.pos.y = y;
-    client->rule_position_locked = false;
+    client->has_rule_position_locked = false;
 }
 
 
@@ -178,7 +178,7 @@ void ccmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
             (const uint32_t[]) {(uint32_t) new_x, (uint32_t) new_y});
     client->layout.geometry.cur.pos.x = new_x;
     client->layout.geometry.cur.pos.y = new_y;
-    client->rule_position_locked = false;
+    client->has_rule_position_locked = false;
     wm_request_client_redraw(client);
 }
 
@@ -301,15 +301,15 @@ static void s_ccmd_resize_configure(client_td *client,
  * to the same value once done.  Marks the client as waiting for the
  * corresponding @c AlarmNotify.
  *
- * @param client Client to notify; must have @c has_net_wm_sync_request
+ * @param client Client to notify; must have @c hints_ewmh.sync.is_supported
  */
 static void s_ccmd_resize_send_sync_request(client_td *client)
 {
     xcb_client_message_event_t ev;
 
-    client->sync_value += 1u;
-    client->sync_waiting = true;
-    client->sync_wait_ticks = 0u;
+    client->hints_ewmh.sync.value += 1u;
+    client->hints_ewmh.sync.is_waiting = true;
+    client->hints_ewmh.sync.wait_ticks = 0u;
 
     if (client->ewmh == NULL) {
         return;
@@ -322,7 +322,7 @@ static void s_ccmd_resize_send_sync_request(client_td *client)
     ev.type = client->ewmh->WM_PROTOCOLS;
     ev.data.data32[0] = client->ewmh->_NET_WM_SYNC_REQUEST;
     ev.data.data32[1] = XCB_CURRENT_TIME;
-    ev.data.data32[2] = client->sync_value;
+    ev.data.data32[2] = client->hints_ewmh.sync.value;
     ev.data.data32[3] = 0u;    /* high 32 bits: always 0 at our scale */
     xcb_send_event(client->connection, 0, client->window,
             XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
@@ -394,14 +394,14 @@ void ccmd_client_resize(client_td *client, struct geometry_s geom)
         return;
     }
 
-    synced = client->has_net_wm_sync_request && wm_sync_is_available();
+    synced = client->hints_ewmh.sync.is_supported && wm_sync_is_available();
 
     if (!synced) {
         s_ccmd_resize_configure(client, geom);
         return;
     }
 
-    if (!client->sync_waiting) {
+    if (!client->hints_ewmh.sync.is_waiting) {
         s_ccmd_resize_dispatch_synced(client, geom);
         return;
     }
@@ -412,18 +412,16 @@ void ccmd_client_resize(client_td *client, struct geometry_s geom)
      * attempts without acknowledging, in which case give up waiting and
      * apply this one directly, so an unresponsive client can never
      * freeze interactive resize */
-    client->sync_wait_ticks += 1u;
-    if (client->sync_wait_ticks > (uint8_t) WM_SYNC_MAX_WAIT_TICKS) {
-        client->sync_has_pending = false;
+    client->hints_ewmh.sync.wait_ticks += 1u;
+    if (client->hints_ewmh.sync.wait_ticks >
+            (uint8_t) WM_SYNC_MAX_WAIT_TICKS) {
+        client->hints_ewmh.sync.has_pending = false;
         s_ccmd_resize_dispatch_synced(client, geom);
         return;
     }
 
-    client->sync_pending_geom.x = geom.pos.x;
-    client->sync_pending_geom.y = geom.pos.y;
-    client->sync_pending_geom.w = geom.dim.w;
-    client->sync_pending_geom.h = geom.dim.h;
-    client->sync_has_pending = true;
+    client->hints_ewmh.sync.pending_geom = geom;
+    client->hints_ewmh.sync.has_pending = true;
 }
 
 
@@ -440,9 +438,9 @@ void ccmd_client_resize_force(client_td *client, struct geometry_s geom)
      * below already supersedes it, and leaving it set would let a
      * late 'AlarmNotify' for that older exchange silently revert
      * this one the next time 'ccmd_client_resize_flush_pending' runs */
-    client->sync_has_pending = false;
+    client->hints_ewmh.sync.has_pending = false;
 
-    if (client->has_net_wm_sync_request && wm_sync_is_available()) {
+    if (client->hints_ewmh.sync.is_supported && wm_sync_is_available()) {
         /* Still tells a sync-aware client about the new size (so its
          * own internal counter stays in step), but this call itself
          * never waits on or queues behind that acknowledgment the
@@ -462,19 +460,16 @@ void ccmd_client_resize_flush_pending(client_td *client)
         return;
     }
 
-    client->sync_waiting = false;
-    client->sync_wait_ticks = 0u;
+    client->hints_ewmh.sync.is_waiting = false;
+    client->hints_ewmh.sync.wait_ticks = 0u;
 
-    if (!client->sync_has_pending) {
+    if (!client->hints_ewmh.sync.has_pending) {
         return;
     }
 
-    client->sync_has_pending = false;
-    s_ccmd_resize_dispatch_synced(client, (struct geometry_s) {
-                { client->sync_pending_geom.x,
-                    client->sync_pending_geom.y },
-                { client->sync_pending_geom.w,
-                    client->sync_pending_geom.h } });
+    client->hints_ewmh.sync.has_pending = false;
+    s_ccmd_resize_dispatch_synced(client,
+            client->hints_ewmh.sync.pending_geom);
 }
 
 

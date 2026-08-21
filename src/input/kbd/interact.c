@@ -145,9 +145,9 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
     uint32_t ext_a;
     uint32_t ext_b;
     uint32_t cur_inner;
-    int32_t base_i;
-    int32_t min_i;
-    int32_t inc_i;
+    uint32_t base_i;
+    uint32_t min_i;
+    uint32_t inc_i;
     int32_t target;
     uint32_t frame_floor;
     uint32_t frame_clamped;
@@ -166,7 +166,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
 
     cur_inner = (cur_frame > ext_a + ext_b)
         ? cur_frame - ext_a - ext_b : 0u;
-    if (!client->size_hints.valid) {
+    if (!client->hints_icccm.size.is_valid) {
         int32_t resize_step = (step > 0u) ? (int32_t) step : 1;
         uint32_t floor_frame = ext_a + ext_b + WM_MIN_WINDOW_DIMENSION;
         uint32_t clamped;
@@ -188,22 +188,20 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
     }
 
     if (horizontal) {
-        base_i = client->size_hints.base_w;
-        min_i = client->size_hints.min_w;
-        inc_i = client->size_hints.inc_w;
+        base_i = client->hints_icccm.size.base.w;
+        min_i = client->hints_icccm.size.min.w;
+        inc_i = client->hints_icccm.size.inc.w;
     } else {
-        base_i = client->size_hints.base_h;
-        min_i = client->size_hints.min_h;
-        inc_i = client->size_hints.inc_h;
+        base_i = client->hints_icccm.size.base.h;
+        min_i = client->hints_icccm.size.min.h;
+        inc_i = client->hints_icccm.size.inc.h;
     }
 
     if (inc_i > 1) {
         /* ICCCM §4.1.2.3: when 'BASE_SIZE' is absent, 'MIN_SIZE' serves
          * as the base for the increment grid */
-        uint32_t base = (base_i > 0)
-            ? (uint32_t) base_i
-            : ((min_i > 0) ? (uint32_t) min_i : 0u);
-        uint32_t inc = (uint32_t) inc_i;
+        uint32_t base = (base_i > 0) ? base_i : ((min_i > 0) ? min_i : 0u);
+        uint32_t inc = inc_i;
         /* The client's own true floor, in units of 'inc' above 'base':
          * its own 'min_w'/'min_h' if it provides one larger than the
          * one-unit default (a client is free to demand more than one
@@ -218,8 +216,8 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         uint32_t snapped;
         uint32_t target_inner;
 
-        if (min_i > 0 && (uint32_t) min_i > floor_inner) {
-            floor_inner = (uint32_t) min_i;
+        if (min_i > 0 && min_i > floor_inner) {
+            floor_inner = min_i;
         }
         if (cur_inner < floor_inner) {
             cur_inner = floor_inner;
@@ -244,7 +242,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
         ? (int32_t) cur_frame + (int32_t) ((step > 0u) ? step : 1u)
         : (int32_t) cur_frame - (int32_t) ((step > 0u) ? step : 1u);
     frame_clamped = geom_dim_clamp(target);
-    /* Same reasoning as the '!client->size_hints.valid' branch
+    /* Same reasoning as the '!client->hints_icccm.size.is_valid' branch
      * above: a client with hints but no resize-increment of its
      * own still has fixed frame extents to protect. */
     return (uint16_t) ((frame_clamped > frame_floor)

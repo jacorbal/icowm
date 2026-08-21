@@ -829,10 +829,9 @@ void place_window_apply(const wm_td *wm,
      * request is the client's own most specific, deliberate statement
      * of where it wants to appear, ahead of any convenience default
      * this window manager would otherwise pick on its behalf. */
-    if (client->size_hints.has_position) {
+    if (client->hints_icccm.size.has_position) {
         s_place_window_finalize(wm, surface, client, wa_pos,
-                (struct position_s) { client->size_hints.req_x,
-                    client->size_hints.req_y });
+                client->hints_icccm.size.req_pos);
         return;
     }
 

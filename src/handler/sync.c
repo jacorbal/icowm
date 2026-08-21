@@ -41,10 +41,10 @@
 /**
  * @brief Find the client that owns the given XSync alarm
  *
- * Scans every surface, desktop, and client looking for a @c sync_alarm
- * match.  Alarms are only ever created for clients that advertise
- * @c _NET_WM_SYNC_REQUEST, so most clients are skipped immediately via
- * their zeroed @p sync_alarm.
+ * Scans every surface, desktop, and client looking for a
+ * @c hints_ewmh.sync.alarm match.  Alarms are only ever created for
+ * clients that advertise @c _NET_WM_SYNC_REQUEST, so most clients are
+ * skipped immediately via their zeroed @p hints_ewmh.sync.alarm.
  *
  * @param surfaces List of managed surfaces
  * @param alarm    XSync alarm XID from the 'AlarmNotify' event
@@ -89,7 +89,7 @@ static client_td *s_find_client_by_alarm(list_td *surfaces,
                 ohtbl_foreach(desktop->clients, elem) {
                     client_td *const client = (client_td *) elem;
 
-                    if (client->sync_alarm == alarm) {
+                    if (client->hints_ewmh.sync.alarm == alarm) {
                         return client;
                     }
                 }
@@ -135,7 +135,7 @@ void handler_sync_event(const wm_td *wm, xcb_generic_event_t *event)
 
     LOGGER_TRACE("'AlarmNotify' acknowledges sync request for" \
             " window=0x%x (pending=%d)", client->window,
-            (int) client->sync_has_pending);
+            (int) client->hints_ewmh.sync.has_pending);
 
     /* The client has caught up to (or past) the last size the window
      * manager sent it; release the wait and, if a newer resize step

@@ -319,7 +319,7 @@ void client_props_refresh_normal_hints(client_td *client)
     }
 
     memset(&hints, 0, sizeof(hints));
-    memset(&client->size_hints, 0, sizeof(client->size_hints));
+    memset(&client->hints_icccm.size, 0, sizeof(client->hints_icccm.size));
     if (!xcb_icccm_get_wm_normal_hints_reply(client->connection,
                 xcb_icccm_get_wm_normal_hints(client->connection,
                     client->window),
@@ -327,7 +327,7 @@ void client_props_refresh_normal_hints(client_td *client)
         return;
     }
 
-    client->size_hints.valid = true;
+    client->hints_icccm.size.is_valid = true;
 
     /* ICCCM 4.1.2.3: a client that sets 'USPosition' or 'PPosition'
      * is making a specific, deliberate request for where it wants to
@@ -337,29 +337,29 @@ void client_props_refresh_normal_hints(client_td *client)
      * explicit choice (US) from a program's own default (P) here. */
     if (hints.flags & (XCB_ICCCM_SIZE_HINT_US_POSITION |
                 XCB_ICCCM_SIZE_HINT_P_POSITION)) {
-        client->size_hints.has_position = true;
-        client->size_hints.req_x = (int32_t) hints.x;
-        client->size_hints.req_y = (int32_t) hints.y;
+        client->hints_icccm.size.has_position = true;
+        client->hints_icccm.size.req_pos.x = (int32_t) hints.x;
+        client->hints_icccm.size.req_pos.y = (int32_t) hints.y;
     }
 
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
-        client->size_hints.min_w = (int32_t) hints.min_width;
-        client->size_hints.min_h = (int32_t) hints.min_height;
+        client->hints_icccm.size.min.w = (uint32_t) hints.min_width;
+        client->hints_icccm.size.min.h = (uint32_t) hints.min_height;
     }
 
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
-        client->size_hints.max_w = (int32_t) hints.max_width;
-        client->size_hints.max_h = (int32_t) hints.max_height;
+        client->hints_icccm.size.max.w = (uint32_t) hints.max_width;
+        client->hints_icccm.size.max.h = (uint32_t) hints.max_height;
     }
 
     if (hints.flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) {
-        client->size_hints.base_w = (int32_t) hints.base_width;
-        client->size_hints.base_h = (int32_t) hints.base_height;
+        client->hints_icccm.size.base.w = (uint32_t) hints.base_width;
+        client->hints_icccm.size.base.h = (uint32_t) hints.base_height;
     }
 
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) {
-        client->size_hints.inc_w = (int32_t) hints.width_inc;
-        client->size_hints.inc_h = (int32_t) hints.height_inc;
+        client->hints_icccm.size.inc.w = (uint32_t) hints.width_inc;
+        client->hints_icccm.size.inc.h = (uint32_t) hints.height_inc;
     }
 
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) {
@@ -367,13 +367,13 @@ void client_props_refresh_normal_hints(client_td *client)
     }
 
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_ASPECT) {
-        client->size_hints.min_aspect_num =
+        client->hints_icccm.size.aspect.min.num =
             (int32_t) hints.min_aspect_num;
-        client->size_hints.min_aspect_den =
+        client->hints_icccm.size.aspect.min.den =
             (int32_t) hints.min_aspect_den;
-        client->size_hints.max_aspect_num =
+        client->hints_icccm.size.aspect.max.num =
             (int32_t) hints.max_aspect_num;
-        client->size_hints.max_aspect_den =
+        client->hints_icccm.size.aspect.max.den =
             (int32_t) hints.max_aspect_den;
     }
 

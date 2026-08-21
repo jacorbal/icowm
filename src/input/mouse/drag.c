@@ -204,8 +204,8 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.client_cur.dim.w = s_drag.client_start.dim.w;
     s_drag.client_cur.dim.h = s_drag.client_start.dim.h;
     s_drag.root = root;
-    s_drag.solid_drag = (client->config_base == NULL) ||
-        client->config_base->windows.solid_drag;
+    s_drag.solid_drag = (client->config == NULL) ||
+        client->config->base.windows.solid_drag;
     s_drag.outline_offscreened = false;
     s_drag.screen_w = screen_dim.w;
     s_drag.screen_h = screen_dim.h;
@@ -267,7 +267,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
 
     /* A user-initiated move overrides any rule-assigned position */
     if (operation == CLIENT_OPERATION_MOVING) {
-        client->rule_position_locked = false;
+        client->has_rule_position_locked = false;
     }
 
     /* An outline drag draws a stand-in rectangle from the very start,
@@ -433,8 +433,8 @@ void drag_update(xcb_connection_t *connection,
     if (s_drag.operation == CLIENT_OPERATION_MOVING &&
             s_drag.drag_window != XCB_WINDOW_NONE &&
             s_drag.drag_window == client->icon_window) {
-        bool show_geom = client->config_base != NULL &&
-            client->config_base->icons.show_geom;
+        bool show_geom = client->config != NULL &&
+            client->config->base.icons.show_geom;
         int32_t new_x = s_drag.client_start.pos.x + dx;
         int32_t new_y = s_drag.client_start.pos.y + dy;
         uint32_t vals[2];
@@ -463,8 +463,8 @@ void drag_update(xcb_connection_t *connection,
         drag_warp_edge_check((int16_t) root_pos.x);
         xcb_flush(connection);
     } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
-        bool show_geom = client->config_base != NULL &&
-            client->config_base->windows.show_geom;
+        bool show_geom = client->config != NULL &&
+            client->config->base.windows.show_geom;
         int32_t new_x = s_drag.client_start.pos.x + dx;
         int32_t new_y = s_drag.client_start.pos.y + dy;
 
@@ -498,8 +498,8 @@ void drag_update(xcb_connection_t *connection,
         }
         drag_warp_edge_check((int16_t) root_pos.x);
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
-        bool show_geom = client->config_base != NULL &&
-            client->config_base->windows.show_geom;
+        bool show_geom = client->config != NULL &&
+            client->config->base.windows.show_geom;
         int32_t new_x = s_drag.client_start.pos.x;
         int32_t new_y = s_drag.client_start.pos.y;
         uint32_t new_w;
@@ -640,20 +640,20 @@ void drag_update(xcb_connection_t *connection,
             uint32_t content_h = (new_h > ext_h) ? new_h - ext_h : 0u;
             char geom_buf[24];
 
-            if (client->size_hints.inc_w > 1 &&
-                    client->size_hints.inc_h > 1) {
+            if (client->hints_icccm.size.inc.w > 1 &&
+                    client->hints_icccm.size.inc.h > 1) {
                 /* ICCCM §4.1.2.3: falls back to 'MIN_SIZE' as the grid
                  * base */
-                uint32_t base_w = (client->size_hints.base_w > 0)
-                    ? (uint32_t) client->size_hints.base_w
-                    : ((client->size_hints.min_w > 0)
-                            ? (uint32_t) client->size_hints.min_w : 0u);
-                uint32_t base_h = (client->size_hints.base_h > 0)
-                    ? (uint32_t) client->size_hints.base_h
-                    : ((client->size_hints.min_h > 0)
-                            ? (uint32_t) client->size_hints.min_h : 0u);
-                uint32_t inc_w = (uint32_t) client->size_hints.inc_w;
-                uint32_t inc_h = (uint32_t) client->size_hints.inc_h;
+                uint32_t base_w = (client->hints_icccm.size.base.w > 0)
+                    ? client->hints_icccm.size.base.w
+                    : ((client->hints_icccm.size.min.w > 0)
+                            ? client->hints_icccm.size.min.w : 0u);
+                uint32_t base_h = (client->hints_icccm.size.base.h > 0)
+                    ? client->hints_icccm.size.base.h
+                    : ((client->hints_icccm.size.min.h > 0)
+                            ? client->hints_icccm.size.min.h : 0u);
+                uint32_t inc_w = client->hints_icccm.size.inc.w;
+                uint32_t inc_h = client->hints_icccm.size.inc.h;
                 uint32_t cols = ((content_w > base_w)
                         ? (content_w - base_w) : 0u) / inc_w;
                 uint32_t lines = ((content_h > base_h)
@@ -750,8 +750,8 @@ void drag_end(xcb_connection_t *connection,
                                 ? &desktop->workarea : NULL);
                 }
 
-                s_drag.client->icon_x = new_icon_x;
-                s_drag.client->icon_y = new_icon_y;
+                s_drag.client->icon_pos.x = new_icon_x;
+                s_drag.client->icon_pos.y = new_icon_y;
 
                 /* The drag itself only ever moved the icon window as
                  * far as the pointer's own last position (see
@@ -759,7 +759,7 @@ void drag_end(xcb_connection_t *connection,
                  * that already stopped, needs its own explicit request
                  * to actually reach the window, or the icon would stay
                  * showing wherever the pointer dropped it while
-                 * 'icon_x'/'icon_y' above already disagree with what
+                 * 'icon_pos' above already disagrees with what
                  * is on screen. */
                 if (pushed_out_of_tray && connection != NULL) {
                     uint32_t vals[2];

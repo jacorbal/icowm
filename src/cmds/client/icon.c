@@ -92,7 +92,8 @@ static bool s_icon_slot_is_taken(const client_td *client,
     cdlist_item_td *node;
     const cdlist_item_td *initial;
 
-    if (client == NULL || client->icon_x < 0 || client->icon_y < 0) {
+    if (client == NULL || client->icon_pos.x < 0 ||
+            client->icon_pos.y < 0) {
         return false;
     }
 
@@ -112,9 +113,10 @@ static bool s_icon_slot_is_taken(const client_td *client,
 
         if (other != NULL && other != client &&
                 other->icon_window != 0u && client_is_iconified(other) &&
-                geom_intersection_area( client->icon_x, client->icon_y,
+                geom_intersection_area(
+                    client->icon_pos.x, client->icon_pos.y,
                     icon_dim.w, icon_dim.h,
-                    other->icon_x, other->icon_y,
+                    other->icon_pos.x, other->icon_pos.y,
                     icon_dim.w, icon_dim.h) > 0u) {
             return true;
         }
@@ -137,13 +139,13 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
     uint16_t screen_w;
     uint16_t screen_h;
 
-    if (client == NULL || client->theme == NULL ||
+    if (client == NULL || client->config == NULL ||
             client->icon_window == 0u || !client_is_iconified(client)) {
         return;
     }
 
     icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
-            ((client->theme->icon.is_captioned)
+            ((client->config->theme.icon.is_captioned)
              ? WM_ICON_CAPTION_HEIGHT : 0u));
 
     if (!s_icon_slot_is_taken(client,
@@ -152,8 +154,8 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
     }
 
     desktop = wm_get_client_desktop(client);
-    if (client->config_base != NULL) {
-        policy = client->config_base->icons.placement_policy;
+    if (client->config != NULL) {
+        policy = client->config->base.icons.placement_policy;
     }
     screen_w = (uint16_t) screen_dim.w;
     screen_h = (uint16_t) screen_dim.h;
@@ -165,8 +167,8 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
             (struct dimensions_s) { WM_ICON_SQUARE_SIZE, icon_h },
             screen_dim, &icon_pos);
 
-    client->icon_x = (int16_t) icon_pos.x;
-    client->icon_y = (int16_t) icon_pos.y;
+    client->icon_pos.x = (int16_t) icon_pos.x;
+    client->icon_pos.y = (int16_t) icon_pos.y;
 
     if (client->connection != NULL) {
         const uint32_t vals[2] = {
@@ -261,8 +263,8 @@ void ccmd_client_ensure_icon_window(client_td *client,
                 ? (uint16_t) ((uint32_t) screen_h - vert) : 0u;
         }
 
-        if (client->config_base != NULL) {
-            policy = client->config_base->icons.placement_policy;
+        if (client->config != NULL) {
+            policy = client->config->base.icons.placement_policy;
         }
 
         /* Re-use the saved position when the client was already
@@ -275,12 +277,12 @@ void ccmd_client_ensure_icon_window(client_td *client,
          * remembered position at all, so the two icons never
          * overlap. */
         desktop = wm_get_client_desktop(client);
-        if (client->icon_x >= 0 && client->icon_y >= 0 &&
+        if (client->icon_pos.x >= 0 && client->icon_pos.y >= 0 &&
                 !s_icon_slot_is_taken(client,
                     (struct dimensions_s) {
                     WM_ICON_SQUARE_SIZE, icon_h_out })) {
-            ix = client->icon_x;
-            iy = client->icon_y;
+            ix = client->icon_pos.x;
+            iy = client->icon_pos.y;
         } else {
             struct dimensions_s screen_dim;
             struct position_s icon_pos;
@@ -331,15 +333,15 @@ void ccmd_client_ensure_icon_window(client_td *client,
             }
         }
 
-        client->icon_x = ix;
-        client->icon_y = iy;
+        client->icon_pos.x = ix;
+        client->icon_pos.y = iy;
 
         client->icon_window = xcb_generate_id(client->connection);
         mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
             XCB_CW_EVENT_MASK;
 
-        values[0] = client->theme->icon.inactive.color.background;
-        values[1] = client->theme->icon.inactive.border.color;
+        values[0] = client->config->theme.icon.inactive.color.background;
+        values[1] = client->config->theme.icon.inactive.border.color;
         values[2] = XCB_EVENT_MASK_EXPOSURE |
             XCB_EVENT_MASK_BUTTON_PRESS |
             XCB_EVENT_MASK_BUTTON_MOTION;
@@ -350,7 +352,7 @@ void ccmd_client_ensure_icon_window(client_td *client,
                 client->parent_id,
                 ix, iy,
                 (uint16_t) WM_ICON_SQUARE_SIZE, icon_h_out,
-                (uint16_t) client->theme->icon.active.border.width,
+                (uint16_t) client->config->theme.icon.active.border.width,
                 XCB_WINDOW_CLASS_INPUT_OUTPUT,
                 XCB_COPY_FROM_PARENT,
                 mask, values);
@@ -359,8 +361,8 @@ void ccmd_client_ensure_icon_window(client_td *client,
         xcb_configure_window(client->connection, client->icon_window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
                 (const uint32_t[]) {
-                (uint32_t) client->icon_x,
-                (uint32_t) client->icon_y
+                (uint32_t) client->icon_pos.x,
+                (uint32_t) client->icon_pos.y
                 });
     }
 }

@@ -68,13 +68,14 @@ uint64_t place_overlap_score(const desktop_td *desktop,
                         cost += win_pixel_cost * (uint64_t) area;
                     } else if (other->icon_window != 0u &&
                             other->is_icon_mapped &&
-                            other->icon_x >= 0 && other->icon_y >= 0) {
+                            other->icon_pos.x >= 0 &&
+                            other->icon_pos.y >= 0) {
                         /* Visible icon */
                         uint32_t area = geom_intersection_area(
                                 candidate.pos.x, candidate.pos.y,
                                 candidate.dim.w, candidate.dim.h,
-                                (int32_t) other->icon_x,
-                                (int32_t) other->icon_y,
+                                other->icon_pos.x,
+                                other->icon_pos.y,
                                 (uint32_t) SMART_WIN_ICON_SIZE,
                                 (uint32_t) SMART_WIN_ICON_SIZE);
                         cost += icon_pixel_cost * (uint64_t) area;

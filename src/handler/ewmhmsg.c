@@ -447,9 +447,9 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
          * on parent + 'StructureNotify' on target) and one additional
          * event for the titlebar via the frame's
          * 'SubstructureNotify'. */
-        client->ignore_unmap += 2u;
+        client->ignore.unmap += 2u;
         if (client->titlebar != 0) {
-            client->ignore_unmap += 1u;
+            client->ignore.unmap += 1u;
             xcb_unmap_window(connection, client->titlebar);
         }
         xcb_unmap_window(connection, target);

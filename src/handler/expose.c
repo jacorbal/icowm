@@ -306,7 +306,7 @@ void handler_expose(xcb_connection_t *connection,
 
     left = (uint16_t) client->layout.frame_extents.left;
     right = (uint16_t) client->layout.frame_extents.right;
-    title_h = client->title_height;
+    title_h = (uint16_t) client->title_height;
     inner_w = (client->layout.geometry.cur.dim.w > left + right)
         ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
         : 1u;

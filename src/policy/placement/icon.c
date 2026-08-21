@@ -214,7 +214,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
     int32_t ix;
     int32_t iy;
 
-    if (client == NULL || client->theme == NULL || out_pos == NULL) {
+    if (client == NULL || client->config == NULL || out_pos == NULL) {
         return;
     }
 
@@ -222,7 +222,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
     out_pos->y = margin;
 
     border_twice_u64 =
-        (uint64_t) client->theme->icon.active.border.width * 2u;
+        (uint64_t) client->config->theme.icon.active.border.width * 2u;
     border_twice = (border_twice_u64 > (uint64_t) INT32_MAX)
         ? INT32_MAX : (int32_t) border_twice_u64;
 
@@ -248,8 +248,8 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
                         other->icon_window != 0u &&
                         client_is_iconified(other)) {
                     if (occ_count < 256u) {
-                        occ_x[occ_count] = other->icon_x;
-                        occ_y[occ_count] = other->icon_y;
+                        occ_x[occ_count] = other->icon_pos.x;
+                        occ_y[occ_count] = other->icon_pos.y;
                         ++occ_count;
                     } else {
                         /* Past this many simultaneously iconified

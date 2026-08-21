@@ -395,7 +395,7 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(surfaces, ping_window,
                 &surface, &desktop);
         if (client != NULL) {
-            client->last_ping_reply = event->data.data32[1];
+            client->hints_ewmh.ping.last_reply = event->data.data32[1];
             client_mark_responsive(client);
             wm_outdate_client(client);
             wm_outdate_surface(surface);

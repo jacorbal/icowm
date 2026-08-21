@@ -108,4 +108,29 @@ struct geometry_s {
 };
 
 
+/**
+ * @brief A ratio expressed as a numerator and denominator
+ *
+ * @note May be negative per the ICCCM @c WM_NORMAL_HINTS wire format
+ *       (@c xcb_size_hints_t's own aspect fields are signed), even
+ *       though no well-behaved client ever sends one; kept signed so
+ *       a defensive @c > @c 0 check against a malformed value still
+ *       rejects it correctly instead of it wrapping to a huge unsigned
+ *       number and silently passing
+ */
+struct ratio_s {
+    int32_t num;
+    int32_t den;
+};
+
+
+/**
+ * @brief The minimum and maximum allowed window aspect ratios
+ */
+struct aspect_range_s {
+    struct ratio_s min;
+    struct ratio_s max;
+};
+
+
 #endif  /* ! TYPE_PAIR_H */

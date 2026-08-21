@@ -181,9 +181,9 @@ void enact_desktop_client_send(desktop_td *desktop, client_td *client,
             client->properties.state != (uint16_t) CLIENT_STATE_ICONIFIED) {
         win_target = (client_is_decorated(client) && client->frame != 0)
             ? client->frame : client->window;
-        client->ignore_unmap += 2u;
+        client->ignore.unmap += 2u;
         if (client->titlebar != 0) {
-            client->ignore_unmap += 1u;
+            client->ignore.unmap += 1u;
             xcb_unmap_window(surface->connection, client->titlebar);
         }
         xcb_unmap_window(surface->connection, win_target);

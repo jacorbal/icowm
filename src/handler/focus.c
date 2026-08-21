@@ -242,8 +242,8 @@ void handler_property_notify(const wm_td *wm,
 
                     if (motif_decorations == 0u) {
                         wants_decorated = false;
-                    } else if (client->theme != NULL &&
-                            client->theme->window.is_decorated) {
+                    } else if (client->config != NULL &&
+                            client->config->theme.window.is_decorated) {
                         wants_decorated = true;
                     }
                 }

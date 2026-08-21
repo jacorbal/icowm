@@ -219,7 +219,8 @@ void ccmd_client_close(client_td *client)
     /* ICCCM §4.2.8: send a 'WM_DELETE_WINDOW' 'ClientMessage' when the
      * client advertises support in 'WM_PROTOCOLS'; fall back to
      * 'xcb_destroy_window' only when it does not */
-    if (client->has_wm_delete_window && client->ewmh != NULL) {
+    if (client->hints_icccm.protocols.has_delete &&
+            client->ewmh != NULL) {
         xcb_client_message_event_t ev;
 
         memset(&ev, 0, sizeof(ev));
@@ -227,7 +228,7 @@ void ccmd_client_close(client_td *client)
         ev.format = 32;
         ev.window = client->window;
         ev.type = client->ewmh->WM_PROTOCOLS;
-        ev.data.data32[0] = client->wm_delete_atom;
+        ev.data.data32[0] = client->hints_icccm.protocols.delete_atom;
         ev.data.data32[1] = XCB_CURRENT_TIME;
         xcb_send_event(client->connection, 0, client->window,
                 XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
@@ -391,7 +392,7 @@ void ccmd_client_focus(client_td *client)
      * model accepts it ('WM_HINTS' input field, default 'true').
      * Clients that set 'input=false' rely solely on the 'WM_TAKE_FOCUS'
      * message to direct keyboard focus to themselves. */
-    if (client->wm_input_hint) {
+    if (client->hints_icccm.hints.has_input_hint) {
         xcb_set_input_focus(client->connection, XCB_INPUT_FOCUS_PARENT,
                             client->window, XCB_CURRENT_TIME);
     }
@@ -399,14 +400,15 @@ void ccmd_client_focus(client_td *client)
     /* ICCCM §4.2.7: send 'WM_TAKE_FOCUS' 'ClientMessage' when the
      * client has registered that protocol.  This covers both the
      * Locally Active and Globally Active input models. */
-    if (client->has_wm_take_focus && client->ewmh != NULL) {
+    if (client->hints_icccm.protocols.has_take_focus &&
+            client->ewmh != NULL) {
         xcb_client_message_event_t ev;
         memset(&ev, 0, sizeof(ev));
         ev.response_type = XCB_CLIENT_MESSAGE;
         ev.format = 32;
         ev.window = client->window;
         ev.type = client->ewmh->WM_PROTOCOLS;
-        ev.data.data32[0] = client->wm_take_focus_atom;
+        ev.data.data32[0] = client->hints_icccm.protocols.take_focus_atom;
         ev.data.data32[1] = XCB_CURRENT_TIME;
         xcb_send_event(client->connection, 0, client->window,
                 XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
@@ -437,7 +439,7 @@ void ccmd_client_focus(client_td *client)
      * project never even applies to it), so this call is the only place
      * actually restoring its border on focus. */
     if ((!client_is_decorated(client) || client->frame == 0) &&
-            client->theme != NULL && !client_is_fullscreen(client)) {
+            client->config != NULL && !client_is_fullscreen(client)) {
         client_border_apply(client, true);
     } else {
         client_theme_layout_resync(client, true);
@@ -482,7 +484,7 @@ void ccmd_client_unfocus(client_td *client)
     }
 
     if ((!client_is_decorated(client) || client->frame == 0) &&
-            client->theme != NULL && !client_is_fullscreen(client)) {
+            client->config != NULL && !client_is_fullscreen(client)) {
         /* Same reasoning as the matching block in 'ccmd_client_focus'
          * just above: skipped for a fullscreen client so a losing-
          * focus repaint cannot put a real border back on an
