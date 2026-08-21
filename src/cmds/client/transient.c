@@ -22,8 +22,6 @@
 
 /* ADT includes */
 #include <adt/cdlist.h>
-#include <adt/list.h>
-#include <adt/ohtbl.h>
 
 /* Default initial values */
 #include <defs/client.h>
@@ -42,106 +40,61 @@
 
 /**
  * @brief Find the mapped, non-iconified, unlocked, un-hidden direct
- *        transient child of a client, on any desktop of any surface
+ *        transient child of a client, if it has one
  *
  * A single step of @a ccmd_client_focus_target's own walk; split out
- * on its own since that walk needs to re-resolve the search fresh at
- * every step (the target client can change desktop as the walk
- * descends, in principle, even though it never will in practice for
- * how this is actually used today).  Deliberately searches every
- * desktop of every surface (the same full traversal @a lookup_find_
- * client itself does, lookup.c), not just @p client's own desktop:
- * a transient family is meant to always move together (see @a ccmd_
- * client_iconify's own doc comment, cmds/client/visibility.c, and
- * every desktop-move site that keeps a family together across a
- * send), but should a family ever end up split across desktops
- * anyway (a bug in one of those sites not yet found, a third-party
- * pager moving only one member of it, and the like), this search
- * still has to actually find the child wherever it now sits; a
- * search scoped to @p client's own desktop alone would silently fail
- * to find it there, falling back to focusing @p client itself, which
- * is exactly the mismatch between real X11 input focus and this
- * window manager's own "active client" bookkeeping that used to
- * leave keyboard shortcuts unable to find anything to act on at all
- * once the dialog later closed.  The @c CLIENT_FLAG_HIDDEN check
- * specifically matters for a client in the middle of closing: @a
- * handler_unmap_notify (@c handler/map.c) marks a withdrawing client
- * hidden before it ever calls @a client_focus_fallback, and a
- * fallback landing back on this child's own parent must not find
- * this same closing child here and redirect focus right back onto
- * it.
+ * on its own to keep that walk's loop body simple.  Walks @p
+ * client's own @c transients list directly (see its own doc comment,
+ * client.h): no lookup, no scan of any other client on any desktop,
+ * just the handful of pointers @p client's own direct children
+ * actually are.  The @c CLIENT_FLAG_HIDDEN check specifically
+ * matters for a client in the middle of closing: @a handler_unmap_
+ * notify (@c handler/map.c) marks a withdrawing client hidden before
+ * it ever calls @a client_focus_fallback, and a fallback landing back
+ * on this child's own parent must not find this same closing child
+ * here and redirect focus right back onto it.
  *
  * @param client Client whose direct transient children to search
  *
  * @return The first matching child found, or @c NULL if @p client is
  *         @c NULL or has no such child
  *
- * @note Complexity: @e O(s * d * n), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e n
- *       the number of clients per desktop
+ * @note Complexity: @e O(k), where @e k is the number of @p client's
+ *       own direct transient children
  */
 static client_td *s_client_mapped_transient_child(client_td *client)
 {
-    client_td *child = NULL;
-    list_td *surfaces;
+    cdlist_item_td *item;
+    const cdlist_item_td *initial;
 
-    if (client == NULL) {
+    if (client == NULL || client->transients == NULL) {
         return NULL;
     }
 
-    surfaces = wm_get_surfaces();
-    if (surfaces == NULL) {
+    item = cdlist_head(client->transients);
+    initial = item;
+    if (item == NULL) {
         return NULL;
     }
 
-    for (list_item_td *snode = list_head(surfaces);
-            snode != NULL && child == NULL; snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
-        const cdlist_item_td *dinitial;
+    do {
+        client_td *const candidate = (client_td *) cdlist_data(item);
 
-        if (surface == NULL || surface->desktops == NULL ||
-                cdlist_size(surface->desktops) == 0) {
-            continue;
+        if (candidate != NULL &&
+                !client_is_iconified(candidate) &&
+                !client_is_locked(candidate) &&
+                !(candidate->properties.flags & CLIENT_FLAG_HIDDEN)) {
+            return candidate;
         }
+        item = cdlist_next(item);
+    } while (item != NULL && item != initial);
 
-        dnode = cdlist_head(surface->desktops);
-        dinitial = dnode;
-        if (dnode == NULL) {
-            continue;
-        }
-
-        do {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-
-            if (desktop != NULL && desktop->clients != NULL) {
-                void *elem;
-
-                ohtbl_foreach(desktop->clients, elem) {
-                    client_td *const candidate = (client_td *) elem;
-
-                    if (candidate != NULL && candidate != client &&
-                            candidate->transient_for ==
-                                client->window &&
-                            !client_is_iconified(candidate) &&
-                            !client_is_locked(candidate) &&
-                            !(candidate->properties.flags &
-                                CLIENT_FLAG_HIDDEN)) {
-                        child = candidate;
-                        break;
-                    }
-                }
-            }
-            dnode = cdlist_next(dnode);
-        } while (dnode != NULL && dnode != dinitial && child == NULL);
-    }
-
-    return child;
+    return NULL;
 }
 
 
 /**
- * @brief Per-candidate callback used by @a s_visit_family_anywhere
+ * @brief Per-candidate callback used by @a s_visit_descendants
  *
  * @param candidate Family member found; never @c NULL
  * @param ctx       Caller-supplied context, passed through unchanged
@@ -150,136 +103,187 @@ typedef void (*s_family_visitor_fn)(client_td *candidate, void *ctx);
 
 
 /**
- * @brief Walk every desktop of every surface, calling @p visit once
- *        for each other member of @p top's own transient family
- *        found
+ * @brief Recursively walk every transient descendant of a node
+ *        (children, grandchildren, and so on), calling @p visit once
+ *        for each
  *
- * The shared traversal behind both passes @a ccmd_client_transient_
- * family_snapshot_anywhere needs (count, then fill): rather than
- * duplicating the same surface/desktop/client walk once per pass, or
- * growing a single array with 'realloc' desktop by desktop (a
- * genuinely riskier design that turned out to crash outright rather
- * than just misbehave, when this same idea was tried once already),
- * this walks the whole structure exactly the same way every time and
- * simply hands each match to @p visit, which decides what counting
- * or filling means on its own.
+ * The shared traversal behind every family-wide snapshot in this
+ * file: rather than scanning every client on every desktop and
+ * comparing @c transient_for window IDs (the only way this used to
+ * be possible, before @c transients existed as a real, maintained
+ * list; see its own doc comment, client.h), this walks only @p
+ * node's own actual descendants, following real pointers, so its own
+ * cost is proportional to the family's own size rather than to how
+ * many other, unrelated clients happen to be managed.
  *
- * @param top   Family's own top-most ancestor; @p visit is never
- *              called with @p top itself
- * @param visit Callback invoked once per matching family member
+ * @param node  Client whose descendants to walk; @p visit is never
+ *              called with @p node itself
+ * @param visit Callback invoked once per descendant found
  * @param ctx   Opaque context passed through to every @p visit call
+ * @param depth Current recursion depth; callers of this function
+ *              itself always pass @c 0
  *
- * @note A null @p top or @p visit is a silent no-op
- * @note Complexity: @e O(s * d * n), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e n
- *       the number of clients per desktop
+ * @note A null @p node or @p visit, or one with no @c transients at
+ *       all, is a silent no-op
+ * @note Complexity: @e O(f), where @e f is the number of @p node's
+ *       own transient descendants at every depth combined
  */
-static void s_visit_family_anywhere(client_td *top,
-        s_family_visitor_fn visit, void *ctx)
+static void s_visit_descendants(client_td *node,
+        s_family_visitor_fn visit, void *ctx, uint32_t depth)
 {
-    list_td *surfaces;
+    cdlist_item_td *item;
+    const cdlist_item_td *initial;
 
-    if (top == NULL || visit == NULL) {
+    if (node == NULL || visit == NULL || node->transients == NULL ||
+            depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
         return;
     }
 
-    surfaces = wm_get_surfaces();
-    if (surfaces == NULL) {
+    item = cdlist_head(node->transients);
+    initial = item;
+    if (item == NULL) {
         return;
     }
 
-    for (list_item_td *snode = list_head(surfaces);
-            snode != NULL; snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
-        const cdlist_item_td *dinitial;
+    do {
+        client_td *const child = (client_td *) cdlist_data(item);
 
-        if (surface == NULL || surface->desktops == NULL ||
-                cdlist_size(surface->desktops) == 0) {
-            continue;
+        if (child != NULL) {
+            visit(child, ctx);
+            s_visit_descendants(child, visit, ctx, depth + 1);
         }
-
-        dnode = cdlist_head(surface->desktops);
-        dinitial = dnode;
-        if (dnode == NULL) {
-            continue;
-        }
-
-        do {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-
-            if (desktop != NULL && desktop->clients != NULL) {
-                void *elem;
-
-                ohtbl_foreach(desktop->clients, elem) {
-                    client_td *const candidate = (client_td *) elem;
-
-                    if (candidate != NULL && candidate != top &&
-                            ccmd_client_transient_top_parent(
-                                candidate) == top) {
-                        visit(candidate, ctx);
-                    }
-                }
-            }
-            dnode = cdlist_next(dnode);
-        } while (dnode != NULL && dnode != dinitial);
-    }
+        item = cdlist_next(item);
+    } while (item != NULL && item != initial);
 }
 
 
 /**
- * @brief @a s_family_visitor_fn that only counts matches, for @a
- *        ccmd_client_transient_family_snapshot_anywhere's own first,
- *        sizing pass
+ * @brief Context shared by @a s_family_snapshot_visitor's counting
+ *        and filling passes, both used by @a s_family_snapshot
  *
- * @param candidate Ignored
- * @param ctx       @c size_t* accumulator to increment
+ * @c members is @c NULL during the first, counting pass (nothing to
+ * write yet, @c count just accumulates a total) and points at a
+ * freshly, exactly sized allocation during the second, filling pass.
  */
-static void s_family_snapshot_count_visitor(client_td *candidate,
-        void *ctx)
-{
-    size_t *const count = (size_t *) ctx;
-
-    (void) candidate;
-    (*count)++;
-}
-
-
-/**
- * @brief Context for @a s_family_snapshot_fill_visitor
- */
-struct s_family_snapshot_fill_ctx {
-    client_td **members;    /**< Destination array, pre-sized */
-    size_t capacity;        /**< Number of slots @c members has */
-    size_t count;           /**< Number of slots filled so far */
+struct s_family_snapshot_ctx {
+    uint32_t desktop_filter; /**< @c WM_DESKTOP_ID_ALL matches every
+                                   desktop */
+    client_td **members;     /**< @c NULL during the counting pass */
+    size_t capacity;         /**< Slots @c members has (filling pass) */
+    size_t count;            /**< Matches found so far */
 };
 
 
 /**
- * @brief @a s_family_visitor_fn that fills a pre-sized array, for @a
- *        ccmd_client_transient_family_snapshot_anywhere's own
- *        second, filling pass
+ * @brief @a s_family_visitor_fn shared by both @a ccmd_client_
+ *        transient_family_snapshot and its all-desktops counterpart,
+ *        via @a s_family_snapshot
  *
- * Never writes past @c ctx->capacity even if somehow handed more
- * matches than the first, sizing pass counted (nothing mutates the
- * client tree between the two passes in practice, so the two counts
- * always agree, but a stray write past the end of a heap allocation
- * is exactly the class of bug worth guarding against unconditionally
- * rather than trusting that invariant alone).
- *
- * @param candidate Family member to store
- * @param ctx       @c struct @a s_family_snapshot_fill_ctx*
+ * @param candidate Family member found
+ * @param ctx       @c struct @a s_family_snapshot_ctx*
  */
-static void s_family_snapshot_fill_visitor(client_td *candidate,
-        void *ctx)
+static void s_family_snapshot_visitor(client_td *candidate, void *ctx)
 {
-    struct s_family_snapshot_fill_ctx *const fill =
-        (struct s_family_snapshot_fill_ctx *) ctx;
+    struct s_family_snapshot_ctx *const snap =
+        (struct s_family_snapshot_ctx *) ctx;
 
-    if (fill->count < fill->capacity) {
-        fill->members[fill->count] = candidate;
-        fill->count++;
+    if (candidate == NULL) {
+        return;
     }
+
+    if (snap->desktop_filter != WM_DESKTOP_ID_ALL &&
+            candidate->desktop_id != snap->desktop_filter) {
+        return;
+    }
+
+    if (snap->members == NULL) {
+        snap->count++;
+        return;
+    }
+
+    /* Never writes past 'capacity' even if somehow handed more
+     * matches than the first, counting pass counted (nothing mutates
+     * the transient tree between the two passes in practice, so both
+     * always find the exact same matches, but a stray write past the
+     * end of a heap allocation is exactly the class of bug worth
+     * guarding against unconditionally rather than trusting that
+     * invariant alone). */
+    if (snap->count < snap->capacity) {
+        snap->members[snap->count] = candidate;
+        snap->count++;
+    }
+}
+
+
+/**
+ * @brief Collect every transient descendant of @p top, optionally
+ *        restricted to one desktop, into a newly allocated snapshot
+ *        array
+ *
+ * Shared implementation behind both @a ccmd_client_transient_family_
+ * snapshot (@p desktop_filter set to a specific desktop's own @c id)
+ * and @a ccmd_client_transient_family_snapshot_anywhere (@p desktop_
+ * filter set to @c WM_DESKTOP_ID_ALL, matching every desktop):
+ * counts every match first via @a s_visit_descendants, allocates
+ * exactly that many slots once, then fills them in an identical
+ * second pass, rather than growing one array as matches are found (a
+ * genuinely riskier design that turned out to crash outright rather
+ * than just misbehave, when this same idea was tried once already,
+ * back when this whole file still had to scan every desktop instead
+ * of walking a real tree).
+ *
+ * @param top             Family's own top-most ancestor; excluded
+ *                        from the result even where found
+ * @param desktop_filter  A specific desktop's own @c id to restrict
+ *                        the result to, or @c WM_DESKTOP_ID_ALL to
+ *                        match every desktop
+ * @param count_out       Receives the number of clients collected;
+ *                        set to @c 0 on any early return
+ *
+ * @return Newly allocated array of @c *count_out client pointers,
+ *         the caller's own to @c free; @c NULL if @p top or @p
+ *         count_out is @c NULL, no match was found, or the
+ *         allocation itself failed
+ *
+ * @note Complexity: @e O(f), where @e f is the number of @p top's
+ *       own transient descendants at every depth combined
+ */
+static client_td **s_family_snapshot(client_td *top,
+        uint32_t desktop_filter, size_t *count_out)
+{
+    struct s_family_snapshot_ctx ctx;
+    client_td **members;
+
+    if (count_out != NULL) {
+        *count_out = 0;
+    }
+
+    if (top == NULL || count_out == NULL) {
+        return NULL;
+    }
+
+    ctx.desktop_filter = desktop_filter;
+    ctx.members = NULL;
+    ctx.capacity = 0;
+    ctx.count = 0;
+    s_visit_descendants(top, s_family_snapshot_visitor, &ctx, 0);
+
+    if (ctx.count == 0) {
+        return NULL;
+    }
+
+    members = malloc(ctx.count * sizeof(*members));
+    if (members == NULL) {
+        return NULL;
+    }
+
+    ctx.members = members;
+    ctx.capacity = ctx.count;
+    ctx.count = 0;
+    s_visit_descendants(top, s_family_snapshot_visitor, &ctx, 0);
+
+    *count_out = ctx.count;
+    return members;
 }
 
 
@@ -296,19 +300,9 @@ client_td *ccmd_client_transient_top_parent(client_td *client)
 
     top = client;
     depth = 0;
-    while (top->transient_for != XCB_WINDOW_NONE &&
+    while (top->transient_parent != NULL &&
             depth < WM_TRANSIENT_CHAIN_MAX_DEPTH) {
-        client_td *const parent = lookup_find_client(wm_get_surfaces(),
-                top->transient_for, NULL, NULL);
-
-        /* Stop at a declared parent that is not (or not yet) a managed
-         * client, and at a self-referencing 'transient_for' (a
-         * malformed or malicious client naming itself), rather than
-         * looping forever on either. */
-        if (parent == NULL || parent == top) {
-            break;
-        }
-        top = parent;
+        top = top->transient_parent;
         depth++;
     }
 
@@ -321,22 +315,20 @@ client_td *ccmd_client_transient_top_parent(client_td *client)
  *        one specific desktop into a newly allocated snapshot array
  *
  * Every family-wide action in this project (iconify, restore, pin,
- * unpin, desktop sends, and the like) needs the exact same two steps
- * before it can safely touch more than one client at once: collect
- * every matching sibling into an array first, rather than acting on
- * each one directly from inside an @c ohtbl_foreach pass, since an
- * action on one sibling (an iconify, a pin, a desktop move) can
- * itself add, remove, or otherwise touch entries in @p desktop's own
- * client table, and iterating and mutating that same table at once
- * is undefined behavior for @c ohtbl_foreach; and size the array
- * correctly up front from @p desktop's own client count.  This
- * function is exactly those two steps, factored out once instead of
- * repeated at every call site; the caller supplies its own loop over
- * the result to actually act on each one, since what to do with a
- * family member is the one part every call site still needs its own
- * way.
+ * unpin, desktop sends, and the like) needs the same thing: every
+ * matching sibling collected into an array first, rather than acted
+ * on directly while still walking the family tree, since an action
+ * on one sibling (an iconify, a pin, a desktop move) can itself add,
+ * remove, or otherwise touch entries in that same tree, and altering
+ * a structure while still walking it is asking for trouble regardless
+ * of which structure it is.  A thin wrapper over @a s_family_snapshot
+ * with its own @p desktop_filter set to @p desktop's own @c id; see
+ * that function's own doc comment for the full reasoning.  The
+ * caller supplies its own loop over the result to actually act on
+ * each one, since what to do with a family member is the one part
+ * every call site still needs its own way.
  *
- * @param desktop   Desktop to scan
+ * @param desktop   Desktop to restrict the result to
  * @param top       Family's own top-most ancestor (see @a ccmd_
  *                  client_transient_top_parent); excluded from the
  *                  result even if found on @p desktop itself
@@ -346,45 +338,24 @@ client_td *ccmd_client_transient_top_parent(client_td *client)
  *
  * @return Newly allocated array of @c *count_out client pointers,
  *         the caller's own to @c free; @c NULL if @p desktop, @p top,
- *         or @p count_out is @c NULL, @p desktop has no clients at
- *         all, or the allocation itself failed
+ *         or @p count_out is @c NULL, no match was found on @p
+ *         desktop, or the allocation itself failed
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p desktop
+ * @note Complexity: @e O(f), where @e f is the number of @p top's
+ *       own transient descendants at every depth combined
  */
 client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
         client_td *top, size_t *count_out)
 {
-    client_td **members;
-    size_t capacity;
-    void *elem;
-
     if (count_out != NULL) {
         *count_out = 0;
     }
 
-    if (desktop == NULL || top == NULL || desktop->clients == NULL ||
-            count_out == NULL) {
+    if (desktop == NULL) {
         return NULL;
     }
 
-    capacity = ohtbl_size(desktop->clients);
-    members = malloc(capacity * sizeof(*members));
-    if (members == NULL) {
-        return NULL;
-    }
-
-    ohtbl_foreach(desktop->clients, elem) {
-        client_td *const candidate = (client_td *) elem;
-
-        if (candidate != NULL && candidate != top &&
-                ccmd_client_transient_top_parent(candidate) == top) {
-            members[*count_out] = candidate;
-            (*count_out)++;
-        }
-    }
-
-    return members;
+    return s_family_snapshot(top, desktop->id, count_out);
 }
 
 
@@ -394,36 +365,28 @@ client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
  *        array
  *
  * The all-desktops counterpart to @a ccmd_client_transient_family_
- * snapshot (see its own doc comment for the shared reasoning behind
- * collecting into a snapshot at all): every family-wide action that
- * is not itself about desktops (iconify, restore, hide, unhide, pin,
- * unpin) must find every family member regardless of which desktop
- * each one happens to be registered under, not just @p top's own —
- * those two can genuinely differ when @p top is pinned, since
- * pinning a client never actually moves it between desktops (it
- * stays registered under whichever one it was originally on
- * forever; see @a ccmd_client_bring_family's own doc comment below
- * for the fuller reasoning), while an un-pinned transient dialog of
- * it is registered under whichever desktop happened to be current
- * when it was created.  Scoping the search to @p top's own desktop
- * alone, as the desktop-move actions genuinely need to (@a enact_
- * desktop_client_send, @a hi_handle_net_wm_desktop, @a drag_warp_
- * tick, and @a ccmd_client_bring_family itself, which each still use
- * @a ccmd_client_transient_family_snapshot directly for exactly that
- * reason), silently fails to find a transient living elsewhere:
- * hiding or iconifying a pinned parent this way leaves its own
- * dialog neither hidden nor found again on restore, stranding it
- * invisible with no way back.
- *
- * Counts every match first via @a s_visit_family_anywhere, allocates
- * exactly that many slots once, then fills them in a second,
- * identical pass, rather than growing one array as matches are found
- * (a genuinely riskier design that turned out to crash outright
- * rather than just misbehave, when this same idea was tried once
- * already): nothing mutates the client tree between the two passes,
- * so both always find the exact same matches in the exact same
- * order, and @a s_family_snapshot_fill_visitor never writes past the
- * array's own true size regardless.
+ * snapshot just above: every family-wide action that is not itself
+ * about desktops (iconify, restore, hide, unhide, pin, unpin) must
+ * find every family member regardless of which desktop each one
+ * happens to be registered under, not just @p top's own — those two
+ * can genuinely differ when @p top is pinned, since pinning a client
+ * never actually moves it between desktops (it stays registered
+ * under whichever one it was originally on forever; see @a ccmd_
+ * client_bring_family's own doc comment below for the fuller
+ * reasoning), while an un-pinned transient dialog of it is registered
+ * under whichever desktop happened to be current when it was
+ * created.  Restricting the search to @p top's own desktop alone, as
+ * the desktop-move actions genuinely need to (@a enact_desktop_
+ * client_send, @a hi_handle_net_wm_desktop, @a drag_warp_tick, and
+ * @a ccmd_client_bring_family itself, which each still use @a ccmd_
+ * client_transient_family_snapshot directly for exactly that reason),
+ * silently fails to find a transient living elsewhere: hiding or
+ * iconifying a pinned parent this way leaves its own dialog neither
+ * hidden nor found again on restore, stranding it invisible with no
+ * way back.  A thin wrapper over @a s_family_snapshot with its own
+ * @p desktop_filter set to @c WM_DESKTOP_ID_ALL, matching every
+ * desktop; see that function's own doc comment for the full
+ * reasoning behind the two-pass count-then-fill approach.
  *
  * @param top       Family's own top-most ancestor (see @a ccmd_
  *                  client_transient_top_parent); excluded from the
@@ -436,44 +399,13 @@ client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
  *         count_out is @c NULL, no family member was found anywhere,
  *         or the allocation itself failed
  *
- * @note Complexity: @e O(s * d * n), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e n
- *       the number of clients per desktop
+ * @note Complexity: @e O(f), where @e f is the number of @p top's
+ *       own transient descendants at every depth combined
  */
 client_td **ccmd_client_transient_family_snapshot_anywhere(
         client_td *top, size_t *count_out)
 {
-    size_t total;
-    client_td **members;
-    struct s_family_snapshot_fill_ctx fill;
-
-    if (count_out != NULL) {
-        *count_out = 0;
-    }
-
-    if (top == NULL || count_out == NULL) {
-        return NULL;
-    }
-
-    total = 0;
-    s_visit_family_anywhere(top, s_family_snapshot_count_visitor,
-            &total);
-    if (total == 0) {
-        return NULL;
-    }
-
-    members = malloc(total * sizeof(*members));
-    if (members == NULL) {
-        return NULL;
-    }
-
-    fill.members = members;
-    fill.capacity = total;
-    fill.count = 0;
-    s_visit_family_anywhere(top, s_family_snapshot_fill_visitor, &fill);
-
-    *count_out = fill.count;
-    return members;
+    return s_family_snapshot(top, WM_DESKTOP_ID_ALL, count_out);
 }
 
 
@@ -539,9 +471,9 @@ client_td **ccmd_client_transient_family_snapshot_anywhere(
  * @note A null @p client, one whose top parent's own surface cannot
  *       be resolved, or one with no transient family at all is a
  *       silent no-op
- * @note Complexity: @e O(s * d * n), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e n
- *       the number of clients per desktop
+ * @note Complexity: @e O(f), where @e f is the number of @p client's
+ *       own top parent's transient descendants at every depth
+ *       combined
  */
 void ccmd_client_bring_family(client_td *client)
 {
@@ -591,12 +523,21 @@ void ccmd_client_bring_family(client_td *client)
     }
 
     for (size_t i = 0; i < count; i++) {
-        desktop_td *const home = wm_get_client_desktop(siblings[i]);
+        /* Compares 'desktop_id' directly first, at no cost beyond a
+         * field read on 'siblings[i]' itself: the common case is
+         * already on the right desktop (every desktop-move cascade
+         * in this project works to keep a family together in the
+         * first place), so the one lookup 'wm_get_client_desktop'
+         * genuinely costs is worth paying only when a member truly
+         * needs relocating. */
+        if (siblings[i]->desktop_id != target->id) {
+            desktop_td *const home = wm_get_client_desktop(siblings[i]);
 
-        if (home != NULL && home != target) {
-            (void) desktop_action_client_rem(home, siblings[i]);
-            (void) desktop_action_client_add(target, siblings[i]);
-            siblings[i]->desktop_id = target->id;
+            if (home != NULL) {
+                (void) desktop_action_client_rem(home, siblings[i]);
+                (void) desktop_action_client_add(target, siblings[i]);
+                siblings[i]->desktop_id = target->id;
+            }
         }
 
         if (client_is_iconified(siblings[i])) {
@@ -635,11 +576,11 @@ void ccmd_client_bring_family(client_td *client)
  * @return The deepest mapped transient descendant found, or
  *         @p client itself if it has none (or @p client is @c NULL)
  *
- * @note Complexity: @e O(min(d, @c WM_TRANSIENT_CHAIN_MAX_DEPTH) *
- *       s * d2 * n), where @e d is the true depth of mapped transient
- *       descendants, @e s is the number of surfaces, @e d2 the
- *       number of desktops per surface, and @e n the number of
- *       clients per desktop
+ * @note Complexity: @e O(min(d, @c WM_TRANSIENT_CHAIN_MAX_DEPTH) * k),
+ *       where @e d is the true depth of mapped transient descendants
+ *       and @e k is the number of direct transient children found at
+ *       each step along the way (each client's own @c transients
+ *       list; see its doc comment, client.h)
  */
 client_td *ccmd_client_focus_target(client_td *client)
 {
@@ -663,4 +604,131 @@ client_td *ccmd_client_focus_target(client_td *client)
     }
 
     return target;
+}
+
+
+/**
+ * @brief Link a newly managed client into its parent's transient
+ *        tree, if @c transient_for names an already-managed client
+ *
+ * This is what makes every other function in this file @e O(1) per
+ * step instead of a scan of every client on every desktop: rather
+ * than re-discovering "who is transient for whom" from scratch on
+ * every walk, by comparing @c transient_for window IDs across the
+ * whole managed set, the relationship is captured once, right here,
+ * as real pointers on both ends (@c transient_parent going up, an
+ * entry in @c transients going down) that later code just follows
+ * directly.  Openbox's own @c client_update_transient_for /
+ * @c client_update_transient_tree (client.c) does the same thing for
+ * the same reason, maintaining @c self->transients and @c self->
+ * parents as real lists rather than resolving @c WM_TRANSIENT_FOR
+ * fresh each time it matters; this is the same idea without
+ * Openbox's own additional window-group machinery, which this
+ * project has no equivalent of.
+ *
+ * @c transient_for itself is read once, early, at @a client_init
+ * time (@c s_client_read_wm_hints_and_leader, client.c), before
+ * @p client is even added to a desktop; resolving the actual parent
+ * pointer waits until here, called right after that, because the
+ * lookup below needs the whole managed-client machinery, not just
+ * this one client's own fields, and because a parent that has not
+ * mapped yet (however unusual) simply cannot be linked to yet.
+ *
+ * New children are linked in at the head of their parent's own
+ * @c transients list (matching Openbox's own @c g_slist_prepend for
+ * the identical purpose): the only way to know which node an
+ * insertion created, given @a cdlist_ins_next never hands the new
+ * node back itself, is to insert at a known position and immediately
+ * read it straight back out.
+ *
+ * @param client Newly managed client to link
+ *
+ * @note A null @p client, one not transient for anything, one
+ *       transient for itself, or one whose declared parent is not
+ *       (or not yet) managed, is a silent no-op; @p client is simply
+ *       never linked into any parent's tree in that last case, the
+ *       same as if it were not transient for anything at all
+ * @note Complexity: @e O(1)
+ */
+void client_link_transient(client_td *client)
+{
+    client_td *parent;
+
+    if (client == NULL || client->transient_for == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    parent = lookup_find_client(wm_get_surfaces(), client->transient_for,
+            NULL, NULL);
+    if (parent == NULL || parent == client) {
+        return;
+    }
+
+    if (parent->transients == NULL) {
+        parent->transients = cdlist_init(NULL);
+        if (parent->transients == NULL) {
+            return;
+        }
+    }
+
+    if (cdlist_ins_next(parent->transients, NULL, client) == 0) {
+        client->transient_parent = parent;
+        client->transient_node = cdlist_head(parent->transients);
+    }
+}
+
+
+/**
+ * @brief Unlink a client from the transient tree before it stops
+ *        being managed
+ *
+ * Removes @p client from its own parent's @c transients list in true
+ * @e O(1) (see @c transient_node's own doc comment, client.h: with
+ * that node cached, @c cdlist_rem_next on its own @c prev needs no
+ * search at all), and orphans every one of @p client's own children
+ * by clearing their own @c transient_parent/@c transient_node back
+ * to @c NULL: the parent they were transient for is going away, so
+ * there is nothing left for them to be transient for anymore, the
+ * same way a dialog whose own parent closes simply becomes an
+ * ordinary standalone window from that point on rather than staying
+ * attached to a client that no longer exists.
+ *
+ * @param client Client about to stop being managed
+ *
+ * @note A null @p client is a silent no-op
+ * @note Complexity: @e O(k), where @e k is the number of @p client's
+ *       own direct transient children
+ */
+void client_unlink_transient(client_td *client)
+{
+    void *discarded;
+
+    if (client == NULL) {
+        return;
+    }
+
+    if (client->transient_parent != NULL &&
+            client->transient_node != NULL &&
+            client->transient_parent->transients != NULL) {
+        (void) cdlist_rem_next(client->transient_parent->transients,
+                client->transient_node->prev, &discarded);
+    }
+    client->transient_parent = NULL;
+    client->transient_node = NULL;
+
+    if (client->transients != NULL) {
+        while (!cdlist_is_empty(client->transients)) {
+            void *removed = NULL;
+            client_td *child;
+
+            (void) cdlist_rem_next(client->transients, NULL, &removed);
+            child = (client_td *) removed;
+            if (child != NULL) {
+                child->transient_parent = NULL;
+                child->transient_node = NULL;
+            }
+        }
+        cdlist_destroy(client->transients);
+        client->transients = NULL;
+    }
 }

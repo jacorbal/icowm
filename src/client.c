@@ -156,6 +156,16 @@ void client_destroy(client_td *client)
         return;
     }
 
+    /* Removes 'client' from its own parent's 'transients' list (true
+     * O(1), see 'transient_node''s own doc comment, client.h) and
+     * orphans every one of its own children, before anything below
+     * frees so much as a single field: every other function walking
+     * the transient tree (top-parent walks, focus redirection, family
+     * cascades) follows real 'client_td*' pointers now, so a client
+     * freed while still linked in would leave those pointers dangling
+     * for whoever encounters it next. */
+    client_unlink_transient(client);
+
     scratchpad_notice_client_destroyed(client);
 
     LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",

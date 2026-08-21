@@ -35,6 +35,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
+/* ADT includes */
+#include <adt/cdlist.h>
+
 /* Default initial values */
 #include <defs/client.h>
 
@@ -297,6 +300,52 @@ typedef struct client_s {
                                           or @c XCB_WINDOW_NONE if none) */
 
     /**
+     * @brief Direct pointer to the managed parent this client is
+     *        transient for, or @c NULL if it is not transient for
+     *        anything (or its declared parent is not, or not yet,
+     *        managed)
+     *
+     * Resolved once, right after this client is added to its own
+     * desktop, from @a transient_for by looking up the matching
+     * managed client; kept in sync from then on by whichever code
+     * removes a client from the transient tree (see @a transients
+     * and @a transient_node below).  Walking this pointer directly
+     * is @e O(1) per step, unlike re-resolving @a transient_for's
+     * raw window ID through a lookup every time the parent is
+     * needed.
+     */
+    struct client_s *transient_parent;
+
+    /**
+     * @brief This client's own direct transient children, or
+     *        @c NULL if it has none
+     *
+     * Lazily allocated the first time a child registers itself here
+     * (see @a transient_parent above), never created up front for
+     * every client regardless of whether it will ever have any:
+     * the overwhelming majority of managed clients are never
+     * transient for anything and never have any children either, so
+     * paying for an empty list on all of them would be pure waste.
+     * Each item's own @c data is the child @c client_td* itself.
+     */
+    cdlist_td *transients;
+
+    /**
+     * @brief This client's own position within @a transient_parent
+     *        's own @a transients list, or @c NULL if it is not
+     *        currently registered in any parent's list
+     *
+     * The whole reason a real, maintained list of transient children
+     * is worth having at all instead of scanning every client on
+     * every desktop whenever the transient family needs walking:
+     * with this node cached, removing this client from its parent's
+     * list when it closes, or is reparented, is a true @e O(1)
+     * operation (@c cdlist_rem_next on this node's own @c prev),
+     * never a search.
+     */
+    cdlist_item_td *transient_node;
+
+    /**
      * @brief Cached, already built @c _NET_WM_ICON Picture
      *
      * Built once by @a wmicon_draw the first time this client's icon is
@@ -405,8 +454,8 @@ typedef struct client_s {
      *        surface
      *
      * The same @c config_td every other client on this surface also
-     * points to; never reassigned after @a client_init (see
-     * @a client_init's own callers), though the configuration it points
+     * points to; never reassigned after @a client_init (see @a
+     * client_init's own callers), though the configuration it points
      * to can still change in place at any time from a live reload or
      * a runtime theme request, which every client picking it up on its
      * next read is exactly the point of sharing one pointer instead of

@@ -193,6 +193,16 @@ void handler_map_request(const wm_td *wm,
         return;
     }
 
+    /* Links 'client' into its own parent's transient tree, if
+     * 'transient_for' names an already-managed client, right after
+     * 'client' itself is a genuine managed client (added to its own
+     * desktop just above): every other family-wide function in this
+     * project (top-parent walks, focus redirection, iconify/restore/
+     * pin/etc. cascades) relies on this link already being in place
+     * to walk real pointers instead of scanning every client on every
+     * desktop. */
+    client_link_transient(client);
+
     scratchpad_position(client, desktop, surface);
 
     /* Advertise the desktop this client belongs to per EWMH */

@@ -403,17 +403,10 @@ void ccmd_rem_states(client_td *client, uint32_t num_states, ...);
  *         @p client itself if it has none (or @p client is @c NULL)
  *
  * @note Implemented in @c cmds/client/transient.c
- * @note Searches every desktop of every surface at each step, not
- *       just the current target's own desktop, so a transient family
- *       that ends up split across desktops (which should never
- *       happen by design, but is not assumed here) is still found
- *       correctly rather than silently falling back to focusing the
- *       parent.
- * @note Complexity: @e O(min(d, @c WM_TRANSIENT_CHAIN_MAX_DEPTH) *
- *       s * d2 * n), where @e d is the true depth of mapped
- *       transient descendants, @e s is the number of surfaces,
- *       @e d2 the number of desktops per surface, and @e n the
- *       number of clients per desktop
+ * @note Complexity: @e O(min(d, @c WM_TRANSIENT_CHAIN_MAX_DEPTH) * k),
+ *       where @e d is the true depth of mapped transient descendants
+ *       and @e k is the number of direct transient children found at
+ *       each step along the way
  */
 client_td *ccmd_client_focus_target(client_td *client);
 
@@ -484,9 +477,9 @@ client_td *ccmd_client_transient_top_parent(client_td *client);
  *       be resolved, or one with no transient family at all is a
  *       silent no-op
  * @note Implemented in @c cmds/client/transient.c
- * @note Complexity: @e O(s * d * n), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e n
- *       the number of clients per desktop
+ * @note Complexity: @e O(f), where @e f is the number of @p client's
+ *       own top parent's transient descendants at every depth
+ *       combined
  */
 void ccmd_client_bring_family(client_td *client);
 
@@ -495,20 +488,17 @@ void ccmd_client_bring_family(client_td *client);
  *        one specific desktop into a newly allocated snapshot array
  *
  * Every family-wide action in this project (iconify, restore, pin,
- * unpin, desktop sends, and the like) needs the exact same two steps
- * before it can safely touch more than one client at once: collect
- * every matching sibling into an array first, rather than acting on
- * each one directly from inside an @c ohtbl_foreach pass (an action
- * on one sibling can itself add, remove, or otherwise touch entries
- * in @p desktop's own client table, and iterating and mutating that
- * same table at once is undefined behavior for @c ohtbl_foreach);
- * and size the array correctly up front.  Factored out once here
- * instead of repeated at every call site; the caller supplies its
- * own loop over the result to actually act on each one, since what
- * to do with a family member is the one part every call site still
- * needs its own way.
+ * unpin, desktop sends, and the like) needs the same thing: every
+ * matching sibling collected into an array first, rather than acted
+ * on directly while still walking the family tree, since an action
+ * on one sibling (an iconify, a pin, a desktop move) can itself add,
+ * remove, or otherwise touch entries in that same tree.  Factored
+ * out once here instead of repeated at every call site; the caller
+ * supplies its own loop over the result to actually act on each one,
+ * since what to do with a family member is the one part every call
+ * site still needs its own way.
  *
- * @param desktop   Desktop to scan
+ * @param desktop   Desktop to restrict the result to
  * @param top       Family's own top-most ancestor (see @a ccmd_
  *                  client_transient_top_parent); excluded from the
  *                  result even if found on @p desktop itself
@@ -518,12 +508,12 @@ void ccmd_client_bring_family(client_td *client);
  *
  * @return Newly allocated array of @c *count_out client pointers,
  *         the caller's own to @c free; @c NULL if @p desktop, @p top,
- *         or @p count_out is @c NULL, @p desktop has no clients at
- *         all, or the allocation itself failed
+ *         or @p count_out is @c NULL, no match was found on @p
+ *         desktop, or the allocation itself failed
  *
  * @note Implemented in @c cmds/client/transient.c
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p desktop
+ * @note Complexity: @e O(f), where @e f is the number of @p top's
+ *       own transient descendants at every depth combined
  */
 client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
         client_td *top, size_t *count_out);
@@ -566,12 +556,52 @@ client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
  *         or the allocation itself failed
  *
  * @note Implemented in @c cmds/client/transient.c
- * @note Complexity: @e O(s * d * n), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e n
- *       the number of clients per desktop
+ * @note Complexity: @e O(f), where @e f is the number of @p top's
+ *       own transient descendants at every depth combined
  */
 client_td **ccmd_client_transient_family_snapshot_anywhere(
         client_td *top, size_t *count_out);
+
+/**
+ * @brief Link a newly managed client into its parent's transient
+ *        tree, if @c transient_for names an already-managed client
+ *
+ * Called once, right after a newly mapped client is added to its own
+ * desktop, so every other transient-family function in this project
+ * can walk real @c client_td* pointers (@c transient_parent going
+ * up, @c transients going down) instead of re-discovering "who is
+ * transient for whom" by scanning every client on every desktop and
+ * comparing @c transient_for window IDs each time it matters.
+ *
+ * @param client Newly managed client to link
+ *
+ * @note A null @p client, one not transient for anything, or one
+ *       whose declared parent is not (or not yet) managed, is a
+ *       silent no-op
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Complexity: @e O(1)
+ */
+void client_link_transient(client_td *client);
+
+/**
+ * @brief Unlink a client from the transient tree before it stops
+ *        being managed
+ *
+ * Removes @p client from its own parent's @c transients list in true
+ * @e O(1), and orphans every one of @p client's own children by
+ * clearing their own @c transient_parent/@c transient_node back to
+ * @c NULL, since the parent they were transient for is going away.
+ * Must be called before @p client itself is actually freed, from
+ * whichever code path is unmanaging it.
+ *
+ * @param client Client about to stop being managed
+ *
+ * @note A null @p client is a silent no-op
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Complexity: @e O(k), where @e k is the number of @p client's
+ *       own direct transient children
+ */
+void client_unlink_transient(client_td *client);
 
 /**
  * @brief Unmap a client's decoration target, correctly pre-arming
