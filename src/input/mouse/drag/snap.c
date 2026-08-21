@@ -103,30 +103,33 @@ static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
 void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
         uint32_t width, uint32_t height)
 {
-    int32_t snap;
+    int32_t snap_window;
+    int32_t snap_screen;
     int32_t right;
     int32_t bottom;
 
-    if (x == NULL || y == NULL || s_drag.snap == 0) {
+    if (x == NULL || y == NULL) {
         return;
     }
 
-    snap = (int32_t) s_drag.snap;
+    snap_window = (int32_t) s_drag.snap_window;
+    snap_screen = (int32_t) s_drag.snap_screen;
     right = *x + (int32_t) width;
     bottom = *y + (int32_t) height;
 
-    if (s_drag.desktop != NULL && s_drag.desktop->stacking != NULL &&
+    if (snap_window > 0 && s_drag.desktop != NULL &&
+            s_drag.desktop->stacking != NULL &&
             cdlist_size(s_drag.desktop->stacking) > 0) {
         cdlist_item_td *node;
         const cdlist_item_td *initial;
-        /* One past 'snap' itself, not 'snap' itself: 'abs(delta) <=
-         * snap' below is what decides whether a candidate actually
-         * applies, so starting exactly at 'snap' would make that
-         * check pass on the untouched initial value alone whenever no
-         * real candidate ever beat it, applying a spurious snap of
-         * exactly the snap distance with no nearby window at all
-         * responsible for it. */
-        int32_t dx = snap + 1;
+        /* One past 'snap_window' itself, not 'snap_window' itself:
+         * 'abs(delta) <= snap_window' below is what decides whether
+         * a candidate actually applies, so starting exactly at
+         * 'snap_window' would make that check pass on the untouched
+         * initial value alone whenever no real candidate ever beat
+         * it, applying a spurious snap of exactly the snap distance
+         * with no nearby window at all responsible for it. */
+        int32_t dx = snap_window + 1;
         int32_t dy = dx;
 
         node = cdlist_head(s_drag.desktop->stacking);
@@ -147,7 +150,7 @@ void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
                         (int32_t) other->layout.geometry.cur.dim.h;
 
                     if (s_drag_ranges_close(*y, bottom, oy,
-                                obottom, snap)) {
+                                obottom, snap_window)) {
                         dx = s_drag_closer_delta(dx, oright - *x);
                         dx = s_drag_closer_delta(dx, oright - right);
                         dx = s_drag_closer_delta(dx, ox - right);
@@ -155,7 +158,7 @@ void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
                     }
 
                     if (s_drag_ranges_close(*x, right, ox,
-                                oright, snap)) {
+                                oright, snap_window)) {
                         dy = s_drag_closer_delta(dy, obottom - *y);
                         dy = s_drag_closer_delta(dy, obottom - bottom);
                         dy = s_drag_closer_delta(dy, oy - bottom);
@@ -167,41 +170,41 @@ void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
         }
 
         LOGGER_TRACE("Move snap candidates (x=%d, y=%d, right=%d," \
-                " bottom=%d, dx=%d, dy=%d, snap=%d)",
-                *x, *y, right, bottom, dx, dy, snap);
+                " bottom=%d, dx=%d, dy=%d, snap-window=%d)",
+                *x, *y, right, bottom, dx, dy, snap_window);
 
-        if (s_drag_abs_i32(dx) <= snap) {
+        if (s_drag_abs_i32(dx) <= snap_window) {
             *x += dx;
             right += dx;
         }
 
-        if (s_drag_abs_i32(dy) <= snap) {
+        if (s_drag_abs_i32(dy) <= snap_window) {
             *y += dy;
             bottom += dy;
         }
     }
 
-    if (s_drag.screen_w > 0 &&
-            s_drag_abs_i32(*x) <= snap) {
+    if (snap_screen > 0 && s_drag.screen_w > 0 &&
+            s_drag_abs_i32(*x) <= snap_screen) {
         right -= *x;
         *x = 0;
     }
 
-    if (s_drag.screen_h > 0 &&
-            s_drag_abs_i32(*y) <= snap) {
+    if (snap_screen > 0 && s_drag.screen_h > 0 &&
+            s_drag_abs_i32(*y) <= snap_screen) {
         bottom -= *y;
         *y = 0;
     }
 
-    if (s_drag.screen_w > 0 &&
+    if (snap_screen > 0 && s_drag.screen_w > 0 &&
             s_drag_abs_i32(right -
-                (int32_t) s_drag.screen_w) <= snap) {
+                (int32_t) s_drag.screen_w) <= snap_screen) {
         *x = (int32_t) s_drag.screen_w - (int32_t) width;
     }
 
-    if (s_drag.screen_h > 0 &&
+    if (snap_screen > 0 && s_drag.screen_h > 0 &&
             s_drag_abs_i32(bottom -
-                (int32_t) s_drag.screen_h) <= snap) {
+                (int32_t) s_drag.screen_h) <= snap_screen) {
         *y = (int32_t) s_drag.screen_h - (int32_t) height;
     }
 }
@@ -211,16 +214,17 @@ void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
 void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
         uint32_t *restrict width, uint32_t *restrict height)
 {
-    int32_t snap;
+    int32_t snap_window;
+    int32_t snap_screen;
     int32_t right;
     int32_t bottom;
 
-    if (x == NULL || y == NULL || width == NULL || height == NULL ||
-            s_drag.snap == 0) {
+    if (x == NULL || y == NULL || width == NULL || height == NULL) {
         return;
     }
 
-    snap = (int32_t) s_drag.snap;
+    snap_window = (int32_t) s_drag.snap_window;
+    snap_screen = (int32_t) s_drag.snap_screen;
     right = *x + (int32_t) *width;
     bottom = *y + (int32_t) *height;
 
@@ -231,13 +235,14 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
      * and snap check below has to target whichever edge that is, not
      * always assume it is the right/bottom edge the way a
      * left-edge-fixed resize would. */
-    if (s_drag.desktop != NULL && s_drag.desktop->stacking != NULL &&
+    if (snap_window > 0 && s_drag.desktop != NULL &&
+            s_drag.desktop->stacking != NULL &&
             cdlist_size(s_drag.desktop->stacking) > 0) {
         cdlist_item_td *node;
         const cdlist_item_td *initial;
         /* See the matching comment in 'drag_snap_move' for why this
-         * is 'snap + 1', not 'snap' itself. */
-        int32_t d_horiz = snap + 1;
+         * is 'snap_window + 1', not 'snap_window' itself. */
+        int32_t d_horiz = snap_window + 1;
         int32_t d_vert = d_horiz;
 
         node = cdlist_head(s_drag.desktop->stacking);
@@ -257,8 +262,8 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
                     int32_t obottom = oy +
                         (int32_t) other->layout.geometry.cur.dim.h;
 
-                    if (s_drag_ranges_close(*y, bottom,
-                                oy, obottom, snap)) {
+                    if (s_drag_ranges_close(*y, bottom, oy,
+                                obottom, snap_window)) {
                         if (s_drag.anchor_right) {
                             d_horiz = s_drag_closer_delta(d_horiz,
                                     oright - *x);
@@ -272,8 +277,8 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
                         }
                     }
 
-                    if (s_drag_ranges_close(*x, right,
-                                ox, oright, snap)) {
+                    if (s_drag_ranges_close(*x, right, ox,
+                                oright, snap_window)) {
                         if (s_drag.anchor_bottom) {
                             d_vert = s_drag_closer_delta(d_vert,
                                     obottom - *y);
@@ -293,12 +298,12 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
 
         LOGGER_TRACE("Resize snap candidates (x=%d, y=%d, right=%d," \
                 " bottom=%d, anchor-right=%d, anchor-bottom=%d," \
-                " d-horiz=%d, d-vert=%d, snap=%d)",
+                " d-horiz=%d, d-vert=%d, snap-window=%d)",
                 *x, *y, right, bottom,
                 (int) s_drag.anchor_right, (int) s_drag.anchor_bottom,
-                d_horiz, d_vert, snap);
+                d_horiz, d_vert, snap_window);
 
-        if (s_drag_abs_i32(d_horiz) <= snap) {
+        if (s_drag_abs_i32(d_horiz) <= snap_window) {
             if (s_drag.anchor_right) {
                 *x += d_horiz;
                 *width = geom_dim_clamp((int32_t) *width - d_horiz);
@@ -308,7 +313,7 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
             right = *x + (int32_t) *width;
         }
 
-        if (s_drag_abs_i32(d_vert) <= snap) {
+        if (s_drag_abs_i32(d_vert) <= snap_window) {
             if (s_drag.anchor_bottom) {
                 *y += d_vert;
                 *height = geom_dim_clamp((int32_t) *height - d_vert);
@@ -319,30 +324,30 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
         }
     }
 
-    if (s_drag.screen_w > 0) {
+    if (snap_screen > 0 && s_drag.screen_w > 0) {
         if (s_drag.anchor_right) {
             /* Dragging the left edge: it can snap to the screen's own
              * left edge, which a resize never checked for before. */
-            if (s_drag_abs_i32(*x) <= snap) {
+            if (s_drag_abs_i32(*x) <= snap_screen) {
                 *width = geom_dim_clamp((int32_t) *width + *x);
                 *x = 0;
             }
         } else if (s_drag_abs_i32(right -
-                    (int32_t) s_drag.screen_w) <= snap) {
+                    (int32_t) s_drag.screen_w) <= snap_screen) {
             *width = geom_dim_clamp((int32_t) s_drag.screen_w - *x);
         }
     }
 
-    if (s_drag.screen_h > 0) {
+    if (snap_screen > 0 && s_drag.screen_h > 0) {
         if (s_drag.anchor_bottom) {
             /* Dragging the top edge: same reasoning as the left edge
              * above, snapping to the screen's own top edge. */
-            if (s_drag_abs_i32(*y) <= snap) {
+            if (s_drag_abs_i32(*y) <= snap_screen) {
                 *height = geom_dim_clamp((int32_t) *height + *y);
                 *y = 0;
             }
         } else if (s_drag_abs_i32(bottom -
-                    (int32_t) s_drag.screen_h) <= snap) {
+                    (int32_t) s_drag.screen_h) <= snap_screen) {
             *height = geom_dim_clamp((int32_t) s_drag.screen_h - *y);
         }
     }

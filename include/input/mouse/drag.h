@@ -58,7 +58,6 @@
  * @param event_time Timestamp from the triggering button-press event
  * @param root_pos   Root-relative position of the pointer at press time
  * @param screen_dim Screen dimensions in pixels ((0, 0) to disable snap)
- * @param snap       Snap distance in pixels (0 to disable snap)
  *
  * @note Complexity: @e O(1)
  */
@@ -67,8 +66,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         enum window_operation_e operation,
         xcb_timestamp_t event_time,
         struct position_s root_pos,
-        struct dimensions_s screen_dim,
-        uint32_t snap);
+        struct dimensions_s screen_dim);
 
 /**
  * @brief Begin a resize drag with an explicit anchor, rather than one
@@ -95,7 +93,6 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
  *                      request time
  * @param screen_dim    Screen dimensions in pixels ((0, 0) to disable
  *                      snap)
- * @param snap          Snap distance in pixels (0 to disable snap)
  * @param anchor_right  @c true if the right edge stays fixed (a left,
  *                      top-left, or bottom-left drag)
  * @param anchor_bottom @c true if the bottom edge stays fixed (a top,
@@ -110,7 +107,6 @@ void drag_start_directed(xcb_connection_t *connection,
         xcb_timestamp_t event_time,
         struct position_s root_pos,
         struct dimensions_s screen_dim,
-        uint32_t snap,
         bool anchor_right, bool anchor_bottom,
         bool resize_w, bool resize_h);
 
@@ -139,7 +135,6 @@ void drag_start_directed(xcb_connection_t *connection,
  *                      request time
  * @param screen_dim    Screen dimensions in pixels ((0, 0) to disable
  *                      snap)
- * @param snap          Snap distance in pixels (0 to disable snap)
  * @param axis_w_locked @c true to force the width axis unresizable
  *                      regardless of where @p root_pos fell
  * @param axis_h_locked @c true to force the height axis unresizable
@@ -156,7 +151,6 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
         xcb_timestamp_t event_time,
         struct position_s root_pos,
         struct dimensions_s screen_dim,
-        uint32_t snap,
         bool axis_w_locked, bool axis_h_locked);
 
 /**

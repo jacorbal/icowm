@@ -101,10 +101,26 @@ int ci_memguard_load_json(const char *filename, config_td *config)
 
     windows_item = cJSON_GetObjectItem(json, "windows");
     if (windows_item != NULL) {
+        cJSON *edges_item;
         cJSON *placement_item;
 
         json_load_uint(windows_item, "move-step",
                 &config->base.windows.move_step);
+
+        edges_item = cJSON_GetObjectItem(windows_item, "edges");
+        if (edges_item != NULL) {
+            cJSON *snap_item;
+
+            snap_item = cJSON_GetObjectItem(edges_item, "snap");
+            if (snap_item != NULL) {
+                json_load_uint(snap_item, "window",
+                        &config->base.windows.edges.snap.window);
+                json_load_uint(snap_item, "screen",
+                        &config->base.windows.edges.snap.screen);
+            }
+            json_load_uint(edges_item, "resistance",
+                    &config->base.windows.edges.resistance);
+        }
 
         placement_item = cJSON_GetObjectItem(windows_item, "placement");
         if (placement_item != NULL) {

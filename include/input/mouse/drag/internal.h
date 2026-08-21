@@ -65,7 +65,10 @@ typedef struct {
     struct geometry_s client_start;
     uint32_t screen_w;          /**< Screen width for edge snap */
     uint32_t screen_h;          /**< Screen height for edge snap */
-    uint32_t snap;              /**< Snap distance in pixels */
+    uint32_t snap_window;        /**< Snap distance in pixels toward
+                                     another window's own edge */
+    uint32_t snap_screen;        /**< Snap distance in pixels toward
+                                     the screen's own edge */
     struct geometry_s client_cur; /**< Current geometry during drag
                                      (updated each motion notify
                                      event; only @c pos is meaningful
@@ -79,6 +82,20 @@ typedef struct {
                                      changed in this drag */
     bool resize_h;              /**< Resize: height is actively being
                                      changed in this drag */
+    bool resist_axis_w;         /**< Width started this drag
+                                     maximize-locked (see
+                                     'drag_start_resize_axis_locked'),
+                                     making 'resize_w' above no longer
+                                     fixed for the whole drag the way
+                                     it is for every other client:
+                                     'drag_update' recomputes it every
+                                     call instead, false below the
+                                     configured resistance threshold,
+                                     true past it, reversibly for the
+                                     whole drag, matching Openbox's
+                                     own identical behavior
+                                     (moveresize.c) */
+    bool resist_axis_h;         /**< Height's own analogous case */
     bool move_x_locked;         /**< Move: X position pinned to its
                                      starting value for the whole drag
                                      (a horizontally-maximized client's

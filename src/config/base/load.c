@@ -128,11 +128,11 @@ int config_load_base(const char *filename,
     /* Load window base configuration */
     windows = cJSON_GetObjectItem(json, "windows");
     if (windows) {
+        cJSON *edges;
         cJSON *focus;
         cJSON *gravity;
         cJSON *placement;
 
-        json_load_uint(windows, "snap", &config_base->windows.snap);
         json_load_uint(windows, "move-step",
                 &config_base->windows.move_step);
 /*
@@ -147,6 +147,20 @@ int config_load_base(const char *filename,
                 &config_base->windows.show_geom);
         json_load_bool(windows, "solid-drag",
                 &config_base->windows.solid_drag);
+        edges = cJSON_GetObjectItem(windows, "edges");
+        if (edges) {
+            cJSON *snap_item;
+
+            snap_item = cJSON_GetObjectItem(edges, "snap");
+            if (snap_item) {
+                json_load_uint(snap_item, "window",
+                        &config_base->windows.edges.snap.window);
+                json_load_uint(snap_item, "screen",
+                        &config_base->windows.edges.snap.screen);
+            }
+            json_load_uint(edges, "resistance",
+                    &config_base->windows.edges.resistance);
+        }
         gravity = json_get_item(windows, "gravity");
         if (gravity != NULL && cJSON_IsString(gravity)) {
             config_base->windows.gravity =

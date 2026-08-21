@@ -122,17 +122,30 @@ static const config_lint_key_td s_schema_windows_placement[] = {
     {"group-related", NULL, 0u}
 };
 
+static const config_lint_key_td s_schema_windows_edges_snap[] = {
+    {"window", NULL, 0u},
+    {"screen", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_windows_edges[] = {
+    {"snap", s_schema_windows_edges_snap,
+        sizeof(s_schema_windows_edges_snap) /
+            sizeof(s_schema_windows_edges_snap[0])},
+    {"resistance", NULL, 0u}
+};
+
 static const config_lint_key_td s_schema_placement_wrapper[] = {
     {"placement", NULL, 0u}
 };
 
 static const config_lint_key_td s_schema_windows[] = {
-    {"snap", NULL, 0u},
     {"move-step", NULL, 0u},
     {"resize-step", NULL, 0u},
     {"show-geom", NULL, 0u},
     {"solid-drag", NULL, 0u},
     {"gravity", NULL, 0u},
+    {"edges", s_schema_windows_edges,
+        sizeof(s_schema_windows_edges) / sizeof(s_schema_windows_edges[0])},
     {"focus", s_schema_windows_focus,
         sizeof(s_schema_windows_focus) / sizeof(s_schema_windows_focus[0])},
     {"placement", s_schema_windows_placement,

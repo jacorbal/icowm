@@ -1012,6 +1012,29 @@ void ccmd_client_maximize_vert(client_td *client)
 }
 
 
+/* Demote a single axis's maximize state alone, without touching
+ * geometry at all; see this function's own Doxygen comment in
+ * cmds/client/geom.h for why a caller would ever want that split */
+void ccmd_client_demote_axis_state(client_td *client, int dir)
+{
+    bool was_full;
+
+    if (client == NULL) {
+        return;
+    }
+
+    was_full = client->properties.state == CLIENT_STATE_MAXIMIZED;
+    if (dir == 1) {
+        client->properties.state = (was_full)
+            ? CLIENT_STATE_MAXIMIZED_VERT : CLIENT_STATE_NORMAL;
+    } else {
+        client->properties.state = (was_full)
+            ? CLIENT_STATE_MAXIMIZED_HORZ : CLIENT_STATE_NORMAL;
+    }
+    ccmd_client_sync_states(client);
+}
+
+
 /* Maximize the client entirely, or restore it if already maximized */
 void ccmd_client_maximize(client_td *client)
 {

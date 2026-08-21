@@ -14,6 +14,13 @@
     },
 
     "windows": {
+        "edges": {
+            "resistance": 20,
+            "snap": {
+                "screen": 6,
+                "window": 6
+            }
+        },
         "move-step": 10,
         "placement": {
             "policy": "smart"

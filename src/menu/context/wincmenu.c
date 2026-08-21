@@ -191,7 +191,6 @@ static void s_cb_move(xcb_connection_t *connection,
     xcb_window_t root_win;
     struct position_s center_pos;
     struct dimensions_s screen_dim;
-    uint32_t snap;
     surface_td *surface;
 
     (void) userdata;
@@ -222,7 +221,6 @@ static void s_cb_move(xcb_connection_t *connection,
         + (int32_t) (s_target_client->layout.geometry.cur.dim.w / 2u);
     center_pos.y = s_target_client->layout.geometry.cur.pos.y
         + (int32_t) (s_target_client->layout.geometry.cur.dim.h / 2u);
-    snap = (s_config != NULL) ? s_config->base.windows.snap : 0u;
 
     xcb_warp_pointer(connection, XCB_NONE, root_win,
             0, 0, 0, 0,
@@ -234,7 +232,7 @@ static void s_cb_move(xcb_connection_t *connection,
     drag_start(connection, root_win, s_target_client, s_desktop,
             CLIENT_OPERATION_MOVING,
             XCB_CURRENT_TIME,
-            center_pos, screen_dim, snap);
+            center_pos, screen_dim);
 }
 
 
@@ -319,7 +317,6 @@ static void s_cb_resize(xcb_connection_t *connection,
     xcb_window_t root_win;
     struct position_s corner_pos;
     struct dimensions_s screen_dim;
-    uint32_t snap;
 
     (void) userdata;
 
@@ -355,7 +352,6 @@ static void s_cb_resize(xcb_connection_t *connection,
 
     s_resize_corner_grab(s_target_client, s_surface,
             &corner_pos.x, &corner_pos.y);
-    snap = (s_config != NULL) ? s_config->base.windows.snap : 0u;
 
     xcb_warp_pointer(connection, XCB_NONE, root_win,
             0, 0, 0, 0,
@@ -367,7 +363,7 @@ static void s_cb_resize(xcb_connection_t *connection,
     drag_start(connection, root_win, s_target_client, s_desktop,
             CLIENT_OPERATION_RESIZING,
             XCB_CURRENT_TIME,
-            corner_pos, screen_dim, snap);
+            corner_pos, screen_dim);
 }
 
 

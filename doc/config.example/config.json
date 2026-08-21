@@ -30,6 +30,13 @@
     },
 
     "windows": {
+        "edges": {
+            "resistance": 20,
+            "snap": {
+                "screen": 6,
+                "window": 6
+            }
+        },
         "focus": {
             "is-new-focused": true,
             "is-raised-on-focus": false,
@@ -42,8 +49,7 @@
             "monitor": "pointer",
             "policy": "smart"
         },
-        "show-geom": true,
-        "snap": 4
+        "show-geom": true
     },
 
     "icons": {

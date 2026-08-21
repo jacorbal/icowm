@@ -92,7 +92,9 @@ void config_set_default_values_memguard(config_td *config)
 
     config->base.windows.move_step = 10u;
     config->base.windows.resize_step = 20u;
-    config->base.windows.snap = 4u;
+    config->base.windows.edges.snap.window = 6u;
+    config->base.windows.edges.snap.screen = 6u;
+    config->base.windows.edges.resistance = 20u;
     config->base.windows.show_geom = false;
     config->base.windows.solid_drag = false;
     config->base.windows.gravity = CONFIG_GRAVITY_NORTH_WEST;

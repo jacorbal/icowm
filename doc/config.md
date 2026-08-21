@@ -275,15 +275,25 @@ Accepted `windows.gravity` values: `"north-west"`, `"north"`,
 `"north-east"`, `"east"`, `"south-east"`, `"south"`, `"south-west"`,
 `"west"`, `"center"`, `"static"`.
 
-#### `windows.snap`
+#### `windows.edges`
 
-| Key            | Type    | Default |
-|----------------|---------|---------|
-| `windows.snap` | integer | `4`     |
+| Key                  | Type    | Default | Description |
+|----------------------|---------|---------|-------------|
+| `edges.snap.window`  | integer | `6`     | Attraction distance in pixels toward another window's own edge.  When a window being dragged comes within this many pixels of another window's border, it snaps into alignment with it.  Set to `0` to disable this specifically. |
+| `edges.snap.screen`  | integer | `6`     | Attraction distance in pixels toward the screen's own edge.  Set to `0` to disable this specifically. |
+| `edges.resistance`   | integer | `20`    | How many pixels of deliberate extra drag it takes for a horizontally or vertically maximized window's own locked axis to actually start changing while being interactively resized with the mouse.  Dragging back under this same threshold before releasing restores the maximized axis, reversibly, for the whole drag.  Set to `0` to remove the axis lock entirely, letting the maximized axis change on the very first pixel of drag. |
 
-Snap threshold in pixels.  When a window being dragged comes within this
-many pixels of a screen edge or another window border, it snaps into
-alignment.  Set to `0` to disable snapping.
+```json
+"windows": {
+    "edges": {
+        "snap": {
+            "window": 6,
+            "screen": 6
+        },
+        "resistance": 20
+    }
+}
+```
 
 #### `windows.move-step`
 

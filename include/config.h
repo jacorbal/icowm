@@ -105,13 +105,48 @@ struct config_base_s {
 
     /* General behavior of environment towards windows */
     struct {
-        uint32_t snap;          /**< Snap factor in pixels */
         uint32_t move_step;     /**< Keyboard move step in pixels */
         uint32_t resize_step;   /**< Keyboard resize step in pixels */
         bool show_geom;         /**< Show geometry overlay on move/resize */
         bool solid_drag;        /**< Move/resize the real window live, as
                                       opposed to an outline stand-in
                                       applied only once the drag ends */
+
+        /**
+         * @brief Behavior of a window's own edges against nearby
+         *        screen edges and other windows while being
+         *        interactively moved or resized
+         */
+        struct {
+            /**
+             * @brief Attraction distance in pixels toward a nearby
+             *        edge while dragging; either @c 0 disables that
+             *        one specifically
+             */
+            struct config_edges_snap_s {
+                uint32_t window; /**< Toward another window's own
+                                       edge */
+                uint32_t screen; /**< Toward the screen's own edge */
+            } snap;
+
+            /**
+             * @brief How many pixels of deliberate extra drag it
+             *        takes for a horizontally or vertically
+             *        maximized client's own locked axis to actually
+             *        start changing while being interactively
+             *        resized, matching Openbox's own reuse of its
+             *        @c config_resist_edge (@c moveresize.c) for the
+             *        identical purpose
+             *
+             * Dragging back under this same threshold before
+             * releasing restores the maximized axis, reversibly,
+             * for the whole drag; @c 0 removes the axis lock
+             * entirely, letting the maximized axis change
+             * immediately on the very first pixel of drag.
+             */
+            uint32_t resistance;
+        } edges;
+
         struct {
             bool focus_new;
             bool raise;

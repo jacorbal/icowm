@@ -859,7 +859,6 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
     uint32_t direction;
     struct position_s root_pos;
     struct dimensions_s screen_dim;
-    uint32_t snap;
     bool anchor_right;
     bool anchor_bottom;
     bool resize_w;
@@ -904,14 +903,13 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
 
     screen_dim.w = surface->properties.dim.w;
     screen_dim.h = surface->properties.dim.h;
-    snap = config->base.windows.snap;
 
     if (direction == XCB_EWMH_WM_MOVERESIZE_MOVE) {
         drag_start(connection, surface->screen->root, client,
                 wm_get_client_desktop(client),
                 CLIENT_OPERATION_MOVING,
                 XCB_CURRENT_TIME,
-                root_pos, screen_dim, snap);
+                root_pos, screen_dim);
         return;
     }
 
@@ -925,6 +923,6 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
     drag_start_directed(connection, surface->screen->root,
             client, wm_get_client_desktop(client),
             XCB_CURRENT_TIME,
-            root_pos, screen_dim, snap,
+            root_pos, screen_dim,
             anchor_right, anchor_bottom, resize_w, resize_h);
 }

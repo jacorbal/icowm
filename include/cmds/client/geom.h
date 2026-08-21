@@ -190,6 +190,26 @@ void ccmd_client_maximize_horz(client_td *client);
 void ccmd_client_maximize_vert(client_td *client);
 
 /**
+ * @brief Demote a single axis's maximize state alone, without
+ *        touching geometry at all
+ *
+ * For a caller that has already applied the correct un-maximized
+ * geometry itself (a mouse-drag resize crossing the resistance
+ * threshold on a maximized axis; see @c drag_end, input/mouse/
+ * drag.c), unlike @c ccmd_client_maximize_horz/@c _vert's own
+ * demote branch, which always restores geometry from @c layout.
+ * geometry.old itself as part of the same call.
+ *
+ * @param client Client whose axis just stopped being maximized
+ * @param dir    @c 1 for horizontal, @c 2 for vertical; matches
+ *               @c ccmd_client_maximize_horz/@c _vert's own axis
+ *               numbering
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_demote_axis_state(client_td *client, int dir);
+
+/**
  * @brief Maximize the client entirely
  *
  * @param client Window to maximize

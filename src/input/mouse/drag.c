@@ -47,6 +47,9 @@
 #include <defs/icon.h>
 #include <defs/input.h>
 
+/* Command includes */
+#include <cmds/client/geom.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -80,12 +83,15 @@ drag_state_td s_drag = {
     .client_start = { { 0, 0 }, { 0u, 0u } },
     .screen_w = 0,
     .screen_h = 0,
-    .snap = 0,
+    .snap_window = 0,
+    .snap_screen = 0,
     .client_cur = { { 0, 0 }, { 0u, 0u } },
     .anchor_right = false,
     .anchor_bottom = false,
     .resize_w = false,
     .resize_h = false,
+    .resist_axis_w = false,
+    .resist_axis_h = false,
     .move_x_locked = false,
     .move_y_locked = false,
     .overlay_window = XCB_WINDOW_NONE,
@@ -180,8 +186,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         enum window_operation_e operation,
         xcb_timestamp_t event_time,
         struct position_s root_pos,
-        struct dimensions_s screen_dim,
-        uint32_t snap)
+        struct dimensions_s screen_dim)
 {
     if (connection == NULL || client == NULL) {
         return;
@@ -211,7 +216,10 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.outline_offscreened = false;
     s_drag.screen_w = screen_dim.w;
     s_drag.screen_h = screen_dim.h;
-    s_drag.snap = snap;
+    s_drag.snap_window = (client->config == NULL)
+        ? 0u : client->config->base.windows.edges.snap.window;
+    s_drag.snap_screen = (client->config == NULL)
+        ? 0u : client->config->base.windows.edges.snap.screen;
     s_drag.has_last_pos = false;
     s_drag.warp_pending = false;
 
@@ -319,13 +327,12 @@ void drag_start_directed(xcb_connection_t *connection, xcb_window_t root,
         xcb_timestamp_t event_time,
         struct position_s root_pos,
         struct dimensions_s screen_dim,
-        uint32_t snap,
         bool anchor_right, bool anchor_bottom,
         bool resize_w, bool resize_h)
 {
     drag_start(connection, root, client, desktop,
             CLIENT_OPERATION_RESIZING, event_time, root_pos,
-            screen_dim, snap);
+            screen_dim);
 
     if (!s_drag.active) {
         return;
@@ -359,17 +366,27 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
         xcb_timestamp_t event_time,
         struct position_s root_pos,
         struct dimensions_s screen_dim,
-        uint32_t snap,
         bool axis_w_locked, bool axis_h_locked)
 {
     drag_start(connection, root, client, desktop,
             CLIENT_OPERATION_RESIZING, event_time, root_pos,
-            screen_dim, snap);
+            screen_dim);
 
     if (!s_drag.active) {
         return;
     }
 
+    /* A locked axis is not a dead end the way it was before the
+     * resistance threshold existed: dragging it past 'windows.edges.
+     * resistance' (see 'drag_update''s own handling) reversibly
+     * un-maximizes it mid-drag, matching Openbox's own identical
+     * behavior (moveresize.c).  Recorded here, once, for
+     * 'drag_update' to consult on every motion event; 'resize_w'/
+     * 'resize_h' themselves start false below for a locked axis, the
+     * same as before the threshold existed, and only 'drag_update'
+     * itself ever flips them back on, never this function again. */
+    s_drag.resist_axis_w = axis_w_locked;
+    s_drag.resist_axis_h = axis_h_locked;
     if (axis_w_locked) {
         s_drag.resize_w = false;
     }
@@ -377,11 +394,14 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
         s_drag.resize_h = false;
     }
 
-    if (!s_drag.resize_w && !s_drag.resize_h) {
-        /* The only edge the grab point was near belongs to the axis
-         * this maximize state has locked: cancel outright rather than
-         * leave an inert resize drag running that visibly does
-         * nothing while held. */
+    if (!s_drag.resize_w && !s_drag.resize_h &&
+            !s_drag.resist_axis_w && !s_drag.resist_axis_h) {
+        /* Neither axis has any way to ever become active, now or
+         * later: the grab point was near neither edge to begin with,
+         * and neither axis is a maximize-locked one the resistance
+         * threshold could still activate.  Cancel outright rather
+         * than leave a genuinely inert resize drag running that
+         * visibly does nothing while held. */
         drag_cancel(connection, client);
         return;
     }
@@ -531,6 +551,10 @@ void drag_update(xcb_connection_t *connection,
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
         bool show_geom = client->config != NULL &&
             client->config->base.windows.show_geom;
+        uint32_t resistance = (client->config != NULL)
+            ? client->config->base.windows.edges.resistance : 0u;
+        uint32_t drag_dist_w = (uint32_t) (dx < 0 ? -dx : dx);
+        uint32_t drag_dist_h = (uint32_t) (dy < 0 ? -dy : dy);
         int32_t new_x = s_drag.client_start.pos.x;
         int32_t new_y = s_drag.client_start.pos.y;
         uint32_t new_w;
@@ -543,6 +567,36 @@ void drag_update(xcb_connection_t *connection,
         uint32_t resize_floor_h;
         uint32_t resize_constrained_w;
         uint32_t resize_constrained_h;
+
+        /* A maximize-locked axis is not fixed for the whole drag the
+         * way every other frozen axis below still is: recomputed
+         * fresh on every single motion event against how far the
+         * drag has come from its own start so far, in whichever
+         * direction that axis moves in at all, so dragging back
+         * under the threshold before releasing re-freezes it at
+         * exactly 'client_start' again, the exact same reversible
+         * behavior Openbox's own 'do_resize' (moveresize.c) applies
+         * to its identical 'config_resist_edge'.  'drag_end' itself
+         * still has the final say on whether this client's own
+         * 'properties.state' actually changes to match, once the
+         * drag as a whole is over. */
+        if (s_drag.resist_axis_w) {
+            s_drag.resize_w = drag_dist_w >= resistance;
+        }
+        if (s_drag.resist_axis_h) {
+            s_drag.resize_h = drag_dist_h >= resistance;
+        }
+
+        if (s_drag.resist_axis_w || s_drag.resist_axis_h) {
+            LOGGER_TRACE("Resist threshold (dx=%d, dy=%d," \
+                    " drag-dist-w=%u, drag-dist-h=%u, resistance=%u," \
+                    " resist-w=%d, resist-h=%d, resize-w=%d," \
+                    " resize-h=%d)",
+                    dx, dy, drag_dist_w, drag_dist_h, resistance,
+                    (int) s_drag.resist_axis_w,
+                    (int) s_drag.resist_axis_h,
+                    (int) s_drag.resize_w, (int) s_drag.resize_h);
+        }
 
         /* Determine resize direction from the anchor computed at drag
          * start.  When 'anchor_right' is set the right edge is fixed
@@ -895,6 +949,27 @@ void drag_end(xcb_connection_t *connection,
                             s_drag.client_cur.pos);
                 }
                 drag_outline_end(connection);
+            }
+
+            /* Whichever locked axis this drag started with (see
+             * 'resist_axis_w'/'_h''s own doc comment, drag/
+             * internal.h) had every chance, all the way through
+             * every 'drag_update' call along the way, to cross the
+             * resistance threshold and stay there; 'resize_w'/'_h'
+             * themselves, read here fresh at the very end, say
+             * whether it actually did.  Geometry itself is already
+             * correctly settled by now, from the exact same finalize
+             * calls just above (both branches), whichever axis this
+             * client started this drag maximized on -- this only
+             * ever updates 'properties.state' (and its own EWMH
+             * atoms) to match, never geometry a second time. */
+            if (finalize_resize) {
+                if (s_drag.resist_axis_w && s_drag.resize_w) {
+                    ccmd_client_demote_axis_state(s_drag.client, 1);
+                }
+                if (s_drag.resist_axis_h && s_drag.resize_h) {
+                    ccmd_client_demote_axis_state(s_drag.client, 2);
+                }
             }
         }
     }

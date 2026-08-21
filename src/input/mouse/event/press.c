@@ -893,9 +893,7 @@ static void s_mouse_handle_titlebar(xcb_connection_t *connection,
                 drag_start(connection, event->root, client, desktop,
                         CLIENT_OPERATION_MOVING,
                         event->time,
-                        root_pos, screen_dim,
-                        (config != NULL)
-                            ? config->base.windows.snap : 0u);
+                        root_pos, screen_dim);
             }
         }
     }
@@ -1016,12 +1014,10 @@ static void s_mouse_show_wincmenu_at_click(xcb_connection_t *connection,
  * @param event      Incoming button-press event
  * @param client     Client to resize
  * @param desktop    Desktop owning @p client
- * @param config     Active configuration (for snap distance)
  */
 static void s_mouse_start_border_resize(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
-        client_td *client, desktop_td *desktop,
-        const config_td *config)
+        client_td *client, desktop_td *desktop)
 {
     surface_td *surface;
     struct position_s root_pos;
@@ -1039,7 +1035,7 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
 
     drag_start_resize_axis_locked(connection, event->root, client,
             desktop, event->time, root_pos,
-            screen_dim, config->base.windows.snap,
+            screen_dim,
             client_is_maximized_horz(client),
             client_is_maximized_vert(client));
 
@@ -1285,7 +1281,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
             /* Border resize (decorated or undecorated) */
             if (s_mouse_can_resize_client(client, window, event)) {
                 s_mouse_start_border_resize(connection, surfaces, event,
-                        client, desktop, config);
+                        client, desktop);
                 return;
             }
 
@@ -1379,14 +1375,13 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     if (type == MOUSEBIND_RESIZE) {
         drag_start_resize_axis_locked(connection, event->root,
                 client, desktop, event->time,
-                root_pos, screen_dim, config->base.windows.snap,
+                root_pos, screen_dim,
                 client_is_maximized_horz(client),
                 client_is_maximized_vert(client));
     } else {
         drag_start(connection, event->root, client, desktop,
                 CLIENT_OPERATION_MOVING,
                 event->time,
-                root_pos, screen_dim,
-                config->base.windows.snap);
+                root_pos, screen_dim);
     }
 }
