@@ -16,7 +16,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* NULL, free */
+#include <stdlib.h>     /* NULL, free, malloc */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -28,6 +28,7 @@
 
 /* ADT includes */
 #include <adt/cdlist.h>
+#include <adt/ohtbl.h>
 
 /* Default initial values */
 #include <defs/desktop.h>
@@ -53,8 +54,23 @@
 #include <cmds/client/internal.h>
 
 
-/* Iconize the client */
-void ccmd_client_iconify(client_td *client)
+/**
+ * @brief Iconize exactly this one client, ignoring any transient
+ *        family it may belong to
+ *
+ * Split out of what used to be the whole of @a ccmd_client_iconify so
+ * that function can redirect to, and cascade across, a transient
+ * family (see its own doc comment) while still sharing this single
+ * client's worth of ICCCM/EWMH bookkeeping with the top-level, family-
+ * unaware call sites (@c handler/map.c's own initial-iconic handling
+ * among them) that only ever operate on one already-resolved client
+ * and have no family to cascade to in the first place.
+ *
+ * @param client Client to iconize; must be non-null and unlocked
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_iconify_one(client_td *client)
 {
     xcb_window_t target;
     xcb_get_property_reply_t *handled_reply;
@@ -65,10 +81,6 @@ void ccmd_client_iconify(client_td *client)
     xcb_atom_t skip_atoms[2];
     uint16_t icon_h_out;
     bool skip_icon_win;
-
-    if (client == NULL || client_is_locked(client)) {
-        return;
-    }
 
     /* Remember the state this client is in right now (normal,
      * maximized in any of its three variants, or fullscreen) so
@@ -119,8 +131,24 @@ void ccmd_client_iconify(client_td *client)
     handled_reply = xcb_get_property_reply(client->connection,
             xcb_get_property(client->connection, 0, client->parent_id,
                 handled_atom, XCB_ATOM_CARDINAL, 0, 1), NULL);
+
+    /* A client that both asks to be left out of the taskbar/cycle
+     * list AND belongs to a transient family with some other,
+     * further-up member to represent it (its own top parent differs
+     * from itself) gets no icon box of its own here: that top parent
+     * already gets one (see 'ccmd_client_iconify''s own cascading
+     * doc comment), and a second, unselectable box for this same
+     * family sitting right next to it would be pure visual clutter
+     * with no purpose, exactly the "one icon per window instead of
+     * one per group" clutter this guard exists to avoid.  Excluded
+     * from this specifically when this client's own top parent is
+     * itself (a standalone client with no family to fall back on):
+     * skipping its only icon box there would leave it with no way
+     * back at all, taskbar-excluded and icon-less both. */
     skip_icon_win = (handled_reply != NULL &&
-            xcb_get_property_value_length(handled_reply) > 0);
+            xcb_get_property_value_length(handled_reply) > 0) ||
+        ((client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) != 0 &&
+         ccmd_client_transient_top_parent(client) != client);
 
     free(handled_reply);
 
@@ -249,6 +277,87 @@ void ccmd_client_iconify(client_td *client)
     wm_request_client_redraw(client);
 
     xcb_flush(client->connection);
+}
+
+
+/**
+ * @brief Iconize the client, taking its whole transient family down
+ *        with it
+ *
+ * ICCCM §4.1.2.6 dialogs (a "save changes?" prompt, say) are meant to
+ * live and die with the window they belong to, not persist as their
+ * own independent, separately-iconified entity: iconizing any single
+ * member of a transient family here redirects to, and iconizes, the
+ * family's own top-most ancestor (@a ccmd_client_transient_top_parent)
+ * first, then every other member of that same family still mapped and
+ * not yet iconified, so the whole group vanishes into one grouped icon
+ * together and comes back together too (see @a ccmd_client_restore's
+ * own matching half of this).  A client with no transient relatives at
+ * all is unaffected: its own top parent is itself, and no sibling scan
+ * finds anything else to cascade to.
+ *
+ * @param client Window to iconify
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the top parent's own desktop
+ */
+void ccmd_client_iconify(client_td *client)
+{
+    client_td *top;
+    desktop_td *desktop;
+
+    if (client == NULL || client_is_locked(client)) {
+        return;
+    }
+
+    top = ccmd_client_transient_top_parent(client);
+    if (top == NULL) {
+        return;
+    }
+
+    if (!client_is_iconified(top)) {
+        s_ccmd_client_iconify_one(top);
+    }
+
+    desktop = wm_get_client_desktop(top);
+    if (desktop != NULL && desktop->clients != NULL) {
+        size_t capacity = ohtbl_size(desktop->clients);
+        client_td **siblings = malloc(capacity * sizeof(*siblings));
+        size_t count = 0;
+
+        /* Collected into a snapshot array first, rather than calling
+         * 's_ccmd_client_iconify_one' directly from inside this same
+         * 'ohtbl_foreach' pass below, because that function's own
+         * side effects (icon-window creation, focus fallback, redraw
+         * requests) are not guaranteed to never touch 'desktop->
+         * clients' itself; iterating and mutating the same open-
+         * addressed table at once is undefined behavior for
+         * 'ohtbl_foreach', up to and including an apparent hang if a
+         * rehash mid-iteration leaves it walking a stale, already-
+         * freed table. */
+        if (siblings != NULL) {
+            void *elem;
+
+            ohtbl_foreach(desktop->clients, elem) {
+                client_td *const sibling = (client_td *) elem;
+
+                if (sibling != NULL && sibling != top &&
+                        !client_is_iconified(sibling) &&
+                        !client_is_locked(sibling) &&
+                        ccmd_client_transient_top_parent(sibling) ==
+                            top) {
+                    siblings[count] = sibling;
+                    count++;
+                }
+            }
+
+            for (size_t i = 0; i < count; i++) {
+                s_ccmd_client_iconify_one(siblings[i]);
+            }
+
+            free(siblings);
+        }
+    }
 }
 
 

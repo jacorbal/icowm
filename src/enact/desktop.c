@@ -19,9 +19,11 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
+#include <stdlib.h>     /* free, malloc */
 
 /* ADT includes */
 #include <adt/cdlist.h>
+#include <adt/ohtbl.h>
 
 /* Project includes */
 #include <client.h>
@@ -87,6 +89,92 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
 }
 
 
+/**
+ * @brief Send exactly this one client from one desktop to another,
+ *        ignoring any transient family it may belong to
+ *
+ * Split out of what used to be the whole of @a enact_desktop_client_
+ * send so that function can redirect to, and cascade across, a
+ * transient family (see its own doc comment) while still sharing
+ * this single client's worth of desktop-move plumbing with the
+ * top-level, family-unaware call it makes on the family's own top
+ * parent and on every other member in turn.
+ *
+ * @param desktop Client's own current desktop; must be non-null
+ * @param client  Client to move; must be non-null
+ * @param target  Desktop to move it to; must be non-null
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_enact_desktop_client_send_one(desktop_td *desktop,
+        client_td *client, desktop_td *target)
+{
+    surface_td *surface;
+    xcb_window_t win_target;
+
+    LOGGER_TRACE("Sending client window=0x%x from desktop %u to" \
+            " desktop %u", client->window, desktop->id, target->id);
+
+    surface = wm_get_surface_by_id(client->screen_id);
+
+    /* If the client is currently visible on the active desktop, unmap
+     * it immediately so it disappears from the source desktop without
+     * waiting for the user to switch away */
+    if (surface != NULL &&
+            desktop->id == surface->desktop_cur &&
+            !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+            client->properties.state != (uint16_t) CLIENT_STATE_ICONIFIED) {
+        win_target = (client_is_decorated(client) && client->frame != 0)
+            ? client->frame : client->window;
+        client->ignore.unmap += 2u;
+        if (client->titlebar != 0) {
+            client->ignore.unmap += 1u;
+            xcb_unmap_window(surface->connection, client->titlebar);
+        }
+        xcb_unmap_window(surface->connection, win_target);
+        if (client->icon_window != 0 && client->is_icon_mapped) {
+            xcb_unmap_window(surface->connection, client->icon_window);
+            client->is_icon_mapped = false;
+        }
+        xcb_flush(surface->connection);
+    }
+
+    /* Moved to 'target' before the fallback call just below, not
+     * after: 'ccmd_client_focus' (called from inside
+     * 'client_focus_fallback') redirects to whichever mapped
+     * transient descendant of the new fallback target should
+     * actually receive focus in its place (see 'ccmd_client_
+     * focus_target''s own doc comment, cmds/client/basic.h), and
+     * that redirect walk would otherwise still find 'client' sitting
+     * in 'desktop->clients' at the moment of the search, even though
+     * it is already on its way to 'target'; the same reasoning
+     * behind the matching reorder in 'handler_destroy_notify' and
+     * 'handler_unmap_notify' (handler/map.c). */
+    desktop_action_client_rem(desktop, client);
+    desktop_action_client_add(target, client);
+    client->desktop_id = target->id;
+
+    /* If 'client' was the source desktop's own active client, hand
+     * focus there off to whatever else on that desktop qualifies,
+     * the same way closing, hiding, or iconifying the active client
+     * already does everywhere else in this project (see
+     * 's_client_focus_fallback''s own doc comment); without this,
+     * the source desktop's 'client_active_id' was left pointing at a
+     * client no longer even in its own list, and because the client
+     * is unmapped above when it was visible, the X server's own real
+     * keyboard focus was left on a now-unmapped window instead of
+     * transferring to another visible one, rather than silently
+     * doing nothing as an already-inactive client being sent away
+     * correctly does. */
+    if (desktop->client_active_id == client->id) {
+        client_focus_fallback(desktop, surface, client);
+    }
+
+    xcb_flush(desktop->connection);
+    enact_broadcast_client_event(client, IPC_EVENT_CLIENT_DESKTOP_CHANGED);
+}
+
+
 /* 'action_desktop_e' */
 
 void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
@@ -141,64 +229,84 @@ void enact_desktop_show(desktop_td *desktop, bool show)
 }
 
 
-/* Send a client from one desktop to another */
+/**
+ * @brief Send the client to another desktop, taking its whole
+ *        transient family with it
+ *
+ * The desktop-move counterpart to @a ccmd_client_iconify's own
+ * transient-family cascade (see its own doc comment, cmds/client/
+ * visibility.c, for the full reasoning): redirects to the family's
+ * top-most ancestor first, moving it exactly as this function always
+ * has, then moves every other member of that same family too, so a
+ * "save changes?" prompt (or any other transient dialog) never ends
+ * up left behind on the old desktop, stranded apart from the parent
+ * window it belongs to and cannot meaningfully be used without.  A
+ * client with no transient relatives at all is unaffected: its own
+ * top parent is itself, and no sibling scan finds anything else to
+ * move alongside it.
+ *
+ * @param desktop Client's own current desktop
+ * @param client  Window to move
+ * @param target  Desktop to move it to
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the top parent's own desktop
+ */
 void enact_desktop_client_send(desktop_td *desktop, client_td *client,
         desktop_td *target)
 {
-    surface_td *surface;
-    xcb_window_t win_target;
+    client_td *top;
+    desktop_td *top_desktop;
 
     if (desktop == NULL || client == NULL || target == NULL) {
         return;
     }
 
-    LOGGER_TRACE("Sending client window=0x%x from desktop %u to" \
-            " desktop %u", client->window, desktop->id, target->id);
-
-    /* If 'client' was the source desktop's own active client, hand
-     * focus there off to whatever else on that desktop qualifies
-     * before it leaves, the same way closing, hiding, or iconifying
-     * the active client already does everywhere else in this project
-     * (see 's_client_focus_fallback''s own doc comment); without
-     * this, the source desktop's 'client_active_id' was left pointing
-     * at a client no longer even in its own list, and because the
-     * client is unmapped below when it was visible, the X server's
-     * own real keyboard focus was left on a now-unmapped window
-     * instead of transferring to another visible one, rather than
-     * silently doing nothing as an already-inactive client being sent
-     * away correctly does. */
-    surface = wm_get_surface_by_id(client->screen_id);
-    if (desktop->client_active_id == client->id) {
-        client_focus_fallback(desktop, surface, client);
+    top = ccmd_client_transient_top_parent(client);
+    if (top == NULL) {
+        return;
     }
 
-    /* If the client is currently visible on the active desktop, unmap
-     * it immediately so it disappears from the source desktop without
-     * waiting for the user to switch away */
-    if (surface != NULL &&
-            desktop->id == surface->desktop_cur &&
-            !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-            client->properties.state != (uint16_t) CLIENT_STATE_ICONIFIED) {
-        win_target = (client_is_decorated(client) && client->frame != 0)
-            ? client->frame : client->window;
-        client->ignore.unmap += 2u;
-        if (client->titlebar != 0) {
-            client->ignore.unmap += 1u;
-            xcb_unmap_window(surface->connection, client->titlebar);
-        }
-        xcb_unmap_window(surface->connection, win_target);
-        if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(surface->connection, client->icon_window);
-            client->is_icon_mapped = false;
-        }
-        xcb_flush(surface->connection);
+    top_desktop = wm_get_client_desktop(top);
+    if (top_desktop == NULL) {
+        return;
     }
 
-    desktop_action_client_rem(desktop, client);
-    desktop_action_client_add(target, client);
-    client->desktop_id = target->id;
-    xcb_flush(desktop->connection);
-    enact_broadcast_client_event(client, IPC_EVENT_CLIENT_DESKTOP_CHANGED);
+    s_enact_desktop_client_send_one(top_desktop, top, target);
+
+    if (top_desktop->clients != NULL) {
+        size_t capacity = ohtbl_size(top_desktop->clients);
+        client_td **siblings = malloc(capacity * sizeof(*siblings));
+        size_t count = 0;
+
+        /* Collected into a snapshot array first, rather than calling
+         * 's_enact_desktop_client_send_one' directly from inside this
+         * same 'ohtbl_foreach' pass below; see 'ccmd_client_iconify'
+         * 's own matching comment (cmds/client/visibility.c) for the
+         * full reasoning: iterating and mutating 'top_desktop->
+         * clients' at once is undefined behavior for 'ohtbl_foreach'. */
+        if (siblings != NULL) {
+            void *elem;
+
+            ohtbl_foreach(top_desktop->clients, elem) {
+                client_td *const sibling = (client_td *) elem;
+
+                if (sibling != NULL && sibling != top &&
+                        ccmd_client_transient_top_parent(sibling) ==
+                            top) {
+                    siblings[count] = sibling;
+                    count++;
+                }
+            }
+
+            for (size_t i = 0; i < count; i++) {
+                s_enact_desktop_client_send_one(top_desktop,
+                        siblings[i], target);
+            }
+
+            free(siblings);
+        }
+    }
 }
 
 

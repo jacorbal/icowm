@@ -103,6 +103,18 @@
 #define WM_SYNC_MAX_WAIT_TICKS (2u)
 
 /**
+ * @brief Maximum number of hops walked up a 'WM_TRANSIENT_FOR' chain
+ *        before giving up and treating the current client as the top
+ *
+ * Purely a cycle guard: a well-behaved client tree is never anywhere
+ * near this deep, but a misbehaving or malicious client could set
+ * 'WM_TRANSIENT_FOR' to point back at one of its own descendants,
+ * which would otherwise turn the walk in
+ * @a ccmd_client_transient_top_parent into an infinite loop.
+ */
+#define WM_TRANSIENT_CHAIN_MAX_DEPTH (64u)
+
+/**
  * @brief Grace period in milliseconds after a shade or unshade during
  *        which a client's own geometry @c ConfigureRequest is ignored
  *

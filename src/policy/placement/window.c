@@ -794,6 +794,7 @@ void place_window_apply(const wm_td *wm,
     desktop_td *desktop;
     xcb_window_t leader;
     bool placed_as_sibling;
+    bool ignore_junk_origin_hint;
     xcb_connection_t *connection = wm_connection(wm);
     config_td *config = wm_config(wm);
 
@@ -828,8 +829,26 @@ void place_window_apply(const wm_td *wm,
      * convenience immediately following this: an explicit position
      * request is the client's own most specific, deliberate statement
      * of where it wants to appear, ahead of any convenience default
-     * this window manager would otherwise pick on its behalf. */
-    if (client->hints_icccm.size.has_position) {
+     * this window manager would otherwise pick on its behalf.
+     *
+     * Exception: a transient window (one with 'WM_TRANSIENT_FOR' set)
+     * requesting exactly (0, 0) is not honored here.  In practice
+     * this combination is essentially never a deliberate placement
+     * choice on a dialog's part; it is toolkit boilerplate left over
+     * from a default 'PPosition'/'USPosition' hint nobody meant to
+     * set to a specific value, and honoring it verbatim pins every
+     * such dialog to the screen's top-left corner instead of the
+     * transient-centered position ICCCM §4.1.2.6 recommends
+     * immediately below.  A window that genuinely wants (0, 0) is
+     * vanishingly rare among transients specifically, so this narrow
+     * exception costs nothing for any other client while fixing that
+     * one common, confusing case (a "save changes?"-style prompt
+     * landing at the screen corner instead of over its own parent). */
+    ignore_junk_origin_hint = client->transient_for != XCB_WINDOW_NONE &&
+        client->hints_icccm.size.req_pos.x == 0 &&
+        client->hints_icccm.size.req_pos.y == 0;
+    if (client->hints_icccm.size.has_position &&
+            !ignore_junk_origin_hint) {
         s_place_window_finalize(wm, surface, client, wa_pos,
                 client->hints_icccm.size.req_pos);
         return;

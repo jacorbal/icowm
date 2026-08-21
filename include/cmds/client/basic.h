@@ -374,5 +374,75 @@ void ccmd_add_states(client_td *client, uint32_t num_states, ...);
  */
 void ccmd_rem_states(client_td *client, uint32_t num_states, ...);
 
+/**
+ * @brief Walk down from a client to whichever mapped transient
+ *        descendant should actually receive focus in its place
+ *
+ * ICCCM §4.1.2.6 dialogs exist to demand a specific answer before
+ * their own parent is usable again in any meaningful sense.  Called
+ * both from @a ccmd_client_focus itself (@c cmds/client/focus.c) and
+ * from @a focus_apply (@c policy/focus.c): the latter needs its own
+ * copy of the redirected client, resolved before it does any of its
+ * own "currently active client" bookkeeping (@c desktop->
+ * client_active_id and the stacking-order raise), since a callee
+ * reassigning its own local copy of a pointer parameter (inside
+ * @a ccmd_client_focus) can never be observed by its caller.  Without
+ * this, a caller of @a focus_apply targeting the parent (a plain
+ * click, sloppy focus, restoring the group, and the like) leaves
+ * @c client_active_id on the parent even though real X11 input focus
+ * correctly ends up on the dialog, and that mismatch is what leaves
+ * keyboard shortcuts unable to find "the active client" at all once
+ * the dialog later closes.
+ *
+ * @param client Client focus was actually requested for
+ *
+ * @return The deepest mapped transient descendant found, or
+ *         @p client itself if it has none (or @p client is @c NULL)
+ *
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Searches every desktop of every surface at each step, not
+ *       just the current target's own desktop, so a transient family
+ *       that ends up split across desktops (which should never
+ *       happen by design, but is not assumed here) is still found
+ *       correctly rather than silently falling back to focusing the
+ *       parent.
+ * @note Complexity: @e O(min(d, @c WM_TRANSIENT_CHAIN_MAX_DEPTH) *
+ *       s * d2 * n), where @e d is the true depth of mapped
+ *       transient descendants, @e s is the number of surfaces,
+ *       @e d2 the number of desktops per surface, and @e n the
+ *       number of clients per desktop
+ */
+client_td *ccmd_client_focus_target(client_td *client);
+
+/**
+ * @brief Walk up a client's @c WM_TRANSIENT_FOR chain to its top-most
+ *        managed ancestor
+ *
+ * ICCCM §4.1.2.6 lets a dialog be transient for another dialog, which
+ * is itself transient for a third window, and so on; this follows that
+ * whole chain to find the one client at its root, the "main"
+ * application window the entire chain ultimately belongs to.  Used by
+ * @a ccmd_client_iconify and @a ccmd_client_restore (@c cmds/client/
+ * visibility.c and @c cmds/client/focus.c) and by @a enact_desktop_
+ * client_send (@c enact/desktop.c) to redirect an iconify, restore,
+ * or desktop change requested on any single member of a transient
+ * family to the family as a whole, the same way a person would
+ * expect minimizing (or sending to another desktop) a "save changes?"
+ * prompt to take its parent editor window down with it, not leave
+ * the two stranded apart.
+ *
+ * @param client Client whose transient chain to walk; returned as-is
+ *               if it is not transient for anything, or if its
+ *               declared parent is not (or not yet) a managed client
+ *
+ * @return The top-most client in the chain, or @c NULL if @p client
+ *         itself is @c NULL
+ *
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Complexity: @e O(min(d, @c WM_TRANSIENT_CHAIN_MAX_DEPTH)),
+ *       where @e d is the true depth of the transient chain
+ */
+client_td *ccmd_client_transient_top_parent(client_td *client);
+
 
 #endif  /* ! CMDS_CCMD_BASIC_H */

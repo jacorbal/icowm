@@ -23,10 +23,14 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
+#include <stdlib.h>     /* free, malloc */
 
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
+
+/* ADT includes */
+#include <adt/ohtbl.h>
 
 /* Command includes */
 #include <cmds/client/basic.h>
@@ -353,6 +357,81 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
 }
 
 
+/**
+ * @brief Move exactly this one client to another desktop in response
+ *        to a '_NET_WM_DESKTOP' request, ignoring any transient
+ *        family it may belong to
+ *
+ * Split out of what used to be the whole of @a hi_handle_net_wm_
+ * desktop so that function can redirect to, and cascade across, a
+ * transient family (see its own doc comment) while still sharing
+ * this single client's worth of EWMH desktop-move plumbing with the
+ * top-level call it makes on the family's own top parent and on
+ * every other member in turn.
+ *
+ * @param wm          Window manager instance
+ * @param client      Client to move; must be non-null
+ * @param surface     Client's own surface; must be non-null
+ * @param src_desktop Client's own current desktop; must be non-null
+ * @param tgt_desktop Desktop to move it to; must be non-null and
+ *                    different from @p src_desktop
+ * @param target_id   Numeric index of @p tgt_desktop, as published
+ *                    on @c _NET_WM_DESKTOP
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_hi_handle_net_wm_desktop_one(const wm_td *wm,
+        client_td *client, surface_td *surface,
+        desktop_td *src_desktop, desktop_td *tgt_desktop,
+        uint32_t target_id)
+{
+    xcb_connection_t *connection = wm_connection(wm);
+
+    desktop_action_client_rem(src_desktop, client);
+    desktop_action_client_add(tgt_desktop, client);
+
+    /* Same reasoning as the desktop-warp fix in input/mouse/drag.c:
+     * 'desktop_action_client_rem'/'_add' alone never touch the
+     * client's own recorded 'desktop_id', so anything reading a
+     * client's desktop from that field directly (the window list
+     * menu's own per-desktop grouping foremost among them; see
+     * winlist.c) would keep showing this client under the desktop it
+     * just left, even though a pager or taskbar sending this very
+     * message already expects it moved. */
+    client->desktop_id = target_id;
+
+    if (surface->desktop_cur != target_id) {
+        xcb_window_t target =
+            (client_is_decorated(client) && client->frame != 0)
+            ? client->frame
+            : client->window;
+
+        /* Account for the 'UnmapNotify' events so
+         * 'handler_unmap_notify' does not treat this WM-initiated unmap
+         * as a client self-close and set 'CLIENT_FLAG_HIDDEN'.  Two
+         * events arrive for the unmapped target ('SubstructureNotify'
+         * on parent + 'StructureNotify' on target) and one additional
+         * event for the titlebar via the frame's
+         * 'SubstructureNotify'. */
+        client->ignore.unmap += 2u;
+        if (client->titlebar != 0) {
+            client->ignore.unmap += 1u;
+            xcb_unmap_window(connection, client->titlebar);
+        }
+        xcb_unmap_window(connection, target);
+    }
+
+    if (wm_ewmh(wm) != NULL) {
+        xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+                client->window, wm_ewmh(wm)->_NET_WM_DESKTOP,
+                XCB_ATOM_CARDINAL, 32, 1, &target_id);
+    }
+
+    wm_outdate_desktop(src_desktop);
+    wm_outdate_desktop(tgt_desktop);
+}
+
+
 /* Handle a '_NET_WM_STATE' client message */
 void hi_handle_net_wm_state(client_td *client,
         xcb_client_message_event_t *event,
@@ -401,7 +480,28 @@ void hi_handle_net_current_desktop(const wm_td *wm,
 }
 
 
-/* Handle a '_NET_WM_DESKTOP' client message */
+/**
+ * @brief Handle a '_NET_WM_DESKTOP' client message, taking the
+ *        requested client's whole transient family along with it
+ *
+ * The EWMH counterpart to @a ccmd_client_iconify's own transient-
+ * family cascade (see its own doc comment, cmds/client/visibility.c,
+ * for the full reasoning): redirects to the family's top-most
+ * ancestor first, moving it exactly as this handler always has, then
+ * moves every other member of that same family too, so a "save
+ * changes?" prompt (or any other transient dialog) never ends up
+ * left behind on the old desktop when a pager or taskbar asks to
+ * move its parent, stranded apart from the window it belongs to.
+ *
+ * @param wm      Window manager instance
+ * @param event   The '_NET_WM_DESKTOP' client message event
+ * @param client  Client the message named
+ * @param surface Client's own surface
+ * @param src_desktop Client's own current desktop
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the top parent's own desktop
+ */
 void hi_handle_net_wm_desktop(const wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface,
@@ -409,7 +509,8 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
 {
     uint32_t target_id;
     desktop_td *tgt_desktop;
-    xcb_connection_t *connection = wm_connection(wm);
+    client_td *top;
+    desktop_td *top_desktop;
 
     if (wm == NULL || event == NULL || client == NULL) {
         return;
@@ -421,51 +522,54 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
         return;
     }
 
-    desktop_action_client_rem(src_desktop, client);
-    desktop_action_client_add(tgt_desktop, client);
-
-    /* Same reasoning as the desktop-warp fix in input/mouse/drag.c:
-     * 'desktop_action_client_rem'/'_add' alone never touch the
-     * client's own recorded 'desktop_id', so anything reading a
-     * client's desktop from that field directly (the window list
-     * menu's own per-desktop grouping foremost among them; see
-     * winlist.c) would keep showing this client under the desktop it
-     * just left, even though a pager or taskbar sending this very
-     * message already expects it moved. */
-    client->desktop_id = target_id;
-
-    if (surface->desktop_cur != target_id) {
-        xcb_window_t target =
-            (client_is_decorated(client) && client->frame != 0)
-            ? client->frame
-            : client->window;
-
-        /* Account for the 'UnmapNotify' events so
-         * 'handler_unmap_notify' does not treat this WM-initiated unmap
-         * as a client self-close and set 'CLIENT_FLAG_HIDDEN'.  Two
-         * events arrive for the unmapped target ('SubstructureNotify'
-         * on parent + 'StructureNotify' on target) and one additional
-         * event for the titlebar via the frame's
-         * 'SubstructureNotify'. */
-        client->ignore.unmap += 2u;
-        if (client->titlebar != 0) {
-            client->ignore.unmap += 1u;
-            xcb_unmap_window(connection, client->titlebar);
-        }
-        xcb_unmap_window(connection, target);
+    top = ccmd_client_transient_top_parent(client);
+    if (top == NULL) {
+        return;
     }
 
-    client->desktop_id = target_id;
+    top_desktop = wm_get_client_desktop(top);
+    if (top_desktop == NULL) {
+        return;
+    }
 
-    if (wm_ewmh(wm) != NULL) {
-        xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-                client->window, wm_ewmh(wm)->_NET_WM_DESKTOP,
-                XCB_ATOM_CARDINAL, 32, 1, &target_id);
+    s_hi_handle_net_wm_desktop_one(wm, top, surface, top_desktop,
+            tgt_desktop, target_id);
+
+    if (top_desktop->clients != NULL) {
+        size_t capacity = ohtbl_size(top_desktop->clients);
+        client_td **siblings = malloc(capacity * sizeof(*siblings));
+        size_t count = 0;
+
+        /* Collected into a snapshot array first, rather than calling
+         * 's_hi_handle_net_wm_desktop_one' directly from inside this
+         * same 'ohtbl_foreach' pass below; see 'ccmd_client_iconify'
+         * 's own matching comment (cmds/client/visibility.c) for the
+         * full reasoning: iterating and mutating 'top_desktop->
+         * clients' at once is undefined behavior for 'ohtbl_foreach'. */
+        if (siblings != NULL) {
+            void *elem;
+
+            ohtbl_foreach(top_desktop->clients, elem) {
+                client_td *const sibling = (client_td *) elem;
+
+                if (sibling != NULL && sibling != top &&
+                        ccmd_client_transient_top_parent(sibling) ==
+                            top) {
+                    siblings[count] = sibling;
+                    count++;
+                }
+            }
+
+            for (size_t i = 0; i < count; i++) {
+                s_hi_handle_net_wm_desktop_one(wm, siblings[i],
+                        surface, top_desktop, tgt_desktop, target_id);
+            }
+
+            free(siblings);
+        }
     }
 
     wm_outdate_surface(surface);
-    wm_outdate_desktop(src_desktop);
-    wm_outdate_desktop(tgt_desktop);
 }
 
 

@@ -22,16 +22,23 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* NULL */
+#include <stdlib.h>     /* free, malloc */
 #include <time.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
+
+/* ADT includes */
+#include <adt/ohtbl.h>
 
 /* Type includes */
 #include <types/pair.h>
 
 /* Default initial values */
 #include <defs/icon.h>
+
+/* Command includes */
+#include <cmds/client/basic.h>
 
 /* Project includes */
 #include <client.h>
@@ -219,6 +226,59 @@ void drag_warp_tick(xcb_connection_t *connection)
      * drop it from view entirely, even though the warp itself already
      * moved it correctly everywhere else. */
     s_drag.client->desktop_id = new_desktop->id;
+
+    /* Every other member of 's_drag.client''s own transient family
+     * (a "save changes?" prompt still open on it, say, or the parent
+     * window it belongs to) moves along with it here too, the same
+     * way 'enact_desktop_client_send' and 'hi_handle_net_wm_desktop'
+     * (enact/desktop.c, handler/ewmhmsg.c) already keep a family
+     * together across an explicit desktop send; a warp is just
+     * another way for a client to end up on a different desktop, and
+     * should not strand the rest of its family behind on the old one.
+     * Deliberately only the data move (desktop membership, stacking
+     * list, 'desktop_id'): the pointer-following visual drag below
+     * (position, overlay, pointer warp) is inherently about the one
+     * specific window actually held under the cursor and does not
+     * apply to a family member the person is not physically
+     * dragging. */
+    if (old_desktop != NULL && old_desktop->clients != NULL) {
+        client_td *const top =
+            ccmd_client_transient_top_parent(s_drag.client);
+        size_t capacity = ohtbl_size(old_desktop->clients);
+        client_td **siblings = malloc(capacity * sizeof(*siblings));
+        size_t count = 0;
+
+        /* Collected into a snapshot array first, rather than calling
+         * 'desktop_action_client_rem'/'_add' directly from inside
+         * this same 'ohtbl_foreach' pass below; see 'ccmd_client_
+         * iconify''s own matching comment (cmds/client/visibility.c)
+         * for the full reasoning: iterating and mutating
+         * 'old_desktop->clients' at once is undefined behavior for
+         * 'ohtbl_foreach'. */
+        if (top != NULL && siblings != NULL) {
+            void *elem;
+
+            ohtbl_foreach(old_desktop->clients, elem) {
+                client_td *const sibling = (client_td *) elem;
+
+                if (sibling != NULL && sibling != s_drag.client &&
+                        ccmd_client_transient_top_parent(sibling) ==
+                            top) {
+                    siblings[count] = sibling;
+                    count++;
+                }
+            }
+
+            for (size_t i = 0; i < count; i++) {
+                (void) desktop_action_client_rem(old_desktop,
+                        siblings[i]);
+                (void) desktop_action_client_add(new_desktop,
+                        siblings[i]);
+                siblings[i]->desktop_id = new_desktop->id;
+            }
+        }
+        free(siblings);
+    }
 
     surface->desktop_cur = new_desktop->id;
     surface_clients_hide(surface, old_desktop_id);

@@ -350,16 +350,26 @@ void handler_unmap_notify(xcb_connection_t *connection,
             return;
         }
 
+        /* Marked hidden before the fallback call just below, not
+         * after: 'ccmd_client_focus' (called from inside
+         * 'client_focus_fallback') redirects to whichever mapped
+         * transient descendant of the new target should actually
+         * receive focus in its place (see 'ccmd_client_focus_target'
+         * 's own doc comment, cmds/client/internal.h), and that
+         * redirect walk excludes a 'CLIENT_FLAG_HIDDEN' candidate
+         * specifically so a fallback landing back on 'client''s own
+         * parent does not find this same withdrawing 'client' here
+         * and send real input focus right back onto it. */
+        client_hide(client);
+
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
             client_focus_fallback(desktop, surface, client);
         }
 
         /* When a managed client withdraws itself (for example, to
-         * a system tray), unmap every WM-created decoration and mark
-         * the client hidden so later render passes never remap the
-         * ghost frame */
-        client_hide(client);
+         * a system tray), unmap every WM-created decoration so
+         * later render passes never remap the ghost frame */
         if (client->frame != 0) {
             client->ignore.unmap++;
             xcb_unmap_window(client->connection, client->frame);
@@ -422,17 +432,29 @@ void handler_destroy_notify(xcb_connection_t *connection,
         drag_cancel(connection, client);
     }
 
+    if (desktop != NULL) {
+        desktop_action_client_rem(desktop, client);
+        /* Refresh work area in case the removed client had struts */
+        surface_refresh_workareas(surface);
+    }
+
+    /* Falls back AFTER 'client' is already removed from 'desktop',
+     * not before: 'ccmd_client_focus' (called from inside this),
+     * itself redirects to whichever mapped transient descendant of
+     * the new target should actually receive focus in its place
+     * (see 'ccmd_client_focus_target''s own doc comment, cmds/
+     * client/internal.h).  With 'client' (the very dialog now
+     * closing) still sitting in 'desktop->clients' at the time of
+     * that redirect, a fallback landing back on its own parent would
+     * find this closing dialog itself as a still-valid-looking
+     * transient child, and redirect real input focus right back onto
+     * a window about to be destroyed a few lines below, rather than
+     * onto the parent the fallback just chose. */
     if (desktop != NULL && desktop->client_active_id == client->id) {
         client_focus_fallback(desktop, surface, client);
         if (connection != NULL) {
             xcb_flush(connection);
         }
-    }
-
-    if (desktop != NULL) {
-        desktop_action_client_rem(desktop, client);
-        /* Refresh work area in case the removed client had struts */
-        surface_refresh_workareas(surface);
     }
 
     /* ICCCM withdrawn state: remove WM_STATE on unmanage */

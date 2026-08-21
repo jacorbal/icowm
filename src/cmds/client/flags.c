@@ -19,7 +19,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* NULL, free */
+#include <stdlib.h>     /* NULL, free, malloc */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -31,6 +31,7 @@
 
 /* ADT includes */
 #include <adt/cdlist.h>
+#include <adt/ohtbl.h>
 
 /* Default initial values */
 #include <defs/desktop.h>
@@ -56,14 +57,21 @@
 #include <cmds/client/internal.h>
 
 
-/* Set client pin mode */
-void ccmd_client_pin(client_td *client)
+/**
+ * @brief Pin exactly this one client, ignoring any transient family
+ *        it may belong to
+ *
+ * Split out of what used to be the whole of @a ccmd_client_pin so
+ * that function can redirect to, and cascade across, a transient
+ * family (see its own doc comment).
+ *
+ * @param client Client to pin; must be non-null
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_pin_one(client_td *client)
 {
     uint32_t all_desktops;
-
-    if (client == NULL) {
-        return;
-    }
 
     client_pin(client);
     ccmd_add_states(client, 1, "_NET_WM_STATE_STICKY");
@@ -78,17 +86,24 @@ void ccmd_client_pin(client_td *client)
 }
 
 
-/* Remove client pin mode */
-void ccmd_client_unpin(client_td *client)
+/**
+ * @brief Unpin exactly this one client, ignoring any transient family
+ *        it may belong to
+ *
+ * Split out of what used to be the whole of @a ccmd_client_unpin so
+ * that function can redirect to, and cascade across, a transient
+ * family (see its own doc comment).
+ *
+ * @param client Client to unpin; must be non-null and unlocked
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_unpin_one(client_td *client)
 {
     const desktop_td *owner_desktop;
     const desktop_td *current_desktop;
     surface_td *surface;
     xcb_window_t target;
-
-    if (client == NULL || client_is_locked(client)) {
-        return;
-    }
 
     client_unpin(client);
     ccmd_rem_states(client, 1, "_NET_WM_STATE_STICKY");
@@ -134,6 +149,157 @@ void ccmd_client_unpin(client_td *client)
     }
 
     wm_request_client_redraw(client);
+}
+
+
+/**
+ * @brief Pin the client to every desktop, taking its whole transient
+ *        family along with it
+ *
+ * ICCCM §4.1.2.6 dialogs and the window they belong to are, for
+ * every purpose this whole session's transient-family cascade has
+ * already covered (iconify, restore, desktop moves), treated as one
+ * single unit that can never be split across desktops; pin state is
+ * no different, since a "save changes?" prompt left behind on one
+ * desktop while its own pinned parent now follows the person to
+ * every other one would be exactly that kind of split.  Pinning any
+ * single member of a transient family here pins the family's own
+ * top-most ancestor (@a ccmd_client_transient_top_parent) first, then
+ * every other member of that same family not already pinned, so the
+ * whole group stays together on every desktop from then on.  A
+ * client with no transient relatives at all is unaffected: its own
+ * top parent is itself, and no sibling scan finds anything else to
+ * cascade to.
+ *
+ * @param client Client to pin
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the top parent's own desktop
+ */
+void ccmd_client_pin(client_td *client)
+{
+    client_td *top;
+    desktop_td *desktop;
+
+    if (client == NULL) {
+        return;
+    }
+
+    top = ccmd_client_transient_top_parent(client);
+    if (top == NULL) {
+        return;
+    }
+
+    if (!client_is_pinned(top)) {
+        s_ccmd_client_pin_one(top);
+    }
+
+    desktop = wm_get_client_desktop(top);
+    if (desktop != NULL && desktop->clients != NULL) {
+        size_t capacity = ohtbl_size(desktop->clients);
+        client_td **siblings = malloc(capacity * sizeof(*siblings));
+        size_t count = 0;
+
+        /* Collected into a snapshot array first, rather than calling
+         * 's_ccmd_client_pin_one' directly from inside this same
+         * 'ohtbl_foreach' pass below; see 'ccmd_client_iconify''s own
+         * matching comment (cmds/client/visibility.c) for the full
+         * reasoning: iterating and mutating 'desktop->clients' at
+         * once is undefined behavior for 'ohtbl_foreach'. */
+        if (siblings != NULL) {
+            void *elem;
+
+            ohtbl_foreach(desktop->clients, elem) {
+                client_td *const sibling = (client_td *) elem;
+
+                if (sibling != NULL && sibling != top &&
+                        !client_is_pinned(sibling) &&
+                        ccmd_client_transient_top_parent(sibling) ==
+                            top) {
+                    siblings[count] = sibling;
+                    count++;
+                }
+            }
+
+            for (size_t i = 0; i < count; i++) {
+                s_ccmd_client_pin_one(siblings[i]);
+            }
+
+            free(siblings);
+        }
+    }
+}
+
+
+/**
+ * @brief Unpin the client from every desktop but its own, taking its
+ *        whole transient family along with it
+ *
+ * The matching half of @a ccmd_client_pin's own transient-family
+ * cascade (see its own doc comment for the full reasoning): redirects
+ * to the family's top-most ancestor first, unpinning it exactly as
+ * this function always has, then unpins every other family member
+ * still pinned too, so a family pinned together stays together when
+ * unpinned as well.
+ *
+ * @param client Client to unpin
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the top parent's own desktop
+ */
+void ccmd_client_unpin(client_td *client)
+{
+    client_td *top;
+    desktop_td *desktop;
+
+    if (client == NULL || client_is_locked(client)) {
+        return;
+    }
+
+    top = ccmd_client_transient_top_parent(client);
+    if (top == NULL) {
+        return;
+    }
+
+    if (client_is_pinned(top) && !client_is_locked(top)) {
+        s_ccmd_client_unpin_one(top);
+    }
+
+    desktop = wm_get_client_desktop(top);
+    if (desktop != NULL && desktop->clients != NULL) {
+        size_t capacity = ohtbl_size(desktop->clients);
+        client_td **siblings = malloc(capacity * sizeof(*siblings));
+        size_t count = 0;
+
+        /* Collected into a snapshot array first, rather than calling
+         * 's_ccmd_client_unpin_one' directly from inside this same
+         * 'ohtbl_foreach' pass below; see 'ccmd_client_iconify''s own
+         * matching comment (cmds/client/visibility.c) for the full
+         * reasoning: iterating and mutating 'desktop->clients' at
+         * once is undefined behavior for 'ohtbl_foreach'. */
+        if (siblings != NULL) {
+            void *elem;
+
+            ohtbl_foreach(desktop->clients, elem) {
+                client_td *const sibling = (client_td *) elem;
+
+                if (sibling != NULL && sibling != top &&
+                        client_is_pinned(sibling) &&
+                        !client_is_locked(sibling) &&
+                        ccmd_client_transient_top_parent(sibling) ==
+                            top) {
+                    siblings[count] = sibling;
+                    count++;
+                }
+            }
+
+            for (size_t i = 0; i < count; i++) {
+                s_ccmd_client_unpin_one(siblings[i]);
+            }
+
+            free(siblings);
+        }
+    }
 }
 
 
