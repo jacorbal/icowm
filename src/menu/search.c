@@ -882,7 +882,25 @@ static void s_search_draw_row(xcb_connection_t *connection,
         if (desk_x < safe_right) {
             char desk_buf[WM_SEARCH_ENTRY_LENGTH];
 
-            if (r->desktop->name[0] != '\0') {
+            /* A pinned client is not really on any one desktop in
+             * particular (see 'ccmd_client_bring_family''s own doc
+             * comment, cmds/client/transient.c, for why pinning
+             * never actually moves a client between desktops):
+             * showing its own recorded 'r->desktop' here regardless,
+             * wherever it still happens to be registered, would name
+             * one specific desktop for a client that is, in truth,
+             * equally on every one of them.  Deliberately distinct
+             * from leaving this whole label blank instead, the way
+             * it already is above whenever a session has only a
+             * single desktop to begin with: shown here for a pinned
+             * client on a session with more than one, so the two
+             * cases -- "nothing to disambiguate" and "this one
+             * client is pinned across all of them" -- never look
+             * identical to someone reading the results. */
+            if (r->client != NULL && client_is_pinned(r->client)) {
+                snprintf(desk_buf, sizeof(desk_buf), "%s",
+                        _(STR_SEARCH_ALL_DESKTOPS));
+            } else if (r->desktop->name[0] != '\0') {
                 snprintf(desk_buf, sizeof(desk_buf), "[%u] -- %s",
                         r->desktop->id, r->desktop->name);
             } else {

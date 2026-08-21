@@ -412,6 +412,10 @@ msgstr ""
 msgid "There are no open windows in this session at the moment."
 msgstr "Nuntempe ne ekzistas malfermitaj fenestroj en ĉi tiu seanco."
 
+#: include/defs/uistr.h:302;
+msgid "On all desktops"
+msgstr "Ĉiuj labortabloj"
+
 #: include/defs/uistr.h:295;
 msgid "Run:"
 msgstr "Ruli:"

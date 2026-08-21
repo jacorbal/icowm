@@ -413,6 +413,10 @@ msgstr ""
 msgid "There are no open windows in this session at the moment."
 msgstr "No hay ventanas abiertas en esta sesión en este momento."
 
+#: include/defs/uistr.h:302;
+msgid "On all desktops"
+msgstr "Todos los escritorios"
+
 #: include/defs/uistr.h:295;
 msgid "Run:"
 msgstr "Ejecutar:"

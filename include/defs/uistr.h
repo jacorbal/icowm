@@ -290,6 +290,17 @@
 #define STR_SEARCH_NO_WINDOWS \
     "There are no open windows in this session at the moment."
 
+/* Fuzzy window-search widget: the desktop label shown for a pinned
+ * result instead of any one specific desktop's own name or number,
+ * since a pinned client is not really on any one of them in
+ * particular.  Deliberately distinct from the desktop label being
+ * left blank entirely, the way it already is whenever a session has
+ * only a single desktop: shown for a pinned client on a session with
+ * more than one, so the two cases -- "nothing to disambiguate" and
+ * "this one client is pinned across all of them" -- never look
+ * identical (a blank space) to someone reading the search results. */
+#define STR_SEARCH_ALL_DESKTOPS "On all desktops"
+
 /* Built-in run-box ('src/menu/dialog/run.c'): the prompt preceding its
  * own text field.  Kept short and distinct from 'STR_SEARCH_NO_WINDOWS'
  * above so the two widgets, easy to confuse at a glance since both are
