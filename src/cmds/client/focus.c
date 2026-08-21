@@ -34,7 +34,6 @@
 
 /* ADT includes */
 #include <adt/cdlist.h>
-#include <adt/ohtbl.h>
 
 /* Default initial values */
 #include <defs/desktop.h>
@@ -406,7 +405,8 @@ void ccmd_client_kill(client_td *client)
 void ccmd_client_restore(client_td *client)
 {
     client_td *top;
-    desktop_td *desktop;
+    size_t count;
+    client_td **siblings;
 
     if (client == NULL) {
         return;
@@ -425,40 +425,17 @@ void ccmd_client_restore(client_td *client)
      * dialog should actually end up focused (see 'ccmd_client_
      * focus''s own doc comment), which only finds that dialog if it
      * is already mapped by the time this reaches that step. */
-    desktop = wm_get_client_desktop(top);
-    if (desktop != NULL && desktop->clients != NULL) {
-        size_t capacity = ohtbl_size(desktop->clients);
-        client_td **siblings = malloc(capacity * sizeof(*siblings));
-        size_t count = 0;
-
-        /* Collected into a snapshot array first, rather than calling
-         * 's_ccmd_client_restore_one' directly from inside this same
-         * 'ohtbl_foreach' pass below; see 'ccmd_client_iconify''s own
-         * matching comment (cmds/client/visibility.c) for the full
-         * reasoning: iterating and mutating 'desktop->clients' at
-         * once is undefined behavior for 'ohtbl_foreach'. */
-        if (siblings != NULL) {
-            void *elem;
-
-            ohtbl_foreach(desktop->clients, elem) {
-                client_td *const sibling = (client_td *) elem;
-
-                if (sibling != NULL && sibling != top &&
-                        client_is_iconified(sibling) &&
-                        !client_is_locked(sibling) &&
-                        ccmd_client_transient_top_parent(sibling) ==
-                            top) {
-                    siblings[count] = sibling;
-                    count++;
-                }
-            }
-
-            for (size_t i = 0; i < count; i++) {
+    siblings = ccmd_client_transient_family_snapshot_anywhere(top,
+            &count);
+    if (siblings != NULL) {
+        for (size_t i = 0; i < count; i++) {
+            if (client_is_iconified(siblings[i]) &&
+                    !client_is_locked(siblings[i])) {
                 s_ccmd_client_restore_one(siblings[i]);
             }
-
-            free(siblings);
         }
+
+        free(siblings);
     }
 
     s_ccmd_client_restore_one(top);

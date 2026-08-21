@@ -19,6 +19,9 @@
 #define CMDS_CCMD_BASIC_H
 
 
+/* System includes */
+#include <stddef.h>     /* size_t */
+
 /* Command includes */
 #include <cmds/client/state.h>
 
@@ -455,17 +458,22 @@ client_td *ccmd_client_transient_top_parent(client_td *client);
  * the moment someone tries to focus that parent again, the dialog is
  * moved onto the desktop the parent is being interacted with on
  * right then, so it is right there to actually receive the
- * redirected focus.  Called both from @a ccmd_client_focus itself
- * (@c cmds/client/focus.c) and from @a focus_apply (@c policy/
- * focus.c), immediately before each one's own redirect to @a ccmd_
- * client_focus_target, for exactly this reason (see that function's
- * own doc comment for why @a focus_apply needs its own separate copy
- * of the same redirect).  Deliberately the desktop currently viewed
- * on the top parent's own surface, not that top parent's own literal
- * "home" desktop, since pinning a client never actually moves it
- * between desktops (see @a ccmd_client_bring_family's own full doc
- * comment, cmds/client/transient.c, for why that distinction matters
- * here specifically).
+ * redirected focus.  Called from @a focus_apply (@c policy/focus.c)
+ * only, immediately before its own redirect to @a ccmd_client_focus_
+ * target, not from @a ccmd_client_focus itself (@c cmds/client/
+ * focus.c): that function is also reached from purely automatic
+ * focus restoration having nothing to do with someone actually
+ * interacting with a client right now (@a surface_clients_show's own
+ * "restore whichever client was last active" step on every desktop
+ * switch foremost among them), and calling this there too dragged a
+ * transient family across onto whatever desktop merely happened to
+ * be switched to, chasing every desktop its pinned parent had ever
+ * been focused on despite never being pinned itself.  Deliberately
+ * the desktop currently viewed on the top parent's own surface, not
+ * that top parent's own literal "home" desktop, since pinning a
+ * client never actually moves it between desktops (see @a ccmd_
+ * client_bring_family's own full doc comment, cmds/client/
+ * transient.c, for why that distinction matters here specifically).
  *
  * @param client Client whose transient family to bring together;
  *               redirected to its own top-most ancestor first, the
@@ -481,6 +489,130 @@ client_td *ccmd_client_transient_top_parent(client_td *client);
  *       the number of clients per desktop
  */
 void ccmd_client_bring_family(client_td *client);
+
+/**
+ * @brief Collect every other member of a transient family found on
+ *        one specific desktop into a newly allocated snapshot array
+ *
+ * Every family-wide action in this project (iconify, restore, pin,
+ * unpin, desktop sends, and the like) needs the exact same two steps
+ * before it can safely touch more than one client at once: collect
+ * every matching sibling into an array first, rather than acting on
+ * each one directly from inside an @c ohtbl_foreach pass (an action
+ * on one sibling can itself add, remove, or otherwise touch entries
+ * in @p desktop's own client table, and iterating and mutating that
+ * same table at once is undefined behavior for @c ohtbl_foreach);
+ * and size the array correctly up front.  Factored out once here
+ * instead of repeated at every call site; the caller supplies its
+ * own loop over the result to actually act on each one, since what
+ * to do with a family member is the one part every call site still
+ * needs its own way.
+ *
+ * @param desktop   Desktop to scan
+ * @param top       Family's own top-most ancestor (see @a ccmd_
+ *                  client_transient_top_parent); excluded from the
+ *                  result even if found on @p desktop itself
+ * @param count_out Receives the number of clients collected; set to
+ *                  @c 0 on any early return, including allocation
+ *                  failure
+ *
+ * @return Newly allocated array of @c *count_out client pointers,
+ *         the caller's own to @c free; @c NULL if @p desktop, @p top,
+ *         or @p count_out is @c NULL, @p desktop has no clients at
+ *         all, or the allocation itself failed
+ *
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
+        client_td *top, size_t *count_out);
+
+/**
+ * @brief Collect every other member of a transient family, found on
+ *        any desktop of any surface, into a newly allocated snapshot
+ *        array
+ *
+ * The all-desktops counterpart to @a ccmd_client_transient_family_
+ * snapshot (see its own doc comment for the shared reasoning behind
+ * collecting into a snapshot at all): every family-wide action that
+ * is not itself about desktops (iconify, restore, hide, unhide, pin,
+ * unpin) must find every family member regardless of which desktop
+ * each one happens to be registered under, not just @p top's own —
+ * those two can genuinely differ when @p top is pinned, since
+ * pinning a client never actually moves it between desktops.
+ * Scoping the search to @p top's own desktop alone, as the desktop-
+ * move actions genuinely need to (@a enact_desktop_client_send, @a
+ * hi_handle_net_wm_desktop, @a drag_warp_tick, and @a ccmd_client_
+ * bring_family itself, which each still use @a ccmd_client_
+ * transient_family_snapshot directly for exactly that reason),
+ * silently fails to find a transient living elsewhere.  Counts every
+ * match first, allocates exactly that many slots once, then fills
+ * them in an identical second pass, rather than growing one array as
+ * matches are found across desktops (a genuinely riskier design that
+ * turned out to crash outright rather than just misbehave, when this
+ * same idea was tried once already); see the full reasoning in
+ * @c cmds/client/transient.c, right above the implementation.
+ *
+ * @param top       Family's own top-most ancestor (see @a ccmd_
+ *                  client_transient_top_parent); excluded from the
+ *                  result even where found
+ * @param count_out Receives the number of clients collected; set to
+ *                  @c 0 on any early return
+ *
+ * @return Newly allocated array of @c *count_out client pointers,
+ *         the caller's own to @c free; @c NULL if @p top or @p
+ *         count_out is @c NULL, no family member was found anywhere,
+ *         or the allocation itself failed
+ *
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Complexity: @e O(s * d * n), where @e s is the number of
+ *       surfaces, @e d the number of desktops per surface, and @e n
+ *       the number of clients per desktop
+ */
+client_td **ccmd_client_transient_family_snapshot_anywhere(
+        client_td *top, size_t *count_out);
+
+/**
+ * @brief Unmap a client's decoration target, correctly pre-arming
+ *        @c ignore.unmap first
+ *
+ * Every place in this project that unmaps a client window-manager-
+ * side (iconifying, hiding for another desktop, sending it
+ * elsewhere) shares this exact same two-step shape: increment
+ * @c client->ignore.unmap by however many @c UnmapNotify events the
+ * unmap below is about to generate, THEN issue the unmap itself, so
+ * @a handler_unmap_notify (@c handler/map.c) correctly recognizes
+ * this as a window-manager-initiated unmap rather than the client
+ * withdrawing itself.  Two events always arrive for @p target itself
+ * (its own @c StructureNotify plus its parent's own
+ * @c SubstructureNotify); one further event arrives for the
+ * titlebar, if present, via the frame's own @c SubstructureNotify.
+ *
+ * A caller whose own @p target can differ from @p client->window
+ * (the frame, when decorated, rather than the bare content window)
+ * and that also needs the content window itself unmapped separately
+ * — @a ccmd_client_iconify and @a ccmd_client_hide (cmds/client/
+ * visibility.c) are the only two such callers today — still has to
+ * account for, and issue, that additional unmap on its own right
+ * after calling this: two more events arrive for @c client->window
+ * in that case, matching this same two-events-per-window rule, and
+ * this function only knows about the one @p target it was actually
+ * given.
+ *
+ * @param client     Client being unmapped; its own @c ignore.unmap is
+ *                    incremented here
+ * @param connection Connection to issue the unmap requests on
+ * @param target     Window to unmap (the frame if decorated, the
+ *                    bare content window otherwise; see @a ccmd_
+ *                    target_win, cmds/client/screen.c)
+ *
+ * @note A null @p client or @p connection is a silent no-op
+ * @note Implemented in @c cmds/client/visibility.c
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_unmap_decorated(client_td *client,
+        xcb_connection_t *connection, xcb_window_t target);
 
 
 #endif  /* ! CMDS_CCMD_BASIC_H */

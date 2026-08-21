@@ -1,8 +1,9 @@
 /**
  * @file cmds/client/transient.c
  *
- * @brief Transient-family resolution shared by @c ccmd_client_iconify,
- *        @c ccmd_client_restore, and @c ccmd_client_focus
+ * @brief Transient-family resolution and snapshot collection, shared
+ *        by every family-wide action across the project: iconify,
+ *        restore, focus, pin/unpin, and desktop moves
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -139,6 +140,149 @@ static client_td *s_client_mapped_transient_child(client_td *client)
 }
 
 
+/**
+ * @brief Per-candidate callback used by @a s_visit_family_anywhere
+ *
+ * @param candidate Family member found; never @c NULL
+ * @param ctx       Caller-supplied context, passed through unchanged
+ */
+typedef void (*s_family_visitor_fn)(client_td *candidate, void *ctx);
+
+
+/**
+ * @brief Walk every desktop of every surface, calling @p visit once
+ *        for each other member of @p top's own transient family
+ *        found
+ *
+ * The shared traversal behind both passes @a ccmd_client_transient_
+ * family_snapshot_anywhere needs (count, then fill): rather than
+ * duplicating the same surface/desktop/client walk once per pass, or
+ * growing a single array with 'realloc' desktop by desktop (a
+ * genuinely riskier design that turned out to crash outright rather
+ * than just misbehave, when this same idea was tried once already),
+ * this walks the whole structure exactly the same way every time and
+ * simply hands each match to @p visit, which decides what counting
+ * or filling means on its own.
+ *
+ * @param top   Family's own top-most ancestor; @p visit is never
+ *              called with @p top itself
+ * @param visit Callback invoked once per matching family member
+ * @param ctx   Opaque context passed through to every @p visit call
+ *
+ * @note A null @p top or @p visit is a silent no-op
+ * @note Complexity: @e O(s * d * n), where @e s is the number of
+ *       surfaces, @e d the number of desktops per surface, and @e n
+ *       the number of clients per desktop
+ */
+static void s_visit_family_anywhere(client_td *top,
+        s_family_visitor_fn visit, void *ctx)
+{
+    list_td *surfaces;
+
+    if (top == NULL || visit == NULL) {
+        return;
+    }
+
+    surfaces = wm_get_surfaces();
+    if (surfaces == NULL) {
+        return;
+    }
+
+    for (list_item_td *snode = list_head(surfaces);
+            snode != NULL; snode = list_next(snode)) {
+        surface_td *const surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
+        const cdlist_item_td *dinitial;
+
+        if (surface == NULL || surface->desktops == NULL ||
+                cdlist_size(surface->desktops) == 0) {
+            continue;
+        }
+
+        dnode = cdlist_head(surface->desktops);
+        dinitial = dnode;
+        if (dnode == NULL) {
+            continue;
+        }
+
+        do {
+            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
+
+            if (desktop != NULL && desktop->clients != NULL) {
+                void *elem;
+
+                ohtbl_foreach(desktop->clients, elem) {
+                    client_td *const candidate = (client_td *) elem;
+
+                    if (candidate != NULL && candidate != top &&
+                            ccmd_client_transient_top_parent(
+                                candidate) == top) {
+                        visit(candidate, ctx);
+                    }
+                }
+            }
+            dnode = cdlist_next(dnode);
+        } while (dnode != NULL && dnode != dinitial);
+    }
+}
+
+
+/**
+ * @brief @a s_family_visitor_fn that only counts matches, for @a
+ *        ccmd_client_transient_family_snapshot_anywhere's own first,
+ *        sizing pass
+ *
+ * @param candidate Ignored
+ * @param ctx       @c size_t* accumulator to increment
+ */
+static void s_family_snapshot_count_visitor(client_td *candidate,
+        void *ctx)
+{
+    size_t *const count = (size_t *) ctx;
+
+    (void) candidate;
+    (*count)++;
+}
+
+
+/**
+ * @brief Context for @a s_family_snapshot_fill_visitor
+ */
+struct s_family_snapshot_fill_ctx {
+    client_td **members;    /**< Destination array, pre-sized */
+    size_t capacity;        /**< Number of slots @c members has */
+    size_t count;           /**< Number of slots filled so far */
+};
+
+
+/**
+ * @brief @a s_family_visitor_fn that fills a pre-sized array, for @a
+ *        ccmd_client_transient_family_snapshot_anywhere's own
+ *        second, filling pass
+ *
+ * Never writes past @c ctx->capacity even if somehow handed more
+ * matches than the first, sizing pass counted (nothing mutates the
+ * client tree between the two passes in practice, so the two counts
+ * always agree, but a stray write past the end of a heap allocation
+ * is exactly the class of bug worth guarding against unconditionally
+ * rather than trusting that invariant alone).
+ *
+ * @param candidate Family member to store
+ * @param ctx       @c struct @a s_family_snapshot_fill_ctx*
+ */
+static void s_family_snapshot_fill_visitor(client_td *candidate,
+        void *ctx)
+{
+    struct s_family_snapshot_fill_ctx *const fill =
+        (struct s_family_snapshot_fill_ctx *) ctx;
+
+    if (fill->count < fill->capacity) {
+        fill->members[fill->count] = candidate;
+        fill->count++;
+    }
+}
+
+
 /* Walk up a client's 'WM_TRANSIENT_FOR' chain to its top-most managed
  * ancestor */
 client_td *ccmd_client_transient_top_parent(client_td *client)
@@ -173,20 +317,199 @@ client_td *ccmd_client_transient_top_parent(client_td *client)
 
 
 /**
- * @brief Move every transient descendant of a client onto whichever
- *        desktop is actually being looked at right now, wherever
- *        they currently are
+ * @brief Collect every other member of a transient family found on
+ *        one specific desktop into a newly allocated snapshot array
+ *
+ * Every family-wide action in this project (iconify, restore, pin,
+ * unpin, desktop sends, and the like) needs the exact same two steps
+ * before it can safely touch more than one client at once: collect
+ * every matching sibling into an array first, rather than acting on
+ * each one directly from inside an @c ohtbl_foreach pass, since an
+ * action on one sibling (an iconify, a pin, a desktop move) can
+ * itself add, remove, or otherwise touch entries in @p desktop's own
+ * client table, and iterating and mutating that same table at once
+ * is undefined behavior for @c ohtbl_foreach; and size the array
+ * correctly up front from @p desktop's own client count.  This
+ * function is exactly those two steps, factored out once instead of
+ * repeated at every call site; the caller supplies its own loop over
+ * the result to actually act on each one, since what to do with a
+ * family member is the one part every call site still needs its own
+ * way.
+ *
+ * @param desktop   Desktop to scan
+ * @param top       Family's own top-most ancestor (see @a ccmd_
+ *                  client_transient_top_parent); excluded from the
+ *                  result even if found on @p desktop itself
+ * @param count_out Receives the number of clients collected; set to
+ *                  @c 0 on any early return, including allocation
+ *                  failure
+ *
+ * @return Newly allocated array of @c *count_out client pointers,
+ *         the caller's own to @c free; @c NULL if @p desktop, @p top,
+ *         or @p count_out is @c NULL, @p desktop has no clients at
+ *         all, or the allocation itself failed
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
+        client_td *top, size_t *count_out)
+{
+    client_td **members;
+    size_t capacity;
+    void *elem;
+
+    if (count_out != NULL) {
+        *count_out = 0;
+    }
+
+    if (desktop == NULL || top == NULL || desktop->clients == NULL ||
+            count_out == NULL) {
+        return NULL;
+    }
+
+    capacity = ohtbl_size(desktop->clients);
+    members = malloc(capacity * sizeof(*members));
+    if (members == NULL) {
+        return NULL;
+    }
+
+    ohtbl_foreach(desktop->clients, elem) {
+        client_td *const candidate = (client_td *) elem;
+
+        if (candidate != NULL && candidate != top &&
+                ccmd_client_transient_top_parent(candidate) == top) {
+            members[*count_out] = candidate;
+            (*count_out)++;
+        }
+    }
+
+    return members;
+}
+
+
+/**
+ * @brief Collect every other member of a transient family, found on
+ *        any desktop of any surface, into a newly allocated snapshot
+ *        array
+ *
+ * The all-desktops counterpart to @a ccmd_client_transient_family_
+ * snapshot (see its own doc comment for the shared reasoning behind
+ * collecting into a snapshot at all): every family-wide action that
+ * is not itself about desktops (iconify, restore, hide, unhide, pin,
+ * unpin) must find every family member regardless of which desktop
+ * each one happens to be registered under, not just @p top's own —
+ * those two can genuinely differ when @p top is pinned, since
+ * pinning a client never actually moves it between desktops (it
+ * stays registered under whichever one it was originally on
+ * forever; see @a ccmd_client_bring_family's own doc comment below
+ * for the fuller reasoning), while an un-pinned transient dialog of
+ * it is registered under whichever desktop happened to be current
+ * when it was created.  Scoping the search to @p top's own desktop
+ * alone, as the desktop-move actions genuinely need to (@a enact_
+ * desktop_client_send, @a hi_handle_net_wm_desktop, @a drag_warp_
+ * tick, and @a ccmd_client_bring_family itself, which each still use
+ * @a ccmd_client_transient_family_snapshot directly for exactly that
+ * reason), silently fails to find a transient living elsewhere:
+ * hiding or iconifying a pinned parent this way leaves its own
+ * dialog neither hidden nor found again on restore, stranding it
+ * invisible with no way back.
+ *
+ * Counts every match first via @a s_visit_family_anywhere, allocates
+ * exactly that many slots once, then fills them in a second,
+ * identical pass, rather than growing one array as matches are found
+ * (a genuinely riskier design that turned out to crash outright
+ * rather than just misbehave, when this same idea was tried once
+ * already): nothing mutates the client tree between the two passes,
+ * so both always find the exact same matches in the exact same
+ * order, and @a s_family_snapshot_fill_visitor never writes past the
+ * array's own true size regardless.
+ *
+ * @param top       Family's own top-most ancestor (see @a ccmd_
+ *                  client_transient_top_parent); excluded from the
+ *                  result even where found
+ * @param count_out Receives the number of clients collected; set to
+ *                  @c 0 on any early return
+ *
+ * @return Newly allocated array of @c *count_out client pointers,
+ *         the caller's own to @c free; @c NULL if @p top or @p
+ *         count_out is @c NULL, no family member was found anywhere,
+ *         or the allocation itself failed
+ *
+ * @note Complexity: @e O(s * d * n), where @e s is the number of
+ *       surfaces, @e d the number of desktops per surface, and @e n
+ *       the number of clients per desktop
+ */
+client_td **ccmd_client_transient_family_snapshot_anywhere(
+        client_td *top, size_t *count_out)
+{
+    size_t total;
+    client_td **members;
+    struct s_family_snapshot_fill_ctx fill;
+
+    if (count_out != NULL) {
+        *count_out = 0;
+    }
+
+    if (top == NULL || count_out == NULL) {
+        return NULL;
+    }
+
+    total = 0;
+    s_visit_family_anywhere(top, s_family_snapshot_count_visitor,
+            &total);
+    if (total == 0) {
+        return NULL;
+    }
+
+    members = malloc(total * sizeof(*members));
+    if (members == NULL) {
+        return NULL;
+    }
+
+    fill.members = members;
+    fill.capacity = total;
+    fill.count = 0;
+    s_visit_family_anywhere(top, s_family_snapshot_fill_visitor, &fill);
+
+    *count_out = fill.count;
+    return members;
+}
+
+
+/**
+ * @brief Bring every transient descendant of a client onto whichever
+ *        desktop is actually being looked at right now, revealing
+ *        any iconified or hidden one along the way
  *
  * Openbox's own real answer to a transient family split across
- * desktops (confirmed directly against its source, @c client_bring_
- * modal_windows / @c client_bring_windows_recursive in @c client.c):
- * a pinned parent followed to a new desktop leaves its own modal
- * dialog behind, exactly as it started out, but the moment someone
- * tries to focus that parent again, the dialog is moved onto the
- * desktop the parent is being interacted with on right then, not
- * before, so it is right there to actually receive the redirected
- * focus (see @a ccmd_client_focus_target's own doc comment) instead
- * of popping the person back to wherever it happened to be left.
+ * desktops or visibility states (confirmed directly against its
+ * source, @c client_bring_modal_windows / @c client_bring_windows_
+ * recursive in @c client.c): a pinned parent followed to a new
+ * desktop leaves its own modal dialog behind, exactly as it started
+ * out, but the moment someone tries to focus that parent again, the
+ * dialog is moved onto the desktop the parent is being interacted
+ * with on right then, not before, so it is right there to actually
+ * receive the redirected focus (see @a ccmd_client_focus_target's
+ * own doc comment) instead of popping the person back to wherever it
+ * happened to be left.  Openbox's own version does not stop at the
+ * desktop mismatch either: @c client_bring_windows_recursive checks
+ * @e both @c !screen_compare_desktops(self->desktop, desktop) (wrong
+ * desktop) @e and @c (iconic && self->iconic) (still iconic), taking
+ * whichever action applies — @c client_iconify(self, FALSE, ...) to
+ * un-iconify, or @c client_set_desktop(self, desktop, ...) to
+ * relocate.  This mirrors both halves: a family member left
+ * iconified or hidden (this project's own two separate visibility
+ * states, where Openbox has only the one) is revealed via @a ccmd_
+ * client_restore or @a ccmd_client_unhide, not just silently left
+ * that way forever with no redirect ever able to find it again,
+ * since @a ccmd_client_focus_target's own walk (see its doc comment)
+ * only ever considers a mapped, non-iconified, non-hidden candidate
+ * in the first place.  Relocated first, then revealed, whenever both
+ * apply, so revealing it maps it in the right place to begin with
+ * rather than on whatever desktop it happened to still be iconified
+ * or hidden on.
+ *
  * Called from @a ccmd_client_focus itself (@c cmds/client/focus.c),
  * immediately before that same redirect, for exactly this reason.
  *
@@ -197,21 +520,16 @@ client_td *ccmd_client_transient_top_parent(client_td *client)
  * pinning a client never actually moves it between desktops (it
  * stays registered under whichever one it was originally on forever;
  * see @a surface_clients_hide's own doc comment, surface/actions/
- * clients.c, for how pin visibility is really achieved).  Using the
- * top parent's own literal home desktop there would "bring" a
- * transient onto a desktop nobody is even looking at, leaving it
- * mapped (via @a ccmd_client_focus's own unconditional map on
- * whatever it redirects to) but still homed on its own original
- * desktop: visible on every desktop from then on, indistinguishable
- * from being pinned itself, yet with its own pin indicator never lit.
+ * clients.c, for how pin visibility is really achieved).
  *
- * Deliberately only the data move (desktop membership, stacking
- * list, @c desktop_id): unlike an explicit desktop send (@a enact_
- * desktop_client_send, @c enact/desktop.c) or an EWMH one (@a hi_
- * handle_net_wm_desktop, @c handler/ewmhmsg.c), nothing here is
- * visibly dragged across the screen or needs its own unmap/remap
- * dance, since every family member being moved was never mapped on
- * whatever desktop the person is looking at in the first place.
+ * The relocation step itself is deliberately only the data move
+ * (desktop membership, stacking list, @c desktop_id): unlike an
+ * explicit desktop send (@a enact_desktop_client_send, @c enact/
+ * desktop.c) or an EWMH one (@a hi_handle_net_wm_desktop, @c
+ * handler/ewmhmsg.c), nothing here is visibly dragged across the
+ * screen or needs its own unmap/remap dance for that part, since a
+ * family member not already mapped on the desktop being looked at
+ * was, by definition, not visible there to begin with.
  *
  * @param client Client whose transient family to bring together;
  *               redirected to its own top-most ancestor first, the
@@ -230,7 +548,8 @@ void ccmd_client_bring_family(client_td *client)
     client_td *top;
     desktop_td *target;
     surface_td *top_surface;
-    list_td *surfaces;
+    size_t count;
+    client_td **siblings;
 
     if (client == NULL) {
         return;
@@ -265,73 +584,29 @@ void ccmd_client_bring_family(client_td *client)
         return;
     }
 
-    surfaces = wm_get_surfaces();
-    if (surfaces == NULL) {
+    siblings = ccmd_client_transient_family_snapshot_anywhere(top,
+            &count);
+    if (siblings == NULL) {
         return;
     }
 
-    for (list_item_td *snode = list_head(surfaces);
-            snode != NULL; snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
-        const cdlist_item_td *dinitial;
+    for (size_t i = 0; i < count; i++) {
+        desktop_td *const home = wm_get_client_desktop(siblings[i]);
 
-        if (surface == NULL || surface->desktops == NULL ||
-                cdlist_size(surface->desktops) == 0) {
-            continue;
+        if (home != NULL && home != target) {
+            (void) desktop_action_client_rem(home, siblings[i]);
+            (void) desktop_action_client_add(target, siblings[i]);
+            siblings[i]->desktop_id = target->id;
         }
 
-        dnode = cdlist_head(surface->desktops);
-        dinitial = dnode;
-        if (dnode == NULL) {
-            continue;
+        if (client_is_iconified(siblings[i])) {
+            ccmd_client_restore(siblings[i]);
+        } else if (client_is_hidden(siblings[i])) {
+            ccmd_client_unhide(siblings[i]);
         }
-
-        do {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-
-            if (desktop != NULL && desktop != target &&
-                    desktop->clients != NULL) {
-                size_t capacity = ohtbl_size(desktop->clients);
-                client_td **strays =
-                    malloc(capacity * sizeof(*strays));
-                size_t count = 0;
-
-                /* Collected into a snapshot array first, rather than
-                 * calling 'desktop_action_client_rem'/'_add' directly
-                 * from inside this same 'ohtbl_foreach' pass below;
-                 * see 'ccmd_client_iconify''s own matching comment
-                 * (cmds/client/visibility.c) for the full reasoning:
-                 * iterating and mutating 'desktop->clients' at once
-                 * is undefined behavior for 'ohtbl_foreach'. */
-                if (strays != NULL) {
-                    void *elem;
-
-                    ohtbl_foreach(desktop->clients, elem) {
-                        client_td *const candidate = (client_td *) elem;
-
-                        if (candidate != NULL && candidate != top &&
-                                ccmd_client_transient_top_parent(
-                                    candidate) == top) {
-                            strays[count] = candidate;
-                            count++;
-                        }
-                    }
-
-                    for (size_t i = 0; i < count; i++) {
-                        (void) desktop_action_client_rem(desktop,
-                                strays[i]);
-                        (void) desktop_action_client_add(target,
-                                strays[i]);
-                        strays[i]->desktop_id = target->id;
-                    }
-
-                    free(strays);
-                }
-            }
-            dnode = cdlist_next(dnode);
-        } while (dnode != NULL && dnode != dinitial);
     }
+
+    free(siblings);
 }
 
 

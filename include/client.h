@@ -405,8 +405,8 @@ typedef struct client_s {
      *        surface
      *
      * The same @c config_td every other client on this surface also
-     * points to; never reassigned after @a client_init (see @a
-     * client_init's own callers), though the configuration it points
+     * points to; never reassigned after @a client_init (see
+     * @a client_init's own callers), though the configuration it points
      * to can still change in place at any time from a live reload or
      * a runtime theme request, which every client picking it up on its
      * next read is exactly the point of sharing one pointer instead of

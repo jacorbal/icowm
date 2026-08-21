@@ -23,14 +23,11 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
-#include <stdlib.h>     /* free, malloc */
+#include <stdlib.h>     /* free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
-
-/* ADT includes */
-#include <adt/ohtbl.h>
 
 /* Command includes */
 #include <cmds/client/basic.h>
@@ -413,12 +410,7 @@ static void s_hi_handle_net_wm_desktop_one(const wm_td *wm,
          * on parent + 'StructureNotify' on target) and one additional
          * event for the titlebar via the frame's
          * 'SubstructureNotify'. */
-        client->ignore.unmap += 2u;
-        if (client->titlebar != 0) {
-            client->ignore.unmap += 1u;
-            xcb_unmap_window(connection, client->titlebar);
-        }
-        xcb_unmap_window(connection, target);
+        ccmd_client_unmap_decorated(client, connection, target);
     }
 
     if (wm_ewmh(wm) != NULL) {
@@ -511,6 +503,8 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
     desktop_td *tgt_desktop;
     client_td *top;
     desktop_td *top_desktop;
+    client_td **siblings;
+    size_t count;
 
     if (wm == NULL || event == NULL || client == NULL) {
         return;
@@ -535,38 +529,15 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
     s_hi_handle_net_wm_desktop_one(wm, top, surface, top_desktop,
             tgt_desktop, target_id);
 
-    if (top_desktop->clients != NULL) {
-        size_t capacity = ohtbl_size(top_desktop->clients);
-        client_td **siblings = malloc(capacity * sizeof(*siblings));
-        size_t count = 0;
-
-        /* Collected into a snapshot array first, rather than calling
-         * 's_hi_handle_net_wm_desktop_one' directly from inside this
-         * same 'ohtbl_foreach' pass below; see 'ccmd_client_iconify'
-         * 's own matching comment (cmds/client/visibility.c) for the
-         * full reasoning: iterating and mutating 'top_desktop->
-         * clients' at once is undefined behavior for 'ohtbl_foreach'. */
-        if (siblings != NULL) {
-            void *elem;
-
-            ohtbl_foreach(top_desktop->clients, elem) {
-                client_td *const sibling = (client_td *) elem;
-
-                if (sibling != NULL && sibling != top &&
-                        ccmd_client_transient_top_parent(sibling) ==
-                            top) {
-                    siblings[count] = sibling;
-                    count++;
-                }
-            }
-
-            for (size_t i = 0; i < count; i++) {
-                s_hi_handle_net_wm_desktop_one(wm, siblings[i],
-                        surface, top_desktop, tgt_desktop, target_id);
-            }
-
-            free(siblings);
+    siblings = ccmd_client_transient_family_snapshot(top_desktop, top,
+            &count);
+    if (siblings != NULL) {
+        for (size_t i = 0; i < count; i++) {
+            s_hi_handle_net_wm_desktop_one(wm, siblings[i], surface,
+                    top_desktop, tgt_desktop, target_id);
         }
+
+        free(siblings);
     }
 
     wm_outdate_surface(surface);

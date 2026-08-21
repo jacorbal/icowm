@@ -91,15 +91,8 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
                  * 'CLIENT_FLAG_HIDDEN': that flag represents an
                  * explicit user/application hidden state, not temporary
                  * invisibility on another desktop. */
-                client->ignore.unmap += 2u;
-                if (client->titlebar != 0) {
-                    client->ignore.unmap += 1u;
-                }
-
-                if (client->titlebar != 0) {
-                    xcb_unmap_window(surface->connection, client->titlebar);
-                }
-                xcb_unmap_window(surface->connection, target);
+                ccmd_client_unmap_decorated(client, surface->connection,
+                        target);
             }
 
             if (client->icon_window != 0 && client->is_icon_mapped) {

@@ -19,11 +19,10 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
-#include <stdlib.h>     /* free, malloc */
+#include <stdlib.h>     /* free */
 
 /* ADT includes */
 #include <adt/cdlist.h>
-#include <adt/ohtbl.h>
 
 /* Project includes */
 #include <client.h>
@@ -126,12 +125,8 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
             client->properties.state != (uint16_t) CLIENT_STATE_ICONIFIED) {
         win_target = (client_is_decorated(client) && client->frame != 0)
             ? client->frame : client->window;
-        client->ignore.unmap += 2u;
-        if (client->titlebar != 0) {
-            client->ignore.unmap += 1u;
-            xcb_unmap_window(surface->connection, client->titlebar);
-        }
-        xcb_unmap_window(surface->connection, win_target);
+        ccmd_client_unmap_decorated(client, surface->connection,
+                win_target);
         if (client->icon_window != 0 && client->is_icon_mapped) {
             xcb_unmap_window(surface->connection, client->icon_window);
             client->is_icon_mapped = false;
@@ -257,6 +252,8 @@ void enact_desktop_client_send(desktop_td *desktop, client_td *client,
 {
     client_td *top;
     desktop_td *top_desktop;
+    client_td **siblings;
+    size_t count;
 
     if (desktop == NULL || client == NULL || target == NULL) {
         return;
@@ -274,38 +271,16 @@ void enact_desktop_client_send(desktop_td *desktop, client_td *client,
 
     s_enact_desktop_client_send_one(top_desktop, top, target);
 
-    if (top_desktop->clients != NULL) {
-        size_t capacity = ohtbl_size(top_desktop->clients);
-        client_td **siblings = malloc(capacity * sizeof(*siblings));
-        size_t count = 0;
-
-        /* Collected into a snapshot array first, rather than calling
-         * 's_enact_desktop_client_send_one' directly from inside this
-         * same 'ohtbl_foreach' pass below; see 'ccmd_client_iconify'
-         * 's own matching comment (cmds/client/visibility.c) for the
-         * full reasoning: iterating and mutating 'top_desktop->
-         * clients' at once is undefined behavior for 'ohtbl_foreach'. */
-        if (siblings != NULL) {
-            void *elem;
-
-            ohtbl_foreach(top_desktop->clients, elem) {
-                client_td *const sibling = (client_td *) elem;
-
-                if (sibling != NULL && sibling != top &&
-                        ccmd_client_transient_top_parent(sibling) ==
-                            top) {
-                    siblings[count] = sibling;
-                    count++;
-                }
-            }
-
-            for (size_t i = 0; i < count; i++) {
-                s_enact_desktop_client_send_one(top_desktop,
-                        siblings[i], target);
-            }
-
-            free(siblings);
+    count = 0;
+    siblings = ccmd_client_transient_family_snapshot(top_desktop, top,
+            &count);
+    if (siblings != NULL) {
+        for (size_t i = 0; i < count; i++) {
+            s_enact_desktop_client_send_one(top_desktop, siblings[i],
+                    target);
         }
+
+        free(siblings);
     }
 }
 

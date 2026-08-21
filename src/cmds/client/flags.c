@@ -31,7 +31,6 @@
 
 /* ADT includes */
 #include <adt/cdlist.h>
-#include <adt/ohtbl.h>
 
 /* Default initial values */
 #include <defs/desktop.h>
@@ -127,16 +126,7 @@ static void s_ccmd_client_unpin_one(client_td *client)
          * unmapped target ('SubstructureNotify' on parent
          * + 'StructureNotify' on target) and one additional event for
          * the titlebar via the frame's 'SubstructureNotify'. */
-        client->ignore.unmap += 2u;
-        if (client->titlebar != 0) {
-            client->ignore.unmap += 1u;
-        }
-
-        if (client->titlebar != 0) {
-            xcb_unmap_window(client->connection, client->titlebar);
-        }
-
-        xcb_unmap_window(client->connection, target);
+        ccmd_client_unmap_decorated(client, client->connection, target);
 
         if (client->icon_window != 0 && client->is_icon_mapped) {
             xcb_unmap_window(client->connection, client->icon_window);
@@ -179,7 +169,8 @@ static void s_ccmd_client_unpin_one(client_td *client)
 void ccmd_client_pin(client_td *client)
 {
     client_td *top;
-    desktop_td *desktop;
+    size_t count;
+    client_td **siblings;
 
     if (client == NULL) {
         return;
@@ -194,39 +185,16 @@ void ccmd_client_pin(client_td *client)
         s_ccmd_client_pin_one(top);
     }
 
-    desktop = wm_get_client_desktop(top);
-    if (desktop != NULL && desktop->clients != NULL) {
-        size_t capacity = ohtbl_size(desktop->clients);
-        client_td **siblings = malloc(capacity * sizeof(*siblings));
-        size_t count = 0;
-
-        /* Collected into a snapshot array first, rather than calling
-         * 's_ccmd_client_pin_one' directly from inside this same
-         * 'ohtbl_foreach' pass below; see 'ccmd_client_iconify''s own
-         * matching comment (cmds/client/visibility.c) for the full
-         * reasoning: iterating and mutating 'desktop->clients' at
-         * once is undefined behavior for 'ohtbl_foreach'. */
-        if (siblings != NULL) {
-            void *elem;
-
-            ohtbl_foreach(desktop->clients, elem) {
-                client_td *const sibling = (client_td *) elem;
-
-                if (sibling != NULL && sibling != top &&
-                        !client_is_pinned(sibling) &&
-                        ccmd_client_transient_top_parent(sibling) ==
-                            top) {
-                    siblings[count] = sibling;
-                    count++;
-                }
-            }
-
-            for (size_t i = 0; i < count; i++) {
+    siblings = ccmd_client_transient_family_snapshot_anywhere(top,
+            &count);
+    if (siblings != NULL) {
+        for (size_t i = 0; i < count; i++) {
+            if (!client_is_pinned(siblings[i])) {
                 s_ccmd_client_pin_one(siblings[i]);
             }
-
-            free(siblings);
         }
+
+        free(siblings);
     }
 }
 
@@ -250,7 +218,8 @@ void ccmd_client_pin(client_td *client)
 void ccmd_client_unpin(client_td *client)
 {
     client_td *top;
-    desktop_td *desktop;
+    size_t count;
+    client_td **siblings;
 
     if (client == NULL || client_is_locked(client)) {
         return;
@@ -265,40 +234,17 @@ void ccmd_client_unpin(client_td *client)
         s_ccmd_client_unpin_one(top);
     }
 
-    desktop = wm_get_client_desktop(top);
-    if (desktop != NULL && desktop->clients != NULL) {
-        size_t capacity = ohtbl_size(desktop->clients);
-        client_td **siblings = malloc(capacity * sizeof(*siblings));
-        size_t count = 0;
-
-        /* Collected into a snapshot array first, rather than calling
-         * 's_ccmd_client_unpin_one' directly from inside this same
-         * 'ohtbl_foreach' pass below; see 'ccmd_client_iconify''s own
-         * matching comment (cmds/client/visibility.c) for the full
-         * reasoning: iterating and mutating 'desktop->clients' at
-         * once is undefined behavior for 'ohtbl_foreach'. */
-        if (siblings != NULL) {
-            void *elem;
-
-            ohtbl_foreach(desktop->clients, elem) {
-                client_td *const sibling = (client_td *) elem;
-
-                if (sibling != NULL && sibling != top &&
-                        client_is_pinned(sibling) &&
-                        !client_is_locked(sibling) &&
-                        ccmd_client_transient_top_parent(sibling) ==
-                            top) {
-                    siblings[count] = sibling;
-                    count++;
-                }
-            }
-
-            for (size_t i = 0; i < count; i++) {
+    siblings = ccmd_client_transient_family_snapshot_anywhere(top,
+            &count);
+    if (siblings != NULL) {
+        for (size_t i = 0; i < count; i++) {
+            if (client_is_pinned(siblings[i]) &&
+                    !client_is_locked(siblings[i])) {
                 s_ccmd_client_unpin_one(siblings[i]);
             }
-
-            free(siblings);
         }
+
+        free(siblings);
     }
 }
 

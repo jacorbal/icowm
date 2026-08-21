@@ -28,9 +28,6 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* ADT includes */
-#include <adt/ohtbl.h>
-
 /* Type includes */
 #include <types/pair.h>
 
@@ -241,43 +238,51 @@ void drag_warp_tick(xcb_connection_t *connection)
      * specific window actually held under the cursor and does not
      * apply to a family member the person is not physically
      * dragging. */
-    if (old_desktop != NULL && old_desktop->clients != NULL) {
+    if (old_desktop != NULL) {
         client_td *const top =
             ccmd_client_transient_top_parent(s_drag.client);
-        size_t capacity = ohtbl_size(old_desktop->clients);
-        client_td **siblings = malloc(capacity * sizeof(*siblings));
-        size_t count = 0;
 
-        /* Collected into a snapshot array first, rather than calling
-         * 'desktop_action_client_rem'/'_add' directly from inside
-         * this same 'ohtbl_foreach' pass below; see 'ccmd_client_
-         * iconify''s own matching comment (cmds/client/visibility.c)
-         * for the full reasoning: iterating and mutating
-         * 'old_desktop->clients' at once is undefined behavior for
-         * 'ohtbl_foreach'. */
-        if (top != NULL && siblings != NULL) {
-            void *elem;
+        if (top != NULL) {
+            size_t count;
+            client_td **siblings;
 
-            ohtbl_foreach(old_desktop->clients, elem) {
-                client_td *const sibling = (client_td *) elem;
-
-                if (sibling != NULL && sibling != s_drag.client &&
-                        ccmd_client_transient_top_parent(sibling) ==
-                            top) {
-                    siblings[count] = sibling;
-                    count++;
-                }
+            /* 'top' itself is never part of the snapshot just below
+             * ('ccmd_client_transient_family_snapshot' always
+             * excludes it, being the family's own reference point),
+             * so it needs its own move here first, but only when it
+             * both is not the very client already being dragged
+             * (handled by the visual drag below already) and is
+             * actually registered on 'old_desktop' to begin with (a
+             * pinned top parent stays registered under whichever
+             * desktop it was originally on forever; see 'ccmd_
+             * client_bring_family''s own doc comment, cmds/client/
+             * transient.c, for why that distinction matters, and
+             * moving it off of a desktop it never really left would
+             * be exactly the same class of bug that comment
+             * describes). */
+            if (top != s_drag.client &&
+                    wm_get_client_desktop(top) == old_desktop) {
+                (void) desktop_action_client_rem(old_desktop, top);
+                (void) desktop_action_client_add(new_desktop, top);
+                top->desktop_id = new_desktop->id;
             }
 
-            for (size_t i = 0; i < count; i++) {
-                (void) desktop_action_client_rem(old_desktop,
-                        siblings[i]);
-                (void) desktop_action_client_add(new_desktop,
-                        siblings[i]);
-                siblings[i]->desktop_id = new_desktop->id;
+            siblings = ccmd_client_transient_family_snapshot(
+                    old_desktop, top, &count);
+            if (siblings != NULL) {
+                for (size_t i = 0; i < count; i++) {
+                    if (siblings[i] != s_drag.client) {
+                        (void) desktop_action_client_rem(old_desktop,
+                                siblings[i]);
+                        (void) desktop_action_client_add(new_desktop,
+                                siblings[i]);
+                        siblings[i]->desktop_id = new_desktop->id;
+                    }
+                }
+
+                free(siblings);
             }
         }
-        free(siblings);
     }
 
     surface->desktop_cur = new_desktop->id;
