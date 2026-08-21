@@ -472,6 +472,26 @@ void ccmd_client_focus(client_td *client)
         return;
     }
 
+    /* Deliberately no 'ccmd_client_bring_family' call here, unlike
+     * 'focus_apply' (policy/focus.c): this function is also reached
+     * from purely automatic, internal focus restoration that has
+     * nothing to do with someone actually interacting with 'client'
+     * right now (foremost 'surface_clients_show''s own "restore
+     * whichever client was last active on this desktop" step,
+     * surface/actions/clients.c, which runs on every single desktop
+     * switch).  Calling it unconditionally here dragged a transient
+     * family across onto whatever desktop merely happened to be
+     * switched to, the moment its pinned parent's own 'client_
+     * active_id' from some earlier, unrelated visit to that desktop
+     * was restored, leaving the family effectively "chasing" every
+     * desktop the parent had ever been focused on, indistinguishable
+     * from actually being pinned even though nothing pinned it.
+     * 'focus_apply' itself already covers every genuine, deliberate
+     * focus request (a plain click, sloppy focus, and the like) with
+     * its own separate call, for the same reason it needs its own
+     * separate redirect to 'ccmd_client_focus_target' right below
+     * (see that call's own comment). */
+
     /* Redirect to whichever mapped transient descendant should
      * actually receive focus in this client's place (a "save
      * changes?" prompt still sitting open on top of it, say); see

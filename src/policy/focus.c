@@ -58,6 +58,13 @@ void focus_apply(list_td *surfaces, surface_td *surface,
         return;
     }
 
+    /* Bring any transient descendant now sitting on a different
+     * desktop back onto this client's own, before the redirect just
+     * below ever runs: see 'ccmd_client_bring_family''s own doc
+     * comment (cmds/client/basic.h) for the full reasoning, matching
+     * Openbox's own 'client_bring_modal_windows'. */
+    ccmd_client_bring_family(client);
+
     /* Redirect to whichever mapped transient descendant should
      * actually receive focus in this client's place (a "save
      * changes?" prompt still sitting open on top of it, say), before

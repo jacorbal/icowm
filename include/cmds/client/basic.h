@@ -444,5 +444,43 @@ client_td *ccmd_client_focus_target(client_td *client);
  */
 client_td *ccmd_client_transient_top_parent(client_td *client);
 
+/**
+ * @brief Move every transient descendant of a client onto whichever
+ *        desktop is actually being looked at right now, wherever
+ *        they currently are
+ *
+ * Openbox's own real answer to a transient family split across
+ * desktops (confirmed directly against its source): a pinned parent
+ * followed to a new desktop leaves its own modal dialog behind, but
+ * the moment someone tries to focus that parent again, the dialog is
+ * moved onto the desktop the parent is being interacted with on
+ * right then, so it is right there to actually receive the
+ * redirected focus.  Called both from @a ccmd_client_focus itself
+ * (@c cmds/client/focus.c) and from @a focus_apply (@c policy/
+ * focus.c), immediately before each one's own redirect to @a ccmd_
+ * client_focus_target, for exactly this reason (see that function's
+ * own doc comment for why @a focus_apply needs its own separate copy
+ * of the same redirect).  Deliberately the desktop currently viewed
+ * on the top parent's own surface, not that top parent's own literal
+ * "home" desktop, since pinning a client never actually moves it
+ * between desktops (see @a ccmd_client_bring_family's own full doc
+ * comment, cmds/client/transient.c, for why that distinction matters
+ * here specifically).
+ *
+ * @param client Client whose transient family to bring together;
+ *               redirected to its own top-most ancestor first, the
+ *               same way every other family-wide action in this
+ *               project already does
+ *
+ * @note A null @p client, one whose top parent's own surface cannot
+ *       be resolved, or one with no transient family at all is a
+ *       silent no-op
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Complexity: @e O(s * d * n), where @e s is the number of
+ *       surfaces, @e d the number of desktops per surface, and @e n
+ *       the number of clients per desktop
+ */
+void ccmd_client_bring_family(client_td *client);
+
 
 #endif  /* ! CMDS_CCMD_BASIC_H */
