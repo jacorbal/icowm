@@ -306,6 +306,21 @@ void ccmd_client_set_opacity_inactive(client_td *client,
 }
 
 
+/* Override the client's own border color and width */
+void ccmd_client_set_border_override(client_td *client,
+        uint32_t color, uint32_t width)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    client->border_override.is_set = true;
+    client->border_override.color = color;
+    client->border_override.width = width;
+    wm_request_client_redraw(client);
+}
+
+
 /* Raise the client to the top */
 void ccmd_client_urge(client_td *client)
 {

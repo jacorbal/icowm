@@ -272,6 +272,31 @@ void ccmd_client_set_opacity_inactive(client_td *client,
         uint8_t percent);
 
 /**
+ * @brief Override the client's own border color and width
+ *
+ * Sets @c border_override.is_set/@c .color/@c .width together, so
+ * this one client's own border stops following the theme's own
+ * @p window.active/@p .inactive.border until unset (there is
+ * currently no way to unset it once set; see @c scratchpad_notice_
+ * client_created's own doc comment, scratchpad.c, for the one
+ * existing caller).  Deliberately narrow, the same as @a ccmd_client_apply_
+ * geometry: only the state itself, nothing about re-applying the
+ * border to the actual window right away, which stays each caller's
+ * own concern (a caller wanting that immediately, rather than
+ * waiting for the next natural @c client_border_apply call a focus
+ * change already triggers, still has to make that call itself).
+ *
+ * @param client Window whose border to override
+ * @param color  New border color, an @c 0xRRGGBB-style packed value
+ * @param width  New border width in pixels
+ *
+ * @note A null @p client is a silent no-op
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_set_border_override(client_td *client,
+        uint32_t color, uint32_t width);
+
+/**
  * @brief Mark the client as urgent (requesting attention)
  *
  * @param client Window to mark as urgent

@@ -273,11 +273,9 @@ void scratchpad_notice_client_created(client_td *client)
      * 'config.md''s note on this), since this whole block runs once,
      * right here. */
     if (client->config != NULL) {
-        client->border_override.is_set = true;
-        client->border_override.color =
-            client->config->theme.scratchpad.border.color;
-        client->border_override.width =
-            client->config->theme.scratchpad.border.width;
+        ccmd_client_set_border_override(client,
+                client->config->theme.scratchpad.border.color,
+                client->config->theme.scratchpad.border.width);
         client_border_apply(client, true);
     }
 

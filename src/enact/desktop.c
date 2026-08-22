@@ -113,6 +113,8 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
 {
     surface_td *surface;
     xcb_window_t win_target;
+    bool unmapped_main = false;
+    bool unmapped_icon = false;
 
     LOGGER_TRACE("Sending client window=0x%x from desktop %u to" \
             " desktop %u", client->window, desktop->id, target->id);
@@ -130,9 +132,11 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
             ? client->frame : client->window;
         ccmd_client_unmap_decorated(client, surface->connection,
                 win_target);
+        unmapped_main = true;
         if (client->icon_window != 0 && client->is_icon_mapped) {
             xcb_unmap_window(surface->connection, client->icon_window);
             client->is_icon_mapped = false;
+            unmapped_icon = true;
         }
         xcb_flush(surface->connection);
     }
@@ -149,7 +153,35 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * behind the matching reorder in 'handler_destroy_notify' and
      * 'handler_unmap_notify' (handler/map.c). */
     desktop_action_client_rem(desktop, client);
-    desktop_action_client_add(target, client);
+    if (desktop_action_client_add(target, client) != 0) {
+        /* 'target' refused it (a resource exhaustion or a genuine
+         * hashtable-insert failure; see 'desktop_action_client_add's
+         * own doc comment, desktop.h): put it back exactly where it
+         * came from, undoing the unmap above too if it happened,
+         * rather than leaving the client registered under neither
+         * desktop, or invisible on the very desktop it is actually
+         * still on. */
+        LOGGER_WARNING("Failed to move client window=0x%x to" \
+                " desktop %u; leaving it on desktop %u instead",
+                client->window, target->id, desktop->id);
+        (void) desktop_action_client_add(desktop, client);
+        if (unmapped_main) {
+            win_target = (client_is_decorated(client) &&
+                    client->frame != 0)
+                ? client->frame : client->window;
+            xcb_map_window(surface->connection, win_target);
+            if (win_target != client->window) {
+                xcb_map_window(surface->connection, client->window);
+            }
+            if (unmapped_icon) {
+                xcb_map_window(surface->connection,
+                        client->icon_window);
+                client->is_icon_mapped = true;
+            }
+            xcb_flush(surface->connection);
+        }
+        return;
+    }
     client->desktop_id = target->id;
 
     /* Published here, once, for every caller of this whole desktop-
