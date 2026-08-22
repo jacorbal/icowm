@@ -137,11 +137,11 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
         (display_active)
-            ? desktop->config_theme->icon.active.color.background
-            : desktop->config_theme->icon.inactive.color.background,
+            ? desktop->config->theme.icon.active.color.background
+            : desktop->config->theme.icon.inactive.color.background,
         (display_active)
-            ? desktop->config_theme->icon.active.border.color
-            : desktop->config_theme->icon.inactive.border.color
+            ? desktop->config->theme.icon.active.border.color
+            : desktop->config->theme.icon.inactive.border.color
             });
 
     border_width = (display_active)
@@ -157,8 +157,8 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
     atom_set_window_opacity(desktop->connection,
             client->icon_window,
             config_theme_opacity_to_raw((display_active)
-                ? desktop->config_theme->icon.active.opacity
-                : desktop->config_theme->icon.inactive.opacity));
+                ? desktop->config->theme.icon.active.opacity
+                : desktop->config->theme.icon.inactive.opacity));
 
     xcb_clear_area(desktop->connection, 0,
             client->icon_window, 0, 0, 0, 0);
@@ -183,31 +183,31 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
                 (const uint32_t[]) { XCB_STACK_MODE_BELOW });
     }
 
-    if (desktop->config_theme->icon.show_pixmaps) {
+    if (desktop->config->theme.icon.show_pixmaps) {
         wmicon_draw(desktop->connection, client->ewmh, client->window,
                 client->icon_window, WM_ICON_SQUARE_SIZE,
                 (display_active)
-                    ? desktop->config_theme->icon.active.color.foreground
-                    : desktop->config_theme->icon.inactive.color.foreground,
+                    ? desktop->config->theme.icon.active.color.foreground
+                    : desktop->config->theme.icon.inactive.color.foreground,
                 (display_active)
-                    ? desktop->config_theme->icon.active.color.background
-                    : desktop->config_theme->icon.inactive.color.background,
+                    ? desktop->config->theme.icon.active.color.background
+                    : desktop->config->theme.icon.inactive.color.background,
                 &client->icon_pixmap_cache);
     }
 
-    if (desktop->config_theme->icon.is_captioned &&
+    if (desktop->config->theme.icon.is_captioned &&
             client->info.name != NULL) {
         char caption[CONFIG_MAX_LENGTH_NAME];
 
         text_renderer_init(desktop->connection,
-                desktop->config_theme->icon.inactive.font);
+                desktop->config->theme.icon.inactive.font);
         text_renderer_set_color(
                 (display_active)
-                    ? desktop->config_theme->icon.active.color.foreground
-                    : desktop->config_theme->icon.inactive.color.foreground,
+                    ? desktop->config->theme.icon.active.color.foreground
+                    : desktop->config->theme.icon.inactive.color.foreground,
                 (display_active)
-                    ? desktop->config_theme->icon.active.color.background
-                    : desktop->config_theme->icon.inactive.color.background);
+                    ? desktop->config->theme.icon.active.color.background
+                    : desktop->config->theme.icon.inactive.color.background);
 
         text_truncate_to_width(caption, sizeof(caption),
                 client->info.name, WM_ICON_SQUARE_SIZE);
@@ -231,7 +231,7 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
     }
 
     ri_icon_hints_draw(desktop->connection, client, display_active,
-            desktop->config_theme);
+            &desktop->config->theme);
 
     /* This is not reset anywhere else for a hidden/iconified client.
      * Only 's_desktop_render_one_client' ('render/desktop.c') clears

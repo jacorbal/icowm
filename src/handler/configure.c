@@ -826,7 +826,8 @@ void handler_configure_notify(xcb_connection_t *connection,
                             client->was_decorated_fullscreen)) {
                     desktop_repaint_frame_decoration(connection, client,
                             is_focused,
-                            (desktop != NULL) ? desktop->config_theme
+                            (desktop != NULL)
+                                ? &desktop->config->theme
                                 : ((client->config != NULL)
                                         ? &client->config->theme : NULL));
                 }

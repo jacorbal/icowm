@@ -133,8 +133,7 @@ int surface_action_desktop_add(surface_td *surface)
             surface->ewmh,
             surface->id,
             surface->desktop_count,
-            &(surface->config->base),
-            &(surface->config->theme));
+            surface->config);
     if (desktop == NULL) {
         LOGGER_ERROR("Failed to initialize new desktop on surface %u",
                 surface->id);

@@ -1004,7 +1004,7 @@ void desktop_render_one_client(desktop_td *desktop,
             }
             s_repaint_frame_decoration_unless_hidden(desktop->connection,
                     client, is_focused, hide_decoration,
-                    desktop->config_theme);
+                    &desktop->config->theme);
 
             if (titlebar_visible) {
                 xcb_configure_window(desktop->connection,
@@ -1020,7 +1020,7 @@ void desktop_render_one_client(desktop_td *desktop,
                         });
                 desktop_repaint_titlebar_content(
                         desktop->connection, client, is_focused,
-                        inner_w, title_h, desktop->config_theme);
+                        inner_w, title_h, &desktop->config->theme);
             } else if (client->titlebar != 0) {
                 xcb_unmap_window(desktop->connection, client->titlebar);
             }
@@ -1059,12 +1059,12 @@ void desktop_render_one_client(desktop_td *desktop,
          * all. */
         s_repaint_frame_decoration_unless_hidden(desktop->connection,
                 client, is_focused, hide_decoration,
-                desktop->config_theme);
+                &desktop->config->theme);
 
         if (titlebar_visible) {
             desktop_repaint_titlebar_content(desktop->connection,
                     client, is_focused, inner_w, title_h,
-                    desktop->config_theme);
+                    &desktop->config->theme);
         } else if (client->titlebar != 0) {
             xcb_unmap_window(desktop->connection, client->titlebar);
         }

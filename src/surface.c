@@ -192,7 +192,7 @@ surface_td *surface_init(xcb_connection_t *connection,
         desktop_td *const desktop = desktop_init(surface->connection,
                 surface->ewmh,
                 surface_id, i,
-                &(surface->config->base), &(surface->config->theme));
+                surface->config);
         if (desktop == NULL) {
             LOGGER_FATAL("Failed to initialize desktop %u on" \
                     " surface %u", i, surface_id);
@@ -698,7 +698,7 @@ void surface_refresh_workareas(surface_td *surface)
 
         if (d != NULL) {
             desktop_update_workarea(d,
-                    surface->properties.dim,
+                    surface,
                     (surface->config != NULL)
                         ? &surface->config->desktops : NULL,
                     systray_get_reserved_strut(surface),

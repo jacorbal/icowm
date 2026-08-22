@@ -40,6 +40,7 @@
 
 /* Default initial values */
 #include <defs/desktop.h>
+#include <defs/surface.h>
 
 /* Project includes */
 #include <client.h>
@@ -72,6 +73,23 @@
  * needs from @p h1 and @p h2 to stay uncorrelated for the same key.
  */
 #define DESKTOP_HASH_SEED_SECONDARY (0x85EBCA6Bu)
+
+
+/**
+ * @brief Forward declaration only: a surface owns its own desktops
+ *        (@c surface.h includes this header, never the other way
+ *        around), so this header can only ever reference @c
+ *        surface_td through a pointer, never the full definition.
+ *        Guarded (see @c surface.h's own matching guard) since
+ *        whichever of the two headers a translation unit includes
+ *        first sets it, so a later include of the other one skips
+ *        redeclaring the exact same alias, illegal under strict C99
+ *        (unlike C11) even for two textually identical typedefs.
+ */
+#ifndef SURFACE_TD_DECLARED
+#define SURFACE_TD_DECLARED
+typedef struct surface_s surface_td;
+#endif
 
 
 /**
@@ -128,11 +146,52 @@ typedef struct desktop_s {
     cdlist_td *stacking;                    /**< Stacking list */
     xcb_window_t client_active_id;          /**< Active window */
 
-    struct config_base_s *config_base;      /**< Base configuration */
-    struct config_theme_s *config_theme;    /**< Theme configuration */
+    /**
+     * @brief This desktop's own surface's shared configuration
+     *
+     * Always @c &surface->config (see @a desktop_init's own two
+     * callers, surface.c and surface/switch.c), never a config from
+     * any other source: every desktop on the same surface points at
+     * the exact same @c config_td, so @p base and @p theme (what
+     * this field used to be two separate pointers for) never
+     * actually diverge from one another in practice.  One pointer
+     * also reaches @p bindings/@p randr/@p desktops/@p a11y, none of
+     * which had a field of their own here before, should a future
+     * caller ever need one of those from a desktop directly.
+     */
+    config_td *config;
 
     struct geometry_s geometry;
     struct geometry_s workarea;
+
+    /**
+     * @brief Per-monitor work area, the same reservations @p workarea
+     *        itself folds in but scoped to each individual monitor
+     *        instead of the whole surface at once
+     *
+     * A strut whose own along-edge span (@c _NET_WM_STRUT_PARTIAL's
+     * @c start/@c end) only covers part of the combined surface, a
+     * panel docked to just one monitor in a multi-monitor setup being
+     * the common case, still reduces @p workarea across the @e whole
+     * surface: EWMH's own strut model has no native notion of "which
+     * monitor" at all, a reservation from one of the four @e screen
+     * edges either way.  This array is this project's own answer,
+     * folding the exact same struts against each monitor's own
+     * along-edge span in turn instead of the whole surface's, so a
+     * monitor with no panel of its own keeps its full physical area
+     * here even while @p workarea, surface-wide, already reflects a
+     * neighboring monitor's own panel.  A monitor with no panel
+     * reservation touching it at all simply equals its own physical
+     * @c surface->monitors entry.
+     *
+     * Indices line up with @p surface->monitors (see @a desktop_
+     * update_workarea's own doc comment); only the first @p monitor_
+     * workarea_count entries are valid.
+     */
+    struct geometry_s monitor_workareas[WM_SURFACE_MAX_MONITORS];
+
+    /** @brief Number of valid entries in @p monitor_workareas */
+    uint32_t monitor_workarea_count;
 
     bool is_outdated;                       /**< Flag when data needs to
                                                  be updated */
@@ -173,12 +232,11 @@ typedef struct desktop_s {
 /**
  * @brief Initialize a new desktop
  *
- * @param connection   Pointer to the XCB connection
- * @param screen_id    Screen identifier where this desktop belongs
- * @param desktop_id   Desktop identifier
- * @param ewmh         EWMH connection pointer
- * @param config_base  Pointer to base configuration
- * @param config_theme Pointer to theme configuration
+ * @param connection Pointer to the XCB connection
+ * @param ewmh       EWMH connection pointer
+ * @param screen_id  Screen identifier where this desktop belongs
+ * @param desktop_id Desktop identifier
+ * @param config     This desktop's own surface's shared configuration
  *
  * @return Pointer to new desktop or @c NULL otherwise
  *
@@ -187,8 +245,7 @@ typedef struct desktop_s {
 desktop_td *desktop_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         uint32_t screen_id, uint32_t desktop_id,
-        struct config_base_s *config_base,
-        struct config_theme_s *config_theme);
+        config_td *config);
 
 /**
  * @brief Free memory for allocated desktop
@@ -448,14 +505,33 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  * The result is stored in @p desktop->workarea and broadcast to the
  * X server as @c _NET_WORKAREA.
  *
+ * Repeats the same reservation math once more per individual monitor
+ * on @p surface, storing the result in @p desktop->monitor_
+ * workareas (see its own doc comment, this same file, for why): each
+ * monitor's own along-edge span, rather than the whole surface's, is
+ * what a strut's own start/end range is checked against there, so a
+ * monitor with no panel of its own keeps its full area even while a
+ * neighboring monitor's own panel already reduces @p workarea,
+ * surface-wide.  A configured margin, having no start/end of its own
+ * to scope it the way a strut's own does, only ever reduces a given
+ * monitor's own entry on whichever of its four sides actually
+ * coincides with that same side of the whole surface (its own left
+ * edge sits at surface @c x=0, say); elsewhere, an internal boundary
+ * between two monitors is not "the screen edge" a margin is meant to
+ * carve out in the first place.
+ *
  * Call this after a panel (strut client) is mapped or unmapped, after
  * the systray's own reservation changes (reposition, resize, or being
- * shown/hidden), and after a configuration reload that may have changed
- * @p margins, so that maximize and smart-placement work on the correct
- * available area.
+ * shown/hidden), after @p surface's own monitor list itself changes
+ * (a RandR hotplug), and after a configuration reload that may have
+ * changed @p margins, so that maximize and smart-placement work on
+ * the correct available area.
  *
  * @param desktop        Desktop whose work area should be refreshed
- * @param screen_dim     Full screen dimensions, in pixels
+ * @param surface        Surface @p desktop lives on; supplies both
+ *                       the full screen dimensions and the monitor
+ *                       list @p desktop->monitor_workareas is scoped
+ *                       to
  * @param config_desktop Active desktop-behavior configuration, for
  *                       its @p margins; a @c NULL treats every margin
  *                       as @c 0, same as if none were configured
@@ -473,15 +549,16 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  *                       stays honored even then, only the dynamic
  *                       presence of a panel or the tray is set aside
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop
+ * @note A @c NULL @p surface is a silent no-op
+ * @note Complexity: @e O(n*m), where @e n is the number of clients on
+ *       the desktop and @e m is @p surface->monitor_count
  *
  * @see @a systray_get_reserved_strut
  * @see @p config_desktop_s in @c config.h, for a program that reserves
  *      screen space without publishing either property itself
  */
 void desktop_update_workarea(desktop_td *desktop,
-        struct dimensions_s screen_dim,
+        const surface_td *surface,
         const struct config_desktop_s *config_desktop,
         const struct strut_partial_s *systray_strut,
         bool ignore_struts);

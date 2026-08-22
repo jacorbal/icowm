@@ -41,6 +41,8 @@
 #include <client.h>
 #include <logger.h>
 #include <memguard.h>
+#include <monitor.h>
+#include <surface.h>
 
 /* Local includes */
 #include <desktop.h>
@@ -92,32 +94,38 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
 
 /**
  * @brief Fold one more strut into a running maximum reservation on each
- *        of the four screen edges
+ *        of the four edges of one region
  *
  * Shared by @c desktop_update_workarea for both a stacked client's
- * @c layout.strut_partial and the systray's own reservation.  The two
- * are struts from IcoWM's point of view either way, aggregated
- * identically; each edge keeps whichever single source reserves the
+ * @c layout.strut_partial and the systray's own reservation, and for
+ * both the whole surface's own work area and each individual
+ * monitor's own.  The two strut sources are folded identically
+ * either way; each edge keeps whichever single source reserves the
  * most there, the struts are not summed together (unlike
  * @a config_desktop_s's @p margins, a deliberately different, additive
  * case).
  *
- * @param strut        Strut to fold in; a no-op when null
- * @param screen_max_x Screen's own maximum X coordinate, for the
- *                     top/bottom range overlap check
- * @param screen_max_y Screen's own maximum Y coordinate, for the
- *                     left/right range overlap check
- * @param left         Running left reservation, updated in place
- * @param right        Running right reservation, updated in place
- * @param top          Running top reservation, updated in place
- * @param bottom       Running bottom reservation, updated in place
+ * @param strut         Strut to fold in; a no-op when null
+ * @param region_min_x  Region's own minimum X coordinate, for the
+ *                       top/bottom range overlap check; @c 0 for the
+ *                       whole surface, a monitor's own @c x otherwise
+ * @param region_max_x  Region's own maximum X coordinate, same axis
+ * @param region_min_y  Region's own minimum Y coordinate, for the
+ *                       left/right range overlap check; @c 0 for the
+ *                       whole surface, a monitor's own @c y otherwise
+ * @param region_max_y  Region's own maximum Y coordinate, same axis
+ * @param left          Running left reservation, updated in place
+ * @param right         Running right reservation, updated in place
+ * @param top           Running top reservation, updated in place
+ * @param bottom        Running bottom reservation, updated in place
  *
  * @note Complexity: @e O(1)
  *
  * @see @a systray_get_reserved_strut and @a desktop_update_workarea
  */
 static void s_fold_strut(const struct strut_partial_s *strut,
-        int32_t screen_max_x, int32_t screen_max_y,
+        int32_t region_min_x, int32_t region_max_x,
+        int32_t region_min_y, int32_t region_max_y,
         int32_t *restrict left, int32_t *restrict right,
         int32_t *restrict top, int32_t *restrict bottom)
 {
@@ -127,25 +135,25 @@ static void s_fold_strut(const struct strut_partial_s *strut,
 
     if (strut->sides.left > *left &&
             s_ranges_overlap(strut->start.left, strut->end.left,
-                0, screen_max_y)) {
+                region_min_y, region_max_y)) {
         *left = strut->sides.left;
     }
 
     if (strut->sides.right > *right &&
             s_ranges_overlap(strut->start.right, strut->end.right,
-                0, screen_max_y)) {
+                region_min_y, region_max_y)) {
         *right = strut->sides.right;
     }
 
     if (strut->sides.top > *top &&
             s_ranges_overlap(strut->start.top, strut->end.top,
-                0, screen_max_x)) {
+                region_min_x, region_max_x)) {
         *top = strut->sides.top;
     }
 
     if (strut->sides.bottom > *bottom &&
             s_ranges_overlap(strut->start.bottom, strut->end.bottom,
-                0, screen_max_x)) {
+                region_min_x, region_max_x)) {
         *bottom = strut->sides.bottom;
     }
 }
@@ -260,8 +268,7 @@ static bool s_client_match(const void *key1, const void *key2)
 desktop_td *desktop_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh,
         uint32_t screen_id, uint32_t desktop_id,
-        struct config_base_s *config_base,
-        struct config_theme_s *config_theme)
+        config_td *config)
 {
     desktop_td *desktop;
     xcb_screen_t *screen;
@@ -286,8 +293,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     desktop->connection = connection;
 
     /* Get the configuration */
-    desktop->config_base = config_base;
-    desktop->config_theme = config_theme;
+    desktop->config = config;
 
     /* Set desktop name.  The config-provided name is copied with
      * 'safe_strncpy' ('utils/safe/safestr.h') instead of
@@ -295,13 +301,14 @@ desktop_td *desktop_init(xcb_connection_t *connection,
      * 'desktop->name'.  GCC's option '-Wformat-truncation' cannot prove
      * the copy never truncates, and truncating a name that does not fit
      * is the desired, harmless behavior here anyway. */
-    if (config_base->screens[screen_id].desktops[desktop_id].name[0] ==
+    if (config->base.screens[screen_id].desktops[desktop_id].name[0] ==
         '\0') {
         snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME,
                 "Desktop %u", desktop_id);
     } else {
         safe_strncpy(desktop->name,
-                config_base->screens[screen_id].desktops[desktop_id].name,
+                config->base.screens[screen_id].desktops[desktop_id]
+                    .name,
                 WM_DESKTOP_MAX_LENGTH_NAME);
     }
 
@@ -313,11 +320,11 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     desktop->background.is_image = false;
     desktop->background.use_root_pixmap = false;
     desktop->background.bg.color =
-        config_base->screens[screen_id].desktops[desktop_id]
+        config->base.screens[screen_id].desktops[desktop_id]
             .settings.background.color;
     if (desktop->background.bg.color == WM_DESKTOP_BG_COLOR_UNSET) {
         desktop->background.bg.color =
-            config_theme->desktop.color.background;
+            config->theme.desktop.color.background;
     }
 
     LOGGER_TRACE("Initializing client list structure for" \
@@ -419,34 +426,71 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 }
 
 
-/* Recompute work area from client struts */
-void desktop_update_workarea(desktop_td *desktop,
-        struct dimensions_s screen_dim,
+/**
+ * @brief Compute one work area, struts and margins folded in, scoped
+ *        to a single rectangular region
+ *
+ * Shared by @a desktop_update_workarea for both the whole surface's
+ * own @c workarea and each individual monitor's own entry in
+ * @c monitor_workareas, the exact same reservation math either way,
+ * only the region it is scoped to differing: the whole surface for
+ * the former, one monitor's own physical extent for the latter.
+ *
+ * @param desktop              Desktop whose stacking list to scan
+ *                             for client struts
+ * @param region_x             Region's own left edge, in surface
+ *                             coordinates
+ * @param region_y             Region's own top edge, in surface
+ *                             coordinates
+ * @param region_w             Region's own width
+ * @param region_h             Region's own height
+ * @param apply_margin_left    Whether this region's own left edge
+ *                             coincides with a side of the surface
+ *                             @p config_desktop's own @p margins
+ *                             should actually reserve on
+ * @param apply_margin_right   Same, for the right edge
+ * @param apply_margin_top     Same, for the top edge
+ * @param apply_margin_bottom  Same, for the bottom edge
+ * @param config_desktop       Active desktop-behavior configuration,
+ *                             for its own @p margins; a @c NULL
+ *                             treats every margin as @c 0
+ * @param systray_strut        The systray's own current reservation;
+ *                             a @c NULL value folds in nothing
+ * @param ignore_struts        When @c true, neither @p systray_strut
+ *                             nor any client's own strut is folded
+ *                             in, only whichever margins @p
+ *                             apply_margin_* select
+ *
+ * @return The resulting work area, in surface coordinates
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static struct geometry_s s_desktop_compute_workarea(
+        const desktop_td *desktop,
+        int32_t region_x, int32_t region_y,
+        uint32_t region_w, uint32_t region_h,
+        bool apply_margin_left, bool apply_margin_right,
+        bool apply_margin_top, bool apply_margin_bottom,
         const struct config_desktop_s *config_desktop,
         const struct strut_partial_s *systray_strut,
         bool ignore_struts)
 {
-    cdlist_item_td *initial;
+    struct geometry_s result;
     int32_t left = 0;
     int32_t right = 0;
     int32_t top = 0;
     int32_t bottom = 0;
     int32_t new_w;
     int32_t new_h;
-    int32_t screen_max_x;
-    int32_t screen_max_y;
-
-    if (desktop == NULL) {
-        return;
-    }
-
-    screen_max_x = (screen_dim.w == 0u)
-        ? -1 : (int32_t) (screen_dim.w - 1u);
-    screen_max_y = (screen_dim.h == 0u)
-        ? -1 : (int32_t) (screen_dim.h - 1u);
+    int32_t region_max_x = (region_w == 0u)
+        ? region_x - 1 : region_x + (int32_t) (region_w - 1u);
+    int32_t region_max_y = (region_h == 0u)
+        ? region_y - 1 : region_y + (int32_t) (region_h - 1u);
 
     if (!ignore_struts && desktop->stacking != NULL &&
             cdlist_size(desktop->stacking) > 0) {
+        cdlist_item_td *initial;
         cdlist_item_td *node;
 
         /* Aggregate maximum strut on each edge across all stacked
@@ -458,54 +502,117 @@ void desktop_update_workarea(desktop_td *desktop,
 
             if (c != NULL) {
                 s_fold_strut(&c->layout.strut_partial,
-                        screen_max_x, screen_max_y,
+                        region_x, region_max_x,
+                        region_y, region_max_y,
                         &left, &right, &top, &bottom);
             }
             node = cdlist_next(node);
         } while (node != NULL && node != initial);
     }
 
-    /* The window manager's own built-in systray is not a managed client
-     * (its dock window is override-redirect; see
+    /* The window manager's own built-in systray is not a managed
+     * client (its dock window is override-redirect; see
      * 'systray_protocol_window_ensure'), so it never appears in
-     * 'desktop->stacking' above and needs folding in separately here;
-     * aggregated the exact same way, since it is a strut source like
-     * any other from this function's own point of view.  Skipped, like
-     * every other strut above, when 'ignore_struts' asks for the full
-     * surface. */
+     * 'desktop->stacking' above and needs folding in separately
+     * here; aggregated the exact same way, since it is a strut
+     * source like any other from this function's own point of
+     * view.  Skipped, like every other strut above, when
+     * 'ignore_struts' asks for the full region. */
     if (!ignore_struts) {
-        s_fold_strut(systray_strut, screen_max_x, screen_max_y,
+        s_fold_strut(systray_strut, region_x, region_max_x,
+                region_y, region_max_y,
                 &left, &right, &top, &bottom);
     }
 
     /* Configured margins ('config.json''s 'desktops.margins') add on
-     * top of whatever clients themselves already reserve on each edge
-     * above, rather than only keeping whichever of the two is larger.
-     * They cover a distinct case (a program that reserves screen space
-     * without publishing '_NET_WM_STRUT'/'_NET_WM_STRUT_PARTIAL'
-     * itself, e.g., Conky) so both are meant to coexist, not override
-     * one another.  Applied even with no clients at all (the early
-     * return this replaced never used to reach here), so a configured
-     * margin still reserves its space on an empty desktop. */
+     * top of whatever clients themselves already reserve on each
+     * edge above, rather than only keeping whichever of the two is
+     * larger.  They cover a distinct case (a program that reserves
+     * screen space without publishing '_NET_WM_STRUT'/'_NET_WM_
+     * STRUT_PARTIAL' itself, e.g., Conky) so both are meant to
+     * coexist, not override one another.  Applied even with no
+     * clients at all (the early return this replaced never used to
+     * reach here), so a configured margin still reserves its space
+     * on an empty desktop.  Only on whichever side of this region
+     * actually coincides with that same side of the whole surface,
+     * per 'apply_margin_left'/etc: an internal boundary between two
+     * monitors is not "the screen edge" a margin is meant to carve
+     * out in the first place. */
     if (config_desktop != NULL) {
-        left += (int32_t) config_desktop->margins.left;
-        right += (int32_t) config_desktop->margins.right;
-        top += (int32_t) config_desktop->margins.top;
-        bottom += (int32_t) config_desktop->margins.bottom;
+        if (apply_margin_left) {
+            left += (int32_t) config_desktop->margins.left;
+        }
+        if (apply_margin_right) {
+            right += (int32_t) config_desktop->margins.right;
+        }
+        if (apply_margin_top) {
+            top += (int32_t) config_desktop->margins.top;
+        }
+        if (apply_margin_bottom) {
+            bottom += (int32_t) config_desktop->margins.bottom;
+        }
     }
 
-    new_w = (int32_t) screen_dim.w - left - right;
-    new_h = (int32_t) screen_dim.h - top  - bottom;
+    new_w = (int32_t) region_w - left - right;
+    new_h = (int32_t) region_h - top - bottom;
 
-    desktop->workarea.pos.x = left;
-    desktop->workarea.pos.y = top;
-    desktop->workarea.dim.w = (new_w > 0) ? (uint32_t) new_w : 0U;
-    desktop->workarea.dim.h = (new_h > 0) ? (uint32_t) new_h : 0U;
+    result.pos.x = region_x + left;
+    result.pos.y = region_y + top;
+    result.dim.w = (new_w > 0) ? (uint32_t) new_w : 0u;
+    result.dim.h = (new_h > 0) ? (uint32_t) new_h : 0u;
+
+    return result;
+}
+
+
+/* Recompute work area from client struts */
+void desktop_update_workarea(desktop_td *desktop,
+        const surface_td *surface,
+        const struct config_desktop_s *config_desktop,
+        const struct strut_partial_s *systray_strut,
+        bool ignore_struts)
+{
+    struct dimensions_s screen_dim;
+
+    if (desktop == NULL || surface == NULL) {
+        return;
+    }
+
+    screen_dim = surface->properties.dim;
+
+    desktop->workarea = s_desktop_compute_workarea(desktop,
+            0, 0, screen_dim.w, screen_dim.h,
+            true, true, true, true,
+            config_desktop, systray_strut, ignore_struts);
 
     LOGGER_TRACE("Desktop %u workarea: %ux%u+%+d%+d",
             desktop->id,
             desktop->workarea.dim.w, desktop->workarea.dim.h,
             desktop->workarea.pos.x, desktop->workarea.pos.y);
+
+    desktop->monitor_workarea_count = surface->monitor_count;
+    for (uint32_t m = 0u; m < surface->monitor_count; ++m) {
+        const monitor_td *mon = &surface->monitors[m];
+        bool at_left = (mon->x == 0);
+        bool at_top = (mon->y == 0);
+        bool at_right = (mon->x + (int32_t) mon->w ==
+                (int32_t) screen_dim.w);
+        bool at_bottom = (mon->y + (int32_t) mon->h ==
+                (int32_t) screen_dim.h);
+
+        desktop->monitor_workareas[m] = s_desktop_compute_workarea(
+                desktop, mon->x, mon->y, mon->w, mon->h,
+                at_left, at_right, at_top, at_bottom,
+                config_desktop, systray_strut, ignore_struts);
+
+        LOGGER_TRACE("Desktop %u monitor %u workarea:" \
+                " %ux%u+%+d%+d",
+                desktop->id, m,
+                desktop->monitor_workareas[m].dim.w,
+                desktop->monitor_workareas[m].dim.h,
+                desktop->monitor_workareas[m].pos.x,
+                desktop->monitor_workareas[m].pos.y);
+    }
 }
 
 

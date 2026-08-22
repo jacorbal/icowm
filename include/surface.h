@@ -85,6 +85,22 @@ struct surface_properties_s {
 };
 
 
+#ifndef SURFACE_TD_DECLARED
+#define SURFACE_TD_DECLARED
+/**
+ * @brief Opaque-from-outside surface handle
+ *
+ * Declared here as a plain forward alias, guarded so a header that
+ * only ever needs @c surface_td through a pointer (@c desktop.h,
+ * already included above so a surface can own its own desktops) can
+ * declare the exact same alias on its own too, without this file's
+ * own full definition further down colliding with it as a duplicate
+ * @c typedef of the same name, illegal under strict C99 (unlike
+ * C11) even when, as here, both name the exact same underlying type.
+ */
+typedef struct surface_s surface_td;
+#endif
+
 /**
  * @brief Structure for a surface in an XCB environment
  *
@@ -98,7 +114,7 @@ struct surface_properties_s {
  * be refreshed, ensuring the surface information remains synchronized
  * with underlying changes in the XCB environment or user preferences.
  */
-typedef struct surface_s {
+struct surface_s {
     uint32_t id;                    /**< Screen unique identifier or index */
 
     xcb_connection_t *connection;   /**< Pointer to XCB connection */
@@ -152,7 +168,7 @@ typedef struct surface_s {
     bool strutless_maximize;
     bool showing_desktop;           /**< EWMH @c _NET_SHOWING_DESKTOP state */
     bool is_outdated;               /**< Flag if data needs to be updated */
-} surface_td;
+};
 
 
 /* Public interface */

@@ -557,7 +557,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
      * this function's own logic (skipping 'DESKTOP_STARTUP_ID' below)
      * needs no separate check of its own. */
     have_startup_id = (desktop->connection != NULL) &&
-        desktop->config_base->startup_notification.is_enabled &&
+        desktop->config->base.startup_notification.is_enabled &&
         cctl_sn_begin(desktop->connection, wm_get_surfaces(),
                 executable_path, startup_id, sizeof(startup_id));
 
