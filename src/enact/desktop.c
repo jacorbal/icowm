@@ -184,6 +184,29 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
     }
     client->desktop_id = target->id;
 
+    /* Remembered here as 'target''s own active client, the same
+     * memory 'surface_clients_show' (surface/actions/clients.c)
+     * reads back whenever this desktop next becomes visible, so a
+     * client just sent here is what greets a person arriving later,
+     * exactly as if it had always been the thing they cared about
+     * on this desktop, rather than something they have to go hunt
+     * for.  Left unset for a genuinely unfocusable client (the same
+     * gate 'surface_clients_show' itself re-checks on the read side
+     * regardless, gracefully falling through to 'client_focus_
+     * fallback''s own guess if this one somehow no longer qualifies
+     * by the time it is actually read), so it never becomes the
+     * remembered target only to be silently skipped over later.
+     * Deliberately unconditional otherwise, overwriting whatever
+     * 'target' already remembered even when it was not empty: a
+     * client someone just deliberately placed here is a reasonable
+     * thing to consider more relevant on arrival than whatever was
+     * last active before it showed up, matching how a freshly opened
+     * window already becomes a desktop's own new active client. */
+    if (client_is_focusable(client)) {
+        target->client_active_id = client->id;
+        target->focus_dirty = true;
+    }
+
     /* Published here, once, for every caller of this whole desktop-
      * move mechanism alike (the "Send to desktop" menu, the move-to-
      * desktop keybind, and any rule with its own 'apply.desktop'),

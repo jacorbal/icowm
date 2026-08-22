@@ -591,6 +591,19 @@ void enact_desktop_show(desktop_td *desktop, bool show);
 /**
  * @brief Send a client from one desktop to another
  *
+ * Never switches the surface's own currently viewed desktop, nor
+ * forces real keyboard focus onto @p client immediately: a menu- or
+ * keybind-driven "send to desktop" that does not also follow is a
+ * "file this away" gesture, not "take me there", matching Openbox's
+ * own equivalent (@c client_set_desktop, client.c).  @p client does
+ * become @p target's own remembered active client when focusable,
+ * though (see @a s_enact_desktop_client_send_one's own doc comment,
+ * enact/desktop.c, for the fuller reasoning), so it is what greets
+ * whoever visits @p target next, rather than requiring @p target to
+ * have already had some other active client remembered on it before
+ * this arrived, or for this to somehow already be the one currently
+ * viewed, to be found there.
+ *
  * @param desktop Desktop the client currently lives on
  * @param client  Client to send
  * @param target  Destination desktop
