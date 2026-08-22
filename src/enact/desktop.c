@@ -17,9 +17,8 @@
 
 /* System includes */
 #include <stdbool.h>
-#include <stddef.h>     /* NULL */
 #include <stdint.h>
-#include <stdlib.h>     /* free */
+#include <stdlib.h>     /* free, NULL */
 
 /* ADT includes */
 #include <adt/cdlist.h>
@@ -94,12 +93,12 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
  * @brief Send exactly this one client from one desktop to another,
  *        ignoring any transient family it may belong to
  *
- * Split out of what used to be the whole of @a enact_desktop_client_
- * send so that function can redirect to, and cascade across, a
- * transient family (see its own doc comment) while still sharing
- * this single client's worth of desktop-move plumbing with the
- * top-level, family-unaware call it makes on the family's own top
- * parent and on every other member in turn.
+ * Split out of what used to be the whole of
+ * @a enact_desktop_client_send so that function can redirect to, and
+ * cascade across, a transient family (see its own doc comment) while
+ * still sharing this single client's worth of desktop-move plumbing
+ * with the top-level, family-unaware call it makes on the family's own
+ * top parent and on every other member in turn.
  *
  * @param desktop Client's own current desktop; must be non-null
  * @param client  Client to move; must be non-null
@@ -245,7 +244,8 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
     }
 
     xcb_flush(desktop->connection);
-    enact_broadcast_client_event(client, IPC_EVENT_CLIENT_DESKTOP_CHANGED);
+    enact_broadcast_client_event(client,
+            IPC_EVENT_CLIENT_DESKTOP_CHANGED);
 }
 
 
@@ -268,6 +268,7 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
     desktop->background.use_root_pixmap = false;
     desktop->background.bg.color = color;
     desktop->is_outdated = true;
+
     /* Marking only 'desktop->is_outdated' is not enough on its own:
      * 'loop_update' only calls 'surface_render_all_desktops' at all
      * when this desktop's own surface is itself outdated (see
@@ -299,32 +300,34 @@ void enact_desktop_show(desktop_td *desktop, bool show)
     hi_handle_net_showing_desktop(surface, show);
     xcb_flush(surface->connection);
     s_broadcast_desktop_event(desktop,
-            (show) ? IPC_EVENT_DESKTOP_SHOWN : IPC_EVENT_DESKTOP_HIDDEN);
+            (show) ? IPC_EVENT_DESKTOP_SHOWN
+                   : IPC_EVENT_DESKTOP_HIDDEN);
 }
 
 
 /**
- * @brief Send the client to another desktop, taking its whole
- *        transient family with it
+ * @brief Send the client to another desktop, taking its whole transient
+ *        family with it
  *
  * The desktop-move counterpart to @a ccmd_client_iconify's own
- * transient-family cascade (see its own doc comment, cmds/client/
- * visibility.c, for the full reasoning): redirects to the family's
- * top-most ancestor first, moving it exactly as this function always
- * has, then moves every other member of that same family too, so a
- * "save changes?" prompt (or any other transient dialog) never ends
- * up left behind on the old desktop, stranded apart from the parent
- * window it belongs to and cannot meaningfully be used without.  A
- * client with no transient relatives at all is unaffected: its own
- * top parent is itself, and no sibling scan finds anything else to
- * move alongside it.
+ * transient-family cascade (see its own comment in
+ * @c cmds/client/visibility.c, for the full reasoning).
+ *
+ * Redirects to the family's top-most ancestor first, moving it exactly
+ * as this function always has, then moves every other member of that
+ * same family too, so a "save changes?" prompt (or any other transient
+ * dialog) never ends up left behind on the old desktop, stranded apart
+ * from the parent window it belongs to and cannot meaningfully be used
+ * without.  A client with no transient relatives at all is unaffected,
+ * for its own top parent is itself, and no sibling scan finds anything
+ * else to move alongside it.
  *
  * @param desktop Client's own current desktop
  * @param client  Window to move
  * @param target  Desktop to move it to
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's own desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       top parent's own desktop
  */
 void enact_desktop_client_send(const desktop_td *desktop,
         client_td *client, desktop_td *target)
@@ -510,8 +513,7 @@ void enact_desktop_cycle_clients_active(xcb_connection_t *connection,
         return;
     }
 
-    cycle_init(connection, surface, desktop, false, 1,
-            modifier, cfg);
+    cycle_init(connection, surface, desktop, false, 1, modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
 }
@@ -526,8 +528,7 @@ void enact_desktop_cycle_clients_prev(xcb_connection_t *connection,
         return;
     }
 
-    cycle_init(connection, surface, desktop, false, -1,
-            modifier, cfg);
+    cycle_init(connection, surface, desktop, false, -1, modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
 }
@@ -542,8 +543,7 @@ void enact_desktop_cycle_clients_icons_next(xcb_connection_t *connection,
         return;
     }
 
-    cycle_init(connection, surface, desktop, true, 1,
-            modifier, cfg);
+    cycle_init(connection, surface, desktop, true, 1, modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
 }
@@ -558,8 +558,7 @@ void enact_desktop_cycle_clients_icons_prev(xcb_connection_t *connection,
         return;
     }
 
-    cycle_init(connection, surface, desktop, true, -1,
-            modifier, cfg);
+    cycle_init(connection, surface, desktop, true, -1, modifier, cfg);
     cycle_draw(connection, cfg);
     xcb_flush(connection);
 }

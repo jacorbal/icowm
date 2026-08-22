@@ -274,16 +274,6 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_RELOAD_CONFIG),
             config->bindings.keyboard.wm.reload);
-    s_append_binding(text, sizeof(text), &offset,
-            _(STR_SHORTCUTS_QUIT),
-            config->bindings.keyboard.wm.quit);
-    s_append_binding(text, sizeof(text), &offset,
-            _(STR_SHORTCUTS_THIS_LIST),
-            config->bindings.keyboard.wm.shortcuts);
-    if (config->base.shutdown.enable_emergency_shortcut) {
-        s_append_line(text, sizeof(text), &offset, "%s",
-                _(STR_SHORTCUTS_EMERGENCY_EXIT));
-    }
     if (config->base.fortune.is_enabled) {
         s_append_binding(text, sizeof(text), &offset,
                 _(STR_SHORTCUTS_FORTUNE),
@@ -294,6 +284,16 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 _(STR_SHORTCUTS_SCRATCHPAD),
                 config->bindings.keyboard.wm.scratchpad);
     }
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_QUIT),
+            config->bindings.keyboard.wm.quit);
+    if (config->base.shutdown.enable_emergency_shortcut) {
+        s_append_line(text, sizeof(text), &offset, "%s",
+                _(STR_SHORTCUTS_EMERGENCY_EXIT));
+    }
+    s_append_binding(text, sizeof(text), &offset,
+            _(STR_SHORTCUTS_THIS_LIST),
+            config->bindings.keyboard.wm.shortcuts);
 
     s_append_blank_line(text, sizeof(text), &offset);
     s_append_line(text, sizeof(text), &offset, "[%s]",

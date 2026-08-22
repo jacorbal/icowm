@@ -1,4 +1,4 @@
-# BSDmakefile (for BSD Make / bmake)
+# BSDmakefile (for BSD Make / 'bmake')
 #
 # Project: IcoWM ('icowm'), Iconifying Window Manager
 # Author: J. A. Corbal (<jacorbal@gmail.com>)
@@ -8,26 +8,26 @@
 #
 # This file is licensed under the 'ISC License'.
 # Read the 'LICENSE' file in the root of this repository for details.
-#
-# This is a bmake (FreeBSD/NetBSD/OpenBSD 'make') port of 'GNUmakefile'.
-# GNU Make has no reason to ever read this file (it always prefers
-# 'GNUmakefile' when both exist), and this file has no '%' pattern
-# rules, '$(shell ...)', 'ifeq'/'ifneq', or any other GNU-only
-# construct: every one of those is replaced below with its bmake
-# equivalent ('.for' loops instead of pattern rules, '!=' instead of
-# '$(shell ...)', '.if'/'.elif'/'.endif' instead of 'ifeq'/'ifneq',
+
+# This is a 'bmake' (FreeBSD/NetBSD/OpenBSD 'make') port of
+# 'GNUmakefile'.  GNU Make has no reason to ever read this file (it
+# always prefers 'GNUmakefile' when both exist), and this file has no
+# '%' pattern rules, '$(shell ...)', 'ifeq'/'ifneq', or any other
+# GNU-only construct: every one of those is replaced below with its
+# bmake equivalent ('.for' loops instead of pattern rules, '!=' instead
+# of '$(shell ...)', '.if'/'.elif'/'.endif' instead of 'ifeq'/'ifneq',
 # and so on), verified against the FreeBSD/NetBSD/OpenBSD make(1)
 # manuals rather than guessed from GNU Make's own syntax.
 #
 # NOTE: 'tests/Makefile.mk', included by the '## Tests' section below,
 # is written for GNU Make (it shares this file's own GNU-Make-specific
-# variables directly, per its own comment in 'GNUmakefile').  It is
-# NOT converted here: testing under bmake is not this port's goal,
-# only building the project itself is, so that section includes it
-# only if present and skips it silently otherwise, rather than
-# erroring out; every other target in this file ('all', 'parallel',
-# 'ctags', the 'clean-*' targets, and so on) does not depend on it at
-# all, and is unaffected either way.
+# variables directly, per its own comment in 'GNUmakefile').  It is NOT
+# converted here: testing under 'bmake' is not this port's goal, only
+# building the project itself is, so that section includes it only if
+# present and skips it silently otherwise, rather than erroring out.
+# Every other target in this file ('all', 'parallel', 'ctags', the
+# 'clean-*' targets, and so on) does not depend on it at all, and is
+# unaffected either way.
 
 ## Project metadata
 PROJECT_NAME_PROG = icowm
@@ -149,9 +149,9 @@ CCFLAGS_BASE = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR} \
                ${CCDEPS}
 CCFLAGS = ${CCFLAGS_BASE} ${XCB_CFLAGS} ${FONT_CFLAGS} ${JSON_CFLAGS}
 # 'icowm-msg' (see 'tools/icowm-msg.c') is a small, deliberately
-# self-contained IPC client: it never touches X11 at all, so it has
-# no reason to pull in the XCB or font libraries the window manager
-# itself needs, only JSON for the wire protocol it speaks.
+# self-contained IPC client: it never touches X11 at all, so it has no
+# reason to pull in the XCB or font libraries the window manager itself
+# needs, only JSON for the wire protocol it speaks.
 MSG_CCFLAGS = ${CCFLAGS_BASE} ${JSON_CFLAGS}
 XCB_LFLAGS != ${PKGCONF} --libs \
         xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
@@ -193,11 +193,11 @@ CCFLAGS += -D RELEASE_DATE=\"${RELEASE_DATE}\"
 CCFLAGS += -D I18N_DOMAIN=\"default\"
 CCFLAGS += -D I18N_LOCALE_DIR=\"${.CURDIR}/locale\"
 
-# 'icowm-msg' only ever prints its own name, IcoWM's own short name,
-# its version, its license, its copyright line, and its author (see
-# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's
-# own '-v' output, not something a small IPC client has any reason
-# to report about itself.
+# 'icowm-msg' only ever prints its own name, IcoWM's own short name, its
+# version, its license, its copyright line, and its author (see
+# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's own
+# '-v' output, not something a small IPC client has any reason to report
+# about itself.
 MSG_CCFLAGS += -D PROJECT_NAME_SHORT=\"${PROJECT_NAME_SHORT}\"
 MSG_CCFLAGS += -D PROJECT_NAME_PROG=\"${PROJECT_NAME_PROG}\"
 MSG_CCFLAGS += -D PROJECT_VERSION=\"${PROJECT_VERSION}\"
@@ -225,14 +225,15 @@ DEBUG ?= 0
 CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
 .elif ${DEBUG} == "2"
 CCFLAGS += -DDEBUG -g3 -ggdb3 -O0 \
-           -fsanitize=address -fno-omit-frame-pointer
-LDFLAGS += -fsanitize=address -fPIE
+           -fsanitize=address -fno-omit-frame-pointer -fPIE
+LDFLAGS += -fsanitize=address -pie
 .if ${CC} == "gcc"
 CCFLAGS += -fanalyzer
 .endif
 .else
-CCFLAGS += -DNDEBUG -O${CCOPT} -flto
-LDFLAGS += -flto
+CCFLAGS += -DNDEBUG -O${CCOPT} -flto \
+           -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE
+LDFLAGS += -flto -Wl,-z,relro,-z,now -Wl,-z,noexecstack -pie
 .endif
 
 # Use 'make clean && make STRIP=1' to discard symbols from object files
@@ -244,16 +245,21 @@ LDFLAGS += -s
 # Use 'make COMPACT=1' to shrink several compile-time array capacities
 # throughout the codebase, for building specifically for a severely
 # memory-constrained target.
-#
-# Independent of restricted-memory mode ('icowm -M <mib>').
-# It does not turn that mode on by itself, and it does not supply
-# a default for '-M  <mib>' when that flag is left off at run time
-# either.
-#
-# See 'defs/compact.h' for a broader explanation.
+# Independent of restricted-memory mode ('icowm -M <mib>').  It does not
+# turn that mode on by itself, and it does not supply a default for '-M
+# <mib>' when that flag is left off at run time either.
 COMPACT ?=
 .if !empty(COMPACT)
 CCFLAGS += -D COMPACT
+.endif
+
+# Use 'make analyze' to run a static-analysis pass over the whole
+# project without touching the normal object files ('gcc')
+ANALYZE ?= 0
+.if ${ANALYZE} == "1"
+.if ${CC} == "gcc"
+CCFLAGS += -fanalyzer
+.endif
 .endif
 
 
@@ -268,20 +274,6 @@ DOXIGEN_FILE = Doxyfile
 ARGS ?=
 
 # Sources, objects and auto-generated dependencies
-#
-# bmake has no 'wildcard'/'patsubst' functions and no '%' pattern
-# rules at all (confirmed against the FreeBSD/NetBSD make(1) manuals:
-# pattern rules with '%' are explicitly GNU-Make-only syntax), so this
-# whole section is necessarily the most structurally different part
-# of this port.  A single recursive 'find' replaces the four stacked
-# 'wildcard' calls (and, as a side effect, now also picks up a source
-# file nested more than four directories deep, which the original
-# would have silently missed); the object list is derived with the
-# ':S' substitution modifier instead of 'patsubst'; and the actual
-# per-file compile rules, which 'GNUmakefile' expresses as two pattern
-# rules, are generated explicitly below with a '.for' loop instead,
-# bmake's own, officially-recommended replacement for exactly this
-# case (there is no pattern-rule equivalent to fall back on).
 SRCS != find ${S_DIR} -name '*.c' | sort
 OBJS = ${SRCS:S,${S_DIR}/,${O_DIR}/,:.c=.o}
 DEPS = ${OBJS:.o=.d}
@@ -347,7 +339,7 @@ ${src:S,${T_DIR}/,${O_DIR}/tools/,:.c=.o}: ${src}
 ## Tests
 #
 # See 'tests/Makefile.mk' for every test-related rule and variable.
-# UNLIKE THE REST OF THIS FILE, that one is NOT ported to bmake here:
+# UNLIKE THE REST OF THIS FILE, that one is NOT ported to 'bmake' here:
 # it is written for GNU Make throughout (its own comment in
 # 'GNUmakefile' says it shares this file's variables directly), and
 # testing under bmake is not this port's goal, only building the
@@ -399,6 +391,17 @@ doxygen:
 	@[ -f '${DOXIGEN_FILE}' ] && doxygen || \
 		echo "Error: '${DOXIGEN_FILE}' not found" >&2
 
+analyze:
+.if ${CC} == "gcc"
+	${MAKE} ANALYZE=1 all
+.else
+	@command -v scan-build >/dev/null 2>&1 || \
+		{ echo "Error: 'scan-build' not found (part of the" \
+		       "clang-tools/llvm package); required to analyze" \
+		       "under clang" >&2; exit 1; }
+	scan-build --use-cc=${CC} ${MAKE} all
+.endif
+
 help:
 	@echo "Command:"
 	@echo "  make all               Build project"
@@ -407,6 +410,7 @@ help:
 	@echo "  make clean             Clean binary and object files"
 	@echo "  make ctags             Generate tag files for source"
 	@echo "  make doxygen           Create Doxygen documentation"
+	@echo "  make analyze           Run a static-analysis pass (if 'gcc")
 	@echo "  make hard              Clean and build"
 	@echo "  make run               Run binary (if exists)"
 	@echo "  make run ARGS=<args>   Run with arguments (if binary exists)"
@@ -430,7 +434,7 @@ help:
 # GNU Make's own '-include' silently skips a missing file; bmake's
 # '.include' has no such silent form of its own that could be
 # confirmed portable across every BSD make variant, so the same
-# "skip whichever .d files do not exist yet" behavior (true on a
+# "skip whichever '.d' files do not exist yet" behavior (true on a
 # clean build, before any object has ever been compiled) is spelled
 # out explicitly here instead, using only 'exists()' and '.include',
 # both already confirmed above.
@@ -447,4 +451,4 @@ help:
 
 ## Phony targets
 .PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build run \
-        hard hard-run doxygen ccflags ldflags parallel help
+        hard hard-run doxygen analyze ccflags ldflags parallel help

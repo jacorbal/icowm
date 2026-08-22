@@ -1,4 +1,4 @@
-# Makefile (for GNU Make)
+# Makefile (for GNU Make / 'gmake')
 #
 # Project: IcoWM ('icowm'), Iconifying Window Manager
 # Author: J. A. Corbal (<jacorbal@gmail.com>)
@@ -155,14 +155,15 @@ ifeq ($(DEBUG), 1)
     CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
 else ifeq ($(DEBUG), 2)
     CCFLAGS += -DDEBUG -g3 -ggdb3 -O0 \
-               -fsanitize=address -fno-omit-frame-pointer
-    LDFLAGS += -fsanitize=address -fPIE
+               -fsanitize=address -fno-omit-frame-pointer -fPIE
+    LDFLAGS += -fsanitize=address -pie
     ifeq ($(CC), gcc)
         CCFLAGS += -fanalyzer
     endif
 else
-    CCFLAGS += -DNDEBUG -O$(CCOPT) -flto
-    LDFLAGS += -flto
+    CCFLAGS += -DNDEBUG -O$(CCOPT) -flto \
+               -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE
+    LDFLAGS += -flto -Wl,-z,relro,-z,now -Wl,-z,noexecstack -pie
 endif
 
 # Use 'make clean && make STRIP=1' to discard symbols from object files
@@ -174,16 +175,22 @@ endif
 # Use 'make COMPACT=1' to shrink several compile-time array capacities
 # throughout the codebase, for building specifically for a severely
 # memory-constrained target.
-#
 # Independent of restricted-memory mode ('icowm -M <mib>').
 # It does not turn that mode on by itself, and it does not supply
 # a default for '-M  <mib>' when that flag is left off at run time
 # either.
-#
-# See 'defs/compact.h' for a broader explanation.
 COMPACT ?=
 ifneq ($(COMPACT),)
 CCFLAGS += -D COMPACT
+endif
+
+# Use 'make analyze' to run a static-analysis pass over the whole
+# project without touching the normal object files ('gcc')
+ANALYZE ?= 0
+ifeq ($(ANALYZE), 1)
+ifeq ($(CC), gcc)
+CCFLAGS += -fanalyzer
+endif
 endif
 
 
@@ -302,6 +309,17 @@ doxygen:
 	@[ -f '$(DOXIGEN_FILE)' ] && doxygen || \
 		echo "Error: '$(DOXIGEN_FILE)' not found" >&2
 
+analyze:
+ifeq ($(CC), gcc)
+	$(MAKE) ANALYZE=1 all
+else
+	@command -v scan-build >/dev/null 2>&1 || \
+		{ echo "Error: 'scan-build' not found (part of the" \
+		       "clang-tools/llvm package); required to analyze" \
+		       "under clang" >&2; exit 1; }
+	scan-build --use-cc=$(CC) $(MAKE) all
+endif
+
 help:
 	@echo "Command:"
 	@echo "  make all               Build project"
@@ -310,6 +328,7 @@ help:
 	@echo "  make clean             Clean binary and object files"
 	@echo "  make ctags             Generate tag files for source"
 	@echo "  make doxygen           Create Doxygen documentation"
+	@echo "  make analyze           Run a static-analysis pass (if 'gcc')"
 	@echo "  make hard              Clean and build"
 	@echo "  make run               Run binary (if exists)"
 	@echo "  make run ARGS=<args>   Run with arguments (if binary exists)"
@@ -334,4 +353,4 @@ help:
 
 ## Phony targets
 .PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build run \
-        hard hard-run doxygen ccflags ldflags parallel help
+        hard hard-run doxygen analyze ccflags ldflags parallel help

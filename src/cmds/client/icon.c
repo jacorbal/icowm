@@ -21,7 +21,6 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
-#include <xcb/xcb_ewmh.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -70,10 +69,10 @@
  * Checked against @a client_is_iconified rather than @c is_icon_mapped.
  * The latter only reflects whether a desktop's own icons are currently
  * mapped on screen right now (@c false for every client on a desktop
- * that is not the one currently shown, @a surface_clients_hide,
- * surface/actions.c, clears it precisely for that reason), so relying
- * on it here would report every slot on a non-current desktop as free
- * regardless of how many icons already actually occupy it.
+ * that is not the one currently shown, @a surface_clients_hide, in
+ * @c surface/actions.c, clears it precisely for that reason), so
+ * relying on it here would report every slot on a non-current desktop
+ * as free regardless of how many icons already actually occupy it.
  *
  * @param client   Client about to be iconified; its own @p icon_window
  *                 may still be non-zero from a previous iconify, in
@@ -182,7 +181,7 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
 
 /* Create the client's icon window if it does not exist yet, or
  * reposition the existing one at its saved coordinates; see
- * cmds/client/internal.h for the full doc comment */
+ * 'cmds/client/internal.h' for the full comment */
 void ccmd_client_ensure_icon_window(client_td *client,
         uint16_t icon_h_out)
 {
@@ -213,19 +212,18 @@ void ccmd_client_ensure_icon_window(client_td *client,
             /* dimensions updated */
         }
 
-        /* 'monitor' above is deliberately raw (see
-         * 'ccmd_client_monitor''s comment), the same as
-         * 'desktop_update_workarea' (in 'desktop.c') starts from before
-         * folding in 'desktops.margins' and the systray's own
-         * reservation for windows; applied here the same way, per
-         * monitor rather than once across the whole surface: top/left
-         * shift this monitor's own placement origin inward, and
-         * right/bottom shrink the available area, so the icon grid
-         * never lands within a margin a window's own maximize and
-         * placement already stay clear of, nor under the systray's own
-         * dock window (which would otherwise sit right on top of
-         * a restored icon left behind there, blocking that dock
-         * window's own repaint). */
+        /* 'monitor' above is deliberately raw (see comment of
+         * 'ccmd_client_monitor'), the same as 'desktop_update_workarea'
+         * (in 'desktop.c') starts from before folding in
+         * 'desktops.margins' and the systray's own reservation for
+         * windows; applied here the same way, per monitor rather than
+         * once across the whole surface: top/left shift this monitor's
+         * own placement origin inward, and right/bottom shrink the
+         * available area, so the icon grid never lands within a margin
+         * a window's own maximize and placement already stay clear of,
+         * nor under the systray's own dock window (which would
+         * otherwise sit right on top of a restored icon left behind
+         * there, blocking that dock window's own repaint). */
         if (surface != NULL) {
             const struct strut_partial_s *tray_strut =
                 systray_get_reserved_strut(surface);
