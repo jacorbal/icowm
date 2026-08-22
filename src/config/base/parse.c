@@ -112,6 +112,50 @@ enum config_menu_position_e
 }
 
 
+/* Parse desktop-grid layout orientation text into configuration
+ * enumeration */
+enum config_desktop_orientation_e
+    ci_config_parse_desktop_orientation(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_DESKTOP_ORIENTATION_HORIZONTAL;
+    }
+
+    if (safe_strcmp(value_norm, "vertical") == 0) {
+        return CONFIG_DESKTOP_ORIENTATION_VERTICAL;
+    }
+
+    return CONFIG_DESKTOP_ORIENTATION_HORIZONTAL;
+}
+
+
+/* Parse desktop-grid layout starting-corner text into configuration
+ * enumeration */
+enum config_desktop_corner_e
+    ci_config_parse_desktop_corner(const char *value)
+{
+    char value_norm[CONFIG_MAX_LENGTH_OPTION];
+
+    if (!json_field_normalize(value, value_norm, sizeof(value_norm))) {
+        return CONFIG_DESKTOP_CORNER_TOP_LEFT;
+    }
+
+    if (safe_strcmp(value_norm, "top-right") == 0) {
+        return CONFIG_DESKTOP_CORNER_TOP_RIGHT;
+    }
+    if (safe_strcmp(value_norm, "bottom-left") == 0) {
+        return CONFIG_DESKTOP_CORNER_BOTTOM_LEFT;
+    }
+    if (safe_strcmp(value_norm, "bottom-right") == 0) {
+        return CONFIG_DESKTOP_CORNER_BOTTOM_RIGHT;
+    }
+
+    return CONFIG_DESKTOP_CORNER_TOP_LEFT;
+}
+
+
 /* Parse one scratchpad dimension from a fixed pixel count or "max" */
 void ci_config_parse_scratchpad_size(const cJSON *item,
         struct config_scratchpad_size_s *out)

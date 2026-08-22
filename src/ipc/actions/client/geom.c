@@ -45,11 +45,32 @@ static void s_center(const wm_td *wm, client_td *client, surface_td *surface,
     enact_client_center(client);
 }
 
-static void s_move_next_monitor(const wm_td *wm, client_td *client,
+static void s_move_monitor_north(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
-    enact_client_move_next_monitor(client);
+    enact_client_move_monitor_north(client);
+}
+
+static void s_move_monitor_south(const wm_td *wm, client_td *client,
+        surface_td *surface, desktop_td *desktop)
+{
+    (void) wm; (void) surface; (void) desktop;
+    enact_client_move_monitor_south(client);
+}
+
+static void s_move_monitor_east(const wm_td *wm, client_td *client,
+        surface_td *surface, desktop_td *desktop)
+{
+    (void) wm; (void) surface; (void) desktop;
+    enact_client_move_monitor_east(client);
+}
+
+static void s_move_monitor_west(const wm_td *wm, client_td *client,
+        surface_td *surface, desktop_td *desktop)
+{
+    (void) wm; (void) surface; (void) desktop;
+    enact_client_move_monitor_west(client);
 }
 
 static void s_maximize_horz(const wm_td *wm, client_td *client,
@@ -78,9 +99,28 @@ cJSON *ipc_action_center_client(const wm_td *wm, const cJSON *args)
     return ipc_dispatch_client_action(wm, args, s_center);
 }
 
-cJSON *ipc_action_move_client_to_next_monitor(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_move_client_to_monitor_north(const wm_td *wm,
+        const cJSON *args)
 {
-    return ipc_dispatch_client_action(wm, args, s_move_next_monitor);
+    return ipc_dispatch_client_action(wm, args, s_move_monitor_north);
+}
+
+cJSON *ipc_action_move_client_to_monitor_south(const wm_td *wm,
+        const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_move_monitor_south);
+}
+
+cJSON *ipc_action_move_client_to_monitor_east(const wm_td *wm,
+        const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_move_monitor_east);
+}
+
+cJSON *ipc_action_move_client_to_monitor_west(const wm_td *wm,
+        const cJSON *args)
+{
+    return ipc_dispatch_client_action(wm, args, s_move_monitor_west);
 }
 
 cJSON *ipc_action_maximize_client_horz(const wm_td *wm, const cJSON *args)

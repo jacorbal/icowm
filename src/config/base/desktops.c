@@ -116,6 +116,131 @@ static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
 
 
 /**
+ * @brief Fall back one screen's own @p desktop_layout to a single
+ *        row, one column per desktop
+ *
+ * The exact same reading order the flat desktop list itself already
+ * had before layout existed at all, shared by every "layout absent"
+ * or "layout invalid" case in @a s_config_load_desktop_layout below,
+ * so both log the same way and never drift apart from each other by
+ * accident.
+ *
+ * @param config_base Destination structure
+ * @param screen_idx  Index of the screen whose layout to fall back
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_config_desktop_layout_fallback(
+        struct config_base_s *config_base, uint32_t screen_idx)
+{
+    struct config_desktop_layout_s *dest =
+        &config_base->screens[screen_idx].desktop_layout;
+
+    dest->orientation = CONFIG_DESKTOP_ORIENTATION_HORIZONTAL;
+    dest->corner = CONFIG_DESKTOP_CORNER_TOP_LEFT;
+    dest->rows = 1u;
+    dest->columns = config_base->screens[screen_idx].desktop_count;
+}
+
+
+/**
+ * @brief Load and validate one screen's own @p layout object within
+ *        the per-screen (nested) @p topology.screens.desktops shape
+ *
+ * Falls back to a single row, one column per desktop (see @a
+ * s_config_desktop_layout_fallback) whenever @c layout is absent
+ * entirely, or present but invalid: @c rows or @c columns is
+ * explicitly @c 0, either exceeds @c CONFIG_MAX_DESKTOPS (checked
+ * before the multiplication just below, not after, so that
+ * multiplication itself can never overflow), or @c rows @c *
+ * @c columns falls short of this screen's own, already-finalized
+ * @p desktop_count.  @c rows, @c columns, @c orientation, and
+ * @c corner each default independently, exactly the same way,
+ * whenever @c layout is present but one or more of the four is
+ * itself missing: @c rows and @c columns to @c 1 each, @c
+ * orientation to @c horizontal, @c corner to @c top-left, the same
+ * as what @a s_config_desktop_layout_fallback also falls back to as
+ * a whole.  Naming only @c columns (@c 5, say) therefore means
+ * exactly what it reads as on its own, one row of 5, not a rejected
+ * or otherwise incomplete configuration; the same holds naming only
+ * @c rows.  @c rows @c * @c columns exceeding @p desktop_count is
+ * accepted, not rejected: a grid with one or
+ * more trailing, desktop-less cells (5 desktops deliberately laid
+ * out 2x3, say) is a legitimate choice, someone's own way of
+ * leaving room to add one more later without reshaping the whole
+ * grid; north/south/east/west navigation (@a surface_desktop_north
+ * and its three siblings, surface/desktops.c) steps past a cell
+ * like that on its own, unlike Openbox's own equivalent (@c
+ * screen_find_desktop, screen.c), whose own single, crude nudge
+ * forward on landing in a gap does not reliably clear more than one
+ * gap cell in a row.  Only a configuration with too few cells to
+ * ever hold every desktop at all, no matter how they are arranged,
+ * is what actually gets rejected here.
+ *
+ * @param desktop_item One entry of 'topology.screens.desktops',
+ *                     describing screen @p screen_idx; this screen's
+ *                     own @c desktop_count must already be finalized
+ *                     in @p config_base before this call
+ * @param screen_idx   Index of the screen this entry describes
+ * @param config_base  Destination structure
+ * @param filename     Path the JSON was read from, for log messages
+ *                     only
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_config_load_desktop_layout(cJSON *desktop_item,
+        uint32_t screen_idx, struct config_base_s *config_base,
+        const char *filename)
+{
+    cJSON *layout;
+    struct config_desktop_layout_s *dest =
+        &config_base->screens[screen_idx].desktop_layout;
+    uint32_t desktop_count =
+        config_base->screens[screen_idx].desktop_count;
+    char orientation_str[CONFIG_MAX_LENGTH_OPTION];
+    char corner_str[CONFIG_MAX_LENGTH_OPTION];
+    uint32_t rows = 1u;
+    uint32_t columns = 1u;
+    bool has_orientation;
+    bool has_corner;
+
+    layout = cJSON_GetObjectItem(desktop_item, "layout");
+    if (layout == NULL) {
+        s_config_desktop_layout_fallback(config_base, screen_idx);
+        return;
+    }
+
+    has_orientation = json_load_string(layout, "orientation",
+            orientation_str, sizeof(orientation_str)) == 0;
+    has_corner = json_load_string(layout, "corner",
+            corner_str, sizeof(corner_str)) == 0;
+    (void) json_load_uint(layout, "rows", &rows);
+    (void) json_load_uint(layout, "columns", &columns);
+
+    if (rows == 0u || columns == 0u ||
+            rows > (uint32_t) CONFIG_MAX_DESKTOPS ||
+            columns > (uint32_t) CONFIG_MAX_DESKTOPS ||
+            rows * columns < desktop_count) {
+        LOGGER_WARNING("%s: topology.screens.desktops[%u].layout" \
+                " (%u rows, %u columns) cannot hold this screen's" \
+                " own %u desktop(s); falling back to a single row",
+                filename, screen_idx, rows, columns, desktop_count);
+        s_config_desktop_layout_fallback(config_base, screen_idx);
+        return;
+    }
+
+    dest->orientation = has_orientation
+        ? ci_config_parse_desktop_orientation(orientation_str)
+        : CONFIG_DESKTOP_ORIENTATION_HORIZONTAL;
+    dest->corner = has_corner
+        ? ci_config_parse_desktop_corner(corner_str)
+        : CONFIG_DESKTOP_CORNER_TOP_LEFT;
+    dest->rows = rows;
+    dest->columns = columns;
+}
+
+
+/**
  * @brief Detect which of the two accepted @p topology.screens.desktops
  *        shapes a JSON array is using, looking at its first entry alone
  *
@@ -233,6 +358,13 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
         config_base->screens[screen_idx].desktop_count =
             (uint32_t) CONFIG_MAX_DESKTOPS;
     }
+
+    /* This screen's own 'desktop_count' is fully finalized as of
+     * right here, the exact precondition 's_config_load_desktop_
+     * layout' itself depends on for its own 'rows * columns'
+     * validation just below. */
+    s_config_load_desktop_layout(desktop_item, screen_idx, config_base,
+            filename);
 
     json_load_uint(desktop_item, "inaugural",
             &config_base->screens[screen_idx].desktop_inaugural);

@@ -907,12 +907,46 @@ static void s_search_draw_row(xcb_connection_t *connection,
             if (r->client != NULL && client_is_pinned(r->client)) {
                 snprintf(desk_buf, sizeof(desk_buf), "%s",
                         _(STR_SEARCH_ALL_DESKTOPS));
-            } else if (r->desktop->name[0] != '\0') {
-                snprintf(desk_buf, sizeof(desk_buf), "[%u] -- %s",
-                        r->desktop->id, r->desktop->name);
             } else {
-                snprintf(desk_buf, sizeof(desk_buf), "[%u]",
-                        r->desktop->id);
+                uint32_t row = 0u;
+                uint32_t col = 0u;
+                bool has_row_col = surface_desktop_row_col(
+                        s_search.surface, r->desktop->id, &row, &col);
+                /* Only worth showing once the grid is genuinely more
+                 * than the one row a desktop's own ID already fully
+                 * describes on its own; see 'surface_desktop_row_col'
+                 * itself (surface.h) for what "row 0" always means on
+                 * a linear (or unconfigured) layout, the exact case
+                 * this excludes here. */
+                bool show_row_col = has_row_col &&
+                    s_search.surface->config != NULL &&
+                    s_search.surface->id <
+                        (uint32_t) CONFIG_MAX_SCREENS &&
+                    s_search.surface->config->base.
+                        screens[s_search.surface->id].
+                        desktop_layout.rows > 1u;
+
+                if (r->desktop->name[0] != '\0') {
+                    if (show_row_col) {
+                        snprintf(desk_buf, sizeof(desk_buf),
+                                "[%u (%u,%u)] -- %s",
+                                r->desktop->id, row, col,
+                                r->desktop->name);
+                    } else {
+                        snprintf(desk_buf, sizeof(desk_buf),
+                                "[%u] -- %s",
+                                r->desktop->id, r->desktop->name);
+                    }
+                } else {
+                    if (show_row_col) {
+                        snprintf(desk_buf, sizeof(desk_buf),
+                                "[%u (%u,%u)]",
+                                r->desktop->id, row, col);
+                    } else {
+                        snprintf(desk_buf, sizeof(desk_buf), "[%u]",
+                                r->desktop->id);
+                    }
+                }
             }
             menu_draw_truncate(desk_buf,
                     (uint16_t) (safe_right - desk_x));

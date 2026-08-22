@@ -97,18 +97,38 @@ void enact_surface_desktop_switch(surface_td *surface,
 }
 
 
-/* Switch the surface to the next desktop, in cyclic order */
-void enact_surface_desktop_switch_next(surface_td *surface)
+/* Switch the surface to the desktop north of the current one, in
+ * cyclic order */
+void enact_surface_desktop_switch_north(surface_td *surface)
 {
-    scmd_surface_desktop_switch_next(surface);
+    scmd_surface_desktop_switch_north(surface);
     s_broadcast_desktop_switched(surface);
 }
 
 
-/* Switch the surface to the previous desktop, in cyclic order */
-void enact_surface_desktop_switch_prev(surface_td *surface)
+/* Switch the surface to the desktop south of the current one, in
+ * cyclic order */
+void enact_surface_desktop_switch_south(surface_td *surface)
 {
-    scmd_surface_desktop_switch_prev(surface);
+    scmd_surface_desktop_switch_south(surface);
+    s_broadcast_desktop_switched(surface);
+}
+
+
+/* Switch the surface to the desktop east of the current one, in
+ * cyclic order */
+void enact_surface_desktop_switch_east(surface_td *surface)
+{
+    scmd_surface_desktop_switch_east(surface);
+    s_broadcast_desktop_switched(surface);
+}
+
+
+/* Switch the surface to the desktop west of the current one, in
+ * cyclic order */
+void enact_surface_desktop_switch_west(surface_td *surface)
+{
+    scmd_surface_desktop_switch_west(surface);
     s_broadcast_desktop_switched(surface);
 }
 

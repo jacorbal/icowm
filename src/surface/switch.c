@@ -301,7 +301,7 @@ int surface_action_desktop_remove(surface_td *surface)
 
     /* If the desktop to be removed is the current one, switch first */
     if (was_current) {
-        surface_desktop_select_prev(surface, false);
+        surface_desktop_select_west(surface, false);
         surface_clients_show(surface, surface->desktop_cur);
     } else if (fallback->id == surface->desktop_cur) {
         /* The removed desktop was not the one on screen, but its own

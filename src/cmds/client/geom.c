@@ -22,6 +22,7 @@
 #include <xcb/sync.h>
 
 /* Type includes */
+#include <types/direction.h>
 #include <types/pair.h>
 
 /* Default initial values */
@@ -268,12 +269,13 @@ void ccmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
 }
 
 
-/* Move the client to the next monitor on its own surface */
-void ccmd_client_move_to_next_monitor(client_td *client)
+/* Move the client to the monitor north of the current one on its
+ * own surface */
+void ccmd_client_move_to_monitor_north(client_td *client)
 {
     surface_td *surface = NULL;
     monitor_td cur_monitor;
-    uint32_t cur_idx = 0u;
+    monitor_td target_monitor;
 
     if (client == NULL) {
         return;
@@ -284,25 +286,31 @@ void ccmd_client_move_to_next_monitor(client_td *client)
         return;
     }
 
-    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
-        if (surface->monitors[i].x == cur_monitor.x &&
-                surface->monitors[i].y == cur_monitor.y) {
-            cur_idx = i;
-            break;
-        }
+    target_monitor = surface_monitor_direction(surface, cur_monitor,
+            COMPASS_NORTH);
+    if (target_monitor.x == cur_monitor.x &&
+            target_monitor.y == cur_monitor.y) {
+        /* No monitor to the north; nothing to move to */
+        return;
     }
 
-    ccmd_client_move_to_monitor(client,
-            (cur_idx + 1u) % surface->monitor_count);
+    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
+        if (surface->monitors[i].x == target_monitor.x &&
+                surface->monitors[i].y == target_monitor.y) {
+            ccmd_client_move_to_monitor(client, i);
+            return;
+        }
+    }
 }
 
 
-/* Move the client to the previous monitor on its own surface */
-void ccmd_client_move_to_prev_monitor(client_td *client)
+/* Move the client to the monitor south of the current one on its
+ * own surface */
+void ccmd_client_move_to_monitor_south(client_td *client)
 {
     surface_td *surface = NULL;
     monitor_td cur_monitor;
-    uint32_t cur_idx = 0u;
+    monitor_td target_monitor;
 
     if (client == NULL) {
         return;
@@ -313,17 +321,91 @@ void ccmd_client_move_to_prev_monitor(client_td *client)
         return;
     }
 
-    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
-        if (surface->monitors[i].x == cur_monitor.x &&
-                surface->monitors[i].y == cur_monitor.y) {
-            cur_idx = i;
-            break;
-        }
+    target_monitor = surface_monitor_direction(surface, cur_monitor,
+            COMPASS_SOUTH);
+    if (target_monitor.x == cur_monitor.x &&
+            target_monitor.y == cur_monitor.y) {
+        /* No monitor to the south; nothing to move to */
+        return;
     }
 
-    ccmd_client_move_to_monitor(client,
-            (cur_idx + surface->monitor_count - 1u) %
-                surface->monitor_count);
+    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
+        if (surface->monitors[i].x == target_monitor.x &&
+                surface->monitors[i].y == target_monitor.y) {
+            ccmd_client_move_to_monitor(client, i);
+            return;
+        }
+    }
+}
+
+
+/* Move the client to the monitor east of the current one on its
+ * own surface */
+void ccmd_client_move_to_monitor_east(client_td *client)
+{
+    surface_td *surface = NULL;
+    monitor_td cur_monitor;
+    monitor_td target_monitor;
+
+    if (client == NULL) {
+        return;
+    }
+
+    if (!ccmd_client_monitor(client, &surface, &cur_monitor) ||
+            surface == NULL || surface->monitor_count <= 1u) {
+        return;
+    }
+
+    target_monitor = surface_monitor_direction(surface, cur_monitor,
+            COMPASS_EAST);
+    if (target_monitor.x == cur_monitor.x &&
+            target_monitor.y == cur_monitor.y) {
+        /* No monitor to the east; nothing to move to */
+        return;
+    }
+
+    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
+        if (surface->monitors[i].x == target_monitor.x &&
+                surface->monitors[i].y == target_monitor.y) {
+            ccmd_client_move_to_monitor(client, i);
+            return;
+        }
+    }
+}
+
+
+/* Move the client to the monitor west of the current one on its
+ * own surface */
+void ccmd_client_move_to_monitor_west(client_td *client)
+{
+    surface_td *surface = NULL;
+    monitor_td cur_monitor;
+    monitor_td target_monitor;
+
+    if (client == NULL) {
+        return;
+    }
+
+    if (!ccmd_client_monitor(client, &surface, &cur_monitor) ||
+            surface == NULL || surface->monitor_count <= 1u) {
+        return;
+    }
+
+    target_monitor = surface_monitor_direction(surface, cur_monitor,
+            COMPASS_WEST);
+    if (target_monitor.x == cur_monitor.x &&
+            target_monitor.y == cur_monitor.y) {
+        /* No monitor to the west; nothing to move to */
+        return;
+    }
+
+    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
+        if (surface->monitors[i].x == target_monitor.x &&
+                surface->monitors[i].y == target_monitor.y) {
+            ccmd_client_move_to_monitor(client, i);
+            return;
+        }
+    }
 }
 
 

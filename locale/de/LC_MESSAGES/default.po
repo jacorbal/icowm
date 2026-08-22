@@ -287,21 +287,37 @@ msgstr "Anordnen"
 msgid "Info"
 msgstr "Info"
 
-#: include/defs/uistr.h:161;
-msgid "Previous monitor"
-msgstr "Vorheriger Monitor"
+#: include/defs/uistr.h:169;
+msgid "Send to monitor to the north"
+msgstr "An den Monitor im Norden senden"
 
-#: include/defs/uistr.h:162;
-msgid "Next monitor"
-msgstr "Nächster Monitor"
+#: include/defs/uistr.h:170;
+msgid "Send to monitor to the south"
+msgstr "An den Monitor im Süden senden"
 
-#: include/defs/uistr.h:163;
-msgid "Send to previous desktop"
-msgstr "An vorherige Arbeitsfläche senden"
+#: include/defs/uistr.h:171;
+msgid "Send to monitor to the east"
+msgstr "An den Monitor im Osten senden"
 
-#: include/defs/uistr.h:164;
-msgid "Send to next desktop"
-msgstr "An nächste Arbeitsfläche senden"
+#: include/defs/uistr.h:172;
+msgid "Send to monitor to the west"
+msgstr "An den Monitor im Westen senden"
+
+#: include/defs/uistr.h:171;
+msgid "Send to desktop to the north"
+msgstr "An die Arbeitsfläche im Norden senden"
+
+#: include/defs/uistr.h:172;
+msgid "Send to desktop to the south"
+msgstr "An die Arbeitsfläche im Süden senden"
+
+#: include/defs/uistr.h:173;
+msgid "Send to desktop to the east"
+msgstr "An die Arbeitsfläche im Osten senden"
+
+#: include/defs/uistr.h:174;
+msgid "Send to desktop to the west"
+msgstr "An die Arbeitsfläche im Westen senden"
 
 #: include/defs/uistr.h:162;
 msgid "Pin"

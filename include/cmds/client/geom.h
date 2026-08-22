@@ -106,36 +106,81 @@ void ccmd_client_move_to_monitor(client_td *client,
         uint32_t monitor_index);
 
 /**
- * @brief Move the client to the next monitor on its own surface
+ * @brief Move the client to the monitor north of the current one on
+ *        its own surface
  *
- * Resolves @p client's current monitor, then calls
- * @a ccmd_client_move_to_monitor with the next index in the surface's
- * monitor list, wrapping back to @c 0 after the last one.
+ * Resolves @p client's current monitor, then calls @a surface_
+ * monitor_direction (surface.h) to find whichever one of the
+ * surface's own monitors genuinely lies to the north of it, by real
+ * physical position rather than RandR's own arbitrary detection
+ * order the way the array-index-based @c next/@c prev pair this
+ * replaced did.  Deliberately never wraps around to the southmost
+ * monitor once already at the northmost, the same as @c windows.
+ * desktop's own move-to-desktop pair (@a enact_client_send_to_
+ * desktop_north and its three siblings, enact.h) already does not,
+ * by default, without @c desktops.wrap-at-bounds enabled: unlike
+ * wrapping a definite, ordered list (a desktop's own circular list,
+ * or the array order this pair used to walk before it had any real
+ * spatial meaning), wrapping a genuinely 2-D physical arrangement
+ * has no one obviously correct meaning to begin with (does "east,
+ * wrapped" mean the westmost monitor overall, or the westmost one
+ * still on the same row?), so no attempt is made to invent one; a
+ * monitor list, unlike a desktop one, also has no equivalent of
+ * @c wrap-at-bounds to make that choice configurable in the first
+ * place.
  *
  * @param client Window to move
  *
- * @note A no-op on a surface with one monitor or none
+ * @note A no-op on a surface with one monitor or none, or when no
+ *       monitor lies to the north of @p client's own current one
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
-void ccmd_client_move_to_next_monitor(client_td *client);
+void ccmd_client_move_to_monitor_north(client_td *client);
 
 /**
- * @brief Move the client to the previous monitor on its own surface
+ * @brief Move the client to the monitor south of the current one on
+ *        its own surface
  *
- * Resolves @p client's current monitor, then calls
- * @a ccmd_client_move_to_monitor with the previous index in the
- * surface's monitor list, wrapping back to the last one before
- * index @c 0.  Unlike @c windows.desktop's own move-to-desktop pair
- * (@c enact_client_send_to_desktop_prev/@c _next, enact.h), this always
- * wraps: a monitor list has no equivalent of that pair's own @c
- * desktops.wrap-at-bounds setting to disable it.
+ * See @a ccmd_client_move_to_monitor_north's own doc comment for the
+ * fuller reasoning, including why this never wraps around either.
  *
  * @param client Window to move
  *
- * @note A no-op on a surface with one monitor or none
+ * @note A no-op on a surface with one monitor or none, or when no
+ *       monitor lies to the south of @p client's own current one
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
-void ccmd_client_move_to_prev_monitor(client_td *client);
+void ccmd_client_move_to_monitor_south(client_td *client);
+
+/**
+ * @brief Move the client to the monitor east of the current one on
+ *        its own surface
+ *
+ * See @a ccmd_client_move_to_monitor_north's own doc comment for the
+ * fuller reasoning, including why this never wraps around either.
+ *
+ * @param client Window to move
+ *
+ * @note A no-op on a surface with one monitor or none, or when no
+ *       monitor lies to the east of @p client's own current one
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+void ccmd_client_move_to_monitor_east(client_td *client);
+
+/**
+ * @brief Move the client to the monitor west of the current one on
+ *        its own surface
+ *
+ * See @a ccmd_client_move_to_monitor_north's own doc comment for the
+ * fuller reasoning, including why this never wraps around either.
+ *
+ * @param client Window to move
+ *
+ * @note A no-op on a surface with one monitor or none, or when no
+ *       monitor lies to the west of @p client's own current one
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+void ccmd_client_move_to_monitor_west(client_td *client);
 
 /**
  * @brief Resize the client to new dimensions

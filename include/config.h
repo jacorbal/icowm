@@ -49,6 +49,58 @@ enum config_menu_position_e {
 
 
 /**
+ * @brief Fill order for a configured @c topology.screens.desktops
+ *        layout: whether desktop indices advance across one whole
+ *        row before moving to the next (@c horizontal), or down one
+ *        whole column before moving to the next (@c vertical)
+ */
+enum config_desktop_orientation_e {
+    CONFIG_DESKTOP_ORIENTATION_HORIZONTAL = 0,
+    CONFIG_DESKTOP_ORIENTATION_VERTICAL
+};
+
+/**
+ * @brief Which corner of a configured @c topology.screens.desktops
+ *        layout desktop index 0 starts at, and so which direction
+ *        indices advance in from there
+ */
+enum config_desktop_corner_e {
+    CONFIG_DESKTOP_CORNER_TOP_LEFT = 0,
+    CONFIG_DESKTOP_CORNER_TOP_RIGHT,
+    CONFIG_DESKTOP_CORNER_BOTTOM_LEFT,
+    CONFIG_DESKTOP_CORNER_BOTTOM_RIGHT
+};
+
+/**
+ * @brief One screen's own desktop-grid layout
+ *
+ * Purely an interpretation over the same flat, zero-based desktop
+ * list @c desktops[] itself already is: north/south/east/west
+ * navigation (@a surface_desktop_north and its three siblings,
+ * surface/desktops.c) reads this to translate a desktop's own flat
+ * index to and from a row/column position, but nothing about @c
+ * desktops[] itself, or a desktop's own settings within it, changes
+ * depending on whether one is configured at all.
+ *
+ * Always populated with a valid value, whether @c topology.screens.
+ * desktops[].layout was present in config.json or not: @c rows @c 1,
+ * @c columns the screen's own @c desktop_count, @c orientation
+ * horizontal, @c corner top-left describes the exact same reading
+ * order the desktop list itself already had before this existed, so
+ * a config that never mentions layout at all behaves identically to
+ * before.  The same fallback also applies whenever a given @c layout
+ * fails validation (see @c ci_config_load_screens's own doc comment,
+ * config/base/desktops.c, for what "fails validation" means here).
+ */
+struct config_desktop_layout_s {
+    enum config_desktop_orientation_e orientation;
+    enum config_desktop_corner_e corner;
+    uint32_t rows;
+    uint32_t columns;
+};
+
+
+/**
  * @brief Base settings configuration structure
  */
 struct config_base_s {
@@ -59,6 +111,10 @@ struct config_base_s {
     struct {
         uint32_t desktop_count;                 /**< No. of desktops */
         uint32_t desktop_inaugural;             /**< Initial desktop */
+        struct config_desktop_layout_s
+            desktop_layout;                      /**< Grid interpretation
+                                                        of the desktop
+                                                        list below */
 
         struct {
             char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */
@@ -852,47 +908,56 @@ struct config_bindings_s {
              */
             struct {
                 /**
-                 * @brief Carry the focused client to the previous/
-                 *        next desktop, following it there
+                 * @brief Carry the focused client to the desktop
+                 *        north/south/east/west of the current one,
+                 *        following it there
                  *
-                 * Parallels @c cycle.desktop.prev/@c .next below,
-                 * which only switch the view itself, without moving
-                 * any client along; a silent no-op when there is no
-                 * different desktop to move to at all (see
-                 * @c enact_client_send_to_desktop_prev/@c _next's
-                 * own doc comment, enact.h, for the fuller
-                 * reasoning), the same as it naturally becomes in
-                 * restricted-memory mode, always locked to exactly
-                 * one desktop.
+                 * Parallels @c cycle.desktop.north/@c .south/@c
+                 * .east/@c .west below, which only switch the view
+                 * itself, without moving any client along; a silent
+                 * no-op when there is no different desktop to move
+                 * to in that direction at all (see @c enact_client_
+                 * send_to_desktop_north's own doc comment, enact.h,
+                 * and its three siblings, for the fuller reasoning),
+                 * the same as it naturally becomes in restricted-
+                 * memory mode, always locked to exactly one desktop.
                  */
                 struct {
-                    char prev[CONFIG_MAX_LENGTH_BINDING];
-                    char next[CONFIG_MAX_LENGTH_BINDING];
+                    char north[CONFIG_MAX_LENGTH_BINDING];
+                    char south[CONFIG_MAX_LENGTH_BINDING];
+                    char east[CONFIG_MAX_LENGTH_BINDING];
+                    char west[CONFIG_MAX_LENGTH_BINDING];
                 } desktop;
 
                 /**
-                 * @brief Move the focused client to the previous/
-                 *        next monitor on its own surface
+                 * @brief Move the focused client to the monitor
+                 *        north/south/east/west of the current one
+                 *        on its own surface
                  *
-                 * Always wraps, unlike @c desktop just above: a
-                 * monitor list has no equivalent of @c desktops.
-                 * wrap-at-bounds to disable that; see @c
-                 * ccmd_client_move_to_prev_monitor/@c _next_monitor's
-                 * own doc comment, cmds/client/geom.h, for the
-                 * fuller reasoning.  A no-op on a surface with one
-                 * monitor or none.
+                 * Unlike @c desktop just above, never wraps around
+                 * at all, and has no equivalent of @c desktops.
+                 * wrap-at-bounds to make that configurable; see @c
+                 * ccmd_client_move_to_monitor_north's own doc
+                 * comment, cmds/client/geom.h, and its three
+                 * siblings, for the fuller reasoning.  A no-op on a
+                 * surface with one monitor or none, or when no
+                 * monitor lies in the given direction at all.
                  */
                 struct {
-                    char prev[CONFIG_MAX_LENGTH_BINDING];
-                    char next[CONFIG_MAX_LENGTH_BINDING];
+                    char north[CONFIG_MAX_LENGTH_BINDING];
+                    char south[CONFIG_MAX_LENGTH_BINDING];
+                    char east[CONFIG_MAX_LENGTH_BINDING];
+                    char west[CONFIG_MAX_LENGTH_BINDING];
                 } monitor;
             } send_to;
         } window;
 
         struct {
             struct {
-                char prev[CONFIG_MAX_LENGTH_BINDING];
-                char next[CONFIG_MAX_LENGTH_BINDING];
+                char north[CONFIG_MAX_LENGTH_BINDING];
+                char south[CONFIG_MAX_LENGTH_BINDING];
+                char east[CONFIG_MAX_LENGTH_BINDING];
+                char west[CONFIG_MAX_LENGTH_BINDING];
             } desktop;
             struct {
                 char prev[CONFIG_MAX_LENGTH_BINDING];
@@ -915,8 +980,10 @@ struct config_bindings_s {
 
         struct {
             struct {
-                char prev[CONFIG_MAX_LENGTH_BINDING];
-                char next[CONFIG_MAX_LENGTH_BINDING];
+                char north[CONFIG_MAX_LENGTH_BINDING];
+                char south[CONFIG_MAX_LENGTH_BINDING];
+                char east[CONFIG_MAX_LENGTH_BINDING];
+                char west[CONFIG_MAX_LENGTH_BINDING];
             } desktop;
         } cycle;
     } mouse;

@@ -244,6 +244,37 @@ enum config_menu_position_e
     ci_config_parse_menu_position(const char *value);
 
 /**
+ * @brief Parse desktop-grid layout orientation text into
+ *        configuration enumeration
+ *
+ * @param value Orientation string from configuration
+ *
+ * @return Parsed orientation enumeration value
+ *
+ * @note Supported values are @c horizontal and @c vertical
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_desktop_orientation_e
+    ci_config_parse_desktop_orientation(const char *value);
+
+/**
+ * @brief Parse desktop-grid layout starting-corner text into
+ *        configuration enumeration
+ *
+ * @param value Corner string from configuration
+ *
+ * @return Parsed corner enumeration value
+ *
+ * @note Supported values are @c top-left, @c top-right, @c
+ *       bottom-left, and @c bottom-right
+ * @note Complexity: @e O(n), where @e n is the length of @p value
+ * @note Implemented in @c config/base/parse.c
+ */
+enum config_desktop_corner_e
+    ci_config_parse_desktop_corner(const char *value);
+
+/**
  * @brief Parse one scratchpad dimension from either a fixed pixel
  *        count or the string @c "max"
  *

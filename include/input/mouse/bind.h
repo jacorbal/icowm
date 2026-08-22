@@ -43,8 +43,14 @@ enum wm_mousebind_type_e {
     MOUSEBIND_MOVE,             /**< Move the clicked client */
     MOUSEBIND_RESIZE,           /**< Resize the clicked client */
     MOUSEBIND_LOWER,            /**< Lower the clicked client */
-    MOUSEBIND_DESKTOP_PREV,     /**< Switch to previous desktop (wheel, 4) */
-    MOUSEBIND_DESKTOP_NEXT,     /**< Switch to next desktop (wheel, 5) */
+    MOUSEBIND_DESKTOP_NORTH,    /**< Switch to the desktop north of
+                                     the current one (wheel) */
+    MOUSEBIND_DESKTOP_SOUTH,    /**< Switch to the desktop south of
+                                     the current one (wheel) */
+    MOUSEBIND_DESKTOP_EAST,     /**< Switch to the desktop east of
+                                     the current one (wheel, 5) */
+    MOUSEBIND_DESKTOP_WEST,     /**< Switch to the desktop west of
+                                     the current one (wheel, 4) */
 };
 
 

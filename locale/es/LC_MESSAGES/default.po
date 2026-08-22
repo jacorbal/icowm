@@ -287,21 +287,37 @@ msgstr "Organizar"
 msgid "Info"
 msgstr "Información"
 
-#: include/defs/uistr.h:161;
-msgid "Previous monitor"
-msgstr "Anterior monitor"
+#: include/defs/uistr.h:169;
+msgid "Send to monitor to the north"
+msgstr "Enviar al monitor del norte"
 
-#: include/defs/uistr.h:162;
-msgid "Next monitor"
-msgstr "Siguiente monitor"
+#: include/defs/uistr.h:170;
+msgid "Send to monitor to the south"
+msgstr "Enviar al monitor del sur"
 
-#: include/defs/uistr.h:163;
-msgid "Send to previous desktop"
-msgstr "Enviar al escritorio anterior"
+#: include/defs/uistr.h:171;
+msgid "Send to monitor to the east"
+msgstr "Enviar al monitor del este"
 
-#: include/defs/uistr.h:164;
-msgid "Send to next desktop"
-msgstr "Enviar al escritorio siguiente"
+#: include/defs/uistr.h:172;
+msgid "Send to monitor to the west"
+msgstr "Enviar al monitor del oeste"
+
+#: include/defs/uistr.h:171;
+msgid "Send to desktop to the north"
+msgstr "Enviar al escritorio del norte"
+
+#: include/defs/uistr.h:172;
+msgid "Send to desktop to the south"
+msgstr "Enviar al escritorio del sur"
+
+#: include/defs/uistr.h:173;
+msgid "Send to desktop to the east"
+msgstr "Enviar al escritorio del este"
+
+#: include/defs/uistr.h:174;
+msgid "Send to desktop to the west"
+msgstr "Enviar al escritorio del oeste"
 
 #: include/defs/uistr.h:162;
 msgid "Pin"

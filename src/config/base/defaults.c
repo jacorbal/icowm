@@ -97,6 +97,23 @@ void config_set_default_base_values(struct config_base_s *config_base,
                 ? CONFIG_MAX_DESKTOPS : desktop_default;
         config_base->screens[i].desktop_inaugural = 0;
 
+        /* The exact same reading order the desktop list itself
+         * already had before layout existed at all: a single row,
+         * one column per desktop, corner and orientation both
+         * irrelevant at that point since there is only ever one
+         * direction to read in.  A 'config.json' that specifies its
+         * own 'topology.screens.desktops[].layout' always overrides
+         * this default the same way 'desktop_count' above does (see
+         * that field's own comment); this is purely the starting
+         * baseline before any JSON is read. */
+        config_base->screens[i].desktop_layout.orientation =
+            CONFIG_DESKTOP_ORIENTATION_HORIZONTAL;
+        config_base->screens[i].desktop_layout.corner =
+            CONFIG_DESKTOP_CORNER_TOP_LEFT;
+        config_base->screens[i].desktop_layout.rows = 1u;
+        config_base->screens[i].desktop_layout.columns =
+            config_base->screens[i].desktop_count;
+
         /* All desktop settings */
         LOGGER_TRACE("Setting desktops configuration on screen %u", i);
         for (unsigned int j = 0;

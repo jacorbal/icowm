@@ -62,11 +62,14 @@
  * edge, and schedule (or keep, or cancel) the pending desktop-warp
  * countdown accordingly; see the header's own doc comment for the
  * full reasoning */
-void drag_warp_edge_check(int16_t root_x)
+void drag_warp_edge_check(int16_t root_x, int16_t root_y)
 {
     const surface_td *surface;
     bool at_left;
     bool at_right;
+    bool at_top;
+    bool at_bottom;
+    enum compass_direction_e direction;
 
     if (s_drag.client == NULL) {
         s_drag.warp_pending = false;
@@ -83,20 +86,33 @@ void drag_warp_edge_check(int16_t root_x)
 
     at_left = root_x <= 0;
     at_right = (int32_t) root_x >= (int32_t) s_drag.screen_w - 1;
+    at_top = root_y <= 0;
+    at_bottom = (int32_t) root_y >= (int32_t) s_drag.screen_h - 1;
 
-    if (!at_left && !at_right) {
+    /* A screen corner holds two edges at once; the horizontal one
+     * wins, matching whichever edge this same check already
+     * preferred before a vertical one existed at all. */
+    if (at_left) {
+        direction = COMPASS_WEST;
+    } else if (at_right) {
+        direction = COMPASS_EAST;
+    } else if (at_top) {
+        direction = COMPASS_NORTH;
+    } else if (at_bottom) {
+        direction = COMPASS_SOUTH;
+    } else {
         s_drag.warp_pending = false;
         return;
     }
 
-    if (s_drag.warp_pending && s_drag.warp_is_left == at_left) {
+    if (s_drag.warp_pending && s_drag.warp_direction == direction) {
         /* Same edge still held: let the existing countdown keep
          * running rather than restarting it on every motion event. */
         return;
     }
 
     s_drag.warp_pending = true;
-    s_drag.warp_is_left = at_left;
+    s_drag.warp_direction = direction;
     if (clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due) == 0) {
         s_drag.warp_due.tv_nsec +=
             (long) WM_DESKTOP_WARP_DELAY_MS * 1000000L;
@@ -132,12 +148,15 @@ void drag_warp_tick(xcb_connection_t *connection)
     desktop_td *old_desktop;
     desktop_td *new_desktop;
     uint32_t old_desktop_id;
-    uint32_t right_edge_x;
+    uint32_t opposite_edge;
     int16_t new_root_x;
+    int16_t new_root_y;
     int32_t new_window_x;
+    int32_t new_window_y;
     bool cycle;
     bool is_icon;
     bool show_geom;
+    bool is_horizontal;
 
     if (connection == NULL || !s_drag.warp_pending ||
             drag_warp_ms_remaining() > 0) {
@@ -171,9 +190,24 @@ void drag_warp_tick(xcb_connection_t *connection)
     old_desktop = surface_desktop_get(surface, old_desktop_id);
     cycle = surface->config->desktops.wrap_at_bounds;
 
-    new_desktop = s_drag.warp_is_left
-        ? surface_desktop_prev(surface, old_desktop_id, cycle)
-        : surface_desktop_next(surface, old_desktop_id, cycle);
+    switch (s_drag.warp_direction) {
+    case COMPASS_NORTH:
+        new_desktop = surface_desktop_north(surface, old_desktop_id,
+                cycle);
+        break;
+    case COMPASS_SOUTH:
+        new_desktop = surface_desktop_south(surface, old_desktop_id,
+                cycle);
+        break;
+    case COMPASS_EAST:
+        new_desktop = surface_desktop_east(surface, old_desktop_id,
+                cycle);
+        break;
+    case COMPASS_WEST:
+        new_desktop = surface_desktop_west(surface, old_desktop_id,
+                cycle);
+        break;
+    }
     if (new_desktop == NULL || new_desktop->id == old_desktop_id) {
         /* Already at the end and 'cycle' is off: nothing to warp to. */
         return;
@@ -301,39 +335,66 @@ void drag_warp_tick(xcb_connection_t *connection)
     /* Reposition the pointer to the opposite edge, one pixel in from
      * it rather than exactly on it, so the very next motion notify
      * does not immediately re-arm another warp back the way it just
-     * came from.  'right_edge_x' clamps to INT16_MAX before the
-     * final cast: 'screen_w' (uint32_t, no compile-time bound of its
-     * own) is not guaranteed to fit int16_t on an extreme multi-
-     * monitor surface, and this pointer position is sent to the X
-     * server as one, via xcb_warp_pointer below. */
-    right_edge_x = (s_drag.screen_w > 1u) ? (s_drag.screen_w - 2u) : 0u;
-    new_root_x = s_drag.warp_is_left
-        ? (int16_t) ((right_edge_x > (uint32_t) INT16_MAX)
-                ? INT16_MAX : right_edge_x)
-        : (int16_t) 1;
+     * came from, on whichever one of the two axes 'warp_direction'
+     * actually warped along; the other axis' own pointer coordinate
+     * passes through unchanged.  'opposite_edge' clamps to INT16_MAX
+     * before the final cast: 'screen_w'/'screen_h' (uint32_t, no
+     * compile-time bound of their own) are not guaranteed to fit
+     * int16_t on an extreme multi-monitor surface, and this pointer
+     * position is sent to the X server as one, via xcb_warp_pointer
+     * below. */
+    is_horizontal = (s_drag.warp_direction == COMPASS_EAST ||
+            s_drag.warp_direction == COMPASS_WEST);
+
+    if (is_horizontal) {
+        opposite_edge =
+            (s_drag.screen_w > 1u) ? (s_drag.screen_w - 2u) : 0u;
+        new_root_x = (s_drag.warp_direction == COMPASS_WEST)
+            ? (int16_t) ((opposite_edge > (uint32_t) INT16_MAX)
+                    ? INT16_MAX : opposite_edge)
+            : (int16_t) 1;
+        new_root_y = s_drag.last_root_y;
+    } else {
+        opposite_edge =
+            (s_drag.screen_h > 1u) ? (s_drag.screen_h - 2u) : 0u;
+        new_root_y = (s_drag.warp_direction == COMPASS_NORTH)
+            ? (int16_t) ((opposite_edge > (uint32_t) INT16_MAX)
+                    ? INT16_MAX : opposite_edge)
+            : (int16_t) 1;
+        new_root_x = s_drag.last_root_x;
+    }
 
     /* Move the dragged window or icon by the exact same delta the
      * pointer itself is about to jump, so it stays under the cursor
      * across the warp instead of being left behind on the old desktop's
-     * own edge.  Shifting 'client_cur.pos.x' (the position
+     * own edge.  Shifting 'client_cur.pos.x'/'.pos.y' (the position
      * 'drag_update' last actually applied, which already folds in any
-     * edge-snapping) is what 'pointer_start_x'/'client_start.pos.x'
-     * being left untouched below relies on.
+     * edge-snapping) is what 'pointer_start_x'/'pointer_start_y'/
+     * 'client_start.pos.x'/'.pos.y' being left untouched below relies
+     * on.
      *
-     * With both of those unchanged, the very next real motion notify's
-     * own 'new_x = client_start.pos.x + (root_x - pointer_start_x)' is
-     * a plain linear function of 'root_x', so it naturally reflects the
-     * same shift automatically, for adjusting either baseline here
-     * instead would cancel that shift back out (the bug an earlier
-     * version of this function actually had, i.e, shifting
-     * 'pointer_start_x' to compensate for the pointer jump made the
-     * computed position identical before and after the warp, keeping
-     * the dragged window or icon pinned at its old spot rather than
-     * following the pointer to the new one). */
+     * With those unchanged, the very next real motion notify's own
+     * 'new_x = client_start.pos.x + (root_x - pointer_start_x)' (and
+     * its 'y' counterpart) is a plain linear function of 'root_x'/
+     * 'root_y', so it naturally reflects the same shift automatically,
+     * for adjusting either baseline here instead would cancel that
+     * shift back out (the bug an earlier version of this function
+     * actually had, i.e, shifting 'pointer_start_x' to compensate for
+     * the pointer jump made the computed position identical before and
+     * after the warp, keeping the dragged window or icon pinned at its
+     * old spot rather than following the pointer to the new one).  The
+     * axis 'warp_direction' did not warp along shifts by exactly zero
+     * here ('new_root_x'/'new_root_y' above already equal 'last_root_x'/
+     * '_y' on that axis), so this same pair of assignments is correct
+     * unconditionally, without needing its own 'is_horizontal' branch
+     * too. */
     new_window_x = s_drag.client_cur.pos.x +
         ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
+    new_window_y = s_drag.client_cur.pos.y +
+        ((int32_t) new_root_y - (int32_t) s_drag.last_root_y);
 
     s_drag.client_cur.pos.x = new_window_x;
+    s_drag.client_cur.pos.y = new_window_y;
 
     if (is_icon) {
         uint32_t vals[2];
@@ -396,9 +457,10 @@ void drag_warp_tick(xcb_connection_t *connection)
     }
 
     xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,
-            0, 0, 0, 0, new_root_x, s_drag.last_root_y);
+            0, 0, 0, 0, new_root_x, new_root_y);
 
     s_drag.last_root_x = new_root_x;
+    s_drag.last_root_y = new_root_y;
     s_drag.desktop = new_desktop;
 
     xcb_flush(connection);

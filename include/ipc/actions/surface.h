@@ -32,11 +32,17 @@
  *  (optional) */
 cJSON *ipc_action_goto_desktop(const wm_td *wm, const cJSON *args);
 
-/** @c goto_next_desktop: argument @c surface_id (optional) */
-cJSON *ipc_action_goto_next_desktop(const wm_td *wm, const cJSON *args);
+/** @c goto_north_desktop: argument @c surface_id (optional) */
+cJSON *ipc_action_goto_north_desktop(const wm_td *wm, const cJSON *args);
 
-/** @c goto_prev_desktop: argument @c surface_id (optional) */
-cJSON *ipc_action_goto_prev_desktop(const wm_td *wm, const cJSON *args);
+/** @c goto_south_desktop: argument @c surface_id (optional) */
+cJSON *ipc_action_goto_south_desktop(const wm_td *wm, const cJSON *args);
+
+/** @c goto_east_desktop: argument @c surface_id (optional) */
+cJSON *ipc_action_goto_east_desktop(const wm_td *wm, const cJSON *args);
+
+/** @c goto_west_desktop: argument @c surface_id (optional) */
+cJSON *ipc_action_goto_west_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c add_desktop: argument @c surface_id (optional) */
 cJSON *ipc_action_add_desktop(const wm_td *wm, const cJSON *args);

@@ -867,6 +867,10 @@ void winlist_show(xcb_connection_t *connection,
             const char *label_fmt;
             int desktop_n;
             bool is_cur;
+            uint32_t row = 0u;
+            uint32_t col = 0u;
+            bool has_row_col;
+            bool show_row_col;
 
             if ((int) did >= desktop_count) {
                 break;
@@ -950,19 +954,56 @@ void winlist_show(xcb_connection_t *connection,
             s_desktop_state[did].entries = s_desktop_entries[did];
             s_desktop_state[did].entry_count = desktop_n;
 
-            label_fmt = (desktop->name[0] != '\0')
-                ? "%s[%u] -- %s%s"
-                : "%s[%u]%s";
+            row = 0u;
+            col = 0u;
+            has_row_col = surface_desktop_row_col(surface,
+                    did, &row, &col);
+            /* Only worth showing once the grid is genuinely more
+             * than the one row a desktop's own ID already fully
+             * describes on its own; see 'surface_desktop_row_col'
+             * itself (surface.h) for what "row 0" always means on
+             * a linear (or unconfigured) layout, the exact case
+             * this excludes here. */
+            show_row_col = has_row_col &&
+                surface->config != NULL &&
+                surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
+                surface->config->base.screens[surface->id]
+                    .desktop_layout.rows > 1u;
+
             if (desktop->name[0] != '\0') {
-                (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        did, desktop->name,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+                label_fmt = (show_row_col)
+                    ? "%s[%u (%u,%u)] -- %s%s"
+                    : "%s[%u] -- %s%s";
+                if (show_row_col) {
+                    (void) snprintf(label_buf, sizeof(label_buf),
+                            label_fmt,
+                            MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                            did, row, col, desktop->name,
+                            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+                } else {
+                    (void) snprintf(label_buf, sizeof(label_buf),
+                            label_fmt,
+                            MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                            did, desktop->name,
+                            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+                }
             } else {
-                (void) snprintf(label_buf, sizeof(label_buf), label_fmt,
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        did,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+                label_fmt = (show_row_col)
+                    ? "%s[%u (%u,%u)]%s"
+                    : "%s[%u]%s";
+                if (show_row_col) {
+                    (void) snprintf(label_buf, sizeof(label_buf),
+                            label_fmt,
+                            MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                            did, row, col,
+                            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+                } else {
+                    (void) snprintf(label_buf, sizeof(label_buf),
+                            label_fmt,
+                            MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                            did,
+                            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+                }
             }
 
             s_root_entries[n].type = CTXMENU_SUBMENU;

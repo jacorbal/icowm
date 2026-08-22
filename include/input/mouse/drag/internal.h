@@ -46,6 +46,7 @@
 #include <xcb/xcb.h>
 
 /* Type includes */
+#include <types/direction.h>
 #include <types/pair.h>
 
 /* Project includes */
@@ -133,8 +134,8 @@ typedef struct {
                                      screen edge, counting down to a
                                      desktop switch (see 'desktops.warp_on_edge_drag'
                                      in config.json, config_desktop_s) */
-    bool warp_is_left;          /**< Which edge, only meaningful when
-                                     'warp_pending' */
+    enum compass_direction_e warp_direction;   /**< Which edge, only
+                                     meaningful when 'warp_pending' */
     struct timespec warp_due;   /**< When the held edge becomes due to
                                      warp, only meaningful when
                                      'warp_pending' */

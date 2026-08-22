@@ -61,6 +61,12 @@ void config_set_default_values_memguard(config_td *config)
 
     config->base.screens[0].desktop_count = 1u;
     config->base.screens[0].desktop_inaugural = 0u;
+    config->base.screens[0].desktop_layout.orientation =
+        CONFIG_DESKTOP_ORIENTATION_HORIZONTAL;
+    config->base.screens[0].desktop_layout.corner =
+        CONFIG_DESKTOP_CORNER_TOP_LEFT;
+    config->base.screens[0].desktop_layout.rows = 1u;
+    config->base.screens[0].desktop_layout.columns = 1u;
     safe_strncpy(config->base.screens[0].desktops[0].name, "Desktop 0",
             CONFIG_MAX_LENGTH_NAME);
     config->base.screens[0].desktops[0].settings.background.color =

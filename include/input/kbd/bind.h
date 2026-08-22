@@ -54,8 +54,14 @@ enum wm_keybind_type_e {
     KEYBIND_NONE,
 
     /* Desktop cycling */
-    KEYBIND_DESKTOP_NEXT,               /**< Switch to next desktop */
-    KEYBIND_DESKTOP_PREV,               /**< Switch to previous desktop */
+    KEYBIND_DESKTOP_NORTH,               /**< Switch to the desktop
+                                             north of the current one */
+    KEYBIND_DESKTOP_SOUTH,               /**< Switch to the desktop
+                                             south of the current one */
+    KEYBIND_DESKTOP_EAST,                /**< Switch to the desktop
+                                             east of the current one */
+    KEYBIND_DESKTOP_WEST,                /**< Switch to the desktop
+                                             west of the current one */
 
     /* Window operations */
     KEYBIND_CLIENT_ICONIFY,             /**< Iconify focused client */
@@ -64,16 +70,34 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_KILL,                /**< Forcibly kill focused client */
     KEYBIND_CLIENT_MAXIMIZE,            /**< Maximize focused client */
     KEYBIND_CLIENT_CENTER,              /**< Center focused client */
-    KEYBIND_CLIENT_MOVE_NEXT_MONITOR,   /**< Move focused client to the
-                                             next monitor */
-    KEYBIND_CLIENT_MOVE_PREV_MONITOR,   /**< Move focused client to the
-                                             previous monitor */
-    KEYBIND_CLIENT_SEND_TO_DESKTOP_PREV,   /**< Carry focused client to
-                                             the previous desktop,
-                                             following it there */
-    KEYBIND_CLIENT_SEND_TO_DESKTOP_NEXT,   /**< Carry focused client to
-                                             the next desktop,
-                                             following it there */
+    KEYBIND_CLIENT_MOVE_MONITOR_NORTH,  /**< Move focused client to the
+                                             monitor north of the
+                                             current one */
+    KEYBIND_CLIENT_MOVE_MONITOR_SOUTH,  /**< Move focused client to the
+                                             monitor south of the
+                                             current one */
+    KEYBIND_CLIENT_MOVE_MONITOR_EAST,   /**< Move focused client to the
+                                             monitor east of the
+                                             current one */
+    KEYBIND_CLIENT_MOVE_MONITOR_WEST,   /**< Move focused client to the
+                                             monitor west of the
+                                             current one */
+    KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH,  /**< Carry focused client to
+                                             the desktop north of the
+                                             current one, following it
+                                             there */
+    KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH,  /**< Carry focused client to
+                                             the desktop south of the
+                                             current one, following it
+                                             there */
+    KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST,   /**< Carry focused client to
+                                             the desktop east of the
+                                             current one, following it
+                                             there */
+    KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST,   /**< Carry focused client to
+                                             the desktop west of the
+                                             current one, following it
+                                             there */
     KEYBIND_CLIENT_SHADE,               /**< Toggle focused client shade */
     KEYBIND_CLIENT_FULLSCREEN,          /**< Toggle foc. client fullscreen */
     KEYBIND_CLIENT_PIN,                 /**< Toggle focused client sticky */

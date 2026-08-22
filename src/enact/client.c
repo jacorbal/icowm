@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 /* Type includes */
+#include <types/direction.h>
 #include <types/pair.h>
 
 /* ADT includes */
@@ -175,22 +176,23 @@ void enact_client_center(client_td *client)
 
 
 /**
- * @brief Shared logic for carrying the client to the previous or
- *        next desktop, following it there
+ * @brief Shared logic for carrying the client to another desktop in
+ *        a given compass direction, following it there
  *
- * @param client   Client to move
- * @param surfaces Full surface list, passed through to @c focus_apply
- * @param config   Active configuration, passed through to @c
- *                 focus_apply
- * @param forward  @c true for the next desktop, @c false for the
- *                 previous one
+ * @param client    Client to move
+ * @param surfaces  Full surface list, passed through to @c
+ *                  focus_apply
+ * @param config    Active configuration, passed through to @c
+ *                  focus_apply
+ * @param direction Compass direction to move the client in
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the client's own top parent's own desktop (see
  *       @a enact_desktop_client_send's own doc comment)
  */
 static void s_enact_client_send_to_desktop(client_td *client,
-        list_td *surfaces, const config_td *config, bool forward)
+        list_td *surfaces, const config_td *config,
+        enum compass_direction_e direction)
 {
     surface_td *surface;
     desktop_td *cur_desktop;
@@ -217,12 +219,30 @@ static void s_enact_client_send_to_desktop(client_td *client,
     /* No different desktop to move to at all: either genuinely
      * only one exists (restricted-memory mode is always locked to
      * exactly one; see 'surface_action_desktop_add''s own doc
-     * comment, surface/switch.c) or wrapping is disabled and this is
-     * already the first/last one; is a silent no-op, the same as
-     * every other keybind here that finds nothing to act on. */
-    target_desktop = (forward)
-        ? surface_desktop_next(surface, cur_desktop->id, cycle)
-        : surface_desktop_prev(surface, cur_desktop->id, cycle);
+     * comment, surface/switch.c), wrapping is disabled and this is
+     * already the edgemost one that way, or (north/south only, on a
+     * surface with no 'topology.screens.desktops' layout configured
+     * at all) there is no second row or column to move to in the
+     * first place; is a silent no-op, the same as every other
+     * keybind here that finds nothing to act on. */
+    switch (direction) {
+    case COMPASS_NORTH:
+        target_desktop = surface_desktop_north(surface,
+                cur_desktop->id, cycle);
+        break;
+    case COMPASS_SOUTH:
+        target_desktop = surface_desktop_south(surface,
+                cur_desktop->id, cycle);
+        break;
+    case COMPASS_EAST:
+        target_desktop = surface_desktop_east(surface,
+                cur_desktop->id, cycle);
+        break;
+    case COMPASS_WEST:
+        target_desktop = surface_desktop_west(surface,
+                cur_desktop->id, cycle);
+        break;
+    }
     if (target_desktop == NULL || target_desktop == cur_desktop) {
         return;
     }
@@ -248,26 +268,51 @@ static void s_enact_client_send_to_desktop(client_td *client,
 }
 
 
-/* Carry the client to the previous desktop, following it there */
-void enact_client_send_to_desktop_prev(client_td *client,
+/* Carry the client to the desktop north of the current one,
+ * following it there */
+void enact_client_send_to_desktop_north(client_td *client,
         list_td *surfaces, const config_td *config)
 {
-    s_enact_client_send_to_desktop(client, surfaces, config, false);
+    s_enact_client_send_to_desktop(client, surfaces, config,
+            COMPASS_NORTH);
 }
 
 
-/* Carry the client to the next desktop, following it there */
-void enact_client_send_to_desktop_next(client_td *client,
+/* Carry the client to the desktop south of the current one,
+ * following it there */
+void enact_client_send_to_desktop_south(client_td *client,
         list_td *surfaces, const config_td *config)
 {
-    s_enact_client_send_to_desktop(client, surfaces, config, true);
+    s_enact_client_send_to_desktop(client, surfaces, config,
+            COMPASS_SOUTH);
 }
 
 
-/* Move the client to the next monitor on its surface */
-void enact_client_move_next_monitor(client_td *client)
+/* Carry the client to the desktop east of the current one,
+ * following it there */
+void enact_client_send_to_desktop_east(client_td *client,
+        list_td *surfaces, const config_td *config)
 {
-    ccmd_client_move_to_next_monitor(client);
+    s_enact_client_send_to_desktop(client, surfaces, config,
+            COMPASS_EAST);
+}
+
+
+/* Carry the client to the desktop west of the current one,
+ * following it there */
+void enact_client_send_to_desktop_west(client_td *client,
+        list_td *surfaces, const config_td *config)
+{
+    s_enact_client_send_to_desktop(client, surfaces, config,
+            COMPASS_WEST);
+}
+
+
+/* Move the client to the monitor north of the current one on its
+ * surface */
+void enact_client_move_monitor_north(client_td *client)
+{
+    ccmd_client_move_to_monitor_north(client);
     if (client != NULL) {
         xcb_flush(client->connection);
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
@@ -275,10 +320,35 @@ void enact_client_move_next_monitor(client_td *client)
 }
 
 
-/* Move the client to the previous monitor on its surface */
-void enact_client_move_prev_monitor(client_td *client)
+/* Move the client to the monitor south of the current one on its
+ * surface */
+void enact_client_move_monitor_south(client_td *client)
 {
-    ccmd_client_move_to_prev_monitor(client);
+    ccmd_client_move_to_monitor_south(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+        enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
+    }
+}
+
+
+/* Move the client to the monitor east of the current one on its
+ * surface */
+void enact_client_move_monitor_east(client_td *client)
+{
+    ccmd_client_move_to_monitor_east(client);
+    if (client != NULL) {
+        xcb_flush(client->connection);
+        enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
+    }
+}
+
+
+/* Move the client to the monitor west of the current one on its
+ * surface */
+void enact_client_move_monitor_west(client_td *client)
+{
+    ccmd_client_move_to_monitor_west(client);
     if (client != NULL) {
         xcb_flush(client->connection);
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);

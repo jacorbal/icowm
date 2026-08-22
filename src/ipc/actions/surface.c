@@ -47,7 +47,7 @@ cJSON *ipc_action_goto_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_goto_next_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_north_desktop(const wm_td *wm, const cJSON *args)
 {
     surface_td *const surface = ipc_resolve_surface(wm, args);
 
@@ -55,12 +55,12 @@ cJSON *ipc_action_goto_next_desktop(const wm_td *wm, const cJSON *args)
         return ipc_response_error("no such surface");
     }
 
-    enact_surface_desktop_switch_next(surface);
+    enact_surface_desktop_switch_north(surface);
     return ipc_response_ok();
 }
 
 
-cJSON *ipc_action_goto_prev_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_south_desktop(const wm_td *wm, const cJSON *args)
 {
     surface_td *const surface = ipc_resolve_surface(wm, args);
 
@@ -68,7 +68,33 @@ cJSON *ipc_action_goto_prev_desktop(const wm_td *wm, const cJSON *args)
         return ipc_response_error("no such surface");
     }
 
-    enact_surface_desktop_switch_prev(surface);
+    enact_surface_desktop_switch_south(surface);
+    return ipc_response_ok();
+}
+
+
+cJSON *ipc_action_goto_east_desktop(const wm_td *wm, const cJSON *args)
+{
+    surface_td *const surface = ipc_resolve_surface(wm, args);
+
+    if (surface == NULL) {
+        return ipc_response_error("no such surface");
+    }
+
+    enact_surface_desktop_switch_east(surface);
+    return ipc_response_ok();
+}
+
+
+cJSON *ipc_action_goto_west_desktop(const wm_td *wm, const cJSON *args)
+{
+    surface_td *const surface = ipc_resolve_surface(wm, args);
+
+    if (surface == NULL) {
+        return ipc_response_error("no such surface");
+    }
+
+    enact_surface_desktop_switch_west(surface);
     return ipc_response_ok();
 }
 

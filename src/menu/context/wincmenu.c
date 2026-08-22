@@ -533,8 +533,16 @@ static int s_build_desk_entries(surface_td *surface,
     cdlist_item_td *dnode;
     bool is_cur;
     bool is_sticky;
+    uint32_t row;
+    uint32_t col;
+    bool has_row_col;
+    bool show_row_col;
 
     is_sticky = (client->properties.flags & CLIENT_FLAG_PIN) != 0u;
+    show_row_col = surface->config != NULL &&
+        surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
+        surface->config->base.screens[surface->id]
+            .desktop_layout.rows > 1u;
 
     cdlist_foreach(surface->desktops, dnode) {
         desktop_td *const d = (desktop_td *) cdlist_data(dnode);
@@ -547,21 +555,43 @@ static int s_build_desk_entries(surface_td *surface,
             continue;
         }
         is_cur = (d->id == desktop->id);
+        row = 0u;
+        col = 0u;
+        has_row_col = show_row_col &&
+            surface_desktop_row_col(surface, d_idx, &row, &col);
 
         if (d->name[0] != '\0') {
-            (void) snprintf(s_desk_entries[n].label,
-                    sizeof(s_desk_entries[n].label),
-                    "%s[%u] -- %s%s",
-                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                    d_idx, d->name,
-                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            if (has_row_col) {
+                (void) snprintf(s_desk_entries[n].label,
+                        sizeof(s_desk_entries[n].label),
+                        "%s[%u (%u,%u)] -- %s%s",
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        d_idx, row, col, d->name,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            } else {
+                (void) snprintf(s_desk_entries[n].label,
+                        sizeof(s_desk_entries[n].label),
+                        "%s[%u] -- %s%s",
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        d_idx, d->name,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            }
         } else {
-            (void) snprintf(s_desk_entries[n].label,
-                    sizeof(s_desk_entries[n].label),
-                    "%s[%u]%s",
-                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                    d_idx,
-                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            if (has_row_col) {
+                (void) snprintf(s_desk_entries[n].label,
+                        sizeof(s_desk_entries[n].label),
+                        "%s[%u (%u,%u)]%s",
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        d_idx, row, col,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            } else {
+                (void) snprintf(s_desk_entries[n].label,
+                        sizeof(s_desk_entries[n].label),
+                        "%s[%u]%s",
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        d_idx,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            }
         }
 
         s_desk_entries[n].type = CTXMENU_COMMAND;

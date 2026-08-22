@@ -1,0 +1,306 @@
+/**
+ * @file surface/monitors.c
+ *
+ * @brief RandR physical-monitor detection and lookup for a surface
+ *
+ * Split out of what used to be a single, flat @c surface.c; see
+ * @c surface.c's own doc comment for why.
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+/* System includes */
+#include <stdbool.h>
+#include <stddef.h>     /* NULL */
+#include <stdint.h>
+#include <stdlib.h>     /* free */
+#include <strings.h>    /* strcasecmp */
+
+/* XCB includes */
+#include <xcb/xcb.h>
+#include <xcb/randr.h>
+
+/* Utils includes */
+#include <utils/xcb/atom.h>
+
+/* Type includes */
+#include <types/direction.h>
+
+/* Project includes */
+#include <config.h>
+#include <logger.h>
+
+/* Local includes */
+#include <surface.h>
+
+
+/**
+ * @brief Whole-surface fallback for the monitor list
+ *
+ * Fills @p surface->monitors with a single entry spanning @p
+ * surface->properties.dim, used whenever RandR cannot supply a real
+ * monitor list.
+ *
+ * @param surface Pointer to the surface to fall back
+ */
+static void s_surface_monitors_fallback(surface_td *surface)
+{
+    surface->monitors[0].x = 0;
+    surface->monitors[0].y = 0;
+    surface->monitors[0].w = surface->properties.dim.w;
+    surface->monitors[0].h = surface->properties.dim.h;
+    surface->monitor_count = 1u;
+    surface->primary_monitor_index = 0u;
+}
+
+
+/**
+ * @brief Whether a RandR output should be recognized as a monitor
+ *        IcoWM manages windows on
+ *
+ * Looks up @p name among the configured RandR output profiles (see
+ * @c config_randr_s, loaded from @c randr.json); a matching profile
+ * that is explicitly disabled excludes that output from
+ * @c surface->monitors entirely, as if it were not connected at all,
+ * letting a person with more physical outputs than they want IcoWM
+ * to place windows on limit it to specific ones by name (e.g., an
+ * always-connected "HDMI-1" projector meant only for mirroring, never
+ * for managing windows).  With RandR profile management off
+ * altogether, or with no profile configured for this particular
+ * output name, every detected output is used, unchanged from before
+ * this existed.
+ *
+ * @param config Active configuration, or @c NULL to always allow
+ * @param name   Resolved RandR output name (e.g., @c "HDMI-1")
+ *
+ * @return @c false only when a matching profile exists and is
+ *         explicitly disabled; @c true otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is the number of configured
+ *       output profiles
+ */
+static bool s_surface_output_is_used(const config_td *config,
+        const char *name)
+{
+    if (config == NULL || !config->randr.is_enabled) {
+        return true;
+    }
+
+    for (uint32_t i = 0u; i < config->randr.output_count; ++i) {
+        if (strcasecmp(config->randr.outputs[i].name, name) == 0) {
+            return config->randr.outputs[i].is_enabled;
+        }
+    }
+
+    return true;
+}
+
+
+/* Refresh the surface's own list of physical monitors */
+void surface_refresh_monitors(surface_td *surface)
+{
+    xcb_randr_get_monitors_cookie_t cookie;
+    xcb_randr_get_monitors_reply_t *reply;
+    xcb_randr_monitor_info_iterator_t it;
+
+    if (surface == NULL || surface->connection == NULL ||
+            surface->screen == NULL) {
+        return;
+    }
+
+    cookie = xcb_randr_get_monitors(surface->connection,
+            surface->screen->root, 1u);
+    reply = xcb_randr_get_monitors_reply(surface->connection,
+            cookie, NULL);
+    if (reply == NULL) {
+        LOGGER_NOTICE("Failed to query RandR monitors for surface" \
+                " %u; treating it as one monitor", surface->id);
+        s_surface_monitors_fallback(surface);
+        return;
+    }
+
+    surface->monitor_count = 0u;
+    surface->primary_monitor_index = 0u;
+    it = xcb_randr_get_monitors_monitors_iterator(reply);
+    while (it.rem > 0 &&
+            surface->monitor_count < WM_SURFACE_MAX_MONITORS) {
+        xcb_randr_monitor_info_t *const info = it.data;
+        char output_name[CONFIG_RANDR_OUTPUT_NAME_LENGTH];
+        monitor_td *slot;
+        bool name_resolved;
+
+        name_resolved = atom_name(surface->connection, info->name,
+                output_name, sizeof(output_name));
+        if (name_resolved && !s_surface_output_is_used(surface->config,
+                    output_name)) {
+            LOGGER_DEBUG("Excluding RandR output '%s' from surface" \
+                    " %u: disabled by its configured profile",
+                    output_name, surface->id);
+            xcb_randr_monitor_info_next(&it);
+            continue;
+        }
+
+        slot = &surface->monitors[surface->monitor_count];
+        slot->x = info->x;
+        slot->y = info->y;
+        slot->w = info->width;
+        slot->h = info->height;
+        if (info->primary) {
+            surface->primary_monitor_index = surface->monitor_count;
+        }
+        ++surface->monitor_count;
+
+        xcb_randr_monitor_info_next(&it);
+    }
+    free(reply);
+
+    if (surface->monitor_count == 0u) {
+        LOGGER_NOTICE("RandR reported no monitors for surface %u;" \
+                " treating it as one monitor", surface->id);
+        s_surface_monitors_fallback(surface);
+        return;
+    }
+
+    LOGGER_DEBUG("Surface %u has %u monitor(s)",
+            surface->id, surface->monitor_count);
+}
+
+
+/* Find which of the surface's monitors contains a point */
+monitor_td surface_monitor_for_point(const surface_td *surface,
+        struct position_s pos)
+{
+    monitor_td fallback = {.x = 0, .y = 0, .w = 0u, .h = 0u};
+    uint32_t closest = 0u;
+    int64_t closest_dist = -1;
+
+    if (surface == NULL) {
+        return fallback;
+    }
+    if (surface->monitor_count == 0u) {
+        fallback.w = surface->properties.dim.w;
+        fallback.h = surface->properties.dim.h;
+        return fallback;
+    }
+
+    for (uint32_t i = 0; i < surface->monitor_count; ++i) {
+        const monitor_td *m = &surface->monitors[i];
+        int32_t mright = m->x + (int32_t) m->w;
+        int32_t mbottom = m->y + (int32_t) m->h;
+        int64_t cx;
+        int64_t cy;
+        int64_t dist;
+
+        if (pos.x >= m->x && pos.x < mright &&
+                pos.y >= m->y && pos.y < mbottom) {
+            return *m;
+        }
+
+        cx = m->x + (int32_t) (m->w / 2u) - pos.x;
+        cy = m->y + (int32_t) (m->h / 2u) - pos.y;
+        dist = cx * cx + cy * cy;
+        if (closest_dist < 0 || dist < closest_dist) {
+            closest_dist = dist;
+            closest = i;
+        }
+    }
+
+    return surface->monitors[closest];
+}
+
+
+/* Get the surface's primary monitor, if RandR flagged one */
+monitor_td surface_primary_monitor(const surface_td *surface)
+{
+    monitor_td fallback = {.x = 0, .y = 0, .w = 0u, .h = 0u};
+
+    if (surface == NULL) {
+        return fallback;
+    }
+    if (surface->monitor_count == 0u) {
+        fallback.w = surface->properties.dim.w;
+        fallback.h = surface->properties.dim.h;
+        return fallback;
+    }
+
+    return surface->monitors[surface->primary_monitor_index];
+}
+
+
+/* Find the surface's own monitor in a given compass direction from
+ * another one */
+monitor_td surface_monitor_direction(const surface_td *surface,
+        monitor_td current, enum compass_direction_e direction)
+{
+    int64_t cur_cx;
+    int64_t cur_cy;
+    int64_t best_dist = -1;
+    monitor_td best = current;
+
+    if (surface == NULL) {
+        return current;
+    }
+
+    cur_cx = (int64_t) current.x + (int64_t) (current.w / 2u);
+    cur_cy = (int64_t) current.y + (int64_t) (current.h / 2u);
+
+    for (uint32_t i = 0u; i < surface->monitor_count; ++i) {
+        const monitor_td *const m = &surface->monitors[i];
+        int64_t mcx;
+        int64_t mcy;
+        int64_t dx;
+        int64_t dy;
+        int64_t dist;
+
+        if (m->x == current.x && m->y == current.y) {
+            /* This is 'current' itself, found again by coordinate
+             * (see 'ccmd_client_move_to_monitor_north', cmds/client/
+             * geom.c, for the same identify-by-coordinate approach,
+             * since a 'monitor_td' carries no ID or index of its own
+             * to compare against instead); never its own candidate
+             * neighbor. */
+            continue;
+        }
+
+        mcx = (int64_t) m->x + (int64_t) (m->w / 2u);
+        mcy = (int64_t) m->y + (int64_t) (m->h / 2u);
+        dx = mcx - cur_cx;
+        dy = mcy - cur_cy;
+
+        switch (direction) {
+        case COMPASS_NORTH:
+            if (dy >= 0) { continue; }
+            break;
+        case COMPASS_SOUTH:
+            if (dy <= 0) { continue; }
+            break;
+        case COMPASS_EAST:
+            if (dx <= 0) { continue; }
+            break;
+        case COMPASS_WEST:
+            if (dx >= 0) { continue; }
+            break;
+        }
+
+        /* Center-to-center squared distance, the same "closest wins"
+         * principle 'surface_monitor_for_point' above already uses
+         * for its own off-monitor fallback: among every monitor that
+         * genuinely lies in the requested direction at all (the
+         * switch above), whichever one is nearest by that measure is
+         * the one a person would call "the monitor to the north"
+         * (or south, east, west), even when the monitors involved
+         * are not all the same size or perfectly aligned. */
+        dist = dx * dx + dy * dy;
+        if (best_dist < 0 || dist < best_dist) {
+            best_dist = dist;
+            best = *m;
+        }
+    }
+
+    return best;
+}

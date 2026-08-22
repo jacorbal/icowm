@@ -41,8 +41,20 @@ cJSON *ipc_action_center_client(const wm_td *wm, const cJSON *args);
 /** @c move_client_to_monitor: arguments @c client_id, @c monitor_index */
 cJSON *ipc_action_move_client_to_monitor(const wm_td *wm, const cJSON *args);
 
-/** @c move_client_to_next_monitor */
-cJSON *ipc_action_move_client_to_next_monitor(const wm_td *wm,
+/** @c move_client_to_monitor_north */
+cJSON *ipc_action_move_client_to_monitor_north(const wm_td *wm,
+        const cJSON *args);
+
+/** @c move_client_to_monitor_south */
+cJSON *ipc_action_move_client_to_monitor_south(const wm_td *wm,
+        const cJSON *args);
+
+/** @c move_client_to_monitor_east */
+cJSON *ipc_action_move_client_to_monitor_east(const wm_td *wm,
+        const cJSON *args);
+
+/** @c move_client_to_monitor_west */
+cJSON *ipc_action_move_client_to_monitor_west(const wm_td *wm,
         const cJSON *args);
 
 /**

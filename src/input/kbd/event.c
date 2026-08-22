@@ -351,8 +351,10 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
     switch (btype) {
         /* To avoid warnings from the compiler, ALL cases must be here */
         case KEYBIND_NONE:
-        case KEYBIND_DESKTOP_NEXT:
-        case KEYBIND_DESKTOP_PREV:
+        case KEYBIND_DESKTOP_NORTH:
+        case KEYBIND_DESKTOP_SOUTH:
+        case KEYBIND_DESKTOP_EAST:
+        case KEYBIND_DESKTOP_WEST:
         case KEYBIND_CLIENT_CYCLE_NEXT:
         case KEYBIND_CLIENT_CYCLE_PREV:
         case KEYBIND_DESKTOP_ICON_NEXT:
@@ -434,20 +436,36 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             enact_client_center(client);
             return;
 
-        case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
-            enact_client_move_next_monitor(client);
+        case KEYBIND_CLIENT_MOVE_MONITOR_NORTH:
+            enact_client_move_monitor_north(client);
             return;
 
-        case KEYBIND_CLIENT_MOVE_PREV_MONITOR:
-            enact_client_move_prev_monitor(client);
+        case KEYBIND_CLIENT_MOVE_MONITOR_SOUTH:
+            enact_client_move_monitor_south(client);
             return;
 
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_PREV:
-            enact_client_send_to_desktop_prev(client, surfaces, config);
+        case KEYBIND_CLIENT_MOVE_MONITOR_EAST:
+            enact_client_move_monitor_east(client);
             return;
 
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_NEXT:
-            enact_client_send_to_desktop_next(client, surfaces, config);
+        case KEYBIND_CLIENT_MOVE_MONITOR_WEST:
+            enact_client_move_monitor_west(client);
+            return;
+
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH:
+            enact_client_send_to_desktop_north(client, surfaces, config);
+            return;
+
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH:
+            enact_client_send_to_desktop_south(client, surfaces, config);
+            return;
+
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST:
+            enact_client_send_to_desktop_east(client, surfaces, config);
+            return;
+
+        case KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST:
+            enact_client_send_to_desktop_west(client, surfaces, config);
             return;
 
         case KEYBIND_CLIENT_SHADE:
@@ -713,14 +731,27 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
         }
 
         switch (btype) {
-            case KEYBIND_DESKTOP_NEXT:
-            case KEYBIND_DESKTOP_PREV:
+            case KEYBIND_DESKTOP_NORTH:
                 if (surface != NULL) {
-                    if (btype == KEYBIND_DESKTOP_NEXT) {
-                        enact_surface_desktop_switch_next(surface);
-                    } else {
-                        enact_surface_desktop_switch_prev(surface);
-                    }
+                    enact_surface_desktop_switch_north(surface);
+                }
+                return;
+
+            case KEYBIND_DESKTOP_SOUTH:
+                if (surface != NULL) {
+                    enact_surface_desktop_switch_south(surface);
+                }
+                return;
+
+            case KEYBIND_DESKTOP_EAST:
+                if (surface != NULL) {
+                    enact_surface_desktop_switch_east(surface);
+                }
+                return;
+
+            case KEYBIND_DESKTOP_WEST:
+                if (surface != NULL) {
+                    enact_surface_desktop_switch_west(surface);
                 }
                 return;
 
@@ -932,10 +963,14 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
             case KEYBIND_CLIENT_KILL:
             case KEYBIND_CLIENT_MAXIMIZE:
             case KEYBIND_CLIENT_CENTER:
-            case KEYBIND_CLIENT_MOVE_NEXT_MONITOR:
-            case KEYBIND_CLIENT_MOVE_PREV_MONITOR:
-            case KEYBIND_CLIENT_SEND_TO_DESKTOP_PREV:
-            case KEYBIND_CLIENT_SEND_TO_DESKTOP_NEXT:
+            case KEYBIND_CLIENT_MOVE_MONITOR_NORTH:
+            case KEYBIND_CLIENT_MOVE_MONITOR_SOUTH:
+            case KEYBIND_CLIENT_MOVE_MONITOR_EAST:
+            case KEYBIND_CLIENT_MOVE_MONITOR_WEST:
+            case KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH:
+            case KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH:
+            case KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST:
+            case KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST:
             case KEYBIND_CLIENT_SHADE:
             case KEYBIND_CLIENT_FULLSCREEN:
             case KEYBIND_CLIENT_PIN:

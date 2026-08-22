@@ -344,11 +344,18 @@ static const config_lint_key_td s_schema_prev_next[] = {
     {"next", NULL, 0u}
 };
 
+static const config_lint_key_td s_schema_compass[] = {
+    {"north", NULL, 0u},
+    {"south", NULL, 0u},
+    {"east", NULL, 0u},
+    {"west", NULL, 0u}
+};
+
 static const config_lint_key_td s_schema_window_send_to[] = {
-    {"desktop", s_schema_prev_next,
-        sizeof(s_schema_prev_next) / sizeof(s_schema_prev_next[0])},
-    {"monitor", s_schema_prev_next,
-        sizeof(s_schema_prev_next) / sizeof(s_schema_prev_next[0])}
+    {"desktop", s_schema_compass,
+        sizeof(s_schema_compass) / sizeof(s_schema_compass[0])},
+    {"monitor", s_schema_compass,
+        sizeof(s_schema_compass) / sizeof(s_schema_compass[0])}
 };
 
 static const config_lint_key_td s_schema_kb_window[] = {
@@ -376,8 +383,8 @@ static const config_lint_key_td s_schema_kb_window[] = {
 };
 
 static const config_lint_key_td s_schema_kb_cycle[] = {
-    {"desktop", s_schema_prev_next,
-        sizeof(s_schema_prev_next) / sizeof(s_schema_prev_next[0])},
+    {"desktop", s_schema_compass,
+        sizeof(s_schema_compass) / sizeof(s_schema_compass[0])},
     {"icon", s_schema_prev_next,
         sizeof(s_schema_prev_next) / sizeof(s_schema_prev_next[0])},
     {"window", s_schema_prev_next,
@@ -404,8 +411,8 @@ static const config_lint_key_td s_schema_mouse_window[] = {
 };
 
 static const config_lint_key_td s_schema_mouse_cycle[] = {
-    {"desktop", s_schema_prev_next,
-        sizeof(s_schema_prev_next) / sizeof(s_schema_prev_next[0])}
+    {"desktop", s_schema_compass,
+        sizeof(s_schema_compass) / sizeof(s_schema_compass[0])}
 };
 
 static const config_lint_key_td s_schema_mouse[] = {

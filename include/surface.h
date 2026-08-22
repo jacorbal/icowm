@@ -50,6 +50,7 @@
 #include <adt/cdlist.h> /* Doubly linked circular list */
 
 /* Type includes */
+#include <types/direction.h>
 #include <types/pair.h> /* dimensions_s, size_s */
 
 /* Project includes */
@@ -283,6 +284,46 @@ monitor_td surface_monitor_for_point(const surface_td *surface,
 monitor_td surface_primary_monitor(const surface_td *surface);
 
 /**
+ * @brief Get the surface's own monitor in a given compass direction
+ *        from another one
+ *
+ * Unlike a desktop, a monitor already has a real, physical position
+ * (@p current's own @c x/@c y/@c w/@c h, as RandR reported it), so
+ * no configured layout is needed to answer "which one is to the
+ * north" at all: among every one of @p surface's own monitors whose
+ * center genuinely lies in @p direction from @p current's own
+ * center, whichever one is nearest by that same measure is the
+ * answer, matching what a person looking at the arrangement would
+ * call it even when the monitors involved differ in size or are not
+ * perfectly aligned to one another.  Deliberately never wraps around
+ * to the farthest monitor the opposite way when none lies in
+ * @p direction at all, unlike a desktop's own equivalent, which
+ * optionally does when @c desktops.wrap-at-bounds is enabled:
+ * wrapping a definite, ordered list (a desktop's own circular one)
+ * has one obviously correct meaning, but wrapping a genuinely 2-D
+ * physical arrangement does not (does "east, wrapped" mean the
+ * westmost monitor overall, or only the westmost one still on the
+ * same row?), so no attempt is made to invent one here; a monitor
+ * has no equivalent of @c wrap-at-bounds to make that choice
+ * configurable in the first place, for the same reason.
+ *
+ * @param surface   Pointer to the surface structure
+ * @param current   The monitor to search from; need not itself be
+ *                  one of @p surface's own current monitors (an
+ *                  already-stale caller-held copy is fine, since
+ *                  only its own @c x/@c y/@c w/@c h are read)
+ * @param direction Compass direction to search in
+ *
+ * @return The neighboring monitor, or @p current itself, unchanged,
+ *         if @p surface is @c NULL or no monitor lies in
+ *         @p direction at all
+ *
+ * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
+ */
+monitor_td surface_monitor_direction(const surface_td *surface,
+        monitor_td current, enum compass_direction_e direction);
+
+/**
  * @brief Add a new desktop to the list
  *
  * @param surface Pointer to the surface structure
@@ -324,49 +365,181 @@ desktop_td *surface_desktop_get(surface_td *surface,
         uint32_t desktop_id);
 
 /**
- * @brief Get the previous desktop in the list, optionally cycling
+ * @brief Get a desktop's own row/column position in its surface's
+ *        configured layout
  *
- * Searches for the desktop with the given ID and returns the previous
- * desktop in the circular list of desktops.  If the current desktop is
- * the first in the list, and cycling is enabled, it will return the
- * last desktop.
+ * Always the same reading order the flat desktop list itself already
+ * had before layout existed at all when no @c topology.screens.
+ * desktops layout is configured (the common case, still the
+ * default): @c row @c 0, @c col @c desktop_id.  With one configured,
+ * the position @p desktop_id's own @c orientation/@c corner
+ * combination actually places it at, which is not simply @c row
+ * @c 0, @c col @c desktop_id once @c corner is anything other than
+ * top-left, nor once @c orientation is vertical (see @a s_layout_
+ * row_col's own doc comment, surface/desktops.c, for the fuller
+ * reasoning).
+ *
+ * @param surface    Pointer to the surface structure
+ * @param desktop_id ID of the desktop to locate
+ * @param row_out    Resulting row, updated in place only on a
+ *                   @c true return
+ * @param col_out    Resulting column, updated in place only on a
+ *                   @c true return
+ *
+ * @return @c false if @p surface, its own configuration, or either
+ *         output pointer is unavailable
+ *
+ * @note Complexity: @e O(1)
+ */
+bool surface_desktop_row_col(const surface_td *surface,
+        uint32_t desktop_id, uint32_t *row_out, uint32_t *col_out);
+
+/**
+ * @brief Get the desktop toward the north in the configured layout,
+ *        optionally cycling
+ *
+ * A no-op search (always @c NULL, cycling or not) on a surface with
+ * no @c topology.screens.desktops layout configured, the same as on
+ * any single-row layout: there is no "north" to find at all when
+ * every desktop already sits in the one and only row.  Skips past
+ * any desktop-less gap cell a configured layout's own @c rows @c *
+ * @c columns may legitimately exceed the real desktop count with
+ * (see @c ci_config_load_screens's own doc comment, config/base/
+ * desktops.c), rather than landing on one.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the current desktop
- * @param cycle      If @c true, the function will cycle back to the
- *                   last desktop if the current is the first
+ * @param cycle      If @c true, wraps to the bottom row of the same
+ *                   column when already at the top
  *
- * @return Pointer to the previous desktop or @c NULL if not found or
- *         not invalid
+ * @return Pointer to the desktop toward the north, or @c NULL if
+ *         none exists in that direction
  */
-desktop_td *surface_desktop_prev(surface_td *surface,
+desktop_td *surface_desktop_north(surface_td *surface,
         uint32_t desktop_id, bool cycle);
 
 /**
- * @brief Get the next desktop in the list, optionally cycling
+ * @brief Get the desktop toward the south in the configured layout,
+ *        optionally cycling
  *
- * Searches for the desktop with the given ID and returns the next
- * desktop in the circular list of desktops.  If the current desktop is
- * the last in the list, and cycling is enabled, it will return the
- * first desktop.
+ * A no-op search (always @c NULL, cycling or not) on a surface with
+ * no @c topology.screens.desktops layout configured, the same as on
+ * any single-row layout: there is no "south" to find at all when
+ * every desktop already sits in the one and only row.  Skips past
+ * any desktop-less gap cell the same way @a surface_desktop_north
+ * does.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the current desktop
- * @param cycle      If @c true, the function will cycle to the first
- *                   desktop if the current is the last
+ * @param cycle      If @c true, wraps to the top row of the same
+ *                   column when already at the bottom
  *
- * @return Pointer to the next desktop or @c NULL if not found or not
- *         valid
+ * @return Pointer to the desktop toward the south, or @c NULL if
+ *         none exists in that direction
  */
-desktop_td *surface_desktop_next(surface_td *surface,
+desktop_td *surface_desktop_south(surface_td *surface,
         uint32_t desktop_id, bool cycle);
 
 /**
- * @brief Select the previous desktop, optionally cycling
+ * @brief Get the desktop toward the west in the configured layout,
+ *        optionally cycling
  *
- * Attempts to select the desktop that precedes the current one in the
- * list.  If the current desktop is the first and cycle mode is enabled,
- * it will select the last desktop updating @p desktop_cur.
+ * Searches for the desktop with the given ID and returns the one
+ * toward the west of it: list-previous on a surface with no @c
+ * topology.screens.desktops layout configured (the common case,
+ * still the default), the desktop one cell west along the
+ * configured grid otherwise, whatever @c desktop_id that cell's own
+ * @c orientation/@c corner combination happens to hold (never simply
+ * "@c desktop_id @c - @c 1": once @c corner is anything other than
+ * top-left, a lower ID can sit visually east of a higher one, not
+ * west; see @a s_layout_row_col's own doc comment, surface/
+ * desktops.c, for the full reasoning), skipping past any desktop-
+ * less gap cell along the way.  If the current desktop is the
+ * westmost in its own row, and cycling is enabled, wraps to the
+ * eastmost desktop in that same row.
+ *
+ * @param surface    Pointer to the surface structure
+ * @param desktop_id ID of the current desktop
+ * @param cycle      If @c true, wraps to the eastmost desktop in the
+ *                   same row when already at the westmost
+ *
+ * @return Pointer to the desktop toward the west, or @c NULL if not
+ *         found or not valid
+ */
+desktop_td *surface_desktop_west(surface_td *surface,
+        uint32_t desktop_id, bool cycle);
+
+/**
+ * @brief Get the desktop toward the east in the configured layout,
+ *        optionally cycling
+ *
+ * Searches for the desktop with the given ID and returns the one
+ * toward the east of it: list-next on a surface with no @c
+ * topology.screens.desktops layout configured (the common case,
+ * still the default), the desktop one cell east along the
+ * configured grid otherwise (see @a surface_desktop_west's own doc
+ * comment for the fuller reasoning on why this is not simply
+ * "@c desktop_id @c + @c 1"), skipping past any desktop-less gap
+ * cell along the way.  If the current desktop is the eastmost in its
+ * own row, and cycling is enabled, wraps to the westmost desktop in
+ * that same row.
+ *
+ * @param surface    Pointer to the surface structure
+ * @param desktop_id ID of the current desktop
+ * @param cycle      If @c true, wraps to the westmost desktop in the
+ *                   same row when already at the eastmost
+ *
+ * @return Pointer to the desktop toward the east, or @c NULL if not
+ *         found or not valid
+ */
+desktop_td *surface_desktop_east(surface_td *surface,
+        uint32_t desktop_id, bool cycle);
+
+/**
+ * @brief Select the desktop toward the north, optionally cycling
+ *
+ * Attempts to select the desktop toward the north of the current one
+ * (see @a surface_desktop_north's own doc comment).  Updates
+ * @p desktop_cur only on success.
+ *
+ * @param surface Pointer to the surface structure
+ * @param cycle   If @c true, wraps to the bottom row of the same
+ *                column when already at the top
+ *
+ * @return Status of the selection
+ * @retval  0 Success
+ * @retval  1 No desktop to the north found
+ * @retval -1 Invalid surface or no desktops
+ */
+int surface_desktop_select_north(surface_td *surface, bool cycle);
+
+/**
+ * @brief Select the desktop toward the south, optionally cycling
+ *
+ * Attempts to select the desktop toward the south of the current one
+ * (see @a surface_desktop_south's own doc comment).  Updates
+ * @p desktop_cur only on success.
+ *
+ * @param surface Pointer to the surface structure
+ * @param cycle   If @c true, wraps to the top row of the same
+ *                column when already at the bottom
+ *
+ * @return Status of the selection
+ * @retval  0 Success
+ * @retval  1 No desktop to the south found
+ * @retval -1 Invalid surface or no desktops
+ */
+int surface_desktop_select_south(surface_td *surface, bool cycle);
+
+/**
+ * @brief Select the desktop toward the west (list-previous),
+ *        optionally cycling
+ *
+ * Attempts to select the desktop toward the west of the current one
+ * (see @a surface_desktop_west's own doc comment for what "west"
+ * means with and without a configured layout).  If the current
+ * desktop is the first and cycle mode is enabled, it will select the
+ * last desktop, updating @p desktop_cur.
  *
  * @param surface Pointer to the surface structure
  * @param cycle   If @c true, will cycle to the last desktop if the
@@ -374,17 +547,20 @@ desktop_td *surface_desktop_next(surface_td *surface,
  *
  * @return Status of the selection
  * @retval  0 Success
- * @retval  1 No previous desktop found
+ * @retval  1 No desktop to the west found
  * @retval -1 Invalid surface or no desktops
  */
-int surface_desktop_select_prev(surface_td *surface, bool cycle);
+int surface_desktop_select_west(surface_td *surface, bool cycle);
 
 /**
- * @brief Select the next desktop, optionally cycling
+ * @brief Select the desktop toward the east (list-next), optionally
+ *        cycling
  *
- * Attempts to select the desktop that follows the current one in the
- * list.  If the current desktop is the last and cycle mode is enabled,
- * it will select the first desktop updating @p desktop_cur.
+ * Attempts to select the desktop toward the east of the current one
+ * (see @a surface_desktop_east's own doc comment for what "east"
+ * means with and without a configured layout).  If the current
+ * desktop is the last and cycle mode is enabled, it will select the
+ * first desktop, updating @p desktop_cur.
  *
  * @param surface Pointer to the surface structure
  * @param cycle   If @c true, will cycle to the first desktop if the
@@ -392,10 +568,10 @@ int surface_desktop_select_prev(surface_td *surface, bool cycle);
  *
  * @return Status of the selection
  * @retval  0 Success
- * @retval  1 No next desktop found
+ * @retval  1 No desktop to the east found
  * @retval -1 Invalid surface or no desktops
  */
-int surface_desktop_select_next(surface_td *surface, bool cycle);
+int surface_desktop_select_east(surface_td *surface, bool cycle);
 
 /**
  * @brief Select a specific desktop by its ID

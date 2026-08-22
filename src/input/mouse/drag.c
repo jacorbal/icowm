@@ -100,7 +100,7 @@ drag_state_td s_drag = {
     .last_root_y = 0,
     .has_last_pos = false,
     .warp_pending = false,
-    .warp_is_left = false,
+    .warp_direction = COMPASS_NORTH,
     .warp_due = {0},
     .root = XCB_WINDOW_NONE,
     .solid_drag = true,
@@ -495,7 +495,8 @@ void drag_update(xcb_connection_t *connection,
         } else {
             drag_overlay_hide(connection);
         }
-        drag_warp_edge_check((int16_t) root_pos.x);
+        drag_warp_edge_check((int16_t) root_pos.x,
+                (int16_t) root_pos.y);
         xcb_flush(connection);
     } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
         bool show_geom = client->config != NULL &&
@@ -545,7 +546,8 @@ void drag_update(xcb_connection_t *connection,
         } else {
             drag_overlay_hide(connection);
         }
-        drag_warp_edge_check((int16_t) root_pos.x);
+        drag_warp_edge_check((int16_t) root_pos.x,
+                (int16_t) root_pos.y);
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
         bool show_geom = client->config != NULL &&
             client->config->base.windows.show_geom;

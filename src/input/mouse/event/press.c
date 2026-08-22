@@ -76,6 +76,7 @@
 
 /* CMD includes */
 #include <cmds/client/basic.h>
+#include <cmds/client/geom.h>
 
 /* Local includes */
 #include <input/mouse/drag.h>
@@ -445,24 +446,32 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
 }
 
 
-/* Scroll-binding handling (shade/unshade on titlebar, desktop switch) */
+/* Scroll-binding handling (shade/unshade or maximize/restore on
+ * titlebar, desktop switch) */
 
 /**
- * @brief Handle a scroll-wheel event matched to a @c DESKTOP_PREV /
- *        @c DESKTOP_NEXT binding
+ * @brief Handle a scroll-wheel event matched to a @c DESKTOP_NORTH /
+ *        @c _SOUTH / @c _EAST / @c _WEST binding
  *
- * When the scroll is over a client's titlebar, @c DESKTOP_PREV shades
- * the window (and moves focus to the next client), while
- * @c DESKTOP_NEXT unshades it.  When the scroll is over the root or
- * over a client's content area, the desktop switch happens right away,
- * synchronously.
+ * When the scroll is over a client's titlebar: @c DESKTOP_WEST (the
+ * exact same gesture @c DESKTOP_PREV always was) shades the window,
+ * transferring focus away from it; @c DESKTOP_EAST (the exact same
+ * gesture @c DESKTOP_NEXT always was) unshades it, regaining focus;
+ * @c DESKTOP_NORTH maximizes it, only when not already fully
+ * maximized; @c DESKTOP_SOUTH restores it from fully maximized, only
+ * when it currently is.  Maximizing or restoring never moves focus
+ * away the way shading does: the client stays exactly as
+ * interactable, and exactly as focused, either side of that one
+ * change.  When the scroll is over the root or over a client's
+ * content area, the desktop switch happens right away,
+ * synchronously, in whichever of the four directions was scrolled.
  *
  * @param connection Active XCB connection
  * @param surfaces   Full surface list
  * @param event      Incoming button-press event
  * @param client     Client under the pointer, or @c NULL
  * @param desktop    Desktop owning @p client, or @c NULL
- * @param type       @c MOUSEBIND_DESKTOP_PREV or @c MOUSEBIND_DESKTOP_NEXT
+ * @param type       One of the four @c MOUSEBIND_DESKTOP_* values
  * @param config     Active configuration
  */
 static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
@@ -494,8 +503,36 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
         }
 
         if (on_titlebar) {
-            if (type == MOUSEBIND_DESKTOP_PREV) {
-                /* Scroll-up on titlebar: shade, transferring focus
+            if (type == MOUSEBIND_DESKTOP_NORTH) {
+                /* Scroll north on titlebar: maximize, only when not
+                 * already fully maximized; never moves focus, the
+                 * client stays exactly as interactable either
+                 * side of this */
+                if (!client_is_maximized(client)) {
+                    ccmd_client_maximize(client);
+                    if (desktop != NULL) {
+                        desktop->is_outdated = true;
+                    }
+                    if (surface != NULL) {
+                        surface->is_outdated = true;
+                    }
+                }
+            } else if (type == MOUSEBIND_DESKTOP_SOUTH) {
+                /* Scroll south on titlebar: restore from fully
+                 * maximized (the same toggle 'north' above uses,
+                 * called only when it would actually restore, not
+                 * maximize), only when currently maximized */
+                if (client_is_maximized(client)) {
+                    ccmd_client_maximize(client);
+                    if (desktop != NULL) {
+                        desktop->is_outdated = true;
+                    }
+                    if (surface != NULL) {
+                        surface->is_outdated = true;
+                    }
+                }
+            } else if (type == MOUSEBIND_DESKTOP_WEST) {
+                /* Scroll west on titlebar: shade, transferring focus
                  * only when this client was the one actually
                  * holding it; shading an already-inactive client
                  * must leave whichever other client currently has
@@ -551,8 +588,8 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
                     if (desktop != NULL) { desktop->is_outdated = true; }
                     if (surface != NULL) { surface->is_outdated = true; }
                 }
-            } else { /* MOUSEBIND_DESKTOP_NEXT */
-                /* Scroll-down on titlebar: unshade, regaining focus
+            } else { /* MOUSEBIND_DESKTOP_EAST */
+                /* Scroll east on titlebar: unshade, regaining focus
                  * only when this client was the one actually
                  * holding it; unshading an already-inactive client
                  * must leave whichever other client currently has
@@ -590,10 +627,34 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
 
     /* No client under pointer: switch desktop right away */
     if (surface != NULL) {
-        if (type == MOUSEBIND_DESKTOP_NEXT) {
-            enact_surface_desktop_switch_next(surface);
-        } else {
-            enact_surface_desktop_switch_prev(surface);
+        switch (type) {
+        case MOUSEBIND_DESKTOP_NORTH:
+            enact_surface_desktop_switch_north(surface);
+            break;
+        case MOUSEBIND_DESKTOP_SOUTH:
+            enact_surface_desktop_switch_south(surface);
+            break;
+        case MOUSEBIND_DESKTOP_EAST:
+            enact_surface_desktop_switch_east(surface);
+            break;
+        case MOUSEBIND_DESKTOP_WEST:
+            enact_surface_desktop_switch_west(surface);
+            break;
+        case MOUSEBIND_NONE:
+        case MOUSEBIND_MOVE:
+        case MOUSEBIND_RESIZE:
+        case MOUSEBIND_LOWER:
+            /* Never actually reached: this whole function is only
+             * ever called for one of the four desktop-scroll types
+             * above, gated by its own caller (see 'type ==
+             * MOUSEBIND_DESKTOP_NORTH || ...' just before the call
+             * to 's_mouse_handle_scroll_binding').  Listed here
+             * anyway, one per value rather than a catch-all
+             * 'default', purely so this switch stays exhaustive
+             * under '-Wswitch-enum' the same way every other switch
+             * on a keybind/mousebind type in this project already
+             * does. */
+            break;
         }
     }
 
@@ -1218,9 +1279,12 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
         }
     }
 
-    /* Step 5: scroll bindings (desktop prev/next / titlebar shade) */
-    if (type == MOUSEBIND_DESKTOP_NEXT ||
-            type == MOUSEBIND_DESKTOP_PREV) {
+    /* Step 5: scroll bindings (desktop switch / titlebar shade or
+     * maximize) */
+    if (type == MOUSEBIND_DESKTOP_NORTH ||
+            type == MOUSEBIND_DESKTOP_SOUTH ||
+            type == MOUSEBIND_DESKTOP_EAST ||
+            type == MOUSEBIND_DESKTOP_WEST) {
         s_mouse_handle_scroll_binding(connection, surfaces, event,
                 client, desktop, type, config);
         return;

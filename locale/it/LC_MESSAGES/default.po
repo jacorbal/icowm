@@ -287,21 +287,37 @@ msgstr "Disponi"
 msgid "Info"
 msgstr "Informazioni"
 
-#: include/defs/uistr.h:161;
-msgid "Previous monitor"
-msgstr "Monitor precedente"
+#: include/defs/uistr.h:169;
+msgid "Send to monitor to the north"
+msgstr "Invia al monitor a nord"
 
-#: include/defs/uistr.h:162;
-msgid "Next monitor"
-msgstr "Monitor successivo"
+#: include/defs/uistr.h:170;
+msgid "Send to monitor to the south"
+msgstr "Invia al monitor a sud"
 
-#: include/defs/uistr.h:163;
-msgid "Send to previous desktop"
-msgstr "Invia al desktop precedente"
+#: include/defs/uistr.h:171;
+msgid "Send to monitor to the east"
+msgstr "Invia al monitor a est"
 
-#: include/defs/uistr.h:164;
-msgid "Send to next desktop"
-msgstr "Invia al desktop successivo"
+#: include/defs/uistr.h:172;
+msgid "Send to monitor to the west"
+msgstr "Invia al monitor a ovest"
+
+#: include/defs/uistr.h:171;
+msgid "Send to desktop to the north"
+msgstr "Invia al desktop a nord"
+
+#: include/defs/uistr.h:172;
+msgid "Send to desktop to the south"
+msgstr "Invia al desktop a sud"
+
+#: include/defs/uistr.h:173;
+msgid "Send to desktop to the east"
+msgstr "Invia al desktop a est"
+
+#: include/defs/uistr.h:174;
+msgid "Send to desktop to the west"
+msgstr "Invia al desktop a ovest"
 
 #: include/defs/uistr.h:162;
 msgid "Pin"

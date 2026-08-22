@@ -139,31 +139,69 @@ void enact_client_move(client_td *client, struct position_s pos);
 void enact_client_center(client_td *client);
 
 /**
- * @brief Move the client to the next monitor on its surface
+ * @brief Move the client to the monitor north of the current one on
+ *        its surface
+ *
+ * A no-op on a surface with one monitor or none, or when no monitor
+ * lies to the north at all; see @a ccmd_client_move_to_monitor_
+ * north's own doc comment, cmds/client/geom.h, for the fuller
+ * reasoning, including why this never wraps around either.
  *
  * @param client Client to move
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_move_next_monitor(client_td *client);
+void enact_client_move_monitor_north(client_td *client);
 
 /**
- * @brief Move the client to the previous monitor on its surface
+ * @brief Move the client to the monitor south of the current one on
+ *        its surface
+ *
+ * See @a enact_client_move_monitor_north's own doc comment for the
+ * fuller reasoning.
  *
  * @param client Client to move
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_move_prev_monitor(client_td *client);
+void enact_client_move_monitor_south(client_td *client);
 
 /**
- * @brief Carry the client to the previous desktop, following it
- *        there
+ * @brief Move the client to the monitor east of the current one on
+ *        its surface
+ *
+ * See @a enact_client_move_monitor_north's own doc comment for the
+ * fuller reasoning.
+ *
+ * @param client Client to move
+ *
+ * @note Complexity: @e O(1)
+ */
+void enact_client_move_monitor_east(client_td *client);
+
+/**
+ * @brief Move the client to the monitor west of the current one on
+ *        its surface
+ *
+ * See @a enact_client_move_monitor_north's own doc comment for the
+ * fuller reasoning.
+ *
+ * @param client Client to move
+ *
+ * @note Complexity: @e O(1)
+ */
+void enact_client_move_monitor_west(client_td *client);
+
+/**
+ * @brief Carry the client to the desktop north of the current one,
+ *        following it there
  *
  * A silent no-op when there is no different desktop to move to at
- * all (only one exists, or wrapping is disabled and this is already
- * the first one); see @c s_enact_client_send_to_desktop's own doc
- * comment, enact/client.c, for the fuller reasoning.
+ * all (only one exists, wrapping is disabled and this is already
+ * the topmost row, or no @c topology.screens.desktops layout is
+ * configured at all, so there is no second row in the first place);
+ * see @c s_enact_client_send_to_desktop's own doc comment, enact/
+ * client.c, for the fuller reasoning.
  *
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
@@ -176,16 +214,19 @@ void enact_client_move_prev_monitor(client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the client's own top parent's own desktop
  */
-void enact_client_send_to_desktop_prev(client_td *client,
+void enact_client_send_to_desktop_north(client_td *client,
         list_td *surfaces, const config_td *config);
 
 /**
- * @brief Carry the client to the next desktop, following it there
+ * @brief Carry the client to the desktop south of the current one,
+ *        following it there
  *
  * A silent no-op when there is no different desktop to move to at
- * all (only one exists, or wrapping is disabled and this is already
- * the last one); see @c s_enact_client_send_to_desktop's own doc
- * comment, enact/client.c, for the fuller reasoning.
+ * all (only one exists, wrapping is disabled and this is already
+ * the bottommost row, or no @c topology.screens.desktops layout is
+ * configured at all, so there is no second row in the first place);
+ * see @c s_enact_client_send_to_desktop's own doc comment, enact/
+ * client.c, for the fuller reasoning.
  *
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
@@ -198,7 +239,55 @@ void enact_client_send_to_desktop_prev(client_td *client,
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the client's own top parent's own desktop
  */
-void enact_client_send_to_desktop_next(client_td *client,
+void enact_client_send_to_desktop_south(client_td *client,
+        list_td *surfaces, const config_td *config);
+
+/**
+ * @brief Carry the client to the desktop east of the current one,
+ *        following it there
+ *
+ * A silent no-op when there is no different desktop to move to at
+ * all (only one exists, or wrapping is disabled and this is already
+ * the eastmost one in its own row); see @c s_enact_client_send_to_
+ * desktop's own doc comment, enact/client.c, for the fuller
+ * reasoning.
+ *
+ * @param client   Client to move
+ * @param surfaces Full surface list, passed through to @c focus_apply
+ *                 so this client, not whichever one the target
+ *                 desktop's own switch just restored on its own,
+ *                 ends up genuinely focused there
+ * @param config   Active configuration, passed through to @c
+ *                 focus_apply
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the client's own top parent's own desktop
+ */
+void enact_client_send_to_desktop_east(client_td *client,
+        list_td *surfaces, const config_td *config);
+
+/**
+ * @brief Carry the client to the desktop west of the current one,
+ *        following it there
+ *
+ * A silent no-op when there is no different desktop to move to at
+ * all (only one exists, or wrapping is disabled and this is already
+ * the westmost one in its own row); see @c s_enact_client_send_to_
+ * desktop's own doc comment, enact/client.c, for the fuller
+ * reasoning.
+ *
+ * @param client   Client to move
+ * @param surfaces Full surface list, passed through to @c focus_apply
+ *                 so this client, not whichever one the target
+ *                 desktop's own switch just restored on its own,
+ *                 ends up genuinely focused there
+ * @param config   Active configuration, passed through to @c
+ *                 focus_apply
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the client's own top parent's own desktop
+ */
+void enact_client_send_to_desktop_west(client_td *client,
         list_td *surfaces, const config_td *config);
 
 /**
@@ -668,24 +757,48 @@ void enact_surface_desktop_switch(surface_td *surface,
         uint32_t desktop_id);
 
 /**
- * @brief Switch the surface to the next desktop, in cyclic order
+ * @brief Switch the surface to the desktop north of the current
+ *        one, in cyclic order
  *
  * @param surface Surface to switch
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       desktops involved
  */
-void enact_surface_desktop_switch_next(surface_td *surface);
+void enact_surface_desktop_switch_north(surface_td *surface);
 
 /**
- * @brief Switch the surface to the previous desktop, in cyclic order
+ * @brief Switch the surface to the desktop south of the current
+ *        one, in cyclic order
  *
  * @param surface Surface to switch
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       desktops involved
  */
-void enact_surface_desktop_switch_prev(surface_td *surface);
+void enact_surface_desktop_switch_south(surface_td *surface);
+
+/**
+ * @brief Switch the surface to the desktop east of the current
+ *        one, in cyclic order
+ *
+ * @param surface Surface to switch
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktops involved
+ */
+void enact_surface_desktop_switch_east(surface_td *surface);
+
+/**
+ * @brief Switch the surface to the desktop west of the current
+ *        one, in cyclic order
+ *
+ * @param surface Surface to switch
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktops involved
+ */
+void enact_surface_desktop_switch_west(surface_td *surface);
 
 /**
  * @brief Add a new, empty desktop to the end of the surface's own

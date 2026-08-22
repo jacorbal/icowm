@@ -108,12 +108,18 @@ void config_set_default_bindings_values(
             sizeof(config_bindings->keyboard.window.layer));
     safe_strncpy(config_bindings->keyboard.window.shade,
             "modc+mod1+s", sizeof(config_bindings->keyboard.window.shade));
-    safe_strncpy(config_bindings->keyboard.cycle.desktop.prev,
-            "modc+mod1+Left",
-            sizeof(config_bindings->keyboard.cycle.desktop.prev));
-    safe_strncpy(config_bindings->keyboard.cycle.desktop.next,
+    safe_strncpy(config_bindings->keyboard.cycle.desktop.north,
+            "modc+mod1+Up",
+            sizeof(config_bindings->keyboard.cycle.desktop.north));
+    safe_strncpy(config_bindings->keyboard.cycle.desktop.south,
+            "modc+mod1+Down",
+            sizeof(config_bindings->keyboard.cycle.desktop.south));
+    safe_strncpy(config_bindings->keyboard.cycle.desktop.east,
             "modc+mod1+Right",
-            sizeof(config_bindings->keyboard.cycle.desktop.next));
+            sizeof(config_bindings->keyboard.cycle.desktop.east));
+    safe_strncpy(config_bindings->keyboard.cycle.desktop.west,
+            "modc+mod1+Left",
+            sizeof(config_bindings->keyboard.cycle.desktop.west));
     safe_strncpy(config_bindings->keyboard.cycle.icon.prev,
             "modc+mod1+mods+Tab",
             sizeof(config_bindings->keyboard.cycle.icon.prev));
@@ -234,22 +240,38 @@ void config_set_default_bindings_values(
     safe_strncpy(config_bindings->keyboard.window.resize.down,
             "modc+mod1+mods+j",
             sizeof(config_bindings->keyboard.window.resize.down));
-    safe_strncpy(config_bindings->keyboard.window.send_to.desktop.prev,
-            "modc+mod1+mods+Left",
+    safe_strncpy(config_bindings->keyboard.window.send_to.desktop.north,
+            "modc+mod1+mods+Up",
             sizeof(config_bindings->keyboard.window.send_to.
-                    desktop.prev));
-    safe_strncpy(config_bindings->keyboard.window.send_to.desktop.next,
+                    desktop.north));
+    safe_strncpy(config_bindings->keyboard.window.send_to.desktop.south,
+            "modc+mod1+mods+Down",
+            sizeof(config_bindings->keyboard.window.send_to.
+                    desktop.south));
+    safe_strncpy(config_bindings->keyboard.window.send_to.desktop.east,
             "modc+mod1+mods+Right",
             sizeof(config_bindings->keyboard.window.send_to.
-                    desktop.next));
-    safe_strncpy(config_bindings->keyboard.window.send_to.monitor.prev,
-            "modc+mod1+mod4+mods+Left",
+                    desktop.east));
+    safe_strncpy(config_bindings->keyboard.window.send_to.desktop.west,
+            "modc+mod1+mods+Left",
             sizeof(config_bindings->keyboard.window.send_to.
-                    monitor.prev));
-    safe_strncpy(config_bindings->keyboard.window.send_to.monitor.next,
+                    desktop.west));
+    safe_strncpy(config_bindings->keyboard.window.send_to.monitor.north,
+            "modc+mod1+mod4+mods+Up",
+            sizeof(config_bindings->keyboard.window.send_to.
+                    monitor.north));
+    safe_strncpy(config_bindings->keyboard.window.send_to.monitor.south,
+            "modc+mod1+mod4+mods+Down",
+            sizeof(config_bindings->keyboard.window.send_to.
+                    monitor.south));
+    safe_strncpy(config_bindings->keyboard.window.send_to.monitor.east,
             "modc+mod1+mod4+mods+Right",
             sizeof(config_bindings->keyboard.window.send_to.
-                    monitor.next));
+                    monitor.east));
+    safe_strncpy(config_bindings->keyboard.window.send_to.monitor.west,
+            "modc+mod1+mod4+mods+Left",
+            sizeof(config_bindings->keyboard.window.send_to.
+                    monitor.west));
 
     /* Predetermined configuration for mouse bindings */
     LOGGER_TRACE("Setting default mouse bindings", L_NARG);
@@ -259,10 +281,16 @@ void config_set_default_bindings_values(
             "mod1+button2", sizeof(config_bindings->mouse.window.lower));
     safe_strncpy(config_bindings->mouse.window.resize,
             "mod1+button3", sizeof(config_bindings->mouse.window.resize));
-    safe_strncpy(config_bindings->mouse.cycle.desktop.prev,
-            "button4", sizeof(config_bindings->mouse.cycle.desktop.prev));
-    safe_strncpy(config_bindings->mouse.cycle.desktop.next,
-            "button5", sizeof(config_bindings->mouse.cycle.desktop.next));
+    safe_strncpy(config_bindings->mouse.cycle.desktop.north,
+            "mods+button4",
+            sizeof(config_bindings->mouse.cycle.desktop.north));
+    safe_strncpy(config_bindings->mouse.cycle.desktop.south,
+            "mods+button5",
+            sizeof(config_bindings->mouse.cycle.desktop.south));
+    safe_strncpy(config_bindings->mouse.cycle.desktop.east,
+            "button5", sizeof(config_bindings->mouse.cycle.desktop.east));
+    safe_strncpy(config_bindings->mouse.cycle.desktop.west,
+            "button4", sizeof(config_bindings->mouse.cycle.desktop.west));
 }
 
 
@@ -520,26 +548,42 @@ int config_load_bindings(const char *filename,
                 send_to_desktop = cJSON_GetObjectItem(window_send_to,
                         "desktop");
                 if (send_to_desktop != NULL) {
-                    json_load_string(send_to_desktop, "prev",
+                    json_load_string(send_to_desktop, "north",
                         config_bindings->keyboard.window.send_to.
-                            desktop.prev,
+                            desktop.north,
                             CONFIG_MAX_LENGTH_BINDING);
-                    json_load_string(send_to_desktop, "next",
+                    json_load_string(send_to_desktop, "south",
                         config_bindings->keyboard.window.send_to.
-                            desktop.next,
+                            desktop.south,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(send_to_desktop, "east",
+                        config_bindings->keyboard.window.send_to.
+                            desktop.east,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(send_to_desktop, "west",
+                        config_bindings->keyboard.window.send_to.
+                            desktop.west,
                             CONFIG_MAX_LENGTH_BINDING);
                 }
 
                 send_to_monitor = cJSON_GetObjectItem(window_send_to,
                         "monitor");
                 if (send_to_monitor != NULL) {
-                    json_load_string(send_to_monitor, "prev",
+                    json_load_string(send_to_monitor, "north",
                         config_bindings->keyboard.window.send_to.
-                            monitor.prev,
+                            monitor.north,
                             CONFIG_MAX_LENGTH_BINDING);
-                    json_load_string(send_to_monitor, "next",
+                    json_load_string(send_to_monitor, "south",
                         config_bindings->keyboard.window.send_to.
-                            monitor.next,
+                            monitor.south,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(send_to_monitor, "east",
+                        config_bindings->keyboard.window.send_to.
+                            monitor.east,
+                            CONFIG_MAX_LENGTH_BINDING);
+                    json_load_string(send_to_monitor, "west",
+                        config_bindings->keyboard.window.send_to.
+                            monitor.west,
                             CONFIG_MAX_LENGTH_BINDING);
                 }
             }
@@ -554,11 +598,17 @@ int config_load_bindings(const char *filename,
 
             cdesktop = cJSON_GetObjectItem(cycle, "desktop");
             if (cdesktop) {
-                json_load_string(cdesktop, "prev",
-                        config_bindings->keyboard.cycle.desktop.prev,
+                json_load_string(cdesktop, "north",
+                        config_bindings->keyboard.cycle.desktop.north,
                         CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(cdesktop, "next",
-                        config_bindings->keyboard.cycle.desktop.next,
+                json_load_string(cdesktop, "south",
+                        config_bindings->keyboard.cycle.desktop.south,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(cdesktop, "east",
+                        config_bindings->keyboard.cycle.desktop.east,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(cdesktop, "west",
+                        config_bindings->keyboard.cycle.desktop.west,
                         CONFIG_MAX_LENGTH_BINDING);
             }
 
@@ -610,11 +660,17 @@ int config_load_bindings(const char *filename,
         if (mcycle) {
             cJSON *cdesktop = cJSON_GetObjectItem(mcycle, "desktop");
             if (cdesktop) {
-                json_load_string(cdesktop, "prev",
-                        config_bindings->mouse.cycle.desktop.prev,
+                json_load_string(cdesktop, "north",
+                        config_bindings->mouse.cycle.desktop.north,
                         CONFIG_MAX_LENGTH_BINDING);
-                json_load_string(cdesktop, "next",
-                        config_bindings->mouse.cycle.desktop.next,
+                json_load_string(cdesktop, "south",
+                        config_bindings->mouse.cycle.desktop.south,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(cdesktop, "east",
+                        config_bindings->mouse.cycle.desktop.east,
+                        CONFIG_MAX_LENGTH_BINDING);
+                json_load_string(cdesktop, "west",
+                        config_bindings->mouse.cycle.desktop.west,
                         CONFIG_MAX_LENGTH_BINDING);
             }
         }

@@ -189,7 +189,7 @@ msgstr "Iniciar"
 
 #: include/defs/uistr.h:130;
 msgid "Window"
-msgstr "Xanela"
+msgstr "Fiestra"
 
 #: include/defs/uistr.h:131;
 msgid "Cycle"
@@ -287,21 +287,37 @@ msgstr "Organizar"
 msgid "Info"
 msgstr "Información"
 
-#: include/defs/uistr.h:161;
-msgid "Previous monitor"
-msgstr "Anterior monitor"
+#: include/defs/uistr.h:169;
+msgid "Send to monitor to the north"
+msgstr "Enviar ao monitor do norte"
 
-#: include/defs/uistr.h:162;
-msgid "Next monitor"
-msgstr "Seguinte monitor"
+#: include/defs/uistr.h:170;
+msgid "Send to monitor to the south"
+msgstr "Enviar ao monitor do sur"
 
-#: include/defs/uistr.h:163;
-msgid "Send to previous desktop"
-msgstr "Enviar ao escritorio anterior"
+#: include/defs/uistr.h:171;
+msgid "Send to monitor to the east"
+msgstr "Enviar ao monitor do leste"
 
-#: include/defs/uistr.h:164;
-msgid "Send to next desktop"
-msgstr "Enviar ao escritorio seguinte"
+#: include/defs/uistr.h:172;
+msgid "Send to monitor to the west"
+msgstr "Enviar ao monitor do oeste"
+
+#: include/defs/uistr.h:171;
+msgid "Send to desktop to the north"
+msgstr "Enviar ao escritorio do norte"
+
+#: include/defs/uistr.h:172;
+msgid "Send to desktop to the south"
+msgstr "Enviar ao escritorio do sur"
+
+#: include/defs/uistr.h:173;
+msgid "Send to desktop to the east"
+msgstr "Enviar ao escritorio do leste"
+
+#: include/defs/uistr.h:174;
+msgid "Send to desktop to the west"
+msgstr "Enviar ao escritorio do oeste"
 
 #: include/defs/uistr.h:162;
 msgid "Pin"
@@ -325,7 +341,7 @@ msgstr "Iconas"
 
 #: include/defs/uistr.h:172;
 msgid "Windows"
-msgstr "Xanelas"
+msgstr "Fiestras"
 
 #: include/defs/uistr.h:186;
 msgid "Go to desktop 0-9: %.*s<0-9>"

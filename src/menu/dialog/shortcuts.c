@@ -371,22 +371,41 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.keyboard.window.maximize);
     if (surface->monitor_count > 1u) {
         s_append_binding(text, sizeof(text), &offset,
-                _(STR_SHORTCUTS_PREV_MONITOR),
-                config->bindings.keyboard.window.send_to.monitor.prev);
+                _(STR_SHORTCUTS_MONITOR_NORTH),
+                config->bindings.keyboard.window.send_to.monitor.north);
         s_append_binding(text, sizeof(text), &offset,
-                _(STR_SHORTCUTS_NEXT_MONITOR),
-                config->bindings.keyboard.window.send_to.monitor.next);
+                _(STR_SHORTCUTS_MONITOR_SOUTH),
+                config->bindings.keyboard.window.send_to.monitor.south);
+        s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_MONITOR_EAST),
+                config->bindings.keyboard.window.send_to.monitor.east);
+        s_append_binding(text, sizeof(text), &offset,
+                _(STR_SHORTCUTS_MONITOR_WEST),
+                config->bindings.keyboard.window.send_to.monitor.west);
     }
     if (surface->desktop_count > 1u) {
         s_append_binding(text, sizeof(text), &offset,
                 _(STR_SHORTCUTS_PIN),
                 config->bindings.keyboard.window.pin);
+        if (surface->config != NULL &&
+                surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
+                surface->config->base.screens[surface->id]
+                    .desktop_layout.rows > 1u) {
+            s_append_binding(text, sizeof(text), &offset,
+                    _(STR_SHORTCUTS_SEND_TO_DESKTOP_NORTH),
+                    config->bindings.keyboard.window.send_to.
+                        desktop.north);
+            s_append_binding(text, sizeof(text), &offset,
+                    _(STR_SHORTCUTS_SEND_TO_DESKTOP_SOUTH),
+                    config->bindings.keyboard.window.send_to.
+                        desktop.south);
+        }
         s_append_binding(text, sizeof(text), &offset,
-                _(STR_SHORTCUTS_SEND_TO_DESKTOP_PREV),
-                config->bindings.keyboard.window.send_to.desktop.prev);
+                _(STR_SHORTCUTS_SEND_TO_DESKTOP_EAST),
+                config->bindings.keyboard.window.send_to.desktop.east);
         s_append_binding(text, sizeof(text), &offset,
-                _(STR_SHORTCUTS_SEND_TO_DESKTOP_NEXT),
-                config->bindings.keyboard.window.send_to.desktop.next);
+                _(STR_SHORTCUTS_SEND_TO_DESKTOP_WEST),
+                config->bindings.keyboard.window.send_to.desktop.west);
     }
     s_append_binding(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_SHADE),
@@ -426,13 +445,31 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     s_append_line(text, sizeof(text), &offset, "[%s]",
             _(STR_SHORTCUTS_HEADER_CYCLE));
     if (surface->desktop_count > 1u) {
-        s_append_group(text, sizeof(text), &offset,
-                _(STR_SHORTCUTS_DESKTOPS),
-                (const char *const []) {"prev", "next"},
-                (const char *const []) {
-                    config->bindings.keyboard.cycle.desktop.prev,
-                    config->bindings.keyboard.cycle.desktop.next
-                }, 2u);
+        bool has_rows = surface->config != NULL &&
+            surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
+            surface->config->base.screens[surface->id]
+                .desktop_layout.rows > 1u;
+
+        if (has_rows) {
+            s_append_group(text, sizeof(text), &offset,
+                    _(STR_SHORTCUTS_DESKTOPS),
+                    (const char *const [])
+                        {"north", "south", "east", "west"},
+                    (const char *const []) {
+                        config->bindings.keyboard.cycle.desktop.north,
+                        config->bindings.keyboard.cycle.desktop.south,
+                        config->bindings.keyboard.cycle.desktop.east,
+                        config->bindings.keyboard.cycle.desktop.west
+                    }, 4u);
+        } else {
+            s_append_group(text, sizeof(text), &offset,
+                    _(STR_SHORTCUTS_DESKTOPS),
+                    (const char *const []) {"east", "west"},
+                    (const char *const []) {
+                        config->bindings.keyboard.cycle.desktop.east,
+                        config->bindings.keyboard.cycle.desktop.west
+                    }, 2u);
+        }
     }
     s_append_group(text, sizeof(text), &offset,
             _(STR_SHORTCUTS_ICONS),

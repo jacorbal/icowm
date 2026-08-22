@@ -16,6 +16,9 @@
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
 
+/* Type includes */
+#include <types/direction.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -92,25 +95,26 @@ void scmd_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
 
 
 /**
- * @brief Switch a surface to the next or previous desktop, in
- *        cyclic order
+ * @brief Switch a surface to the desktop in a given compass
+ *        direction, in cyclic order
  *
- * Shared by @c scmd_surface_desktop_switch_next and @c scmd_surface_
- * desktop_switch_prev below, which only differ in direction: which
- * of @c surface_desktop_select_next/prev to call, and the log
+ * Shared by @c scmd_surface_desktop_switch_north and its three
+ * siblings below, which only differ in direction: which of @c
+ * surface_desktop_select_north/south/east/west to call, and the log
  * message's own wording.
  *
- * @param surface Surface to switch
- * @param forward @c true to advance to the next desktop, @c false to
- *                go back to the previous one
+ * @param surface   Surface to switch
+ * @param direction Compass direction to switch toward
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the desktops involved
  */
-static void s_switch_cyclic(surface_td *surface, bool forward)
+static void s_switch_cyclic(surface_td *surface,
+        enum compass_direction_e direction)
 {
     uint32_t old_id;
     bool cycle;
+    const char *direction_label;
 
     if (surface == NULL) {
         return;
@@ -120,14 +124,37 @@ static void s_switch_cyclic(surface_td *surface, bool forward)
     cycle = (surface->config != NULL)
         ? surface->config->desktops.wrap_at_bounds : true;
 
-    LOGGER_DEBUG("Switching to %s desktop on surface %u",
-            (forward) ? "next" : "previous", surface->id);
+    switch (direction) {
+    case COMPASS_NORTH:
+        direction_label = "north";
+        break;
+    case COMPASS_SOUTH:
+        direction_label = "south";
+        break;
+    case COMPASS_EAST:
+        direction_label = "east";
+        break;
+    case COMPASS_WEST:
+        direction_label = "west";
+        break;
+    }
+    LOGGER_DEBUG("Switching to the desktop %s of the current one" \
+            " on surface %u", direction_label, surface->id);
 
     surface_clients_hide(surface, old_id);
-    if (forward) {
-        surface_desktop_select_next(surface, cycle);
-    } else {
-        surface_desktop_select_prev(surface, cycle);
+    switch (direction) {
+    case COMPASS_NORTH:
+        surface_desktop_select_north(surface, cycle);
+        break;
+    case COMPASS_SOUTH:
+        surface_desktop_select_south(surface, cycle);
+        break;
+    case COMPASS_EAST:
+        surface_desktop_select_east(surface, cycle);
+        break;
+    case COMPASS_WEST:
+        surface_desktop_select_west(surface, cycle);
+        break;
     }
 
     if (surface->desktop_cur != old_id) {
@@ -144,15 +171,29 @@ static void s_switch_cyclic(surface_td *surface, bool forward)
 }
 
 
-/* Switch to the next desktop */
-void scmd_surface_desktop_switch_next(surface_td *surface)
+/* Switch to the desktop north of the current one */
+void scmd_surface_desktop_switch_north(surface_td *surface)
 {
-    s_switch_cyclic(surface, true);
+    s_switch_cyclic(surface, COMPASS_NORTH);
 }
 
 
-/* Switch to the previous desktop */
-void scmd_surface_desktop_switch_prev(surface_td *surface)
+/* Switch to the desktop south of the current one */
+void scmd_surface_desktop_switch_south(surface_td *surface)
 {
-    s_switch_cyclic(surface, false);
+    s_switch_cyclic(surface, COMPASS_SOUTH);
+}
+
+
+/* Switch to the desktop east of the current one */
+void scmd_surface_desktop_switch_east(surface_td *surface)
+{
+    s_switch_cyclic(surface, COMPASS_EAST);
+}
+
+
+/* Switch to the desktop west of the current one */
+void scmd_surface_desktop_switch_west(surface_td *surface)
+{
+    s_switch_cyclic(surface, COMPASS_WEST);
 }

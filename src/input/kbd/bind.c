@@ -307,10 +307,14 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_CLIENT_KILL },
         { config->bindings.keyboard.window.maximize,
           KEYBIND_CLIENT_MAXIMIZE },
-        { config->bindings.keyboard.window.send_to.monitor.prev,
-          KEYBIND_CLIENT_MOVE_PREV_MONITOR },
-        { config->bindings.keyboard.window.send_to.monitor.next,
-          KEYBIND_CLIENT_MOVE_NEXT_MONITOR },
+        { config->bindings.keyboard.window.send_to.monitor.north,
+          KEYBIND_CLIENT_MOVE_MONITOR_NORTH },
+        { config->bindings.keyboard.window.send_to.monitor.south,
+          KEYBIND_CLIENT_MOVE_MONITOR_SOUTH },
+        { config->bindings.keyboard.window.send_to.monitor.east,
+          KEYBIND_CLIENT_MOVE_MONITOR_EAST },
+        { config->bindings.keyboard.window.send_to.monitor.west,
+          KEYBIND_CLIENT_MOVE_MONITOR_WEST },
         { config->bindings.keyboard.window.shade,
           KEYBIND_CLIENT_SHADE },
         { config->bindings.keyboard.window.fullscreen,
@@ -349,10 +353,14 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_CLIENT_RESIZE_UP },
         { config->bindings.keyboard.window.resize.down,
           KEYBIND_CLIENT_RESIZE_DOWN },
-        { config->bindings.keyboard.window.send_to.desktop.prev,
-          KEYBIND_CLIENT_SEND_TO_DESKTOP_PREV },
-        { config->bindings.keyboard.window.send_to.desktop.next,
-          KEYBIND_CLIENT_SEND_TO_DESKTOP_NEXT },
+        { config->bindings.keyboard.window.send_to.desktop.north,
+          KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH },
+        { config->bindings.keyboard.window.send_to.desktop.south,
+          KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH },
+        { config->bindings.keyboard.window.send_to.desktop.east,
+          KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST },
+        { config->bindings.keyboard.window.send_to.desktop.west,
+          KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST },
         { config->bindings.keyboard.desktop.show,
           KEYBIND_DESKTOP_SHOW },
         { config->bindings.keyboard.wm.scratchpad,
@@ -387,10 +395,14 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
           KEYBIND_CLIENT_CYCLE_PREV },
         { config->bindings.keyboard.cycle.window.next,
           KEYBIND_CLIENT_CYCLE_NEXT },
-        { config->bindings.keyboard.cycle.desktop.prev,
-          KEYBIND_DESKTOP_PREV },
-        { config->bindings.keyboard.cycle.desktop.next,
-          KEYBIND_DESKTOP_NEXT },
+        { config->bindings.keyboard.cycle.desktop.north,
+          KEYBIND_DESKTOP_NORTH },
+        { config->bindings.keyboard.cycle.desktop.south,
+          KEYBIND_DESKTOP_SOUTH },
+        { config->bindings.keyboard.cycle.desktop.east,
+          KEYBIND_DESKTOP_EAST },
+        { config->bindings.keyboard.cycle.desktop.west,
+          KEYBIND_DESKTOP_WEST },
         { config->bindings.keyboard.cycle.icon.prev,
           KEYBIND_DESKTOP_ICON_PREV },
         { config->bindings.keyboard.cycle.icon.next,
@@ -511,10 +523,17 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
             continue;
         }
 
-        /* Skip the "move to next monitor" grab the same way, when no
+        /* Skip every "move to monitor" grab the same way, when no
          * surface actually has more than one monitor to move to; see
-         * 'has_multi_monitor_surface' above */
-        if (defs[i].type == KEYBIND_CLIENT_MOVE_NEXT_MONITOR &&
+         * 'has_multi_monitor_surface' above.  Corrected here to cover
+         * all four directions: the two-direction version of this same
+         * guard, before this replaced it, only ever named the 'next'
+         * keybind, silently leaving 'prev' grabbed (and so a no-op
+         * keybind reachable) on a genuinely single-monitor surface. */
+        if ((defs[i].type == KEYBIND_CLIENT_MOVE_MONITOR_NORTH ||
+                    defs[i].type == KEYBIND_CLIENT_MOVE_MONITOR_SOUTH ||
+                    defs[i].type == KEYBIND_CLIENT_MOVE_MONITOR_EAST ||
+                    defs[i].type == KEYBIND_CLIENT_MOVE_MONITOR_WEST) &&
                 !has_multi_monitor_surface) {
             continue;
         }
@@ -523,8 +542,10 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
          * same way, when no surface actually has more than one
          * desktop to switch to; see 'has_multi_desktop_surface'
          * above */
-        if ((defs[i].type == KEYBIND_DESKTOP_NEXT ||
-                    defs[i].type == KEYBIND_DESKTOP_PREV ||
+        if ((defs[i].type == KEYBIND_DESKTOP_NORTH ||
+                    defs[i].type == KEYBIND_DESKTOP_SOUTH ||
+                    defs[i].type == KEYBIND_DESKTOP_EAST ||
+                    defs[i].type == KEYBIND_DESKTOP_WEST ||
                     (defs[i].type >= KEYBIND_DESKTOP_GOTO_0 &&
                      defs[i].type <= KEYBIND_DESKTOP_GOTO_9)) &&
                 !has_multi_desktop_surface) {

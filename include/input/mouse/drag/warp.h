@@ -31,13 +31,17 @@
  * one desktop to warp between.  Restarting the countdown on every
  * single motion notify while the same edge stays held is deliberately
  * avoided, since that would leave the countdown permanently reset and
- * never actually elapse.
+ * never actually elapse.  When the pointer sits against two edges
+ * at once (a screen corner), the horizontal edge wins, matching
+ * whichever edge this same check already preferred before a second,
+ * vertical one existed at all.
  *
  * @param root_x Pointer X position in root-window coordinates
+ * @param root_y Pointer Y position in root-window coordinates
  *
  * @note Complexity: @e O(1)
  */
-void drag_warp_edge_check(int16_t root_x);
+void drag_warp_edge_check(int16_t root_x, int16_t root_y);
 
 /**
  * @brief Milliseconds until a pointer held against a warp-eligible
