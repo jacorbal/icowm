@@ -594,6 +594,17 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id);
 /**
  * @brief Add a new desktop associated with the surface
  *
+ * Grows @p surface's own configured @c topology.screens.desktops
+ * layout by one row or column first, whichever @c orientation
+ * treats as the non-primary axis, when there is not already a
+ * desktop-less gap cell in it for the new desktop to land on (see
+ * @a s_surface_layout_grow_for's own doc comment, surface/switch.c,
+ * for the fuller reasoning on why that one axis specifically).
+ * Purely a "create it" action either way: @p surface's own current
+ * view never switches to the new desktop, whether growing a new
+ * row or column happened or not, and regardless of which desktop,
+ * if any, currently has the view.
+ *
  * Refused outright once @p surface's own desktop count already
  * reaches @c CONFIG_MAX_DESKTOPS: @c config_base's own
  * @c screens[screen_id].desktops array (@c config.h) is a

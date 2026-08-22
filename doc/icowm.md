@@ -414,7 +414,10 @@ with a bare `{"ok": true}` on success.
 | `urge_client`                 | Marks the client urgent (see the urgency-blinking behavior in its own theme documentation) |
 | `unurge_client`               | Undoes `urge_client` |
 | `center_client`               | Centers the client on its own current screen |
-| `move_client_to_next_monitor` | Moves the client to the next physical monitor, keeping its position relative to that monitor's own top-left corner |
+| `move_client_to_monitor_north` | Moves the client to the monitor north of its current one, keeping its position relative to that monitor's own top-left corner.  Resolved by real physical position, never wraps; a no-op with one monitor or none, or when none lies to the north |
+| `move_client_to_monitor_south` | The same, toward the monitor south of the current one |
+| `move_client_to_monitor_east`  | The same, toward the monitor east of the current one |
+| `move_client_to_monitor_west`  | The same, toward the monitor west of the current one |
 | `maximize_client_horz`        | Maximizes the client horizontally only |
 | `maximize_client_vert`        | Maximizes the client vertically only |
 | `maximize_client`             | Maximizes the client both horizontally and vertically |
@@ -455,7 +458,7 @@ read as broken rather than merely deferred.
 | `move_client`            | `client_id`, `x`, `y` (both signed) | Moves the client so its own top-left corner is at that position |
 | `move_resize_client`     | `client_id`, `x`, `y` (both signed), `w`, `h` (both unsigned) | Moves and resizes the client in one step, to that top-left corner and that size; see `resize_client` below to resize only, leaving position alone |
 | `resize_client`          | `client_id`, `w`, `h` (both unsigned) | Resizes the client only, from wherever its own top-left corner already is; see `move_resize_client` above to move and resize together in one step |
-| `move_client_to_monitor` | `client_id`, `monitor_index` | Moves the client to that physical monitor, the same as `move_client_to_next_monitor` but to a specific one rather than the next one |
+| `move_client_to_monitor` | `client_id`, `monitor_index` | Moves the client to that physical monitor by its own index, rather than resolving one by compass direction the way `move_client_to_monitor_north` and its three siblings do |
 | `rename_client`          | `client_id`, `name` | Overrides the client's own window title as IcoWM displays it |
 | `reclass_client`         | `client_id`, `class_name`, `instance_name` | Overrides the client's own ICCCM `WM_CLASS` (both its class and instance name), which theme rules and other IcoWM behavior that matches on window class use |
 | `rerole_client`          | `client_id`, `role` | Overrides the client's own window role |
@@ -475,13 +478,15 @@ read as broken rather than merely deferred.
 
 #### 5.3.5. Surface actions
 
-| Command             | Arguments                                        | What it does |
-|---------------------|--------------------------------------------------|--------------|
-| `goto_desktop`      | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
-| `goto_next_desktop` | `surface_id` (optional)                          | Switches the resolved surface to its own next desktop, wrapping around after the last one |
-| `goto_prev_desktop` | `surface_id` (optional)                          | Switches the resolved surface to its own previous desktop, wrapping around before the first one |
-| `add_desktop`       | `surface_id` (optional)                          | Adds a new desktop after the resolved surface's own last one.  Refused, with an error, once the maximum of 16 desktops is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
-| `remove_desktop`    | `surface_id` (optional)                          | Removes the resolved surface's own last desktop, moving any client still on it to the one before it.  Refused, with an error, while only one desktop remains |
+| Command              | Arguments                                        | What it does |
+|----------------------|--------------------------------------------------|--------------|
+| `goto_desktop`       | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
+| `goto_north_desktop` | `surface_id` (optional)                          | Switches the resolved surface to the desktop north of its current one; wraps if `desktops.wrap-at-bounds` allows it (`config.md`, section 2.10), otherwise a no-op at the edge, including when no `topology.screens.desktops[].layout` with more than one row is configured at all |
+| `goto_south_desktop` | `surface_id` (optional)                          | The same, toward the desktop south of the current one |
+| `goto_east_desktop`  | `surface_id` (optional)                          | The same, toward the desktop east of the current one |
+| `goto_west_desktop`  | `surface_id` (optional)                          | The same, toward the desktop west of the current one |
+| `add_desktop`        | `surface_id` (optional)                          | Adds a new desktop after the resolved surface's own last one, growing its own configured grid layout by one row or column first if there is not already a gap cell for it to land on (see `config.md`'s own `topology.screens.desktops[].layout`).  Refused, with an error, once the maximum of 16 desktops is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `remove_desktop`     | `surface_id` (optional)                          | Removes the resolved surface's own last desktop, moving any client still on it to the one before it, and switching the surface's own current view there too if it was the one being removed.  Shrinks the grid layout back down by one row or column if that was its own last member.  Refused, with an error, while only one desktop remains |
 
 #### 5.3.6. Whole window manager
 

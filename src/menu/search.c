@@ -929,7 +929,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
                 if (r->desktop->name[0] != '\0') {
                     if (show_row_col) {
                         snprintf(desk_buf, sizeof(desk_buf),
-                                "[%u (%u,%u)] -- %s",
+                                "[%u (%u, %u)] -- %s",
                                 r->desktop->id, row, col,
                                 r->desktop->name);
                     } else {
@@ -940,7 +940,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
                 } else {
                     if (show_row_col) {
                         snprintf(desk_buf, sizeof(desk_buf),
-                                "[%u (%u,%u)]",
+                                "[%u (%u, %u)]",
                                 r->desktop->id, row, col);
                     } else {
                         snprintf(desk_buf, sizeof(desk_buf), "[%u]",

@@ -104,8 +104,8 @@ void scratchpad_notice_client_created(client_td *client);
  *
  * @see @a scratchpad_is_client
  */
-void scratchpad_position(client_td *client, desktop_td *desktop,
-        surface_td *surface);
+void scratchpad_position(client_td *client,
+        const desktop_td *desktop, surface_td *surface);
 
 /**
  * @brief Release the scratchpad client reference, if @p client was it

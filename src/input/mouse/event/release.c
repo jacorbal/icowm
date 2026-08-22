@@ -5,8 +5,8 @@
  *
  * Split out of what used to be a single, flat @c input/mouse/event.c;
  * ends whatever drag @c input/mouse/event/press.c's own
- * @c mouse_handle_press may have started. See that file's own
- * comment for the reasoning behind the three-way split.
+ * @c mouse_handle_press may have started. See that file's own comment
+ * for the reasoning behind the three-way split.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

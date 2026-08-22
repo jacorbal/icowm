@@ -194,36 +194,17 @@ static void s_test_surface_for_root_finds_match(void)
  * that module's own build-time dependency chain (desktop.c,
  * systray.c, and whatever each of those pull in beyond that) is
  * large enough that linking it in here just for this one function
- * is not worth the added coupling; lookup_surface_for_root,
- * lookup_client_matches_window, and lookup_find_client below cover
- * everything else this file exposes, with no such dependency. */
+ * is not worth the added coupling; lookup_surface_for_root and
+ * lookup_find_client below cover everything else this file exposes,
+ * with no such dependency. */
 
 
 /* lookup_client_matches_window checks every one of a client's own
  * five possible window IDs, and rejects both a NULL client and the
- * sentinel XCB_WINDOW_NONE */
-static void s_test_client_matches_window_all_fields(void)
-{
-    client_td *client = s_make_client(10, 20, 30, 40, 50);
-
-    TAP_OK(lookup_client_matches_window(client, 10), "matches its own id");
-    TAP_OK(lookup_client_matches_window(client, 20),
-            "matches its own window");
-    TAP_OK(lookup_client_matches_window(client, 30),
-            "matches its own frame");
-    TAP_OK(lookup_client_matches_window(client, 40),
-            "matches its own titlebar");
-    TAP_OK(lookup_client_matches_window(client, 50),
-            "matches its own icon_window");
-    TAP_OK(!lookup_client_matches_window(client, 999),
-            "does not match an unrelated window id");
-    TAP_OK(!lookup_client_matches_window(NULL, 10),
-            "a NULL client never matches, no crash");
-    TAP_OK(!lookup_client_matches_window(client, XCB_WINDOW_NONE),
-            "XCB_WINDOW_NONE never matches, even by coincidence");
-
-    free(client);
-}
+ * sentinel XCB_WINDOW_NONE.  Not covered here: it is static to
+ * lookup.c (s_lookup_client_matches_window), unreachable from this
+ * file; lookup_find_client below already exercises it indirectly,
+ * through every one of its own test cases. */
 
 
 /* lookup_find_client's fast path: a window ID equal to a client's
@@ -336,10 +317,9 @@ static void s_test_find_client_searches_every_desktop(void)
 
 int main(void)
 {
-    TAP_PLAN(21);
+    TAP_PLAN(13);
 
     s_test_surface_for_root_finds_match();
-    s_test_client_matches_window_all_fields();
     s_test_find_client_fast_path_by_id();
     s_test_find_client_slow_path_by_frame();
     s_test_find_client_not_found();

@@ -46,7 +46,7 @@ void cctl_adopt_scan(const wm_td *wm)
 {
     xcb_connection_t *connection = wm_connection(wm);
     xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
 
     if (wm == NULL) {
         return;

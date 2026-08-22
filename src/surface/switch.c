@@ -28,6 +28,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <config.h>
 #include <desktop.h>
 #include <logger.h>
 #include <memguard.h>
@@ -87,6 +88,118 @@ static void s_surface_mark_all_desktops_outdated(surface_td *surface)
 }
 
 
+/**
+ * @brief Grow this surface's own configured desktop-grid layout by
+ *        exactly one row or column, whichever @c orientation treats
+ *        as the non-primary axis, so it can hold one more desktop
+ *        than its own @c rows @c * @c columns currently can
+ *
+ * Growing the non-primary axis, never the primary one @c orientation
+ * itself fills first (@c columns for @c horizontal, @c rows for
+ * @c vertical), is what keeps every desktop already placed in the
+ * grid exactly where it already was: that primary axis is the
+ * divisor @a s_layout_row_col (surface/desktops.c) itself uses to
+ * translate a flat index into its own row/column, so changing it
+ * reflows every index past the first row (or column) into a whole
+ * new position, while growing the other axis instead only ever
+ * opens up an entirely new, previously nonexistent row (or column)
+ * beyond the last one, leaving every existing index's own division
+ * and remainder, and so its own translated position, completely
+ * unaffected.  A no-op when there is already enough spare capacity
+ * (@c rows @c * @c columns already exceeds the desktop count about
+ * to exist) to just fill a desktop-less gap cell instead, the
+ * common case once a screen has been through more than one add and
+ * remove cycle.  Never switches the surface's own currently viewed
+ * desktop, whether it grows anything or not, and whichever row or
+ * column that view happens to already be on: adding a desktop is
+ * purely a "create it" action here, the exact same as it was before
+ * a grid layout existed at all, regardless of which one, if any,
+ * the person doing the adding happens to be looking at right now.
+ *
+ * @param surface     Surface whose own layout to grow
+ * @param new_count   The desktop count this surface is about to have
+ *                    once the desktop currently being added actually
+ *                    exists
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_surface_layout_grow_for(surface_td *surface,
+        uint32_t new_count)
+{
+    struct config_desktop_layout_s *layout;
+
+    if (surface == NULL || surface->config == NULL ||
+            surface->id >= (uint32_t) CONFIG_MAX_SCREENS) {
+        return;
+    }
+
+    layout = &surface->config->base.screens[surface->id].desktop_layout;
+    if (layout->rows * layout->columns >= new_count) {
+        /* Already enough room; the new desktop simply fills an
+         * existing gap cell */
+        return;
+    }
+
+    if (layout->orientation == CONFIG_DESKTOP_ORIENTATION_HORIZONTAL) {
+        layout->rows++;
+    } else {
+        layout->columns++;
+    }
+}
+
+
+/**
+ * @brief Shrink this surface's own configured desktop-grid layout by
+ *        exactly one row or column, whichever @c orientation treats
+ *        as the non-primary axis, if the desktop just removed was
+ *        that axis' own last remaining member
+ *
+ * The exact inverse of @a s_surface_layout_grow_for: since @c remove
+ * only ever takes the highest-numbered desktop, and fill order
+ * always places that one in the last row (or column) that has any
+ * member at all, removing it leaves that same row (or column)
+ * genuinely empty only when it was that row's (or column's) sole
+ * occupant to begin with, in which case shrinking the non-primary
+ * axis back by one restores exactly the shape @a s_surface_layout_
+ * grow_for last grew it from.  A no-op otherwise (that row or
+ * column still has another real desktop left in it), and a no-op
+ * once the non-primary axis is already down to a single row or
+ * column, so this never shrinks a surface's own layout below @c 1
+ * on either axis.
+ *
+ * @param surface   Surface whose own layout to shrink
+ * @param new_count The desktop count this surface now has, after the
+ *                  desktop just removed no longer exists
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_surface_layout_shrink_after(surface_td *surface,
+        uint32_t new_count)
+{
+    struct config_desktop_layout_s *layout;
+    uint32_t primary;
+    uint32_t *secondary;
+
+    if (surface == NULL || surface->config == NULL ||
+            surface->id >= (uint32_t) CONFIG_MAX_SCREENS) {
+        return;
+    }
+
+    layout = &surface->config->base.screens[surface->id].desktop_layout;
+    if (layout->orientation == CONFIG_DESKTOP_ORIENTATION_HORIZONTAL) {
+        primary = layout->columns;
+        secondary = &layout->rows;
+    } else {
+        primary = layout->rows;
+        secondary = &layout->columns;
+    }
+
+    if (*secondary > 1u && new_count <= (*secondary - 1u) * primary) {
+        (*secondary)--;
+    }
+}
+
+
 /* Add a new desktop to the surface */
 int surface_action_desktop_add(surface_td *surface)
 {
@@ -128,6 +241,8 @@ int surface_action_desktop_add(surface_td *surface)
     }
 
     LOGGER_DEBUG("Adding new desktop to surface %u", surface->id);
+
+    s_surface_layout_grow_for(surface, surface->desktop_count + 1u);
 
     desktop = desktop_init(surface->connection,
             surface->ewmh,
@@ -299,9 +414,20 @@ int surface_action_desktop_remove(surface_td *surface)
 
     s_surface_desktop_evacuate(desktop, fallback);
 
-    /* If the desktop to be removed is the current one, switch first */
+    /* If the desktop to be removed is the current one, switch first.
+     * Set 'desktop_cur' to 'fallback' directly, the exact same
+     * desktop 's_surface_desktop_evacuate' just above already moved
+     * every client onto, rather than through 'surface_desktop_select_
+     * west': west is grid-aware since desktops gained a configurable
+     * row/column layout, and can genuinely find nothing at all once
+     * the desktop being removed sits at the west edge of its own
+     * row (column 0), even though 'fallback' itself, one row/column
+     * over in list order, is right there and perfectly valid; west
+     * failing there left 'desktop_cur' pointing at 'desktop' itself,
+     * which 'surface_desktop_rem' below is about to destroy, a
+     * dangling reference to a desktop that no longer exists. */
     if (was_current) {
-        surface_desktop_select_west(surface, false);
+        surface->desktop_cur = fallback->id;
         surface_clients_show(surface, surface->desktop_cur);
     } else if (fallback->id == surface->desktop_cur) {
         /* The removed desktop was not the one on screen, but its own
@@ -324,6 +450,8 @@ int surface_action_desktop_remove(surface_td *surface)
                 surface->id);
         return 1;
     }
+
+    s_surface_layout_shrink_after(surface, surface->desktop_count);
 
     s_surface_mark_all_desktops_outdated(surface);
     surface->is_outdated = true;

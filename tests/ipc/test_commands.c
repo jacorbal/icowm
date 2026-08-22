@@ -139,13 +139,25 @@ cJSON *ipc_action_goto_desktop(const wm_td *wm, const cJSON *args)
     (void) args;
     return NULL;
 }
-cJSON *ipc_action_goto_next_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_north_desktop(const wm_td *wm, const cJSON *args)
 {
     (void) wm;
     (void) args;
     return NULL;
 }
-cJSON *ipc_action_goto_prev_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_goto_south_desktop(const wm_td *wm, const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+cJSON *ipc_action_goto_east_desktop(const wm_td *wm, const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+cJSON *ipc_action_goto_west_desktop(const wm_td *wm, const cJSON *args)
 {
     (void) wm;
     (void) args;
@@ -241,7 +253,29 @@ cJSON *ipc_action_move_client_to_monitor(const wm_td *wm, const cJSON *args)
     (void) args;
     return NULL;
 }
-cJSON *ipc_action_move_client_to_next_monitor(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_move_client_to_monitor_north(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+cJSON *ipc_action_move_client_to_monitor_south(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+cJSON *ipc_action_move_client_to_monitor_east(const wm_td *wm,
+        const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+cJSON *ipc_action_move_client_to_monitor_west(const wm_td *wm,
+        const cJSON *args)
 {
     (void) wm;
     (void) args;

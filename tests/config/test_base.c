@@ -263,6 +263,177 @@ static void s_test_flat_shape_clamped_to_max_desktops(void)
 }
 
 
+/* No 'layout' at all: falls back to the exact single-row default,
+ * the same reading order the desktop list itself already had before
+ * 'layout' existed */
+static void s_test_layout_absent_defaults_to_linear(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 5}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT(base.screens[0].desktop_layout.orientation,
+            CONFIG_DESKTOP_ORIENTATION_HORIZONTAL,
+            "no layout: orientation defaults to horizontal");
+    TAP_EQ_INT(base.screens[0].desktop_layout.corner,
+            CONFIG_DESKTOP_CORNER_TOP_LEFT,
+            "no layout: corner defaults to top-left");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.rows, 1,
+            "no layout: rows defaults to 1");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.columns, 5,
+            "no layout: columns defaults to desktop_count");
+}
+
+
+/* All four keys named explicitly: used exactly as read */
+static void s_test_layout_all_fields_explicit(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 6, \"layout\": {\"orientation\": \"vertical\","
+        "    \"corner\": \"bottom-right\", \"rows\": 2, \"columns\": 3}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT(base.screens[0].desktop_layout.orientation,
+            CONFIG_DESKTOP_ORIENTATION_VERTICAL,
+            "all explicit: orientation loaded");
+    TAP_EQ_INT(base.screens[0].desktop_layout.corner,
+            CONFIG_DESKTOP_CORNER_BOTTOM_RIGHT,
+            "all explicit: corner loaded");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.rows, 2,
+            "all explicit: rows loaded");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.columns, 3,
+            "all explicit: columns loaded");
+}
+
+
+/* Only 'rows' named: 'columns' is computed by ceiling division
+ * against desktop_count, not simply defaulted to 1 */
+static void s_test_layout_only_rows_computes_columns(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 7, \"layout\": {\"rows\": 3}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.rows, 3,
+            "only rows: rows loaded as given");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.columns, 3,
+            "only rows: columns computed by ceiling division,"
+            " ceil(7/3) = 3, not defaulted to 1");
+}
+
+
+/* Only 'columns' named, specifically 'columns: 1': a "strictly
+ * vertical" request, 'rows' computed to hold every desktop in that
+ * one column rather than rejecting a 1x1 grid the moment more than
+ * one desktop exists */
+static void s_test_layout_only_columns_one_is_strictly_vertical(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 4, \"layout\": {\"columns\": 1}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.columns, 1,
+            "only columns=1: columns loaded as given");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.rows, 4,
+            "only columns=1: rows computed to fit all 4 desktops in"
+            " that single column, not defaulted to 1");
+}
+
+
+/* 'rows * columns' exceeding 'count' is accepted, not rejected: a
+ * deliberate, desktop-less gap cell */
+static void s_test_layout_gap_accepted(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 5, \"layout\": {\"rows\": 2, \"columns\": 3}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.rows, 2,
+            "gap: rows kept as given, not rejected");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.columns, 3,
+            "gap: columns kept as given, even though 2x3=6 exceeds"
+            " the 5 real desktops");
+}
+
+
+/* 'rows' explicitly 0 is rejected outright, falling back to the
+ * single-row default, the same as an absent 'layout' */
+static void s_test_layout_rows_zero_rejected(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 4, \"layout\": {\"rows\": 0, \"columns\": 2}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.rows, 1,
+            "rows=0: rejected, falls back to the linear default");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.columns, 4,
+            "rows=0: columns falls back to desktop_count too");
+}
+
+
+/* A rows/columns combination too small to ever hold every desktop
+ * at all, no matter how arranged, is rejected the same way */
+static void s_test_layout_too_small_rejected(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 9, \"layout\": {\"rows\": 2, \"columns\": 3}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.rows, 1,
+            "2x3=6 cannot hold 9 desktops: rejected");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.columns, 9,
+            "falls back to the linear default");
+}
+
+
+/* Above CONFIG_MAX_DESKTOPS is rejected the same way, even for a
+ * single named dimension, checked before it is ever used as a
+ * divisor to compute the other */
+static void s_test_layout_rows_above_max_rejected(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 4, \"layout\": {\"rows\": 999}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.rows, 1,
+            "rows above CONFIG_MAX_DESKTOPS: rejected");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.columns, 4,
+            "falls back to the linear default");
+}
+
+
 /* A missing 'topology.screens' object leaves defaults untouched,
  * rather than crashing or zeroing anything */
 static void s_test_missing_topology_leaves_defaults(void)
@@ -284,8 +455,12 @@ static void s_test_missing_topology_leaves_defaults(void)
 
 
 /* A representative field from each remaining config_load_base
- * section: theme, programs, windows (snap/gravity/focus/placement),
- * icons, the 3 boolean shortcuts, startup-notification, and menus */
+ * section: theme, programs, windows (gravity/focus/placement;
+ * windows.snap itself is deliberately excluded here, since neither
+ * this file's own base/parse.c nor any other file actually parses
+ * a "snap" key from JSON at all, despite the struct field existing
+ * in config.h), icons, the 3 boolean shortcuts, startup-notification,
+ * and menus */
 static void s_test_representative_fields(void)
 {
     struct config_base_s base;
@@ -296,7 +471,6 @@ static void s_test_representative_fields(void)
         "\"theme\": \"my-theme\","
         "\"programs\": {\"terminal\": \"alacritty\"},"
         "\"windows\": {"
-        "  \"snap\": 8,"
         "  \"gravity\": \"center\","
         "  \"focus\": {\"policy\": \"sloppy\","
         "    \"focus-new\": false},"
@@ -314,7 +488,6 @@ static void s_test_representative_fields(void)
 
     TAP_EQ_STR(base.theme, "my-theme", "theme name loaded");
     TAP_EQ_STR(base.programs.terminal, "alacritty", "programs.terminal");
-    TAP_EQ_INT((int) base.windows.snap, 8, "windows.snap");
     TAP_EQ_INT(base.windows.gravity, CONFIG_GRAVITY_CENTER,
             "windows.gravity");
     TAP_EQ_INT(base.windows.focus_policy, CONFIG_FOCUS_POLICY_SLOPPY,
@@ -501,7 +674,7 @@ static void s_test_systray_text_order_no_dedup(void)
 
 int main(void)
 {
-    TAP_PLAN(62);
+    TAP_PLAN(81);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
@@ -511,6 +684,14 @@ int main(void)
     s_test_inaugural_out_of_range_reverts_to_zero();
     s_test_screen_count_enforced_minimum();
     s_test_flat_shape_clamped_to_max_desktops();
+    s_test_layout_absent_defaults_to_linear();
+    s_test_layout_all_fields_explicit();
+    s_test_layout_only_rows_computes_columns();
+    s_test_layout_only_columns_one_is_strictly_vertical();
+    s_test_layout_gap_accepted();
+    s_test_layout_rows_zero_rejected();
+    s_test_layout_too_small_rejected();
+    s_test_layout_rows_above_max_rejected();
     s_test_missing_topology_leaves_defaults();
     s_test_representative_fields();
     s_test_icons_placement_modern_object_form();

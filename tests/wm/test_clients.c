@@ -3,12 +3,11 @@
  *
  * @brief Test battery for whole-window-manager client traversal
  *
- * surface_desktop_get (surface.c) is stubbed below as a controllable
- * stand-in, indexed by desktop_id, the same way test_lookup.c and
- * test_resolve.c already do: this file's own tests populate it
- * before each call, so both the "found" and "gap" (NULL desktop)
- * cases can be driven directly without surface.c's own much larger,
- * XCB-dependent real implementation.
+ * wm_for_each_client walks each surface's own 'desktops' cdlist
+ * directly, never through surface_desktop_get, so every desktop this
+ * file's own tests build must be a real cdlist entry (via
+ * cdlist_init/cdlist_ins_next on surface.desktops itself), not an
+ * entry in some separate lookup table.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -23,6 +22,7 @@
 #include <string.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 #include <adt/ohtbl.h>
 
@@ -34,18 +34,6 @@
 /** This file owns the one real wm_td instance, passed explicitly to
  *  every wm_for_each_client call below */
 wm_td *wm = NULL;
-
-
-static desktop_td *s_desktops_by_id[8];
-
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
-{
-    (void) surface;
-    if (desktop_id >= 8u) {
-        return NULL;
-    }
-    return s_desktops_by_id[desktop_id];
-}
 
 
 static size_t s_id_hash1(const void *key)
@@ -149,9 +137,9 @@ static void s_test_visits_every_client_across_desktops(void)
     ohtbl_insert(desktop_a.clients, &client1);
     ohtbl_insert(desktop_b.clients, &client2);
 
-    surface.desktop_count = 2u;
-    s_desktops_by_id[0] = &desktop_a;
-    s_desktops_by_id[1] = &desktop_b;
+    surface.desktops = cdlist_init(NULL);
+    cdlist_ins_next(surface.desktops, NULL, &desktop_a);
+    cdlist_ins_next(surface.desktops, NULL, &desktop_b);
 
     local_wm.surfaces = list_init(NULL);
     list_ins_next(local_wm.surfaces, NULL, &surface);
@@ -168,8 +156,7 @@ static void s_test_visits_every_client_across_desktops(void)
     TAP_OK(s_seen_userdata == &marker,
             "userdata is passed through to the action unchanged");
 
-    s_desktops_by_id[0] = NULL;
-    s_desktops_by_id[1] = NULL;
+    cdlist_destroy(surface.desktops);
     ohtbl_destroy(desktop_a.clients);
     ohtbl_destroy(desktop_b.clients);
     list_destroy(local_wm.surfaces);
@@ -195,8 +182,8 @@ static void s_test_null_action_only_counts(void)
     desktop.clients = ohtbl_init(8, 8, s_id_hash1, s_id_hash2,
             s_id_match, NULL);
     ohtbl_insert(desktop.clients, &client);
-    surface.desktop_count = 1u;
-    s_desktops_by_id[0] = &desktop;
+    surface.desktops = cdlist_init(NULL);
+    cdlist_ins_next(surface.desktops, NULL, &desktop);
 
     local_wm.surfaces = list_init(NULL);
     list_ins_next(local_wm.surfaces, NULL, &surface);
@@ -206,14 +193,14 @@ static void s_test_null_action_only_counts(void)
     TAP_EQ_INT((long) count, 1,
             "a NULL action still counts every client, no crash");
 
-    s_desktops_by_id[0] = NULL;
+    cdlist_destroy(surface.desktops);
     ohtbl_destroy(desktop.clients);
     list_destroy(local_wm.surfaces);
     wm = NULL;
 }
 
 
-/* A gap where surface_desktop_get returns NULL for one desktop_id is
+/* A gap where a desktop entry itself is NULL is
  * skipped cleanly, without stopping the walk over the rest */
 static void s_test_skips_null_desktop_gap(void)
 {
@@ -232,11 +219,11 @@ static void s_test_skips_null_desktop_gap(void)
     desktop.clients = ohtbl_init(8, 8, s_id_hash1, s_id_hash2,
             s_id_match, NULL);
     ohtbl_insert(desktop.clients, &client);
-    /* desktop_count is 2, but only slot 1 is populated: slot 0 is a
-     * gap surface_desktop_get reports as NULL */
-    surface.desktop_count = 2u;
-    s_desktops_by_id[0] = NULL;
-    s_desktops_by_id[1] = &desktop;
+    /* One real desktop entry plus one explicit NULL entry: the NULL
+     * slot is the gap wm_for_each_client must skip cleanly */
+    surface.desktops = cdlist_init(NULL);
+    cdlist_ins_next(surface.desktops, NULL, &desktop);
+    cdlist_ins_next(surface.desktops, NULL, NULL);
 
     local_wm.surfaces = list_init(NULL);
     list_ins_next(local_wm.surfaces, NULL, &surface);
@@ -246,7 +233,7 @@ static void s_test_skips_null_desktop_gap(void)
     TAP_EQ_INT((long) count, 1,
             "a NULL-desktop gap is skipped, the rest still counted");
 
-    s_desktops_by_id[1] = NULL;
+    cdlist_destroy(surface.desktops);
     ohtbl_destroy(desktop.clients);
     list_destroy(local_wm.surfaces);
     wm = NULL;

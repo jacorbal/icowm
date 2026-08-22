@@ -37,8 +37,8 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>      /* FILE, fprintf */
-#include <stdlib.h>     /* NULL, atoi, atol, getenv, srand */
+#include <stdio.h>      /* NULL, FILE, fprintf */
+#include <stdlib.h>     /* atoi, atol, getenv, srand */
 #include <time.h>       /* time */
 #include <unistd.h>     /* optarg, getopt, getpid */
 

@@ -52,6 +52,13 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/render/test_surface \
     $(O_DIR)/tests/policy/test_placement \
     $(O_DIR)/tests/policy/test_tiling \
+    $(O_DIR)/tests/surface/test_desktop_grid \
+    $(O_DIR)/tests/surface/test_monitor_direction \
+    $(O_DIR)/tests/surface/test_desktop_add_remove \
+    $(O_DIR)/tests/enact/test_send_to_desktop \
+    $(O_DIR)/tests/desktop/test_workarea \
+    $(O_DIR)/tests/menu/context/ctxmenu/test_layout \
+    $(O_DIR)/tests/input/test_modifier \
     $(O_DIR)/tests/utils/test_geom \
     $(O_DIR)/tests/utils/test_sysmem \
     $(O_DIR)/tests/utils/safe/test_safeflg \
@@ -174,6 +181,7 @@ $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
 		$(S_DIR)/wm/clients.c \
 		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
@@ -181,6 +189,7 @@ $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
 $(O_DIR)/tests/policy/test_urgency: $(TESTS_DIR)/policy/test_urgency.c \
 		$(S_DIR)/policy/urgency.c \
 		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lxcb
@@ -213,6 +222,7 @@ $(O_DIR)/tests/input/mouse/test_bounds: \
 
 $(O_DIR)/tests/test_memguard: $(TESTS_DIR)/test_memguard.c \
 		$(S_DIR)/memguard.c \
+		$(S_DIR)/utils/time/clock.c \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
@@ -238,27 +248,107 @@ $(O_DIR)/tests/render/test_surface: $(TESTS_DIR)/render/test_surface.c \
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lxcb -lpthread
 
 $(O_DIR)/tests/policy/test_placement: $(TESTS_DIR)/policy/test_placement.c \
-		$(S_DIR)/policy/placement.c \
+		$(S_DIR)/policy/placement/window.c \
+		$(S_DIR)/policy/placement/score.c \
 		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c \
-		$(S_DIR)/utils/geom.c \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
 
 $(O_DIR)/tests/policy/test_tiling: $(TESTS_DIR)/policy/test_tiling.c \
-		$(S_DIR)/policy/tiling.c \
+		$(S_DIR)/policy/placement/icon.c \
+		$(S_DIR)/policy/placement/score.c \
 		$(S_DIR)/adt/cdlist.c \
-		$(S_DIR)/utils/geom.c \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
 
-$(O_DIR)/tests/utils/test_geom: $(TESTS_DIR)/utils/test_geom.c \
-		$(S_DIR)/utils/geom.c
+$(O_DIR)/tests/surface/test_desktop_grid: \
+		$(TESTS_DIR)/surface/test_desktop_grid.c \
+		$(S_DIR)/surface/desktops.c \
+		$(S_DIR)/adt/cdlist.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+# Unlike every other test binary above, this one links the genuine
+# libxcb-randr ($(XCB_LFLAGS), defined in the root Makefile) rather
+# than a hand-written stand-in for its own functions: surface/
+# monitors.c as a whole (the only actual dependency of the one
+# function this file tests, surface_monitor_direction) also compiles
+# surface_refresh_monitors alongside it in the same translation unit,
+# and that one genuinely calls into RandR.  Its own reply structs are
+# XCB-protocol-generated, not something safe to reconstruct a stand-in
+# for by hand the way this project's own, much simpler functions
+# (like atom_name, stood in for below) are; linking the real library
+# instead is the safer choice, even though this test itself never
+# actually calls surface_refresh_monitors, or triggers a real RandR
+# round trip, at all.
+$(O_DIR)/tests/surface/test_monitor_direction: \
+		$(TESTS_DIR)/surface/test_monitor_direction.c \
+		$(S_DIR)/surface/monitors.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/surface/test_desktop_add_remove: \
+		$(TESTS_DIR)/surface/test_desktop_add_remove.c \
+		$(S_DIR)/surface/switch.c \
+		$(S_DIR)/surface/desktops.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+# See this test file's own top-of-file comment: 'enact/desktop.c'
+# compiles as a single translation unit, so every one of its own
+# public functions besides 'enact_desktop_client_send' pulls in its
+# own further dependencies regardless of which functions this test
+# actually calls; every one of those is stood in for link-only in
+# the test file itself, none genuinely reached at runtime, except
+# 'adt/cdlist.c' itself (real, exercised by 'enact_desktop_clients_
+# rearrange', a function this test never calls but whose own
+# dependencies still need resolving) and 'logger.c'/'safestr.c'
+# (real, for the same reason 'test_desktop_add_remove' above already
+# needs them).
+$(O_DIR)/tests/enact/test_send_to_desktop: \
+		$(TESTS_DIR)/enact/test_send_to_desktop.c \
+		$(S_DIR)/enact/desktop.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/desktop/test_workarea: \
+		$(TESTS_DIR)/desktop/test_workarea.c \
+		$(S_DIR)/desktop.c \
+		$(S_DIR)/utils/hash/murmurhash.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
+
+$(O_DIR)/tests/menu/context/ctxmenu/test_layout: \
+		$(TESTS_DIR)/menu/context/ctxmenu/test_layout.c \
+		$(S_DIR)/menu/context/ctxmenu/layout.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/test_modifier: \
+		$(TESTS_DIR)/input/test_modifier.c \
+		$(S_DIR)/input/modifier.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/test_geom: $(TESTS_DIR)/utils/test_geom.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

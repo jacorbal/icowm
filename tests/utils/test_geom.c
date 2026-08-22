@@ -53,29 +53,29 @@ static void s_test_clamp_dim_above_maximum(void)
 }
 
 
-/* geom_rect_overlap: rectangles with genuine interior overlap */
+/* geom_overlap_rect: rectangles with genuine interior overlap */
 static void s_test_overlap_true_cases(void)
 {
-    TAP_OK(geom_rect_overlap(0, 0, 10, 10, 5, 5, 10, 10),
+    TAP_OK(geom_overlap_rect(0, 0, 10, 10, 5, 5, 10, 10),
             "partially overlapping rectangles overlap");
-    TAP_OK(geom_rect_overlap(0, 0, 10, 10, 2, 2, 4, 4),
+    TAP_OK(geom_overlap_rect(0, 0, 10, 10, 2, 2, 4, 4),
             "one rectangle fully inside another overlaps");
-    TAP_OK(geom_rect_overlap(0, 0, 10, 10, 0, 0, 10, 10),
+    TAP_OK(geom_overlap_rect(0, 0, 10, 10, 0, 0, 10, 10),
             "identical rectangles overlap");
 }
 
 
-/* geom_rect_overlap: rectangles that do not overlap at all, or that
+/* geom_overlap_rect: rectangles that do not overlap at all, or that
  * only touch at an edge or a corner, do not count as overlapping */
 static void s_test_overlap_false_cases(void)
 {
-    TAP_OK(!geom_rect_overlap(0, 0, 10, 10, 100, 100, 10, 10),
+    TAP_OK(!geom_overlap_rect(0, 0, 10, 10, 100, 100, 10, 10),
             "far-apart rectangles do not overlap");
-    TAP_OK(!geom_rect_overlap(0, 0, 10, 10, 10, 0, 10, 10),
+    TAP_OK(!geom_overlap_rect(0, 0, 10, 10, 10, 0, 10, 10),
             "rectangles sharing only a vertical edge do not overlap");
-    TAP_OK(!geom_rect_overlap(0, 0, 10, 10, 0, 10, 10, 10),
+    TAP_OK(!geom_overlap_rect(0, 0, 10, 10, 0, 10, 10, 10),
             "rectangles sharing only a horizontal edge do not overlap");
-    TAP_OK(!geom_rect_overlap(0, 0, 10, 10, 10, 10, 10, 10),
+    TAP_OK(!geom_overlap_rect(0, 0, 10, 10, 10, 10, 10, 10),
             "rectangles touching only at a corner do not overlap");
 }
 

@@ -354,16 +354,16 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
 
 
 /**
- * @brief Move exactly this one client to another desktop in response
- *        to a '_NET_WM_DESKTOP' request, ignoring any transient
- *        family it may belong to
+ * @brief Move exactly this one client to another desktop in response to
+ *        a @c _NET_WM_DESKTOP request, ignoring any transient family it
+ *        may belong to
  *
  * Split out of what used to be the whole of @a hi_handle_net_wm_
- * desktop so that function can redirect to, and cascade across, a
- * transient family (see its own doc comment) while still sharing
- * this single client's worth of EWMH desktop-move plumbing with the
- * top-level call it makes on the family's own top parent and on
- * every other member in turn.
+ * desktop so that function can redirect to, and cascade across,
+ * a transient family (see its own comment) while still sharing this
+ * single client's worth of EWMH desktop-move plumbing with the
+ * top-level call it makes on the family's own top parent and on every
+ * other member in turn.
  *
  * @param wm          Window manager instance
  * @param client      Client to move; must be non-null
@@ -377,7 +377,7 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
  * @note Complexity: @e O(1)
  */
 static void s_hi_handle_net_wm_desktop_one(const wm_td *wm,
-        client_td *client, surface_td *surface,
+        client_td *client, const surface_td *surface,
         desktop_td *src_desktop, desktop_td *tgt_desktop,
         uint32_t target_id)
 {
@@ -472,7 +472,7 @@ void hi_handle_net_current_desktop(const wm_td *wm,
 
 
 /**
- * @brief Handle a '_NET_WM_DESKTOP' client message, taking the
+ * @brief Handle a @c _NET_WM_DESKTOP client message, taking the
  *        requested client's whole transient family along with it
  *
  * The EWMH counterpart to @a ccmd_client_iconify's own transient-
@@ -484,10 +484,10 @@ void hi_handle_net_current_desktop(const wm_td *wm,
  * left behind on the old desktop when a pager or taskbar asks to
  * move its parent, stranded apart from the window it belongs to.
  *
- * @param wm      Window manager instance
- * @param event   The '_NET_WM_DESKTOP' client message event
- * @param client  Client the message named
- * @param surface Client's own surface
+ * @param wm          Window manager instance
+ * @param event       The @c _NET_WM_DESKTOP client message event
+ * @param client      Client the message named
+ * @param surface     Client's own surface
  * @param src_desktop Client's own current desktop
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
@@ -864,7 +864,7 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
     bool resize_w;
     bool resize_h;
     xcb_connection_t *connection = wm_connection(wm);
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
 
     (void) desktop;
 

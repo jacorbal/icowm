@@ -105,7 +105,7 @@ void handler_map_request(const wm_td *wm,
     cJSON *fields;
     xcb_connection_t *connection = wm_connection(wm);
     xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
     list_td *surfaces = wm_surfaces(wm);
 
     if (wm == NULL || event == NULL) {

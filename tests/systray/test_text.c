@@ -67,10 +67,11 @@ void systray_layout_reflow(void)
 /** Controllable stand-in for text_string_measure: returns a fixed
  *  width per non-empty character, so this file's own width
  *  calculations stay simple and exact to hand-compute */
-void text_renderer_init(xcb_connection_t *connection, const char *font)
+int text_renderer_init(xcb_connection_t *connection, const char *font)
 {
     (void) connection;
     (void) font;
+    return 0;
 }
 
 uint16_t text_string_measure(const char *text)

@@ -47,12 +47,12 @@
  * @brief Score a candidate window position against existing clients
  *
  * The overlap penalty itself (@a place_overlap_score,
- * @c policy/placement/score.h) is shared with
- * @c place_icon_apply's own @c CONFIG_ICON_PLACEMENT_SMART search;
- * only the tie-breaker below is specific to window placement.  A
- * small distance-to-center penalty breaks ties in favor of the
- * workarea center, staying much smaller than any overlap penalty so
- * it only matters when two positions have equal overlap cost.
+ * @c policy/placement/score.h) is shared with @c place_icon_apply's own
+ * @c CONFIG_ICON_PLACEMENT_SMART search; only the tie-breaker below is
+ * specific to window placement.  A small distance-to-center penalty
+ * breaks ties in favor of the workarea center, staying much smaller
+ * than any overlap penalty so it only matters when two positions have
+ * equal overlap cost.
  *
  * @param desktop     Desktop whose clients are inspected
  * @param skip_client Client to ignore (the one being placed)
@@ -194,12 +194,12 @@ static void s_place_window_apply_gravity(const surface_td *surface,
  * covered by a strut): in either case the caller's own unclipped
  * rectangle is already the right answer, not an error.
  *
- * @param surface     Surface the clip is against
- * @param wa          Workarea rectangle to clip
- * @param screen      Screen dimensions to clip alongside @p wa
- * @param monitor     Physical monitor to clip against
- * @param out_wa      Receives the clipped workarea
- * @param out_screen  Receives the clipped screen dimensions
+ * @param surface    Surface the clip is against
+ * @param wa         Workarea rectangle to clip
+ * @param screen     Screen dimensions to clip alongside @p wa
+ * @param monitor    Physical monitor to clip against
+ * @param out_wa     Receives the clipped workarea
+ * @param out_screen Receives the clipped screen dimensions
  *
  * @note Complexity: @e O(1)
  */
@@ -268,7 +268,10 @@ static monitor_td s_reference_monitor(const wm_td *wm,
     reply = xcb_query_pointer_reply(wm_connection(wm), cookie, NULL);
     if (reply != NULL) {
         result = surface_monitor_for_point(surface,
-                (struct position_s) { reply->root_x, reply->root_y });
+                (struct position_s) {
+                    reply->root_x,
+                    reply->root_y
+                });
         free(reply);
     }
 
@@ -281,12 +284,9 @@ static monitor_td s_reference_monitor(const wm_td *wm,
  *        parent, clamped to that parent's own monitor, and configure
  *        its window
  *
- * A no-op, returning @c false, when @p client is not transient for
- * anything, or its declared parent's geometry could not be resolved
- * at all (neither an already-managed client entry nor a raw
- * @c xcb_get_geometry reply).  On success, this fully places the
- * client (configures its window and updates its stored geometry) and
- * returns @c true, so @c place_window_apply has nothing further to do.
+ * On success, this fully places the client (configures its window and
+ * updates its stored geometry) and returns @c true, so
+ * @a place_window_apply has nothing further to do.
  *
  * @param wm      Window manager state
  * @param surface Surface @p client is on
@@ -296,6 +296,10 @@ static monitor_td s_reference_monitor(const wm_td *wm,
  *
  * @return @c true if @p client was transient and got placed here
  *
+ * @note A no-op, returning @c false, when @p client is not transient
+ *       for anything, or its declared parent's geometry could not be
+ *       resolved at all (neither an already-managed client entry nor
+ *       a raw @a xcb_get_geometry reply)
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients (see @c lookup_find_client)
  */
@@ -326,12 +330,12 @@ static bool s_place_window_transient_centered(const wm_td *wm,
     /* ICCCM: 'WM_TRANSIENT_FOR' set to the root window means this
      * dialog is transient for its whole application group, not one
      * specific window ("Window Managers should decide" how to handle
-     * this on their own, per the spec's own wording); prefer
-     * centering over whichever currently-mapped sibling shares the
-     * same group leader as this client, falling through to the
-     * ordinary geometry-based fallback further below (which, for the
-     * root window specifically, ends up centering on screen) when no
-     * such sibling is currently mapped. */
+     * this on their own, per the spec's own wording); prefer centering
+     * over whichever currently-mapped sibling shares the same group
+     * leader as this client, falling through to the ordinary
+     * geometry-based fallback further below (which, for the root window
+     * specifically, ends up centering on screen) when no such sibling
+     * is currently mapped. */
     if (client->transient_for == surface->screen->root) {
         xcb_window_t leader = client_group_leader(client);
 
@@ -353,17 +357,16 @@ static bool s_place_window_transient_centered(const wm_td *wm,
                         break;
                     }
                 }
-            }
-        }
+            } /* ! if (!desktop) */
+        } /* ! if (leader) */
     }
 
-    /* Prefer the WM's stored frame geometry over
-     * 'xcb_get_geometry': after reparenting the parent's inner
-     * window lives inside the frame, so 'xcb_get_geometry' would
-     * return its position relative to the frame (left, top); not
-     * the frame's root-relative screen position.  Using the stored
-     * geometry correctly centers the dialog wherever the parent
-     * window is on screen. */
+    /* Prefer the WM's stored frame geometry over 'xcb_get_geometry':
+     * after reparenting the parent's inner window lives inside the
+     * frame, so 'xcb_get_geometry' would return its position relative
+     * to the frame (left, top); not the frame's root-relative screen
+     * position.  Using the stored geometry correctly centers the dialog
+     * wherever the parent window is on screen. */
     if (parent == NULL) {
         parent = lookup_find_client(wm_surfaces(wm),
                 client->transient_for, NULL, NULL);
@@ -409,7 +412,8 @@ static bool s_place_window_transient_centered(const wm_td *wm,
             surface_monitor_for_point(surface,
                     (struct position_s) {
                         new_x + (int32_t) (fw / 2u),
-                        new_y + (int32_t) (fh / 2u) }),
+                        new_y + (int32_t) (fh / 2u)
+                    }),
             &t_wa, &t_sz);
 
     if (new_x < t_wa.pos.x) { new_x = t_wa.pos.x; }
@@ -518,12 +522,12 @@ static bool s_place_window_smart(const wm_td *wm,
     /* Clip the workarea down to whichever physical monitor
      * 'windows.placement.monitor' resolves to, on a surface made of
      * more than one (the common case of several monitors sharing one
-     * combined X screen): a new window should land within one
-     * monitor, not be scored against the whole combined area, which
-     * could place it straddling the seam between two of them.  Falls
-     * back to the unclipped workarea above when there is only one
-     * monitor or clipping would leave nothing to place into (e.g., a
-     * monitor entirely covered by a strut). */
+     * combined X screen): a new window should land within one monitor,
+     * not be scored against the whole combined area, which could place
+     * it straddling the seam between two of them.  Falls back to the
+     * unclipped workarea above when there is only one monitor or
+     * clipping would leave nothing to place into (e.g., a monitor
+     * entirely covered by a strut). */
     ref_monitor = s_reference_monitor(wm, surface,
             config->base.windows.monitor_policy);
     wa_geom.pos.x = wa_x;
@@ -638,7 +642,7 @@ static uint32_t s_cascade_seq = 0;
  * @brief Resolve the workarea and monitor-clipped bounds a placement
  *        calculation needs
  *
- * Shared by @c place_window_apply and @c place_window_apply_cascade so
+ * Shared by @a place_window_apply and @a place_window_apply_cascade so
  * both compute the exact same workarea and monitor bounds for a given
  * client.
  *
@@ -719,8 +723,10 @@ static void s_place_window_finalize(const wm_td *wm,
 
     xcb_configure_window(connection, target,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-            (const uint32_t[]) {(uint32_t) new_pos.x,
-                (uint32_t) new_pos.y});
+            (const uint32_t[]) {
+                (uint32_t) new_pos.x,
+                (uint32_t) new_pos.y
+            });
     client->layout.geometry.cur.pos = new_pos;
 }
 
@@ -832,18 +838,18 @@ void place_window_apply(const wm_td *wm,
      * this window manager would otherwise pick on its behalf.
      *
      * Exception: a transient window (one with 'WM_TRANSIENT_FOR' set)
-     * requesting exactly (0, 0) is not honored here.  In practice
-     * this combination is essentially never a deliberate placement
-     * choice on a dialog's part; it is toolkit boilerplate left over
-     * from a default 'PPosition'/'USPosition' hint nobody meant to
-     * set to a specific value, and honoring it verbatim pins every
-     * such dialog to the screen's top-left corner instead of the
-     * transient-centered position ICCCM §4.1.2.6 recommends
-     * immediately below.  A window that genuinely wants (0, 0) is
-     * vanishingly rare among transients specifically, so this narrow
-     * exception costs nothing for any other client while fixing that
-     * one common, confusing case (a "save changes?"-style prompt
-     * landing at the screen corner instead of over its own parent). */
+     * requesting exactly (0, 0) is not honored here.  In practice this
+     * combination is essentially never a deliberate placement choice on
+     * a dialog's part; it is toolkit boilerplate left over from
+     * a default 'PPosition'/'USPosition' hint nobody meant to set to
+     * a specific value, and honoring it verbatim pins every such dialog
+     * to the screen's top-left corner instead of the transient-centered
+     * position ICCCM §4.1.2.6 recommends immediately below.  A window
+     * that genuinely wants (0, 0) is vanishingly rare among transients
+     * specifically, so this narrow exception costs nothing for any
+     * other client while fixing that one common, confusing case (a
+     * "save changes?"-style prompt landing at the screen corner instead
+     * of over its own parent). */
     ignore_junk_origin_hint = client->transient_for != XCB_WINDOW_NONE &&
         client->hints_icccm.size.req_pos.x == 0 &&
         client->hints_icccm.size.req_pos.y == 0;
@@ -929,7 +935,8 @@ void place_window_apply(const wm_td *wm,
                 surface_monitor_for_point(surface,
                         (struct position_s) {
                             new_x + (int32_t) (fw / 2u),
-                            new_y + (int32_t) (fh / 2u) }),
+                            new_y + (int32_t) (fh / 2u)
+                        }),
                 &s_wa, &s_sz);
 
         /* Clamp to the workarea/screen the same way the cascade policy
@@ -938,10 +945,12 @@ void place_window_apply(const wm_td *wm,
         if (new_x < s_wa.pos.x) { new_x = s_wa.pos.x; }
         if (new_y < s_wa.pos.y) { new_y = s_wa.pos.y; }
         if ((uint32_t) new_x + fw > s_sz.w) {
-            new_x = (s_sz.w > fw) ? (int32_t) (s_sz.w - fw) : s_wa.pos.x;
+            new_x = (s_sz.w > fw) ? (int32_t) (s_sz.w - fw)
+                                  : s_wa.pos.x;
         }
         if ((uint32_t) new_y + fh > s_sz.h) {
-            new_y = (s_sz.h > fh) ? (int32_t) (s_sz.h - fh) : s_wa.pos.y;
+            new_y = (s_sz.h > fh) ? (int32_t) (s_sz.h - fh)
+                                  : s_wa.pos.y;
         }
     } else if (policy == CONFIG_PLACEMENT_POLICY_SMART &&
             s_place_window_smart(wm, surface, client, &new_x, &new_y)) {

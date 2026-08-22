@@ -159,7 +159,7 @@ cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args)
 
     for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
             node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
+        const surface_td *const surface = (surface_td *) list_data(node);
         cdlist_item_td *dnode;
 
         if (surface == NULL) {

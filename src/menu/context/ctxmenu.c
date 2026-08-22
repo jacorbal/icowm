@@ -54,7 +54,7 @@ void ctxmenu_show(xcb_connection_t *connection,
     int32_t max_x;
     int32_t max_y;
     struct geometry_s work;
-    desktop_td *desktop;
+    const desktop_td *desktop;
     size_t entry_count;
 
     if (connection == NULL || surface == NULL || state == NULL ||

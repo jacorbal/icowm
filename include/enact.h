@@ -610,8 +610,8 @@ void enact_desktop_show(desktop_td *desktop, bool show);
  *
  * @note Complexity: @e O(1)
  */
-void enact_desktop_client_send(desktop_td *desktop, client_td *client,
-        desktop_td *target);
+void enact_desktop_client_send(const desktop_td *desktop,
+        client_td *client, desktop_td *target);
 
 /**
  * @brief Send a client to the front of the desktop's window stack

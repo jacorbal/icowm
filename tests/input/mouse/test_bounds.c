@@ -106,13 +106,13 @@ static void s_test_decorated_without_titlebar(void)
 static void s_test_undecorated_uses_theme_border(void)
 {
     client_td client;
-    struct config_theme_s theme;
+    config_td config;
     im_resize_bounds_td bounds;
 
     memset(&client, 0, sizeof(client));
-    memset(&theme, 0, sizeof(theme));
+    memset(&config, 0, sizeof(config));
     client.frame = 0;
-    client.theme = &theme;
+    client.config = &config;
     client.border_override.is_set = true;
     client.border_override.width = 3u;
 

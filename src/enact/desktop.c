@@ -327,8 +327,8 @@ void enact_desktop_show(desktop_td *desktop, bool show)
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the top parent's own desktop
  */
-void enact_desktop_client_send(desktop_td *desktop, client_td *client,
-        desktop_td *target)
+void enact_desktop_client_send(const desktop_td *desktop,
+        client_td *client, desktop_td *target)
 {
     client_td *top;
     desktop_td *top_desktop;

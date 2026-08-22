@@ -32,8 +32,14 @@ enum action_client_e {
     ACTION_CLIENT_RESIZE,               /**< Resize window */
     ACTION_CLIENT_MOVE,                 /**< Move window */
     ACTION_CLIENT_CENTER,               /**< Center window */
-    ACTION_CLIENT_MOVE_NEXT_MONITOR,    /**< Move window to the next
-                                             monitor */
+    ACTION_CLIENT_MOVE_MONITOR_NORTH,   /**< Move window to the monitor
+                                             north of the current one */
+    ACTION_CLIENT_MOVE_MONITOR_SOUTH,   /**< Move window to the monitor
+                                             south of the current one */
+    ACTION_CLIENT_MOVE_MONITOR_EAST,    /**< Move window to the monitor
+                                             east of the current one */
+    ACTION_CLIENT_MOVE_MONITOR_WEST,    /**< Move window to the monitor
+                                             west of the current one */
     ACTION_CLIENT_MOVE_TO_MONITOR,      /**< Move window to a specific
                                              monitor index */
     ACTION_CLIENT_RECLASS,              /**< Change window class */
@@ -104,11 +110,17 @@ enum action_surface_e {
     ACTION_SURFACE_MIN,
     ACTION_SURFACE_DESKTOP_SWITCH =      /**< Switch another desktop */
         ACTION_SURFACE_MIN,
-    ACTION_SURFACE_DESKTOP_SWITCH_NEXT,  /**< Switch to next desktop */
-    ACTION_SURFACE_DESKTOP_SWITCH_PREV,  /**< Switch to previous desktop */
+    ACTION_SURFACE_DESKTOP_SWITCH_NORTH, /**< Switch to the desktop
+                                             north of the current one */
+    ACTION_SURFACE_DESKTOP_SWITCH_SOUTH, /**< Switch to the desktop
+                                             south of the current one */
+    ACTION_SURFACE_DESKTOP_SWITCH_EAST,  /**< Switch to the desktop
+                                             east of the current one */
+    ACTION_SURFACE_DESKTOP_SWITCH_WEST,  /**< Switch to the desktop
+                                             west of the current one */
 
     ACTION_SURFACE_MAX =
-        ACTION_SURFACE_DESKTOP_SWITCH_PREV,
+        ACTION_SURFACE_DESKTOP_SWITCH_WEST,
 };
 
 

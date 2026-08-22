@@ -5,9 +5,9 @@
  *
  * Split out of what used to be a single, flat @c input/mouse/event.c;
  * carries its own @c s_enter_focus_active state, used by nothing
- * outside this file and @c handler_focus_in (@c handler/focus.c),
- * which clears it. See @c input/mouse/event/press.c's own comment
- * for the reasoning behind the three-way split.
+ * outside this file and @c handler_focus_in (@c handler/focus.c), which
+ * clears it.  See @c input/mouse/event/press.c's own comment for the
+ * reasoning behind the three-way split.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -81,29 +81,28 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
-    /* Independent of focus-follows-mouse below: a resizable client
-     * that selects 'PointerMotion' for its own purposes (common in
-     * GTK/Qt applications tracking hover for their own UI) intercepts
-     * motion events at the X11 propagation level before they ever
-     * reach 'mouse_handle_motion_hover', so the cursor set while
-     * hovering this client's own border never gets re-evaluated once
-     * the pointer moves on into that client's content area; this
-     * 'EnterNotify', unlike motion, still fires reliably since it was
-     * selected directly on this client's own window (see client.c),
-     * giving the resize-cursor logic a second, independent chance to
-     * catch what motion alone might have missed. */
+    /* Independent of focus-follows-mouse below: a resizable client that
+     * selects 'PointerMotion' for its own purposes (common in GTK/Qt
+     * applications tracking hover for their own UI) intercepts motion
+     * events at the X11 propagation level before they ever reach
+     * 'mouse_handle_motion_hover', so the cursor set while hovering
+     * this client's own border never gets re-evaluated once the pointer
+     * moves on into that client's content area; this 'EnterNotify',
+     * unlike motion, still fires reliably since it was selected
+     * directly on this client's own window (see 'client.c'), giving the
+     * resize-cursor logic a second, independent chance to catch what
+     * motion alone might have missed. */
     entered = im_update_resize_cursor(connection, surfaces,
             event->event,
             (struct position_s) { event->root_x, event->root_y });
 
-    /* An undecorated client has no separate frame window to fall
-     * back on at all: moving from its border to its interior (or
-     * back) happens entirely within this one same window, with
-     * no crossing whatsoever for any further 'EnterNotify' to
-     * catch, and its own 'PointerMotion' may be just as
-     * intercepted as any other client's; only a periodic poll
-     * (see 'mouse_hover_poll_tick') can still catch that
-     * transition, so track it for one here. */
+    /* An undecorated client has no separate frame window to fall back
+     * on at all: moving from its border to its interior (or back)
+     * happens entirely within this one same window, with no crossing
+     * whatsoever for any further 'EnterNotify' to catch, and its own
+     * 'PointerMotion' may be just as intercepted as any other client's;
+     * only a periodic poll (see 'mouse_hover_poll_tick') can still
+     * catch that transition, so track it for one here. */
     im_hover_track((entered != NULL && entered->frame == 0)
             ? event->event : XCB_WINDOW_NONE);
 

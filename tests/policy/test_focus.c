@@ -91,6 +91,23 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
     return NULL;
 }
 
+/** For a client with no transient parent of its own, its own top
+ *  parent (the redirect target) is always itself, the same as the
+ *  real function would report for it; every client this file builds
+ *  is exactly that case. */
+client_td *ccmd_client_focus_target(client_td *client)
+{
+    return client;
+}
+
+/** For a client with no transient descendants at all, there is
+ *  nothing to bring back onto its own desktop; every client this
+ *  file builds is exactly that case too. */
+void ccmd_client_bring_family(client_td *client)
+{
+    (void) client;
+}
+
 
 /* A NULL configuration is never sloppy: focus_is_sloppy defaults to
  * the safer, more conventional click-to-focus behavior */

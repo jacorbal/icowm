@@ -441,7 +441,10 @@ static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
         case ACTION_CLIENT_RESIZE:
         case ACTION_CLIENT_MOVE:
         case ACTION_CLIENT_CENTER:
-        case ACTION_CLIENT_MOVE_NEXT_MONITOR:
+        case ACTION_CLIENT_MOVE_MONITOR_NORTH:
+        case ACTION_CLIENT_MOVE_MONITOR_SOUTH:
+        case ACTION_CLIENT_MOVE_MONITOR_EAST:
+        case ACTION_CLIENT_MOVE_MONITOR_WEST:
         case ACTION_CLIENT_MOVE_TO_MONITOR:
         case ACTION_CLIENT_RECLASS:
         case ACTION_CLIENT_REROLE:
@@ -564,7 +567,7 @@ static int s_build_desk_entries(surface_td *surface,
             if (has_row_col) {
                 (void) snprintf(s_desk_entries[n].label,
                         sizeof(s_desk_entries[n].label),
-                        "%s[%u (%u,%u)] -- %s%s",
+                        "%s[%u (%u, %u)] -- %s%s",
                         MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                         d_idx, row, col, d->name,
                         MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
@@ -580,7 +583,7 @@ static int s_build_desk_entries(surface_td *surface,
             if (has_row_col) {
                 (void) snprintf(s_desk_entries[n].label,
                         sizeof(s_desk_entries[n].label),
-                        "%s[%u (%u,%u)]%s",
+                        "%s[%u (%u, %u)]%s",
                         MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                         d_idx, row, col,
                         MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);

@@ -107,12 +107,12 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
  *
  * @param strut         Strut to fold in; a no-op when null
  * @param region_min_x  Region's own minimum X coordinate, for the
- *                       top/bottom range overlap check; @c 0 for the
- *                       whole surface, a monitor's own @c x otherwise
+ *                      top/bottom range overlap check; @c 0 for the
+ *                      whole surface, a monitor's own @c x otherwise
  * @param region_max_x  Region's own maximum X coordinate, same axis
  * @param region_min_y  Region's own minimum Y coordinate, for the
- *                       left/right range overlap check; @c 0 for the
- *                       whole surface, a monitor's own @c y otherwise
+ *                      left/right range overlap check; @c 0 for the
+ *                      whole surface, a monitor's own @c y otherwise
  * @param region_max_y  Region's own maximum Y coordinate, same axis
  * @param left          Running left reservation, updated in place
  * @param right         Running right reservation, updated in place

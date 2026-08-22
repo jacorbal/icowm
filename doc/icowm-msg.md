@@ -233,67 +233,72 @@ a compact index only; the full explanation of each, including what each
 response field means and the two actions deliberately left out of this
 catalog, is in [`icowm.md`](icowm.md) section 5.3.
 
-| Command                       | Arguments                                | Description |
-|-------------------------------|------------------------------------------|-------------|
-| `get_version`                 | none                                     | Reports the wire protocol version |
-| `list_desktops`               | none                                     | Lists every desktop on every managed surface |
-| `list_clients`                | none                                     | Lists every managed client, with geometry and state flags |
-| `get_focused`                 | none                                     | Reports the active client of every managed surface |
-| `close_client`                | `client_id`                              | Closes the client politely, or destroys its window |
-| `kill_client`                 | `client_id`                              | Forcibly terminates the client's own X connection |
-| `focus_client`                | `client_id`                              | Moves input focus to the client (does not raise it) |
-| `unfocus_client`              | `client_id`                              | Takes input focus away from the client |
-| `iconify_client`              | `client_id`                              | Iconifies (minimizes) the client |
-| `deiconify_client`            | `client_id`                              | Restores the client if it was iconified |
-| `hide_client`                 | `client_id`                              | Hides the client without iconifying it |
-| `unhide_client`               | `client_id`                              | Undoes `hide_client` |
-| `pin_client`                  | `client_id`                              | Makes the client visible on every desktop |
-| `unpin_client`                | `client_id`                              | Undoes `pin_client` |
-| `toggle_pin_client`           | `client_id`                              | Toggles `pin_client`/`unpin_client` |
-| `urge_client`                 | `client_id`                              | Marks the client urgent |
-| `unurge_client`               | `client_id`                              | Undoes `urge_client` |
-| `center_client`               | `client_id`                              | Centers the client on its own screen |
-| `move_client_to_next_monitor` | `client_id`                              | Moves the client to the next physical monitor |
-| `maximize_client_horz`        | `client_id`                              | Maximizes the client horizontally only |
-| `maximize_client_vert`        | `client_id`                              | Maximizes the client vertically only |
-| `maximize_client`             | `client_id`                              | Maximizes the client both horizontally and vertically |
-| `raise_client`                | `client_id`                              | Raises the client within its own layer |
-| `lower_client`                | `client_id`                              | Lowers the client within its own layer |
-| `set_layer_above_client`      | `client_id`                              | Moves the client to the "always on top" layer |
-| `set_layer_normal_client`     | `client_id`                              | Moves the client back to the ordinary layer |
-| `set_layer_below_client`      | `client_id`                              | Moves the client to the "always below" layer |
-| `cycle_layer_client`          | `client_id`                              | Cycles the client through above, normal, and below |
-| `shade_client`                | `client_id`                              | Rolls the client up into just its own titlebar |
-| `unshade_client`              | `client_id`                              | Undoes `shade_client` |
-| `toggle_shade_client`         | `client_id`                              | Toggles `shade_client`/`unshade_client` |
-| `fullscreen_client`           | `client_id`                              | Makes the client fill its own screen |
-| `unfullscreen_client`         | `client_id`                              | Undoes `fullscreen_client` |
-| `toggle_fullscreen_client`    | `client_id`                              | Toggles `fullscreen_client`/`unfullscreen_client` |
-| `toggle_decorate_client`      | `client_id`                              | Shows or hides the client's own titlebar and border |
-| `send_client_to_front`        | `client_id`                              | Raises the client to the front of its own desktop's window stack |
-| `send_client_to_back`         | `client_id`                              | Sends the client to the back of its own desktop's window stack |
-| `move_client`                 | `client_id` `x` `y`                      | Moves the client so its own top-left corner is at that position |
-| `move_resize_client`          | `client_id` `x` `y` `w` `h`              | Moves and resizes the client in one step |
-| `resize_client`               | `client_id` `w` `h`                      | Resizes the client only, leaving position alone |
-| `move_client_to_monitor`      | `client_id` `monitor_index`              | Moves the client to that physical monitor |
-| `rename_client`               | `client_id` `name`                       | Overrides the client's own window title |
-| `reclass_client`              | `client_id` `class_name` `instance_name` | Overrides the client's own `WM_CLASS` |
-| `rerole_client`               | `client_id` `role`                       | Overrides the client's own window role |
-| `set_client_icon`             | `client_id` `icon_name`                  | Overrides which icon IcoWM shows for the client |
-| `set_desktop_background`      | `desktop_id` [`surface_id`] `color`      | Sets that desktop's own solid background color |
-| `show_desktop`                | `desktop_id` [`surface_id`] `show`       | Shows or hides every client on that desktop at once |
-| `send_client_to_desktop`      | `client_id` `target_desktop_id`          | Moves the client to another desktop on the same surface |
-| `iconify_all`                 | [`desktop_id`] [`surface_id`]            | Iconifies every client on that desktop at once |
-| `deiconify_all`               | [`desktop_id`] [`surface_id`]            | Restores every iconified client on that desktop at once |
-| `rearrange_desktop`           | [`desktop_id`] [`surface_id`]            | Re-applies the configured placement policy on that desktop |
-| `goto_desktop`                | `desktop_id` [`surface_id`]              | Switches the resolved surface to that desktop |
-| `goto_next_desktop`           | [`surface_id`]                           | Switches the resolved surface to its own next desktop |
-| `goto_prev_desktop`           | [`surface_id`]                           | Switches the resolved surface to its own previous desktop |
-| `add_desktop`                 | [`surface_id`] | Adds a new desktop after the resolved surface's own last one.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
-| `remove_desktop`              | [`surface_id`]                           | Removes the resolved surface's own last desktop, moving any client still on it to the one before it.  Refused, with an error, while only one desktop remains |
-| `exit_wm`                     | none                                     | Requests that IcoWM stop and exit |
-| `reload_config`               | none                                     | Reloads every configuration file |
-| `toggle_scratchpad`           | [`desktop_id`[, `surface_id`]]           | Launches the scratchpad, or shows/hides it if already running |
+| Command                        | Arguments                                | Description |
+|--------------------------------|------------------------------------------|-------------|
+| `get_version`                  | none                                     | Reports the wire protocol version |
+| `list_desktops`                | none                                     | Lists every desktop on every managed surface |
+| `list_clients`                 | none                                     | Lists every managed client, with geometry and state flags |
+| `get_focused`                  | none                                     | Reports the active client of every managed surface |
+| `close_client`                 | `client_id`                              | Closes the client politely, or destroys its window |
+| `kill_client`                  | `client_id`                              | Forcibly terminates the client's own X connection |
+| `focus_client`                 | `client_id`                              | Moves input focus to the client (does not raise it) |
+| `unfocus_client`               | `client_id`                              | Takes input focus away from the client |
+| `iconify_client`               | `client_id`                              | Iconifies (minimizes) the client |
+| `deiconify_client`             | `client_id`                              | Restores the client if it was iconified |
+| `hide_client`                  | `client_id`                              | Hides the client without iconifying it |
+| `unhide_client`                | `client_id`                              | Undoes `hide_client` |
+| `pin_client`                   | `client_id`                              | Makes the client visible on every desktop |
+| `unpin_client`                 | `client_id`                              | Undoes `pin_client` |
+| `toggle_pin_client`            | `client_id`                              | Toggles `pin_client`/`unpin_client` |
+| `urge_client`                  | `client_id`                              | Marks the client urgent |
+| `unurge_client`                | `client_id`                              | Undoes `urge_client` |
+| `center_client`                | `client_id`                              | Centers the client on its own screen |
+| `move_client_to_monitor_north` | `client_id`                              | Moves the client to the monitor north of its current one, resolved by real physical position; a no-op with one monitor or none, or when none lies to the north |
+| `move_client_to_monitor_south` | `client_id`                              | The same, toward the monitor south of the current one |
+| `move_client_to_monitor_east`  | `client_id`                              | The same, toward the monitor east of the current one |
+| `move_client_to_monitor_west`  | `client_id`                              | The same, toward the monitor west of the current one |
+| `maximize_client_horz`         | `client_id`                              | Maximizes the client horizontally only |
+| `maximize_client_vert`         | `client_id`                              | Maximizes the client vertically only |
+| `maximize_client`              | `client_id`                              | Maximizes the client both horizontally and vertically |
+| `raise_client`                 | `client_id`                              | Raises the client within its own layer |
+| `lower_client`                 | `client_id`                              | Lowers the client within its own layer |
+| `set_layer_above_client`       | `client_id`                              | Moves the client to the "always on top" layer |
+| `set_layer_normal_client`      | `client_id`                              | Moves the client back to the ordinary layer |
+| `set_layer_below_client`       | `client_id`                              | Moves the client to the "always below" layer |
+| `cycle_layer_client`           | `client_id`                              | Cycles the client through above, normal, and below |
+| `shade_client`                 | `client_id`                              | Rolls the client up into just its own titlebar |
+| `unshade_client`               | `client_id`                              | Undoes `shade_client` |
+| `toggle_shade_client`          | `client_id`                              | Toggles `shade_client`/`unshade_client` |
+| `fullscreen_client`            | `client_id`                              | Makes the client fill its own screen |
+| `unfullscreen_client`          | `client_id`                              | Undoes `fullscreen_client` |
+| `toggle_fullscreen_client`     | `client_id`                              | Toggles `fullscreen_client`/`unfullscreen_client` |
+| `toggle_decorate_client`       | `client_id`                              | Shows or hides the client's own titlebar and border |
+| `send_client_to_front`         | `client_id`                              | Raises the client to the front of its own desktop's window stack |
+| `send_client_to_back`          | `client_id`                              | Sends the client to the back of its own desktop's window stack |
+| `move_client`                  | `client_id` `x` `y`                      | Moves the client so its own top-left corner is at that position |
+| `move_resize_client`           | `client_id` `x` `y` `w` `h`              | Moves and resizes the client in one step |
+| `resize_client`                | `client_id` `w` `h`                      | Resizes the client only, leaving position alone |
+| `move_client_to_monitor`       | `client_id` `monitor_index`              | Moves the client to that physical monitor by its own index, rather than by compass direction |
+| `rename_client`                | `client_id` `name`                       | Overrides the client's own window title |
+| `reclass_client`               | `client_id` `class_name` `instance_name` | Overrides the client's own `WM_CLASS` |
+| `rerole_client`                | `client_id` `role`                       | Overrides the client's own window role |
+| `set_client_icon`              | `client_id` `icon_name`                  | Overrides which icon IcoWM shows for the client |
+| `set_desktop_background`       | `desktop_id` [`surface_id`] `color`      | Sets that desktop's own solid background color |
+| `show_desktop`                 | `desktop_id` [`surface_id`] `show`       | Shows or hides every client on that desktop at once |
+| `send_client_to_desktop`       | `client_id` `target_desktop_id`          | Moves the client to another desktop on the same surface |
+| `iconify_all`                  | [`desktop_id`] [`surface_id`]            | Iconifies every client on that desktop at once |
+| `deiconify_all`                | [`desktop_id`] [`surface_id`]            | Restores every iconified client on that desktop at once |
+| `rearrange_desktop`            | [`desktop_id`] [`surface_id`]            | Re-applies the configured placement policy on that desktop |
+| `goto_desktop`                 | `desktop_id` [`surface_id`]              | Switches the resolved surface to that desktop |
+| `goto_north_desktop`           | [`surface_id`]                           | Switches the resolved surface to the desktop north of its current one |
+| `goto_south_desktop`           | [`surface_id`]                           | The same, toward the desktop south of the current one |
+| `goto_east_desktop`            | [`surface_id`]                           | The same, toward the desktop east of the current one |
+| `goto_west_desktop`            | [`surface_id`]                           | The same, toward the desktop west of the current one |
+| `add_desktop`                  | [`surface_id`] | Adds a new desktop after the resolved surface's own last one, growing its own configured grid layout by a row or column first if it does not already have a gap cell for it.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `remove_desktop`               | [`surface_id`]                           | Removes the resolved surface's own last desktop, moving any client still on it to the one before it, switching the current view there too if it was the one removed.  Shrinks the grid layout back down if that was its own last member.  Refused, with an error, while only one desktop remains |
+| `exit_wm`                      | none                                     | Requests that IcoWM stop and exit |
+| `reload_config`                | none                                     | Reloads every configuration file |
+| `toggle_scratchpad`            | [`desktop_id`[, `surface_id`]]           | Launches the scratchpad, or shows/hides it if already running |
 
 ## 9. Watching for events
 
@@ -316,40 +321,40 @@ error, since it has nothing to count events for.
 
 ### 9.1. What each event reports
 
-| Event                 | Fields |
-|-----------------------|--------|
-| `window_mapped`       | `client_id`, `desktop_id`, `surface_id`: a client was just mapped onto that desktop |
-| `window_closed`       | `client_id`, `desktop_id`, `surface_id`: a client was just destroyed |
-| `desktop_switched`    | `surface_id`, `desktop_id`: that surface's own current desktop just changed to `desktop_id` |
-| `focus_changed`       | `surface_id`, `client_id`: that client just became the active one on its own surface |
-| `urgency_set`         | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just set |
-| `urgency_cleared`     | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just cleared |
-| `window_moved`        | `client_id`, `desktop_id`, `surface_id`: that client's own position just changed (see the `list_clients` command for its current `x`/`y`) |
-| `window_resized`      | `client_id`, `desktop_id`, `surface_id`: that client's own size just changed (see the `list_clients` command for its current `w`/`h`) |
-| `rule_applied`        | `client_id`, `desktop_id`, `surface_id`: a loaded rule just changed one or more of that client's own properties |
-| `pin_set`             | `client_id`, `desktop_id`, `surface_id`: that client was just pinned (visible on every desktop) |
-| `pin_cleared`         | `client_id`, `desktop_id`, `surface_id`: that client was just unpinned |
-| `fullscreen_set`      | `client_id`, `desktop_id`, `surface_id`: that client just entered full screen |
-| `fullscreen_cleared`  | `client_id`, `desktop_id`, `surface_id`: that client just left full screen |
-| `shade_set`           | `client_id`, `desktop_id`, `surface_id`: that client was just shaded (rolled up into its titlebar) |
-| `shade_cleared`       | `client_id`, `desktop_id`, `surface_id`: that client was just unshaded |
-| `hide_set`            | `client_id`, `desktop_id`, `surface_id`: that client was just hidden |
-| `hide_cleared`        | `client_id`, `desktop_id`, `surface_id`: that client was just unhidden |
-| `decoration_set`      | `client_id`, `desktop_id`, `surface_id`: that client's own titlebar and border were just shown |
-| `decoration_cleared`  | `client_id`, `desktop_id`, `surface_id`: that client's own titlebar and border were just hidden |
-| `client_iconified`    | `client_id`, `desktop_id`, `surface_id`: that client was just iconified |
-| `client_deiconified`  | `client_id`, `desktop_id`, `surface_id`: that client was just restored from being iconified |
-| `layer_changed`       | `client_id`, `desktop_id`, `surface_id`: that client's own stacking layer just changed (see `list_clients` for its current layer) |
-| `client_desktop_changed` | `client_id`, `desktop_id`, `surface_id`: that client just moved to a different desktop (`desktop_id` is the new one) |
-| `client_renamed`      | `client_id`, `desktop_id`, `surface_id`, `name`: that client's own displayed title was just overridden |
-| `client_reclassed`    | `client_id`, `desktop_id`, `surface_id`, `class_name`, `instance_name`: that client's own `WM_CLASS` was just overridden |
-| `client_reroled`      | `client_id`, `desktop_id`, `surface_id`, `role`: that client's own window role was just overridden |
-| `client_icon_changed` | `client_id`, `desktop_id`, `surface_id`, `icon_name`: that client's own displayed icon was just overridden |
+| Event                        | Fields |
+|------------------------------|--------|
+| `window_mapped`              | `client_id`, `desktop_id`, `surface_id`: a client was just mapped onto that desktop |
+| `window_closed`              | `client_id`, `desktop_id`, `surface_id`: a client was just destroyed |
+| `desktop_switched`           | `surface_id`, `desktop_id`: that surface's own current desktop just changed to `desktop_id` |
+| `focus_changed`              | `surface_id`, `client_id`: that client just became the active one on its own surface |
+| `urgency_set`                | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just set |
+| `urgency_cleared`            | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just cleared |
+| `window_moved`               | `client_id`, `desktop_id`, `surface_id`: that client's own position just changed (see the `list_clients` command for its current `x`/`y`) |
+| `window_resized`             | `client_id`, `desktop_id`, `surface_id`: that client's own size just changed (see the `list_clients` command for its current `w`/`h`) |
+| `rule_applied`               | `client_id`, `desktop_id`, `surface_id`: a loaded rule just changed one or more of that client's own properties |
+| `pin_set`                    | `client_id`, `desktop_id`, `surface_id`: that client was just pinned (visible on every desktop) |
+| `pin_cleared`                | `client_id`, `desktop_id`, `surface_id`: that client was just unpinned |
+| `fullscreen_set`             | `client_id`, `desktop_id`, `surface_id`: that client just entered full screen |
+| `fullscreen_cleared`         | `client_id`, `desktop_id`, `surface_id`: that client just left full screen |
+| `shade_set`                  | `client_id`, `desktop_id`, `surface_id`: that client was just shaded (rolled up into its titlebar) |
+| `shade_cleared`              | `client_id`, `desktop_id`, `surface_id`: that client was just unshaded |
+| `hide_set`                   | `client_id`, `desktop_id`, `surface_id`: that client was just hidden |
+| `hide_cleared`               | `client_id`, `desktop_id`, `surface_id`: that client was just unhidden |
+| `decoration_set`             | `client_id`, `desktop_id`, `surface_id`: that client's own titlebar and border were just shown |
+| `decoration_cleared`         | `client_id`, `desktop_id`, `surface_id`: that client's own titlebar and border were just hidden |
+| `client_iconified`           | `client_id`, `desktop_id`, `surface_id`: that client was just iconified |
+| `client_deiconified`         | `client_id`, `desktop_id`, `surface_id`: that client was just restored from being iconified |
+| `layer_changed`              | `client_id`, `desktop_id`, `surface_id`: that client's own stacking layer just changed (see `list_clients` for its current layer) |
+| `client_desktop_changed`     | `client_id`, `desktop_id`, `surface_id`: that client just moved to a different desktop (`desktop_id` is the new one) |
+| `client_renamed`             | `client_id`, `desktop_id`, `surface_id`, `name`: that client's own displayed title was just overridden |
+| `client_reclassed`           | `client_id`, `desktop_id`, `surface_id`, `class_name`, `instance_name`: that client's own `WM_CLASS` was just overridden |
+| `client_reroled`             | `client_id`, `desktop_id`, `surface_id`, `role`: that client's own window role was just overridden |
+| `client_icon_changed`        | `client_id`, `desktop_id`, `surface_id`, `icon_name`: that client's own displayed icon was just overridden |
 | `desktop_background_changed` | `desktop_id`, `surface_id`: that desktop's own solid background color was just set |
-| `desktop_shown`       | `desktop_id`, `surface_id`: every client on that desktop was just shown at once |
-| `desktop_hidden`      | `desktop_id`, `surface_id`: every client on that desktop was just hidden at once |
-| `config_reloaded`     | none: every configuration file was just reloaded |
-| `stacking_changed`    | `client_id`, `desktop_id`, `surface_id`: that client's own position within its layer's stacking order just changed |
+| `desktop_shown`              | `desktop_id`, `surface_id`: every client on that desktop was just shown at once |
+| `desktop_hidden`             | `desktop_id`, `surface_id`: every client on that desktop was just hidden at once |
+| `stacking_changed`           | `client_id`, `desktop_id`, `surface_id`: that client's own position within its layer's stacking order just changed |
+| `config_reloaded`            | none: every configuration file was just reloaded |
 
 Every event line also carries its own `"event"` field naming which one
 it is, the same as every other field name above; there is no separate

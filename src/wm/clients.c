@@ -43,7 +43,7 @@ uint32_t wm_for_each_client(const wm_td *wm,
 
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        const surface_td *const surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
 
         if (surface == NULL) {

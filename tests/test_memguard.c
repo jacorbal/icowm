@@ -71,13 +71,13 @@ static void s_test_init_zero_disables(void)
 }
 
 
-/* A ceiling at the built-in minimum still computes a real cap:
- * budget = 10 - 6 (baseline) = 4 MiB; 4*1024/256 = 16 clients */
+/* A ceiling above the baseline still computes a real cap:
+ * budget = 10 - 8 (baseline) = 2 MiB; 2*1024/256 = 8 clients */
 static void s_test_init_min_ceiling(void)
 {
     memguard_init(10u);
-    TAP_EQ_INT((long) memguard_max_clients(), 16,
-            "a 10 MiB ceiling computes a cap of 16 clients");
+    TAP_EQ_INT((long) memguard_max_clients(), 8,
+            "a 10 MiB ceiling computes a cap of 8 clients");
 }
 
 

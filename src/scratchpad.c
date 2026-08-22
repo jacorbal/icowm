@@ -123,10 +123,9 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
 
     if (s_scratchpad_client == NULL) {
         pid_t launched_pid = (pid_t) -1;
-        bool awaiting_expired = false;
 
         if (s_awaiting_scratchpad) {
-            awaiting_expired =
+            bool awaiting_expired =
                 (clock_ms_since(&s_awaiting_scratchpad_since) >=
                     (long) WM_SCRATCHPAD_AWAIT_TIMEOUT_SECONDS * 1000L);
             if (!awaiting_expired) {
@@ -155,8 +154,8 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
         surface_td *surface;
 
         if (s_scratchpad_client->desktop_id != desktop->id) {
-            desktop_td *const source = wm_get_client_desktop(
-                    s_scratchpad_client);
+            const desktop_td *const source =
+                wm_get_client_desktop(s_scratchpad_client);
 
             if (source != NULL) {
                 enact_desktop_client_send(source, s_scratchpad_client,
@@ -295,8 +294,8 @@ void scratchpad_notice_client_created(client_td *client)
 
 /* Position the current scratchpad client against its own configured
  * edge, size, and desktop */
-void scratchpad_position(client_td *client, desktop_td *desktop,
-        surface_td *surface)
+void scratchpad_position(client_td *client,
+        const desktop_td *desktop, surface_td *surface)
 {
     const config_td *config;
     struct geometry_s area;

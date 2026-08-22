@@ -3,7 +3,7 @@
  *
  * @brief Test battery for icon placement policy
  *
- * Both place_icon and icon_avoid_systray_overlap are pure
+ * Both place_icon_apply and place_icon_avoid_systray_overlap are pure
  * computation: neither calls into XCB or any other module at all,
  * so no stand-ins are needed here, only hand-computed expectations
  * against WM_ICON_GRID_MARGIN (8) and WM_ICON_SYSTRAY_GAP (8).
@@ -24,34 +24,42 @@
 
 /* Local includes */
 #include <harness/tap.h>
-#include <policy/placement.h>
+#include <policy/placement/icon.h>
 
 
-/* place_icon's own guard clauses: any missing required argument is
- * a safe no-op that never touches out_x/out_y */
+/* place_icon_apply's own guard clauses: any missing required
+ * argument is a safe no-op that never touches out_pos.  The original
+ * (pre-restructuring) API took separate out_x/out_y pointers, and
+ * had its own test for "out_x specifically NULL, out_y still valid";
+ * the current API bundles both into one out_pos pointer, so that
+ * specific partial-NULL case no longer applies, replaced here by the
+ * genuinely equivalent one: out_pos itself NULL, the third guard
+ * condition the real function still checks. */
 static void s_test_icon_guards(void)
 {
     client_td client;
-    struct config_theme_s theme;
-    int16_t out_x = 999;
-    int16_t out_y = 999;
+    config_td config;
+    struct position_s out_pos = { 999, 999 };
 
     memset(&client, 0, sizeof(client));
-    memset(&theme, 0, sizeof(theme));
-    client.theme = &theme;
+    memset(&config, 0, sizeof(config));
+    client.config = &config;
 
-    place_icon(NULL, NULL, CONFIG_ICON_PLACEMENT_BOTTOM, 32u, 32u,
-            800u, 600u, &out_x, &out_y);
-    TAP_EQ_INT(out_x, 999, "a NULL client leaves out_x untouched");
+    place_icon_apply(NULL, NULL, CONFIG_ICON_PLACEMENT_BOTTOM,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &out_pos);
+    TAP_EQ_INT(out_pos.x, 999, "a NULL client leaves out_pos untouched");
 
-    place_icon(&client, NULL, CONFIG_ICON_PLACEMENT_BOTTOM, 32u, 32u,
-            800u, 600u, NULL, &out_y);
-    TAP_OK(true, "a NULL out_x is a safe no-op, no crash");
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_BOTTOM,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, NULL);
+    TAP_OK(true, "a NULL out_pos is a safe no-op, no crash");
 
-    client.theme = NULL;
-    place_icon(&client, NULL, CONFIG_ICON_PLACEMENT_BOTTOM, 32u, 32u,
-            800u, 600u, &out_x, &out_y);
-    TAP_EQ_INT(out_x, 999, "a NULL theme leaves out_x untouched");
+    client.config = NULL;
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_BOTTOM,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &out_pos);
+    TAP_EQ_INT(out_pos.x, 999, "a NULL config leaves out_pos untouched");
 }
 
 
@@ -60,21 +68,23 @@ static void s_test_icon_guards(void)
 static void s_test_icon_bottom_first_slot(void)
 {
     client_td client;
-    struct config_theme_s theme;
-    int16_t out_x = 0;
-    int16_t out_y = 0;
+    config_td config;
+    struct position_s out_pos = { 0, 0 };
 
     memset(&client, 0, sizeof(client));
-    memset(&theme, 0, sizeof(theme));
-    client.theme = &theme;
+    memset(&config, 0, sizeof(config));
+    client.config = &config;
 
-    place_icon(&client, NULL, CONFIG_ICON_PLACEMENT_BOTTOM, 32u, 32u,
-            800u, 600u, &out_x, &out_y);
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_BOTTOM,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &out_pos);
 
     /* ix = margin(8) + pri(0)*step_x = 8
      * iy = screen_h(600) - margin(8) - icon_h(32) - border(0) - 0 = 560 */
-    TAP_EQ_INT(out_x, 8, "BOTTOM policy: first slot's own x is at the margin");
-    TAP_EQ_INT(out_y, 560, "BOTTOM policy: first slot sits at the bottom");
+    TAP_EQ_INT(out_pos.x, 8,
+            "BOTTOM policy: first slot's own x is at the margin");
+    TAP_EQ_INT(out_pos.y, 560, "BOTTOM policy: first slot sits at the" \
+            " bottom");
 }
 
 
@@ -83,20 +93,21 @@ static void s_test_icon_bottom_first_slot(void)
 static void s_test_icon_top_first_slot(void)
 {
     client_td client;
-    struct config_theme_s theme;
-    int16_t out_x = 0;
-    int16_t out_y = 0;
+    config_td config;
+    struct position_s out_pos = { 0, 0 };
 
     memset(&client, 0, sizeof(client));
-    memset(&theme, 0, sizeof(theme));
-    client.theme = &theme;
+    memset(&config, 0, sizeof(config));
+    client.config = &config;
 
-    place_icon(&client, NULL, CONFIG_ICON_PLACEMENT_TOP, 32u, 32u,
-            800u, 600u, &out_x, &out_y);
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_TOP,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &out_pos);
 
-    TAP_EQ_INT(out_x, 8, "TOP policy: first slot's own x is at the margin");
-    TAP_EQ_INT(out_y, 8, "TOP policy: first slot sits at the top margin" \
-            " too, not the bottom");
+    TAP_EQ_INT(out_pos.x, 8,
+            "TOP policy: first slot's own x is at the margin");
+    TAP_EQ_INT(out_pos.y, 8, "TOP policy: first slot sits at the top" \
+            " margin too, not the bottom");
 }
 
 
@@ -105,21 +116,22 @@ static void s_test_icon_top_first_slot(void)
 static void s_test_icon_right_first_slot(void)
 {
     client_td client;
-    struct config_theme_s theme;
-    int16_t out_x = 0;
-    int16_t out_y = 0;
+    config_td config;
+    struct position_s out_pos = { 0, 0 };
 
     memset(&client, 0, sizeof(client));
-    memset(&theme, 0, sizeof(theme));
-    client.theme = &theme;
+    memset(&config, 0, sizeof(config));
+    client.config = &config;
 
-    place_icon(&client, NULL, CONFIG_ICON_PLACEMENT_RIGHT, 32u, 32u,
-            800u, 600u, &out_x, &out_y);
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_RIGHT,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &out_pos);
 
     /* ix = screen_w(800) - icon_w(32) - margin(8) - border(0) - 0 = 760 */
-    TAP_EQ_INT(out_x, 760,
+    TAP_EQ_INT(out_pos.x, 760,
             "RIGHT policy: first slot is anchored to the right edge");
-    TAP_EQ_INT(out_y, 8, "RIGHT policy: first slot starts at the top margin");
+    TAP_EQ_INT(out_pos.y, 8,
+            "RIGHT policy: first slot starts at the top margin");
 }
 
 
@@ -129,20 +141,20 @@ static void s_test_icon_right_first_slot(void)
 static void s_test_icon_border_width_shifts_position(void)
 {
     client_td client;
-    struct config_theme_s theme;
-    int16_t out_x = 0;
-    int16_t out_y = 0;
+    config_td config;
+    struct position_s out_pos = { 0, 0 };
 
     memset(&client, 0, sizeof(client));
-    memset(&theme, 0, sizeof(theme));
-    theme.icon.active.border.width = 3u;
-    client.theme = &theme;
+    memset(&config, 0, sizeof(config));
+    config.theme.icon.active.border.width = 3u;
+    client.config = &config;
 
-    place_icon(&client, NULL, CONFIG_ICON_PLACEMENT_RIGHT, 32u, 32u,
-            800u, 600u, &out_x, &out_y);
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_RIGHT,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &out_pos);
 
     /* border_twice = 3*2 = 6; ix = 800 - 32 - 8 - 6 - 0 = 754 */
-    TAP_EQ_INT(out_x, 754,
+    TAP_EQ_INT(out_pos.x, 754,
             "a nonzero theme border width shifts the anchored edge in");
 }
 
@@ -154,31 +166,31 @@ static void s_test_icon_avoids_occupied_slot(void)
 {
     client_td client;
     client_td occupant;
-    struct config_theme_s theme;
+    config_td config;
     desktop_td desktop;
-    int16_t out_x = 0;
-    int16_t out_y = 0;
+    struct position_s out_pos = { 0, 0 };
 
     memset(&client, 0, sizeof(client));
     memset(&occupant, 0, sizeof(occupant));
-    memset(&theme, 0, sizeof(theme));
+    memset(&config, 0, sizeof(config));
     memset(&desktop, 0, sizeof(desktop));
-    client.theme = &theme;
+    client.config = &config;
 
     /* Occupies exactly slot 0's own BOTTOM position (8, 560) */
     occupant.icon_window = 999u;
     occupant.is_icon_mapped = true;
     occupant.properties.state = (uint16_t) CLIENT_STATE_ICONIFIED;
-    occupant.icon_x = 8;
-    occupant.icon_y = 560;
+    occupant.icon_pos.x = 8;
+    occupant.icon_pos.y = 560;
 
     desktop.stacking = cdlist_init(NULL);
     cdlist_ins_next(desktop.stacking, NULL, &occupant);
 
-    place_icon(&client, &desktop, CONFIG_ICON_PLACEMENT_BOTTOM, 32u, 32u,
-            800u, 600u, &out_x, &out_y);
+    place_icon_apply(&client, &desktop, CONFIG_ICON_PLACEMENT_BOTTOM,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &out_pos);
 
-    TAP_OK(!(out_x == 8 && out_y == 560),
+    TAP_OK(!(out_pos.x == 8 && out_pos.y == 560),
             "the occupied first slot is skipped for the next free one");
 
     cdlist_destroy(desktop.stacking);
@@ -191,20 +203,21 @@ static void s_test_icon_avoids_occupied_slot(void)
 static void s_test_icon_smart_empty_desktop(void)
 {
     client_td client;
-    struct config_theme_s theme;
-    int16_t out_x = 0;
-    int16_t out_y = 0;
+    config_td config;
+    struct position_s out_pos = { 0, 0 };
 
     memset(&client, 0, sizeof(client));
-    memset(&theme, 0, sizeof(theme));
-    client.theme = &theme;
+    memset(&config, 0, sizeof(config));
+    client.config = &config;
 
-    place_icon(&client, NULL, CONFIG_ICON_PLACEMENT_SMART, 32u, 32u,
-            800u, 600u, &out_x, &out_y);
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_SMART,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &out_pos);
 
-    TAP_EQ_INT(out_x, 8, "SMART on an empty desktop still picks slot 0's x");
-    TAP_EQ_INT(out_y, 560, "SMART on an empty desktop still picks slot 0's" \
-            " y (BOTTOM layout)");
+    TAP_EQ_INT(out_pos.x, 8,
+            "SMART on an empty desktop still picks slot 0's x");
+    TAP_EQ_INT(out_pos.y, 560, "SMART on an empty desktop still picks" \
+            " slot 0's y (BOTTOM layout)");
 }
 
 
@@ -215,16 +228,15 @@ static void s_test_icon_smart_avoids_visible_window(void)
 {
     client_td client;
     client_td window;
-    struct config_theme_s theme;
+    config_td config;
     desktop_td desktop;
-    int16_t out_x = 0;
-    int16_t out_y = 0;
+    struct position_s out_pos = { 0, 0 };
 
     memset(&client, 0, sizeof(client));
     memset(&window, 0, sizeof(window));
-    memset(&theme, 0, sizeof(theme));
+    memset(&config, 0, sizeof(config));
     memset(&desktop, 0, sizeof(desktop));
-    client.theme = &theme;
+    client.config = &config;
 
     /* A large visible window covering slot 0's own position */
     window.properties.state = (uint16_t) CLIENT_STATE_NORMAL;
@@ -236,10 +248,11 @@ static void s_test_icon_smart_avoids_visible_window(void)
     desktop.stacking = cdlist_init(NULL);
     cdlist_ins_next(desktop.stacking, NULL, &window);
 
-    place_icon(&client, &desktop, CONFIG_ICON_PLACEMENT_SMART, 32u, 32u,
-            800u, 600u, &out_x, &out_y);
+    place_icon_apply(&client, &desktop, CONFIG_ICON_PLACEMENT_SMART,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &out_pos);
 
-    TAP_OK(!(out_x == 8 && out_y == 560),
+    TAP_OK(!(out_pos.x == 8 && out_pos.y == 560),
             "a visible window covering slot 0 pushes SMART to a" \
             " different, cheaper slot");
 
@@ -247,12 +260,13 @@ static void s_test_icon_smart_avoids_visible_window(void)
 }
 
 
-/* icon_avoid_systray_overlap: NULL coordinate pointers are a safe
- * no-op */
+/* place_icon_avoid_systray_overlap: NULL coordinate pointers are a
+ * safe no-op */
 static void s_test_avoid_systray_null_guards(void)
 {
-    TAP_OK(!icon_avoid_systray_overlap(NULL, NULL, 32u, 32u,
-                0, 0, 100u, 20u, NULL),
+    TAP_OK(!place_icon_avoid_systray_overlap(NULL, NULL,
+                (struct dimensions_s) { 32u, 32u },
+                (struct geometry_s) { { 0, 0 }, { 100u, 20u } }, NULL),
             "NULL coordinate pointers: safe no-op, returns false");
 }
 
@@ -265,8 +279,9 @@ static void s_test_avoid_systray_no_overlap(void)
     int16_t y = 500;
     bool moved;
 
-    moved = icon_avoid_systray_overlap(&x, &y, 32u, 32u,
-            0, 0, 100u, 20u, NULL);
+    moved = place_icon_avoid_systray_overlap(&x, &y,
+            (struct dimensions_s) { 32u, 32u },
+            (struct geometry_s) { { 0, 0 }, { 100u, 20u } }, NULL);
 
     TAP_OK(!moved, "no real overlap with the tray: nothing to avoid");
     TAP_EQ_INT(x, 500, "x is left untouched");
@@ -290,8 +305,9 @@ static void s_test_avoid_systray_tray_in_upper_half_pushes_down(void)
 
     /* Icon and tray overlap at (10,10); tray sits in the upper half
      * of a 600-tall workarea (mid_y=15 < 300) */
-    moved = icon_avoid_systray_overlap(&x, &y, 32u, 32u,
-            0, 0, 100u, 20u, &workarea);
+    moved = place_icon_avoid_systray_overlap(&x, &y,
+            (struct dimensions_s) { 32u, 32u },
+            (struct geometry_s) { { 0, 0 }, { 100u, 20u } }, &workarea);
 
     TAP_OK(moved, "an overlapping icon is moved");
     /* new_y = tray_y(0) + tray_h(20) + gap(8) = 28 */
@@ -315,8 +331,9 @@ static void s_test_avoid_systray_tray_in_lower_half_pushes_up(void)
     workarea.dim.h = 600u;
 
     /* Tray near the bottom: mid_y = 500+10=510, well past 300 */
-    moved = icon_avoid_systray_overlap(&x, &y, 32u, 32u,
-            0, 500, 100u, 20u, &workarea);
+    moved = place_icon_avoid_systray_overlap(&x, &y,
+            (struct dimensions_s) { 32u, 32u },
+            (struct geometry_s) { { 0, 500 }, { 100u, 20u } }, &workarea);
 
     TAP_OK(moved, "an overlapping icon is moved");
     /* new_y = tray_y(500) - icon_h(32) - gap(8) = 460 */
@@ -339,8 +356,9 @@ static void s_test_avoid_systray_clamps_to_workarea(void)
     workarea.dim.w = 800u;
     workarea.dim.h = 600u;
 
-    moved = icon_avoid_systray_overlap(&x, &y, 32u, 32u,
-            0, 590, 100u, 20u, &workarea);
+    moved = place_icon_avoid_systray_overlap(&x, &y,
+            (struct dimensions_s) { 32u, 32u },
+            (struct geometry_s) { { 0, 590 }, { 100u, 20u } }, &workarea);
 
     TAP_OK(moved, "an overlapping icon near the workarea edge is moved");
     TAP_OK(y + 32 <= 600, "the clamped position keeps the icon fully" \

@@ -571,7 +571,7 @@ void ccmd_client_bring_family(client_td *client);
  * @note Complexity: @e O(f), where @e f is the number of @p top's
  *       own transient descendants at every depth combined
  */
-client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
+client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
         client_td *top, size_t *count_out);
 
 /**

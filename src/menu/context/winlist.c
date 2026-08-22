@@ -752,12 +752,10 @@ void winlist_show(xcb_connection_t *connection,
         const config_td *config)
 {
     uint32_t cur_did;
-    desktop_td *desktop;
-    cdlist_item_td *dnode;
+    const desktop_td *desktop;
     int n;
     int desktop_count;
     int needed_appgroups;
-    char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
     ctxmenu_entry_td *root_target;
     winlist_entry_data_td *add_data;
     winlist_entry_data_td *remove_data;
@@ -860,6 +858,8 @@ void winlist_show(xcb_connection_t *connection,
                     &n, NULL);
         }
     } else {
+        cdlist_item_td *dnode;
+        char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
         uint32_t did = 0u;
 
         cdlist_foreach(surface->desktops, dnode) {
@@ -972,7 +972,7 @@ void winlist_show(xcb_connection_t *connection,
 
             if (desktop->name[0] != '\0') {
                 label_fmt = (show_row_col)
-                    ? "%s[%u (%u,%u)] -- %s%s"
+                    ? "%s[%u (%u, %u)] -- %s%s"
                     : "%s[%u] -- %s%s";
                 if (show_row_col) {
                     (void) snprintf(label_buf, sizeof(label_buf),
@@ -989,7 +989,7 @@ void winlist_show(xcb_connection_t *connection,
                 }
             } else {
                 label_fmt = (show_row_col)
-                    ? "%s[%u (%u,%u)]%s"
+                    ? "%s[%u (%u, %u)]%s"
                     : "%s[%u]%s";
                 if (show_row_col) {
                     (void) snprintf(label_buf, sizeof(label_buf),

@@ -29,6 +29,7 @@
 /* System includes */
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -44,27 +45,25 @@ static int32_t s_resize_y;
 static uint32_t s_resize_w;
 static uint32_t s_resize_h;
 
-void enact_client_resize(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h)
+void enact_client_resize(client_td *client, struct geometry_s geom)
 {
     (void) client;
     s_resize_called = true;
-    s_resize_x = x;
-    s_resize_y = y;
-    s_resize_w = w;
-    s_resize_h = h;
+    s_resize_x = geom.pos.x;
+    s_resize_y = geom.pos.y;
+    s_resize_w = geom.dim.w;
+    s_resize_h = geom.dim.h;
 }
 
 
-void enact_client_resize_force(client_td *client, int32_t x, int32_t y,
-        uint32_t w, uint32_t h)
+void enact_client_resize_force(client_td *client, struct geometry_s geom)
 {
     (void) client;
     s_resize_called = true;
-    s_resize_x = x;
-    s_resize_y = y;
-    s_resize_w = w;
-    s_resize_h = h;
+    s_resize_x = geom.pos.x;
+    s_resize_y = geom.pos.y;
+    s_resize_w = geom.dim.w;
+    s_resize_h = geom.dim.h;
 }
 
 
@@ -74,8 +73,9 @@ void enact_client_resize_force(client_td *client, int32_t x, int32_t y,
  *  launch" flag for the one-time setup below. */
 void ccmd_client_pin(client_td *client) { (void) client; }
 
-void ccmd_client_reclass(client_td *client, const char *class_name,
-        const char *instance_name)
+void ccmd_client_reclass(client_td *client,
+        const char *restrict class_name,
+        const char *restrict instance_name)
 {
     (void) client;
     (void) class_name;
@@ -84,6 +84,14 @@ void ccmd_client_reclass(client_td *client, const char *class_name,
 
 void ccmd_client_toggle_decorate(client_td *client) { (void) client; }
 
+void ccmd_client_set_border_override(client_td *client, uint32_t color,
+        uint32_t width)
+{
+    (void) client;
+    (void) color;
+    (void) width;
+}
+
 void client_border_apply(client_td *client, bool use_active_style)
 {
     (void) client;
@@ -91,8 +99,9 @@ void client_border_apply(client_td *client, bool use_active_style)
 }
 
 int desktop_action_process_launch_with_class(desktop_td *desktop,
-        const char *executable_path, const char *class_name,
-        pid_t *out_pid)
+        const char *restrict executable_path,
+        const char *restrict class_name,
+        pid_t *restrict out_pid)
 {
     (void) desktop;
     (void) executable_path;
@@ -142,6 +151,26 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 {
     (void) surface_id;
     return NULL;
+}
+
+/* wm_config and wm_surfaces need no stand-in of their own here:
+ * both are already real, genuine functions in wm/instance.c, which
+ * this recipe already links (for wm_config specifically, this
+ * matters: every test in this file sets 'wm.config' directly on a
+ * stack-allocated wm_td before calling scratchpad_toggle, expecting
+ * that exact value read back, exactly what the real accessor does). */
+
+/* A small, realistic elapsed time, matching what the real function
+ * would actually report for two calls this close together in a
+ * test's own fast execution, rather than assuming a large one:
+ * scratchpad_toggle's own awaiting-launch timeout check
+ * (WM_SCRATCHPAD_AWAIT_TIMEOUT_SECONDS) is meant to catch a launch
+ * that genuinely never happened, not the sub-millisecond gap between
+ * one test call and the next. */
+long clock_ms_since(const struct timespec *start)
+{
+    (void) start;
+    return 0;
 }
 
 

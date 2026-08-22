@@ -5,13 +5,13 @@
  *
  * Split out of what used to be a single, flat @c config/base.c;
  * everything here loads @c topology.screens (screen count, and each
- * screen's desktop count/inaugural desktop/desktop entries, in
- * either the flat or nested on-disk shape) and @c desktops
- * (desktop-navigation and reserved-space behavior) from parsed
- * @c config.json. @c ci_config_load_screens and
- * @c ci_config_load_desktop_behavior are the only two entry points
- * @c config/base/load.c's own @c config_load_base calls from here;
- * everything else stays static to this file.
+ * screen's desktop count/inaugural desktop/desktop entries, in either
+ * the flat or nested on-disk shape) and @c desktops (desktop-navigation
+ * and reserved-space behavior) from parsed @c config.json.
+ * @c ci_config_load_screens and @c ci_config_load_desktop_behavior are
+ * the only two entry points @c config/base/load.c's own
+ * @c config_load_base calls from here; everything else stays static to
+ * this file.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -144,49 +144,43 @@ static void s_config_desktop_layout_fallback(
 
 
 /**
- * @brief Load and validate one screen's own @p layout object within
- *        the per-screen (nested) @p topology.screens.desktops shape
+ * @brief Load and validate one screen's own @p layout object within the
+ *        per-screen (nested) @c topology.screens.desktops shape
  *
- * Falls back to a single row, one column per desktop (see @a
- * s_config_desktop_layout_fallback) whenever @c layout is absent
- * entirely, or present but invalid: @c rows or @c columns is
- * explicitly @c 0, either exceeds @c CONFIG_MAX_DESKTOPS (checked
- * before the multiplication just below, not after, so that
- * multiplication itself can never overflow), or @c rows @c *
- * @c columns falls short of this screen's own, already-finalized
- * @p desktop_count.  @c rows, @c columns, @c orientation, and
- * @c corner each default independently, exactly the same way,
- * whenever @c layout is present but one or more of the four is
- * itself missing: @c rows and @c columns to @c 1 each, @c
- * orientation to @c horizontal, @c corner to @c top-left, the same
- * as what @a s_config_desktop_layout_fallback also falls back to as
- * a whole.  Naming only @c columns (@c 5, say) therefore means
- * exactly what it reads as on its own, one row of 5, not a rejected
- * or otherwise incomplete configuration; the same holds naming only
- * @c rows.  @c rows @c * @c columns exceeding @p desktop_count is
- * accepted, not rejected: a grid with one or
- * more trailing, desktop-less cells (5 desktops deliberately laid
- * out 2x3, say) is a legitimate choice, someone's own way of
- * leaving room to add one more later without reshaping the whole
- * grid; north/south/east/west navigation (@a surface_desktop_north
- * and its three siblings, surface/desktops.c) steps past a cell
- * like that on its own, unlike Openbox's own equivalent (@c
- * screen_find_desktop, screen.c), whose own single, crude nudge
- * forward on landing in a gap does not reliably clear more than one
- * gap cell in a row.  Only a configuration with too few cells to
- * ever hold every desktop at all, no matter how they are arranged,
- * is what actually gets rejected here.
+ * Falls back to a single row, one column per desktop whenever @c layout
+ * is absent entirely, or present but invalid: @c rows or @c columns is
+ * explicitly @c 0 or above @c CONFIG_MAX_DESKTOPS (checked before
+ * either is ever used as a divisor or in an addition below, so
+ * neither computing the other, nor the final @c rows x @c columns
+ * check, can ever overflow), or @c rows x @c columns ultimately falls
+ * short of this screen's own, already-finalized @p desktop_count.
  *
- * @param desktop_item One entry of 'topology.screens.desktops',
+ * @c orientation defaults to @c horizontal and @c corner to @c top-left
+ * whenever @c layout is present but either key is itself missing, the
+ * exact same values @a s_config_desktop_ layout_fallback also falls
+ * back to as a whole.  @c rows / @c columns default differently
+ * depending on how many of the two are actually named: both missing
+ * falls back the same way the whole function does when @c layout itself
+ * is absent (a single row); exactly one missing computes it by ceiling
+ * division against @p desktop_count, rather than simply defaulting it
+ * to @c 1, so a lone @c columns: 1 (a clear "strictly vertical"
+ * request) becomes as many rows as needed to hold every desktop in that
+ * one column, not a @c 1x1 grid rejected the moment more than a single
+ * desktop exists; both given are used exactly as read, validated as
+ * a pair the same way as always.
+ *
+ * @param desktop_item One entry of @c topology.screens.desktops,
  *                     describing screen @p screen_idx; this screen's
- *                     own @c desktop_count must already be finalized
- *                     in @p config_base before this call
+ *                     own @c desktop_count must already be finalized in
+ *                     @p config_base before this call
  * @param screen_idx   Index of the screen this entry describes
  * @param config_base  Destination structure
  * @param filename     Path the JSON was read from, for log messages
  *                     only
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a s_config_desktop_layout_fallback
  */
 static void s_config_load_desktop_layout(cJSON *desktop_item,
         uint32_t screen_idx, struct config_base_s *config_base,
@@ -199,8 +193,10 @@ static void s_config_load_desktop_layout(cJSON *desktop_item,
         config_base->screens[screen_idx].desktop_count;
     char orientation_str[CONFIG_MAX_LENGTH_OPTION];
     char corner_str[CONFIG_MAX_LENGTH_OPTION];
-    uint32_t rows = 1u;
-    uint32_t columns = 1u;
+    uint32_t rows = 0u;
+    uint32_t columns = 0u;
+    bool has_rows;
+    bool has_columns;
     bool has_orientation;
     bool has_corner;
 
@@ -214,11 +210,32 @@ static void s_config_load_desktop_layout(cJSON *desktop_item,
             orientation_str, sizeof(orientation_str)) == 0;
     has_corner = json_load_string(layout, "corner",
             corner_str, sizeof(corner_str)) == 0;
-    (void) json_load_uint(layout, "rows", &rows);
-    (void) json_load_uint(layout, "columns", &columns);
+    has_rows = json_load_uint(layout, "rows", &rows) == 0;
+    has_columns = json_load_uint(layout, "columns", &columns) == 0;
 
-    if (rows == 0u || columns == 0u ||
-            rows > (uint32_t) CONFIG_MAX_DESKTOPS ||
+    if ((has_rows && (rows == 0u ||
+                    rows > (uint32_t) CONFIG_MAX_DESKTOPS)) ||
+            (has_columns && (columns == 0u ||
+                    columns > (uint32_t) CONFIG_MAX_DESKTOPS))) {
+        LOGGER_WARNING("%s: topology.screens.desktops[%u].layout" \
+                " (%u rows, %u columns) cannot hold this screen's" \
+                " own %u desktop(s); falling back to a single row",
+                filename, screen_idx, rows, columns, desktop_count);
+        s_config_desktop_layout_fallback(config_base, screen_idx);
+        return;
+    }
+
+    if (has_rows && !has_columns) {
+        columns = (desktop_count + rows - 1u) / rows;
+    } else if (!has_rows && has_columns) {
+        rows = (desktop_count + columns - 1u) / columns;
+    } else if (!has_rows && !has_columns) {
+        rows = 1u;
+        columns = desktop_count;
+    }
+    /* Both given: used exactly as read, validated as a pair below. */
+
+    if (rows > (uint32_t) CONFIG_MAX_DESKTOPS ||
             columns > (uint32_t) CONFIG_MAX_DESKTOPS ||
             rows * columns < desktop_count) {
         LOGGER_WARNING("%s: topology.screens.desktops[%u].layout" \
@@ -249,7 +266,7 @@ static void s_config_load_desktop_layout(cJSON *desktop_item,
  * has each entry carrying its own @p settings / @p count / @p inaugural
  * fields describing a whole screen.
  *
- * @param desktops_array The @p topology.screens.desktops array itself
+ * @param desktops_array The @c topology.screens.desktops array itself
  *
  * @return @c true if the per-screen (nested) shape is in use
  *
@@ -276,9 +293,9 @@ static bool s_config_screens_uses_nested_layout(cJSON *desktops_array)
  *
  * Every array entry is a plain desktop, all applied to screen 0.
  *
- * @param desktops_array The 'topology.screens.desktops' array itself
+ * @param desktops_array The @c topology.screens.desktops array itself
  * @param desktop_count  Number of entries in @p desktops_array,
- *                       already clamped to 'CONFIG_MAX_DESKTOPS'
+ *                       already clamped to @c CONFIG_MAX_DESKTOPS
  * @param config_base    Destination structure
  * @param filename       Path the JSON was read from, for log messages
  *                       only
@@ -309,11 +326,11 @@ static void s_config_load_screens_flat(cJSON *desktops_array,
 
 /**
  * @brief Load one screen's own entry within the per-screen (nested)
- *        @p topology.screens.desktops shape
+ *        @c topology.screens.desktops shape
  *
- * Reads that one screen's @p count / @p inaugural, clamping the
+ * Reads that one screen's @c count / @c inaugural, clamping the
  * inaugural desktop back to 0 if it names one past the screen's own
- * desktop count, then loads every desktop named in its @p settings
+ * desktop count, then loads every desktop named in its @c settings
  * array.
  *
  * @param desktop_item One entry of 'topology.screens.desktops',
@@ -399,15 +416,15 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
 
 
 /**
- * @brief Load the per-screen (nested) @p topology.screens.desktops
+ * @brief Load the per-screen (nested) @c topology.screens.desktops
  *        shape
  *
  * Every array entry describes one whole screen
  *
- * @param desktops_array The 'topology.screens.desktops' array itself
+ * @param desktops_array The @c topology.screens.desktops array itself
  * @param desktop_count  Number of entries in @p desktops_array,
- *                       already clamped to 'CONFIG_MAX_DESKTOPS';
- *                       reused here against 'CONFIG_MAX_SCREENS'
+ *                       already clamped to @c CONFIG_MAX_DESKTOPS;
+ *                       reused here against @c CONFIG_MAX_SCREENS
  *                       instead, since each entry is a screen in this
  *                       shape, not a desktop (see the note below)
  * @param config_base    Destination structure

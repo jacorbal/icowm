@@ -4,12 +4,17 @@
  * @brief Test battery for keyboard/mouse bindings configuration
  *        loading
  *
- * s_test_go_to_regression is the exact bug this file was written to
- * catch: 'go-to' was looked up from 'wm' but the code path that ran
- * it was nested inside 'if (window)' instead of 'if (wm)', so a file
- * with a 'keyboard.wm.go-to' section but no 'keyboard.window'
- * section at all silently never loaded it.  Fixed by moving the
- * 'go-to' block to where it is looked up from.
+ * s_test_go_to_regression is the exact bug this file was originally
+ * written to catch: 'go-to' was looked up from 'wm' but the code
+ * path that ran it was nested inside 'if (window)' instead of
+ * 'if (wm)', so a file with a 'keyboard.wm.go-to' section but no
+ * 'keyboard.window' section at all silently never loaded it.  Both
+ * 'go-to' and 'show' have since moved to their own top-level
+ * 'keyboard.desktop' section, a sibling of 'keyboard.window' and
+ * 'keyboard.wm' rather than nested under either; the two tests below
+ * still check the same underlying robustness (loading correctly
+ * regardless of which other sections are present in the file), now
+ * against that current structure.
  *
  * Given how mechanical this loader is (~50 fields, each just
  * 'json_load_string' into its own nested destination, no branching
@@ -84,9 +89,10 @@ static void s_test_empty_file(void)
 }
 
 
-/* The exact regression: 'go-to' lives under 'keyboard.wm' in the
- * file format itself, so it must load correctly even when
- * 'keyboard.window' is not present in the file at all */
+/* 'go-to' lives under its own top-level 'keyboard.desktop' section,
+ * a sibling of both 'keyboard.wm' and 'keyboard.window'; it must
+ * load correctly even when neither of those two is present in the
+ * file at all */
 static void s_test_go_to_regression(void)
 {
     char path[256];
@@ -94,14 +100,15 @@ static void s_test_go_to_regression(void)
 
     memset(&cb, 0, sizeof(cb));
     s_write_temp_file(path, sizeof(path),
-            "{\"keyboard\": {\"wm\": {\"go-to\": {"
+            "{\"keyboard\": {\"desktop\": {\"go-to\": {"
             "\"desktop0\": \"Mod1+0\", \"desktop9\": \"Mod1+9\""
             "} } } }");
     config_load_bindings(path, &cb);
 
-    TAP_EQ_STR(cb.keyboard.wm.go_to.desktop[0], "Mod1+0",
-            "regression: go-to loads with no 'window' section present");
-    TAP_EQ_STR(cb.keyboard.wm.go_to.desktop[9], "Mod1+9",
+    TAP_EQ_STR(cb.keyboard.desktop.go_to.desktop[0], "Mod1+0",
+            "regression: go-to loads with neither 'wm' nor 'window'" \
+            " present");
+    TAP_EQ_STR(cb.keyboard.desktop.go_to.desktop[9], "Mod1+9",
             "regression: a second, non-adjacent go-to slot also loads");
     unlink(path);
 }
@@ -118,12 +125,12 @@ static void s_test_go_to_still_works_with_window_present(void)
     memset(&cb, 0, sizeof(cb));
     s_write_temp_file(path, sizeof(path),
             "{\"keyboard\": {"
-            "\"wm\": {\"go-to\": {\"desktop3\": \"Mod1+3\"}},"
+            "\"desktop\": {\"go-to\": {\"desktop3\": \"Mod1+3\"}},"
             "\"window\": {\"close\": \"Mod1+F4\"}"
             "} }");
     config_load_bindings(path, &cb);
 
-    TAP_EQ_STR(cb.keyboard.wm.go_to.desktop[3], "Mod1+3",
+    TAP_EQ_STR(cb.keyboard.desktop.go_to.desktop[3], "Mod1+3",
             "go-to still loads when 'window' is also present");
     TAP_EQ_STR(cb.keyboard.window.close, "Mod1+F4",
             "'window' fields still load normally too");
@@ -163,7 +170,7 @@ static void s_test_representative_fields_at_every_level(void)
         "},"
         "\"mouse\": {"
         "  \"window\": {\"move\": \"Mod1+Button1\"},"
-        "  \"cycle\": {\"desktop\": {\"next\": \"Button5\"}}"
+        "  \"cycle\": {\"desktop\": {\"east\": \"Button5\"}}"
         "}"
         "}");
     config_load_bindings(path, &cb);
@@ -187,49 +194,50 @@ static void s_test_representative_fields_at_every_level(void)
             "keyboard.cycle.window (double-nested) loaded");
     TAP_EQ_STR(cb.mouse.window.move, "Mod1+Button1",
             "mouse.window field loaded");
-    TAP_EQ_STR(cb.mouse.cycle.desktop.next, "Button5",
+    TAP_EQ_STR(cb.mouse.cycle.desktop.east, "Button5",
             "mouse.cycle.desktop (double-nested) loaded");
 }
 
 
-/* 'show-desktop' only ever lives in 'keyboard.wm' -- the field it
- * writes to (keyboard.wm.show_desktop) has never had a genuine
- * counterpart under 'keyboard.window'; a same-named key there is
- * simply unrecognized and has no effect at all, the same as any
- * other typo would. */
-static void s_test_show_desktop_only_wm_accepted(void)
+/* 'show' lives under its own top-level 'keyboard.desktop' section;
+ * the same key placed under either 'keyboard.wm' or
+ * 'keyboard.window' instead is simply unrecognized there and has no
+ * effect at all, the same as any other typo would */
+static void s_test_show_desktop_only_desktop_section_accepted(void)
 {
     char path[512];
     struct config_bindings_s cb;
 
-    /* Present only under 'wm': loads normally */
+    /* Present under 'desktop', where it belongs: loads normally */
     memset(&cb, 0, sizeof(cb));
     s_write_temp_file(path, sizeof(path),
-            "{\"keyboard\": {\"wm\": {\"show-desktop\": \"from-wm\"} } }");
+            "{\"keyboard\": {\"desktop\": {"
+            "\"show\": \"from-desktop\"} } }");
     config_load_bindings(path, &cb);
-    TAP_EQ_STR(cb.keyboard.wm.show_desktop, "from-wm",
-            "'wm.show-desktop' loads correctly");
+    TAP_EQ_STR(cb.keyboard.desktop.show, "from-desktop",
+            "'desktop.show' loads correctly");
     unlink(path);
 
-    /* Present only under 'window': has no effect at all */
+    /* Present only under 'wm': has no effect at all */
     memset(&cb, 0, sizeof(cb));
     s_write_temp_file(path, sizeof(path),
-            "{\"keyboard\": {\"window\": {\"show-desktop\": \"from-window\"} } }");
+            "{\"keyboard\": {\"wm\": {\"show\": \"from-wm\"} } }");
     config_load_bindings(path, &cb);
-    TAP_EQ_STR(cb.keyboard.wm.show_desktop, "",
-            "'window.show-desktop' is not a recognized key; ignored");
+    TAP_EQ_STR(cb.keyboard.desktop.show, "",
+            "'wm.show' is not a recognized key; ignored");
     unlink(path);
 
-    /* Present in both: only 'wm's own value is ever used */
+    /* Present in both 'wm' and 'desktop': only 'desktop's own value
+     * is ever used, the 'wm' one simply never read at all */
     memset(&cb, 0, sizeof(cb));
     s_write_temp_file(path, sizeof(path),
             "{\"keyboard\": {"
-            "\"wm\": {\"show-desktop\": \"from-wm\"},"
-            "\"window\": {\"show-desktop\": \"from-window\"}"
+            "\"wm\": {\"show\": \"from-wm\"},"
+            "\"desktop\": {\"show\": \"from-desktop\"}"
             "} }");
     config_load_bindings(path, &cb);
-    TAP_EQ_STR(cb.keyboard.wm.show_desktop, "from-wm",
-            "with both present, only 'wm's own value is ever used");
+    TAP_EQ_STR(cb.keyboard.desktop.show, "from-desktop",
+            "with both present, only 'desktop's own value is ever used");
     unlink(path);
 }
 
@@ -243,7 +251,7 @@ int main(void)
     s_test_go_to_regression();
     s_test_go_to_still_works_with_window_present();
     s_test_representative_fields_at_every_level();
-    s_test_show_desktop_only_wm_accepted();
+    s_test_show_desktop_only_desktop_section_accepted();
 
     return TAP_DONE();
 }

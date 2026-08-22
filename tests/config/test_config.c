@@ -216,9 +216,9 @@ static void s_test_missing_theme_reset_clears_it(void)
 }
 
 
-/* config_set_default_values resets an already-modified structure
- * back to defaults, exactly as config_init's own call to it does for
- * a freshly allocated one */
+/* config_set_default_base_values (one of the several per-section
+ * default-setters config_init's own internal helper calls in turn)
+ * resets an already-modified base section back to defaults */
 static void s_test_set_default_values_resets_modified_struct(void)
 {
     config_td config;
@@ -227,7 +227,7 @@ static void s_test_set_default_values_resets_modified_struct(void)
     safe_strncpy(config.base.theme, "something-custom",
             sizeof(config.base.theme));
 
-    config_set_default_values(&config);
+    config_set_default_base_values(&config.base, &config.desktops);
 
     TAP_EQ_STR(config.base.theme, "",
             "a previously modified field is reset back to its own" \

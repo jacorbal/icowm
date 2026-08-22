@@ -15,7 +15,11 @@
  * surface_desktop_get (surface.c) and the three render functions
  * s_repaint_urgent_clients calls are stubbed below as controllable,
  * call-counting stand-ins, the same pattern already used for
- * test_lookup.c, test_resolve.c, and test_clients.c.
+ * test_lookup.c and test_resolve.c.  s_any_client_urgent (a
+ * different function in the same file) instead walks surface->
+ * desktops directly, so that field is also a real cdlist here, with
+ * the one desktop inserted into it alongside the s_desktops_by_id
+ * lookup array.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -34,6 +38,7 @@
 #include <time.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 #include <adt/ohtbl.h>
 
@@ -139,6 +144,8 @@ int main(void)
     desktop.clients = ohtbl_init(8, 8, s_id_hash1, s_id_hash2,
             s_id_match, NULL);
     s_desktops_by_id[0] = &desktop;
+    surface.desktops = cdlist_init(NULL);
+    cdlist_ins_next(surface.desktops, NULL, &desktop);
     config.a11y.urgency.blink_interval_ms = 5u;
     config.a11y.urgency.sound_bell = false;
 
@@ -198,6 +205,7 @@ int main(void)
             "ms_remaining also accepts a NULL config");
 
     ohtbl_destroy(desktop.clients);
+    cdlist_destroy(surface.desktops);
     list_destroy(surfaces);
     s_desktops_by_id[0] = NULL;
 
