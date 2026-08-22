@@ -307,8 +307,8 @@
  * particular.  Deliberately distinct from the desktop label being
  * left blank entirely, the way it already is whenever a session has
  * only a single desktop: shown for a pinned client on a session with
- * more than one, so the two cases -- "nothing to disambiguate" and
- * "this one client is pinned across all of them" -- never look
+ * more than one, so the two cases ("nothing to disambiguate" and
+ * "this one client is pinned across all of them") never look
  * identical (a blank space) to someone reading the search results. */
 #define STR_SEARCH_ALL_DESKTOPS "On all desktops"
 

@@ -214,11 +214,11 @@ static void s_enact_client_send_to_desktop(client_td *client,
     cycle = (surface->config != NULL)
         ? surface->config->desktops.wrap_at_bounds : true;
 
-    /* No different desktop to move to at all -- either genuinely
+    /* No different desktop to move to at all: either genuinely
      * only one exists (restricted-memory mode is always locked to
      * exactly one; see 'surface_action_desktop_add''s own doc
      * comment, surface/switch.c) or wrapping is disabled and this is
-     * already the first/last one -- is a silent no-op, the same as
+     * already the first/last one; is a silent no-op, the same as
      * every other keybind here that finds nothing to act on. */
     target_desktop = (forward)
         ? surface_desktop_next(surface, cur_desktop->id, cycle)
@@ -234,7 +234,7 @@ static void s_enact_client_send_to_desktop(client_td *client,
      * 'surface_clients_show', already restored real input focus on
      * its own, to whichever client this target desktop's own
      * 'client_active_id' still remembered from some earlier,
-     * unrelated visit -- not this client, freshly arrived on it as
+     * unrelated visit, not this client, freshly arrived on it as
      * of the very call before this one.  Explicitly re-applied here,
      * after the fact, rather than trying to somehow suppress that
      * automatic restore instead: 'client' becomes this desktop's own

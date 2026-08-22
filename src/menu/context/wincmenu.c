@@ -866,9 +866,9 @@ void wincmenu_show(xcb_connection_t *connection,
      * DOS-emulation or retro-game window legitimately requests its
      * own fullscreen via alt+enter regardless of its own resizable
      * flag).  This is a different question: whether the window
-     * manager's own user-facing fullscreen offer -- this very menu
+     * manager's own user-facing fullscreen offer, this very menu
      * entry, matched by every keybinding and decoration button that
-     * also call 'ccmd_client_fullscreen' directly -- makes any sense
+     * also call 'ccmd_client_fullscreen' directly, makes any sense
      * to present at all for a client with no legitimate reason to
      * ever cover the whole screen, a fixed-size confirmation dialog
      * ("Are you sure you want to delete this file?") foremost among

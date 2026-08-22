@@ -218,21 +218,21 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
  *        head to tail
  *
  * Expands to a @c for statement; @c break and @c continue work as
- * expected inside the loop body.  Variable @p item must be declared as
- * a @c cdlist_item_td* before invoking the macro and receives a pointer
- * to each item in turn; @a cdlist_data(item) retrieves the stored
- * element.  Safe on an empty list (the loop body never runs).
+ * expected inside the loop body.  Variable @p item must be declared
+ * as a @c cdlist_item_td* before invoking the macro and receives a
+ * pointer to each item in turn; @a cdlist_data(item) retrieves the
+ * stored element.  Safe on an empty list (the loop body never runs).
  *
- * The list is genuinely circular (@a cdlist_next on the tail wraps back
- * around to the head rather than ever yielding @c NULL on its own) so
- * a plain @c NULL check alone could never terminate this; the macro
- * instead advances to @c NULL itself the moment doing so would
- * otherwise revisit the very head it started from, letting the loop's
- * own ordinary @c NULL condition end it right there, exactly once
- * around, the same guarantee a hand-written @e initial/current
- * comparison elsewhere in this codebase
- * (e.g. @c s_desktop_client_send_to_end, in @c desktop/dclient.c)
- * already provides by hand for this exact same reason.
+ * The list is genuinely circular: @a cdlist_next on the tail wraps
+ * back around to the head rather than ever yielding @c NULL on its
+ * own, so a plain @c NULL check alone could never terminate this;
+ * the macro instead advances to @c NULL itself the moment doing so
+ * would otherwise revisit the very head it started from, letting the
+ * loop's own ordinary @c NULL condition end it right there, exactly
+ * once around, the same guarantee a hand-written @e initial/current
+ * comparison elsewhere in this codebase (e.g. @c s_desktop_client_
+ * send_to_end, desktop/dclient.c) already provides by hand for this
+ * exact same reason.
  *
  * @param self Pointer to the list to iterate over
  * @param item A @c cdlist_item_td* variable that receives each item

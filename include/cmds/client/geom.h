@@ -213,10 +213,11 @@ void ccmd_client_maximize_vert(client_td *client);
  *
  * For a caller that has already applied the correct un-maximized
  * geometry itself (a mouse-drag resize crossing the resistance
- * threshold on a maximized axis; see @c drag_end, input/mouse/
- * drag.c), unlike @c ccmd_client_maximize_horz/@c _vert's own
- * demote branch, which always restores geometry from @c layout.
- * geometry.old itself as part of the same call.
+ * threshold on a maximized axis, live, on the very same motion
+ * event; see @c drag_update, input/mouse/drag.c), unlike @c
+ * ccmd_client_maximize_horz/@c _vert's own demote branch, which
+ * always restores geometry from @c layout.geometry.old itself as
+ * part of the same call.
  *
  * @param client Client whose axis just stopped being maximized
  * @param dir    @c 1 for horizontal, @c 2 for vertical; matches
@@ -226,6 +227,29 @@ void ccmd_client_maximize_vert(client_td *client);
  * @note Complexity: @e O(1)
  */
 void ccmd_client_demote_axis_state(client_td *client, int dir);
+
+/**
+ * @brief Promote a single axis's maximize state back, the exact
+ *        inverse of @c ccmd_client_demote_axis_state, without
+ *        touching geometry at all
+ *
+ * For a caller whose own drag has already re-frozen that axis back
+ * at its maximized geometry itself (a mouse-drag resize dragged back
+ * under the resistance threshold before release, live, on the very
+ * same motion event; see @c drag_update, input/mouse/drag.c): the
+ * live, reversible half of the same mechanism @c ccmd_client_demote_
+ * axis_state's own doc comment describes, restoring @c MAXIMIZED
+ * itself rather than @c NORMAL when the other axis is already
+ * maximized on its own, @c MAXIMIZED_HORZ/@c _VERT otherwise.
+ *
+ * @param client Client whose axis just became maximized again
+ * @param dir    @c 1 for horizontal, @c 2 for vertical; matches
+ *               @c ccmd_client_maximize_horz/@c _vert's own axis
+ *               numbering
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_promote_axis_state(client_td *client, int dir);
 
 /**
  * @brief Maximize the client entirely

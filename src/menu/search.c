@@ -637,11 +637,11 @@ static void s_search_confirm(xcb_connection_t *connection,
     }
     if (client_is_pinned(client)) {
         /* A pinned client is already visible on whichever desktop is
-         * currently shown -- pinning never actually moves a client
+         * currently shown: pinning never actually moves a client
          * between desktops, it stays registered under whichever one
          * it was originally on forever; see 'ccmd_client_bring_
          * family''s own doc comment, cmds/client/transient.c, for
-         * the fuller reasoning -- so there is nothing to switch to
+         * the fuller reasoning; so there is nothing to switch to
          * here.  Using its own recorded 'desktop' below instead
          * (wherever it still happens to be registered) would switch
          * away from right where the user already is, to bring up a
@@ -901,9 +901,9 @@ static void s_search_draw_row(xcb_connection_t *connection,
              * it already is above whenever a session has only a
              * single desktop to begin with: shown here for a pinned
              * client on a session with more than one, so the two
-             * cases -- "nothing to disambiguate" and "this one
-             * client is pinned across all of them" -- never look
-             * identical to someone reading the results. */
+             * cases ("nothing to disambiguate" and "this one client
+             * is pinned across all of them") never look identical to
+             * someone reading the results. */
             if (r->client != NULL && client_is_pinned(r->client)) {
                 snprintf(desk_buf, sizeof(desk_buf), "%s",
                         _(STR_SEARCH_ALL_DESKTOPS));

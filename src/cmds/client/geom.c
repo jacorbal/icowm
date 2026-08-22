@@ -1065,6 +1065,33 @@ void ccmd_client_demote_axis_state(client_td *client, int dir)
 }
 
 
+/* Promote a single axis's maximize state back, the exact inverse of
+ * ccmd_client_demote_axis_state, without touching geometry at all;
+ * see this function's own Doxygen comment in cmds/client/geom.h for
+ * why a caller would ever want that split */
+void ccmd_client_promote_axis_state(client_td *client, int dir)
+{
+    bool other_still_max;
+
+    if (client == NULL) {
+        return;
+    }
+
+    if (dir == 1) {
+        other_still_max =
+            client->properties.state == CLIENT_STATE_MAXIMIZED_VERT;
+        client->properties.state = (other_still_max)
+            ? CLIENT_STATE_MAXIMIZED : CLIENT_STATE_MAXIMIZED_HORZ;
+    } else {
+        other_still_max =
+            client->properties.state == CLIENT_STATE_MAXIMIZED_HORZ;
+        client->properties.state = (other_still_max)
+            ? CLIENT_STATE_MAXIMIZED : CLIENT_STATE_MAXIMIZED_VERT;
+    }
+    ccmd_client_sync_states(client);
+}
+
+
 /* Maximize the client entirely, or restore it if already maximized */
 void ccmd_client_maximize(client_td *client)
 {
