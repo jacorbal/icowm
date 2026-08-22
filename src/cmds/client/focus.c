@@ -57,7 +57,7 @@
 
 /* Local includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/geom.h>
+#include <cmds/client/maximize.h>
 #include <cmds/client/internal.h>
 
 

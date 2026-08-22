@@ -4,10 +4,10 @@
  * @brief Mouse button-press handling
  *
  * Split out of what used to be a single, flat @c input/mouse/event.c;
- * everything here feeds @c mouse_handle_press specifically.  Each
+ * everything here feeds @c mouse_handle_press specifically. Each
  * non-trivial responsibility inside it has been extracted into its own
  * static function so the public entry point reads as a straightforward
- * sequence of checks rather than a monolith.  Button release lives in
+ * sequence of checks rather than a monolith. Button release lives in
  * @c input/mouse/event/release.c and enter-notify (including its own,
  * unrelated hover-focus state) lives in @c input/mouse/event/enter.c
  * instead, neither of which this file's own static helpers are ever
@@ -20,6 +20,7 @@
  * This file is licensed under the 'ISC License'.
  * Read the 'LICENSE' file in the root of this repository for details.
  */
+
 
 /* System includes */
 #include <stdbool.h>
@@ -75,7 +76,7 @@
 
 /* CMD includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/geom.h>
+#include <cmds/client/maximize.h>
 
 /* Local includes */
 #include <input/mouse/drag.h>
@@ -793,19 +794,20 @@ static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
         case MOUSEBIND_DESKTOP_WEST:
             enact_surface_desktop_switch_west(surface);
             break;
+        case MOUSEBIND_NONE:
         case MOUSEBIND_MOVE:
         case MOUSEBIND_RESIZE:
         case MOUSEBIND_LOWER:
-        case MOUSEBIND_NONE:
-            /* Never actually reached: this whole function is only ever
-             * called for one of the four desktop-scroll types above,
-             * gated by its own caller (see
-             * 'type == MOUSEBIND_DESKTOP_NORTH || ...' just before the
-             * call to 's_mouse_handle_scroll_binding').  Listed here
-             * anyway, one per value rather than a catch-all 'default',
-             * purely so this switch stays exhaustive under
-             * '-Wswitch-enum' the same way every other switch on
-             * a keybind/mousebind type in this project already does. */
+            /* Never actually reached: this whole function is only
+             * ever called for one of the four desktop-scroll types
+             * above, gated by its own caller (see 'type ==
+             * MOUSEBIND_DESKTOP_NORTH || ...' just before the call
+             * to 's_mouse_handle_scroll_binding').  Listed here
+             * anyway, one per value rather than a catch-all
+             * 'default', purely so this switch stays exhaustive
+             * under '-Wswitch-enum' the same way every other switch
+             * on a keybind/mousebind type in this project already
+             * does. */
             break;
         }
     }

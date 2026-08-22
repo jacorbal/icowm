@@ -51,7 +51,8 @@
 
 /* Local includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/geom.h>
+#include <cmds/client/move.h>
+#include <cmds/client/workarea.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/internal.h>
 
@@ -413,9 +414,9 @@ void ccmd_client_fullscreen(client_td *client)
     }
 
     /* Fullscreen deliberately targets the raw monitor rect, not the
-     * workarea 'ccmd_client_monitor_workarea' (maximize's own helper)
-     * would give: it is meant to cover panels and docks too, not stop
-     * at their struts the way maximize does. */
+     * workarea 'ccmd_client_resolve_workarea' would give: it is meant
+     * to cover panels and docks too, not stop at their struts the way
+     * maximize does. */
     if (ccmd_client_monitor(client, NULL, &monitor)) {
         mx = monitor.x;
         my = monitor.y;
@@ -925,7 +926,7 @@ void ccmd_client_toggle_decorate(client_td *client)
      * extents eat into, so what it should still fill afterward is the
      * workarea itself, not "whatever it already had, offset by however
      * much bigger or smaller its own frame extents just became".
-     * Recomputed here instead, against 'ccmd_client_monitor_workarea'
+     * Recomputed here instead, against 'ccmd_client_resolve_workarea'
      * (the same resolution 'ccmd_client_maximize' itself already uses),
      * so the client ends up exactly refilling the workarea under its
      * new decorated state, the same as if it had only just been
@@ -943,7 +944,7 @@ void ccmd_client_toggle_decorate(client_td *client)
         uint16_t sw;
         uint16_t sh;
 
-        if (ccmd_client_monitor_workarea(client, &mx, &my, &sw, &sh)) {
+        if (ccmd_client_resolve_workarea(client, &mx, &my, &sw, &sh)) {
             xcb_window_t target = ccmd_target_win(client);
             bool touch_x = client->properties.state !=
                 (uint16_t) CLIENT_STATE_MAXIMIZED_VERT;

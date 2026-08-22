@@ -53,7 +53,7 @@
 
 /* Local includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/geom.h>
+#include <cmds/client/move.h>
 #include <cmds/client/internal.h>
 
 

@@ -45,7 +45,8 @@
 #include <defs/kbd.h>
 
 /* Command includes */
-#include <cmds/client/geom.h>
+#include <cmds/client/move.h>
+#include <cmds/client/workarea.h>
 #include <cmds/client/state.h>
 
 /* Project includes */
@@ -572,7 +573,7 @@ void ik_handle_move(enum wm_keybind_type_e btype,
      * same edge.  Falls back to the whole-surface computation this
      * function already used, unchanged, whenever a monitor or
      * desktop cannot be resolved for 'client' at all. */
-    have_workarea = ccmd_client_monitor_workarea(client,
+    have_workarea = ccmd_client_resolve_workarea(client,
             &wa_x, &wa_y, &wa_w, &wa_h);
 
     max_x = (have_workarea)

@@ -1,7 +1,7 @@
 /**
- * @file cmds/client/geom.h
+ * @file cmds/client/move.h
  *
- * @brief Client geometry command declarations
+ * @brief Client positioning command declarations
  *
  * @ingroup cmds
  */
@@ -13,8 +13,8 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#ifndef CMDS_CCMD_GEOM_H
-#define CMDS_CCMD_GEOM_H
+#ifndef CMDS_CCMD_MOVE_H
+#define CMDS_CCMD_MOVE_H
 
 
 /* Type includes */
@@ -66,6 +66,7 @@ void ccmd_client_apply_geometry(client_td *client, xcb_window_t target,
         uint16_t mask, int32_t x, int32_t y, uint32_t w, uint32_t h,
         uint32_t border_width);
 
+
 /**
  * @brief Move the client to a new position
  *
@@ -76,6 +77,7 @@ void ccmd_client_apply_geometry(client_td *client, xcb_window_t target,
  */
 void ccmd_client_move(client_td *client, struct position_s pos);
 
+
 /**
  * @brief Center the client on its current screen
  *
@@ -84,6 +86,7 @@ void ccmd_client_move(client_td *client, struct position_s pos);
  * @note Complexity: @e O(n), where @e n is the screen index
  */
 void ccmd_client_center(client_td *client);
+
 
 /**
  * @brief Move the client to a specific monitor on its own surface
@@ -104,6 +107,7 @@ void ccmd_client_center(client_td *client);
  */
 void ccmd_client_move_to_monitor(client_td *client,
         uint32_t monitor_index);
+
 
 /**
  * @brief Move the client to the monitor north of the current one on
@@ -137,6 +141,7 @@ void ccmd_client_move_to_monitor(client_td *client,
  */
 void ccmd_client_move_to_monitor_north(client_td *client);
 
+
 /**
  * @brief Move the client to the monitor south of the current one on
  *        its own surface
@@ -151,6 +156,7 @@ void ccmd_client_move_to_monitor_north(client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
 void ccmd_client_move_to_monitor_south(client_td *client);
+
 
 /**
  * @brief Move the client to the monitor east of the current one on
@@ -167,6 +173,7 @@ void ccmd_client_move_to_monitor_south(client_td *client);
  */
 void ccmd_client_move_to_monitor_east(client_td *client);
 
+
 /**
  * @brief Move the client to the monitor west of the current one on
  *        its own surface
@@ -182,179 +189,5 @@ void ccmd_client_move_to_monitor_east(client_td *client);
  */
 void ccmd_client_move_to_monitor_west(client_td *client);
 
-/**
- * @brief Resize the client to new dimensions
- *
- * @param client Window to resize
- * @param geom   New frame position and dimensions
- *
- * @note Complexity: @e O(1)
- */
-void ccmd_client_resize(client_td *client, struct geometry_s geom);
 
-/**
- * @brief Resize the client to new dimensions immediately, bypassing
- *        any in-flight @c _NET_WM_SYNC_REQUEST throttling
- *
- * @c ccmd_client_resize's own queue-behind-the-outstanding-
- * acknowledgment behavior exists to avoid piling up unacknowledged
- * configures during a live sequence of rapid resize calls (an
- * ordinary interactive drag).  It is the wrong behavior for a single,
- * already-final geometry with no further calls to follow, since a
- * client that happens to still be mid-exchange from an earlier,
- * unrelated resize would otherwise have this one silently queued
- * behind that exchange's own @c AlarmNotify, with nothing left to
- * ever flush it once no further resize call arrives to retry it.
- * Callers with exactly that shape (one call, known to be the last)
- * should call this instead of @a ccmd_client_resize.
- *
- * @param client Window to resize
- * @param geom   New frame position and dimensions
- *
- * @note Complexity: @e O(1)
- */
-void ccmd_client_resize_force(client_td *client, struct geometry_s geom);
-
-/**
- * @brief Apply a client's pending @c (_NET_WM_SYNC_REQUEST)-throttled
- *        resize
- *
- * Called from @a handler_sync_event when an @c AlarmNotify confirms the
- * client has redrawn to match the last size it was sent.  Clears the
- * client's wait state and, if a newer geometry arrived from
- * @a ccmd_client_resize while it was waiting, applies that geometry now
- * and sends the next sync request so the throttling pipeline keeps up
- * with an ongoing interactive resize.
- *
- * @param client Client whose alarm just fired
- *
- * @note A no-op for clients that are not currently waiting on an
- *       acknowledgement
- * @note Complexity: @e O(1)
- */
-void ccmd_client_resize_flush_pending(client_td *client);
-
-/**
- * @brief Maximize the client horizontally
- *
- * @param client Window to maximize horizontally
- *
- * @note Complexity: @e O(n), where @e n is the screen index
- */
-void ccmd_client_maximize_horz(client_td *client);
-
-/**
- * @brief Maximize the client vertically
- *
- * @param client Window to maximize vertically
- *
- * @note Complexity: @e O(n), where @e n is the screen index
- */
-void ccmd_client_maximize_vert(client_td *client);
-
-/**
- * @brief Demote a single axis's maximize state alone, without
- *        touching geometry at all
- *
- * For a caller that has already applied the correct un-maximized
- * geometry itself (a mouse-drag resize crossing the resistance
- * threshold on a maximized axis, live, on the very same motion
- * event; see @c drag_update, input/mouse/drag.c), unlike @c
- * ccmd_client_maximize_horz/@c _vert's own demote branch, which
- * always restores geometry from @c layout.geometry.old itself as
- * part of the same call.
- *
- * @param client Client whose axis just stopped being maximized
- * @param dir    @c 1 for horizontal, @c 2 for vertical; matches
- *               @c ccmd_client_maximize_horz/@c _vert's own axis
- *               numbering
- *
- * @note Complexity: @e O(1)
- */
-void ccmd_client_demote_axis_state(client_td *client, int dir);
-
-/**
- * @brief Promote a single axis's maximize state back, the exact
- *        inverse of @c ccmd_client_demote_axis_state, without
- *        touching geometry at all
- *
- * For a caller whose own drag has already re-frozen that axis back
- * at its maximized geometry itself (a mouse-drag resize dragged back
- * under the resistance threshold before release, live, on the very
- * same motion event; see @c drag_update, input/mouse/drag.c): the
- * live, reversible half of the same mechanism @c ccmd_client_demote_
- * axis_state's own doc comment describes, restoring @c MAXIMIZED
- * itself rather than @c NORMAL when the other axis is already
- * maximized on its own, @c MAXIMIZED_HORZ/@c _VERT otherwise.
- *
- * @param client Client whose axis just became maximized again
- * @param dir    @c 1 for horizontal, @c 2 for vertical; matches
- *               @c ccmd_client_maximize_horz/@c _vert's own axis
- *               numbering
- *
- * @note Complexity: @e O(1)
- */
-void ccmd_client_promote_axis_state(client_td *client, int dir);
-
-/**
- * @brief Maximize the client entirely
- *
- * @param client Window to maximize
- *
- * @note Complexity: @e O(n), where @e n is the screen index
- */
-void ccmd_client_maximize(client_td *client);
-
-/**
- * @brief Resolve the workarea a client's own maximize/fullscreen target
- *        should fill, on whichever monitor it currently sits on
- *
- * The same resolution @a ccmd_client_maximize/_horz/_vert already use
- * internally, exposed here for any other caller needing the exact same
- * target rect a maximized client already fills:
- * @a ccmd_client_toggle_decorate (@c cmds/client/state.c),
- * recalculating a maximized client's own geometry to still fill it
- * after decoration changes size how much of it its own frame extents
- * eat into, rather than just growing or shrinking the frame in place
- * around whatever position/size it already had.
- *
- * @param client Client to resolve the workarea for
- * @param out_x  Receives the workarea's own left edge (may be null to
- *               skip)
- * @param out_y  Receives the workarea's own top edge (may be null to
- *               skip)
- * @param out_w  Receives the workarea's own width; required
- * @param out_h  Receives the workarea's own height; required
- *
- * @return Status of the operation
- * @retval  true on success
- * @retval false if @p client is @c NULL, has no monitor or desktop
- *               resolvable, or that desktop's own workarea has not been
- *               computed yet
- *
- * @note Complexity: @e O(1)
- */
-bool ccmd_client_monitor_workarea(client_td *client,
-        int32_t *restrict out_x, int32_t *restrict out_y,
-        uint16_t *restrict out_w, uint16_t *restrict out_h);
-
-/**
- * @brief Re-fill an already-maximized client's own geometry against
- *        its current workarea
- *
- * Resolved against @a ccmd_client_monitor_workarea (the same
- * resolution @a ccmd_client_maximize itself already uses), so the
- * client ends up exactly refilling the workarea as it now stands,
- * the same as if it had only just been maximized; a no-op unless
- * @p client is currently maximized on at least one axis.  Only the
- * axis (or axes) its own @c properties.state actually names gets
- * touched.
- *
- * @param client Client to re-fill
- *
- * @note Complexity: @e O(1)
- */
-void ccmd_client_refill_maximized(client_td *client);
-
-
-#endif  /* ! CMDS_CCMD_GEOM_H */
+#endif  /* ! CMDS_CCMD_MOVE_H */

@@ -24,7 +24,7 @@
 #include <client.h>
 
 /* Command includes */
-#include <cmds/client/geom.h>
+#include <cmds/client/maximize.h>
 
 /* Local includes */
 #include <input/mouse/drag/internal.h>

@@ -32,7 +32,6 @@
 
 /* Command includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/geom.h>
 #include <cmds/client/layer.h>
 #include <cmds/surface.h>
 
@@ -190,8 +189,7 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(surfaces, event->window,
                 &surface, &desktop);
         if (client != NULL && surface != NULL && desktop != NULL) {
-            const desktop_td *const active_desktop =
-                lookup_current_desktop(surface);
+            const desktop_td *const active_desktop = lookup_current_desktop(surface);
 
             /* EWMH's own focus-stealing prevention: a client asking
              * for '_NET_ACTIVE_WINDOW' does not automatically deserve

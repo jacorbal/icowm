@@ -30,7 +30,7 @@
 
 /* Command includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/geom.h>
+#include <cmds/client/move.h>
 
 /* Project includes */
 #include <client.h>
@@ -116,7 +116,7 @@ static void s_rules_apply_desktop(client_td *client,
         surface_td *surface, desktop_td **desktop_io,
         const struct rules_apply_s *apply)
 {
-    const desktop_td *cur;
+    desktop_td *cur;
     desktop_td *target;
 
     if (!apply->has_desktop || surface == NULL || desktop_io == NULL ||

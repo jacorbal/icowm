@@ -43,7 +43,9 @@
 
 /* Command includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/geom.h>
+#include <cmds/client/maximize.h>
+#include <cmds/client/move.h>
+#include <cmds/client/resize.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/meta.h>
 
@@ -195,7 +197,7 @@ static void s_enact_client_send_to_desktop(client_td *client,
         enum compass_direction_e direction)
 {
     surface_td *surface;
-    const desktop_td *cur_desktop;
+    desktop_td *cur_desktop;
     desktop_td *target_desktop;
     bool cycle;
 

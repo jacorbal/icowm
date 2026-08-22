@@ -32,7 +32,7 @@
 #include <wm.h>
 
 /* Command includes */
-#include <cmds/client/geom.h>
+#include <cmds/client/resize.h>
 
 /* Local includes */
 #include <handler.h>

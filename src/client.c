@@ -40,7 +40,7 @@
 
 /* Command includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/geom.h>
+#include <cmds/client/move.h>
 
 /* Default initial values */
 #include <defs/config.h>

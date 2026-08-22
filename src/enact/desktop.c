@@ -42,7 +42,6 @@
 
 /* Command includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/geom.h>
 #include <cmds/surface.h>
 
 /* Menu includes */

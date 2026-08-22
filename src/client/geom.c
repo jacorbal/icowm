@@ -37,7 +37,7 @@
 #include <wm.h>
 
 /* Command includes */
-#include <cmds/client/geom.h>
+#include <cmds/client/move.h>
 
 /* Local includes */
 #include <client/internal.h>

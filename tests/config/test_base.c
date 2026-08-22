@@ -455,11 +455,8 @@ static void s_test_missing_topology_leaves_defaults(void)
 
 
 /* A representative field from each remaining config_load_base
- * section: theme, programs, windows (gravity/focus/placement;
- * windows.snap itself is deliberately excluded here, since neither
- * this file's own base/parse.c nor any other file actually parses
- * a "snap" key from JSON at all, despite the struct field existing
- * in config.h), icons, the 3 boolean shortcuts, startup-notification,
+ * section: theme, programs, windows (edges.snap/gravity/focus/
+ * placement), icons, the 3 boolean shortcuts, startup-notification,
  * and menus */
 static void s_test_representative_fields(void)
 {
@@ -471,6 +468,7 @@ static void s_test_representative_fields(void)
         "\"theme\": \"my-theme\","
         "\"programs\": {\"terminal\": \"alacritty\"},"
         "\"windows\": {"
+        "  \"edges\": {\"snap\": {\"window\": 12, \"screen\": 18} },"
         "  \"gravity\": \"center\","
         "  \"focus\": {\"policy\": \"sloppy\","
         "    \"focus-new\": false},"
@@ -488,6 +486,10 @@ static void s_test_representative_fields(void)
 
     TAP_EQ_STR(base.theme, "my-theme", "theme name loaded");
     TAP_EQ_STR(base.programs.terminal, "alacritty", "programs.terminal");
+    TAP_EQ_INT((long) base.windows.edges.snap.window, 12,
+            "windows.edges.snap.window");
+    TAP_EQ_INT((long) base.windows.edges.snap.screen, 18,
+            "windows.edges.snap.screen");
     TAP_EQ_INT(base.windows.gravity, CONFIG_GRAVITY_CENTER,
             "windows.gravity");
     TAP_EQ_INT(base.windows.focus_policy, CONFIG_FOCUS_POLICY_SLOPPY,
@@ -674,7 +676,7 @@ static void s_test_systray_text_order_no_dedup(void)
 
 int main(void)
 {
-    TAP_PLAN(81);
+    TAP_PLAN(83);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
