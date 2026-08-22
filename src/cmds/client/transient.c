@@ -368,7 +368,7 @@ client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
  * snapshot just above: every family-wide action that is not itself
  * about desktops (iconify, restore, hide, unhide, pin, unpin) must
  * find every family member regardless of which desktop each one
- * happens to be registered under, not just @p top's own — those two
+ * happens to be registered under, not just @p top's own; those two
  * can genuinely differ when @p top is pinned, since pinning a client
  * never actually moves it between desktops (it stays registered
  * under whichever one it was originally on forever; see @a ccmd_
@@ -428,7 +428,7 @@ client_td **ccmd_client_transient_family_snapshot_anywhere(
  * desktop mismatch either: @c client_bring_windows_recursive checks
  * @e both @c !screen_compare_desktops(self->desktop, desktop) (wrong
  * desktop) @e and @c (iconic && self->iconic) (still iconic), taking
- * whichever action applies — @c client_iconify(self, FALSE, ...) to
+ * whichever action applies: @c client_iconify(self, FALSE, ...) to
  * un-iconify, or @c client_set_desktop(self, desktop, ...) to
  * relocate.  This mirrors both halves: a family member left
  * iconified or hidden (this project's own two separate visibility

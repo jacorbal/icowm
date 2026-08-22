@@ -259,7 +259,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
         /* 'ccmd_client_focus', not a bare 'xcb_set_input_focus': the
          * exact same ICCCM/EWMH sequence every other focus-granting
          * path in this project already goes through (see its own
-         * doc comment) — honoring the client's own 'WM_HINTS' input
+         * doc comment), honoring the client's own 'WM_HINTS' input
          * model, sending 'WM_TAKE_FOCUS' for a Locally- or Globally-
          * Active client that relies on it to actually accept focus
          * internally, and publishing '_NET_WM_STATE_FOCUSED' so a

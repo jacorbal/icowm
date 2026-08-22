@@ -24,6 +24,9 @@
 /* ADT includes */
 #include <adt/cdlist.h>
 
+/* Default initial values */
+#include <defs/desktop.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -148,6 +151,28 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
     desktop_action_client_rem(desktop, client);
     desktop_action_client_add(target, client);
     client->desktop_id = target->id;
+
+    /* Published here, once, for every caller of this whole desktop-
+     * move mechanism alike (the "Send to desktop" menu, the move-to-
+     * desktop keybind, and any rule with its own 'apply.desktop'),
+     * rather than each duplicating this same publish on its own:
+     * an EWMH-aware external tool (a taskbar or pager) watching
+     * '_NET_WM_DESKTOP' needs to learn about the reassignment
+     * regardless of which of those actually triggered it.  A pinned
+     * client keeps publishing the EWMH "all desktops" sentinel
+     * instead of any one real index, unaffected by which desktop it
+     * is actually registered under (see 'ccmd_client_bring_family's
+     * own doc comment, cmds/client/transient.c, for the fuller
+     * reasoning on why a pinned client's own registration and its
+     * own published desktop can differ like this). */
+    if (client->ewmh != NULL) {
+        uint32_t did = (client->properties.flags & CLIENT_FLAG_PIN)
+            ? WM_DESKTOP_ID_ALL : target->id;
+
+        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+                client->window, client->ewmh->_NET_WM_DESKTOP,
+                XCB_ATOM_CARDINAL, 32, 1, &did);
+    }
 
     /* If 'client' was the source desktop's own active client, hand
      * focus there off to whatever else on that desktop qualifies,

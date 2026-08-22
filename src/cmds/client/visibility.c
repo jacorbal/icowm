@@ -385,8 +385,8 @@ static void s_ccmd_client_unhide_one(client_td *client)
  * A caller whose own @p target can differ from @p client->window
  * (the frame, when decorated, rather than the bare content window)
  * and that also needs the content window itself unmapped separately
- * — @a s_ccmd_client_iconify_one and @a s_ccmd_client_hide_one above
- * are the only two such callers today — still has to account for,
+ * (@a s_ccmd_client_iconify_one and @a s_ccmd_client_hide_one above
+ * are the only two such callers today) still has to account for,
  * and issue, that additional unmap on its own right after calling
  * this: two more events arrive for @c client->window in that case,
  * matching this same two-events-per-window rule, and this function

@@ -6,14 +6,13 @@
  * Low-level XCB, EWMH, and ICCCM plumbing used by more than one
  * client-command module, but never called from outside @c cmds/
  * client/ itself; @c ccmd_target_win, @c ccmd_client_monitor,
- * @c ccmd_client_grab_buttons, @c ccmd_set_wm_state,
- * @c ccmd_clear_wm_state, @c ccmd_add_states, and @c ccmd_rem_states
- * moved out to the genuinely public @c cmds/client/basic.h once every
- * one of those turned out to already be called from outside this
- * directory too (@c client.c, @c handler/map.c, @c handler/
- * ewmhmsg.c, and @c menu/popup.c among them), which this header's own
- * "must not be included outside of it" promise never actually held
- * for them.
+ * @c ccmd_client_grab_buttons, @c ccmd_set_wm_state, and @c ccmd_
+ * clear_wm_state moved out to the genuinely public @c cmds/client/
+ * basic.h once every one of those turned out to already be called
+ * from outside this directory too (@c client.c, @c handler/map.c,
+ * @c handler/ewmhmsg.c, and @c menu/popup.c among them), which this
+ * header's own "must not be included outside of it" promise never
+ * actually held for them.
  *
  * @note This header is private to @c cmds/client/ and must not be
  *       included outside of it.

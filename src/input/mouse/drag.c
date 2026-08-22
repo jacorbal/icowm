@@ -47,9 +47,6 @@
 #include <defs/icon.h>
 #include <defs/input.h>
 
-/* Command includes */
-#include <cmds/client/geom.h>
-
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -67,6 +64,7 @@
 #include <input/mouse/drag/icon.h>
 #include <input/mouse/drag/internal.h>
 #include <input/mouse/drag/overlay.h>
+#include <input/mouse/drag/resist.h>
 #include <input/mouse/drag/snap.h>
 #include <input/mouse/drag/outline.h>
 #include <input/mouse/drag/warp.h>
@@ -576,46 +574,11 @@ void drag_update(xcb_connection_t *connection,
          * under the threshold before releasing re-freezes it at
          * exactly 'client_start' again, the exact same reversible
          * behavior Openbox's own 'do_resize' (moveresize.c) applies
-         * to its identical 'config_resist_edge'.
-         *
-         * Under 'solid_drag', live, right here, on the very motion
-         * event a threshold crossing happens on (either direction):
-         * 'client->properties.state' (and its own EWMH atoms) changes
-         * to match this same instant, not deferred to 'drag_end', so
-         * anything watching that state mid-drag (an EWMH-aware panel
-         * or pager, say) never sees it fall out of step with what
-         * this axis's own geometry is already showing on screen.
-         * Under '!solid_drag' the real window sits off-screen for
-         * the whole drag regardless (see 'outline_windows''s own doc
-         * comment, drag/internal.h), so syncing its state to match a
-         * geometry nobody can actually see yet would be meaningless;
-         * 'drag_end' itself still has the final say there, once the
-         * real window reappears with its own real, finalized
-         * geometry. */
-        if (s_drag.resist_axis_w) {
-            bool was_resize_w = s_drag.resize_w;
-
-            s_drag.resize_w = drag_dist_w >= resistance;
-            if (s_drag.solid_drag && s_drag.resize_w != was_resize_w) {
-                if (s_drag.resize_w) {
-                    ccmd_client_demote_axis_state(client, 1);
-                } else {
-                    ccmd_client_promote_axis_state(client, 1);
-                }
-            }
-        }
-        if (s_drag.resist_axis_h) {
-            bool was_resize_h = s_drag.resize_h;
-
-            s_drag.resize_h = drag_dist_h >= resistance;
-            if (s_drag.solid_drag && s_drag.resize_h != was_resize_h) {
-                if (s_drag.resize_h) {
-                    ccmd_client_demote_axis_state(client, 2);
-                } else {
-                    ccmd_client_promote_axis_state(client, 2);
-                }
-            }
-        }
+         * to its identical 'config_resist_edge'; see 'drag_resist_
+         * axis_update''s own doc comment, drag/resist.h, for the
+         * fuller reasoning, including why state syncs live here only
+         * under 'solid_drag'. */
+        drag_resist_axis_update(drag_dist_w, drag_dist_h, resistance);
 
         if (s_drag.resist_axis_w || s_drag.resist_axis_h) {
             LOGGER_TRACE("Resist threshold (dx=%d, dy=%d," \
@@ -981,30 +944,16 @@ void drag_end(xcb_connection_t *connection,
                 drag_outline_end(connection);
             }
 
-            /* Only still needed under '!solid_drag': the live sync
-             * in 'drag_update' above already handles the
-             * 'solid_drag' case fully, on every single threshold
-             * crossing along the way, so nothing further is needed
-             * here for that case.  Under '!solid_drag' state was
-             * never touched mid-drag at all (the real window sits
-             * off-screen the whole time; see 'outline_windows''s own
-             * doc comment, drag/internal.h), so it still reflects
-             * whichever axis this client started this drag maximized
-             * on; 'resize_w'/'_h', read here fresh at the very end,
-             * say whether the resistance threshold on that same axis
-             * ended up crossed by release time.  Geometry itself is
-             * already correctly settled by now, from the exact same
-             * finalize calls just above; this only ever updates
-             * 'properties.state' (and its own EWMH atoms) to match,
-             * never geometry a second time. */
-            if (finalize_resize && !s_drag.solid_drag) {
-                if (s_drag.resist_axis_w && s_drag.resize_w) {
-                    ccmd_client_demote_axis_state(s_drag.client, 1);
-                }
-                if (s_drag.resist_axis_h && s_drag.resize_h) {
-                    ccmd_client_demote_axis_state(s_drag.client, 2);
-                }
-            }
+            /* See 'drag_resist_axis_finalize''s own doc comment,
+             * drag/resist.h, for why this is only ever still needed
+             * under '!solid_drag': 'drag_update' above already
+             * handled the 'solid_drag' case fully, live, on every
+             * single threshold crossing along the way.  Geometry
+             * itself is already correctly settled by now, from the
+             * exact same finalize calls just above; this only ever
+             * updates 'properties.state' (and its own EWMH atoms) to
+             * match, never geometry a second time. */
+            drag_resist_axis_finalize(finalize_resize);
         }
     }
 

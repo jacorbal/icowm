@@ -28,17 +28,14 @@
 /* JSON includes */
 #include <cjson/cJSON.h>
 
-/* Default initial values */
-#include <defs/desktop.h>
-
 /* Command includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/layer.h>
-#include <cmds/client/state.h>
+#include <cmds/client/geom.h>
 
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <enact.h>
 #include <ipc.h>
 #include <logger.h>
 #include <policy/focus.h>
@@ -51,19 +48,59 @@
 
 
 /**
+ * @brief Broadcast an IPC event carrying one client's own identifying
+ *        fields
+ *
+ * Mirrors @a enact_broadcast_client_event's own field shape (@c
+ * enact/internal.h), which this file cannot reach directly: that
+ * header is deliberately private to @c enact/ itself (see its own
+ * doc comment for why), so this is its own small, local copy of the
+ * same fields instead.
+ *
+ * @param client Client the event is about
+ * @param type   IPC event bitmask (a single @c IPC_EVENT_* value; see
+ *               ipc.h)
+ *
+ * @note No-op if @p client is @c NULL
+ * @note Complexity: @e O(1)
+ */
+static void s_rules_broadcast_client_event(client_td *client,
+        uint32_t type)
+{
+    cJSON *fields;
+
+    if (client == NULL) {
+        return;
+    }
+
+    fields = cJSON_CreateObject();
+    if (fields != NULL) {
+        cJSON_AddNumberToObject(fields, "client_id",
+                (double) client->id);
+        cJSON_AddNumberToObject(fields, "desktop_id",
+                (double) client->desktop_id);
+        cJSON_AddNumberToObject(fields, "surface_id",
+                (double) client->screen_id);
+    }
+    ipc_broadcast_event(type, fields);
+}
+
+
+/**
  * @brief Move a client to the desktop specified by a rule
  *
- * Removes @p client from the desktop pointed to by @p desktop_io, adds
- * it to the target desktop identified by @p apply->desktop, and updates
- * @p client->desktop_id and the EWMH @c _NET_WM_DESKTOP property.  If
- * the target desktop does not exist, falls back to 0th-desktop (logging
- * a warning); if it is the same as the current one, or 0th-desktop does
- * not exist either, the function returns without doing anything.  On
- * failure to add the client to the target desktop it is re-added to the
- * original one.
+ * Resolves the target desktop identified by @p apply->desktop, then
+ * delegates the actual move to @a enact_desktop_client_send, the
+ * same shared primitive the "Send to desktop" menu and the move-to-
+ * desktop keybind both already use, so a rule-driven move gets the
+ * exact same family-wide cascade, visibility handling, focus
+ * fallback, EWMH publish, and IPC broadcast every other trigger of
+ * this same action already gets, rather than a second, narrower
+ * reimplementation of its own.  If the target desktop does not
+ * exist, falls back to 0th-desktop (logging a warning); if it is the
+ * same as the current one, or 0th-desktop does not exist either, the
+ * function returns without doing anything.
  *
- * @param wm         Window manager instance (used for the connection
- *                   and EWMH handle)
  * @param client     Client to move
  * @param surface    Surface on which the target desktop lives
  * @param desktop_io In/out pointer to the current desktop; updated to
@@ -71,10 +108,11 @@
  * @param apply      Action descriptor; only evaluated when
  *                   @p apply->has_desktop is @c true
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on the
- *       source or target desktop during the add/remove operations
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the client's own top parent's own desktop (see @a enact_
+ *       desktop_client_send's own doc comment)
  */
-static void s_rules_apply_desktop(const wm_td *wm, client_td *client,
+static void s_rules_apply_desktop(client_td *client,
         surface_td *surface, desktop_td **desktop_io,
         const struct rules_apply_s *apply)
 {
@@ -101,22 +139,7 @@ static void s_rules_apply_desktop(const wm_td *wm, client_td *client,
         return;
     }
 
-    (void) desktop_action_client_rem(cur, client);
-    if (desktop_action_client_add(target, client) != 0) {
-        (void) desktop_action_client_add(cur, client);
-        return;
-    }
-
-    client->desktop_id = target->id;
-    if (wm_ewmh(wm) != NULL) {
-        uint32_t did = (client->properties.flags & CLIENT_FLAG_PIN)
-            ? WM_DESKTOP_ID_ALL : target->id;
-
-        xcb_change_property(wm_connection(wm), XCB_PROP_MODE_REPLACE,
-                client->window, wm_ewmh(wm)->_NET_WM_DESKTOP,
-                XCB_ATOM_CARDINAL, 32, 1, &did);
-    }
-
+    enact_desktop_client_send(cur, client, target);
     *desktop_io = target;
 }
 
@@ -140,11 +163,11 @@ static void s_rules_apply_layer(client_td *client,
     }
 
     if (apply->layer == (uint16_t) CLIENT_LAYER_ABOVE) {
-        ccmd_client_layer_above(client);
+        enact_client_layer_above(client);
     } else if (apply->layer == (uint16_t) CLIENT_LAYER_BELOW) {
-        ccmd_client_layer_below(client);
+        enact_client_layer_below(client);
     } else {
-        ccmd_client_layer_normal(client);
+        enact_client_layer_normal(client);
     }
 }
 
@@ -157,6 +180,14 @@ static void s_rules_apply_layer(client_td *client,
  * applied independently: only the fields flagged as present are
  * touched.  When the client has a decoration frame, the
  * synchronization helper is called to keep the inner window aligned.
+ * The single, combined @c XCB_CONFIG_WINDOW_* call itself funnels
+ * through @a ccmd_client_apply_geometry, the same shared primitive
+ * every other geometry-changing operation in this project already
+ * uses, rather than building its own values array by hand; flushed
+ * and broadcast afterward (@c IPC_EVENT_WINDOW_MOVED and/or @c
+ * _RESIZED, matching whichever of position/size actually changed),
+ * the same as @a enact_client_move/@c _resize do for every other
+ * trigger of the same two events.
  *
  * Size is resolved before position so that a rule combining
  * @c ("position": "center") with an explicit @c size centers the client
@@ -173,7 +204,6 @@ static void s_rules_apply_layer(client_td *client,
  * monitor by default, since otherwise @c monitor alone would have no
  * visible effect at all.
  *
- * @param connection XCB connection used to send the configure request
  * @param surface    Surface the client is on, used to compute the
  *                   center point for @p apply->position_centered and
  *                   to resolve @p apply->monitor
@@ -185,14 +215,11 @@ static void s_rules_apply_layer(client_td *client,
  * @note Negative Y values in @p apply are clamped to zero
  * @note Complexity: @e O(1)
  */
-static void s_rules_apply_geometry(xcb_connection_t *connection,
-        const surface_td *surface, client_td *client,
-        const struct rules_apply_s *apply)
+static void s_rules_apply_geometry(const surface_td *surface,
+        client_td *client, const struct rules_apply_s *apply)
 {
     xcb_window_t target;
     uint16_t mask = 0;
-    uint32_t values[4];
-    uint32_t vi = 0;
     uint32_t width;
     uint32_t height;
     int32_t x = 0;
@@ -300,27 +327,30 @@ static void s_rules_apply_geometry(xcb_connection_t *connection,
         set_pos = true;
     }
 
-    /* Value list order must ascend by 'XCB_CONFIG_WINDOW_*' bit value:
-     * X, Y, then WIDTH, HEIGHT.  Built here in that order regardless of
-     * which of position/size were actually resolved above */
     if (set_pos) {
         mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
-        values[vi++] = (uint32_t) x;
-        values[vi++] = (uint32_t) y;
     }
     if (set_size) {
         mask |= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        values[vi++] = width;
-        values[vi++] = height;
     }
 
     target = (client->frame != 0 && client_is_decorated(client))
         ? client->frame : client->window;
 
-    xcb_configure_window(connection, target, mask, values);
+    ccmd_client_apply_geometry(client, target, mask, x, y,
+            width, height, 0u);
 
     if (client->frame != 0 && client_is_decorated(client)) {
         client_decoration_layout_sync(client);
+    }
+
+    xcb_flush(client->connection);
+    if (set_pos) {
+        s_rules_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
+    }
+    if (set_size) {
+        s_rules_broadcast_client_event(client,
+                IPC_EVENT_WINDOW_RESIZED);
     }
 }
 
@@ -342,28 +372,24 @@ static void s_rules_apply_flags(client_td *client,
 {
     if (apply->has_sticky) {
         if (apply->pinned) {
-            ccmd_client_pin(client);
+            enact_client_pin(client);
         } else {
-            ccmd_client_unpin(client);
+            enact_client_unpin(client);
         }
     }
 
     if (apply->has_decorated) {
         if (apply->decorated != client_is_decorated(client)) {
-            ccmd_client_toggle_decorate(client);
+            enact_client_toggle_decorate(client);
         }
     }
 
     if (apply->has_opacity_active) {
-        client->opacity_override.is_set_active = true;
-        client->opacity_override.active = apply->opacity_active;
+        ccmd_client_set_opacity_active(client, apply->opacity_active);
     }
     if (apply->has_opacity_inactive) {
-        client->opacity_override.is_set_inactive = true;
-        client->opacity_override.inactive = apply->opacity_inactive;
-    }
-    if (apply->has_opacity_active || apply->has_opacity_inactive) {
-        wm_request_client_redraw(client);
+        ccmd_client_set_opacity_inactive(client,
+                apply->opacity_inactive);
     }
 }
 
@@ -454,7 +480,7 @@ bool rules_apply(const wm_td *wm, client_td *client,
         return false;
     }
 
-    s_rules_apply_desktop(wm, client, *surface_io, desktop_io, &merged);
+    s_rules_apply_desktop(client, *surface_io, desktop_io, &merged);
 
     if (trigger == RULES_TRIGGER_PROPERTY &&
             merged.has_desktop &&
@@ -486,7 +512,7 @@ bool rules_apply(const wm_td *wm, client_td *client,
     }
     s_rules_apply_layer(client, &merged);
     s_rules_apply_flags(client, &merged);
-    s_rules_apply_geometry(connection, *surface_io, client, &merged);
+    s_rules_apply_geometry(*surface_io, client, &merged);
 
     if (merged.has_focus && merged.focus &&
             config != NULL && client_is_focusable(client)) {

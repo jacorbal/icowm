@@ -279,6 +279,33 @@ void ccmd_client_toggle_pin(client_td *client)
 }
 
 
+/* Override the client's own active-state opacity */
+void ccmd_client_set_opacity_active(client_td *client, uint8_t percent)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    client->opacity_override.is_set_active = true;
+    client->opacity_override.active = percent;
+    wm_request_client_redraw(client);
+}
+
+
+/* Override the client's own inactive-state opacity */
+void ccmd_client_set_opacity_inactive(client_td *client,
+        uint8_t percent)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    client->opacity_override.is_set_inactive = true;
+    client->opacity_override.inactive = percent;
+    wm_request_client_redraw(client);
+}
+
+
 /* Raise the client to the top */
 void ccmd_client_urge(client_td *client)
 {

@@ -21,6 +21,7 @@
 
 /* System includes */
 #include <stddef.h>     /* size_t */
+#include <stdint.h>     /* uint8_t */
 
 /* Command includes */
 #include <cmds/client/state.h>
@@ -239,6 +240,38 @@ void ccmd_client_unpin(client_td *client);
 void ccmd_client_toggle_pin(client_td *client);
 
 /**
+ * @brief Override the client's own active-state opacity
+ *
+ * Sets @c opacity_override.is_set_active/@c .active, so this one
+ * client's own active-state opacity stops following the theme's own
+ * @p window.active.opacity until unset (there is currently no way
+ * to unset it once a rule has set it; see @c rules_apply_s's own
+ * doc comment, rules/internal.h).
+ *
+ * @param client  Window whose active-state opacity to override
+ * @param percent New opacity, @c 0 to @c 100
+ *
+ * @note A null @p client is a silent no-op
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_set_opacity_active(client_td *client, uint8_t percent);
+
+/**
+ * @brief Override the client's own inactive-state opacity
+ *
+ * Sets @c opacity_override.is_set_inactive/@c .inactive, the
+ * inactive-state counterpart to @a ccmd_client_set_opacity_active.
+ *
+ * @param client  Window whose inactive-state opacity to override
+ * @param percent New opacity, @c 0 to @c 100
+ *
+ * @note A null @p client is a silent no-op
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_set_opacity_inactive(client_td *client,
+        uint8_t percent);
+
+/**
  * @brief Mark the client as urgent (requesting attention)
  *
  * @param client Window to mark as urgent
@@ -351,31 +384,6 @@ void ccmd_set_wm_state(client_td *client,
  * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
  */
 void ccmd_clear_wm_state(client_td *client);
-
-/**
- * @brief Add multiple EWMH window states to a client
- *
- * @param client     Pointer to the client
- * @param num_states Number of state name strings that follow
- * @param ...        @c (const char*) state name arguments
- *
- * @note Implemented in @c cmds/client/ewmh.c
- * @note Complexity: @e O(n), where @e n is @p num_states
- */
-void ccmd_add_states(client_td *client, uint32_t num_states, ...);
-
-/**
- * @brief Remove multiple EWMH window states from a client
- *
- * @param client     Pointer to the client
- * @param num_states Number of state name strings that follow
- * @param ...        @c (const char*) state name arguments
- *
- * @note Implemented in @c cmds/client/ewmh.c
- * @note Complexity: @e O(n * m), where @e n is @p num_states and @e m
- *       is the current number of window states
- */
-void ccmd_rem_states(client_td *client, uint32_t num_states, ...);
 
 /**
  * @brief Republish every @c _NET_WM_STATE atom a client currently
@@ -551,7 +559,7 @@ client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
  * collecting into a snapshot at all): every family-wide action that
  * is not itself about desktops (iconify, restore, hide, unhide, pin,
  * unpin) must find every family member regardless of which desktop
- * each one happens to be registered under, not just @p top's own —
+ * each one happens to be registered under, not just @p top's own;
  * those two can genuinely differ when @p top is pinned, since
  * pinning a client never actually moves it between desktops.
  * Scoping the search to @p top's own desktop alone, as the desktop-
@@ -645,8 +653,8 @@ void client_unlink_transient(client_td *client);
  * A caller whose own @p target can differ from @p client->window
  * (the frame, when decorated, rather than the bare content window)
  * and that also needs the content window itself unmapped separately
- * — @a ccmd_client_iconify and @a ccmd_client_hide (cmds/client/
- * visibility.c) are the only two such callers today — still has to
+ * (@a ccmd_client_iconify and @a ccmd_client_hide, cmds/client/
+ * visibility.c, are the only two such callers today) still has to
  * account for, and issue, that additional unmap on its own right
  * after calling this: two more events arrive for @c client->window
  * in that case, matching this same two-events-per-window rule, and
