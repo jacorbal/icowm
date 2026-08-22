@@ -19,6 +19,7 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 #include <adt/ohtbl.h>
 
@@ -92,6 +93,8 @@ static void s_resync_after_reload(const wm_td *wm)
         surface_td *const s = (surface_td *) list_data(snode);
         struct config_base_s *const cb = &(config->base);
         struct geometry_s tray;
+        cdlist_item_td *dnode;
+        uint32_t i = 0u;
         /* Queried once per surface here, ahead of the desktop/client
          * loop below, rather than once per icon inside it.  This is
          * a synchronous round trip to the X server (see 'systray_get_
@@ -103,10 +106,12 @@ static void s_resync_after_reload(const wm_td *wm)
             continue;
         }
 
-        for (uint32_t i = 0; i < s->desktop_count; ++i) {
-            desktop_td *d = surface_desktop_get(s, i);
+        cdlist_foreach(s->desktops, dnode) {
+            desktop_td *const d = (desktop_td *) cdlist_data(dnode);
+            const uint32_t this_i = i;
 
-            if (d == NULL || i >= cb->screens[s->id].desktop_count) {
+            ++i;
+            if (d == NULL || this_i >= cb->screens[s->id].desktop_count) {
                 continue;
             }
 
@@ -123,7 +128,7 @@ static void s_resync_after_reload(const wm_td *wm)
              * actually set. */
             if (!d->background.is_image &&
                     !d->background.use_root_pixmap) {
-                uint32_t new_color = cb->screens[s->id].desktops[i]
+                uint32_t new_color = cb->screens[s->id].desktops[this_i]
                     .settings.background.color;
 
                 d->background.bg.color =

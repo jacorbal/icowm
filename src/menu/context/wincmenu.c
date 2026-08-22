@@ -21,6 +21,9 @@
 #include <stdio.h>      /* snprintf */
 #include <string.h>     /* memset */
 
+/* ADT includes */
+#include <adt/cdlist.h>
+
 /* XCB includes */
 #include <xcb/xcb.h>
 
@@ -519,21 +522,28 @@ static void s_entry_command(ctxmenu_entry_td *e, const char *label,
  * @return Number of entries filled in @a s_desk_entries
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops
+ *       (a single walk of the surface's own circular desktop list,
+ *       not one lookup per index)
  */
 static int s_build_desk_entries(surface_td *surface,
         desktop_td *desktop, client_td *client)
 {
     int n = 0;
-    desktop_td *d;
+    uint32_t d_idx = 0;
+    cdlist_item_td *dnode;
     bool is_cur;
     bool is_sticky;
 
     is_sticky = (client->properties.flags & CLIENT_FLAG_PIN) != 0u;
 
-    for (uint32_t d_idx = 0; d_idx < surface->desktop_count &&
-            n < WINCMENU_MAX_DESKTOPS; ++d_idx) {
-        d = surface_desktop_get(surface, d_idx);
+    cdlist_foreach(surface->desktops, dnode) {
+        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
+
+        if (n >= WINCMENU_MAX_DESKTOPS) {
+            break;
+        }
         if (d == NULL) {
+            ++d_idx;
             continue;
         }
         is_cur = (d->id == desktop->id);
@@ -562,6 +572,7 @@ static int s_build_desk_entries(surface_td *surface,
         s_desk_entries[n].on_activate = s_cb_send_to_desktop;
         s_desk_entries[n].userdata = &s_send_data[n];
         ++n;
+        ++d_idx;
     }
 
     /* Separates the numbered-desktop entries above from the pin/unpin

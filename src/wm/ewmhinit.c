@@ -63,6 +63,8 @@
 static void s_wm_sync_workarea(surface_td *surface)
 {
     xcb_ewmh_geometry_t *workareas;
+    cdlist_item_td *dnode;
+    uint32_t did = 0u;
 
     if (surface == NULL || surface->ewmh == NULL ||
             surface->desktop_count == 0) {
@@ -75,25 +77,27 @@ static void s_wm_sync_workarea(surface_td *surface)
         return;
     }
 
-    for (uint32_t did = 0; did < surface->desktop_count; ++did) {
-        desktop_td *const desktop = surface_desktop_get(surface, did);
+    cdlist_foreach(surface->desktops, dnode) {
+        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
+        const uint32_t this_did = did;
 
+        ++did;
         if (desktop == NULL) {
-            workareas[did].x = 0u;
-            workareas[did].y = 0u;
-            workareas[did].width = surface->properties.dim.w;
-            workareas[did].height = surface->properties.dim.h;
+            workareas[this_did].x = 0u;
+            workareas[this_did].y = 0u;
+            workareas[this_did].width = surface->properties.dim.w;
+            workareas[this_did].height = surface->properties.dim.h;
             continue;
         }
 
-        workareas[did].x = (desktop->workarea.pos.x > 0)
+        workareas[this_did].x = (desktop->workarea.pos.x > 0)
             ? (uint32_t) desktop->workarea.pos.x
             : 0u;
-        workareas[did].y = (desktop->workarea.pos.y > 0)
+        workareas[this_did].y = (desktop->workarea.pos.y > 0)
             ? (uint32_t) desktop->workarea.pos.y
             : 0u;
-        workareas[did].width = desktop->workarea.dim.w;
-        workareas[did].height = desktop->workarea.dim.h;
+        workareas[this_did].width = desktop->workarea.dim.w;
+        workareas[this_did].height = desktop->workarea.dim.h;
     }
 
     xcb_ewmh_set_workarea(surface->ewmh, (int) surface->id,
@@ -156,13 +160,14 @@ static void s_wm_sync_client_lists(surface_td *surface)
     size_t idx = 0u;
     xcb_window_t *client_list;
     xcb_window_t *stacking_list;
+    cdlist_item_td *dnode;
 
     if (surface == NULL || surface->ewmh == NULL) {
         return;
     }
 
-    for (uint32_t did = 0; did < surface->desktop_count; ++did) {
-        desktop_td *desktop = surface_desktop_get(surface, did);
+    cdlist_foreach(surface->desktops, dnode) {
+        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
 
         if (desktop != NULL && desktop->clients != NULL) {
             total_clients += ohtbl_size(desktop->clients);
@@ -185,11 +190,11 @@ static void s_wm_sync_client_lists(surface_td *surface)
         return;
     }
 
-    for (uint32_t did = 0; did < surface->desktop_count; ++did) {
+    cdlist_foreach(surface->desktops, dnode) {
         void *elem;
         uint32_t did_prop;
+        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
 
-        desktop_td *desktop = surface_desktop_get(surface, did);
         if (desktop == NULL || desktop->clients == NULL) {
             continue;
         }
@@ -217,8 +222,8 @@ static void s_wm_sync_client_lists(surface_td *surface)
             (uint32_t) idx, client_list);
 
     idx = 0u;
-    for (uint32_t did = 0; did < surface->desktop_count; ++did) {
-        desktop_td *desktop = surface_desktop_get(surface, did);
+    cdlist_foreach(surface->desktops, dnode) {
+        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
         cdlist_item_td *node;
         const cdlist_item_td *initial;
 
@@ -264,6 +269,8 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     size_t names_len;
     size_t offset;
     char *names;
+    cdlist_item_td *dnode;
+    uint32_t did;
 
     if (surface == NULL || surface->ewmh == NULL ||
             surface->desktop_count == 0u) {
@@ -271,14 +278,19 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     }
 
     names_len = 0u;
-    for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-        const desktop_td *desktop = surface_desktop_get(surface, did);
+    did = 0u;
+    cdlist_foreach(surface->desktops, dnode) {
+        const desktop_td *const desktop =
+            (const desktop_td *) cdlist_data(dnode);
+        const uint32_t this_did = did;
+
+        ++did;
         if (desktop != NULL && desktop->name[0] != '\0') {
             names_len += safe_strlen(desktop->name) + 1u;
         } else {
             char fallback_name[32];
             int written = snprintf(fallback_name, sizeof(fallback_name),
-                    "Desktop %u", did + 1u);
+                    "Desktop %u", this_did + 1u);
             if (written <= 0) {
                 continue;
             }
@@ -296,17 +308,20 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     }
 
     offset = 0u;
-    for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
+    did = 0u;
+    cdlist_foreach(surface->desktops, dnode) {
         const char *name;
         size_t name_len;
-        desktop_td *desktop = surface_desktop_get(surface, did);
+        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
         char fallback_name[32];
+        const uint32_t this_did = did;
 
+        ++did;
         if (desktop != NULL && desktop->name[0] != '\0') {
             name = desktop->name;
         } else {
             int written = snprintf(fallback_name, sizeof(fallback_name),
-                    "Desktop %u", did + 1u);
+                    "Desktop %u", this_did + 1u);
             if (written <= 0) {
                 continue;
             }

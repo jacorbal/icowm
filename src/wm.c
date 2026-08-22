@@ -773,12 +773,13 @@ surface_td *wm_get_desktop_surface(const desktop_td *desktop)
     for (list_item_td *snode = list_head(wm->surfaces); snode != NULL;
             snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
         }
-        for (uint32_t i = 0; i < surface->desktop_count; ++i) {
-            if (surface_desktop_get(surface, i) == desktop) {
+        cdlist_foreach(surface->desktops, dnode) {
+            if ((const desktop_td *) cdlist_data(dnode) == desktop) {
                 return surface;
             }
         }
@@ -848,6 +849,7 @@ void wm_request_full_redraw(void)
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
@@ -855,8 +857,8 @@ void wm_request_full_redraw(void)
 
         surface->is_outdated = true;
 
-        for (uint32_t did = 0; did < surface->desktop_count; ++did) {
-            desktop_mark_outdated(surface_desktop_get(surface, did));
+        cdlist_foreach(surface->desktops, dnode) {
+            desktop_mark_outdated((desktop_td *) cdlist_data(dnode));
         }
     } /* ! for (snode) */
 }

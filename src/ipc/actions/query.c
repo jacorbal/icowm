@@ -22,6 +22,7 @@
 #include <defs/ipc.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 
 /* Project includes */
@@ -111,12 +112,14 @@ cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args)
     for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
             node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
+        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
         }
-        for (uint32_t i = 0; i < surface->desktop_count; ++i) {
-            desktop_td *const desktop = surface_desktop_get(surface, i);
+        cdlist_foreach(surface->desktops, dnode) {
+            desktop_td *const desktop =
+                (desktop_td *) cdlist_data(dnode);
             cJSON *entry;
 
             if (desktop == NULL) {
@@ -157,12 +160,14 @@ cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args)
     for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
             node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
+        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
         }
-        for (uint32_t i = 0; i < surface->desktop_count; ++i) {
-            desktop_td *const desktop = surface_desktop_get(surface, i);
+        cdlist_foreach(surface->desktops, dnode) {
+            desktop_td *const desktop =
+                (desktop_td *) cdlist_data(dnode);
             void *elem;
 
             if (desktop == NULL || desktop->clients == NULL) {

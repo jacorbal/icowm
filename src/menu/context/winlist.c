@@ -753,6 +753,7 @@ void winlist_show(xcb_connection_t *connection,
 {
     uint32_t cur_did;
     desktop_td *desktop;
+    cdlist_item_td *dnode;
     int n;
     int desktop_count;
     int needed_appgroups;
@@ -859,14 +860,20 @@ void winlist_show(xcb_connection_t *connection,
                     &n, NULL);
         }
     } else {
-        for (uint32_t did = 0; (int) did < desktop_count; ++did) {
+        uint32_t did = 0u;
+
+        cdlist_foreach(surface->desktops, dnode) {
             winlist_entry_data_td *data;
             const char *label_fmt;
             int desktop_n;
             bool is_cur;
 
-            desktop = surface_desktop_get(surface, did);
+            if ((int) did >= desktop_count) {
+                break;
+            }
+            desktop = (desktop_td *) cdlist_data(dnode);
             if (desktop == NULL) {
+                ++did;
                 continue;
             }
 
@@ -934,6 +941,7 @@ void winlist_show(xcb_connection_t *connection,
             }
 
             if (desktop_n == 0) {
+                ++did;
                 continue;
             }
 
@@ -964,6 +972,7 @@ void winlist_show(xcb_connection_t *connection,
             s_root_entries[n].item_count = desktop_n;
             s_root_entries[n].userdata = &s_desktop_state[did];
             ++n;
+            ++did;
         }
     }
 

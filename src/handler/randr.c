@@ -19,6 +19,7 @@
 #include <xcb/randr.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 
 /* Render includes */
@@ -39,6 +40,8 @@
 /* Mark every desktop in a surface as outdated and refresh workareas */
 static void s_handler_randr_refresh_surface(surface_td *surface)
 {
+    cdlist_item_td *dnode;
+
     if (surface == NULL) {
         return;
     }
@@ -47,8 +50,8 @@ static void s_handler_randr_refresh_surface(surface_td *surface)
     surface_refresh_workareas(surface);
     surface_clients_reflow(surface);
     wm_outdate_surface(surface);
-    for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-        wm_outdate_desktop(surface_desktop_get(surface, did));
+    cdlist_foreach(surface->desktops, dnode) {
+        wm_outdate_desktop((desktop_td *) cdlist_data(dnode));
     }
 }
 

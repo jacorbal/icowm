@@ -687,12 +687,14 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id)
 /* Recompute the work area for every desktop on a surface */
 void surface_refresh_workareas(surface_td *surface)
 {
+    cdlist_item_td *dnode;
+
     if (surface == NULL) {
         return;
     }
 
-    for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-        desktop_td *const d = surface_desktop_get(surface, did);
+    cdlist_foreach(surface->desktops, dnode) {
+        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
 
         if (d != NULL) {
             desktop_update_workarea(d,

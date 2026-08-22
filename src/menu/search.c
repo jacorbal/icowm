@@ -243,18 +243,25 @@ static void s_search_build_hints(const client_td *client, char *out,
  * other than the one showing right now is still collected.
  *
  * @note Complexity: @e O(n), where @e n is the total number of
- *       clients across every desktop of @c s_search.surface
+ *       clients across every desktop of @c s_search.surface (a
+ *       single walk of the surface's own circular desktop list,
+ *       not one lookup per index, plus one walk of each desktop's
+ *       own stacking list)
  */
 static void s_search_collect_candidates(void)
 {
+    cdlist_item_td *dnode;
+
     s_search.candidate_count = 0;
 
-    for (uint32_t di = 0; di < s_search.surface->desktop_count &&
-            s_search.candidate_count < WM_SEARCH_MAX_ENTRIES; ++di) {
-        desktop_td *const desktop = surface_desktop_get(s_search.surface, di);
+    cdlist_foreach(s_search.surface->desktops, dnode) {
+        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
         cdlist_item_td *node;
         const cdlist_item_td *initial;
 
+        if (s_search.candidate_count >= WM_SEARCH_MAX_ENTRIES) {
+            break;
+        }
         if (desktop == NULL || desktop->stacking == NULL) {
             continue;
         }

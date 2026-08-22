@@ -22,6 +22,7 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 #include <adt/ohtbl.h>
 
@@ -118,13 +119,15 @@ static bool s_any_client_urgent(list_td *surfaces)
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
         }
 
-        for (uint32_t di = 0; di < surface->desktop_count; ++di) {
-            desktop_td *const desktop = surface_desktop_get(surface, di);
+        cdlist_foreach(surface->desktops, dnode) {
+            desktop_td *const desktop =
+                (desktop_td *) cdlist_data(dnode);
             void *elem;
 
             if (desktop == NULL || desktop->clients == NULL) {

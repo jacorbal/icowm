@@ -16,6 +16,7 @@
 #include <stddef.h>     /* NULL */
 
 /* ADT includes */
+#include <adt/cdlist.h>
 #include <adt/list.h>
 #include <adt/ohtbl.h>
 
@@ -43,13 +44,14 @@ uint32_t wm_for_each_client(const wm_td *wm,
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
+        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
         }
 
-        for (uint32_t did = 0u; did < surface->desktop_count; ++did) {
-            desktop_td *const desktop = surface_desktop_get(surface, did);
+        cdlist_foreach(surface->desktops, dnode) {
+            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
             void *elem;
 
             if (desktop == NULL || desktop->clients == NULL) {
