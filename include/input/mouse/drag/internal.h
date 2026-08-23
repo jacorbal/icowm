@@ -8,17 +8,17 @@
  * (edge/peer snap math), @c drag/outline.c (the non-solid-drag
  * outline stand-in), and @c drag/warp.c (the edge-drag desktop
  * warp), leaving @c drag.c itself with only the public state-machine
- * API (@c drag_start and its own siblings, @c drag_update,
+ * API (@c drag_start and its siblings, @c drag_update,
  * @c drag_end, @c drag_cancel, and the small query functions,
  * declared in the public @c input/mouse/drag.h instead of here).
  *
- * @c s_drag, the module's own singleton drag state, is the one thing
+ * @c s_drag, the module's singleton drag state, is the one thing
  * genuinely shared across all of them this way rather than through
  * a function call: every file reads or writes some part of it
  * directly.  Storage for it lives in @c drag.c; every other file
  * only ever sees the @c extern declaration below.  Each drag/ file's
- * own functions that its siblings call directly are declared in that
- * file's own header instead (@c drag/overlay.h, @c drag/snap.h,
+ * functions that its siblings call directly are declared in that
+ * file's header instead (@c drag/overlay.h, @c drag/snap.h,
  * @c drag/outline.h, @c drag/warp.h), not duplicated here.
  *
  * @note This header is private to @c input/mouse/drag/ (and @c
@@ -55,7 +55,7 @@
 
 
 typedef struct {
-    bool active;
+    bool is_active;
     enum window_operation_e operation;
     client_td *client;
     desktop_td *desktop;
@@ -67,26 +67,26 @@ typedef struct {
     uint32_t screen_w;          /**< Screen width for edge snap */
     uint32_t screen_h;          /**< Screen height for edge snap */
     uint32_t snap_window;        /**< Snap distance in pixels toward
-                                     another window's own edge */
+                                     another window's edge */
     uint32_t snap_screen;        /**< Snap distance in pixels toward
-                                     the screen's own edge */
+                                     the screen's edge */
     struct geometry_s client_cur; /**< Current geometry during drag
                                      (updated each motion notify
                                      event; only @c pos is meaningful
                                      during an icon drag, which never
                                      resizes) */
-    bool anchor_right;          /**< Resize: right edge is fixed (resize
+    bool is_anchor_right;          /**< Resize: right edge is fixed (resize
                                      from left) */
-    bool anchor_bottom;         /**< Resize: bottom edge is fixed (resize
+    bool is_anchor_bottom;         /**< Resize: bottom edge is fixed (resize
                                      from top) */
-    bool resize_w;              /**< Resize: width is actively being
+    bool is_resize_w;              /**< Resize: width is actively being
                                      changed in this drag */
-    bool resize_h;              /**< Resize: height is actively being
+    bool is_resize_h;              /**< Resize: height is actively being
                                      changed in this drag */
-    bool resist_axis_w;         /**< Width started this drag
+    bool is_resist_axis_w;         /**< Width started this drag
                                      maximize-locked (see
                                      'drag_start_resize_axis_locked'),
-                                     making 'resize_w' above no longer
+                                     making 'is_resize_w' above no longer
                                      fixed for the whole drag the way
                                      it is for every other client:
                                      'drag_update' recomputes it every
@@ -94,23 +94,23 @@ typedef struct {
                                      configured resistance threshold,
                                      true past it, reversibly for the
                                      whole drag, matching Openbox's
-                                     own identical behavior
+                                     identical behavior
                                      (moveresize.c) */
-    bool resist_axis_h;         /**< Height's own analogous case */
-    bool move_x_locked;         /**< Move: X position pinned to its
+    bool is_resist_axis_h;         /**< Height's analogous case */
+    bool is_move_x_locked;         /**< Move: X position pinned to its
                                      starting value for the whole drag
                                      (a horizontally-maximized client's
-                                     width already fills its own
+                                     width already fills its
                                      workarea, leaving no valid X but
                                      the one it started at) */
-    bool move_y_locked;         /**< Move: Y position pinned to its
+    bool is_move_y_locked;         /**< Move: Y position pinned to its
                                      starting value for the whole drag
                                      (a vertically-maximized client's
-                                     own analogous case) */
+                                     analogous case) */
     xcb_window_t overlay_window;/**< Centered feedback overlay window */
-    bool overlay_is_icon;       /**< Overlay belongs to icon drag */
+    bool is_overlay_icon;       /**< Overlay belongs to icon drag */
     char overlay_text[32];      /**< Current overlay text */
-    bool icon_was_mapped;       /**< Original icon mapped state before
+    bool was_icon_mapped;       /**< Original icon mapped state before
                                      drag */
     int16_t last_root_x;        /**< Root-relative pointer position
                                      'drag_update' last actually acted
@@ -129,28 +129,28 @@ typedef struct {
                                      false right after 'drag_start' so
                                      its first 'drag_update' always
                                      runs regardless of position */
-    bool warp_pending;          /**< Whether the pointer is currently
+    bool is_warp_pending;          /**< Whether the pointer is currently
                                      held against a warp-eligible
                                      screen edge, counting down to a
                                      desktop switch (see 'desktops.warp_on_edge_drag'
                                      in config.json, config_desktop_s) */
     enum compass_direction_e warp_direction;   /**< Which edge, only
-                                     meaningful when 'warp_pending' */
+                                     meaningful when 'is_warp_pending' */
     struct timespec warp_due;   /**< When the held edge becomes due to
                                      warp, only meaningful when
-                                     'warp_pending' */
+                                     'is_warp_pending' */
     xcb_window_t root;          /**< Root window, saved at 'drag_start'
                                      so 'drag_update'/'drag_end' can
                                      draw an outline onto it without
-                                     needing it added to their own
+                                     needing it added to their
                                      public signature */
-    bool solid_drag;            /**< Snapshot of
+    bool is_solid_drag;            /**< Snapshot of
                                      'config->windows.solid_drag' taken
                                      at 'drag_start', so a config
                                      reload mid-drag cannot switch
                                      behavior out from under an
                                      already-active one */
-    bool outline_offscreened;   /**< Whether the real window has
+    bool is_outline_offscreened;   /**< Whether the real window has
                                      already been moved off-screen for
                                      the current outline drag;
                                      'drag_start' itself fires on
@@ -164,7 +164,7 @@ typedef struct {
     xcb_window_t outline_windows[4]; /**< The outline stand-in used in
                                            place of moving the real
                                            window live, when
-                                           '!solid_drag': 4 separate,
+                                           '!is_solid_drag': 4 separate,
                                            opaque, override-redirect
                                            strip windows, one per side
                                            (top, bottom, left, right,

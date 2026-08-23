@@ -78,11 +78,12 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
  * from where the pointer happens to be, since that position (wherever
  * the client's own custom resize grip was clicked) has no fixed
  * relationship to the client's actual border the way a normal
- * border-drag's position does.  Calls @a drag_start itself for
- * everything else (state recording, the pointer grab), then overwrites
- * just the anchor and per-axis resize flags it would otherwise have
- * inferred; every existing caller of @a drag_start itself is completely
- * unaffected.
+ * border-drag's position does.
+ *
+ * Calls @a drag_start itself for everything else (state recording, the
+ * pointer grab), then overwrites just the anchor and per-axis resize
+ * flags it would otherwise have inferred; every existing caller of
+ * @a drag_start itself is completely unaffected.
  *
  * @param connection    XCB connection
  * @param root          Root window on which to grab the pointer
@@ -91,8 +92,8 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
  * @param event_time    Timestamp from the triggering request
  * @param root_pos      Root-relative position of the pointer at
  *                      request time
- * @param screen_dim    Screen dimensions in pixels ((0, 0) to disable
- *                      snap)
+ * @param screen_dim    Screen dimensions in pixels (@c (0, 0) to
+ *                      disable snap)
  * @param anchor_right  @c true if the right edge stays fixed (a left,
  *                      top-left, or bottom-left drag)
  * @param anchor_bottom @c true if the bottom edge stays fixed (a top,
@@ -213,7 +214,7 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client);
 bool drag_is_active(void);
 
 /**
- * @brief Return the client currently being dragged, or @c NULL
+ * @brief Return the client that is currently being dragged
  *
  * @return Pointer to the dragged @c client_td, or @c NULL
  *

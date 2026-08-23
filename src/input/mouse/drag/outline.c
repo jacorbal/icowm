@@ -5,10 +5,10 @@
  *
  * Split out of what used to be a single, flat @c input/mouse/drag.c;
  * see @c drag/internal.h for why.  A thin adapter over @c render/
- * outline.c's own shared strip-window mechanism, supplying this
- * subsystem's own state (@c s_drag.root, @c s_drag.client's
+ * outline.c's shared strip-window mechanism, supplying this
+ * subsystem's state (@c s_drag.root, @c s_drag.client's
  * configured active border color, @c s_drag.outline_windows) so
- * every one of this file's own callers keeps working unchanged.
+ * every one of this file's callers keeps working unchanged.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -57,7 +57,7 @@ void drag_outline_start(xcb_connection_t *connection,
 }
 
 
-/* Move the outline stand-in's own 4 strip windows to a new
+/* Move the outline stand-in's 4 strip windows to a new
  * rectangle */
 void drag_outline_move(xcb_connection_t *connection,
         struct geometry_s geom)

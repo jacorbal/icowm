@@ -105,53 +105,53 @@ static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
  *
  * Checks a single window edge position, @p point, on this axis
  * (left/right for @p horizontal, top/bottom otherwise) against
- * every monitor's own near @e and far work-area edge on @p desktop,
- * individually: a two-monitor surface has its own edge not just at
+ * every monitor's near @e and far work-area edge on @p desktop,
+ * individually: a two-monitor surface has an edge not just at
  * the two ends of the combined span, but also at the boundary
  * between the two, and a panel or taskbar present on only one
- * monitor's own edge reduces that one monitor's own work area
- * without touching a neighboring, panel-free monitor's own full
- * extent (see @a desktop_update_workarea's own doc comment,
+ * monitor's edge reduces that one monitor's work area
+ * without touching a neighboring, panel-free monitor's full
+ * extent (see @a desktop_update_workarea's doc comment,
  * desktop.h, for how @c monitor_workareas itself is computed).  A
  * monitor only ever counts as a candidate at all when @p cross_near/
- * @p cross_far, the window's own span on the @e other axis,
- * genuinely overlaps that monitor's own work area on that same other
+ * @p cross_far, the window's span on the @e other axis,
+ * genuinely overlaps that monitor's work area on that same other
  * axis (via @a s_drag_ranges_close, the exact same overlap test
  * window-against-window snapping already uses just above in this
  * file): without this, a window sitting entirely on one monitor
- * could otherwise snap to a neighboring monitor's own unrelated
+ * could otherwise snap to a neighboring monitor's unrelated
  * panel height, one it is nowhere near lining up with at all.
- * Whichever single candidate, across every monitor's own near and
+ * Whichever single candidate, across every monitor's near and
  * far edge together, lands closest to @p current wins, the exact
  * same "closest wins" rule window-against-window snapping already
  * follows in this same file; a move drag calls this once per edge
- * (@p point being its own near edge, then its own far edge in a
+ * (@p point being its near edge, then its far edge in a
  * separate call) and keeps whichever of the two results is itself
  * closer, since both edges move together, while a resize drag calls
  * this only once, for whichever single edge the anchor lets move at
  * all.
  *
- * @param desktop    Desktop whose own @c monitor_workareas to check;
+ * @param desktop    Desktop whose @c monitor_workareas to check;
  *                    a @c NULL value or one with no monitors detected
  *                    leaves @p current untouched
- * @param current    Best delta found so far, also this call's own
+ * @param current    Best delta found so far, also this call's
  *                    return value if nothing here beats it
- * @param point      The window's own edge position to check, on
+ * @param point      The window's edge position to check, on
  *                    this axis
- * @param cross_near The window's own near edge on the @e other axis
+ * @param cross_near The window's near edge on the @e other axis
  *                    (top for @p horizontal, left otherwise)
- * @param cross_far  The window's own far edge on the @e other axis
+ * @param cross_far  The window's far edge on the @e other axis
  *                    (bottom for @p horizontal, right otherwise)
  * @param snap       Maximum allowed gap for @p cross_near/@p
  *                    cross_far to still count as overlapping a given
- *                    monitor's own work area on that other axis
- * @param horizontal @c true to check every monitor's own work area
+ *                    monitor's work area on that other axis
+ * @param horizontal @c true to check every monitor's work area
  *                    left/right edges, @c false for top/bottom
  *
  * @return The closest delta across @p current and every monitor's
- *         own near and far work-area edge on this axis
+ *         near and far work-area edge on this axis
  *
- * @note Complexity: @e O(m), where @e m is @p desktop's own surface's
+ * @note Complexity: @e O(m), where @e m is @p desktop's surface's
  *       monitor count
  */
 static int32_t s_drag_monitor_edge_delta(const desktop_td *desktop,
@@ -320,9 +320,9 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
     bottom = *y + (int32_t) *height;
 
     /* Which edge actually moves as the pointer moves depends on which
-     * corner or side the user grabbed: 'anchor_right' means the LEFT
+     * corner or side the user grabbed: 'is_anchor_right' means the LEFT
      * edge is the one being dragged (the right edge stays put), and
-     * symmetrically for 'anchor_bottom' and the top edge.  Every delta
+     * symmetrically for 'is_anchor_bottom' and the top edge.  Every delta
      * and snap check below has to target whichever edge that is, not
      * always assume it is the right/bottom edge the way a
      * left-edge-fixed resize would. */
@@ -355,7 +355,7 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
 
                     if (s_drag_ranges_close(*y, bottom, oy,
                                 obottom, snap_window)) {
-                        if (s_drag.anchor_right) {
+                        if (s_drag.is_anchor_right) {
                             d_horiz = s_drag_closer_delta(d_horiz,
                                     oright - *x);
                             d_horiz = s_drag_closer_delta(d_horiz,
@@ -370,7 +370,7 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
 
                     if (s_drag_ranges_close(*x, right, ox,
                                 oright, snap_window)) {
-                        if (s_drag.anchor_bottom) {
+                        if (s_drag.is_anchor_bottom) {
                             d_vert = s_drag_closer_delta(d_vert,
                                     obottom - *y);
                             d_vert = s_drag_closer_delta(d_vert,
@@ -391,11 +391,11 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
                 " bottom=%d, anchor-right=%d, anchor-bottom=%d," \
                 " d-horiz=%d, d-vert=%d, snap-window=%d)",
                 *x, *y, right, bottom,
-                (int) s_drag.anchor_right, (int) s_drag.anchor_bottom,
+                (int) s_drag.is_anchor_right, (int) s_drag.is_anchor_bottom,
                 d_horiz, d_vert, snap_window);
 
         if (s_drag_abs_i32(d_horiz) <= snap_window) {
-            if (s_drag.anchor_right) {
+            if (s_drag.is_anchor_right) {
                 *x += d_horiz;
                 *width = geom_dim_clamp((int32_t) *width - d_horiz);
             } else {
@@ -405,7 +405,7 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
         }
 
         if (s_drag_abs_i32(d_vert) <= snap_window) {
-            if (s_drag.anchor_bottom) {
+            if (s_drag.is_anchor_bottom) {
                 *y += d_vert;
                 *height = geom_dim_clamp((int32_t) *height - d_vert);
             } else {
@@ -419,19 +419,19 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
         /* One past 'snap_screen' itself; see the matching comment on
          * 'd_horiz'/'d_vert' above for why.  Checks only whichever
          * single edge the anchor actually lets move, unlike the move
-         * drag's own two calls per axis in 'drag_snap_move': see
-         * 's_drag_monitor_edge_delta''s own doc comment for the
-         * fuller reasoning behind checking every monitor's own near
-         * and far edge together, not just the combined surface's own
+         * drag's two calls per axis in 'drag_snap_move': see
+         * 's_drag_monitor_edge_delta''s doc comment for the
+         * fuller reasoning behind checking every monitor's near
+         * and far edge together, not just the combined surface's
          * two ends. */
         int32_t d_screen_h = snap_screen + 1;
         int32_t d_screen_v = d_screen_h;
 
         d_screen_h = s_drag_monitor_edge_delta(s_drag.desktop,
-                d_screen_h, (s_drag.anchor_right) ? *x : right,
+                d_screen_h, (s_drag.is_anchor_right) ? *x : right,
                 *y, bottom, snap_screen, true);
         if (s_drag_abs_i32(d_screen_h) <= snap_screen) {
-            if (s_drag.anchor_right) {
+            if (s_drag.is_anchor_right) {
                 *x += d_screen_h;
                 *width = geom_dim_clamp(
                         (int32_t) *width - d_screen_h);
@@ -442,10 +442,10 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
         }
 
         d_screen_v = s_drag_monitor_edge_delta(s_drag.desktop,
-                d_screen_v, (s_drag.anchor_bottom) ? *y : bottom,
+                d_screen_v, (s_drag.is_anchor_bottom) ? *y : bottom,
                 *x, right, snap_screen, false);
         if (s_drag_abs_i32(d_screen_v) <= snap_screen) {
-            if (s_drag.anchor_bottom) {
+            if (s_drag.is_anchor_bottom) {
                 *y += d_screen_v;
                 *height = geom_dim_clamp(
                         (int32_t) *height - d_screen_v);

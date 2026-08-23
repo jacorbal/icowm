@@ -41,7 +41,7 @@
 
 
 /**
- * @brief Repaint the dragged client's own icon in its selected
+ * @brief Repaint the dragged client's icon in its selected
  *        (active) visual, for as long as an icon drag is in progress
  *
  * @param connection XCB connection used to repaint the icon
@@ -67,7 +67,7 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
     }
 
     drag_overlay_hide(connection);
-    s_drag.active = true;
+    s_drag.is_active = true;
     s_drag.client = client;
     s_drag.desktop = desktop;
     s_drag.drag_window = client->icon_window;
@@ -81,18 +81,18 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
     /* Icon drags are always solid, regardless of 'windows.solid-drag':
      * moving just the small icon window live is cheap enough on its
      * own that the outline machinery would add complexity for no
-     * real benefit here; see 'drag_end''s own comment on this same
+     * real benefit here; see 'drag_end''s comment on this same
      * exclusion. */
-    s_drag.solid_drag = true;
+    s_drag.is_solid_drag = true;
     s_drag.screen_w = screen_dim.w;
     s_drag.screen_h = screen_dim.h;
-    s_drag.icon_was_mapped = client->is_icon_mapped;
-    s_drag.anchor_right = false;
-    s_drag.anchor_bottom = false;
-    s_drag.resize_w = false;
-    s_drag.resize_h = false;
+    s_drag.was_icon_mapped = client->is_icon_mapped;
+    s_drag.is_anchor_right = false;
+    s_drag.is_anchor_bottom = false;
+    s_drag.is_resize_w = false;
+    s_drag.is_resize_h = false;
     s_drag.has_last_pos = false;
-    s_drag.warp_pending = false;
+    s_drag.is_warp_pending = false;
 
     client->properties.operation = CLIENT_OPERATION_MOVING;
     client->is_icon_mapped = true;
@@ -115,7 +115,7 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
 /* Query whether the active drag is on an icon window */
 bool drag_is_icon_drag(void)
 {
-    return s_drag.active &&
+    return s_drag.is_active &&
         s_drag.drag_window != XCB_WINDOW_NONE &&
         s_drag.client != NULL &&
         s_drag.drag_window == s_drag.client->icon_window;

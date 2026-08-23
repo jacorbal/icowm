@@ -60,7 +60,7 @@
 
 /* Track whether the pointer is held against a warp-eligible screen
  * edge, and schedule (or keep, or cancel) the pending desktop-warp
- * countdown accordingly; see the header's own doc comment for the
+ * countdown accordingly; see the header's doc comment for the
  * full reasoning */
 void drag_warp_edge_check(int16_t root_x, int16_t root_y)
 {
@@ -72,7 +72,7 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
     enum compass_direction_e direction;
 
     if (s_drag.client == NULL) {
-        s_drag.warp_pending = false;
+        s_drag.is_warp_pending = false;
         return;
     }
 
@@ -80,7 +80,7 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
     if (surface == NULL || surface->config == NULL ||
             !surface->config->desktops.warp_on_edge_drag ||
             surface->desktop_count <= 1u) {
-        s_drag.warp_pending = false;
+        s_drag.is_warp_pending = false;
         return;
     }
 
@@ -101,17 +101,17 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
     } else if (at_bottom) {
         direction = COMPASS_SOUTH;
     } else {
-        s_drag.warp_pending = false;
+        s_drag.is_warp_pending = false;
         return;
     }
 
-    if (s_drag.warp_pending && s_drag.warp_direction == direction) {
+    if (s_drag.is_warp_pending && s_drag.warp_direction == direction) {
         /* Same edge still held: let the existing countdown keep
          * running rather than restarting it on every motion event. */
         return;
     }
 
-    s_drag.warp_pending = true;
+    s_drag.is_warp_pending = true;
     s_drag.warp_direction = direction;
     if (clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due) == 0) {
         s_drag.warp_due.tv_nsec +=
@@ -124,7 +124,7 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
         /* Could not read the clock to schedule the countdown; safer
          * to not warp at all than to warp immediately on every edge
          * touch. */
-        s_drag.warp_pending = false;
+        s_drag.is_warp_pending = false;
     }
 }
 
@@ -133,7 +133,7 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
  * edge is due to switch desktops */
 int drag_warp_ms_remaining(void)
 {
-    if (!s_drag.warp_pending) {
+    if (!s_drag.is_warp_pending) {
         return -1;
     }
 
@@ -158,19 +158,19 @@ void drag_warp_tick(xcb_connection_t *connection)
     bool show_geom;
     bool is_horizontal;
 
-    if (connection == NULL || !s_drag.warp_pending ||
+    if (connection == NULL || !s_drag.is_warp_pending ||
             drag_warp_ms_remaining() > 0) {
         return;
     }
 
-    s_drag.warp_pending = false;
+    s_drag.is_warp_pending = false;
 
     if (s_drag.client == NULL ||
             s_drag.operation != CLIENT_OPERATION_MOVING ||
             (s_drag.drag_window != XCB_WINDOW_NONE &&
                 s_drag.drag_window != s_drag.client->icon_window)) {
         /* Not (or no longer) a plain window move or icon move; nothing
-         * to warp for, as a resize never sets 'warp_pending' in the
+         * to warp for, as a resize never sets 'is_warp_pending' in the
          * first place (see 'drag_warp_edge_check'), but this still
          * guards against it having somehow become stale. */
         return;
@@ -223,7 +223,7 @@ void drag_warp_tick(xcb_connection_t *connection)
         /* Deliberately never clears 'old_desktop->client_active_id'
          * here, even though it now names a client no longer actually
          * on that desktop: left stale like this, exactly like it
-         * already is whenever a desktop's own active client simply
+         * already is whenever a desktop's active client simply
          * closes while some other desktop is the one currently
          * shown, is precisely what tells 'surface_clients_show'
          * (surface/actions.c) to have 'client_focus_fallback' guess
@@ -239,26 +239,26 @@ void drag_warp_tick(xcb_connection_t *connection)
     /* The dragged client is, by construction, always the one the
      * person is actively engaged with right now; 'new_desktop' itself
      * has no way to already know that on its own, so without this it
-     * would keep rendering whichever client was its own last
+     * would keep rendering whichever client was its last
      * genuinely active one instead, active-window highlight included,
      * as soon as the drag settles there. */
     new_desktop->client_active_id = s_drag.client->id;
     new_desktop->focus_dirty = true;
 
     /* 'desktop_action_client_rem'/'_add' above only move the client
-     * between each desktop's own stacking list and lookup table;
-     * neither one touches the client's own recorded 'desktop_id'
+     * between each desktop's stacking list and lookup table;
+     * neither one touches the client's recorded 'desktop_id'
      * (unlike 'desktop_action_client_send', the normal "send to another
      * desktop" path, which does).  Left stale here, anything that reads
      * a client's desktop from that field directly instead of from
      * whichever desktop's stacking list it is actually in (the window
-     * list menu's own per-desktop grouping foremost among them) would
+     * list menu's per-desktop grouping foremost among them) would
      * keep showing the just-warped client under the desktop it left, or
      * drop it from view entirely, even though the warp itself already
      * moved it correctly everywhere else. */
     s_drag.client->desktop_id = new_desktop->id;
 
-    /* Every other member of 's_drag.client''s own transient family
+    /* Every other member of 's_drag.client''s transient family
      * (a "save changes?" prompt still open on it, say, or the parent
      * window it belongs to) moves along with it here too, the same
      * way 'enact_desktop_client_send' and 'hi_handle_net_wm_desktop'
@@ -282,14 +282,14 @@ void drag_warp_tick(xcb_connection_t *connection)
 
             /* 'top' itself is never part of the snapshot just below
              * ('ccmd_client_transient_family_snapshot' always
-             * excludes it, being the family's own reference point),
-             * so it needs its own move here first, but only when it
+             * excludes it, being the family's reference point),
+             * so it needs its move here first, but only when it
              * both is not the very client already being dragged
              * (handled by the visual drag below already) and is
              * actually registered on 'old_desktop' to begin with (a
              * pinned top parent stays registered under whichever
              * desktop it was originally on forever; see 'ccmd_
-             * client_bring_family''s own doc comment, cmds/client/
+             * client_bring_family''s doc comment, cmds/client/
              * transient.c, for why that distinction matters, and
              * moving it off of a desktop it never really left would
              * be exactly the same class of bug that comment
@@ -325,7 +325,7 @@ void drag_warp_tick(xcb_connection_t *connection)
     surface->is_outdated = true;
 
     /* Same desktop-switch notification a normal (non-warp) switch
-     * shows (see 's_show_desktop_overlay' in cmds/surface.c, whose own
+     * shows (see 's_show_desktop_overlay' in cmds/surface.c, whose
      * thin wrapper over this same call this mirrors): without it, a
      * warp is the one way to switch desktops that never shows which
      * one just became active. */
@@ -336,10 +336,10 @@ void drag_warp_tick(xcb_connection_t *connection)
      * it rather than exactly on it, so the very next motion notify
      * does not immediately re-arm another warp back the way it just
      * came from, on whichever one of the two axes 'warp_direction'
-     * actually warped along; the other axis' own pointer coordinate
+     * actually warped along; the other axis' pointer coordinate
      * passes through unchanged.  'opposite_edge' clamps to INT16_MAX
      * before the final cast: 'screen_w'/'screen_h' (uint32_t, no
-     * compile-time bound of their own) are not guaranteed to fit
+     * compile-time bound) are not guaranteed to fit
      * int16_t on an extreme multi-monitor surface, and this pointer
      * position is sent to the X server as one, via xcb_warp_pointer
      * below. */
@@ -367,13 +367,13 @@ void drag_warp_tick(xcb_connection_t *connection)
     /* Move the dragged window or icon by the exact same delta the
      * pointer itself is about to jump, so it stays under the cursor
      * across the warp instead of being left behind on the old desktop's
-     * own edge.  Shifting 'client_cur.pos.x'/'.pos.y' (the position
+     * edge.  Shifting 'client_cur.pos.x'/'.pos.y' (the position
      * 'drag_update' last actually applied, which already folds in any
      * edge-snapping) is what 'pointer_start_x'/'pointer_start_y'/
      * 'client_start.pos.x'/'.pos.y' being left untouched below relies
      * on.
      *
-     * With those unchanged, the very next real motion notify's own
+     * With those unchanged, the very next real motion notify's
      * 'new_x = client_start.pos.x + (root_x - pointer_start_x)' (and
      * its 'y' counterpart) is a plain linear function of 'root_x'/
      * 'root_y', so it naturally reflects the same shift automatically,
@@ -386,7 +386,7 @@ void drag_warp_tick(xcb_connection_t *connection)
      * axis 'warp_direction' did not warp along shifts by exactly zero
      * here ('new_root_x'/'new_root_y' above already equal 'last_root_x'/
      * '_y' on that axis), so this same pair of assignments is correct
-     * unconditionally, without needing its own 'is_horizontal' branch
+     * unconditionally, without needing its 'is_horizontal' branch
      * too. */
     new_window_x = s_drag.client_cur.pos.x +
         ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
@@ -410,19 +410,19 @@ void drag_warp_tick(xcb_connection_t *connection)
         show_geom = s_drag.client->config != NULL &&
             s_drag.client->config->base.windows.show_geom;
 
-        if (s_drag.solid_drag) {
+        if (s_drag.is_solid_drag) {
             enact_client_move(s_drag.client,
                     (struct position_s) { new_window_x,
                         s_drag.client_cur.pos.y });
         } else {
             /* Same reasoning as the geometry overlay just below: left
              * untouched here, the outline would stay drawn wherever it
-             * was right before the warp, on the old desktop's own
+             * was right before the warp, on the old desktop's
              * edge, until whatever real motion notify happens to come
              * next, rather than following the pointer across
              * immediately.  Width/height stay 'client_start.dim.w'/
              * '.h' (never 'client_cur.dim.w'/'.h'), the same as
-             * 'drag_update''s own MOVING branch, since this whole
+             * 'drag_update''s MOVING branch, since this whole
              * function only ever runs for a plain move, never
              * a resize (see the early 'CLIENT_OPERATION_MOVING' guard
              * above), so the size itself never actually changes here
@@ -437,7 +437,7 @@ void drag_warp_tick(xcb_connection_t *connection)
     /* Same geometry overlay 'drag_update' keeps current on every real
      * motion notify.  Without this, it would stay painted at the
      * position the window (or icon) had right before the warp (on the
-     * old desktop's own edge) until whatever real pointer motion
+     * old desktop's edge) until whatever real pointer motion
      * happens to come next, rather than following it across
      * immediately. */
     if (show_geom) {

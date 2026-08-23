@@ -87,7 +87,7 @@ void drag_overlay_hide(xcb_connection_t *connection)
     }
 
     s_drag.overlay_window = XCB_WINDOW_NONE;
-    s_drag.overlay_is_icon = false;
+    s_drag.is_overlay_icon = false;
     s_drag.overlay_text[0] = '\0';
 }
 
@@ -108,7 +108,7 @@ void drag_overlay_show(xcb_connection_t *connection,
 
     (void) snprintf(s_drag.overlay_text, sizeof(s_drag.overlay_text),
             "%s", text);
-    s_drag.overlay_is_icon = is_icon;
+    s_drag.is_overlay_icon = is_icon;
 
     (void) text_renderer_init(connection,
             (is_icon)
@@ -201,7 +201,7 @@ void drag_overlay_repaint(xcb_connection_t *connection)
         return;
     }
 
-    if (s_drag.overlay_is_icon) {
+    if (s_drag.is_overlay_icon) {
         bg = s_drag.client->config->theme.icon.active.color.background;
         fg = s_drag.client->config->theme.icon.active.color.foreground;
         border = s_drag.client->config->theme.icon.active.border.color;
@@ -222,7 +222,7 @@ void drag_overlay_repaint(xcb_connection_t *connection)
     text_renderer_set_color(fg, bg);
 
     text_w = text_string_measure(s_drag.overlay_text);
-    /* Horizontally centered within the overlay window's own actual
+    /* Horizontally centered within the overlay window's actual
      * width, computed with the exact same formula 's_drag_overlay_
      * show' used to size that window in the first place, rather than
      * a separately hardcoded threshold that happened to only agree with
@@ -235,7 +235,7 @@ void drag_overlay_repaint(xcb_connection_t *connection)
      * take the "narrow" branch here) is what left text looking pinned
      * to the left with a lopsided gap on the right (worst for a string
      * a few pixels short of exactly 'MIN_WIDTH', which could end up
-     * with zero left margin at all).  Computing the box's own width the
+     * with zero left margin at all).  Computing the box's width the
      * same way here removes the mismatch entirely, for any string
      * length, not just the ones on either side of it that happened not
      * to expose the bug. */
@@ -250,7 +250,7 @@ void drag_overlay_repaint(xcb_connection_t *connection)
      * actually configures, rather than a single Y hardcoded for one
      * particular font size: see 'text_font_ascent's comment in
      * 'render/text.h' for the derivation (ascent placed 'top' pixels
-     * below the box's own top edge, here with 'top' itself computed
+     * below the box's top edge, here with 'top' itself computed
      * from ascent/descent so half the leftover vertical space sits on
      * each side). */
     ascent = text_font_ascent();

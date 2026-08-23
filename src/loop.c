@@ -131,7 +131,7 @@ static void s_loop_update(const wm_td *wm)
  * @param event Leave-notify event to process
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       clients inspected by @c lookup_find_client
+ *       clients inspected by @a lookup_find_client
  */
 static void s_loop_handle_leave_notify(const wm_td *wm,
         xcb_leave_notify_event_t *event)
@@ -184,7 +184,7 @@ static void s_loop_handle_leave_notify(const wm_td *wm,
  * @param event Focus-out event to process
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       clients inspected by @c lookup_find_client
+ *       clients inspected by @a lookup_find_client
  */
 static void s_loop_handle_focus_out(const wm_td *wm,
         xcb_focus_out_event_t *event)
@@ -211,13 +211,13 @@ static void s_loop_handle_focus_out(const wm_td *wm,
  * Shared by every "shorten the poll timeout so some pending countdown
  * (a popup's auto-close, a startup-notification busy cursor's expiry,
  * a hover-triggered cursor re-check, ...) fires promptly" check in
- * @c loop_run below, which otherwise each repeated the same "is this
+ * @a loop_run below, which otherwise each repeated the same "is this
  * candidate both valid and sooner than what we already have" test.
  *
  * @param poll_timeout_ms Current timeout, in milliseconds; lowered in
  *                        place when @p candidate_ms is sooner
- * @param candidate_ms    A countdown's own remaining time, or a
- *                        negative value when that countdown is not
+ * @param candidate_ms    A countdown's own remaining time, or
+ *                        a negative value when that countdown is not
  *                        currently active at all
  *
  * @note Complexity: @e O(1)
@@ -235,7 +235,7 @@ static void s_loop_tighten_poll_timeout(int *poll_timeout_ms,
  * @brief Close a single-instance overlay dialog and repaint whichever
  *        surface is first in the surface list
  *
- * Shared by @c loop_run's own timed auto-close for the info popup and
+ * Shared by @a loop_run's own timed auto-close for the info popup and
  * the desktop-switch notification below: both close a dialog that,
  * unlike a per-client one, is not tied to any one particular surface,
  * so any surface's own current-desktop repaint is enough to clear its
@@ -278,14 +278,14 @@ static void s_loop_close_and_repaint_first_surface(
  * connection failure: the socket to the X server itself is gone,
  * something no window manager can recover from, since the window
  * manager is just another client of that same server.  Logging which
- * one occurred is the most this function's caller can do about it;
- * an @c XCB_CONN_ERROR here in particular, especially right after a
- * client (e.g., a game attempting hardware-accelerated rendering) was
- * seen doing something unusual, is worth checking the system's own
- * logs (Xorg's own log file, @c dmesg for a GPU driver crash) for,
- * outside of icowm entirely.
+ * one occurred is the most this function's caller can do about it; an
+ * @c XCB_CONN_ERROR here in particular, especially right after a client
+ * (e.g., a game attempting hardware-accelerated rendering) was seen
+ * doing something unusual, is worth checking the system's own logs
+ * (Xorg's own log file, @c dmesg for a GPU driver crash) for, outside
+ * of icowm entirely.
  *
- * @param error_code Value returned by @c xcb_connection_has_error
+ * @param error_code Value returned by @a xcb_connection_has_error
  *
  * @return A short, constant description; never @c NULL
  *
@@ -326,13 +326,13 @@ static const char *s_loop_connection_error_string(int error_code)
  *        @c user_time, for @c _NET_ACTIVE_WINDOW focus-stealing
  *        prevention to compare against later
  *
- * @param wm Window manager state, for @p surfaces
- * @param window Window a real @c KeyPress or @c ButtonPress named as
- *               its own @c event field, i.e., the one that actually
- *               received it
- * @param response_type The raw, unmasked @c response_type off the
- *                       event itself, top bit included
- * @param time X server timestamp of the event
+ * @param wm            Window manager state, for @p surfaces
+ * @param window        Window a real @c KeyPress or @c ButtonPress
+ *                      named as its own @c event field, i.e., the one
+ *                      that actually received it
+ * @param response_type The raw, unmasked @c response_type off the event
+ *                      itself, top bit included
+ * @param time          X server timestamp of the event
  *
  * @note A no-op when the top bit of @p response_type marks the event
  *       synthetic, i.e., sent by an application itself via
@@ -363,7 +363,7 @@ static void s_loop_note_real_input(const wm_td *wm, xcb_window_t window,
 /**
  * @brief Force a full re-render of all surfaces
  *
- * Marks every surface as outdated and then delegates to @c loop_update.
+ * Marks every surface as outdated and then delegates to @a loop_update.
  * Called once before entering the event loop so pre-existing windows
  * are drawn from scratch.
  *
@@ -394,6 +394,109 @@ static void s_loop_update_full(const wm_td *wm)
 }
 
 
+/**
+ * @brief Log an X protocol error (event type @c 0) at the right
+ *        severity
+ *
+ * X has no named constant for a protocol error as an event type;
+ * @c 0 never collides with a real one, since those start at @c 1.
+ * Not inherently fatal on its own, unlike an actual connection failure.
+ *
+ * X11's request/reply model is asynchronous: a window this window
+ * manager just sent a routine request against (reconfigure it, change
+ * or delete one of its properties, query its geometry, give it input
+ * focus, ...) can legitimately have been destroyed by whichever client
+ * owned it before the server gets around to processing that request,
+ * and nothing on this side can prevent that race without a synchronous
+ * round trip before every single such request, far too costly to do
+ * routinely.  @c BadWindow / @c BadDrawable (the resource itself is
+ * simply gone by then) and @c BadMatch (ICCCM's defined failure for,
+ * e.g., @c SetInputFocus on a target that is no longer viewable)
+ * against one of the request codes in @a s_routine_target_ops below are
+ * exactly that expected race, not a sign of anything actually wrong on
+ * this window manager's end, so they are logged at DEBUG instead, e.g.:
+ *
+ * +-------+-----------------+-----------+--------+
+ * | major | request         | error     | result |
+ * +-------+-----------------+-----------+--------+
+ * | 12    | ConfigureWindow | BadWindow | DEBUG  |
+ * | 18    | ChangeProperty  | BadWindow | DEBUG  |
+ * | 19    | DeleteProperty  | BadWindow | DEBUG  |
+ * | 42    | SetInputFocus   | BadMatch  | DEBUG  |
+ * +-------+-----------------+-----------+--------+
+ *
+ * Any other error (@c BadValue, @c BadAlloc, @c BadAccess, or even
+ * @c BadWindow / @c BadMatch on a request outside that "routine" set)
+ * still gets WARNING (rather than @a loop_run's switch's usual
+ * TRACE-level default), so it is not lost among routine unhandled-event
+ * traffic, since it is far more likely to be a genuine bug worth
+ * noticing.
+ *
+ * @param event The raw event @a loop_run received with response type
+ *              @c 0, reinterpreted here as the protocol error it
+ *              actually is
+ *
+ * @note Complexity: @e O(1)
+ *
+ * @ see @a s_loop_connection_error_string's call site in @a loop_run
+ */
+static void s_loop_handle_protocol_error(const xcb_generic_event_t *event)
+{
+    static const uint8_t s_routine_target_ops[] = {
+        2u,  /* X_ChangeWindowAttributes */
+        3u,  /* X_GetWindowAttributes */
+        4u,  /* X_DestroyWindow */
+        8u,  /* X_MapWindow */
+        10u, /* X_UnmapWindow */
+        12u, /* X_ConfigureWindow */
+        14u, /* X_GetGeometry */
+        15u, /* X_QueryTree */
+        18u, /* X_ChangeProperty */
+        19u, /* X_DeleteProperty */
+        20u, /* X_GetProperty */
+        42u  /* X_SetInputFocus */
+    };
+    const xcb_generic_error_t *proto_error;
+    bool is_routine_target_op = false;
+    bool is_vanished_resource_error;
+
+    proto_error = (const xcb_generic_error_t *) event;
+
+    for (size_t oi = 0u; oi < sizeof(s_routine_target_ops) /
+            sizeof(s_routine_target_ops[0]); ++oi) {
+        if (proto_error->major_code == s_routine_target_ops[oi]) {
+            is_routine_target_op = true;
+            break;
+        }
+    }
+
+    is_vanished_resource_error = is_routine_target_op &&
+        (proto_error->error_code == 3u  /* BadWindow */ ||
+         proto_error->error_code == 9u  /* BadDrawable */ ||
+         proto_error->error_code == 8u  /* BadMatch */);
+
+    if (is_vanished_resource_error) {
+        LOGGER_DEBUG("X protocol error (code=%u," \
+                " resource=0x%x, major=%u, minor=%u," \
+                " sequence=%u)",
+                proto_error->error_code,
+                proto_error->resource_id,
+                proto_error->major_code,
+                proto_error->minor_code,
+                proto_error->sequence);
+    } else {
+        LOGGER_WARNING("X protocol error (code=%u," \
+                " resource=0x%x, major=%u, minor=%u," \
+                " sequence=%u)",
+                proto_error->error_code,
+                proto_error->resource_id,
+                proto_error->major_code,
+                proto_error->minor_code,
+                proto_error->sequence);
+    }
+}
+
+
 /* Run the main event loop until the window manager is stopped */
 void loop_run(wm_td *wm)
 {
@@ -407,7 +510,6 @@ void loop_run(wm_td *wm)
                                                     @c XCB_MOTION_NOTIFY
                                                     case below) */
     struct pollfd pfd[1 + IPC_MAX_CLIENTS + 1];
-    const xcb_generic_error_t *proto_error;
     bool any_outdated;
     xcb_connection_t *connection;
     list_td *surfaces;
@@ -458,10 +560,10 @@ void loop_run(wm_td *wm)
 
     /* Synchronize EWMH root properties after the initial scan so that
      * taskbars reading '_NET_CLIENT_LIST' see the windows that were
-     * adopted by 'cctl_adopt_scan'.  The earlier 'wm_ewmh_sync'
-     * call in 'wm_init' ran before any clients were managed, leaving
-     * the list empty; 'loop_update_full' then cleared 'is_outdated', so
-     * the first main-loop iteration would never trigger a sync on its
+     * adopted by 'cctl_adopt_scan'.  The earlier 'wm_ewmh_sync' call in
+     * 'wm_init' ran before any clients were managed, leaving the list
+     * empty; 'loop_update_full' then cleared 'is_outdated', so the
+     * first main-loop iteration would never trigger a sync on its
      * own. */
     wm_ewmh_sync(wm);
 
@@ -541,47 +643,49 @@ void loop_run(wm_td *wm)
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 urgency_blink_ms_remaining(config));
 
-        s_loop_tighten_poll_timeout(&poll_timeout_ms, cctl_sn_ms_remaining());
+        s_loop_tighten_poll_timeout(&poll_timeout_ms,
+                cctl_sn_ms_remaining());
 
         /* Shorter still while a resize-cursor poll target is being
          * tracked (see 'mouse_hover_poll_tick' in
-         * input/mouse/hover.h), so an undecorated client's cursor gets
-         * re-evaluated promptly as the pointer moves within it. */
+         * 'input/mouse/hover.h'), so an undecorated client's cursor
+         * gets re-evaluated promptly as the pointer moves within it. */
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 mouse_hover_poll_ms_remaining());
 
         /* Shorter still while a confirm dialog has a timer of its own
-         * running (see 'menu_confirm_dialog_tick' in menu/dialog/
-         * confirm.h): a pending click-triggered close/accept, or a
-         * countdown timeout that needs its visible number to advance
-         * once a second and, once it fully elapses, to act. */
+         * running (see 'menu_confirm_dialog_tick' in
+         * 'menu/dialog/confirm.h').  A pending click-triggered
+         * close/accept, or a countdown timeout that needs its visible
+         * number to advance once a second and, once it fully elapses,
+         * to act. */
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 menu_confirm_dialog_ms_remaining());
 
         /* Shorter still while the message dialog has a
          * click-triggered close of its own pending (see
-         * 'menu_message_dialog_tick' in menu/dialog/message.h). */
+         * 'menu_message_dialog_tick' in 'menu/dialog/message.'h). */
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 menu_message_dialog_ms_remaining());
 
         /* Shorter still while a window drag is holding the pointer
-         * against a warp-eligible screen edge (see 'drag_warp_tick'
-         * in input/mouse/drag.h), so it still switches desktops once
-         * its own countdown elapses even with no further
-         * 'MotionNotify' arriving to drive it. */
+         * against a warp-eligible screen edge (see 'drag_warp_tick' in
+         * 'input/mouse/drag.h'), so it still switches desktops once its
+         * own countdown elapses even with no further 'MotionNotify'
+         * arriving to drive it. */
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 drag_warp_ms_remaining());
 
         /* Shorter still while a coordinated shutdown (see
-         * 'wm_shutdown_tick' in wm/shutdown.h) is waiting on managed
-         * clients to close on their own, so the timeout that forces
-         * the rest closed elapses promptly instead of waiting for the
-         * next unrelated event to wake the loop up. */
+         * 'wm_shutdown_tick' in 'wm/shutdown.h') is waiting on managed
+         * clients to close on their own, so the timeout that forces the
+         * rest closed elapses promptly instead of waiting for the next
+         * unrelated event to wake the loop up. */
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 wm_shutdown_ms_remaining());
 
         /* Shorter still while a process kill is pending escalation
-         * to 'SIGKILL' (see 'cctl_kill_tick' in wm/kill.h), for the
+         * to 'SIGKILL' (see 'cctl_kill_tick' in 'wm/kill.h'), for the
          * same reason. */
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
                 cctl_kill_ms_remaining());
@@ -593,12 +697,12 @@ void loop_run(wm_td *wm)
             break;
         }
 
-        /* Every non-X11 descriptor 'poll' reported ready belongs to
-         * IPC (index 0 is always the X connection, handled below via
+        /* Every non-X11 descriptor 'poll' reported ready belongs to IPC
+         * (index 0 is always the X connection, handled below via
          * 'xcb_poll_for_event' instead of this array at all).
-         * 'ipc_handle_readable' itself tells the listening socket
-         * apart from an already-connected client, so nothing here
-         * needs to. */
+         * 'ipc_handle_readable' itself tells the listening socket apart
+         * from an already-connected client, so nothing here needs
+         * to. */
         if (poll_status > 0) {
             for (int i = 1; i < nfds; ++i) {
                 if (pfd[i].revents & POLLIN) {
@@ -690,22 +794,21 @@ void loop_run(wm_td *wm)
 
                     /* Coalesce a run of consecutive pending
                      * 'MotionNotify' events into just the latest one.
-                     * The X server can queue many of these faster
-                     * than one round of window-move (or resize) plus
-                     * 'xcb_flush' can be processed, especially for a
-                     * large or decorated window whose move is more
+                     * The X server can queue many of these faster than
+                     * one round of window-move (or resize) plus
+                     * 'xcb_flush' can be processed, especially for
+                     * a large or decorated window whose move is more
                      * expensive per event (the frame itself repaints,
                      * and reparented-child bookkeeping adds further
                      * server-side cost on top of a plain top-level
-                     * window's move); reacting to every stale
-                     * intermediate position instead of jumping
-                     * straight to the newest one is what makes a drag
-                     * visibly lag behind the pointer, worse the more
-                     * expensive that per-event work is.  A non-motion
-                     * event found while peeking ahead is kept in
-                     * 'pending_event' rather than dropped, so it is
-                     * still handled, on the very next iteration of
-                     * this same loop. */
+                     * window's move).  Reacting to every stale
+                     * intermediate position instead of jumping straight
+                     * to the newest one is what makes a drag visibly
+                     * lag behind the pointer, worse the more expensive
+                     * that per-event work is.  A non-motion event found
+                     * while peeking ahead is kept in 'pending_event'
+                     * rather than dropped, so it is still handled, on
+                     * the very next iteration of this same loop. */
                     while ((pending_event =
                                 xcb_poll_for_event(connection)) !=
                             NULL) {
@@ -719,7 +822,9 @@ void loop_run(wm_td *wm)
                     }
 
                     drag_update(connection,
-                            (struct position_s) { me->root_x, me->root_y });
+                            (struct position_s) {
+                                me->root_x, me->root_y
+                            });
                     if (wincmenu_is_open()) {
                         wincmenu_handle_motion(me->event,
                                 me->event_x, me->event_y);
@@ -852,106 +957,9 @@ void loop_run(wm_td *wm)
                      * creation; a created window may never be mapped */
                     break;
 
-                case 0: {
-                    /* A protocol error, not a real event type (X has
-                     * no named constant for it; 0 never collides with
-                     * a real event type, since those start at 1).
-                     * Not inherently fatal on its own, unlike an
-                     * actual connection failure (see
-                     * 'xcb_connection_has_error' above).
-                     *
-                     * X11's request/reply model is asynchronous: a
-                     * window this window manager just sent a routine
-                     * request against (reconfigure it, change or
-                     * delete one of its properties, query its
-                     * geometry, give it input focus, ...) can
-                     * legitimately have been destroyed by whichever
-                     * client owned it before the server gets around
-                     * to processing that request, and nothing on this
-                     * side can prevent that race without a
-                     * synchronous round trip before every single such
-                     * request, far too costly to do routinely.
-                     * 'BadWindow'/'BadDrawable' (the resource itself
-                     * is simply gone by then) and 'BadMatch' (ICCCM's
-                     * own defined failure for, e.g., 'SetInputFocus'
-                     * on a target that is no longer viewable) against
-                     * one of the request codes in
-                     * 's_routine_target_ops' below are exactly that
-                     * expected race, not a sign of anything actually
-                     * wrong on this window manager's own end, so they
-                     * are logged at DEBUG instead, e.g.,
-                     *
-                     * +-------+-----------------+-----------+--------+
-                     * | major | request         | error     | result |
-                     * +-------+-----------------+-----------+--------+
-                     * | 12    | ConfigureWindow | BadWindow | DEBUG  |
-                     * | 18    | ChangeProperty  | BadWindow | DEBUG  |
-                     * | 19    | DeleteProperty  | BadWindow | DEBUG  |
-                     * | 42    | SetInputFocus   | BadMatch  | DEBUG  |
-                     * +-------+-----------------+-----------+--------+
-                     *
-                     * Any other error ('BadValue', 'BadAlloc',
-                     * 'BadAccess', or even 'BadWindow'/'BadMatch' on a
-                     * request outside that "routine" set) still gets
-                     * WARNING (rather than this switch's usual
-                     * TRACE-level default below), so it is not lost
-                     * among routine unhandled-event traffic, since it
-                     * is far more likely to be a genuine bug worth
-                     * noticing. */
-                    static const uint8_t s_routine_target_ops[] = {
-                        2u,  /* X_ChangeWindowAttributes */
-                        3u,  /* X_GetWindowAttributes */
-                        4u,  /* X_DestroyWindow */
-                        8u,  /* X_MapWindow */
-                        10u, /* X_UnmapWindow */
-                        12u, /* X_ConfigureWindow */
-                        14u, /* X_GetGeometry */
-                        15u, /* X_QueryTree */
-                        18u, /* X_ChangeProperty */
-                        19u, /* X_DeleteProperty */
-                        20u, /* X_GetProperty */
-                        42u  /* X_SetInputFocus */
-                    };
-                    bool is_routine_target_op = false;
-                    bool is_vanished_resource_error;
-
-                    proto_error = (const xcb_generic_error_t *) event;
-
-                    for (size_t oi = 0u; oi < sizeof(s_routine_target_ops) /
-                            sizeof(s_routine_target_ops[0]); ++oi) {
-                        if (proto_error->major_code ==
-                                s_routine_target_ops[oi]) {
-                            is_routine_target_op = true;
-                            break;
-                        }
-                    }
-
-                    is_vanished_resource_error = is_routine_target_op &&
-                        (proto_error->error_code == 3u  /* BadWindow */ ||
-                         proto_error->error_code == 9u  /* BadDrawable */ ||
-                         proto_error->error_code == 8u  /* BadMatch */);
-
-                    if (is_vanished_resource_error) {
-                        LOGGER_DEBUG("X protocol error (code=%u," \
-                                " resource=0x%x, major=%u, minor=%u," \
-                                " sequence=%u)",
-                                proto_error->error_code,
-                                proto_error->resource_id,
-                                proto_error->major_code,
-                                proto_error->minor_code,
-                                proto_error->sequence);
-                    } else {
-                        LOGGER_WARNING("X protocol error (code=%u," \
-                                " resource=0x%x, major=%u, minor=%u," \
-                                " sequence=%u)",
-                                proto_error->error_code,
-                                proto_error->resource_id,
-                                proto_error->major_code,
-                                proto_error->minor_code,
-                                proto_error->sequence);
-                    }
+                case 0:
+                    s_loop_handle_protocol_error(event);
                     break;
-                }
 
                 default:
                     LOGGER_TRACE("Unhandled X event type: %d",

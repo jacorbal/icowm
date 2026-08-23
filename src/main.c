@@ -124,15 +124,15 @@ static inline void s_show_help(FILE *fp)
     /* Show options by category */
     fprintf(fp, "\nMain options:\n");
     fprintf(fp, "   -d <display>    Set X server display (e.g., ':0')\n");
+    fprintf(fp, "   -r              Replace an already-running window" \
+                " manager ('WM_Sn')\n");
+    fprintf(fp, "   -s              Disable the IPC control socket\n");
     fprintf(fp, "   -c <config_dir> Set configuration directory\n");
     fprintf(fp, "   -C              Check configuration files under" \
                 " <config_dir>, and exit\n");
     fprintf(fp, "   -M <mib>        Enable restricted-memory mode" \
                 " with a ceiling (min. %u MiB)\n",
                 (unsigned int) MEMGUARD_MIN_CEILING_MIB);
-    fprintf(fp, "   -s              Disable the IPC control socket\n");
-    fprintf(fp, "   -r              Replace an already-running window" \
-                " manager ('WM_Sn')\n");
     fprintf(fp, "\nLogging:\n");
     fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",
             LOG_MIN_LEVEL, LOG_MAX_LEVEL);

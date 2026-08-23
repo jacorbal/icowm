@@ -5,7 +5,7 @@
  *
  * Split out of what used to be inline in @c drag.c itself; see @c
  * drag/internal.h for why the split, the same reasoning @c drag/
- * snap.c already follows for its own, unrelated math.
+ * snap.c already follows for its unrelated math.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -31,29 +31,29 @@
 #include <input/mouse/drag/resist.h>
 
 
-/* Recompute a maximized-on-one-axis client's own resistance state
+/* Recompute a maximized-on-one-axis client's resistance state
  * for the current motion event, live */
 void drag_resist_axis_update(uint32_t drag_dist_w, uint32_t drag_dist_h,
         uint32_t resistance)
 {
-    if (s_drag.resist_axis_w) {
-        bool was_resize_w = s_drag.resize_w;
+    if (s_drag.is_resist_axis_w) {
+        bool was_resize_w = s_drag.is_resize_w;
 
-        s_drag.resize_w = drag_dist_w >= resistance;
-        if (s_drag.solid_drag && s_drag.resize_w != was_resize_w) {
-            if (s_drag.resize_w) {
+        s_drag.is_resize_w = drag_dist_w >= resistance;
+        if (s_drag.is_solid_drag && s_drag.is_resize_w != was_resize_w) {
+            if (s_drag.is_resize_w) {
                 ccmd_client_demote_axis_state(s_drag.client, 1);
             } else {
                 ccmd_client_promote_axis_state(s_drag.client, 1);
             }
         }
     }
-    if (s_drag.resist_axis_h) {
-        bool was_resize_h = s_drag.resize_h;
+    if (s_drag.is_resist_axis_h) {
+        bool was_resize_h = s_drag.is_resize_h;
 
-        s_drag.resize_h = drag_dist_h >= resistance;
-        if (s_drag.solid_drag && s_drag.resize_h != was_resize_h) {
-            if (s_drag.resize_h) {
+        s_drag.is_resize_h = drag_dist_h >= resistance;
+        if (s_drag.is_solid_drag && s_drag.is_resize_h != was_resize_h) {
+            if (s_drag.is_resize_h) {
                 ccmd_client_demote_axis_state(s_drag.client, 2);
             } else {
                 ccmd_client_promote_axis_state(s_drag.client, 2);
@@ -63,19 +63,19 @@ void drag_resist_axis_update(uint32_t drag_dist_w, uint32_t drag_dist_h,
 }
 
 
-/* Settle a maximize-locked axis's own final state once a resize
- * drag ends, for whichever case drag_resist_axis_update's own live
+/* Settle a maximize-locked axis's final state once a resize
+ * drag ends, for whichever case drag_resist_axis_update's live
  * sync could not already handle */
 void drag_resist_axis_finalize(bool finalize_resize)
 {
-    if (!finalize_resize || s_drag.solid_drag) {
+    if (!finalize_resize || s_drag.is_solid_drag) {
         return;
     }
 
-    if (s_drag.resist_axis_w && s_drag.resize_w) {
+    if (s_drag.is_resist_axis_w && s_drag.is_resize_w) {
         ccmd_client_demote_axis_state(s_drag.client, 1);
     }
-    if (s_drag.resist_axis_h && s_drag.resize_h) {
+    if (s_drag.is_resist_axis_h && s_drag.is_resize_h) {
         ccmd_client_demote_axis_state(s_drag.client, 2);
     }
 }
