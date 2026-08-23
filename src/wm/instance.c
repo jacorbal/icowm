@@ -67,7 +67,7 @@ xcb_key_symbols_t *wm_keysyms(const wm_td *wm)
 /* XRandR extension availability */
 bool wm_randr_available(const wm_td *wm)
 {
-    return (wm != NULL) && wm->randr_available;
+    return (wm != NULL) && wm->is_randr_available;
 }
 
 
@@ -81,7 +81,7 @@ uint8_t wm_randr_base_event(const wm_td *wm)
 /* XSync extension availability */
 bool wm_sync_available(const wm_td *wm)
 {
-    return (wm != NULL) && wm->sync_available;
+    return (wm != NULL) && wm->is_sync_available;
 }
 
 
@@ -170,7 +170,7 @@ void wm_set_randr(wm_td *wm, bool available, uint8_t base_event)
         return;
     }
 
-    wm->randr_available = available;
+    wm->is_randr_available = available;
     wm->randr_base_event = base_event;
 }
 
@@ -182,6 +182,6 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event)
         return;
     }
 
-    wm->sync_available = available;
+    wm->is_sync_available = available;
     wm->sync_base_event = base_event;
 }

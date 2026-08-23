@@ -349,9 +349,9 @@ int wm_start(const char *restrict display_name,
     wm->session = NULL;
     wm->surfaces = NULL;
     wm->keysyms = NULL;
-    wm->randr_available = false;
+    wm->is_randr_available = false;
     wm->randr_base_event = 0u;
-    wm->sync_available = false;
+    wm->is_sync_available = false;
     wm->sync_base_event = 0u;
     wm->is_emergency_exit = false;
     wm->restricted_memory_mib = restricted_memory_mib;
@@ -759,7 +759,7 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 /* Query whether the XSync extension is available on this server */
 bool wm_sync_is_available(void)
 {
-    return (wm != NULL) && (wm->sync_available);
+    return (wm != NULL) && (wm->is_sync_available);
 }
 
 

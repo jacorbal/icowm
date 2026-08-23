@@ -696,14 +696,14 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         } while (node != NULL && node != initial);
     }
 
-    if (show && !surface->showing_desktop) {
+    if (show && !surface->is_showing_desktop) {
         node = stacking_head;
         if (node == NULL || !any_visible) {
             show = false;
         }
     }
 
-    if (!show && surface->showing_desktop) {
+    if (!show && surface->is_showing_desktop) {
         node = stacking_head;
         if (node == NULL) {
             return;
@@ -758,7 +758,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                 XCB_CURRENT_TIME);
     }
 
-    surface->showing_desktop = show && changed_hidden_state;
+    surface->is_showing_desktop = show && changed_hidden_state;
     wm_outdate_surface(surface);
     wm_outdate_desktop(desktop);
 }

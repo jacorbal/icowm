@@ -122,10 +122,10 @@ static size_t s_ohtbl_step(size_t h2_raw, size_t positions)
  */
 static void s_ohtbl_cancel_pending_shrink_if_recovered(ohtbl_td *htbl)
 {
-    if (htbl->shrink_pending &&
+    if (htbl->is_shrink_pending &&
             htbl->size >= (size_t)
                 ((float) htbl->positions * OHTBL_MIN_LOAD_FACTOR)) {
-        htbl->shrink_pending = false;
+        htbl->is_shrink_pending = false;
     }
 }
 
@@ -191,7 +191,7 @@ static int s_ohtbl_resize(ohtbl_td *htbl, size_t new_positions)
     /* Any resize, in either direction, starts a fresh assessment of
      * whether the new capacity is itself underused; see
      * 'OHTBL_SHRINK_COOLDOWN_MS''s own doc comment (ohtbl.h) */
-    htbl->shrink_pending = false;
+    htbl->is_shrink_pending = false;
 
     return 0;
 }
@@ -316,7 +316,7 @@ ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
 
     /* No shrink wait outstanding yet; see 'OHTBL_SHRINK_COOLDOWN_MS'
      * own doc comment (ohtbl.h) */
-    htbl->shrink_pending = false;
+    htbl->is_shrink_pending = false;
 
     return htbl;
 }
@@ -526,8 +526,8 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
                 bool cooldown_elapsed = true;
 
                 if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
-                    if (!htbl->shrink_pending) {
-                        htbl->shrink_pending = true;
+                    if (!htbl->is_shrink_pending) {
+                        htbl->is_shrink_pending = true;
                         htbl->shrink_eligible_since = now;
                         cooldown_elapsed = false;
                     } else {
@@ -551,7 +551,7 @@ int ohtbl_remove(ohtbl_td *htbl, void **data)
                  * risk never shrinking at all */
 
                 if (cooldown_elapsed) {
-                    htbl->shrink_pending = false;
+                    htbl->is_shrink_pending = false;
 
                     /* A return of '1' from 'ohtbl_resize_halve()'
                      * means the table is already at its minimum

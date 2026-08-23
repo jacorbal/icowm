@@ -46,10 +46,10 @@
  * @c config.xsettings being a single global (not per-surface) setting.
  */
 static struct {
-    bool window_ready;              /**< Window created, atoms interned;
+    bool is_window_ready;           /**< Window created, atoms interned;
                                          persists across is-enabled
                                          toggles */
-    bool selection_owned;           /**< Currently owns the
+    bool is_selection_owned;        /**< Currently owns the
                                          @c _XSETTINGS_Sn selection */
     xcb_connection_t *connection;
     surface_td *surface;
@@ -282,7 +282,7 @@ static void s_xs_publish(void)
     uint8_t *buf;
     uint32_t len;
 
-    if (!s_xs.window_ready) {
+    if (!s_xs.is_window_ready) {
         return;
     }
 
@@ -362,7 +362,7 @@ static bool s_xs_config_changed(const wm_td *wm)
  * @brief Create the settings window and intern its atoms, once
  *
  * Idempotent: does nothing (beyond returning success) if
- * @c s_xs.window_ready is already true.
+ * @c s_xs.is_window_ready is already true.
  *
  * @param wm Window manager state
  *
@@ -378,7 +378,7 @@ static bool s_xs_ensure_window(const wm_td *wm)
     xcb_connection_t *connection = wm_connection(wm);
     list_td *surfaces = wm_surfaces(wm);
 
-    if (s_xs.window_ready) {
+    if (s_xs.is_window_ready) {
         return true;
     }
 
@@ -420,7 +420,7 @@ static bool s_xs_ensure_window(const wm_td *wm)
             mask, values);
     xcb_flush(connection);
 
-    s_xs.window_ready = true;
+    s_xs.is_window_ready = true;
     return true;
 }
 
@@ -434,10 +434,10 @@ static bool s_xs_ensure_window(const wm_td *wm)
  */
 static bool s_xs_acquire_selection(void)
 {
-    if (s_xs.selection_owned) {
+    if (s_xs.is_selection_owned) {
         return true;
     }
-    if (!s_xs.window_ready) {
+    if (!s_xs.is_window_ready) {
         return false;
     }
 
@@ -450,7 +450,7 @@ static bool s_xs_acquire_selection(void)
         return false;
     }
 
-    s_xs.selection_owned = true;
+    s_xs.is_selection_owned = true;
 
     LOGGER_INFO("XSETTINGS manager active on surface %u (selection" \
             " atom 0x%x)", s_xs.surface->id,
@@ -465,14 +465,14 @@ static bool s_xs_acquire_selection(void)
  */
 static void s_xs_release_selection(void)
 {
-    if (!s_xs.selection_owned) {
+    if (!s_xs.is_selection_owned) {
         return;
     }
 
     xcb_set_selection_owner(s_xs.connection, XCB_NONE,
             s_xs.selection_atom, XCB_CURRENT_TIME);
     xcb_flush(s_xs.connection);
-    s_xs.selection_owned = false;
+    s_xs.is_selection_owned = false;
 
     LOGGER_INFO("XSETTINGS selection released", L_NARG);
 }
@@ -508,7 +508,7 @@ void xsettings_shutdown(wm_td *wm)
 
     s_xs_release_selection();
 
-    if (s_xs.window_ready && s_xs.connection != NULL &&
+    if (s_xs.is_window_ready && s_xs.connection != NULL &&
             s_xs.window != XCB_WINDOW_NONE) {
         xcb_destroy_window(s_xs.connection, s_xs.window);
         xcb_flush(s_xs.connection);
@@ -530,13 +530,13 @@ void xsettings_reload(const wm_td *wm)
 
     should_be_enabled = config->theme.xsettings.is_enabled;
 
-    if (s_xs.selection_owned && !should_be_enabled) {
+    if (s_xs.is_selection_owned && !should_be_enabled) {
         LOGGER_INFO("XSETTINGS disabled by configuration reload", L_NARG);
         s_xs_release_selection();
         return;
     }
 
-    if (!s_xs.selection_owned && should_be_enabled) {
+    if (!s_xs.is_selection_owned && should_be_enabled) {
         LOGGER_INFO("XSETTINGS enabled by configuration reload", L_NARG);
         s_xs_load_config(wm);
         if (s_xs_ensure_window(wm) && s_xs_acquire_selection()) {
@@ -545,7 +545,7 @@ void xsettings_reload(const wm_td *wm)
         return;
     }
 
-    if (s_xs.selection_owned) {
+    if (s_xs.is_selection_owned) {
         bool values_changed = s_xs_config_changed(wm);
 
         s_xs_load_config(wm);

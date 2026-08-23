@@ -186,7 +186,7 @@ void systray_protocol_dock(xcb_window_t icon)
     char sort_key[64];
     uint16_t insert_at;
 
-    if (!s_tray.selection_owned || icon == XCB_WINDOW_NONE) {
+    if (!s_tray.is_selection_owned || icon == XCB_WINDOW_NONE) {
         return;
     }
 
@@ -266,7 +266,7 @@ void systray_protocol_dock(xcb_window_t icon)
  * to the already-existing tray window */
  void systray_protocol_apply_theme_style(void)
 {
-    if (!s_tray.window_ready || s_tray.theme == NULL) {
+    if (!s_tray.is_window_ready || s_tray.theme == NULL) {
         return;
     }
 
@@ -286,7 +286,7 @@ void systray_protocol_dock(xcb_window_t icon)
 /* Create the tray window and intern its atoms, once
  *
  * Idempotent: does nothing (beyond returning success) if
- * 's_tray.window_ready' is already 'true'.  Does not acquire the
+ * 's_tray.is_window_ready' is already 'true'.  Does not acquire the
  * selection; see 'systray_protocol_selection_acquire'. */
 bool systray_protocol_window_ensure(const wm_td *wm)
 {
@@ -299,7 +299,7 @@ bool systray_protocol_window_ensure(const wm_td *wm)
     config_td *config = wm_config(wm);
     list_td *surfaces = wm_surfaces(wm);
 
-    if (s_tray.window_ready) {
+    if (s_tray.is_window_ready) {
         return true;
     }
 
@@ -373,7 +373,7 @@ bool systray_protocol_window_ensure(const wm_td *wm)
                 config->theme.systray.style.opacity));
     xcb_flush(connection);
 
-    s_tray.window_ready = true;
+    s_tray.is_window_ready = true;
     return true;
 }
 
@@ -383,10 +383,10 @@ bool systray_protocol_selection_acquire(void)
 {
     uint32_t orientation;
 
-    if (s_tray.selection_owned) {
+    if (s_tray.is_selection_owned) {
         return true;
     }
-    if (!s_tray.window_ready) {
+    if (!s_tray.is_window_ready) {
         return false;
     }
 
@@ -406,7 +406,7 @@ bool systray_protocol_selection_acquire(void)
             s_tray.window, s_tray.visual_atom, XCB_ATOM_VISUALID,
             32, 1, &s_tray.surface->screen->root_visual);
 
-    s_tray.selection_owned = true;
+    s_tray.is_selection_owned = true;
     xcb_flush(s_tray.connection);
 
     LOGGER_INFO("Systray dock active on surface %u (selection atom" \
@@ -421,13 +421,13 @@ bool systray_protocol_selection_acquire(void)
 /* Release the tray selection, keeping the window and icons */
 void systray_protocol_selection_release(void)
 {
-    if (!s_tray.selection_owned) {
+    if (!s_tray.is_selection_owned) {
         return;
     }
 
     xcb_set_selection_owner(s_tray.connection, XCB_NONE,
             s_tray.selection_atom, XCB_CURRENT_TIME);
-    s_tray.selection_owned = false;
+    s_tray.is_selection_owned = false;
     /* Actually unmaps only if 'is_active' is also already false by now:
      * systray_reload's own 'disabled' path always sets that first,
      * right before calling this.  Still safe to call from

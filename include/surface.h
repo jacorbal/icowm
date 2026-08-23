@@ -167,7 +167,7 @@ struct surface_s {
      *      (desktop.h), which this flag feeds directly
      */
     bool strutless_maximize;
-    bool showing_desktop;           /**< EWMH @c _NET_SHOWING_DESKTOP state */
+    bool is_showing_desktop;        /**< EWMH @c _NET_SHOWING_DESKTOP state */
     bool is_outdated;               /**< Flag if data needs to be updated */
 };
 

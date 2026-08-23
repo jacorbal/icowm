@@ -548,7 +548,7 @@ void wm_ewmh_sync(wm_td *wm)
         xcb_ewmh_set_active_window(surface->ewmh, (int) surface->id,
                 active);
         xcb_ewmh_set_showing_desktop(surface->ewmh, (int) surface->id,
-                (surface->showing_desktop) ? 1u : 0u);
+                (surface->is_showing_desktop) ? 1u : 0u);
         s_wm_sync_desktop_names(surface);
         s_wm_sync_desktop_layout(surface);
         s_wm_sync_workarea(surface);

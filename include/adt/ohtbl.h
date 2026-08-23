@@ -179,13 +179,13 @@ typedef struct {
      * @see @c OHTBL_SHRINK_COOLDOWN_MS for the reasoning behind
      *      delaying a shrink at all
      */
-    bool shrink_pending;
+    bool is_shrink_pending;
 
     /**
      * @brief Monotonic time @p size first dropped below
      *        @c OHTBL_MIN_LOAD_FACTOR, starting the current wait
      *
-     * @note Only meaningful while @p shrink_pending is @c true
+     * @note Only meaningful while @p is_shrink_pending is @c true
      */
     struct timespec shrink_eligible_since;
 } ohtbl_td;

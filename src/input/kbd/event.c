@@ -685,7 +685,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
     }
 
     /* Message dialog (warnings, errors, info messages, the 'fortune'
-     * easter egg).  Dead code today, since 'dialog_info_is_open()'
+     * easter egg): dead code today, since 'dialog_info_is_open()'
      * above already covers the exact same underlying state and always
      * returns first; kept in the same up-to-date shape as that block
      * regardless, rather than left to visibly rot, in case a future
@@ -772,7 +772,7 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
             case KEYBIND_DESKTOP_SHOW:
                 if (surface != NULL) {
                     enact_desktop_show(lookup_current_desktop(surface),
-                            !surface->showing_desktop);
+                            !surface->is_showing_desktop);
                 }
                 return;
 

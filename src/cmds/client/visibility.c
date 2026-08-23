@@ -285,8 +285,8 @@ static void s_ccmd_client_hide_one(client_td *client)
     surface_td *surface;
 
     surface = wm_get_surface_by_id(client->screen_id);
-    if (surface != NULL && surface->showing_desktop) {
-        surface->showing_desktop = false;
+    if (surface != NULL && surface->is_showing_desktop) {
+        surface->is_showing_desktop = false;
     }
 
     target = ccmd_target_win(client);
@@ -356,7 +356,7 @@ static void s_ccmd_client_unhide_one(client_td *client)
         desktop_td *const desktop = wm_get_client_desktop(client);
         if (desktop != NULL) {
             desktop->client_active_id = client->id;
-            desktop->focus_dirty = true;
+            desktop->is_focus_dirty = true;
             (void) desktop_action_client_send_front(desktop, client);
             desktop->is_outdated = true;
         }

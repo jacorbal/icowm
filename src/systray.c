@@ -119,6 +119,163 @@ static void s_systray_config_apply(const wm_td *wm)
 }
 
 
+/* Acquire the tray selection and create the dock window */
+void systray_init(const wm_td *wm)
+{
+    const config_td *config = wm_config(wm);
+
+    if (wm == NULL || config == NULL ||
+            !config->base.systray.is_enabled) {
+        return;
+    }
+
+    s_systray_config_apply(wm);
+
+    if (!systray_protocol_window_ensure(wm)) {
+        return;
+    }
+
+    s_tray.is_active = true;
+
+    /* Never acquired at all when 'is_embedding_enabled' is false, own
+     * clock/battery text still shown regardless via the explicit
+     * 'systray_layout_reflow' call below, since
+     * 'systray_protocol_selection_acquire' does not trigger one on its
+     * own: see 'is_embedding_enabled''s comment in 'config.h' for why
+     * restricted-memory mode is the one profile that always leaves it
+     * 'false' */
+    if (config->base.systray.is_embedding_enabled) {
+        (void) systray_protocol_selection_acquire();
+    }
+
+    systray_layout_reflow();
+}
+
+
+/* Release the tray selection and destroy the dock window */
+void systray_shutdown(wm_td *wm)
+{
+    (void) wm;
+
+    systray_protocol_selection_release();
+
+    if (s_tray.is_window_ready && s_tray.connection != NULL &&
+            s_tray.window != XCB_WINDOW_NONE) {
+        /* Destroying the tray window implicitly reparents any
+         * still-docked icons back to the root window; each icon's own
+         * application is responsible for re-docking if a tray reappears
+         * later, exactly as with every other systray.  This full
+         * teardown is only for the window manager itself exiting;
+         * toggling 'is-enabled' off goes through 'systray_reload',
+         * which keeps the window and icons alive via
+         * 'systray_protocol_selection_release' instead. */
+        xcb_destroy_window(s_tray.connection, s_tray.window);
+        xcb_flush(s_tray.connection);
+    }
+
+    memset(&s_tray, 0, sizeof(s_tray));
+}
+
+
+/* Query whether 'window' is the tray dock window itself */
+bool systray_owns_window(xcb_window_t window)
+{
+    return s_tray.is_window_ready && window != XCB_WINDOW_NONE &&
+        window == s_tray.window;
+}
+
+
+/* Return the tray window when it is visible and in the 'below' layer,
+ * or 'XCB_WINDOW_NONE' otherwise */
+xcb_window_t systray_below_window(void)
+{
+    if (!s_tray.is_window_ready || !s_tray.is_active ||
+            s_tray.layer != CONFIG_SYSTRAY_LAYER_BELOW) {
+        return XCB_WINDOW_NONE;
+    }
+    return s_tray.window;
+}
+
+
+/* Return the space the tray currently reserves for itself on
+ * 'surface', or 'NULL' when 'surface' is not the one it is docked
+ * on */
+const struct strut_partial_s *systray_get_reserved_strut(
+        const surface_td *surface)
+{
+    if (surface == NULL || !s_tray.is_window_ready ||
+            s_tray.surface != surface) {
+        return NULL;
+    }
+
+    /* 'reserved_strut' is kept at all-zero sides by
+     * 'systray_layout_reflow' itself whenever the tray is unmapped
+     * (disabled, empty, or another tray manager owns the selection), so
+     * no separate check for that is needed here: a caller adding an
+     * all-zero strut to a workarea calculation is a no-op either way */
+    return &s_tray.reserved_strut;
+}
+
+
+/* Return the tray's own current on-screen rectangle on 'surface', or
+ * 'false' when it is not currently showing there at all */
+bool systray_get_geometry(const surface_td *surface,
+        struct geometry_s *restrict out_tray)
+{
+    xcb_get_geometry_cookie_t cookie;
+    xcb_get_geometry_reply_t *reply;
+
+    if (surface == NULL || out_tray == NULL ||
+            !s_tray.is_window_ready || !s_tray.is_active ||
+            s_tray.surface != surface) {
+        return false;
+    }
+
+    cookie = xcb_get_geometry(s_tray.connection, s_tray.window);
+    reply = xcb_get_geometry_reply(s_tray.connection, cookie, NULL);
+    if (reply == NULL) {
+        return false;
+    }
+
+    /* 'reply->x'/'reply->y' are relative to the tray window's own
+     * parent, the same root every other top-level window this project
+     * creates (icon windows included) shares, so directly comparable
+     * against an icon's own root-relative position with no extra
+     * translation needed */
+    out_tray->pos.x = (int32_t) reply->x;
+    out_tray->pos.y = (int32_t) reply->y;
+    out_tray->dim.w = reply->width;
+    out_tray->dim.h = reply->height;
+
+    free(reply);
+    return true;
+}
+
+
+/* Query whether 'window' is a currently docked icon, and if so, force
+ * it back to the tray's fixed icon size */
+bool systray_icon_size_enforce(xcb_window_t window)
+{
+    if (window == XCB_WINDOW_NONE) {
+        return false;
+    }
+
+    for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
+        if (s_tray.icons[i].window == window) {
+            xcb_configure_window(s_tray.connection, window,
+                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                    (const uint32_t[]) {
+                        s_tray.pixmap_size, s_tray.pixmap_size
+                    });
+            xcb_flush(s_tray.connection);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 /**
  * @brief Force every already-docked icon back to the tray's current
  *        @p pixmap.size
@@ -169,170 +326,13 @@ static void s_systray_icons_resize(void)
 }
 
 
-/* Acquire the tray selection and create the dock window */
-void systray_init(const wm_td *wm)
-{
-    const config_td *config = wm_config(wm);
-
-    if (wm == NULL || config == NULL ||
-            !config->base.systray.is_enabled) {
-        return;
-    }
-
-    s_systray_config_apply(wm);
-
-    if (!systray_protocol_window_ensure(wm)) {
-        return;
-    }
-
-    s_tray.is_active = true;
-
-    /* Never acquired at all when 'is_embedding_enabled' is false, own
-     * clock/battery text still shown regardless via the explicit
-     * 'systray_layout_reflow' call below, since
-     * 'systray_protocol_selection_acquire' does not trigger one on its
-     * own: see 'is_embedding_enabled''s comment in 'config.h' for why
-     * restricted-memory mode is the one profile that always leaves it
-     * 'false' */
-    if (config->base.systray.is_embedding_enabled) {
-        (void) systray_protocol_selection_acquire();
-    }
-
-    systray_layout_reflow();
-}
-
-
-/* Release the tray selection and destroy the dock window */
-void systray_shutdown(wm_td *wm)
-{
-    (void) wm;
-
-    systray_protocol_selection_release();
-
-    if (s_tray.window_ready && s_tray.connection != NULL &&
-            s_tray.window != XCB_WINDOW_NONE) {
-        /* Destroying the tray window implicitly reparents any
-         * still-docked icons back to the root window; each icon's own
-         * application is responsible for re-docking if a tray reappears
-         * later, exactly as with every other systray.  This full
-         * teardown is only for the window manager itself exiting;
-         * toggling 'is-enabled' off goes through 'systray_reload',
-         * which keeps the window and icons alive via
-         * 'systray_protocol_selection_release' instead. */
-        xcb_destroy_window(s_tray.connection, s_tray.window);
-        xcb_flush(s_tray.connection);
-    }
-
-    memset(&s_tray, 0, sizeof(s_tray));
-}
-
-
-/* Query whether 'window' is the tray dock window itself */
-bool systray_owns_window(xcb_window_t window)
-{
-    return s_tray.window_ready && window != XCB_WINDOW_NONE &&
-        window == s_tray.window;
-}
-
-
-/* Return the tray window when it is visible and in the 'below' layer,
- * or 'XCB_WINDOW_NONE' otherwise */
-xcb_window_t systray_below_window(void)
-{
-    if (!s_tray.window_ready || !s_tray.is_active ||
-            s_tray.layer != CONFIG_SYSTRAY_LAYER_BELOW) {
-        return XCB_WINDOW_NONE;
-    }
-    return s_tray.window;
-}
-
-
-/* Return the space the tray currently reserves for itself on
- * 'surface', or 'NULL' when 'surface' is not the one it is docked
- * on */
-const struct strut_partial_s *systray_get_reserved_strut(
-        const surface_td *surface)
-{
-    if (surface == NULL || !s_tray.window_ready ||
-            s_tray.surface != surface) {
-        return NULL;
-    }
-
-    /* 'reserved_strut' is kept at all-zero sides by
-     * 'systray_layout_reflow' itself whenever the tray is unmapped
-     * (disabled, empty, or another tray manager owns the selection), so
-     * no separate check for that is needed here: a caller adding an
-     * all-zero strut to a workarea calculation is a no-op either way */
-    return &s_tray.reserved_strut;
-}
-
-
-/* Return the tray's own current on-screen rectangle on 'surface', or
- * 'false' when it is not currently showing there at all */
-bool systray_get_geometry(const surface_td *surface,
-        struct geometry_s *restrict out_tray)
-{
-    xcb_get_geometry_cookie_t cookie;
-    xcb_get_geometry_reply_t *reply;
-
-    if (surface == NULL || out_tray == NULL ||
-            !s_tray.window_ready || !s_tray.is_active ||
-            s_tray.surface != surface) {
-        return false;
-    }
-
-    cookie = xcb_get_geometry(s_tray.connection, s_tray.window);
-    reply = xcb_get_geometry_reply(s_tray.connection, cookie, NULL);
-    if (reply == NULL) {
-        return false;
-    }
-
-    /* 'reply->x'/'reply->y' are relative to the tray window's own
-     * parent, the same root every other top-level window this project
-     * creates (icon windows included) shares, so directly comparable
-     * against an icon's own root-relative position with no extra
-     * translation needed */
-    out_tray->pos.x = (int32_t) reply->x;
-    out_tray->pos.y = (int32_t) reply->y;
-    out_tray->dim.w = reply->width;
-    out_tray->dim.h = reply->height;
-
-    free(reply);
-    return true;
-}
-
-
-/* Query whether 'window' is a currently docked icon, and if so, force
- * it back to the tray's fixed icon size */
-bool systray_icon_size_enforce(xcb_window_t window)
-{
-    if (window == XCB_WINDOW_NONE) {
-        return false;
-    }
-
-    for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
-        if (s_tray.icons[i].window == window) {
-            xcb_configure_window(s_tray.connection, window,
-                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                    (const uint32_t[]) {
-                        s_tray.pixmap_size, s_tray.pixmap_size
-                    });
-            xcb_flush(s_tray.connection);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
 /* Handle a 'ClientMessage' addressed to the tray window */
 void systray_handle_client_message(wm_td *wm,
         const xcb_client_message_event_t *event)
 {
     (void) wm;
 
-    if (event == NULL || !s_tray.selection_owned) {
+    if (event == NULL || !s_tray.is_selection_owned) {
         return;
     }
 
@@ -355,7 +355,7 @@ void systray_handle_destroy(wm_td *wm, xcb_window_t window)
 {
     (void) wm;
 
-    if (!s_tray.window_ready) {
+    if (!s_tray.is_window_ready) {
         return;
     }
 
@@ -438,11 +438,11 @@ void systray_reload(const wm_td *wm)
 
         /* 'systray_protocol_selection_release' already triggers
          * 'systray_layout_reflow' itself once it releases the
-         * selection, but only when 'selection_owned' was actually
+         * selection, but only when 'is_selection_owned' was actually
          * 'true' to begin with.  With embedding disabled, it was never
          * acquired at all, so this still needs to unmap the window
          * itself directly instead. */
-        if (s_tray.selection_owned) {
+        if (s_tray.is_selection_owned) {
             systray_protocol_selection_release();
         } else {
             systray_layout_reflow();

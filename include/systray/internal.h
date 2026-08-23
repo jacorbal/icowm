@@ -73,7 +73,7 @@ typedef struct {
  *       through this declaration
  */
 struct systray_state_s {
-    bool window_ready;              /**< Window created, atoms interned;
+    bool is_window_ready;           /**< Window created, atoms interned;
                                          persists across is-enabled
                                          toggles so docked icons are
                                          never evicted just because the
@@ -85,7 +85,7 @@ struct systray_state_s {
                                          the window's own visibility
                                          and the clock/battery text
                                          refresh, independent of
-                                         @p selection_owned, so a
+                                         @p is_selection_owned, so a
                                          restricted-memory session
                                          (which never sets that) still
                                          shows its own status text */
@@ -98,7 +98,7 @@ struct systray_state_s {
      * @note Never even attempted at all when
      *       @p config_td.base.systray.is_embedding_enabled is @c false
      */
-    bool selection_owned;
+    bool is_selection_owned;
 
     xcb_connection_t *connection;
     xcb_ewmh_connection_t *ewmh;    /**< For publishing the tray's own
@@ -258,7 +258,7 @@ void systray_layout_restack(void);
  *
  * @note Does not acquire the selection
  * @note Idempotent; does nothing (beyond returning success) if
- *       @p s_tray.window_ready is already @c true
+ *       @p s_tray.is_window_ready is already @c true
  *
  * @see @p systray_protocol_selection_acquire
  */

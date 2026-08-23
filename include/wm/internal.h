@@ -81,9 +81,9 @@ struct wm_s {
      * sites needing its own copy of this pointer. */
     xcb_key_symbols_t *keysyms;
 
-    bool randr_available;           /**< XRandR extension availability */
+    bool is_randr_available;        /**< XRandR extension availability */
     uint8_t randr_base_event;       /**< XRandR base event code */
-    bool sync_available;            /**< XSync extension availability */
+    bool is_sync_available;         /**< XSync extension availability */
     uint8_t sync_base_event;        /**< XSync base event code */
     config_td *config;              /**< Window manager configuration */
     rules_td *rules;                /**< Window matching rules */
