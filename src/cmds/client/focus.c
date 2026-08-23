@@ -201,7 +201,7 @@ static void s_ccmd_client_restore_one(client_td *client)
 
         if (desktop != NULL) {
             desktop->client_active_id = client->id;
-            desktop->focus_dirty = true;
+            desktop->is_focus_dirty = true;
             (void) desktop_action_client_send_front(desktop, client);
             desktop->is_outdated = true;
         }
@@ -254,7 +254,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     }
 
     desktop->client_active_id = 0;
-    desktop->focus_dirty = true;
+    desktop->is_focus_dirty = true;
 
     /* A window left behind by 'exclude' from the same application
      * (sharing its own 'WM_CLIENT_LEADER', ICCCM 4.1.2.5) is a more
@@ -309,7 +309,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
 
     if (next_focus != NULL) {
         desktop->client_active_id = next_focus->id;
-        desktop->focus_dirty = true;
+        desktop->is_focus_dirty = true;
         (void) desktop_action_client_send_front(desktop, next_focus);
         ccmd_client_focus(next_focus);
     } else if (desktop->connection != NULL) {
@@ -551,7 +551,22 @@ void ccmd_client_focus(client_td *client)
     client_focus_mark(client);
     ccmd_client_sync_states(client);
 
-    xcb_map_window(client->connection, client->window);
+    /* Never re-map the content window for a shaded client: shading
+     * explicitly unmapped it (see 'ccmd_client_shade',
+     * cmds/client/state.c), and this function runs on every single
+     * click via 'focus_apply' (policy/focus.c), including one that
+     * lands on a titlebar button rather than starting a genuine
+     * unshade.  Without this guard, clicking pin, cycle-layer, or
+     * anything else that re-focuses an already-shaded client mapped
+     * the content back while the frame stayed collapsed to its
+     * titlebar height, showing a sliver of content through the gap
+     * even though 'properties.state' never left
+     * 'CLIENT_STATE_SHADED'.  Matches the identical guard
+     * 'desktop_render_one_client' (render/desktop.c) already applies
+     * to this same window for the same reason. */
+    if (!client_is_shaded(client)) {
+        xcb_map_window(client->connection, client->window);
+    }
     /* 'client_border_apply' ('client.h') preserves this same condition
      * (undecorated-or-frameless, never fullscreen) internally, and
      * additionally honors 'border_override' for a client that themes
