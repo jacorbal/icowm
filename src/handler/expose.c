@@ -89,7 +89,7 @@ void handler_expose(xcb_connection_t *connection,
         return;
     }
 
-    LOGGER_TRACE("Expose event (window=0x%x, region=%ux%u+%+d%+d)",
+    LOGGER_TRACE("Expose event (window=0x%x, region=%ux%u%+d%+d)",
             event->window, event->width, event->height,
             event->x, event->y);
 

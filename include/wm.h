@@ -233,6 +233,23 @@ bool wm_is_running(const wm_td *wm);
 uint32_t wm_restricted_memory_mib(const wm_td *wm);
 
 /**
+ * @brief Return the @c _NET_SUPPORTING_WM_CHECK window
+ *
+ * Also the same window @a wm_startup_acquire_selection
+ * (@c wm/startup/selection.c) makes the owner of every managed
+ * screen's own @c WM_Sn manager selection; see that function's own
+ * comment for why the two share one window.
+ *
+ * @param wm Window manager instance
+ *
+ * @return The support window, or @c XCB_NONE if @p wm is null or none
+ *         has been set yet
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_window_t wm_ewmh_support_win(const wm_td *wm);
+
+/**
  * @brief Set the @c _NET_SUPPORTING_WM_CHECK window
  *
  * @param wm  Window manager instance
@@ -297,6 +314,14 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  * hooks, screen count) loads exactly as it would without
  * @p restricted_memory_mib at all.
  *
+ * Before taking @c SubstructureRedirect on any root window, this
+ * checks whether another window manager already owns that screen's
+ * own @c WM_Sn manager selection (ICCCM §2.8), refusing to start
+ * against it unless @p replace_requested is @c true, in which case it
+ * waits (bounded) for the previous owner to relinquish control before
+ * proceeding; see @a wm_startup_acquire_selection
+ * (@c wm/startup/selection.c) for the full mechanics.
+ *
  * @param display_name          Name of the display, or @c NULL for
  *                              default
  * @param config_dir_prefix     Configuration directory, or @c NULL to
@@ -308,6 +333,10 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  *                              never brought up at all; every other
  *                              part of IcoWM runs exactly the same
  *                              either way
+ * @param replace_requested     When @c true, take over an
+ *                              already-running window manager's
+ *                              @c WM_Sn ownership instead of refusing
+ *                              to start against it (@c -r)
  *
  * @return Status of the initialization
  * @retval    0 Success
@@ -318,6 +347,10 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  *              (surfaces, RandR, &c.)
  * @retval   11 Restricted-memory mode's ceiling is already below
  *              available system memory; refused to start at all
+ * @retval   12 Another window manager already owns a screen's
+ *              @c WM_Sn selection, and @p replace_requested is
+ *              @c false, or the previous owner did not relinquish
+ *              control within a reasonable time
  * @retval   -1 Singleton was already initialized; no action taken
  *
  * @note If @p display_name is @c NULL, the initialization attempts to
@@ -327,13 +360,14 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  *       to initialize, and @e m the number of desktops per window, as
  *       for the initialization requires iterate over a list of lists
  *
- * @see @c main.c for the @c -M option
+ * @see @c main.c for the @c -M and @c -r options
  * @see @a config_load's own @p restricted_memory_mib parameter for the
  *      precise details.
  */
 int wm_start(const char *restrict display_name,
         const char *restrict config_dir_prefix,
-        uint32_t restricted_memory_mib, bool ipc_disabled);
+        uint32_t restricted_memory_mib, bool ipc_disabled,
+        bool replace_requested);
 
 /**
  * @brief Warn through a message dialog if any JSON file loaded since

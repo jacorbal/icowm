@@ -102,6 +102,15 @@
 #define WM_EWMH_PING_TIMEOUT_SECONDS (15)
 
 /**
+ * @brief Milliseconds to wait for a previous window manager to
+ *        relinquish its own @c WM_Sn ownership after @c -r asked to
+ *        replace it (ICCCM §2.8)
+ *
+ * @see @a wm_startup_acquire_selection, @c wm/startup/selection.c
+ */
+#define WM_SN_REPLACE_TIMEOUT_MS (3000)
+
+/**
  * @brief Action values of @c _NET_WM_STATE, per EWMH §5.8
  */
 #define WM_STATE_ACTION_REMOVE (0)

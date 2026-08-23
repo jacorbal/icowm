@@ -134,6 +134,13 @@ uint32_t wm_restricted_memory_mib(const wm_td *wm)
 }
 
 
+/* Return the '_NET_SUPPORTING_WM_CHECK' window */
+xcb_window_t wm_ewmh_support_win(const wm_td *wm)
+{
+    return (wm != NULL) ? wm->ewmh_support_win : (xcb_window_t) XCB_NONE;
+}
+
+
 /* Set the '_NET_SUPPORTING_WM_CHECK' window */
 void wm_set_ewmh_support_win(wm_td *wm, xcb_window_t win)
 {

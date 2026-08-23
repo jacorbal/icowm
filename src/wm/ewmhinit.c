@@ -354,7 +354,7 @@ int wm_ewmh_init(wm_td *wm)
     list_td *surfaces = wm_surfaces(wm);
     xcb_atom_t supported_atoms[WM_EWMH_SUPPORTED_COUNT];
     uint32_t n_supported = 0u;
-    xcb_window_t support;
+    xcb_window_t support = wm_ewmh_support_win(wm);
     xcb_atom_t net_wm_state_focused = XCB_ATOM_NONE;
     xcb_atom_t net_wm_win_type_notif = XCB_ATOM_NONE;
     xcb_atom_t net_wm_icon_geometry = XCB_ATOM_NONE;
@@ -362,7 +362,6 @@ int wm_ewmh_init(wm_td *wm)
     xcb_atom_t net_wm_fullscreen_monitors = XCB_ATOM_NONE;
     xcb_atom_t net_wm_moveresize = XCB_ATOM_NONE;
     xcb_atom_t wm_icon_size_atom = XCB_ATOM_NONE;
-    xcb_atom_t manager_atom = XCB_ATOM_NONE;
     uint32_t icon_size_hints[6];
 
     if (wm == NULL || connection == NULL || ewmh == NULL) {
@@ -384,7 +383,6 @@ int wm_ewmh_init(wm_td *wm)
             "_NET_WM_FULLSCREEN_MONITORS", false);
     net_wm_moveresize = atom_intern(connection,
             "_NET_WM_MOVERESIZE", false);
-    manager_atom = atom_intern(connection, "MANAGER", false);
 
     /* ICCCM §4.1.3: announce the fixed icon dimensions to clients */
     icon_size_hints[0] = WM_ICON_SQUARE_SIZE;   /* min_width */
@@ -393,19 +391,6 @@ int wm_ewmh_init(wm_td *wm)
     icon_size_hints[3] = WM_ICON_SQUARE_SIZE;   /* max_height */
     icon_size_hints[4] = 1u;                    /* width_inc */
     icon_size_hints[5] = 1u;                    /* height_inc */
-
-    support = xcb_generate_id(connection);
-    xcb_create_window(connection,
-            XCB_COPY_FROM_PARENT,
-            support,
-            xcb_setup_roots_iterator(xcb_get_setup(
-                        connection)).data->root,
-            0, 0, 1, 1,
-            0,
-            XCB_WINDOW_CLASS_INPUT_OUTPUT,
-            XCB_COPY_FROM_PARENT,
-            0, NULL);
-    wm_set_ewmh_support_win(wm, support);
 
     xcb_ewmh_set_wm_name(ewmh, support,
             sizeof(WM_EWMH_NAME) - 1u, WM_EWMH_NAME);
@@ -498,47 +483,6 @@ int wm_ewmh_init(wm_td *wm)
                 surface->screen->root, support);
         xcb_ewmh_set_supported(ewmh, (int) surface->id,
                 n_supported, supported_atoms);
-
-        if (manager_atom != XCB_ATOM_NONE) {
-            char selection_name[16];
-            xcb_atom_t selection_atom = XCB_ATOM_NONE;
-            xcb_client_message_event_t manager_event;
-
-            snprintf(selection_name, sizeof(selection_name),
-                    "WM_S%u", surface->id);
-            selection_atom = atom_intern(connection,
-                    selection_name, false);
-
-            if (selection_atom != XCB_ATOM_NONE) {
-                xcb_get_selection_owner_reply_t *owner_reply;
-
-                xcb_set_selection_owner(connection, support,
-                        selection_atom, XCB_CURRENT_TIME);
-                owner_reply = xcb_get_selection_owner_reply(connection,
-                        xcb_get_selection_owner(connection,
-                            selection_atom), NULL);
-                if (owner_reply != NULL &&
-                        owner_reply->owner == support) {
-                    memset(&manager_event, 0, sizeof(manager_event));
-                    manager_event.response_type = XCB_CLIENT_MESSAGE;
-                    manager_event.format = 32;
-                    manager_event.window = surface->screen->root;
-                    manager_event.type = manager_atom;
-                    manager_event.data.data32[0] = XCB_CURRENT_TIME;
-                    manager_event.data.data32[1] = selection_atom;
-                    manager_event.data.data32[2] = support;
-                    manager_event.data.data32[3] = 0u;
-                    manager_event.data.data32[4] = 0u;
-                    xcb_send_event(connection, 0,
-                            surface->screen->root,
-                            XCB_EVENT_MASK_STRUCTURE_NOTIFY,
-                            (const char *) &manager_event);
-                }
-                if (owner_reply != NULL) {
-                    free(owner_reply);
-                }
-            }
-        }
 
         /* ICCCM §4.1.3: announce fixed icon dimensions on the root
          * window */

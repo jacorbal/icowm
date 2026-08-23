@@ -54,6 +54,7 @@
 #include <loop.h>
 #include <memguard.h>
 #include <wm/startup.h>
+#include <wm/startup/selection.h>
 #include <wm/startup/subscribe.h>
 #include <surface.h>
 #include <cctl/sn.h>
@@ -295,7 +296,8 @@ static void s_wm_cleanup(void)
 /* Initialize a window manager instance */
 int wm_start(const char *restrict display_name,
         const char *restrict config_dir_prefix,
-        uint32_t restricted_memory_mib, bool ipc_disabled)
+        uint32_t restricted_memory_mib, bool ipc_disabled,
+        bool replace_requested)
 {
     uint32_t screens_detected;
     uint32_t screens_managed;
@@ -522,6 +524,11 @@ int wm_start(const char *restrict display_name,
 
         LOGGER_TRACE("Setting desktop %u as the startup desktop" \
                 " on surface %u", surface->desktop_cur, i);
+    }
+
+    if (wm_startup_acquire_selection(wm, replace_requested) != 0) {
+        s_wm_cleanup();
+        return 12;
     }
 
     if (wm_startup_subscribe_root_events(wm) != 0) {

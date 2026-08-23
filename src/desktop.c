@@ -585,7 +585,7 @@ void desktop_update_workarea(desktop_td *desktop,
             true, true, true, true,
             config_desktop, systray_strut, ignore_struts);
 
-    LOGGER_TRACE("Desktop %u workarea: %ux%u+%+d%+d",
+    LOGGER_TRACE("Desktop %u workarea: %ux%u%+d%+d",
             desktop->id,
             desktop->workarea.dim.w, desktop->workarea.dim.h,
             desktop->workarea.pos.x, desktop->workarea.pos.y);
@@ -606,7 +606,7 @@ void desktop_update_workarea(desktop_td *desktop,
                 config_desktop, systray_strut, ignore_struts);
 
         LOGGER_TRACE("Desktop %u monitor %u workarea:" \
-                " %ux%u+%+d%+d",
+                " %ux%u%+d%+d",
                 desktop->id, m,
                 desktop->monitor_workareas[m].dim.w,
                 desktop->monitor_workareas[m].dim.h,

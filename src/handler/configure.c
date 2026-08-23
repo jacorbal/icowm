@@ -299,7 +299,7 @@ void handler_configure_request(xcb_connection_t *connection,
     if (client != NULL) {
         LOGGER_DEBUG("'ConfigureRequest' matched client window=0x%x:" \
                 " frame=0x%x, decorated=%d, on_inner=%d, mask=0x%x," \
-                " requested=%ux%u+%+d%+d, operation=%u",
+                " requested=%ux%u%+d%+d, operation=%u",
                 client->window, client->frame,
                 (int) client_is_decorated(client),
                 (int) (event->window == client->window),
@@ -643,7 +643,7 @@ void handler_configure_request(xcb_connection_t *connection,
              * runs for clients with 'is_outdated' set */
             LOGGER_TRACE("Marking window=0x%x outdated after" \
                     " 'ConfigureRequest'" \
-                    " (new frame geometry %ux%u+%+d%+d)",
+                    " (new frame geometry %ux%u%+d%+d)",
                     client->window,
                     client->layout.geometry.cur.dim.w,
                     client->layout.geometry.cur.dim.h,
@@ -675,7 +675,7 @@ void handler_configure_notify(xcb_connection_t *connection,
     }
 
     LOGGER_TRACE("Configure notify event (window=0x%x," \
-            " geom=%ux%u+%+d%+d)",
+            " geom=%ux%u%+d%+d)",
             event->window, event->width, event->height,
             event->x, event->y);
 

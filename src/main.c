@@ -37,8 +37,8 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>      /* NULL, FILE, fprintf */
-#include <stdlib.h>     /* atoi, atol, getenv, srand */
+#include <stdio.h>      /* FILE, fprintf */
+#include <stdlib.h>     /* NULL, atoi, atol, getenv, srand */
 #include <time.h>       /* time */
 #include <unistd.h>     /* optarg, getopt, getpid */
 
@@ -131,6 +131,8 @@ static inline void s_show_help(FILE *fp)
                 " with a ceiling (min. %u MiB)\n",
                 (unsigned int) MEMGUARD_MIN_CEILING_MIB);
     fprintf(fp, "   -s              Disable the IPC control socket\n");
+    fprintf(fp, "   -r              Replace an already-running window" \
+                " manager ('WM_Sn')\n");
     fprintf(fp, "\nLogging:\n");
     fprintf(fp, "   -L <log_level>  Set log verbosity level (%d-%d)\n",
             LOG_MIN_LEVEL, LOG_MAX_LEVEL);
@@ -328,6 +330,7 @@ int main(int argc, char *const argv[])
     bool verbose = true;
     bool lint_requested = false;
     bool ipc_disabled = false;
+    bool replace_requested = false;
     long mib;
 #ifdef COMPACT
     /* A COMPACT build enables restricted-memory mode on its own, at
@@ -352,7 +355,7 @@ int main(int argc, char *const argv[])
     srand((unsigned int) (time(NULL) ^ getpid()));
 
     /* Get user options */
-    while ((opt = getopt(argc, argv, "hvCd:c:l:L:qtM:s")) != -1) {
+    while ((opt = getopt(argc, argv, "hvCd:c:l:L:qtM:sr")) != -1) {
         int opt_level;
 
         switch (opt) {
@@ -448,6 +451,10 @@ int main(int argc, char *const argv[])
                 ipc_disabled = true;
                 break;
 
+            case 'r':
+                replace_requested = true;
+                break;
+
             default:
                 s_show_help(stderr);
                 s_deallocate_buffers(&log_filename,
@@ -483,7 +490,7 @@ int main(int argc, char *const argv[])
     /* Window manager "magic" */
     LOGGER_INFO("Starting up window manager", L_NARG);
     if (wm_start(display_name, config_dir, restricted_memory_mib,
-                ipc_disabled) != 0) {
+                ipc_disabled, replace_requested) != 0) {
         logger_stop();
         s_deallocate_buffers(&log_filename, &display_name, &config_dir);
         return 1;
