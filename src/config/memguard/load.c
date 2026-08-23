@@ -102,10 +102,15 @@ int ci_memguard_load_json(const char *filename, config_td *config)
     windows_item = cJSON_GetObjectItem(json, "windows");
     if (windows_item != NULL) {
         cJSON *edges_item;
+        cJSON *gravity_item;
+        cJSON *focus_item;
         cJSON *placement_item;
 
         json_load_uint(windows_item, "move-step",
                 &config->base.windows.move_step);
+
+        json_load_bool(windows_item, "show-geom",
+                &config->base.windows.show_geom);
 
         edges_item = cJSON_GetObjectItem(windows_item, "edges");
         if (edges_item != NULL) {
@@ -122,15 +127,46 @@ int ci_memguard_load_json(const char *filename, config_td *config)
                     &config->base.windows.edges.resistance);
         }
 
+        gravity_item = json_get_item(windows_item, "gravity");
+        if (gravity_item != NULL && cJSON_IsString(gravity_item)) {
+            config->base.windows.gravity =
+                ci_config_parse_gravity(gravity_item->valuestring);
+        }
+
+        focus_item = cJSON_GetObjectItem(windows_item, "focus");
+        if (focus_item != NULL) {
+            cJSON *focus_policy_item;
+
+            json_load_bool(focus_item, "focus-new",
+                    &config->base.windows.focus.focus_new);
+            json_load_bool(focus_item, "raise",
+                    &config->base.windows.focus.raise);
+            focus_policy_item = json_get_item(focus_item, "policy");
+            if (focus_policy_item != NULL &&
+                    cJSON_IsString(focus_policy_item)) {
+                config->base.windows.focus_policy =
+                    ci_config_parse_focus_policy(
+                            focus_policy_item->valuestring);
+            }
+        }
+
         placement_item = cJSON_GetObjectItem(windows_item, "placement");
         if (placement_item != NULL) {
             cJSON *policy_item = json_get_item(placement_item, "policy");
+            cJSON *monitor_item = json_get_item(placement_item, "monitor");
 
             if (policy_item != NULL && cJSON_IsString(policy_item)) {
                 config->base.windows.placement_policy =
                     ci_config_parse_placement_policy(
                             policy_item->valuestring);
             }
+            if (monitor_item != NULL && cJSON_IsString(monitor_item)) {
+                config->base.windows.monitor_policy =
+                    ci_config_parse_placement_monitor(
+                            monitor_item->valuestring);
+            }
+            json_load_bool(placement_item, "group-related",
+                    &config->base.windows.group_related);
         }
     }
 
@@ -138,6 +174,9 @@ int ci_memguard_load_json(const char *filename, config_td *config)
     if (icons_item != NULL) {
         cJSON *placement_item = cJSON_GetObjectItem(icons_item,
                 "placement");
+
+        json_load_bool(icons_item, "show-geom",
+                &config->base.icons.show_geom);
 
         if (placement_item != NULL) {
             cJSON *policy_item = json_get_item(placement_item, "policy");

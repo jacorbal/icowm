@@ -57,15 +57,15 @@ typedef struct {
  */
 typedef struct {
     const char *display_name; /**< Name to head the report with; may
-                                   differ from the file's bare name on
-                                   disk (see 'themes/' entries, headed
-                                   by @c themes/theme.json) */
+                                    differ from the file's bare name on
+                                    disk (see 'themes/' entries, headed
+                                    by 'themes/<name>.json') */
     bool header_printed;
     int unknown_count;
 } config_lint_report_td;
 
 
-/* config.json schema */
+/* --- config.json schema --- */
 
 static const config_lint_key_td s_schema_screens[] = {
     {"count", NULL, 0u},
@@ -86,6 +86,7 @@ static const config_lint_key_td s_schema_desktops_margins[] = {
 
 static const config_lint_key_td s_schema_desktops[] = {
     {"show-overlay", NULL, 0u},
+    {"notify-activity", NULL, 0u},
     {"warp-on-edge-drag", NULL, 0u},
     {"wrap-at-bounds", NULL, 0u},
     {"margins", s_schema_desktops_margins,
@@ -99,6 +100,13 @@ static const config_lint_key_td s_schema_programs[] = {
     {"file-manager", NULL, 0u},
     {"web-browser", NULL, 0u},
     {"editor", NULL, 0u}
+};
+
+/* Accepted at config.json's own top level (built-in run-box) and
+ * reused verbatim by memguard.json, same reasoning as 'programs' and
+ * 'shutdown' above having one shared schema each */
+static const config_lint_key_td s_schema_prompt[] = {
+    {"is-enabled", NULL, 0u}
 };
 
 static const config_lint_key_td s_schema_scratchpad[] = {
@@ -257,6 +265,8 @@ static const config_lint_key_td s_schema_config[] = {
         sizeof(s_schema_desktops) / sizeof(s_schema_desktops[0])},
     {"programs", s_schema_programs,
         sizeof(s_schema_programs) / sizeof(s_schema_programs[0])},
+    {"prompt", s_schema_prompt,
+        sizeof(s_schema_prompt) / sizeof(s_schema_prompt[0])},
     {"windows", s_schema_windows,
         sizeof(s_schema_windows) / sizeof(s_schema_windows[0])},
     {"icons", s_schema_icons,
@@ -277,7 +287,7 @@ static const config_lint_key_td s_schema_config[] = {
 };
 
 
-/* bindings.json schema */
+/* --- bindings.json schema --- */
 
 static const config_lint_key_td s_schema_wm_menus[] = {
     {"root", NULL, 0u},
@@ -439,22 +449,22 @@ static const config_lint_key_td s_schema_bindings[] = {
 
 
 /* `theme.json` schema: validated to the same full depth as every other
- * fixed-shape file ('config.json', 'bindings.json', 'a11y.json').
- * Unlike 'randr.json''s own "outputs" or 'rules.json''s own "rules",
- * nothing under theme.json is genuinely polymorphic (see the
- * opaque-subtree rule in 'config/lint.h' for what that means and why it
- * does not apply here): every field's own shape is fixed and known
- * ahead of time, so there is no risk of a false positive on
- * a legitimate but less common shape the way there would be for
- * those. */
+ *      fixed-shape file ('config.json', 'bindings.json', 'a11y.json').
+ *      Unlike 'randr.json''s own "outputs" or 'rules.json''s own
+ *      "rules", nothing under theme.json is genuinely polymorphic (see
+ *      the opaque-subtree rule in 'config/lint.h' for what that means
+ *      and why it does not apply here): every field's own shape is
+ *      fixed and known ahead of time, so there is no risk of a false
+ *      positive on a legitimate but less common shape the way there
+ *      would be for those. */
 
-/* The { font, color: {background, foreground}, border: {color, width} }
- * shape shared by every themeable surface's own row or button style
- * (menu.unselected/selected/label, dialog.button.
+/* The { font, color: {background, foreground}, border: {color,
+ * width} } shape shared by every themeable surface's own row or
+ * button style (menu.unselected/selected/label, dialog.button.
  * unselected/selected): never has its own 'opacity', since
  * '_NET_WM_WINDOW_OPACITY' is a per-window property that cannot vary
- * row by row or button by button; see 's_load_theme_colors''s comment,
- * in 'config/theme.c', for the full rationale. */
+ * row by row or button by button; see 's_load_theme_colors''s own
+ * doc comment, config/theme.c, for the full rationale. */
 static const config_lint_key_td s_schema_theme_color[] = {
     {"background", NULL, 0u},
     {"foreground", NULL, 0u}
@@ -474,10 +484,10 @@ static const config_lint_key_td s_schema_theme_style[] = {
 };
 
 /* The same shape, but for the six sites that stand for one real,
- * distinct window or window-state on their own and so do have their own
- * 'opacity' (window.active/inactive, icon.active/inactive, systray,
- * overlay); see 's_schema_theme_style' above for the opacity-less
- * variant and why the split exists at all. */
+ * distinct window or window-state on their own and so do have their
+ * own 'opacity' (window.active/inactive, icon.active/inactive,
+ * systray, overlay); see 's_schema_theme_style' above for the
+ * opacity-less variant and why the split exists at all. */
 static const config_lint_key_td s_schema_theme_style_opacity[] = {
     {"font", NULL, 0u},
     {"color", s_schema_theme_color,
@@ -779,15 +789,36 @@ static const config_lint_key_td s_schema_a11y[] = {
  *      since restricted-memory mode accepts fewer fields per section
  *      than an ordinary session does (see 'config.md' §10.1) */
 
-static const config_lint_key_td s_schema_memguard_windows_placement[] = {
-    {"policy", NULL, 0u}
+static const config_lint_key_td s_schema_memguard_windows_edges_snap[] = {
+    {"window", NULL, 0u},
+    {"screen", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_memguard_windows_edges[] = {
+    {"snap", s_schema_memguard_windows_edges_snap,
+        sizeof(s_schema_memguard_windows_edges_snap) /
+            sizeof(s_schema_memguard_windows_edges_snap[0])},
+    {"resistance", NULL, 0u}
 };
 
 static const config_lint_key_td s_schema_memguard_windows[] = {
     {"move-step", NULL, 0u},
-    {"placement", s_schema_memguard_windows_placement,
-        sizeof(s_schema_memguard_windows_placement) /
-            sizeof(s_schema_memguard_windows_placement[0])}
+    {"show-geom", NULL, 0u},
+    {"edges", s_schema_memguard_windows_edges,
+        sizeof(s_schema_memguard_windows_edges) /
+            sizeof(s_schema_memguard_windows_edges[0])},
+    {"gravity", NULL, 0u},
+    /* Both 'focus' and 'placement' are now identical to config.json's
+     * own identically-named objects (policy included in both:
+     * memguard.json's own parser reads every field either accepts),
+     * so shared verbatim rather than duplicated, same as 'programs'
+     * and 'shutdown' above. */
+    {"focus", s_schema_windows_focus,
+        sizeof(s_schema_windows_focus) /
+            sizeof(s_schema_windows_focus[0])},
+    {"placement", s_schema_windows_placement,
+        sizeof(s_schema_windows_placement) /
+            sizeof(s_schema_windows_placement[0])}
 };
 
 static const config_lint_key_td s_schema_memguard_icons_placement[] = {
@@ -795,6 +826,7 @@ static const config_lint_key_td s_schema_memguard_icons_placement[] = {
 };
 
 static const config_lint_key_td s_schema_memguard_icons[] = {
+    {"show-geom", NULL, 0u},
     {"placement", s_schema_memguard_icons_placement,
         sizeof(s_schema_memguard_icons_placement) /
             sizeof(s_schema_memguard_icons_placement[0])}
@@ -810,11 +842,13 @@ static const config_lint_key_td s_schema_memguard_desktops[] = {
 
 static const config_lint_key_td s_schema_memguard[] = {
     {"theme", NULL, 0u},
-    /* 'programs' and 'shutdown' accept the exact same fields as
-     * config.json's own identically-named sections, so their
-     * schemas are shared verbatim rather than duplicated. */
+    /* 'programs', 'prompt', and 'shutdown' accept the exact same
+     * fields as config.json's own identically-named sections, so
+     * their schemas are shared verbatim rather than duplicated. */
     {"programs", s_schema_programs,
         sizeof(s_schema_programs) / sizeof(s_schema_programs[0])},
+    {"prompt", s_schema_prompt,
+        sizeof(s_schema_prompt) / sizeof(s_schema_prompt[0])},
     {"desktops", s_schema_memguard_desktops,
         sizeof(s_schema_memguard_desktops) /
             sizeof(s_schema_memguard_desktops[0])},
@@ -828,7 +862,7 @@ static const config_lint_key_td s_schema_memguard[] = {
      * config.json itself uses, so every field it accepts there is
      * accepted here too, even the two ('text.position' and 'order')
      * that end up with no visible effect in this mode; see that
-     * function's own call site in 'memguard.c' for why. */
+     * function's own call site in memguard.c for why. */
     {"systray", s_schema_systray,
         sizeof(s_schema_systray) / sizeof(s_schema_systray[0])},
     {"shutdown", s_schema_shutdown,
@@ -864,8 +898,8 @@ static const config_lint_file_spec_td s_files[] = {
  * Matches the same way the real loaders do: case-insensitively, with
  * @c '-' and @c '_' treated as equivalent.
  *
- * @param key          Key name as it appears in the JSON file
- * @param schema       Schema entries to search
+ * @param key      Key name as it appears in the JSON file
+ * @param schema   Schema entries to search
  * @param schema_count Number of entries in @p schema
  *
  * @return The matching entry, or @c NULL if none matches
@@ -904,7 +938,7 @@ static const config_lint_key_td *s_find_key(const char *key,
  * @param schema_count Number of entries in @p schema
  * @param path         Dotted path to @p obj so far, for the report
  * @param report       This file's shared report state; the header is
- *                     printed here, lazily, on the first finding
+ *                      printed here, lazily, on the first finding
  *
  * @note Complexity: @e O(n), where @e n is the number of keys in
  *       @p obj and everything nested under it
@@ -955,13 +989,13 @@ static void s_lint_object(const cJSON *obj,
 /**
  * @brief Check one configuration file against its schema
  *
- * @param config_dir    Configuration directory the file lives under
- * @param spec          This file's name, schema, and whether it must
+ * @param config_dir   Configuration directory the file lives under
+ * @param spec         This file's name, schema, and whether it must
  *                      exist
- * @param display_name  Name to head the report with if anything is
+ * @param display_name Name to head the report with if anything is
  *                      found; distinct from @c spec->filename so a
  *                      theme file can be headed by its path relative
- *                      to @p config_dir (e.g., @c themes/default.json)
+ *                      to @p config_dir (e.g., @c "themes/default.json")
  *                      rather than its bare name alone
  * @param unknown_count Running count of unknown keys found; advanced
  *                      by this call
@@ -1006,18 +1040,18 @@ static void s_lint_file(const char *restrict config_dir,
 
 /**
  * @brief Check every @c *.json file directly under
- *        @c config_dir/themes against the theme schema
+ *        @c <config_dir>/themes against the theme schema
  *
- * @param config_dir    Configuration directory the @c themes
- *                      subdirectory lives under
- * @param unknown_count Running count of unknown keys found; advanced by
- *                      this call
+ * @param config_dir Configuration directory the @c themes
+ *                    subdirectory lives under
+ * @param unknown_count Running count of unknown keys found; advanced
+ *                      by this call
  *
  * @note A missing @c themes subdirectory is not reported: unlike
  *       @c config.json, having no themes of one's own (using only
- *       whichever theme name @c config.json's own @c theme field names,
- *       which may resolve to a built-in default elsewhere) is an
- *       entirely ordinary setup, not an oversight
+ *       whichever theme name @c config.json's own @c theme field
+ *       names, which may resolve to a built-in default elsewhere) is
+ *       an entirely ordinary setup, not an oversight
  * @note Complexity: @e O(n), where @e n is the total number of keys
  *       across every theme file found
  */
@@ -1072,11 +1106,10 @@ int config_lint_run(const char *config_dir)
 
     dir = opendir(config_dir);
     if (dir == NULL) {
-        /* Quoted so a stray leading character (e.g., an '=' from typing
-         * '-c=<dir>', a GNU long-option convention getopt does not
-         * apply to a short option like '-c') stands out rather than
-         * blending into the surrounding text, although I think only
-         * POSIX options will be used */
+        /* Quoted so a stray leading character (e.g., an '=' from
+         * typing '-c=<dir>', a GNU long-option convention getopt does
+         * not apply to a short option like '-c') stands out rather
+         * than blending into the surrounding text */
         fprintf(stderr, "'%s': cannot open configuration directory\n",
                 config_dir);
         return -1;

@@ -519,16 +519,14 @@ their first map, once fonts and chrome are ready, and that later update
 commonly carries an explicit `win_gravity` of its own (typically
 `NorthWestGravity` or `StaticGravity`, i.e., "do nothing special") that
 this field can never override.  This is deliberate, ICCCM-mandated
-behavior (ICCCM §4.1.2.3), not a limitation specific to IcoWM.  This
-field's only practical effect is on the comparatively rare client that
-never declares a `win_gravity` of its own, ever.
-
-This matches how other ICCCM-compliant window managers (e.g., Openbox)
-treat this same field, as none of them offer a way to force a client's
-own gravity to something the client itself did not request;
-per-application placement rules (`rules.json`) are the tool for
-overriding where a specific application ends up on screen, not this
-field.
+behavior, not a limitation specific to IcoWM: this field's only
+practical effect is on the comparatively rare client that never declares
+a `win_gravity` of its own, ever.  This matches how other
+ICCCM-compliant window managers treat this same field: none of them
+offer a way to force a client's own gravity to something the client
+itself did not request.  Per-application placement rules (`rules.json`)
+are the tool for overriding where a specific application ends up on
+screen, not this field.
 
 Accepted `windows.gravity` values: `"north-west"`, `"north"`,
 `"north-east"`, `"east"`, `"south-east"`, `"south"`, `"south-west"`,
@@ -847,7 +845,7 @@ under the pointer in that case.
 | `systray.is-enabled`    | boolean | `true`            |
 | `systray.reserve-space` | boolean | `false`           |
 | `systray.margins`       | object  | see below         |
-| `systray.position`      | string  | `"top-right"`     |
+| `systray.position`      | string  | `"top-left"`      |
 | `systray.monitor`       | object  | see below         |
 | `systray.order`         | string  | `"left-to-right"` |
 | `systray.layer`         | string  | `"below"`         |
@@ -951,7 +949,7 @@ tray.
 | Key                        | Type    | Default   |
 |----------------------------|---------|-----------|
 | `systray.clock.is-enabled` | boolean | `true`    |
-| `systray.clock.format`     | string  | `"%H:%M"` |
+| `systray.clock.format`     | string  | `"%a %R"` |
 
 An optional clock drawn inside the systray dock.  `is-enabled` turns it
 on; when it is the only reason the tray would otherwise stay hidden (no
@@ -964,6 +962,7 @@ local time zone.  A few common examples:
 
 | `format`     | Looks like         |
 |--------------|--------------------|
+| `"%a %R"`    | `Fri 14:07`        |
 | `"%H:%M"`    | `14:07`            |
 | `"%H:%M:%S"` | `14:07:32`         |
 | `"%F %R"`    | `2026-08-07 14:07` |
@@ -1025,8 +1024,8 @@ aligned is shared with `systray.clock` above; see `systray.text`.
 
 | Key                     | Type            | Default                  |
 |-------------------------|-----------------|--------------------------|
-| `systray.text.order`    | array of string | `[ "battery", "clock" ]` |
-| `systray.text.position` | string          | `"right"`                |
+| `systray.text.order`    | array of string | `[ "clock", "battery" ]` |
+| `systray.text.position` | string          | `"left"`                 |
 
 Shared placement for the clock and battery status text: which of the two
 show, in what left-to-right order.  `order` lists the enabled items to
@@ -2137,21 +2136,33 @@ active, not merely refuse to act.
 
 ### 10.1. Configurable fields
 
-| Key                                      | Type    | Default     | Description |
-|------------------------------------------|---------|-------------|-------------|
+| Key                                      | Type    | Default        | Description |
+|------------------------------------------|---------|----------------|-------------|
 | `theme`                                  | string  | `""` (built-in default theme) | Same as `config.json`'s own `theme`: the filename (without `.json`) of a theme under `themes/`. |
-| `programs.editor`                        | string  | `"gvim"`    | Same as `config.json`'s own `programs.editor`. |
-| `programs.file-manager`                  | string  | `"pcmanfm"` | Same as `config.json`'s own `programs.file-manager`. |
-| `programs.launcher`                      | string  | `"gmrun"`   | Same as `config.json`'s own `programs.launcher`. |
-| `programs.terminal`                      | string  | `"xterm"`   | Same as `config.json`'s own `programs.terminal`. |
-| `programs.web-browser`                   | string  | `"firefox"` | Same as `config.json`'s own `programs.web-browser`. |
-| `desktops.margins.top/right/bottom/left` | integer | `0`         | Same as `config.json`'s own `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
-| `windows.move-step`                      | integer | `10`        | Same as `config.json`'s own `windows.move-step`. |
-| `windows.placement.policy`               | string  | `"smart"`   | Same as `config.json`'s own `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
-| `icons.placement.policy`                 | string  | `"smart"`   | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
-| `systray`                                | object  | see §10.2   | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
-| `shutdown.enable-emergency-shortcut`     | boolean | `false`     | Same as `config.json`'s own `shutdown.enable-emergency-shortcut`. |
-| `shutdown.timeout-seconds`               | integer | `15`        | Same as `config.json`'s own `shutdown.timeout-seconds`. |
+| `programs.editor`                        | string  | `"gvim"`       | Same as `config.json`'s own `programs.editor`. |
+| `programs.file-manager`                  | string  | `"pcmanfm"`    | Same as `config.json`'s own `programs.file-manager`. |
+| `programs.launcher`                      | string  | `"gmrun"`      | Same as `config.json`'s own `programs.launcher`. |
+| `programs.terminal`                      | string  | `"xterm"`      | Same as `config.json`'s own `programs.terminal`. |
+| `programs.web-browser`                   | string  | `"firefox"`    | Same as `config.json`'s own `programs.web-browser`. |
+| `prompt.is-enabled`                      | boolean | `true`         | Same as `config.json`'s own `prompt.is-enabled` (§2.12), except restricted-memory mode defaults this to `true` rather than `false`, to avoid spawning `programs.launcher` as a separate process. |
+| `desktops.margins.top/right/bottom/left` | integer | `0`            | Same as `config.json`'s own `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
+| `windows.move-step`                      | integer | `10`           | Same as `config.json`'s own `windows.move-step`. |
+| `windows.show-geom`                      | boolean | `true`         | Same as `config.json`'s own `windows.show-geom`: shows a small overlay with the exact position (moving) or size (resizing) while dragging. |
+| `windows.edges.snap.window`              | integer | `6`            | Same as `config.json`'s own `windows.edges.snap.window`: attraction distance in pixels toward another window's own edge. |
+| `windows.edges.snap.screen`              | integer | `6`            | Same as `config.json`'s own `windows.edges.snap.screen`: attraction distance in pixels toward the screen's own edge. |
+| `windows.edges.resistance`               | integer | `20`           | Same as `config.json`'s own `windows.edges.resistance`: pixels of deliberate extra drag before a maximized axis starts changing while interactively resizing. |
+| `windows.gravity`                        | string  | `"north-west"` | Same as `config.json`'s own `windows.gravity`: a fallback only, for a client that never declares its own; see §2.4 for the accepted values and why this is fallback-only. |
+| `windows.focus.focus-new`                | boolean | `true`         | Same as `config.json`'s own `focus.focus-new`: when `true`, newly mapped windows receive focus automatically. |
+| `windows.focus.raise`                    | boolean | `false`        | Same as `config.json`'s own `focus.raise`: when `true`, a window is raised to the top of the stack when it receives focus. |
+| `windows.focus.policy`                   | string  | `"click"`      | Same as `config.json`'s own `focus.policy`: `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
+| `windows.placement.policy`               | string  | `"smart"`      | Same as `config.json`'s own `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
+| `windows.placement.monitor`              | string  | `"pointer"`    | Same as `config.json`'s own `windows.placement.monitor`: which physical monitor a placement decision targets, on a surface with more than one. |
+| `windows.placement.group-related`        | boolean | `true`         | Same as `config.json`'s own `windows.placement.group-related`: cluster windows of the same application together. |
+| `icons.show-geom`                        | boolean | `false`        | Same as `config.json`'s own `icons.show-geom`: shows the exact size in the center of the icon while resizing. |
+| `icons.placement.policy`                 | string  | `"smart"`      | Same as `config.json`'s own `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
+| `systray`                                | object  | see §10.2      | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
+| `shutdown.enable-emergency-shortcut`     | boolean | `false`        | Same as `config.json`'s own `shutdown.enable-emergency-shortcut`. |
+| `shutdown.timeout-seconds`               | integer | `15`           | Same as `config.json`'s own `shutdown.timeout-seconds`. |
 
 ### 10.2. Fields this mode never lets `memguard.json` change
 
@@ -2371,8 +2382,41 @@ to whatever theme loads, unconditionally.
     },
 
     "keyboard": {
+        "wm": {
+            "search": "modc+mod1+mods+s",
+            "scratchpad": "modc+mod1+mods+F12",
+            "redraw": "modc+mod1+mods+r",
+            "reload": "modc+mod1+mods+c",
+            "fortune": "modc+mod4+Backspace",
+            "shortcuts": "modc+mod4+F1",
+            "quit": "modc+mod1+mods+x",
+            "menus": {
+                "root": "modc+mod1+mods+m",
+                "windows": "modc+mod1+mods+w"
+            },
+            "toggle-strutless-maximization": ""
+        },
+
+        "desktop": {
+            "add": "modc+mod4+mods+Right",
+            "remove": "modc+mod4+mods+Left",
+            "show": "modc+mod4+mods+d",
+            "go-to": {
+                "desktop0": "modc+mod1+0",
+                "desktop1": "modc+mod1+1",
+                "desktop2": "modc+mod1+2",
+                "desktop3": "modc+mod1+3",
+                "desktop4": "modc+mod1+4",
+                "desktop5": "modc+mod1+5",
+                "desktop6": "modc+mod1+6",
+                "desktop7": "modc+mod1+7",
+                "desktop8": "modc+mod1+8",
+                "desktop9": "modc+mod1+9"
+            }
+        },
+
         "launch": {
-            "terminal": "modc+mod1+Return",
+            "terminal": "modc+mod1+Enter",
             "launcher": "modc+mod1+r",
             "file-manager": "modc+mod1+q",
             "web-browser": "modc+mod1+w",
@@ -2380,26 +2424,40 @@ to whatever theme loads, unconditionally.
         },
 
         "window": {
-            "close": "modc+mod1+c",
-            "kill": "modc+mod1+mods+Escape",
+            "arrange": "modc+mod1+mods+a",
+            "close": "mod1+modc+c",
+            "decorate": "modc+mod1+d",
+            "hide": "modc+mod1+mods+u",
             "iconify": "modc+mod1+i",
             "iconify-all": "modc+mod1+mods+i",
             "deiconify-all": "modc+mod1+mods+d",
-            "arrange": "modc+mod1+mods+a",
-            "hide": "modc+mod1+mods+h",
+            "info": "modc+mod4+mods+i",
+            "layer": "modc+mod1+mods+y",
             "maximize": "modc+mod1+m",
             "fullscreen": "modc+mod1+f",
-            "shade": "modc+mod1+s",
             "pin": "modc+mod1+p",
-            "decorate": "modc+mod1+d",
-            "layer": "modc+mod1+mods+y",
-            "info": "modc+mod4+mods+i",
+            "shade": "modc+mod1+s",
+            "kill": "modc+mod1+mods+Escape",
+            "send-to": {
+                "desktop": {
+                    "north": "modc+mod1+mods+Up",
+                    "east": "modc+mod1+mods+Right",
+                    "south": "modc+mod1+mods+Down",
+                    "west": "modc+mod1+mods+Left"
+                },
+                "monitor": {
+                    "north": "modc+mod1+mod4+mods+Up",
+                    "east": "modc+mod1+mod4+mods+Right",
+                    "south": "modc+mod1+mod4+mods+Down",
+                    "west": "modc+mod1+mod4+mods+Left"
+                }
+            },
             "move": {
                 "relative": {
-                    "right": "modc+mod1+l",
                     "left": "modc+mod1+h",
+                    "down": "modc+mod1+j",
                     "up": "modc+mod1+k",
-                    "down": "modc+mod1+j"
+                    "right": "modc+mod1+l"
                 },
                 "absolute": {
                     "center": "modc+mod1+g",
@@ -2410,39 +2468,27 @@ to whatever theme loads, unconditionally.
                 }
             },
             "resize": {
-                "right": "modc+mod1+mods+l",
                 "left": "modc+mod1+mods+h",
+                "down": "modc+mod1+mods+j",
                 "up": "modc+mod1+mods+k",
-                "down": "modc+mod1+mods+j"
+                "right": "modc+mod1+mods+l"
             }
-        },
-
-        "wm": {
-            "menus": {
-                "root": "modc+mod1+mods+m",
-                "windows": "modc+mod1+mods+w"
-            },
-            "search": "modc+mod4+mods+s",
-            "show-desktop": "modc+mod4+mods+d",
-            "scratchpad": "modc+mod1+mods+F12",
-            "redraw": "modc+mod1+mods+r",
-            "reload": "modc+mod1+mods+c",
-            "quit": "modc+mod1+mods+x",
-            "shortcuts": "modc+mod4+F1"
         },
 
         "cycle": {
             "desktop": {
-                "prev": "modc+mod1+Left",
-                "next": "modc+mod1+Right"
-            },
-            "window": {
-                "prev": "mod1+mods+Tab",
-                "next": "mod1+Tab"
+                "north": "modc+mod1+Up",
+                "west": "modc+mod1+Left",
+                "south": "modc+mod1+Down",
+                "east": "modc+mod1+Right"
             },
             "icon": {
                 "prev": "modc+mod1+mods+Tab",
                 "next": "modc+mod1+Tab"
+            },
+            "window": {
+                "prev": "mod1+mods+Tab",
+                "next": "mod1+Tab"
             }
         }
     },
@@ -2453,10 +2499,13 @@ to whatever theme loads, unconditionally.
             "lower": "mod1+button2",
             "resize": "mod1+button3"
         },
+
         "cycle": {
             "desktop": {
-                "prev": "button4",
-                "next": "button5"
+                "north": "mods+button4",
+                "east": "button5",
+                "south": "mods+button5",
+                "west": "button4"
             }
         }
     }
