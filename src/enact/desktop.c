@@ -41,8 +41,9 @@
 #include <ipc.h>
 
 /* Command includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/focus.h>
 #include <cmds/client/transient.h>
+#include <cmds/client/visibility.h>
 #include <cmds/surface.h>
 
 /* Menu includes */
@@ -146,7 +147,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * 'client_focus_fallback') redirects to whichever mapped
      * transient descendant of the new fallback target should
      * actually receive focus in its place (see 'ccmd_client_
-     * focus_target''s own doc comment, cmds/client/basic.h), and
+     * focus_target''s own doc comment, cmds/client/transient.h), and
      * that redirect walk would otherwise still find 'client' sitting
      * in 'desktop->clients' at the moment of the search, even though
      * it is already on its way to 'target'; the same reasoning

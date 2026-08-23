@@ -25,7 +25,7 @@
 
 /* Project includes */
 #include <client.h>
-#include <cmds/client/basic.h>
+#include <cmds/client/screen.h>
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>

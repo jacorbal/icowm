@@ -56,10 +56,15 @@
 #include <cctl/kill.h>
 
 /* Local includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/ewmh.h>
+#include <cmds/client/flags.h>
+#include <cmds/client/focus.h>
 #include <cmds/client/internal.h>
 #include <cmds/client/maximize.h>
+#include <cmds/client/screen.h>
+#include <cmds/client/state.h>
 #include <cmds/client/transient.h>
+#include <cmds/client/visibility.h>
 
 
 /**

@@ -341,7 +341,7 @@ struct config_base_s {
          *       and even the exit session hooks, entirely
          *
          * @see @a wm_request_graceful_stop (@c wm.h), @c wm/shutdown.c
-         * @see @a ccmd_client_kill in @c cmds/client/basic.h
+         * @see @a ccmd_client_kill in @c cmds/client/focus.h
          */
         uint32_t timeout_seconds;
     } shutdown;

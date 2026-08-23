@@ -28,7 +28,7 @@
 #include <ipc.h>
 
 /* Local includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/transient.h>
 #include <policy/focus.h>
@@ -62,8 +62,8 @@ void focus_apply(list_td *surfaces, surface_td *surface,
     /* Bring any transient descendant now sitting on a different
      * desktop back onto this client's own, before the redirect just
      * below ever runs: see 'ccmd_client_bring_family''s own doc
-     * comment (cmds/client/basic.h) for the full reasoning, matching
-     * Openbox's own 'client_bring_modal_windows'. */
+     * comment (cmds/client/transient.h) for the full reasoning,
+     * matching Openbox's own 'client_bring_modal_windows'. */
     ccmd_client_bring_family(client);
 
     /* Redirect to whichever mapped transient descendant should
@@ -80,7 +80,7 @@ void focus_apply(list_td *surfaces, surface_td *surface,
      * would still track the original client, since a callee
      * reassigning its own local copy of a pointer parameter can never
      * be observed by its caller.  See 'ccmd_client_focus_target''s own
-     * doc comment (cmds/client/basic.h) for the full reasoning. */
+     * doc comment (cmds/client/transient.h) for the full reasoning. */
     client = ccmd_client_focus_target(client);
     if (client == NULL) {
         return;

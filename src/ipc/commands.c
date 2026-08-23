@@ -36,11 +36,13 @@
 /* Local includes */
 #include <ipc.h>
 #include <ipc/response.h>
-#include <ipc/actions/client/basic.h>
+#include <ipc/actions/client/flags.h>
+#include <ipc/actions/client/focus.h>
 #include <ipc/actions/client/geom.h>
 #include <ipc/actions/client/layer.h>
 #include <ipc/actions/client/meta.h>
 #include <ipc/actions/client/state.h>
+#include <ipc/actions/client/visibility.h>
 #include <ipc/actions/desktop.h>
 #include <ipc/actions/query.h>
 #include <ipc/actions/scratchpad.h>
@@ -89,20 +91,24 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "list_clients",             ipc_action_list_clients },
     { "get_focused",              ipc_action_get_focused },
 
-    /* Client basics: ipc/actions/client/basic.h */
+    /* Client close/kill/restore/focus: ipc/actions/client/focus.h */
     { "close_client",             ipc_action_close_client },
     { "kill_client",              ipc_action_kill_client },
     { "deiconify_client",         ipc_action_deiconify_client },
     { "focus_client",             ipc_action_focus_client },
     { "unfocus_client",           ipc_action_unfocus_client },
+
+    /* Client iconify/hide: ipc/actions/client/visibility.h */
     { "iconify_client",           ipc_action_iconify_client },
     { "hide_client",              ipc_action_hide_client },
     { "unhide_client",            ipc_action_unhide_client },
+
+    /* Client pin/urgency flags: ipc/actions/client/flags.h */
     { "pin_client",               ipc_action_pin_client },
     { "unpin_client",             ipc_action_unpin_client },
     { "toggle_pin_client",        ipc_action_toggle_pin_client },
-    { "urge_client",             ipc_action_urge_client },
-    { "unurge_client",           ipc_action_unurge_client },
+    { "urge_client",              ipc_action_urge_client },
+    { "unurge_client",            ipc_action_unurge_client },
 
     /* Client geometry: ipc/actions/client/geom.h */
     { "move_client",              ipc_action_move_client },

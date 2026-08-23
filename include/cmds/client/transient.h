@@ -1,8 +1,10 @@
 /**
- * @file cmds/client/basic.h
+ * @file cmds/client/transient.h
  *
- * @brief Functions on executions over clients using the XCB interface
- *        with needed EWMH and ICCCM updates
+ * @brief Functions on a client's transient family: the top-most
+ *        ancestor, group-transient anchor resolution, cross-desktop
+ *        bring-together, family-wide snapshots, and the transient
+ *        tree's own link/unlink lifecycle
  *
  * @defgroup cmds Client, desktop, and surface commands
  * @ingroup enact
@@ -259,6 +261,39 @@ void client_link_transient(client_td *client);
  *       own direct transient children
  */
 void client_unlink_transient(client_td *client);
+
+/**
+ * @brief Walk down from a client to whichever mapped transient
+ *        descendant should actually receive focus in its place
+ *
+ * ICCCM §4.1.2.6 dialogs exist to demand a specific answer before
+ * their own parent is usable again in any meaningful sense.  Called
+ * both from @a ccmd_client_focus itself (@c cmds/client/focus.c) and
+ * from @a focus_apply (@c policy/focus.c): the latter needs its own
+ * copy of the redirected client, resolved before it does any of its
+ * own "currently active client" bookkeeping (@c desktop->
+ * client_active_id and the stacking-order raise), since a callee
+ * reassigning its own local copy of a pointer parameter (inside
+ * @a ccmd_client_focus) can never be observed by its caller.  Without
+ * this, a caller of @a focus_apply targeting the parent (a plain
+ * click, sloppy focus, restoring the group, and the like) leaves
+ * @c client_active_id on the parent even though real X11 input focus
+ * correctly ends up on the dialog, and that mismatch is what leaves
+ * keyboard shortcuts unable to find "the active client" at all once
+ * the dialog later closes.
+ *
+ * @param client Client focus was actually requested for
+ *
+ * @return The deepest mapped transient descendant found, or
+ *         @p client itself if it has none (or @p client is @c NULL)
+ *
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Complexity: @e O(min(d, @c WM_TRANSIENT_CHAIN_MAX_DEPTH) * k),
+ *       where @e d is the true depth of mapped transient descendants
+ *       and @e k is the number of direct transient children found at
+ *       each step along the way
+ */
+client_td *ccmd_client_focus_target(client_td *client);
 
 
 #endif  /* ! CMDS_CCMD_TRANSIENT_H */

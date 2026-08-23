@@ -26,9 +26,10 @@
 #include <wm.h>
 
 /* Local includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/ewmh.h>
 #include <cmds/client/internal.h>
 #include <cmds/client/layer.h>
+#include <cmds/client/screen.h>
 #include <cmds/client/transient.h>
 
 

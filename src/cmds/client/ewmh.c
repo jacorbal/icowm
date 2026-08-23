@@ -27,8 +27,9 @@
 #include <client.h>
 
 /* Local includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/ewmh.h>
 #include <cmds/client/internal.h>
+#include <cmds/client/visibility.h>
 
 
 /* Intern an atom name in the X11 system */

@@ -29,6 +29,7 @@
 #include <ipc/actions/client/meta.h>
 
 
+/* Rename the client */
 cJSON *ipc_action_rename_client(const wm_td *wm, const cJSON *args)
 {
     const char *name;
@@ -49,6 +50,7 @@ cJSON *ipc_action_rename_client(const wm_td *wm, const cJSON *args)
 }
 
 
+/* Change the client's own 'WM_CLASS' */
 cJSON *ipc_action_reclass_client(const wm_td *wm, const cJSON *args)
 {
     const char *class_name;
@@ -73,6 +75,7 @@ cJSON *ipc_action_reclass_client(const wm_td *wm, const cJSON *args)
 }
 
 
+/* Change the client's own 'WM_WINDOW_ROLE' */
 cJSON *ipc_action_rerole_client(const wm_td *wm, const cJSON *args)
 {
     const char *role;
@@ -93,6 +96,7 @@ cJSON *ipc_action_rerole_client(const wm_td *wm, const cJSON *args)
 }
 
 
+/* Override the client's own icon */
 cJSON *ipc_action_set_client_icon(const wm_td *wm, const cJSON *args)
 {
     const char *icon_name;

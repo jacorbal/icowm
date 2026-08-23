@@ -27,8 +27,8 @@
 #include <wm.h>
 
 /* Local includes */
-#include <cmds/client/basic.h>
 #include <cmds/client/internal.h>
+#include <cmds/client/screen.h>
 
 
 /* Return the frame window when decorated, otherwise the client window */

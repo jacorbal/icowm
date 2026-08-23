@@ -39,7 +39,6 @@
 #include <utils/safe/safestr.h>
 
 /* Command includes */
-#include <cmds/client/basic.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/transient.h>
 

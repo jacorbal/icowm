@@ -36,9 +36,9 @@
 #include <wm.h>
 
 /* Local includes */
-#include <cmds/client/basic.h>
 #include <cmds/client/internal.h>
 #include <cmds/client/move.h>
+#include <cmds/client/screen.h>
 #include <cmds/client/workarea.h>
 
 

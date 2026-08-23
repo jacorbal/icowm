@@ -4,7 +4,7 @@
  * @brief Escalating an unresponsive client's kill from the X11 protocol
  *        level to its owning process
  *
- * @a ccmd_client_kill (@c cmds/client/basic.h) already terminates
+ * @a ccmd_client_kill (@c cmds/client/focus.h) already terminates
  * a client's own connection to the X server via @a xcb_kill_client,
  * which is enough for the common case.  Losing that connection is
  * normally fatal to whatever toolkit the client is built on, so the

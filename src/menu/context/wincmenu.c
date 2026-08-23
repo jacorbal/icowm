@@ -47,7 +47,7 @@
 #include <wm.h>
 
 /* CMD includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/state.h>
 

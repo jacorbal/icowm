@@ -35,7 +35,8 @@
 #include <surface.h>
 
 /* Local includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/flags.h>
+#include <cmds/client/icon.h>
 #include <cmds/client/maximize.h>
 
 

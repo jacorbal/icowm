@@ -25,7 +25,8 @@
 #include <types/pair.h>
 
 /* Command includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/flags.h>
+#include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/meta.h>
 #include <cmds/client/state.h>

@@ -38,6 +38,12 @@
 
 /* The five that only need 'client_id', via the shared wrapper */
 
+/**
+ * @brief Center the client, per @c ipc_client_action_fn's own
+ *        contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_center(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -46,6 +52,12 @@ static void s_center(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Move the client to the monitor north of its current one,
+ *        per @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_move_monitor_north(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -54,6 +66,12 @@ static void s_move_monitor_north(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Move the client to the monitor south of its current one,
+ *        per @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_move_monitor_south(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -62,6 +80,12 @@ static void s_move_monitor_south(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Move the client to the monitor east of its current one, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_move_monitor_east(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -70,6 +94,12 @@ static void s_move_monitor_east(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Move the client to the monitor west of its current one, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_move_monitor_west(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -78,6 +108,12 @@ static void s_move_monitor_west(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Maximize the client horizontally only, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_maximize_horz(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -86,6 +122,12 @@ static void s_maximize_horz(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Maximize the client vertically only, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_maximize_vert(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -94,6 +136,12 @@ static void s_maximize_vert(const wm_td *wm, client_td *client,
 }
 
 
+/**
+ * @brief Maximize the client both horizontally and vertically, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_maximize(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -102,12 +150,14 @@ static void s_maximize(const wm_td *wm, client_td *client,
 }
 
 
+/* Center the client on its current screen */
 cJSON *ipc_action_center_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_center);
 }
 
 
+/* Move the client to the monitor north of its current one */
 cJSON *ipc_action_move_client_to_monitor_north(const wm_td *wm,
         const cJSON *args)
 {
@@ -115,6 +165,7 @@ cJSON *ipc_action_move_client_to_monitor_north(const wm_td *wm,
 }
 
 
+/* Move the client to the monitor south of its current one */
 cJSON *ipc_action_move_client_to_monitor_south(const wm_td *wm,
         const cJSON *args)
 {
@@ -122,6 +173,7 @@ cJSON *ipc_action_move_client_to_monitor_south(const wm_td *wm,
 }
 
 
+/* Move the client to the monitor east of its current one */
 cJSON *ipc_action_move_client_to_monitor_east(const wm_td *wm,
         const cJSON *args)
 {
@@ -129,6 +181,7 @@ cJSON *ipc_action_move_client_to_monitor_east(const wm_td *wm,
 }
 
 
+/* Move the client to the monitor west of its current one */
 cJSON *ipc_action_move_client_to_monitor_west(const wm_td *wm,
         const cJSON *args)
 {
@@ -136,6 +189,7 @@ cJSON *ipc_action_move_client_to_monitor_west(const wm_td *wm,
 }
 
 
+/* Maximize the client horizontally only */
 cJSON *ipc_action_maximize_client_horz(const wm_td *wm,
         const cJSON *args)
 {
@@ -143,6 +197,7 @@ cJSON *ipc_action_maximize_client_horz(const wm_td *wm,
 }
 
 
+/* Maximize the client vertically only */
 cJSON *ipc_action_maximize_client_vert(const wm_td *wm,
         const cJSON *args)
 {
@@ -150,6 +205,7 @@ cJSON *ipc_action_maximize_client_vert(const wm_td *wm,
 }
 
 
+/* Maximize the client both horizontally and vertically */
 cJSON *ipc_action_maximize_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_maximize);
@@ -158,6 +214,7 @@ cJSON *ipc_action_maximize_client(const wm_td *wm, const cJSON *args)
 
 /* The three with their own extra arguments */
 
+/* Move the client, keeping its own size */
 cJSON *ipc_action_move_client(const wm_td *wm, const cJSON *args)
 {
     int32_t x;
@@ -182,6 +239,7 @@ cJSON *ipc_action_move_client(const wm_td *wm, const cJSON *args)
 }
 
 
+/* Move the client to a specific monitor */
 cJSON *ipc_action_move_client_to_monitor(const wm_td *wm,
         const cJSON *args)
 {
@@ -203,6 +261,7 @@ cJSON *ipc_action_move_client_to_monitor(const wm_td *wm,
 }
 
 
+/* Move and resize the client together, in one request */
 cJSON *ipc_action_move_resize_client(const wm_td *wm, const cJSON *args)
 {
     int32_t x;
@@ -236,6 +295,8 @@ cJSON *ipc_action_move_resize_client(const wm_td *wm, const cJSON *args)
 }
 
 
+/* Resize the client, from wherever its own top-left corner already
+ * is */
 cJSON *ipc_action_resize_client(const wm_td *wm, const cJSON *args)
 {
     uint32_t w;

@@ -29,8 +29,9 @@
 #include <cjson/cJSON.h>
 
 /* Command includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/flags.h>
 #include <cmds/client/move.h>
+#include <cmds/client/state.h>
 
 /* Project includes */
 #include <client.h>

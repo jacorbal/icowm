@@ -46,7 +46,7 @@
 #include <handler/internal.h>
 
 /* Command includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/state.h>
 #include <cmds/surface.h>
 
 /* Default initial values */

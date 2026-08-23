@@ -7,7 +7,8 @@
  * Declares commands that change a client's visual state in ways that
  * require XCB geometry manipulation beyond a simple flag update, i.e.,
  * shade/unshade, fullscreen/unfullscreen, and decoration toggle.
- * Focus and visibility commands are declared in @c cmds/client/basic.h.
+ * Focus commands are declared in @c cmds/client/focus.h, visibility
+ * commands in @c cmds/client/visibility.h.
  *
  * @ingroup cmds
  */

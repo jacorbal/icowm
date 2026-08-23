@@ -58,7 +58,7 @@
  * @note Complexity: @e O(n), where @e n is the total number of
  *       managed clients across every surface and desktop
  *
- * @see see @a ccmd_client_close in @c cmds/client/basic.h
+ * @see see @a ccmd_client_close in @c cmds/client/focus.h
  */
 void wm_shutdown_begin(const wm_td *wm);
 
@@ -94,7 +94,7 @@ int wm_shutdown_ms_remaining(void);
  * @note Complexity: @e O(n), where @e n is the total number of managed
  *       clients across every surface and desktop
  *
- * @see @a ccmd_client_kill in @c cmds/client/basic.h 
+ * @see @a ccmd_client_kill in @c cmds/client/focus.h
  */
 void wm_shutdown_tick(const wm_td *wm);
 

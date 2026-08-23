@@ -29,9 +29,6 @@
 /* Utils includes */
 #include <utils/xcb/atom.h>
 
-/* Command includes */
-#include <cmds/client/basic.h>
-
 /* Local includes */
 #include <client.h>
 #include <client/internal.h>

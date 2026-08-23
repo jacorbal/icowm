@@ -75,8 +75,8 @@
 #include <wm.h>
 
 /* CMD includes */
-#include <cmds/client/basic.h>
 #include <cmds/client/maximize.h>
+#include <cmds/client/state.h>
 
 /* Local includes */
 #include <input/mouse/drag.h>

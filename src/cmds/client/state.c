@@ -50,11 +50,16 @@
 #include <input/mouse/hover.h>
 
 /* Local includes */
-#include <cmds/client/basic.h>
-#include <cmds/client/move.h>
-#include <cmds/client/workarea.h>
-#include <cmds/client/layer.h>
+#include <cmds/client/ewmh.h>
+#include <cmds/client/focus.h>
+#include <cmds/client/grab.h>
 #include <cmds/client/internal.h>
+#include <cmds/client/layer.h>
+#include <cmds/client/move.h>
+#include <cmds/client/screen.h>
+#include <cmds/client/state.h>
+#include <cmds/client/visibility.h>
+#include <cmds/client/workarea.h>
 
 
 /**

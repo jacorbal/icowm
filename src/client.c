@@ -39,7 +39,9 @@
 #include <types/pair.h>
 
 /* Command includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/ewmh.h>
+#include <cmds/client/flags.h>
+#include <cmds/client/grab.h>
 #include <cmds/client/move.h>
 #include <cmds/client/transient.h>
 

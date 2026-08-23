@@ -42,12 +42,15 @@
 #include <ipc.h>
 
 /* Command includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/flags.h>
+#include <cmds/client/focus.h>
+#include <cmds/client/layer.h>
 #include <cmds/client/maximize.h>
+#include <cmds/client/meta.h>
 #include <cmds/client/move.h>
 #include <cmds/client/resize.h>
-#include <cmds/client/layer.h>
-#include <cmds/client/meta.h>
+#include <cmds/client/state.h>
+#include <cmds/client/visibility.h>
 
 /* Local includes */
 #include <enact.h>

@@ -25,21 +25,40 @@
 #include <ipc/dispatch.h>
 #include <ipc/actions/client/layer.h>
 
-
-static void s_raise(const wm_td *wm, client_td *client, surface_td *surface,
-        desktop_td *desktop)
+/**
+ * @brief Raise the client, per @c ipc_client_action_fn's own
+ *        contract
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_raise(const wm_td *wm, client_td *client,
+        surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_raise(client);
 }
 
-static void s_lower(const wm_td *wm, client_td *client, surface_td *surface,
-        desktop_td *desktop)
+
+/**
+ * @brief Lower the client, per @c ipc_client_action_fn's own
+ *        contract
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_lower(const wm_td *wm, client_td *client,
+        surface_td *surface, desktop_td *desktop)
 {
     (void) wm; (void) surface; (void) desktop;
     enact_client_lower(client);
 }
 
+
+/**
+ * @brief Move the client to the "always on top" layer, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_layer_above(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -47,6 +66,13 @@ static void s_layer_above(const wm_td *wm, client_td *client,
     enact_client_layer_above(client);
 }
 
+
+/**
+ * @brief Move the client back to the ordinary layer, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_layer_normal(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -54,6 +80,13 @@ static void s_layer_normal(const wm_td *wm, client_td *client,
     enact_client_layer_normal(client);
 }
 
+
+/**
+ * @brief Move the client to the "always below" layer, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_layer_below(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -61,6 +94,13 @@ static void s_layer_below(const wm_td *wm, client_td *client,
     enact_client_layer_below(client);
 }
 
+
+/**
+ * @brief Cycle the client through above/normal/below, per
+ *        @c ipc_client_action_fn's own contract
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_cycle_layer(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop)
 {
@@ -69,32 +109,47 @@ static void s_cycle_layer(const wm_td *wm, client_td *client,
 }
 
 
+/* Raise the client to the top of its layer */
 cJSON *ipc_action_raise_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_raise);
 }
 
+
+/* Lower the client to the bottom of its layer */
 cJSON *ipc_action_lower_client(const wm_td *wm, const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_lower);
 }
 
-cJSON *ipc_action_set_layer_above_client(const wm_td *wm, const cJSON *args)
+
+/* Move the client to the "always on top" layer */
+cJSON *ipc_action_set_layer_above_client(const wm_td *wm,
+        const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_layer_above);
 }
 
-cJSON *ipc_action_set_layer_normal_client(const wm_td *wm, const cJSON *args)
+
+/* Move the client back to the ordinary layer */
+cJSON *ipc_action_set_layer_normal_client(const wm_td *wm,
+        const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_layer_normal);
 }
 
-cJSON *ipc_action_set_layer_below_client(const wm_td *wm, const cJSON *args)
+
+/* Move the client to the "always below" layer */
+cJSON *ipc_action_set_layer_below_client(const wm_td *wm,
+        const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_layer_below);
 }
 
-cJSON *ipc_action_cycle_layer_client(const wm_td *wm, const cJSON *args)
+
+/* Cycle the client through above/normal/below */
+cJSON *ipc_action_cycle_layer_client(const wm_td *wm,
+        const cJSON *args)
 {
     return ipc_dispatch_client_action(wm, args, s_cycle_layer);
 }
