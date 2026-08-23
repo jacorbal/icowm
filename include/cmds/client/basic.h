@@ -497,6 +497,42 @@ client_td *ccmd_client_focus_target(client_td *client);
 client_td *ccmd_client_transient_top_parent(client_td *client);
 
 /**
+ * @brief Resolve which currently-mapped sibling a client transient
+ *        for its whole group (ICCCM §4.1.2.6) should be treated as
+ *        attached to right now, for stacking, raising, and focus
+ *        redirect
+ *
+ * Close kin to @c s_place_window_transient_centered's search
+ * (@c policy/placement/window.c), used there for this same client's
+ * initial centering, with one deliberate difference: this one
+ * excludes another client also transient for its group, so an anchor
+ * is always an actual application window of the group, never another
+ * such dialog (see this function's implementation comment,
+ * @c cmds/client/transient.c, for why two such dialogs resolving to
+ * each other would matter here specifically, unlike for centering).
+ * Resolved fresh each call, rather than cached, since which sibling
+ * qualifies can change as windows map, unmap, or iconify around it.
+ * A client with @c is_transient_for_group set has no @c
+ * transient_parent (root is never a managed client for @c
+ * client_link_transient's lookup to find), so wherever that field
+ * would otherwise be read to find a specific parent, this is the
+ * equivalent for one transient for its whole group instead.
+ *
+ * @param client Client to resolve an anchor for
+ *
+ * @return The first currently-mapped (non-iconified), non-group-
+ *         transient sibling sharing @p client's group leader, on
+ *         @p client's desktop, or @c NULL if @p client is not
+ *         transient for its group, has no group leader, or no such
+ *         sibling currently qualifies
+ *
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p client's desktop
+ */
+client_td *client_group_transient_anchor(const client_td *client);
+
+/**
  * @brief Move every transient descendant of a client onto whichever
  *        desktop is actually being looked at right now, wherever
  *        they currently are
@@ -571,7 +607,7 @@ void ccmd_client_bring_family(client_td *client);
  * @note Complexity: @e O(f), where @e f is the number of @p top's
  *       own transient descendants at every depth combined
  */
-client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
+client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
         client_td *top, size_t *count_out);
 
 /**

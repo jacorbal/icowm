@@ -367,12 +367,22 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
         }
     }
 
-    /* Read 'WM_TRANSIENT_FOR': identify dialogs and their parent */
+    /* Read 'WM_TRANSIENT_FOR': identify dialogs and their parent.
+     * ICCCM §4.1.2.6: a value of the root window itself means the
+     * client is transient for its whole application group, not one
+     * specific window; 'client->parent_id' already holds that root
+     * (set from 'xcb_get_geometry''s reply, above, before this
+     * client is ever reparented) so no separate lookup is needed
+     * here to tell the two cases apart. */
     client->transient_for = XCB_WINDOW_NONE;
+    client->is_transient_for_group = false;
     if (xcb_icccm_get_wm_transient_for_reply(connection,
                 xcb_icccm_get_wm_transient_for(connection, window),
                 &transient, NULL)) {
         client->transient_for = transient;
+        client->is_transient_for_group =
+            (transient != XCB_WINDOW_NONE &&
+                    transient == client->parent_id);
     }
 }
 

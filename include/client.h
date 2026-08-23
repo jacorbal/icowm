@@ -410,6 +410,29 @@ typedef struct client_s {
     cdlist_item_td *transient_node;
 
     /**
+     * @brief Whether @a transient_for names the root window: ICCCM
+     *        §4.1.2.6 says this means transient for the client's
+     *        whole application group rather than one specific window
+     *
+     * Set once, alongside @a transient_for itself, when @c
+     * WM_TRANSIENT_FOR is read (@c s_client_read_wm_hints_and_leader,
+     * @c client.c).  @a transient_parent stays @c NULL for a client
+     * with this set, the same as for one not transient for anything
+     * at all: root is never a managed client itself, so the ordinary
+     * lookup @a client_link_transient (@c cmds/client/transient.c)
+     * performs never finds a match.  @a client_group_transient_anchor
+     * (@c cmds/client/transient.c) resolves, fresh each time rather
+     * than a stored pointer, whichever currently-mapped sibling
+     * sharing this client's group leader should stand in for a
+     * specific parent wherever one is needed (stacking, raising, and
+     * focus redirect all read it the same way @a transient_parent
+     * itself is read elsewhere); @c s_place_window_transient_centered
+     * (@c policy/placement/window.c) already resolves an equivalent
+     * sibling for this client's initial centering.
+     */
+    bool is_transient_for_group;
+
+    /**
      * @brief Cached, already built @c _NET_WM_ICON Picture
      *
      * Built once by @a wmicon_draw the first time this client's icon is

@@ -39,6 +39,7 @@
 #include <utils/safe/safestr.h>
 
 /* Command includes */
+#include <cmds/client/basic.h>
 #include <cmds/client/layer.h>
 
 /* Project includes */
@@ -60,7 +61,6 @@
 
 /* Local includes */
 #include <desktop.h>
-
 
 /**
  * @brief Move a client to the front or back of the desktop's window
@@ -143,7 +143,14 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
  * IDs the way this function used to: a chain of dialogs (a dialog's
  * own dialog, and so on) rises together the same as before, just by
  * following real pointers now instead of rediscovering the
- * relationship from scratch on every call.
+ * relationship from scratch on every call.  A client transient for
+ * its whole group (ICCCM §4.1.2.6) has no @c transient_parent to
+ * appear in that tree; raised alongside @p client too, right after
+ * its specific-parent descendants, whenever @a client_group_
+ * transient_anchor (@c cmds/client/transient.c) currently resolves
+ * it to @p client specifically, the same check @c cmds/client/
+ * layer.c's @c s_enforce_layer_place_family already makes for
+ * stacking.
  *
  * Scoped to @p desktop, the same as before: a descendant registered
  * under some other desktop (a pinned parent's own un-pinned dialog,
@@ -158,11 +165,12 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
  * @param depth   Current recursion depth; the caller's own first
  *                call always passes @c 0
  *
- * @note A null @p client, one with no @c transients at all, or
- *       exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH, is a silent no-op
- * @note Complexity: @e O(f), where @e f is the number of @p client's
- *       own transient descendants, at every depth combined, sharing
- *       @p desktop with it
+ * @note A null @p client, or exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH,
+ *       is a silent no-op
+ * @note Complexity: @e O(f + n), where @e f is the number of @p
+ *       client's own transient descendants, at every depth combined,
+ *       sharing @p desktop with it, and @e n is the number of clients
+ *       on @p desktop (for the group-transient search)
  */
 static void s_desktop_transients_raise(desktop_td *desktop,
         client_td *client, uint32_t depth)
@@ -170,26 +178,43 @@ static void s_desktop_transients_raise(desktop_td *desktop,
     cdlist_item_td *node;
     const cdlist_item_td *initial;
 
-    if (client == NULL || client->transients == NULL ||
-            depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
+    if (client == NULL || depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
         return;
     }
 
-    node = cdlist_head(client->transients);
-    initial = node;
-    if (node == NULL) {
-        return;
-    }
+    if (client->transients != NULL) {
+        node = cdlist_head(client->transients);
+        initial = node;
+        if (node != NULL) {
+            do {
+                client_td *const child = (client_td *) cdlist_data(node);
 
-    do {
-        client_td *const child = (client_td *) cdlist_data(node);
-
-        if (child != NULL && child->desktop_id == desktop->id) {
-            (void) s_desktop_client_send_to_end(desktop, child, true);
-            s_desktop_transients_raise(desktop, child, depth + 1);
+                if (child != NULL && child->desktop_id == desktop->id) {
+                    (void) s_desktop_client_send_to_end(desktop, child,
+                            true);
+                    s_desktop_transients_raise(desktop, child, depth + 1);
+                }
+                node = cdlist_next(node);
+            } while (node != NULL && node != initial);
         }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
+    }
+
+    if (client->desktop_id == desktop->id && desktop->clients != NULL) {
+        void *elem;
+
+        ohtbl_foreach(desktop->clients, elem) {
+            client_td *const gchild = (client_td *) elem;
+
+            if (gchild != NULL && gchild != client &&
+                    gchild->is_transient_for_group &&
+                    gchild->desktop_id == desktop->id &&
+                    client_group_transient_anchor(gchild) == client) {
+                (void) s_desktop_client_send_to_end(desktop, gchild,
+                        true);
+                s_desktop_transients_raise(desktop, gchild, depth + 1);
+            }
+        }
+    }
 }
 
 
@@ -652,8 +677,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         LOGGER_WARNING("Failed to launch '%s': %s",
                 executable_path, strerror(exec_errno));
         if (have_startup_id) {
-            cctl_sn_cancel(desktop->connection, wm_get_surfaces(),
-                    startup_id);
+            cctl_sn_cancel(desktop->connection, wm_get_surfaces(), startup_id);
         }
         return -2;
     }

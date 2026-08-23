@@ -6,7 +6,7 @@
  * Declares cost-weight constants used by
  * @c policy/placement/score.c (the shared overlap-scoring core both
  * draw from) and by @c policy/placement/window.c and
- * @c policy/placement/icon.c themselves, each passing its own weights
+ * @c policy/placement/icon.c themselves, each passing its weights
  * to @a place_overlap_score rather than reading them directly.
  *
  * @note Must not be included outside of @c src/policy/

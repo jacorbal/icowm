@@ -22,6 +22,7 @@
 
 /* ADT includes */
 #include <adt/cdlist.h>
+#include <adt/ohtbl.h>
 
 /* Default initial values */
 #include <defs/client.h>
@@ -66,28 +67,64 @@ static client_td *s_client_mapped_transient_child(client_td *client)
 {
     cdlist_item_td *item;
     const cdlist_item_td *initial;
+    desktop_td *desktop;
+    xcb_window_t leader;
+    void *elem;
 
-    if (client == NULL || client->transients == NULL) {
+    if (client == NULL) {
         return NULL;
     }
 
-    item = cdlist_head(client->transients);
-    initial = item;
-    if (item == NULL) {
+    if (client->transients != NULL) {
+        item = cdlist_head(client->transients);
+        initial = item;
+        if (item != NULL) {
+            do {
+                client_td *const candidate = (client_td *) cdlist_data(item);
+
+                if (candidate != NULL &&
+                        !client_is_iconified(candidate) &&
+                        !client_is_locked(candidate) &&
+                        !(candidate->properties.flags &
+                            CLIENT_FLAG_HIDDEN)) {
+                    return candidate;
+                }
+                item = cdlist_next(item);
+            } while (item != NULL && item != initial);
+        }
+    }
+
+    /* No specific-parent child qualified: a client transient for the
+     * whole group (ICCCM §4.1.2.6) has no 'transient_parent' to
+     * appear in the list just searched above, so it is looked for
+     * here separately instead, by group membership rather than a
+     * resolved anchor (unlike 's_enforce_layer_place_family' and
+     * 's_desktop_transients_raise', client.c and desktop/dclient.c,
+     * this has no "only ever trigger once" constraint to protect: any
+     * group member redirecting focus to the same open dialog is the
+     * whole point, not a bug to guard against). */
+    leader = client_group_leader(client);
+    if (leader == XCB_WINDOW_NONE) {
         return NULL;
     }
 
-    do {
-        client_td *const candidate = (client_td *) cdlist_data(item);
+    desktop = wm_get_client_desktop(client);
+    if (desktop == NULL || desktop->clients == NULL) {
+        return NULL;
+    }
 
-        if (candidate != NULL &&
+    ohtbl_foreach(desktop->clients, elem) {
+        client_td *const candidate = (client_td *) elem;
+
+        if (candidate != NULL && candidate != client &&
+                candidate->is_transient_for_group &&
+                client_group_leader(candidate) == leader &&
                 !client_is_iconified(candidate) &&
                 !client_is_locked(candidate) &&
                 !(candidate->properties.flags & CLIENT_FLAG_HIDDEN)) {
             return candidate;
         }
-        item = cdlist_next(item);
-    } while (item != NULL && item != initial);
+    }
 
     return NULL;
 }
@@ -310,6 +347,54 @@ client_td *ccmd_client_transient_top_parent(client_td *client)
 }
 
 
+/* Resolve which currently-mapped sibling a client transient for its
+ * whole group should be treated as attached to right now */
+client_td *client_group_transient_anchor(const client_td *client)
+{
+    xcb_window_t leader;
+    desktop_td *desktop;
+    void *elem;
+
+    if (client == NULL || !client->is_transient_for_group) {
+        return NULL;
+    }
+
+    leader = client_group_leader(client);
+    if (leader == XCB_WINDOW_NONE) {
+        return NULL;
+    }
+
+    desktop = wm_get_client_desktop(client);
+    if (desktop == NULL || desktop->clients == NULL) {
+        return NULL;
+    }
+
+    ohtbl_foreach(desktop->clients, elem) {
+        client_td *const sibling = (client_td *) elem;
+
+        /* Excludes another client also transient for the group: an
+         * anchor is meant to be an actual application window of the
+         * group, never another such dialog.  Without this, two
+         * group-transient dialogs sharing the same group could
+         * resolve to each other (whichever @c ohtbl_foreach happens
+         * to visit first), and every caller walking from an anchor
+         * back into the family (@a s_enforce_layer_place_family,
+         * @c cmds/client/layer.c; @a s_desktop_transients_raise,
+         * @c desktop/dclient.c) would recurse into that same pair of
+         * dialogs endlessly. */
+        if (sibling != NULL && sibling != client &&
+                !sibling->is_transient_for_group &&
+                client_group_leader(sibling) == leader &&
+                sibling->properties.state !=
+                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+            return sibling;
+        }
+    }
+
+    return NULL;
+}
+
+
 /**
  * @brief Collect every other member of a transient family found on
  *        one specific desktop into a newly allocated snapshot array
@@ -344,7 +429,7 @@ client_td *ccmd_client_transient_top_parent(client_td *client)
  * @note Complexity: @e O(f), where @e f is the number of @p top's
  *       own transient descendants at every depth combined
  */
-client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
+client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
         client_td *top, size_t *count_out)
 {
     if (count_out != NULL) {

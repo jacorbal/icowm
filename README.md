@@ -20,7 +20,7 @@ Basic features are:
     Dynamic screen configuration by way of the XRandR extension.
     Output profiles, namely resolution, position, rotation, and the
     primary designation, are defined in a dedicated `randr.json` file,
-    and XRandR's own screen-change and output-change notifications are
+    and XRandR's screen-change and output-change notifications are
     attended to within the main event loop, such that surface geometry,
     work areas, and managed clients are all reflowed automatically,
     without any need of a restart.
@@ -32,7 +32,7 @@ Basic features are:
   - **Virtual desktops.**
     The organization of open applications into discrete workspaces, so
     as to minimize visual clutter; each screen may be furnished with its
-    own independent set of virtual desktops.  These may, optionally, be
+    independent set of virtual desktops.  These may, optionally, be
     arranged as a two-dimensional grid rather than a flat list, with
     a configurable orientation and starting corner, so that navigation,
     the search box, and the desktop-change notification may address
@@ -80,10 +80,10 @@ Basic features are:
     Due respect is paid to `WM_DELETE_WINDOW`, `WM_TAKE_FOCUS`,
     `WM_TRANSIENT_FOR`, `WM_NORMAL_HINTS`, `WM_HINTS`, and
     `WM_PROTOCOLS`, so as to ensure correct behaviour with both modern
-    and legacy X11 applications alike.  A window's own
-    `WM_TRANSIENT_FOR` descendants, its dialogs and the like, are raised
-    right along with it, so none is ever left stranded beneath the very
-    window to which it belongs.
+    and legacy X11 applications alike.  A window's `WM_TRANSIENT_FOR`
+    descendants, its dialogs and the like, are raised right along with
+    it, so none is ever left stranded beneath the very window to which
+    it belongs.
 
   - **Panel and dock awareness.**
     `_NET_WM_STRUT_PARTIAL` reservations are read from docks and panels,
@@ -96,10 +96,10 @@ Basic features are:
     iconified windows alike.
 
   - **Fuzzy window search.**
-    A dedicated search widget filters open windows by their own title as
-    the query is typed, fuzzy-matched and ranked by how well each one
-    fits, letting a single window among many be reached by a few
-    keystrokes rather than by cycling through them one at a time.
+    A dedicated search widget filters open windows by their title as the
+    query is typed, fuzzy-matched and ranked by how well each one fits,
+    letting a single window among many be reached by a few keystrokes
+    rather than by cycling through them one at a time.
 
   - **Native command launcher.**
     A minimal run-box widget accepts a command typed directly into it
@@ -134,7 +134,7 @@ Basic features are:
 
   - **IPC control socket.**
     A local Unix domain socket, speaking plain newline-delimited JSON,
-    permits an external script to query IcoWM's own state or drive it
+    permits an external script to query IcoWM's state or drive it
     directly, reaching the self-same catalog of actions already
     available to the keyboard and mouse.  `icowm-msg`, a small
     command-line client built and installed alongside IcoWM itself, is
@@ -156,8 +156,8 @@ Basic features are:
 
   - **Internationalization.**
     Every dialog message, button, and menu label is translatable via
-    `gettext`, so IcoWM's own user-facing text may render in the user's
-    own locale.  The command line and diagnostic log messages are
+    `gettext`, so IcoWM's user-facing text may render in the user's
+    locale.  The command line and diagnostic log messages are
     deliberately left untranslated, as these serve a diagnostic, not an
     end-user, audience.
 
@@ -213,7 +213,7 @@ Full documentation resides in [`doc/icowm.md`](doc/icowm.md), covering
 what IcoWM is, how it is started, every command-line option it accepts,
 and the IPC control socket in full; in
 [`doc/icowm-msg.md`](doc/icowm-msg.md), which describes `icowm-msg`, the
-command-line client for that socket, in its own entirety; and in
+command-line client for that socket, in its entirety; and in
 [`doc/config.md`](doc/config.md), which describes every configuration
 file except themes, in its entirety, field by field; and in
 [`doc/themes.md`](doc/themes.md), which does the same for
@@ -240,9 +240,9 @@ complaint, to a fixed link line naming that self-same set of libraries).
 
   - **cJSON**, by whose offices every JSON configuration file is read.
 
-  - **pthread**, required for the event queue's own internal mutex; this
-    is furnished as part of the C library itself on any POSIX system,
-    and no separate package need be sought.
+  - **pthread**, required for the event queue's internal mutex; this is
+    furnished as part of the C library itself on any POSIX system, and
+    no separate package need be sought.
 
 Upon Debian and Ubuntu, the following installs the whole of the above:
 
@@ -258,7 +258,7 @@ sudo apt install build-essential pkg-config \
 Other distributions furnish equivalent packages, ordinarily under
 similarly-named `xcb-util-*`/`xcb-util-*-devel` or `libxcb-*-dev`
 packages, together with a `cjson`/`libcjson` development package; one's
-own distribution's package search ought to be consulted for the precise
+distribution's package search ought to be consulted for the precise
 names in use.
 
 Bugs

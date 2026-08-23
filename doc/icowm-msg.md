@@ -1,9 +1,9 @@
 # icowm-msg Manual
 
-What `icowm-msg` is, how to invoke it, how it turns its own command-line
+What `icowm-msg` is, how to invoke it, how it turns its command-line
 arguments into a request, and what its exit status means.  For the
 socket it talks to (where it lives, the wire protocol itself, and the
-full list of every command with its own arguments), see
+full list of every command with its arguments), see
 [`icowm.md`](icowm.md) section 5 instead: this file only covers what is
 specific to `icowm-msg` itself, not the protocol underneath it, which is
 part of IcoWM proper and documented there.
@@ -29,10 +29,10 @@ part of IcoWM proper and documented there.
 
 ## 1. What `icowm-msg` is
 
-`icowm-msg` is a small, standalone command-line client for IcoWM's own
-IPC control socket (`icowm.md` section 5).  It builds one JSON request
-line out of its own command-line arguments, sends it to a running
-IcoWM's control socket, and prints back whatever IcoWM answers with.
+`icowm-msg` is a small, standalone command-line client for IcoWM's IPC
+control socket (`icowm.md` section 5).  It builds one JSON request line
+out of its command-line arguments, sends it to a running IcoWM's control
+socket, and prints back whatever IcoWM answers with.
 
 It is built and installed alongside IcoWM itself, as a second, entirely
 separate binary (see `make help`): building or rebuilding one never
@@ -56,7 +56,7 @@ icowm-msg -v
 `<command>` is any of the command names `icowm.md` section 5.3 documents
 (`get_version`, `goto_desktop`, `move_client`, and so on).  Each
 `<key>=<value>` becomes one field of the request object alongside
-`"cmd"`, naming that command's own argument: which keys a given command
+`"cmd"`, naming that command's argument.  Which keys a given command
 accepts, and what each one means, is also documented there, not repeated
 here.
 
@@ -70,8 +70,8 @@ command name, every known event name) and exit; see section 5.
 
 ## 3. Argument value types
 
-Every `<key>=<value>` argument is split on its own first `=`; the value
-half is sent as:
+Every `<key>=<value>` argument is split on its first `=`; the value half
+is sent as:
 
 | Value                                                      | Sent as |
 |------------------------------------------------------------|---------|
@@ -82,8 +82,8 @@ half is sent as:
 
 This means a numeric ID never needs quoting on the command line
 (`client_id=23068673`, not `client_id="23068673"`), and a value that
-happens to look like a number but is meant as text (a client's own new
-name that is only digits, say) is sent as a number instead; none of the
+happens to look like a number but is meant as text (a client's new name
+that is only digits, say) is sent as a number instead; none of the
 commands `icowm.md` section 5.3 documents currently have a string
 argument this could affect, but it is worth knowing about if a future
 one ever does.  The `0x` form is only ever a convenience for values more
@@ -113,7 +113,7 @@ an explanation on `stderr` naming the offending argument.
 | Exit status | Meaning |
 |-------------|---------|
 | `0`         | The command reached IcoWM and it reported success (`"ok": true` in the printed response) |
-| `1`         | The command reached IcoWM but it reported failure (`"ok": false`); the reason is in the printed response's own `"error"` field |
+| `1`         | The command reached IcoWM but it reported failure (`"ok": false`); the reason is in the printed response's `"error"` field |
 | `2`         | The request never reached IcoWM at all: no socket at the resolved path (see section 7), a connection failure, a response IcoWM sent back that does not itself parse as JSON, or a local argument-parsing error (missing `<command>`, a malformed `key=value`, an unrecognized option).  Nothing is printed to `stdout` in this case; the reason is on `stderr` |
 
 A script that only cares whether the command worked can check the exit
@@ -124,31 +124,31 @@ status alone, without parsing the response at all.
 | Option        | What it does |
 |---------------|--------------|
 | `-h`          | Show usage, a few examples, and this same option list, then exit |
-| `-v`          | Show `icowm-msg`'s own name, IcoWM's own short name and version, its license, its copyright line, and its author, then exit |
-| `-K`          | List every command name this build knows about, one per line, then exit; see its own note below on how this list is kept |
-| `-W`          | List every event name this build knows about, one per line, then exit (the same names section 9.1 documents, and the same values `-w` itself accepts, comma-separated); see its own note below on how this list is kept |
+| `-v`          | Show `icowm-msg`'s name, IcoWM's short name and version, its license, its copyright line, and its author, then exit |
+| `-K`          | List every command name this build knows about, one per line, then exit; see its note below on how this list is kept |
+| `-W`          | List every event name this build knows about, one per line, then exit (the same names section 9.1 documents, and the same values `-w` itself accepts, comma-separated); see its note below on how this list is kept |
 | `-w <events>` | Subscribe instead of sending a command; see section 9 |
 | `-n <count>`  | Stop watching after this many events; only meaningful together with `-w` (see section 9); rejected as an error on its own |
 
 `-h`, `-v`, `-K`, and `-W` all exit `0`.  Any other option is rejected:
 usage is printed to `stderr` and `icowm-msg` exits `2`.
 
-`-K`'s own list is a plain, hand-maintained snapshot of the server's own
-command table, kept here so it works offline the same way `-h` and `-v`
-already do, rather than needing a running IcoWM to query.  That means it
-can, in principle, drift out of sync with the server's own table over
-time.  It is used only to answer `-K`'s own question, never to locally
-validate or reject a command before sending it: an ordinary command
-still reaches the server exactly as documented throughout the rest of
-this file, unfiltered, so a stale `-K` listing here only makes its own
-output incomplete, never breaks a command the server itself would
-otherwise accept.
+`-K`'s list is a plain, hand-maintained snapshot of the server's command
+table, kept here so it works offline the same way `-h` and `-v` already
+do, rather than needing a running IcoWM to query.  That means it can, in
+principle, drift out of sync with the server's table over time.  It is
+used only to answer `-K`'s question, never to locally validate or reject
+a command before sending it: an ordinary command still reaches the
+server exactly as documented throughout the rest of this file,
+unfiltered, so a stale `-K` listing here only makes its output
+incomplete, never breaks a command the server itself would otherwise
+accept.
 
-`-W`'s own list is kept the exact same hand-maintained way, for the
-exact same reason, against the server's own event-name table instead of
-its command one; the same drift caveat applies, and the same way it is
+`-W`'s list is kept the exact same hand-maintained way, for the exact
+same reason, against the server's event-name table instead of its
+command one; the same drift caveat applies, and the same way it is
 harmless: `-w` itself always still reaches the server exactly as typed,
-unfiltered, regardless of whether `-W`'s own listing has fallen behind.
+unfiltered, regardless of whether `-W`'s listing has fallen behind.
 
 ## 6. Examples
 
@@ -197,13 +197,13 @@ one of:
 - IcoWM is not currently running.
 - IcoWM was started with `-s` (`icowm.md` section 3.1), which disables
   the socket entirely for that run, on purpose.
-- IcoWM is running, but its IPC socket failed to come up (see its own
-  log: `ipc_init` logs a warning and continues without the socket rather
-  than refusing to start over this alone; every other part of IcoWM
-  keeps working normally either way).
-- `icowm-msg` resolved a different path than the one IcoWM's own
-  instance actually bound, most often because `$XDG_RUNTIME_DIR` is set
-  to something different in the shell running `icowm-msg` than it was in
+- IcoWM is running, but its IPC socket failed to come up (see its log:
+  `ipc_init` logs a warning and continues without the socket rather than
+  refusing to start over this alone; every other part of IcoWM keeps
+  working normally either way).
+- `icowm-msg` resolved a different path than the one IcoWM's instance
+  actually bound, most often because `$XDG_RUNTIME_DIR` is set to
+  something different in the shell running `icowm-msg` than it was in
   the session IcoWM itself started under (a remote shell, a different
   user, or a terminal from before `$XDG_RUNTIME_DIR` was changed, for
   instance).  `icowm-msg` resolves the socket path the same way IcoWM
@@ -227,7 +227,7 @@ past the command name must be `key=value`; see section 3.
 
 ## 8. Command reference
 
-Every command IcoWM currently understands, with its own arguments (an
+Every command IcoWM currently understands, with its arguments (an
 argument in `[brackets]` is optional) and a one-line summary.  This is
 a compact index only; the full explanation of each, including what each
 response field means and the two actions deliberately left out of this
@@ -240,7 +240,7 @@ catalog, is in [`icowm.md`](icowm.md) section 5.3.
 | `list_clients`                 | none                                     | Lists every managed client, with geometry and state flags |
 | `get_focused`                  | none                                     | Reports the active client of every managed surface |
 | `close_client`                 | `client_id`                              | Closes the client politely, or destroys its window |
-| `kill_client`                  | `client_id`                              | Forcibly terminates the client's own X connection |
+| `kill_client`                  | `client_id`                              | Forcibly terminates the client's X connection |
 | `focus_client`                 | `client_id`                              | Moves input focus to the client (does not raise it) |
 | `unfocus_client`               | `client_id`                              | Takes input focus away from the client |
 | `iconify_client`               | `client_id`                              | Iconifies (minimizes) the client |
@@ -252,7 +252,7 @@ catalog, is in [`icowm.md`](icowm.md) section 5.3.
 | `toggle_pin_client`            | `client_id`                              | Toggles `pin_client`/`unpin_client` |
 | `urge_client`                  | `client_id`                              | Marks the client urgent |
 | `unurge_client`                | `client_id`                              | Undoes `urge_client` |
-| `center_client`                | `client_id`                              | Centers the client on its own screen |
+| `center_client`                | `client_id`                              | Centers the client on its screen |
 | `move_client_to_monitor_north` | `client_id`                              | Moves the client to the monitor north of its current one, resolved by real physical position; a no-op with one monitor or none, or when none lies to the north |
 | `move_client_to_monitor_south` | `client_id`                              | The same, toward the monitor south of the current one |
 | `move_client_to_monitor_east`  | `client_id`                              | The same, toward the monitor east of the current one |
@@ -260,30 +260,30 @@ catalog, is in [`icowm.md`](icowm.md) section 5.3.
 | `maximize_client_horz`         | `client_id`                              | Maximizes the client horizontally only |
 | `maximize_client_vert`         | `client_id`                              | Maximizes the client vertically only |
 | `maximize_client`              | `client_id`                              | Maximizes the client both horizontally and vertically |
-| `raise_client`                 | `client_id`                              | Raises the client within its own layer |
-| `lower_client`                 | `client_id`                              | Lowers the client within its own layer |
+| `raise_client`                 | `client_id`                              | Raises the client within its layer |
+| `lower_client`                 | `client_id`                              | Lowers the client within its layer |
 | `set_layer_above_client`       | `client_id`                              | Moves the client to the "always on top" layer |
 | `set_layer_normal_client`      | `client_id`                              | Moves the client back to the ordinary layer |
 | `set_layer_below_client`       | `client_id`                              | Moves the client to the "always below" layer |
 | `cycle_layer_client`           | `client_id`                              | Cycles the client through above, normal, and below |
-| `shade_client`                 | `client_id`                              | Rolls the client up into just its own titlebar |
+| `shade_client`                 | `client_id`                              | Rolls the client up into just its titlebar |
 | `unshade_client`               | `client_id`                              | Undoes `shade_client` |
 | `toggle_shade_client`          | `client_id`                              | Toggles `shade_client`/`unshade_client` |
-| `fullscreen_client`            | `client_id`                              | Makes the client fill its own screen |
+| `fullscreen_client`            | `client_id`                              | Makes the client fill its screen |
 | `unfullscreen_client`          | `client_id`                              | Undoes `fullscreen_client` |
 | `toggle_fullscreen_client`     | `client_id`                              | Toggles `fullscreen_client`/`unfullscreen_client` |
-| `toggle_decorate_client`       | `client_id`                              | Shows or hides the client's own titlebar and border |
-| `send_client_to_front`         | `client_id`                              | Raises the client to the front of its own desktop's window stack |
-| `send_client_to_back`          | `client_id`                              | Sends the client to the back of its own desktop's window stack |
-| `move_client`                  | `client_id` `x` `y`                      | Moves the client so its own top-left corner is at that position |
+| `toggle_decorate_client`       | `client_id`                              | Shows or hides the client's titlebar and border |
+| `send_client_to_front`         | `client_id`                              | Raises the client to the front of its desktop's window stack |
+| `send_client_to_back`          | `client_id`                              | Sends the client to the back of its desktop's window stack |
+| `move_client`                  | `client_id` `x` `y`                      | Moves the client so its top-left corner is at that position |
 | `move_resize_client`           | `client_id` `x` `y` `w` `h`              | Moves and resizes the client in one step |
 | `resize_client`                | `client_id` `w` `h`                      | Resizes the client only, leaving position alone |
-| `move_client_to_monitor`       | `client_id` `monitor_index`              | Moves the client to that physical monitor by its own index, rather than by compass direction |
-| `rename_client`                | `client_id` `name`                       | Overrides the client's own window title |
-| `reclass_client`               | `client_id` `class_name` `instance_name` | Overrides the client's own `WM_CLASS` |
-| `rerole_client`                | `client_id` `role`                       | Overrides the client's own window role |
+| `move_client_to_monitor`       | `client_id` `monitor_index`              | Moves the client to that physical monitor by its index, rather than by compass direction |
+| `rename_client`                | `client_id` `name`                       | Overrides the client's window title |
+| `reclass_client`               | `client_id` `class_name` `instance_name` | Overrides the client's `WM_CLASS` |
+| `rerole_client`                | `client_id` `role`                       | Overrides the client's window role |
 | `set_client_icon`              | `client_id` `icon_name`                  | Overrides which icon IcoWM shows for the client |
-| `set_desktop_background`       | `desktop_id` [`surface_id`] `color`      | Sets that desktop's own solid background color |
+| `set_desktop_background`       | `desktop_id` [`surface_id`] `color`      | Sets that desktop's solid background color |
 | `show_desktop`                 | `desktop_id` [`surface_id`] `show`       | Shows or hides every client on that desktop at once |
 | `send_client_to_desktop`       | `client_id` `target_desktop_id`          | Moves the client to another desktop on the same surface |
 | `iconify_all`                  | [`desktop_id`] [`surface_id`]            | Iconifies every client on that desktop at once |
@@ -294,8 +294,8 @@ catalog, is in [`icowm.md`](icowm.md) section 5.3.
 | `goto_south_desktop`           | [`surface_id`]                           | The same, toward the desktop south of the current one |
 | `goto_east_desktop`            | [`surface_id`]                           | The same, toward the desktop east of the current one |
 | `goto_west_desktop`            | [`surface_id`]                           | The same, toward the desktop west of the current one |
-| `add_desktop`                  | [`surface_id`] | Adds a new desktop after the resolved surface's own last one, growing its own configured grid layout by a row or column first if it does not already have a gap cell for it.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
-| `remove_desktop`               | [`surface_id`]                           | Removes the resolved surface's own last desktop, moving any client still on it to the one before it, switching the current view there too if it was the one removed.  Shrinks the grid layout back down if that was its own last member.  Refused, with an error, while only one desktop remains |
+| `add_desktop`                  | [`surface_id`] | Adds a new desktop after the resolved surface's last one, growing its configured grid layout by a row or column first if it does not already have a gap cell for it.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `remove_desktop`               | [`surface_id`]                           | Removes the resolved surface's last desktop, moving any client still on it to the one before it, switching the current view there too if it was the one removed.  Shrinks the grid layout back down if that was its last member.  Refused, with an error, while only one desktop remains |
 | `exit_wm`                      | none                                     | Requests that IcoWM stop and exit |
 | `reload_config`                | none                                     | Reloads every configuration file |
 | `toggle_scratchpad`            | [`desktop_id`[, `surface_id`]]           | Launches the scratchpad, or shows/hides it if already running |
@@ -325,13 +325,13 @@ error, since it has nothing to count events for.
 |------------------------------|--------|
 | `window_mapped`              | `client_id`, `desktop_id`, `surface_id`: a client was just mapped onto that desktop |
 | `window_closed`              | `client_id`, `desktop_id`, `surface_id`: a client was just destroyed |
-| `desktop_switched`           | `surface_id`, `desktop_id`: that surface's own current desktop just changed to `desktop_id` |
-| `focus_changed`              | `surface_id`, `client_id`: that client just became the active one on its own surface |
+| `desktop_switched`           | `surface_id`, `desktop_id`: that surface's current desktop just changed to `desktop_id` |
+| `focus_changed`              | `surface_id`, `client_id`: that client just became the active one on its surface |
 | `urgency_set`                | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just set |
 | `urgency_cleared`            | `client_id`, `desktop_id`, `surface_id`: that client's urgency hint was just cleared |
-| `window_moved`               | `client_id`, `desktop_id`, `surface_id`: that client's own position just changed (see the `list_clients` command for its current `x`/`y`) |
-| `window_resized`             | `client_id`, `desktop_id`, `surface_id`: that client's own size just changed (see the `list_clients` command for its current `w`/`h`) |
-| `rule_applied`               | `client_id`, `desktop_id`, `surface_id`: a loaded rule just changed one or more of that client's own properties |
+| `window_moved`               | `client_id`, `desktop_id`, `surface_id`: that client's position just changed (see the `list_clients` command for its current `x`/`y`) |
+| `window_resized`             | `client_id`, `desktop_id`, `surface_id`: that client's size just changed (see the `list_clients` command for its current `w`/`h`) |
+| `rule_applied`               | `client_id`, `desktop_id`, `surface_id`: a loaded rule just changed one or more of that client's properties |
 | `pin_set`                    | `client_id`, `desktop_id`, `surface_id`: that client was just pinned (visible on every desktop) |
 | `pin_cleared`                | `client_id`, `desktop_id`, `surface_id`: that client was just unpinned |
 | `fullscreen_set`             | `client_id`, `desktop_id`, `surface_id`: that client just entered full screen |
@@ -340,24 +340,24 @@ error, since it has nothing to count events for.
 | `shade_cleared`              | `client_id`, `desktop_id`, `surface_id`: that client was just unshaded |
 | `hide_set`                   | `client_id`, `desktop_id`, `surface_id`: that client was just hidden |
 | `hide_cleared`               | `client_id`, `desktop_id`, `surface_id`: that client was just unhidden |
-| `decoration_set`             | `client_id`, `desktop_id`, `surface_id`: that client's own titlebar and border were just shown |
-| `decoration_cleared`         | `client_id`, `desktop_id`, `surface_id`: that client's own titlebar and border were just hidden |
+| `decoration_set`             | `client_id`, `desktop_id`, `surface_id`: that client's titlebar and border were just shown |
+| `decoration_cleared`         | `client_id`, `desktop_id`, `surface_id`: that client's titlebar and border were just hidden |
 | `client_iconified`           | `client_id`, `desktop_id`, `surface_id`: that client was just iconified |
 | `client_deiconified`         | `client_id`, `desktop_id`, `surface_id`: that client was just restored from being iconified |
-| `layer_changed`              | `client_id`, `desktop_id`, `surface_id`: that client's own stacking layer just changed (see `list_clients` for its current layer) |
+| `layer_changed`              | `client_id`, `desktop_id`, `surface_id`: that client's stacking layer just changed (see `list_clients` for its current layer) |
 | `client_desktop_changed`     | `client_id`, `desktop_id`, `surface_id`: that client just moved to a different desktop (`desktop_id` is the new one) |
-| `client_renamed`             | `client_id`, `desktop_id`, `surface_id`, `name`: that client's own displayed title was just overridden |
-| `client_reclassed`           | `client_id`, `desktop_id`, `surface_id`, `class_name`, `instance_name`: that client's own `WM_CLASS` was just overridden |
-| `client_reroled`             | `client_id`, `desktop_id`, `surface_id`, `role`: that client's own window role was just overridden |
-| `client_icon_changed`        | `client_id`, `desktop_id`, `surface_id`, `icon_name`: that client's own displayed icon was just overridden |
-| `desktop_background_changed` | `desktop_id`, `surface_id`: that desktop's own solid background color was just set |
+| `client_renamed`             | `client_id`, `desktop_id`, `surface_id`, `name`: that client's displayed title was just overridden |
+| `client_reclassed`           | `client_id`, `desktop_id`, `surface_id`, `class_name`, `instance_name`: that client's `WM_CLASS` was just overridden |
+| `client_reroled`             | `client_id`, `desktop_id`, `surface_id`, `role`: that client's window role was just overridden |
+| `client_icon_changed`        | `client_id`, `desktop_id`, `surface_id`, `icon_name`: that client's displayed icon was just overridden |
+| `desktop_background_changed` | `desktop_id`, `surface_id`: that desktop's solid background color was just set |
 | `desktop_shown`              | `desktop_id`, `surface_id`: every client on that desktop was just shown at once |
 | `desktop_hidden`             | `desktop_id`, `surface_id`: every client on that desktop was just hidden at once |
-| `stacking_changed`           | `client_id`, `desktop_id`, `surface_id`: that client's own position within its layer's stacking order just changed |
+| `stacking_changed`           | `client_id`, `desktop_id`, `surface_id`: that client's position within its layer's stacking order just changed |
 | `config_reloaded`            | none: every configuration file was just reloaded |
 
-Every event line also carries its own `"event"` field naming which one
-it is, the same as every other field name above; there is no separate
+Every event line also carries its `"event"` field naming which one it
+is, the same as every other field name above; there is no separate
 envelope to unwrap.
 
 ### 9.2. Example
@@ -369,7 +369,7 @@ $ icowm-msg -w window_mapped,desktop_switched -n 2
 {"surface_id":0,"desktop_id":1,"event":"desktop_switched"}
 ```
 
-The very first line is always the `subscribe` request's own response
+The very first line is always the `subscribe` request's response
 (`{"ok":true}`, or, on failure, `{"ok":false,"error":...}`, followed by
 `icowm-msg` exiting `1` without watching anything at all); every line
 after that is one event.
@@ -385,7 +385,7 @@ command" means in this mode:
 | `1`         | The `subscribe` request itself was rejected (`"ok": false`); the reason is in that first printed line |
 | `2`         | The connection could never be made, the `subscribe` request could not be sent, or the connection was lost while still watching (a server restart, a crash, `icowm` exiting) |
 
-That last `2` case is worth calling out on its own: unlike the ordinary
+That last `2` case is worth calling out on its own.  Unlike the ordinary
 request/response mode, a watch that has already printed real events can
 still end in failure, if the connection drops before `-n` is reached
 (or, with no `-n` at all, at any point, since nothing but the connection

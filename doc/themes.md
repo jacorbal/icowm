@@ -75,13 +75,13 @@ Appearance settings for managed windows.
 
 | Key                  | Type             | Default            | Description |
 |----------------------|------------------|--------------------|-------------|
-| `height`             | integer          | `19`               | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s own value. |
+| `height`             | integer          | `19`               | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s value. |
 | `alignment`          | string           | `"left"`           | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`. |
 | `padding.horizontal` | integer          | `2`                | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text. |
 | `padding.vertical`   | integer          | `2`                | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
 | `buttons.left`       | array of strings | `["pin", "layer"]` | Buttons drawn left-to-right starting at the frame's left edge. |
 | `buttons.right`      | array of strings | `["iconize", "hide", "shade", "maximize", "fullscreen", "close"]` | Buttons drawn right-to-left starting at the frame's right edge. |
-| `buttons.color.on`   | string           | `"#253040"`        | Color for a button whose own state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button. |
+| `buttons.color.on`   | string           | `"#253040"`        | Color for a button whose state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button. |
 | `buttons.color.off`  | string           | `"#4A5566"`        | Color for a button otherwise, i.e., not engaged. |
 
 Accepted button names, for both `buttons.left` and `buttons.right`, are:
@@ -93,11 +93,11 @@ a button.  The same name can only usefully appear once across both lists
 both does not draw it twice).
 
 `buttons.color` is independent of `window.active`/`window.inactive`'s
-own `color.foreground` below, so a theme can restyle button glyphs
-without the title text changing color to match, or the other way around.
-There is deliberately no third color for a button that cannot currently
-do anything (e.g., maximize on a non-resizable client): that button is
-not drawn at all rather than needing a color of its own for that case.
+`color.foreground` below, so a theme can restyle button glyphs without
+the title text changing color to match, or the other way around.  There
+is deliberately no third color for a button that cannot currently do
+anything (e.g., maximize on a non-resizable client): that button is not
+drawn at all rather than needing a color of its own for that case.
 
 #### `window.active` / `window.inactive`
 
@@ -126,8 +126,8 @@ Appearance settings for iconified windows.
 | Key            | Type    | Default | Description |
 |----------------|---------|---------|-------------|
 | `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
-| `show-pixmaps` | boolean | `true`  | When `true`, draws the client's own `_NET_WM_ICON` image, centered in and clipped to the icon's own square graphic area, above the caption (the two never overlap).  Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`.  Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another (not currently configurable from a JSON file, only at compile time).  The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again.  Forced to `false` automatically in restricted-memory mode (see `-M`), regardless of what this file says. |
-| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's own top corners: a filled square in the top-left when the client is sticky/pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal). |
+| `show-pixmaps` | boolean | `true`  | When `true`, draws the client's `_NET_WM_ICON` image, centered in and clipped to the icon's square graphic area, above the caption (the two never overlap).  Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`.  Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another (not currently configurable from a JSON file, only at compile time).  The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again.  Forced to `false` automatically in restricted-memory mode (see `-M`), regardless of what this file says. |
+| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's top corners.  A filled square in the top-left when the client is sticky/pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal). |
 
 #### `icon.active` / `icon.inactive`
 
@@ -149,19 +149,18 @@ every other icon (`inactive`).
 
 Border shown around whichever window or icon is currently selected while
 cycling (`Alt+Tab` and its icon-menu counterpart).  Deliberately
-separate from `window.active`/`icon.active`'s own border: those answer
-"is this client focused", not "is this the one the cycle is pointing at
+separate from `window.active`/`icon.active`'s border: those answer "is
+this client focused", not "is this the one the cycle is pointing at
 right now", and a client already focused before cycling began can
 otherwise end up displayed with the exact same color as the one
 currently selected, the only difference being a few pixels of width,
 easy to miss at a glance.
 
 Applied as a separate overlay drawn around the target, never as a change
-to the target's own border width, so cycling through selections never
-shifts the target's own position by however many pixels
-`cycle.border.width` happens to be, regardless of what
-`window.active`/`inactive` (or `icon.active`/`inactive`) themselves are
-configured to.
+to the target's border width, so cycling through selections never shifts
+the target's position by however many pixels `cycle.border.width`
+happens to be, regardless of what `window.active`/`inactive` (or
+`icon.active`/`inactive`) themselves are configured to.
 
 | Key                  | Type    | Default     | Description |
 |----------------------|---------|-------------|-------------|
@@ -169,11 +168,11 @@ configured to.
 | `cycle.border.width` | integer | `4`         | Border width in pixels. |
 
 A theme that moves `window.active`/`inactive` away from this project's
-own default color family should reconsider this field too, for the same
+default color family should reconsider this field too, for the same
 reason a theme changing `active` without also changing `inactive` risks
 leaving the two indistinguishable from one another: nothing here derives
 `cycle.border.color` from the theme's other colors automatically, so
-a color chosen to stand out against one theme's own palette is not
+a color chosen to stand out against one theme's palette is not
 guaranteed to still stand out against a different one.
 
 ```json
@@ -188,9 +187,9 @@ guaranteed to still stand out against a different one.
 ## 4. `systray`
 
 A `font` / `color` / `border` block, the same shape as `window.active`
-above, applied to the systray dock itself, plus its own height, each
-docked icon's own size and padding, and the placement of the
-clock/battery text within it.
+above, applied to the systray dock itself, plus its height, each docked
+icon's size and padding, and the placement of the clock/battery text
+within it.
 
 | Key                | Type    | Default     |
 |--------------------|---------|-------------|
@@ -206,25 +205,24 @@ clock/battery text within it.
 | `text.gap`         | integer | `12`        |
 | `text.valign`      | string  | `"center"`  |
 
-`pixmap.size` is the side length, in pixels, every docked icon's own
-embed window is forced to regardless of whatever size it originally
-requested; `pixmap.padding` is the space, in pixels, kept around and
-between icons.
+`pixmap.size` is the side length, in pixels, every docked icon's embed
+window is forced to regardless of whatever size it originally requested;
+`pixmap.padding` is the space, in pixels, kept around and between icons.
 
-`height` is the tray dock's own height in pixels; icons and the clock
-and/or battery status text (when either is enabled) are positioned
-within it according to `text.valign`, and centered for icons.  It is
-clamped up to at least `pixmap.size` if set any smaller, so a single
-icon never gets clipped; with the default `height` of `22` actually
-sitting below the default `pixmap.size` of `24`, that clamp is exactly
-what applies in practice, leaving `text.valign` no visible room to work
-with until `height` is raised past `pixmap.size`.
+`height` is the tray dock's height in pixels; icons and the clock and/or
+battery status text (when either is enabled) are positioned within it
+according to `text.valign`, and centered for icons.  It is clamped up to
+at least `pixmap.size` if set any smaller, so a single icon never gets
+clipped; with the default `height` of `22` actually sitting below the
+default `pixmap.size` of `24`, that clamp is exactly what applies in
+practice, leaving `text.valign` no visible room to work with until
+`height` is raised past `pixmap.size`.
 
 `text.gap` is the horizontal space, in pixels, between the clock and
 battery text when both are shown; without it the two would run together
 as if they were one string, e.g., "N/A Fri 23:39" instead of the string
 "N/A   Fri 23:39".  It has no effect on the inset between the text block
-as a whole and the tray's own edges, which is fixed to `pixmap.padding`
+as a whole and the tray's edges, which is fixed to `pixmap.padding`
 above.  Which side of the icons the text sits on stays a behavior
 setting rather than an appearance one, since it changes where among the
 icons the text counts as being docked; only its internal spacing and
@@ -249,8 +247,8 @@ vertical alignment are theme concerns.
 
 ## 5. `desktop`
 
-The desktop's own default background color, used only as a fallback: see
-the explanation right after the table below for exactly when it applies.
+The desktop's default background color, used only as a fallback: see the
+explanation right after the table below for exactly when it applies.
 
 | Key                | Type   | Default     |
 |--------------------|--------|-------------|
@@ -263,17 +261,17 @@ so it wants a more neutral, less attention-grabbing tone, and a darker
 one gives windows placed on top of it more contrast to stand out against
 than a light background would.  It still reads as the same overall
 blue-gray palette as the rest of the default theme, close to
-`window.active.color.foreground`'s own `"#4A5566"`, rather than an
-unrelated new hue.
+`window.active.color.foreground`'s `"#4A5566"`, rather than an unrelated
+new hue.
 
-This value is used only when a desktop's own entry in
-`topology.screens.desktops` (see `config.md` §2.2) does not set its own
+This value is used only when a desktop's entry in
+`topology.screens.desktops` (see `config.md` §2.2) does not set its
 `background-color`; a desktop that does set one always keeps it,
 regardless of this.  It is also only ever used when no external tool
 (`xsetbg`, `feh`, `nitrogen`, `hsetroot`, and so on) has painted the
-root window with its own wallpaper image, exactly the same way an
-explicit per-desktop `background-color` is: icowm never overwrites an
-externally set wallpaper with either one.
+root window with its wallpaper image, exactly the same way an explicit
+per-desktop `background-color` is: icowm never overwrites an externally
+set wallpaper with either one.
 
 ```json
 "desktop": {
@@ -285,22 +283,22 @@ externally set wallpaper with either one.
 
 Applies to every context menu (root menu, per-window menu, the
 all-desktops window list, and their submenus) and to the `Alt+Tab`-style
-cycle menu's own window chrome (its per-row entries in list mode use
-this too).  The cycle menu's individual icon cells keep using
-`icon.active` / `icon.inactive` (§2) instead of this, since that already
-themes "the icon currently selected while cycling" specifically;
-likewise, the border drawn around the actual window or icon being
-previewed while cycling uses `window.active` / `window.inactive` (§1),
-since that is a highlight on the real window, not on the menu.
+cycle menu's window chrome (its per-row entries in list mode use this
+too).  The cycle menu's individual icon cells keep using `icon.active`
+/ `icon.inactive` (§2) instead of this, since that already themes "the
+icon currently selected while cycling" specifically; likewise, the
+border drawn around the actual window or icon being previewed while
+cycling uses `window.active` / `window.inactive` (§1), since that is
+a highlight on the real window, not on the menu.
 
 `unselected.border`, `selected.border`, and `label.border` each style
-one row's own outline; the menu window's outer frame is a separate
-field, `border` (below the per-entry styles in the table), so raising or
-lowering an entry's own border never changes whether the window itself
-has a frame, and vice versa.  The cycle menu's own window shares this
-same `border` for its outer frame, so a context menu and the cycle menu
+one row's outline; the menu window's outer frame is a separate field,
+`border` (below the per-entry styles in the table), so raising or
+lowering an entry's border never changes whether the window itself has
+a frame, and vice versa.  The cycle menu's window shares this same
+`border` for its outer frame, so a context menu and the cycle menu
 always present the same outer border, regardless of whatever an entry's
-own border happens to be set to.
+border happens to be set to.
 
 | Key                           | Type    | Default        |
 |-------------------------------|---------|----------------|
@@ -329,15 +327,15 @@ own border happens to be set to.
 | `show-pixmaps`                | boolean | `true`         |
 
 `opacity` (0 to 100) is a sibling of `border` above, not of
-`unselected`/`selected`/`label`: it is the whole menu window's own
-opacity, published through `_NET_WM_WINDOW_OPACITY`, the same way
-`border` is the window's own single outer frame regardless of which row
-is highlighted.  `_NET_WM_WINDOW_OPACITY` is a per-window property, so
-it cannot vary row by row the way each row's own colors can; the cycle
-menu's own window shares this same field, the same way it already shares
-`border`.  As with every opacity field in this file, a compositing
-manager, e.g., picom, must also be running and reading the property back
-for this to have any visible effect at all.
+`unselected`/`selected`/`label`: it is the whole menu window's opacity,
+published through `_NET_WM_WINDOW_OPACITY`, the same way `border` is the
+window's single outer frame regardless of which row is highlighted.
+`_NET_WM_WINDOW_OPACITY` is a per-window property, so it cannot vary row
+by row the way each row's colors can; the cycle menu's window shares
+this same field, the same way it already shares `border`.  As with every
+opacity field in this file, a compositing manager, e.g., picom, must
+also be running and reading the property back for this to have any
+visible effect at all.
 
 `unselected` styles an entry that is neither hovered nor the
 keyboard-navigated selection; `selected` styles the entry that is.
@@ -353,20 +351,20 @@ a client that cannot be resized); its background still comes from
 `unselected` or `selected` depending on whether it happens to also be
 the current selection.  `separator.color` is the line color for
 a separator between groups of entries.  `border.color` and
-`border.width` are the menu window's own outer frame, entries aside; see
-the paragraph above the table for how this differs from any entry's own
+`border.width` are the menu window's outer frame, entries aside; see the
+paragraph above the table for how this differs from any entry's
 `border`.
 
 `padding.horizontal` and `padding.vertical` are the inset in pixels
-between a menu window's own edges and its content: row text (and, for
+between a menu window's edges and its content: row text (and, for
 a submenu, its arrow indicator) for `padding.horizontal`, and the space
 above the first row and below the last for `padding.vertical`.  Both
 apply to every context menu and to the `Alt+Tab`-style cycle menu alike,
 and equally to `unselected`, `selected`, and `label` rows.
 
 `show-pixmaps` controls whether an entry that represents a client window
-(the per-window context menu, and the cycle menu's own list mode) draws
-that client's own `_NET_WM_ICON` image beside its label, the same
+(the per-window context menu, and the cycle menu's list mode) draws that
+client's `_NET_WM_ICON` image beside its label, the same
 `icon.show-pixmaps` (§2) controls for iconified windows; entries that do
 not represent a specific client (labels, separators, submenu headers)
 are unaffected either way.
@@ -431,10 +429,10 @@ Applies to the quit-confirmation dialog and the generic message dialog.
 | `button.padding.horizontal`          | integer | `12`           |
 | `button.padding.vertical`            | integer | `6`            |
 
-`color.background`, `border`, and `opacity` are the dialog window's own
+`color.background`, `border`, and `opacity` are the dialog window's
 background, frame, and opacity.  `label` styles the prompt or message
 text (e.g., "Are you sure you want to exit IcoWM?"); `label.padding` is
-the inset between the dialog window's own edges and that text.
+the inset between the dialog window's edges and that text.
 `button.unselected` and `button.selected` style the dialog's buttons
 (e.g., "Cancel" / "Exit"), the same
 not-selected/keyboard-navigated-choice distinction as `menu` above; the
@@ -442,14 +440,13 @@ message dialog's single "OK" button always uses `button.selected`, since
 there is nothing else it could be navigated away from.
 
 `button.gap` is the horizontal space between adjacent buttons.
-`button.padding` is the inset between a button's own edges and its
-label, shared by both `unselected` and `selected` so a button does not
-change size (and shove its neighbor sideways) as the highlight moves
-onto or off of it; each button is still sized wide and tall enough for
-whichever of the two fonts is larger, and its label stays centered
-within that fixed size regardless of which font ends up drawn, so
-switching to a wider `selected` font (bold by default) never looks
-off-center.
+`button.padding` is the inset between a button's edges and its label,
+shared by both `unselected` and `selected` so a button does not change
+size (and shove its neighbor sideways) as the highlight moves onto or
+off of it; each button is still sized wide and tall enough for whichever
+of the two fonts is larger, and its label stays centered within that
+fixed size regardless of which font ends up drawn, so switching to
+a wider `selected` font (bold by default) never looks off-center.
 
 ```json
 "dialog": {
@@ -523,9 +520,9 @@ Many GTK and Qt applications have a "use theme colors" or "use system
 settings" option that only takes effect if some XSETTINGS manager is
 running to tell them what the theme, icon theme, cursor theme, and
 display DPI actually are; without one, those applications silently fall
-back to their own built-in defaults regardless of what this option is
-set to.  When enabled, IcoWM acquires the `_XSETTINGS_Sn` manager
-selection on the first managed screen and publishes `Net/ThemeName`,
+back to their built-in defaults regardless of what this option is set
+to.  When enabled, IcoWM acquires the `_XSETTINGS_Sn` manager selection
+on the first managed screen and publishes `Net/ThemeName`,
 `Net/IconThemeName`, `Gtk/CursorThemeName`, `Gtk/CursorThemeSize`, and
 `Xft/DPI` (as `dpi * 1024`, per the specification) from the values
 below.
@@ -604,8 +601,8 @@ a surprising, unrequested side effect.
 > A short description like `"fixed bold 13"` almost always takes the
 > X core font path, since `fixed` is an X bitmap family;
 > a TrueType/OpenType family name takes the fontconfig path instead,
-> using fontconfig's own pattern syntax rather than the short
-> description syntax below.
+> using fontconfig's pattern syntax rather than the short description
+> syntax below.
 >
 > #### X core font syntax
 >
@@ -648,7 +645,7 @@ a surprising, unrequested side effect.
 > #### TrueType/OpenType syntax
 >
 > A `font` string that reaches the fontconfig fallback is parsed with
-> fontconfig's own pattern syntax, the same one used by tools such as
+> fontconfig's pattern syntax, the same one used by tools such as
 > `fc-match`:
 >
 > ```
@@ -670,11 +667,10 @@ a surprising, unrequested side effect.
 
 ## 11. `scratchpad`
 
-The scratchpad's own border (see `config.md` §2.11), since it is always
+The scratchpad's border (see `config.md` §2.11), since it is always
 undecorated and so never has any other decoration to theme.  Same as
-`window.active.border` by default, since the scratchpad's own window is
-meant to stand out the same way the active window's own border already
-does.
+`window.active.border` by default, since the scratchpad's window is
+meant to stand out the same way the active window's border already does.
 
 | Key                       | Type    | Default     | Description |
 |---------------------------|---------|-------------|-------------|
@@ -713,8 +709,8 @@ current hovered or keyboard-navigated one.
 | `search.selected.font`               | string    | `"fixed"`   | Font for the hovered or keyboard-navigated result row. |
 | `search.selected.color.background`   | string    | `"#9AAEC8"` | Selected row background. |
 | `search.selected.color.foreground`   | string    | `"#253040"` | Selected row text. |
-| `search.border.color`                | string    | `"#7F9AB6"` | Widget window's own outer frame color. |
-| `search.border.width`                | integer   | `2`         | Widget window's own outer frame width in pixels. |
+| `search.border.color`                | string    | `"#7F9AB6"` | Widget window's outer frame color. |
+| `search.border.width`                | integer   | `2`         | Widget window's outer frame width in pixels. |
 
 ```json
 "search": {
@@ -738,8 +734,8 @@ current hovered or keyboard-navigated one.
 
 Theme for the built-in run-box (see `config.md` §2.12).  `label` styles
 the "Run:" prompt itself; `input` styles the typed command, drawn right
-next to it with its own independent font and colors, so the two can be
-told apart at a glance the same way `label` and `input` can be given
+next to it with its independent font and colors, so the two can be told
+apart at a glance the same way `label` and `input` can be given
 different backgrounds below.
 
 | Key                             | Type    | Default        | Description |
@@ -750,8 +746,8 @@ different backgrounds below.
 | `prompt.input.font`             | string  | `"fixed"`      | Font for the typed command. |
 | `prompt.input.color.background` | string  | `"#9AAEC8"`    | Typed-command background. |
 | `prompt.input.color.foreground` | string  | `"#253040"`    | Typed-command text. |
-| `prompt.border.color`           | string  | `"#7F9AB6"`    | Box's own outer frame color. |
-| `prompt.border.width`           | integer | `2`            | Box's own outer frame width in pixels. |
+| `prompt.border.color`           | string  | `"#7F9AB6"`    | Box's outer frame color. |
+| `prompt.border.width`           | integer | `2`            | Box's outer frame width in pixels. |
 
 ```json
 "prompt": {
