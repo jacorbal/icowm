@@ -29,7 +29,7 @@
 #include <desktop.h>
 
 /* Local includes */
-#include <policy/internal.h>
+#include <defs/placement.h>
 #include <policy/placement/score.h>
 
 
@@ -76,8 +76,8 @@ uint64_t place_overlap_score(const desktop_td *desktop,
                                 candidate.dim.w, candidate.dim.h,
                                 other->icon_pos.x,
                                 other->icon_pos.y,
-                                (uint32_t) SMART_WIN_ICON_SIZE,
-                                (uint32_t) SMART_WIN_ICON_SIZE);
+                                (uint32_t) PLACE_SMART_WIN_ICON_SIZE,
+                                (uint32_t) PLACE_SMART_WIN_ICON_SIZE);
                         cost += icon_pixel_cost * (uint64_t) area;
                     }
                 }

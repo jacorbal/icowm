@@ -139,8 +139,8 @@
                 "width": 0
             },
             "color": {
-                "background": "#f2f2f2",
-                "foreground": "#1a1a1a"
+                "background": "#c8d8e8",
+                "foreground": "#0d1b2a"
             },
             "font": "fixed"
         }
@@ -175,18 +175,18 @@
                     "width": 1
                 },
                 "color": {
-                    "background": "#f2f2f2",
-                    "foreground": "#1a1a1a"
+                    "background": "#c8d8e8",
+                    "foreground": "#0d1b2a"
                 },
                 "font": "fixed"
             }
         },
         "color": {
-            "background": "#f2f2f2"
+            "background": "#c8d8e8"
         },
         "label": {
             "color": {
-                "foreground": "#1a1a1a"
+                "foreground": "#0d1b2a"
             },
             "font": "fixed bold",
             "padding": {
@@ -229,7 +229,6 @@
             "gap": 12,
             "valign": "center"
         }
-
     },
 
     "search": {
@@ -250,8 +249,8 @@
         "unselected": {
             "font": "fixed",
             "color": {
-                "background": "#f2f2f2",
-                "foreground": "#1a1a1a"
+                "background": "#c8d8e8",
+                "foreground": "#0d1b2a"
             }
         },
         "border": {
@@ -271,7 +270,7 @@
         "input": {
             "font": "fixed bold",
             "color": {
-                "background": "#f2f2f2",
+                "background": "#c8d8e8",
                 "foreground": "#1a1000"
             }
         },

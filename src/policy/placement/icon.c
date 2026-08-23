@@ -55,7 +55,7 @@
 #include <logger.h>
 
 /* Local includes */
-#include <policy/internal.h>
+#include <defs/placement.h>
 #include <policy/placement/icon.h>
 #include <policy/placement/score.h>
 
@@ -328,7 +328,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
 
             /* Compactness: prefer slots near the screen edge */
             cost = (uint64_t) s *
-                (uint64_t) SMART_ICON_COST_PER_OVERFLOW_ROW;
+                (uint64_t) PLACE_SMART_ICON_COST_PER_OVERFLOW_ROW;
 
             /* Overlap penalty against visible windows only: icon-vs-
              * icon collision is rejected outright above
@@ -340,7 +340,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
             cost += place_overlap_score(desktop, client,
                     (struct geometry_s) {
                         { ix, iy }, { iw_full, ih_full } },
-                    (uint64_t) SMART_ICON_COST_PER_WIN_PIXEL, 0u);
+                    (uint64_t) PLACE_SMART_ICON_COST_PER_WIN_PIXEL, 0u);
 
             if (cost < best_cost) {
                 best_cost = cost;

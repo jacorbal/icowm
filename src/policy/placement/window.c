@@ -41,7 +41,7 @@
 #include <wm.h>
 
 /* Local includes */
-#include <policy/internal.h>
+#include <defs/placement.h>
 #include <policy/placement/score.h>
 #include <policy/placement/window.h>
 
@@ -226,8 +226,8 @@ static uint64_t s_score_window_pos(const desktop_td *desktop,
 
     cost = place_overlap_score(desktop, skip_client,
             (struct geometry_s) { { x, y }, { fw, fh } },
-            (uint64_t) SMART_WIN_COST_PER_WIN_PIXEL,
-            (uint64_t) SMART_WIN_COST_PER_ICON_PIXEL);
+            (uint64_t) PLACE_SMART_WIN_COST_PER_WIN_PIXEL,
+            (uint64_t) PLACE_SMART_WIN_COST_PER_ICON_PIXEL);
 
     /* Secondary tie-breaker: Manhattan distance from workarea center.
      * Stays much smaller than any window-overlap penalty, so it only

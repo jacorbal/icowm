@@ -18,7 +18,7 @@ surface IcoWM draws.
 7. [`dialog`](#7-dialog)
 8. [`overlay`](#8-overlay)
 9. [`xsettings`](#9-xsettings)
-10. [Configuration reload and already-open windows](#10-configuration-reload-and-already-open-windows)
+10. [Font format reference](#10-font-format-reference)
 11. [`scratchpad`](#11-scratchpad)
 12. [`search`](#12-search)
 13. [`prompt`](#13-prompt)
@@ -97,7 +97,7 @@ both does not draw it twice).
 the title text changing color to match, or the other way around.  There
 is deliberately no third color for a button that cannot currently do
 anything (e.g., maximize on a non-resizable client): that button is not
-drawn at all rather than needing a color of its own for that case.
+drawn at all rather than needing a separate color for that case.
 
 #### `window.active` / `window.inactive`
 
@@ -116,8 +116,8 @@ have focus (`inactive`).  Both share the same shape:
 `border.width` need not match between `active` and `inactive`.  When
 they differ, a decorated window's frame actually grows or shrinks by the
 difference every time it gains or loses focus, so its content never has
-to resize; see the note on configuration reload below for the one case
-this resizing does not happen automatically.
+to resize; see `config.md` §2.13 for the one case this resizing does not
+happen automatically.
 
 ## 2. `icon`
 
@@ -551,30 +551,10 @@ exactly as a dedicated XSETTINGS daemon would.
 }
 ```
 
-## 10. Configuration reload and already-open windows
+## 10. Font format reference
 
-Reloading the configuration (`SIGHUP`, the reload keybinding, or the
-root menu action) re-reads whichever theme file `config.json` names and
-applies the new colors, font, and titlebar button lists to every open
-window immediately, since those are read live from the theme on every
-repaint.  Every already-decorated window's frame is also resized to
-match a changed `border.width` or `titlebar.height`, the same way it
-resizes on a focus change (see 4.1 above).
-
-What reload does **not** do is force a window's decorated/undecorated
-state to follow a changed `window.is-decorated` or `titlebar.height` in
-the theme file.  A window that was decorated when it was mapped stays
-decorated after a reload even if the reloaded theme now says
-`"is-decorated": false` (and vice versa).  Only newly mapped windows,
-and windows whose decoration is toggled by hand, pick up that setting.
-This is deliberate: undoing a decoration choice a person made for
-a specific window just because the theme file changed would be
-a surprising, unrequested side effect.
-
----
-
-> **Font format note:**  Every `font` field in a theme accepts the same
-> string, tried through two backends in order:
+> Every `font` field in a theme accepts the same string, tried through
+> two backends in order:
 >
 > 1. **X core fonts** (accessed via XCB), IcoWM's original text
 >    rendering path.  Only **X11 bitmap fonts** (BDF/PCF) are available
@@ -689,8 +669,8 @@ meant to stand out the same way the active window's border already does.
 ## 12. `search`
 
 Theme for the fuzzy window-search widget (see `bindings.json` in
-`config.md` §3.5, `search_windows`).  Its own dedicated section rather
-than reusing `menu` above: the two happen to share identical values by
+`config.md` §3.5, `search_windows`).  Its dedicated section rather than
+reusing `menu` above: the two happen to share identical values by
 default, but nothing ties them together, so a person can make the widget
 stand out from ordinary context menus if they want to.
 

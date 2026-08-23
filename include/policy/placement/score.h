@@ -66,7 +66,7 @@
  *                        client's own current window rectangle
  * @param icon_pixel_cost Cost weight per pixel of overlap with
  *                        another client's own currently visible icon
- *                        rectangle (fixed @c SMART_WIN_ICON_SIZE
+ *                        rectangle (fixed @c PLACE_SMART_WIN_ICON_SIZE
  *                        square); pass @c 0 to skip icon-overlap
  *                        scoring entirely, e.g., for an icon-placement
  *                        caller that already rejects icon-vs-icon

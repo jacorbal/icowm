@@ -4,9 +4,11 @@ What `icowm-msg` is, how to invoke it, how it turns its command-line
 arguments into a request, and what its exit status means.  For the
 socket it talks to (where it lives, the wire protocol itself, and the
 full list of every command with its arguments), see
-[`icowm.md`](icowm.md) section 5 instead: this file only covers what is
-specific to `icowm-msg` itself, not the protocol underneath it, which is
-part of IcoWM proper and documented there.
+[`icowm.md`](icowm.md) §5 instead.
+
+This file only covers what is specific to `icowm-msg` itself, not the
+protocol underneath it, which is part of IcoWM proper and documented
+there.
 
 ---
 

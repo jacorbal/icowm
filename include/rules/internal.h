@@ -86,11 +86,19 @@ struct rules_match_s {
     char role[RULES_MATCH_MAX_VALUES][CONFIG_MAX_LENGTH_NAME];
     char title[RULES_MATCH_MAX_VALUES][CONFIG_MAX_LENGTH_NAME];
     char type[RULES_MATCH_MAX_VALUES][CONFIG_MAX_LENGTH_NAME];
-    bool transient;
+    bool is_transient;
 };
 
 /**
  * @brief Actions to apply to a client when a rule entry matches
+ *
+ * Each field pairs with its own @p has_* flag: @p has_focus,
+ * @p has_position, @p has_sticky, and so on say whether the rule
+ * specifies a value for that action at all; the paired field itself
+ * (@p is_focused, @p is_position_centered, @p is_pinned, and so on) is
+ * the value to apply, meaningful only when its own @p has_* flag is @c
+ * true.  A rule that omits a field entirely leaves the client unchanged
+ * for that one action.
  */
 struct rules_apply_s {
     bool has_desktop;
@@ -98,16 +106,16 @@ struct rules_apply_s {
                                  own surface; see 'monitor' below */
     bool has_layer;
     bool has_focus;
-    bool has_position;      /**< @p x & @p y, or @p position_centered,
+    bool has_position;      /**< @p x & @p y, or @p is_position_centered,
                                  set independently of @p size */
-    bool position_centered; /**< @c ("position": "center") was given
+    bool is_position_centered; /**< @c ("position": "center") was given
                                  instead of an @c ({x,y}) object: center
                                  the client on its screen at apply time
                                  instead of using @p x and @p y */
     bool has_size;          /**< @p width & @p height independent of
                                  position */
     bool has_sticky;
-    bool has_decorated;
+    bool has_decoration;
     bool has_opacity_active;
     bool has_opacity_inactive;
 
@@ -116,24 +124,24 @@ struct rules_apply_s {
     /**
      * @brief Index into the client's own surface's monitor list
      *
-     * Named @p monitor, not @p screen': this project's own
-     * @p screen_id / @p (screens[]) terminology refers to a whole
-     * X screen, and this codebase has no notion of moving a client
-     * between X screens at all, desktop reassignment above included, so
-     * a rule field with that name would misleadingly suggest
-     * a capability that does not exist.  Scoped to one physical monitor
-     * within the client's current surface only.
+     * Named @p monitor, not @p screen': this project's own @p screen_id
+     * / @p (screens[]) terminology refers to a whole X screen, and this
+     * codebase has no notion of moving a client between X screens at
+     * all, desktop reassignment above included, so a rule field with
+     * that name would misleadingly suggest a capability that does not
+     * exist.  Scoped to one physical monitor within the client's
+     * current surface only.
      */
     uint32_t monitor;
 
     uint16_t layer;
-    bool focus;
+    bool is_focused;
     int32_t x;
     int32_t y;
     uint32_t w;
     uint32_t h;
-    bool pinned;
-    bool decorated;
+    bool is_pinned;
+    bool is_decorated;
 
     /**
      * @brief Percentage, 0 to 100, overriding the theme's own 'window
@@ -149,8 +157,8 @@ struct rules_apply_s {
 };
 
 /**
- * @brief A single rule entry combining match criteria and the action
- *        to apply
+ * @brief A single rule entry combining match criteria and the action to
+ *        apply
  */
 struct rules_rule_s {
     enum rules_when_e when;

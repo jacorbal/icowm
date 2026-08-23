@@ -22,6 +22,7 @@ values, and built-in default value.
    - [2.10. `desktops`](#210-desktops)
    - [2.11. `scratchpad`](#211-scratchpad)
    - [2.12. `prompt`](#212-prompt)
+   - [2.13. Reload behavior](#213-reload-behavior)
 3. [`bindings.json`: Keyboard and mouse bindings](#3-bindingsjson-keyboard-and-mouse-bindings)
    - [3.1. Binding syntax](#31-binding-syntax)
    - [3.2. `modifiers`](#32-modifiers)
@@ -56,7 +57,7 @@ values, and built-in default value.
 10. [`memguard.json`: Restricted-memory mode configuration](#10-memguardjson-restricted-memory-mode-configuration)
     - [10.1. Configurable fields](#101-configurable-fields)
     - [10.2. Fields this mode never lets `memguard.json` change](#102-fields-this-mode-never-lets-memguardjson-change)
-    - [10.3. The active theme's own restrictions](#103-the-active-themes-own-restrictions)
+    - [10.3. Restrictions on the active theme](#103-restrictions-on-the-active-theme)
 11. [Full examples](#11-full-examples)
 
 For everything that is not a configuration file, namely what IcoWM is,
@@ -105,7 +106,7 @@ Inside that directory the expected file tree is:
   a correctly-parsed `config.json` is treated the same way as any other
   file for this purpose (a syntax error in it joins that same combined
   dialog); one that is simply not found at all follows the ordinary
-  missing-file rule and says nothing on its own, but if a dialog is
+  missing-file rule and says nothing by itself, but if a dialog is
   already being shown for some other file's syntax error regardless, it
   adds one further line naming the missing theme file and confirming the
   built-in default is being used instead.
@@ -115,7 +116,7 @@ Inside that directory the expected file tree is:
 - `randr.json`; XRandR hot-plug event handling is always active
   regardless of this file existence.
 - None of the files above configure IcoWM's IPC control socket: it has
-  no options of its own to set, and is either brought up or, with `-s`,
+  no options to set, and is either brought up or, with `-s`,
   deliberately skipped for that run (`icowm.md`, §3.1).  See `icowm.md`
   §5 for where it lives and its full wire protocol.
 
@@ -145,7 +146,7 @@ be used.
 Configures the number of physical screens and the virtual desktops
 assigned to each.  **Takes effect at startup only**: changing anything
 under `topology` and reloading the configuration has no effect on an
-already-running window manager (see `themes.md` §10).  For desktop behavior that
+already-running window manager.  For desktop behavior that
 *does* reload, namely warp, cycle, and reserved margins, see §2.10
 (`desktops`) instead, a deliberately separate, sibling section for
 exactly that reason.
@@ -207,7 +208,7 @@ intervening `settings` object.  It accepts two shapes:
 ```
 
 Which shape is in use is detected from the first array entry alone
-(whether it carries its own `settings`/`count`/`inaugural` fields).
+(whether it carries `settings`/`count`/`inaugural` fields).
 Note that the per-screen shape's per-desktop `settings[]` array (holding
 `name`/`background-color`) is a different, unrelated thing from the
 `topology.screens.settings` object this schema no longer has: that inner
@@ -218,7 +219,7 @@ Per-screen shape fields:
 
 | Key                           | Type    | Default      | Description |
 |-------------------------------|---------|--------------|-------------|
-| `count`                       | integer | `4`          | Number of virtual desktops for this screen (or `CONFIG_MAX_DESKTOPS` if that is smaller than `4`). Maximum is `16`. Always `1`, regardless of this value, under restricted-memory mode (`-M`); see that mode's section. |
+| `count`                       | integer | `4`          | Number of virtual desktops for this screen (or `CONFIG_MAX_DESKTOPS` if that is smaller than `4`).  Maximum is `16`.  Always `1`, regardless of this value, under restricted-memory mode (`-M`); see that mode's section. |
 | `inaugural`                   | integer | `0`          | Zero-based index of the desktop shown at startup.  Values out of range fall back to `0`. |
 | `layout`                      | object  | see below    | This screen's desktop-grid arrangement; see `topology.screens.desktops[].layout` below. |
 | `settings[].name`             | string  | `"Desktop N" | Display name of desktop N. |
@@ -237,10 +238,10 @@ a desktop's `settings`, changes depending on whether this is present at
 all.
 
 **The two linear special cases.**  With `rows` equal to `1` (the
-default, and so also what a screen with no `layout` configured at
-all effectively has), the desktop grid is exactly one row wide: there
-is no "north" or "south" to move to at all, and east/west behave the
-exact same way switching desktops always did before `layout` existed.
+default, and so also what a screen with no `layout` configured at all
+effectively has), the desktop grid is exactly one row wide: there is no
+"north" or "south" to move to at all, and east/west behave the exact
+same way switching desktops always did before `layout` existed.
 Symmetrically, with `columns` equal to `1`, the grid is exactly one
 column tall: purely north/south, no east or west.  Every screen that
 does not deliberately configure more than one row and more than one
@@ -440,13 +441,12 @@ down to `2x3`:
 [3][4][5]
 ```
 
-Only once that last row (or column) loses its own last member does
-removing it also shrink the grid back down by one row or column, undoing
-the growth above; while it still has another desktop left in it,
-removing one leaves the grid's shape unaffected.  Never shrinks below
-`1` on either axis, so a screen configured down to its own single
-remaining desktop always keeps a well-formed, if entirely empty-of-gaps,
-`1x1` grid.
+Only once that last row (or column) loses its last member does removing
+it also shrink the grid back down by one row or column, undoing the
+growth above; while it still has another desktop left in it, removing
+one leaves the grid's shape unaffected.  Never shrinks below `1` on
+either axis, so a screen configured down to a single remaining desktop
+always keeps a well-formed, if entirely empty-of-gaps, `1x1` grid.
 
 Ignored entirely under restricted-memory mode (`-M`), which is always
 locked to a single desktop regardless of what `layout` (or `count`)
@@ -505,28 +505,27 @@ policy, and placement policy.
 |-------------------|--------|----------------|
 | `windows.gravity` | string | `"north-west"` |
 
-Fallback window gravity, used only for a client that never declares its
-own via `WM_NORMAL_HINTS`'s `win_gravity` field.  Gravity governs which
+Fallback window gravity, used only for a client that never declares one
+via `WM_NORMAL_HINTS`'s `win_gravity` field.  Gravity governs which
 corner (or edge, or the center) of a window's frame stays visually fixed
 when its decoration is toggled on or off, and when it is resized through
 `icowm-msg`'s `resize_client` action without an accompanying move.
 
-A client that declares its own `win_gravity` always takes precedence
-over this value, at any point in that client's life, not only when it is
-first mapped: several common toolkits (e.g., `xterm`'s `Xt` shell,
+A client that declares a `win_gravity` always takes precedence over this
+value, at any point in that client's life, not only when it is first
+mapped: several common toolkits (e.g., `xterm`'s `Xt` shell,
 LibreOffice's `VCL`) only finalize their real size hints a moment after
 their first map, once fonts and chrome are ready, and that later update
-commonly carries an explicit `win_gravity` of its own (typically
-`NorthWestGravity` or `StaticGravity`, i.e., "do nothing special") that
-this field can never override.  This is deliberate, ICCCM-mandated
-behavior, not a limitation specific to IcoWM: this field's only
-practical effect is on the comparatively rare client that never declares
-a `win_gravity` of its own, ever.  This matches how other
-ICCCM-compliant window managers treat this same field: none of them
-offer a way to force a client's gravity to something the client itself
-did not request.  Per-application placement rules (`rules.json`) are the
-tool for overriding where a specific application ends up on screen, not
-this field.
+commonly carries an explicit `win_gravity`, typically `NorthWestGravity`
+or `StaticGravity`, i.e., "do nothing special", that this field can
+never override.  This is deliberate, ICCCM-mandated behavior, not
+a limitation specific to IcoWM: this field's only practical effect is on
+the comparatively rare client that never declares a `win_gravity` at
+all, ever.  This matches how other ICCCM-compliant window managers treat
+this same field: none of them offer a way to force a client's gravity to
+something the client itself did not request.  Per-application placement
+rules (`rules.json`) are the tool for overriding where a specific
+application ends up on screen, not this field.
 
 Accepted `windows.gravity` values: `"north-west"`, `"north"`,
 `"north-east"`, `"east"`, `"south-east"`, `"south"`, `"south-west"`,
@@ -588,7 +587,7 @@ are always solid regardless of this setting, moving just the small icon
 window being cheap enough on its own that the distinction would add
 nothing.  Restricted-memory mode (`memguard.json`) always runs with this
 `false`, and does not expose the key for the person to override; see
-seection 10.2 below.
+§10.2 below.
 
 #### `windows.focus`
 
@@ -750,7 +749,7 @@ keeps working even while one of those has the keyboard grabbed.
 
 `shutdown.timeout-seconds` applies only to the normal quit action (the
 "Quit" keybinding and its confirmation dialog): once confirmed, every
-managed client is first asked to close on its own (the same
+managed client is first asked to close by itself (the same
 `WM_DELETE_WINDOW` request closing one window individually already
 sends, so an application with unsaved changes gets the same chance to
 warn the user), and the window manager waits up to this many seconds for
@@ -812,8 +811,8 @@ applications actually launched day to day.
 | `menus.windows.position` | string | `"under-mouse"` |
 
 Controls where a menu appears when it is opened by a means with no
-screen position of its own, such as a keyboard shortcut, one setting per
-menu type: `root` is the desktop context menu (`menu.json`, opened by
+screen position, such as a keyboard shortcut, one setting per menu type:
+`root` is the desktop context menu (`menu.json`, opened by
 `keyboard.wm.menus.root`, see [3.5 `keyboard.wm`](#35-keyboardwm));
 `windows` is the menu listing every window on every desktop (opened by
 `keyboard.wm.menus.windows`).  Supported values are `"center"`, which
@@ -1079,15 +1078,14 @@ a window past a screen edge switches desktops with it, and how much of
 every desktop's area stays reserved regardless of what any client itself
 publishes.  A sibling of `topology` (§2.2) at the root of `config.json`,
 not nested inside it: deliberately so, since unlike `topology`,
-everything here **does** take effect on a configuration reload (see
-`themes.md` §10).
+everything here **does** take effect on a configuration reload.
 
 | Key                 | Type    | Default | Description |
 |---------------------|---------|---------|-------------|
 | `show-overlay`      | boolean | `true`  | Whether a small notification popup is displayed in the center of the screen for approximately 400 ms whenever the active virtual desktop changes.  The popup shows the desktop index and name in the format `[index] -- Name`, or just `[index]` when the desktop has no name; with a `topology.screens.desktops[].layout` genuinely more than one row configured, `(row,column)` is appended after the index the same way it is in the search box and window lists. |
 | `notify-activity`   | boolean | `true`  | Whether a client becoming urgent on a desktop other than the one currently visible on its surface shows an informational dialog naming that desktop (`Detected activity on desktop [index] -- Name`, with a surface disambiguator appended when more than one surface is managed).  A client urgent on the currently visible desktop already gets its titlebar blink instead (see `urgency.*` in `a11y.json`, §6), which this never duplicates. |
 | `warp-on-edge-drag` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge switches to the adjacent desktop in that direction (left/right always; top/bottom too, once a `layout` with more than one row is configured), cursor and dragged window or icon both carried across, after a short delay.  Meaningless with only one desktop. |
-| `wrap-at-bounds`    | boolean | `true`  | Whether switching past the edge of the desktop grid, in any of the four compass directions, however triggered (keyboard binding, mouse scroll, an edge drag, or otherwise), wraps around to the other end of that same row or column, rather than stopping there. Meaningless with only one desktop. |
+| `wrap-at-bounds`    | boolean | `true`  | Whether switching past the edge of the desktop grid, in any of the four compass directions, however triggered (keyboard binding, mouse scroll, an edge drag, or otherwise), wraps around to the other end of that same row or column, rather than stopping there.  Meaningless with only one desktop. |
 | `margins.top`       | integer | `0`     | Extra space reserved at the top of every desktop's workarea, in pixels, on every screen. |
 | `margins.right`     | integer | `0`     | Extra space reserved on the right, in pixels. |
 | `margins.bottom`    | integer | `0`     | Extra space reserved at the bottom, in pixels. |
@@ -1125,11 +1123,11 @@ A single dedicated client, launched on demand and toggled visible/hidden
 instead of iconified/restored, the same way a dropdown terminal works in
 other window managers.  Hiding it never terminates the underlying
 process: the same client is shown again next time, with whatever state
-it was left in (a shell's scrollback, say), until it exits on its
-own, at which point the next toggle launches a fresh one.  Never appears
-in `list_clients` (IPC), the window cycle, or the window-list menu;
-cannot be decorated, un-pinned, moved to a different layer, iconified,
-shaded, moved, or resized, by any means (keybind, mouse, menu, or IPC);
+it was left in (a shell's scrollback, say), until it exits by itself, at
+which point the next toggle launches a fresh one.  Never appears in
+`list_clients` (IPC), the window cycle, or the window-list menu; cannot
+be decorated, un-pinned, moved to a different layer, iconified, shaded,
+moved, or resized, by any means (keybind, mouse, menu, or IPC);
 `Alt+Space` does nothing on it; loses input focus by hiding itself
 automatically; and is skipped by `rearrange_desktop`.  `toggle
 fullscreen` is deliberately left alone: nothing above prevents it.
@@ -1146,14 +1144,14 @@ enough to release it.
 
 `command` is not limited to a terminal: any graphical program works, as
 long as it actually opens a window at all rather than running as a pure
-command-line tool with no display of its own, e.g., `"gvim
-~/docs/my_notes.txt"` to always have the same notes file one toggle
-away, exactly as much as a shell would be.
+command-line tool with no display, e.g., `"gvim ~/docs/my_notes.txt"` to
+always have the same notes file one toggle away, exactly as much as
+a shell would be.
 
 | Key                     | Type                | Default                    | Description |
 |--------------------------|--------------------|----------------------------|-------------|
 | `is-enabled`             | boolean            | `true`                     | Enables the toggle action; a `toggle_scratchpad` command or its keybind does nothing at all while this is `false`. |
-| `command`                | string             | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) on its own, so any command works here, not only ones able to pass their `-class`; see the note above on what kind of command this can be. |
+| `command`                | string             | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) itself, so any command works here, not only ones able to pass their `-class`; see the note above on what kind of command this can be. |
 | `edge`                   | string             | `"top"`                    | Screen edge it slides out from: `"top"`, `"bottom"`, `"left"`, or `"right"`. |
 | `width`                  | integer or `"max"` | `"max"`                    | Always-applied width, in pixels, or `"max"` for however much of that axis is actually available, so a fixed resolution never has to be hard-coded. |
 | `height`                 | integer or `"max"` | `200`                      | Always-applied height, in pixels, or `"max"` (see `width` above). |
@@ -1191,6 +1189,26 @@ necessary, and a successful one closes the box right away.
     "is-enabled": false
 }
 ```
+
+### 2.13. Reload behavior
+
+Reloading the configuration (`SIGHUP`, the reload keybinding, or the
+root menu action) re-reads whichever theme file `config.json` names and
+applies the new colors, font, and titlebar button lists to every open
+window immediately, since those are read live from the theme on every
+repaint.  Every already-decorated window's frame is also resized to
+match a changed `border.width` or `titlebar.height`, the same way it
+resizes on a focus change (see `themes.md` §1).
+
+What reload does **not** do is force a window's decorated/undecorated
+state to follow a changed `window.is-decorated` or `titlebar.height` in
+the theme file.  A window that was decorated when it was mapped stays
+decorated after a reload even if the reloaded theme now says
+`"is-decorated": false` (and vice versa).  Only newly mapped windows,
+and windows whose decoration is toggled by hand, pick up that setting.
+This is deliberate: undoing a decoration choice a person made for
+a specific window just because the theme file changed would be
+a surprising, unrequested side effect.
 
 ## 3. `bindings.json`: Keyboard and mouse bindings
 
@@ -1325,8 +1343,8 @@ current one, following it there.  Parallels `keyboard.cycle.desktop`
 along.  A silent no-op when there is no different desktop to move to in
 that direction at all: only one exists (always the case in
 restricted-memory mode), wrapping is disabled
-(`desktops.wrap-at-bounds`, §2.10) and this is already the edgemost desktop
-that way, or (north/south only, on a screen with no
+(`desktops.wrap-at-bounds`, §2.10) and this is already the edgemost
+desktop that way, or (north/south only, on a screen with no
 `topology.screens.desktops[].layout` configured, or one with a single
 row) there is no second row to move to in the first place.
 
@@ -1344,7 +1362,7 @@ current one on its surface, resolved by real physical position (from
 RandR) rather than detection order.  Unlike `send-to.desktop` just
 above, never wraps around at all, and has no equivalent of
 `desktops.wrap-at-bounds` to make that configurable: wrapping
-a definite, ordered list (a desktop's own) has one obviously correct
+a definite, ordered list (a desktop's) has one obviously correct
 meaning, but wrapping a genuinely 2-D physical arrangement does not
 (does "east, wrapped" mean the westmost monitor overall, or only the
 westmost one still on the same row?), so no attempt is made to invent
@@ -1418,7 +1436,7 @@ another running application.
 #### `keyboard.wm.menus`
 
 Keyboard shortcuts for the two menus that have no inherent screen
-position of their own.
+position.
 
 
 | Key       | Default binding    | Action |
@@ -1438,13 +1456,13 @@ position of their own.
 ### 3.6. `keyboard.desktop`
 
 Desktop-level actions: switching, adding/removing, and the show-desktop
-toggle.  Its top-level section, a sibling of `keyboard.window`
-rather than nested under `keyboard.wm`: none of these act on any one
-particular client the way everything under `keyboard.window` does, but
-they are just as much their own coherent, frequently reached-for group
-as that one is, not really a good fit for `keyboard.wm`'s remaining,
-much more disparate set of window-manager-lifecycle actions (`quit`,
-`reload`, `redraw`, and the like) either.
+toggle.  Its top-level section, a sibling of `keyboard.window` rather
+than nested under `keyboard.wm`: none of these act on any one particular
+client the way everything under `keyboard.window` does, but they are
+just as much a coherent, frequently reached-for group as that one is,
+not really a good fit for `keyboard.wm`'s remaining, much more disparate
+set of window-manager-lifecycle actions (`quit`, `reload`, `redraw`, and
+the like) either.
 
 | Key      | Default binding        | Action |
 |----------|------------------------|--------|
@@ -1645,16 +1663,16 @@ it.
 
 If that application actually changed anything, a confirm dialog appears,
 centered on the affected screen: "The 'randr.json' configuration has
-been applied.  Keep it, or revert to the previous one?", with `[ Revert]`
-selected by default and a live countdown underneath.  Pressing `[ Keep ]`
-(or `Tab`/arrow then `Enter`/`Space`) keeps the just-applied profile;
-pressing `[ Revert ]`, Escape, or letting the countdown reach zero
-undoes it, restoring every changed output's prior mode, position,
-rotation, and primary status exactly.  The countdown defaults to 10
-seconds (as per default values).  No dialog appears at all when nothing
-actually changed (see the comparison below), nor at startup or on
-a hotplug event; only a reload, the one moment a person is at the
-keyboard to have triggered it, offers this.
+been applied.  Keep it, or revert to the previous one?", with
+`[ Revert]` selected by default and a live countdown underneath.
+Pressing `[ Keep ]` (or `Tab`/arrow then `Enter`/`Space`) keeps the
+just-applied profile; pressing `[ Revert ]`, Escape, or letting the
+countdown reach zero undoes it, restoring every changed output's prior
+mode, position, rotation, and primary status exactly.  The countdown
+defaults to 10 seconds (as per default values).  No dialog appears at
+all when nothing actually changed (see the comparison below), nor at
+startup or on a hotplug event; only a reload, the one moment a person is
+at the keyboard to have triggered it, offers this.
 
 With more than one screen, every screen still gets its profiles applied
 on the same reload even when more than one changes, but only the first
@@ -1980,12 +1998,12 @@ same combined X screen; not named `screen`, since this project's
 codebase has no notion of moving a window to a *different* surface at
 all, so a field with that name would misleadingly suggest a capability
 that does not exist).  It changes what `position` is relative to rather
-than being a placement action of its own.  Explicit `x`/`y` become
-offsets from that monitor's top-left corner instead of the whole
-surface's, and `"center"` centers on that monitor instead of the whole
-surface.  A rule that sets `monitor` without also setting `position`
-still centers the window on that monitor by default, since otherwise
-`monitor` alone would have no visible effect at all:
+than being a distinct placement action.  Explicit `x`/`y` become offsets
+from that monitor's top-left corner instead of the whole surface's, and
+`"center"` centers on that monitor instead of the whole surface.  A rule
+that sets `monitor` without also setting `position` still centers the
+window on that monitor by default, since otherwise `monitor` alone would
+have no visible effect at all:
 
 ```json
 "apply": {
@@ -2109,19 +2127,17 @@ At this moment there's only one kind of `"type"`, which is `"label"`.
 
 Sub-menus can be nested up to 4 levels deep.
 
----
-
 ## 10. `memguard.json`: Restricted-memory mode configuration
 
-Read only when IcoWM is launched with `-M <mib>` (see `icowm.md`'s 
+Read only when IcoWM is launched with `-M <mib>` (see `icowm.md`'s
 "Restricted-memory mode" section for what that flag does and why it
 exists); an ordinary session never reads this file, and this file has no
 effect at all without `-M <mib>`.  It fully replaces `config.json` for
 that one session: `config.json` itself is not consulted at all while `-M
 <mib>` is in effect, but `bindings.json` and a theme file under
-`themes/` are still read exactly as in an ordinary session (see §10.3 for
-the one exception).  The file is **optional**; a missing or unreadable
-one falls back to a fixed built-in profile.
+`themes/` are still read exactly as in an ordinary session (see §10.3
+for the one exception).  The file is **optional**; a missing or
+unreadable one falls back to a fixed built-in profile.
 
 Only the fields below are ever read from it; anything else present in
 the file is silently ignored, and every field this mode's screen and
@@ -2184,7 +2200,7 @@ afterward, since restricted-memory mode never docks any icon at all
   overridden: this mode always runs with it forced to `false`, no
   exception.
 
-### 10.3. The active theme's own restrictions
+### 10.3. Restrictions on the active theme
 
 Whichever theme ends up active, named in `memguard.json`, or the
 built-in default if none is, gets further restricted after loading, on
@@ -2198,7 +2214,7 @@ top of whatever `memguard.json` itself configured:
   instead of leaving every field to fall back to it, if it wants any of
   the styling (size, weight) that comes with naming it explicitly rather
   than implicitly.
-- XSettings propagation (`themes.md` §9) is always off, regardless of
+- `XSettings` propagation (`themes.md` §9) is always off, regardless of
   `theme.xsettings.is-enabled`.
 - Icon pixmaps, icon hint characters, and menu pixmaps are always off,
   regardless of what the theme itself specifies for `icon.show-pixmaps`,
@@ -2673,8 +2689,8 @@ emits a final notification on exit.
 
 This example is only ever read when IcoWM is launched with `-M <mib>`;
 see `icowm.md`'s "Restricted-memory mode" section for what that flag
-does.  It names a theme of its (`themes/compact.json`, not shown
-here), keeps the systray's clock and battery on, turns on the emergency
+does.  It names a theme of its (`themes/compact.json`, not shown here),
+keeps the systray's clock and battery on, turns on the emergency
 shortcut, since a severely memory-constrained session is exactly the
 kind of place where a hung window is more likely and a guaranteed way
 out is worth having, and turns on the built-in `prompt` (§2.12) instead

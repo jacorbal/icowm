@@ -220,9 +220,9 @@ bool ri_client_matches(const struct rules_match_s *match,
         return false;
     }
     if (match->has_transient) {
-        bool is_transient = client->transient_for != XCB_WINDOW_NONE;
+        bool client_is_transient = client->transient_for != XCB_WINDOW_NONE;
 
-        if (is_transient != match->transient) {
+        if (client_is_transient != match->is_transient) {
             return false;
         }
     }

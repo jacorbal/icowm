@@ -216,7 +216,7 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
             item = json_get_item(match_json, "transient");
             if (cJSON_IsBool(item)) {
                 rule->match.has_transient = true;
-                rule->match.transient = cJSON_IsTrue(item);
+                rule->match.is_transient = cJSON_IsTrue(item);
             }
         }
 
@@ -246,19 +246,19 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
         item = json_get_item(apply_json, "focus");
         if (cJSON_IsBool(item)) {
             rule->apply.has_focus = true;
-            rule->apply.focus = cJSON_IsTrue(item);
+            rule->apply.is_focused = cJSON_IsTrue(item);
         }
 
         item = json_get_item(apply_json, "pinned");
         if (cJSON_IsBool(item)) {
             rule->apply.has_sticky = true;
-            rule->apply.pinned = cJSON_IsTrue(item);
+            rule->apply.is_pinned = cJSON_IsTrue(item);
         }
 
         item = json_get_item(apply_json, "decorated");
         if (cJSON_IsBool(item)) {
-            rule->apply.has_decorated = true;
-            rule->apply.decorated = cJSON_IsTrue(item);
+            rule->apply.has_decoration = true;
+            rule->apply.is_decorated = cJSON_IsTrue(item);
         }
 
         /* Either a single value applying to both states, or an
@@ -296,14 +296,14 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
 
             if (cJSON_IsNumber(x) && cJSON_IsNumber(y)) {
                 rule->apply.has_position = true;
-                rule->apply.position_centered = false;
+                rule->apply.is_position_centered = false;
                 rule->apply.x = x->valueint;
                 rule->apply.y = y->valueint;
             }
         } else if (cJSON_IsString(item) && item->valuestring != NULL &&
                 safe_strcmp(item->valuestring, "center") == 0) {
             rule->apply.has_position = true;
-            rule->apply.position_centered = true;
+            rule->apply.is_position_centered = true;
         }
 
         item = json_get_item(apply_json, "size");
