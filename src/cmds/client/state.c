@@ -335,9 +335,45 @@ void ccmd_client_unshade(client_td *client)
 
     target = ccmd_target_win(client);
 
-    /* Restore only the height from the saved geometry; keep the current
-     * position so that moving the shaded window is honored */
-    restored_h = client->layout.geometry.old.dim.h;
+    /* 'geometry.old.dim.h' is the pre-maximize height whenever the
+     * client is currently maximized on the vertical axis (full or
+     * vertical-only): 'ccmd_client_shade' deliberately skips saving
+     * over it for a maximized client (see that function's own
+     * comment), specifically so a later, genuine 'unmaximize' still
+     * has the true original height to restore, not whatever height
+     * happened to be current at shade time.  That same skip means it
+     * is the wrong source here too: restoring it would shrink the
+     * window back to its pre-maximize size instead of the maximized
+     * one, cutting it off partway down the workarea rather than
+     * filling it.  Re-resolving the current workarea/screen height
+     * fresh, the exact same way 's_ccmd_client_maximize_dir'
+     * (maximize.c) computes it, is what the vertical axis is
+     * actually supposed to be at right now instead. */
+    if (client->properties.state == CLIENT_STATE_MAXIMIZED ||
+            client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
+        uint16_t sw = 0;
+        uint16_t sh = 0;
+        const desktop_td *own_desktop;
+        bool is_active;
+        uint32_t border;
+
+        if (!ccmd_client_resolve_workarea(client, NULL, NULL, &sw, &sh) &&
+                !ccmd_screen_dim(client, &sw, &sh)) {
+            sh = (uint16_t) client->layout.geometry.old.dim.h;
+        }
+        (void) sw;
+        own_desktop = wm_get_client_desktop(client);
+        is_active = own_desktop != NULL &&
+            own_desktop->client_active_id == client->id;
+        border = 2u * client_border_width(client, is_active, false);
+        sh = (uint16_t) ((sh > border) ? sh - border : 0u);
+        restored_h = sh;
+    } else {
+        /* Restore only the height from the saved geometry; keep the
+         * current position so that moving the shaded window is
+         * honored */
+        restored_h = client->layout.geometry.old.dim.h;
+    }
     client->layout.geometry.cur.dim.h = restored_h;
 
     ccmd_client_apply_geometry(client, target,

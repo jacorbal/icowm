@@ -34,8 +34,8 @@ void scmd_surface_desktop_switch(surface_td *surface,
         uint32_t desktop_id);
 
 /**
- * @brief Switch the current view to the desktop north of the
- *        current one
+ * @brief Switch the current view to the desktop north of the current
+ *        one
  *
  * @param surface Pointer to the surface
  *
@@ -44,8 +44,8 @@ void scmd_surface_desktop_switch(surface_td *surface,
 void scmd_surface_desktop_switch_north(surface_td *surface);
 
 /**
- * @brief Switch the current view to the desktop south of the
- *        current one
+ * @brief Switch the current view to the desktop south of the current
+ *        one
  *
  * @param surface Pointer to the surface
  *

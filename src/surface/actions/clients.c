@@ -120,65 +120,98 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     }
 
     desktop = surface_desktop_get(surface, desktop_id);
-    if (desktop == NULL || desktop->stacking == NULL ||
-            cdlist_size(desktop->stacking) == 0) {
+    if (desktop == NULL) {
         return;
     }
 
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return;
-    }
+    /* An empty desktop has nothing to map, but must still fall
+     * through to the focus-restoration tail below rather than
+     * returning here: leaving early skipped that unconditionally,
+     * including its own 'PointerRoot' fallback for a desktop with
+     * nothing to inherit focus from, so real input focus was left
+     * wherever hiding the previous desktop's clients had already
+     * put it, unreverted, for as long as this one stayed empty.
+     * Landing on 'None' this way (rather than 'PointerRoot' or a
+     * genuine client) leaves every keyboard shortcut dead, since
+     * 'None' delivers key events nowhere at all, until something
+     * else happens to reassert real focus on returning to whichever
+     * desktop still has a client on it. */
+    if (desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
+        node = cdlist_head(desktop->stacking);
+        if (node != NULL) {
+            initial = node;
+            do {
+                client_td *const client = (client_td *) cdlist_data(node);
+                if (client != NULL &&
+                        !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                        client->properties.state !=
+                            (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    xcb_window_t target =
+                        (client_is_decorated(client) && client->frame != 0)
+                        ? client->frame
+                        : client->window;
+                    if (client->titlebar != 0) {
+                        xcb_map_window(surface->connection,
+                                client->titlebar);
+                    }
+                    xcb_map_window(surface->connection, target);
+                    /* A shaded client's own content window must stay
+                     * unmapped until an explicit unshade: mapping it
+                     * here regardless (as this used to) puts it back
+                     * on screen, sized to whatever tiny remnant its
+                     * shaded frame currently allows, while every
+                     * other part of this project still believes it
+                     * is shaded, and while its own real input focus
+                     * target (revert-to Parent) is still whatever
+                     * ccmd_client_shade last left it at.  This state
+                     * split (mapped at the X server, still shaded to
+                     * the WM) is a genuine bug on its own regardless
+                     * of the exact downstream consequence; it also
+                     * lines up, in practice, with switching away
+                     * from and back to a shaded client's own desktop
+                     * leaving keyboard input dead until that client
+                     * is refocused or closed. */
+                    if (target != client->window &&
+                            !client_is_shaded(client)) {
+                        xcb_map_window(surface->connection,
+                                client->window);
+                    }
+                } else if (client != NULL &&
+                        client->properties.state ==
+                            (uint16_t) CLIENT_STATE_ICONIFIED &&
+                        client->icon_window != 0) {
+                    xcb_window_t tray_below;
 
-    initial = node;
-    do {
-        client_td *const client = (client_td *) cdlist_data(node);
-        if (client != NULL &&
-                !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                client->properties.state !=
-                    (uint16_t) CLIENT_STATE_ICONIFIED) {
-            xcb_window_t target =
-                (client_is_decorated(client) && client->frame != 0)
-                ? client->frame
-                : client->window;
-            if (client->titlebar != 0) {
-                xcb_map_window(surface->connection, client->titlebar);
-            }
-            xcb_map_window(surface->connection, target);
-            if (target != client->window) {
-                xcb_map_window(surface->connection, client->window);
-            }
-        } else if (client != NULL &&
-                client->properties.state ==
-                    (uint16_t) CLIENT_STATE_ICONIFIED &&
-                client->icon_window != 0) {
-            xcb_window_t tray_below;
-
-            xcb_map_window(surface->connection, client->icon_window);
-            /* Icons stay lower than the tray even within the shared
-             * 'below' layer, "stuck to the desktop"; see
-             * 'ccmd_client_iconify' for the fuller explanation of why
-             * an unqualified 'below' with no sibling is not enough to
-             * guarantee that on its own. */
-            tray_below = systray_below_window();
-            if (tray_below != XCB_WINDOW_NONE) {
-                xcb_configure_window(surface->connection,
-                        client->icon_window,
-                        XCB_CONFIG_WINDOW_SIBLING |
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) {
-                        tray_below, XCB_STACK_MODE_BELOW
-                        });
-            } else {
-                xcb_configure_window(surface->connection,
-                        client->icon_window,
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) { XCB_STACK_MODE_BELOW });
-            }
-            client->is_icon_mapped = true;
+                    xcb_map_window(surface->connection,
+                            client->icon_window);
+                    /* Icons stay lower than the tray even within the
+                     * shared 'below' layer, "stuck to the desktop";
+                     * see 'ccmd_client_iconify' for the fuller
+                     * explanation of why an unqualified 'below' with
+                     * no sibling is not enough to guarantee that on
+                     * its own. */
+                    tray_below = systray_below_window();
+                    if (tray_below != XCB_WINDOW_NONE) {
+                        xcb_configure_window(surface->connection,
+                                client->icon_window,
+                                XCB_CONFIG_WINDOW_SIBLING |
+                                XCB_CONFIG_WINDOW_STACK_MODE,
+                                (const uint32_t[]) {
+                                tray_below, XCB_STACK_MODE_BELOW
+                                });
+                    } else {
+                        xcb_configure_window(surface->connection,
+                                client->icon_window,
+                                XCB_CONFIG_WINDOW_STACK_MODE,
+                                (const uint32_t[]) {
+                                XCB_STACK_MODE_BELOW });
+                    }
+                    client->is_icon_mapped = true;
+                }
+                node = cdlist_next(node);
+            } while (node != NULL && node != initial);
         }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
+    }
 
     /* Restore Z-order: iterate from head (bottom) to tail (top),
      * raising each window so the tail (topmost client) ends up at the
@@ -191,7 +224,8 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
      * pushed to 'below' just above) until the next iteration covered it
      * again, visible as a rapid, distracting flash on every desktop
      * switch with more than a couple of windows on it. */
-    node = cdlist_head(desktop->stacking);
+    node = (desktop->stacking != NULL)
+        ? cdlist_head(desktop->stacking) : NULL;
     if (node != NULL) {
         xcb_window_t prev_tgt = XCB_WINDOW_NONE;
 
@@ -226,14 +260,17 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 
     /* Restore input focus to the previously active client.
      * If no suitable client is found, relinquish focus to 'PointerRoot'
-     * so the previous desktop's windows do not retain keyboard input. */
+     * so the previous desktop's windows do not retain keyboard input.
+     * Shaded is fine here, same reasoning as 's_client_focus_fallback_
+     * valid' (cmds/client/focus.c): 'ccmd_client_focus' below already
+     * targets a shaded client's own frame instead of its unmapped
+     * content. */
     focus_target = NULL;
     if (desktop->client_active_id != 0) {
         client_td *c = desktop_find_client_by_id(desktop,
                 desktop->client_active_id);
 
         if (c != NULL && !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                !client_is_shaded(c) &&
                 c->properties.state !=
                     (uint16_t) CLIENT_STATE_ICONIFIED &&
                 (c->properties.flags & CLIENT_FLAG_FOCUSABLE)) {

@@ -63,19 +63,19 @@ static void s_show_desktop_overlay(surface_td *surface)
 
 
 /**
- * @brief Switch a surface to the desktop in a given compass
- *        direction, in cyclic order
+ * @brief Switch a surface to the desktop in a given compass direction,
+ *        in cyclic order
  *
- * Shared by @c scmd_surface_desktop_switch_north and its three
- * siblings below, which only differ in direction: which of @c
+ * Shared by @a scmd_surface_desktop_switch_north and its three siblings
+ * below, which only differ in direction: which of @c
  * surface_desktop_select_north/south/east/west to call, and the log
  * message's own wording.
  *
  * @param surface   Surface to switch
  * @param direction Compass direction to switch toward
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktops involved
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktops involved
  */
 static void s_switch_cyclic(surface_td *surface,
         enum compass_direction_e direction)
@@ -90,8 +90,7 @@ static void s_switch_cyclic(surface_td *surface,
 
     old_id = surface->desktop_cur;
     cycle = (surface->config != NULL)
-        ? surface->config->desktops.wrap_at_bounds
-        : true;
+        ? surface->config->desktops.wrap_at_bounds : true;
 
     switch (direction) {
     case COMPASS_NORTH:

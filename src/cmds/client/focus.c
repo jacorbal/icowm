@@ -65,11 +65,13 @@
  * @brief Whether @p candidate qualifies as a focus-fallback target
  *
  * Shared by both passes @a client_focus_fallback itself makes over
- * @p desktop's own stacking list: mapped and visible (not hidden,
- * shaded, or iconified), able to take real focus by window type,
- * not explicitly opted out via @c client_has_no_focus_fallback, and
- * not skipping the taskbar unless it is modal, urgent, or a dialog
- * (which need the person's attention regardless of that flag).
+ * @p desktop's own stacking list: mapped and visible (not hidden or
+ * iconified; shaded is fine, @a ccmd_client_focus below already
+ * targets a shaded client's own frame instead of its unmapped
+ * content), able to take real focus by window type, not explicitly
+ * opted out via @c client_has_no_focus_fallback, and not skipping
+ * the taskbar unless it is modal, urgent, or a dialog (which need
+ * the person's attention regardless of that flag).
  *
  * @param candidate Client being considered as a fallback target
  * @param exclude   Client that must never be chosen (the one
@@ -85,7 +87,6 @@ static bool s_client_focus_fallback_valid(const client_td *candidate,
 {
     return candidate != NULL && candidate != exclude &&
         !(candidate->properties.flags & CLIENT_FLAG_HIDDEN) &&
-        !client_is_shaded(candidate) &&
         candidate->properties.state !=
             (uint16_t) CLIENT_STATE_ICONIFIED &&
         (candidate->properties.flags & CLIENT_FLAG_FOCUSABLE) &&
@@ -490,10 +491,26 @@ void ccmd_client_focus(client_td *client)
     /* ICCCM §4.2.7: only call 'SetInputFocus' when the client's input
      * model accepts it ('WM_HINTS' input field, default 'true').
      * Clients that set 'input=false' rely solely on the 'WM_TAKE_FOCUS'
-     * message to direct keyboard focus to themselves. */
+     * message to direct keyboard focus to themselves.
+     *
+     * Target 'client->window' itself, except while shaded: content is
+     * unmapped then (that is the entire point of shading), and ICCCM
+     * §4.1.7/X11 both require a 'SetInputFocus' target to be viewable,
+     * so a shaded client's own frame (still mapped, just visually
+     * collapsed to its titlebar) stands in for it instead.  Without
+     * this, a shaded client could never legitimately hold real input
+     * focus at all: 's_client_focus_fallback_valid' (this same file)
+     * and 'surface_clients_show' (surface/actions/clients.c) both
+     * relied on simply excluding a shaded client from ever being
+     * offered here, over actually making this call safe for one,
+     * which left nothing to give a desktop's own keyboard focus
+     * anywhere valid once its only client was shaded and the desktop
+     * was left and returned to. */
     if (client->hints_icccm.hints.has_input_hint) {
+        xcb_window_t focus_win = (client_is_shaded(client) &&
+                client->frame != 0) ? client->frame : client->window;
         xcb_set_input_focus(client->connection, XCB_INPUT_FOCUS_PARENT,
-                            client->window, XCB_CURRENT_TIME);
+                            focus_win, XCB_CURRENT_TIME);
     }
 
     /* ICCCM §4.1.8/§2.8: colormap focus follows input focus here, the
