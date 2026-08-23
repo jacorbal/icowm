@@ -189,7 +189,7 @@ msgstr "Iniciar"
 
 #: include/defs/uistr.h:130;
 msgid "Window"
-msgstr "Fiestra"
+msgstr "Xanela"
 
 #: include/defs/uistr.h:131;
 msgid "Cycle"
@@ -341,7 +341,7 @@ msgstr "Iconas"
 
 #: include/defs/uistr.h:172;
 msgid "Windows"
-msgstr "Fiestras"
+msgstr "Xanelas"
 
 #: include/defs/uistr.h:186;
 msgid "Go to desktop 0-9: %.*s<0-9>"
