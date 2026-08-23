@@ -69,12 +69,16 @@
             "kill": "modc+mod1+mods+Escape",
             "send-to": {
                 "desktop": {
-                    "prev": "modc+mod1+mods+Left",
-                    "next": "modc+mod1+mods+Right"
+                    "north": "modc+mod1+mods+Up",
+                    "east": "modc+mod1+mods+Right",
+                    "south": "modc+mod1+mods+Down",
+                    "west": "modc+mod1+mods+Left"
                 },
                 "monitor": {
-                    "prev": "modc+mod1+mod4+mods+Left",
-                    "next": "modc+mod1+mod4+mods+Right"
+                    "north": "modc+mod1+mod4+mods+Up",
+                    "east": "modc+mod1+mod4+mods+Right",
+                    "south": "modc+mod1+mod4+mods+Down",
+                    "west": "modc+mod1+mod4+mods+Left"
                 }
             },
             "move": {
@@ -102,8 +106,10 @@
 
         "cycle": {
             "desktop": {
-                "prev": "modc+mod1+Left",
-                "next": "modc+mod1+Right"
+                "north": "modc+mod1+Up",
+                "west": "modc+mod1+Left",
+                "south": "modc+mod1+Down",
+                "east": "modc+mod1+Right"
             },
             "icon": {
                 "prev": "modc+mod1+mods+Tab",

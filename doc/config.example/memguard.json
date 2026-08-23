@@ -14,13 +14,13 @@
     },
 
     "desktops": {
-        "wrap-at-bounds": true,
         "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
     },
 
     "windows": {
         "gravity": "north-west",
         "move-step": 10,
+        "show-geom": true,
         "edges": {
             "snap": {
                 "window": 6,
@@ -34,11 +34,14 @@
             "policy": "click"
         },
         "placement": {
+            "group-related": true,
+            "monitor": "pointer",
             "policy": "smart"
         }
     },
 
     "icons": {
+        "show-geom": false,
         "placement": {
             "policy": "smart"
         }
