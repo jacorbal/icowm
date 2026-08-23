@@ -382,6 +382,19 @@ void ccmd_client_unshade(client_td *client)
             0, 0, 0u, restored_h, 0u);
     xcb_map_window(client->connection, client->window);
 
+    /* 'ccmd_client_shade' leaves the content window sized down to
+     * a minimum through this same call, right before unmapping it;
+     * nothing else here previously resized it back up now that the
+     * frame just grew to 'restored_h' above, so it stayed mapped at
+     * that same minimum size, however tall the frame now is.  Most
+     * clients tolerate this well enough (a redraw triggered by
+     * something else, e.g., the real focus hand-off just below,
+     * papers over it visually), but one managing its geometry
+     * more strictly (GVim/GTK) can stay stuck rendering into only
+     * that leftover sliver, which is what actually looked like an
+     * incomplete unshade. */
+    client_decoration_layout_sync(client);
+
     client_unshade(client);
     client_unhide(client);
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
