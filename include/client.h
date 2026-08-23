@@ -317,27 +317,22 @@ struct client_layout_s {
      *        when @p .start and @p .end are zero
      */
     struct strut_partial_s strut_partial;
-
     /**
      * @brief Window gravity
      *
-     * Set once, at @a client_init (@c client.c), from this client's own
-     * @c WM_NORMAL_HINTS if it already declares @c win_gravity there,
-     * or from @c windows.gravity in @c config.json otherwise that
-     * config field is only ever a @e fallback for a client that never
-     * states its own gravity, at any point in its life, not a way to
-     * override one that does.
-     *
-     * A later @c WM_NORMAL_HINTS update keeps this field in sync with
-     * whatever 'win_gravity' that update itself carries, per ICCCM's
-     * own "MUST honor" mandate; several common toolkits (XTerm's Xt
-     * shell, LibreOffice's VCL) only send their real hints a moment
-     * after their first map, once fonts and chrome are ready, which is
-     * when most real clients' own gravity actually takes hold over the
-     * config default.
-     *
-     * @see @a client_props_refresh_normal_hints in @c client/props.c
-     */
+     * Set once, at 'client_init' ('client.c'), from this client's own
+     * 'WM_NORMAL_HINTS' if it already declares 'win_gravity' there, or
+     * from 'windows.gravity' in 'config.json' otherwise ('config.md'
+     * §2.4): that config field is only ever a fallback for a client
+     * that never states its own gravity, at any point in its life, not
+     * a way to override one that does.  A later 'WM_NORMAL_HINTS'
+     * update (see 'client_props_refresh_normal_hints', 'client/props.c')
+     * keeps this field in sync with whatever 'win_gravity' that update
+     * itself carries, per ICCCM's own "MUST honor" mandate; several
+     * common toolkits (xterm's Xt shell, LibreOffice's VCL) only send
+     * their real hints a moment after their first map, once fonts and
+     * chrome are ready, which is when most real clients' own gravity
+     * actually takes hold over the config default. */
     uint16_t gravity;
     struct sides_s frame_extents;   /**< [left, top, right, bottom] */
 };
@@ -366,7 +361,7 @@ typedef struct client_s {
     xcb_window_t titlebar;          /**< Optional titlebar window */
     xcb_window_t icon_window;       /**< Optional iconified placeholder */
     xcb_window_t transient_for;     /**< Parent window for dialogs (0
-                                         or @c XCB_WINDOW_NONE if none) */
+                                          or @c XCB_WINDOW_NONE if none) */
 
     /**
      * @brief Direct pointer to the managed parent this client is
@@ -435,32 +430,32 @@ typedef struct client_s {
      * meaning -- see each one's own doc comment below */
     bool is_icon_mapped;            /**< Whether icon window is mapped */
     bool was_decorated_fullscreen;  /**< Save decor. state for full
-                                         screen */
+                                          screen */
     bool has_rule_position_locked;  /**< Position was set by a rule;
-                                         ignore client-initiated
-                                         @c ConfigureRequests that try
-                                         to move the window */
+                                          ignore client-initiated
+                                          @c ConfigureRequests that try
+                                          to move the window */
     bool was_icon_cycle_selected;   /**< Whether the icon window was
-                                         drawn with cycle-selection
-                                         styling on its own most recent
-                                         render, so
-                                         @a ri_render_client_icon can
-                                         skip its own work (window
-                                         attributes, border, caption,
-                                         pixmap, hints) when neither
-                                         that nor @p is_outdated
-                                         changed since; safe to
-                                         default to @c false
-                                         uninitialized, since a
-                                         freshly iconified client is
-                                         always @p is_outdated on its
-                                         first render regardless of
-                                         this field's value */
+                                          drawn with cycle-selection
+                                          styling on its own most recent
+                                          render, so
+                                          @a ri_render_client_icon can
+                                          skip its own work (window
+                                          attributes, border, caption,
+                                          pixmap, hints) when neither
+                                          that nor @p is_outdated
+                                          changed since; safe to
+                                          default to @c false
+                                          uninitialized, since a
+                                          freshly iconified client is
+                                          always @p is_outdated on its
+                                          first render regardless of
+                                          this field's value */
 
     struct {
         uint8_t unmap;               /**< WM-initiated unmaps to suppress */
         uint8_t focus_unmap;         /**< Synthetic unmaps; mustn't move
-                                          focus */
+                                           focus */
     } ignore;
 
     struct {
@@ -470,39 +465,37 @@ typedef struct client_s {
 
     uint32_t title_height;          /**< Cached titlebar height */
     uint32_t last_border_width;     /**< Border width most recently sent
-                                         to the X server for this
-                                         client's frame/window (see
-                                         @p target in @a ri_render_client),
-                                         so the render pass can skip
-                                         re-sending @a xcb_configure_window
-                                         when it would not actually
-                                         change anything.  Initialized
-                                         to @c UINT32_MAX by
-                                         @a client_init so the very
-                                         first render always applies the
-                                         real value regardless of what
-                                         it is */
+                                          to the X server for this
+                                          client's frame/window (see
+                                          @p target in @a ri_render_client),
+                                          so the render pass can skip
+                                          re-sending @a xcb_configure_window
+                                          when it would not actually
+                                          change anything.  Initialized
+                                          to @c UINT32_MAX by
+                                          @a client_init so the very
+                                          first render always applies the
+                                          real value regardless of what
+                                          it is */
 
-    /**
-     * @brief Monotonic time of the client's last shade or unshade
-     *
-     * Used to recognize and ignore a client's own @c ConfigureRequest
-     * as a stale reaction to that transition rather than a genuine
-     * independent resize.
-     *
-     * @see @a handler_configure_request
-     */
-    struct timespec shade_transition_time;
-
-    /**
-     * @brief Monotonic time of the client's last entry into or exit
-     *        from fullscreen
-     *
-     * Used the same way as @c shade_transition_time for the same reason
-     *
-     * @see @a handler_configure_request
-     */
-    struct timespec fullscreen_transition_time;
+    struct timespec shade_transition_time; /**< Monotonic time of the
+                                                client's last shade or
+                                                unshade; used to recognize
+                                                and ignore a client's
+                                                own @c ConfigureRequest
+                                                as a stale reaction to
+                                                that transition rather
+                                                than a genuine independent
+                                                resize, see
+                                                @a handler_configure_request */
+    struct timespec fullscreen_transition_time; /**< Monotonic time of
+                                                the client's last entry
+                                                into or exit from
+                                                fullscreen; used the
+                                                same way as
+                                                @c shade_transition_time,
+                                                for the same reason, see
+                                                @a handler_configure_request */
 
     uint32_t desktop_id;        /**< Desktop index (@c 0xFFFFFFFF for all) */
     uint32_t screen_id;         /**< Screen index */
@@ -538,21 +531,25 @@ typedef struct client_s {
         bool is_set;
         uint32_t color;
         uint32_t width;
-    } border_override;  /**< A client's own border color and width,
-                             independent of
-                             @p config->theme.window.active /
-                             @p config->theem.inactive.border.
-                             Deliberately generic, not tied to any one
-                             feature.  Unset by default, in which case
-                             @a client_border_apply (@c client.h) falls
-                             back to the usual theme default a plain
-                             client already gets on every focus change;
-                             a caller that sets this (the scratchpad,
-                             @c scratchpad.c, is the only one that does
-                             so today) needs no further involvement from
-                             @a ccmd_client_focus or @a ccmd_client_unfocus
-                             (both in @c cmds/client/focus.c) beyond
-                             that single field */
+    } border_override;              /**< A client's own border color and
+                                          width, independent of
+                                          @p config->theme.window.active/
+                                          inactive.border.  Deliberately
+                                          generic, not tied to any one
+                                          feature.  Unset by default, in
+                                          which case @a client_border_apply
+                                          (@c client.h) falls back to the
+                                          usual theme default a plain
+                                          client already gets on every
+                                          focus change; a caller that sets
+                                          this (the scratchpad,
+                                          @c scratchpad.c, is the only one
+                                          that does so today) needs no
+                                          further involvement from
+                                          @a ccmd_client_focus or
+                                          @a ccmd_client_unfocus
+                                          (@c cmds/client/focus.c) beyond
+                                          that single field */
 
     /**
      * @brief Per-window opacity override from a matched rule
@@ -617,57 +614,96 @@ typedef struct client_s {
          * @brief ICCCM @c WM_NORMAL_HINTS size constraints
          */
         struct {
-            bool is_valid;          /**< True when hints were read from
-                                         server */
-            bool has_position;      /**< True when the client itself
-                                         requested a position
-                                         (@c USPosition or @c PPosition)
-                                         rather than leaving it to this
-                                         window manager's own policy */
+            bool is_valid;       /**< True when hints were read from
+                                       server */
+            bool has_position;   /**< True when the client itself
+                                       requested a position
+                                       (@c USPosition or @c PPosition)
+                                       rather than leaving it to this
+                                       window manager's own policy */
             struct position_s req_pos; /**< Client-requested position,
-                                            valid only when
-                                            @p has_position is true */
+                                             valid only when
+                                             @p has_position is true */
             struct dimensions_s min;   /**< Minimum size (0,0 = unset) */
             struct dimensions_s max;   /**< Maximum size (0,0 = unset) */
             struct dimensions_s base;  /**< Base size for increment
-                                            arithmetic */
+                                             arithmetic */
             struct dimensions_s inc;   /**< Size increment (0 or 1
                                              = no grid) */
             struct aspect_range_s aspect; /**< Minimum/maximum w/h
-                                               ratio (0,0 = unset) */
+                                                ratio (0,0 = unset) */
         } size;
 
         /**
          * @brief ICCCM @c WM_PROTOCOLS state
          */
         struct {
-            bool has_delete;            /**< Supports @c WM_DELETE_WINDOW */
-            xcb_atom_t delete_atom;     /**< Cached @c WM_DELETE_WINDOW
-                                             atom */
-            bool has_take_focus;        /**< Supports @c WM_TAKE_FOCUS */
-            xcb_atom_t take_focus_atom; /**< Cached @c WM_TAKE_FOCUS atom */
+            bool has_delete;          /**< Supports @c WM_DELETE_WINDOW */
+            xcb_atom_t delete_atom;   /**< Cached @c WM_DELETE_WINDOW
+                                            atom */
+            bool has_take_focus;      /**< Supports @c WM_TAKE_FOCUS */
+            xcb_atom_t take_focus_atom; /**< Cached @c WM_TAKE_FOCUS
+                                              atom */
         } protocols;
 
         /**
          * @brief ICCCM @c WM_HINTS fields
          */
         struct {
-            bool has_input_hint;        /**< Client accepts input
-                                             (default true) */
-            bool is_initial_iconic;     /**< Map iconic for @c WM_HINTS
-                                             initial state */
-            xcb_window_t group_leader;  /**< Window group leader, or
+            bool has_input_hint;      /**< Client accepts input
+                                            (default true) */
+            bool is_initial_iconic;   /**< Map iconic for @c WM_HINTS
+                                            initial state */
+            xcb_window_t group_leader; /**< Window group leader, or
                                              @c XCB_NONE */
             xcb_window_t client_leader; /**< ICCCM @c WM_CLIENT_LEADER
-                                             window, or @c XCB_NONE if
-                                             unset.  Used together with
-                                             @p group_leader (see
-                                             @a client_group_leader) to
-                                             cluster windows belonging
-                                             to the same application
-                                             for placement */
+                                              window, or @c XCB_NONE if
+                                              unset.  Used together with
+                                              @p group_leader (see
+                                              @a client_group_leader) to
+                                              cluster windows belonging
+                                              to the same application
+                                              for placement */
         } hints;
     } hints_icccm;
+
+    /**
+     * @brief ICCCM @c WM_COLORMAP_WINDOWS (§4.1.8): windows whose
+     *        colormap this client wants installed when it gets the
+     *        colormap focus, in priority order
+     *
+     * Absent (@p count of @c 0) for the overwhelming majority of
+     * clients today, true-color displays having made per-application
+     * private colormaps largely obsolete; tracked at all only for the
+     * rare client still declaring one, typically on an 8-bit
+     * @c PseudoColor-class display.  @c ColormapChangeMask is
+     * subscribed on every window listed here (@a client_props_refresh_
+     * colormap_windows, @c client/props.c), so a later change to any
+     * of their colormap attributes is caught via @c ColormapNotify
+     * (@a handler_colormap_notify, @c handler/colormap.c) even between
+     * refreshes of this list.
+     *
+     * @see @a ccmd_client_focus (@c cmds/client/focus.c), which installs
+     *      these, in order, alongside @c SetInputFocus itself
+     */
+    struct {
+        xcb_window_t windows[WM_COLORMAP_WINDOWS_MAX]; /**< Window IDs,
+                                                              in the
+                                                              client's
+                                                              priority
+                                                              order */
+        xcb_colormap_t colormap_ids[WM_COLORMAP_WINDOWS_MAX]; /**<
+                                       Each @p windows entry's cached
+                                       colormap attribute, fetched once
+                                       when the list is read and kept
+                                       current by @c ColormapNotify
+                                       afterward, so installing them on
+                                       focus never needs a fresh round
+                                       trip (@a handler_colormap_notify,
+                                       @c handler/colormap.c) */
+        uint32_t count;       /**< Number of entries in @p windows
+                                    actually in use */
+    } colormap_windows;
 
     /**
      * @brief EWMH-sourced hints: pre-existing @c _NET_WM_STATE,
@@ -702,11 +738,11 @@ typedef struct client_s {
          */
         struct {
             bool is_supported;        /**< Supports @c _NET_WM_PING
-                                           protocol */
+                                            protocol */
             uint32_t last_sent;       /**< X timestamp of last ping
-                                           sent */
+                                            sent */
             uint32_t last_reply;      /**< X timestamp of last ping
-                                           reply */
+                                            reply */
         } ping;
 
         /**
@@ -725,43 +761,44 @@ typedef struct client_s {
         struct {
             bool is_supported;    /**< Supports @c _NET_WM_SYNC_REQUEST */
             uint32_t counter;     /**< XSync counter XID the CLIENT
-                                       created and advertised via its
-                                       own @c _NET_WM_SYNC_REQUEST_COUNTER
-                                       property (read, not created, by
-                                       @a client_init), or 0 if unset */
+                                        created and advertised via its
+                                        own @c _NET_WM_SYNC_REQUEST_COUNTER
+                                        property (read, not created, by
+                                        @a client_init), or 0 if unset */
             uint32_t alarm;       /**< WM-owned alarm XID watching
-                                       @p counter for positive
-                                       transitions, or 0 */
+                                        @p counter for positive
+                                        transitions, or 0 */
             uint32_t value;       /**< Local shadow of the last
-                                       counter value sent to the
-                                       client (low 32 bits; a single
-                                       resize session never comes
-                                       close to wrapping) */
+                                        counter value sent to the
+                                        client (low 32 bits; a single
+                                        resize session never comes
+                                        close to wrapping) */
             bool is_waiting;      /**< @c true between sending a sync
-                                       request and receiving the
-                                       matching @c AlarmNotify (or
-                                       giving up after @p wait_ticks) */
+                                        request and receiving the
+                                        matching @c AlarmNotify (or
+                                        giving up after @p wait_ticks) */
             uint8_t wait_ticks;   /**< Consecutive resize attempts
-                                       spent waiting for the current
-                                       request; past
-                                       @c WM_SYNC_MAX_WAIT_TICKS the
-                                       pending geometry is
-                                       force-applied so an
-                                       unresponsive client can never
-                                       freeze interactive resize */
+                                        spent waiting for the current
+                                        request; past
+                                        @c WM_SYNC_MAX_WAIT_TICKS the
+                                        pending geometry is
+                                        force-applied so an
+                                        unresponsive client can never
+                                        freeze interactive resize */
             bool has_pending;     /**< @c true when a newer geometry
-                                       arrived while @p is_waiting
-                                       and still needs to be applied */
+                                        arrived while @p is_waiting
+                                        and still needs to be applied */
             struct geometry_s pending_geom; /**< Geometry to apply once
-                                                 the pending request is
-                                                 acknowledged or times
-                                                 out */
+                                                  the pending request is
+                                                  acknowledged or times
+                                                  out */
         } sync;
     } hints_ewmh;
 
-    bool is_outdated;   /**< Geometry or decoration changed; full
-                             configure & repaint needed on next render
-                             pass (cleared after render) */
+    bool is_outdated;               /**< Geometry or decoration changed;
+                                          full configure+repaint needed
+                                          on next render pass (cleared
+                                          after render) */
 } client_td;
 
 
@@ -1252,6 +1289,56 @@ void client_props_refresh_icon_name(client_td *client);
  * @note Complexity: @e O(1)
  */
 void client_props_refresh_normal_hints(client_td *client);
+
+/**
+ * @brief Refresh a client's own @c WM_COLORMAP_WINDOWS list from X11
+ *        properties
+ *
+ * Re-reads @c WM_COLORMAP_WINDOWS from the X server and populates
+ * @p colormap_windows in @p client, capped at
+ * @c WM_COLORMAP_WINDOWS_MAX entries, also fetching (a read, not a
+ * side effect) each listed window's own current colormap attribute
+ * into @p colormap_windows.colormap_ids, so installing them on focus
+ * never needs a fresh round trip of its own.  Should be called both
+ * at manage time and whenever a @c PROPERTY_NOTIFY event for
+ * @c WM_COLORMAP_WINDOWS is received, since ICCCM §4.1.8 requires
+ * tracking changes to this property for as long as the client is
+ * managed.  Never changes X server state itself; subscribing
+ * @c ColormapChangeMask on the windows this populates, and actually
+ * installing their own cached colormap on focus, are both the
+ * caller's own responsibility (see @a client_init, @c client.c, and
+ * @a ccmd_client_focus, @c cmds/client/focus.c).
+ *
+ * @param client Client to update
+ *
+ * @note Complexity: @e O(1), bounded by @c WM_COLORMAP_WINDOWS_MAX
+ */
+void client_props_refresh_colormap_windows(client_td *client);
+
+/**
+ * @brief Subscribe @c ColormapChangeMask on every window in a
+ *        client's own @c WM_COLORMAP_WINDOWS list
+ *
+ * The client's own top-level window already gets this same mask bit
+ * from @c client_init's own event-mask setup; this covers the
+ * separate subwindows ICCCM §4.1.8 lets a client list there instead,
+ * which @a client_props_refresh_colormap_windows (@c client/props.c)
+ * must already have populated @p client's own @c colormap_windows
+ * with by the time this runs.  A later change to the list itself, or
+ * to any one of these subwindows' own colormap attribute, is caught
+ * separately (@c PROPERTY_NOTIFY and @c ColormapNotify respectively;
+ * see @a handler_property_notify, @c handler/focus.c, and
+ * @a handler_colormap_notify, @c handler/colormap.c).
+ *
+ * @param connection XCB connection
+ * @param client     Client whose own @c colormap_windows list is
+ *                   subscribed to
+ *
+ * @note Complexity: @e O(n), where @e n is
+ *       @p client->colormap_windows.count
+ */
+void client_subscribe_colormap_windows(
+        xcb_connection_t *connection, const client_td *client);
 
 /**
  * @brief Macro that evaluates to the client iconify state

@@ -183,73 +183,6 @@ static void s_systray_icons_push_below(void)
 }
 
 
-/* Apply the configured 'systray.layer' stacking rule
- *
- * - 'CONFIG_SYSTRAY_LAYER_BELOW' (the default): stacks the tray window
- *   at the very bottom, behind every client window.
- * - 'CONFIG_SYSTRAY_LAYER_ABOVE': stacks it at the top, unless a client
- *   is currently fullscreen, in which case it stacks just below that
- *   client instead, so a fullscreen window still covers it; the same
- *   way a taskbar or panel gets covered by a fullscreen window in most
- *   desktop environments, instead of a systray floating above literally
- *   everything regardless of what the user is doing.  Always resolved
- *   to its final position in one single 'ConfigureWindow' call (cfr.
- *   's_systray_fullscreen_target_find' above), never by raising to the
- *   top and only then lowering in a second, separate request, which
- *   would flash the tray above fullscreen content for the brief moment
- *   between the two.
- * - 'CONFIG_SYSTRAY_LAYER_OVERLAY': stacks it at the top and leaves it
- *   there unconditionally, even over fullscreen windows.
- *
- * Safe to call whenever the tray's stacking might need reconsidering:
- * after every reflow, and whenever any client enters or exits
- * fullscreen (see 'ccmd_client_fullscreen' and
- * 'ccmd_client_unfullscreen', which call the public 'systray_restack'
- * wrapper in systray.c). */
-void systray_layout_restack(void)
-{
-    xcb_window_t fullscreen_target;
-
-    if (!s_tray.window_ready || s_tray.connection == NULL) {
-        return;
-    }
-
-    if (s_tray.layer == CONFIG_SYSTRAY_LAYER_BELOW) {
-        xcb_configure_window(s_tray.connection, s_tray.window,
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) { XCB_STACK_MODE_BELOW });
-        s_systray_icons_push_below();
-        xcb_flush(s_tray.connection);
-        return;
-    }
-
-    fullscreen_target = (s_tray.layer == CONFIG_SYSTRAY_LAYER_ABOVE)
-        ? s_systray_fullscreen_target_find() : XCB_WINDOW_NONE;
-
-    /* A single 'ConfigureWindow' call straight to the final position,
-     * rather than unconditionally raising to the very top first and
-     * only then lowering below a fullscreen client in a second,
-     * separate request: that two-step sequence briefly left the tray
-     * stacked above the fullscreen content between the two requests,
-     * visible as a flash on every restack (every reflow, and every
-     * fullscreen toggle) rather than only when actually needed. */
-    if (fullscreen_target != XCB_WINDOW_NONE) {
-        xcb_configure_window(s_tray.connection, s_tray.window,
-                XCB_CONFIG_WINDOW_SIBLING |
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) {
-                    fullscreen_target, XCB_STACK_MODE_BELOW
-                });
-    } else {
-        xcb_configure_window(s_tray.connection, s_tray.window,
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
-    }
-
-    xcb_flush(s_tray.connection);
-}
-
-
 /**
  * @brief Resolve the rectangle the tray dock's corner is anchored to
  *
@@ -402,6 +335,73 @@ static void s_systray_strut_update(struct geometry_s geom,
     s_tray.reserved_strut.end.right = (int32_t) partial.right_end_y;
     s_tray.reserved_strut.end.top = (int32_t) partial.top_end_x;
     s_tray.reserved_strut.end.bottom = (int32_t) partial.bottom_end_x;
+}
+
+
+/* Apply the configured 'systray.layer' stacking rule
+ *
+ * - 'CONFIG_SYSTRAY_LAYER_BELOW' (the default): stacks the tray window
+ *   at the very bottom, behind every client window.
+ * - 'CONFIG_SYSTRAY_LAYER_ABOVE': stacks it at the top, unless a client
+ *   is currently fullscreen, in which case it stacks just below that
+ *   client instead, so a fullscreen window still covers it; the same
+ *   way a taskbar or panel gets covered by a fullscreen window in most
+ *   desktop environments, instead of a systray floating above literally
+ *   everything regardless of what the user is doing.  Always resolved
+ *   to its final position in one single 'ConfigureWindow' call (cfr.
+ *   's_systray_fullscreen_target_find' above), never by raising to the
+ *   top and only then lowering in a second, separate request, which
+ *   would flash the tray above fullscreen content for the brief moment
+ *   between the two.
+ * - 'CONFIG_SYSTRAY_LAYER_OVERLAY': stacks it at the top and leaves it
+ *   there unconditionally, even over fullscreen windows.
+ *
+ * Safe to call whenever the tray's stacking might need reconsidering:
+ * after every reflow, and whenever any client enters or exits
+ * fullscreen (see 'ccmd_client_fullscreen' and
+ * 'ccmd_client_unfullscreen', which call the public 'systray_restack'
+ * wrapper in systray.c). */
+void systray_layout_restack(void)
+{
+    xcb_window_t fullscreen_target;
+
+    if (!s_tray.window_ready || s_tray.connection == NULL) {
+        return;
+    }
+
+    if (s_tray.layer == CONFIG_SYSTRAY_LAYER_BELOW) {
+        xcb_configure_window(s_tray.connection, s_tray.window,
+                XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+        s_systray_icons_push_below();
+        xcb_flush(s_tray.connection);
+        return;
+    }
+
+    fullscreen_target = (s_tray.layer == CONFIG_SYSTRAY_LAYER_ABOVE)
+        ? s_systray_fullscreen_target_find() : XCB_WINDOW_NONE;
+
+    /* A single 'ConfigureWindow' call straight to the final position,
+     * rather than unconditionally raising to the very top first and
+     * only then lowering below a fullscreen client in a second,
+     * separate request: that two-step sequence briefly left the tray
+     * stacked above the fullscreen content between the two requests,
+     * visible as a flash on every restack (every reflow, and every
+     * fullscreen toggle) rather than only when actually needed. */
+    if (fullscreen_target != XCB_WINDOW_NONE) {
+        xcb_configure_window(s_tray.connection, s_tray.window,
+                XCB_CONFIG_WINDOW_SIBLING |
+                XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) {
+                    fullscreen_target, XCB_STACK_MODE_BELOW
+                });
+    } else {
+        xcb_configure_window(s_tray.connection, s_tray.window,
+                XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
+    }
+
+    xcb_flush(s_tray.connection);
 }
 
 

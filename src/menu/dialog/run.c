@@ -132,6 +132,46 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
 }
 
 
+/**
+ * @brief Fill a rectangle at an arbitrary horizontal offset
+ *
+ * The same drawing this shares with @a menu_draw_row_bg
+ * (menu/draw.c), just with @p x configurable: that shared helper
+ * always starts at the window's own left edge, which is exactly
+ * right for every one of its other callers (a whole-width row
+ * background) but not for painting @p label's and @p input's own
+ * independently colored halves of the run-box side by side.
+ *
+ * @param connection XCB connection
+ * @param window     Window to draw into
+ * @param color      Fill color
+ * @param x          Left edge, in pixels
+ * @param dim        Width/height, in pixels
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_run_fill_rect(xcb_connection_t *connection,
+        xcb_window_t window, uint32_t color,
+        int16_t x, struct dimensions_s dim)
+{
+    xcb_gcontext_t gc;
+    xcb_rectangle_t rect;
+    uint32_t gc_vals[1];
+
+    gc = xcb_generate_id(connection);
+    gc_vals[0] = color;
+    xcb_create_gc(connection, gc, window, XCB_GC_FOREGROUND, gc_vals);
+
+    rect.x = x;
+    rect.y = 0;
+    rect.width = (uint16_t) dim.w;
+    rect.height = (uint16_t) dim.h;
+    xcb_poly_fill_rectangle(connection, window, gc, 1, &rect);
+
+    xcb_free_gc(connection, gc);
+}
+
+
 /* Open the run-box, centered on 'surface' */
 void run_init(xcb_connection_t *connection, surface_td *surface,
         const config_td *cfg)
@@ -266,46 +306,6 @@ void run_handle_keypress(xcb_connection_t *connection,
         s_run.command[s_run.command_len] = '\0';
         run_draw(connection, cfg);
     }
-}
-
-
-/**
- * @brief Fill a rectangle at an arbitrary horizontal offset
- *
- * The same drawing this shares with @a menu_draw_row_bg
- * (menu/draw.c), just with @p x configurable: that shared helper
- * always starts at the window's own left edge, which is exactly
- * right for every one of its other callers (a whole-width row
- * background) but not for painting @p label's and @p input's own
- * independently colored halves of the run-box side by side.
- *
- * @param connection XCB connection
- * @param window     Window to draw into
- * @param color      Fill color
- * @param x          Left edge, in pixels
- * @param dim        Width/height, in pixels
- *
- * @note Complexity: @e O(1)
- */
-static void s_run_fill_rect(xcb_connection_t *connection,
-        xcb_window_t window, uint32_t color,
-        int16_t x, struct dimensions_s dim)
-{
-    xcb_gcontext_t gc;
-    xcb_rectangle_t rect;
-    uint32_t gc_vals[1];
-
-    gc = xcb_generate_id(connection);
-    gc_vals[0] = color;
-    xcb_create_gc(connection, gc, window, XCB_GC_FOREGROUND, gc_vals);
-
-    rect.x = x;
-    rect.y = 0;
-    rect.width = (uint16_t) dim.w;
-    rect.height = (uint16_t) dim.h;
-    xcb_poly_fill_rectangle(connection, window, gc, 1, &rect);
-
-    xcb_free_gc(connection, gc);
 }
 
 

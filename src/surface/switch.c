@@ -200,74 +200,6 @@ static void s_surface_layout_shrink_after(surface_td *surface,
 }
 
 
-/* Add a new desktop to the surface */
-int surface_action_desktop_add(surface_td *surface)
-{
-    desktop_td *desktop;
-
-    if (surface == NULL) {
-        LOGGER_ERROR("Invalid surface pointer", L_NARG);
-        return -1;
-    }
-
-    /* Restricted-memory mode is deliberately locked to exactly one
-     * desktop, always; see 'config_set_default_values_memguard'
-     * (config/memguard/defaults.c), which never lets 'memguard.json'
-     * override 'desktop_count' away from its own hardcoded '1u'.
-     * Refused here too, not just left to whichever caller happens to
-     * check first, so every path that could reach this function
-     * (the window list's own "Add new desktop" entry, its keyboard
-     * shortcut, and any future one) is covered by the same single
-     * guard. */
-    if (memguard_max_clients() > 0u) {
-        LOGGER_NOTICE("Cannot add another desktop to surface %u:" \
-                " restricted-memory mode is locked to a single" \
-                " desktop", surface->id);
-        return 1;
-    }
-
-    /* 'config_base->screens[screen_id].desktops[desktop_id]'
-     * (desktop.c, 's_desktop_read_config_settings' and its own
-     * caller) is a fixed-size 'CONFIG_MAX_DESKTOPS' array indexed by
-     * this new desktop's own ID, itself always 'desktop_count'
-     * before the increment below; refused outright once that would
-     * reach or exceed the array's own real capacity, rather than
-     * indexing past its end. */
-    if (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS) {
-        LOGGER_NOTICE("Cannot add another desktop to surface %u:" \
-                " already at the configured maximum of %d",
-                surface->id, CONFIG_MAX_DESKTOPS);
-        return 1;
-    }
-
-    LOGGER_DEBUG("Adding new desktop to surface %u", surface->id);
-
-    s_surface_layout_grow_for(surface, surface->desktop_count + 1u);
-
-    desktop = desktop_init(surface->connection,
-            surface->ewmh,
-            surface->id,
-            surface->desktop_count,
-            surface->config);
-    if (desktop == NULL) {
-        LOGGER_ERROR("Failed to initialize new desktop on surface %u",
-                surface->id);
-        return 1;
-    }
-
-    if (surface_desktop_add(surface, desktop) != 0) {
-        LOGGER_ERROR("Failed to add desktop to surface %u", surface->id);
-        desktop_destroy(desktop);
-        return 1;
-    }
-
-    s_surface_mark_all_desktops_outdated(surface);
-    surface->is_outdated = true;
-
-    return 0;
-}
-
-
 /**
  * @brief Move every client still on @p from_desktop to
  *        @p to_desktop, updating EWMH @c _NET_WM_DESKTOP along
@@ -354,6 +286,133 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
                     32, 1, &to_desktop->id);
         }
     }
+}
+
+
+/**
+ * @brief Re-fill every already-maximized client's own geometry
+ *        across every one of a surface's own desktops
+ *
+ * @a ccmd_client_refill_maximized (cmds/client/geom.c) resolves and
+ * applies one client's own workarea fresh; run here for every client
+ * on every desktop @p surface owns, right after its own workarea
+ * actually changed (@a surface_action_toggle_strutless_maximize), so an
+ * already-maximized window visibly grows or shrinks into the panel-
+ * reserved space that mode just set aside or folded back in, rather
+ * than silently staying at whatever size it already was until the
+ * person happens to un-maximize and re-maximize it by hand.
+ *
+ * @param surface Surface whose own maximized clients should be
+ *                re-filled
+ *
+ * @note No-op if @p surface or its own desktop list is @c NULL
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       clients across every one of @p surface's own desktops
+ */
+static void s_surface_refill_maximized_clients(surface_td *surface)
+{
+    cdlist_item_td *dnode;
+    const cdlist_item_td *dinitial;
+
+    if (surface == NULL || surface->desktops == NULL) {
+        return;
+    }
+
+    dnode = cdlist_head(surface->desktops);
+    if (dnode == NULL) {
+        return;
+    }
+
+    dinitial = dnode;
+    do {
+        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
+
+        if (d != NULL && d->stacking != NULL) {
+            cdlist_item_td *cnode = cdlist_head(d->stacking);
+            const cdlist_item_td *cinitial = cnode;
+
+            if (cnode != NULL) {
+                do {
+                    client_td *const c = (client_td *) cdlist_data(cnode);
+
+                    if (c != NULL) {
+                        ccmd_client_refill_maximized(c);
+                    }
+                    cnode = cdlist_next(cnode);
+                } while (cnode != NULL && cnode != cinitial);
+            }
+        }
+        dnode = cdlist_next(dnode);
+    } while (dnode != NULL && dnode != dinitial);
+}
+
+
+/* Add a new desktop to the surface */
+int surface_action_desktop_add(surface_td *surface)
+{
+    desktop_td *desktop;
+
+    if (surface == NULL) {
+        LOGGER_ERROR("Invalid surface pointer", L_NARG);
+        return -1;
+    }
+
+    /* Restricted-memory mode is deliberately locked to exactly one
+     * desktop, always; see 'config_set_default_values_memguard'
+     * (config/memguard/defaults.c), which never lets 'memguard.json'
+     * override 'desktop_count' away from its own hardcoded '1u'.
+     * Refused here too, not just left to whichever caller happens to
+     * check first, so every path that could reach this function
+     * (the window list's own "Add new desktop" entry, its keyboard
+     * shortcut, and any future one) is covered by the same single
+     * guard. */
+    if (memguard_max_clients() > 0u) {
+        LOGGER_NOTICE("Cannot add another desktop to surface %u:" \
+                " restricted-memory mode is locked to a single" \
+                " desktop", surface->id);
+        return 1;
+    }
+
+    /* 'config_base->screens[screen_id].desktops[desktop_id]'
+     * (desktop.c, 's_desktop_read_config_settings' and its own
+     * caller) is a fixed-size 'CONFIG_MAX_DESKTOPS' array indexed by
+     * this new desktop's own ID, itself always 'desktop_count'
+     * before the increment below; refused outright once that would
+     * reach or exceed the array's own real capacity, rather than
+     * indexing past its end. */
+    if (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS) {
+        LOGGER_NOTICE("Cannot add another desktop to surface %u:" \
+                " already at the configured maximum of %d",
+                surface->id, CONFIG_MAX_DESKTOPS);
+        return 1;
+    }
+
+    LOGGER_DEBUG("Adding new desktop to surface %u", surface->id);
+
+    s_surface_layout_grow_for(surface, surface->desktop_count + 1u);
+
+    desktop = desktop_init(surface->connection,
+            surface->ewmh,
+            surface->id,
+            surface->desktop_count,
+            surface->config);
+    if (desktop == NULL) {
+        LOGGER_ERROR("Failed to initialize new desktop on surface %u",
+                surface->id);
+        return 1;
+    }
+
+    if (surface_desktop_add(surface, desktop) != 0) {
+        LOGGER_ERROR("Failed to add desktop to surface %u",
+                surface->id);
+        desktop_destroy(desktop);
+        return 1;
+    }
+
+    s_surface_mark_all_desktops_outdated(surface);
+    surface->is_outdated = true;
+
+    return 0;
 }
 
 
@@ -457,64 +516,6 @@ int surface_action_desktop_remove(surface_td *surface)
     surface->is_outdated = true;
 
     return 0;
-}
-
-
-/**
- * @brief Re-fill every already-maximized client's own geometry
- *        across every one of a surface's own desktops
- *
- * @a ccmd_client_refill_maximized (cmds/client/geom.c) resolves and
- * applies one client's own workarea fresh; run here for every client
- * on every desktop @p surface owns, right after its own workarea
- * actually changed (@a surface_action_toggle_strutless_maximize), so an
- * already-maximized window visibly grows or shrinks into the panel-
- * reserved space that mode just set aside or folded back in, rather
- * than silently staying at whatever size it already was until the
- * person happens to un-maximize and re-maximize it by hand.
- *
- * @param surface Surface whose own maximized clients should be
- *                re-filled
- *
- * @note No-op if @p surface or its own desktop list is @c NULL
- * @note Complexity: @e O(n), where @e n is the total number of
- *       clients across every one of @p surface's own desktops
- */
-static void s_surface_refill_maximized_clients(surface_td *surface)
-{
-    cdlist_item_td *dnode;
-    const cdlist_item_td *dinitial;
-
-    if (surface == NULL || surface->desktops == NULL) {
-        return;
-    }
-
-    dnode = cdlist_head(surface->desktops);
-    if (dnode == NULL) {
-        return;
-    }
-
-    dinitial = dnode;
-    do {
-        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
-
-        if (d != NULL && d->stacking != NULL) {
-            cdlist_item_td *cnode = cdlist_head(d->stacking);
-            const cdlist_item_td *cinitial = cnode;
-
-            if (cnode != NULL) {
-                do {
-                    client_td *const c = (client_td *) cdlist_data(cnode);
-
-                    if (c != NULL) {
-                        ccmd_client_refill_maximized(c);
-                    }
-                    cnode = cdlist_next(cnode);
-                } while (cnode != NULL && cnode != cinitial);
-            }
-        }
-        dnode = cdlist_next(dnode);
-    } while (dnode != NULL && dnode != dinitial);
 }
 
 

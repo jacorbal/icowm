@@ -226,7 +226,8 @@ static void s_resize_compute(xcb_keysym_t keysym, int32_t step,
  * @param keysym      X keysym of the pressed key
  * @param resize_step Distance in pixels to resize per key press
  */
-static void s_handle_resize_key(xcb_keysym_t keysym, int32_t resize_step)
+static void s_handle_resize_key(xcb_keysym_t keysym,
+        int32_t resize_step)
 {
     int32_t nx;
     int32_t ny;
@@ -305,13 +306,6 @@ static void s_handle_resize_key(xcb_keysym_t keysym, int32_t resize_step)
 }
 
 
-/* Check whether a keyboard modal mode is active */
-bool kbd_modal_is_active(void)
-{
-    return s_mode != KBD_MODAL_NONE;
-}
-
-
 /**
  * @brief Enter a keyboard modal session (move or resize) for a client
  *
@@ -354,6 +348,13 @@ static void s_modal_enter(xcb_connection_t *connection,
                 XCB_GRAB_MODE_ASYNC);
         xcb_flush(connection);
     }
+}
+
+
+/* Check whether a keyboard modal mode is active */
+bool kbd_modal_is_active(void)
+{
+    return s_mode != KBD_MODAL_NONE;
 }
 
 

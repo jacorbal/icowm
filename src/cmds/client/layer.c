@@ -30,6 +30,185 @@
 #include <cmds/client/internal.h>
 
 
+/**
+ * @brief Enforce layer stacking and request a redraw after a client's
+ *        layer changes
+ *
+ * Shared by @c ccmd_client_layer_above, @c ccmd_client_layer_normal,
+ * and @c ccmd_client_layer_below below, which only differ in the new
+ * @c client->properties.layer value and which @c _NET_WM_STATE atoms to
+ * add or remove for it.
+ *
+ * @param client  Client whose layer just changed
+ * @param desktop Desktop @p client is on, or @c NULL to skip
+ *                re-enforcing layer stacking
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop (see @c ccmd_desktop_enforce_layers)
+ */
+static void s_client_layer_finish(client_td *client, desktop_td *desktop)
+{
+    if (desktop != NULL) {
+        ccmd_desktop_enforce_layers(desktop);
+    }
+
+    wm_request_client_redraw(client);
+    xcb_flush(client->connection);
+}
+
+
+/**
+ * @brief Whether a client should be treated as its own top-level
+ *        entry point for @a s_enforce_layer_place_family, rather
+ *        than placed as part of some ancestor's own family cluster
+ *
+ * @c false exactly when @p client has a @c transient_parent that is
+ * itself on the same desktop and in the same layer as @p client: that
+ * parent's own call to @a s_enforce_layer_place_family already recurses
+ * into @p client (see that function's own doc comment), so treating it
+ * as a second, independent entry point here would place it twice, the
+ * second time breaking the family clustering the first placement
+ * already established.  @c true whenever the parent is missing, on
+ * a different desktop, or in a different layer: none of those get
+ * a recursive visit from that parent's own placement, so @p client only
+ * ever gets placed at all by being its own entry point.
+ *
+ * @param client  Client to classify
+ * @param desktop Desktop this layer pass is currently placing
+ * @param layer   Layer this pass is currently placing
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_enforce_layer_is_top_level(const client_td *client,
+        const desktop_td *desktop, uint16_t layer)
+{
+    const client_td *parent = client->transient_parent;
+
+    return parent == NULL || parent->desktop_id != desktop->id ||
+        parent->properties.layer != layer;
+}
+
+
+/**
+ * @brief Place one client, then recursively place its own transient
+ *        descendants immediately above it, within one layer pass of
+ *        @a ccmd_desktop_enforce_layers
+ *
+ * Openbox's own real answer to keeping a transient family together
+ * during restacking (confirmed directly against its source,
+ * @c restack_windows in @c stacking.c): a dialog belongs directly
+ * above the window it is transient for, not wherever it happens to
+ * fall in whatever order the rest of the desktop's own clients are
+ * otherwise sorted in.  Recurses depth-first through @p top's own
+ * @c transients (see its own doc comment, client.h), each child
+ * placed immediately after its own parent and before the parent's
+ * next sibling, so a whole family clusters together as one
+ * contiguous block within its shared layer; a child in a different
+ * layer than @p top is left for that other layer's own pass instead
+ * (see @a s_enforce_layer_is_top_level), matching Openbox's own
+ * identical @c ch->layer @c == @c selected->layer condition.
+ *
+ * @param top          Client to place, then recurse from
+ * @param desktop      Desktop this layer pass is placing; only
+ *                     a descendant registered under this same desktop
+ *                     is placed by this same call, matching a pinned
+ *                     client staying registered under whichever desktop
+ *                     it was originally on forever rather than actually
+ *                     moving between desktops (see
+ *                     @a ccmd_client_bring_family's comment, in
+ *                     @c cmds/client/transient.c, for the fuller
+ *                     reasoning)
+ * @param layer        Layer this pass is placing; only a descendant
+ *                     sharing this exact layer with @p top is
+ *                     placed by this same call
+ * @param prev_target  The previous client's own target window placed so
+ *                     far across the whole layer pass, or
+ *                     @c XCB_WINDOW_NONE for the very first; updated in
+ *                     place as each client here is placed, so the
+ *                     caller's own next sibling stacks above whatever
+ *                     this call last placed
+ * @param depth        Current recursion depth; the caller's own first
+ *                     call always passes @c 0
+ *
+ * @note A null @p top, or exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH,
+ *       is a silent no-op (for the depth guard, orphaning whatever
+ *       part of a pathologically deep or cyclical chain remains
+ *       beyond it, rather than looping forever)
+ * @note Complexity: @e O(f), where @e f is the number of @p top's
+ *       own transient descendants, at every depth combined, sharing
+ *       both @p desktop and @p layer with it
+ */
+static void s_enforce_layer_place_family(client_td *top,
+        desktop_td *desktop, uint16_t layer,
+        xcb_window_t *prev_target, uint32_t depth)
+{
+    xcb_window_t target;
+    cdlist_item_td *cnode;
+    const cdlist_item_td *cinitial;
+
+    if (top == NULL || depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
+        return;
+    }
+
+    target = ccmd_target_win(top);
+    if (target != XCB_WINDOW_NONE) {
+        if (*prev_target == XCB_WINDOW_NONE) {
+            /* The first client placed across the whole layer pass:
+             * anchor it explicitly just above the tray (if any)
+             * rather than an unqualified 'below' with no sibling; see
+             * 'ccmd_desktop_enforce_layers''s own doc comment on this
+             * exact reasoning. */
+            xcb_window_t tray_below = systray_below_window();
+
+            if (tray_below != XCB_WINDOW_NONE) {
+                xcb_configure_window(top->connection, target,
+                        XCB_CONFIG_WINDOW_SIBLING |
+                        XCB_CONFIG_WINDOW_STACK_MODE,
+                        (const uint32_t[]) {
+                        tray_below, XCB_STACK_MODE_ABOVE
+                        });
+            } else {
+                xcb_configure_window(top->connection, target,
+                        XCB_CONFIG_WINDOW_STACK_MODE,
+                        (const uint32_t[]) {
+                        XCB_STACK_MODE_BELOW
+                        });
+            }
+        } else {
+            xcb_configure_window(top->connection, target,
+                    XCB_CONFIG_WINDOW_SIBLING |
+                    XCB_CONFIG_WINDOW_STACK_MODE,
+                    (const uint32_t[]) {
+                        *prev_target,
+                        XCB_STACK_MODE_ABOVE
+                    });
+        }
+        *prev_target = target;
+    }
+
+    if (top->transients == NULL) {
+        return;
+    }
+
+    cnode = cdlist_head(top->transients);
+    cinitial = cnode;
+    if (cnode == NULL) {
+        return;
+    }
+
+    do {
+        client_td *const child = (client_td *) cdlist_data(cnode);
+
+        if (child != NULL && child->desktop_id == desktop->id &&
+                child->properties.layer == layer) {
+            s_enforce_layer_place_family(child, desktop, layer,
+                    prev_target, depth + 1);
+        }
+        cnode = cdlist_next(cnode);
+    } while (cnode != NULL && cnode != cinitial);
+}
+
+
 /* Raise the client to the top of the stacking order */
 void ccmd_client_raise(client_td *client)
 {
@@ -78,33 +257,6 @@ void ccmd_client_lower(client_td *client)
                 XCB_CONFIG_WINDOW_STACK_MODE, values);
         xcb_flush(client->connection);
     }
-}
-
-
-/**
- * @brief Enforce layer stacking and request a redraw after a client's
- *        layer changes
- *
- * Shared by @c ccmd_client_layer_above, @c ccmd_client_layer_normal,
- * and @c ccmd_client_layer_below below, which only differ in the new
- * @c client->properties.layer value and which @c _NET_WM_STATE atoms
- * to add or remove for it.
- *
- * @param client  Client whose layer just changed
- * @param desktop Desktop @p client is on, or @c NULL to skip
- *                re-enforcing layer stacking
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p desktop (see @c ccmd_desktop_enforce_layers)
- */
-static void s_client_layer_finish(client_td *client, desktop_td *desktop)
-{
-    if (desktop != NULL) {
-        ccmd_desktop_enforce_layers(desktop);
-    }
-
-    wm_request_client_redraw(client);
-    xcb_flush(client->connection);
 }
 
 
@@ -182,158 +334,6 @@ void ccmd_client_cycle_layer(client_td *client)
     } else {
         ccmd_client_layer_normal(client);
     }
-}
-
-
-/**
- * @brief Whether a client should be treated as its own top-level
- *        entry point for @a s_enforce_layer_place_family, rather
- *        than placed as part of some ancestor's own family cluster
- *
- * @c false exactly when @p client has a @c transient_parent that is
- * itself on the same desktop and in the same layer as @p client:
- * that parent's own call to @a s_enforce_layer_place_family already
- * recurses into @p client (see that function's own doc comment), so
- * treating it as a second, independent entry point here would place
- * it twice, the second time breaking the family clustering the first
- * placement already established.  @c true whenever the parent is
- * missing, on a different desktop, or in a different layer: none of
- * those get a recursive visit from that parent's own placement, so
- * @p client only ever gets placed at all by being its own entry
- * point.
- *
- * @param client Client to classify
- * @param desktop Desktop this layer pass is currently placing
- * @param layer   Layer this pass is currently placing
- *
- * @note Complexity: @e O(1)
- */
-static bool s_enforce_layer_is_top_level(const client_td *client,
-        const desktop_td *desktop, uint16_t layer)
-{
-    const client_td *parent = client->transient_parent;
-
-    return parent == NULL || parent->desktop_id != desktop->id ||
-        parent->properties.layer != layer;
-}
-
-
-/**
- * @brief Place one client, then recursively place its own transient
- *        descendants immediately above it, within one layer pass of
- *        @a ccmd_desktop_enforce_layers
- *
- * Openbox's own real answer to keeping a transient family together
- * during restacking (confirmed directly against its source,
- * @c restack_windows in @c stacking.c): a dialog belongs directly
- * above the window it is transient for, not wherever it happens to
- * fall in whatever order the rest of the desktop's own clients are
- * otherwise sorted in.  Recurses depth-first through @p top's own
- * @c transients (see its own doc comment, client.h), each child
- * placed immediately after its own parent and before the parent's
- * next sibling, so a whole family clusters together as one
- * contiguous block within its shared layer; a child in a different
- * layer than @p top is left for that other layer's own pass instead
- * (see @a s_enforce_layer_is_top_level), matching Openbox's own
- * identical @c ch->layer @c == @c selected->layer condition.
- *
- * @param top          Client to place, then recurse from
- * @param desktop      Desktop this layer pass is placing; only a
- *                      descendant registered under this same desktop
- *                      is placed by this same call, matching a
- *                      pinned client staying registered under
- *                      whichever desktop it was originally on
- *                      forever rather than actually moving between
- *                      desktops (see @a ccmd_client_bring_family's
- *                      own doc comment, cmds/client/transient.c, for
- *                      the fuller reasoning)
- * @param layer        Layer this pass is placing; only a descendant
- *                      sharing this exact layer with @p top is
- *                      placed by this same call
- * @param prev_target   The previous client's own target window
- *                      placed so far across the whole layer pass, or
- *                      @c XCB_WINDOW_NONE for the very first;
- *                      updated in place as each client here is
- *                      placed, so the caller's own next sibling
- *                      stacks above whatever this call last placed
- * @param depth        Current recursion depth; the caller's own
- *                      first call always passes @c 0
- *
- * @note A null @p top, or exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH,
- *       is a silent no-op (for the depth guard, orphaning whatever
- *       part of a pathologically deep or cyclical chain remains
- *       beyond it, rather than looping forever)
- * @note Complexity: @e O(f), where @e f is the number of @p top's
- *       own transient descendants, at every depth combined, sharing
- *       both @p desktop and @p layer with it
- */
-static void s_enforce_layer_place_family(client_td *top,
-        desktop_td *desktop, uint16_t layer,
-        xcb_window_t *prev_target, uint32_t depth)
-{
-    xcb_window_t target;
-    cdlist_item_td *cnode;
-    const cdlist_item_td *cinitial;
-
-    if (top == NULL || depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
-        return;
-    }
-
-    target = ccmd_target_win(top);
-    if (target != XCB_WINDOW_NONE) {
-        if (*prev_target == XCB_WINDOW_NONE) {
-            /* The first client placed across the whole layer pass:
-             * anchor it explicitly just above the tray (if any)
-             * rather than an unqualified 'below' with no sibling; see
-             * 'ccmd_desktop_enforce_layers''s own doc comment on this
-             * exact reasoning. */
-            xcb_window_t tray_below = systray_below_window();
-
-            if (tray_below != XCB_WINDOW_NONE) {
-                xcb_configure_window(top->connection, target,
-                        XCB_CONFIG_WINDOW_SIBLING |
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) {
-                        tray_below, XCB_STACK_MODE_ABOVE
-                        });
-            } else {
-                xcb_configure_window(top->connection, target,
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) {
-                        XCB_STACK_MODE_BELOW
-                        });
-            }
-        } else {
-            xcb_configure_window(top->connection, target,
-                    XCB_CONFIG_WINDOW_SIBLING |
-                    XCB_CONFIG_WINDOW_STACK_MODE,
-                    (const uint32_t[]) {
-                    *prev_target, XCB_STACK_MODE_ABOVE
-                    });
-        }
-        *prev_target = target;
-    }
-
-    if (top->transients == NULL) {
-        return;
-    }
-
-    cnode = cdlist_head(top->transients);
-    cinitial = cnode;
-    if (cnode == NULL) {
-        return;
-    }
-
-    do {
-        client_td *const child = (client_td *) cdlist_data(cnode);
-
-        if (child != NULL && child->desktop_id == desktop->id &&
-                child->properties.layer == layer) {
-            s_enforce_layer_place_family(child, desktop, layer,
-                    prev_target, depth + 1);
-        }
-        cnode = cdlist_next(cnode);
-    } while (cnode != NULL && cnode != cinitial);
 }
 
 

@@ -72,6 +72,7 @@ void handler_property_notify(const wm_td *wm,
     xcb_ewmh_wm_strut_partial_t partial;
     xcb_atom_t wm_window_role = XCB_ATOM_NONE;
     xcb_atom_t motif_hints_atom = XCB_ATOM_NONE;
+    xcb_atom_t colormap_windows_atom = XCB_ATOM_NONE;
     xcb_get_property_cookie_t motif_ck;
 
     if (event == NULL) {
@@ -311,6 +312,21 @@ void handler_property_notify(const wm_td *wm,
 
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
+        return;
+    }
+
+    /* ICCCM §4.1.8: the client changed its own priority list of
+     * subwindows wanting their colormap installed on colormap focus;
+     * re-read it and re-subscribe 'ColormapChangeMask' on whichever
+     * set it names now (a window dropped from the list keeps
+     * whatever mask it already had, since nothing else in this
+     * project relies on it being cleared again afterward). */
+    colormap_windows_atom = atom_intern(client->connection,
+            "WM_COLORMAP_WINDOWS", true);
+    if (colormap_windows_atom != XCB_ATOM_NONE &&
+            event->atom == colormap_windows_atom) {
+        client_props_refresh_colormap_windows(client);
+        client_subscribe_colormap_windows(client->connection, client);
         return;
     }
 

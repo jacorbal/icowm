@@ -496,6 +496,23 @@ void ccmd_client_focus(client_td *client)
                             client->window, XCB_CURRENT_TIME);
     }
 
+    /* ICCCM §4.1.8/§2.8: colormap focus follows input focus here, the
+     * common policy most window managers implement.  Only the
+     * explicit 'WM_COLORMAP_WINDOWS' case is covered (the one client_
+     * props_refresh_colormap_windows, client/props.c, populates this
+     * from, caching each window's own colormap attribute there
+     * already, so nothing here needs a round trip of its own); a
+     * client that omits it but still uses a non-default colormap on
+     * its own top-level window falls back to whatever is already
+     * installed. */
+    for (uint32_t i = 0u; i < client->colormap_windows.count; ++i) {
+        if (client->colormap_windows.colormap_ids[i] !=
+                (xcb_colormap_t) XCB_NONE) {
+            xcb_install_colormap(client->connection,
+                    client->colormap_windows.colormap_ids[i]);
+        }
+    }
+
     /* ICCCM §4.2.7: send 'WM_TAKE_FOCUS' 'ClientMessage' when the
      * client has registered that protocol.  This covers both the
      * Locally Active and Globally Active input models. */

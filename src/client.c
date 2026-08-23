@@ -148,238 +148,6 @@ static void s_client_display_name_set(client_td *client,
 }
 
 
-
-
-/* Destroy the specified client and free associated resources */
-void client_destroy(client_td *client)
-{
-    if (client == NULL) {
-        return;
-    }
-
-    /* Removes 'client' from its own parent's 'transients' list (true
-     * O(1), see 'transient_node''s own doc comment, client.h) and
-     * orphans every one of its own children, before anything below
-     * frees so much as a single field: every other function walking
-     * the transient tree (top-parent walks, focus redirection, family
-     * cascades) follows real 'client_td*' pointers now, so a client
-     * freed while still linked in would leave those pointers dangling
-     * for whoever encounters it next. */
-    client_unlink_transient(client);
-
-    scratchpad_notice_client_destroyed(client);
-
-    LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",
-            (void *) client, client->window, client->info.name);
-
-    /* Destroy the XCB window representation and flush the output buffer
-     * to ensure the request is processed */
-    if (client->connection != NULL && client->window != 0) {
-        xcb_destroy_window(client->connection, client->window);
-        xcb_flush(client->connection);
-    }
-
-    /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is
-     * a server-side resource owned by the window manager's own
-     * connection (unlike the counter it watches, which belongs to the
-     * client and is not ours to destroy), so it is not freed
-     * automatically when the client window above is destroyed */
-    if (client->connection != NULL &&
-            client->hints_ewmh.sync.alarm != 0u) {
-        xcb_sync_destroy_alarm(client->connection,
-                (xcb_sync_alarm_t) client->hints_ewmh.sync.alarm);
-    }
-
-    /* Destroy decorations if any */
-    if (client->connection != NULL && client->titlebar != 0) {
-        xcb_destroy_window(client->connection, client->titlebar);
-    }
-    if (client->connection != NULL && client->icon_window != 0) {
-        xcb_destroy_window(client->connection, client->icon_window);
-    }
-    /* Frees the cached '_NET_WM_ICON' Picture built by 'wmicon_draw'
-     * (see render/wmicon.h), if any; a no-op if nothing was ever
-     * cached, e.g., a client that never had 'theme.icon.show-pixmaps'
-     * draw anything for it in the first place */
-    wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
-    if (client->connection != NULL && client->frame != 0) {
-        xcb_destroy_window(client->connection, client->frame);
-    }
-
-    /* Free all allocated string buffers */
-    s_client_heap_fields_release(client);
-
-    /* Free the client structure itself */
-    free(client);
-}
-
-
-/* Refresh a client's own user-time from a genuine input event that
- * just reached it */
-void client_update_user_time(client_td *client, uint32_t time)
-{
-    if (client == NULL) {
-        return;
-    }
-
-    if (client_user_time_is_newer(time, client->user_time)) {
-        client->user_time = time;
-    }
-}
-
-
-/* Keep a cached visible name and its matching EWMH property in sync
- * with whether the caller's own just-rendered text was truncated */
-void client_sync_visible_name(client_td *client, char *cached,
-        const char *full_name, const char *rendered,
-        xcb_void_cookie_t (*set_fn)(xcb_ewmh_connection_t *,
-            xcb_window_t, uint32_t, const char *),
-        xcb_atom_t atom)
-{
-    if (client == NULL || client->ewmh == NULL || cached == NULL ||
-            full_name == NULL || rendered == NULL || set_fn == NULL) {
-        return;
-    }
-
-    if (safe_strcmp(rendered, full_name) != 0) {
-        /* Actually truncated right now */
-        if (safe_strcmp(cached, rendered) == 0) {
-            return;
-        }
-        safe_strncpy(cached, rendered, CONFIG_MAX_LENGTH_NAME);
-        set_fn(client->ewmh, client->window,
-                (uint32_t) safe_strlen(rendered), rendered);
-    } else {
-        /* No longer (or never) truncated: the property should not be
-         * advertised at all, rather than set to a redundant copy of
-         * 'full_name' */
-        if (safe_strcmp(cached, full_name) == 0) {
-            return;
-        }
-        safe_strncpy(cached, full_name, CONFIG_MAX_LENGTH_NAME);
-        xcb_delete_property(client->connection, client->window, atom);
-    }
-}
-
-
-/* Apply a client's own themed border color and width to its own
- * window, honoring 'border_override' when set */
-void client_border_apply(client_td *client, bool use_active_style)
-{
-    uint32_t color;
-    uint32_t width;
-    uint8_t opacity_percent;
-    int32_t delta;
-    int32_t new_x;
-    int32_t new_y;
-
-    if (client == NULL || client->connection == NULL ||
-            client->config == NULL || client_is_fullscreen(client) ||
-            (client_is_decorated(client) && client->frame != 0)) {
-        return;
-    }
-
-    if (client->border_override.is_set) {
-        color = client->border_override.color;
-        width = client->border_override.width;
-    } else if (use_active_style) {
-        color = client->config->theme.window.active.border.color;
-        width = client->config->theme.window.active.border.width;
-    } else {
-        color = client->config->theme.window.inactive.border.color;
-        width = client->config->theme.window.inactive.border.width;
-    }
-
-    if (use_active_style) {
-        opacity_percent = (client->opacity_override.is_set_active)
-            ? client->opacity_override.active
-            : client->config->theme.window.active.opacity;
-    } else {
-        opacity_percent = (client->opacity_override.is_set_inactive)
-            ? client->opacity_override.inactive
-            : client->config->theme.window.inactive.opacity;
-    }
-
-    /* Accessibility: never let the focus indicator go thinner than
-     * 'a11y.focus-indicator.min-border-width', regardless of
-     * what the theme itself specifies */
-    if (width < client->config->a11y.focus_indicator.min_border_width) {
-        width = client->config->a11y.focus_indicator.min_border_width;
-    }
-
-    xcb_change_window_attributes(client->connection, client->window,
-            XCB_CW_BORDER_PIXEL, &color);
-
-    /* X11's native border is drawn OUTSIDE a window's own core
-     * rectangle, not inside it, so a naive width-only change here
-     * would visibly shift the window's own outer edge by however
-     * much 'width' just grew or shrank between the active/inactive
-     * styles switching (e.g., an active/inactive pair configured
-     * with two different widths) -- every ordinary focus change on
-     * an undecorated client, not just a rare special case.
-     * Compensating 'x'/'y' by the exact delta keeps the window's own
-     * visible top-left corner exactly where it already was.  Skipped
-     * entirely the first time this ever runs for a client
-     * ('last_border_width' still 'UINT32_MAX', its own initial
-     * sentinel from 'client_init'), since there is no prior width
-     * yet to have shifted away from. */
-    if (client->last_border_width != UINT32_MAX) {
-        delta = (int32_t) width - (int32_t) client->last_border_width;
-        new_x = client->layout.geometry.cur.pos.x + delta;
-        new_y = client->layout.geometry.cur.pos.y + delta;
-
-        ccmd_client_apply_geometry(client, client->window,
-                (uint16_t) XCB_CONFIG_WINDOW_X |
-                    (uint16_t) XCB_CONFIG_WINDOW_Y |
-                    (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                new_x, new_y, 0u, 0u, width);
-        client->layout.geometry.cur.pos.x = new_x;
-        client->layout.geometry.cur.pos.y = new_y;
-    } else {
-        ccmd_client_apply_geometry(client, client->window,
-                (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                0, 0, 0u, 0u, width);
-    }
-    client->last_border_width = width;
-
-    atom_set_window_opacity(client->connection, client->window,
-            config_theme_opacity_to_raw(opacity_percent));
-}
-
-
-/* Adjust a frame position to keep a gravity anchor fixed across a
- * size change */
-void client_gravity_adjust_pos(int32_t *restrict out_x,
-        int32_t *restrict out_y,
-        uint32_t old_w, uint32_t old_h,
-        uint32_t new_w, uint32_t new_h,
-        uint16_t gravity)
-{
-    int32_t dw = (int32_t) ((uint32_t) old_w - (uint32_t) new_w);
-    int32_t dh = (int32_t) ((uint32_t) old_h - (uint32_t) new_h);
-
-    if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH_EAST ||
-            gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
-            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST) {
-        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) dw);
-    } else if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH ||
-            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
-            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH) {
-        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) (dw / 2));
-    }
-
-    if (gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST ||
-            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH ||
-            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_WEST) {
-        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) dh);
-    } else if (gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
-            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
-            gravity == (uint16_t) CLIENT_GRAVITY_WEST) {
-        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) (dh / 2));
-    }
-}
-
-
 /**
  * @brief Read 'WM_PROTOCOLS' and set up '_NET_WM_SYNC_REQUEST' support
  *
@@ -1033,13 +801,15 @@ static void s_client_events_subscribe(xcb_connection_t *connection,
         }
         values[0] = existing_mask            |
                     XCB_EVENT_MASK_PROPERTY_CHANGE  |
-                    XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+                    XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                    XCB_EVENT_MASK_COLOR_MAP_CHANGE;
     } else {
         values[0] = XCB_EVENT_MASK_ENTER_WINDOW     |
                     XCB_EVENT_MASK_LEAVE_WINDOW     |
                     XCB_EVENT_MASK_FOCUS_CHANGE     |
                     XCB_EVENT_MASK_PROPERTY_CHANGE  |
                     XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                    XCB_EVENT_MASK_COLOR_MAP_CHANGE |
                     XCB_EVENT_MASK_POINTER_MOTION;
     }
 
@@ -1055,6 +825,256 @@ static void s_client_events_subscribe(xcb_connection_t *connection,
             XCB_CW_EVENT_MASK | XCB_CW_CURSOR, values);
     LOGGER_TRACE("Set cursor (window=0x%x, cursor=0x%x)", window,
             values[1]);
+}
+
+
+
+
+
+
+/* Destroy the specified client and free associated resources */
+void client_destroy(client_td *client)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    /* Removes 'client' from its own parent's 'transients' list (true
+     * O(1), see 'transient_node''s own doc comment, client.h) and
+     * orphans every one of its own children, before anything below
+     * frees so much as a single field: every other function walking
+     * the transient tree (top-parent walks, focus redirection, family
+     * cascades) follows real 'client_td*' pointers now, so a client
+     * freed while still linked in would leave those pointers dangling
+     * for whoever encounters it next. */
+    client_unlink_transient(client);
+
+    scratchpad_notice_client_destroyed(client);
+
+    LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",
+            (void *) client, client->window, client->info.name);
+
+    /* Destroy the XCB window representation and flush the output buffer
+     * to ensure the request is processed */
+    if (client->connection != NULL && client->window != 0) {
+        xcb_destroy_window(client->connection, client->window);
+        xcb_flush(client->connection);
+    }
+
+    /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is
+     * a server-side resource owned by the window manager's own
+     * connection (unlike the counter it watches, which belongs to the
+     * client and is not ours to destroy), so it is not freed
+     * automatically when the client window above is destroyed */
+    if (client->connection != NULL &&
+            client->hints_ewmh.sync.alarm != 0u) {
+        xcb_sync_destroy_alarm(client->connection,
+                (xcb_sync_alarm_t) client->hints_ewmh.sync.alarm);
+    }
+
+    /* Destroy decorations if any */
+    if (client->connection != NULL && client->titlebar != 0) {
+        xcb_destroy_window(client->connection, client->titlebar);
+    }
+    if (client->connection != NULL && client->icon_window != 0) {
+        xcb_destroy_window(client->connection, client->icon_window);
+    }
+    /* Frees the cached '_NET_WM_ICON' Picture built by 'wmicon_draw'
+     * (see render/wmicon.h), if any; a no-op if nothing was ever
+     * cached, e.g., a client that never had 'theme.icon.show-pixmaps'
+     * draw anything for it in the first place */
+    wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
+    if (client->connection != NULL && client->frame != 0) {
+        xcb_destroy_window(client->connection, client->frame);
+    }
+
+    /* Free all allocated string buffers */
+    s_client_heap_fields_release(client);
+
+    /* Free the client structure itself */
+    free(client);
+}
+
+
+/* Refresh a client's own user-time from a genuine input event that
+ * just reached it */
+void client_update_user_time(client_td *client, uint32_t time)
+{
+    if (client == NULL) {
+        return;
+    }
+
+    if (client_user_time_is_newer(time, client->user_time)) {
+        client->user_time = time;
+    }
+}
+
+
+/* Keep a cached visible name and its matching EWMH property in sync
+ * with whether the caller's own just-rendered text was truncated */
+void client_sync_visible_name(client_td *client, char *cached,
+        const char *full_name, const char *rendered,
+        xcb_void_cookie_t (*set_fn)(xcb_ewmh_connection_t *,
+            xcb_window_t, uint32_t, const char *),
+        xcb_atom_t atom)
+{
+    if (client == NULL || client->ewmh == NULL || cached == NULL ||
+            full_name == NULL || rendered == NULL || set_fn == NULL) {
+        return;
+    }
+
+    if (safe_strcmp(rendered, full_name) != 0) {
+        /* Actually truncated right now */
+        if (safe_strcmp(cached, rendered) == 0) {
+            return;
+        }
+        safe_strncpy(cached, rendered, CONFIG_MAX_LENGTH_NAME);
+        set_fn(client->ewmh, client->window,
+                (uint32_t) safe_strlen(rendered), rendered);
+    } else {
+        /* No longer (or never) truncated: the property should not be
+         * advertised at all, rather than set to a redundant copy of
+         * 'full_name' */
+        if (safe_strcmp(cached, full_name) == 0) {
+            return;
+        }
+        safe_strncpy(cached, full_name, CONFIG_MAX_LENGTH_NAME);
+        xcb_delete_property(client->connection, client->window, atom);
+    }
+}
+
+
+/* Apply a client's own themed border color and width to its own
+ * window, honoring 'border_override' when set */
+void client_border_apply(client_td *client, bool use_active_style)
+{
+    uint32_t color;
+    uint32_t width;
+    uint8_t opacity_percent;
+    int32_t delta;
+    int32_t new_x;
+    int32_t new_y;
+
+    if (client == NULL || client->connection == NULL ||
+            client->config == NULL || client_is_fullscreen(client) ||
+            (client_is_decorated(client) && client->frame != 0)) {
+        return;
+    }
+
+    if (client->border_override.is_set) {
+        color = client->border_override.color;
+        width = client->border_override.width;
+    } else if (use_active_style) {
+        color = client->config->theme.window.active.border.color;
+        width = client->config->theme.window.active.border.width;
+    } else {
+        color = client->config->theme.window.inactive.border.color;
+        width = client->config->theme.window.inactive.border.width;
+    }
+
+    if (use_active_style) {
+        opacity_percent = (client->opacity_override.is_set_active)
+            ? client->opacity_override.active
+            : client->config->theme.window.active.opacity;
+    } else {
+        opacity_percent = (client->opacity_override.is_set_inactive)
+            ? client->opacity_override.inactive
+            : client->config->theme.window.inactive.opacity;
+    }
+
+    /* Accessibility: never let the focus indicator go thinner than
+     * 'a11y.focus-indicator.min-border-width', regardless of
+     * what the theme itself specifies */
+    if (width < client->config->a11y.focus_indicator.min_border_width) {
+        width = client->config->a11y.focus_indicator.min_border_width;
+    }
+
+    xcb_change_window_attributes(client->connection, client->window,
+            XCB_CW_BORDER_PIXEL, &color);
+
+    /* X11's native border is drawn OUTSIDE a window's own core
+     * rectangle, not inside it, so a naive width-only change here
+     * would visibly shift the window's own outer edge by however
+     * much 'width' just grew or shrank between the active/inactive
+     * styles switching (e.g., an active/inactive pair configured
+     * with two different widths) -- every ordinary focus change on
+     * an undecorated client, not just a rare special case.
+     * Compensating 'x'/'y' by the exact delta keeps the window's own
+     * visible top-left corner exactly where it already was.  Skipped
+     * entirely the first time this ever runs for a client
+     * ('last_border_width' still 'UINT32_MAX', its own initial
+     * sentinel from 'client_init'), since there is no prior width
+     * yet to have shifted away from. */
+    if (client->last_border_width != UINT32_MAX) {
+        delta = (int32_t) width - (int32_t) client->last_border_width;
+        new_x = client->layout.geometry.cur.pos.x + delta;
+        new_y = client->layout.geometry.cur.pos.y + delta;
+
+        ccmd_client_apply_geometry(client, client->window,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                    (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                new_x, new_y, 0u, 0u, width);
+        client->layout.geometry.cur.pos.x = new_x;
+        client->layout.geometry.cur.pos.y = new_y;
+    } else {
+        ccmd_client_apply_geometry(client, client->window,
+                (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                0, 0, 0u, 0u, width);
+    }
+    client->last_border_width = width;
+
+    atom_set_window_opacity(client->connection, client->window,
+            config_theme_opacity_to_raw(opacity_percent));
+}
+
+
+/* Adjust a frame position to keep a gravity anchor fixed across a
+ * size change */
+void client_gravity_adjust_pos(int32_t *restrict out_x,
+        int32_t *restrict out_y,
+        uint32_t old_w, uint32_t old_h,
+        uint32_t new_w, uint32_t new_h,
+        uint16_t gravity)
+{
+    int32_t dw = (int32_t) ((uint32_t) old_w - (uint32_t) new_w);
+    int32_t dh = (int32_t) ((uint32_t) old_h - (uint32_t) new_h);
+
+    if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST) {
+        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) dw);
+    } else if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH ||
+            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH) {
+        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) (dw / 2));
+    }
+
+    if (gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_WEST) {
+        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) dh);
+    } else if (gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
+            gravity == (uint16_t) CLIENT_GRAVITY_WEST) {
+        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) (dh / 2));
+    }
+}
+
+
+/* Subscribe 'ColormapChangeMask' on every window in a client's own
+ * 'WM_COLORMAP_WINDOWS' list */
+void client_subscribe_colormap_windows(
+        xcb_connection_t *connection, const client_td *client)
+{
+    uint32_t values[1];
+
+    values[0] = XCB_EVENT_MASK_COLOR_MAP_CHANGE;
+    for (uint32_t i = 0u; i < client->colormap_windows.count; ++i) {
+        xcb_change_window_attributes(connection,
+                client->colormap_windows.windows[i],
+                XCB_CW_EVENT_MASK, values);
+    }
 }
 
 
@@ -1170,6 +1190,13 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Read 'WM_NORMAL_HINTS': size constraints and increment grid */
     client_props_refresh_normal_hints(client);
+
+    /* ICCCM §4.1.8: read 'WM_COLORMAP_WINDOWS', then subscribe to
+     * 'ColormapNotify' on whichever subwindows it lists, so a later
+     * change to any of their own colormap attribute is caught even
+     * between refreshes of the list itself */
+    client_props_refresh_colormap_windows(client);
+    client_subscribe_colormap_windows(connection, client);
 
     /* Read '_NET_WM_STRUT_PARTIAL' for dock/panel windows */
     s_client_read_struts(ewmh, window, client);

@@ -238,6 +238,27 @@ void handler_focus_in(xcb_connection_t *connection,
         list_td *surfaces, const xcb_focus_in_event_t *event);
 
 /**
+ * @brief Handle a @c COLORMAP_NOTIFY event
+ *
+ * ICCCM §4.1.8: a client's own colormap attribute changed on one of
+ * the windows named in its @c WM_COLORMAP_WINDOWS list (or ceased to
+ * be installed at all).  Updates the matching cached entry in
+ * @c colormap_windows.colormap_ids, and, when the owning client
+ * currently holds real input focus, installs the updated colormap
+ * immediately rather than waiting for the next focus change.
+ *
+ * @param connection XCB connection
+ * @param surfaces   All managed surfaces
+ * @param event      Colormap notify event
+ *
+ * @note Complexity: @e O(s * d * c), where @e s is the number of
+ *       surfaces, @e d the number of desktops per surface, and @e c
+ *       the number of clients per desktop
+ */
+void handler_colormap_notify(xcb_connection_t *connection,
+        list_td *surfaces, const xcb_colormap_notify_event_t *event);
+
+/**
  * @brief Handle a @c MAPPING_NOTIFY event
  *
  * Refreshes the cached keyboard-mapping table and re-establishes all

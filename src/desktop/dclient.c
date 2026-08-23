@@ -134,6 +134,65 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
 }
 
 
+/**
+ * @brief Raise every transient descendant of a client along with it
+ *
+ * Walks @p client's own @c transients tree directly (see its own doc
+ * comment, client.h), depth-first, rather than scanning @p desktop's
+ * own entire stacking order comparing raw @c transient_for window
+ * IDs the way this function used to: a chain of dialogs (a dialog's
+ * own dialog, and so on) rises together the same as before, just by
+ * following real pointers now instead of rediscovering the
+ * relationship from scratch on every call.
+ *
+ * Scoped to @p desktop, the same as before: a descendant registered
+ * under some other desktop (a pinned parent's own un-pinned dialog,
+ * say, still on whichever desktop it was originally created on; see
+ * @a ccmd_client_bring_family's own doc comment, cmds/client/
+ * transient.c, for the fuller reasoning) is left untouched here,
+ * since @a s_desktop_client_send_to_end itself only ever reorders
+ * @p desktop's own stacking list.
+ *
+ * @param desktop Desktop whose stacking order is searched and updated
+ * @param client  Client whose transient descendants get raised too
+ * @param depth   Current recursion depth; the caller's own first
+ *                call always passes @c 0
+ *
+ * @note A null @p client, one with no @c transients at all, or
+ *       exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH, is a silent no-op
+ * @note Complexity: @e O(f), where @e f is the number of @p client's
+ *       own transient descendants, at every depth combined, sharing
+ *       @p desktop with it
+ */
+static void s_desktop_transients_raise(desktop_td *desktop,
+        client_td *client, uint32_t depth)
+{
+    cdlist_item_td *node;
+    const cdlist_item_td *initial;
+
+    if (client == NULL || client->transients == NULL ||
+            depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
+        return;
+    }
+
+    node = cdlist_head(client->transients);
+    initial = node;
+    if (node == NULL) {
+        return;
+    }
+
+    do {
+        client_td *const child = (client_td *) cdlist_data(node);
+
+        if (child != NULL && child->desktop_id == desktop->id) {
+            (void) s_desktop_client_send_to_end(desktop, child, true);
+            s_desktop_transients_raise(desktop, child, depth + 1);
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+}
+
+
 /* Add a previously allocated client in the desktop */
 int desktop_action_client_add(desktop_td *desktop, client_td *client)
 {
@@ -383,65 +442,6 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
 }
 
 
-/**
- * @brief Raise every transient descendant of a client along with it
- *
- * Walks @p client's own @c transients tree directly (see its own doc
- * comment, client.h), depth-first, rather than scanning @p desktop's
- * own entire stacking order comparing raw @c transient_for window
- * IDs the way this function used to: a chain of dialogs (a dialog's
- * own dialog, and so on) rises together the same as before, just by
- * following real pointers now instead of rediscovering the
- * relationship from scratch on every call.
- *
- * Scoped to @p desktop, the same as before: a descendant registered
- * under some other desktop (a pinned parent's own un-pinned dialog,
- * say, still on whichever desktop it was originally created on; see
- * @a ccmd_client_bring_family's own doc comment, cmds/client/
- * transient.c, for the fuller reasoning) is left untouched here,
- * since @a s_desktop_client_send_to_end itself only ever reorders
- * @p desktop's own stacking list.
- *
- * @param desktop Desktop whose stacking order is searched and updated
- * @param client  Client whose transient descendants get raised too
- * @param depth   Current recursion depth; the caller's own first
- *                call always passes @c 0
- *
- * @note A null @p client, one with no @c transients at all, or
- *       exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH, is a silent no-op
- * @note Complexity: @e O(f), where @e f is the number of @p client's
- *       own transient descendants, at every depth combined, sharing
- *       @p desktop with it
- */
-static void s_desktop_transients_raise(desktop_td *desktop,
-        client_td *client, uint32_t depth)
-{
-    cdlist_item_td *node;
-    const cdlist_item_td *initial;
-
-    if (client == NULL || client->transients == NULL ||
-            depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
-        return;
-    }
-
-    node = cdlist_head(client->transients);
-    initial = node;
-    if (node == NULL) {
-        return;
-    }
-
-    do {
-        client_td *const child = (client_td *) cdlist_data(node);
-
-        if (child != NULL && child->desktop_id == desktop->id) {
-            (void) s_desktop_client_send_to_end(desktop, child, true);
-            s_desktop_transients_raise(desktop, child, depth + 1);
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-}
-
-
 /* Send a client to the front of the desktop's window stack, along
  * with every transient descendant it has (a dialog stays above the
  * window it belongs to) */
@@ -652,7 +652,8 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         LOGGER_WARNING("Failed to launch '%s': %s",
                 executable_path, strerror(exec_errno));
         if (have_startup_id) {
-            cctl_sn_cancel(desktop->connection, wm_get_surfaces(), startup_id);
+            cctl_sn_cancel(desktop->connection, wm_get_surfaces(),
+                    startup_id);
         }
         return -2;
     }

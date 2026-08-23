@@ -115,6 +115,20 @@
 #define WM_TRANSIENT_CHAIN_MAX_DEPTH (64u)
 
 /**
+ * @brief Maximum number of windows tracked from a client's own
+ *        @c WM_COLORMAP_WINDOWS (ICCCM §4.1.8)
+ *
+ * Generous for what a real client ever puts there in practice (one to
+ * a handful of subwindows with a colormap of their own, distinct from
+ * the top-level window's), while keeping the list a fixed size within
+ * @c client_td rather than a separate allocation.  Any entries past
+ * this many are simply not tracked; per ICCCM, priority is by list
+ * order, so the ones dropped are already the client's own
+ * lowest-priority windows.
+ */
+#define WM_COLORMAP_WINDOWS_MAX (8u)
+
+/**
  * @brief Grace period in milliseconds after a shade or unshade during
  *        which a client's own geometry @c ConfigureRequest is ignored
  *
@@ -169,7 +183,7 @@
  * server can freeze this window manager for, not to react to
  * everyday jitter.
  *
- * @see @a xcb_wait_readable, in @c utils/xcb/wait.h
+ * @see @a xcb_wait_readable, utils/xcb/wait.h
  */
 #define WM_CLIENT_INIT_REPLY_TIMEOUT_MS (3000)
 

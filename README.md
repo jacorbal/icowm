@@ -32,7 +32,12 @@ Basic features are:
   - **Virtual desktops.**
     The organization of open applications into discrete workspaces, so
     as to minimize visual clutter; each screen may be furnished with its
-    own independent set of virtual desktops.
+    own independent set of virtual desktops.  These may, optionally, be
+    arranged as a two-dimensional grid rather than a flat list, with
+    a configurable orientation and starting corner, so that navigation,
+    the search box, and the desktop-change notification may address
+    a desktop by row and column, moving north, south, east, or west,
+    rather than by index alone.
 
   - **Configurable focus policies.**
     Both click-to-focus (`"click"`) and follow-mouse (`"sloppy"`)

@@ -61,6 +61,37 @@ static struct timespec s_last_check;
 static bool s_warned = false;
 
 
+/**
+ * @brief Show a message dialog on this module's behalf, unless one is
+ *        already open or a required parameter is missing
+ *
+ * Both @a memguard_tick and @a memguard_warn_client_cap need exactly
+ * this same guard-then-show sequence around a message that is
+ * otherwise entirely their own (built with a different format and
+ * arguments, logged with a different message); this is the part that
+ * was actually identical between the two.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface to center the dialog on
+ * @param config     Active configuration, for the dialog
+ * @param level      Alert level to show the dialog at
+ * @param message    Already-built message text
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_memguard_show_dialog(xcb_connection_t *connection,
+        surface_td *surface, const config_td *config,
+        menu_msg_level_e level, const char *message)
+{
+    if (connection == NULL || surface == NULL || config == NULL ||
+            menu_message_dialog_is_open()) {
+        return;
+    }
+    menu_message_dialog_show(connection, surface, config,
+            message, level);
+}
+
+
 /* Set the ceiling this module checks against, and compute the client
  * cap that ceiling affords */
 void memguard_init(uint32_t ceiling_mib)
@@ -102,36 +133,6 @@ void memguard_init(uint32_t ceiling_mib)
 uint32_t memguard_max_clients(void)
 {
     return s_max_clients;
-}
-
-
-/**
- * @brief Show a message dialog on this module's behalf, unless one is
- *        already open or a required parameter is missing
- *
- * Both @a memguard_tick and @a memguard_warn_client_cap need exactly
- * this same guard-then-show sequence around a message that is
- * otherwise entirely their own (built with a different format and
- * arguments, logged with a different message); this is the part that
- * was actually identical between the two.
- *
- * @param connection XCB connection
- * @param surface    Surface to center the dialog on
- * @param config     Active configuration, for the dialog
- * @param level      Alert level to show the dialog at
- * @param message    Already-built message text
- *
- * @note Complexity: @e O(1)
- */
-static void s_memguard_show_dialog(xcb_connection_t *connection,
-        surface_td *surface, const config_td *config,
-        menu_msg_level_e level, const char *message)
-{
-    if (connection == NULL || surface == NULL || config == NULL ||
-            menu_message_dialog_is_open()) {
-        return;
-    }
-    menu_message_dialog_show(connection, surface, config, message, level);
 }
 
 

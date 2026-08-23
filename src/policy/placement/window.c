@@ -43,6 +43,10 @@
 #include <policy/placement/window.h>
 
 
+static uint32_t s_cascade_seq = 0;  /**< Apply the configured placement
+                                         policy to a newly mapped client */
+
+
 /**
  * @brief Score a candidate window position against existing clients
  *
@@ -353,8 +357,8 @@ static bool s_place_window_transient_centered(const wm_td *wm,
                         break;
                     }
                 }
-            }
-        }
+            } /* ! if (!desktop) */
+        } /* ! if (leader) */
     }
 
     /* Prefer the WM's stored frame geometry over
@@ -436,25 +440,146 @@ static bool s_place_window_transient_centered(const wm_td *wm,
 
 
 /**
- * @brief Find a non-overlapping smart position for a newly mapped
- *        client
+ * @brief Resolve the workarea and monitor-clipped bounds a placement
+ *        calculation needs
  *
- * Searches the current desktop from top-left to bottom-right using
- * a fixed grid step and returns the first position whose rectangle does
- * not overlap any currently visible client.
+ * Shared by @c place_window_apply and @c place_window_apply_cascade so
+ * both compute the exact same workarea and monitor bounds for a given
+ * client.
  *
- * @param wm      Pointer to the window manager singleton
- * @param surface Pointer to the surface where the client will appear
- * @param client  Pointer to the client being placed
- * @param out_x   Output pointer for the selected X coordinate
- * @param out_y   Output pointer for the selected Y coordinate
+ * @param wm          Window manager instance
+ * @param surface     Surface the client lives on
+ * @param client      Client being placed
+ * @param out_wa      Resolved workarea, unclipped to any single
+ *                    monitor
+ * @param out_mon_wa  Workarea, clipped to the reference monitor
+ * @param out_mon_sz  Screen dimensions, clipped to the reference
+ *                    monitor
  *
- * @return @c true if a free position was found, @c false otherwise
- *
- * @note Complexity: @e O(g * n), where @e g is the number of grid
- *       positions tested and @e n is the number of clients on the
- *       current desktop
+ * @note Complexity: @e O(1)
  */
+static void s_place_workarea(const wm_td *wm, surface_td *surface,
+        const client_td *client,
+        struct geometry_s *out_wa, struct geometry_s *out_mon_wa,
+        struct dimensions_s *out_mon_sz)
+{
+    struct dimensions_s screen;
+    const desktop_td *desktop;
+
+    screen.w = surface->properties.dim.w;
+    screen.h = surface->properties.dim.h;
+
+    desktop = surface_desktop_get(surface, surface->desktop_cur);
+    if (desktop != NULL && desktop->workarea.dim.w > 0u &&
+            desktop->workarea.dim.h > 0u) {
+        *out_wa = desktop->workarea;
+    } else {
+        out_wa->pos.x = 0;
+        out_wa->pos.y = 0;
+        out_wa->dim = screen;
+    }
+
+    (void) client;
+    s_clip_to_monitor(surface, out_wa, &screen,
+            s_reference_monitor(wm, surface,
+                    wm_config(wm)->base.windows.monitor_policy),
+            out_mon_wa, out_mon_sz);
+}
+
+
+/**
+ * @brief Apply gravity, clamp to the workarea, and move the client to
+ *        its final resolved position
+ *
+ * Shared final step of every placement policy: adjusts for window
+ * gravity, clamps so the title bar never ends up above the workarea or
+ * the physical screen edge, then issues the actual @c ConfigureWindow
+ *
+ * @param wm      Window manager instance
+ * @param surface Surface the client lives on
+ * @param client  Client being placed
+ * @param wa_pos  Workarea origin, unclipped to any single monitor
+ * @param new_pos Policy-resolved position, before gravity/clamping
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_place_window_finalize(const wm_td *wm,
+        const surface_td *surface, client_td *client,
+        struct position_s wa_pos, struct position_s new_pos)
+{
+    xcb_window_t target;
+    xcb_connection_t *connection = wm_connection(wm);
+
+    s_place_window_apply_gravity(surface, client,
+            &new_pos.x, &new_pos.y);
+
+    /* Final safety: gravity adjustments must not push the title bar
+     * above the workarea top or above the physical screen edge */
+    if (new_pos.y < wa_pos.y) { new_pos.y = wa_pos.y; }
+    if (new_pos.x < wa_pos.x) { new_pos.x = wa_pos.x; }
+
+    target = (client_is_decorated(client) && client->frame != 0)
+        ? client->frame
+        : client->window;
+
+    xcb_configure_window(connection, target,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+            (const uint32_t[]) {(uint32_t) new_pos.x,
+                (uint32_t) new_pos.y});
+    client->layout.geometry.cur.pos = new_pos;
+}
+
+
+/* Place the client following the cascade policy, unconditionally */
+void place_window_apply_cascade(const wm_td *wm,
+        surface_td *surface, client_td *client)
+{
+    const uint32_t cascade_step = 24u;
+    uint32_t max_steps;
+    uint32_t fw;
+    uint32_t fh;
+    struct geometry_s wa;
+    struct geometry_s mon_wa;
+    struct dimensions_s mon_sz;
+    int32_t new_x;
+    int32_t new_y;
+
+    if (wm == NULL || wm_config(wm) == NULL ||
+            surface == NULL || client == NULL) {
+        return;
+    }
+
+    fw = client->layout.geometry.cur.dim.w;
+    fh = client->layout.geometry.cur.dim.h;
+    s_place_workarea(wm, surface, client, &wa, &mon_wa, &mon_sz);
+
+    max_steps = (mon_sz.w > fw) ? (mon_sz.w - fw) / cascade_step : 1u;
+    if (mon_sz.h > fh) {
+        uint32_t my = (mon_sz.h - fh) / cascade_step;
+
+        if (my < max_steps) {
+            max_steps = my;
+        }
+    }
+
+    if (max_steps == 0u) {
+        max_steps = 1u;
+    }
+
+    /* Cascade starts at the workarea origin, not at (0, 0), so the
+     * title bar is never hidden behind a panel or dock */
+    new_x = mon_wa.pos.x +
+        (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
+    new_y = mon_wa.pos.y +
+        (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
+    s_cascade_seq++;
+
+    s_place_window_finalize(wm, surface, client, wa.pos,
+            (struct position_s) { new_x, new_y });
+}
+
+
+/* Find a non-overlapping smart position for a newly mapped client */
 bool place_window_smart(const wm_td *wm,
         surface_td *surface, client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y)
@@ -627,150 +752,6 @@ bool place_window_smart(const wm_td *wm,
     *out_x = best_x;
     *out_y = best_y;
     return true;
-}
-
-
-/* Apply the configured placement policy to a newly mapped client */
-static uint32_t s_cascade_seq = 0;
-
-
-/**
- * @brief Resolve the workarea and monitor-clipped bounds a placement
- *        calculation needs
- *
- * Shared by @c place_window_apply and @c place_window_apply_cascade so
- * both compute the exact same workarea and monitor bounds for a given
- * client.
- *
- * @param wm          Window manager instance
- * @param surface     Surface the client lives on
- * @param client      Client being placed
- * @param out_wa      Resolved workarea, unclipped to any single
- *                    monitor
- * @param out_mon_wa  Workarea, clipped to the reference monitor
- * @param out_mon_sz  Screen dimensions, clipped to the reference
- *                    monitor
- *
- * @note Complexity: @e O(1)
- */
-static void s_place_workarea(const wm_td *wm, surface_td *surface,
-        const client_td *client,
-        struct geometry_s *out_wa, struct geometry_s *out_mon_wa,
-        struct dimensions_s *out_mon_sz)
-{
-    struct dimensions_s screen;
-    const desktop_td *desktop;
-
-    screen.w = surface->properties.dim.w;
-    screen.h = surface->properties.dim.h;
-
-    desktop = surface_desktop_get(surface, surface->desktop_cur);
-    if (desktop != NULL && desktop->workarea.dim.w > 0u &&
-            desktop->workarea.dim.h > 0u) {
-        *out_wa = desktop->workarea;
-    } else {
-        out_wa->pos.x = 0;
-        out_wa->pos.y = 0;
-        out_wa->dim = screen;
-    }
-
-    (void) client;
-    s_clip_to_monitor(surface, out_wa, &screen,
-            s_reference_monitor(wm, surface,
-                    wm_config(wm)->base.windows.monitor_policy),
-            out_mon_wa, out_mon_sz);
-}
-
-
-/**
- * @brief Apply gravity, clamp to the workarea, and move the client to
- *        its final resolved position
- *
- * Shared final step of every placement policy: adjusts for window
- * gravity, clamps so the title bar never ends up above the workarea or
- * the physical screen edge, then issues the actual @c ConfigureWindow
- *
- * @param wm      Window manager instance
- * @param surface Surface the client lives on
- * @param client  Client being placed
- * @param wa_pos  Workarea origin, unclipped to any single monitor
- * @param new_pos Policy-resolved position, before gravity/clamping
- *
- * @note Complexity: @e O(1)
- */
-static void s_place_window_finalize(const wm_td *wm,
-        const surface_td *surface, client_td *client,
-        struct position_s wa_pos, struct position_s new_pos)
-{
-    xcb_window_t target;
-    xcb_connection_t *connection = wm_connection(wm);
-
-    s_place_window_apply_gravity(surface, client,
-            &new_pos.x, &new_pos.y);
-
-    /* Final safety: gravity adjustments must not push the title bar
-     * above the workarea top or above the physical screen edge */
-    if (new_pos.y < wa_pos.y) { new_pos.y = wa_pos.y; }
-    if (new_pos.x < wa_pos.x) { new_pos.x = wa_pos.x; }
-
-    target = (client_is_decorated(client) && client->frame != 0)
-        ? client->frame
-        : client->window;
-
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-            (const uint32_t[]) {(uint32_t) new_pos.x,
-                (uint32_t) new_pos.y});
-    client->layout.geometry.cur.pos = new_pos;
-}
-
-
-/* Place the client following the cascade policy, unconditionally */
-void place_window_apply_cascade(const wm_td *wm,
-        surface_td *surface, client_td *client)
-{
-    const uint32_t cascade_step = 24u;
-    uint32_t max_steps;
-    uint32_t fw;
-    uint32_t fh;
-    struct geometry_s wa;
-    struct geometry_s mon_wa;
-    struct dimensions_s mon_sz;
-    int32_t new_x;
-    int32_t new_y;
-
-    if (wm == NULL || wm_config(wm) == NULL ||
-            surface == NULL || client == NULL) {
-        return;
-    }
-
-    fw = client->layout.geometry.cur.dim.w;
-    fh = client->layout.geometry.cur.dim.h;
-    s_place_workarea(wm, surface, client, &wa, &mon_wa, &mon_sz);
-
-    max_steps = (mon_sz.w > fw) ? (mon_sz.w - fw) / cascade_step : 1u;
-    if (mon_sz.h > fh) {
-        uint32_t my = (mon_sz.h - fh) / cascade_step;
-
-        if (my < max_steps) {
-            max_steps = my;
-        }
-    }
-
-    if (max_steps == 0u) {
-        max_steps = 1u;
-    }
-
-    /* Cascade starts at the workarea origin, not at (0, 0), so the
-     * title bar is never hidden behind a panel or dock */
-    new_x = mon_wa.pos.x +
-        (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
-    new_y = mon_wa.pos.y +
-        (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
-    s_cascade_seq++;
-
-    s_place_window_finalize(wm, surface, client, wa.pos,
-            (struct position_s) { new_x, new_y });
 }
 
 

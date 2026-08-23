@@ -311,7 +311,51 @@ static void s_font_config_to_xlfd(const char *restrict input,
 }
 
 
-/* Initialize the text renderer using the specified font */
+/**
+ * @brief Convert a UTF-8 string to single-byte Latin-1, for
+ *        @c xcb_image_text_8, which has no multi-byte encoding support
+ *        of its own at all
+ *
+ * Every codepoint in the Latin-1 range (U+0000-U+00FF, which is fixed's
+ * own ISO 8859-1/8859-15 encoding, and covers every accented letter
+ * Spanish, Galician, Catalan, French, Italian, German, and Portuguese
+ * actually use) becomes the one byte that same numeric value already is
+ * in that encoding.  Anything further out (Cyrillic, CJK, most
+ * everything else) becomes a literal '?', since a bitmap X core font
+ * like "fixed" has no glyph for it regardless of how faithfully the
+ * input text were decoded.
+ *
+ * @param text     Null-terminated UTF-8 string
+ * @param out      Destination buffer
+ * @param out_size Size of @p out, in bytes
+ *
+ * @return Length of the converted string in @p out, in bytes (always at
+ *         most one byte per decoded codepoint, so never longer than
+ *         @p text's own UTF-8 byte length)
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p text
+ */
+static size_t s_utf8_to_latin1(const char *restrict text,
+        char *restrict out, size_t out_size)
+{
+    size_t byte_index = 0u;
+    size_t out_len = 0u;
+
+    while (out_len < out_size - 1u) {
+        uint32_t codepoint = glyph_utf8_next(text, &byte_index);
+
+        if (codepoint == 0u) {
+            break;
+        }
+        out[out_len] = (codepoint <= 0xFFu) ? (char) codepoint : '?';
+        out_len += 1u;
+    }
+    out[out_len] = '\0';
+
+    return out_len;
+}
+
+
 /**
  * @brief Try to open @p xlfd as an X core font and query its metrics
  *
@@ -502,51 +546,6 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg)
     gc_values[1] = bg;
     xcb_change_gc(s_text.connection, s_text.gc,
             XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
-}
-
-
-/**
- * @brief Convert a UTF-8 string to single-byte Latin-1, for
- *        @c xcb_image_text_8, which has no multi-byte encoding support
- *        of its own at all
- *
- * Every codepoint in the Latin-1 range (U+0000-U+00FF, which is fixed's
- * own ISO 8859-1/8859-15 encoding, and covers every accented letter
- * Spanish, Galician, Catalan, French, Italian, German, and Portuguese
- * actually use) becomes the one byte that same numeric value already is
- * in that encoding.  Anything further out (Cyrillic, CJK, most
- * everything else) becomes a literal '?', since a bitmap X core font
- * like "fixed" has no glyph for it regardless of how faithfully the
- * input text were decoded.
- *
- * @param text     Null-terminated UTF-8 string
- * @param out      Destination buffer
- * @param out_size Size of @p out, in bytes
- *
- * @return Length of the converted string in @p out, in bytes (always at
- *         most one byte per decoded codepoint, so never longer than
- *         @p text's own UTF-8 byte length)
- *
- * @note Complexity: @e O(n), where @e n is the length of @p text
- */
-static size_t s_utf8_to_latin1(const char *restrict text,
-        char *restrict out, size_t out_size)
-{
-    size_t byte_index = 0u;
-    size_t out_len = 0u;
-
-    while (out_len < out_size - 1u) {
-        uint32_t codepoint = glyph_utf8_next(text, &byte_index);
-
-        if (codepoint == 0u) {
-            break;
-        }
-        out[out_len] = (codepoint <= 0xFFu) ? (char) codepoint : '?';
-        out_len += 1u;
-    }
-    out[out_len] = '\0';
-
-    return out_len;
 }
 
 

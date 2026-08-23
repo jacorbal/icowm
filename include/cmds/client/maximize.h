@@ -26,15 +26,27 @@
  * @brief Re-fill an already-maximized client's own geometry against
  *        its current workarea
  *
- * Resolved against @a ccmd_client_resolve_workarea (the same
- * resolution @a ccmd_client_maximize itself already uses), so the
- * client ends up exactly refilling the workarea as it now stands,
- * the same as if it had only just been maximized; a no-op unless
- * @p client is currently maximized on at least one axis.  Only the
- * axis (or axes) its own @c properties.state actually names gets
- * touched.
+ * A maximized client's own geometry, grown or shrunk in place, is only
+ * ever right immediately after actually maximizing it: anything that
+ * later changes what its own workarea resolves to (a panel mapped or
+ * unmapped, @c desktops.margins reloaded, or the surface's
+ * strutless-maximization mode, @a surface_action_toggle_strutless_maximize,
+ * @c surface.h, toggled) leaves it still filling wherever the OLD
+ * workarea was, not the new one, until something re-applies its
+ * maximize geometry from scratch.  This does exactly that: resolved
+ * against @a ccmd_client_resolve_workarea (the same resolution
+ * @a ccmd_client_maximize itself already uses), so the client ends up
+ * exactly refilling the workarea as it now stands, the same as if it
+ * had only just been maximized.
  *
- * @param client Client to re-fill
+ * Only the axis (or axes) @p client's own @c properties.state actually
+ * names gets touched: a client maximized on one axis alone keeps its
+ * own other axis exactly as it already was, rather than growing it to
+ * fill the workarea too and silently turning a horizontal- or
+ * vertical-only maximize into a full one.
+ *
+ * @param client Client to re-fill; a no-op unless it is currently
+ *               maximized on at least one axis
  *
  * @note Complexity: @e O(1)
  */

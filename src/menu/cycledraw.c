@@ -274,57 +274,6 @@ static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
 
 
 /**
- * @brief Apply preview border color and width to a target window
- *
- * Updates the border width and border color of the given cycle-preview
- * target.  For decorated client frames in window mode, the frame
- * background is also updated and cleared so the visual highlight is
- * redrawn consistently; otherwise only the border pixel is changed.
- *
- * @param connection     Active XCB connection used to update the window
- * @param target         Target window receiving the preview styling
- * @param client         Pointer to the client associated with @p target
- * @param config         Pointer to the active configuration
- * @param is_icon_menu   Whether the cycle menu is showing icon previews
- * @param border_color   Border color to apply
- *
- * @note Complexity: @e O(1)
- */
-void mi_cycle_preview_style_target(xcb_connection_t *connection,
-        xcb_window_t target, const client_td *client,
-        const config_td *config, bool is_icon_menu,
-        uint32_t border_color)
-{
-    uint32_t border_width;
-
-    if (connection == NULL || target == XCB_WINDOW_NONE ||
-            config == NULL) {
-        return;
-    }
-
-    border_width = s_mi_cycle_preview_border_width(client, config,
-            is_icon_menu);
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
-
-    if (!is_icon_menu &&
-            client != NULL &&
-            client_is_decorated(client) &&
-            client->frame == target) {
-        uint32_t frame_values[2] = { border_color, border_color };
-
-        xcb_change_window_attributes(connection, target,
-                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-                frame_values);
-        xcb_clear_area(connection, 0, target, 0, 0, 0, 0);
-    } else {
-        xcb_change_window_attributes(connection, target,
-                XCB_CW_BORDER_PIXEL, &border_color);
-    }
-}
-
-
-/**
  * @brief Resolve the on-screen rectangle a cycle-selection outline
  *        should surround for a given target
  *
@@ -387,28 +336,42 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
 }
 
 
-/**
- * @brief Apply cycle preview highlighting and stacking for the selected
- *        client
- *
- * Updates the visual state of the currently selected client in the
- * cycle preview by adjusting its border color and ensuring it is
- * stacked above its peers.  Also restores the previous preview client's
- * border color according to its active or inactive state.
- *
- * @param connection Pointer to the XCB connection
- * @param config     Pointer to the configuration containing theme data
- *
- * @note No-op if required state (connection, config, menu, or
- *       selection) is invalid or incomplete, or if the selected
- *       client is the same one already previewed (nothing to change)
- * @note Restores the previous preview client's border color before
- *       applying the new selection highlight
- * @note Ensures the selected target window is raised above others
- * @note Updates @c g_cycle_menu.preview_client to track the current
- *       preview
- * @note Complexity: @e O(1)
- */
+/* Apply preview border color and width to a target window */
+void mi_cycle_preview_style_target(xcb_connection_t *connection,
+        xcb_window_t target, const client_td *client,
+        const config_td *config, bool is_icon_menu,
+        uint32_t border_color)
+{
+    uint32_t border_width;
+
+    if (connection == NULL || target == XCB_WINDOW_NONE ||
+            config == NULL) {
+        return;
+    }
+
+    border_width = s_mi_cycle_preview_border_width(client, config,
+            is_icon_menu);
+    xcb_configure_window(connection, target,
+            XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
+
+    if (!is_icon_menu &&
+            client != NULL &&
+            client_is_decorated(client) &&
+            client->frame == target) {
+        uint32_t frame_values[2] = { border_color, border_color };
+
+        xcb_change_window_attributes(connection, target,
+                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+                frame_values);
+        xcb_clear_area(connection, 0, target, 0, 0, 0, 0);
+    } else {
+        xcb_change_window_attributes(connection, target,
+                XCB_CW_BORDER_PIXEL, &border_color);
+    }
+}
+
+
+/* Apply cycle preview highlighting and stacking for the selected client */
 void mi_cycle_preview_apply(xcb_connection_t *connection,
         const config_td *config)
 {
@@ -457,11 +420,14 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                 (g_cycle_menu.desktop->client_active_id == previous->id);
 
             if (g_cycle_menu.is_icon_menu) {
-                previous_border = config->theme.icon.inactive.border.color;
+                previous_border =
+                    config->theme.icon.inactive.border.color;
             } else if (prev_is_active) {
-                previous_border = config->theme.window.active.border.color;
+                previous_border =
+                    config->theme.window.active.border.color;
             } else {
-                previous_border = config->theme.window.inactive.border.color;
+                previous_border =
+                    config->theme.window.inactive.border.color;
             }
 
             mi_cycle_preview_style_target(connection, previous_target,

@@ -37,22 +37,6 @@
 #include <rules/internal.h>
 
 
-/* Allocate and zero-initialize a new rules table */
-rules_td *rules_init(void)
-{
-    return calloc(1, sizeof(rules_td));
-}
-
-
-/* Destroy a rules table and free its allocated memory */
-void rules_destroy(rules_td *rules)
-{
-    if (rules != NULL) {
-        free(rules);
-    }
-}
-
-
 /**
  * @brief Load a match criterion that may be a single string or an array
  *        of strings into a fixed-size list
@@ -132,6 +116,22 @@ static uint8_t s_clamp_opacity_percent(int raw)
         return 100u;
     }
     return (uint8_t) raw;
+}
+
+
+/* Allocate and zero-initialize a new rules table */
+rules_td *rules_init(void)
+{
+    return calloc(1, sizeof(rules_td));
+}
+
+
+/* Destroy a rules table and free its allocated memory */
+void rules_destroy(rules_td *rules)
+{
+    if (rules != NULL) {
+        free(rules);
+    }
 }
 
 

@@ -393,152 +393,6 @@ static const char *s_event_bit_to_name(uint32_t type)
 }
 
 
-/* Subscribe the given connection to one or more events */
-cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
-{
-    cJSON *const events = cJSON_GetObjectItem(args, "events");
-    cJSON *item;
-    cJSON *resp;
-    uint32_t requested = 0;
-
-    if (events == NULL || !cJSON_IsArray(events) ||
-            cJSON_GetArraySize(events) == 0) {
-        resp = cJSON_CreateObject();
-        if (resp != NULL) {
-            cJSON_AddBoolToObject(resp, "ok", 0);
-            cJSON_AddStringToObject(resp, "error",
-                    "missing or empty 'events' array");
-        }
-        return resp;
-    }
-
-    cJSON_ArrayForEach(item, events) {
-        uint32_t bit;
-
-        if (!cJSON_IsString(item)) {
-            resp = cJSON_CreateObject();
-            if (resp != NULL) {
-                cJSON_AddBoolToObject(resp, "ok", 0);
-                cJSON_AddStringToObject(resp, "error",
-                        "'events' must be an array of strings");
-            }
-            return resp;
-        }
-        bit = s_event_name_to_bit(item->valuestring);
-        if (bit == 0) {
-            resp = cJSON_CreateObject();
-            if (resp != NULL) {
-                cJSON_AddBoolToObject(resp, "ok", 0);
-                cJSON_AddStringToObject(resp, "error",
-                        "unknown event name in 'events'");
-            }
-            return resp;
-        }
-        requested |= (uint32_t) bit;
-    }
-
-    s_clients[client_idx].subscribed_events |= requested;
-
-    resp = cJSON_CreateObject();
-    if (resp != NULL) {
-        cJSON_AddBoolToObject(resp, "ok", 1);
-    }
-    return resp;
-}
-
-
-/* Unsubscribe the given connection from one or more events, or from
- * every event it was subscribed to when 'events' is left out */
-cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
-{
-    cJSON *const events = cJSON_GetObjectItem(args, "events");
-    cJSON *resp;
-
-    if (events == NULL) {
-        s_clients[client_idx].subscribed_events = 0;
-    } else if (!cJSON_IsArray(events)) {
-        resp = cJSON_CreateObject();
-        if (resp != NULL) {
-            cJSON_AddBoolToObject(resp, "ok", 0);
-            cJSON_AddStringToObject(resp, "error",
-                    "'events' must be an array of strings");
-        }
-        return resp;
-    } else {
-        cJSON *item;
-
-        cJSON_ArrayForEach(item, events) {
-            uint32_t bit;
-
-            if (!cJSON_IsString(item)) {
-                resp = cJSON_CreateObject();
-                if (resp != NULL) {
-                    cJSON_AddBoolToObject(resp, "ok", 0);
-                    cJSON_AddStringToObject(resp, "error",
-                            "'events' must be an array of strings");
-                }
-                return resp;
-            }
-            bit = s_event_name_to_bit(item->valuestring);
-            /* An unrecognized name here is not an error the way it
-             * is for 'subscribe': the caller could not have been
-             * subscribed to it in the first place, so there is
-             * nothing to undo, the same as unsubscribing from an
-             * event never subscribed to at all is not an error
-             * either. */
-            s_clients[client_idx].subscribed_events &= ~(uint32_t) bit;
-        }
-    }
-
-    resp = cJSON_CreateObject();
-    if (resp != NULL) {
-        cJSON_AddBoolToObject(resp, "ok", 1);
-    }
-    return resp;
-}
-
-
-/* Send one event line to every currently subscribed client */
-void ipc_broadcast_event(uint32_t type, cJSON *fields)
-{
-    const char *name = s_event_bit_to_name(type);
-    cJSON *envelope;
-    char *line;
-    size_t len;
-
-    if (s_ipc_fd == -1 || name == NULL) {
-        cJSON_Delete(fields);
-        return;
-    }
-
-    envelope = (fields != NULL) ? fields : cJSON_CreateObject();
-    if (envelope == NULL) {
-        return;
-    }
-    cJSON_AddStringToObject(envelope, "event", name);
-
-    line = cJSON_PrintUnformatted(envelope);
-    cJSON_Delete(envelope);
-    if (line == NULL) {
-        return;
-    }
-    len = safe_strlen(line);
-
-    for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
-        if (s_clients[i].fd == -1 ||
-                (s_clients[i].subscribed_events & (uint32_t) type) == 0) {
-            continue;
-        }
-        if (write(s_clients[i].fd, line, len) != (ssize_t) len ||
-                write(s_clients[i].fd, "\n", 1) != 1) {
-            s_client_close(i);
-        }
-    }
-
-    free(line);
-}
-
-
 /**
  * @brief Whether an 'errno' value from a non-blocking socket call
  *        means "nothing ready right now", not a real error
@@ -731,6 +585,152 @@ static void s_handle_client_data(wm_td *wm, int idx)
                 " dropping its connection", IPC_MSG_MAX_LENGTH);
         s_client_close(idx);
     }
+}
+
+
+/* Subscribe the given connection to one or more events */
+cJSON *ipc_client_subscribe(int client_idx, const cJSON *args)
+{
+    cJSON *const events = cJSON_GetObjectItem(args, "events");
+    cJSON *item;
+    cJSON *resp;
+    uint32_t requested = 0;
+
+    if (events == NULL || !cJSON_IsArray(events) ||
+            cJSON_GetArraySize(events) == 0) {
+        resp = cJSON_CreateObject();
+        if (resp != NULL) {
+            cJSON_AddBoolToObject(resp, "ok", 0);
+            cJSON_AddStringToObject(resp, "error",
+                    "missing or empty 'events' array");
+        }
+        return resp;
+    }
+
+    cJSON_ArrayForEach(item, events) {
+        uint32_t bit;
+
+        if (!cJSON_IsString(item)) {
+            resp = cJSON_CreateObject();
+            if (resp != NULL) {
+                cJSON_AddBoolToObject(resp, "ok", 0);
+                cJSON_AddStringToObject(resp, "error",
+                        "'events' must be an array of strings");
+            }
+            return resp;
+        }
+        bit = s_event_name_to_bit(item->valuestring);
+        if (bit == 0) {
+            resp = cJSON_CreateObject();
+            if (resp != NULL) {
+                cJSON_AddBoolToObject(resp, "ok", 0);
+                cJSON_AddStringToObject(resp, "error",
+                        "unknown event name in 'events'");
+            }
+            return resp;
+        }
+        requested |= (uint32_t) bit;
+    }
+
+    s_clients[client_idx].subscribed_events |= requested;
+
+    resp = cJSON_CreateObject();
+    if (resp != NULL) {
+        cJSON_AddBoolToObject(resp, "ok", 1);
+    }
+    return resp;
+}
+
+
+/* Unsubscribe the given connection from one or more events, or from
+ * every event it was subscribed to when 'events' is left out */
+cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
+{
+    cJSON *const events = cJSON_GetObjectItem(args, "events");
+    cJSON *resp;
+
+    if (events == NULL) {
+        s_clients[client_idx].subscribed_events = 0;
+    } else if (!cJSON_IsArray(events)) {
+        resp = cJSON_CreateObject();
+        if (resp != NULL) {
+            cJSON_AddBoolToObject(resp, "ok", 0);
+            cJSON_AddStringToObject(resp, "error",
+                    "'events' must be an array of strings");
+        }
+        return resp;
+    } else {
+        cJSON *item;
+
+        cJSON_ArrayForEach(item, events) {
+            uint32_t bit;
+
+            if (!cJSON_IsString(item)) {
+                resp = cJSON_CreateObject();
+                if (resp != NULL) {
+                    cJSON_AddBoolToObject(resp, "ok", 0);
+                    cJSON_AddStringToObject(resp, "error",
+                            "'events' must be an array of strings");
+                }
+                return resp;
+            }
+            bit = s_event_name_to_bit(item->valuestring);
+            /* An unrecognized name here is not an error the way it
+             * is for 'subscribe': the caller could not have been
+             * subscribed to it in the first place, so there is
+             * nothing to undo, the same as unsubscribing from an
+             * event never subscribed to at all is not an error
+             * either. */
+            s_clients[client_idx].subscribed_events &= ~(uint32_t) bit;
+        }
+    }
+
+    resp = cJSON_CreateObject();
+    if (resp != NULL) {
+        cJSON_AddBoolToObject(resp, "ok", 1);
+    }
+    return resp;
+}
+
+
+/* Send one event line to every currently subscribed client */
+void ipc_broadcast_event(uint32_t type, cJSON *fields)
+{
+    const char *name = s_event_bit_to_name(type);
+    cJSON *envelope;
+    char *line;
+    size_t len;
+
+    if (s_ipc_fd == -1 || name == NULL) {
+        cJSON_Delete(fields);
+        return;
+    }
+
+    envelope = (fields != NULL) ? fields : cJSON_CreateObject();
+    if (envelope == NULL) {
+        return;
+    }
+    cJSON_AddStringToObject(envelope, "event", name);
+
+    line = cJSON_PrintUnformatted(envelope);
+    cJSON_Delete(envelope);
+    if (line == NULL) {
+        return;
+    }
+    len = safe_strlen(line);
+
+    for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
+        if (s_clients[i].fd == -1 ||
+                (s_clients[i].subscribed_events & (uint32_t) type) == 0) {
+            continue;
+        }
+        if (write(s_clients[i].fd, line, len) != (ssize_t) len ||
+                write(s_clients[i].fd, "\n", 1) != 1) {
+            s_client_close(i);
+        }
+    }
+
+    free(line);
 }
 
 

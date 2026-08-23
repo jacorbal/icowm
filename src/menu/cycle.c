@@ -171,6 +171,66 @@ static void s_cycle_scroll_to_selection(void)
 }
 
 
+/**
+ * @brief Repaint a client's real desktop icon (not the cycle menu's own
+ *        preview), so it reflects a just-changed cycle-selection state
+ *        right away
+ *
+ * @a cycle_navigate_to / @a cycle_navigate_to_next /
+ * @a cycle_navigate_prev only ever touch the floating cycle menu's own
+ * selection state; nothing about the real icon window sitting on the
+ * desktop underneath it is otherwise told to repaint when that
+ * selection moves on, so a client that was highlighted and then passed
+ * over stays visually stuck showing that highlight until something
+ * unrelated (e.g., @a cycle_destroy) eventually forces a full desktop
+ * repaint.
+ *
+ * Called for both the previously-selected and newly-selected client on
+ * every navigation, this keeps their real icons in sync with the menu
+ * immediately instead.
+ *
+ * @p is_selected picks which of the two very different renders that
+ * sync actually needs: the client this cycle just selected gets
+ * @a ri_render_client_icon_selected (active colors, its caption, and
+ * its own hint indicators, but deliberately no pixmap) while the client
+ * just passed over gets a full @a ri_render_client_icon render instead,
+ * back to its ordinary inactive appearance, pixmap, caption, and hint
+ * indicators all included.
+ *
+ * @param client      Client whose real desktop icon to repaint
+ * @param is_selected Whether @p client is the cycle's own newly
+ *                     selected entry (@c true), or the one just
+ *                     passed over (@c false)
+ *
+ * @note A no-op for a client that is not actually an iconified icon (or
+ *       @c NULL, or with no cycle menu open at all); both render
+ *       functions already guard that safely on their own
+ * @note The cycle's own initial preselection at @a cycle_init time
+ *       needs no separate call here
+ * @note Complexity: @e O(1)
+ *
+ * @see @a ri_render_client_icon_selected's own comment in
+ *      @c render/icon.h
+ * @ see @a mi_cycle_preview_apply in @c menu/cycledraw.c, which already
+ *       applies the very same "selected" render this function itself
+ *       calls below.
+ */
+static void s_cycle_repaint_icon(client_td *client, bool is_selected)
+{
+    if (client == NULL || g_cycle_menu.desktop == NULL) {
+        return;
+    }
+
+    if (is_selected) {
+        ri_render_client_icon_selected(g_cycle_menu.desktop->connection,
+                client);
+    } else {
+        ri_render_client_icon(g_cycle_menu.desktop, client, true);
+    }
+    xcb_flush(g_cycle_menu.desktop->connection);
+}
+
+
 /* Initialize the cycle menu for window or icon cycling */
 void cycle_init(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop,
@@ -558,66 +618,6 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
     }
 
     focus_apply(surfaces, surface, desktop, target, true, cfg);
-}
-
-
-/**
- * @brief Repaint a client's real desktop icon (not the cycle menu's own
- *        preview), so it reflects a just-changed cycle-selection state
- *        right away
- *
- * @a cycle_navigate_to / @a cycle_navigate_to_next /
- * @a cycle_navigate_prev only ever touch the floating cycle menu's own
- * selection state; nothing about the real icon window sitting on the
- * desktop underneath it is otherwise told to repaint when that
- * selection moves on, so a client that was highlighted and then passed
- * over stays visually stuck showing that highlight until something
- * unrelated (e.g., @a cycle_destroy) eventually forces a full desktop
- * repaint.
- *
- * Called for both the previously-selected and newly-selected client on
- * every navigation, this keeps their real icons in sync with the menu
- * immediately instead.
- *
- * @p is_selected picks which of the two very different renders that
- * sync actually needs: the client this cycle just selected gets
- * @a ri_render_client_icon_selected (active colors, its caption, and
- * its own hint indicators, but deliberately no pixmap) while the client
- * just passed over gets a full @a ri_render_client_icon render instead,
- * back to its ordinary inactive appearance, pixmap, caption, and hint
- * indicators all included.
- *
- * @param client      Client whose real desktop icon to repaint
- * @param is_selected Whether @p client is the cycle's own newly
- *                     selected entry (@c true), or the one just
- *                     passed over (@c false)
- *
- * @note A no-op for a client that is not actually an iconified icon (or
- *       @c NULL, or with no cycle menu open at all); both render
- *       functions already guard that safely on their own
- * @note The cycle's own initial preselection at @a cycle_init time
- *       needs no separate call here
- * @note Complexity: @e O(1)
- *
- * @see @a ri_render_client_icon_selected's own comment in
- *      @c render/icon.h
- * @ see @a mi_cycle_preview_apply in @c menu/cycledraw.c, which already
- *       applies the very same "selected" render this function itself
- *       calls below.
- */
-static void s_cycle_repaint_icon(client_td *client, bool is_selected)
-{
-    if (client == NULL || g_cycle_menu.desktop == NULL) {
-        return;
-    }
-
-    if (is_selected) {
-        ri_render_client_icon_selected(g_cycle_menu.desktop->connection,
-                client);
-    } else {
-        ri_render_client_icon(g_cycle_menu.desktop, client, true);
-    }
-    xcb_flush(g_cycle_menu.desktop->connection);
 }
 
 

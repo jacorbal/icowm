@@ -485,6 +485,40 @@ static void s_menu_confirm_dialog_close(xcb_connection_t *connection)
 }
 
 
+/**
+ * @brief Repaint the confirm dialog with its newly clicked selection,
+ *        then defer the actual close/accept for shortly after
+ *
+ * A mouse click on the button that was not already selected changes
+ * 's_confirm_selected' and needs that to actually be visible before
+ * the dialog goes away, or the click reads as though it did not
+ * register at the right spot even though it did.  The deferral itself
+ * is 'menu_dialog_defer_schedule' (menu/dialog/defer.h), shared with
+ * every other dialog that closes itself in response to a button
+ * click; this just repaints first so what it defers has something new
+ * to show.
+ *
+ * @param connection XCB connection
+ * @param config     Active configuration, for the repaint; the
+ *                    deferred action is scheduled even when this is
+ *                    @c NULL, just without a repaint first
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_confirm_defer_click(xcb_connection_t *connection,
+        const config_td *config)
+{
+    if (config != NULL) {
+        s_confirm_draw(connection, config);
+        xcb_flush(connection);
+    }
+
+    menu_dialog_defer_schedule(connection,
+            DIALOG_CLICK_FEEDBACK_DELAY_MS,
+            menu_confirm_dialog_accept);
+}
+
+
 /* Open the confirm dialog */
 void menu_confirm_dialog_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config,
@@ -616,39 +650,6 @@ void menu_confirm_dialog_repaint(xcb_connection_t *connection,
         const config_td *config)
 {
     s_confirm_draw(connection, config);
-}
-
-
-/**
- * @brief Repaint the confirm dialog with its newly clicked selection,
- *        then defer the actual close/accept for shortly after
- *
- * A mouse click on the button that was not already selected changes
- * 's_confirm_selected' and needs that to actually be visible before
- * the dialog goes away, or the click reads as though it did not
- * register at the right spot even though it did.  The deferral itself
- * is 'menu_dialog_defer_schedule' (menu/dialog/defer.h), shared with
- * every other dialog that closes itself in response to a button
- * click; this just repaints first so what it defers has something new
- * to show.
- *
- * @param connection XCB connection
- * @param config     Active configuration, for the repaint; the
- *                    deferred action is scheduled even when this is
- *                    @c NULL, just without a repaint first
- *
- * @note Complexity: @e O(1)
- */
-static void s_confirm_defer_click(xcb_connection_t *connection,
-        const config_td *config)
-{
-    if (config != NULL) {
-        s_confirm_draw(connection, config);
-        xcb_flush(connection);
-    }
-
-    menu_dialog_defer_schedule(connection, DIALOG_CLICK_FEEDBACK_DELAY_MS,
-            menu_confirm_dialog_accept);
 }
 
 
@@ -796,4 +797,3 @@ xcb_window_t menu_confirm_dialog_window(void)
 {
     return s_confirm_window;
 }
-

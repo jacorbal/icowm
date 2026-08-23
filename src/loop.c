@@ -777,6 +777,11 @@ void loop_run(wm_td *wm)
                             (xcb_focus_in_event_t *) event);
                     break;
 
+                case XCB_COLORMAP_NOTIFY:
+                    handler_colormap_notify(connection, surfaces,
+                            (xcb_colormap_notify_event_t *) event);
+                    break;
+
                 case XCB_EXPOSE:
                     handler_expose(connection, surfaces,
                             (xcb_expose_event_t *) event, config);

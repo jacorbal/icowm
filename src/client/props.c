@@ -37,6 +37,64 @@
 #include <client/internal.h>
 
 
+/**
+ * @brief Read a legacy Latin-1 ICCCM string property into up to two
+ *        destination buffers
+ *
+ * Shared fallback path for @c client_props_refresh_icon_name and
+ * @c client_props_refresh_name: both first try the UTF-8 EWMH
+ * property (@c _NET_WM_ICON_NAME or @c _NET_WM_NAME) and only fall
+ * back to this ICCCM one (@c WM_ICON_NAME or @c WM_NAME) when that
+ * fails.
+ *
+ * @param client         Client whose window property is read
+ * @param atom           ICCCM atom to read
+ * @param dest1          First destination buffer (always written when
+ *                        the property is present; at least 255 bytes)
+ * @param dest2          Second destination buffer kept in sync with
+ *                        @p dest1, or @c NULL when there is only one
+ * @param clear_on_empty When @c true, an empty or missing property
+ *                        clears @p dest1 to an empty string; when
+ *                        @c false, @p dest1 (and @p dest2) are left
+ *                        unchanged so a transient property removal
+ *                        does not blank an already-known name
+ *
+ * @note Complexity: @e O(1), a single round trip
+ */
+static void s_client_read_legacy_name_prop(client_td *client,
+        xcb_atom_t atom, char *restrict dest1, char *restrict dest2,
+        bool clear_on_empty)
+{
+    xcb_get_property_cookie_t cookie;
+    xcb_get_property_reply_t *reply;
+
+    cookie = xcb_get_property(client->connection, 0, client->window,
+            atom, XCB_ATOM_STRING, 0, 255);
+    reply = xcb_get_property_reply(client->connection, cookie, NULL);
+
+    if (reply != NULL && reply->value_len > 0) {
+        size_t len = (reply->value_len < 255u)
+            ? reply->value_len : 254u;
+        const char *value = (char *) xcb_get_property_value(reply);
+
+        memcpy(dest1, value, len);
+        dest1[len] = '\0';
+        if (dest2 != NULL) {
+            memcpy(dest2, value, len);
+            dest2[len] = '\0';
+        }
+    } else if (clear_on_empty) {
+        dest1[0] = '\0';
+    }
+
+    if (reply != NULL) {
+        free(reply);
+    }
+}
+
+
+
+
 /* Retrieve the 'WM_NAME' property of a window */
 size_t ci_get_wm_name(xcb_connection_t *connection,
         xcb_window_t window, char *buffer, size_t buffer_sz)
@@ -162,62 +220,6 @@ int ci_get_wm_class(xcb_connection_t *connection,
     }
 
     return -1;
-}
-
-
-/**
- * @brief Read a legacy Latin-1 ICCCM string property into up to two
- *        destination buffers
- *
- * Shared fallback path for @c client_props_refresh_icon_name and
- * @c client_props_refresh_name: both first try the UTF-8 EWMH
- * property (@c _NET_WM_ICON_NAME or @c _NET_WM_NAME) and only fall
- * back to this ICCCM one (@c WM_ICON_NAME or @c WM_NAME) when that
- * fails.
- *
- * @param client         Client whose window property is read
- * @param atom           ICCCM atom to read
- * @param dest1          First destination buffer (always written when
- *                        the property is present; at least 255 bytes)
- * @param dest2          Second destination buffer kept in sync with
- *                        @p dest1, or @c NULL when there is only one
- * @param clear_on_empty When @c true, an empty or missing property
- *                        clears @p dest1 to an empty string; when
- *                        @c false, @p dest1 (and @p dest2) are left
- *                        unchanged so a transient property removal
- *                        does not blank an already-known name
- *
- * @note Complexity: @e O(1), a single round trip
- */
-static void s_client_read_legacy_name_prop(client_td *client,
-        xcb_atom_t atom, char *restrict dest1, char *restrict dest2,
-        bool clear_on_empty)
-{
-    xcb_get_property_cookie_t cookie;
-    xcb_get_property_reply_t *reply;
-
-    cookie = xcb_get_property(client->connection, 0, client->window,
-            atom, XCB_ATOM_STRING, 0, 255);
-    reply = xcb_get_property_reply(client->connection, cookie, NULL);
-
-    if (reply != NULL && reply->value_len > 0) {
-        size_t len = (reply->value_len < 255u)
-            ? reply->value_len : 254u;
-        const char *value = (char *) xcb_get_property_value(reply);
-
-        memcpy(dest1, value, len);
-        dest1[len] = '\0';
-        if (dest2 != NULL) {
-            memcpy(dest2, value, len);
-            dest2[len] = '\0';
-        }
-    } else if (clear_on_empty) {
-        dest1[0] = '\0';
-    }
-
-    if (reply != NULL) {
-        free(reply);
-    }
 }
 
 
@@ -362,11 +364,11 @@ void client_props_refresh_normal_hints(client_td *client)
         client->hints_icccm.size.inc.h = (uint32_t) hints.height_inc;
     }
 
-    /* ICCCM §4.1.2.3: always wins over 'windows.gravity' in
-     * 'config.json' ('client.h', 'layout.gravity' itself), including on
-     * a later hint update like this one, per ICCCM's own "MUST honor"
-     * mandate; that config field is a fallback for a client that never
-     * states its own gravity, not an override for one that does. */
+    /* Always wins over 'windows.gravity' in 'config.json' ('client.h',
+     * 'layout.gravity' itself), including on a later hint update like
+     * this one, per ICCCM's own "MUST honor" mandate; that config field
+     * is a fallback for a client that never states its own gravity, not
+     * an override for one that does. */
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) {
         client->layout.gravity = (uint16_t) hints.win_gravity;
     }
@@ -382,11 +384,10 @@ void client_props_refresh_normal_hints(client_td *client)
             (int32_t) hints.max_aspect_den;
     }
 
-    /* ICCCM §4.1.2.3: a fixed-size window has 'min == max' in at least
-     * one axis.  Some applications (e.g., 'gmrun') constrain only
-     * height, leaving width free; the window is still effectively
-     * non-resizable from the WM's perspective and must not be maximized
-     * or resized. */
+    /* ICCCM §4.1.2.3: a fixed-size window has min == max in at least
+     * one axis.  Some applications (e.g., gmrun) constrain only height,
+     * leaving width free; the window is still effectively non-resizable
+     * from the WM's perspective and must not be maximized or resized. */
     if ((hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) &&
             (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
         bool fixed_w = (hints.min_width > 0 &&
@@ -397,4 +398,55 @@ void client_props_refresh_normal_hints(client_td *client)
             client_forbid_resize(client);
         }
     }
+}
+
+
+/* Refresh a client's own 'WM_COLORMAP_WINDOWS' list */
+void client_props_refresh_colormap_windows(client_td *client)
+{
+    xcb_atom_t colormap_windows_atom;
+    xcb_icccm_get_wm_colormap_windows_reply_t reply;
+
+    if (client == NULL) {
+        return;
+    }
+
+    client->colormap_windows.count = 0u;
+
+    colormap_windows_atom = atom_intern(client->connection,
+            "WM_COLORMAP_WINDOWS", false);
+    if (colormap_windows_atom == XCB_ATOM_NONE) {
+        return;
+    }
+
+    if (!xcb_icccm_get_wm_colormap_windows_reply(client->connection,
+                xcb_icccm_get_wm_colormap_windows(client->connection,
+                    client->window, colormap_windows_atom),
+                &reply, NULL)) {
+        return;
+    }
+
+    /* ICCCM §4.1.8: the list is in the client's own priority order;
+     * entries past 'WM_COLORMAP_WINDOWS_MAX' are already its own
+     * lowest-priority ones, so simply not tracking them is the
+     * correct degradation, not an arbitrary truncation. */
+    for (uint32_t i = 0u;
+            i < reply.windows_len && i < WM_COLORMAP_WINDOWS_MAX; ++i) {
+        xcb_get_window_attributes_cookie_t wac =
+            xcb_get_window_attributes(client->connection,
+                    reply.windows[i]);
+        xcb_get_window_attributes_reply_t *const war =
+            xcb_get_window_attributes_reply(client->connection, wac,
+                    NULL);
+
+        client->colormap_windows.windows[i] = reply.windows[i];
+        client->colormap_windows.colormap_ids[i] = (war != NULL)
+            ? war->colormap : (xcb_colormap_t) XCB_NONE;
+        client->colormap_windows.count += 1u;
+        if (war != NULL) {
+            free(war);
+        }
+    }
+
+    xcb_icccm_get_wm_colormap_windows_reply_wipe(&reply);
 }

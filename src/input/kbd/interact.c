@@ -66,46 +66,18 @@
 #include <input/kbd/internal.h>
 
 
-/* Active-client lookup helper */
-
 /**
- * @brief Resolve the currently focused client on a surface
+ * @brief When @a ik_handle_launch last actually dispatched a program
+ *        launch, or the zero value from static initialization before
+ *        the first one
  *
- * Looks up the current desktop for @p surface and returns the active
- * client on that desktop.  Optionally returns the owning surface and
- * desktop pointers through @p cs_out and @p cd_out.
- *
- * @param surface  Surface to query
- * @param surfaces Full surface list (for @a lookup_find_client)
- * @param cs_out   Receives the client's owning surface (may be null)
- * @param cd_out   Receives the client's owning desktop (may be null)
- *
- * @return Active client, or @c NULL when none is focused
- *
- * @note Complexity: @e O(n) for the client list walk
+ * Shared across every @c KEYBIND_LAUNCH_* binding rather than kept
+ * per binding: the goal is bounding how fast this window manager
+ * itself hands off new processes overall, not tracking each binding
+ * on its own, and a single held key is by far the common case this
+ * exists for regardless.
  */
-client_td *ik_get_active_client(surface_td *surface,
-        list_td *surfaces,
-        surface_td **cs_out,
-        desktop_td **cd_out)
-{
-    desktop_td *desktop;
-
-    if (cs_out != NULL) { *cs_out = NULL; }
-    if (cd_out != NULL) { *cd_out = NULL; }
-
-    if (surface == NULL) {
-        return NULL;
-    }
-
-    desktop = lookup_current_desktop(surface);
-    if (desktop == NULL || desktop->client_active_id == 0) {
-        return NULL;
-    }
-
-    return lookup_find_client(surfaces, desktop->client_active_id,
-            cs_out, cd_out);
-}
+static struct timespec s_last_launch;
 
 
 /* Keyboard resize helpers */
@@ -347,19 +319,6 @@ static void s_kbd_resize_apply(client_td *client,
 /* Program launch dispatch */
 
 /**
- * @brief When @a ik_handle_launch last actually dispatched a program
- *        launch, or the zero value from static initialization before
- *        the first one
- *
- * Shared across every @c KEYBIND_LAUNCH_* binding rather than kept
- * per binding: the goal is bounding how fast this window manager
- * itself hands off new processes overall, not tracking each binding
- * on its own, and a single held key is by far the common case this
- * exists for regardless.
- */
-static struct timespec s_last_launch;
-
-/**
  * @brief Whether at least @c KBD_LAUNCH_MIN_INTERVAL_MS has passed
  *        since @a s_last_launch, updating @a s_last_launch to now
  *        when it has
@@ -384,25 +343,32 @@ static bool s_launch_pace_ok(void)
 }
 
 
-/**
- * @brief Launch a configured program for the given binding type
- *
- * Maps each @c KEYBIND_LAUNCH_* constant to its program string from the
- * configuration and calls @a cctl_launch_dispatch.  Holding the bound
- * key down repeats this on every one of X11's own key-repeat events,
- * exactly like it would for a plain, unmodified key in a text field;
- * see @c KBD_LAUNCH_MIN_INTERVAL_MS's own doc comment (defs/kbd.h) for
- * why an actual launch is paced rather than let through on every one
- * of those.  @c KEYBIND_LAUNCH_LAUNCHER's own prompt-box path, when
- * enabled, is deliberately left unpaced: it only ever opens (or
- * re-opens) a dialog already guarded the same way every other dialog
- * in this project is, never spawns a process by itself.
- *
- * @param btype   Keyboard binding type (one of the @c KEYBIND_LAUNCH_*
- *                constants)
- * @param surface Current surface passed to @a cctl_launch_dispatch
- * @param config  Active configuration holding the program paths
- */
+/* Resolve the currently focused client on a surface */
+client_td *ik_get_active_client(surface_td *surface,
+        list_td *surfaces,
+        surface_td **cs_out,
+        desktop_td **cd_out)
+{
+    desktop_td *desktop;
+
+    if (cs_out != NULL) { *cs_out = NULL; }
+    if (cd_out != NULL) { *cd_out = NULL; }
+
+    if (surface == NULL) {
+        return NULL;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL || desktop->client_active_id == 0) {
+        return NULL;
+    }
+
+    return lookup_find_client(surfaces, desktop->client_active_id,
+            cs_out, cd_out);
+}
+
+
+/* Launch a configured program for the given binding type */
 void ik_handle_launch(enum wm_keybind_type_e btype,
         surface_td *surface, const config_td *config)
 {
@@ -510,22 +476,7 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
 }
 
 
-/* Keyboard move dispatch */
-
-/**
- * @brief Move the focused client by keyboard
- *
- * Resolves the active client and computes a new position based on
- * @p btype: relative steps (@c KEYBIND_CLIENT_MOVE_LEFT / @c RIGHT /
- * @c UP / @c DOWN) or absolute corner snaps
- * (@c KEYBIND_CLIENT_MOVE_TOP_LEFT...).
- *
- * @param btype    Keyboard binding type (one of the
- *                 @c KEYBIND_CLIENT_MOVE_* constants)
- * @param surface  Current surface
- * @param surfaces Full surface list
- * @param config   Active configuration (for the move step size)
- */
+/* Move the focused client by keyboard */
 void ik_handle_move(enum wm_keybind_type_e btype,
         surface_td *surface, list_td *surfaces,
         const config_td *config)
@@ -695,23 +646,7 @@ void ik_handle_move(enum wm_keybind_type_e btype,
 }
 
 
-/* Keyboard resize dispatch */
-
-/**
- * @brief Resize the focused client by keyboard
- *
- * Resolves the active client, checks that it is resizable and not in
- * a state that prevents resizing (fullscreen, maximized), and applies
- * an increment-aware size change in the direction indicated by
- * @p btype.  @c Left / @c Up shrink from the right/bottom edge;
- * @c Right / @c Down grow that edge.
- *
- * @param btype    Keyboard binding type (one of the
- *                 @c KEYBIND_CLIENT_RESIZE_* constants)
- * @param surface  Current surface
- * @param surfaces Full surface list
- * @param config   Active configuration (for the resize step size)
- */
+/* Resize the focused client by keyboard */
 void ik_handle_resize(enum wm_keybind_type_e btype,
         surface_td *surface, list_td *surfaces,
         const config_td *config)
@@ -731,9 +666,7 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
         return;
     }
 
-    /* Refuse to resize clients in a fixed-size state entirely
-     * ("Maximized windows can't be moved or resized", Karp, O'Reilly,
-     * & Mott, 2005, 'Windows XP in a Nutshell', 2nd ed., ch. 2);
+    /* Refuse to resize clients in a fixed-size state entirely;
      * a client maximized on just one axis still allows resizing its
      * free axis below (see the per-direction axis-lock checks further
      * down), the same way a mouse border drag does (see

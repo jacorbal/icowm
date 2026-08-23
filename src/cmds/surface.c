@@ -62,38 +62,6 @@ static void s_show_desktop_overlay(surface_td *surface)
 }
 
 
-/* Switch to another desktop */
-void scmd_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
-{
-    uint32_t old_id;
-
-    if (surface == NULL) {
-        return;
-    }
-
-    old_id = surface->desktop_cur;
-    if (desktop_id == old_id) {
-        return;     /* Already on this desktop */
-    }
-
-    LOGGER_DEBUG("Switching desktop: %u to %u on surface %u",
-            old_id, desktop_id, surface->id);
-
-    surface_clients_hide(surface, old_id);
-    if (surface_desktop_select(surface, desktop_id) != 0) {
-        surface_clients_show(surface, old_id);
-        return;
-    }
-    surface_clients_sticky_transfer_all(surface, desktop_id);
-    surface_clients_show(surface, desktop_id);
-
-    s_show_desktop_overlay(surface);
-
-    surface->is_outdated = true;
-    xcb_flush(surface->connection);
-}
-
-
 /**
  * @brief Switch a surface to the desktop in a given compass
  *        direction, in cyclic order
@@ -122,7 +90,8 @@ static void s_switch_cyclic(surface_td *surface,
 
     old_id = surface->desktop_cur;
     cycle = (surface->config != NULL)
-        ? surface->config->desktops.wrap_at_bounds : true;
+        ? surface->config->desktops.wrap_at_bounds
+        : true;
 
     switch (direction) {
     case COMPASS_NORTH:
@@ -168,6 +137,39 @@ static void s_switch_cyclic(surface_td *surface,
         /* No switch happened; restore visibility */
         surface_clients_show(surface, old_id);
     }
+}
+
+
+/* Switch to another desktop */
+void scmd_surface_desktop_switch(surface_td *surface,
+        uint32_t desktop_id)
+{
+    uint32_t old_id;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    old_id = surface->desktop_cur;
+    if (desktop_id == old_id) {
+        return;     /* Already on this desktop */
+    }
+
+    LOGGER_DEBUG("Switching desktop: %u to %u on surface %u",
+            old_id, desktop_id, surface->id);
+
+    surface_clients_hide(surface, old_id);
+    if (surface_desktop_select(surface, desktop_id) != 0) {
+        surface_clients_show(surface, old_id);
+        return;
+    }
+    surface_clients_sticky_transfer_all(surface, desktop_id);
+    surface_clients_show(surface, desktop_id);
+
+    s_show_desktop_overlay(surface);
+
+    surface->is_outdated = true;
+    xcb_flush(surface->connection);
 }
 
 

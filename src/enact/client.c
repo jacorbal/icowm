@@ -54,6 +54,99 @@
 #include <enact/internal.h>
 
 
+/**
+ * @brief Shared logic for carrying the client to another desktop in
+ *        a given compass direction, following it there
+ *
+ * @param client    Client to move
+ * @param surfaces  Full surface list, passed through to @c
+ *                  focus_apply
+ * @param config    Active configuration, passed through to @c
+ *                  focus_apply
+ * @param direction Compass direction to move the client in
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the client's own top parent's own desktop (see
+ *       @a enact_desktop_client_send's own doc comment)
+ */
+static void s_enact_client_send_to_desktop(client_td *client,
+        list_td *surfaces, const config_td *config,
+        enum compass_direction_e direction)
+{
+    surface_td *surface;
+    desktop_td *cur_desktop;
+    desktop_td *target_desktop;
+    bool cycle;
+
+    if (client == NULL) {
+        return;
+    }
+
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (surface == NULL) {
+        return;
+    }
+
+    cur_desktop = surface_desktop_get(surface, surface->desktop_cur);
+    if (cur_desktop == NULL) {
+        return;
+    }
+
+    cycle = (surface->config != NULL)
+        ? surface->config->desktops.wrap_at_bounds : true;
+
+    /* No different desktop to move to at all: either genuinely
+     * only one exists (restricted-memory mode is always locked to
+     * exactly one; see 'surface_action_desktop_add''s own doc
+     * comment, surface/switch.c), wrapping is disabled and this is
+     * already the edgemost one that way, or (north/south only, on a
+     * surface with no 'topology.screens.desktops' layout configured
+     * at all) there is no second row or column to move to in the
+     * first place; is a silent no-op, the same as every other
+      keybind here that finds nothing to act on. */
+    switch (direction) {
+    case COMPASS_NORTH:
+        target_desktop = surface_desktop_north(surface,
+                cur_desktop->id, cycle);
+        break;
+    case COMPASS_SOUTH:
+        target_desktop = surface_desktop_south(surface,
+                cur_desktop->id, cycle);
+        break;
+    case COMPASS_EAST:
+        target_desktop = surface_desktop_east(surface,
+                cur_desktop->id, cycle);
+        break;
+    case COMPASS_WEST:
+        target_desktop = surface_desktop_west(surface,
+                cur_desktop->id, cycle);
+        break;
+    }
+    if (target_desktop == NULL || target_desktop == cur_desktop) {
+        return;
+    }
+
+    enact_desktop_client_send(cur_desktop, client, target_desktop);
+    enact_surface_desktop_switch(surface, target_desktop->id);
+
+    /* 'enact_surface_desktop_switch' just above, via its own
+     * 'surface_clients_show', already restored real input focus on
+     * its own, to whichever client this target desktop's own
+     * 'client_active_id' still remembered from some earlier,
+     * unrelated visit, not this client, freshly arrived on it as
+     * of the very call before this one.  Explicitly re-applied here,
+     * after the fact, rather than trying to somehow suppress that
+     * automatic restore instead: 'client' becomes this desktop's own
+     * newly active one, genuinely focused, and raised above whatever
+     * else that restore just raised in front of it (any client
+     * already there before this one arrived stays exactly where it
+     * was, simply no longer topmost), matching a plain click or any
+     * other deliberate focus request landing on it right after the
+     * move, not a stale leftover from before. */
+    focus_apply(surfaces, surface, target_desktop, client, true, config);
+}
+
+
 /* Broadcast an IPC event carrying one client's own identifying
  * fields */
 void enact_broadcast_client_event(client_td *client, uint32_t type)
@@ -77,8 +170,7 @@ void enact_broadcast_client_event(client_td *client, uint32_t type)
 }
 
 
-/* 'action_client_e' */
-
+/* Close the client */
 void enact_client_close(client_td *client)
 {
     ccmd_client_close(client);
@@ -104,7 +196,8 @@ void enact_client_restore(client_td *client)
     ccmd_client_restore(client);
     if (client != NULL) {
         xcb_flush(client->connection);
-        enact_broadcast_client_event(client, IPC_EVENT_CLIENT_DEICONIFIED);
+        enact_broadcast_client_event(client,
+                IPC_EVENT_CLIENT_DEICONIFIED);
     }
 }
 
@@ -174,99 +267,6 @@ void enact_client_center(client_td *client)
         xcb_flush(client->connection);
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
-}
-
-
-/**
- * @brief Shared logic for carrying the client to another desktop in
- *        a given compass direction, following it there
- *
- * @param client    Client to move
- * @param surfaces  Full surface list, passed through to @c
- *                  focus_apply
- * @param config    Active configuration, passed through to @c
- *                  focus_apply
- * @param direction Compass direction to move the client in
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's own top parent's own desktop (see
- *       @a enact_desktop_client_send's own doc comment)
- */
-static void s_enact_client_send_to_desktop(client_td *client,
-        list_td *surfaces, const config_td *config,
-        enum compass_direction_e direction)
-{
-    surface_td *surface;
-    desktop_td *cur_desktop;
-    desktop_td *target_desktop;
-    bool cycle;
-
-    if (client == NULL) {
-        return;
-    }
-
-    surface = wm_get_surface_by_id(client->screen_id);
-    if (surface == NULL) {
-        return;
-    }
-
-    cur_desktop = surface_desktop_get(surface, surface->desktop_cur);
-    if (cur_desktop == NULL) {
-        return;
-    }
-
-    cycle = (surface->config != NULL)
-        ? surface->config->desktops.wrap_at_bounds : true;
-
-    /* No different desktop to move to at all: either genuinely
-     * only one exists (restricted-memory mode is always locked to
-     * exactly one; see 'surface_action_desktop_add''s own doc
-     * comment, surface/switch.c), wrapping is disabled and this is
-     * already the edgemost one that way, or (north/south only, on a
-     * surface with no 'topology.screens.desktops' layout configured
-     * at all) there is no second row or column to move to in the
-     * first place; is a silent no-op, the same as every other
-     * keybind here that finds nothing to act on. */
-    switch (direction) {
-    case COMPASS_NORTH:
-        target_desktop = surface_desktop_north(surface,
-                cur_desktop->id, cycle);
-        break;
-    case COMPASS_SOUTH:
-        target_desktop = surface_desktop_south(surface,
-                cur_desktop->id, cycle);
-        break;
-    case COMPASS_EAST:
-        target_desktop = surface_desktop_east(surface,
-                cur_desktop->id, cycle);
-        break;
-    case COMPASS_WEST:
-        target_desktop = surface_desktop_west(surface,
-                cur_desktop->id, cycle);
-        break;
-    }
-    if (target_desktop == NULL || target_desktop == cur_desktop) {
-        return;
-    }
-
-    enact_desktop_client_send(cur_desktop, client, target_desktop);
-    enact_surface_desktop_switch(surface, target_desktop->id);
-
-    /* 'enact_surface_desktop_switch' just above, via its own
-     * 'surface_clients_show', already restored real input focus on
-     * its own, to whichever client this target desktop's own
-     * 'client_active_id' still remembered from some earlier,
-     * unrelated visit, not this client, freshly arrived on it as
-     * of the very call before this one.  Explicitly re-applied here,
-     * after the fact, rather than trying to somehow suppress that
-     * automatic restore instead: 'client' becomes this desktop's own
-     * newly active one, genuinely focused, and raised above whatever
-     * else that restore just raised in front of it (any client
-     * already there before this one arrived stays exactly where it
-     * was, simply no longer topmost), matching a plain click or any
-     * other deliberate focus request landing on it right after the
-     * move, not a stale leftover from before. */
-    focus_apply(surfaces, surface, target_desktop, client, true, config);
 }
 
 
