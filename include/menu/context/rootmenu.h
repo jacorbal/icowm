@@ -7,16 +7,19 @@
  * (empty desktop).  The menu entries come from @c menu.json in the
  * configuration directory, followed by a fixed footer:
  *
- * @code
+ * @code{.txt}
  * ----------------------
+ * Strutless maximization
+ * Rearrange windows
  * Reload configuration
  * Redraw all windows
  * ----------------------
  * Exit
  * @endcode
  *
- * @note "Reload configuration", "Redraw all windows", and "Exit" map
- *       directly to the corresponding window manager keyboard actions
+ * @note "Strutless maximization", "Rearrange windows", "Reload
+ *       configuration", "Redraw all windows", and "Exit" map directly
+ *       to the corresponding window manager keyboard actions, if set
  *
  * @ingroup menu_context
  */

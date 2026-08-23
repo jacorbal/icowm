@@ -65,7 +65,7 @@ typedef struct {
 } config_lint_report_td;
 
 
-/* --- config.json schema --- */
+/* 'config.json' schema */
 
 static const config_lint_key_td s_schema_screens[] = {
     {"count", NULL, 0u},
@@ -287,7 +287,7 @@ static const config_lint_key_td s_schema_config[] = {
 };
 
 
-/* --- bindings.json schema --- */
+/* 'bindings.json schema' */
 
 static const config_lint_key_td s_schema_wm_menus[] = {
     {"root", NULL, 0u},
