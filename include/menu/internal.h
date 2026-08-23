@@ -83,6 +83,13 @@ struct cycle_menu_state_s {
                                        right after @a cycle_init so its
                                        first @a cycle_draw always paints
                                        the whole viewport regardless */
+    xcb_window_t outline_windows[4]; /**< The 4 strip windows (see
+                                           render/outline.h) outlining
+                                           whichever client is
+                                           currently selected; @c
+                                           XCB_WINDOW_NONE in all 4
+                                           slots until the first
+                                           selection is applied */
 };
 
 
@@ -131,7 +138,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
  * @param cfg            Active configuration
  * @param is_icon_menu   Whether the cycle menu shows icons
  * @param border_color   Border color to apply
- * @param is_highlighted Whether the target is currently highlighted
  *
  * @note Implemented in @c menu/cycledraw.c
  * @note Complexity: @e O(1)
@@ -139,7 +145,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
 void mi_cycle_preview_style_target(xcb_connection_t *connection,
         xcb_window_t target, const client_td *client,
         const config_td *cfg, bool is_icon_menu,
-        uint32_t border_color, bool is_highlighted);
+        uint32_t border_color);
 
 
 #endif  /* ! MENU_INTERNAL_H */

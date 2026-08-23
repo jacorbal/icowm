@@ -68,7 +68,6 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
         bool is_current)
 {
     bool is_cycle_sel;
-    bool has_extra_icon_border;
     uint32_t border_width;
     xcb_window_t tray_below;
     bool display_active;
@@ -130,8 +129,6 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
         display_active = !display_active;
     }
 
-    has_extra_icon_border =
-        cycle_client_has_extra_border(client, true);
     xcb_change_window_attributes(desktop->connection,
             client->icon_window,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
@@ -147,9 +144,6 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
     border_width = (display_active)
         ? client->config->theme.icon.active.border.width
         : client->config->theme.icon.inactive.border.width;
-    if (has_extra_icon_border) {
-        border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
-    }
     xcb_configure_window(desktop->connection,
             client->icon_window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH,

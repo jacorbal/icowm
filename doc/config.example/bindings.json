@@ -62,11 +62,11 @@
             "deiconify-all": "modc+mod1+mods+d",
             "info": "modc+mod4+mods+i",
             "layer": "modc+mod1+mods+y",
-            "kill": "modc+mod1+mods+Escape",
             "maximize": "modc+mod1+m",
             "fullscreen": "modc+mod1+f",
             "pin": "modc+mod1+p",
             "shade": "modc+mod1+s",
+            "kill": "modc+mod1+mods+Escape",
             "send-to": {
                 "desktop": {
                     "prev": "modc+mod1+mods+Left",
@@ -125,8 +125,10 @@
 
         "cycle": {
             "desktop": {
-                "prev": "button4",
-                "next": "button5"
+                "north": "mods+button4",
+                "east": "button5",
+                "south": "mods+button5",
+                "west": "button4"
             }
         }
     }

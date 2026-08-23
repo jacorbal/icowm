@@ -71,9 +71,6 @@
  */
 #define WM_ICON_SYSTRAY_GAP (8u)
 
-/** Extra border pixels added to the selected icon in the cycle menu */
-#define WM_ICON_CYCLE_SEL_BORDER_EXTRA (1u)
-
 /**
  * @brief Single-letter state-hint characters drawn in an iconified
  *        client's own top-right corner and in the fuzzy window-search

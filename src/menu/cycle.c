@@ -27,6 +27,7 @@
 
 /* Render includes */
 #include <render/icon.h>
+#include <render/outline.h>
 #include <render/surface.h>
 
 /* Render includes */
@@ -79,7 +80,11 @@ struct cycle_menu_state_s g_cycle_menu = {
     .viewport_rows = 0,
     .last_drawn_selected = 0,
     .last_drawn_scroll_offset = 0,
-    .has_drawn_once = false
+    .has_drawn_once = false,
+    .outline_windows = {
+        XCB_WINDOW_NONE, XCB_WINDOW_NONE,
+        XCB_WINDOW_NONE, XCB_WINDOW_NONE
+    }
 };
 
 
@@ -132,7 +137,7 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
 
         mi_cycle_preview_style_target(connection, target,
                 client, g_cycle_menu.config, g_cycle_menu.is_icon_menu,
-                border_color, false);
+                border_color);
     }
 }
 
@@ -208,12 +213,16 @@ void cycle_init(xcb_connection_t *connection,
 
     cycle_destroy(connection);
 
+    /* 'modifier' (the raw modmask of whichever specific cycle-next or
+     * cycle-prev binding was actually pressed to get here) is
+     * deliberately NOT used to derive 'g_cycle_menu.modifier' below;
+     * see the comment there for why. */
+    (void) modifier;
+
     g_cycle_menu.count = 0;
     g_cycle_menu.surface = surface;
     g_cycle_menu.desktop = desktop;
     g_cycle_menu.is_icon_menu = is_icon;
-    g_cycle_menu.modifier =
-        (uint16_t) ((unsigned int) modifier & ~(unsigned int) lock_mask);
     g_cycle_menu.prev_focus = (foc_reply != NULL &&
             foc_reply->focus != XCB_WINDOW_NONE &&
             foc_reply->focus != XCB_INPUT_FOCUS_POINTER_ROOT &&
@@ -240,6 +249,30 @@ void cycle_init(xcb_connection_t *connection,
     g_cycle_menu.prev_keysym = pks;
     g_cycle_menu.prev_modmask =
         (uint16_t) ((unsigned int) pmm & ~(unsigned int) lock_mask);
+
+    /* Together with 'keyboard_keysym_is_modifier' and its use in
+     * 's_handle_cycle_key' (both in 'input/kbd/event.c'), which ignores
+     * a bare modifier key-press instead of closing the menu on it, this
+     * is the other half of what makes standard 'Alt-Tab'-style cycling
+     * work.  Switching direction with 'Shift', while 'Alt' stays held,
+     * without the menu closing on either the Shift press or its
+     * release.
+     *
+     * The modifier this menu stays open for, and auto-confirms on
+     * release of (see 'keyboard_handle_release', 'input/kbd/event.c'),
+     * is only the bits shared by BOTH the cycle-next and cycle-prev
+     * bindings, e.g., just 'Alt' when "next" is 'Alt+Tab' and "prev" is
+     * 'Alt+Shift+Tab'.  The bit that differs between the two (Shift, in
+     * that example) is what lets a person switch direction while the
+     * menu stays open, by pressing the direction key again with that
+     * bit now toggled, so it must never itself be treated as part of
+     * what has to stay held.  Using the full modmask of whichever
+     * specific binding was pressed to get here, as this used to, would
+     * include that differing bit, closing the menu the moment it alone
+     * is released instead of only on 'Alt''s own release. */
+    g_cycle_menu.modifier =
+        (uint16_t) ((unsigned int) g_cycle_menu.next_modmask &
+                (unsigned int) g_cycle_menu.prev_modmask);
     g_cycle_menu.preview_client = NULL;
     g_cycle_menu.config = cfg;
 
@@ -317,8 +350,8 @@ void cycle_init(xcb_connection_t *connection,
      * in ctxmenu/layout.c: sizing off only one leaves no room for the
      * wider one once the highlight lands on it.  Each individual
      * measurement is capped at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' so one
-     * very long window title cannot stretch the whole menu; such a
-     * label is truncated when actually drawn instead (see
+     * very long window title cannot stretch the whole menu; such
+     * a label is truncated when actually drawn instead (see
      * 's_cycle_draw_row' in menu/cycledraw.c). */
     text_renderer_init(connection, cfg->theme.menu.unselected.font);
     for (int i = 0; i < g_cycle_menu.count; ++i) {
@@ -341,12 +374,12 @@ void cycle_init(xcb_connection_t *connection,
             (uint16_t) (cfg->theme.menu.padding.horizontal * 2u));
 
     /* Widen for a row's own client icon, the same reservation
-     * 'cycle_draw' makes per row; see 'theme.menu.show-pixmaps''s own
-     * doc comment in config.h. */
+     * 'cycle_draw' makes per row; see 'theme.menu.show-pixmaps''s
+     * comment in 'config.h'. */
     if (cfg->theme.menu.show_pixmaps) {
         /* '#if', not a runtime ternary: both operands are fixed
          * compile-time constants, so a ternary here left one branch
-         * provably unreachable to the compiler (-Wunreachable-code).
+         * provably unreachable to the compiler ('-Wunreachable-code').
          * Still guards the arithmetic against a future edit to either
          * constant that would otherwise underflow silently. */
 #if WM_CYCLE_MENU_ROW_HEIGHT > WM_MENU_ICON_INSET
@@ -360,7 +393,8 @@ void cycle_init(xcb_connection_t *connection,
                 cfg->theme.menu.padding.horizontal);
     }
 
-    /* Cap visible height at 'WM_CYCLE_MENU_MAX_HEIGHT_PERCENT' of screen */
+    /* Cap visible height at 'WM_CYCLE_MENU_MAX_HEIGHT_PERCENT' of
+     * screen */
     screen_h_pct = surface->properties.dim.h *
         (uint32_t) WM_CYCLE_MENU_MAX_HEIGHT_PERCENT / 100u;
     pad2 = cfg->theme.menu.padding.vertical * 2u;
@@ -414,8 +448,8 @@ void cycle_init(xcb_connection_t *connection,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    /* Same window-level opacity ctxmenu.c's own window publishes,
-     * shared with it via 'config_theme_s.menu.opacity' (config.h) */
+    /* Same window-level opacity 'ctxmenu.c''s own window publishes,
+     * shared with it via 'config_theme_s.menu.opacity' ('config.h') */
     atom_set_window_opacity(connection, g_cycle_menu.window,
             config_theme_opacity_to_raw(cfg->theme.menu.opacity));
 
@@ -451,6 +485,7 @@ void cycle_destroy(xcb_connection_t *connection)
     restore_focus = g_cycle_menu.prev_focus;
     surface = g_cycle_menu.surface;
     s_cycle_preview_restore(connection);
+    render_outline_hide(connection, g_cycle_menu.outline_windows);
 
     xcb_destroy_window(connection, g_cycle_menu.window);
     g_cycle_menu.window = XCB_WINDOW_NONE;
@@ -527,9 +562,9 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
 
 
 /**
- * @brief Repaint a client's real desktop icon (not the cycle menu's
- *        own preview), so it reflects a just-changed cycle-selection
- *        state right away
+ * @brief Repaint a client's real desktop icon (not the cycle menu's own
+ *        preview), so it reflects a just-changed cycle-selection state
+ *        right away
  *
  * @a cycle_navigate_to / @a cycle_navigate_to_next /
  * @a cycle_navigate_prev only ever touch the floating cycle menu's own
@@ -552,15 +587,14 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
  * back to its ordinary inactive appearance, pixmap, caption, and hint
  * indicators all included.
  *
- * A no-op for a client that is not actually an iconified icon (or
- * @c NULL, or with no cycle menu open at all); both render functions
- * already guard that safely on their own.
- *
  * @param client      Client whose real desktop icon to repaint
  * @param is_selected Whether @p client is the cycle's own newly
  *                     selected entry (@c true), or the one just
  *                     passed over (@c false)
  *
+ * @note A no-op for a client that is not actually an iconified icon (or
+ *       @c NULL, or with no cycle menu open at all); both render
+ *       functions already guard that safely on their own
  * @note The cycle's own initial preselection at @a cycle_init time
  *       needs no separate call here
  * @note Complexity: @e O(1)
@@ -717,23 +751,4 @@ xcb_keysym_t cycle_prev_keysym(void)
 uint16_t cycle_prev_modmask(void)
 {
     return g_cycle_menu.prev_modmask;
-}
-
-
-/* Return whether a client must keep cycle extra border */
-bool cycle_client_has_extra_border(const client_td *client,
-        bool is_icon_menu)
-{
-    if (client == NULL) {
-        return false;
-    }
-
-    if (cycle_is_open()) {
-        return cycle_get_selected_client() == client &&
-            g_cycle_menu.is_icon_menu == is_icon_menu;
-    }
-
-    return cycle_is_open() &&
-        cycle_get_selected_client() == client &&
-        g_cycle_menu.is_icon_menu == is_icon_menu;
 }

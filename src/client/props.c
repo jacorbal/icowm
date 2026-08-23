@@ -362,6 +362,11 @@ void client_props_refresh_normal_hints(client_td *client)
         client->hints_icccm.size.inc.h = (uint32_t) hints.height_inc;
     }
 
+    /* ICCCM §4.1.2.3: always wins over 'windows.gravity' in
+     * 'config.json' ('client.h', 'layout.gravity' itself), including on
+     * a later hint update like this one, per ICCCM's own "MUST honor"
+     * mandate; that config field is a fallback for a client that never
+     * states its own gravity, not an override for one that does. */
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) {
         client->layout.gravity = (uint16_t) hints.win_gravity;
     }
@@ -377,10 +382,11 @@ void client_props_refresh_normal_hints(client_td *client)
             (int32_t) hints.max_aspect_den;
     }
 
-    /* ICCCM §4.1.2.3: a fixed-size window has min == max in at least
-     * one axis.  Some applications (e.g., gmrun) constrain only height,
-     * leaving width free; the window is still effectively non-resizable
-     * from the WM's perspective and must not be maximized or resized. */
+    /* ICCCM §4.1.2.3: a fixed-size window has 'min == max' in at least
+     * one axis.  Some applications (e.g., 'gmrun') constrain only
+     * height, leaving width free; the window is still effectively
+     * non-resizable from the WM's perspective and must not be maximized
+     * or resized. */
     if ((hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) &&
             (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
         bool fixed_w = (hints.min_width > 0 &&

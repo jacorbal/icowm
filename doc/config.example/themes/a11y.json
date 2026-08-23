@@ -12,6 +12,13 @@
         }
     },
 
+    "cycle": {
+        "border": {
+            "color": "#33cc66",
+            "width": 4
+        }
+    },
+
     "window": {
         "is-decorated": true,
         "active": {
@@ -223,6 +230,55 @@
             "valign": "center"
         }
 
+    },
+
+    "search": {
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#e8a33d",
+                "foreground": "#1a1000"
+            }
+        },
+        "selected": {
+            "font": "fixed",
+            "color": {
+                "background": "#e8a33d",
+                "foreground": "#1a1000"
+            }
+        },
+        "unselected": {
+            "font": "fixed",
+            "color": {
+                "background": "#f2f2f2",
+                "foreground": "#1a1a1a"
+            }
+        },
+        "border": {
+            "color": "#1c4e80",
+            "width": 2
+        }
+    },
+
+    "prompt": {
+        "label": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#e8a33d",
+                "foreground": "#1a1000"
+            }
+        },
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#f2f2f2",
+                "foreground": "#1a1000"
+            }
+        },
+        "border": {
+            "color": "#1c4e80",
+            "width": 2
+        }
     },
 
     "scratchpad": {

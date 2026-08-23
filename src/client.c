@@ -269,6 +269,9 @@ void client_border_apply(client_td *client, bool use_active_style)
     uint32_t color;
     uint32_t width;
     uint8_t opacity_percent;
+    int32_t delta;
+    int32_t new_x;
+    int32_t new_y;
 
     if (client == NULL || client->connection == NULL ||
             client->config == NULL || client_is_fullscreen(client) ||
@@ -306,11 +309,74 @@ void client_border_apply(client_td *client, bool use_active_style)
 
     xcb_change_window_attributes(client->connection, client->window,
             XCB_CW_BORDER_PIXEL, &color);
-    ccmd_client_apply_geometry(client, client->window,
-            (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
-            0, 0, 0u, 0u, width);
+
+    /* X11's native border is drawn OUTSIDE a window's own core
+     * rectangle, not inside it, so a naive width-only change here
+     * would visibly shift the window's own outer edge by however
+     * much 'width' just grew or shrank between the active/inactive
+     * styles switching (e.g., an active/inactive pair configured
+     * with two different widths) -- every ordinary focus change on
+     * an undecorated client, not just a rare special case.
+     * Compensating 'x'/'y' by the exact delta keeps the window's own
+     * visible top-left corner exactly where it already was.  Skipped
+     * entirely the first time this ever runs for a client
+     * ('last_border_width' still 'UINT32_MAX', its own initial
+     * sentinel from 'client_init'), since there is no prior width
+     * yet to have shifted away from. */
+    if (client->last_border_width != UINT32_MAX) {
+        delta = (int32_t) width - (int32_t) client->last_border_width;
+        new_x = client->layout.geometry.cur.pos.x + delta;
+        new_y = client->layout.geometry.cur.pos.y + delta;
+
+        ccmd_client_apply_geometry(client, client->window,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                    (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                new_x, new_y, 0u, 0u, width);
+        client->layout.geometry.cur.pos.x = new_x;
+        client->layout.geometry.cur.pos.y = new_y;
+    } else {
+        ccmd_client_apply_geometry(client, client->window,
+                (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                0, 0, 0u, 0u, width);
+    }
+    client->last_border_width = width;
+
     atom_set_window_opacity(client->connection, client->window,
             config_theme_opacity_to_raw(opacity_percent));
+}
+
+
+/* Adjust a frame position to keep a gravity anchor fixed across a
+ * size change */
+void client_gravity_adjust_pos(int32_t *restrict out_x,
+        int32_t *restrict out_y,
+        uint32_t old_w, uint32_t old_h,
+        uint32_t new_w, uint32_t new_h,
+        uint16_t gravity)
+{
+    int32_t dw = (int32_t) ((uint32_t) old_w - (uint32_t) new_w);
+    int32_t dh = (int32_t) ((uint32_t) old_h - (uint32_t) new_h);
+
+    if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST) {
+        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) dw);
+    } else if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH ||
+            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH) {
+        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) (dw / 2));
+    }
+
+    if (gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH ||
+            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_WEST) {
+        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) dh);
+    } else if (gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
+            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
+            gravity == (uint16_t) CLIENT_GRAVITY_WEST) {
+        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) (dh / 2));
+    }
 }
 
 

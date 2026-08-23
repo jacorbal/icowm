@@ -113,8 +113,10 @@ static surface_td *s_lookup_surface_fallback(list_td *surfaces,
  *
  * Navigates the cycle menu with arrow keys, confirms with Enter,
  * cancels with @c Escape, and navigates with the configured
- * cycle-next/prev bindings.  Any other key closes the menu without
- * activating a client.
+ * cycle-next/prev bindings.  A bare modifier key-press (@c Shift,
+ * @c Control, and so on, pressed on its own) is ignored outright,
+ * since it carries no navigation intent by itself; any other key
+ * closes the menu without activating a client.
  *
  * @param keysym   Keysym of the pressed key
  * @param state    Stripped modifier state (lock modifiers removed)
@@ -170,6 +172,18 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
             state == cycle_prev_modmask()) {
         cycle_navigate_prev();
         if (conn != NULL) { cycle_draw(conn, config); }
+        return;
+    }
+
+    /* A bare modifier key-press (e.g. tapping Shift on its own while
+     * Alt is still held, to switch cycling direction before the next
+     * cycle-next/prev key comes back down) generates its own KeyPress
+     * for that modifier's own keysym, which matches none of the cases
+     * above; without this, it would fall through to the catch-all
+     * below and close the menu the instant a modifier is pressed,
+     * before the person ever gets a chance to press the direction key
+     * again with the now-changed modifier state. */
+    if (keyboard_keysym_is_modifier(keysym)) {
         return;
     }
 

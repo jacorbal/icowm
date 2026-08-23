@@ -9,19 +9,30 @@
         "web-browser": "firefox"
     },
 
+    "prompt": {
+        "is-enabled": true
+    },
+
     "desktops": {
+        "wrap-at-bounds": true,
         "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
     },
 
     "windows": {
-        "edges": {
-            "resistance": 20,
-            "snap": {
-                "screen": 6,
-                "window": 6
-            }
-        },
+        "gravity": "north-west",
         "move-step": 10,
+        "edges": {
+            "snap": {
+                "window": 6,
+                "screen": 6
+            },
+            "resistance": 20
+        },
+        "focus": {
+            "focus-new": true,
+            "raise": false,
+            "policy": "click"
+        },
         "placement": {
             "policy": "smart"
         }

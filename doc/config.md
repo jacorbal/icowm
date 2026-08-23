@@ -33,18 +33,7 @@ values, and built-in default value.
    - [3.8. `mouse.window`](#38-mousewindow)
    - [3.9. `mouse.cycle`](#39-mousecycle)
 4. [`themes/<name>.json`: Theme configuration](#4-themesnamejson-theme-configuration)
-   - [4.1. `window`](#41-window)
-   - [4.2. `icon`](#42-icon)
-   - [4.3. `systray`](#43-systray)
-   - [4.4. `desktop`](#44-desktop)
-   - [4.5. `menu`](#45-menu)
-   - [4.6. `dialog`](#46-dialog)
-   - [4.7. `overlay`](#47-overlay)
-   - [4.8. `xsettings`](#48-xsettings)
-   - [4.9. Configuration reload and already-open windows](#49-configuration-reload-and-already-open-windows)
-   - [4.10. `scratchpad`](#410-scratchpad)
-   - [4.11. `search`](#411-search)
-   - [4.12. `prompt`](#412-prompt)
+   - See [`themes.md`](themes.md) for the full reference
 5. [`randr.json`: XRandR output profiles](#5-randrjson-xrandr-output-profiles)
    - [5.1. Top-level fields](#51-top-level-fields)
    - [5.2. `outputs[]` entries](#52-outputs-entries)
@@ -156,7 +145,7 @@ be used.
 Configures the number of physical screens and the virtual desktops
 assigned to each.  **Takes effect at startup only**: changing anything
 under `topology` and reloading the configuration has no effect on an
-already-running window manager (see §4.9).  For desktop behavior that
+already-running window manager (see `themes.md` §10).  For desktop behavior that
 *does* reload, namely warp, cycle, and reserved margins, see §2.10
 (`desktops`) instead, a deliberately separate, sibling section for
 exactly that reason.
@@ -235,7 +224,7 @@ Per-screen shape fields:
 | `settings[].name`             | string  | `"Desktop N" | Display name of desktop N. |
 | `settings[].background-color` | string  | none         | Root
 background color as a hex color `"#RRGGBB"` or `"RRGGBB"`.  Left unset,
-a desktop falls back to `theme.desktop.color.background` (§4.4). |
+a desktop falls back to `theme.desktop.color.background` (`themes.md` §5). |
 
 #### `topology.screens.desktops[].layout`
 
@@ -463,6 +452,25 @@ Ignored entirely under restricted-memory mode (`-M`), which is always
 locked to a single desktop regardless of what `layout` (or `count`)
 says.
 
+#### Notes on configuration reload
+
+The exception is on `topology` parameters themselves (screen
+count, and how many desktops each screen has, along with each desktop's
+own `name`/`background-color`).  Changing any of these and reloading has
+no effect on an already-running window manager.  This does not extend to
+the separate, sibling `desktops` section (`show-overlay`,
+`warp-on-edge-drag`, `wrap-at-bounds`, `margins`) despite the similar
+name.  That one describes navigation behavior and reserved space, not
+topology, and does take effect on reload, same as everything else.
+Every other field in `config.json`, and every other configuration file
+(`bindings.json`, `menus.json`, `randr.json`, `rules.json`,
+`session.json`, and the active theme), does take effect on reload, as
+documented throughout this file.  Growing or shrinking the number of
+screens or desktops at runtime would mean deciding what happens to
+whatever clients, focus, and EWMH state already live on a desktop being
+removed, none of which reload does today; restart the window manager to
+pick up a `topology.*` change instead.
+
 ### 2.3. `programs`
 
 Associates application categories with the executables IcoWM will launch
@@ -497,8 +505,30 @@ policy, and placement policy.
 |-------------------|--------|----------------|
 | `windows.gravity` | string | `"north-west"` |
 
-Default window gravity, i.e., the corner used as the reference point for
-window coordinates.
+Fallback window gravity, used only for a client that never declares its
+own via `WM_NORMAL_HINTS`'s `win_gravity` field.  Gravity governs which
+corner (or edge, or the center) of a window's frame stays visually fixed
+when its decoration is toggled on or off, and when it is resized through
+`icowm-msg`'s `resize_client` action without an accompanying move.
+
+A client that declares its own `win_gravity` always takes precedence
+over this value, at any point in that client's life, not only when it is
+first mapped: several common toolkits (e.g., `xterm`'s `Xt` shell,
+LibreOffice's `VCL`) only finalize their real size hints a moment after
+their first map, once fonts and chrome are ready, and that later update
+commonly carries an explicit `win_gravity` of its own (typically
+`NorthWestGravity` or `StaticGravity`, i.e., "do nothing special") that
+this field can never override.  This is deliberate, ICCCM-mandated
+behavior (ICCCM §4.1.2.3), not a limitation specific to IcoWM.  This
+field's only practical effect is on the comparatively rare client that
+never declares a `win_gravity` of its own, ever.
+
+This matches how other ICCCM-compliant window managers (e.g., Openbox)
+treat this same field, as none of them offer a way to force a client's
+own gravity to something the client itself did not request;
+per-application placement rules (`rules.json`) are the tool for
+overriding where a specific application ends up on screen, not this
+field.
 
 Accepted `windows.gravity` values: `"north-west"`, `"north"`,
 `"north-east"`, `"east"`, `"south-east"`, `"south"`, `"south-west"`,
@@ -1012,7 +1042,7 @@ corner of the screen the tray itself sits in, which is still
 `systray.position` above.  How the text looks once shown (the gap
 between the two items, and their vertical alignment within the tray) is
 a theme setting rather than a behavior one; see `systray.text` in the
-theme documentation (§4.3).
+theme documentation (`themes.md` §4).
 
 ```json
 "systray": {
@@ -1053,7 +1083,7 @@ much of every desktop's own area stays reserved regardless of what any
 client itself publishes.  A sibling of `topology` (§2.2) at the root of
 `config.json`, not nested inside it: deliberately so, since unlike
 `topology`, everything here **does** take effect on a configuration
-reload (see §4.9).
+reload (see `themes.md` §10).
 
 | Key                 | Type    | Default | Description |
 |---------------------|---------|---------|-------------|
@@ -1133,7 +1163,7 @@ away, exactly as much as a shell would be.
 | `ignore-margins`         | boolean            | `false`                    | `false` places it the same way an ordinary client already respects `desktops.margins` and the systray's own reserved space; `true` lets it use the full edge regardless, e.g., a top-edge scratchpad sliding out from underneath an external panel that already reserves that same space rather than starting just below it. |
 
 Its own border is themed separately from every other window, since it
-never has any other decoration; see `themes/<name>.json` in §4.10.
+never has any other decoration; see `themes.md` §11.
 
 ```json
 "scratchpad": {
@@ -1550,709 +1580,9 @@ own titlebar) shading/unshading or maximizing/restoring it instead:
 ## 4. `themes/<name>.json`: Theme configuration
 
 Controls the visual appearance of windows, desktop icons, and the
-systray.  Theme files live in the `themes/` subdirectory of the
-configuration directory.  The name in `config.json`'s `"theme"` field
-selects which file is loaded.
-
-All color values are hex strings in the form `"#RRGGBB"` or `"RRGGBB"`.
-
-`name` is the only top-level field IcoWM actually reads.  `author`,
-`creation-date`, and `modified-date` may also appear at the top level,
-but they are purely comments for whoever maintains the file; IcoWM never
-parses or acts on them.
-
-```json
-{
-    "name": "Default theme",
-    "author": "Jane Doe",
-    "creation-date": "Sat Aug  1 03:57:54 UTC 2026",
-    "modified-date": "Sat Aug  7 15:08:21 UTC 2026",
-
-    "window": { "...": "..." },
-    "icon": { "...": "..." },
-    "systray": { "...": "..." }
-}
-```
-
-### 4.1. `window`
-
-Appearance settings for managed windows.
-
-| Key            | Type    | Default | Description |
-|----------------|---------|---------|-------------|
-| `is-decorated` | boolean | `true`  | When `false`, windows start without any decoration (no title bar, no themed border).  Equivalent to setting `titlebar.height` to `0`; see below. |
-
-#### `window.titlebar`
-
-| Key                  | Type             | Default            | Description |
-|----------------------|------------------|--------------------|-------------|
-| `height`             | integer          | `19`               | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s own value. |
-| `alignment`          | string           | `"left"`           | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`. |
-| `padding.horizontal` | integer          | `2`                | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text. |
-| `padding.vertical`   | integer          | `2`                | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
-| `buttons.left`       | array of strings | `["pin", "layer"]` | Buttons drawn left-to-right starting at the frame's left edge. |
-| `buttons.right`      | array of strings | `["iconize", "hide", "shade", "maximize", "fullscreen", "close"]` | Buttons drawn right-to-left starting at the frame's right edge. |
-| `buttons.color.on`   | string           | `"#253040"`        | Color for a button whose own state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button. |
-| `buttons.color.off`  | string           | `"#4A5566"`        | Color for a button otherwise, i.e., not engaged. |
-
-Accepted button names, for both `buttons.left` and `buttons.right`, are:
-`"pin"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`, `"maximize"`,
-`"fullscreen"`, `"close"`.  A button omitted from both lists is simply
-never drawn and never clickable; there is no separate setting to hide
-a button.  The same name can only usefully appear once across both lists
-(whichever list is processed for it first wins its slot; putting it in
-both does not draw it twice).
-
-`buttons.color` is independent of `window.active`/`window.inactive`'s
-own `color.foreground` below, so a theme can restyle button glyphs
-without the title text changing color to match, or the other way around.
-There is deliberately no third color for a button that cannot currently
-do anything (e.g., maximize on a non-resizable client): that button is
-not drawn at all rather than needing a color of its own for that case.
-
-#### `window.active` / `window.inactive`
-
-Appearance of the focused window (`active`) and of windows that do not
-have focus (`inactive`).  Both share the same shape:
-
-| Key                | Type    | Default (active) | Default (inactive) | Description |
-|--------------------|---------|------------------|--------------------|-------------|
-| `font`             | string  | `"fixed bold"`   | `"fixed"`          | Title bar font (see note below). |
-| `color.background` | string  | `"#9AAEC8"`      | `"#D0D9E5"`        | Title bar background color. |
-| `color.foreground` | string  | `"#253040"`      | `"#4A5566"`        | Title bar text color. |
-| `border.color`     | string  | `"#4A5566"`      | `"#7F9AB6"`        | Border color. |
-| `border.width`     | integer | `2`              | `2`                | Border thickness in pixels. |
-| `opacity`          | integer | `100`            | `100`              | Desired opacity, 0 to 100, published on the frame through `_NET_WM_WINDOW_OPACITY`.  IcoWM never composites anything itself, so this has no visible effect at all unless a compositing manager, e.g., picom, is also running and reading the property back off the window.  See §7 for a per-window override in `rules.json`. |
-
-`border.width` need not match between `active` and `inactive`.  When
-they differ, a decorated window's frame actually grows or shrinks by the
-difference every time it gains or loses focus, so its content never has
-to resize; see the note on configuration reload below for the one case
-this resizing does not happen automatically.
-
-### 4.2. `icon`
-
-Appearance settings for iconified windows.
-
-| Key            | Type    | Default | Description |
-|----------------|---------|---------|-------------|
-| `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
-| `show-pixmaps` | boolean | `true`  | When `true`, draws the client's own `_NET_WM_ICON` image, centered in and clipped to the icon's own square graphic area, above the caption (the two never overlap).  Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`.  Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another (not currently configurable from a JSON file, only at compile time).  The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again.  Forced to `false` automatically in restricted-memory mode (see `-M`), regardless of what this file says. |
-| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's own top corners: a filled square in the top-left when the client is sticky/pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal). |
-
-#### `icon.active` / `icon.inactive`
-
-Same shape as `window.active` / `window.inactive` above (`font`,
-`color.background`, `color.foreground`, `border.color`, `border.width`),
-applied to the icon selected in the icon-cycle menu (`active`) versus
-every other icon (`inactive`).
-
-| Key                | Type    | Default (active) | Default (inactive) |
-|--------------------|---------|------------------|--------------------|
-| `font`             | string  | `"fixed bold"`   | `"fixed"`          |
-| `color.background` | string  | `"#9AAEC8"`      | `"#D0D9E5"`        |
-| `color.foreground` | string  | `"#253040"`      | `"#4A5566"`        |
-| `border.color`     | string  | `"#4A5566"`      | `"#7F9AB6"`        |
-| `border.width`     | integer | `1`              | `1`                |
-| `opacity`          | integer | `100`            | `100`              |
-
-### 4.3. `systray`
-
-A `font` / `color` / `border` block, the same shape as `window.active`
-above, applied to the systray dock itself, plus its own height, each
-docked icon's own size and padding, and the placement of the
-clock/battery text within it.
-
-| Key                | Type    | Default     |
-|--------------------|---------|-------------|
-| `font`             | string  | `"fixed"`   |
-| `color.background` | string  | `"#D0D9E5"` |
-| `color.foreground` | string  | `"#4A5566"` |
-| `border.color`     | string  | `"#7F9AB6"` |
-| `border.width`     | integer | `1`         |
-| `opacity`          | integer | `100`       |
-| `height`           | integer | `22`        |
-| `pixmap.size`      | integer | `24`        |
-| `pixmap.padding`   | integer | `4`         |
-| `text.gap`         | integer | `12`        |
-| `text.valign`      | string  | `"center"`  |
-
-`pixmap.size` is the side length, in pixels, every docked icon's own
-embed window is forced to regardless of whatever size it originally
-requested; `pixmap.padding` is the space, in pixels, kept around and
-between icons.
-
-`height` is the tray dock's own height in pixels; icons and the clock
-and/or battery status text (when either is enabled) are positioned
-within it according to `text.valign`, and centered for icons.  It is
-clamped up to at least `pixmap.size` if set any smaller, so a single
-icon never gets clipped; with the default `height` of `22` actually
-sitting below the default `pixmap.size` of `24`, that clamp is exactly
-what applies in practice, leaving `text.valign` no visible room to work
-with until `height` is raised past `pixmap.size`.
-
-`text.gap` is the horizontal space, in pixels, between the clock and
-battery text when both are shown; without it the two would run together
-as if they were one string, e.g., "N/A Fri 23:39" instead of the string
-"N/A   Fri 23:39".  It has no effect on the inset between the text block
-as a whole and the tray's own edges, which is fixed to `pixmap.padding`
-above.  Which side of the icons the text sits on stays a behavior
-setting rather than an appearance one, since it changes where among the
-icons the text counts as being docked; only its internal spacing and
-vertical alignment are theme concerns.
-
-```json
-"systray": {
-    "font": "fixed",
-    "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-    "border": { "color": "#7F9AB6", "width": 1 },
-    "height": 22,
-    "pixmap": {
-        "size": 24,
-        "padding": 4
-    },
-    "text": {
-        "gap": 12,
-        "valign": "center"
-    }
-}
-```
-
-### 4.4. `desktop`
-
-The desktop's own default background color, used only as a fallback: see
-the explanation right after the table below for exactly when it applies.
-
-| Key                | Type   | Default     |
-|--------------------|--------|-------------|
-| `color.background` | string | `"#5F7187"` |
-
-This is deliberately not the same tone as `systray.color.background` or
-the other UI-chrome colors above (`"#D0D9E5"`-family): a desktop
-background is a large, full-screen area rather than a small UI element,
-so it wants a more neutral, less attention-grabbing tone, and a darker
-one gives windows placed on top of it more contrast to stand out against
-than a light background would.  It still reads as the same overall
-blue-gray palette as the rest of the default theme, close to
-`window.active.color.foreground`'s own `"#4A5566"`, rather than an
-unrelated new hue.
-
-This value is used only when a desktop's own entry in
-`topology.screens.desktops` (see §2.2) does not set its own
-`background-color`; a desktop that does set one always keeps it,
-regardless of this.  It is also only ever used when no external tool
-(`xsetbg`, `feh`, `nitrogen`, `hsetroot`, and so on) has painted the
-root window with its own wallpaper image, exactly the same way an
-explicit per-desktop `background-color` is: icowm never overwrites an
-externally set wallpaper with either one.
-
-```json
-"desktop": {
-    "color": { "background": "#5F7187" }
-}
-```
-
-### 4.5. `menu`
-
-Applies to every context menu (root menu, per-window menu, the
-all-desktops window list, and their submenus) and to the `Alt+Tab`-style
-cycle menu's own window chrome (its per-row entries in list mode use
-this too).  The cycle menu's individual icon cells keep using
-`icon.active` / `icon.inactive` (§4.2) instead of this, since that
-already themes "the icon currently selected while cycling" specifically;
-likewise, the border drawn around the actual window or icon being
-previewed while cycling uses `window.active` / `window.inactive` (§4.1),
-since that is a highlight on the real window, not on the menu.
-
-`unselected.border`, `selected.border`, and `label.border` each style
-one row's own outline; the menu window's outer frame is a separate
-field, `border` (below the per-entry styles in the table), so raising or
-lowering an entry's own border never changes whether the window itself
-has a frame, and vice versa.  The cycle menu's own window shares this
-same `border` for its outer frame, so a context menu and the cycle menu
-always present the same outer border, regardless of whatever an entry's
-own border happens to be set to.
-
-| Key                           | Type    | Default        |
-|-------------------------------|---------|----------------|
-| `unselected.font`             | string  | `"fixed"`      |
-| `unselected.color.background` | string  | `"#D0D9E5"`    |
-| `unselected.color.foreground` | string  | `"#4A5566"`    |
-| `unselected.border.color`     | string  | `"#7F9AB6"`    |
-| `unselected.border.width`     | integer | `1`            |
-| `selected.font`               | string  | `"fixed bold"` |
-| `selected.color.background`   | string  | `"#9AAEC8"`    |
-| `selected.color.foreground`   | string  | `"#253040"`    |
-| `selected.border.color`       | string  | `"#4A5566"`    |
-| `selected.border.width`       | integer | `1`            |
-| `label.font`                  | string  | `"fixed"`      |
-| `label.color.background`      | string  | `"#D0D9E5"`    |
-| `label.color.foreground`      | string  | `"#7F9AB6"`    |
-| `label.border.color`          | string  | `"#7F9AB6"`    |
-| `label.border.width`          | integer | `0`            |
-| `disabled.color.foreground`   | string  | `"#A0A8B0"`    |
-| `separator.color`             | string  | `"#7F9AB6"`    |
-| `border.color`                | string  | `"#7F9AB6"`    |
-| `border.width`                | integer | `1`            |
-| `opacity`                     | integer | `100`          |
-| `padding.horizontal`          | integer | `12`           |
-| `padding.vertical`            | integer | `4`            |
-| `show-pixmaps`                | boolean | `true`         |
-
-`opacity` (0 to 100) is a sibling of `border` above, not of
-`unselected`/`selected`/`label`: it is the whole menu window's own
-opacity, published through `_NET_WM_WINDOW_OPACITY`, the same way
-`border` is the window's own single outer frame regardless of which row
-is highlighted.  `_NET_WM_WINDOW_OPACITY` is a per-window property, so
-it cannot vary row by row the way each row's own colors can; the cycle
-menu's own window shares this same field, the same way it already shares
-`border`.  As with every opacity field in this file, a compositing
-manager, e.g., picom, must also be running and reading the property back
-for this to have any visible effect at all.
-
-`unselected` styles an entry that is neither hovered nor the
-keyboard-navigated selection; `selected` styles the entry that is.
-`label` styles a non-interactive heading row: it never borrows
-`unselected` or `selected` even though it can look similar by default,
-so it can be told apart (e.g., dimmer text, no border) without also
-having to look like a normal, hoverable entry.  Any of the three styles'
-`border.width` can be raised above `0` to draw an outline around that
-kind of row; `unselected`/`selected` default to a subtle `1`, `label` to
-`0` so heading rows stay plain.  `disabled.color.foreground` colors the
-text of an entry that cannot currently be activated (e.g., "maximize" on
-a client that cannot be resized); its background still comes from
-`unselected` or `selected` depending on whether it happens to also be
-the current selection.  `separator.color` is the line color for
-a separator between groups of entries.  `border.color` and
-`border.width` are the menu window's own outer frame, entries aside; see
-the paragraph above the table for how this differs from any entry's own
-`border`.
-
-`padding.horizontal` and `padding.vertical` are the inset in pixels
-between a menu window's own edges and its content: row text (and, for
-a submenu, its arrow indicator) for `padding.horizontal`, and the space
-above the first row and below the last for `padding.vertical`.  Both
-apply to every context menu and to the `Alt+Tab`-style cycle menu alike,
-and equally to `unselected`, `selected`, and `label` rows.
-
-`show-pixmaps` controls whether an entry that represents a client window
-(the per-window context menu, and the cycle menu's own list mode) draws
-that client's own `_NET_WM_ICON` image beside its label, the same
-`icon.show-pixmaps` (§4.2) controls for iconified windows; entries that
-do not represent a specific client (labels, separators, submenu headers)
-are unaffected either way.
-
-```json
-"menu": {
-    "unselected": {
-        "font": "fixed",
-        "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-        "border": { "color": "#7F9AB6", "width": 1 }
-    },
-    "selected": {
-        "font": "fixed bold",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" },
-        "border": { "color": "#4A5566", "width": 1 }
-    },
-    "label": {
-        "font": "fixed",
-        "color": { "background": "#D0D9E5", "foreground": "#7F9AB6" },
-        "border": { "color": "#7F9AB6", "width": 0 }
-    },
-    "disabled": {
-        "color": { "foreground": "#A0A8B0" }
-    },
-    "separator": {
-        "color": "#7F9AB6"
-    },
-    "padding": {
-        "horizontal": 12,
-        "vertical": 4
-    },
-    "border": { "color": "#7F9AB6", "width": 1 },
-    "show-pixmaps": true
-}
-```
-
-### 4.6. `dialog`
-
-Applies to the quit-confirmation dialog and the generic message dialog.
-
-| Key                                  | Type    | Default        |
-|--------------------------------------|---------|----------------|
-| `color.background`                   | string  | `"#D0D9E5"`    |
-| `border.color`                       | string  | `"#7F9AB6"`    |
-| `border.width`                       | integer | `2`            |
-| `opacity`                            | integer | `100`          |
-| `label.font`                         | string  | `"fixed"`      |
-| `label.color.foreground`             | string  | `"#4A5566"`    |
-| `label.padding.horizontal`           | integer | `12`           |
-| `label.padding.vertical`             | integer | `12`           |
-| `button.unselected.font`             | string  | `"fixed"`      |
-| `button.unselected.color.background` | string  | `"#D0D9E5"`    |
-| `button.unselected.color.foreground` | string  | `"#4A5566"`    |
-| `button.unselected.border.color`     | string  | `"#7F9AB6"`    |
-| `button.unselected.border.width`     | integer | `1`            |
-| `button.selected.font`               | string  | `"fixed bold"` |
-| `button.selected.color.background`   | string  | `"#9AAEC8"`    |
-| `button.selected.color.foreground`   | string  | `"#253040"`    |
-| `button.selected.border.color`       | string  | `"#4A5566"`    |
-| `button.selected.border.width`       | integer | `1`            |
-| `button.gap`                         | integer | `12`           |
-| `button.padding.horizontal`          | integer | `12`           |
-| `button.padding.vertical`            | integer | `6`            |
-
-`color.background`, `border`, and `opacity` are the dialog window's own
-background, frame, and opacity.  `label` styles the prompt or message
-text (e.g., "Are you sure you want to exit IcoWM?"); `label.padding` is
-the inset between the dialog window's own edges and that text.
-`button.unselected` and `button.selected` style the dialog's buttons
-(e.g., "Cancel" / "Exit"), the same
-not-selected/keyboard-navigated-choice distinction as `menu` above; the
-message dialog's single "OK" button always uses `button.selected`, since
-there is nothing else it could be navigated away from.  `button.gap` is
-the horizontal space between adjacent buttons.  `button.padding` is the
-inset between a button's own edges and its label, shared by both
-`unselected` and `selected` so a button does not change size (and shove
-its neighbor sideways) as the highlight moves onto or off of it; each
-button is still sized wide and tall enough for whichever of the two
-fonts is larger, and its label stays centered within that fixed size
-regardless of which font ends up drawn, so switching to a wider
-`selected` font (bold by default) never looks off-center.
-
-```json
-"dialog": {
-    "color": { "background": "#D0D9E5" },
-    "border": { "color": "#7F9AB6", "width": 2 },
-    "label": {
-        "font": "fixed",
-        "color": { "foreground": "#4A5566" },
-        "padding": { "horizontal": 12, "vertical": 12 }
-    },
-    "button": {
-        "unselected": {
-            "font": "fixed",
-            "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-            "border": { "color": "#7F9AB6", "width": 1 }
-        },
-        "selected": {
-            "font": "fixed bold",
-            "color": { "background": "#9AAEC8", "foreground": "#253040" },
-            "border": { "color": "#4A5566", "width": 1 }
-        },
-        "gap": 12,
-        "padding": { "horizontal": 12, "vertical": 6 }
-    }
-}
-```
-
-### 4.7. `overlay`
-
-A single `font` / `color` / `border` block, the same shape as
-`window.active` (§4.1), applied to transient informational overlays that
-are not menus or dialogs: the client-info popup and the desktop-switch
-notification.  Both are single-style, non-interactive overlays with no
-selected/unselected state to distinguish.
-
-| Key                | Type    | Default     |
-|--------------------|---------|-------------|
-| `font`             | string  | `"fixed"`   |
-| `color.background` | string  | `"#D0D9E5"` |
-| `color.foreground` | string  | `"#4A5566"` |
-| `border.color`     | string  | `"#7F9AB6"` |
-| `border.width`     | integer | `1`         |
-| `opacity`          | integer | `100`       |
-
-```json
-"overlay": {
-    "font": "fixed",
-    "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-    "border": { "color": "#7F9AB6", "width": 1 }
-}
-```
-
-### 4.8. `xsettings`
-
-| Key                                 | Type    | Default     |
-|-------------------------------------|---------|-------------|
-| `xsettings.is-enabled`              | boolean | `false`     |
-| `xsettings.dpi`                     | integer | `96`        |
-| `xsettings.theme.gtk-theme-name`    | string  | `"Adwaita"` |
-| `xsettings.theme.icon-theme-name`   | string  | `"Adwaita"` |
-| `xsettings.theme.cursor-theme-name` | string  | `"Adwaita"` |
-| `xsettings.theme.cursor-theme-size` | integer | `24`        |
-
-Built-in XSETTINGS manager, implementing the freedesktop.org XSETTINGS
-specification.  Lives in the theme rather than in `config.json`: every
-value it publishes (a theme name, an icon theme, a cursor theme and
-size, a display DPI) is an appearance choice, not a behavior one, even
-though `is-enabled` still controls whether the manager runs at all.
-
-Many GTK and Qt applications have a "use theme colors" or "use system
-settings" option that only takes effect if some XSETTINGS manager is
-running to tell them what the theme, icon theme, cursor theme, and
-display DPI actually are; without one, those applications silently fall
-back to their own built-in defaults regardless of what this option is
-set to.  When enabled, IcoWM acquires the `_XSETTINGS_Sn` manager
-selection on the first managed screen and publishes `Net/ThemeName`,
-`Net/IconThemeName`, `Gtk/CursorThemeName`, `Gtk/CursorThemeSize`, and
-`Xft/DPI` (as `dpi * 1024`, per the specification) from the values
-below.
-
-Changing any of these values and reloading the configuration updates the
-published settings immediately for every application watching them,
-without needing to restart them.  As with the systray, if another
-settings manager (e.g., `xsettingsd`, or a desktop environment's own)
-already owns the selection, IcoWM's built-in one steps aside rather than
-fighting over ownership, for only one settings manager can be active at
-a time.  This does not give applications a full theme (GTK/Qt themes are
-CSS-like stylesheets, not something conveyed over XSETTINGS); it gives
-them the *name* of a theme they already have installed to switch to,
-exactly as a dedicated XSETTINGS daemon would.
-
-```json
-"xsettings": {
-    "is-enabled": false,
-    "dpi": 96,
-    "theme": {
-        "gtk-theme-name": "Adwaita",
-        "icon-theme-name": "Adwaita",
-        "cursor-theme-name": "Adwaita",
-        "cursor-theme-size": 24
-    }
-}
-```
-
-### 4.9. Configuration reload and already-open windows
-
-Reloading the configuration (`SIGHUP`, the reload keybinding, or the
-root menu action) re-reads whichever theme file `config.json` names and
-applies the new colors, font, and titlebar button lists to every open
-window immediately, since those are read live from the theme on every
-repaint.  Every already-decorated window's frame is also resized to
-match a changed `border.width` or `titlebar.height`, the same way it
-resizes on a focus change (see 4.1 above).
-
-What reload does **not** do is force a window's decorated/undecorated
-state to follow a changed `window.is-decorated` or `titlebar.height` in
-the theme file.  A window that was decorated when it was mapped stays
-decorated after a reload even if the reloaded theme now says
-`"is-decorated": false` (and vice versa): only newly mapped windows, and
-windows whose decoration is toggled by hand, pick up that setting.  This
-is deliberate: undoing a decoration choice a person made for a specific
-window just because the theme file changed would be a surprising,
-unrequested side effect.
-
-The other exception is `config.json`'s own `topology.*` section (screen
-count, and how many desktops each screen has, along with each desktop's
-own `name`/`background-color`; see §2.2): changing any of these and
-reloading has no effect on an already-running window manager.  This does
-not extend to the separate, sibling `desktops` section (§2.10:
-`show-overlay`, `warp-on-edge-drag`, `wrap-at-bounds`, `margins`)
-despite the similar name: that one describes navigation behavior and
-reserved space, not topology, and does take effect on reload, same as
-everything else.  Every other field in `config.json`, and every other
-configuration file (`bindings.json`, `menus.json`, `randr.json`,
-`rules.json`, `session.json`, and the active theme), does take effect on
-reload, as documented throughout this file.  Growing or shrinking the
-number of screens or desktops at runtime would mean deciding what
-happens to whatever clients, focus, and EWMH state already live on
-a desktop being removed, none of which reload does today; restart the
-window manager to pick up a `topology.*` change instead.
-
----
-
-> **Font format note:**  Every `font` field in a theme accepts the same
-> string, tried through two backends in order:
->
-> 1. **X core fonts** (accessed via XCB), IcoWM's original text
->    rendering path.  Only **X11 bitmap fonts** (BDF/PCF) are available
->    through this backend; it is tried first because it has no per-glyph
->    rasterization cost and every X server ships the `fixed` family it
->    falls back to below.
->
-> 2. **TrueType/OpenType**, via fontconfig (font matching), FreeType2
->    (rasterization), and the X RENDER extension (compositing), used
->    automatically whenever a `font` string does not resolve to an
->    X core font, e.g., a family name such as `"DejaVu Sans"` that most
->    systems only have as a scalable font, not as a legacy X bitmap one.
->    This is what gives window titles, menus, and the systray
->    clock/battery text real anti-aliasing and full UTF-8 support
->    (accented characters, non-Latin scripts, and so on), neither of
->    which the X core font backend can provide.
->
-> If a `font` string resolves through neither backend, IcoWM falls back
-> to `"fixed"`, so text rendering is never left completely broken by
-> a single bad theme value.
->
-> No separate field or prefix selects which backend is used: it is
-> decided purely by whether the string resolves as an X core font first.
-> A short description like `"fixed bold 13"` almost always takes the
-> X core font path, since `fixed` is an X bitmap family;
-> a TrueType/OpenType family name takes the fontconfig path instead,
-> using fontconfig's own pattern syntax rather than the short
-> description syntax below.
->
-> #### X core font syntax
->
-> The `font` field accepts two X core font formats:
->
-> 1. **Short description:**
->   `"[family] [bold] [italic|oblique] [size] [registry-encoding]"`
->
->    IcoWM parses this and constructs the appropriate XLFD wildcard
->    pattern internally.  All fields after `family` are optional and can
->    appear in any order, except that `registry-encoding` (if given)
->    must come last.  `registry-encoding` is any token that contains
->    a hyphen, e.g., `iso8859-15` or `iso10646-1`; it maps to the last
->    two XLFD fields (`charset_registry` and `charset_encoding`).
->
->   Examples:
->    - `"fixed"`: the `fixed` alias (available on every X server)
->    - `"fixed 13"`: `fixed` family at 13 pixels
->    - `"fixed bold 13"`: `fixed` family, bold weight, 13 pixels
->    - `"fixed bold 13 iso8859-15"`: `fixed`, bold, 13 pixels,
->       ISO 8859-15 charset
->    - `"courier bold italic 17"`: Courier, bold italic, 17 pixels
->
-> 2. **Full XLFD:** a string starting with "`-`", e.g.,
->    `"-*-fixed-bold-r-*-*-13-*-*-*-*-*-iso8859-15"`, is passed verbatim
->    to the X server.
->
-> To list all X core fonts available on your system, run:
->
-> ```
-> xlsfonts
-> ```
->
-> or query a specific pattern:
->
-> ```
-> xlsfonts -fn '-*-fixed-*-*-*-*-*-*-*-*-*-*-*-*'
-> ```
->
-> #### TrueType/OpenType syntax
->
-> A `font` string that reaches the fontconfig fallback is parsed with
-> fontconfig's own pattern syntax, the same one used by tools such as
-> `fc-match`:
->
-> ```
-> <family>[-<size>][:<name1>=<value1>[:<name2>=<value2>...]]
-> ```
->
-> Examples:
->  - `"DejaVu Sans Mono"`: family name alone, fontconfig's default size
->  - `"DejaVu Sans Mono-11"`: family and pixel size
->  - `"Noto Sans:bold"`: family and weight
->  - `"Noto Sans:bold:size=11"`: family, weight, and size
->
-> To check what font a given pattern resolves to (and confirm it is
-> actually installed) before putting it in a theme file, run:
->
-> ```
-> fc-match "Noto Sans:bold:size=11"
-> ```
-
-### 4.10. `scratchpad`
-
-The scratchpad's own border (sec §2.11), since it is always undecorated
-and so never has any other decoration to theme.  Same as
-`window.active.border` by default, since the scratchpad's own window is
-meant to stand out the same way the active window's own border already
-does.
-
-| Key                       | Type    | Default     | Description |
-|---------------------------|---------|-------------|-------------|
-| `scratchpad.border.color` | string  | `"#4A5566"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
-| `scratchpad.border.width` | integer | `2`         | Border width in pixels; `0` disables the border entirely, the same way `window.titlebar.height` of `0` disables the titlebar. |
-
-```json
-"scratchpad": {
-    "border": {
-        "color": "#4A5566",
-        "width": 2
-    }
-}
-```
-
-### 4.11. `search`
-
-Theme for the fuzzy window-search widget (see `bindings.json`, §3.5,
-`search_windows`).  Its own dedicated section rather than reusing `menu`
-above: the two happen to share identical values by default, but nothing
-ties them together, so a person can make the widget stand out from
-ordinary context menus if they want to.
-
-`input` styles the query bar itself (what is actually typed); `selected`
-and `unselected` style a result row depending on whether it is the
-current hovered or keyboard-navigated one.
-
-| Key                                  | Type      | Default     | Description |
-|--------------------------------------|-----------|-------------|-------------|
-| `search.input.font`                  | string    | `"fixed"`   | Font for the query bar. |
-| `search.input.color.background`      | string    | `"#9AAEC8"` | Query bar background. |
-| `search.input.color.foreground`      | string    | `"#253040"` | Query bar text. |
-| `search.unselected.font`  | string   | `"fixed"` | Font for a result row that is neither hovered nor the keyboard-navigated selection. |
-| `search.unselected.color.background` | string    | `"#D0D9E5"` | Unselected row background. |
-| `search.unselected.color.foreground` | string    | `"#4A5566"` | Unselected row text. |
-| `search.selected.font`               | string    | `"fixed"`   | Font for the hovered or keyboard-navigated result row. |
-| `search.selected.color.background`   | string    | `"#9AAEC8"` | Selected row background. |
-| `search.selected.color.foreground`   | string    | `"#253040"` | Selected row text. |
-| `search.border.color`                | string    | `"#7F9AB6"` | Widget window's own outer frame color. |
-| `search.border.width`                | integer   | `2`         | Widget window's own outer frame width in pixels. |
-
-```json
-"search": {
-    "input": {
-        "font": "fixed",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" }
-    },
-    "unselected": {
-        "font": "fixed",
-        "color": { "background": "#D0D9E5", "foreground": "#4A5566" }
-    },
-    "selected": {
-        "font": "fixed",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" }
-    },
-    "border": { "color": "#7F9AB6", "width": 2 }
-}
-```
-
-### 4.12. `prompt`
-
-Theme for the built-in run-box (see §2.12).  `label` styles the "Run:"
-prompt itself; `input` styles the typed command, drawn right next to it
-with its own independent font and colors, so the two can be told apart
-at a glance the same way `label` and `input` can be given different
-backgrounds below.
-
-| Key                             | Type    | Default        | Description |
-|---------------------------------|---------|----------------|-------------|
-| `prompt.label.font`             | string  | `"fixed bold"` | Font for the "Run:" prompt. |
-| `prompt.label.color.background` | string  | `"#9AAEC8"`    | Prompt background. |
-| `prompt.label.color.foreground` | string  | `"#253040"`    | Prompt text. |
-| `prompt.input.font`             | string  | `"fixed"`      | Font for the typed command. |
-| `prompt.input.color.background` | string  | `"#9AAEC8"`    | Typed-command background. |
-| `prompt.input.color.foreground` | string  | `"#253040"`    | Typed-command text. |
-| `prompt.border.color`           | string  | `"#7F9AB6"`    | Box's own outer frame color. |
-| `prompt.border.width`           | integer | `2`            | Box's own outer frame width in pixels. |
-
-```json
-"prompt": {
-    "label": {
-        "font": "fixed bold",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" }
-    },
-    "input": {
-        "font": "fixed",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" }
-    },
-    "border": { "color": "#7F9AB6", "width": 2 }
-}
-```
----
+systray.  Moved to its own document, [`themes.md`](themes.md), since
+this file had grown too large to navigate comfortably alongside every
+other configuration file it also covers.
 
 ## 5. `randr.json`: XRandR output profiles
 
@@ -2401,7 +1731,7 @@ forgiving timing.
 `focus-indicator.min-border-width` enforces a minimum border width, in
 pixels, on every window regardless of what the active theme's own
 `window.active.border.width` / `window.inactive.border.width`
-(`themes/<name>.json`, §4.1) specify.  A theme that already sets a wider
+(`themes/<name>.json`, `themes.md` §1) specify.  A theme that already sets a wider
 border than this is left untouched; this only ever raises a border that
 would otherwise be thinner than it, keeping the focus indicator visible
 even for a theme that sets an unusually thin one.  The default of `0`
@@ -2592,7 +1922,7 @@ matching rule for each property are applied.
 | `apply.focus`            | boolean              | unset   | Whether the matched window should receive focus. |
 | `apply.pinned`           | boolean              | unset   | Whether the window should be visible on all desktops. |
 | `apply.decorated`        | boolean              | unset   | Whether the window should keep its decorations. |
-| `apply.opacity`          | integer or object    | unset   | Desired opacity, 0 to 100, published on the window through `_NET_WM_WINDOW_OPACITY`, overriding the theme's own `window.active.opacity`/`window.inactive.opacity` (§4.1) for this one window; see below. |
+| `apply.opacity`          | integer or object    | unset   | Desired opacity, 0 to 100, published on the window through `_NET_WM_WINDOW_OPACITY`, overriding the theme's own `window.active.opacity`/`window.inactive.opacity` (`themes.md` §1) for this one window; see below. |
 | `apply.opacity.active`   | integer              | unset   | Opacity while the window is focused (when `opacity` is an object). |
 | `apply.opacity.inactive` | integer              | unset   | Opacity while the window is not focused (when `opacity` is an object). |
 | `apply.position`         | object or `"center"` | unset   | Where to place the window; see below. |
@@ -2859,7 +2189,7 @@ top of whatever `memguard.json` itself configured:
   directly instead of leaving every field to fall back to it, if it
   wants any of the styling (size, weight) that comes with naming it
   explicitly rather than implicitly.
-- XSettings propagation (§4.8) is always off, regardless of
+- XSettings propagation (`themes.md` §9) is always off, regardless of
   `theme.xsettings.is-enabled`.
 - Icon pixmaps, icon hint characters, and menu pixmaps are always off,
   regardless of what the theme itself specifies for `icon.show-pixmaps`,
@@ -2867,8 +2197,6 @@ top of whatever `memguard.json` itself configured:
 
 None of this is configurable through `memguard.json` itself; it applies
 to whatever theme loads, unconditionally.
-
----
 
 ## 11. Full examples
 
@@ -3130,187 +2458,6 @@ to whatever theme loads, unconditionally.
                 "prev": "button4",
                 "next": "button5"
             }
-        }
-    }
-}
-```
-
-### `themes/default.json`
-
-```json
-{
-    "name": "Default theme",
-
-    "window": {
-        "is-decorated": true,
-        "titlebar": {
-            "height": 22,
-            "alignment": "center",
-            "padding": { "horizontal": 2, "vertical": 2 },
-            "buttons": {
-                "left": ["pin", "layer"],
-                "right": ["close", "maximize", "shade", "iconize"],
-                "color": { "on": "#253f60", "off": "#7086a0" }
-            }
-        },
-        "active": {
-            "font": "fixed bold",
-            "color": { "background": "#9aaec8", "foreground": "#253040" },
-            "border": { "color": "#4a5566", "width": 2 },
-            "opacity": 100
-        },
-        "inactive": {
-            "font": "fixed",
-            "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
-            "border": { "color": "#7f9ab6", "width": 2 },
-            "opacity": 100
-        }
-    },
-
-    "icon": {
-        "is-captioned": true,
-        "show-pixmaps": true,
-        "show-hints": true,
-        "active": {
-            "font": "fixed bold",
-            "color": { "background": "#9aaec8", "foreground": "#253040" },
-            "border": { "color": "#4a5566", "width": 1 },
-            "opacity": 100
-        },
-        "inactive": {
-            "font": "fixed",
-            "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
-            "border": { "color": "#7f9ab6", "width": 1 },
-            "opacity": 100
-        }
-    },
-
-    "systray": {
-        "font": "fixed bold",
-        "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
-        "border": { "color": "#7f9ab6", "width": 1 },
-        "opacity": 100,
-        "height": 22,
-        "pixmap": {
-            "size": 24,
-            "padding": 4
-        },
-        "text": {
-            "gap": 12,
-            "valign": "center"
-        }
-    },
-
-    "desktop": {
-        "color": { "background": "#5f7187" }
-    },
-
-    "menu": {
-        "unselected": {
-            "font": "fixed",
-            "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
-            "border": { "color": "#7f9ab6", "width": 0 }
-        },
-        "selected": {
-            "font": "fixed",
-            "color": { "background": "#9aaec8", "foreground": "#253040" },
-            "border": { "color": "#4a5566", "width": 0 }
-        },
-        "label": {
-            "font": "fixed",
-            "color": { "background": "#48607f", "foreground": "#d0d9e5" },
-            "border": { "color": "#7f9ab6", "width": 0 }
-        },
-        "disabled": {
-            "color": { "foreground": "#717b88" }
-        },
-        "separator": {
-            "color": "#7f9ab6"
-        },
-        "border": { "color": "#7f9ab6", "width": 2 },
-        "opacity": 100,
-        "padding": {
-            "horizontal": 12,
-            "vertical": 4
-        },
-        "show-pixmaps": true
-    },
-
-    "search": {
-        "input": {
-            "font": "fixed",
-            "color": { "background": "#9aaec8", "foreground": "#253040" }
-        },
-        "unselected": {
-            "font": "fixed",
-            "color": { "background": "#d0d9e5", "foreground": "#4a5566" }
-        },
-        "selected": {
-            "font": "fixed",
-            "color": { "background": "#9aaec8", "foreground": "#253040" }
-        },
-        "border": { "color": "#7f9ab6", "width": 2 }
-    },
-
-    "prompt": {
-        "label": {
-            "font": "fixed bold",
-            "color": { "background": "#9aaec8", "foreground": "#253040" }
-        },
-        "input": {
-            "font": "fixed",
-            "color": { "background": "#9aaec8", "foreground": "#253040" }
-        },
-        "border": { "color": "#7f9ab6", "width": 2 }
-    },
-
-    "dialog": {
-        "color": { "background": "#d0d9e5" },
-        "border": { "color": "#7f9ab6", "width": 2 },
-        "opacity": 100,
-        "label": {
-            "font": "fixed bold",
-            "color": { "foreground": "#4a5566" },
-            "padding": { "horizontal": 12, "vertical": 12 }
-        },
-        "button": {
-            "unselected": {
-                "font": "fixed",
-                "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
-                "border": { "color": "#7f9ab6", "width": 1 }
-            },
-            "selected": {
-                "font": "fixed bold",
-                "color": { "background": "#9aaec8", "foreground": "#253040" },
-                "border": { "color": "#4a5566", "width": 1 }
-            },
-            "gap": 24,
-            "padding": { "horizontal": 12, "vertical": 6 }
-        }
-    },
-
-    "overlay": {
-        "font": "fixed",
-        "color": { "background": "#d0d9e5", "foreground": "#4a5566" },
-        "border": { "color": "#7f9ab6", "width": 1 },
-        "opacity": 100
-    },
-
-    "xsettings": {
-        "is-enabled": false,
-        "dpi": 96,
-        "theme": {
-            "gtk-theme-name": "Adwaita",
-            "icon-theme-name": "Adwaita",
-            "cursor-theme-name": "Adwaita",
-            "cursor-theme-size": 24
-        }
-    },
-
-    "scratchpad": {
-        "border": {
-            "color": "#4A5566",
-            "width": 2
         }
     }
 }

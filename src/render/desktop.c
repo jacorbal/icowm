@@ -769,7 +769,6 @@ void desktop_render_one_client(desktop_td *desktop,
     bool is_focused;
     bool hide_decoration;
     bool titlebar_visible;
-    bool has_extra_window_border;
     uint32_t border_width;
     uint16_t left;
     uint16_t right;
@@ -805,9 +804,6 @@ void desktop_render_one_client(desktop_td *desktop,
         ? client->frame
         : client->window;
 
-    has_extra_window_border =
-        cycle_client_has_extra_border(client, false);
-
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK ||
             client->properties.type ==
                 (uint16_t) CLIENT_TYPE_NOTIFICATION) {
@@ -823,13 +819,9 @@ void desktop_render_one_client(desktop_td *desktop,
          * ordinary window. */
         border_width = 0u;
     } else if (client_is_decorated(client) && client->frame != 0) {
-        border_width = (has_extra_window_border)
-            ? WM_ICON_CYCLE_SEL_BORDER_EXTRA : 0u;
+        border_width = 0u;
     } else {
         border_width = client_border_width(client, is_focused, false);
-        if (has_extra_window_border) {
-            border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
-        }
     }
 
     /* Only actually send the request when the value would change:

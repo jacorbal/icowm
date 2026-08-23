@@ -44,8 +44,11 @@
  *
  * Collects matching clients from @p desktop, creates the floating menu
  * window, and preselects the entry @p preselect positions away from the
- * active client.  The parameter @p modifier is the modifier mask used
- * to open the menu; releasing it auto-confirms the selection.
+ * active client.  The modifier that keeps the menu open, and whose
+ * release auto-confirms the selection, is derived internally from
+ * whatever the configured cycle-next and cycle-prev bindings have in
+ * common (see @a cycle_init's own implementation, @c menu/cycle.c),
+ * not from @p modifier.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to center the menu
@@ -53,7 +56,8 @@
  * @param is_icon    When @c true, list iconified clients; otherwise
  *                   list non-iconified clients
  * @param preselect  Offset from the active client (+1 next, -1 prev)
- * @param modifier   Modifier mask of the opening key binding (0 if none)
+ * @param modifier   Unused; kept for source compatibility with every
+ *                   existing caller
  * @param cfg        Active configuration (for theme colors)
  *
  * @note Complexity: @e O(n), where @e n is the number of clients
@@ -236,19 +240,6 @@ xcb_keysym_t cycle_prev_keysym(void);
  * @note Complexity: @e O(1)
  */
 uint16_t cycle_prev_modmask(void);
-
-/**
- * @brief Return whether a client has cycle extra border
- *
- * @param client       Target client
- * @param is_icon_menu @c true for icon border, @c false for window
- *                     border
- *
- * @return @c true when the client must use the cycle-selected extra
- *         border while cycle menu is open
- */
-bool cycle_client_has_extra_border(const client_td *client,
-        bool is_icon_menu);
 
 
 #endif  /* ! MENU_CYCLE_H */

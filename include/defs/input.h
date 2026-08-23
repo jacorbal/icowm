@@ -71,13 +71,13 @@
  *        limited to, an outline-mode drag moves the real window to
  *        for the duration of the drag
  *
- * A window moved here stays fully mapped throughout (unlike
- * unmapping it, which the X server itself would answer by reverting
- * input focus away from it, per the protocol's own rules for a
- * window no longer viewable, breaking real input focus, sloppy focus
- * tracking, and active-window rendering all at once), so none of
- * that ever happens; it is simply nowhere visible for anyone to see
- * until the drag itself moves it back.
+ * A window moved here stays fully mapped throughout (unlike unmapping
+ * it, which the X server itself would answer by reverting input focus
+ * away from it, per the protocol's own rules for a window no longer
+ * viewable, breaking real input focus, sloppy focus tracking, and
+ * active-window rendering all at once), so none of that ever happens;
+ * it is simply nowhere visible for anyone to see until the drag itself
+ * moves it back.
  */
 #define WM_DRAG_OFFSCREEN_POS (-30000)
 

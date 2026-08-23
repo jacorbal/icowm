@@ -331,6 +331,14 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->scratchpad.border.color = json_hex2uint32("4A5566");
     theme->scratchpad.border.width = 2u;
 
+    /* Deliberately outside 'window.active'/'inactive''s own cool
+     * blue-gray family (see 'theme.cycle''s own doc comment,
+     * config.h): a warm, muted amber, chosen specifically to still
+     * read as distinct against this project's own default active/
+     * inactive colors, not just a different shade of the same hue */
+    theme->cycle.border.color = json_hex2uint32("C9A227");
+    theme->cycle.border.width = 4u;
+
     safe_strncpy(theme->window.inactive.font,
             "fixed", sizeof(theme->window.inactive.font));
     theme->window.inactive.color.background =
@@ -557,6 +565,8 @@ int config_load_theme(const char *filename,
     cJSON *xsettings;
     cJSON *scratchpad;
     cJSON *sp_border;
+    cJSON *cycle;
+    cJSON *cycle_border;
 
     LOGGER_TRACE("Parsing theme configuration from file '%s'",
             filename);
@@ -931,6 +941,17 @@ int config_load_theme(const char *filename,
                 &config_theme->scratchpad.border.color);
         json_load_uint(sp_border, "width",
                 &config_theme->scratchpad.border.width);
+    }
+
+    cycle = cJSON_GetObjectItem(json, "cycle");
+
+    cycle_border = (cycle != NULL)
+        ? cJSON_GetObjectItem(cycle, "border") : NULL;
+    if (cycle_border) {
+        json_load_color(cycle_border, "color",
+                &config_theme->cycle.border.color);
+        json_load_uint(cycle_border, "width",
+                &config_theme->cycle.border.width);
     }
 
     cJSON_Delete(json);

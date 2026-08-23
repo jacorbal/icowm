@@ -210,7 +210,9 @@ and the IPC control socket in full; in
 [`doc/icowm-msg.md`](doc/icowm-msg.md), which describes `icowm-msg`, the
 command-line client for that socket, in its own entirety; and in
 [`doc/config.md`](doc/config.md), which describes every configuration
-file, in its entirety, field by field.
+file except themes, in its entirety, field by field; and in
+[`doc/themes.md`](doc/themes.md), which does the same for
+`themes/<name>.json`.
 
 Dependencies
 ------------
@@ -228,8 +230,8 @@ complaint, to a fixed link line naming that self-same set of libraries).
     OpenType text rendering whensoever a theme's font fails to resolve
     to an X core font (as, for instance, `"DejaVu Sans Mono:size=8"`, in
     contradistinction to an X bitmap font description such as `"fixed
-    bold 13"`; the font format note at the close of section 4 in
-    `doc/config.md` sets out the full syntax of both).
+    bold 13"`; the font format note in section 10 of `doc/themes.md`
+    sets out the full syntax of both).
 
   - **cJSON**, by whose offices every JSON configuration file is read.
 

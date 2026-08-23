@@ -754,6 +754,23 @@ bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask)
 }
 
 
+/* Test whether a keysym is any modifier key at all, regardless of which
+ * one; unlike 'keyboard_is_modifier_for_mask' above, this does not
+ * restrict the check to a specific target mask */
+bool keyboard_keysym_is_modifier(xcb_keysym_t keysym)
+{
+    const uint16_t all_mods = (uint16_t) (
+            (unsigned int) XCB_MOD_MASK_SHIFT |
+            (unsigned int) XCB_MOD_MASK_CONTROL |
+            (unsigned int) XCB_MOD_MASK_1 |
+            (unsigned int) XCB_MOD_MASK_2 |
+            (unsigned int) XCB_MOD_MASK_4 |
+            (unsigned int) XCB_MOD_MASK_5);
+
+    return keyboard_is_modifier_for_mask(keysym, all_mods);
+}
+
+
 /* Return the number of loaded keyboard bindings */
 int keyboard_binding_count(void)
 {

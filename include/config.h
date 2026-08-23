@@ -1541,6 +1541,38 @@ struct config_theme_s {
             uint32_t width;
         } border;
     } scratchpad;
+
+    /**
+     * @brief Border shown around whichever window or icon is
+     *        currently selected while cycling (@c Alt+Tab and its
+     *        icon-menu counterpart)
+     *
+     * Deliberately its own field, not a reuse of @p window.active's
+     * own border: the two answer different questions ("is this
+     * client focused" vs. "is this the one the cycle is pointing at
+     * right now"), and a client already focused before cycling
+     * began can otherwise end up displayed with the exact same
+     * color as the one currently selected, the only difference
+     * being a few pixels of width, easy to miss at a glance.
+     * Applied through @c render_outline_show/_move/_hide
+     * (render/outline.h), never through the target's own native
+     * border width, so cycling never shifts the target by however
+     * many pixels @p width itself happens to be, regardless of
+     * @p window.active/inactive's own configured width.
+     *
+     * @note A theme changing @p window.active/inactive away from
+     *       this project's own default color family should
+     *       reconsider this field too, for the same reason a theme
+     *       changing @p active without also changing @p inactive
+     *       risks leaving the two indistinguishable from one
+     *       another.
+     */
+    struct {
+        struct {
+            uint32_t color;
+            uint32_t width;
+        } border;
+    } cycle;
 };
 
 

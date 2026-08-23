@@ -1,0 +1,22 @@
+[Desktop Entry]
+Type=Application
+Name=IcoWM
+Exec=icowm
+TryExec=icowm
+Icon=icowm
+Comment=Iconifying Window Manager
+Comment[ca]=Gestor de finestres amb iconificació
+Comment[de]=Iconifizierender Fenstermanager
+Comment[eo]=Fenestro-administrilo kun piktogramigo
+Comment[es]=Gestor de ventanas con iconificación
+Comment[fr]=Gestionnaire de fenêtres avec iconification
+Comment[gl]=Xestor de xanelas con iconificación
+Comment[it]=Gestore di finestre con iconificazione
+Comment[pt]=Gestor de janelas com iconificação
+NoDisplay=true
+X-GNOME-WMName=IcoWM
+X-GNOME-Autostart-Phase=Applications
+X-GNOME-Autostart-Notify=true
+X-GNOME-Provides=windowmanager
+X-Ubuntu-Gettext-Domain=default
+Keywords=wm;windowmanager;window;manager;

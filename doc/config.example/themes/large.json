@@ -12,6 +12,13 @@
         }
     },
 
+    "cycle": {
+        "border": {
+            "color": "#c9a227",
+            "width": 4
+        }
+    },
+
     "window": {
         "is-decorated": true,
         "active": {
@@ -229,6 +236,55 @@
         "text": {
             "gap": 12,
             "valign": "center"
+        }
+    },
+
+    "search": {
+        "input": {
+            "font": "fixed bold 15",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            }
+        },
+        "selected": {
+            "font": "fixed 15",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            }
+        },
+        "unselected": {
+            "font": "fixed 15",
+            "color": {
+                "background": "#d0d9e5",
+                "foreground": "#4a5566"
+            }
+        },
+        "border": {
+            "color": "#7f9ab6",
+            "width": 2
+        }
+    },
+
+    "prompt": {
+        "label": {
+            "font": "fixed bold 15",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            }
+        },
+        "input": {
+            "font": "fixed bold 15",
+            "color": {
+                "background": "#d0d9e5",
+                "foreground": "#253040"
+            }
+        },
+        "border": {
+            "color": "#7f9ab6",
+            "width": 2
         }
     },
 

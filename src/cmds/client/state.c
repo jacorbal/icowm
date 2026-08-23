@@ -798,6 +798,23 @@ void ccmd_client_toggle_decorate(client_td *client)
             if (inner_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
                 inner_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
             }
+
+            /* Above, 'inner.pos' keeps the content's own top-left
+             * corner fixed on screen, correct outright for
+             * 'CLIENT_GRAVITY_NORTH_WEST' (the ICCCM default) and
+             * 'CLIENT_GRAVITY_STATIC', for which this call is a
+             * no-op; for any other gravity a client's own
+             * 'WM_NORMAL_HINTS' actually requested, this adds
+             * whatever further displacement keeps that gravity's own
+             * anchor fixed instead, given the frame shrinking from
+             * its decorated outer size down to this content's own,
+             * now-undecorated one. */
+            client_gravity_adjust_pos(&inner.pos.x, &inner.pos.y,
+                    client->layout.geometry.cur.dim.w,
+                    client->layout.geometry.cur.dim.h,
+                    (uint32_t) inner_w, (uint32_t) inner_h,
+                    client->layout.gravity);
+
             inner.dim.w = (uint32_t) inner_w;
             inner.dim.h = (uint32_t) inner_h;
 
@@ -833,10 +850,23 @@ void ccmd_client_toggle_decorate(client_td *client)
             client->layout.geometry.cur.pos.y = inner.pos.y;
             client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
             client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
+
+            /* Keeps 'client_border_apply' (client.c) from seeing
+             * a stale 'last_border_width' the moment focus is
+             * reapplied a few lines below (via 'ccmd_client_focus'):
+             * without this, that call would compare its own freshly
+             * computed width against whatever this field happened to
+             * hold from this same client's own last undecorated
+             * period (or 'UINT32_MAX' if there never was one), and
+             * shift the position it just correctly set above by
+             * whatever spurious delta that comparison produces, on
+             * every single toggle. */
+            client->last_border_width = (uint32_t) bw;
         } else {
             ccmd_client_apply_geometry(client, client->window,
                     (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
                     0, 0, 0u, 0u, (uint32_t) bw);
+            client->last_border_width = (uint32_t) bw;
         }
 
         client->layout.frame_extents.left = 0;
@@ -867,6 +897,21 @@ void ccmd_client_toggle_decorate(client_td *client)
             if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
                 frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
             }
+
+            /* Same reasoning as the remove-decoration branch above,
+             * mirrored: the baseline 'frame.pos' keeps the content's
+             * own top-left corner fixed, correct outright for
+             * 'CLIENT_GRAVITY_NORTH_WEST'/'STATIC'; any other gravity
+             * gets whatever further displacement keeps its own
+             * anchor fixed instead, now going from this content's
+             * own undecorated size up to the restored frame's own,
+             * larger one. */
+            client_gravity_adjust_pos(&frame.pos.x, &frame.pos.y,
+                    client->layout.geometry.cur.dim.w,
+                    client->layout.geometry.cur.dim.h,
+                    (uint32_t) frame_w, (uint32_t) frame_h,
+                    client->layout.gravity);
+
             frame.dim.w = (uint32_t) frame_w;
             frame.dim.h = (uint32_t) frame_h;
 

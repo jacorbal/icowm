@@ -73,56 +73,6 @@ static void s_handler_send_synthetic_configure_notify(
 }
 
 
-/**
- * @brief Adjust frame position to keep the gravity anchor fixed on
- *        resize
- *
- * Computes the displacement that preserves the anchor point defined by
- * @p gravity after the frame changes from (@p old_w x @p old_h) t
- * (@p new_w x @p new_h) and adds it to @p *out_x and @p *out_y.
- * No-op for @c CLIENT_GRAVITY_NORTH_WEST and @c CLIENT_GRAVITY_STATIC.
- * See ICCCM §§4.1.2.3 and 4.1.5.
- *
- * @param out_x   Frame x to adjust in place
- * @param out_y   Frame y to adjust in place
- * @param old_w   Frame width before resize
- * @param old_h   Frame height before resize
- * @param new_w   Frame width after resize
- * @param new_h   Frame height after resize
- * @param gravity Client @a win_gravity value
- *
- * @note Complexity: @e O(1)
- */
-static void s_gravity_adjust_pos(int32_t *restrict out_x,
-        int32_t *restrict out_y,
-        uint32_t old_w, uint32_t old_h,
-        uint32_t new_w, uint32_t new_h,
-        uint16_t gravity)
-{
-    int32_t dw = (int32_t) ((uint32_t) old_w - (uint32_t) new_w);
-    int32_t dh = (int32_t) ((uint32_t) old_h - (uint32_t) new_h);
-
-    if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH_EAST ||
-            gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
-            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST) {
-        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) dw);
-    } else if (gravity == (uint16_t) CLIENT_GRAVITY_NORTH ||
-            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
-            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH) {
-        *out_x = (int32_t) ((uint32_t) *out_x + (uint32_t) (dw / 2));
-    }
-
-    if (gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_EAST ||
-            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH ||
-            gravity == (uint16_t) CLIENT_GRAVITY_SOUTH_WEST) {
-        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) dh);
-    } else if (gravity == (uint16_t) CLIENT_GRAVITY_EAST ||
-            gravity == (uint16_t) CLIENT_GRAVITY_CENTER ||
-            gravity == (uint16_t) CLIENT_GRAVITY_WEST) {
-        *out_y = (int32_t) ((uint32_t) *out_y + (uint32_t) (dh / 2));
-    }
-}
-
 
 /**
  * @brief Strip WIDTH and/or HEIGHT from @p mask when the requested
@@ -605,7 +555,7 @@ void handler_configure_request(xcb_connection_t *connection,
             int32_t adj_x = client->layout.geometry.cur.pos.x;
             int32_t adj_y = client->layout.geometry.cur.pos.y;
 
-            s_gravity_adjust_pos(&adj_x, &adj_y, old_w, old_h,
+            client_gravity_adjust_pos(&adj_x, &adj_y, old_w, old_h,
                     req_w, req_h, client->layout.gravity);
             if ((uint32_t) adj_x
                     != (uint32_t) client->layout.geometry.cur.pos.x ||

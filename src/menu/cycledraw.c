@@ -25,6 +25,7 @@
 
 /* Render includes */
 #include <render/icon.h>
+#include <render/outline.h>
 #include <render/text.h>
 #include <render/wmicon.h>
 
@@ -237,16 +238,13 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
  * @param client         Pointer to the client associated with the target
  * @param config         Pointer to the active configuration
  * @param is_icon_menu   Whether the cycle menu is showing icon previews
- * @param is_highlighted Whether the target is currently highlighted
  *
  * @return Border width to apply to the preview target
  *
- * @note When the target is highlighted, an extra selection width is
- *       added
  * @note Complexity: @e O(1)
  */
 static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
-        const config_td *config, bool is_icon_menu, bool is_highlighted)
+        const config_td *config, bool is_icon_menu)
 {
     uint32_t border_width;
 
@@ -271,10 +269,6 @@ static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
         border_width = config->theme.window.active.border.width;
     }
 
-    if (is_highlighted) {
-        border_width += WM_ICON_CYCLE_SEL_BORDER_EXTRA;
-    }
-
     return border_width;
 }
 
@@ -293,14 +287,13 @@ static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
  * @param config         Pointer to the active configuration
  * @param is_icon_menu   Whether the cycle menu is showing icon previews
  * @param border_color   Border color to apply
- * @param is_highlighted Whether the target is currently highlighted
  *
  * @note Complexity: @e O(1)
  */
 void mi_cycle_preview_style_target(xcb_connection_t *connection,
         xcb_window_t target, const client_td *client,
         const config_td *config, bool is_icon_menu,
-        uint32_t border_color, bool is_highlighted)
+        uint32_t border_color)
 {
     uint32_t border_width;
 
@@ -310,7 +303,7 @@ void mi_cycle_preview_style_target(xcb_connection_t *connection,
     }
 
     border_width = s_mi_cycle_preview_border_width(client, config,
-            is_icon_menu, is_highlighted);
+            is_icon_menu);
     xcb_configure_window(connection, target,
             XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
 
@@ -328,6 +321,69 @@ void mi_cycle_preview_style_target(xcb_connection_t *connection,
         xcb_change_window_attributes(connection, target,
                 XCB_CW_BORDER_PIXEL, &border_color);
     }
+}
+
+
+/**
+ * @brief Resolve the on-screen rectangle a cycle-selection outline
+ *        should surround for a given target
+ *
+ * For a window target, @p client's own tracked frame/window geometry
+ * already reflects everything drawn on screen.  For an icon target,
+ * that geometry is not tracked anywhere on @p client itself, so it is
+ * recomputed here the same way @c ccmd_client_ensure_icon_window
+ * (cmds/client/icon.c) originally sized the icon window: @c
+ * WM_ICON_SQUARE_SIZE alone when @p theme.icon.is-captioned is off,
+ * plus @c WM_ICON_CAPTION_HEIGHT when it is on, since the icon
+ * window's own real height already includes room for that caption
+ * text underneath the pixmap, not just the square icon area above
+ * it.  Also grown by the icon's own currently-active native border
+ * width on every side, X11's own border being drawn entirely outside
+ * a window's core rectangle rather than inside it, the same reason
+ * @a client_border_apply (client.c) has to compensate position for
+ * an undecorated client's own border width change: without this, the
+ * outline would sit just inside the icon's own visible border rather
+ * than around the whole of it.
+ *
+ * @param client       Client currently selected
+ * @param is_icon_menu Whether the cycle menu is showing icon previews
+ *
+ * @return The rectangle to outline, in root coordinates; an
+ *         all-zero rectangle if @p client or @p client->config is
+ *         null
+ *
+ * @note Complexity: @e O(1)
+ */
+static struct geometry_s s_mi_cycle_preview_outline_geom(
+        const client_td *client, bool is_icon_menu)
+{
+    struct geometry_s geom = { { 0, 0 }, { 0u, 0u } };
+
+    if (client == NULL) {
+        return geom;
+    }
+
+    if (is_icon_menu) {
+        uint16_t icon_h;
+        uint32_t bw;
+
+        if (client->config == NULL) {
+            return geom;
+        }
+
+        icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
+                ((client->config->theme.icon.is_captioned)
+                     ? WM_ICON_CAPTION_HEIGHT : 0u));
+        bw = client->config->theme.icon.active.border.width;
+
+        geom.pos.x = client->icon_pos.x - (int32_t) bw;
+        geom.pos.y = client->icon_pos.y - (int32_t) bw;
+        geom.dim.w = WM_ICON_SQUARE_SIZE + 2u * bw;
+        geom.dim.h = (uint32_t) icon_h + 2u * bw;
+        return geom;
+    }
+
+    return client->layout.geometry.cur;
 }
 
 
@@ -410,7 +466,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
 
             mi_cycle_preview_style_target(connection, previous_target,
                     previous, config, g_cycle_menu.is_icon_menu,
-                    previous_border, false);
+                    previous_border);
 
             if (g_cycle_menu.is_icon_menu) {
                 /* Full render (stacking below the tray, colors,
@@ -435,7 +491,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
         : config->theme.window.active.border.color;
     mi_cycle_preview_style_target(connection, selected_target,
             selected, config, g_cycle_menu.is_icon_menu,
-            selected_border, true);
+            selected_border);
 
     if (g_cycle_menu.is_icon_menu) {
         /* Same "selected" render every other place a newly selected
@@ -454,6 +510,39 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
             XCB_CONFIG_WINDOW_SIBLING |
             XCB_CONFIG_WINDOW_STACK_MODE,
             values);
+
+    /* The cycle-selection outline itself: a separate overlay (see
+     * render/outline.h), never the target's own native border width,
+     * so switching selection never shifts the target by however many
+     * pixels 'theme.cycle.border.width' happens to be.  Created once,
+     * the first time a selection is applied after 'cycle_init', then
+     * simply moved to each new selection's own rectangle afterward;
+     * 'cycle_destroy' is the one place these 4 windows are ever
+     * destroyed.  Deliberately placed here, after 'selected_target'
+     * has already been stacked below the menu just above: 'stack
+     * below sibling' inserts immediately below that sibling, pushing
+     * whatever was already immediately below it one step further
+     * away, so whichever of these two calls runs last ends up on
+     * top of the other.  Outlining a target only to have that same
+     * target's own stacking request immediately bury the outline
+     * behind it again defeats the whole point of drawing one. */
+    if (g_cycle_menu.outline_windows[0] == XCB_WINDOW_NONE) {
+        render_outline_show(connection,
+                g_cycle_menu.surface->screen->root,
+                s_mi_cycle_preview_outline_geom(selected,
+                    g_cycle_menu.is_icon_menu),
+                config->theme.cycle.border.width,
+                config->theme.cycle.border.color,
+                g_cycle_menu.window,
+                g_cycle_menu.outline_windows);
+    } else {
+        render_outline_move(connection,
+                s_mi_cycle_preview_outline_geom(selected,
+                    g_cycle_menu.is_icon_menu),
+                config->theme.cycle.border.width,
+                g_cycle_menu.window,
+                g_cycle_menu.outline_windows);
+    }
 
     g_cycle_menu.preview_client = selected;
     xcb_flush(connection);

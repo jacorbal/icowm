@@ -169,7 +169,7 @@
  * server can freeze this window manager for, not to react to
  * everyday jitter.
  *
- * @see @a xcb_wait_readable, utils/xcb/wait.h
+ * @see @a xcb_wait_readable, in @c utils/xcb/wait.h
  */
 #define WM_CLIENT_INIT_REPLY_TIMEOUT_MS (3000)
 

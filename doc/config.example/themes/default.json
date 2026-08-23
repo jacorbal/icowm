@@ -11,6 +11,13 @@
         }
     },
 
+    "cycle": {
+        "border": {
+            "color": "#c9a227",
+            "width": 4
+        }
+    },
+
     "window": {
         "is-decorated": true,
         "active": {
@@ -139,55 +146,6 @@
         }
     },
 
-    "search": {
-        "border": {
-            "color": "#7f9ab6",
-            "width": 2
-        },
-        "input": {
-            "color": {
-                "background": "#9aaec8",
-                "foreground": "#253040"
-            },
-            "font": "fixed"
-        },
-        "selected": {
-            "color": {
-                "background": "#9aaec8",
-                "foreground": "#253040"
-            },
-            "font": "fixed"
-        },
-        "unselected": {
-            "color": {
-                "background": "#d0d9e5",
-                "foreground": "#4a5566"
-            },
-            "font": "fixed"
-        }
-    },
-
-    "prompt": {
-        "border": {
-            "color": "#7f9ab6",
-            "width": 2
-        },
-        "input": {
-            "color": {
-                "background": "#9aaec8",
-                "foreground": "#253040"
-            },
-            "font": "fixed"
-        },
-        "label": {
-            "color": {
-                "background": "#9aaec8",
-                "foreground": "#253040"
-            },
-            "font": "fixed bold"
-        }
-    },
-
     "dialog": {
         "opacity": 100,
         "border": {
@@ -272,6 +230,55 @@
             "valign": "center"
         }
 
+    },
+
+    "search": {
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            }
+        },
+        "selected": {
+            "font": "fixed",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            }
+        },
+        "unselected": {
+            "font": "fixed",
+            "color": {
+                "background": "#d0d9e5",
+                "foreground": "#4a5566"
+            }
+        },
+        "border": {
+            "color": "#7f9ab6",
+            "width": 2
+        }
+    },
+
+    "prompt": {
+        "label": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#9aaec8",
+                "foreground": "#253040"
+            }
+        },
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#d0d9e5",
+                "foreground": "#253040"
+            }
+        },
+        "border": {
+            "color": "#7f9ab6",
+            "width": 2
+        }
     },
 
     "scratchpad": {

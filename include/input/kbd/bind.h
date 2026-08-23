@@ -275,6 +275,26 @@ bool keyboard_find_action(xcb_key_symbols_t *keysyms,
 bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask);
 
 /**
+ * @brief Test whether a keysym is any modifier key at all
+ *
+ * Unlike @a keyboard_is_modifier_for_mask, this checks every known
+ * modifier keysym (@c Shift, @c Control, @c Meta/Alt, @c Num_Lock,
+ * @c Super, @c Hyper) regardless of which specific one, rather than
+ * restricting the check to bits set in a caller-supplied mask.
+ * Used by @a s_handle_cycle_key (@c input/kbd/event.c) so that tapping
+ * a bare modifier such as Shift, to switch cycle direction, does not
+ * close the cycle menu; see @a cycle_init's @p g_cycle_menu @p modifier
+ * assignment (in @c menu/cycle.c) for the other half of that same fix.
+ *
+ * @param keysym Keysym to test
+ *
+ * @return @c true when @p keysym is any modifier key
+ *
+ * @note Complexity: @e O(1)
+ */
+bool keyboard_keysym_is_modifier(xcb_keysym_t keysym);
+
+/**
  * @brief Return the number of loaded keyboard bindings
  *
  * @return Number of active bindings in the binding table

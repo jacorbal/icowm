@@ -222,6 +222,7 @@ cJSON *ipc_action_resize_client(const wm_td *wm, const cJSON *args)
 {
     uint32_t w;
     uint32_t h;
+    struct position_s pos;
     client_td *client;
     cJSON *error = NULL;
 
@@ -237,7 +238,21 @@ cJSON *ipc_action_resize_client(const wm_td *wm, const cJSON *args)
         return error;
     }
 
-    enact_client_resize(client, (struct geometry_s) {
-                client->layout.geometry.cur.pos, { w, h } });
+    /* No 'x'/'y' in this request at all, unlike the sibling action
+     * just above that takes all four: the baseline below keeps the
+     * client's own current position exactly as it is, correct
+     * outright for 'CLIENT_GRAVITY_NORTH_WEST'/'STATIC', for which
+     * this call is a no-op, and gravity-adjusted from there for
+     * whatever other gravity the client's own 'WM_NORMAL_HINTS' may
+     * have actually requested; the same reasoning, and the same
+     * function, 'handler_configure_request' already applies to a
+     * client-initiated resize of this identical shape. */
+    pos = client->layout.geometry.cur.pos;
+    client_gravity_adjust_pos(&pos.x, &pos.y,
+            client->layout.geometry.cur.dim.w,
+            client->layout.geometry.cur.dim.h,
+            w, h, client->layout.gravity);
+
+    enact_client_resize(client, (struct geometry_s) { pos, { w, h } });
     return ipc_response_ok();
 }
