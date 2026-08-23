@@ -41,6 +41,7 @@
 /* Command includes */
 #include <cmds/client/basic.h>
 #include <cmds/client/layer.h>
+#include <cmds/client/transient.h>
 
 /* Project includes */
 #include <client.h>
@@ -176,13 +177,14 @@ static void s_desktop_transients_raise(desktop_td *desktop,
         client_td *client, uint32_t depth)
 {
     cdlist_item_td *node;
-    const cdlist_item_td *initial;
 
     if (client == NULL || depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
         return;
     }
 
     if (client->transients != NULL) {
+        const cdlist_item_td *initial;
+
         node = cdlist_head(client->transients);
         initial = node;
         if (node != NULL) {

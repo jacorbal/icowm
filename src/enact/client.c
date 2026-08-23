@@ -74,7 +74,7 @@ static void s_enact_client_send_to_desktop(client_td *client,
         enum compass_direction_e direction)
 {
     surface_td *surface;
-    desktop_td *cur_desktop;
+    const desktop_td *cur_desktop;
     desktop_td *target_desktop;
     bool cycle;
 

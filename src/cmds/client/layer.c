@@ -27,8 +27,9 @@
 
 /* Local includes */
 #include <cmds/client/basic.h>
-#include <cmds/client/layer.h>
 #include <cmds/client/internal.h>
+#include <cmds/client/layer.h>
+#include <cmds/client/transient.h>
 
 
 /**
@@ -154,7 +155,6 @@ static void s_enforce_layer_place_family(client_td *top,
 {
     xcb_window_t target;
     cdlist_item_td *cnode;
-    const cdlist_item_td *cinitial;
 
     if (top == NULL || depth >= WM_TRANSIENT_CHAIN_MAX_DEPTH) {
         return;
@@ -196,6 +196,8 @@ static void s_enforce_layer_place_family(client_td *top,
     }
 
     if (top->transients != NULL) {
+        const cdlist_item_td *cinitial;
+
         cnode = cdlist_head(top->transients);
         cinitial = cnode;
         if (cnode != NULL) {

@@ -656,7 +656,7 @@ void wm_ewmh_sync(wm_td *wm);
  *
  * @note Complexity: @e O(1)
  */
-int wm_ewmh_init(wm_td *wm);
+int wm_ewmh_init(const wm_td *wm);
 
 /**
  * @brief Set the emergency exit flag to @c true

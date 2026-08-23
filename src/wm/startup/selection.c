@@ -97,7 +97,7 @@ static bool s_wait_for_relinquish(xcb_connection_t *connection,
 
             if ((event->response_type & ~0x80u) ==
                     XCB_DESTROY_NOTIFY) {
-                xcb_destroy_notify_event_t *const dn =
+                const xcb_destroy_notify_event_t *const dn =
                     (xcb_destroy_notify_event_t *) event;
 
                 is_match = (dn->window == previous_owner);

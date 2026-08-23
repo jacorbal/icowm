@@ -37,6 +37,7 @@
 /* Local includes */
 #include <cmds/client/basic.h>
 #include <cmds/client/internal.h>
+#include <cmds/client/transient.h>
 
 
 /**
@@ -66,7 +67,6 @@
 static client_td *s_client_mapped_transient_child(client_td *client)
 {
     cdlist_item_td *item;
-    const cdlist_item_td *initial;
     desktop_td *desktop;
     xcb_window_t leader;
     void *elem;
@@ -76,6 +76,8 @@ static client_td *s_client_mapped_transient_child(client_td *client)
     }
 
     if (client->transients != NULL) {
+        const cdlist_item_td *initial;
+
         item = cdlist_head(client->transients);
         initial = item;
         if (item != NULL) {
@@ -429,7 +431,7 @@ client_td *client_group_transient_anchor(const client_td *client)
  * @note Complexity: @e O(f), where @e f is the number of @p top's
  *       own transient descendants at every depth combined
  */
-client_td **ccmd_client_transient_family_snapshot(desktop_td *desktop,
+client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
         client_td *top, size_t *count_out)
 {
     if (count_out != NULL) {

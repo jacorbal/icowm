@@ -51,6 +51,7 @@
 /* Local includes */
 #include <cmds/client/basic.h>
 #include <cmds/client/internal.h>
+#include <cmds/client/transient.h>
 
 
 /**

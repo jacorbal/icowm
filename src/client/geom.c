@@ -350,11 +350,14 @@ void client_decoration_layout_sync(client_td *client)
     uint16_t inner_w;
     uint16_t inner_h;
     uint16_t title_y;
+    bool is_shaded_now;
 
     if (client == NULL || client->frame == 0 ||
             !client_is_decorated(client)) {
         return;
     }
+
+    is_shaded_now = client_is_shaded(client);
 
     left = (uint16_t) client->layout.frame_extents.left;
     right = (uint16_t) client->layout.frame_extents.right;
@@ -369,12 +372,29 @@ void client_decoration_layout_sync(client_td *client)
         ? (uint16_t) (client->layout.geometry.cur.dim.h - top - bottom)
         : WM_MIN_WINDOW_DIMENSION;
 
-    ccmd_client_apply_geometry(client, client->window,
-            (uint16_t) XCB_CONFIG_WINDOW_X |
-                (uint16_t) XCB_CONFIG_WINDOW_Y |
-                (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
-                (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
-            left, top, inner_w, inner_h, 0u);
+    /* While shaded, 'geometry.cur.dim.h' is only the frame's own
+     * collapsed titlebar height (see 'ccmd_client_shade',
+     * cmds/client/state.c), never the client's real content height,
+     * so 'inner_h' above is meaningless for it and must never reach
+     * the content window itself.  Matches Openbox's own
+     * 'frame_adjust_area' (frame.c): it repositions the client
+     * window (a plain 'XMoveWindow') but never resizes it while
+     * shaded, leaving the client's own real on-screen geometry
+     * untouched the whole time it sits unmapped.  Applying 'inner_h'
+     * here instead would send the client a real 'ConfigureNotify'
+     * reporting a tiny height; many toolkits (GTK among them) cache
+     * that as the window's own last known size and persist it on
+     * exit, so an application closed while shaded would reopen
+     * collapsed to a sliver next time, unable to be worked with
+     * until manually resized again. */
+    if (!is_shaded_now) {
+        ccmd_client_apply_geometry(client, client->window,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                    (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                    (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
+                left, top, inner_w, inner_h, 0u);
+    }
 
     if (client->titlebar != 0) {
         ccmd_client_apply_geometry(client, client->titlebar,
@@ -390,8 +410,12 @@ void client_decoration_layout_sync(client_td *client)
      * X server to generate an 'Expose' event so applications that do
      * not repaint on 'ConfigureNotify' alone redraw the newly exposed
      * lower area without requiring an additional user-triggered
-     * action. */
-    xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
+     * action.  Skipped while shaded: the content window is unmapped
+     * then, and X11 never generates 'Expose' for an unmapped window,
+     * so this would be a no-op request anyway. */
+    if (!is_shaded_now) {
+        xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
+    }
 }
 
 

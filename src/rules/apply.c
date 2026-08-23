@@ -116,7 +116,7 @@ static void s_rules_apply_desktop(client_td *client,
         surface_td *surface, desktop_td **desktop_io,
         const struct rules_apply_s *apply)
 {
-    desktop_td *cur;
+    const desktop_td *cur;
     desktop_td *target;
 
     if (!apply->has_desktop || surface == NULL || desktop_io == NULL ||

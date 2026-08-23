@@ -378,7 +378,7 @@ static void s_mouse_sync_sticky_active(surface_td *surface,
         if (d != NULL && d != desktop &&
                 d->client_active_id != client->id) {
             d->client_active_id = client->id;
-            d->focus_dirty = true;
+            d->is_focus_dirty = true;
         }
         dnode = cdlist_next(dnode);
     } while (dnode != NULL && dnode != dinitial);
@@ -607,7 +607,7 @@ static void s_scroll_titlebar_shade(client_td *client,
         } else {
             enact_client_unfocus(client);
             desktop->client_active_id = 0;
-            desktop->focus_dirty = true;
+            desktop->is_focus_dirty = true;
         }
     }
 
@@ -1307,7 +1307,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
                 enact_client_unfocus(active);
             }
             desktop->client_active_id = 0;
-            desktop->focus_dirty = true;
+            desktop->is_focus_dirty = true;
             desktop->is_outdated = true;
             surface->is_outdated = true;
         }

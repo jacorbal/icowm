@@ -35,7 +35,7 @@
 #include <defs/icon.h>
 
 /* Command includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/transient.h>
 
 /* Project includes */
 #include <client.h>
@@ -243,7 +243,7 @@ void drag_warp_tick(xcb_connection_t *connection)
      * genuinely active one instead, active-window highlight included,
      * as soon as the drag settles there. */
     new_desktop->client_active_id = s_drag.client->id;
-    new_desktop->focus_dirty = true;
+    new_desktop->is_focus_dirty = true;
 
     /* 'desktop_action_client_rem'/'_add' above only move the client
      * between each desktop's stacking list and lookup table;

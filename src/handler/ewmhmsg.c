@@ -4,7 +4,7 @@
  * @brief EWMH client-message sub-handlers
  *
  * Implements the per-message handler functions that are called from
- * @c handler_client_message in @c handler/message.c when a
+ * @a handler_client_message in @c handler/message.c when a
  * @c CLIENT_MESSAGE event arrives for a specific EWMH atom.
  *
  * Separated from @c handler/message.c to keep that file focused on
@@ -33,6 +33,7 @@
 #include <cmds/client/basic.h>
 #include <cmds/client/maximize.h>
 #include <cmds/client/layer.h>
+#include <cmds/client/transient.h>
 #include <cmds/surface.h>
 
 /* Input includes */
@@ -354,16 +355,16 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
 
 
 /**
- * @brief Move exactly this one client to another desktop in response
- *        to a '_NET_WM_DESKTOP' request, ignoring any transient
- *        family it may belong to
+ * @brief Move exactly this one client to another desktop in response to
+ *        a @c _NET_WM_DESKTOP request, ignoring any transient family it
+ *        may belong to
  *
- * Split out of what used to be the whole of @a hi_handle_net_wm_
- * desktop so that function can redirect to, and cascade across, a
- * transient family (see its own doc comment) while still sharing
- * this single client's worth of EWMH desktop-move plumbing with the
- * top-level call it makes on the family's own top parent and on
- * every other member in turn.
+ * Split out of what used to be the whole of
+ * @a hi_handle_net_wm_desktop so that function can redirect to, and
+ * cascade across, a transient family (see its own doc comment) while
+ * still sharing this single client's worth of EWMH desktop-move
+ * plumbing with the top-level call it makes on the family's own top
+ * parent and on every other member in turn.
  *
  * @param wm          Window manager instance
  * @param client      Client to move; must be non-null
@@ -472,7 +473,7 @@ void hi_handle_net_current_desktop(const wm_td *wm,
 
 
 /**
- * @brief Handle a '_NET_WM_DESKTOP' client message, taking the
+ * @brief Handle a @c _NET_WM_DESKTOP client message, taking the
  *        requested client's whole transient family along with it
  *
  * The EWMH counterpart to @a ccmd_client_iconify's own transient-
@@ -485,7 +486,7 @@ void hi_handle_net_current_desktop(const wm_td *wm,
  * move its parent, stranded apart from the window it belongs to.
  *
  * @param wm      Window manager instance
- * @param event   The '_NET_WM_DESKTOP' client message event
+ * @param event   The @c _NET_WM_DESKTOP client message event
  * @param client  Client the message named
  * @param surface Client's own surface
  * @param src_desktop Client's own current desktop

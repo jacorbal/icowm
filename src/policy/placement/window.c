@@ -29,7 +29,7 @@
 #include <types/pair.h>
 
 /* Command includes */
-#include <cmds/client/basic.h>
+#include <cmds/client/transient.h>
 
 /* Project includes */
 #include <client.h>

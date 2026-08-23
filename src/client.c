@@ -41,6 +41,7 @@
 /* Command includes */
 #include <cmds/client/basic.h>
 #include <cmds/client/move.h>
+#include <cmds/client/transient.h>
 
 /* Default initial values */
 #include <defs/config.h>
@@ -961,9 +962,6 @@ void client_border_apply(client_td *client, bool use_active_style)
     uint32_t color;
     uint32_t width;
     uint8_t opacity_percent;
-    int32_t delta;
-    int32_t new_x;
-    int32_t new_y;
 
     if (client == NULL || client->connection == NULL ||
             client->config == NULL || client_is_fullscreen(client) ||
@@ -1016,9 +1014,10 @@ void client_border_apply(client_td *client, bool use_active_style)
      * sentinel from 'client_init'), since there is no prior width
      * yet to have shifted away from. */
     if (client->last_border_width != UINT32_MAX) {
-        delta = (int32_t) width - (int32_t) client->last_border_width;
-        new_x = client->layout.geometry.cur.pos.x + delta;
-        new_y = client->layout.geometry.cur.pos.y + delta;
+        int32_t delta =
+            (int32_t) width - (int32_t) client->last_border_width;
+        int32_t new_x = client->layout.geometry.cur.pos.x + delta;
+        int32_t new_y = client->layout.geometry.cur.pos.y + delta;
 
         ccmd_client_apply_geometry(client, client->window,
                 (uint16_t) XCB_CONFIG_WINDOW_X |

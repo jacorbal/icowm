@@ -102,7 +102,7 @@ bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
  * is the surface's currently displayed one, and either reconfigures its
  * full geometry and decoration (when @c is_outdated) or, more cheaply,
  * only refreshes focus-sensitive decoration colors (when
- * only @p desktop's own @c focus_dirty changed).
+ * only @p desktop's own @c is_focus_dirty changed).
  *
  * Meant to be called directly for one specific client outside of an
  * ordinary full @a desktop_render_clients pass, e.g., by

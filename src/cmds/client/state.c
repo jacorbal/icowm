@@ -325,7 +325,7 @@ void ccmd_client_unshade(client_td *client)
 {
     xcb_window_t target;
     uint32_t restored_h;
-    desktop_td *own_desktop;
+    const desktop_td *own_desktop;
 
     if (client == NULL || !client_is_decorated(client) ||
             !client_is_shaded(client)) {
@@ -382,21 +382,25 @@ void ccmd_client_unshade(client_td *client)
             0, 0, 0u, restored_h, 0u);
     xcb_map_window(client->connection, client->window);
 
-    /* 'ccmd_client_shade' leaves the content window sized down to
-     * a minimum through this same call, right before unmapping it;
-     * nothing else here previously resized it back up now that the
-     * frame just grew to 'restored_h' above, so it stayed mapped at
-     * that same minimum size, however tall the frame now is.  Most
-     * clients tolerate this well enough (a redraw triggered by
-     * something else, e.g., the real focus hand-off just below,
-     * papers over it visually), but one managing its geometry
-     * more strictly (GVim/GTK) can stay stuck rendering into only
-     * that leftover sliver, which is what actually looked like an
-     * incomplete unshade. */
-    client_decoration_layout_sync(client);
-
     client_unshade(client);
     client_unhide(client);
+
+    /* The content window's real on-screen size was never actually
+     * touched while shaded (see 'client_decoration_layout_sync',
+     * client/geom.c, which now deliberately skips resizing it for a
+     * shaded client, matching Openbox's own 'frame_adjust_area',
+     * frame.c): it already holds its true, correct size, restored
+     * with nothing further needed for the common case.  Called here
+     * anyway, now that 'client_unshade' just above has genuinely
+     * cleared the shaded state, purely as a safety net for the edge
+     * case of 'frame_extents' having changed while this client sat
+     * shaded (a theme reload changing the border/titlebar size, most
+     * plausibly): without this, the content would stay positioned
+     * and sized for the frame extents that were in effect before
+     * that change, out of sync with the ones actually in force now
+     * that the frame is visible again. */
+    client_decoration_layout_sync(client);
+
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
     ccmd_client_sync_states(client);
@@ -595,7 +599,7 @@ void ccmd_client_fullscreen(client_td *client)
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
         desktop->client_active_id = client->id;
-        desktop->focus_dirty = true;
+        desktop->is_focus_dirty = true;
         (void) desktop_action_client_send_front(desktop, client);
         desktop->is_outdated = true;
     }
@@ -1111,7 +1115,7 @@ void ccmd_client_toggle_decorate(client_td *client)
     if (keep_focus) {
         if (desktop != NULL) {
             desktop->client_active_id = client->id;
-            desktop->focus_dirty = true;
+            desktop->is_focus_dirty = true;
             (void) desktop_action_client_send_front(desktop, client);
             desktop->is_outdated = true;
         }

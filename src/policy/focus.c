@@ -30,6 +30,7 @@
 /* Local includes */
 #include <cmds/client/basic.h>
 #include <cmds/client/layer.h>
+#include <cmds/client/transient.h>
 #include <policy/focus.h>
 
 
@@ -139,7 +140,7 @@ void focus_apply(list_td *surfaces, surface_td *surface,
     }
 
     desktop->client_active_id = client->id;
-    desktop->focus_dirty = true;
+    desktop->is_focus_dirty = true;
     ccmd_client_focus(client);
 
     /* Mark outdated so the next update cycle repaints titlebars */

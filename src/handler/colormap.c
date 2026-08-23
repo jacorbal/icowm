@@ -80,7 +80,8 @@ void handler_colormap_notify(xcb_connection_t *connection,
      * specifically, costs nothing worth avoiding. */
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        const surface_td *const surface =
+            (surface_td *) list_data(snode);
         cdlist_item_td *dnode;
 
         if (surface == NULL) {
