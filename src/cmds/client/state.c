@@ -325,6 +325,7 @@ void ccmd_client_unshade(client_td *client)
 {
     xcb_window_t target;
     uint32_t restored_h;
+    desktop_td *own_desktop;
 
     if (client == NULL || !client_is_decorated(client) ||
             !client_is_shaded(client)) {
@@ -338,7 +339,7 @@ void ccmd_client_unshade(client_td *client)
     /* 'geometry.old.dim.h' is the pre-maximize height whenever the
      * client is currently maximized on the vertical axis (full or
      * vertical-only): 'ccmd_client_shade' deliberately skips saving
-     * over it for a maximized client (see that function's own
+     * over it for a maximized client (see that function's
      * comment), specifically so a later, genuine 'unmaximize' still
      * has the true original height to restore, not whatever height
      * happened to be current at shade time.  That same skip means it
@@ -353,7 +354,7 @@ void ccmd_client_unshade(client_td *client)
             client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
         uint16_t sw = 0;
         uint16_t sh = 0;
-        const desktop_td *own_desktop;
+        const desktop_td *maximize_desktop;
         bool is_active;
         uint32_t border;
 
@@ -362,9 +363,9 @@ void ccmd_client_unshade(client_td *client)
             sh = (uint16_t) client->layout.geometry.old.dim.h;
         }
         (void) sw;
-        own_desktop = wm_get_client_desktop(client);
-        is_active = own_desktop != NULL &&
-            own_desktop->client_active_id == client->id;
+        maximize_desktop = wm_get_client_desktop(client);
+        is_active = maximize_desktop != NULL &&
+            maximize_desktop->client_active_id == client->id;
         border = 2u * client_border_width(client, is_active, false);
         sh = (uint16_t) ((sh > border) ? sh - border : 0u);
         restored_h = sh;
@@ -386,6 +387,26 @@ void ccmd_client_unshade(client_td *client)
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
     ccmd_client_sync_states(client);
+
+    /* Real X input focus stayed on the frame while shaded (see
+     * 'ccmd_client_focus''s doc comment, cmds/client/focus.c,
+     * for why): the content window just remapped above is a
+     * genuinely different, now-focusable window, and nothing else
+     * here moves focus onto it.  A client relying on 'WM_HINTS'
+     * input=true plus 'WM_TAKE_FOCUS' to know it should redraw
+     * itself as focused (e.g., GVim/GTK) can stay stuck showing
+     * only its shaded sliver until something else happens to
+     * refocus it, since it never receives the real focus hand-off
+     * this restores.  Only for the client already active on its
+     * desktop, matching the same reasoning
+     * 'ccmd_client_fullscreen' and 'ccmd_client_restore' already
+     * apply after their equivalent remap: unshading a client
+     * that was not the active one should not steal focus from
+     * whichever client actually still holds it. */
+    own_desktop = wm_get_client_desktop(client);
+    if (own_desktop != NULL && own_desktop->client_active_id == client->id) {
+        ccmd_client_focus(client);
+    }
 
     wm_request_client_redraw(client);
     xcb_flush(client->connection);
