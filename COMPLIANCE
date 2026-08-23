@@ -206,11 +206,19 @@ was individually confirmed by reading its handling code.
         Read to cluster windows belonging to the same application for
         placement purposes, together with `WM_HINTS`' window group
         (`src/client.c`).
-- [`-`] `WM_COLORMAP_WINDOWS` (2.0)
-        Not implemented; IcoWM never installs a client's private
-        colormap, on focus or otherwise. Rare in practice today (this
-        matters only on 8-bit PseudoColor-class displays, essentially
-        extinct), but a genuine gap against the letter of the spec.
+- [`/`] `WM_COLORMAP_WINDOWS` (2.0)
+        Read at manage time and whenever it changes, and installed (on
+        colormap focus, which follows input focus, the common policy)
+        for the listed subwindows, each cached to avoid a fresh round
+        trip on every focus change (`src/client/props.c`, in
+        `src/cmds/client/focus.c`).  A client that omits this property
+        but still uses a non-default colormap on its top-level window is
+        not covered: that fallback (installing the top-level's current
+        colormap attribute directly) would need a round trip on every
+        single focus change for a case rarer than the one already
+        covered, so it was left out deliberately rather than an
+        oversight.  Rare in practice either way (this matters only on
+        8-bit PseudoColor-class displays, essentially extinct).
 - [`-`] `WM_CLIENT_MACHINE` (2.0)
         Not read anywhere; nothing in IcoWM's feature set currently
         needs it (this identifies the host a client is running on, of
@@ -229,10 +237,11 @@ was individually confirmed by reading its handling code.
 - [`+`] `WM_CHANGE_STATE` (2.0)
         A client requesting to be iconified through this client message
         is honored (`src/handler/message.c`).
-- [`-`] Colormap installation (2.0)
-        No `ColormapNotify` handling and no colormap installed on focus
-        change; see `WM_COLORMAP_WINDOWS` above, the same underlying
-        gap.
+- [`/`] Colormap installation (2.0)
+        `ColormapNotify` is handled (`src/handler/colormap.c`), and
+        a colormap is installed on focus change for the case
+        `WM_COLORMAP_WINDOWS` above covers; see that entry for the one
+        case deliberately left out.
 
 ### Window Manager Properties (ICCCM 4.3)
 
