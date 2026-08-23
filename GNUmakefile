@@ -148,6 +148,15 @@ else
     $(error Unsupported compiler '$(CC)': CC only admits 'gcc' or 'clang')
 endif
 
+# 'clang' has no '=auto' value for '-flto' (only 'thin'/'full', or
+# nothing at all); only 'gcc' knows to parallelize its own LTRANS
+# pass across every core this way.
+ifeq ($(CC), gcc)
+    LTO_FLAG = -flto=auto
+else
+    LTO_FLAG = -flto
+endif
+
 # Use 'make clean && make DEBUG=1' to add debugging information
 # Use 'make clean && make DEBUG=2' to compile & link with address sanitizer
 DEBUG ?= 0
@@ -161,9 +170,9 @@ else ifeq ($(DEBUG), 2)
         CCFLAGS += -fanalyzer
     endif
 else
-    CCFLAGS += -DNDEBUG -O$(CCOPT) -flto \
+    CCFLAGS += -DNDEBUG -O$(CCOPT) $(LTO_FLAG) \
                -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE
-    LDFLAGS += -flto -Wl,-z,relro,-z,now -Wl,-z,noexecstack -pie
+    LDFLAGS += $(LTO_FLAG) -Wl,-z,relro,-z,now -Wl,-z,noexecstack -pie
 endif
 
 # Use 'make clean && make STRIP=1' to discard symbols from object files
