@@ -1,0 +1,302 @@
+{
+    "name": "Mono theme (light)",
+
+    "-author": "J. A. Corbal",
+    "-creation-date": "Sun Aug 23 22:52:00 UTC 2026",
+    "-modified-date": "Sun Aug 23 22:52:00 UTC 2026",
+    "-notes": "Pure black/white retro monochrome, no color anywhere, white desktop background.",
+
+    "desktop": {
+        "color": {
+            "background": "#ffffff"
+        }
+    },
+
+    "window": {
+        "is-decorated": true,
+        "active": {
+            "opacity": 100,
+            "border": {
+                "color": "#000000",
+                "width": 2
+            },
+            "color": {
+                "background": "#000000",
+                "foreground": "#ffffff"
+            },
+            "font": "fixed bold"
+        },
+        "inactive": {
+            "border": {
+                "color": "#000000",
+                "width": 1
+            },
+            "color": {
+                "background": "#ffffff",
+                "foreground": "#000000"
+            },
+            "font": "fixed"
+        },
+        "titlebar": {
+            "alignment": "center",
+            "buttons": {
+                "color": {
+                    "off": "#808080",
+                    "on": "#ffffff"
+                },
+                "left": [ "pin", "layer" ],
+                "right": [ "close", "maximize", "shade", "iconize" ]
+            },
+            "height": 22,
+            "padding": {
+                "horizontal": 2,
+                "vertical": 2
+            }
+        }
+    },
+
+    "icon": {
+        "is-captioned": true,
+        "show-hints": true,
+        "show-pixmaps": true,
+        "active": {
+            "opacity": 100,
+            "border": {
+                "color": "#ffffff",
+                "width": 1
+            },
+            "color": {
+                "background": "#000000",
+                "foreground": "#ffffff"
+            },
+            "font": "fixed bold"
+
+        },
+        "inactive": {
+            "opacity": 100,
+            "border": {
+                "color": "#000000",
+                "width": 1
+            },
+            "color": {
+                "background": "#ffffff",
+                "foreground": "#000000"
+            },
+            "font": "fixed"
+        }
+    },
+
+    "cycle": {
+        "border": {
+            "color": "#000000",
+            "width": 3
+        }
+    },
+
+    "menu": {
+        "opacity": 100,
+        "show-pixmaps": true,
+        "border": {
+            "color": "#000000",
+            "width": 2
+        },
+        "disabled": {
+            "color": {
+                "foreground": "#808080"
+            }
+        },
+        "label": {
+            "border": {
+                "color": "#000000",
+                "width": 0
+            },
+            "color": {
+                "background": "#ffffff",
+                "foreground": "#000000"
+            },
+            "font": "fixed"
+        },
+        "padding": {
+            "horizontal": 12,
+            "vertical": 4
+        },
+        "selected": {
+            "border": {
+                "color": "#ffffff",
+                "width": 0
+            },
+            "color": {
+                "background": "#000000",
+                "foreground": "#ffffff"
+            },
+            "font": "fixed"
+        },
+        "separator": {
+            "color": "#000000"
+        },
+        "unselected": {
+            "border": {
+                "color": "#000000",
+                "width": 0
+            },
+            "color": {
+                "background": "#ffffff",
+                "foreground": "#000000"
+            },
+            "font": "fixed"
+        }
+    },
+
+    "search": {
+        "border": {
+            "color": "#000000",
+            "width": 2
+        },
+        "input": {
+            "color": {
+                "background": "#000000",
+                "foreground": "#ffffff"
+            },
+            "font": "fixed"
+        },
+        "selected": {
+            "color": {
+                "background": "#000000",
+                "foreground": "#ffffff"
+            },
+            "font": "fixed"
+        },
+        "unselected": {
+            "color": {
+                "background": "#ffffff",
+                "foreground": "#000000"
+            },
+            "font": "fixed"
+        }
+    },
+
+    "prompt": {
+        "border": {
+            "color": "#000000",
+            "width": 2
+        },
+        "input": {
+            "color": {
+                "background": "#000000",
+                "foreground": "#ffffff"
+            },
+            "font": "fixed"
+        },
+        "label": {
+            "color": {
+                "background": "#000000",
+                "foreground": "#ffffff"
+            },
+            "font": "fixed bold"
+        }
+    },
+
+    "dialog": {
+        "opacity": 100,
+        "border": {
+            "color": "#000000",
+            "width": 2
+        },
+        "button": {
+            "gap": 24,
+            "padding": {
+                "horizontal": 12,
+                "vertical": 6
+            },
+            "selected": {
+                "border": {
+                    "color": "#ffffff",
+                    "width": 1
+                },
+                "color": {
+                    "background": "#000000",
+                    "foreground": "#ffffff"
+                },
+                "font": "fixed bold"
+            },
+            "unselected": {
+                "border": {
+                    "color": "#000000",
+                    "width": 1
+                },
+                "color": {
+                    "background": "#ffffff",
+                    "foreground": "#000000"
+                },
+                "font": "fixed"
+            }
+        },
+        "color": {
+            "background": "#ffffff"
+        },
+        "label": {
+            "color": {
+                "foreground": "#000000"
+            },
+            "font": "fixed bold",
+            "padding": {
+                "horizontal": 12,
+                "vertical": 12
+            }
+        }
+    },
+
+    "overlay": {
+        "opacity": 100,
+        "font": "fixed",
+        "border": {
+            "color": "#000000",
+            "width": 1
+        },
+        "color": {
+            "background": "#ffffff",
+            "foreground": "#000000"
+        }
+    },
+
+    "systray": {
+        "opacity": 100,
+        "font": "fixed bold",
+        "height": 24,
+        "border": {
+            "color": "#000000",
+            "width": 1
+        },
+        "color": {
+            "background": "#ffffff",
+            "foreground": "#000000"
+        },
+        "pixmap": {
+            "size": 24,
+            "padding": 2
+        },
+        "text": {
+            "gap": 12,
+            "valign": "center"
+        }
+
+    },
+
+    "scratchpad": {
+        "border": {
+            "color": "#000000",
+            "width": 2
+        }
+    },
+
+    "xsettings": {
+        "dpi": 96,
+        "is-enabled": false,
+        "theme": {
+            "gtk-theme-name": "Adwaita",
+            "icon-theme-name": "Adwaita",
+            "cursor-theme-name": "Adwaita",
+            "cursor-theme-size": 24
+        }
+    }
+}

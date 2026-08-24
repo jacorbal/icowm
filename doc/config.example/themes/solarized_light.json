@@ -1,0 +1,300 @@
+{
+    "name": "Solarized Light",
+
+    "-author": "J. A. Corbal",
+    "-creation-date": "Sun Aug 23 00:27:26 UTC 2026",
+    "-modified-date": "Sun Aug 23 00:27:26 UTC 2026",
+    "-notes": "Ethan Schoonover's Solarized palette (light variant), using the official published hex values.",
+
+    "desktop": {
+        "color": {
+            "background": "#fdf6e3"
+        }
+    },
+
+    "cycle": {
+        "border": {
+            "color": "#dc322f",
+            "width": 4
+        }
+    },
+
+    "window": {
+        "is-decorated": true,
+        "active": {
+            "opacity": 100,
+            "border": {
+                "color": "#268bd2",
+                "width": 2
+            },
+            "color": {
+                "background": "#268bd2",
+                "foreground": "#fdf6e3"
+            },
+            "font": "fixed bold"
+        },
+        "inactive": {
+            "border": {
+                "color": "#93a1a1",
+                "width": 2
+            },
+            "color": {
+                "background": "#eee8d5",
+                "foreground": "#657b83"
+            },
+            "font": "fixed"
+        },
+        "titlebar": {
+            "alignment": "center",
+            "buttons": {
+                "color": {
+                    "off": "#93a1a1",
+                    "on": "#fdf6e3"
+                },
+                "left": [ "pin", "layer" ],
+                "right": [ "close", "maximize", "shade", "iconize" ]
+            },
+            "height": 22,
+            "padding": {
+                "horizontal": 2,
+                "vertical": 2
+            }
+        }
+    },
+
+    "icon": {
+        "is-captioned": true,
+        "show-hints": true,
+        "show-pixmaps": true,
+        "active": {
+            "opacity": 100,
+            "border": {
+                "color": "#268bd2",
+                "width": 1
+            },
+            "color": {
+                "background": "#268bd2",
+                "foreground": "#fdf6e3"
+            },
+            "font": "fixed bold"
+        },
+        "inactive": {
+            "opacity": 100,
+            "border": {
+                "color": "#93a1a1",
+                "width": 1
+            },
+            "color": {
+                "background": "#eee8d5",
+                "foreground": "#657b83"
+            },
+            "font": "fixed"
+        }
+    },
+
+    "menu": {
+        "opacity": 100,
+        "show-pixmaps": true,
+        "border": {
+            "color": "#93a1a1",
+            "width": 2
+        },
+        "disabled": {
+            "color": {
+                "foreground": "#93a1a1"
+            }
+        },
+        "label": {
+            "border": {
+                "color": "#93a1a1",
+                "width": 0
+            },
+            "color": {
+                "background": "#eee8d5",
+                "foreground": "#586e75"
+            },
+            "font": "fixed"
+        },
+        "padding": {
+            "horizontal": 12,
+            "vertical": 4
+        },
+        "selected": {
+            "border": {
+                "color": "#268bd2",
+                "width": 0
+            },
+            "color": {
+                "background": "#268bd2",
+                "foreground": "#fdf6e3"
+            },
+            "font": "fixed"
+        },
+        "separator": {
+            "color": "#93a1a1"
+        },
+        "unselected": {
+            "border": {
+                "color": "#93a1a1",
+                "width": 0
+            },
+            "color": {
+                "background": "#eee8d5",
+                "foreground": "#657b83"
+            },
+            "font": "fixed"
+        }
+    },
+
+    "dialog": {
+        "opacity": 100,
+        "border": {
+            "color": "#93a1a1",
+            "width": 2
+        },
+        "button": {
+            "gap": 24,
+            "padding": {
+                "horizontal": 12,
+                "vertical": 6
+            },
+            "selected": {
+                "border": {
+                    "color": "#268bd2",
+                    "width": 1
+                },
+                "color": {
+                    "background": "#268bd2",
+                    "foreground": "#fdf6e3"
+                },
+                "font": "fixed bold"
+            },
+            "unselected": {
+                "border": {
+                    "color": "#93a1a1",
+                    "width": 1
+                },
+                "color": {
+                    "background": "#eee8d5",
+                    "foreground": "#657b83"
+                },
+                "font": "fixed"
+            }
+        },
+        "color": {
+            "background": "#eee8d5"
+        },
+        "label": {
+            "color": {
+                "foreground": "#586e75"
+            },
+            "font": "fixed bold",
+            "padding": {
+                "horizontal": 12,
+                "vertical": 12
+            }
+        }
+    },
+
+    "overlay": {
+        "opacity": 100,
+        "font": "fixed",
+        "border": {
+            "color": "#93a1a1",
+            "width": 1
+        },
+        "color": {
+            "background": "#eee8d5",
+            "foreground": "#657b83"
+        }
+    },
+
+    "systray": {
+        "opacity": 100,
+        "font": "fixed bold",
+        "height": 22,
+        "border": {
+            "color": "#93a1a1",
+            "width": 1
+        },
+        "color": {
+            "background": "#eee8d5",
+            "foreground": "#657b83"
+        },
+        "pixmap": {
+            "size": 24,
+            "padding": 2
+        },
+        "text": {
+            "gap": 12,
+            "valign": "center"
+        }
+    },
+
+    "search": {
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#268bd2",
+                "foreground": "#fdf6e3"
+            }
+        },
+        "selected": {
+            "font": "fixed",
+            "color": {
+                "background": "#268bd2",
+                "foreground": "#fdf6e3"
+            }
+        },
+        "unselected": {
+            "font": "fixed",
+            "color": {
+                "background": "#eee8d5",
+                "foreground": "#657b83"
+            }
+        },
+        "border": {
+            "color": "#93a1a1",
+            "width": 2
+        }
+    },
+
+    "prompt": {
+        "label": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#268bd2",
+                "foreground": "#fdf6e3"
+            }
+        },
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#eee8d5",
+                "foreground": "#586e75"
+            }
+        },
+        "border": {
+            "color": "#93a1a1",
+            "width": 2
+        }
+    },
+
+    "scratchpad": {
+        "border": {
+            "color": "#268bd2",
+            "width": 2
+        }
+    },
+
+    "xsettings": {
+        "dpi": 96,
+        "is-enabled": false,
+        "theme": {
+            "gtk-theme-name": "Adwaita",
+            "icon-theme-name": "Adwaita",
+            "cursor-theme-name": "Adwaita",
+            "cursor-theme-size": 24
+        }
+    }
+}
