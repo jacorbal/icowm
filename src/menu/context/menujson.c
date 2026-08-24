@@ -29,6 +29,8 @@
 #include <utils/config/json.h>
 #include <utils/safe/safemem.h>
 
+#include <defs/config.h>
+
 /* Local includes */
 #include <menu/context/ctxmenu.h>
 #include <menu/context/menujson.h>

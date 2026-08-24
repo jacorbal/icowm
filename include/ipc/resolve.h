@@ -31,13 +31,10 @@
 #include <stdbool.h>
 
 /* JSON includes */
+#include <types/handles.h>
 #include <cjson/cJSON.h>
 
 /* Project includes */
-#include <client.h>
-#include <desktop.h>
-#include <surface.h>
-#include <wm.h>
 
 
 /* Public interface */

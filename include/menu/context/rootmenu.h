@@ -43,12 +43,10 @@
 #include <xcb/xcb.h>
 
 /* Default initial values */
+#include <types/handles.h>
 #include <defs/ctxmenu.h>
 
 /* Project includes */
-#include <config.h>
-#include <surface.h>
-#include <wm.h>
 
 
 /**

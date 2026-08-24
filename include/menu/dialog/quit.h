@@ -31,12 +31,11 @@
 #include <xcb/xcb.h>
 
 /* Default initial values */
+#include <types/handles.h>
 #include <defs/dialog.h>
 #include <defs/uistr.h>
 
 /* Project includes */
-#include <config.h>
-#include <surface.h>
 
 
 /* Thin wrapper interface */

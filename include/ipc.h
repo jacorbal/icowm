@@ -27,9 +27,9 @@
 #include <stdint.h>
 
 /* Project includes */
-#include <wm.h>
 
 /* JSON includes */
+#include <types/handles.h>
 #include <cjson/cJSON.h>
 
 /* Public interface */

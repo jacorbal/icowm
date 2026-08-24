@@ -32,11 +32,9 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
-#include <client.h>
-#include <desktop.h>
-#include <surface.h>
 
 /* Types includes */
+#include <types/handles.h>
 #include <types/pair.h>
 
 

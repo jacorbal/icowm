@@ -50,16 +50,12 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
-#include <adt/list.h>
 
 /* Type includes */
+#include <types/handles.h>
 #include <types/pair.h>
 
 /* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <surface.h>
 
 /* Input includes */
 #include <input/mouse/bind.h>

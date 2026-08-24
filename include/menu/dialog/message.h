@@ -34,11 +34,10 @@
 #include <xcb/xcb.h>
 
 /* Default initial values */
+#include <types/handles.h>
 #include <defs/dialog.h>
 
 /* Project includes */
-#include <config.h>
-#include <surface.h>
 
 
 /**

@@ -24,10 +24,10 @@
 
 
 /* JSON includes */
+#include <types/handles.h>
 #include <cjson/cJSON.h>
 
 /* Project includes */
-#include <wm.h>
 
 
 /* Public interface */

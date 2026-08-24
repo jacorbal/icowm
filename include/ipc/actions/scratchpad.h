@@ -16,10 +16,10 @@
 
 
 /* JSON includes */
+#include <types/handles.h>
 #include <cjson/cJSON.h>
 
 /* Project includes */
-#include <wm.h>
 
 
 /** @c toggle_scratchpad: arguments @c desktop_id (optional; the resolved

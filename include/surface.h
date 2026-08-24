@@ -47,15 +47,13 @@
 #include <xcb/xcb_ewmh.h>
 
 /* ADT includes */
-#include <adt/cdlist.h> /* Doubly linked circular list */
 
 /* Type includes */
+#include <types/handles.h>
 #include <types/direction.h>
 #include <types/pair.h> /* dimensions_s, size_s */
 
 /* Project includes */
-#include <config.h>
-#include <desktop.h>
 #include <monitor.h>
 
 /* Default initial values */

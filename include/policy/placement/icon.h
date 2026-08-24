@@ -26,11 +26,13 @@
 #include <stdint.h>
 
 /* Type includes */
+#include <types/handles.h>
 #include <types/pair.h>
 
 /* Project includes */
-#include <client.h>
-#include <desktop.h>
+#include <config.h>
+
+/* Project includes */
 
 
 /* Public interface */

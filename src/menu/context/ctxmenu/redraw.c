@@ -27,6 +27,10 @@
 #include <render/text.h>
 #include <render/wmicon.h>
 
+#include <config.h>
+#include <client.h>
+#include <surface.h>
+
 /* Local includes */
 #include <menu/context/ctxmenu/layout.h>
 #include <menu/context/ctxmenu/redraw.h>

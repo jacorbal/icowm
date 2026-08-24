@@ -33,6 +33,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <types/handles.h>
 #include <time.h>       /* time_t */
 
 /* XCB includes */
@@ -43,8 +44,6 @@
 
 /* Project includes */
 #include <config.h>
-#include <surface.h>
-#include <wm.h>
 
 /* Local includes */
 #include <systray.h>

@@ -49,6 +49,9 @@
 #include <surface.h>
 #include <wm.h>
 
+#include <desktop.h>
+#include <config.h>
+
 /* Local includes */
 #include <render/desktop.h>
 #include <render/icon.h>

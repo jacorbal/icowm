@@ -28,8 +28,7 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
-#include <client.h>
-#include <desktop.h>
+#include <types/handles.h>
 #include <surface.h>
 
 

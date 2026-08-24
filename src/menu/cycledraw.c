@@ -38,6 +38,9 @@
 #include <client.h>
 #include <config.h>
 
+#include <surface.h>
+#include <desktop.h>
+
 /* Local includes */
 #include <menu/draw.h>
 #include <menu/cycle.h>

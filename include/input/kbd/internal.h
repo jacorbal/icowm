@@ -36,16 +36,11 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
-#include <adt/list.h>
 
 /* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <surface.h>
-#include <wm.h>
 
 /* Local includes */
+#include <types/handles.h>
 #include <input/kbd/bind.h>
 
 

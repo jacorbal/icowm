@@ -35,13 +35,12 @@
 #include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
-#include <adt/list.h>
 
 /* Default initial values */
+#include <types/handles.h>
 #include <defs/kbd.h>
 
 /* Project includes */
-#include <config.h>
 
 
 /**

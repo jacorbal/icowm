@@ -25,11 +25,10 @@
 #include <xcb/xcb_keysyms.h>
 
 /* Default initial values */
+#include <types/handles.h>
 #include <defs/kbd.h>
 
 /* Project includes */
-#include <client.h>
-#include <config.h>
 #include <render/surface.h>
 
 

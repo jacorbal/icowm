@@ -50,9 +50,9 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
-#include <adt/list.h>
 
 /* Default initial values */
+#include <types/handles.h>
 #include <defs/sn.h>
 
 

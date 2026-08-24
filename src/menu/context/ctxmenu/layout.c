@@ -18,6 +18,9 @@
 #include <menu/draw.h>
 #include <render/text.h>
 
+#include <config.h>
+#include <client.h>
+
 /* Local includes */
 #include <menu/context/ctxmenu/layout.h>
 

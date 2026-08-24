@@ -21,14 +21,13 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <types/handles.h>
 #include <time.h>       /* timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
 
 /* Project includes */
-#include <config.h>
-#include <surface.h>
 
 /* Default initial values */
 #include <defs/desktop.h>

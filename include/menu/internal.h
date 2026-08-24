@@ -31,13 +31,10 @@
 #include <xcb/xproto.h>
 
 /* Default initial values */
+#include <types/handles.h>
 #include <defs/cycle.h>
 
 /* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <surface.h>
 
 
 /**
@@ -64,23 +61,23 @@ struct cycle_menu_state_s {
     int viewport_rows;
 
     int last_drawn_selected;     /**< @p selected as of @a cycle_draw's
-                                       own most recent call, so it can
-                                       redraw only the rows that actually
-                                       changed selection instead of the
-                                       whole viewport when
-                                       @p scroll_offset did not also
-                                       change; meaningless until
-                                       @p has_drawn_once */
+                                      own most recent call, so it can
+                                      redraw only the rows that actually
+                                      changed selection instead of the
+                                      whole viewport when
+                                      @p scroll_offset did not also
+                                      change; meaningless until
+                                      @p has_drawn_once */
 
     int last_drawn_scroll_offset; /**< See @p last_drawn_selected */
 
     xcb_window_t outline_windows[4]; /**< The 4 strip windows (see
-                                           render/outline.h) outlining
-                                           whichever client is
-                                           currently selected; @c
-                                           XCB_WINDOW_NONE in all 4
-                                           slots until the first
-                                           selection is applied */
+                                          render/outline.h) outlining
+                                          whichever client is
+                                          currently selected; @c
+                                          XCB_WINDOW_NONE in all 4
+                                          slots until the first
+                                          selection is applied */
 
     uint16_t width;
     uint16_t modifier;

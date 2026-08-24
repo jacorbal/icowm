@@ -55,9 +55,8 @@
 #include <xcb/xcb_keysyms.h>
 
 /* Project includes */
-#include <config.h>
+#include <types/handles.h>
 #include <render/wmicon.h>
-#include <surface.h>
 
 /* Default initial values */
 #include <defs/ctxmenu.h>

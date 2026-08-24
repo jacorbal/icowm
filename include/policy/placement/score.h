@@ -31,11 +31,10 @@
 #include <stdint.h>
 
 /* Type includes */
+#include <types/handles.h>
 #include <types/pair.h>
 
 /* Project includes */
-#include <client.h>
-#include <desktop.h>
 
 
 /* Public interface */

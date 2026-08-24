@@ -26,9 +26,8 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
-#include <client.h>
+#include <types/handles.h>
 #include <config.h>
-#include <desktop.h>
 
 
 /**

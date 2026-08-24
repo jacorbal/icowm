@@ -39,10 +39,9 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
-#include <config.h>
-#include <surface.h>
 
 /* Menu includes */
+#include <types/handles.h>
 #include <menu/dialog/message.h>    /* menu_msg_level_e */
 
 

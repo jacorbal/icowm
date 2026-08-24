@@ -29,6 +29,8 @@
 /* Project includes */
 #include <render/text.h>
 
+#include <xcb/xcb_ewmh.h>
+
 /* Local includes */
 #include <systray/battery.h>
 #include <systray/internal.h>

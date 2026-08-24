@@ -18,10 +18,10 @@
 
 
 /* Type includes */
+#include <types/handles.h>
 #include <types/pair.h>
 
 /* Project includes */
-#include <client.h>
 
 
 /* Public interface */

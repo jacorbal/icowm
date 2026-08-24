@@ -39,8 +39,8 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
+#include <types/handles.h>
 #include <types/pair.h> /* strut_partial_s */
-#include <wm.h>
 
 /* Default initial values */
 #include <defs/systray.h> /* WM_SYSTRAY_MAX_ICONS */
