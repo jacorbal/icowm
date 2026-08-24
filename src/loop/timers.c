@@ -65,7 +65,8 @@
  *
  * @note Complexity: @e O(1)
  */
-static void s_timers_tighten(int *poll_timeout_ms, int candidate_ms)
+static void s_loop_timers_tighten(int *poll_timeout_ms,
+        int candidate_ms)
 {
     if (candidate_ms >= 0 && candidate_ms < *poll_timeout_ms) {
         *poll_timeout_ms = candidate_ms;
@@ -86,39 +87,41 @@ int loop_timers_timeout(const loop_ctx_td *ctx)
      * that report a remaining time even while closed, so both are
      * asked only while actually open */
     if (popup_is_open()) {
-        s_timers_tighten(&poll_timeout_ms, popup_ms_remaining());
+        s_loop_timers_tighten(&poll_timeout_ms, popup_ms_remaining());
     }
 
     if (notify_desktop_is_open()) {
-        s_timers_tighten(&poll_timeout_ms,
+        s_loop_timers_tighten(&poll_timeout_ms,
                 notify_desktop_ms_remaining());
     }
 
-    s_timers_tighten(&poll_timeout_ms, systray_clock_ms_remaining());
+    s_loop_timers_tighten(&poll_timeout_ms,
+            systray_clock_ms_remaining());
 
-    s_timers_tighten(&poll_timeout_ms,
+    s_loop_timers_tighten(&poll_timeout_ms,
             urgency_blink_ms_remaining(ctx->config));
 
-    s_timers_tighten(&poll_timeout_ms, cctl_sn_ms_remaining());
+    s_loop_timers_tighten(&poll_timeout_ms, cctl_sn_ms_remaining());
 
     /* Shorter still while a resize-cursor poll target is being
      * tracked (see 'mouse_hover_poll_tick' in input/mouse/hover.h),
      * so an undecorated client's cursor gets re-evaluated promptly as
      * the pointer moves within it. */
-    s_timers_tighten(&poll_timeout_ms, mouse_hover_poll_ms_remaining());
+    s_loop_timers_tighten(&poll_timeout_ms,
+            mouse_hover_poll_ms_remaining());
 
     /* Shorter still while a confirm dialog has a timer of its own
      * running (see 'menu_confirm_dialog_tick' in menu/dialog/
      * confirm.h): a pending click-triggered close/accept, or a
      * countdown timeout that needs its visible number to advance once
      * a second and, once it fully elapses, to act. */
-    s_timers_tighten(&poll_timeout_ms,
+    s_loop_timers_tighten(&poll_timeout_ms,
             menu_confirm_dialog_ms_remaining());
 
     /* Shorter still while the message dialog has a click-triggered
      * close of its own pending (see 'menu_message_dialog_tick' in
      * menu/dialog/message.h). */
-    s_timers_tighten(&poll_timeout_ms,
+    s_loop_timers_tighten(&poll_timeout_ms,
             menu_message_dialog_ms_remaining());
 
     /* Shorter still while a window drag is holding the pointer
@@ -126,19 +129,19 @@ int loop_timers_timeout(const loop_ctx_td *ctx)
      * input/mouse/drag.h), so it still switches desktops once its own
      * countdown elapses even with no further 'MotionNotify' arriving
      * to drive it. */
-    s_timers_tighten(&poll_timeout_ms, drag_warp_ms_remaining());
+    s_loop_timers_tighten(&poll_timeout_ms, drag_warp_ms_remaining());
 
     /* Shorter still while a coordinated shutdown (see
      * 'wm_shutdown_tick' in wm/shutdown.h) is waiting on managed
      * clients to close on their own, so the timeout that forces the
      * rest closed elapses promptly instead of waiting for the next
      * unrelated event to wake the loop up. */
-    s_timers_tighten(&poll_timeout_ms, wm_shutdown_ms_remaining());
+    s_loop_timers_tighten(&poll_timeout_ms, wm_shutdown_ms_remaining());
 
     /* Shorter still while a process kill is pending escalation to
      * 'SIGKILL' (see 'cctl_kill_tick' in wm/kill.h), for the same
      * reason. */
-    s_timers_tighten(&poll_timeout_ms, cctl_kill_ms_remaining());
+    s_loop_timers_tighten(&poll_timeout_ms, cctl_kill_ms_remaining());
 
     return poll_timeout_ms;
 }

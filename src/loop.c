@@ -11,16 +11,10 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L /* poll, strerror */
-
-
 /* System includes */
-#include <errno.h>      /* EINTR */
-#include <poll.h>       /* poll */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* free, NULL */
-#include <string.h>     /* strerror */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -34,14 +28,8 @@
 /* ADT includes */
 #include <adt/list.h>
 
-/* Session includes */
-#include <session.h>
-
 /* Render includes */
 #include <render/surface.h>
-
-/* IPC includes */
-#include <ipc.h>
 
 /* Input includes */
 #include <input/kbd/bind.h>
@@ -59,16 +47,12 @@
 #include <menu/popup.h>
 #include <menu/search.h>
 
-/* Default initial values */
-#include <defs/ipc.h>
-
 /* Project includes */
 #include <handler.h>
 #include <cctl/adopt.h>
 #include <client.h>
 #include <lookup.h>
 #include <logger.h>
-#include <wm/startup/handle.h>
 #include <wm/startup/install.h>
 #include <surface.h>
 #include <wm.h>
@@ -76,6 +60,8 @@
 /* Local includes */
 #include <loop.h>
 #include <loop/context.h>
+#include <loop/pollset.h>
+#include <loop/signals.h>
 #include <loop/timers.h>
 
 
@@ -224,7 +210,6 @@ static void s_loop_update_full(const loop_ctx_td *ctx)
 void loop_run(wm_td *wm)
 {
     loop_ctx_td ctx;
-    struct pollfd pfd[1 + IPC_MAX_CLIENTS + 1];
     bool any_outdated;
 
     if (wm == NULL || !wm_is_running(wm)) {
@@ -274,80 +259,13 @@ void loop_run(wm_td *wm)
 
     while (wm_is_running(wm)) {
         xcb_generic_event_t *event;
-        int nfds;
-        int poll_status;
-        int poll_timeout_ms;
-        int conn_error;
-        int ipc_fds[IPC_MAX_CLIENTS + 1];
-        int ipc_count = ipc_poll_fds(ipc_fds,
-                (int) (sizeof(ipc_fds) / sizeof(ipc_fds[0])));
 
-        if (wm_startup_requested_stop()) {
-            LOGGER_INFO("Termination signal received;" \
-                    " requesting shutdown", L_NARG);
-            wm_request_stop();
+        if (!loop_signals_process(&ctx)) {
             break;
         }
 
-        if (wm_startup_requested_reload()) {
-            LOGGER_INFO("'SIGHUP' received; reloading configuration",
-                    L_NARG);
-            (void) wm_action_config_reload(wm);
-        }
-
-        if (wm_startup_requested_resume()) {
-            LOGGER_INFO("'SIGCONT' received; re-establishing" \
-                    " input grabs", L_NARG);
-            keyboard_load(ctx.surfaces, ctx.keysyms, ctx.config);
-            mouse_load(ctx.surfaces, ctx.config);
-        }
-
-        if (wm_startup_requested_child_reap()) {
-            session_reap_children();
-        }
-
-        conn_error = xcb_connection_has_error(ctx.connection);
-        if (conn_error != 0) {
-            LOGGER_ERROR("X connection error detected (%s);" \
-                    " requesting shutdown",
-                    handler_connection_error_string(conn_error));
-            wm_request_stop();
+        if (!loop_pollset_wait(&ctx, loop_timers_timeout(&ctx))) {
             break;
-        }
-
-        pfd[0].fd = xcb_get_file_descriptor(ctx.connection);
-        pfd[0].events = POLLIN;
-        pfd[0].revents = 0;
-        nfds = 1;
-
-        for (int i = 0; i < ipc_count; ++i) {
-            pfd[nfds].fd = ipc_fds[i];
-            pfd[nfds].events = POLLIN;
-            pfd[nfds].revents = 0;
-            ++nfds;
-        }
-
-        poll_timeout_ms = loop_timers_timeout(&ctx);
-
-        poll_status = poll(pfd, (nfds_t) nfds, poll_timeout_ms);
-        if (poll_status < 0 && errno != EINTR) {
-            LOGGER_ERROR("Failed waiting on X connection: %s",
-                    strerror(errno));
-            break;
-        }
-
-        /* Every non-X11 descriptor 'poll' reported ready belongs to
-         * IPC (index 0 is always the X connection, handled below via
-         * 'xcb_poll_for_event' instead of this array at all).
-         * 'ipc_handle_readable' itself tells the listening socket
-         * apart from an already-connected client, so nothing here
-         * needs to. */
-        if (poll_status > 0) {
-            for (int i = 1; i < nfds; ++i) {
-                if (pfd[i].revents & POLLIN) {
-                    ipc_handle_readable(wm, pfd[i].fd);
-                }
-            }
         }
 
         loop_timers_tick(&ctx);
