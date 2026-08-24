@@ -230,7 +230,8 @@ void handler_map_request(const wm_td *wm,
         wm_outdate_desktop(desktop);
     }
 
-    /* Dock/panel windows self-position; do not override their geometry */
+    /* Dock and panel windows position themselves, so their
+     * geometry is never overridden */
     if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK &&
             !client->has_rule_position_locked) {
         place_window_apply(wm, surface, client);
@@ -370,7 +371,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * 'client_focus_fallback') redirects to whichever mapped
          * transient descendant of the new target should actually
          * receive focus in its place (see 'ccmd_client_focus_target'
-         * 's own doc comment, cmds/client/internal.h), and that
+         * 's comment, cmds/client/internal.h), and that
          * redirect walk excludes a 'CLIENT_FLAG_HIDDEN' candidate
          * specifically so a fallback landing back on 'client''s own
          * parent does not find this same withdrawing 'client' here
@@ -418,9 +419,9 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * already resolved locally above (from the same
          * 'lookup_find_client' call this whole handler already made),
          * so calling the convenience wrapper here would only re-derive
-         * both through a redundant lookup of its own -- an O(n) scan
-         * over the global 'wm->surfaces' for 'surface' alone -- for
-         * values already sitting in scope. */
+         * both through a redundant lookup, an O(n) scan over the
+         * global 'wm->surfaces' for 'surface' alone, for values
+         * already sitting in scope. */
         wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
@@ -481,7 +482,7 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
      * not before: 'ccmd_client_focus' (called from inside this),
      * itself redirects to whichever mapped transient descendant of
      * the new target should actually receive focus in its place
-     * (see 'ccmd_client_focus_target''s own doc comment, cmds/
+     * (see 'ccmd_client_focus_target''s comment, cmds/
      * client/internal.h).  With 'client' (the very dialog now
      * closing) still sitting in 'desktop->clients' at the time of
      * that redirect, a fallback landing back on its own parent would

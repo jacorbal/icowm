@@ -29,7 +29,7 @@
 #include <wm/internal.h>
 
 
-/* Visit every currently managed client across every surface and desktop */
+/* Visit every managed client, on every surface and desktop */
 uint32_t wm_for_each_client(const wm_td *wm,
         void (*action)(client_td *client,
             void *userdata), void *userdata)

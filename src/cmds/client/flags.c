@@ -66,7 +66,7 @@
  *
  * Carries what used to sit inside @a ccmd_client_pin so
  * that function can redirect to, and cascade across, a transient
- * family (see its own doc comment).
+ * family (see its comment).
  *
  * @param client Client to pin; must be non-null
  *
@@ -113,7 +113,7 @@ static void s_ccmd_client_pin_visit(client_td *member, void *ctx)
  *
  * Carries what used to sit inside @a ccmd_client_unpin so
  * that function can redirect to, and cascade across, a transient
- * family (see its own doc comment).
+ * family (see its comment).
  *
  * @param client Client to unpin; must be non-null and unlocked
  *
@@ -232,7 +232,7 @@ void ccmd_client_pin(client_td *client)
  *        whole transient family along with it
  *
  * The matching half of @a ccmd_client_pin's own transient-family
- * cascade (see its own doc comment for the full reasoning): redirects
+ * cascade (see its comment for the full reasoning): redirects
  * to the family's top-most ancestor first, unpinning it exactly as
  * this function always has, then unpins every other family member
  * still pinned too, so a family pinned together stays together when

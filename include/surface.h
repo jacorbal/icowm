@@ -80,8 +80,9 @@ struct surface_properties_s {
     struct dpi_s dpi;           /**< Dots per inch */
 
     struct {
-        xcb_visualid_t visual_id;               /**< Associated visual */
-        struct visual_properties_s properties;  /**< Visual properties */
+        xcb_visualid_t visual_id;       /**< Associated visual */
+        /** Visual properties */
+        struct visual_properties_s properties;
     } visual_info;
 };
 
@@ -121,22 +122,26 @@ struct surface_s {
     xcb_ewmh_connection_t *ewmh;    /**< Pointer to EWMH connection */
     cdlist_td *desktops;            /**< Circular list of desktops */
     config_td *config;              /**< Configuration */
-    uint32_t id;                    /**< Screen unique identifier or index */
-    uint32_t desktop_count;         /**< No. of desktops for this surface */
+    uint32_t id;                    /**< Screen identifier or index */
+    /** Number of desktops on this surface */
+    uint32_t desktop_count;
     uint32_t desktop_cur;           /**< Index of current desktop */
-    uint32_t monitor_count;         /**< No. of entries in @p monitors */
+    uint32_t monitor_count;         /**< Entries in @p monitors */
 
-    uint32_t primary_monitor_index; /**< Index into 'monitors' RandR
-                                         reports as primary, or @c 0 (the
-                                         first monitor) if none was
-                                         flagged */
+    /**
+     * @brief Index into @p monitors of the one RandR reports as
+     *        primary
+     *
+     * Left at @c 0, the first monitor, when none was flagged.
+     */
+    uint32_t primary_monitor_index;
 
     struct {
         uint32_t output_id;         /**< Active output identifier */
         uint32_t crtc_id;           /**< Active CRTC identifier */
         uint32_t mode_id;           /**< Active mode identifier */
         uint16_t rotation;          /**< Effective rotation mask */
-        bool is_known;              /**< Whether output metadata is known */
+        bool is_known;              /**< Whether metadata is known */
     } randr;
 
     /* Properties */
@@ -167,8 +172,9 @@ struct surface_s {
      */
     bool strutless_maximize;
 
-    bool is_showing_desktop;        /**< EWMH @c _NET_SHOWING_DESKTOP state */
-    bool is_outdated;               /**< Flag if data needs to be updated */
+    /** EWMH @c _NET_SHOWING_DESKTOP state */
+    bool is_showing_desktop;
+    bool is_outdated;               /**< Data needs updating */
 };
 
 
@@ -376,7 +382,7 @@ desktop_td *surface_desktop_get(surface_td *surface,
  * combination actually places it at, which is not simply @c row
  * @c 0, @c col @c desktop_id once @c corner is anything other than
  * top-left, nor once @c orientation is vertical (see @a s_layout_
- * row_col's own doc comment, surface/desktops.c, for the fuller
+ * row_col's comment, surface/desktops.c, for the fuller
  * reasoning).
  *
  * @param surface    Pointer to the surface structure
@@ -404,7 +410,7 @@ bool surface_desktop_row_col(const surface_td *surface,
  * every desktop already sits in the one and only row.  Skips past
  * any desktop-less gap cell a configured layout's own @c rows @c *
  * @c columns may legitimately exceed the real desktop count with
- * (see @c ci_config_load_screens's own doc comment, config/base/
+ * (see @c ci_config_load_screens's comment, config/base/
  * desktops.c), rather than landing on one.
  *
  * @param surface    Pointer to the surface structure
@@ -452,7 +458,7 @@ desktop_td *surface_desktop_south(surface_td *surface,
  * @c orientation/@c corner combination happens to hold (never simply
  * "@c desktop_id @c - @c 1": once @c corner is anything other than
  * top-left, a lower ID can sit visually east of a higher one, not
- * west; see @a s_layout_row_col's own doc comment, surface/
+ * west; see @a s_layout_row_col's comment, surface/
  * desktops.c, for the full reasoning), skipping past any desktop-
  * less gap cell along the way.  If the current desktop is the
  * westmost in its own row, and cycling is enabled, wraps to the
@@ -499,7 +505,7 @@ desktop_td *surface_desktop_east(surface_td *surface,
  * @brief Select the desktop toward the north, optionally cycling
  *
  * Attempts to select the desktop toward the north of the current one
- * (see @a surface_desktop_north's own doc comment).  Updates
+ * (see @a surface_desktop_north's comment).  Updates
  * @p desktop_cur only on success.
  *
  * @param surface Pointer to the surface structure
@@ -517,7 +523,7 @@ int surface_desktop_select_north(surface_td *surface, bool cycle);
  * @brief Select the desktop toward the south, optionally cycling
  *
  * Attempts to select the desktop toward the south of the current one
- * (see @a surface_desktop_south's own doc comment).  Updates
+ * (see @a surface_desktop_south's comment).  Updates
  * @p desktop_cur only on success.
  *
  * @param surface Pointer to the surface structure
@@ -536,7 +542,7 @@ int surface_desktop_select_south(surface_td *surface, bool cycle);
  *        optionally cycling
  *
  * Attempts to select the desktop toward the west of the current one
- * (see @a surface_desktop_west's own doc comment for what "west"
+ * (see @a surface_desktop_west's comment for what "west"
  * means with and without a configured layout).  If the current
  * desktop is the first and cycle mode is enabled, it will select the
  * last desktop, updating @p desktop_cur.
@@ -557,7 +563,7 @@ int surface_desktop_select_west(surface_td *surface, bool cycle);
  *        cycling
  *
  * Attempts to select the desktop toward the east of the current one
- * (see @a surface_desktop_east's own doc comment for what "east"
+ * (see @a surface_desktop_east's comment for what "east"
  * means with and without a configured layout).  If the current
  * desktop is the last and cycle mode is enabled, it will select the
  * first desktop, updating @p desktop_cur.
@@ -598,7 +604,7 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id);
  * layout by one row or column first, whichever @c orientation
  * treats as the non-primary axis, when there is not already a
  * desktop-less gap cell in it for the new desktop to land on (see
- * @a s_surface_layout_grow_for's own doc comment, surface/switch.c,
+ * @a s_surface_layout_grow_for's comment, surface/switch.c,
  * for the fuller reasoning on why that one axis specifically).
  * Purely a "create it" action either way: @p surface's own current
  * view never switches to the new desktop, whether growing a new
@@ -635,7 +641,7 @@ int surface_action_desktop_add(surface_td *surface);
  * Refuses outright when only one desktop remains (@c surface's own
  * desktop count must stay at least @c 1).  Restricted-memory mode
  * always has exactly one desktop and no way to reach a second one
- * (see @a surface_action_desktop_add's own doc comment), so that
+ * (see @a surface_action_desktop_add's comment), so that
  * same guard alone already refuses this call every time it runs
  * under that mode too, with no separate check of its own needed
  * here.  Every client still on the

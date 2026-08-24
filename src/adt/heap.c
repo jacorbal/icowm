@@ -100,7 +100,7 @@ int heap_insert(heap_td *heap, const void *data)
     /* Insert the node after the last node */
     heap->tree[heap_size(heap)] = (void *) data;
 
-    /* Heapify the tree by pushing the contents of the new node upward */
+    /* Heapify by pushing the new node's contents upward */
     ipos = heap_size(heap);
     ppos = s_heap_parent(ipos);
 
@@ -165,10 +165,10 @@ int heap_extract(heap_td *heap, void **data)
             heap->tree = temp;
             heap->capacity = new_cap;
         }
-        /* 'realloc' failure is non-fatal, for the tree is still valid */
+        /* A 'realloc' failure is not fatal, the tree stays valid */
     }
 
-    /* Heapify the tree by pushing the contents of the new top downward */
+    /* Heapify by pushing the new top's contents downward */
     ipos = 0;
 
     while (true) {

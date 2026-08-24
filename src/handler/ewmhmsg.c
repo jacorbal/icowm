@@ -365,7 +365,7 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
  *
  * Carries what used to sit inside
  * @a hi_handle_net_wm_desktop so that function can redirect to, and
- * cascade across, a transient family (see its own doc comment) while
+ * cascade across, a transient family (see its comment) while
  * still sharing this single client's worth of EWMH desktop-move
  * plumbing with the top-level call it makes on the family's own top
  * parent and on every other member in turn.
@@ -475,7 +475,7 @@ void hi_handle_net_current_desktop(const wm_td *wm,
  *        requested client's whole transient family along with it
  *
  * The EWMH counterpart to @a ccmd_client_iconify's own transient-
- * family cascade (see its own doc comment, cmds/client/visibility.c,
+ * family cascade (see its comment, cmds/client/visibility.c,
  * for the full reasoning): redirects to the family's top-most
  * ancestor first, moving it exactly as this handler always has, then
  * moves every other member of that same family too, so a "save

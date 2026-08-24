@@ -100,9 +100,10 @@
 #define MOD_SHIFT    XCB_MOD_MASK_SHIFT     /**< Shift modifier */
 #define MOD_CTRL     XCB_MOD_MASK_CONTROL   /**< Control modifier */
 #define MOD_ALT      XCB_MOD_MASK_1         /**< Alt/Mod1 modifier */
-#define MOD_SUPER    XCB_MOD_MASK_4         /**< Super/Win/Mod4 modifier */
+#define MOD_SUPER    XCB_MOD_MASK_4     /**< Super, Win or Mod4 */
 #define MOD_HYPER    XCB_MOD_MASK_5         /**< Hyper/Mod5 modifier */
-#define MOD_NUMLOCK  XCB_MOD_MASK_2         /**< Num_Lock/Mod2 (locking) */
+/** Num_Lock, or Mod2, which is a locking modifier */
+#define MOD_NUMLOCK  XCB_MOD_MASK_2
 #define MOD_CAPSLOCK XCB_MOD_MASK_LOCK      /**< Caps_Lock (locking) */
 
 /**

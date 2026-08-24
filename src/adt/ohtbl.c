@@ -82,7 +82,7 @@ static size_t s_ohtbl_gcd(size_t a, size_t b)
  *       is never actually probed with more than one candidate slot
  *       to begin with, so this is never called in that case
  * @note Complexity: @e O(positions) worst case, but see this
- *       function's own doc comment above for why that bound is never
+ *       function's comment above for why that bound is never
  *       actually approached in practice
  */
 static size_t s_ohtbl_step(size_t h2_raw, size_t positions)
@@ -113,7 +113,7 @@ static size_t s_ohtbl_step(size_t h2_raw, size_t positions)
  * Called right after @p size grows by one, so a burst of insertions
  * arriving before @c OHTBL_SHRINK_COOLDOWN_MS runs out drops the
  * whole pending shrink outright rather than merely pausing it; see
- * @c OHTBL_SHRINK_COOLDOWN_MS's own doc comment (ohtbl.h) for why
+ * @c OHTBL_SHRINK_COOLDOWN_MS's comment (ohtbl.h) for why
  * this is worth doing at all.
  *
  * @param htbl Table just grown by one element
@@ -190,7 +190,7 @@ static int s_ohtbl_resize(ohtbl_td *htbl, size_t new_positions)
 
     /* Any resize, in either direction, starts a fresh assessment of
      * whether the new capacity is itself underused; see
-     * 'OHTBL_SHRINK_COOLDOWN_MS''s own doc comment (ohtbl.h) */
+     * 'OHTBL_SHRINK_COOLDOWN_MS''s comment (ohtbl.h) */
     htbl->is_shrink_pending = false;
 
     return 0;
@@ -315,7 +315,7 @@ ohtbl_td *ohtbl_init(size_t positions, const size_t min_positions,
     htbl->size = 0;
 
     /* No shrink wait outstanding yet; see 'OHTBL_SHRINK_COOLDOWN_MS'
-     * own doc comment (ohtbl.h) */
+     * comment (ohtbl.h) */
     htbl->is_shrink_pending = false;
 
     return htbl;

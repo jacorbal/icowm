@@ -371,7 +371,7 @@ void mi_cycle_preview_style_target(xcb_connection_t *connection,
 }
 
 
-/* Apply cycle preview highlighting and stacking for the selected client */
+/* Apply the cycle preview highlight and stacking to the selection */
 void mi_cycle_preview_apply(xcb_connection_t *connection,
         const config_td *config)
 {
@@ -440,10 +440,10 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                  * via the same shared function every other place a
                  * deselected icon needs repainting already uses (see
                  * 's_cycle_repaint_icon' in menu/cycle.c), rather
-                 * than this function's own separate, previously
-                 * duplicated implementation of the same thing --
-                 * duplication that is exactly how this and that
-                 * other one drifted out of sync in the first place
+                 * than a separate, duplicated implementation of the
+                 * same thing.  That duplication is exactly how this
+                 * one and that other one drifted out of sync in the
+                 * first place
                  * (this one never learned to omit the pixmap for a
                  * newly *selected* icon, below). */
                 ri_render_client_icon(g_cycle_menu.desktop, previous,

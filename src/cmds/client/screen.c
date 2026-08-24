@@ -31,7 +31,7 @@
 #include <cmds/client/screen.h>
 
 
-/* Return the frame window when decorated, otherwise the client window */
+/* Return the frame when decorated, the client window otherwise */
 xcb_window_t ccmd_target_win(client_td *client)
 {
     if (client == NULL) {

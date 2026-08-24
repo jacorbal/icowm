@@ -70,8 +70,8 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
         surface_td *surface, list_td *surfaces,
         const config_td *config)
 {
-    xcb_connection_t *const conn = (surface != NULL) ? surface->connection
-                                               : NULL;
+    xcb_connection_t *const conn = (surface != NULL)
+        ? surface->connection : NULL;
 
     /* Up arrow: go to previous entry */
     if (keysym == KS_UP) {
@@ -117,7 +117,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
         return;
     }
 
-    /* A bare modifier key-press (e.g. tapping Shift on its own while
+    /* A bare modifier key-press (e.g., tapping Shift on its own while
      * Alt is still held, to switch cycling direction before the next
      * cycle-next/prev key comes back down) generates its own KeyPress
      * for that modifier's own keysym, which matches none of the cases
@@ -156,8 +156,8 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
 static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
         surface_td *surface, const config_td *config)
 {
-    xcb_connection_t *const conn = (surface != NULL) ? surface->connection
-                                               : NULL;
+    xcb_connection_t *const conn = (surface != NULL)
+        ? surface->connection : NULL;
 
     /* Tab, Left arrow, Right arrow: toggle selected button */
     if (keysym == KS_TAB || keysym == KS_LEFT || keysym == KS_RIGHT) {
@@ -166,7 +166,8 @@ static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
         return;
     }
 
-    /* Enter / KP_Enter / Space: activate the currently selected button */
+    /* Enter, KP_Enter and Space activate the currently selected
+     * button */
     if (keysym == KS_RETURN || keysym == KS_KP_ENTER ||
             keysym == KS_SPACE) {
         if (conn != NULL) { menu_confirm_dialog_accept(conn); }

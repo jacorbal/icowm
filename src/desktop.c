@@ -626,7 +626,7 @@ void desktop_destroy(desktop_td *desktop)
     LOGGER_DEBUG("Destroying desktop %u ('%s')",
             desktop->id, desktop->name);
 
-    /* Destroy stacking list (clients not destroyed here, just the list) */
+    /* Destroy the stacking list itself, not the clients on it */
     LOGGER_TRACE("Deallocating stacking list on desktop %u ('%s')",
             desktop->id, desktop->name);
     if (desktop->stacking != NULL) {

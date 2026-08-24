@@ -404,7 +404,7 @@ void scratchpad_reposition(surface_td *surface)
 }
 
 
-/* Release the scratchpad client reference, if the given client was it */
+/* Release the scratchpad client reference, when it is that one */
 void scratchpad_notice_client_destroyed(const client_td *client)
 {
     if (client != NULL && client == s_scratchpad_client) {

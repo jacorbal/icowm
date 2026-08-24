@@ -54,7 +54,8 @@ bool kbd_modal_is_active(void);
  * original position.
  *
  * @param connection XCB connection
- * @param surface    Surface the client belongs to (used for root window)
+ * @param surface    Surface the client belongs to, used for the root
+ *                   window
  * @param client     Client to move
  *
  * @note Complexity: @e O(1)
@@ -72,7 +73,8 @@ void kbd_modal_move_start(xcb_connection_t *connection,
  * size.
  *
  * @param connection XCB connection
- * @param surface    Surface the client belongs to (used for root window)
+ * @param surface    Surface the client belongs to, used for the root
+ *                   window
  * @param client     Client to resize
  *
  * @note Complexity: @e O(1)
@@ -91,7 +93,8 @@ void kbd_modal_resize_start(xcb_connection_t *connection,
  *                   used as fallback)
  * @param surface    Current surface (used for move/resize step config)
  * @param keysym     X keysym of the pressed key
- * @param config     Active configuration (for move and resize step sizes)
+ * @param config     Active configuration, for the move and resize
+ *                   step sizes
  *
  * @return @c true (the key is always consumed while modal is active)
  *

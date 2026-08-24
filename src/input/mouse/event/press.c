@@ -554,7 +554,8 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
         return;
     }
 
-    /* Step 6: no configured binding: handle frame/titlebar/root clicks */
+    /* Step 6: with no binding configured, handle the click on the
+     * frame, the titlebar or the root window */
     if (type == MOUSEBIND_NONE) {
         if (client != NULL) {
             surface = lookup_surface_for_root(surfaces, event->root);

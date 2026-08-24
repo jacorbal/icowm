@@ -358,7 +358,7 @@ int session_load(session_td *session, const char *config_dir_prefix)
 }
 
 
-/* Spawn every command registered for the given session lifecycle hook */
+/* Spawn every command registered for a session lifecycle hook */
 void session_run_hook(const session_td *session,
         xcb_connection_t *connection, enum session_hook_e hook)
 {
@@ -379,7 +379,7 @@ void session_run_hook(const session_td *session,
 }
 
 
-/* Reap all finished child processes previously spawned by session hooks */
+/* Reap every finished child spawned by a session hook */
 void session_reap_children(void)
 {
     int status;

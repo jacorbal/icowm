@@ -76,7 +76,7 @@ static size_t s_atom_cache_count = 0u;
  *        cache
  *
  * A linear scan, not a hash table: the cache holds only a few dozen
- * entries at most (see @c ATOM_CACHE_CAPACITY's own doc comment), so
+ * entries at most (see @c ATOM_CACHE_CAPACITY's comment), so
  * scanning every one of them is already effectively free next to the
  * X server round trip it exists to avoid.
  *

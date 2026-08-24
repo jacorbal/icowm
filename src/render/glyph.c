@@ -392,7 +392,7 @@ static int16_t s_glyph_advance_for(uint32_t codepoint)
 }
 
 
-/* Try to initialize the glyph renderer for the given font description */
+/* Try to initialize the glyph renderer for a font description */
 int glyph_renderer_init(xcb_connection_t *connection,
         const char *font_name)
 {

@@ -18,9 +18,10 @@
  * This is achieved by using the keyword "DEFAULT" as the file name when
  * initializing the logger.
  *
- * @note The initial logic behind the different log levels came from an
- *       answer on Stack Overflow (answered on Nov 12, 2020)
- * <https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels#answer-64806781>:
+ * @note The initial logic behind the different log levels came from
+ *       an answer on Stack Overflow, answered on Nov 12, 2020, to the
+ *       question "When to use the different log levels", question
+ *       2031163, answer 64806781
  *
  * @verbatim
  *      +-------+                                         ||
@@ -102,9 +103,11 @@
                                              variadic macros in log
                                              messages */
 
-#define LOGGER_MAX_LENGTH_MSG (256)     /**< Max. length of a log message */
-#define LOGGER_FLUSH_THRESHOLD (16)     /**< Number of messages stored in
-                                             buffer before flushing */
+/** Maximum length of a log message */
+#define LOGGER_MAX_LENGTH_MSG (256)
+
+/** Messages held in the buffer before flushing */
+#define LOGGER_FLUSH_THRESHOLD (16)
 
 #define LOGGER_TIMESTAMP_USEC (1 << 0)  /**< Flag to add microseconds
                                              to timestamp */
@@ -117,14 +120,14 @@
 enum logger_level_e {
     LOG_MIN_LEVEL = 0,
     LOG_TRACE = LOG_MIN_LEVEL,  /**< Tracing every single action */
-    LOG_DEBUG,                  /**< Information for debugging purposes */
+    LOG_DEBUG,                  /**< Information for debugging */
     LOG_INFO,                   /**< Record of the normal operation */
-    LOG_NOTICE,                 /**< Normal yet significant information */
+    LOG_NOTICE,                 /**< Normal yet significant */
     LOG_WARNING,                /**< Issues that may lead to errors */
     LOG_ERROR,                  /**< Conditions on operations */
-    LOG_CRITICAL,               /**< Conditions that may lead to failure */
+    LOG_CRITICAL,               /**< May lead to failure */
     LOG_ALERT,                  /**< Immediate action is necessary */
-    LOG_FATAL,                  /**< Program in unusable; shutting down */
+    LOG_FATAL,                  /**< Unusable, shutting down */
     LOG_MAX_LEVEL = LOG_FATAL,
 };
 
@@ -134,11 +137,10 @@ enum logger_level_e {
  *
  * Provides a mechanism for logging messages within the application,
  * including support for different logging levels and buffered message
- * storage.  The logger utilizes a buffer to temporarily store up to
- * @c LOGGER_FLUSH_THRESHOLD (16) messages, each with a maximum length
- * of @c LOGGER_MAX_LENGTH_MSG (160 characters).  This approach minimizes
- * direct file I/O operations by allowing the logger to flush messages
- * in chunks, thereby improving performance while still ensuring message
+ * storage.  The logger buffers up to @c LOGGER_FLUSH_THRESHOLD
+ * messages, each at most @c LOGGER_MAX_LENGTH_MSG characters long.
+ * Buffering lets it flush in chunks rather than writing to the file
+ * on every message, which improves performance while still ensuring
  * delivery in the event of an error.
  *
  * The @p level_min field defines the minimum severity level of messages
@@ -154,7 +156,8 @@ enum logger_level_e {
  */
 typedef struct {
     enum logger_level_e level_min;  /**< Minimum logging level */
-    bool is_tracking;               /**< Track even if not in 'LOG_TRACE' */
+    /** Track even when the level is not @c LOG_TRACE */
+    bool is_tracking;
 
     struct file_s {
         FILE *fp_out;               /**< Pointer to output stream */

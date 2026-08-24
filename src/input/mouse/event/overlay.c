@@ -119,7 +119,7 @@ bool im_press_close_overlays(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *config)
 {
-    /* Popup: close unconditionally on any click, then allow processing */
+    /* A popup closes on any click, and the click goes through */
     if (popup_is_open()) {
         surface_td *const surface = lookup_surface_for_root(surfaces,
                 event->root);

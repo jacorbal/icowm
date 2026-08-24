@@ -504,7 +504,7 @@ static void s_search_confirm(xcb_connection_t *connection,
          * currently shown: pinning never actually moves a client
          * between desktops, it stays registered under whichever one
          * it was originally on forever; see 'ccmd_client_bring_
-         * family''s own doc comment, cmds/client/transient.c, for
+         * family''s comment, cmds/client/transient.c, for
          * the fuller reasoning; so there is nothing to switch to
          * here.  Using its own recorded 'desktop' below instead
          * (wherever it still happens to be registered) would switch
@@ -692,7 +692,8 @@ void search_handle_keypress(xcb_connection_t *connection,
         return;
     }
 
-    if (keysym == 0xff0du || keysym == 0xff8du) {   /* Return / KP_Enter */
+    /* Return or KP_Enter */
+    if (keysym == 0xff0du || keysym == 0xff8du) {
         s_search_confirm(connection, surfaces);
         return;
     }

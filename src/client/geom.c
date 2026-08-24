@@ -573,7 +573,7 @@ void client_size_constrain(const client_td *client,
         /* ICCCM §4.1.2.3: clamp the width/height ratio into
          * ['min_aspect', 'max_aspect'], via 'client_aspect_ratio_clamp'
          * (shared with 'ik_handle_resize' in input/kbd/interact.c, for
-         * exactly the reasoning its own doc comment gives).  Kept as
+         * exactly the reasoning its comment gives).  Kept as
          * the very last adjustment in this whole block, after every
          * other constraint above (including the grid and the second
          * 'min_w'/'min_h' floor just below), so nothing that runs
@@ -742,7 +742,7 @@ int ci_create_decorations(client_td *client)
                 client->frame,
                 XCB_EVENT_MASK_BUTTON_PRESS |
                 XCB_EVENT_MASK_BUTTON_RELEASE,
-                XCB_GRAB_MODE_SYNC,             /* freeze until allowed */
+                XCB_GRAB_MODE_SYNC,         /* freeze until allowed */
                 XCB_GRAB_MODE_ASYNC,
                 XCB_NONE,
                 XCB_NONE,

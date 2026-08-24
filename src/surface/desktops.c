@@ -4,7 +4,7 @@
  * @brief Desktop-list membership and grid navigation for a surface
  *
  * One of the files @c surface/ is made of; see
- * @c surface.c's own doc comment for why.  @c _prev/@c _next are now
+ * @c surface.c's comment for why.  @c _prev/@c _next are now
  * @c _west and @c _east, joined by @c _north and @c _south:
  * a flat desktop list has no genuine "previous" or "next" of
  * its own, only a configured @c topology.screens.desktops layout's
@@ -20,7 +20,7 @@
  * existed before this), and the same names keep meaning exactly what
  * they say, visually, once a layout is configured, regardless of
  * which corner @c desktop_id @c 0 itself starts counting from (see
- * @a s_layout_row_col's own doc comment for why a naive "list-
+ * @a s_layout_row_col's comment for why a naive "list-
  * previous"/"list-next" is not enough on its own to guarantee that
  * once @c corner is anything other than top-left).
  */
@@ -202,7 +202,7 @@ enum s_grid_direction_e {
  *        compass direction, skipping past any desktop-less gap cell
  *        a configured layout's own @c rows @c * @c columns may
  *        legitimately exceed the real desktop count with (see
- *        @c ci_config_load_screens's own doc comment, config/base/
+ *        @c ci_config_load_screens's comment, config/base/
  *        desktops.c, for why a gap like that is accepted rather
  *        than rejected outright)
  *

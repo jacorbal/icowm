@@ -206,7 +206,7 @@ void mouse_resize_cursors_destroy(xcb_connection_t *connection)
 }
 
 
-/* The plain-pointer cursor, the same one shown for 'S_RESIZE_ZONE_NONE' */
+/* The plain pointer cursor, shown for 'S_RESIZE_ZONE_NONE' too */
 xcb_cursor_t mouse_plain_cursor(void)
 {
     return s_resize_cursors[S_RESIZE_ZONE_NONE];

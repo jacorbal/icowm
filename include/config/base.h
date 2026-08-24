@@ -1,7 +1,8 @@
 /**
  * @file config/base.h
  *
- * @brief Screen and desktop topology, and the policies that apply to them
+ * @brief Screen and desktop topology, and the policies that apply
+ *        to them
  *
  * Everything @c config.json's own top-level objects describe: how many
  * screens and desktops exist and what each is called, plus the focus,
@@ -72,8 +73,8 @@ enum config_desktop_corner_e {
  * list @c desktops[] itself already is: north/south/east/west
  * navigation (@a surface_desktop_north and its three siblings,
  * surface/desktops.c) reads this to translate a desktop's own flat
- * index to and from a row/column position, but nothing about @c
- * desktops[] itself, or a desktop's own settings within it, changes
+ * index to and from a row/column position, but nothing about
+ * @c desktops[] itself, or a desktop's own settings within it, changes
  * depending on whether one is configured at all.
  *
  * Always populated with a valid value, whether @c topology.screens.
@@ -83,7 +84,7 @@ enum config_desktop_corner_e {
  * order the desktop list itself already had before this existed, so
  * a config that never mentions layout at all behaves identically to
  * before.  The same fallback also applies whenever a given @c layout
- * fails validation (see @c ci_config_load_screens's own doc comment,
+ * fails validation (see @c ci_config_load_screens's comment,
  * config/base/desktops.c, for what "fails validation" means here).
  */
 struct config_desktop_layout_s {
@@ -98,20 +99,24 @@ struct config_desktop_layout_s {
  * @brief Base settings configuration structure
  */
 struct config_base_s {
-    /* Desktops: number and which on is the default one */
-    uint32_t screen_count;                      /**< Number of screens */
+    /* Desktops, how many and which one is the default */
+    uint32_t screen_count;              /**< Number of screens */
 
     /* Icon placement policy settings */
     struct {
         bool show_geom;     /**< Show geometry overlay on move/resize */
         enum config_icon_placement_e {
-            CONFIG_ICON_PLACEMENT_BOTTOM = 0, /**< Bottom rpw (default) */
-            CONFIG_ICON_PLACEMENT_TOP,        /**< Top row */
-            CONFIG_ICON_PLACEMENT_LEFT,       /**< Left column */
-            CONFIG_ICON_PLACEMENT_RIGHT,      /**< Right column */
-            CONFIG_ICON_PLACEMENT_SMART       /**< First free slot;
-                                                   falls back to bottom
-                                                   when none available */
+            /** Bottom row, the default */
+            CONFIG_ICON_PLACEMENT_BOTTOM = 0,
+            /** Top row */
+            CONFIG_ICON_PLACEMENT_TOP,
+            /** Left column */
+            CONFIG_ICON_PLACEMENT_LEFT,
+            /** Right column */
+            CONFIG_ICON_PLACEMENT_RIGHT,
+            /** First free slot, falling back to the bottom row when
+             *  none is available */
+            CONFIG_ICON_PLACEMENT_SMART
         } placement_policy;
     } icons;
 
@@ -123,8 +128,8 @@ struct config_base_s {
      * here together, rather than the emergency shortcut sitting apart
      * at the top level, since both are about how the window manager
      * itself shuts down, just by two entirely different paths that
-     * never interact with each other; see each field's comment below for
-     * exactly how they differ.
+     * never interact with each other.  Each field's comment below
+     * explains exactly how they differ.
      */
     struct {
         /**
@@ -192,10 +197,10 @@ struct config_base_s {
      * @brief Whether launching a program begins a startup-notification
      *        sequence at all, and that sequence's own timeout
      *
-     * @see @p cctl_sn_begin (its only call site checks @p is_enabled first)
-     *      and @p cctl_sn_set_timeout_seconds / @c SN_TIMEOUT_SECONDS in
-     *      @c sn.h for what @p timeout_seconds controls and its
-     *      built-in default.
+     * @see @a cctl_sn_begin, whose only call site checks
+     *      @p is_enabled first, and @a cctl_sn_set_timeout_seconds
+     *      and @c SN_TIMEOUT_SECONDS in @c sn.h for what
+     *      @p timeout_seconds controls and its built-in default.
      */
     struct {
         bool is_enabled;
@@ -205,15 +210,14 @@ struct config_base_s {
     /* Context-menu placement, per menu type */
     struct {
         struct {
-            enum config_menu_position_e position;   /**< Desktop (root)
-                                                         context menu
-                                                         (@c menu.json) */
+            /** Desktop context menu, from @c menu.json */
+            enum config_menu_position_e position;
         } root;
 
         struct {
-            enum config_menu_position_e position;   /**< Window list menu;
-                                                         every window on
-                                                         every desktop */
+            /** Window list menu, holding every window on every
+             *  desktop */
+            enum config_menu_position_e position;
         } windows;
     } menus;
 
@@ -278,7 +282,7 @@ struct config_base_s {
              */
             struct config_edges_snap_s {
                 uint32_t window; /**< Toward another window's own
-                                       edge */
+                                      edge */
                 uint32_t screen; /**< Toward the screen's own edge */
             } snap;
 
@@ -300,10 +304,11 @@ struct config_base_s {
             uint32_t resistance;
         } edges;
 
-        bool show_geom;         /**< Show geometry overlay on move/resize */
-        bool solid_drag;        /**< Move/resize the real window live, as
-                                      opposed to an outline stand-in
-                                      applied only once the drag ends */
+        /** Show the geometry overlay while moving or resizing */
+        bool show_geom;
+        /** Move and resize the real window live, rather than an
+         *  outline stand-in applied only once the drag ends */
+        bool solid_drag;
 
         /**
          * @brief Cluster a newly placed window next to others sharing
@@ -365,7 +370,7 @@ struct config_base_s {
             uint32_t pixels;
         } width;             /**< Always-applied width */
         struct config_scratchpad_size_s height; /**< Always-applied
-                                                      height */
+                                                     height */
 
         bool is_enabled;    /**< Enable the scratchpad toggle action */
 
@@ -417,8 +422,8 @@ struct config_base_s {
          * the monitor RandR reports as primary; @p index anchors it to
          * @p monitor.index specifically, a zero-based index into that
          * surface's own monitor list (falls back to monitor 0 if it
-         * does not exist, logging a warning, the same as @c rules.json's
-         * own @p apply.monitor).
+         * does not exist, logging a warning, the same as
+         * @c rules.json's own @c apply.monitor).
          *
          * Only one tray dock ever exists at a time regardless of this
          * setting: the @c _NET_SYSTEM_TRAY_Sn specification permits
@@ -437,21 +442,18 @@ struct config_base_s {
                                   @c CONFIG_SYSTRAY_MONITOR_INDEX */
         } monitor;
 
+        /** Where newly docked icons are placed relative to the ones
+         *  already docked */
         enum config_systray_order_e {
-            CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT = 0, /**< New icons are
-                                                         appended after
-                                                         the last one */
-            CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT,     /**< New icons are
-                                                         inserted before
-                                                         the first one */
-            CONFIG_SYSTRAY_ORDER_ASCENDING,         /**< Kept sorted by
-                                                         icon class name,
-                                                         'A-Z' */
-            CONFIG_SYSTRAY_ORDER_DESCENDING         /**< Kept sorted by
-                                                         icon class name,
-                                                         'Z-A' */
-        } order;            /**< Where newly docked icons are placed
-                                 relative to already-docked ones */
+            /** New icons are appended after the last one */
+            CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT = 0,
+            /** New icons are inserted before the first one */
+            CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT,
+            /** Kept sorted by icon class name, 'A' to 'Z' */
+            CONFIG_SYSTRAY_ORDER_ASCENDING,
+            /** Kept sorted by icon class name, 'Z' to 'A' */
+            CONFIG_SYSTRAY_ORDER_DESCENDING
+        } order;
         bool is_enabled;    /**< Enable the built-in systray dock */
 
         /**
@@ -480,12 +482,12 @@ struct config_base_s {
          *        an on-screen area so maximized windows and
          *        placement leave it alone.
          *
-         * @c false by default: nothing reserved, an explicit {0, 0, 0, 0}
-         * strut published, the same as if the tray were not there at
-         * all for placement purposes.  Setting this @c true instead
-         * makes the tray reserve an on-screen area, per the
-         * specification's recommendation for a docking area,
-         * a taskbar, or a panel.
+         * @c false by default, so nothing is reserved and an
+         * explicit {0, 0, 0, 0} strut is published, the same as if
+         * the tray were not there at all for placement purposes.
+         * Setting this @c true instead makes the tray reserve an
+         * on-screen area, per the specification's recommendation for
+         * a docking area, a taskbar, or a panel.
          *
          * @see @a systray_get_reserved_strut and
          *      @a desktop_update_workarea
@@ -545,16 +547,13 @@ struct config_base_s {
          *        relative to normal client windows and fullscreen ones
          */
         enum config_systray_layer_e {
-            CONFIG_SYSTRAY_LAYER_BELOW = 0,     /**< Always behind every
-                                                     normal client window
-                                                     (default) */
-            CONFIG_SYSTRAY_LAYER_ABOVE,         /**< Above normal
-                                                     windows; a
-                                                     fullscreen window
-                                                     still covers it */
-            CONFIG_SYSTRAY_LAYER_OVERLAY        /**< Above everything,
-                                                     including fullscreen
-                                                     windows */
+            /** Always behind every normal client window, the default */
+            CONFIG_SYSTRAY_LAYER_BELOW = 0,
+            /** Above normal windows, though a fullscreen window still
+             *  covers it */
+            CONFIG_SYSTRAY_LAYER_ABOVE,
+            /** Above everything, fullscreen windows included */
+            CONFIG_SYSTRAY_LAYER_OVERLAY
         } layer;
 
         /**
@@ -588,15 +587,19 @@ struct config_base_s {
          * @see @p text
          */
         struct {
-            bool is_enabled;        /**< Draw the battery status at all */
+            /** Draw the battery status at all */
+            bool is_enabled;
 
             struct {
-                uint32_t charged;   /**< Percentage at/above which the
-                                         status reads "Full" */
-                uint32_t low;       /**< Percentage at/below which a
-                                         single '!' is appended */
-                uint32_t critical;  /**< Percentage at/below which two
-                                         '!' are appended instead of one */
+                /** Percentage at or above which the status reads
+                 *  "Full" */
+                uint32_t charged;
+                /** Percentage at or below which a single '!' is
+                 *  appended */
+                uint32_t low;
+                /** Percentage at or below which two '!' are appended
+                 *  instead of one */
+                uint32_t critical;
             } threshold;
 
             /**
@@ -614,12 +617,15 @@ struct config_base_s {
                     CONFIG_BATTERY_BACKEND_APM
                 } type;
 
-                uint32_t number;    /**< Which battery to read when
-                                         a system has more than one,
-                                         0-indexed (e.g., 1 for @c BAT1
-                                         under ACPI); meaningless for
-                                         APM, which only ever exposes one
-                                         aggregate battery */
+                /**
+                 * @brief Which battery to read when a system has more
+                 *        than one, zero-indexed
+                 *
+                 * For instance, 1 selects @c BAT1 under ACPI.
+                 * Meaningless for APM, which only ever exposes one
+                 * aggregate battery.
+                 */
+                uint32_t number;
 
             } backend;
 
@@ -662,18 +668,17 @@ struct config_base_s {
     } systray;
 
     struct {
-        uint32_t desktop_count;                 /**< No. of desktops */
-        uint32_t desktop_inaugural;             /**< Initial desktop */
-        struct config_desktop_layout_s
-            desktop_layout;                      /**< Grid interpretation
-                                                        of the desktop
-                                                        list below */
+        uint32_t desktop_count;         /**< Number of desktops */
+        uint32_t desktop_inaugural;     /**< Initial desktop */
+
+        /** Grid interpretation of the desktop list below */
+        struct config_desktop_layout_s desktop_layout;
 
         struct {
             char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */
             struct desktop_settings_s {
                 union {
-                    //Pixmap image;               /**< Background image */
+                    /* Pixmap image; */         /**< Background image */
                     uint32_t color;             /**< Background color */
                 } background;
             } settings;                         /**< Desktop settings */

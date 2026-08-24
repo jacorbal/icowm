@@ -845,7 +845,7 @@ void wincmenu_show(xcb_connection_t *connection,
     /* Layer (submenu): disabled while fullscreen, since a focused
      * fullscreen client's own stacking is always forced above
      * everything else regardless of its own real layer (see
-     * 'ccmd_desktop_enforce_layers''s own doc comment); choosing a
+     * 'ccmd_desktop_enforce_layers''s comment); choosing a
      * layer here would silently do nothing visible until the client
      * later leaves fullscreen, which reads as broken rather than
      * merely deferred. */

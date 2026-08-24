@@ -60,7 +60,7 @@ static char s_popup_lines[4][WM_INFO_POPUP_LINE_MAX_LENGTH];
 static struct timespec s_popup_open_time = { 0, 0 };
 
 
-/* Show a popup near the client window with focused-client information */
+/* Show a popup by the client window, with its information */
 void popup_show(xcb_connection_t *connection,
         surface_td *surface, const desktop_td *desktop,
         client_td *client,

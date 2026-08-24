@@ -70,7 +70,7 @@ static void s_client_layer_finish(client_td *client, desktop_td *desktop)
  * @a client_group_transient_anchor, @c cmds/client/transient.c) that
  * is itself on the same desktop and in the same layer as @p client:
  * that parent's own call to @a s_enforce_layer_place_family already
- * recurses into @p client (see that function's own doc comment), so
+ * recurses into @p client (see that function's comment), so
  * treating it as a second, independent entry point here would place
  * it twice, the second time breaking the family clustering the first
  * placement already established.  @c true whenever the parent is
@@ -112,7 +112,7 @@ static bool s_enforce_layer_is_top_level(const client_td *client,
  * above the window it is transient for, not wherever it happens to
  * fall in whatever order the rest of the desktop's own clients are
  * otherwise sorted in.  Recurses depth-first through @p top's own
- * @c transients (see its own doc comment, client.h), each child
+ * @c transients (see its comment, client.h), each child
  * placed immediately after its own parent and before the parent's
  * next sibling, so a whole family clusters together as one
  * contiguous block within its shared layer; a child in a different
@@ -128,7 +128,7 @@ static bool s_enforce_layer_is_top_level(const client_td *client,
  *                      whichever desktop it was originally on
  *                      forever rather than actually moving between
  *                      desktops (see @a ccmd_client_bring_family's
- *                      own doc comment, cmds/client/transient.c, for
+ *                      comment, cmds/client/transient.c, for
  *                      the fuller reasoning)
  * @param layer        Layer this pass is placing; only a descendant
  *                      sharing this exact layer with @p top is
@@ -167,7 +167,7 @@ static void s_enforce_layer_place_family(client_td *top,
             /* The first client placed across the whole layer pass:
              * anchor it explicitly just above the tray (if any)
              * rather than an unqualified 'below' with no sibling; see
-             * 'ccmd_desktop_enforce_layers''s own doc comment on this
+             * 'ccmd_desktop_enforce_layers''s comment on this
              * exact reasoning. */
             xcb_window_t tray_below = systray_below_window();
 

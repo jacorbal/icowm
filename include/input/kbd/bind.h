@@ -53,130 +53,138 @@
 enum wm_keybind_type_e {
     KEYBIND_NONE,
 
-    /* Desktop cycling */
-    KEYBIND_DESKTOP_NORTH,               /**< Switch to the desktop
-                                             north of the current one */
-    KEYBIND_DESKTOP_SOUTH,               /**< Switch to the desktop
-                                             south of the current one */
-    KEYBIND_DESKTOP_EAST,                /**< Switch to the desktop
-                                             east of the current one */
-    KEYBIND_DESKTOP_WEST,                /**< Switch to the desktop
-                                             west of the current one */
+    /* Desktop cycling, each relative to the current desktop */
+    KEYBIND_DESKTOP_NORTH,
+    KEYBIND_DESKTOP_SOUTH,
+    KEYBIND_DESKTOP_EAST,
+    KEYBIND_DESKTOP_WEST,
 
-    /* Window operations */
-    KEYBIND_CLIENT_ICONIFY,             /**< Iconify focused client */
-    KEYBIND_CLIENT_HIDE,                /**< Hide (minimize) focused client */
-    KEYBIND_CLIENT_CLOSE,               /**< Close focused client */
-    KEYBIND_CLIENT_KILL,                /**< Forcibly kill focused client */
-    KEYBIND_CLIENT_MAXIMIZE,            /**< Maximize focused client */
-    KEYBIND_CLIENT_CENTER,              /**< Center focused client */
-    KEYBIND_CLIENT_MOVE_MONITOR_NORTH,  /**< Move focused client to the
-                                             monitor north of the
-                                             current one */
-    KEYBIND_CLIENT_MOVE_MONITOR_SOUTH,  /**< Move focused client to the
-                                             monitor south of the
-                                             current one */
-    KEYBIND_CLIENT_MOVE_MONITOR_EAST,   /**< Move focused client to the
-                                             monitor east of the
-                                             current one */
-    KEYBIND_CLIENT_MOVE_MONITOR_WEST,   /**< Move focused client to the
-                                             monitor west of the
-                                             current one */
-    KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH,  /**< Carry focused client to
-                                             the desktop north of the
-                                             current one, following it
-                                             there */
-    KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH,  /**< Carry focused client to
-                                             the desktop south of the
-                                             current one, following it
-                                             there */
-    KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST,   /**< Carry focused client to
-                                             the desktop east of the
-                                             current one, following it
-                                             there */
-    KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST,   /**< Carry focused client to
-                                             the desktop west of the
-                                             current one, following it
-                                             there */
-    KEYBIND_CLIENT_SHADE,               /**< Toggle focused client shade */
-    KEYBIND_CLIENT_FULLSCREEN,          /**< Toggle foc. client fullscreen */
-    KEYBIND_CLIENT_PIN,                 /**< Toggle focused client sticky */
-    KEYBIND_CLIENT_INFO,                /**< Show focused client info */
-    KEYBIND_CLIENT_TOGGLE_DECORATION,   /**< Toggle decoration on client */
-    KEYBIND_CLIENT_CYCLE_LAYER,         /**< Cycle layer: normal/above/below */
-    KEYBIND_CLIENT_CYCLE_NEXT,          /**< Focus next client */
-    KEYBIND_CLIENT_CYCLE_PREV,          /**< Focus previous client */
-    KEYBIND_CLIENT_WINDOW_MENU,         /**< Open this client's context
-                                             menu (fixed 'Alt+Space',
-                                             unrelated to
-                                             'KEYBIND_WM_WINDOWS_MENU') */
-    KEYBIND_DESKTOP_ICON_NEXT,          /**< Cycle to next iconified client */
-    KEYBIND_DESKTOP_ICON_PREV,          /**< Cycle to prev iconified client */
+    /* Window operations, each on the focused client */
+    KEYBIND_CLIENT_ICONIFY,
+    /** Hide, which is what other window managers call minimizing */
+    KEYBIND_CLIENT_HIDE,
+    KEYBIND_CLIENT_CLOSE,
+    /** Kill forcibly, without asking the client to close first */
+    KEYBIND_CLIENT_KILL,
+    KEYBIND_CLIENT_MAXIMIZE,
+    KEYBIND_CLIENT_CENTER,
+
+    /* Move to the monitor in a direction, relative to the
+     * current one */
+    KEYBIND_CLIENT_MOVE_MONITOR_NORTH,
+    KEYBIND_CLIENT_MOVE_MONITOR_SOUTH,
+    KEYBIND_CLIENT_MOVE_MONITOR_EAST,
+    KEYBIND_CLIENT_MOVE_MONITOR_WEST,
+
+    /* Carry the client to a neighboring desktop and follow it there */
+    KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH,
+    KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH,
+    KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST,
+    KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST,
+
+    KEYBIND_CLIENT_SHADE,
+    KEYBIND_CLIENT_FULLSCREEN,
+    /** Toggle stickiness, so the client shows on every desktop */
+    KEYBIND_CLIENT_PIN,
+    KEYBIND_CLIENT_INFO,
+    KEYBIND_CLIENT_TOGGLE_DECORATION,
+    /** Cycle the layer between normal, above and below */
+    KEYBIND_CLIENT_CYCLE_LAYER,
+    /** Focus the next client */
+    KEYBIND_CLIENT_CYCLE_NEXT,
+    /** Focus the previous client */
+    KEYBIND_CLIENT_CYCLE_PREV,
+    /**
+     * @brief Open this client's context menu
+     *
+     * Bound to a fixed 'Alt+Space' and unrelated to
+     * @c KEYBIND_WM_WINDOWS_MENU.
+     */
+    KEYBIND_CLIENT_WINDOW_MENU,
+    /** Cycle to the next iconified client */
+    KEYBIND_DESKTOP_ICON_NEXT,
+    /** Cycle to the previous iconified client */
+    KEYBIND_DESKTOP_ICON_PREV,
 
     /* Program launcher */
-    KEYBIND_LAUNCH_TERMINAL,            /**< Launch terminal */
-    KEYBIND_LAUNCH_LAUNCHER,            /**< Launch process launcher */
-    KEYBIND_LAUNCH_FILE_MANAGER,        /**< Launch file manager */
-    KEYBIND_LAUNCH_WEB_BROWSER,         /**< Launch web browser */
-    KEYBIND_LAUNCH_EDITOR,              /**< Launch editor */
+    KEYBIND_LAUNCH_TERMINAL,
+    KEYBIND_LAUNCH_LAUNCHER,
+    KEYBIND_LAUNCH_FILE_MANAGER,
+    KEYBIND_LAUNCH_WEB_BROWSER,
+    KEYBIND_LAUNCH_EDITOR,
 
-    /* Window movement (fixed step or snap to corner) */
-    KEYBIND_CLIENT_MOVE_LEFT,           /**< Move focused client left */
-    KEYBIND_CLIENT_MOVE_RIGHT,          /**< Move focused client right */
-    KEYBIND_CLIENT_MOVE_UP,             /**< Move focused client up */
-    KEYBIND_CLIENT_MOVE_DOWN,           /**< Move focused client down */
-    KEYBIND_CLIENT_MOVE_TOP_LEFT,       /**< Snap to top-left corner */
-    KEYBIND_CLIENT_MOVE_TOP_RIGHT,      /**< Snap to top-right corner */
-    KEYBIND_CLIENT_MOVE_BOTTOM_LEFT,    /**< Snap to bottom-left corner */
-    KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT,   /**< Snap to bottom-right corner */
+    /* Window movement by a fixed step */
+    KEYBIND_CLIENT_MOVE_LEFT,
+    KEYBIND_CLIENT_MOVE_RIGHT,
+    KEYBIND_CLIENT_MOVE_UP,
+    KEYBIND_CLIENT_MOVE_DOWN,
 
-    /* Window resizing (fixed step) */
-    KEYBIND_CLIENT_RESIZE_LEFT,         /**< Shrink focused client width */
-    KEYBIND_CLIENT_RESIZE_RIGHT,        /**< Grow focused client width */
-    KEYBIND_CLIENT_RESIZE_UP,           /**< Shrink focused client height */
-    KEYBIND_CLIENT_RESIZE_DOWN,         /**< Grow focused client height */
+    /* Window movement snapping to a screen corner */
+    KEYBIND_CLIENT_MOVE_TOP_LEFT,
+    KEYBIND_CLIENT_MOVE_TOP_RIGHT,
+    KEYBIND_CLIENT_MOVE_BOTTOM_LEFT,
+    KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT,
 
-    /* Show-desktop toggle */
-    KEYBIND_DESKTOP_SHOW,               /**< Toggle show-desktop (hide all) */
+    /* Window resizing by a fixed step */
+    /** Shrink the width */
+    KEYBIND_CLIENT_RESIZE_LEFT,
+    /** Grow the width */
+    KEYBIND_CLIENT_RESIZE_RIGHT,
+    /** Shrink the height */
+    KEYBIND_CLIENT_RESIZE_UP,
+    /** Grow the height */
+    KEYBIND_CLIENT_RESIZE_DOWN,
 
-    /* Iconify/restore all clients on the desktop */
-    KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL,   /**< Iconify every client */
-    KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL, /**< Restore every iconified
-                                                client */
-    KEYBIND_DESKTOP_CLIENTS_REARRANGE,     /**< Re-apply placement
-                                                policy to every client */
+    /** Toggle show-desktop, which hides every client at once */
+    KEYBIND_DESKTOP_SHOW,
 
-    /* Direct desktop go-to (indices 0-9) */
-    KEYBIND_DESKTOP_GOTO_0,             /**< Switch directly to desktop 0 */
-    KEYBIND_DESKTOP_GOTO_1,             /**< Switch directly to desktop 1 */
-    KEYBIND_DESKTOP_GOTO_2,             /**< Switch directly to desktop 2 */
-    KEYBIND_DESKTOP_GOTO_3,             /**< Switch directly to desktop 3 */
-    KEYBIND_DESKTOP_GOTO_4,             /**< Switch directly to desktop 4 */
-    KEYBIND_DESKTOP_GOTO_5,             /**< Switch directly to desktop 5 */
-    KEYBIND_DESKTOP_GOTO_6,             /**< Switch directly to desktop 6 */
-    KEYBIND_DESKTOP_GOTO_7,             /**< Switch directly to desktop 7 */
-    KEYBIND_DESKTOP_GOTO_8,             /**< Switch directly to desktop 8 */
-    KEYBIND_DESKTOP_GOTO_9,             /**< Switch directly to desktop 9 */
+    /* Iconify and restore every client on the desktop */
+    KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL,
+    KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL,
+    /** Re-apply the placement policy to every client */
+    KEYBIND_DESKTOP_CLIENTS_REARRANGE,
 
-    /* Add/remove the surface's own last desktop */
-    KEYBIND_DESKTOP_ADD,                 /**< Add a new last desktop */
-    KEYBIND_DESKTOP_REMOVE,              /**< Remove the last desktop */
+    /* Direct desktop go-to, indices 0 to 9 */
+    KEYBIND_DESKTOP_GOTO_0,
+    KEYBIND_DESKTOP_GOTO_1,
+    KEYBIND_DESKTOP_GOTO_2,
+    KEYBIND_DESKTOP_GOTO_3,
+    KEYBIND_DESKTOP_GOTO_4,
+    KEYBIND_DESKTOP_GOTO_5,
+    KEYBIND_DESKTOP_GOTO_6,
+    KEYBIND_DESKTOP_GOTO_7,
+    KEYBIND_DESKTOP_GOTO_8,
+    KEYBIND_DESKTOP_GOTO_9,
 
-    /* Strutless-maximization mode: set panel/tray struts aside */
-    KEYBIND_WM_TOGGLE_STRUTLESS_MAXIMIZE, /**< Toggle strutless
-                                               maximization mode */
+    /* Add or remove the surface's last desktop */
+    KEYBIND_DESKTOP_ADD,
+    KEYBIND_DESKTOP_REMOVE,
+
+    /** Toggle strutless maximization, setting panel and tray struts
+     *  aside */
+    KEYBIND_WM_TOGGLE_STRUTLESS_MAXIMIZE,
 
     /* Window manager lifecycle */
-    KEYBIND_WM_ROOT_MENU,               /**< Open root desktop menu */
-    KEYBIND_WM_WINDOWS_MENU,            /**< Open windows desktop menu */
-    KEYBIND_WM_SEARCH_WINDOWS,          /**< Open fuzzy window search */
-    KEYBIND_WM_REDRAW,                  /**< Force on-demand redraw */
-    KEYBIND_WM_RELOAD,                  /**< Reload config. in-place */
-    KEYBIND_WM_QUIT,                    /**< Quit with confirmation dialog */
-    KEYBIND_WM_SHORTCUTS_LIST,          /**< Show active keybindings */
-    KEYBIND_WM_EMERGENCY_EXIT,          /**< Force abrupt & quick exit */
-    KEYBIND_WM_FORTUNE,                 /**< Show a 'fortune' dialog */
-    KEYBIND_WM_SCRATCHPAD_TOGGLE,       /**< Show/hide the scratchpad */
+    /** Open the root desktop menu */
+    KEYBIND_WM_ROOT_MENU,
+    /** Open the windows desktop menu */
+    KEYBIND_WM_WINDOWS_MENU,
+    /** Open the fuzzy window search */
+    KEYBIND_WM_SEARCH_WINDOWS,
+    /** Force an on-demand redraw */
+    KEYBIND_WM_REDRAW,
+    /** Reload the configuration in place */
+    KEYBIND_WM_RELOAD,
+    /** Quit, with a confirmation dialog */
+    KEYBIND_WM_QUIT,
+    /** Show the active keybindings */
+    KEYBIND_WM_SHORTCUTS_LIST,
+    /** Force an abrupt and quick exit */
+    KEYBIND_WM_EMERGENCY_EXIT,
+    /** Show a 'fortune' dialog */
+    KEYBIND_WM_FORTUNE,
+    /** Show or hide the scratchpad */
+    KEYBIND_WM_SCRATCHPAD_TOGGLE,
 };
 
 
@@ -189,7 +197,8 @@ enum wm_keybind_type_e {
 typedef struct {
     xcb_keysym_t keysym;            /**< X keysym for this binding */
     uint16_t modmask;               /**< Required modifier mask */
-    enum wm_keybind_type_e type;    /**< Action triggered by this binding */
+    /** Action this binding triggers */
+    enum wm_keybind_type_e type;
 } wm_keybinding_td;
 
 

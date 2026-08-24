@@ -392,7 +392,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
      * any already-mapped icon's, testing real overlap via
      * 's_place_icon_rect_overlaps_any' rather than a precomputed
      * grid-index table for the same reason the SMART branch above does;
-     * see its own comment on 'occ_x'/'occ_y'. */
+     * see its comment on 'occ_x'/'occ_y'. */
     chosen = 0u;
     for (uint16_t i = 0u; i < 256u; ++i) {
         struct position_s pos;

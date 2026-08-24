@@ -88,9 +88,8 @@ struct config_randr_output_s {
      */
     bool is_primary;
 
-    char name[CONFIG_RANDR_OUTPUT_NAME_LENGTH];    /**< Output name
-                                                        (e.g., "HDMI-1",
-                                                        "VESA-1", &c.) */
+    /** Output name, such as "HDMI-1" or "VESA-1" */
+    char name[CONFIG_RANDR_OUTPUT_NAME_LENGTH];
 };
 
 

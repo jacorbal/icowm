@@ -59,8 +59,9 @@ typedef struct {
     enum window_operation_e operation;
     client_td *client;
     desktop_td *desktop;
-    xcb_window_t drag_window;   /**< Icon window moved, or
-                                 *   'XCB_WINDOW_NONE' for normal drag */
+    /** Icon window being moved, 'XCB_WINDOW_NONE' for a normal
+     *  drag */
+    xcb_window_t drag_window;
     int16_t pointer_start_x;
     int16_t pointer_start_y;
     struct geometry_s client_start;
@@ -75,10 +76,12 @@ typedef struct {
                                      event; only @c pos is meaningful
                                      during an icon drag, which never
                                      resizes) */
-    bool is_anchor_right;          /**< Resize: right edge is fixed (resize
-                                     from left) */
-    bool is_anchor_bottom;         /**< Resize: bottom edge is fixed (resize
-                                     from top) */
+    /** While resizing, the right edge is fixed and the drag pulls
+     *  from the left */
+    bool is_anchor_right;
+    /** While resizing, the bottom edge is fixed and the drag pulls
+     *  from the top */
+    bool is_anchor_bottom;
     bool is_resize_w;              /**< Resize: width is actively being
                                      changed in this drag */
     bool is_resize_h;              /**< Resize: height is actively being
@@ -86,9 +89,10 @@ typedef struct {
     bool is_resist_axis_w;         /**< Width started this drag
                                      maximize-locked (see
                                      'drag_start_resize_axis_locked'),
-                                     making 'is_resize_w' above no longer
-                                     fixed for the whole drag the way
-                                     it is for every other client:
+                                     making 'is_resize_w' above no
+                                     longer fixed for the whole drag
+                                     the way it is for every other
+                                     client:
                                      'drag_update' recomputes it every
                                      call instead, false below the
                                      configured resistance threshold,
@@ -129,13 +133,12 @@ typedef struct {
                                      false right after 'drag_start' so
                                      its first 'drag_update' always
                                      runs regardless of position */
-    bool is_warp_pending;          /**< Whether the pointer is currently
-                                     held against a warp-eligible
-                                     screen edge, counting down to a
-                                     desktop switch (see 'desktops.warp_on_edge_drag'
-                                     in config.json, config_desktop_s) */
-    enum compass_direction_e warp_direction;   /**< Which edge, only
-                                     meaningful when 'is_warp_pending' */
+    /** Whether the pointer is held against a warp-eligible screen
+     *  edge, counting down to a desktop switch.  Governed by
+     *  'desktops.warp_on_edge_drag' in 'config.json' */
+    bool is_warp_pending;
+    /** Which edge, meaningful only while 'is_warp_pending' */
+    enum compass_direction_e warp_direction;
     struct timespec warp_due;   /**< When the held edge becomes due to
                                      warp, only meaningful when
                                      'is_warp_pending' */

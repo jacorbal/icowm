@@ -41,13 +41,12 @@
  * popup was last shown, and the text currently displayed inside it.
  */
 struct notify_popup_state_s {
-    xcb_window_t window;                        /**< XCB window
-                                                     identifier, or
-                                                     @c XCB_WINDOW_NONE */
-    struct timespec open_time;                  /**< Monotonic time when
-                                                     the popup was opened */
-    char text[WM_DESKTOP_MAX_LENGTH_NAME + 16]; /**< Cached display text */
-
+    /** XCB window identifier, or @c XCB_WINDOW_NONE */
+    xcb_window_t window;
+    /** Monotonic time when the popup was opened */
+    struct timespec open_time;
+    /** Cached display text */
+    char text[WM_DESKTOP_MAX_LENGTH_NAME + 16];
 };
 
 

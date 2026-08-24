@@ -344,7 +344,7 @@ void handler_configure_request(xcb_connection_t *connection,
          * fullscreen by re-requesting its own preferred size right
          * back would immediately shrink back down, undoing
          * 'ccmd_client_fullscreen''s own deliberate choice (see its
-         * own doc comment in cmds/client/state.c) to bypass every one
+         * comment in cmds/client/state.c) to bypass every one
          * of the client's size hints while fullscreen. */
         wm_owns_geometry =
             client->properties.operation == CLIENT_OPERATION_MOVING ||

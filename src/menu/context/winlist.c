@@ -60,7 +60,7 @@
 #include <render/text.h>
 
 
-/** Singleton root menu state: one @c CTXMENU_SUBMENU entry per desktop */
+/** Singleton root menu state, one @c CTXMENU_SUBMENU per desktop */
 static ctxmenu_state_td s_root;
 
 /** Entries for the top-level (per-desktop) menu */
@@ -101,7 +101,7 @@ static ctxmenu_state_td *s_appgroup_state = NULL;
 static ctxmenu_entry_td (*s_appgroup_entries)[WINLIST_MAX_APPGROUP_SIZE]
     = NULL;
 
-/** Number of application-group slots claimed during this 'winlist_show' */
+/** Application-group slots claimed during this 'winlist_show' */
 static int s_appgroup_used = 0;
 
 
@@ -119,7 +119,7 @@ typedef struct {
 /** Shared pool of per-entry userdata, handed out sequentially */
 static winlist_entry_data_td s_entry_data[WINLIST_MAX_ENTRY_DATA];
 
-/** Number of @e s_entry_data slots claimed during this @a winlist_show */
+/** @c s_entry_data slots claimed during this @a winlist_show */
 static int s_entry_data_used = 0;
 
 
@@ -707,7 +707,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
  *        every desktop
  *
  * Runs @a s_build_desktop_entries once per desktop in its own
- * counting-only mode (see that function's own doc comment),
+ * counting-only mode (see that function's comment),
  * accumulating the total so @c s_appgroup_entries and
  * @c s_appgroup_state can be sized to it before either actually
  * exists, rather than to the fixed worst case @c WINLIST_MAX_APPGROUPS
@@ -1051,7 +1051,7 @@ void winlist_show(xcb_connection_t *connection,
      * outright, omitted rather than merely disabled, under
      * restricted-memory mode, which is deliberately locked to
      * exactly one desktop always (see
-     * 'surface_action_desktop_add''s own doc comment): a person
+     * 'surface_action_desktop_add''s comment): a person
      * running that mode has no use for either action ever
      * succeeding, unlike an ordinary session's own "only one desktop
      * remains for now" case just below, where adding a second one

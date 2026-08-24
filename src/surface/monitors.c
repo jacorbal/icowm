@@ -4,7 +4,7 @@
  * @brief RandR physical-monitor detection and lookup for a surface
  *
  * One of the files @c surface/ is made of; see
- * @c surface.c's own doc comment for why.
+ * @c surface.c's comment for why.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

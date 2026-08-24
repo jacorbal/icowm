@@ -617,7 +617,7 @@ void ccmd_client_fullscreen(client_td *client)
      * other client on this desktop, including every other ABOVE-layer
      * one, right away rather than leaving it to whatever future
      * stacking-order pass happens to run next; see
-     * 'ccmd_desktop_enforce_layers''s own doc comment on this. */
+     * 'ccmd_desktop_enforce_layers''s comment on this. */
     if (desktop != NULL) {
         ccmd_desktop_enforce_layers(desktop);
     }

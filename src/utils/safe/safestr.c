@@ -76,7 +76,8 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
 }
 
 
-/* Legacy unsized copy helper (prefer 'safe_strncpy' for bounded writes) */
+/* Legacy unsized copy helper, kept for compatibility; prefer
+ * 'safe_strncpy' for a bounded write */
 char *safe_strcpy(char *restrict dst, const char *restrict src)
 {
     return safe_strncpy(dst, src, SIZE_MAX);

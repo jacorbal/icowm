@@ -56,7 +56,7 @@
 /**
  * @brief Threshold below which an icon drag is treated as a click
  */
-#define WM_ICON_DRAG_THRESHOLD (16)     /* 4 (px) x 4 (px) = 16 (px^2) */
+#define WM_ICON_DRAG_THRESHOLD (16)     /* 4 px by 4 px, squared */
 
 /**
  * @brief Thickness, in pixels, of each of the 4 strip windows an

@@ -121,32 +121,31 @@ typedef struct client_s {
      */
     cdlist_item_td *transient_node;
 
-    struct timespec shade_transition_time; /**< Monotonic time of the
-                                                client's last shade or
-                                                unshade; used to recognize
-                                                and ignore a client's
-                                                own @c ConfigureRequest
-                                                as a stale reaction to
-                                                that transition rather
-                                                than a genuine independent
-                                                resize, see
-                                                @a handler_configure_request */
-    struct timespec fullscreen_transition_time; /**< Monotonic time of
-                                                the client's last entry
-                                                into or exit from
-                                                fullscreen; used the
-                                                same way as
-                                                @c shade_transition_time,
-                                                for the same reason, see
-                                                @a handler_configure_request */
+    /**
+     * @brief Monotonic time of the client's last shade or unshade
+     *
+     * Lets @a handler_configure_request recognize a client's
+     * @c ConfigureRequest as a stale reaction to that transition,
+     * rather than a genuine independent resize, and ignore it.
+     */
+    struct timespec shade_transition_time;
+
+    /**
+     * @brief Monotonic time of the client's last entry into or exit
+     *        from fullscreen
+     *
+     * Used the same way as @c shade_transition_time, and for the same
+     * reason.
+     */
+    struct timespec fullscreen_transition_time;
 
     /**
      * @brief Shared base/theme/a11y configuration for this client's own
      *        surface
      *
      * The same @c config_td every other client on this surface also
-     * points to; never reassigned after @a client_init (see @a
-     * client_init's own callers), though the configuration it points
+     * points to; never reassigned after @a client_init (see
+     * @a client_init's own callers), though the configuration it points
      * to can still change in place at any time from a live reload or
      * a runtime theme request, which every client picking it up on its
      * next read is exactly the point of sharing one pointer instead of
@@ -178,27 +177,28 @@ typedef struct client_s {
 
     xcb_window_t frame;             /**< Optional decoration frame */
     xcb_window_t titlebar;          /**< Optional titlebar window */
-    xcb_window_t icon_window;       /**< Optional iconified placeholder */
-    xcb_window_t transient_for;     /**< Parent window for dialogs (0
-                                          or @c XCB_WINDOW_NONE if none) */
+    /** Optional iconified placeholder */
+    xcb_window_t icon_window;
+    /** Parent window for dialogs, @c XCB_WINDOW_NONE when there is
+     *  none */
+    xcb_window_t transient_for;
 
     uint32_t title_height;          /**< Cached titlebar height */
-    uint32_t last_border_width;     /**< Border width most recently sent
-                                          to the X server for this
-                                          client's frame/window (see
-                                          @p target in @a ri_render_client),
-                                          so the render pass can skip
-                                          re-sending @a xcb_configure_window
-                                          when it would not actually
-                                          change anything.  Initialized
-                                          to @c UINT32_MAX by
-                                          @a client_init so the very
-                                          first render always applies the
-                                          real value regardless of what
-                                          it is */
 
+    /**
+     * @brief Border width most recently sent to the X server for this
+     *        client's frame or window
+     *
+     * Named by @p target in @a ri_render_client.  The render pass
+     * skips re-sending @a xcb_configure_window when the width would
+     * not actually change.  @a client_init sets it to @c UINT32_MAX
+     * so that the very first render always applies the real value,
+     * whatever that value is.
+     */
+    uint32_t last_border_width;
 
-    uint32_t desktop_id;        /**< Desktop index (@c 0xFFFFFFFF for all) */
+    /** Desktop index, @c 0xFFFFFFFF meaning every desktop */
+    uint32_t desktop_id;
     uint32_t screen_id;         /**< Screen index */
 
     /**
@@ -228,29 +228,24 @@ typedef struct client_s {
      */
     uint32_t user_time;
 
+    /**
+     * @brief A client's border color and width, independent of the
+     *        theme
+     *
+     * Overrides @c theme.window.active.border and
+     * @c theme.window.inactive.border.  Deliberately generic, not
+     * tied to any one feature.  Unset by default, in which case
+     * @a client_border_apply falls back to the theme default that a
+     * plain client gets on every focus change.  A caller that sets
+     * this needs no further involvement from @a ccmd_client_focus or
+     * @a ccmd_client_unfocus beyond this one field.  The scratchpad
+     * in @c scratchpad.c is the only caller that sets it today.
+     */
     struct {
         bool is_set;
         uint32_t color;
         uint32_t width;
-    } border_override;              /**< A client's own border color and
-                                          width, independent of
-                                          @p config->theme.window.active/
-                                          inactive.border.  Deliberately
-                                          generic, not tied to any one
-                                          feature.  Unset by default, in
-                                          which case @a client_border_apply
-                                          (@c client.h) falls back to the
-                                          usual theme default a plain
-                                          client already gets on every
-                                          focus change; a caller that sets
-                                          this (the scratchpad,
-                                          @c scratchpad.c, is the only one
-                                          that does so today) needs no
-                                          further involvement from
-                                          @a ccmd_client_focus or
-                                          @a ccmd_client_unfocus
-                                          (@c cmds/client/focus.c) beyond
-                                          that single field */
+    } border_override;
 
     /**
      * @brief Cached, already built @c _NET_WM_ICON Picture
@@ -302,11 +297,11 @@ typedef struct client_s {
          */
         struct {
             bool is_supported;        /**< Supports @c _NET_WM_PING
-                                            protocol */
+                                           protocol */
             uint32_t last_sent;       /**< X timestamp of last ping
-                                            sent */
+                                           sent */
             uint32_t last_reply;      /**< X timestamp of last ping
-                                            reply */
+                                           reply */
         } ping;
 
         /**
@@ -314,20 +309,25 @@ typedef struct client_s {
          *
          * @p counter and @p alarm hold plain XCB XIDs (an
          * @c xcb_sync_counter_t / @c xcb_sync_alarm_t are both a
-         * @c uint32_t under the hood) rather than the XSync-typed values,
-         * so this header does not need to pull in @c xcb/sync.h; call
-         * sites that actually issue XSync requests cast as needed.
+         * @c uint32_t under the hood) rather than the XSync-typed
+         * values, so this header does not need to pull in
+         * @c xcb/sync.h.  Call sites that actually issue XSync
+         * requests cast as needed.
          *
          * @see @c ccmd_client_resize (throttling) and
          *      @c handler_sync_event (acknowledgement) for how these
          *      fields are driven
          */
         struct {
-            uint32_t counter;     /**< XSync counter XID the CLIENT
-                                       created and advertised via its
-                                       own @c _NET_WM_SYNC_REQUEST_COUNTER
-                                       property (read, not created, by
-                                       @a client_init), or 0 if unset */
+            /**
+             * @brief XSync counter XID the client created and
+             *        advertised through its
+             *        @c _NET_WM_SYNC_REQUEST_COUNTER property
+             *
+             * Read by @a client_init, never created by it.  Left at
+             * 0 when unset.
+             */
+            uint32_t counter;
             uint32_t alarm;       /**< WM-owned alarm XID watching
                                        @p counter for positive
                                        transitions, or 0 */
@@ -339,7 +339,8 @@ typedef struct client_s {
             struct geometry_s pending_geom; /**< Geometry to apply once
                                        the pending request is
                                        acknowledged or times out */
-            bool is_supported;    /**< Supports @c _NET_WM_SYNC_REQUEST */
+            /** Supports @c _NET_WM_SYNC_REQUEST */
+            bool is_supported;
             bool is_waiting;      /**< @c true between sending a sync
                                        request and receiving the
                                        matching @c AlarmNotify (or
@@ -374,8 +375,8 @@ typedef struct client_s {
      * (@a handler_colormap_notify, @c handler/colormap.c) even between
      * refreshes of this list.
      *
-     * @see @a ccmd_client_focus (@c cmds/client/focus.c), which installs
-     *      these, in order, alongside @c SetInputFocus itself
+     * @see @a ccmd_client_focus, which installs these, in order,
+     *      alongside @c SetInputFocus itself
      */
     struct {
         xcb_window_t windows[WM_COLORMAP_WINDOWS_MAX]; /**<
@@ -386,10 +387,11 @@ typedef struct client_s {
                                         colormap attribute, fetched once
                                         when the list is read and kept
                                         current by @c ColormapNotify
-                                        afterward, so installing them on
-                                        focus never needs a fresh round
-                                        trip (@a handler_colormap_notify,
-                                        @c handler/colormap.c) */
+                                        afterward, so installing them
+                                        on focus never needs a fresh
+                                        round trip.  See
+                                        @a handler_colormap_notify in
+                                        @c handler/colormap.c. */
         uint32_t count;       /**< Number of entries in @p windows
                                     actually in use */
     } colormap_windows;
@@ -404,23 +406,25 @@ typedef struct client_s {
          */
         struct {
             bool is_valid;       /**< True when hints were read from
-                                       server */
+                                      server */
             bool has_position;   /**< True when the client itself
-                                       requested a position
-                                       (@c USPosition or @c PPosition)
-                                       rather than leaving it to this
-                                       window manager's own policy */
+                                      requested a position
+                                      (@c USPosition or @c PPosition)
+                                      rather than leaving it to this
+                                      window manager's own policy */
             struct position_s req_pos; /**< Client-requested position,
-                                             valid only when
-                                             @p has_position is true */
-            struct dimensions_s min;   /**< Minimum size (0,0 = unset) */
-            struct dimensions_s max;   /**< Maximum size (0,0 = unset) */
-            struct dimensions_s base;  /**< Base size for increment
-                                             arithmetic */
-            struct dimensions_s inc;   /**< Size increment (0 or 1
-                                             = no grid) */
-            struct aspect_range_s aspect; /**< Minimum/maximum w/h
-                                                ratio (0,0 = unset) */
+                                            valid only when
+                                            @p has_position is true */
+            /** Minimum size, (0, 0) meaning unset */
+            struct dimensions_s min;
+            /** Maximum size, (0, 0) meaning unset */
+            struct dimensions_s max;
+            struct dimensions_s base;       /**< Base size for increment
+                                                 arithmetic */
+            struct dimensions_s inc;        /**< Size increment
+                                                 (0 or 1 = no grid) */
+            struct aspect_range_s aspect;   /**< Minimum/maximum w/h
+                                                 ratio (0,0 = unset) */
         } size;
 
         /**
@@ -431,8 +435,10 @@ typedef struct client_s {
                                              atom */
             xcb_atom_t take_focus_atom; /**< Cached @c WM_TAKE_FOCUS
                                              atom */
-            bool has_delete;            /**< Supports @c WM_DELETE_WINDOW */
-            bool has_take_focus;        /**< Supports @c WM_TAKE_FOCUS */
+            /** Supports @c WM_DELETE_WINDOW */
+            bool has_delete;
+            /** Supports @c WM_TAKE_FOCUS */
+            bool has_take_focus;
         } protocols;
 
         /**
@@ -440,19 +446,19 @@ typedef struct client_s {
          */
         struct {
             bool has_input_hint;      /**< Client accepts input
-                                            (default true) */
+                                           (default true) */
             bool is_initial_iconic;   /**< Map iconic for @c WM_HINTS
-                                            initial state */
+                                           initial state */
             xcb_window_t group_leader; /**< Window group leader, or
-                                             @c XCB_NONE */
+                                            @c XCB_NONE */
             xcb_window_t client_leader; /**< ICCCM @c WM_CLIENT_LEADER
-                                              window, or @c XCB_NONE if
-                                              unset.  Used together with
-                                              @p group_leader (see
-                                              @a client_group_leader) to
-                                              cluster windows belonging
-                                              to the same application
-                                              for placement */
+                                             window, or @c XCB_NONE if
+                                             unset.  Used together with
+                                             @p group_leader (see
+                                             @a client_group_leader) to
+                                             cluster windows belonging
+                                             to the same application
+                                             for placement */
         } hints;
     } hints_icccm;
 
@@ -470,26 +476,27 @@ typedef struct client_s {
      *        §4.1.2.6 says this means transient for the client's
      *        whole application group rather than one specific window
      *
-     * Set once, alongside @a transient_for itself, when @c
-     * WM_TRANSIENT_FOR is read (@c s_client_read_wm_hints_and_leader,
-     * @c client.c).  @a transient_parent stays @c NULL for a client
-     * with this set, the same as for one not transient for anything
-     * at all: root is never a managed client itself, so the ordinary
-     * lookup @a client_link_transient (@c cmds/client/transient.c)
-     * performs never finds a match.  @a client_group_transient_anchor
-     * (@c cmds/client/transient.c) resolves, fresh each time rather
-     * than a stored pointer, whichever currently-mapped sibling
-     * sharing this client's group leader should stand in for a
-     * specific parent wherever one is needed (stacking, raising, and
-     * focus redirect all read it the same way @a transient_parent
-     * itself is read elsewhere); @c s_place_window_transient_centered
-     * (@c policy/placement/window.c) already resolves an equivalent
+     * Set once, alongside @a transient_for itself, when
+     * @c WM_TRANSIENT_FOR is read by
+     * @a s_client_read_wm_hints_and_leader in @c client.c.
+     * @a transient_parent stays @c NULL for a client with this set,
+     * the same as for one that is not transient for anything at all.
+     * Root is never a managed client itself, so the ordinary lookup
+     * @a client_link_transient performs never finds a match.
+     * @a client_group_transient_anchor in @c cmds/client/transient.c
+     * resolves, fresh each time rather than a stored pointer,
+     * whichever currently-mapped sibling sharing this client's group
+     * leader should stand in for a specific parent wherever one is
+     * needed.  Stacking, raising and focus redirect all read it the
+     * same way @a transient_parent itself is read elsewhere.
+     * @a s_place_window_transient_centered in
+     * @c policy/placement/window.c already resolves an equivalent
      * sibling for this client's initial centering.
      */
     bool is_transient_for_group;
 
     /* Flags with no shared theme */
-    bool is_icon_mapped;            /**< Whether icon window is mapped */
+    bool is_icon_mapped;            /**< Whether the icon is mapped */
     bool was_decorated_fullscreen;  /**< Save decor. state for full
                                          screen */
     bool has_rule_position_locked;  /**< Position was set by a rule;
@@ -519,7 +526,8 @@ typedef struct client_s {
                                          after render) */
 
     struct {
-        uint8_t unmap;               /**< WM-initiated unmaps to suppress */
+        /** Unmaps the window manager started, to be suppressed */
+        uint8_t unmap;
         uint8_t focus_unmap;         /**< Synthetic unmaps; mustn't move
                                           focus */
     } ignore;
@@ -659,15 +667,16 @@ void client_border_apply(client_td *client, bool use_active_style);
  * that area's own edge
  *
  * @param client       Client to query
- * @param is_active    Ignored when @p border_override.is_set; otherwise
- *                      @c true for @p theme->window.active.border.width,
- *                      @c false for @p .inactive
+ * @param is_active    Ignored when @c border_override.is_set.
+ *                     Otherwise @c true selects
+ *                     @c theme.window.active.border.width and
+ *                     @c false selects the inactive one
  * @param ignore_frame Skip the @c 0 short-circuit this function
  *                      otherwise always takes for an already-framed
  *                      client (see this function's own body); needed
  *                      by a caller computing the width to (re)establish
  *                      @p client->layout.frame_extents with in the
- *                      first place, e.g. @a ccmd_client_unfullscreen,
+ *                      first place, e.g., @a ccmd_client_unfullscreen,
  *                      for which @p client->frame already being
  *                      non-zero does not yet mean the frame already
  *                      accounts for it the way it does for every other
@@ -910,8 +919,8 @@ void client_aspect_ratio_clamp(const client_td *client,
  *       @p client->window is 0
  * @note Complexity: @e O(1)
  */
-void client_send_synthetic_configure_notify(xcb_connection_t *connection,
-        const client_td *client);
+void client_send_synthetic_configure_notify(
+        xcb_connection_t *connection, const client_td *client);
 
 /**
  * @brief Initialize a new client, adopting an existing X window
@@ -921,11 +930,11 @@ void client_send_synthetic_configure_notify(xcb_connection_t *connection,
  * the current window geometry, and subscribes to property and structure
  * events on the window.
  *
- * @param connection  Pointer to the XCB connection
- * @param ewmh        Pointer to EWMH connection
- * @param window      ID of the existing X window to adopt
- * @param config      Shared base/theme/a11y configuration for the
- *                    surface this client is being adopted onto
+ * @param connection Pointer to the XCB connection
+ * @param ewmh       Pointer to EWMH connection
+ * @param window     ID of the existing X window to adopt
+ * @param config     Shared base/theme/a11y configuration for the
+ *                   surface this client is being adopted onto
  *
  * @return A pointer to the client structure wrapping the window, or
  *         @c NULL if the window should not be managed (e.g.,
@@ -954,16 +963,16 @@ void client_props_refresh_name(client_td *client);
 /**
  * @brief Keep a cached, possibly-truncated display name and its
  *        matching EWMH property (@c _NET_WM_VISIBLE_NAME or
- *        @c _NET_WM_VISIBLE_ICON_NAME) in sync with whether @p
- *        rendered actually differs from @p full_name right now
+ *        @c _NET_WM_VISIBLE_ICON_NAME) in sync with whether
+ *        @p rendered actually differs from @p full_name right now
  *
  * Called every time something re-renders a name that may have needed
  * truncating to fit (a titlebar too narrow for the full title, an
  * icon caption under the same constraint): a no-op, without any XCB
  * round trip, whenever @p rendered already matches what @p cached
  * currently holds, which is the ordinary case on every repaint after
- * the first where truncation itself has not changed.  When @p
- * rendered equals @p full_name (no truncation needed), the property
+ * the first where truncation itself has not changed.  When
+ * @p rendered equals @p full_name (no truncation needed), the property
  * is deleted rather than set to a redundant copy of the underlying
  * name, per this project's own reading of EWMH §5.4/5.5: nothing
  * behaves incorrectly if a client only checks for the property's own
@@ -971,17 +980,17 @@ void client_props_refresh_name(client_td *client);
  *
  * @param client    Client the property belongs to
  * @param cached    @c client_td's own cached buffer for this name
- *                   (@c info.visible_name or
- *                   @c icon_info.visible_icon_name), at least
- *                   @c CONFIG_MAX_LENGTH_NAME bytes
+ *                  (@c info.visible_name or
+ *                  @c icon_info.visible_icon_name), at least
+ *                  @c CONFIG_MAX_LENGTH_NAME bytes
  * @param full_name The client's own full, untruncated name
  * @param rendered  What was actually just rendered, truncated or not
  * @param set_fn    @c xcb_ewmh_set_wm_visible_name_checked or
- *                   @c xcb_ewmh_set_wm_visible_icon_name_checked,
- *                   whichever matches @p atom
+ *                  @c xcb_ewmh_set_wm_visible_icon_name_checked,
+ *                  whichever matches @p atom
  * @param atom      @c client->ewmh->_NET_WM_VISIBLE_NAME or
- *                   @c client->ewmh->_NET_WM_VISIBLE_ICON_NAME,
- *                   whichever matches @p set_fn
+ *                  @c client->ewmh->_NET_WM_VISIBLE_ICON_NAME,
+ *                  whichever matches @p set_fn
  *
  * @note Complexity: @e O(n), where @e n is the length of @p rendered
  */

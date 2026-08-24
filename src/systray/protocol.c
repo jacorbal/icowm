@@ -230,7 +230,8 @@ void systray_protocol_dock(xcb_window_t icon)
 
     xcb_map_window(s_tray.connection, icon);
 
-    /* XEMBED handshake: tell the icon it is now embedded, and by whom */
+    /* The XEMBED handshake tells the icon it is now embedded, and
+     * by whom */
     memset(&ev, 0, sizeof(ev));
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.format = 32;

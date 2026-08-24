@@ -331,15 +331,15 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 
         /* Set the level string to output */
         switch (level) {
-            case LOG_TRACE:     level_str = "TRACE";    break;  /* debugs */
+            case LOG_TRACE:     level_str = "TRACE";    break;
             case LOG_DEBUG:     level_str = "DEBUG";    break;
-            case LOG_INFO:      level_str = "INFO";     break;  /* infos. */
+            case LOG_INFO:      level_str = "INFO";     break;
             case LOG_NOTICE:    level_str = "NOTICE";   break;
-            case LOG_WARNING:   level_str = "WARNING";  break;  /* warns. */
-            case LOG_ERROR:     level_str = "ERROR";    break;  /* errors */
+            case LOG_WARNING:   level_str = "WARNING";  break;
+            case LOG_ERROR:     level_str = "ERROR";    break;
             case LOG_CRITICAL:  level_str = "CRITICAL"; break;
             case LOG_ALERT:     level_str = "ALERT";    break;
-            case LOG_FATAL:     level_str = "FATAL";    break;  /* CRASH! */
+            case LOG_FATAL:     level_str = "FATAL";    break;
         }
 
         /* Format first part message */

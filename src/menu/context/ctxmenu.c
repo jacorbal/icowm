@@ -165,7 +165,7 @@ void ctxmenu_show(xcb_connection_t *connection,
                 surface->screen->root,
                 XCB_CURRENT_TIME,
                 XCB_GRAB_MODE_ASYNC,    /* pointer events unaffected */
-                XCB_GRAB_MODE_ASYNC);   /* keyboard events delivered async */
+                XCB_GRAB_MODE_ASYNC);   /* delivered asynchronously */
         xcb_grab_pointer(connection,
                 1,                      /* owner_events: report events
                                            normally to whichever window

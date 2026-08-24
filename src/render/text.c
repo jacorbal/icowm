@@ -81,13 +81,24 @@ static struct {
 
     uint16_t char_width;
 
-    int16_t ascent;     /**< Pixels the baseline sits below the top of
-                             a line of text, from the font's own metrics.
-                             Used to vertically center or
-                             top/bottom-align text against a known
-                             pixel height (cfr. @a text_font_ascent) */
-    int16_t descent;    /**< Pixels the baseline sits above the bottom of
-                             a line of text.  (Cfr. @a text_font_descent) */
+    /**
+     * @brief Pixels the baseline sits below the top of a line of
+     *        text, from the font metrics
+     *
+     * Used to center text vertically, or to align it to the top or
+     * the bottom, against a known pixel height.
+     *
+     * @see @a text_font_ascent
+     */
+    int16_t ascent;
+
+    /**
+     * @brief Pixels the baseline sits above the bottom of a line of
+     *        text
+     *
+     * @see @a text_font_descent
+     */
+    int16_t descent;
 
     enum s_text_backend_e backend;
     bool is_initialized;
@@ -418,19 +429,25 @@ static void s_font_config_build_xlfd_pattern(
  *
  * Examples:
  * @code
- * "fixed"                    -> "fixed"
- * "fixed 13"                 -> "-*-fixed-medium-r-*-*-13-*-*-*-*-*-*-*"
- * "fixed bold 13"            -> "-*-fixed-bold-r-*-*-13-*-*-*-*-*-*-*"
- * "fixed medium oblique"     -> "-*-fixed-medium-o-*-*-*-*-*-*-*-*-*-*"
- * "fixed bold 13 iso8859-15" -> "-*-fixed-bold-r-*-*-13-*-*-*-*-*-iso8859-15"
- * "fixed bold iso8859-15"    -> "-*-fixed-bold-r-*-*-*-*-*-*-*-*-iso8859-15"
+ * "fixed"
+ *     "fixed"
+ * "fixed 13"
+ *     "-*-fixed-medium-r-*-*-13-*-*-*-*-*-*-*"
+ * "fixed bold 13"
+ *     "-*-fixed-bold-r-*-*-13-*-*-*-*-*-*-*"
+ * "fixed medium oblique"
+ *     "-*-fixed-medium-o-*-*-*-*-*-*-*-*-*-*"
+ * "fixed bold 13 iso8859-15"
+ *     "-*-fixed-bold-r-*-*-13-*-*-*-*-*-iso8859-15"
+ * "fixed bold iso8859-15"
+ *     "-*-fixed-bold-r-*-*-*-*-*-*-*-*-iso8859-15"
  * @endcode
  *
  * If @p input already starts with @c '-' it is treated as a full XLFD
  * and copied verbatim into @p output.
  *
- * Split into one static function per phase: tokenizing (@a
- * s_font_config_tokenize), charset extraction (@a s_font_config_
+ * One static function per phase: tokenizing
+ * (@a s_font_config_tokenize), charset extraction (@a s_font_config_
  * extract_charset), size extraction (@a s_font_config_extract_size),
  * style keyword scanning (@a s_font_config_scan_style), family string
  * assembly (@a s_font_config_build_family), and the final pattern
@@ -702,7 +719,7 @@ void text_renderer_destroy(void)
 }
 
 
-/* Update the foreground and background colors of the text renderer GC */
+/* Update the text renderer GC's foreground and background colors */
 void text_renderer_set_color(uint32_t fg, uint32_t bg)
 {
     uint32_t gc_values[2];
@@ -812,9 +829,9 @@ uint16_t text_string_measure(const char *text)
     /* Counting decoded codepoints, not 'safe_strlen's own UTF-8 byte
      * count: 's_utf8_to_latin1' always draws exactly one glyph per
      * codepoint (the Latin-1 byte itself, or a '?' substitute for
-     * anything further out), so a multi-byte character like 'á'
+     * anything further out), so a multi-byte accented character
      * measures as the one character cell it actually occupies once
-     * drawn, not the two UTF-8 bytes it happens to take on the wire. */
+     * drawn, not the two UTF-8 bytes it takes on the wire. */
     while (glyph_utf8_next(text, &byte_index) != 0u) {
         char_count += 1u;
     }

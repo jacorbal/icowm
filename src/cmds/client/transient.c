@@ -47,7 +47,7 @@
  *
  * A single step of @a ccmd_client_focus_target's own walk; split out
  * on its own to keep that walk's loop body simple.  Walks
- * @p client's own @c transients list directly (see its own doc comment,
+ * @p client's own @c transients list directly (see its comment,
  * client.h): no lookup, no scan of any other client on any desktop,
  * just the handful of pointers @p client's own direct children
  * actually are.  The @c CLIENT_FLAG_HIDDEN check specifically
@@ -144,7 +144,7 @@ static client_td *s_client_mapped_transient_child(client_td *client)
  * file: rather than scanning every client on every desktop and
  * comparing @c transient_for window IDs (the only way this used to
  * be possible, before @c transients existed as a real, maintained
- * list; see its own doc comment, client.h), this walks only
+ * list; see its comment, client.h), this walks only
  * @p node's own actual descendants, following real pointers, so its own
  * cost is proportional to the family's own size rather than to how
  * many other, unrelated clients happen to be managed.
@@ -404,7 +404,7 @@ client_td *client_group_transient_anchor(const client_td *client)
  * a structure while still walking it is asking for trouble regardless
  * of which structure it is.  A thin wrapper over @a s_family_snapshot
  * with its own @p desktop_filter set to @p desktop's own @c id; see
- * that function's own doc comment for the full reasoning.  The
+ * that function's comment for the full reasoning.  The
  * caller supplies its own loop over the result to actually act on
  * each one, since what to do with a family member is the one part
  * every call site still needs its own way.
@@ -453,7 +453,7 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  * can genuinely differ when @p top is pinned, since pinning a client
  * never actually moves it between desktops (it stays registered
  * under whichever one it was originally on forever; see @a ccmd_
- * client_bring_family's own doc comment below for the fuller
+ * client_bring_family's comment below for the fuller
  * reasoning), while an un-pinned transient dialog of it is registered
  * under whichever desktop happened to be current when it was
  * created.  Restricting the search to @p top's own desktop alone, as
@@ -466,7 +466,7 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  * hidden nor found again on restore, stranding it invisible with no
  * way back.  A thin wrapper over @a s_family_snapshot with its own
  * @p desktop_filter set to @c WM_DESKTOP_ID_ALL, matching every
- * desktop; see that function's own doc comment for the full
+ * desktop; see that function's comment for the full
  * reasoning behind the two-pass count-then-fill approach.
  *
  * @param top       Family's own top-most ancestor (see @a ccmd_
@@ -512,7 +512,7 @@ void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
  * dialog is moved onto the desktop the parent is being interacted
  * with on right then, not before, so it is right there to actually
  * receive the redirected focus (see @a ccmd_client_focus_target's
- * own doc comment) instead of popping the person back to wherever it
+ * comment) instead of popping the person back to wherever it
  * happened to be left.  Openbox's own version does not stop at the
  * desktop mismatch either: @c client_bring_windows_recursive checks
  * @e both @c !screen_compare_desktops(self->desktop, desktop) (wrong
@@ -540,7 +540,7 @@ void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
  * same desktop, but not when the top parent is itself pinned, since
  * pinning a client never actually moves it between desktops (it
  * stays registered under whichever one it was originally on forever;
- * see @a surface_clients_hide's own doc comment, surface/actions/
+ * see @a surface_clients_hide's comment, surface/actions/
  * clients.c, for how pin visibility is really achieved).
  *
  * The relocation step itself is deliberately only the data move
@@ -651,7 +651,7 @@ void ccmd_client_bring_family(client_td *client)
  * dialog itself reachable only by clicking it directly with the
  * mouse.  Called from @a focus_apply itself (@c policy/focus.c), the
  * one place every real focus-granting path already converges on (see
- * that function's own doc comment), so this applies uniformly
+ * that function's comment), so this applies uniformly
  * regardless of whether the original request came from a click, a
  * restore, a cycle-menu selection, or anywhere else that ends up
  * asking for @p client by name specifically.  Descends through more
@@ -771,7 +771,7 @@ void client_link_transient(client_td *client)
  *        being managed
  *
  * Removes @p client from its own parent's @c transients list in true
- * @e O(1) (see @c transient_node's own doc comment, client.h: with
+ * @e O(1) (see @c transient_node's comment, client.h: with
  * that node cached, @c cdlist_rem_next on its own @c prev needs no
  * search at all), and orphans every one of @p client's own children
  * by clearing their own @c transient_parent/@c transient_node back

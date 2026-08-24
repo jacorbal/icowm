@@ -161,7 +161,8 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "deiconify_all",            ipc_action_deiconify_all },
     { "rearrange_desktop",        ipc_action_rearrange },
 
-    /* Surface (desktop switching, adding, removing): ipc/actions/surface.h */
+    /* Surface actions, which switch, add and remove desktops, live
+     * in 'ipc/actions/surface.h' */
     { "goto_desktop",             ipc_action_goto_desktop },
     { "goto_north_desktop",       ipc_action_goto_north_desktop },
     { "goto_south_desktop",       ipc_action_goto_south_desktop },

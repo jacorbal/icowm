@@ -58,7 +58,7 @@ bool focus_is_sloppy(const config_td *cfg);
  * client just losing focus is fullscreen, so a focused fullscreen
  * client stays above everything else and one that just lost focus
  * falls back into its own real layer immediately either way (see
- * @a ccmd_desktop_enforce_layers's own doc comment).
+ * @a ccmd_desktop_enforce_layers's comment).
  *
  * @param surfaces All managed surfaces (needed for unfocus lookup)
  * @param surface  Surface containing the client

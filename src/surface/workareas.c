@@ -4,7 +4,7 @@
  * @brief Per-desktop work-area recomputation for a surface
  *
  * One of the files @c surface/ is made of; see
- * @c surface.c's own doc comment for why.  Its own single function
+ * @c surface.c's comment for why.  Its own single function
  * today, kept separate from @c surface/desktops.c regardless: work
  * area is a rendering/placement concern, not desktop-list navigation,
  * and giving it its own file now means anything that grows this

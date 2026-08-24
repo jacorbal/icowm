@@ -39,7 +39,8 @@
  */
 enum rules_trigger_e {
     RULES_TRIGGER_MAP = 0,  /**< Triggered when a window is mapped */
-    RULES_TRIGGER_PROPERTY, /**< Triggered on an ICCCM/EWMH property change */
+    /** Triggered on an ICCCM or EWMH property change */
+    RULES_TRIGGER_PROPERTY,
 };
 
 

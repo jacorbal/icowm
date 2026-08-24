@@ -118,8 +118,8 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
      * differently-structured attempts at silencing it, both zeroing
      * the array at its own declaration point, that made no
      * difference at all) before reporting a "use of uninitialized
-     * value" with no source location at all for the read itself --
-     * itself a strong sign of a known class of '-fanalyzer' false
+     * value" with no source location at all for the read itself,
+     * which is a strong sign of a known class of '-fanalyzer' false
      * positive around a fixed array declared inside a loop with an
      * early 'continue', rather than a real, traceable read of
      * anything actually uninitialized.  A single declaration, reached

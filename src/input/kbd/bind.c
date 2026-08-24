@@ -262,7 +262,7 @@ static bool s_surface_has_multiple_desktops(const surface_td *surface)
 void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         const config_td *config)
 {
-    /* Binding definitions: string from config paired with action type */
+    /* Each binding pairs a configured string with an action type */
     struct {
         const char *binding;
         enum wm_keybind_type_e type;
@@ -428,7 +428,8 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         { NULL, KEYBIND_NONE }
     };
 
-    /* Lock-modifier variants so grabs fire even with Caps/Num Lock on */
+    /* Lock-modifier variants, so grabs fire under Caps or Num
+     * Lock too */
     static const uint16_t lockmods[] = {
         0,
         XCB_MOD_MASK_LOCK,

@@ -51,7 +51,8 @@ enum client_type_e {
     CLIENT_TYPE_MENU,           /**< Menu options */
     CLIENT_TYPE_DESKTOP,        /**< The desktop "client" */
     CLIENT_TYPE_SPLASH,         /**< The client is a loading message */
-    CLIENT_TYPE_UTILITY,        /**< Additional functions: control panels... */
+    /** Additional functions, such as a control panel */
+    CLIENT_TYPE_UTILITY,
     CLIENT_TYPE_DROPDOWN_MENU,  /**< Drop-down menu */
     CLIENT_TYPE_POPUP_MENU,     /**< Contextual menu */
     CLIENT_TYPE_COMBO,          /**< Part of a combined frame */
@@ -193,14 +194,15 @@ enum client_layer_e {
 enum client_gravity_e {         /* Reference point fixed on resize: */
     CLIENT_GRAVITY_NORTH_WEST = 1,  /**<  1: top-left corner of frame */
     CLIENT_GRAVITY_NORTH      = 2,  /**<  2: center of top edge */
-    CLIENT_GRAVITY_NORTH_EAST = 3,  /**<  3: top-right corner of frame */
+    CLIENT_GRAVITY_NORTH_EAST = 3,  /**<  3: frame top-right */
     CLIENT_GRAVITY_EAST       = 4,  /**<  4: center of right edge */
-    CLIENT_GRAVITY_SOUTH_EAST = 5,  /**<  5: bottom-right corner of frame */
+    CLIENT_GRAVITY_SOUTH_EAST = 5,  /**<  5: frame bottom-right */
     CLIENT_GRAVITY_SOUTH      = 6,  /**<  6: center of bottom edge */
-    CLIENT_GRAVITY_SOUTH_WEST = 7,  /**<  7: bottom-left corner of frame */
+    CLIENT_GRAVITY_SOUTH_WEST = 7,  /**<  7: frame bottom-left */
     CLIENT_GRAVITY_WEST       = 8,  /**<  8: center of left edge */
     CLIENT_GRAVITY_CENTER     = 9,  /**<  9: center of frame */
-    CLIENT_GRAVITY_STATIC     = 10, /**< 10: top-left corner of client area */
+    /** 10: top-left corner of the client area */
+    CLIENT_GRAVITY_STATIC     = 10,
 };
 
 /**

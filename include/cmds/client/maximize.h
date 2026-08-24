@@ -105,7 +105,7 @@ void ccmd_client_demote_axis_state(client_td *client, int dir);
  * under the resistance threshold before release, live, on the very
  * same motion event; see @c drag_update, input/mouse/drag.c): the
  * live, reversible half of the same mechanism @c ccmd_client_demote_
- * axis_state's own doc comment describes, restoring @c MAXIMIZED
+ * axis_state's comment describes, restoring @c MAXIMIZED
  * itself rather than @c NORMAL when the other axis is already
  * maximized on its own, @c MAXIMIZED_HORZ/@c _VERT otherwise.
  *

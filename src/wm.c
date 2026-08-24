@@ -157,7 +157,7 @@ static void s_client_unmanage(client_td *client)
  *        teardown destroys the window manager's own resources
  *
  * @a s_client_unmanage does the actual work, once per client; see its
- * own doc comment for why this has to happen at all.
+ * comment for why this has to happen at all.
  *
  * @note Complexity: @e O(n), where @e n is the total number of
  *       clients across every desktop of every managed surface
@@ -775,7 +775,7 @@ bool wm_sync_is_available(void)
 }
 
 
-/* Return the list of surfaces managed by the singleton window manager */
+/* Return the surfaces the singleton window manager manages */
 list_td *wm_get_surfaces(void)
 {
     return (wm != NULL) ? wm->surfaces : NULL;

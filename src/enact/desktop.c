@@ -98,7 +98,7 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
  *
  * Carries what used to sit inside
  * @a enact_desktop_client_send so that function can redirect to, and
- * cascade across, a transient family (see its own doc comment) while
+ * cascade across, a transient family (see its comment) while
  * still sharing this single client's worth of desktop-move plumbing
  * with the top-level, family-unaware call it makes on the family's own
  * top parent and on every other member in turn.
@@ -147,7 +147,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * 'client_focus_fallback') redirects to whichever mapped
      * transient descendant of the new fallback target should
      * actually receive focus in its place (see 'ccmd_client_
-     * focus_target''s own doc comment, cmds/client/transient.h), and
+     * focus_target''s comment, cmds/client/transient.h), and
      * that redirect walk would otherwise still find 'client' sitting
      * in 'desktop->clients' at the moment of the search, even though
      * it is already on its way to 'target'; the same reasoning
@@ -157,7 +157,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
     if (desktop_action_client_add(target, client) != 0) {
         /* 'target' refused it (a resource exhaustion or a genuine
          * hashtable-insert failure; see 'desktop_action_client_add's
-         * own doc comment, desktop.h): put it back exactly where it
+         * comment, desktop.h): put it back exactly where it
          * came from, undoing the unmap above too if it happened,
          * rather than leaving the client registered under neither
          * desktop, or invisible on the very desktop it is actually
@@ -218,7 +218,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * client keeps publishing the EWMH "all desktops" sentinel
      * instead of any one real index, unaffected by which desktop it
      * is actually registered under (see 'ccmd_client_bring_family's
-     * own doc comment, cmds/client/transient.c, for the fuller
+     * comment, cmds/client/transient.c, for the fuller
      * reasoning on why a pinned client's own registration and its
      * own published desktop can differ like this). */
     if (client->ewmh != NULL) {
@@ -234,7 +234,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * focus there off to whatever else on that desktop qualifies,
      * the same way closing, hiding, or iconifying the active client
      * already does everywhere else in this project (see
-     * 's_client_focus_fallback''s own doc comment); without this,
+     * 's_client_focus_fallback''s comment); without this,
      * the source desktop's 'client_active_id' was left pointing at a
      * client no longer even in its own list, and because the client
      * is unmapped above when it was visible, the X server's own real
@@ -310,7 +310,7 @@ void enact_desktop_show(desktop_td *desktop, bool show)
  *        transient family with it
  *
  * The desktop-move counterpart to @a ccmd_client_iconify's own
- * transient-family cascade (see its own doc comment, cmds/client/
+ * transient-family cascade (see its comment, cmds/client/
  * visibility.c, for the full reasoning): redirects to the family's
  * top-most ancestor first, moving it exactly as this function always
  * has, then moves every other member of that same family too, so a

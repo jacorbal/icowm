@@ -287,7 +287,8 @@ void run_handle_keypress(xcb_connection_t *connection,
         return;
     }
 
-    if (keysym == 0xff0du || keysym == 0xff8du) {   /* Return / KP_Enter */
+    /* Return or KP_Enter */
+    if (keysym == 0xff0du || keysym == 0xff8du) {
         s_run_attempt_launch(connection);
         return;
     }

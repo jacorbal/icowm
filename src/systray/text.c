@@ -61,7 +61,7 @@ void systray_text_refresh_clock(void)
 }
 
 
-/* Read and format the current battery status into 's_tray.battery_text' */
+/* Read and format the battery status into 's_tray.battery_text' */
 void systray_text_refresh_battery(void)
 {
     if (!s_tray.battery_enabled) {

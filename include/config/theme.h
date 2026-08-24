@@ -59,8 +59,9 @@ enum config_titlebar_button_e {
 
 
 /**
- * @brief Font, color, and border shared shape used by every themeable
- *        surface (window active/inactive, icon active/inactive, systray)
+ * @brief Font, color and border shape shared by every themeable
+ *        surface, active and inactive windows and icons and the
+ *        systray alike
  */
 struct config_theme_style_s {
     char font[CONFIG_MAX_LENGTH_FONTNAME];
@@ -110,8 +111,9 @@ struct config_theme_s {
         bool is_decorated;
 
         struct {
-            uint32_t height;    /**< Setting it to zero is equivalent to
-                                     @c ("window.is-decorated": false) */
+            /** Setting it to zero is equivalent to setting
+             *  @c window.is-decorated to false */
+            uint32_t height;
 
             enum config_titlebar_alignment_e {
                 CONFIG_TITLEBAR_ALIGN_LEFT = 0,
@@ -246,9 +248,8 @@ struct config_theme_s {
             uint32_t gap;
 
             enum config_systray_text_valign_e {
-                CONFIG_SYSTRAY_TEXT_VALIGN_CENTER = 0, /**< Centered in
-                                                            the tray's
-                                                            full height */
+                /** Centered in the tray's full height */
+                CONFIG_SYSTRAY_TEXT_VALIGN_CENTER = 0,
                 CONFIG_SYSTRAY_TEXT_VALIGN_TOP,
                 CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM
             } valign;
@@ -346,7 +347,8 @@ struct config_theme_s {
         struct config_theme_style_s selected;
 
         /**
-         * @brief Style for a non-interactive heading row @c CTXMENU_LABEL
+         * @brief Style for a non-interactive heading row, that is,
+         *        a @c CTXMENU_LABEL
          *
          * Never highlighted or activated, so it never borrows
          * @p unselected or @p selected even though it can look similar
@@ -551,15 +553,19 @@ struct config_theme_s {
     struct {
         bool is_enabled;                /**< Enable the built-in
                                              XSETTINGS manager */
-        unsigned int dpi;               /**< Display resolution, in dots
-                                             per inch; published as
-                                             Xft/DPI (times 1024, per
-                                             the XSETTINGS convention) */
+        /**
+         * @brief Display resolution, in dots per inch
+         *
+         * Published as @c Xft/DPI, multiplied by 1024 as the XSETTINGS
+         * convention requires.
+         */
+        unsigned int dpi;
         struct {
             char gtk_theme_name[CONFIG_MAX_LENGTH_NAME];
             char icon_theme_name[CONFIG_MAX_LENGTH_NAME];
             char cursor_theme_name[CONFIG_MAX_LENGTH_NAME];
-            unsigned int cursor_theme_size; /**< Cursor size in pixels */
+            /** Cursor size in pixels */
+            unsigned int cursor_theme_size;
         } theme;
     } xsettings;
 

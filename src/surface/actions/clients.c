@@ -284,7 +284,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     /* When the desktop's own remembered active client could not be
      * restored above, only let 'client_focus_fallback' guess another
      * reasonable visible, focusable client on this same desktop (see
-     * its own doc comment, cmds/client/focus.h, for the exact
+     * its comment, cmds/client/focus.h, for the exact
      * criteria, skip-taskbar exclusion included) when a
      * 'client_active_id' genuinely existed to begin with, i.e.,
      * someone really had focused something on this desktop before;

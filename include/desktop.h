@@ -142,13 +142,13 @@ typedef struct desktop_s {
     config_td *config;
 
     struct background_s {
-        bool is_image;                      /**< BG color or image? */
-        bool use_root_pixmap;               /**< Reuse externally set
-                                                 root pixmap on redraw */
+        bool is_image;              /**< Color or image */
+        /** Reuse an externally set root pixmap on redraw */
+        bool use_root_pixmap;
         union {
-            uint32_t color;                 /**< Background color */
-            char *image_path;               /**< Background image */
-        } bg;                               /**< Background information */
+            uint32_t color;         /**< Background color */
+            char *image_path;       /**< Background image */
+        } bg;                       /**< Background itself */
     } background;
     /* No 'bg_applied_once'/'bg_color_applied' cache here: the root
      * window a solid-color background actually paints is one single
@@ -187,7 +187,7 @@ typedef struct desktop_s {
      * @c surface->monitors entry.
      *
      * Indices line up with @p surface->monitors (see @a desktop_
-     * update_workarea's own doc comment); only the first @p monitor_
+     * update_workarea's comment); only the first @p monitor_
      * workarea_count entries are valid.
      */
     struct geometry_s monitor_workareas[WM_SURFACE_MAX_MONITORS];
@@ -195,10 +195,14 @@ typedef struct desktop_s {
     bool is_outdated;                       /**< Flag when data needs to
                                                  be updated */
 
-    bool is_focus_dirty;                       /**< Active client changed
-                                                 since last render pass;
-                                                 decoration colors must be
-                                                 refreshed on all clients */
+    /**
+     * @brief Whether the active client changed since the last render
+     *        pass
+     *
+     * Decoration colors must be refreshed on every client when it
+     * did.
+     */
+    bool is_focus_dirty;
 
     /**
      * @brief Whether at least one client on this desktop currently has
@@ -534,7 +538,7 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  *
  * Repeats the same reservation math once more per individual monitor
  * on @p surface, storing the result in @p desktop->monitor_
- * workareas (see its own doc comment, this same file, for why): each
+ * workareas (see its comment, this same file, for why): each
  * monitor's own along-edge span, rather than the whole surface's, is
  * what a strut's own start/end range is checked against there, so a
  * monitor with no panel of its own keeps its full area even while a

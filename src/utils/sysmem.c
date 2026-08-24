@@ -78,7 +78,7 @@ static bool s_sysmem_read_kib_field(const char *restrict filepath,
 }
 
 
-/* Read the kernel's own estimate of currently available system memory */
+/* Read the kernel's estimate of available system memory */
 bool sysmem_available_mib(uint32_t *out_mib)
 {
     if (out_mib == NULL) {

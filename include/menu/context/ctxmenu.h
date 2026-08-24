@@ -95,7 +95,8 @@
  * @brief Types of entries that a context menu can contain
  */
 typedef enum {
-    CTXMENU_COMMAND,   /**< Clickable entry that runs a command/action */
+    /** Clickable entry that runs a command or an action */
+    CTXMENU_COMMAND,
     CTXMENU_SUBMENU,   /**< Entry that opens a nested submenu */
     CTXMENU_SEPARATOR, /**< Non-clickable horizontal separator */
     CTXMENU_LABEL      /**< Non-clickable text heading */
@@ -170,8 +171,9 @@ typedef struct ctxmenu_entry_s {
      */
     xcb_window_t icon_window;
 
-    bool is_disabled;                           /**< Grayed-out if @c true */
-    char label[WM_CTXMENU_LABEL_MAX_LENGTH];    /**< Visible text */
+    bool is_disabled;               /**< Grayed out when @c true */
+    /** Visible text */
+    char label[WM_CTXMENU_LABEL_MAX_LENGTH];
 } ctxmenu_entry_td;
 
 
@@ -200,12 +202,14 @@ typedef struct ctxmenu_state_s {
     /** Back-pointer to the parent menu, or null */
     struct ctxmenu_state_s *parent;
 
-    xcb_connection_t *connection;   /**< Cached connection for repaints */
+    /** Cached connection, for repaints */
+    xcb_connection_t *connection;
     const config_td *config;        /**< Cached configuration */
-    surface_td *surface;            /**< Cached surface for activation */
-    xcb_window_t window;            /**< XCB window, or @c XCB_WINDOW_NONE */
-    int entry_count;                /**< Number of entries in @p entries */
-    int selected;                   /**< Currently highlighted row index */
+    surface_td *surface;            /**< Cached activation surface */
+    /** XCB window, or @c XCB_WINDOW_NONE */
+    xcb_window_t window;
+    int entry_count;                /**< Entries in @p entries */
+    int selected;                   /**< Highlighted row index */
 
     /**
      * @brief Window-relative Y of the last @c MotionNotify actually
@@ -222,8 +226,8 @@ typedef struct ctxmenu_state_s {
 
     uint16_t width;                 /**< Computed menu window width */
     uint16_t height;                /**< Computed menu window height */
-    int16_t origin_x;               /**< Actual X origin after clamping */
-    int16_t origin_y;               /**< Actual Y origin after clamping */
+    int16_t origin_x;               /**< X origin after clamping */
+    int16_t origin_y;               /**< Y origin after clamping */
 } ctxmenu_state_td;
 
 

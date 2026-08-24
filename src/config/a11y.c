@@ -100,7 +100,8 @@ int config_load_a11y(const char *filename,
      * 'is-enabled' to false, dropped it entirely, or dropped a field
      * it used to specify, must fall back cleanly rather than keep
      * whatever an earlier, still-enabled load happened to leave here
-     * (see 'config_set_default_a11y_values''s comment in 'config.h'). */
+     * ('config_set_default_a11y_values' has a comment in 'config.h'
+     * explaining it). */
     config_set_default_a11y_values(config_a11y);
 
     LOGGER_TRACE("Parsing a11y configuration from file '%s'", filename);

@@ -76,7 +76,7 @@ struct systray_state_s {
     xcb_connection_t *connection;
     xcb_ewmh_connection_t *ewmh;    /**< For publishing the tray's own
                                          reserved-space strut */
-    surface_td *surface;            /**< Surface the tray is docked on */
+    surface_td *surface;            /**< Surface the tray docks on */
 
     const struct config_theme_s *theme; /**< Shared pointer into
                                              @p wm->config->theme; stays
@@ -100,7 +100,8 @@ struct systray_state_s {
     xcb_atom_t selection_atom;      /**< @c _NET_SYSTEM_TRAY_Sn */
     xcb_atom_t manager_atom;        /**< @c MANAGER */
     xcb_atom_t opcode_atom;         /**< @c _NET_SYSTEM_TRAY_OPCODE */
-    xcb_atom_t orientation_atom;    /**< @c _NET_SYSTEM_TRAY_ORIENTATION */
+    /** @c _NET_SYSTEM_TRAY_ORIENTATION */
+    xcb_atom_t orientation_atom;
     xcb_atom_t visual_atom;         /**< @c _NET_SYSTEM_TRAY_VISUAL */
     xcb_atom_t xembed_atom;         /**< @c _XEMBED */
     enum config_systray_position_e position;
@@ -147,8 +148,10 @@ struct systray_state_s {
 
     systray_icon_td icons[WM_SYSTRAY_MAX_ICONS];
     uint16_t height;
-    uint16_t pixmap_size; /**< @see @p config.theme.systray.pixmap.size */
-    uint16_t pixmap_pad;  /**< @see @p config.theme.systray.pixmap.padding */
+    /** @see @c config.theme.systray.pixmap.size */
+    uint16_t pixmap_size;
+    /** @see @c config.theme.systray.pixmap.padding */
+    uint16_t pixmap_pad;
     uint16_t text_gap;
     uint16_t icon_count;
 

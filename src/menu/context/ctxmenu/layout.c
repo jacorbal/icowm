@@ -33,11 +33,12 @@ static int s_row_height(ctxmenu_entry_type_e type)
  * @brief Maximum measured width among non-label, non-separator
  *        entries, in whichever font is currently active
  *
- * Shared by @c ctxmenu_width_compute's own second and third measuring
- * passes (@c unselected.font and @c selected.font respectively).  The
- * two are otherwise identical, differing only in which font is active
- * when each is called; see @c ctxmenu_width_compute's comment for why those
- * stay two separate passes rather than one combined loop.
+ * Shared by @a ctxmenu_width_compute's second and third measuring
+ * passes, for @c unselected.font and @c selected.font respectively.
+ * The two are otherwise identical, differing only in which font is
+ * active when each is called.  The comment on
+ * @a ctxmenu_width_compute explains why those stay two separate
+ * passes rather than one combined loop.
  *
  * @param entries     Entries to measure
  * @param entry_count Number of entries in @p entries

@@ -23,56 +23,71 @@
  */
 enum action_client_e {
     ACTION_CLIENT_MIN,
-    ACTION_CLIENT_CLOSE =               /**< Close window */
-        ACTION_CLIENT_MIN,
-    ACTION_CLIENT_KILL,                 /**< Forcibly kill window's client */
-    ACTION_CLIENT_RESTORE,              /**< Restore window */
-    ACTION_CLIENT_FOCUS,                /**< Focus on window */
-    ACTION_CLIENT_UNFOCUS,              /**< Defocus window */
-    ACTION_CLIENT_RESIZE,               /**< Resize window */
-    ACTION_CLIENT_MOVE,                 /**< Move window */
-    ACTION_CLIENT_CENTER,               /**< Center window */
-    ACTION_CLIENT_MOVE_MONITOR_NORTH,   /**< Move window to the monitor
-                                             north of the current one */
-    ACTION_CLIENT_MOVE_MONITOR_SOUTH,   /**< Move window to the monitor
-                                             south of the current one */
-    ACTION_CLIENT_MOVE_MONITOR_EAST,    /**< Move window to the monitor
-                                             east of the current one */
-    ACTION_CLIENT_MOVE_MONITOR_WEST,    /**< Move window to the monitor
-                                             west of the current one */
-    ACTION_CLIENT_MOVE_TO_MONITOR,      /**< Move window to a specific
-                                             monitor index */
-    ACTION_CLIENT_RECLASS,              /**< Change window class */
-    ACTION_CLIENT_REROLE,               /**< Change window role */
-    ACTION_CLIENT_RENAME,               /**< Rename window */
-    ACTION_CLIENT_MAXIMIZE,             /**< Maximize window */
-    ACTION_CLIENT_MAXIMIZE_HORZ,        /**< Maximize window horizontally */
-    ACTION_CLIENT_MAXIMIZE_VERT,        /**< Maximize window vertically */
-    ACTION_CLIENT_ICONIFY,              /**< Iconify (& minimize) */
-    ACTION_CLIENT_HIDE,                 /**< Hide window */
-    ACTION_CLIENT_UNHIDE,               /**< Show window */
-    ACTION_CLIENT_SHADE,                /**< Shade (roll-up) the window */
-    ACTION_CLIENT_UNSHADE,              /**< Unshade (roll-down) the window */
-    ACTION_CLIENT_TOGGLE_SHADE,         /**< Toggle window shade status */
-    ACTION_CLIENT_PIN,                  /**< Set window pin mode */
-    ACTION_CLIENT_UNPIN,                /**< Remove window pin mode */
-    ACTION_CLIENT_TOGGLE_PIN,           /**< Toggle window pin mode */
-    ACTION_CLIENT_FULLSCREEN,           /**< Set full screen mode */
-    ACTION_CLIENT_UNFULLSCREEN,         /**< Remove full screen mode */
-    ACTION_CLIENT_TOGGLE_FULLSCREEN,    /**< Toggle full screen mode */
-    ACTION_CLIENT_RAISE,                /**< Raise window */
-    ACTION_CLIENT_LOWER,                /**< Lower window */
-    ACTION_CLIENT_LAYER_ABOVE,          /**< Window always on top */
-    ACTION_CLIENT_LAYER_NORMAL,         /**< Window normal layer */
-    ACTION_CLIENT_LAYER_BELOW,          /**< Window always on bottom */
-    ACTION_CLIENT_CYCLE_LAYER,          /**< Cycle layer: normal/above/below */
-    ACTION_CLIENT_SET_URGENT,           /**< Mark window as urgent */
-    ACTION_CLIENT_CLEAR_URGENT,         /**< Clear urgency level */
-    ACTION_CLIENT_SET_ICON,             /**< Set window icon */
-    ACTION_CLIENT_TOGGLE_DECORATION,    /**< Toggle window decoration */
 
-    ACTION_CLIENT_MAX =
-        ACTION_CLIENT_TOGGLE_DECORATION,
+    ACTION_CLIENT_CLOSE = ACTION_CLIENT_MIN,
+    /** Kill forcibly, without asking the client to close first */
+    ACTION_CLIENT_KILL,
+    ACTION_CLIENT_RESTORE,
+    ACTION_CLIENT_FOCUS,
+    ACTION_CLIENT_UNFOCUS,
+    ACTION_CLIENT_RESIZE,
+    ACTION_CLIENT_MOVE,
+    ACTION_CLIENT_CENTER,
+
+    /* Move to the monitor in a direction, relative to the
+     * current one */
+    ACTION_CLIENT_MOVE_MONITOR_NORTH,
+    ACTION_CLIENT_MOVE_MONITOR_SOUTH,
+    ACTION_CLIENT_MOVE_MONITOR_EAST,
+    ACTION_CLIENT_MOVE_MONITOR_WEST,
+    /** Move to a monitor named by index */
+    ACTION_CLIENT_MOVE_TO_MONITOR,
+
+    /** Change the window class */
+    ACTION_CLIENT_RECLASS,
+    /** Change the window role */
+    ACTION_CLIENT_REROLE,
+    ACTION_CLIENT_RENAME,
+
+    ACTION_CLIENT_MAXIMIZE,
+    ACTION_CLIENT_MAXIMIZE_HORZ,
+    ACTION_CLIENT_MAXIMIZE_VERT,
+
+    ACTION_CLIENT_ICONIFY,
+    ACTION_CLIENT_HIDE,
+    ACTION_CLIENT_UNHIDE,
+
+    /** Shade, rolling the window up into its titlebar */
+    ACTION_CLIENT_SHADE,
+    ACTION_CLIENT_UNSHADE,
+    ACTION_CLIENT_TOGGLE_SHADE,
+
+    /** Pin, so the window shows on every desktop */
+    ACTION_CLIENT_PIN,
+    ACTION_CLIENT_UNPIN,
+    ACTION_CLIENT_TOGGLE_PIN,
+
+    ACTION_CLIENT_FULLSCREEN,
+    ACTION_CLIENT_UNFULLSCREEN,
+    ACTION_CLIENT_TOGGLE_FULLSCREEN,
+
+    ACTION_CLIENT_RAISE,
+    ACTION_CLIENT_LOWER,
+    /** Keep the window always on top */
+    ACTION_CLIENT_LAYER_ABOVE,
+    ACTION_CLIENT_LAYER_NORMAL,
+    /** Keep the window always at the bottom */
+    ACTION_CLIENT_LAYER_BELOW,
+    /** Cycle the layer between normal, above and below */
+    ACTION_CLIENT_CYCLE_LAYER,
+
+    /** Mark the window as urgent */
+    ACTION_CLIENT_SET_URGENT,
+    ACTION_CLIENT_CLEAR_URGENT,
+    ACTION_CLIENT_SET_ICON,
+    ACTION_CLIENT_TOGGLE_DECORATION,
+
+    ACTION_CLIENT_MAX = ACTION_CLIENT_TOGGLE_DECORATION,
 };
 
 
@@ -81,25 +96,37 @@ enum action_client_e {
  */
 enum action_desktop_e {
     ACTION_DESKTOP_MIN,
-    ACTION_DESKTOP_SET_BACKGROUND =     /**< Change background */
-        ACTION_DESKTOP_MIN,
-    ACTION_DESKTOP_SHOW,                /**< Hide clients to show desktop */
-    ACTION_DESKTOP_CLIENT_ADD,          /**< Add a new window */
-    ACTION_DESKTOP_CLIENT_REMOVE,       /**< Remove a window */
-    ACTION_DESKTOP_CLIENT_SEND,         /**< Send w. to another desktop */
-    ACTION_DESKTOP_CLIENT_SEND_FRONT,   /**< Set w. to front of stack */
-    ACTION_DESKTOP_CLIENT_SEND_BACK,    /**< Set w. to back of stack */
-    ACTION_DESKTOP_CLIENTS_REARRANGE,   /**< Rearrange windows */
-    ACTION_DESKTOP_CLIENTS_ICONIFY_ALL, /**< Iconify (& minim.) all w. */
-    ACTION_DESKTOP_CLIENTS_DEICONIFY_ALL,       /**< Restore all iconified w. */
-    ACTION_DESKTOP_CYCLE_CLIENTS_ACTIVE,        /**< Cycle through active w. */
-    ACTION_DESKTOP_CYCLE_CLIENTS_PREV,          /**< Cycle through prev. w. */
-    ACTION_DESKTOP_CYCLE_CLIENTS_ICONS_NEXT,    /**< Cycle to next icon */
-    ACTION_DESKTOP_CYCLE_CLIENTS_ICONS_PREV,    /**< Cycle to prev. icon */
-    ACTION_DESKTOP_COMMAND_LAUNCH,              /**< Launch program */
 
-    ACTION_DESKTOP_MAX =
-        ACTION_DESKTOP_COMMAND_LAUNCH,
+    /** Change the desktop background */
+    ACTION_DESKTOP_SET_BACKGROUND = ACTION_DESKTOP_MIN,
+    /** Hide every client so the bare desktop shows */
+    ACTION_DESKTOP_SHOW,
+
+    ACTION_DESKTOP_CLIENT_ADD,
+    ACTION_DESKTOP_CLIENT_REMOVE,
+    /** Send a window to another desktop */
+    ACTION_DESKTOP_CLIENT_SEND,
+    /** Send a window to the front of the stack */
+    ACTION_DESKTOP_CLIENT_SEND_FRONT,
+    /** Send a window to the back of the stack */
+    ACTION_DESKTOP_CLIENT_SEND_BACK,
+    ACTION_DESKTOP_CLIENTS_REARRANGE,
+    ACTION_DESKTOP_CLIENTS_ICONIFY_ALL,
+    ACTION_DESKTOP_CLIENTS_DEICONIFY_ALL,
+
+    /** Cycle through the active windows */
+    ACTION_DESKTOP_CYCLE_CLIENTS_ACTIVE,
+    /** Cycle back through the active windows */
+    ACTION_DESKTOP_CYCLE_CLIENTS_PREV,
+    /** Cycle to the next iconified window */
+    ACTION_DESKTOP_CYCLE_CLIENTS_ICONS_NEXT,
+    /** Cycle to the previous iconified window */
+    ACTION_DESKTOP_CYCLE_CLIENTS_ICONS_PREV,
+
+    /** Launch a program */
+    ACTION_DESKTOP_COMMAND_LAUNCH,
+
+    ACTION_DESKTOP_MAX = ACTION_DESKTOP_COMMAND_LAUNCH,
 };
 
 
@@ -108,19 +135,18 @@ enum action_desktop_e {
  */
 enum action_surface_e {
     ACTION_SURFACE_MIN,
-    ACTION_SURFACE_DESKTOP_SWITCH =      /**< Switch another desktop */
-        ACTION_SURFACE_MIN,
-    ACTION_SURFACE_DESKTOP_SWITCH_NORTH, /**< Switch to the desktop
-                                             north of the current one */
-    ACTION_SURFACE_DESKTOP_SWITCH_SOUTH, /**< Switch to the desktop
-                                             south of the current one */
-    ACTION_SURFACE_DESKTOP_SWITCH_EAST,  /**< Switch to the desktop
-                                             east of the current one */
-    ACTION_SURFACE_DESKTOP_SWITCH_WEST,  /**< Switch to the desktop
-                                             west of the current one */
 
-    ACTION_SURFACE_MAX =
-        ACTION_SURFACE_DESKTOP_SWITCH_WEST,
+    /** Switch to a desktop named directly */
+    ACTION_SURFACE_DESKTOP_SWITCH = ACTION_SURFACE_MIN,
+
+    /* Switch to the desktop in a direction, relative to the
+     * current one */
+    ACTION_SURFACE_DESKTOP_SWITCH_NORTH,
+    ACTION_SURFACE_DESKTOP_SWITCH_SOUTH,
+    ACTION_SURFACE_DESKTOP_SWITCH_EAST,
+    ACTION_SURFACE_DESKTOP_SWITCH_WEST,
+
+    ACTION_SURFACE_MAX = ACTION_SURFACE_DESKTOP_SWITCH_WEST,
 };
 
 
@@ -129,9 +155,10 @@ enum action_surface_e {
  */
 enum action_wm_e {
     ACTION_WM_MIN,
-    ACTION_WM_CONFIGURATION_RELOAD =    /**< Reload current configuration */
-        ACTION_WM_MIN,
-    ACTION_WM_EXIT,                     /**< Exit the window manager */
+
+    /** Reload the current configuration */
+    ACTION_WM_CONFIGURATION_RELOAD = ACTION_WM_MIN,
+    ACTION_WM_EXIT,
 
     ACTION_WM_MAX = ACTION_WM_EXIT,
 };

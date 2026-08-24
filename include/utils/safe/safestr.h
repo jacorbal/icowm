@@ -11,18 +11,21 @@
  *       for compatibility and should not be used in new code.
  *
  * Functions:
- *  - @c 'size_t safe_strnlen(const char *str, size_t maxlen)'
- *  - @c 'size_t safe_strlen(const char *str)'
- *  - @c 'char *safe_strncpy(char *restrict dst, const char *restrict src,
- *                                                           size_t sz)'
- *  - @c 'char *safe_strcpy(char *restrict dst, const char *restrict src)'
- *  - @c 'char *safe_strndup(const char *s, size_t n)'
- *  - @c 'char *safe_strdup(const char *s)'
- *  - @c 'char *safe_strncat(char *restrict dst, const char *restrict src,
- *                                                           size_t sz)'
- *  - @c 'char *safe_strcat(char *restrict dst, const char *restrict src)'
- *  - @c 'int safe_strncmp(const char *s1, const char *s2)'
- *  - @c 'int safe_strcmp(const char *s1, const char *s2)'
+ *
+ * @code
+ * size_t safe_strnlen(const char *str, size_t maxlen);
+ * size_t safe_strlen(const char *str);
+ * char *safe_strncpy(char *restrict dst, const char *restrict src,
+ *         size_t sz);
+ * char *safe_strcpy(char *restrict dst, const char *restrict src);
+ * char *safe_strndup(const char *s, size_t n);
+ * char *safe_strdup(const char *s);
+ * char *safe_strncat(char *restrict dst, const char *restrict src,
+ *         size_t sz);
+ * char *safe_strcat(char *restrict dst, const char *restrict src);
+ * int safe_strncmp(const char *s1, const char *s2);
+ * int safe_strcmp(const char *s1, const char *s2);
+ * @endcode
  *
  * @ingroup utils_safe
  */

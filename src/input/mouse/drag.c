@@ -739,7 +739,7 @@ void drag_update(xcb_connection_t *connection,
                 uint32_t lines = ((content_h > base_h)
                         ? (content_h - base_h) : 0u) / inc_h;
 
-                /* Cell count ('cols x lines') for a terminal-like client */
+                /* Cell count, columns by lines, for a terminal */
                 (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
                         cols, lines);
                 /* Raw pixel dimensions */

@@ -45,19 +45,19 @@
 #define CONFIG_FILENAME_MEMGUARD "memguard.json"
 #define CONFIG_FILENAME_A11Y "a11y.json"
 
-/* Default values when no value is given
+/* Initial maximum number of screens, and of desktops per screen
  *
- * Smaller under 'COMPACT' (see 'defs/compact.h' for a nice extended
- * commetn on that topic).  Each screen's own worth of desktops nests
+ * Both are smaller under 'COMPACT'; 'defs/compact.h' has an extended
+ * comment on that topic.  Each screen's worth of desktops nests
  * inside every screen slot, so this pair sizes a genuinely
  * multiplicative chunk of 'config_base_s', not just two independent
  * numbers. */
 #ifdef COMPACT
-#define CONFIG_MAX_SCREENS (1)      /**< Initial max. number of screens */
-#define CONFIG_MAX_DESKTOPS (4)     /**< Initial max. desktops per screen */
+#define CONFIG_MAX_SCREENS (1)
+#define CONFIG_MAX_DESKTOPS (4)
 #else
-#define CONFIG_MAX_SCREENS (6)      /**< Initial max. number of screens */
-#define CONFIG_MAX_DESKTOPS (16)    /**< Initial max. desktops per screen */
+#define CONFIG_MAX_SCREENS (6)
+#define CONFIG_MAX_DESKTOPS (16)
 #endif
 
 /* XRandR output profile configuration limits
@@ -69,12 +69,15 @@
  * multiple GPUs (a common shape in control rooms, digital signage, or
  * multi-card workstations), not just a typical single-GPU laptop or
  * desktop. */
+/* Maximum number of per-output profiles */
 #ifdef COMPACT
-#define CONFIG_RANDR_MAX_OUTPUTS (2)         /**< Max. per-output profiles */
+#define CONFIG_RANDR_MAX_OUTPUTS (2)
 #else
-#define CONFIG_RANDR_MAX_OUTPUTS (16)        /**< Max. per-output profiles */
+#define CONFIG_RANDR_MAX_OUTPUTS (16)
 #endif
-#define CONFIG_RANDR_OUTPUT_NAME_LENGTH (64) /**< Max. output name length */
+
+/** Maximum length of an output name */
+#define CONFIG_RANDR_OUTPUT_NAME_LENGTH (64)
 
 
 #endif  /* ! DEFS_CONFIG_H */

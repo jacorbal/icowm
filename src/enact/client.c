@@ -70,7 +70,7 @@
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the client's own top parent's own desktop (see
- *       @a enact_desktop_client_send's own doc comment)
+ *       @a enact_desktop_client_send's comment)
  */
 static void s_enact_client_send_to_desktop(client_td *client,
         list_td *surfaces, const config_td *config,

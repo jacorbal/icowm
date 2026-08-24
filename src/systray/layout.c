@@ -604,6 +604,6 @@ void systray_layout_reflow(void)
      * 'workarea'.  Recomputed here rather than left for whatever
      * unrelated trigger happens to call this next, the same reasoning
      * 'wm_action_config_reload' already applies to a changed
-     * 'desktops.margins' (see its own comment in wm/actions.c). */
+     * 'desktops.margins' (see its comment in wm/actions.c). */
     surface_refresh_workareas(s_tray.surface);
 }

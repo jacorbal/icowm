@@ -251,7 +251,7 @@ enum config_systray_monitor_anchor_e
 }
 
 
-/* Parse systray icon-ordering policy text into configuration enumeration */
+/* Parse the systray icon ordering policy into its enumeration */
 enum config_systray_order_e
     ci_config_parse_systray_order(const char *value)
 {
@@ -314,7 +314,7 @@ enum config_systray_text_position_e
 }
 
 
-/* Parse one systray text item name ("clock" or "battery") into configuration */
+/* Parse one systray text item name, "clock" or "battery" */
 bool ci_config_parse_systray_text_item(const char *value,
         enum config_systray_text_item_e *out)
 {

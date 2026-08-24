@@ -146,7 +146,7 @@ void ccmd_client_move_to_monitor_north(client_td *client);
  * @brief Move the client to the monitor south of the current one on
  *        its own surface
  *
- * See @a ccmd_client_move_to_monitor_north's own doc comment for the
+ * See @a ccmd_client_move_to_monitor_north's comment for the
  * fuller reasoning, including why this never wraps around either.
  *
  * @param client Window to move
@@ -162,7 +162,7 @@ void ccmd_client_move_to_monitor_south(client_td *client);
  * @brief Move the client to the monitor east of the current one on
  *        its own surface
  *
- * See @a ccmd_client_move_to_monitor_north's own doc comment for the
+ * See @a ccmd_client_move_to_monitor_north's comment for the
  * fuller reasoning, including why this never wraps around either.
  *
  * @param client Window to move
@@ -178,7 +178,7 @@ void ccmd_client_move_to_monitor_east(client_td *client);
  * @brief Move the client to the monitor west of the current one on
  *        its own surface
  *
- * See @a ccmd_client_move_to_monitor_north's own doc comment for the
+ * See @a ccmd_client_move_to_monitor_north's comment for the
  * fuller reasoning, including why this never wraps around either.
  *
  * @param client Window to move

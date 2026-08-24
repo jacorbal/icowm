@@ -149,7 +149,7 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
  * Scoped to @p desktop, the same as before: a descendant registered
  * under some other desktop (a pinned parent's own un-pinned dialog,
  * say, still on whichever desktop it was originally created on; see
- * @a ccmd_client_bring_family's own doc comment, cmds/client/
+ * @a ccmd_client_bring_family's comment, cmds/client/
  * transient.c, for the fuller reasoning) is left untouched here,
  * since @a s_desktop_client_send_to_end itself only ever reorders
  * @p desktop's own stacking list.
@@ -333,7 +333,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
         return -1;
     }
 
-    /* Remove from stacking list (iterate and find the matching client) */
+    /* Remove from the stacking list, found by iterating */
     node = cdlist_head(desktop->stacking);
     if (node != NULL) {
         const cdlist_item_td *initial = node;

@@ -6,11 +6,11 @@
  * Displays a popup menu listing open windows grouped by desktop when
  * the user middle-clicks on the root window (empty desktop).
  *
- * Each desktop group is introduced by a non-clickable label entry of
- * the form "<prefix>[index] -- <desktop name><suffix>" (or just
- * "<prefix>[index]<suffix>" if the name is empty or null).  Each client
- * window inside that group is listed as a clickable command entry that
- * focuses and raises the window when
+ * Each desktop group is introduced by a non-clickable label entry
+ * holding the prefix, the index, the desktop name and the suffix, or
+ * just the prefix, the index and the suffix when the name is empty or
+ * null.  Each client window inside that group is listed as a
+ * clickable command entry that focuses and raises the window when
  * activated.
  *
  * @ingroup menu_context
@@ -118,7 +118,7 @@
  * command entry per client.  Any previously open window list menu is
  * closed first.  Runs a first, counting-only pass over every client
  * before actually building anything (see @a s_count_appgroups_needed
- * and @a s_build_desktop_entries's own doc comments), so its own
+ * and @a s_build_desktop_entries's comments), so its own
  * dynamically-allocated per-desktop and per-application-group entry
  * storage can be sized to what this exact call actually needs instead
  * of a fixed worst case held throughout the window manager's own

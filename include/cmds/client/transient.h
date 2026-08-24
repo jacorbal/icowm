@@ -183,7 +183,7 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  *        array
  *
  * The all-desktops counterpart to @a ccmd_client_transient_family_
- * snapshot (see its own doc comment for the shared reasoning behind
+ * snapshot (see its comment for the shared reasoning behind
  * collecting into a snapshot at all): every family-wide action that
  * is not itself about desktops (iconify, restore, hide, unhide, pin,
  * unpin) must find every family member regardless of which desktop

@@ -19,9 +19,9 @@
  * @brief Doubly linked list items structure
  */
 typedef struct cdlist_item_td_s {
-    void *data;                     /**< Pointer to the data of this item */
-    struct cdlist_item_td_s *next;  /**< Pointer to the next element */
-    struct cdlist_item_td_s *prev;  /**< Pointer to the previous element */
+    void *data;                     /**< This item's data */
+    struct cdlist_item_td_s *next;  /**< Next element */
+    struct cdlist_item_td_s *prev;  /**< Previous element */
 } cdlist_item_td;
 
 /**
@@ -35,9 +35,9 @@ typedef struct {
      */
     void (*destroy)(void *data);
 
-    size_t size;                    /**< Number of elements in the list */
-    cdlist_item_td *head;           /**< Pointer to the head of the list */
-    cdlist_item_td *tail;           /**< Pointer to the tail of the list */
+    size_t size;                    /**< Elements in the list */
+    cdlist_item_td *head;           /**< Head of the list */
+    cdlist_item_td *tail;           /**< Tail of the list */
 } cdlist_td;
 
 
@@ -230,7 +230,7 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
  * would otherwise revisit the very head it started from, letting the
  * loop's own ordinary @c NULL condition end it right there, exactly
  * once around, the same guarantee a hand-written @e initial/current
- * comparison elsewhere in this codebase (e.g. @c s_desktop_client_
+ * comparison elsewhere in this codebase (e.g., @c s_desktop_client_
  * send_to_end, desktop/dclient.c) already provides by hand for this
  * exact same reason.
  *

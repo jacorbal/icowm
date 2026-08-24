@@ -868,8 +868,8 @@ static void s_place_window_finalize(const wm_td *wm,
  */
 struct s_place_window_smart_ctx_s {
     const desktop_td *desktop;    /**< Desktop @c client is placed on */
-    const client_td *skip_client; /**< Client being placed itself,
-                                       excluded from its overlap checks */
+    /** Client being placed, excluded from the overlap checks */
+    const client_td *skip_client;
     uint32_t fw;            /**< Client's frame width */
     uint32_t fh;            /**< Client's frame height */
 
@@ -879,7 +879,7 @@ struct s_place_window_smart_ctx_s {
     int32_t min_x;          /**< Leftmost a candidate corner may sit */
     int32_t min_y;          /**< Topmost a candidate corner may sit */
     int32_t max_x;          /**< Rightmost a candidate corner may sit */
-    int32_t max_y;          /**< Bottommost a candidate corner may sit */
+    int32_t max_y;          /**< Bottommost a corner may sit */
     int32_t bound_right;    /**< Workarea's physical right edge */
     int32_t bound_bottom;   /**< Workarea's physical bottom edge */
     int32_t center_x;       /**< Workarea center X, tie-break ref */
@@ -887,7 +887,7 @@ struct s_place_window_smart_ctx_s {
     int32_t best_x;         /**< Best candidate found so far, X */
     int32_t best_y;         /**< Best candidate found so far, Y */
     uint64_t best_cost;     /**< Lowest overlap cost found so far */
-    uint64_t best_area;     /**< Largest free-rectangle area found so far */
+    uint64_t best_area;     /**< Largest free area found so far */
     bool has_free_rect;     /**< Whether any candidate so far actually
                                  fit @c client without overlapping
                                  anything */

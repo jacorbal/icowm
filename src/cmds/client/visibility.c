@@ -64,7 +64,7 @@
  *
  * Carries what used to sit inside @a ccmd_client_iconify so
  * that function can redirect to, and cascade across, a transient
- * family (see its own doc comment) while still sharing this single
+ * family (see its comment) while still sharing this single
  * client's worth of ICCCM/EWMH bookkeeping with the top-level, family-
  * unaware call sites (@c handler/map.c's own initial-iconic handling
  * among them) that only ever operate on one already-resolved client
@@ -296,7 +296,7 @@ static void s_ccmd_client_iconify_visit(client_td *member, void *ctx)
  *
  * Carries what used to sit inside @a ccmd_client_hide so
  * that function can redirect to, and cascade across, a transient
- * family (see its own doc comment).
+ * family (see its comment).
  *
  * @param client Client to hide; must be non-null
  *
@@ -362,7 +362,7 @@ static void s_ccmd_client_hide_visit(client_td *member, void *ctx)
  *
  * Carries what used to sit inside @a ccmd_client_unhide so
  * that function can redirect to, and cascade across, a transient
- * family (see its own doc comment).
+ * family (see its comment).
  *
  * @param client Client to unhide; must be non-null
  *
@@ -531,7 +531,7 @@ void ccmd_client_iconify(client_td *client)
  * transient family here redirects to, and hides, the family's own
  * top-most ancestor (@a ccmd_client_transient_top_parent) first, then
  * every other member of that same family still visible, the same
- * cascade @a ccmd_client_iconify's own doc comment already covers in
+ * cascade @a ccmd_client_iconify's comment already covers in
  * full for iconifying, so the whole group disappears together and
  * comes back together too (see @a ccmd_client_unhide's own matching
  * half of this).  A client with no transient relatives at all is
@@ -569,7 +569,7 @@ void ccmd_client_hide(client_td *client)
  *        back with it
  *
  * The matching half of @a ccmd_client_hide's own transient-family
- * cascade (see its own doc comment for the full reasoning): redirects
+ * cascade (see its comment for the full reasoning): redirects
  * to the family's top-most ancestor, then unhides every other family
  * member still hidden, so a family hidden together comes back
  * together too.  Every other family member is unhidden before the

@@ -57,7 +57,8 @@
  *                   @c CLIENT_OPERATION_RESIZING
  * @param event_time Timestamp from the triggering button-press event
  * @param root_pos   Root-relative position of the pointer at press time
- * @param screen_dim Screen dimensions in pixels ((0, 0) to disable snap)
+ * @param screen_dim Screen dimensions in pixels; (0, 0) disables
+ *                   snapping
  *
  * @note Complexity: @e O(1)
  */
@@ -141,8 +142,9 @@ void drag_start_directed(xcb_connection_t *connection,
  * @param axis_h_locked @c true to force the height axis unresizable
  *                      regardless of where @p root_pos fell
  *
- * @note Cfr. Karp, O'Reilly, & Mott, 2005, 'Windows XP in a Nutshell',
- *       2nd ed., ch. 2: "Maximized windows can't be moved or resized"
+ * @note Cfr.  Karp, O'Reilly, & Mott, 2005, 'Windows XP in a
+ *       Nutshell', 2nd ed., ch. 2: "Maximized windows can't be moved
+ *       or resized"
  * @note Complexity: @e O(1)
  *
  * @see @a client_is_maximized_horz and @a client_is_maximized_vert
@@ -197,8 +199,9 @@ void drag_end(xcb_connection_t *connection,
  * the dragged client's window is destroyed mid-drag.
  *
  * @param connection XCB connection
- * @param client     Client that triggered the cancel (compared against
- *                   the current drag client; no-op if it does not match)
+ * @param client     Client that triggered the cancel, compared
+ *                   against the current drag client; a no-op when it
+ *                   does not match
  *
  * @note Complexity: @e O(1)
  */

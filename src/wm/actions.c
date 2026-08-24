@@ -201,7 +201,7 @@ static void s_resync_after_reload(const wm_td *wm)
                                         &d->workarea)) {
                                 uint32_t vals[2];
 
-                                //c->icon_pos.x = icon_x; /* 'tis a no-op */
+                                /* c->icon_pos.x = icon_x; is a no-op */
                                 c->icon_pos.y = icon_y;
                                 vals[0] = (uint32_t) icon_x;
                                 vals[1] = (uint32_t) icon_y;

@@ -1043,7 +1043,7 @@ void desktop_render_one_client(desktop_td *desktop,
 
         /* Skipped entirely, not just recolored, for the same reason
          * the full-repaint branch above never gives a fullscreen
-         * client a border in the first place (see its own comment by
+         * client a border in the first place (see its comment by
          * 'client_is_fullscreen' there): a focus change alone must
          * not paint one back in over fullscreen content just because
          * this lighter branch only meant to refresh existing colors,

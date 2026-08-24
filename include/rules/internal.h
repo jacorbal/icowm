@@ -106,8 +106,9 @@ struct rules_apply_s {
                                  own surface; see 'monitor' below */
     bool has_layer;
     bool has_focus;
-    bool has_position;      /**< @p x & @p y, or @p is_position_centered,
-                                 set independently of @p size */
+    /** @c x and @c y, or @c is_position_centered, set independently
+     *  of @c size */
+    bool has_position;
     bool is_position_centered; /**< @c ("position": "center") was given
                                  instead of an @c ({x,y}) object: center
                                  the client on its screen at apply time

@@ -144,7 +144,7 @@ void enact_client_center(client_td *client);
  *
  * A no-op on a surface with one monitor or none, or when no monitor
  * lies to the north at all; see @a ccmd_client_move_to_monitor_
- * north's own doc comment, cmds/client/geom.h, for the fuller
+ * north's comment, cmds/client/geom.h, for the fuller
  * reasoning, including why this never wraps around either.
  *
  * @param client Client to move
@@ -157,7 +157,7 @@ void enact_client_move_monitor_north(client_td *client);
  * @brief Move the client to the monitor south of the current one on
  *        its surface
  *
- * See @a enact_client_move_monitor_north's own doc comment for the
+ * See @a enact_client_move_monitor_north's comment for the
  * fuller reasoning.
  *
  * @param client Client to move
@@ -170,7 +170,7 @@ void enact_client_move_monitor_south(client_td *client);
  * @brief Move the client to the monitor east of the current one on
  *        its surface
  *
- * See @a enact_client_move_monitor_north's own doc comment for the
+ * See @a enact_client_move_monitor_north's comment for the
  * fuller reasoning.
  *
  * @param client Client to move
@@ -183,7 +183,7 @@ void enact_client_move_monitor_east(client_td *client);
  * @brief Move the client to the monitor west of the current one on
  *        its surface
  *
- * See @a enact_client_move_monitor_north's own doc comment for the
+ * See @a enact_client_move_monitor_north's comment for the
  * fuller reasoning.
  *
  * @param client Client to move
@@ -200,7 +200,7 @@ void enact_client_move_monitor_west(client_td *client);
  * all (only one exists, wrapping is disabled and this is already
  * the topmost row, or no @c topology.screens.desktops layout is
  * configured at all, so there is no second row in the first place);
- * see @c s_enact_client_send_to_desktop's own doc comment, enact/
+ * see @c s_enact_client_send_to_desktop's comment, enact/
  * client.c, for the fuller reasoning.
  *
  * @param client   Client to move
@@ -225,7 +225,7 @@ void enact_client_send_to_desktop_north(client_td *client,
  * all (only one exists, wrapping is disabled and this is already
  * the bottommost row, or no @c topology.screens.desktops layout is
  * configured at all, so there is no second row in the first place);
- * see @c s_enact_client_send_to_desktop's own doc comment, enact/
+ * see @c s_enact_client_send_to_desktop's comment, enact/
  * client.c, for the fuller reasoning.
  *
  * @param client   Client to move
@@ -249,7 +249,7 @@ void enact_client_send_to_desktop_south(client_td *client,
  * A silent no-op when there is no different desktop to move to at
  * all (only one exists, or wrapping is disabled and this is already
  * the eastmost one in its own row); see @c s_enact_client_send_to_
- * desktop's own doc comment, enact/client.c, for the fuller
+ * desktop's comment, enact/client.c, for the fuller
  * reasoning.
  *
  * @param client   Client to move
@@ -273,7 +273,7 @@ void enact_client_send_to_desktop_east(client_td *client,
  * A silent no-op when there is no different desktop to move to at
  * all (only one exists, or wrapping is disabled and this is already
  * the westmost one in its own row); see @c s_enact_client_send_to_
- * desktop's own doc comment, enact/client.c, for the fuller
+ * desktop's comment, enact/client.c, for the fuller
  * reasoning.
  *
  * @param client   Client to move
@@ -597,7 +597,7 @@ void enact_desktop_show(desktop_td *desktop, bool show);
  * "file this away" gesture, not "take me there", matching Openbox's
  * own equivalent (@c client_set_desktop, client.c).  @p client does
  * become @p target's own remembered active client when focusable,
- * though (see @a s_enact_desktop_client_send_one's own doc comment,
+ * though (see @a s_enact_desktop_client_send_one's comment,
  * enact/desktop.c, for the fuller reasoning), so it is what greets
  * whoever visits @p target next, rather than requiring @p target to
  * have already had some other active client remembered on it before

@@ -260,14 +260,14 @@ static inline void s_show_farewell(FILE *fp)
 /**
  * @brief Free up to three dynamically allocated buffers
  *
- * Convenience helper to release multiple pointers using @c safe_free,
+ * Convenience helper to release multiple pointers using @a safe_free,
  * commonly used on early exits to avoid code duplication.
  *
  * @param s1 First buffer pointer (may be null)
  * @param s2 Second buffer pointer (may be null)
  * @param s3 Third buffer pointer (may be null)
  *
- * @note Each pointer is passed by address to @c safe_free and is
+ * @note Each pointer is passed by address to @a safe_free and is
  *       expected to be set to @c NULL after deallocation.
  * @note Complexity: @e O(1)
  */

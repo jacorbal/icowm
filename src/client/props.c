@@ -229,7 +229,8 @@ void client_props_refresh_icon_name(client_td *client)
         return;
     }
 
-    /* Prefer '_NET_WM_ICON_NAME' (UTF-8) over 'WM_ICON_NAME' (Latin-1) */
+    /* Prefer '_NET_WM_ICON_NAME', which is UTF-8, over
+     * 'WM_ICON_NAME', which is Latin-1 */
     memset(&net_reply, 0, sizeof(net_reply));
     if (client->ewmh != NULL &&
             xcb_ewmh_get_wm_icon_name_reply(client->ewmh,

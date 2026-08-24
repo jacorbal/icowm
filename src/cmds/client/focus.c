@@ -110,7 +110,7 @@ static bool s_client_focus_fallback_valid(const client_td *candidate,
  *
  * Carries what used to sit inside @a ccmd_client_restore so
  * that function can redirect to, and cascade across, a transient
- * family (see its own doc comment) while still sharing this single
+ * family (see its comment) while still sharing this single
  * client's worth of state-restoration logic with the top-level,
  * family-unaware call sites that only ever operate on one already-
  * resolved client and have no family to cascade to in the first
@@ -354,7 +354,8 @@ void ccmd_client_close(client_td *client)
         xcb_send_event(client->connection, 0, client->window,
                 XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
     } else {
-        /* Client does not support 'WM_DELETE_WINDOW'; destroy directly */
+        /* The client does not support 'WM_DELETE_WINDOW', so
+         * destroy it directly */
         xcb_destroy_window(client->connection, client->window);
     }
 }
@@ -380,7 +381,7 @@ void ccmd_client_kill(client_td *client)
      * its own X connection at all, never notices that loss and keeps
      * running regardless; 'cctl_kill_register' watches for exactly
      * that and sends a real 'SIGKILL' if it is still alive once its
-     * own bounded window elapses.  See cctl/kill.h's own doc comment
+     * own bounded window elapses.  See cctl/kill.h's comment
      * for the full reasoning. */
     cctl_kill_register(client->process.pid);
 }
@@ -391,7 +392,7 @@ void ccmd_client_kill(client_td *client)
  *        transient family back with it
  *
  * The matching half of @a ccmd_client_iconify's own transient-family
- * cascade (see its own doc comment for the full reasoning): redirects
+ * cascade (see its comment for the full reasoning): redirects
  * to the family's top-most ancestor first, restoring it exactly as
  * this function always has, then restores every other family member
  * that is currently iconified too, so a family iconized together as
@@ -427,7 +428,7 @@ void ccmd_client_restore(client_td *client)
      * gated on 'was_iconified && client_is_focusable') redirects
      * through 'ccmd_client_focus_target' to whichever transient
      * dialog should actually end up focused (see 'ccmd_client_
-     * focus''s own doc comment), which only finds that dialog if it
+     * focus''s comment), which only finds that dialog if it
      * is already mapped by the time this reaches that step. */
     siblings = ccmd_client_transient_family_snapshot_anywhere(top,
             &count);
@@ -476,7 +477,7 @@ void ccmd_client_focus(client_td *client)
     /* Redirect to whichever mapped transient descendant should
      * actually receive focus in this client's place (a "save
      * changes?" prompt still sitting open on top of it, say); see
-     * 'ccmd_client_focus_target''s own doc comment for the full
+     * 'ccmd_client_focus_target''s comment for the full
      * reasoning.  Applied here, at the one place every real focus-
      * granting path already converges on (the comment just below),
      * so every one of them redirects the same way regardless of
@@ -615,7 +616,7 @@ void ccmd_client_unfocus(client_td *client)
         return;
     }
 
-    /* EWMH: clear '_NET_WM_STATE_FOCUSED' when the window loses focus */
+    /* Clear the EWMH '_NET_WM_STATE_FOCUSED' on losing focus */
     client_unfocus_mark(client);
     ccmd_client_sync_states(client);
 

@@ -1,15 +1,15 @@
 /**
  * @file input/kbd/interact.c
  *
- * @brief Direct keyboard interaction with the currently focused
- *        client: program launch, move, and resize bindings
+ * @brief Direct keyboard interaction with the focused client, that
+ *        is, the program launch, move and resize bindings
  *
- * One of the files @c input/kbd/ is made of: launching a program and moving or
- * resizing the active client are direct, immediate reactions to
- * a single keypress, independent from the cycle-menu, dialog, and
- * open-menu key handling and the generic client-action dispatch that
- * remain there.  @a ik_get_active_client is the one piece of state
- * lookup genuinely shared between the two files.
+ * One of the files @c input/kbd/ is made of.  Launching a program and
+ * moving or resizing the active client are immediate reactions to a
+ * single keypress, independent from the cycle menu, the dialogs, the
+ * open-menu key handling and the generic client action dispatch.
+ * @a ik_get_active_client is the one piece of state lookup genuinely
+ * shared between the two files.
  *
  * @see @c input/kbd/internal.h
  */
@@ -171,8 +171,9 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
     }
 
     if (inc_i > 1) {
-        /* ICCCM §4.1.2.3: when 'BASE_SIZE' is absent, 'MIN_SIZE' serves
-         * as the base for the increment grid */
+        /* Per ICCCM §4.1.2.3, when 'BASE_SIZE' is absent it is
+         * 'MIN_SIZE' that serves as the base for the increment
+         * grid */
         uint32_t base = (base_i > 0) ? base_i : ((min_i > 0) ? min_i : 0u);
         uint32_t inc = inc_i;
         /* The client's own true floor, in units of 'inc' above 'base':
@@ -375,7 +376,8 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
     const char *program = NULL;
 
     switch (btype) {
-        /* To avoid warnings from the compiler, ALL cases must be here */
+        /* Every case must be listed, so the compiler keeps
+         * checking this switch against the whole enumeration */
         case KEYBIND_NONE:
         case KEYBIND_WM_SCRATCHPAD_TOGGLE:
         case KEYBIND_DESKTOP_NORTH:
@@ -543,7 +545,8 @@ void ik_handle_move(enum wm_keybind_type_e btype,
             : new_y);
 
     switch (btype) {
-        /* To avoid warnings from the compiler, ALL cases must be here */
+        /* Every case must be listed, so the compiler keeps
+         * checking this switch against the whole enumeration */
         case KEYBIND_NONE:
         case KEYBIND_WM_SCRATCHPAD_TOGGLE:
         case KEYBIND_DESKTOP_NORTH:
@@ -707,7 +710,8 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
     new_h = (int32_t) old_h;
 
     switch (btype) {
-        /* To avoid warnings from the compiler, ALL cases must be here */
+        /* Every case must be listed, so the compiler keeps
+         * checking this switch against the whole enumeration */
         case KEYBIND_NONE:
         case KEYBIND_WM_SCRATCHPAD_TOGGLE:
         case KEYBIND_DESKTOP_NORTH:

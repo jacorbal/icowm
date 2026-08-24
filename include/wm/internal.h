@@ -88,7 +88,8 @@ struct wm_s {
                                          config. dir. is used; kept to
                                          reuse it on config. reload */
 
-    xcb_window_t ewmh_support_win;  /**< '_NET_SUPPORTING_WM_CHECK' window */
+    /** '_NET_SUPPORTING_WM_CHECK' window */
+    xcb_window_t ewmh_support_win;
     uint32_t screenp;               /**< Preferred screen */
 
     /**
@@ -105,7 +106,7 @@ struct wm_s {
      */
     uint32_t restricted_memory_mib;
 
-    bool is_randr_available;        /**< XRandR extension availability */
+    bool is_randr_available;        /**< XRandR is available */
     uint8_t randr_base_event;       /**< XRandR base event code */
     bool is_sync_available;         /**< XSync extension availability */
     uint8_t sync_base_event;        /**< XSync base event code */

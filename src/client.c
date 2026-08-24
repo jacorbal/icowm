@@ -250,29 +250,29 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
             uint32_t alarm_values[7];
 
             client->hints_ewmh.sync.alarm = xcb_generate_id(connection);
-            /* Per the XSync value-list order (ascending 'CA_*' bit pos.):
+            /* The value list follows the ascending 'CA_*' bit order:
              * 'COUNTER', 'VALUE_TYPE', 'VALUE', 'TEST_TYPE', 'DELTA'.
-             * 'VALUE' and 'DELTA' are each a 64-bit 'INT64' (hi-word,
-             * then lo word), not a single 'CARD32'.  Omitting 'VALUE'
-             * entirely and treating 'DELTA' as one word (an earlier
-             * version of this code did both) leaves the value-list
-             * shorter than what the request's own mask calls for, which
-             * the server rejects; the alarm XID above then never
-             * actually exists server-side, so it can never fire, and
-             * every resize silently falls back to only ever applying
-             * once every 'WM_SYNC_MAX_WAIT_TICKS' attempts instead of
-             * being acknowledged promptly. */
-            alarm_values[0] =
-                client->hints_ewmh.sync.counter;         /* COUNTER */
+             * 'VALUE' and 'DELTA' are each a 64-bit 'INT64', a high
+             * word then a low word, not a single 'CARD32'.  A list
+             * shorter than what the request's mask calls for is
+             * rejected by the server, and the alarm XID then never
+             * exists server-side, so it can never fire.  Every resize
+             * would silently fall back to applying once every
+             * 'WM_SYNC_MAX_WAIT_TICKS' attempts instead of being
+             * acknowledged promptly. */
+            /* COUNTER */
+            alarm_values[0] = client->hints_ewmh.sync.counter;
+            /* VALUE_TYPE */
             alarm_values[1] = (uint32_t) XCB_SYNC_VALUETYPE_RELATIVE;
-                                                            /* VALUE_TYPE */
-            alarm_values[2] = 0u;                           /* VALUE.hi */
-            alarm_values[3] = 0u;                           /* VALUE.lo */
+            /* VALUE, high word then low word */
+            alarm_values[2] = 0u;
+            alarm_values[3] = 0u;
+            /* TEST_TYPE */
             alarm_values[4] =
                 (uint32_t) XCB_SYNC_TESTTYPE_POSITIVE_TRANSITION;
-                                                            /* TEST_TYPE */
-            alarm_values[5] = 0u;                           /* DELTA.hi */
-            alarm_values[6] = 1u;                           /* DELTA.lo */
+            /* DELTA, high word then low word */
+            alarm_values[5] = 0u;
+            alarm_values[6] = 1u;
             xcb_sync_create_alarm(connection,
                     (xcb_sync_alarm_t) client->hints_ewmh.sync.alarm,
                     (uint32_t) (XCB_SYNC_CA_COUNTER |
@@ -853,7 +853,7 @@ void client_destroy(client_td *client)
     }
 
     /* Removes 'client' from its own parent's 'transients' list (true
-     * O(1), see 'transient_node''s own doc comment, client.h) and
+     * O(1), see 'transient_node''s comment, client.h) and
      * orphans every one of its own children, before anything below
      * frees so much as a single field: every other function walking
      * the transient tree (top-parent walks, focus redirection, family
@@ -1007,8 +1007,9 @@ void client_border_apply(client_td *client, bool use_active_style)
      * would visibly shift the window's own outer edge by however
      * much 'width' just grew or shrank between the active/inactive
      * styles switching (e.g., an active/inactive pair configured
-     * with two different widths) -- every ordinary focus change on
-     * an undecorated client, not just a rare special case.
+     * with two different widths), which is every ordinary focus
+     * change on an undecorated client, not just a rare special
+     * case.
      * Compensating 'x'/'y' by the exact delta keeps the window's own
      * visible top-left corner exactly where it already was.  Skipped
      * entirely the first time this ever runs for a client
@@ -1167,7 +1168,8 @@ client_td *client_init(xcb_connection_t *connection,
     snprintf(client->info.visible_name,
             CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
 
-    /* Read '_NET_WM_NAME' (UTF-8) first; fall back to 'WM_NAME' (Latin-1) */
+    /* Read '_NET_WM_NAME', which is UTF-8, and fall back to
+     * 'WM_NAME', which is Latin-1 */
     ci_get_net_wm_name(ewmh, window, net_wm_name, sizeof(net_wm_name));
     if (net_wm_name[0] != '\0') {
         s_client_display_name_set(client, net_wm_name);
@@ -1269,7 +1271,7 @@ client_td *client_init(xcb_connection_t *connection,
     ccmd_client_update_allowed_actions(client);
 
     /* Subscribe to events, apply border width, and set the default
-     * cursor; see the sibling function's comment for more information */
+     * cursor.  The sibling function's comment explains it in full. */
     s_client_events_subscribe(connection, window, client);
 
     /* Ignore return value, as decoration creation is non-fatal here */

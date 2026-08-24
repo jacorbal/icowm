@@ -31,7 +31,7 @@
 #include <defs/config.h>   /* CONFIG_MAX_LENGTH_PATH_BASE */
 
 
-/** Maximum length of a single command string (shared with path limit) */
+/** Maximum length of a command string, the path limit too */
 #define SESSION_MAX_CMD_LEN (CONFIG_MAX_LENGTH_PATH_BASE)
 
 /** Maximum number of child PIDs tracked simultaneously */
@@ -45,7 +45,8 @@ enum session_hook_e {
     SESSION_HOOK_START = 0, /**< Commands run when the WM starts */
     SESSION_HOOK_RELOAD,    /**< Commands run when the configuration is
                                  reloaded */
-    SESSION_HOOK_EXIT,      /**< Commands run just before the WM exits */
+    /** Commands run just before the window manager exits */
+    SESSION_HOOK_EXIT,
 };
 
 

@@ -111,7 +111,7 @@ static void s_rules_broadcast_client_event(client_td *client,
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the client's own top parent's own desktop (see @a enact_
- *       desktop_client_send's own doc comment)
+ *       desktop_client_send's comment)
  */
 static void s_rules_apply_desktop(client_td *client,
         surface_td *surface, desktop_td **desktop_io,
@@ -235,7 +235,7 @@ static void s_rules_apply_geometry(const surface_td *surface,
     }
 
     /* Fullscreen is a WM-forced override of the client's own preferred
-     * geometry (see 'ccmd_client_fullscreen''s own doc comment,
+     * geometry (see 'ccmd_client_fullscreen''s comment,
      * cmds/client/state.c), and every source that might otherwise
      * change position/size while it holds respects that already
      * ('handler_configure_request', handler/configure.c, for the
@@ -489,7 +489,7 @@ static void s_rules_apply_focus(const wm_td *wm, client_td *client,
  *        anything
  *
  * A rule that matched but left every @c has_* field in @p apply
- * false (theoretically possible, e.g. a rule with an empty @c apply
+ * false (theoretically possible, e.g., a rule with an empty @c apply
  * object) changes nothing and is not broadcast.
  *
  * @param client  Client the rule was applied to
@@ -497,8 +497,8 @@ static void s_rules_apply_focus(const wm_td *wm, client_td *client,
  * @param surface Client's own surface
  * @param apply   Action descriptor
  *
- * @return @c true when at least one field in @p apply was set, i.e.
- *         when the event was actually broadcast
+ * @return @c true when at least one field in @p apply was set,
+ *         i.e., when the event was actually broadcast
  *
  * @note Complexity: @e O(1)
  */

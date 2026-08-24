@@ -346,7 +346,7 @@ static void s_wm_sync_desktop_names(surface_td *surface)
 }
 
 
-/* Create and publish root EWMH metadata required by compliant clients */
+/* Create and publish the root EWMH metadata clients require */
 int wm_ewmh_init(const wm_td *wm)
 {
     xcb_connection_t *connection = wm_connection(wm);

@@ -62,7 +62,8 @@ static void s_properties_update(surface_td *surface,
     int xx, yy;
 
     /* Update surface dimensions */
-    xx = screen->width_in_pixels;   /* XCB allows direct access to these */
+    /* XCB allows direct access to these */
+    xx = screen->width_in_pixels;
     yy = screen->height_in_pixels;
 
     surface->properties.dim.w = (xx > 0) ? (uint32_t) xx : 0;

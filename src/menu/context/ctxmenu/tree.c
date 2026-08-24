@@ -101,7 +101,7 @@ bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
     y -= state->origin_y;
     return ctxmenu_handle_click(connection, surface, state, y, config);
 }
-/* Forward a keypress to the deepest currently open submenu under 'root' */
+/* Forward a keypress to the deepest open submenu under 'root' */
 bool ctxmenu_tree_handle_keypress_deepest(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *root,
         xcb_keysym_t keysym, const config_td *config)

@@ -44,7 +44,7 @@ static bool s_activated_by_keyboard = false;
 
 
 /* Activate the entry at the given index in a context menu; see the
- * header's own doc comment for the full reasoning */
+ * header's comment for the full reasoning */
 bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
         bool by_keyboard)
 {
@@ -129,7 +129,7 @@ void ctxmenu_selection_move(ctxmenu_state_td *state, int step)
 }
 
 
-/* Query whether the last activated entry was triggered by the keyboard */
+/* Whether the last activated entry came from the keyboard */
 bool ctxmenu_last_activation_was_keyboard(void)
 {
     return s_activated_by_keyboard;

@@ -78,7 +78,7 @@
  * functions.
  */
 typedef struct {
-    xcb_render_picture_t picture;       /**< 0 when nothing is cached yet */
+    xcb_render_picture_t picture;   /**< 0 when nothing is cached */
     xcb_render_picture_t mask_picture;  /**< 0 unless the cached
                                              @p picture came from the
                                              ICCCM @c WM_HINTS fallback

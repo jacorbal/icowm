@@ -19,7 +19,7 @@
  * @brief Linked list items structure
  */
 typedef struct list_item_td_s {
-    void *data;                     /**< Pointer to the data of this item */
+    void *data;                     /**< This item's data */
     struct list_item_td_s *next;    /**< Pointer to the next element */
 } list_item_td;
 

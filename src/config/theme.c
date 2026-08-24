@@ -333,7 +333,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->scratchpad.border.width = 2u;
 
     /* Deliberately outside 'window.active'/'inactive''s own cool
-     * blue-gray family (see 'theme.cycle''s own doc comment,
+     * blue-gray family (see 'theme.cycle''s comment,
      * config.h): a warm, muted amber, chosen specifically to still
      * read as distinct against this project's own default active/
      * inactive colors, not just a different shade of the same hue */
