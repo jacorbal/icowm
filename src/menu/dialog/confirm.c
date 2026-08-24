@@ -156,7 +156,8 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
     gap = (uint16_t) config->theme.dialog.button.gap;
     label_pad_x = (uint16_t) config->theme.dialog.label.padding.horizontal;
 
-    text_renderer_use_font(connection, config->theme.dialog.label.font);
+    (void) text_renderer_use_font(connection,
+            config->theme.dialog.label.font);
     prompt_w = menu_draw_measure(layout->prompt);
 
     /* Room for the countdown line, in the same font as the prompt
@@ -176,13 +177,13 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
      * 'button.selected.font' (bold by default), and sizing off only
      * 'unselected' would leave no room for that, causing the
      * off-center look this whole function exists to avoid. */
-    text_renderer_use_font(connection,
+    (void) text_renderer_use_font(connection,
             config->theme.dialog.button.unselected.font);
     cancel_w = menu_draw_measure(layout->cancel_label);
     confirm_w = menu_draw_measure(layout->confirm_label);
     btn_text_h = (uint16_t) (text_font_ascent() + text_font_descent());
 
-    text_renderer_use_font(connection,
+    (void) text_renderer_use_font(connection,
             config->theme.dialog.button.selected.font);
     cancel_w = dlgutil_u16max(cancel_w,
             menu_draw_measure(layout->cancel_label));
@@ -302,15 +303,14 @@ static void s_confirm_draw(xcb_connection_t *connection,
     fg_nor = config->theme.dialog.button.unselected.color.foreground;
     bg_nor = config->theme.dialog.button.unselected.color.background;
 
-    /* 'text_renderer_init' sets shared, module-level font state used
-     * by every 'text_draw_string' caller, not something private to
-     * this dialog.  Re-asserting it right before each piece of text
-     * below, not just once when the dialog first opens, is what keeps
-     * every label on the correct font: something else repainting text
-     * in between two key presses here (a titlebar, a menu, the systray
-     * clock) would otherwise leave its own font selected the next
-     * time this function runs, and the prompt and the two buttons can
-     * each have their own font besides. */
+    /* The selected font is module-level state shared by every
+     * 'text_draw_string' caller, not something private to this
+     * dialog.  Selecting it right before each piece of text below,
+     * not just once when the dialog first opens, is what keeps every
+     * label on the correct font.  Anything else repainting text
+     * between two key presses here, a titlebar, a menu or the systray
+     * clock, would otherwise leave its font selected, and the prompt
+     * and the two buttons can each use a font of their own. */
 
     gc = xcb_generate_id(connection);
 
@@ -361,7 +361,8 @@ static void s_confirm_draw(xcb_connection_t *connection,
                 { lo->confirm_x, lo->btn_y }, { lo->btn_w, lo->btn_h } });
 
     /* Prompt text */
-    text_renderer_use_font(connection, config->theme.dialog.label.font);
+    (void) text_renderer_use_font(connection,
+            config->theme.dialog.label.font);
     text_renderer_set_color(config->theme.dialog.label.foreground, bg_win);
     menu_draw_label(connection, s_confirm_window,
             (struct position_s) { lo->prompt_x, lo->prompt_y },
@@ -397,7 +398,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
      * the vertical centering the same way, using the active font's
      * own ascent/descent against 'btn_h' so it stays centered
      * regardless of which font is taller. */
-    text_renderer_use_font(connection, (s_confirm_selected == 0)
+    (void) text_renderer_use_font(connection, (s_confirm_selected == 0)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
     label_w = menu_draw_measure(lo->cancel_label);
@@ -415,7 +416,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
             (struct position_s) { label_x, label_y }, lo->cancel_label);
 
     /* Confirm label: same reasoning as the cancel label above */
-    text_renderer_use_font(connection, (s_confirm_selected == 1)
+    (void) text_renderer_use_font(connection, (s_confirm_selected == 1)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
     label_w = menu_draw_measure(lo->confirm_label);

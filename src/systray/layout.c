@@ -546,7 +546,7 @@ void systray_layout_reflow(void)
 
         xcb_clear_area(s_tray.connection, 0, s_tray.window,
                 block_x, 0, text_w, h);
-        text_renderer_use_font(s_tray.connection,
+        (void) text_renderer_use_font(s_tray.connection,
                 s_tray.theme->systray.style.font);
         text_renderer_set_color(s_tray.theme->systray.style.color.foreground,
                 s_tray.theme->systray.style.color.background);

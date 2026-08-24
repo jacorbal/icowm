@@ -35,7 +35,7 @@
 
 
 /**
- * @brief Which backend @c text_renderer_init last successfully selected
+ * @brief Which backend an opened font is drawn through
  *
  * @c S_BACKEND_X11 renders through the X core font path this file
  * implements directly; @c S_BACKEND_GLYPH delegates every operation to

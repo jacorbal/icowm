@@ -413,7 +413,8 @@ void cycle_init(xcb_connection_t *connection,
      * very long window title cannot stretch the whole menu; such
      * a label is truncated when actually drawn instead (see
      * 's_cycle_draw_row' in menu/cycledraw.c). */
-    text_renderer_use_font(connection, cfg->theme.menu.unselected.font);
+    (void) text_renderer_use_font(connection,
+            cfg->theme.menu.unselected.font);
     for (int i = 0; i < g_cycle_menu.count; ++i) {
         uint16_t w = menu_draw_measure(g_cycle_menu.labels[i]);
         if (w > (uint16_t) WM_CYCLE_MENU_LABEL_MAX_WIDTH) {
@@ -421,7 +422,8 @@ void cycle_init(xcb_connection_t *connection,
         }
         if (w > max_w) { max_w = w; }
     }
-    text_renderer_use_font(connection, cfg->theme.menu.selected.font);
+    (void) text_renderer_use_font(connection,
+            cfg->theme.menu.selected.font);
     for (int i = 0; i < g_cycle_menu.count; ++i) {
         uint16_t w = menu_draw_measure(g_cycle_menu.labels[i]);
         if (w > (uint16_t) WM_CYCLE_MENU_LABEL_MAX_WIDTH) {

@@ -145,7 +145,7 @@ void popup_show(xcb_connection_t *connection,
      * this popup's own font; safe and cheap to call here even though
      * 'popup_repaint' calls it again later; it is a same-connection,
      * same-font no-op the second time (see its not-so-long comment). */
-    text_renderer_use_font(connection, cfg->theme.overlay.font);
+    (void) text_renderer_use_font(connection, cfg->theme.overlay.font);
     for (size_t i = 0; i < 4; ++i) {
         uint16_t line_width = text_string_measure(s_popup_lines[i]);
 
@@ -257,7 +257,7 @@ void popup_repaint(xcb_connection_t *connection,
         return;
     }
 
-    text_renderer_use_font(connection,
+    (void) text_renderer_use_font(connection,
             cfg->theme.overlay.font);
     text_renderer_set_color(cfg->theme.overlay.color.foreground,
             cfg->theme.overlay.color.background);

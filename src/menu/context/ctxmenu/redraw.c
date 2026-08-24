@@ -182,7 +182,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
     (void) snprintf(label_buf, sizeof(label_buf), "%s", e->label);
 
-    text_renderer_use_font(conn, (e->type == CTXMENU_LABEL)
+    (void) text_renderer_use_font(conn, (e->type == CTXMENU_LABEL)
             ? state->config->theme.menu.label.font
             : (is_sel)
                 ? state->config->theme.menu.selected.font

@@ -659,7 +659,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
             });
     xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
 
-    text_renderer_use_font(connection,
+    (void) text_renderer_use_font(connection,
             (is_focused)
                 ? theme->window.active.font
                 : theme->window.inactive.font);

@@ -62,7 +62,8 @@ void menu_draw_row_bg(xcb_connection_t *connection,
  * @param pos        Left margin (x) and baseline Y position, in pixels
  * @param text       Null-terminated text to render
  *
- * @note The caller must have called @a text_renderer_init and
+ * @note The caller must have selected a font with
+ *       @a text_renderer_use_font and its colors with
  *       @a text_renderer_set_color before invoking this function
  * @note Complexity: @e O(n), where @e n is the number of glyphs in
  *       @p text

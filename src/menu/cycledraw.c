@@ -530,7 +530,8 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
     s_cycle_row_style(config, &style);
     pad_y = (int16_t) config->theme.menu.padding.vertical;
 
-    text_renderer_use_font(connection, config->theme.menu.unselected.font);
+    (void) text_renderer_use_font(connection,
+            config->theme.menu.unselected.font);
 
     /* A viewport shift (scrolling) changes every row actually shown, so
      * it still needs the full loop below.  Otherwise selection moved

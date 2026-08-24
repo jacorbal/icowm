@@ -772,7 +772,8 @@ void winlist_show(xcb_connection_t *connection,
      * active; initialized here, once, up front, so every one of
      * those measurements is against the actual menu font rather than
      * whatever an unrelated earlier caller happened to leave active. */
-    text_renderer_use_font(connection, config->theme.menu.unselected.font);
+    (void) text_renderer_use_font(connection,
+            config->theme.menu.unselected.font);
 
     s_entry_data_used = 0;
     s_appgroup_used = 0;

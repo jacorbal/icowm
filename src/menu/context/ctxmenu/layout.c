@@ -195,13 +195,12 @@ uint16_t ctxmenu_width_compute(xcb_connection_t *connection,
      * entry as a single combined pass would: since
      * max(max(a, b)) == max(max(a), max(b)), computing each font's
      * contribution to the overall maximum in its own pass gives the
-     * identical result while letting 'text_renderer_init's
-     * already-active check actually skip a redundant reopen of the
-     * same font (on the X11 backend, a full round trip) for every
-     * single entry, which is what interleaving the two fonts would
-     * otherwise force on every call. */
+     * identical result while asking 'text_renderer_use_font' for
+     * each font once instead of alternating between the two on every
+     * single entry. */
 
-    text_renderer_use_font(connection, config->theme.menu.label.font);
+    (void) text_renderer_use_font(connection,
+            config->theme.menu.label.font);
     for (int i = 0; i < entry_count; ++i) {
         uint16_t w;
 
@@ -215,11 +214,13 @@ uint16_t ctxmenu_width_compute(xcb_connection_t *connection,
         }
     }
 
-    text_renderer_use_font(connection, config->theme.menu.unselected.font);
+    (void) text_renderer_use_font(connection,
+            config->theme.menu.unselected.font);
     max_w = s_max_width_for_selectable(entries, entry_count, pad2,
             icon_offset, max_w);
 
-    text_renderer_use_font(connection, config->theme.menu.selected.font);
+    (void) text_renderer_use_font(connection,
+            config->theme.menu.selected.font);
     max_w = s_max_width_for_selectable(entries, entry_count, pad2,
             icon_offset, max_w);
 
