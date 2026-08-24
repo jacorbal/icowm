@@ -53,7 +53,7 @@ static struct {
     const config_td *config;
     xcb_window_t prev_focus;
     char command[WM_RUN_COMMAND_MAX_LENGTH];
-    int command_len;
+    unsigned int command_len;
 } s_run;
 
 
@@ -107,7 +107,7 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
     char command[WM_RUN_COMMAND_MAX_LENGTH];
     int result;
 
-    if (s_run.command_len == 0) {
+    if (s_run.command_len == 0u) {
         return;
     }
 
@@ -293,15 +293,20 @@ void run_handle_keypress(xcb_connection_t *connection,
     }
 
     if (keysym == 0xff08u) {   /* Backspace */
-        if (s_run.command_len > 0) {
+        if (s_run.command_len > 0u) {
             s_run.command[--s_run.command_len] = '\0';
             run_draw(connection, cfg);
         }
         return;
     }
 
+    /* Compared against the room left rather than against the length
+     * plus one: a signed sum tested against a constant is what lets
+     * the optimizer assume the sum never overflows, and the length is
+     * a count, which belongs in an unsigned type anyway */
     if (keysym <= 0xFFu && isprint((int) keysym) &&
-            s_run.command_len + 1 < WM_RUN_COMMAND_MAX_LENGTH) {
+            s_run.command_len < (unsigned int)
+                (WM_RUN_COMMAND_MAX_LENGTH - 1)) {
         s_run.command[s_run.command_len++] = (char) keysym;
         s_run.command[s_run.command_len] = '\0';
         run_draw(connection, cfg);

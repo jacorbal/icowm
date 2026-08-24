@@ -250,16 +250,21 @@ int ctxmenu_entry_at_y(const ctxmenu_state_td *state, int y)
 
     if (state->entry_top_y != NULL) {
         int found = -1;
-        int lo = 0;
-        int hi = state->entry_count - 1;
+        unsigned int lo = 0u;
+        unsigned int hi = (unsigned int) state->entry_count;
 
-        while (lo <= hi) {
-            int mid = lo + (hi - lo) / 2;
+        /* Half-open range, so that the upper bound never has to sit
+         * one below zero: a signed index walked down past zero is
+         * what lets the optimizer assume its arithmetic cannot
+         * overflow */
+        while (lo < hi) {
+            unsigned int mid = lo + (hi - lo) / 2u;
+
             if (state->entry_top_y[mid] <= y) {
-                found = mid;
-                lo = mid + 1;
+                found = (int) mid;
+                lo = mid + 1u;
             } else {
-                hi = mid - 1;
+                hi = mid;
             }
         }
 

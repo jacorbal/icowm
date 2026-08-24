@@ -81,12 +81,7 @@ static void s_hover_reschedule(void)
         return;
     }
 
-    s_hover_next_poll.tv_nsec +=
-        (long) MOUSE_HOVER_POLL_INTERVAL_MS * 1000000L;
-    if (s_hover_next_poll.tv_nsec >= 1000000000L) {
-        s_hover_next_poll.tv_sec += 1;
-        s_hover_next_poll.tv_nsec -= 1000000000L;
-    }
+    clock_add_ms(&s_hover_next_poll, MOUSE_HOVER_POLL_INTERVAL_MS);
 }
 
 

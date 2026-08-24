@@ -265,7 +265,7 @@ void handler_configure_request(xcb_connection_t *connection,
     uint16_t target_mask;
     uint32_t target_values[7];
     bool geom_changed;
-    int i;
+    unsigned int i;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in configure request" \
@@ -310,7 +310,7 @@ void handler_configure_request(xcb_connection_t *connection,
 
     geom_changed = false;
     target_mask = 0;
-    i = 0;
+    i = 0u;
     if (client != NULL) {
         bool wm_owns_geometry;
         bool is_reparented = (client->frame != 0) &&
@@ -561,8 +561,13 @@ void handler_configure_request(xcb_connection_t *connection,
                     != (uint32_t) client->layout.geometry.cur.pos.x ||
                     (uint32_t) adj_y
                     != (uint32_t) client->layout.geometry.cur.pos.y) {
-                for (int j = i - 1; j >= 0; --j) {
-                    target_values[j + 2] = target_values[j];
+                /* Counted in an unsigned index on purpose: a signed
+                 * one lets the optimizer assume its arithmetic never
+                 * overflows, which is what '-Wstrict-overflow' at
+                 * level three and above reports on this function,
+                 * with no source location of its own to point at */
+                for (unsigned int j = i; j > 0u; --j) {
+                    target_values[j + 1u] = target_values[j - 1u];
                 }
                 target_values[0] = (uint32_t) adj_x;
                 target_values[1] = (uint32_t) adj_y;

@@ -67,4 +67,19 @@ long clock_ms_until(const struct timespec *due);
 long clock_ms_since(const struct timespec *start);
 
 
+/**
+ * @brief Advance a moment in time by a number of milliseconds
+ *
+ * @param ts Moment to advance, in place
+ * @param ms Milliseconds to add
+ *
+ * @note The nanosecond carry is computed in unsigned arithmetic on
+ *       purpose: comparing a signed sum against one whole second is
+ *       what lets the optimizer assume that sum never overflows, and
+ *       @c -Wstrict-overflow reports on exactly that
+ * @note Complexity: @e O(1)
+ */
+void clock_add_ms(struct timespec *ts, unsigned int ms);
+
+
 #endif  /* ! UTILS_TIME_CLOCK_H */

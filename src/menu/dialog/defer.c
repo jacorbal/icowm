@@ -60,11 +60,10 @@ void menu_dialog_defer_schedule(xcb_connection_t *connection, int delay_ms,
         return;
     }
 
-    s_defer_due.tv_nsec += (long) delay_ms * 1000000L;
-    if (s_defer_due.tv_nsec >= 1000000000L) {
-        s_defer_due.tv_sec += 1;
-        s_defer_due.tv_nsec -= 1000000000L;
-    }
+    /* A negative delay would mean "already due"; treated as zero
+     * rather than wrapping into a very distant deadline */
+    clock_add_ms(&s_defer_due,
+            (delay_ms > 0) ? (unsigned int) delay_ms : 0u);
 
     s_defer_callback = callback;
     s_defer_pending = true;

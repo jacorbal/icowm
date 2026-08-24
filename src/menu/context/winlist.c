@@ -895,8 +895,12 @@ void winlist_show(xcb_connection_t *connection,
              * "Go there..." would otherwise be followed by a bare
              * separator leading nowhere. */
             if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
+                /* Compared against the room left rather than
+                 * against the count plus one: a signed sum tested
+                 * against a constant lets the optimizer assume the
+                 * sum never overflows */
                 int shift_count = (desktop_n > 0 &&
-                        desktop_n + 1 < WINLIST_MAX_ENTRIES_PER_DESKTOP)
+                        desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP - 1)
                     ? 2 : 1;
 
                 data = s_alloc_entry_data();
@@ -1053,10 +1057,10 @@ void winlist_show(xcb_connection_t *connection,
      * remains for now" case just below, where adding a second one
      * back remains a real possibility worth surfacing. */
     if (memguard_max_clients() == 0u &&
-            n + 3 <= ((desktop_count <= 1)
+            n <= ((desktop_count <= 1)
                 ? WINLIST_MAX_ENTRIES_PER_DESKTOP
                 : (int) (sizeof(s_root_entries) /
-                    sizeof(s_root_entries[0])))) {
+                    sizeof(s_root_entries[0]))) - 3) {
         root_target[n].type = CTXMENU_SEPARATOR;
         root_target[n].icon_window = XCB_WINDOW_NONE;
         root_target[n].icon_cache = NULL;

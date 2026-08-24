@@ -77,13 +77,7 @@ static bool s_wait_for_relinquish(xcb_connection_t *connection,
     struct timespec deadline;
 
     clock_gettime(CLOCK_MONOTONIC, &deadline);
-    deadline.tv_sec += (time_t) (WM_SN_REPLACE_TIMEOUT_MS / 1000);
-    deadline.tv_nsec += (long) (WM_SN_REPLACE_TIMEOUT_MS % 1000) *
-        1000000L;
-    if (deadline.tv_nsec >= 1000000000L) {
-        deadline.tv_nsec -= 1000000000L;
-        deadline.tv_sec += 1;
-    }
+    clock_add_ms(&deadline, (unsigned int) WM_SN_REPLACE_TIMEOUT_MS);
 
     while (clock_ms_until(&deadline) > 0) {
         xcb_generic_event_t *event;

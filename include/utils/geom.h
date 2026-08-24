@@ -119,22 +119,26 @@ static inline struct geometry_s geom_intersect_rect(
 {
     struct geometry_s result =
         {.pos = {.x = 0, .y = 0}, .dim = {.w = 0u, .h = 0u}};
-    int32_t ix1;
-    int32_t iy1;
-    int32_t ix2;
-    int32_t iy2;
-    int32_t ax_end;
-    int32_t ay_end;
-    int32_t bx_end;
-    int32_t by_end;
+    int64_t ix1;
+    int64_t iy1;
+    int64_t ix2;
+    int64_t iy2;
+    int64_t ax_end;
+    int64_t ay_end;
+    int64_t bx_end;
+    int64_t by_end;
 
-    ax_end = ax + (int32_t) aw;
-    ay_end = ay + (int32_t) ah;
-    bx_end = bx + (int32_t) bw;
-    by_end = by + (int32_t) bh;
+    /* Widened before adding: a rectangle whose right edge lands past
+     * @c INT32_MAX would otherwise overflow, and comparing the sums
+     * in the same width they were computed in is what lets the
+     * optimizer assume that never happens */
+    ax_end = (int64_t) ax + (int64_t) aw;
+    ay_end = (int64_t) ay + (int64_t) ah;
+    bx_end = (int64_t) bx + (int64_t) bw;
+    by_end = (int64_t) by + (int64_t) bh;
 
-    ix1 = (ax > bx) ? ax : bx;
-    iy1 = (ay > by) ? ay : by;
+    ix1 = (ax > bx) ? (int64_t) ax : (int64_t) bx;
+    iy1 = (ay > by) ? (int64_t) ay : (int64_t) by;
     ix2 = (ax_end < bx_end) ? ax_end : bx_end;
     iy2 = (ay_end < by_end) ? ay_end : by_end;
 
@@ -142,8 +146,8 @@ static inline struct geometry_s geom_intersect_rect(
         return result;
     }
 
-    result.pos.x = ix1;
-    result.pos.y = iy1;
+    result.pos.x = (int32_t) ix1;
+    result.pos.y = (int32_t) iy1;
     result.dim.w = (uint32_t) (ix2 - ix1);
     result.dim.h = (uint32_t) (iy2 - iy1);
 

@@ -53,3 +53,25 @@ long clock_ms_since(const struct timespec *start)
 
     return (elapsed_ms < 0L) ? 0L : elapsed_ms;
 }
+
+
+/* Advance a moment in time by a number of milliseconds */
+void clock_add_ms(struct timespec *ts, unsigned int ms)
+{
+    unsigned long nsec;
+
+    if (ts == NULL) {
+        return;
+    }
+
+    ts->tv_sec += (time_t) (ms / 1000u);
+
+    nsec = (unsigned long) ts->tv_nsec +
+        (unsigned long) (ms % 1000u) * 1000000UL;
+    if (nsec >= 1000000000UL) {
+        ts->tv_sec += 1;
+        nsec -= 1000000000UL;
+    }
+
+    ts->tv_nsec = (long) nsec;
+}

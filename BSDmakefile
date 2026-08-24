@@ -148,11 +148,13 @@ JSON_CFLAGS != ${PKGCONF} --cflags libcjson 2>/dev/null || \
 CCFLAGS_BASE = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR} \
                ${CCDEPS}
 CCFLAGS = ${CCFLAGS_BASE} ${XCB_CFLAGS} ${FONT_CFLAGS} ${JSON_CFLAGS}
+
 # 'icowm-msg' (see 'tools/icowm-msg.c') is a small, deliberately
 # self-contained IPC client: it never touches X11 at all, so it has no
 # reason to pull in the XCB or font libraries the window manager itself
 # needs, only JSON for the wire protocol it speaks.
 MSG_CCFLAGS = ${CCFLAGS_BASE} ${JSON_CFLAGS}
+
 XCB_LFLAGS != ${PKGCONF} --libs \
         xcb xcb-keysyms xcb-util xcb-icccm xcb-ewmh xcb-randr xcb-sync \
         xcb-cursor xcb-render xcb-renderutil 2>/dev/null || \

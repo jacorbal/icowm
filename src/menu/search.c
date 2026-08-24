@@ -333,15 +333,20 @@ static void s_search_refilter(void)
     /* Small insertion sort by descending score; the candidate count
      * this widget deals with (open windows) never justifies anything
      * fancier */
-    for (int i = 1; i < s_search.result_count; ++i) {
+    /* Indexed without a sign, so that the descending walk stops at
+     * zero rather than at minus one: a signed index there lets the
+     * optimizer assume its own arithmetic never overflows, which is
+     * what '-Wstrict-overflow' reports on */
+    for (unsigned int i = 1u; i < (unsigned int) s_search.result_count;
+            ++i) {
         s_search_result_td key = s_search.results[i];
-        int j = i - 1;
+        unsigned int j = i;
 
-        while (j >= 0 && s_search.results[j].score < key.score) {
-            s_search.results[j + 1] = s_search.results[j];
+        while (j > 0u && s_search.results[j - 1u].score < key.score) {
+            s_search.results[j] = s_search.results[j - 1u];
             --j;
         }
-        s_search.results[j + 1] = key;
+        s_search.results[j] = key;
     }
 
     s_search.selected = (s_search.result_count > 0) ? 0 : -1;
@@ -414,19 +419,25 @@ static void s_search_scroll_to_selection(void)
  */
 static int s_search_row_at_y(int16_t y)
 {
-    int rel_row;
+    unsigned int rel_row;
     int idx;
 
     if (y < S_SEARCH_ROWS_TOP) {
         return -1;
     }
 
-    rel_row = (y - S_SEARCH_ROWS_TOP) / WM_SEARCH_ROW_HEIGHT;
-    if (rel_row < 0 || rel_row >= s_search.viewport_rows) {
+    /* Counted without a sign once @p y is known to sit at or below
+     * the first row: the subtraction cannot go negative from here,
+     * and a signed one would let the optimizer assume as much on its
+     * own, which is what '-Wstrict-overflow' reports on */
+    rel_row = ((unsigned int) y - (unsigned int) S_SEARCH_ROWS_TOP) /
+        (unsigned int) WM_SEARCH_ROW_HEIGHT;
+    if (s_search.viewport_rows < 0 ||
+            rel_row >= (unsigned int) s_search.viewport_rows) {
         return -1;
     }
 
-    idx = s_search.scroll_offset + rel_row;
+    idx = s_search.scroll_offset + (int) rel_row;
     if (idx < 0 || idx >= s_search.result_count) {
         return -1;
     }

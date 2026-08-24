@@ -438,7 +438,12 @@ int glyph_renderer_init(xcb_connection_t *connection,
     s_glyph.ft_ready = true;
     s_glyph.ascent = (int16_t) (s_glyph.ft_face->size->metrics.ascender
             / 64);
-    s_glyph.descent = (int16_t) (-s_glyph.ft_face->size->metrics.descender
+    /* Negated after the division, not before: distributing a
+     * negation across a signed division is a transformation the
+     * optimizer may only make by assuming the operand never
+     * overflows, which is what '-Wstrict-overflow' reports on.  Both
+     * forms agree for every value, since C truncates toward zero. */
+    s_glyph.descent = (int16_t) -(s_glyph.ft_face->size->metrics.descender
             / 64);
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;

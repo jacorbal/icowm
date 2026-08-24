@@ -114,12 +114,7 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
     s_drag.is_warp_pending = true;
     s_drag.warp_direction = direction;
     if (clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due) == 0) {
-        s_drag.warp_due.tv_nsec +=
-            (long) WM_DESKTOP_WARP_DELAY_MS * 1000000L;
-        if (s_drag.warp_due.tv_nsec >= 1000000000L) {
-            s_drag.warp_due.tv_sec += 1;
-            s_drag.warp_due.tv_nsec -= 1000000000L;
-        }
+        clock_add_ms(&s_drag.warp_due, WM_DESKTOP_WARP_DELAY_MS);
     } else {
         /* Could not read the clock to schedule the countdown; safer
          * to not warp at all than to warp immediately on every edge
