@@ -274,6 +274,565 @@ static void s_load_theme_opacity(cJSON *json_obj, const char *key,
 }
 
 
+/* Convert a 0-100 opacity percentage to _NET_WM_WINDOW_OPACITY's own
+ * 32-bit range */
+uint32_t config_theme_opacity_to_raw(uint8_t percent)
+{
+    uint8_t clamped;
+
+    clamped = (percent > 100u) ? 100u : percent;
+
+    return (uint32_t) ((double) clamped / 100.0 * (double) 0xffffffffu);
+}
+
+
+/* Load theme configuration */
+/**
+ * @brief Load the @c window section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_window(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const window = cJSON_GetObjectItem(json, "window");
+    if (window) {
+        cJSON *titlebar;
+        cJSON *active;
+        cJSON *inactive;
+
+        json_load_bool(window, "is-decorated",
+                &config_theme->window.is_decorated);
+
+        titlebar = cJSON_GetObjectItem(window, "titlebar");
+        if (titlebar) {
+            cJSON *alignment_item;
+            cJSON *padding;
+            cJSON *buttons;
+
+            json_load_uint(titlebar, "height",
+                    &config_theme->window.titlebar.height);
+
+            alignment_item = json_get_item(titlebar, "alignment");
+            if (alignment_item != NULL && cJSON_IsString(alignment_item)) {
+                config_theme->window.titlebar.alignment =
+                    s_parse_titlebar_alignment(
+                            alignment_item->valuestring);
+            }
+
+            padding = cJSON_GetObjectItem(titlebar, "padding");
+            if (padding) {
+                json_load_uint(padding, "horizontal",
+                        &config_theme->window.titlebar.padding.horizontal);
+                json_load_uint(padding, "vertical",
+                        &config_theme->window.titlebar.padding.vertical);
+            }
+
+            /* A titlebar shorter than its own buttons plus their
+             * vertical padding would draw those buttons overflowing
+             * its own bounds instead of centered within them (see
+             * 'client_titlebar_layout''s own fallback branch,
+             * client/geom.c, taken once 'title_h' falls below this
+             * exact threshold); floored here to that same threshold,
+             * unless 'height' is 0, which disables the titlebar
+             * entirely and is left alone. */
+            if (config_theme->window.titlebar.height != 0u) {
+                uint32_t btn_floor = (uint32_t) WM_DECOR_BTN_SIZE +
+                    2u * config_theme->window.titlebar.padding.vertical;
+
+                if (config_theme->window.titlebar.height < btn_floor) {
+                    config_theme->window.titlebar.height = btn_floor;
+                }
+            }
+
+            buttons = cJSON_GetObjectItem(titlebar, "buttons");
+            if (buttons) {
+                cJSON *btn_color;
+
+                s_load_button_list(buttons, "left",
+                        config_theme->window.titlebar.buttons.left,
+                        &config_theme->window.titlebar.buttons.left_count);
+                s_load_button_list(buttons, "right",
+                        config_theme->window.titlebar.buttons.right,
+                        &config_theme->window.titlebar.buttons.right_count);
+
+                btn_color = cJSON_GetObjectItem(buttons, "color");
+                if (btn_color) {
+                    json_load_color(btn_color, "on",
+                            &config_theme->window.titlebar.buttons.color.on);
+                    json_load_color(btn_color, "off",
+                            &config_theme->window.titlebar.buttons.color.off);
+                }
+            }
+        }
+
+        active = cJSON_GetObjectItem(window, "active");
+        s_load_theme_colors(active, &config_theme->window.active);
+        s_load_theme_opacity(active, "opacity",
+                &config_theme->window.active.opacity);
+
+        inactive = cJSON_GetObjectItem(window, "inactive");
+        s_load_theme_colors(inactive, &config_theme->window.inactive);
+        s_load_theme_opacity(inactive, "opacity",
+                &config_theme->window.inactive.opacity);
+    }
+}
+
+
+/**
+ * @brief Load the @c icon section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_icon(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const icon = cJSON_GetObjectItem(json, "icon");
+    if (icon) {
+        cJSON *active;
+        cJSON *inactive;
+
+        json_load_bool(icon, "is-captioned",
+                &config_theme->icon.is_captioned);
+        json_load_bool(icon, "show-pixmaps",
+                &config_theme->icon.show_pixmaps);
+        json_load_bool(icon, "show-hints",
+                &config_theme->icon.show_hints);
+
+        active = cJSON_GetObjectItem(icon, "active");
+        s_load_theme_colors(active, &config_theme->icon.active);
+        s_load_theme_opacity(active, "opacity",
+                &config_theme->icon.active.opacity);
+
+        inactive = cJSON_GetObjectItem(icon, "inactive");
+        s_load_theme_colors(inactive, &config_theme->icon.inactive);
+        s_load_theme_opacity(inactive, "opacity",
+                &config_theme->icon.inactive.opacity);
+    }
+}
+
+
+/**
+ * @brief Load the @c systray section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_systray(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const systray = cJSON_GetObjectItem(json, "systray");
+    s_load_theme_colors(systray, &config_theme->systray.style);
+    s_load_theme_opacity(systray, "opacity",
+            &config_theme->systray.style.opacity);
+    if (systray) {
+        cJSON *pixmap_obj;
+        cJSON *text_obj;
+
+        json_load_uint(systray, "height", &config_theme->systray.height);
+
+        pixmap_obj = cJSON_GetObjectItem(systray, "pixmap");
+        if (pixmap_obj) {
+            json_load_uint(pixmap_obj, "size",
+                    &config_theme->systray.pixmap.size);
+            json_load_uint(pixmap_obj, "padding",
+                    &config_theme->systray.pixmap.padding);
+        }
+
+        text_obj = cJSON_GetObjectItem(systray, "text");
+        if (text_obj) {
+            cJSON *valign_item;
+
+            json_load_uint(text_obj, "gap",
+                    &config_theme->systray.text.gap);
+            valign_item = json_get_item(text_obj, "valign");
+            if (valign_item != NULL && cJSON_IsString(valign_item)) {
+                config_theme->systray.text.valign =
+                    s_parse_systray_text_valign(valign_item->valuestring);
+            }
+        }
+    }
+}
+
+
+/**
+ * @brief Load the @c desktop section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_desktop(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const desktop = cJSON_GetObjectItem(json, "desktop");
+    if (desktop) {
+        cJSON *color_obj;
+
+        color_obj = cJSON_GetObjectItem(desktop, "color");
+        if (color_obj) {
+            json_load_color(color_obj, "background",
+                    &config_theme->desktop.color.background);
+        }
+    }
+}
+
+
+/**
+ * @brief Load the @c menu section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_menu(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const menu = cJSON_GetObjectItem(json, "menu");
+    if (menu) {
+        cJSON *unselected;
+        cJSON *selected;
+        cJSON *label;
+        cJSON *disabled;
+        cJSON *separator;
+        cJSON *border_obj;
+        cJSON *padding;
+
+        unselected = cJSON_GetObjectItem(menu, "unselected");
+        s_load_theme_colors(unselected, &config_theme->menu.unselected);
+
+        selected = cJSON_GetObjectItem(menu, "selected");
+        s_load_theme_colors(selected, &config_theme->menu.selected);
+
+        label = cJSON_GetObjectItem(menu, "label");
+        s_load_theme_colors(label, &config_theme->menu.label);
+
+        disabled = cJSON_GetObjectItem(menu, "disabled");
+        if (disabled) {
+            cJSON *const disabled_color = cJSON_GetObjectItem(disabled, "color");
+            if (disabled_color) {
+                json_load_color(disabled_color, "foreground",
+                        &config_theme->menu.disabled_foreground);
+            }
+        }
+
+        separator = cJSON_GetObjectItem(menu, "separator");
+        if (separator) {
+            json_load_color(separator, "color",
+                    &config_theme->menu.separator_color);
+        }
+
+        border_obj = cJSON_GetObjectItem(menu, "border");
+        if (border_obj) {
+            json_load_color(border_obj, "color",
+                    &config_theme->menu.border.color);
+            json_load_uint(border_obj, "width",
+                    &config_theme->menu.border.width);
+        }
+
+        s_load_theme_opacity(menu, "opacity",
+                &config_theme->menu.opacity);
+
+        padding = cJSON_GetObjectItem(menu, "padding");
+        if (padding) {
+            json_load_uint(padding, "horizontal",
+                    &config_theme->menu.padding.horizontal);
+            json_load_uint(padding, "vertical",
+                    &config_theme->menu.padding.vertical);
+        }
+
+        json_load_bool(menu, "show-pixmaps",
+                &config_theme->menu.show_pixmaps);
+    }
+}
+
+
+/**
+ * @brief Load the @c search section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_search(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const search = cJSON_GetObjectItem(json, "search");
+    if (search) {
+        cJSON *input;
+        cJSON *unselected;
+        cJSON *selected;
+        cJSON *border_obj;
+
+        input = cJSON_GetObjectItem(search, "input");
+        s_load_theme_colors(input, &config_theme->search.input);
+
+        unselected = cJSON_GetObjectItem(search, "unselected");
+        s_load_theme_colors(unselected, &config_theme->search.unselected);
+
+        selected = cJSON_GetObjectItem(search, "selected");
+        s_load_theme_colors(selected, &config_theme->search.selected);
+
+        border_obj = cJSON_GetObjectItem(search, "border");
+        if (border_obj) {
+            json_load_color(border_obj, "color",
+                    &config_theme->search.border.color);
+            json_load_uint(border_obj, "width",
+                    &config_theme->search.border.width);
+        }
+    }
+}
+
+
+/**
+ * @brief Load the @c prompt section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_prompt(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const prompt = cJSON_GetObjectItem(json, "prompt");
+    if (prompt) {
+        cJSON *label;
+        cJSON *input;
+        cJSON *border_obj;
+
+        label = cJSON_GetObjectItem(prompt, "label");
+        s_load_theme_colors(label, &config_theme->prompt.label);
+
+        input = cJSON_GetObjectItem(prompt, "input");
+        s_load_theme_colors(input, &config_theme->prompt.input);
+
+        border_obj = cJSON_GetObjectItem(prompt, "border");
+        if (border_obj) {
+            json_load_color(border_obj, "color",
+                    &config_theme->prompt.border.color);
+            json_load_uint(border_obj, "width",
+                    &config_theme->prompt.border.width);
+        }
+    }
+}
+
+
+/**
+ * @brief Load the @c dialog section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_dialog(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const dialog = cJSON_GetObjectItem(json, "dialog");
+    if (dialog) {
+        cJSON *dialog_color;
+        cJSON *border_obj;
+        cJSON *label;
+        cJSON *button;
+
+        dialog_color = cJSON_GetObjectItem(dialog, "color");
+        if (dialog_color) {
+            json_load_color(dialog_color, "background",
+                    &config_theme->dialog.background);
+        }
+
+        border_obj = cJSON_GetObjectItem(dialog, "border");
+        if (border_obj) {
+            json_load_color(border_obj, "color",
+                    &config_theme->dialog.border.color);
+            json_load_uint(border_obj, "width",
+                    &config_theme->dialog.border.width);
+        }
+
+        s_load_theme_opacity(dialog, "opacity",
+                &config_theme->dialog.opacity);
+
+        label = cJSON_GetObjectItem(dialog, "label");
+        if (label) {
+            cJSON *label_color;
+            cJSON *label_padding;
+
+            json_load_string(label, "font", config_theme->dialog.label.font,
+                    CONFIG_MAX_LENGTH_FONTNAME);
+            label_color = cJSON_GetObjectItem(label, "color");
+            if (label_color) {
+                json_load_color(label_color, "foreground",
+                        &config_theme->dialog.label.foreground);
+            }
+            label_padding = cJSON_GetObjectItem(label, "padding");
+            if (label_padding) {
+                json_load_uint(label_padding, "horizontal",
+                        &config_theme->dialog.label.padding.horizontal);
+                json_load_uint(label_padding, "vertical",
+                        &config_theme->dialog.label.padding.vertical);
+            }
+        }
+
+        button = cJSON_GetObjectItem(dialog, "button");
+        if (button) {
+            cJSON *const btn_unselected = cJSON_GetObjectItem(button,
+                    "unselected");
+            cJSON *const btn_selected = cJSON_GetObjectItem(button, "selected");
+            cJSON *const btn_padding = cJSON_GetObjectItem(button, "padding");
+
+            s_load_theme_colors(btn_unselected,
+                    &config_theme->dialog.button.unselected);
+            s_load_theme_colors(btn_selected,
+                    &config_theme->dialog.button.selected);
+            json_load_uint(button, "gap",
+                    &config_theme->dialog.button.gap);
+            if (btn_padding) {
+                json_load_uint(btn_padding, "horizontal",
+                        &config_theme->dialog.button.padding.horizontal);
+                json_load_uint(btn_padding, "vertical",
+                        &config_theme->dialog.button.padding.vertical);
+            }
+        }
+    }
+}
+
+
+/**
+ * @brief Load the @c overlay section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_overlay(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const overlay = cJSON_GetObjectItem(json, "overlay");
+    s_load_theme_colors(overlay, &config_theme->overlay);
+    s_load_theme_opacity(overlay, "opacity",
+            &config_theme->overlay.opacity);
+}
+
+
+/**
+ * @brief Load the @c xsettings section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_xsettings(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const xsettings = cJSON_GetObjectItem(json, "xsettings");
+    if (xsettings) {
+        unsigned int dpi_val;
+        unsigned int cursor_size_val;
+        cJSON *xs_theme;
+
+        json_load_bool(xsettings, "is-enabled",
+                &config_theme->xsettings.is_enabled);
+        if (json_load_uint(xsettings, "dpi", &dpi_val) == 0) {
+            config_theme->xsettings.dpi = dpi_val;
+        }
+
+        xs_theme = cJSON_GetObjectItem(xsettings, "theme");
+        if (xs_theme) {
+            json_load_string(xs_theme, "gtk-theme-name",
+                    config_theme->xsettings.theme.gtk_theme_name,
+                    CONFIG_MAX_LENGTH_NAME);
+            json_load_string(xs_theme, "icon-theme-name",
+                    config_theme->xsettings.theme.icon_theme_name,
+                    CONFIG_MAX_LENGTH_NAME);
+            json_load_string(xs_theme, "cursor-theme-name",
+                    config_theme->xsettings.theme.cursor_theme_name,
+                    CONFIG_MAX_LENGTH_NAME);
+            if (json_load_uint(xs_theme, "cursor-theme-size",
+                        &cursor_size_val) == 0) {
+                config_theme->xsettings.theme.cursor_theme_size =
+                    cursor_size_val;
+            }
+        }
+    }
+}
+
+
+/**
+ * @brief Load the @c scratchpad section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_scratchpad(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const scratchpad = cJSON_GetObjectItem(json, "scratchpad");
+    cJSON *sp_border;
+
+    sp_border = (scratchpad != NULL)
+        ? cJSON_GetObjectItem(scratchpad, "border") : NULL;
+    if (sp_border) {
+        json_load_color(sp_border, "color",
+                &config_theme->scratchpad.border.color);
+        json_load_uint(sp_border, "width",
+                &config_theme->scratchpad.border.width);
+    }
+}
+
+
+/**
+ * @brief Load the @c cycle section of a theme file
+ *
+ * @param json         Root object of the already-parsed theme file
+ * @param config_theme Theme the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_theme_load_cycle(cJSON *json,
+        struct config_theme_s *config_theme)
+{
+    cJSON *const cycle = cJSON_GetObjectItem(json, "cycle");
+    cJSON *cycle_border;
+
+    cycle_border = (cycle != NULL)
+        ? cJSON_GetObjectItem(cycle, "border") : NULL;
+    if (cycle_border) {
+        json_load_color(cycle_border, "color",
+                &config_theme->cycle.border.color);
+        json_load_uint(cycle_border, "width",
+                &config_theme->cycle.border.width);
+    }
+}
+
+
 /* Populate default values for one theme structure, used both as the
  * compiled-in fallback theme and, before applying any theme file
  * found, as the known-good starting point that file's own fields
@@ -532,37 +1091,11 @@ void config_set_default_theme_values(struct config_theme_s *theme)
 }
 
 
-/* Convert a 0-100 opacity percentage to _NET_WM_WINDOW_OPACITY's own
- * 32-bit range */
-uint32_t config_theme_opacity_to_raw(uint8_t percent)
-{
-    uint8_t clamped;
-
-    clamped = (percent > 100u) ? 100u : percent;
-
-    return (uint32_t) ((double) clamped / 100.0 * (double) 0xffffffffu);
-}
-
-
-/* Load theme configuration */
+/* Load a theme configuration file into a theme structure */
 int config_load_theme(const char *filename,
         struct config_theme_s *config_theme)
 {
     cJSON *json;
-    cJSON *window;
-    cJSON *icon;
-    cJSON *systray;
-    cJSON *desktop;
-    cJSON *menu;
-    cJSON *search;
-    cJSON *prompt;
-    cJSON *dialog;
-    cJSON *overlay;
-    cJSON *xsettings;
-    cJSON *scratchpad;
-    cJSON *sp_border;
-    cJSON *cycle;
-    cJSON *cycle_border;
 
     LOGGER_TRACE("Parsing theme configuration from file '%s'",
             filename);
@@ -574,381 +1107,18 @@ int config_load_theme(const char *filename,
     json_load_string(json, "name", config_theme->name,
             sizeof(config_theme->name));
 
-    window = cJSON_GetObjectItem(json, "window");
-    if (window) {
-        cJSON *titlebar;
-        cJSON *active;
-        cJSON *inactive;
-
-        json_load_bool(window, "is-decorated",
-                &config_theme->window.is_decorated);
-
-        titlebar = cJSON_GetObjectItem(window, "titlebar");
-        if (titlebar) {
-            cJSON *alignment_item;
-            cJSON *padding;
-            cJSON *buttons;
-
-            json_load_uint(titlebar, "height",
-                    &config_theme->window.titlebar.height);
-
-            alignment_item = json_get_item(titlebar, "alignment");
-            if (alignment_item != NULL && cJSON_IsString(alignment_item)) {
-                config_theme->window.titlebar.alignment =
-                    s_parse_titlebar_alignment(
-                            alignment_item->valuestring);
-            }
-
-            padding = cJSON_GetObjectItem(titlebar, "padding");
-            if (padding) {
-                json_load_uint(padding, "horizontal",
-                        &config_theme->window.titlebar.padding.horizontal);
-                json_load_uint(padding, "vertical",
-                        &config_theme->window.titlebar.padding.vertical);
-            }
-
-            /* A titlebar shorter than its own buttons plus their
-             * vertical padding would draw those buttons overflowing
-             * its own bounds instead of centered within them (see
-             * 'client_titlebar_layout''s own fallback branch,
-             * client/geom.c, taken once 'title_h' falls below this
-             * exact threshold); floored here to that same threshold,
-             * unless 'height' is 0, which disables the titlebar
-             * entirely and is left alone. */
-            if (config_theme->window.titlebar.height != 0u) {
-                uint32_t btn_floor = (uint32_t) WM_DECOR_BTN_SIZE +
-                    2u * config_theme->window.titlebar.padding.vertical;
-
-                if (config_theme->window.titlebar.height < btn_floor) {
-                    config_theme->window.titlebar.height = btn_floor;
-                }
-            }
-
-            buttons = cJSON_GetObjectItem(titlebar, "buttons");
-            if (buttons) {
-                cJSON *btn_color;
-
-                s_load_button_list(buttons, "left",
-                        config_theme->window.titlebar.buttons.left,
-                        &config_theme->window.titlebar.buttons.left_count);
-                s_load_button_list(buttons, "right",
-                        config_theme->window.titlebar.buttons.right,
-                        &config_theme->window.titlebar.buttons.right_count);
-
-                btn_color = cJSON_GetObjectItem(buttons, "color");
-                if (btn_color) {
-                    json_load_color(btn_color, "on",
-                            &config_theme->window.titlebar.buttons.color.on);
-                    json_load_color(btn_color, "off",
-                            &config_theme->window.titlebar.buttons.color.off);
-                }
-            }
-        }
-
-        active = cJSON_GetObjectItem(window, "active");
-        s_load_theme_colors(active, &config_theme->window.active);
-        s_load_theme_opacity(active, "opacity",
-                &config_theme->window.active.opacity);
-
-        inactive = cJSON_GetObjectItem(window, "inactive");
-        s_load_theme_colors(inactive, &config_theme->window.inactive);
-        s_load_theme_opacity(inactive, "opacity",
-                &config_theme->window.inactive.opacity);
-    }
-
-    icon = cJSON_GetObjectItem(json, "icon");
-    if (icon) {
-        cJSON *active;
-        cJSON *inactive;
-
-        json_load_bool(icon, "is-captioned",
-                &config_theme->icon.is_captioned);
-        json_load_bool(icon, "show-pixmaps",
-                &config_theme->icon.show_pixmaps);
-        json_load_bool(icon, "show-hints",
-                &config_theme->icon.show_hints);
-
-        active = cJSON_GetObjectItem(icon, "active");
-        s_load_theme_colors(active, &config_theme->icon.active);
-        s_load_theme_opacity(active, "opacity",
-                &config_theme->icon.active.opacity);
-
-        inactive = cJSON_GetObjectItem(icon, "inactive");
-        s_load_theme_colors(inactive, &config_theme->icon.inactive);
-        s_load_theme_opacity(inactive, "opacity",
-                &config_theme->icon.inactive.opacity);
-    }
-
-    systray = cJSON_GetObjectItem(json, "systray");
-    s_load_theme_colors(systray, &config_theme->systray.style);
-    s_load_theme_opacity(systray, "opacity",
-            &config_theme->systray.style.opacity);
-    if (systray) {
-        cJSON *pixmap_obj;
-        cJSON *text_obj;
-
-        json_load_uint(systray, "height", &config_theme->systray.height);
-
-        pixmap_obj = cJSON_GetObjectItem(systray, "pixmap");
-        if (pixmap_obj) {
-            json_load_uint(pixmap_obj, "size",
-                    &config_theme->systray.pixmap.size);
-            json_load_uint(pixmap_obj, "padding",
-                    &config_theme->systray.pixmap.padding);
-        }
-
-        text_obj = cJSON_GetObjectItem(systray, "text");
-        if (text_obj) {
-            cJSON *valign_item;
-
-            json_load_uint(text_obj, "gap",
-                    &config_theme->systray.text.gap);
-            valign_item = json_get_item(text_obj, "valign");
-            if (valign_item != NULL && cJSON_IsString(valign_item)) {
-                config_theme->systray.text.valign =
-                    s_parse_systray_text_valign(valign_item->valuestring);
-            }
-        }
-    }
-
-    desktop = cJSON_GetObjectItem(json, "desktop");
-    if (desktop) {
-        cJSON *color_obj;
-
-        color_obj = cJSON_GetObjectItem(desktop, "color");
-        if (color_obj) {
-            json_load_color(color_obj, "background",
-                    &config_theme->desktop.color.background);
-        }
-    }
-
-    menu = cJSON_GetObjectItem(json, "menu");
-    if (menu) {
-        cJSON *unselected;
-        cJSON *selected;
-        cJSON *label;
-        cJSON *disabled;
-        cJSON *separator;
-        cJSON *border_obj;
-        cJSON *padding;
-
-        unselected = cJSON_GetObjectItem(menu, "unselected");
-        s_load_theme_colors(unselected, &config_theme->menu.unselected);
-
-        selected = cJSON_GetObjectItem(menu, "selected");
-        s_load_theme_colors(selected, &config_theme->menu.selected);
-
-        label = cJSON_GetObjectItem(menu, "label");
-        s_load_theme_colors(label, &config_theme->menu.label);
-
-        disabled = cJSON_GetObjectItem(menu, "disabled");
-        if (disabled) {
-            cJSON *const disabled_color = cJSON_GetObjectItem(disabled, "color");
-            if (disabled_color) {
-                json_load_color(disabled_color, "foreground",
-                        &config_theme->menu.disabled_foreground);
-            }
-        }
-
-        separator = cJSON_GetObjectItem(menu, "separator");
-        if (separator) {
-            json_load_color(separator, "color",
-                    &config_theme->menu.separator_color);
-        }
-
-        border_obj = cJSON_GetObjectItem(menu, "border");
-        if (border_obj) {
-            json_load_color(border_obj, "color",
-                    &config_theme->menu.border.color);
-            json_load_uint(border_obj, "width",
-                    &config_theme->menu.border.width);
-        }
-
-        s_load_theme_opacity(menu, "opacity",
-                &config_theme->menu.opacity);
-
-        padding = cJSON_GetObjectItem(menu, "padding");
-        if (padding) {
-            json_load_uint(padding, "horizontal",
-                    &config_theme->menu.padding.horizontal);
-            json_load_uint(padding, "vertical",
-                    &config_theme->menu.padding.vertical);
-        }
-
-        json_load_bool(menu, "show-pixmaps",
-                &config_theme->menu.show_pixmaps);
-    }
-
-    search = cJSON_GetObjectItem(json, "search");
-    if (search) {
-        cJSON *input;
-        cJSON *unselected;
-        cJSON *selected;
-        cJSON *border_obj;
-
-        input = cJSON_GetObjectItem(search, "input");
-        s_load_theme_colors(input, &config_theme->search.input);
-
-        unselected = cJSON_GetObjectItem(search, "unselected");
-        s_load_theme_colors(unselected, &config_theme->search.unselected);
-
-        selected = cJSON_GetObjectItem(search, "selected");
-        s_load_theme_colors(selected, &config_theme->search.selected);
-
-        border_obj = cJSON_GetObjectItem(search, "border");
-        if (border_obj) {
-            json_load_color(border_obj, "color",
-                    &config_theme->search.border.color);
-            json_load_uint(border_obj, "width",
-                    &config_theme->search.border.width);
-        }
-    }
-
-    prompt = cJSON_GetObjectItem(json, "prompt");
-    if (prompt) {
-        cJSON *label;
-        cJSON *input;
-        cJSON *border_obj;
-
-        label = cJSON_GetObjectItem(prompt, "label");
-        s_load_theme_colors(label, &config_theme->prompt.label);
-
-        input = cJSON_GetObjectItem(prompt, "input");
-        s_load_theme_colors(input, &config_theme->prompt.input);
-
-        border_obj = cJSON_GetObjectItem(prompt, "border");
-        if (border_obj) {
-            json_load_color(border_obj, "color",
-                    &config_theme->prompt.border.color);
-            json_load_uint(border_obj, "width",
-                    &config_theme->prompt.border.width);
-        }
-    }
-
-    dialog = cJSON_GetObjectItem(json, "dialog");
-    if (dialog) {
-        cJSON *dialog_color;
-        cJSON *border_obj;
-        cJSON *label;
-        cJSON *button;
-
-        dialog_color = cJSON_GetObjectItem(dialog, "color");
-        if (dialog_color) {
-            json_load_color(dialog_color, "background",
-                    &config_theme->dialog.background);
-        }
-
-        border_obj = cJSON_GetObjectItem(dialog, "border");
-        if (border_obj) {
-            json_load_color(border_obj, "color",
-                    &config_theme->dialog.border.color);
-            json_load_uint(border_obj, "width",
-                    &config_theme->dialog.border.width);
-        }
-
-        s_load_theme_opacity(dialog, "opacity",
-                &config_theme->dialog.opacity);
-
-        label = cJSON_GetObjectItem(dialog, "label");
-        if (label) {
-            cJSON *label_color;
-            cJSON *label_padding;
-
-            json_load_string(label, "font", config_theme->dialog.label.font,
-                    CONFIG_MAX_LENGTH_FONTNAME);
-            label_color = cJSON_GetObjectItem(label, "color");
-            if (label_color) {
-                json_load_color(label_color, "foreground",
-                        &config_theme->dialog.label.foreground);
-            }
-            label_padding = cJSON_GetObjectItem(label, "padding");
-            if (label_padding) {
-                json_load_uint(label_padding, "horizontal",
-                        &config_theme->dialog.label.padding.horizontal);
-                json_load_uint(label_padding, "vertical",
-                        &config_theme->dialog.label.padding.vertical);
-            }
-        }
-
-        button = cJSON_GetObjectItem(dialog, "button");
-        if (button) {
-            cJSON *const btn_unselected = cJSON_GetObjectItem(button,
-                    "unselected");
-            cJSON *const btn_selected = cJSON_GetObjectItem(button, "selected");
-            cJSON *const btn_padding = cJSON_GetObjectItem(button, "padding");
-
-            s_load_theme_colors(btn_unselected,
-                    &config_theme->dialog.button.unselected);
-            s_load_theme_colors(btn_selected,
-                    &config_theme->dialog.button.selected);
-            json_load_uint(button, "gap",
-                    &config_theme->dialog.button.gap);
-            if (btn_padding) {
-                json_load_uint(btn_padding, "horizontal",
-                        &config_theme->dialog.button.padding.horizontal);
-                json_load_uint(btn_padding, "vertical",
-                        &config_theme->dialog.button.padding.vertical);
-            }
-        }
-    }
-
-    overlay = cJSON_GetObjectItem(json, "overlay");
-    s_load_theme_colors(overlay, &config_theme->overlay);
-    s_load_theme_opacity(overlay, "opacity",
-            &config_theme->overlay.opacity);
-
-    xsettings = cJSON_GetObjectItem(json, "xsettings");
-    if (xsettings) {
-        unsigned int dpi_val;
-        unsigned int cursor_size_val;
-        cJSON *xs_theme;
-
-        json_load_bool(xsettings, "is-enabled",
-                &config_theme->xsettings.is_enabled);
-        if (json_load_uint(xsettings, "dpi", &dpi_val) == 0) {
-            config_theme->xsettings.dpi = dpi_val;
-        }
-
-        xs_theme = cJSON_GetObjectItem(xsettings, "theme");
-        if (xs_theme) {
-            json_load_string(xs_theme, "gtk-theme-name",
-                    config_theme->xsettings.theme.gtk_theme_name,
-                    CONFIG_MAX_LENGTH_NAME);
-            json_load_string(xs_theme, "icon-theme-name",
-                    config_theme->xsettings.theme.icon_theme_name,
-                    CONFIG_MAX_LENGTH_NAME);
-            json_load_string(xs_theme, "cursor-theme-name",
-                    config_theme->xsettings.theme.cursor_theme_name,
-                    CONFIG_MAX_LENGTH_NAME);
-            if (json_load_uint(xs_theme, "cursor-theme-size",
-                        &cursor_size_val) == 0) {
-                config_theme->xsettings.theme.cursor_theme_size =
-                    cursor_size_val;
-            }
-        }
-    }
-
-    scratchpad = cJSON_GetObjectItem(json, "scratchpad");
-
-    sp_border = (scratchpad != NULL)
-        ? cJSON_GetObjectItem(scratchpad, "border") : NULL;
-    if (sp_border) {
-        json_load_color(sp_border, "color",
-                &config_theme->scratchpad.border.color);
-        json_load_uint(sp_border, "width",
-                &config_theme->scratchpad.border.width);
-    }
-
-    cycle = cJSON_GetObjectItem(json, "cycle");
-
-    cycle_border = (cycle != NULL)
-        ? cJSON_GetObjectItem(cycle, "border") : NULL;
-    if (cycle_border) {
-        json_load_color(cycle_border, "color",
-                &config_theme->cycle.border.color);
-        json_load_uint(cycle_border, "width",
-                &config_theme->cycle.border.width);
-    }
+    s_config_theme_load_window(json, config_theme);
+    s_config_theme_load_icon(json, config_theme);
+    s_config_theme_load_systray(json, config_theme);
+    s_config_theme_load_desktop(json, config_theme);
+    s_config_theme_load_menu(json, config_theme);
+    s_config_theme_load_search(json, config_theme);
+    s_config_theme_load_prompt(json, config_theme);
+    s_config_theme_load_dialog(json, config_theme);
+    s_config_theme_load_overlay(json, config_theme);
+    s_config_theme_load_xsettings(json, config_theme);
+    s_config_theme_load_scratchpad(json, config_theme);
+    s_config_theme_load_cycle(json, config_theme);
 
     cJSON_Delete(json);
 
