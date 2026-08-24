@@ -11,7 +11,7 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L
+#define _POSIX_C_SOURCE 200112L /* waitpid */
 
 
 /* System includes */
@@ -20,9 +20,8 @@
 #include <stdio.h>      /* snprintf, NULL */
 #include <stdlib.h>     /* free, calloc */
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <wordexp.h>    /* wordexp_t, wordexp */
+#include <sys/types.h>  /* pid_t */
+#include <sys/wait.h>   /* waitpid, WNOHANG */
 
 /* ADT includes */
 #include <adt/list.h>
@@ -38,6 +37,7 @@
 #include <logger.h>
 #include <utils/config/json.h>
 #include <utils/safe/safestr.h>
+#include <utils/spawn.h>
 
 /* Local includes */
 #include <session.h>
@@ -206,62 +206,37 @@ static struct session_tracked_pid_s *s_session_find_pid(pid_t pid)
 
 
 /**
- * @brief Fork a child process and execute a shell command
- *
- * Calls @c fork; in the child the XCB file descriptor is closed, the
- * command string is word-expanded with @c wordexp, and the resulting
- * argument vector is handed to @c execvp.  The child exits with status
- * 127 on any @c wordexp or @c execvp failure.  In the parent the new
- * PID is recorded in the tracking table.
+ * @brief Run one hook command and record the child it produces
  *
  * @param connection XCB connection whose file descriptor is closed in
  *                   the child before executing (may be null)
- * @param command    Shell command to run; @a word-expanded before
+ * @param command    Shell command to run; word-expanded before
  *                   @a exec
  * @param hook       Hook name used only for logging and tracking
  *
  * @return Status of the operation
- * @retval  0 @c fork succeeded (execution result is asynchronous)
- * @retval  1 @c fork failed
+ * @retval  0 The hook is running
+ * @retval  1 The hook could not be started, for whichever reason
+ *            @a spawn_command already logged
  *
- * @note Complexity: @e O(1) in the parent path
+ * @note A hook that fails to execute is reported rather than
+ *       silently producing a child that exits at once, which is what
+ *       a command with a typo in it used to do
+ * @note Complexity: @e O(n), where @e n is the number of words
+ *       @p command expands to
  */
 static int s_session_spawn_command(xcb_connection_t *connection,
         const char *restrict command, const char *restrict hook)
 {
-    pid_t pid;
+    spawn_opts_td opts = { NULL, NULL, NULL };
+    pid_t pid = 0;
 
-    pid = fork();
-    if (pid < 0) {
-        LOGGER_ERROR("Failed to fork session hook '%s' command '%s'",
+    opts.connection = connection;
+
+    if (spawn_command(command, &opts, &pid) != 0) {
+        LOGGER_ERROR("Failed to start session hook '%s' command '%s'",
                 hook, command);
         return 1;
-    }
-
-    if (pid == 0) {
-        wordexp_t words = (wordexp_t) {0};
-        int wordexp_flags = WRDE_NOCMD;
-        int wr;
-
-#ifdef WRDE_NOENV
-        wordexp_flags |= WRDE_NOENV;
-#endif
-
-        if (connection != NULL) {
-            close(xcb_get_file_descriptor(connection));
-        }
-
-        wr = wordexp(command, &words, wordexp_flags);
-        if (wr != 0 || words.we_wordc == 0u) {
-            if (words.we_wordv != NULL) {
-                wordfree(&words);
-            }
-            _exit(127);
-        }
-
-        execvp(words.we_wordv[0], words.we_wordv);
-        wordfree(&words);
-        _exit(127);
     }
 
     s_session_track_pid(pid, hook, command);

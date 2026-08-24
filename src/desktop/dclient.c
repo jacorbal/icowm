@@ -12,24 +12,17 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-#define _POSIX_C_SOURCE 200112L /* execvp, fork, pipe */
-
-
 /* System includes */
-#include <errno.h>      /* errno */
-#include <fcntl.h>      /* fcntl, F_SETFD, FD_CLOEXEC */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf */
-#include <stdlib.h>     /* NULL, setenv */
-#include <string.h>     /* strerror, memset */
+#include <stdlib.h>     /* NULL */
+#include <string.h>     /* memset */
 #include <strings.h>    /* strcasecmp */
 #include <sys/types.h>  /* pid_t */
-#include <unistd.h>     /* execvp, _exit, fork, close, pipe, read */
-#include <wordexp.h>    /* wordexp, wordfree */
 
 /* XCB includes */
-#include <xcb/xcb.h>    /* xcb_get_file_descriptor */
+#include <xcb/xcb.h>
 
 /* ADT includes */
 #include <adt/cdlist.h>
@@ -37,6 +30,7 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/spawn.h>
 
 /* Command includes */
 #include <cmds/client/layer.h>
@@ -557,10 +551,9 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         const char *restrict class_name,
         pid_t *restrict out_pid)
 {
-    pid_t pid;
-    int err_pipe[2];
-    int exec_errno;
-    ssize_t nread;
+    spawn_opts_td opts = { NULL, NULL, NULL };
+    pid_t pid = 0;
+    int spawn_result;
     char startup_id[128];
     bool have_startup_id;
 
@@ -579,112 +572,25 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
      * startup-notification-aware application reads that variable and
      * broadcasts its own completion once its main window is ready.
      * Skipped entirely when 'startup_notification.is_enabled' is
-     * false: 'have_startup_id' then stays false too, so the rest of
-     * this function's own logic (skipping 'DESKTOP_STARTUP_ID' below)
-     * needs no separate check of its own. */
+     * false: 'have_startup_id' then stays false too, so the option
+     * handed to 'spawn_command' below simply stays null. */
     have_startup_id = (desktop->connection != NULL) &&
         desktop->config->base.startup_notification.is_enabled &&
         cctl_sn_begin(desktop->connection, wm_get_surfaces(),
                 executable_path, startup_id, sizeof(startup_id));
 
-    /* Create a close-on-exec pipe so the parent can detect 'execvp'
-     * failures.  If 'exec' succeeds the write end is closed by the
-     * kernel ('FD_CLOEXEC') and the parent reads 0 bytes.  If 'exec'
-     * fails the child writes 'errno' and exits. */
-    if (pipe(err_pipe) != 0) {
-        LOGGER_ERROR("Failed to create error pipe for '%s'",
-                executable_path);
-        return 1;
-    }
-    (void) fcntl(err_pipe[1], F_SETFD, FD_CLOEXEC);
+    opts.connection = desktop->connection;
+    opts.startup_id = (have_startup_id) ? startup_id : NULL;
+    opts.class_name = class_name;
 
-    pid = fork();
-    if (pid < 0) {
-        LOGGER_ERROR("Failed to fork process for executable '%s'",
-                executable_path);
-        close(err_pipe[0]);
-        close(err_pipe[1]);
-        return 1;
-    }
-    if (pid == 0) {
-        wordexp_t words = (wordexp_t) {0};
-        int wordexp_flags;
-        int wr;
-        int child_errno;
-        ssize_t write_result;
-
-        /* Child: close the read end; write end is close-on-exec */
-        close(err_pipe[0]);
-
-        /* Child must close its inherited copy of the X connection's
-         * file descriptor before continuing */
-        if (desktop->connection != NULL) {
-            close(xcb_get_file_descriptor(desktop->connection));
-        }
-
-        /* Environment variables have to be set here, in the child,
-         * before 'execvp' replaces its image: 'setenv' only ever
-         * affects the calling process's own environment, so calling
-         * it in the parent after 'fork' (as this used to do for
-         * 'RESOURCE_NAME'/'RESOURCE_CLASS') has no effect at all on
-         * the child, which already has its own independent copy of
-         * the environment from the moment 'fork' returns. */
+    spawn_result = spawn_command(executable_path, &opts, &pid);
+    if (spawn_result != 0) {
         if (have_startup_id) {
-            (void) setenv("DESKTOP_STARTUP_ID", startup_id, 1);
+            cctl_sn_cancel(desktop->connection, wm_get_surfaces(),
+                    startup_id);
         }
-        if (class_name != NULL && class_name[0] != '\0') {
-            (void) setenv("RESOURCE_NAME", class_name, 1);
-            (void) setenv("RESOURCE_CLASS", class_name, 1);
-        }
-
-        wordexp_flags = WRDE_NOCMD;
-#ifdef WRDE_NOENV
-        wordexp_flags |= WRDE_NOENV;
-#endif
-        wr = wordexp(executable_path, &words, wordexp_flags);
-        if (wr != 0 || words.we_wordc == 0u) {
-            if (words.we_wordv != NULL) {
-                wordfree(&words);
-            }
-            _exit(127);
-        }
-
-        execvp(words.we_wordv[0], words.we_wordv);
-        /* 'execvp' failed: report 'errno' to parent.  The write
-         * result itself is deliberately unchecked: the child is
-         * already about to '_exit' either way, with nothing left it
-         * could do differently if this particular write failed too,
-         * so there is no meaningful recovery to attempt; captured in
-         * a real variable rather than cast to 'void' directly on the
-         * call, since GCC's own 'warn_unused_result' on 'write' does
-         * not treat a bare '(void)' cast as acknowledging it. */
-        child_errno = errno;
-        write_result = write(err_pipe[1], &child_errno,
-                sizeof(child_errno));
-        (void) write_result;
-
-        wordfree(&words);
-        _exit(127);
+        return spawn_result;
     }
-
-    /* Parent: close write end and read exec result */
-    close(err_pipe[1]);
-    exec_errno = 0;
-    nread = read(err_pipe[0], &exec_errno, sizeof(exec_errno));
-    close(err_pipe[0]);
-
-    if (nread > 0) {
-        /* 'execvp' failed in the child */
-        LOGGER_WARNING("Failed to launch '%s': %s",
-                executable_path, strerror(exec_errno));
-        if (have_startup_id) {
-            cctl_sn_cancel(desktop->connection, wm_get_surfaces(), startup_id);
-        }
-        return -2;
-    }
-
-    LOGGER_DEBUG("Process for '%s' running with PID %d",
-            executable_path, (int) pid);
 
     if (out_pid != NULL) {
         *out_pid = pid;

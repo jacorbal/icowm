@@ -160,7 +160,6 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
             break;
 
         case S_MOTION_TARGET_NONE:
-        default:
             break;
     }
 }
