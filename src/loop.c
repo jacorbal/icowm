@@ -40,9 +40,6 @@
 /* Render includes */
 #include <render/surface.h>
 
-/* Policy includes */
-#include <policy/urgency.h>
-
 /* IPC includes */
 #include <ipc.h>
 
@@ -53,40 +50,33 @@
 #include <input/mouse/event.h>
 #include <input/mouse/hover.h>
 #include <input/mouse/drag.h>
-#include <input/mouse/drag/warp.h>
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
-#include <menu/dialog/confirm.h>
-#include <menu/dialog/message.h>
 #include <menu/notify/desktop.h>
 #include <menu/popup.h>
 #include <menu/search.h>
 
 /* Default initial values */
 #include <defs/ipc.h>
-#include <defs/loop.h>
 
 /* Project includes */
 #include <handler.h>
 #include <cctl/adopt.h>
+#include <client.h>
 #include <lookup.h>
 #include <logger.h>
-#include <memguard.h>
-#include <cctl/sn.h>
 #include <wm/startup/handle.h>
 #include <wm/startup/install.h>
 #include <surface.h>
-#include <systray.h>
 #include <wm.h>
-#include <cctl/kill.h>
-#include <wm/shutdown.h>
 
 /* Local includes */
 #include <loop.h>
 #include <loop/context.h>
+#include <loop/timers.h>
 
 
 /**
@@ -118,32 +108,6 @@ static void s_loop_update(const loop_ctx_td *ctx)
                         surface->id);
             }
         }
-    }
-}
-
-
-/**
- * @brief Tighten a poll timeout to a candidate deadline, if sooner
- *
- * Shared by every "shorten the poll timeout so some pending countdown
- * (a popup's auto-close, a startup-notification busy cursor's expiry,
- * a hover-triggered cursor re-check, ...) fires promptly" check in
- * @c loop_run below, which otherwise each repeated the same "is this
- * candidate both valid and sooner than what we already have" test.
- *
- * @param poll_timeout_ms Current timeout, in milliseconds; lowered in
- *                        place when @p candidate_ms is sooner
- * @param candidate_ms    A countdown's own remaining time, or a
- *                        negative value when that countdown is not
- *                        currently active at all
- *
- * @note Complexity: @e O(1)
- */
-static void s_loop_tighten_poll_timeout(int *poll_timeout_ms,
-        int candidate_ms)
-{
-    if (candidate_ms >= 0 && candidate_ms < *poll_timeout_ms) {
-        *poll_timeout_ms = candidate_ms;
     }
 }
 
@@ -363,69 +327,7 @@ void loop_run(wm_td *wm)
             ++nfds;
         }
 
-        /* Use a shorter poll timeout when the info popup is visible so
-         * it closes promptly at the configured expiry time. */
-        poll_timeout_ms = WM_EVENT_POLL_TIMEOUT_MS;
-        if (popup_is_open()) {
-            s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                    popup_ms_remaining());
-        }
-
-        if (notify_desktop_is_open()) {
-            s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                    notify_desktop_ms_remaining());
-        }
-
-        s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                systray_clock_ms_remaining());
-
-        s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                urgency_blink_ms_remaining(ctx.config));
-
-        s_loop_tighten_poll_timeout(&poll_timeout_ms, cctl_sn_ms_remaining());
-
-        /* Shorter still while a resize-cursor poll target is being
-         * tracked (see 'mouse_hover_poll_tick' in
-         * input/mouse/hover.h), so an undecorated client's cursor gets
-         * re-evaluated promptly as the pointer moves within it. */
-        s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                mouse_hover_poll_ms_remaining());
-
-        /* Shorter still while a confirm dialog has a timer of its own
-         * running (see 'menu_confirm_dialog_tick' in menu/dialog/
-         * confirm.h): a pending click-triggered close/accept, or a
-         * countdown timeout that needs its visible number to advance
-         * once a second and, once it fully elapses, to act. */
-        s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                menu_confirm_dialog_ms_remaining());
-
-        /* Shorter still while the message dialog has a
-         * click-triggered close of its own pending (see
-         * 'menu_message_dialog_tick' in menu/dialog/message.h). */
-        s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                menu_message_dialog_ms_remaining());
-
-        /* Shorter still while a window drag is holding the pointer
-         * against a warp-eligible screen edge (see 'drag_warp_tick'
-         * in input/mouse/drag.h), so it still switches desktops once
-         * its own countdown elapses even with no further
-         * 'MotionNotify' arriving to drive it. */
-        s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                drag_warp_ms_remaining());
-
-        /* Shorter still while a coordinated shutdown (see
-         * 'wm_shutdown_tick' in wm/shutdown.h) is waiting on managed
-         * clients to close on their own, so the timeout that forces
-         * the rest closed elapses promptly instead of waiting for the
-         * next unrelated event to wake the loop up. */
-        s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                wm_shutdown_ms_remaining());
-
-        /* Shorter still while a process kill is pending escalation
-         * to 'SIGKILL' (see 'cctl_kill_tick' in wm/kill.h), for the
-         * same reason. */
-        s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                cctl_kill_ms_remaining());
+        poll_timeout_ms = loop_timers_timeout(&ctx);
 
         poll_status = poll(pfd, (nfds_t) nfds, poll_timeout_ms);
         if (poll_status < 0 && errno != EINTR) {
@@ -448,21 +350,7 @@ void loop_run(wm_td *wm)
             }
         }
 
-        systray_clock_tick();
-        urgency_blink_tick(ctx.surfaces, ctx.config);
-        cctl_sn_tick(ctx.connection, ctx.surfaces);
-        mouse_hover_poll_tick(ctx.connection, ctx.surfaces);
-        menu_confirm_dialog_tick(ctx.connection, ctx.config);
-        menu_message_dialog_tick(ctx.connection);
-        drag_warp_tick(ctx.connection);
-        wm_shutdown_tick(wm);
-        cctl_kill_tick();
-        if (ctx.restricted_memory_mib > 0u &&
-                ctx.surfaces != NULL && !list_is_empty(ctx.surfaces)) {
-            memguard_tick(ctx.connection,
-                    (surface_td *) list_data(list_head(ctx.surfaces)),
-                    ctx.config);
-        }
+        loop_timers_tick(&ctx);
 
         while ((event = (ctx.pending_event != NULL)
                     ? ctx.pending_event
@@ -550,8 +438,9 @@ void loop_run(wm_td *wm)
                     while ((ctx.pending_event =
                                 xcb_poll_for_event(ctx.connection)) !=
                             NULL) {
-                        if ((uint8_t) (ctx.pending_event->response_type &
-                                    ~0x80u) != XCB_MOTION_NOTIFY) {
+                        if ((uint8_t) (ctx.pending_event
+                                    ->response_type & ~0x80u) !=
+                                XCB_MOTION_NOTIFY) {
                             break;
                         }
                         free(event);
