@@ -39,6 +39,7 @@
 
 /* XCB includes */
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 /* Type includes */
 #include <types/pair.h> /* strut_partial_s */

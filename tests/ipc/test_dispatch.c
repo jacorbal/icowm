@@ -24,6 +24,8 @@
 #include <cjson/cJSON.h>
 
 /* Local includes */
+#include <desktop.h>
+#include <client.h>
 #include <harness/tap.h>
 #include <ipc/dispatch.h>
 #include <wm/internal.h>

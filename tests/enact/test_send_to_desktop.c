@@ -41,7 +41,8 @@
 
 /* Local includes */
 #include <client.h>
-#include <cmds/client/basic.h>
+#include <cmds/client/transient.h>
+#include <cmds/client/visibility.h>
 #include <desktop.h>
 #include <enact.h>
 #include <handler/internal.h>

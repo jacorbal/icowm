@@ -307,6 +307,7 @@ $(O_DIR)/tests/surface/test_desktop_grid: \
 $(O_DIR)/tests/surface/test_monitor_direction: \
 		$(TESTS_DIR)/surface/test_monitor_direction.c \
 		$(S_DIR)/surface/monitors.c \
+		$(S_DIR)/utils/xcb/reply.c \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)

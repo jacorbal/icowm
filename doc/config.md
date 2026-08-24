@@ -1636,7 +1636,7 @@ handling still works (screen-change notifications are processed), but no
 output profiles are configured.
 
 Up to **16** output entries are supported (**2** in a low-memory build
-(as per builtin default values).
+(as per built-in default values).
 
 Applied at startup, and again whenever an output connects or disconnects
 afterward (e.g., plugging in an external monitor).

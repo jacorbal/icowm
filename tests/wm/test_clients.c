@@ -27,6 +27,7 @@
 #include <adt/ohtbl.h>
 
 /* Local includes */
+#include <desktop.h>
 #include <harness/tap.h>
 #include <wm/internal.h>
 

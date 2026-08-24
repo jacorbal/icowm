@@ -38,6 +38,10 @@
 #include <adt/ohtbl.h>
 
 /* Local includes */
+#include <client.h>
+#include <desktop.h>
+#include <surface.h>
+#include <config.h>
 #include <harness/tap.h>
 #include <policy/placement/window.h>
 #include <wm/internal.h>
@@ -135,6 +139,29 @@ xcb_get_geometry_reply_t *xcb_get_geometry_reply(xcb_connection_t *c,
 
 
 /* ===== Project stand-ins ===== */
+
+/** Link-only stand-in for client_group_transient_anchor (cmds/
+ *  client/transient.c): every client this file builds names its own
+ *  transient parent directly when it has one, so the group lookup
+ *  never has an answer to give */
+client_td *client_group_transient_anchor(const client_td *client)
+{
+    (void) client;
+    return NULL;
+}
+
+
+/** Link-only stand-in for systray_get_geometry (systray.c): no test
+ *  here docks a systray, so placement always runs with the whole
+ *  workarea free of one */
+bool systray_get_geometry(const surface_td *surface,
+        struct geometry_s *restrict out_tray)
+{
+    (void) surface;
+    (void) out_tray;
+    return false;
+}
+
 
 static desktop_td *s_desktops_by_id[4];
 

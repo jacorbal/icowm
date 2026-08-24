@@ -23,6 +23,9 @@
 #include <adt/cdlist.h>
 
 /* Local includes */
+#include <client.h>
+#include <desktop.h>
+#include <config.h>
 #include <harness/tap.h>
 #include <policy/placement/icon.h>
 

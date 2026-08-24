@@ -8,9 +8,10 @@
  * this whole file operates on; this test file owns the one real
  * instance, the same way test_clients.c owns 'wm'.
  * battery_status_read (systray/battery.c, its own dedicated test
- * elsewhere), text_renderer_init/text_string_measure (render/text.c,
- * XCB-backed), and systray_layout_reflow (systray/layout.c,
- * XCB-backed) are all stubbed below as controllable stand-ins.
+ * elsewhere), text_renderer_use_font and text_string_measure
+ * (render/text.c, XCB-backed), and systray_layout_reflow
+ * (systray/layout.c, XCB-backed) are all stubbed below as
+ * controllable stand-ins.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -28,6 +29,7 @@
 #include <defs/loop.h>
 
 /* Local includes */
+#include <surface.h>
 #include <harness/tap.h>
 #include <systray/internal.h>
 
@@ -64,16 +66,20 @@ void systray_layout_reflow(void)
 }
 
 
-/** Controllable stand-in for text_string_measure: returns a fixed
- *  width per non-empty character, so this file's own width
- *  calculations stay simple and exact to hand-compute */
-int text_renderer_init(xcb_connection_t *connection, const char *font)
+/** Stand-in for text_renderer_use_font: the width below does not
+ *  depend on which font is selected, so selecting one always
+ *  succeeds and does nothing */
+int text_renderer_use_font(xcb_connection_t *connection,
+        const char *font)
 {
     (void) connection;
     (void) font;
     return 0;
 }
 
+/** Controllable stand-in for text_string_measure: returns a fixed
+ *  width per character, so this file's width calculations stay
+ *  simple and exact to hand-compute */
 uint16_t text_string_measure(const char *text)
 {
     return (uint16_t) (strlen(text) * 10u);

@@ -119,7 +119,7 @@ static void s_test_load_minimal_directory_succeeds(void)
     rc = config_load(config, dir);
 
     TAP_EQ_INT(rc, 0, "loading a minimal but complete directory succeeds");
-    TAP_EQ_STR(config->theme.name, "Default (builtin)",
+    TAP_EQ_STR(config->theme.name, "Default (built-in)",
             "no theme specified: theme.name falls back to the" \
             " built-in default");
 
@@ -187,7 +187,7 @@ static void s_test_load_records_missing_theme(void)
 
     TAP_NOT_NULL(missing, "a nonexistent theme file is recorded as" \
             " missing");
-    TAP_EQ_STR(config->theme.name, "Default (builtin)",
+    TAP_EQ_STR(config->theme.name, "Default (built-in)",
             "the built-in theme is used as a fallback");
 
     config_destroy(config);

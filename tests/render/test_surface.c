@@ -26,6 +26,10 @@
 #include <adt/cdlist.h>
 
 /* Local includes */
+#include <client.h>
+#include <desktop.h>
+#include <surface.h>
+#include <config.h>
 #include <harness/tap.h>
 #include <render/surface.h>
 

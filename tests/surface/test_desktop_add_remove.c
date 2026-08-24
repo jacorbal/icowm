@@ -86,6 +86,20 @@ void desktop_mark_outdated(desktop_td *desktop)
 }
 
 
+/** Link-only stand-in for desktop_action_client_move (desktop/
+ *  dclient.c): moving a client between desktops is what the real one
+ *  does through the client list this file's own hand-built
+ *  desktop_td does not carry, so it only ever reports success */
+int desktop_action_client_move(desktop_td *from, desktop_td *to,
+        client_td *client)
+{
+    (void) from;
+    (void) to;
+    (void) client;
+    return 0;
+}
+
+
 /** Link-only stand-in for memguard_max_clients (memguard.c): every
  *  test here runs as an ordinary, unrestricted session */
 uint32_t memguard_max_clients(void)

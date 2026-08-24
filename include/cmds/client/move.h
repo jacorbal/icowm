@@ -16,6 +16,9 @@
 #ifndef CMDS_CCMD_MOVE_H
 #define CMDS_CCMD_MOVE_H
 
+/* XCB includes */
+#include <xcb/xcb.h>
+
 /* Type includes */
 #include <types/handles.h>
 #include <types/pair.h>

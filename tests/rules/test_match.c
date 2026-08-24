@@ -199,11 +199,11 @@ static void s_test_transient_matching(void)
 
     s_make_empty_match(&match_wants_transient);
     match_wants_transient.has_transient = true;
-    match_wants_transient.transient = true;
+    match_wants_transient.is_transient = true;
 
     s_make_empty_match(&match_wants_not_transient);
     match_wants_not_transient.has_transient = true;
-    match_wants_not_transient.transient = false;
+    match_wants_not_transient.is_transient = false;
 
     TAP_OK(ri_client_matches(&match_wants_transient, &transient_client),
             "rule wants transient, client is transient: matches");

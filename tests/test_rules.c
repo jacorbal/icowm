@@ -128,7 +128,7 @@ static void s_test_load_full_rule(void)
     TAP_OK(rule->match.has_title, "match.title is present");
     TAP_EQ_STR(rule->match.title[0], "My Terminal",
             "match.title's own value is correct");
-    TAP_OK(rule->match.has_transient && rule->match.transient,
+    TAP_OK(rule->match.has_transient && rule->match.is_transient,
             "match.transient is parsed as true");
 
     TAP_OK(rule->apply.has_desktop && rule->apply.desktop == 2u,
@@ -136,19 +136,20 @@ static void s_test_load_full_rule(void)
     TAP_OK(rule->apply.has_monitor && rule->apply.monitor == 1u,
             "apply.monitor is parsed correctly");
     TAP_OK(rule->apply.has_layer, "apply.layer is present");
-    TAP_OK(rule->apply.has_focus && rule->apply.focus,
+    TAP_OK(rule->apply.has_focus && rule->apply.is_focused,
             "apply.focus is parsed as true");
-    TAP_OK(rule->apply.has_sticky && rule->apply.pinned,
-            "apply.pinned is parsed as true");
-    TAP_OK(rule->apply.has_decorated && !rule->apply.decorated,
-            "apply.decorated is parsed as false");
+    TAP_OK(rule->apply.has_sticky && rule->apply.is_pinned,
+            "apply.sticky is parsed as true");
+    TAP_OK(rule->apply.has_decoration && !rule->apply.is_decorated,
+            "apply.decoration is parsed as false");
     TAP_OK(rule->apply.has_opacity_active &&
             rule->apply.opacity_active == 80u,
             "a single opacity number sets opacity_active");
     TAP_OK(rule->apply.has_opacity_inactive &&
             rule->apply.opacity_inactive == 80u,
             "...and opacity_inactive to the same value");
-    TAP_OK(rule->apply.has_position && !rule->apply.position_centered &&
+    TAP_OK(rule->apply.has_position &&
+            !rule->apply.is_position_centered &&
             rule->apply.x == 10 && rule->apply.y == 20,
             "apply.position {x,y} is parsed correctly");
     TAP_OK(rule->apply.has_size && rule->apply.w == 640u &&
@@ -200,8 +201,9 @@ static void s_test_load_position_center(void)
     rules_load(rules, dir);
 
     rule = &rules->rules[0];
-    TAP_OK(rule->apply.has_position && rule->apply.position_centered,
-            "\"center\" sets position_centered rather than x/y");
+    TAP_OK(rule->apply.has_position &&
+            rule->apply.is_position_centered,
+            "\"center\" sets is_position_centered rather than x/y");
 
     rules_destroy(rules);
 }

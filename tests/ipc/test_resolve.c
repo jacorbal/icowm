@@ -35,6 +35,8 @@
 #include <cjson/cJSON.h>
 
 /* Local includes */
+#include <desktop.h>
+#include <client.h>
 #include <harness/tap.h>
 #include <ipc/resolve.h>
 #include <wm/internal.h>

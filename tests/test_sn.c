@@ -49,6 +49,7 @@
 
 /* Local includes */
 #include <sn.h>
+#include <surface.h>
 #include <harness/tap.h>
 
 

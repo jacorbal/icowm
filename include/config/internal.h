@@ -3,12 +3,11 @@
  *
  * @brief Private helpers shared across config implementation modules
  *
- * Declares helper functions that are used by more than one of
- * the config translation units (every @c config/base/ .c file,
- * @c config.c,
- * @c config/randr.c, @c config/memguard.c and its own submodules under
- * @c config/memguard/) but must not be exposed as part of the public
- * configuration API declared in @c config.h.
+ * Declares helper functions that are used by more than one of the
+ * config translation units (every @c *.c file in @c config/base/,
+ * @c config.c, @c config/randr.c, @c config/memguard.c and its own
+ * submodules under @c config/memguard/) but must not be exposed as part
+ * of the public configuration API declared in @c config.h.
  *
  * @note This header is private to the config subsystem and must not be
  *       included outside of @c src/config/
@@ -48,7 +47,7 @@
  *
  * - No theme file loaded at all (@p theme_file_name empty, or
  *   @p theme_loaded @c false): @p theme's own @c name becomes literally
- *   "Default (builtin)".
+ *   "Default (built-in)".
  * - A theme file loaded, but it set no @c name of its own (@p theme's
  *   own @c name field, as passed in, is still empty): @p theme's own
  *   @c name becomes @p theme_file_name verbatim.

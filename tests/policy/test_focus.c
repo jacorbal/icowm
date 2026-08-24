@@ -28,6 +28,10 @@
 #include <xcb/xcb.h>
 
 /* Local includes */
+#include <config.h>
+#include <client.h>
+#include <desktop.h>
+#include <surface.h>
 #include <harness/tap.h>
 #include <policy/focus.h>
 

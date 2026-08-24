@@ -32,6 +32,7 @@
 
 /* Local includes */
 #include <wm/kill.h>
+#include <client.h>
 #include <harness/tap.h>
 
 

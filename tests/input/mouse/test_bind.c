@@ -30,6 +30,7 @@
 
 /* Local includes */
 #include <input/mouse.h>
+#include <config.h>
 #include <harness/tap.h>
 
 

@@ -13,7 +13,8 @@
  *
  * ctxmenu_width_compute is not covered here: unlike the other three
  * public functions in this file, it needs a real XCB connection and
- * font metrics (through text_renderer_init/menu_draw_measure), not
+ * font metrics, through text_renderer_use_font and
+ * menu_draw_measure, not
  * just state->entries/state->config.
  */
 /*
@@ -28,6 +29,7 @@
 #include <string.h>
 
 /* Local includes */
+#include <config.h>
 #include <harness/tap.h>
 #include <menu/context/ctxmenu/layout.h>
 
@@ -40,7 +42,11 @@ uint16_t menu_draw_measure(const char *text)
     return 0u;
 }
 
-int text_renderer_init(xcb_connection_t *connection, const char *font)
+/** Stand-in for text_renderer_use_font: the measurement above does
+ *  not depend on which font is selected, so selecting one always
+ *  succeeds and does nothing */
+int text_renderer_use_font(xcb_connection_t *connection,
+        const char *font)
 {
     (void) connection;
     (void) font;
