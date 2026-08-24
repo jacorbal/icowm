@@ -29,6 +29,7 @@
 
 
 /* System includes */
+#include <stdbool.h>
 #include <stdint.h>
 
 /* XCB includes */
@@ -37,15 +38,8 @@
 /* Type includes */
 #include <types/pair.h>
 
-/* ADT includes */
-#include <adt/list.h>
-
-/* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <surface.h>
-#include <wm.h>
+/* Type includes */
+#include <types/handles.h>
 
 
 /* 'action_client_e' */

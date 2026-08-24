@@ -40,20 +40,26 @@
 #include <config/theme.h>
 
 
+#ifndef CONFIG_TD_DECLARED
+#define CONFIG_TD_DECLARED
+/** Handle to a @c config_s; the definition follows below */
+typedef struct config_s config_td;
+#endif
+
 /**
  * @brief Main configuration structure
  *
  * Encapsulates the main configuration, including base settings,
  * bindings, and theme.
  */
-typedef struct {
+struct config_s {
     struct config_base_s base;
     struct config_bindings_s bindings;
     struct config_theme_s theme;
     struct config_randr_s randr;
     struct config_desktop_s desktops;
     struct config_a11y_s a11y;
-} config_td;
+};
 
 
 /* Public interface */

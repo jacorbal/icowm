@@ -35,10 +35,16 @@
 #define HEAP_MIN_CAPACITY ((size_t) 4u)
 
 
+#ifndef HEAP_TD_DECLARED
+#define HEAP_TD_DECLARED
+/** Handle to a @c heap_s; the definition follows below */
+typedef struct heap_s heap_td;
+#endif
+
 /**
  * @brief Heap structure implemented as a rustic binary tree
  */
-typedef struct {
+struct heap_s {
     /**
      * @brief Use various heap operations to compare nodes when fixing
      *        the heap
@@ -65,7 +71,7 @@ typedef struct {
     size_t size;        /**< Size of the heap */
     size_t capacity;    /**< Allocated array capacity (slots) */
     void **tree;        /**< Array of nodes in the heap */
-} heap_td;
+};
 
 
 /* Public interface */

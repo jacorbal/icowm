@@ -24,10 +24,16 @@ typedef struct list_item_td_s {
 } list_item_td;
 
 
+#ifndef LIST_TD_DECLARED
+#define LIST_TD_DECLARED
+/** Handle to a @c list_s; the definition follows below */
+typedef struct list_s list_td;
+#endif
+
 /**
  * @brief Linked list structure
  */
-typedef struct {
+struct list_s {
     /**
      * @brief Pointer to the function to test if two keys are equal
      *
@@ -54,7 +60,7 @@ typedef struct {
     size_t size;        /**< Number of elements in the list */
     list_item_td *head; /**< Pointer to the head of the list */
     list_item_td *tail; /**< Pointer to the tail of the list */
-} list_td;
+};
 
 
 /* Public interface */

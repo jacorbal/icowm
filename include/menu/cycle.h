@@ -28,14 +28,8 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* ADT includes */
-#include <adt/list.h>
-
-/* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <surface.h>
+/* Type includes */
+#include <types/handles.h>
 
 
 /* Public interface */

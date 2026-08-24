@@ -92,6 +92,12 @@ typedef struct surface_s surface_td;
 #endif
 
 
+#ifndef DESKTOP_TD_DECLARED
+#define DESKTOP_TD_DECLARED
+/** Handle to a @c desktop_s; the definition follows below */
+typedef struct desktop_s desktop_td;
+#endif
+
 /**
  * @brief Structure for a virtual desktop within an XCB screen
  *
@@ -105,7 +111,7 @@ typedef struct surface_s surface_td;
  * ensuring that users always have access to the most current
  * information about their environment.
  */
-typedef struct desktop_s {
+struct desktop_s {
     xcb_connection_t *connection;   /**< XCB connection */
     xcb_ewmh_connection_t *ewmh;    /**< EWMH connection */
 
@@ -231,7 +237,7 @@ typedef struct desktop_s {
     bool is_urgent;
 
     char name[WM_DESKTOP_MAX_LENGTH_NAME];  /**< Desktop name */
-} desktop_td;
+};
 
 
 /* Public interface */

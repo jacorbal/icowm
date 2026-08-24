@@ -32,11 +32,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
-/* Project includes */
-#include <client.h>
-#include <desktop.h>
-#include <surface.h>
-#include <wm.h>
+/* Type includes */
+#include <types/handles.h>
 
 
 /**

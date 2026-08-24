@@ -59,6 +59,12 @@
 #include <client/state.h>
 
 
+#ifndef CLIENT_TD_DECLARED
+#define CLIENT_TD_DECLARED
+/** Handle to a @c client_s; the definition follows below */
+typedef struct client_s client_td;
+#endif
+
 /**
  * @brief Structure for a client in an XCB environment
  *
@@ -71,7 +77,7 @@
  * (shared with every other client on the same surface) provides the
  * base, theme, and accessibility settings driving its visual aspects.
  */
-typedef struct client_s {
+struct client_s {
     xcb_connection_t *connection;   /**< XCB display / connection */
     xcb_ewmh_connection_t *ewmh;    /**< Pointer to EWMH connection */
 
@@ -297,11 +303,11 @@ typedef struct client_s {
          */
         struct {
             bool is_supported;        /**< Supports @c _NET_WM_PING
-                                           protocol */
+                                            protocol */
             uint32_t last_sent;       /**< X timestamp of last ping
-                                           sent */
+                                            sent */
             uint32_t last_reply;      /**< X timestamp of last ping
-                                           reply */
+                                            reply */
         } ping;
 
         /**
@@ -406,25 +412,25 @@ typedef struct client_s {
          */
         struct {
             bool is_valid;       /**< True when hints were read from
-                                      server */
+                                       server */
             bool has_position;   /**< True when the client itself
-                                      requested a position
-                                      (@c USPosition or @c PPosition)
-                                      rather than leaving it to this
-                                      window manager's own policy */
+                                       requested a position
+                                       (@c USPosition or @c PPosition)
+                                       rather than leaving it to this
+                                       window manager's own policy */
             struct position_s req_pos; /**< Client-requested position,
-                                            valid only when
-                                            @p has_position is true */
+                                             valid only when
+                                             @p has_position is true */
             /** Minimum size, (0, 0) meaning unset */
             struct dimensions_s min;
             /** Maximum size, (0, 0) meaning unset */
             struct dimensions_s max;
-            struct dimensions_s base;       /**< Base size for increment
-                                                 arithmetic */
-            struct dimensions_s inc;        /**< Size increment
-                                                 (0 or 1 = no grid) */
-            struct aspect_range_s aspect;   /**< Minimum/maximum w/h
-                                                 ratio (0,0 = unset) */
+            struct dimensions_s base;  /**< Base size for increment
+                                             arithmetic */
+            struct dimensions_s inc;   /**< Size increment (0 or 1
+                                             = no grid) */
+            struct aspect_range_s aspect; /**< Minimum/maximum w/h
+                                                ratio (0,0 = unset) */
         } size;
 
         /**
@@ -446,19 +452,19 @@ typedef struct client_s {
          */
         struct {
             bool has_input_hint;      /**< Client accepts input
-                                           (default true) */
+                                            (default true) */
             bool is_initial_iconic;   /**< Map iconic for @c WM_HINTS
-                                           initial state */
+                                            initial state */
             xcb_window_t group_leader; /**< Window group leader, or
-                                            @c XCB_NONE */
+                                             @c XCB_NONE */
             xcb_window_t client_leader; /**< ICCCM @c WM_CLIENT_LEADER
-                                             window, or @c XCB_NONE if
-                                             unset.  Used together with
-                                             @p group_leader (see
-                                             @a client_group_leader) to
-                                             cluster windows belonging
-                                             to the same application
-                                             for placement */
+                                              window, or @c XCB_NONE if
+                                              unset.  Used together with
+                                              @p group_leader (see
+                                              @a client_group_leader) to
+                                              cluster windows belonging
+                                              to the same application
+                                              for placement */
         } hints;
     } hints_icccm;
 
@@ -550,7 +556,7 @@ typedef struct client_s {
         uint8_t active;
         uint8_t inactive;
     } opacity_override;
-} client_td;
+};
 
 
 /* Inline functions */
@@ -930,11 +936,11 @@ void client_send_synthetic_configure_notify(
  * the current window geometry, and subscribes to property and structure
  * events on the window.
  *
- * @param connection Pointer to the XCB connection
- * @param ewmh       Pointer to EWMH connection
- * @param window     ID of the existing X window to adopt
- * @param config     Shared base/theme/a11y configuration for the
- *                   surface this client is being adopted onto
+ * @param connection  Pointer to the XCB connection
+ * @param ewmh        Pointer to EWMH connection
+ * @param window      ID of the existing X window to adopt
+ * @param config      Shared base/theme/a11y configuration for the
+ *                    surface this client is being adopted onto
  *
  * @return A pointer to the client structure wrapping the window, or
  *         @c NULL if the window should not be managed (e.g.,
@@ -980,17 +986,17 @@ void client_props_refresh_name(client_td *client);
  *
  * @param client    Client the property belongs to
  * @param cached    @c client_td's own cached buffer for this name
- *                  (@c info.visible_name or
- *                  @c icon_info.visible_icon_name), at least
- *                  @c CONFIG_MAX_LENGTH_NAME bytes
+ *                   (@c info.visible_name or
+ *                   @c icon_info.visible_icon_name), at least
+ *                   @c CONFIG_MAX_LENGTH_NAME bytes
  * @param full_name The client's own full, untruncated name
  * @param rendered  What was actually just rendered, truncated or not
  * @param set_fn    @c xcb_ewmh_set_wm_visible_name_checked or
- *                  @c xcb_ewmh_set_wm_visible_icon_name_checked,
- *                  whichever matches @p atom
+ *                   @c xcb_ewmh_set_wm_visible_icon_name_checked,
+ *                   whichever matches @p atom
  * @param atom      @c client->ewmh->_NET_WM_VISIBLE_NAME or
- *                  @c client->ewmh->_NET_WM_VISIBLE_ICON_NAME,
- *                  whichever matches @p set_fn
+ *                   @c client->ewmh->_NET_WM_VISIBLE_ICON_NAME,
+ *                   whichever matches @p set_fn
  *
  * @note Complexity: @e O(n), where @e n is the length of @p rendered
  */

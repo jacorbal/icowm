@@ -65,7 +65,10 @@ typedef struct session_s session_td;
  *
  * @see @c loop.h
  */
+#ifndef WM_TD_DECLARED
+#define WM_TD_DECLARED
 typedef struct wm_s wm_td;
+#endif
 
 
 /* Field accessors ('wm/instance.c'); every wm/ sub-module and every

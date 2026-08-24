@@ -50,8 +50,8 @@
  * @brief Minimum hash table load factor
  *
  * Determines the occupancy threshold below which the hash table will
- * attempt to resize downwards. If the size of the table falls below the
- * (100 *  @c OHTBL_MIN_LOAD_FACTOR)% of its positions given by
+ * attempt to resize downwards.  If the size of the table falls below
+ * the (100 * @c OHTBL_MIN_LOAD_FACTOR)% of its positions given by
  * @p ohtbl->positions, the table will be resized to reduce its capacity
  * and re-hashed.
  *
@@ -100,10 +100,16 @@
 #define OHTBL_SHRINK_COOLDOWN_MS (2000)
 
 
+#ifndef OHTBL_TD_DECLARED
+#define OHTBL_TD_DECLARED
+/** Handle to a @c ohtbl_s; the definition follows below */
+typedef struct ohtbl_s ohtbl_td;
+#endif
+
 /**
  * @brief Structure for open-addressed hash table with double hashing
  */
-typedef struct {
+struct ohtbl_s {
     size_t positions;   /**< Number of positions (slots) to allocate in
                              the table */
 
@@ -188,18 +194,20 @@ typedef struct {
      * @note Only meaningful while @p is_shrink_pending is @c true
      */
     struct timespec shrink_eligible_since;
-} ohtbl_td;
+};
 
 
 /* Public interface */
 /**
  * @brief Initialize a new open-addressed hash table with double hashing
  *
- * @param positions     Number of positions to allocate in the hash table
+ * @param positions     Number of positions to allocate in the hash
+ *                      table
  * @param min_positions Minimum number of positions the table will have
  * @param h1            Pointer to an auxiliary hashing function
  * @param h2            Pointer to another auxiliary hashing function
- * @param match         Pointer to a function to test if two keys are equal
+ * @param match         Pointer to a function to test if two keys are
+ *                      equal
  * @param destroy       Pointer to a function to free the memory
  *
  * @return Pointer to new allocated open-addressed hash table, or

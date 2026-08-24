@@ -24,10 +24,16 @@ typedef struct cdlist_item_td_s {
     struct cdlist_item_td_s *prev;  /**< Previous element */
 } cdlist_item_td;
 
+#ifndef CDLIST_TD_DECLARED
+#define CDLIST_TD_DECLARED
+/** Handle to a @c cdlist_s; the definition follows below */
+typedef struct cdlist_s cdlist_td;
+#endif
+
 /**
  * @brief Doubly linked circular list structure
  */
-typedef struct {
+struct cdlist_s {
     /**
      * @brief Pointer to a function to free the memory of each node
      *
@@ -38,7 +44,7 @@ typedef struct {
     size_t size;                    /**< Elements in the list */
     cdlist_item_td *head;           /**< Head of the list */
     cdlist_item_td *tail;           /**< Tail of the list */
-} cdlist_td;
+};
 
 
 /* Public interface */
