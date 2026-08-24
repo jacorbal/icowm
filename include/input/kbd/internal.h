@@ -41,6 +41,54 @@
 #include <input/kbd/bind.h>
 
 
+
+/**
+ * @brief Which program a launch binding starts
+ *
+ * Narrower than @c wm_keybind_type_e on purpose: @a ik_execute_binding
+ * has already decided that the press was a launch before it calls
+ * @a ik_handle_launch, so the handler only ever sees these five, and
+ * its switch can cover them all without listing every other binding
+ * the window manager has.
+ */
+enum ik_launch_e {
+    IK_LAUNCH_TERMINAL,
+    IK_LAUNCH_LAUNCHER,
+    IK_LAUNCH_FILE_MANAGER,
+    IK_LAUNCH_WEB_BROWSER,
+    IK_LAUNCH_EDITOR
+};
+
+/**
+ * @brief How a move binding displaces the focused client
+ *
+ * Narrower than @c wm_keybind_type_e for the same reason as
+ * @c ik_launch_e.
+ */
+enum ik_move_e {
+    IK_MOVE_LEFT,
+    IK_MOVE_RIGHT,
+    IK_MOVE_UP,
+    IK_MOVE_DOWN,
+    IK_MOVE_TOP_LEFT,
+    IK_MOVE_TOP_RIGHT,
+    IK_MOVE_BOTTOM_LEFT,
+    IK_MOVE_BOTTOM_RIGHT
+};
+
+/**
+ * @brief Which edge a resize binding moves
+ *
+ * Narrower than @c wm_keybind_type_e for the same reason as
+ * @c ik_launch_e.
+ */
+enum ik_resize_e {
+    IK_RESIZE_LEFT,
+    IK_RESIZE_RIGHT,
+    IK_RESIZE_UP,
+    IK_RESIZE_DOWN
+};
+
 /**
  * @brief Resolve the currently focused client on a surface
  *
@@ -61,42 +109,45 @@ client_td *ik_get_active_client(surface_td *surface,
         list_td *surfaces, surface_td **cs_out, desktop_td **cd_out);
 
 /**
- * @brief Launch a configured program for the given binding type
+ * @brief Launch one of the configured programs
  *
- * Maps each @c KEYBIND_LAUNCH_* constant to its program string from the
- * configuration and calls @a cctl_launch_dispatch.
+ * Reads the program's path from the configuration and hands it to
+ * @a cctl_launch_dispatch.
  *
- * @param btype   Keyboard binding type (one of the @c KEYBIND_LAUNCH_*
- *                constants)
- * @param surface Current surface passed to @a cctl_launch_dispatch
+ * @param program Which program to launch
+ * @param surface Current surface, passed to @a cctl_launch_dispatch
  * @param config  Active configuration holding the program paths
+ *
+ * @note Complexity: @e O(1), aside from the launch itself
  */
-void ik_handle_launch(enum wm_keybind_type_e btype,
+void ik_handle_launch(enum ik_launch_e program,
         surface_td *surface, const config_td *config);
 
 /**
- * @brief Handle a keyboard move binding for the active client
+ * @brief Move the active client by keyboard
  *
- * @param btype    Keyboard binding type (one of the
- *                 @c KEYBIND_CLIENT_MOVE_* constants)
- * @param surface  Current surface
- * @param surfaces Full surface list (for @c ik_get_active_client)
- * @param config   Active configuration holding the move step
+ * @param direction Where to move it, by a step or to a corner
+ * @param surface   Current surface
+ * @param surfaces  Full surface list, for @a ik_get_active_client
+ * @param config    Active configuration holding the move step
+ *
+ * @note Complexity: @e O(1)
  */
-void ik_handle_move(enum wm_keybind_type_e btype,
+void ik_handle_move(enum ik_move_e direction,
         surface_td *surface, list_td *surfaces,
         const config_td *config);
 
 /**
- * @brief Handle a keyboard resize binding for the active client
+ * @brief Resize the active client by keyboard
  *
- * @param btype    Keyboard binding type (one of the
- *                 @c KEYBIND_CLIENT_RESIZE_* constants)
+ * @param edge     Which edge to move
  * @param surface  Current surface
- * @param surfaces Full surface list (for @a ik_get_active_client)
+ * @param surfaces Full surface list, for @a ik_get_active_client
  * @param config   Active configuration holding the resize step
+ *
+ * @note Complexity: @e O(1)
  */
-void ik_handle_resize(enum wm_keybind_type_e btype,
+void ik_handle_resize(enum ik_resize_e edge,
         surface_td *surface, list_td *surfaces,
         const config_td *config);
 

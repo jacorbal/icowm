@@ -370,103 +370,30 @@ client_td *ik_get_active_client(surface_td *surface,
 
 
 /* Launch a configured program for the given binding type */
-void ik_handle_launch(enum wm_keybind_type_e btype,
+void ik_handle_launch(enum ik_launch_e program,
         surface_td *surface, const config_td *config)
 {
-    const char *program = NULL;
+    const char *path = NULL;
 
-    switch (btype) {
-        /* Every case must be listed, so the compiler keeps
-         * checking this switch against the whole enumeration */
-        case KEYBIND_NONE:
-        case KEYBIND_WM_SCRATCHPAD_TOGGLE:
-        case KEYBIND_DESKTOP_NORTH:
-        case KEYBIND_DESKTOP_SOUTH:
-        case KEYBIND_DESKTOP_EAST:
-        case KEYBIND_DESKTOP_WEST:
-        case KEYBIND_CLIENT_ICONIFY:
-        case KEYBIND_CLIENT_HIDE:
-        case KEYBIND_CLIENT_CLOSE:
-        case KEYBIND_CLIENT_KILL:
-        case KEYBIND_CLIENT_MAXIMIZE:
-        case KEYBIND_CLIENT_CENTER:
-        case KEYBIND_CLIENT_MOVE_MONITOR_NORTH:
-        case KEYBIND_CLIENT_MOVE_MONITOR_SOUTH:
-        case KEYBIND_CLIENT_MOVE_MONITOR_EAST:
-        case KEYBIND_CLIENT_MOVE_MONITOR_WEST:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST:
-        case KEYBIND_CLIENT_SHADE:
-        case KEYBIND_CLIENT_FULLSCREEN:
-        case KEYBIND_CLIENT_PIN:
-        case KEYBIND_CLIENT_INFO:
-        case KEYBIND_CLIENT_TOGGLE_DECORATION:
-        case KEYBIND_CLIENT_CYCLE_LAYER:
-        case KEYBIND_CLIENT_CYCLE_NEXT:
-        case KEYBIND_CLIENT_CYCLE_PREV:
-        case KEYBIND_DESKTOP_ICON_NEXT:
-        case KEYBIND_DESKTOP_ICON_PREV:
-        case KEYBIND_CLIENT_MOVE_LEFT:
-        case KEYBIND_CLIENT_MOVE_RIGHT:
-        case KEYBIND_CLIENT_MOVE_UP:
-        case KEYBIND_CLIENT_MOVE_DOWN:
-        case KEYBIND_CLIENT_MOVE_TOP_LEFT:
-        case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
-        case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
-        case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
-        case KEYBIND_CLIENT_RESIZE_LEFT:
-        case KEYBIND_CLIENT_RESIZE_RIGHT:
-        case KEYBIND_CLIENT_RESIZE_UP:
-        case KEYBIND_CLIENT_RESIZE_DOWN:
-        case KEYBIND_DESKTOP_SHOW:
-        case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
-        case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
-        case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
-        case KEYBIND_DESKTOP_GOTO_0:
-        case KEYBIND_DESKTOP_GOTO_1:
-        case KEYBIND_DESKTOP_GOTO_2:
-        case KEYBIND_DESKTOP_GOTO_3:
-        case KEYBIND_DESKTOP_GOTO_4:
-        case KEYBIND_DESKTOP_GOTO_5:
-        case KEYBIND_DESKTOP_GOTO_6:
-        case KEYBIND_DESKTOP_GOTO_7:
-        case KEYBIND_DESKTOP_GOTO_8:
-        case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_DESKTOP_ADD:
-        case KEYBIND_DESKTOP_REMOVE:
-        case KEYBIND_WM_TOGGLE_STRUTLESS_MAXIMIZE:
-        case KEYBIND_WM_ROOT_MENU:
-        case KEYBIND_WM_SEARCH_WINDOWS:
-        case KEYBIND_WM_WINDOWS_MENU:
-        case KEYBIND_CLIENT_WINDOW_MENU:
-        case KEYBIND_WM_REDRAW:
-        case KEYBIND_WM_RELOAD:
-        case KEYBIND_WM_QUIT:
-        case KEYBIND_WM_SHORTCUTS_LIST:
-        case KEYBIND_WM_EMERGENCY_EXIT:
-        case KEYBIND_WM_FORTUNE:
-            return;
-
-        case KEYBIND_LAUNCH_TERMINAL:
-            program = config->base.programs.terminal;
+    switch (program) {
+        case IK_LAUNCH_TERMINAL:
+            path = config->base.programs.terminal;
             break;
-        case KEYBIND_LAUNCH_LAUNCHER:
+        case IK_LAUNCH_LAUNCHER:
             if (config->base.prompt.is_enabled) {
                 run_init(surface->connection, surface, config);
                 return;
             }
-            program = config->base.programs.launcher;
+            path = config->base.programs.launcher;
             break;
-        case KEYBIND_LAUNCH_FILE_MANAGER:
-            program = config->base.programs.file_manager;
+        case IK_LAUNCH_FILE_MANAGER:
+            path = config->base.programs.file_manager;
             break;
-        case KEYBIND_LAUNCH_WEB_BROWSER:
-            program = config->base.programs.web_browser;
+        case IK_LAUNCH_WEB_BROWSER:
+            path = config->base.programs.web_browser;
             break;
-        case KEYBIND_LAUNCH_EDITOR:
-            program = config->base.programs.editor;
+        case IK_LAUNCH_EDITOR:
+            path = config->base.programs.editor;
             break;
     }
 
@@ -474,12 +401,12 @@ void ik_handle_launch(enum wm_keybind_type_e btype,
         return;
     }
 
-    cctl_launch_dispatch(surface, program, NULL);
+    cctl_launch_dispatch(surface, path, NULL);
 }
 
 
 /* Move the focused client by keyboard */
-void ik_handle_move(enum wm_keybind_type_e btype,
+void ik_handle_move(enum ik_move_e direction,
         surface_td *surface, list_td *surfaces,
         const config_td *config)
 {
@@ -544,102 +471,32 @@ void ik_handle_move(enum wm_keybind_type_e btype,
               (int32_t) client->layout.geometry.cur.dim.h
             : new_y);
 
-    switch (btype) {
-        /* Every case must be listed, so the compiler keeps
-         * checking this switch against the whole enumeration */
-        case KEYBIND_NONE:
-        case KEYBIND_WM_SCRATCHPAD_TOGGLE:
-        case KEYBIND_DESKTOP_NORTH:
-        case KEYBIND_DESKTOP_SOUTH:
-        case KEYBIND_DESKTOP_EAST:
-        case KEYBIND_DESKTOP_WEST:
-        case KEYBIND_CLIENT_ICONIFY:
-        case KEYBIND_CLIENT_HIDE:
-        case KEYBIND_CLIENT_CLOSE:
-        case KEYBIND_CLIENT_KILL:
-        case KEYBIND_CLIENT_MAXIMIZE:
-        case KEYBIND_CLIENT_CENTER:
-        case KEYBIND_CLIENT_MOVE_MONITOR_NORTH:
-        case KEYBIND_CLIENT_MOVE_MONITOR_SOUTH:
-        case KEYBIND_CLIENT_MOVE_MONITOR_EAST:
-        case KEYBIND_CLIENT_MOVE_MONITOR_WEST:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST:
-        case KEYBIND_CLIENT_SHADE:
-        case KEYBIND_CLIENT_FULLSCREEN:
-        case KEYBIND_CLIENT_PIN:
-        case KEYBIND_CLIENT_INFO:
-        case KEYBIND_CLIENT_TOGGLE_DECORATION:
-        case KEYBIND_CLIENT_CYCLE_LAYER:
-        case KEYBIND_CLIENT_CYCLE_NEXT:
-        case KEYBIND_CLIENT_CYCLE_PREV:
-        case KEYBIND_DESKTOP_ICON_NEXT:
-        case KEYBIND_DESKTOP_ICON_PREV:
-        case KEYBIND_LAUNCH_TERMINAL:
-        case KEYBIND_LAUNCH_LAUNCHER:
-        case KEYBIND_LAUNCH_FILE_MANAGER:
-        case KEYBIND_LAUNCH_WEB_BROWSER:
-        case KEYBIND_LAUNCH_EDITOR:
-        case KEYBIND_CLIENT_RESIZE_LEFT:
-        case KEYBIND_CLIENT_RESIZE_RIGHT:
-        case KEYBIND_CLIENT_RESIZE_UP:
-        case KEYBIND_CLIENT_RESIZE_DOWN:
-        case KEYBIND_DESKTOP_SHOW:
-        case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
-        case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
-        case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
-        case KEYBIND_DESKTOP_GOTO_0:
-        case KEYBIND_DESKTOP_GOTO_1:
-        case KEYBIND_DESKTOP_GOTO_2:
-        case KEYBIND_DESKTOP_GOTO_3:
-        case KEYBIND_DESKTOP_GOTO_4:
-        case KEYBIND_DESKTOP_GOTO_5:
-        case KEYBIND_DESKTOP_GOTO_6:
-        case KEYBIND_DESKTOP_GOTO_7:
-        case KEYBIND_DESKTOP_GOTO_8:
-        case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_DESKTOP_ADD:
-        case KEYBIND_DESKTOP_REMOVE:
-        case KEYBIND_WM_TOGGLE_STRUTLESS_MAXIMIZE:
-        case KEYBIND_WM_ROOT_MENU:
-        case KEYBIND_WM_SEARCH_WINDOWS:
-        case KEYBIND_WM_WINDOWS_MENU:
-        case KEYBIND_CLIENT_WINDOW_MENU:
-        case KEYBIND_WM_REDRAW:
-        case KEYBIND_WM_RELOAD:
-        case KEYBIND_WM_QUIT:
-        case KEYBIND_WM_SHORTCUTS_LIST:
-        case KEYBIND_WM_EMERGENCY_EXIT:
-        case KEYBIND_WM_FORTUNE:
-            return;
-
-        case KEYBIND_CLIENT_MOVE_LEFT:
+    switch (direction) {
+        case IK_MOVE_LEFT:
             new_x -= move_step;
             break;
-        case KEYBIND_CLIENT_MOVE_RIGHT:
+        case IK_MOVE_RIGHT:
             new_x += move_step;
             break;
-        case KEYBIND_CLIENT_MOVE_UP:
+        case IK_MOVE_UP:
             new_y -= move_step;
             break;
-        case KEYBIND_CLIENT_MOVE_DOWN:
+        case IK_MOVE_DOWN:
             new_y += move_step;
             break;
-        case KEYBIND_CLIENT_MOVE_TOP_LEFT:
+        case IK_MOVE_TOP_LEFT:
             new_x = (have_workarea) ? wa_x : 0;
             new_y = (have_workarea) ? wa_y : 0;
             break;
-        case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
+        case IK_MOVE_TOP_RIGHT:
             new_x = max_x;
             new_y = (have_workarea) ? wa_y : 0;
             break;
-        case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
+        case IK_MOVE_BOTTOM_LEFT:
             new_x = (have_workarea) ? wa_x : 0;
             new_y = max_y;
             break;
-        case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
+        case IK_MOVE_BOTTOM_RIGHT:
             new_x = max_x;
             new_y = max_y;
             break;
@@ -650,7 +507,7 @@ void ik_handle_move(enum wm_keybind_type_e btype,
 
 
 /* Resize the focused client by keyboard */
-void ik_handle_resize(enum wm_keybind_type_e btype,
+void ik_handle_resize(enum ik_resize_e edge,
         surface_td *surface, list_td *surfaces,
         const config_td *config)
 {
@@ -680,16 +537,14 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
 
     /* The maximized axis of a horizontal-only or vertical-only
      * maximized client is snapped exactly to its workarea edge, so it
-     * has nothing left to grow or shrink by keyboard either; only the
-     * still-free axis (the other 'KEYBIND_CLIENT_RESIZE_*' pair) keeps
-     * working normally. */
-    if ((btype == KEYBIND_CLIENT_RESIZE_LEFT ||
-                btype == KEYBIND_CLIENT_RESIZE_RIGHT) &&
+     * has nothing left to grow or shrink by keyboard either.  Only the
+     * still-free axis, the other pair of edges, keeps working
+     * normally. */
+    if ((edge == IK_RESIZE_LEFT || edge == IK_RESIZE_RIGHT) &&
             client_is_maximized_horz(client)) {
         return;
     }
-    if ((btype == KEYBIND_CLIENT_RESIZE_UP ||
-                btype == KEYBIND_CLIENT_RESIZE_DOWN) &&
+    if ((edge == IK_RESIZE_UP || edge == IK_RESIZE_DOWN) &&
             client_is_maximized_vert(client)) {
         return;
     }
@@ -709,109 +564,39 @@ void ik_handle_resize(enum wm_keybind_type_e btype,
     new_w = (int32_t) old_w;
     new_h = (int32_t) old_h;
 
-    switch (btype) {
-        /* Every case must be listed, so the compiler keeps
-         * checking this switch against the whole enumeration */
-        case KEYBIND_NONE:
-        case KEYBIND_WM_SCRATCHPAD_TOGGLE:
-        case KEYBIND_DESKTOP_NORTH:
-        case KEYBIND_DESKTOP_SOUTH:
-        case KEYBIND_DESKTOP_EAST:
-        case KEYBIND_DESKTOP_WEST:
-        case KEYBIND_CLIENT_ICONIFY:
-        case KEYBIND_CLIENT_HIDE:
-        case KEYBIND_CLIENT_CLOSE:
-        case KEYBIND_CLIENT_KILL:
-        case KEYBIND_CLIENT_MAXIMIZE:
-        case KEYBIND_CLIENT_CENTER:
-        case KEYBIND_CLIENT_MOVE_MONITOR_NORTH:
-        case KEYBIND_CLIENT_MOVE_MONITOR_SOUTH:
-        case KEYBIND_CLIENT_MOVE_MONITOR_EAST:
-        case KEYBIND_CLIENT_MOVE_MONITOR_WEST:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_NORTH:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_SOUTH:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_EAST:
-        case KEYBIND_CLIENT_SEND_TO_DESKTOP_WEST:
-        case KEYBIND_CLIENT_SHADE:
-        case KEYBIND_CLIENT_FULLSCREEN:
-        case KEYBIND_CLIENT_PIN:
-        case KEYBIND_CLIENT_INFO:
-        case KEYBIND_CLIENT_TOGGLE_DECORATION:
-        case KEYBIND_CLIENT_CYCLE_LAYER:
-        case KEYBIND_CLIENT_CYCLE_NEXT:
-        case KEYBIND_CLIENT_CYCLE_PREV:
-        case KEYBIND_DESKTOP_ICON_NEXT:
-        case KEYBIND_DESKTOP_ICON_PREV:
-        case KEYBIND_LAUNCH_TERMINAL:
-        case KEYBIND_LAUNCH_LAUNCHER:
-        case KEYBIND_LAUNCH_FILE_MANAGER:
-        case KEYBIND_LAUNCH_WEB_BROWSER:
-        case KEYBIND_LAUNCH_EDITOR:
-        case KEYBIND_CLIENT_MOVE_LEFT:
-        case KEYBIND_CLIENT_MOVE_RIGHT:
-        case KEYBIND_CLIENT_MOVE_UP:
-        case KEYBIND_CLIENT_MOVE_DOWN:
-        case KEYBIND_CLIENT_MOVE_TOP_LEFT:
-        case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
-        case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
-        case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
-        case KEYBIND_DESKTOP_SHOW:
-        case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
-        case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
-        case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
-        case KEYBIND_DESKTOP_GOTO_0:
-        case KEYBIND_DESKTOP_GOTO_1:
-        case KEYBIND_DESKTOP_GOTO_2:
-        case KEYBIND_DESKTOP_GOTO_3:
-        case KEYBIND_DESKTOP_GOTO_4:
-        case KEYBIND_DESKTOP_GOTO_5:
-        case KEYBIND_DESKTOP_GOTO_6:
-        case KEYBIND_DESKTOP_GOTO_7:
-        case KEYBIND_DESKTOP_GOTO_8:
-        case KEYBIND_DESKTOP_GOTO_9:
-        case KEYBIND_DESKTOP_ADD:
-        case KEYBIND_DESKTOP_REMOVE:
-        case KEYBIND_WM_TOGGLE_STRUTLESS_MAXIMIZE:
-        case KEYBIND_WM_ROOT_MENU:
-        case KEYBIND_WM_SEARCH_WINDOWS:
-        case KEYBIND_WM_WINDOWS_MENU:
-        case KEYBIND_CLIENT_WINDOW_MENU:
-        case KEYBIND_WM_REDRAW:
-        case KEYBIND_WM_RELOAD:
-        case KEYBIND_WM_QUIT:
-        case KEYBIND_WM_SHORTCUTS_LIST:
-        case KEYBIND_WM_EMERGENCY_EXIT:
-        case KEYBIND_WM_FORTUNE:
-            return;
-
-        case KEYBIND_CLIENT_RESIZE_LEFT:
+    switch (edge) {
+        case IK_RESIZE_LEFT:
             new_w = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, true, old_w, false);
             aspect_h = (uint32_t) new_h;
-            client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
+            client_aspect_ratio_clamp(client, (uint32_t) new_w,
+                    &aspect_h);
             new_h = (int32_t) aspect_h;
             new_pos.x += (int32_t) old_w - new_w;
             break;
-        case KEYBIND_CLIENT_RESIZE_RIGHT:
+        case IK_RESIZE_RIGHT:
             new_w = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, true, old_w, true);
             aspect_h = (uint32_t) new_h;
-            client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
+            client_aspect_ratio_clamp(client, (uint32_t) new_w,
+                    &aspect_h);
             new_h = (int32_t) aspect_h;
             break;
-        case KEYBIND_CLIENT_RESIZE_UP:
+        case IK_RESIZE_UP:
             new_h = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, false, old_h, false);
             aspect_h = (uint32_t) new_h;
-            client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
+            client_aspect_ratio_clamp(client, (uint32_t) new_w,
+                    &aspect_h);
             new_h = (int32_t) aspect_h;
             new_pos.y += (int32_t) old_h - new_h;
             break;
-        case KEYBIND_CLIENT_RESIZE_DOWN:
+        case IK_RESIZE_DOWN:
             new_h = (int32_t) s_kb_resize_axis_target(client,
                     resize_step, false, old_h, true);
             aspect_h = (uint32_t) new_h;
-            client_aspect_ratio_clamp(client, (uint32_t) new_w, &aspect_h);
+            client_aspect_ratio_clamp(client, (uint32_t) new_w,
+                    &aspect_h);
             new_h = (int32_t) aspect_h;
             break;
     }

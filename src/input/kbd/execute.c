@@ -571,29 +571,64 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_LAUNCH_TERMINAL:
+            ik_handle_launch(IK_LAUNCH_TERMINAL, surface, config);
+            return;
         case KEYBIND_LAUNCH_LAUNCHER:
+            ik_handle_launch(IK_LAUNCH_LAUNCHER, surface, config);
+            return;
         case KEYBIND_LAUNCH_FILE_MANAGER:
+            ik_handle_launch(IK_LAUNCH_FILE_MANAGER, surface, config);
+            return;
         case KEYBIND_LAUNCH_WEB_BROWSER:
+            ik_handle_launch(IK_LAUNCH_WEB_BROWSER, surface, config);
+            return;
         case KEYBIND_LAUNCH_EDITOR:
-            ik_handle_launch(btype, surface, config);
+            ik_handle_launch(IK_LAUNCH_EDITOR, surface, config);
             return;
 
         case KEYBIND_CLIENT_MOVE_LEFT:
+            ik_handle_move(IK_MOVE_LEFT, surface, surfaces, config);
+            return;
         case KEYBIND_CLIENT_MOVE_RIGHT:
+            ik_handle_move(IK_MOVE_RIGHT, surface, surfaces, config);
+            return;
         case KEYBIND_CLIENT_MOVE_UP:
+            ik_handle_move(IK_MOVE_UP, surface, surfaces, config);
+            return;
         case KEYBIND_CLIENT_MOVE_DOWN:
+            ik_handle_move(IK_MOVE_DOWN, surface, surfaces, config);
+            return;
         case KEYBIND_CLIENT_MOVE_TOP_LEFT:
+            ik_handle_move(IK_MOVE_TOP_LEFT, surface, surfaces,
+                    config);
+            return;
         case KEYBIND_CLIENT_MOVE_TOP_RIGHT:
+            ik_handle_move(IK_MOVE_TOP_RIGHT, surface, surfaces,
+                    config);
+            return;
         case KEYBIND_CLIENT_MOVE_BOTTOM_LEFT:
+            ik_handle_move(IK_MOVE_BOTTOM_LEFT, surface, surfaces,
+                    config);
+            return;
         case KEYBIND_CLIENT_MOVE_BOTTOM_RIGHT:
-            ik_handle_move(btype, surface, surfaces, config);
+            ik_handle_move(IK_MOVE_BOTTOM_RIGHT, surface, surfaces,
+                    config);
             return;
 
         case KEYBIND_CLIENT_RESIZE_LEFT:
+            ik_handle_resize(IK_RESIZE_LEFT, surface, surfaces,
+                    config);
+            return;
         case KEYBIND_CLIENT_RESIZE_RIGHT:
+            ik_handle_resize(IK_RESIZE_RIGHT, surface, surfaces,
+                    config);
+            return;
         case KEYBIND_CLIENT_RESIZE_UP:
+            ik_handle_resize(IK_RESIZE_UP, surface, surfaces, config);
+            return;
         case KEYBIND_CLIENT_RESIZE_DOWN:
-            ik_handle_resize(btype, surface, surfaces, config);
+            ik_handle_resize(IK_RESIZE_DOWN, surface, surfaces,
+                    config);
             return;
 
         case KEYBIND_NONE:
