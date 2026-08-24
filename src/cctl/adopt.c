@@ -37,6 +37,9 @@
 /* Render includes */
 #include <render/outdate.h>
 
+/* Utils includes */
+#include <utils/xcb/reply.h>
+
 /* Local includes */
 #include <cctl/adopt.h>
 
@@ -59,6 +62,7 @@ void cctl_adopt_scan(const wm_td *wm)
         surface_td *surface = (surface_td *) list_data(node);
         xcb_query_tree_cookie_t qt_cookie;
         xcb_query_tree_reply_t *qt_reply;
+        xcb_generic_error_t *qt_error = NULL;
         xcb_window_t *children;
         int nchildren;
 
@@ -72,8 +76,9 @@ void cctl_adopt_scan(const wm_td *wm)
         qt_cookie = xcb_query_tree(connection,
                 surface->screen->root);
         qt_reply = xcb_query_tree_reply(connection,
-                qt_cookie, NULL);
+                qt_cookie, &qt_error);
         if (qt_reply == NULL) {
+            xcb_reply_log_error(qt_error, "a root window's own tree");
             LOGGER_WARNING("Failed to query window tree for surface %u",
                     surface->id);
             continue;

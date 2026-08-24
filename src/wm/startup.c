@@ -46,6 +46,7 @@ int wm_startup_init_randr(wm_td *wm)
 {
     const xcb_query_extension_reply_t *ext;
     xcb_randr_query_version_reply_t *ver_reply;
+    xcb_generic_error_t *ver_error = NULL;
     xcb_randr_query_version_cookie_t ver_cookie;
     xcb_connection_t *connection = wm_connection(wm);
     list_td *surfaces = wm_surfaces(wm);
@@ -65,8 +66,9 @@ int wm_startup_init_randr(wm_td *wm)
 
     ver_cookie = xcb_randr_query_version(connection, 1u, 5u);
     ver_reply = xcb_randr_query_version_reply(connection,
-            ver_cookie, NULL);
+            ver_cookie, &ver_error);
     if (ver_reply == NULL) {
+        xcb_reply_log_error(ver_error, "the XRandR version");
         LOGGER_WARNING("Failed to query XRandR version;" \
                 " disabling XRandR", L_NARG);
         return 0;
@@ -87,6 +89,7 @@ int wm_startup_init_randr(wm_td *wm)
         surface_td *const surface = (surface_td *) list_data(node);
         xcb_randr_get_screen_resources_current_cookie_t res_cookie;
         xcb_randr_get_screen_resources_current_reply_t *res_reply;
+        xcb_generic_error_t *res_error = NULL;
         xcb_randr_crtc_t *crtcs;
         int crtc_count;
 
@@ -97,8 +100,10 @@ int wm_startup_init_randr(wm_td *wm)
         res_cookie = xcb_randr_get_screen_resources_current(
                 connection, surface->screen->root);
         res_reply = xcb_randr_get_screen_resources_current_reply(
-                connection, res_cookie, NULL);
+                connection, res_cookie, &res_error);
         if (res_reply == NULL) {
+            xcb_reply_log_error(res_error,
+                    "a surface's XRandR screen resources");
             continue;
         }
 
@@ -111,13 +116,15 @@ int wm_startup_init_randr(wm_td *wm)
         for (int ci = 0; ci < crtc_count; ++ci) {
             xcb_randr_get_crtc_info_cookie_t ci_cookie;
             xcb_randr_get_crtc_info_reply_t *crtc_info;
+            xcb_generic_error_t *ci_error = NULL;
 
             ci_cookie = xcb_randr_get_crtc_info(connection,
                     crtcs[ci], res_reply->config_timestamp);
             crtc_info = xcb_randr_get_crtc_info_reply(
-                    connection, ci_cookie, NULL);
+                    connection, ci_cookie, &ci_error);
 
             if (crtc_info == NULL) {
+                xcb_reply_log_error(ci_error, "an XRandR CRTC");
                 continue;
             }
 

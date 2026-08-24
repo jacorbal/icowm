@@ -46,6 +46,7 @@
 /* Utils includes */
 #include <utils/time/clock.h>
 #include <utils/xcb/atom.h>
+#include <utils/xcb/reply.h>
 #include <utils/xcb/wait.h>
 
 /* Local includes */
@@ -142,6 +143,7 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
     char selection_name[16];
     xcb_atom_t selection_atom;
     xcb_get_selection_owner_reply_t *owner_reply;
+    xcb_generic_error_t *owner_error = NULL;
     xcb_window_t previous_owner;
 
     snprintf(selection_name, sizeof(selection_name),
@@ -152,7 +154,10 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
     }
 
     owner_reply = xcb_get_selection_owner_reply(connection,
-            xcb_get_selection_owner(connection, selection_atom), NULL);
+            xcb_get_selection_owner(connection, selection_atom),
+            &owner_error);
+    xcb_reply_log_error(owner_error,
+            "the current owner of a manager selection");
     previous_owner = (owner_reply != NULL)
         ? owner_reply->owner : (xcb_window_t) XCB_NONE;
     if (owner_reply != NULL) {

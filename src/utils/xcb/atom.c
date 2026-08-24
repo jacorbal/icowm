@@ -22,6 +22,7 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/reply.h>
 
 /* Local includes */
 #include <utils/xcb/atom.h>
@@ -143,6 +144,7 @@ xcb_atom_t atom_intern(xcb_connection_t *connection, const char *name,
         bool only_if_exists)
 {
     xcb_intern_atom_reply_t *reply;
+    xcb_generic_error_t *error = NULL;
     xcb_atom_t atom;
 
     if (connection == NULL || name == NULL) {
@@ -158,10 +160,17 @@ xcb_atom_t atom_intern(xcb_connection_t *connection, const char *name,
     reply = xcb_intern_atom_reply(connection,
             xcb_intern_atom(connection, (uint8_t) only_if_exists,
                 (uint16_t) safe_strlen(name), name),
-            NULL);
+            &error);
     if (reply != NULL) {
         atom = reply->atom;
         free(reply);
+    } else if (!only_if_exists) {
+        /* Reported only when the atom was to be created: asking for
+         * one that merely might exist and finding it absent is an
+         * ordinary answer, not a failure */
+        xcb_reply_log_error(error, "an atom by name");
+    } else {
+        free(error);
     }
 
     /* A 'not found' result (only reachable with only_if_exists true)

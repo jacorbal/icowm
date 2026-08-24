@@ -27,6 +27,7 @@
 
 /* Utils includes */
 #include <utils/xcb/atom.h>
+#include <utils/xcb/reply.h>
 
 /* Type includes */
 #include <types/direction.h>
@@ -106,6 +107,7 @@ void surface_refresh_monitors(surface_td *surface)
 {
     xcb_randr_get_monitors_cookie_t cookie;
     xcb_randr_get_monitors_reply_t *reply;
+    xcb_generic_error_t *error = NULL;
     xcb_randr_monitor_info_iterator_t it;
 
     if (surface == NULL || surface->connection == NULL ||
@@ -116,8 +118,9 @@ void surface_refresh_monitors(surface_td *surface)
     cookie = xcb_randr_get_monitors(surface->connection,
             surface->screen->root, 1u);
     reply = xcb_randr_get_monitors_reply(surface->connection,
-            cookie, NULL);
+            cookie, &error);
     if (reply == NULL) {
+        xcb_reply_log_error(error, "the XRandR monitor list");
         LOGGER_NOTICE("Failed to query RandR monitors for surface" \
                 " %u; treating it as one monitor", surface->id);
         s_surface_monitors_fallback(surface);

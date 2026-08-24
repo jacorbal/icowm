@@ -27,6 +27,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/reply.h>
+
 /* Local includes */
 #include <utils/xcb/selection.h>
 
@@ -38,6 +41,7 @@ bool util_xcb_acquire_manager_selection(xcb_connection_t *connection,
 {
     xcb_get_selection_owner_cookie_t owner_cookie;
     xcb_get_selection_owner_reply_t *owner_reply;
+    xcb_generic_error_t *owner_error = NULL;
     xcb_client_message_event_t manager_ev;
 
     xcb_set_selection_owner(connection, window, selection_atom,
@@ -45,11 +49,14 @@ bool util_xcb_acquire_manager_selection(xcb_connection_t *connection,
 
     owner_cookie = xcb_get_selection_owner(connection, selection_atom);
     owner_reply = xcb_get_selection_owner_reply(connection,
-            owner_cookie, NULL);
+            owner_cookie, &owner_error);
     if (owner_reply == NULL || owner_reply->owner != window) {
+        xcb_reply_log_error(owner_error,
+                "the owner of a selection just claimed");
         free(owner_reply);
         return false;
     }
+    free(owner_error);
     free(owner_reply);
 
     /* ICCCM manager-selection convention: announce ownership on the

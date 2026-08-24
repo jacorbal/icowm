@@ -4,7 +4,7 @@
  * @brief RandR output, CRTC, mode, and profile management for a
  *        surface
  *
- * Split out of what used to be a single, flat @c surface/actions.c;
+ * One of the files @c surface/actions/ is made of;
  * everything here revolves around the RandR extension itself (output
  * lookup, CRTC allocation, mode matching, profile snapshot/apply/
  * revert), as opposed to @c surface/actions/clients.c's own client
@@ -726,6 +726,7 @@ void surface_action_revert_randr_profiles(void)
     surface_td *const surface = s_randr_snapshot_surface;
     xcb_randr_get_screen_resources_current_cookie_t res_cookie;
     xcb_randr_get_screen_resources_current_reply_t *res_reply;
+    xcb_generic_error_t *res_error = NULL;
 
     /* Both checked, not just the CRTC snapshot count: a reload whose
      * only actual change was which output is primary (no CRTC touched
@@ -750,8 +751,9 @@ void surface_action_revert_randr_profiles(void)
     res_cookie = xcb_randr_get_screen_resources_current(
             surface->connection, surface->screen->root);
     res_reply = xcb_randr_get_screen_resources_current_reply(
-            surface->connection, res_cookie, NULL);
+            surface->connection, res_cookie, &res_error);
     if (res_reply == NULL) {
+        xcb_reply_log_error(res_error, "the XRandR screen resources");
         LOGGER_WARNING("XRandR: failed to query screen resources on" \
                 " surface %u; cannot revert output profiles",
                 surface->id);
