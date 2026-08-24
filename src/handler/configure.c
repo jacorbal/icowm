@@ -75,6 +75,99 @@ static void s_handler_send_synthetic_configure_notify(
 
 
 /**
+ * @brief Acknowledge a request this handler decided to ignore
+ *
+ * ICCCM asks a window manager that does not honor a
+ * @c ConfigureRequest to say so, by sending the client a synthetic
+ * @c ConfigureNotify carrying the geometry the window actually has.
+ * A client waiting on the reply to a silently dropped request would
+ * otherwise wait forever.
+ *
+ * @param connection    XCB connection; may be @c NULL
+ * @param client        Client whose request was ignored
+ * @param is_reparented Whether the client sits inside a frame, the
+ *                      only case the notify is needed in
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_handler_configure_acknowledge(
+        xcb_connection_t *connection, const client_td *client,
+        bool is_reparented)
+{
+    if (connection == NULL || !is_reparented) {
+        return;
+    }
+
+    s_handler_send_synthetic_configure_notify(connection, client);
+    xcb_flush(connection);
+}
+
+
+/**
+ * @brief Forward a request for a window this window manager does not
+ *        manage
+ *
+ * Every field the client asked for passes through untouched, since
+ * there is no frame, no size hint and no policy of ours to reconcile
+ * it against.
+ *
+ * @param connection XCB connection; may be @c NULL
+ * @param event      The request as it arrived
+ * @param mask       Fields of @p event to forward
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_handler_configure_forward(xcb_connection_t *connection,
+        const xcb_configure_request_event_t *event, uint16_t mask)
+{
+    uint32_t values[7];
+    uint16_t target_mask = 0u;
+    unsigned int i = 0u;
+
+    if (mask & XCB_CONFIG_WINDOW_X) {
+        values[i++] = (uint32_t) event->x;
+        target_mask |= XCB_CONFIG_WINDOW_X;
+    }
+
+    if (mask & XCB_CONFIG_WINDOW_Y) {
+        values[i++] = (uint32_t) event->y;
+        target_mask |= XCB_CONFIG_WINDOW_Y;
+    }
+
+    if (mask & XCB_CONFIG_WINDOW_WIDTH) {
+        values[i++] = (uint32_t) event->width;
+        target_mask |= XCB_CONFIG_WINDOW_WIDTH;
+    }
+
+    if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
+        values[i++] = (uint32_t) event->height;
+        target_mask |= XCB_CONFIG_WINDOW_HEIGHT;
+    }
+
+    if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+        values[i++] = (uint32_t) event->border_width;
+        target_mask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+    }
+
+    if (mask & XCB_CONFIG_WINDOW_SIBLING) {
+        values[i++] = event->sibling;
+        target_mask |= XCB_CONFIG_WINDOW_SIBLING;
+    }
+
+    if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+        values[i++] = (uint32_t) event->stack_mode;
+        target_mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+    }
+
+    if (target_mask != 0 && connection != NULL) {
+        xcb_configure_window(connection, event->window, target_mask,
+                values);
+        xcb_flush(connection);
+    }
+}
+
+
+/**
  * @brief Strip WIDTH and/or HEIGHT from @p mask when the requested
  *        value exactly matches @p cur_dim, regardless of any
  *        transition or cooldown
@@ -353,11 +446,8 @@ void handler_configure_request(xcb_connection_t *connection,
         if (wm_owns_geometry && (mask & geom_mask)) {
             mask = (uint16_t) (mask & ~geom_mask);
             if (mask == 0) {
-                if (connection != NULL && is_reparented) {
-                    s_handler_send_synthetic_configure_notify(connection,
-                            client);
-                    xcb_flush(connection);
-                }
+                s_handler_configure_acknowledge(connection, client,
+                        is_reparented);
                 return;
             }
         }
@@ -370,11 +460,8 @@ void handler_configure_request(xcb_connection_t *connection,
                 client->layout.geometry.cur.dim,
                 is_reparented, on_inner, client->layout.frame_extents);
         if (mask == 0) {
-            if (connection != NULL && is_reparented) {
-                s_handler_send_synthetic_configure_notify(connection,
-                        client);
-                xcb_flush(connection);
-            }
+            s_handler_configure_acknowledge(connection, client,
+                    is_reparented);
             return;
         }
 
@@ -391,11 +478,8 @@ void handler_configure_request(xcb_connection_t *connection,
                 (unsigned int) WM_SHADE_CONFIGURE_COOLDOWN_MS,
                 client->window, "shade");
         if (mask == 0) {
-            if (connection != NULL && is_reparented) {
-                s_handler_send_synthetic_configure_notify(connection,
-                        client);
-                xcb_flush(connection);
-            }
+            s_handler_configure_acknowledge(connection, client,
+                    is_reparented);
             return;
         }
 
@@ -417,11 +501,8 @@ void handler_configure_request(xcb_connection_t *connection,
                 (unsigned int) WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS,
                 client->window, "fullscreen");
         if (mask == 0) {
-            if (connection != NULL && is_reparented) {
-                s_handler_send_synthetic_configure_notify(connection,
-                        client);
-                xcb_flush(connection);
-            }
+            s_handler_configure_acknowledge(connection, client,
+                    is_reparented);
             return;
         }
 
@@ -565,7 +646,14 @@ void handler_configure_request(xcb_connection_t *connection,
                  * one lets the optimizer assume its arithmetic never
                  * overflows, which is what '-Wstrict-overflow' at
                  * level three and above reports on this function,
-                 * with no source location of its own to point at */
+                 * with no source location of its own to point at.
+                 *
+                 * The highest index written here is 'i + 1', and 'i'
+                 * can be at most 5: this block only runs when neither
+                 * X nor Y is in the mask, leaving WIDTH, HEIGHT,
+                 * BORDER_WIDTH, SIBLING and STACK_MODE as the only
+                 * bits that could have filled it.  That puts the last
+                 * write at index 6, the final slot of the array. */
                 for (unsigned int j = i; j > 0u; --j) {
                     target_values[j + 1u] = target_values[j - 1u];
                 }
@@ -593,46 +681,7 @@ void handler_configure_request(xcb_connection_t *connection,
             xcb_flush(connection);
         }
     } else {
-        if (mask & XCB_CONFIG_WINDOW_X) {
-            target_values[i++] = (uint32_t) event->x;
-            target_mask |= XCB_CONFIG_WINDOW_X;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_Y) {
-            target_values[i++] = (uint32_t) event->y;
-            target_mask |= XCB_CONFIG_WINDOW_Y;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_WIDTH) {
-            target_values[i++] = (uint32_t) event->width;
-            target_mask |= XCB_CONFIG_WINDOW_WIDTH;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
-            target_values[i++] = (uint32_t) event->height;
-            target_mask |= XCB_CONFIG_WINDOW_HEIGHT;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
-            target_values[i++] = (uint32_t) event->border_width;
-            target_mask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_SIBLING) {
-            target_values[i++] = event->sibling;
-            target_mask |= XCB_CONFIG_WINDOW_SIBLING;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
-            target_values[i++] = (uint32_t) event->stack_mode;
-            target_mask |= XCB_CONFIG_WINDOW_STACK_MODE;
-        }
-
-        if (target_mask != 0 && connection != NULL) {
-            xcb_configure_window(connection, event->window,
-                    target_mask, target_values);
-            xcb_flush(connection);
-        }
+        s_handler_configure_forward(connection, event, mask);
     }
 
     if (geom_changed || (mask & XCB_CONFIG_WINDOW_STACK_MODE)) {
