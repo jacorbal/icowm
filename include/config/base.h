@@ -1,0 +1,741 @@
+/**
+ * @file config/base.h
+ *
+ * @brief Screen and desktop topology, and the policies that apply to them
+ *
+ * Everything @c config.json's own top-level objects describe: how many
+ * screens and desktops exist and what each is called, plus the focus,
+ * placement, snapping, scratchpad and systray policies that apply
+ * across them.
+ *
+ * @ingroup config
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+#ifndef CONFIG_BASE_H
+#define CONFIG_BASE_H
+
+
+/* System includes */
+#include <stdbool.h>
+#include <stdint.h>
+
+/* Default initial values */
+#include <defs/config.h>
+
+/* Theme-related configuration structure */
+/**
+ * @brief Where a menu appears when it is opened by a means that has no
+ *        inherent screen position of its own (e.g., a keyboard
+ *        shortcut); shared by every menu type below
+ */
+enum config_menu_position_e {
+    CONFIG_MENU_POSITION_CENTER = 0,    /**< Always screen-centered */
+    CONFIG_MENU_POSITION_UNDER_MOUSE    /**< Under the current
+                                             mouse pointer position */
+};
+
+
+/**
+ * @brief Fill order for a configured @c topology.screens.desktops
+ *        layout: whether desktop indices advance across one whole
+ *        row before moving to the next (@c horizontal), or down one
+ *        whole column before moving to the next (@c vertical)
+ */
+enum config_desktop_orientation_e {
+    CONFIG_DESKTOP_ORIENTATION_HORIZONTAL = 0,
+    CONFIG_DESKTOP_ORIENTATION_VERTICAL
+};
+
+/**
+ * @brief Which corner of a configured @c topology.screens.desktops
+ *        layout desktop index 0 starts at, and so which direction
+ *        indices advance in from there
+ */
+enum config_desktop_corner_e {
+    CONFIG_DESKTOP_CORNER_TOP_LEFT = 0,
+    CONFIG_DESKTOP_CORNER_TOP_RIGHT,
+    CONFIG_DESKTOP_CORNER_BOTTOM_LEFT,
+    CONFIG_DESKTOP_CORNER_BOTTOM_RIGHT
+};
+
+/**
+ * @brief One screen's own desktop-grid layout
+ *
+ * Purely an interpretation over the same flat, zero-based desktop
+ * list @c desktops[] itself already is: north/south/east/west
+ * navigation (@a surface_desktop_north and its three siblings,
+ * surface/desktops.c) reads this to translate a desktop's own flat
+ * index to and from a row/column position, but nothing about @c
+ * desktops[] itself, or a desktop's own settings within it, changes
+ * depending on whether one is configured at all.
+ *
+ * Always populated with a valid value, whether @c topology.screens.
+ * desktops[].layout was present in config.json or not: @c rows @c 1,
+ * @c columns the screen's own @c desktop_count, @c orientation
+ * horizontal, @c corner top-left describes the exact same reading
+ * order the desktop list itself already had before this existed, so
+ * a config that never mentions layout at all behaves identically to
+ * before.  The same fallback also applies whenever a given @c layout
+ * fails validation (see @c ci_config_load_screens's own doc comment,
+ * config/base/desktops.c, for what "fails validation" means here).
+ */
+struct config_desktop_layout_s {
+    enum config_desktop_orientation_e orientation;
+    enum config_desktop_corner_e corner;
+    uint32_t rows;
+    uint32_t columns;
+};
+
+
+/**
+ * @brief Base settings configuration structure
+ */
+struct config_base_s {
+    /* Desktops: number and which on is the default one */
+    uint32_t screen_count;                      /**< Number of screens */
+
+    /* Icon placement policy settings */
+    struct {
+        bool show_geom;     /**< Show geometry overlay on move/resize */
+        enum config_icon_placement_e {
+            CONFIG_ICON_PLACEMENT_BOTTOM = 0, /**< Bottom rpw (default) */
+            CONFIG_ICON_PLACEMENT_TOP,        /**< Top row */
+            CONFIG_ICON_PLACEMENT_LEFT,       /**< Left column */
+            CONFIG_ICON_PLACEMENT_RIGHT,      /**< Right column */
+            CONFIG_ICON_PLACEMENT_SMART       /**< First free slot;
+                                                   falls back to bottom
+                                                   when none available */
+        } placement_policy;
+    } icons;
+
+    /**
+     * @brief Shutdown behavior: the normal, coordinated quit action,
+     *        and the hardcoded emergency exit shortcut
+     *
+     * @c enable_emergency_shortcut and @c timeout_seconds both live
+     * here together, rather than the emergency shortcut sitting apart
+     * at the top level, since both are about how the window manager
+     * itself shuts down, just by two entirely different paths that
+     * never interact with each other; see each field's comment below for
+     * exactly how they differ.
+     */
+    struct {
+        /**
+         * @brief Allow the hardcoded @c Ctrl+Mod1+Backspace emergency
+         *        exit shortcut
+         *
+         * Off (@c false) by default.  When enabled, this shortcut
+         * terminates the window manager immediately: no confirmation
+         * dialog, no menu, none of the coordinated wait
+         * @p timeout_seconds below governs for the normal quit action,
+         * and not even the exit session hooks that a normal
+         * quit or @c SIGTERM otherwise runs.  This is deliberate, not
+         * an oversight: this shortcut exists specifically as a last
+         * resort for situations where the window manager itself may be
+         * unresponsive or in some broken state, so it is kept to the
+         * smallest, most direct possible action, a signal to its own
+         * process, with nothing else in between that could itself get
+         * stuck, hang, or otherwise fail to complete, e.g., a dialog
+         * that depends on the very rendering or event loop that might
+         * be the reason this shortcut is being reached for in the first
+         * place.
+         *
+         * Not configurable via @c bindings.json like a normal
+         * keybinding, for the same reason: a fixed, hardcoded
+         * combination that never changes and never depends on
+         * @c bindings.json having parsed correctly is itself part of
+         * what makes it dependable as a last resort.  While enabled,
+         * that exact key combination cannot be reused by any binding in
+         * @c bindings.json, whether that would happen intentionally or
+         * by accident.
+         *
+         * @see @c input/kbd/event.c, where this shortcut is detected
+         *      ahead of every other keyboard handling, including any
+         *      open dialog or menu, so it keeps working even while one
+         *      of those has the keyboard grabbed
+         */
+        bool enable_emergency_shortcut;
+
+        /**
+         * @brief Coordinated shutdown behavior for the normal quit
+         *        action
+         *
+         * When quit is confirmed, every managed client is first asked
+         * to close (ICCCM @c WM_DELETE_WINDOW where supported, so an
+         * application with unsaved changes gets the same chance to warn
+         * the user it already gets when its own window is closed
+         * individually), rather than the window manager simply exiting
+         * out from under them.  @p timeout_seconds bounds how long this
+         * wait lasts before whichever clients are still open get forced
+         * closed regardless and the window manager exits anyway.
+         * Seconds to wait; @c 0 skips the wait entirely and
+         * force-closes every remaining client right away.
+         *
+         * @note Never consulted by @p enable_emergency_shortcut above,
+         *       which bypasses this, the coordinated wait it governs,
+         *       and even the exit session hooks, entirely
+         *
+         * @see @a wm_request_graceful_stop (@c wm.h), @c wm/shutdown.c
+         * @see @a ccmd_client_kill in @c cmds/client/focus.h
+         */
+        uint32_t timeout_seconds;
+    } shutdown;
+
+    /**
+     * @brief Whether launching a program begins a startup-notification
+     *        sequence at all, and that sequence's own timeout
+     *
+     * @see @p cctl_sn_begin (its only call site checks @p is_enabled first)
+     *      and @p cctl_sn_set_timeout_seconds / @c SN_TIMEOUT_SECONDS in
+     *      @c sn.h for what @p timeout_seconds controls and its
+     *      built-in default.
+     */
+    struct {
+        bool is_enabled;
+        uint32_t timeout_seconds;
+    } startup_notification;
+
+    /* Context-menu placement, per menu type */
+    struct {
+        struct {
+            enum config_menu_position_e position;   /**< Desktop (root)
+                                                         context menu
+                                                         (@c menu.json) */
+        } root;
+
+        struct {
+            enum config_menu_position_e position;   /**< Window list menu;
+                                                         every window on
+                                                         every desktop */
+        } windows;
+    } menus;
+
+    /* General behavior of environment towards windows */
+    struct {
+        uint32_t move_step;     /**< Keyboard move step in pixels */
+        uint32_t resize_step;   /**< Keyboard resize step in pixels */
+
+        enum config_gravity_e {
+            CONFIG_GRAVITY_NORTH_WEST = 1,
+            CONFIG_GRAVITY_NORTH = 2,
+            CONFIG_GRAVITY_NORTH_EAST = 3,
+            CONFIG_GRAVITY_EAST = 4,
+            CONFIG_GRAVITY_SOUTH_EAST = 5,
+            CONFIG_GRAVITY_SOUTH = 6,
+            CONFIG_GRAVITY_SOUTH_WEST = 7,
+            CONFIG_GRAVITY_WEST = 8,
+            CONFIG_GRAVITY_CENTER = 9,
+            CONFIG_GRAVITY_STATIC = 10
+        } gravity;
+
+        enum config_focus_policy_e {
+            CONFIG_FOCUS_POLICY_CLICK = 0,
+            CONFIG_FOCUS_POLICY_SLOPPY
+        } focus_policy;
+
+        enum config_placement_policy_e {
+            CONFIG_PLACEMENT_POLICY_SMART = 0,
+            CONFIG_PLACEMENT_POLICY_CASCADE,
+            CONFIG_PLACEMENT_POLICY_CENTERED,
+            CONFIG_PLACEMENT_POLICY_UNDER_MOUSE
+        } placement_policy;
+
+        /**
+         * @brief Which physical monitor a placement decision is
+         *        resolved against, on a surface made of more than one
+         *        sharing the same combined X screen
+         *
+         * @c pointer (default) picks whichever monitor the pointer is
+         * currently on (not necessarily where on that monitor the
+         * pointer actually is; the window can still land far from the
+         * cursor within it, depending on the placement policy),
+         * @c primary always picks the one RandR reports as primary.
+         *
+         * @see @a place_window_apply
+         */
+        enum config_placement_monitor_e {
+            CONFIG_PLACEMENT_MONITOR_POINTER = 0,
+            CONFIG_PLACEMENT_MONITOR_PRIMARY
+        } monitor_policy;
+
+        /**
+         * @brief Behavior of a window's own edges against nearby
+         *        screen edges and other windows while being
+         *        interactively moved or resized
+         */
+        struct {
+            /**
+             * @brief Attraction distance in pixels toward a nearby
+             *        edge while dragging; either @c 0 disables that
+             *        one specifically
+             */
+            struct config_edges_snap_s {
+                uint32_t window; /**< Toward another window's own
+                                       edge */
+                uint32_t screen; /**< Toward the screen's own edge */
+            } snap;
+
+            /**
+             * @brief How many pixels of deliberate extra drag it
+             *        takes for a horizontally or vertically
+             *        maximized client's own locked axis to actually
+             *        start changing while being interactively
+             *        resized, matching Openbox's own reuse of its
+             *        @c config_resist_edge (@c moveresize.c) for the
+             *        identical purpose
+             *
+             * Dragging back under this same threshold before
+             * releasing restores the maximized axis, reversibly,
+             * for the whole drag; @c 0 removes the axis lock
+             * entirely, letting the maximized axis change
+             * immediately on the very first pixel of drag.
+             */
+            uint32_t resistance;
+        } edges;
+
+        bool show_geom;         /**< Show geometry overlay on move/resize */
+        bool solid_drag;        /**< Move/resize the real window live, as
+                                      opposed to an outline stand-in
+                                      applied only once the drag ends */
+
+        /**
+         * @brief Cluster a newly placed window next to others sharing
+         *        its @c WM_CLIENT_LEADER / @c WM_HINTS group (e.g.,
+         *        several windows of the same application) instead of
+         *        running the placement policy above for it
+         *
+         * @see @a place_window_apply
+         */
+        bool group_related;
+
+        /* Focus behavior */
+        struct {
+            bool focus_new;
+            bool raise;
+        } focus;
+    } windows;
+
+    /**
+     * @brief Configuration for the scratchpad: a single dedicated
+     *        client, launched on demand from @p command, toggled
+     *        visible/hidden by its own keybind or IPC command instead
+     *        of iconified/restored
+     *
+     * @p is_enabled just gates whether the toggle action does anything
+     * at all; @p width and @p height are always applied regardless of
+     * whatever geometry the client itself requests, against whichever
+     * edge @p edge names, centered along that edge's own other axis.
+     *
+     * @see @c scratchpad.c
+     */
+    struct {
+        enum config_scratchpad_edge_e {
+            CONFIG_SCRATCHPAD_EDGE_TOP = 0,
+            CONFIG_SCRATCHPAD_EDGE_BOTTOM,
+            CONFIG_SCRATCHPAD_EDGE_LEFT,
+            CONFIG_SCRATCHPAD_EDGE_RIGHT
+        } edge;              /**< Screen edge it slides out from */
+
+        /**
+         * @brief Either dimension, given as a fixed pixel count or as
+         *        the string "max", meaning "however much of that axis
+         *        is actually available", so a user is never forced to
+         *        hard-code a resolution that may change later
+         *
+         * @p pixels is only meaningful when @p mode is
+         * @c CONFIG_SCRATCHPAD_SIZE_FIXED; under
+         * @c CONFIG_SCRATCHPAD_SIZE_MAX the scratchpad's own placement
+         * code computes it fresh every time instead, against
+         * @p desktop->workarea (or the full monitor extent, when
+         * @p ignore_margins is @c true), the same as a numeric value
+         * would be measured against.
+         */
+        struct config_scratchpad_size_s {
+            enum config_scratchpad_size_e {
+                CONFIG_SCRATCHPAD_SIZE_FIXED = 0,
+                CONFIG_SCRATCHPAD_SIZE_MAX
+            } mode;
+            uint32_t pixels;
+        } width;             /**< Always-applied width */
+        struct config_scratchpad_size_s height; /**< Always-applied
+                                                      height */
+
+        bool is_enabled;    /**< Enable the scratchpad toggle action */
+
+        /**
+         * @brief Whether the scratchpad's own placement skips
+         *       @p desktops.margins and the systray's own reserved
+         *       space
+         *
+         * @c false (the default) places it the same way an ordinary
+         * client already respects that reserved space; @c true lets it
+         * use the full edge regardless, e.g., a top-edge scratchpad
+         * sliding out from underneath an external panel that already
+         * reserves that same space rather than starting just below it.
+         */
+        bool ignore_margins;
+
+        char command[CONFIG_MAX_LENGTH_COMMAND]; /**< Launched the
+                                                      first time the
+                                                      toggle runs with
+                                                      no scratchpad
+                                                      client yet */
+    } scratchpad;
+
+    /**
+     * @brief Configuration for the built-in systray dock
+     *
+     * Implements the @c _NET_SYSTEM_TRAY_Sn manager selection and the
+     * XEMBED protocol needed to actually host tray icons.
+     * The boolean @p is_enabled just gates whether that runs.
+     *
+     * @see @c systray.c
+     */
+    struct {
+        enum config_systray_position_e {
+            CONFIG_SYSTRAY_POSITION_TOP_LEFT = 0,
+            CONFIG_SYSTRAY_POSITION_TOP_RIGHT,
+            CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT,
+            CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT
+        } position;         /**< Corner of the screen to dock it in */
+
+        /**
+         * @brief Which physical monitor the tray dock is anchored to,
+         *        on a surface made of more than one sharing the same
+         *        combined X screen
+         *
+         * @p anchor picks the strategy: @p surface (default) anchors
+         * @p position's corner to the whole combined surface, exactly
+         * as if there were only one monitor; @p primary anchors it to
+         * the monitor RandR reports as primary; @p index anchors it to
+         * @p monitor.index specifically, a zero-based index into that
+         * surface's own monitor list (falls back to monitor 0 if it
+         * does not exist, logging a warning, the same as @c rules.json's
+         * own @p apply.monitor).
+         *
+         * Only one tray dock ever exists at a time regardless of this
+         * setting: the @c _NET_SYSTEM_TRAY_Sn specification permits
+         * only one tray manager per screen.  Consequently, multiple
+         * independent trays cannot coexist on the same screen.
+         *
+         * @see @c systray.c
+         */
+        struct {
+            enum config_systray_monitor_anchor_e {
+                CONFIG_SYSTRAY_MONITOR_SURFACE = 0,
+                CONFIG_SYSTRAY_MONITOR_PRIMARY,
+                CONFIG_SYSTRAY_MONITOR_INDEX
+            } anchor;
+            uint32_t index; /**< Only meaningful when @c anchor is
+                                  @c CONFIG_SYSTRAY_MONITOR_INDEX */
+        } monitor;
+
+        enum config_systray_order_e {
+            CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT = 0, /**< New icons are
+                                                         appended after
+                                                         the last one */
+            CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT,     /**< New icons are
+                                                         inserted before
+                                                         the first one */
+            CONFIG_SYSTRAY_ORDER_ASCENDING,         /**< Kept sorted by
+                                                         icon class name,
+                                                         'A-Z' */
+            CONFIG_SYSTRAY_ORDER_DESCENDING         /**< Kept sorted by
+                                                         icon class name,
+                                                         'Z-A' */
+        } order;            /**< Where newly docked icons are placed
+                                 relative to already-docked ones */
+        bool is_enabled;    /**< Enable the built-in systray dock */
+
+        /**
+         * @brief Whether the tray ever acquires the
+         *        @c _NET_SYSTEM_TRAY_S0 selection at all, letting
+         *        third-party applications dock an icon in it
+         *
+         * Never loaded from any configuration file: an ordinary
+         * session's own @a config_set_default_values always sets this
+         * @c true, and restricted-memory mode's own
+         * @a config_set_default_values_memguard (@c config/memguard.h)
+         * always sets it @c false, as a fixed part of that mode's own
+         * profile rather than something @c memguard.json itself is
+         * allowed to configure.  With this @c false, the tray still
+         * shows its own clock and battery text when @p is_enabled is
+         * also @c true; only docking a third party's own icon is ever
+         * affected.
+         *
+         * @see @a systray_init and @a systray_reload
+         */
+        bool is_embedding_enabled;
+
+        /**
+         * @brief Whether the tray publishes an
+         *        @c _NET_WM_STRUT_PARTIAL / @c _NET_WM_STRUT, reserving
+         *        an on-screen area so maximized windows and
+         *        placement leave it alone.
+         *
+         * @c false by default: nothing reserved, an explicit {0, 0, 0, 0}
+         * strut published, the same as if the tray were not there at
+         * all for placement purposes.  Setting this @c true instead
+         * makes the tray reserve an on-screen area, per the
+         * specification's recommendation for a docking area,
+         * a taskbar, or a panel.
+         *
+         * @see @a systray_get_reserved_strut and
+         *      @a desktop_update_workarea
+         */
+        bool reserve_space;
+
+        /**
+         * @brief Whether smart placement (@c windows.placement:
+         *        @c "smart") avoids landing a newly mapped window on
+         *        top of the tray
+         *
+         * @c true by default.  Has no effect when @p reserve_space is
+         * @c true: the tray's on-screen area is already excluded from
+         * the workarea @a place_window_smart searches in that case, so
+         * no candidate position could ever land on it regardless of
+         * this setting.  Only meaningful, then, for a tray configured
+         * strutless (@p reserve_space @c false): every candidate
+         * position @a place_window_smart scores is checked against the
+         * tray's current on-screen rectangle the same way it already
+         * checks every other visible client, so a new window still
+         * tends to avoid sitting on top of the tray even though the
+         * tray itself reserves no space for that to be guaranteed.
+         * This affects placement scoring only; the tray is not a real
+         * client, so it still cannot be moved, iconified, or otherwise
+         * acted on the way an actual window can.
+         *
+         * @see @a place_window_smart
+         */
+        bool avoid_overlap;
+
+        /**
+         * @brief Extra space added on top of whatever @c reserve_space
+         *        already reserves for the tray, on each of the
+         *        four screen edges
+         *
+         * Mirrors @p config_desktop_s's @p margins exactly: added
+         * to the tray's computed strut rather than replacing it, so
+         * a taller reservation than the tray's exact visual
+         * footprint is possible without having to fake it by inflating
+         * @p height instead.  All zero by default, same as no extra
+         * margin at all.  Has no effect when @p reserve_space is
+         * @c false: an all-zero strut plus a margin is still all zero
+         * from @p desktop_update_workarea's point of view, so there
+         * is nothing meaningful to add to.
+         *
+         * @see @a s_systray_strut_update in @c systray/layout.c
+         */
+        struct {
+            uint32_t left;
+            uint32_t top;
+            uint32_t bottom;
+            uint32_t right;
+        } margins;
+
+        /**
+         * @brief Where the tray dock window sits in the stacking order
+         *        relative to normal client windows and fullscreen ones
+         */
+        enum config_systray_layer_e {
+            CONFIG_SYSTRAY_LAYER_BELOW = 0,     /**< Always behind every
+                                                     normal client window
+                                                     (default) */
+            CONFIG_SYSTRAY_LAYER_ABOVE,         /**< Above normal
+                                                     windows; a
+                                                     fullscreen window
+                                                     still covers it */
+            CONFIG_SYSTRAY_LAYER_OVERLAY        /**< Above everything,
+                                                     including fullscreen
+                                                     windows */
+        } layer;
+
+        /**
+         * @brief Optional clock drawn inside the systray dock
+         *
+         * Where it is positioned/aligned is shared with @c battery
+         * below; see @c text.
+         */
+        struct {
+            bool is_enabled;        /**< Draw the clock or not */
+            char format[CONFIG_MAX_LENGTH_NAME]; /**< 'strftime(3)'
+                                                       format string */
+        } clock;
+
+        /**
+         * @brief Optional battery status drawn inside the systray dock,
+         *        compatible with either the Linux ACPI or the older APM
+         *        battery interface
+         *
+         * The status text itself follows @p threshold: @p charged is
+         * the percentage (typically 100) at or above which it reads
+         * "Full" instead of a percentage; @p low and @p critical each
+         * append one or two '!' to the percentage while running on
+         * battery power (never while on AC), e.g., "20%!" or "5%!!".
+         *
+         * "AC" is appended whenever AC power is connected, whether or
+         * not the battery itself is present or charged.  "N/A" is shown
+         * when no battery matching @p backend can be read at all.
+         * Where it is positioned/aligned is shared with @p clock above.
+         * 
+         * @see @p text
+         */
+        struct {
+            bool is_enabled;        /**< Draw the battery status at all */
+
+            struct {
+                uint32_t charged;   /**< Percentage at/above which the
+                                         status reads "Full" */
+                uint32_t low;       /**< Percentage at/below which a
+                                         single '!' is appended */
+                uint32_t critical;  /**< Percentage at/below which two
+                                         '!' are appended instead of one */
+            } threshold;
+
+            /**
+             * @brief Which kernel battery interface to read, and which
+             *        battery to read from it
+             */
+            struct {
+                enum config_battery_backend_type_e {
+                    /** Linux sysfs @c /sys/class/power_supply, the
+                     *  modern, near-universal interface */
+                    CONFIG_BATTERY_BACKEND_ACPI = 0,
+
+                    /** Legacy @c /proc/apm, for older hardware or
+                     *  kernels without ACPI */
+                    CONFIG_BATTERY_BACKEND_APM
+                } type;
+
+                uint32_t number;    /**< Which battery to read when
+                                         a system has more than one,
+                                         0-indexed (e.g., 1 for @c BAT1
+                                         under ACPI); meaningless for
+                                         APM, which only ever exposes one
+                                         aggregate battery */
+
+            } backend;
+
+            /**
+             * @brief Seconds between re-reading the battery status
+             *
+             * @see @c WM_SYSTRAY_BATTERY_POLL_SECONDS in
+             *      @c defs/loop.h for the built-in default this
+             *      overrides
+             */
+            uint32_t poll_seconds;
+        } battery;
+
+        /**
+         * @brief Shared placement and alignment for the clock and
+         *        battery status text, when either or both are enabled
+         */
+        struct {
+            /**
+             * @brief Which of the two to show, and in what
+             *        left-to-right order
+             *
+             * An item absent from this list does not show even if its
+             * own @p is_enabled is @c true, and one with @p is_enabled
+             * @c false is skipped even if listed here.
+             */
+            enum config_systray_text_item_e {
+                CONFIG_SYSTRAY_TEXT_CLOCK = 0,
+                CONFIG_SYSTRAY_TEXT_BATTERY
+            } order[2];
+            uint8_t order_count;
+
+            enum config_systray_text_position_e {
+                CONFIG_SYSTRAY_TEXT_LEFT = 0,  /**< Before the icons,
+                                                    in dock order */
+                CONFIG_SYSTRAY_TEXT_RIGHT      /**< After the icons,
+                                                    in dock order */
+            } position;
+        } text;
+    } systray;
+
+    struct {
+        uint32_t desktop_count;                 /**< No. of desktops */
+        uint32_t desktop_inaugural;             /**< Initial desktop */
+        struct config_desktop_layout_s
+            desktop_layout;                      /**< Grid interpretation
+                                                        of the desktop
+                                                        list below */
+
+        struct {
+            char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */
+            struct desktop_settings_s {
+                union {
+                    //Pixmap image;               /**< Background image */
+                    uint32_t color;             /**< Background color */
+                } background;
+            } settings;                         /**< Desktop settings */
+        } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
+    } screens[CONFIG_MAX_SCREENS];              /**< All screens */
+
+    /**
+     * @brief Whether 'KEYBIND_LAUNCH_LAUNCHER' opens the built-in
+     *        run-box instead of spawning @p programs.launcher
+     *
+     * Its own top-level section, rather than nested under @p programs
+     * itself, specifically to avoid the confusion a second, differently
+     * typed "launcher" key nested right next to @p programs.launcher
+     * (a plain command string) would invite; see @c menu/dialog/run.h
+     * for the run-box itself.
+     *
+     * @p is_enabled defaults to @c false in normal mode; defaults to
+     * @c true in restricted-memory mode, where avoiding the extra
+     * process @p programs.launcher itself would otherwise spawn (even
+     * a minimal one, e.g., 'gmrun', this mode's own default for it)
+     * fits that mode's whole reason for existing.
+     *
+     * @see @a ik_handle_launch (input/kbd/interact.c) for where this
+     *      is consulted
+     */
+    struct {
+        bool is_enabled;
+    } prompt;
+
+    /**
+     * @brief The @c fortune easter egg, whether its own keyboard
+     *        shortcut is active at all, and which command it runs
+     *
+     * @p command is run through a shell (@a popen), so it may be any
+     * shell command line, not just a bare executable name (e.g.,
+     * @c (fortune -s) for short-only fortunes, @c (fortune -o) for
+     * offensive ones, or a specific fortune database/language).
+     *
+     * Runs literally as configured, with no argument substitution or
+     * validation of its own: an invalid command simply produces no
+     * output, which the dialog already falls back to a built-in message
+     * for.
+     *
+     * @see @c menu/dialog/fortune.c
+     * @see @c STR_FORTUNE_FALLBACK in @c defs/uistr.h
+     */
+    struct {
+        bool is_enabled;
+        char command[CONFIG_MAX_LENGTH_COMMAND];
+    } fortune;
+
+    char theme[CONFIG_MAX_LENGTH_FILENAME];
+
+    /* Basic main programs: terminal and program launcher */
+    struct {
+        char terminal[CONFIG_MAX_LENGTH_COMMAND];
+        char launcher[CONFIG_MAX_LENGTH_COMMAND];
+        char file_manager[CONFIG_MAX_LENGTH_COMMAND];
+        char web_browser[CONFIG_MAX_LENGTH_COMMAND];
+        char editor[CONFIG_MAX_LENGTH_COMMAND];
+    } programs;
+};
+
+
+#endif  /* ! CONFIG_BASE_H */
