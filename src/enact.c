@@ -6,8 +6,7 @@
  *
  * Every client-, desktop-, and surface-level action lives in
  * @c enact/client.c, @c enact/desktop.c, and @c enact/surface.c
- * instead, split out of what used to be a single, flat version of
- * this file.
+ * instead; this file only declares the domain they share.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

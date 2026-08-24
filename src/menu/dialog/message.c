@@ -283,8 +283,8 @@ static s_message_line_td *s_message_wrap_text(const char *raw,
  * are measured directly in that font, avoiding the same off-center
  * risk @c s_confirm_compute_layout (menu/dialog/confirm.c) guards
  * against for the two-button confirm dialog.  Caps @p layout->h to
- * 70% of @p surface's resolved target monitor (see @c
- * dlgutil_resolve_monitor) and computes how many message lines fit
+ * 70% of @p surface's resolved target monitor (see
+ * @c dlgutil_resolve_monitor) and computes how many message lines fit
  * within that cap into @p layout->visible_lines, scrolling the rest
  * instead of growing past it; see @c s_message_draw for how that
  * scrolling is actually drawn.

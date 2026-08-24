@@ -3,7 +3,7 @@
  *
  * @brief Configuration string-to-enumeration parsing helpers
  *
- * Split out of what used to be a single, flat @c config/base.c;
+ * One of the files @c config/base/ is made of;
  * everything here parses one JSON string field into its matching
  * configuration enumeration value, shared across
  * @c config/base/desktops.c, @c defaults.c, @c systray.c, and

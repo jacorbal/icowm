@@ -3,7 +3,7 @@
  *
  * @brief Applies a merged rule action descriptor to a client
  *
- * Split out of @c rules.c: @c rules_apply and its per-field helpers
+ * Kept apart from @c rules.c: @c rules_apply and its per-field helpers
  * form one coherent responsibility (mutating a client to match a rule's
  * merged action set) that is independent from loading and parsing the
  * rules table itself, and shares no file-scope state with @c rules.c
@@ -52,8 +52,8 @@
  * @brief Broadcast an IPC event carrying one client's own identifying
  *        fields
  *
- * Mirrors @a enact_broadcast_client_event's own field shape (@c
- * enact/internal.h), which this file cannot reach directly: that
+ * Mirrors @a enact_broadcast_client_event's own field shape
+ * (@c enact/internal.h), which this file cannot reach directly: that
  * header is deliberately private to @c enact/ itself (see its own
  * doc comment for why), so this is its own small, local copy of the
  * same fields instead.
@@ -185,8 +185,8 @@ static void s_rules_apply_layer(client_td *client,
  * through @a ccmd_client_apply_geometry, the same shared primitive
  * every other geometry-changing operation in this project already
  * uses, rather than building its own values array by hand; flushed
- * and broadcast afterward (@c IPC_EVENT_WINDOW_MOVED and/or @c
- * _RESIZED, matching whichever of position/size actually changed),
+ * and broadcast afterward (@c IPC_EVENT_WINDOW_MOVED and/or
+ * @c _RESIZED, matching whichever of position/size actually changed),
  * the same as @a enact_client_move/@c _resize do for every other
  * trigger of the same two events.
  *

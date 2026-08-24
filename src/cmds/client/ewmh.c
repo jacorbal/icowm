@@ -56,8 +56,9 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  * every one of the dozens of call sites across this project that
  * change some piece of a client's own state.  This function needs
  * only the write: every state below already has its own single
- * source of truth living directly on @p client itself (@c
- * properties.state, @c properties.layer, or a @c CLIENT_FLAG_* bit),
+ * source of truth living directly on @p client itself
+ * (@c properties.state, @c properties.layer, or a
+ * @c CLIENT_FLAG_* bit),
  * so there is nothing to read back and merge with in the first
  * place.
  *
@@ -86,8 +87,8 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  *
  * @c _NET_WM_STATE_FOCUSED has no matching field on @c xcb_ewmh_
  * connection_t (a newer, less universally standard extension than
- * the rest), so it is the one atom here still resolved through @a
- * ccmd_intern_atom rather than read directly off @p client->ewmh;
+ * the rest), so it is the one atom here still resolved through
+ * @a ccmd_intern_atom rather than read directly off @p client->ewmh;
  * @a atom_intern's own internal cache (@c utils/xcb/atom.c) already
  * makes every call after the very first one a plain lookup, no XCB
  * round trip, so this costs nothing extra on every later sync.

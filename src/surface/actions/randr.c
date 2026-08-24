@@ -30,6 +30,7 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+#include <utils/xcb/reply.h>
 
 /* Project includes */
 #include <client.h>
@@ -616,6 +617,8 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
     xcb_randr_get_screen_resources_current_reply_t *res_reply;
     xcb_randr_get_output_primary_cookie_t primary_cookie;
     xcb_randr_get_output_primary_reply_t *primary_reply;
+    xcb_generic_error_t *res_error = NULL;
+    xcb_generic_error_t *primary_error = NULL;
     xcb_randr_output_t current_primary;
     bool any_changed = false;
 
@@ -638,8 +641,9 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
     res_cookie = xcb_randr_get_screen_resources_current(
             surface->connection, surface->screen->root);
     res_reply = xcb_randr_get_screen_resources_current_reply(
-            surface->connection, res_cookie, NULL);
+            surface->connection, res_cookie, &res_error);
     if (res_reply == NULL) {
+        xcb_reply_log_error(res_error, "the XRandR screen resources");
         LOGGER_WARNING("XRandR: failed to query screen resources on" \
                 " surface %u; cannot apply output profiles",
                 surface->id);
@@ -654,7 +658,8 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
     primary_cookie = xcb_randr_get_output_primary(surface->connection,
             surface->screen->root);
     primary_reply = xcb_randr_get_output_primary_reply(
-            surface->connection, primary_cookie, NULL);
+            surface->connection, primary_cookie, &primary_error);
+    xcb_reply_log_error(primary_error, "the primary XRandR output");
     current_primary = (primary_reply != NULL)
         ? primary_reply->output : (xcb_randr_output_t) XCB_NONE;
     free(primary_reply);

@@ -53,8 +53,8 @@ static size_t s_ohtbl_gcd(size_t a, size_t b)
  * the step @c i is multiplied by is itself coprime with @p positions;
  * otherwise the probe cycles through only the limited, fixed subset
  * of positions reachable from that step, which can be far short of
- * the whole table.  @a s_h1 / @a s_h2 (desktop.c, the only @c h1 / @c
- * h2 pair this project defines today) already forces its own raw
+ * the whole table.  @a s_h1 / @a s_h2 (desktop.c, the only @c h1 /
+ * @c h2 pair this project defines today) already forces its own raw
  * value away from zero, but a hash function has no way to know
  * @p positions in the first place (its own signature never receives
  * it), so nothing before this point could have enforced coprimality

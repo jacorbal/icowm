@@ -21,8 +21,8 @@
  * file's header instead (@c drag/overlay.h, @c drag/snap.h,
  * @c drag/outline.h, @c drag/warp.h), not duplicated here.
  *
- * @note This header is private to @c input/mouse/drag/ (and @c
- *       input/mouse/drag.c, which orchestrates every drag/ file) and
+ * @note This header is private to @c input/mouse/drag/ (and
+ *       @c input/mouse/drag.c, which orchestrates every drag/ file) and
  *       must not be included outside of them
  */
 /*

@@ -29,6 +29,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Utils includes */
+#include <utils/xcb/reply.h>
+
 /* Project includes */
 #include <logger.h>
 #include <surface.h>
@@ -163,6 +166,7 @@ int wm_startup_init_sync(wm_td *wm)
     const xcb_query_extension_reply_t *ext;
     xcb_sync_initialize_reply_t *ver_reply;
     xcb_sync_initialize_cookie_t ver_cookie;
+    xcb_generic_error_t *ver_error = NULL;
     xcb_connection_t *connection = wm_connection(wm);
 
     if (wm == NULL || connection == NULL) {
@@ -179,8 +183,10 @@ int wm_startup_init_sync(wm_td *wm)
     }
 
     ver_cookie = xcb_sync_initialize(connection, 3u, 0u);
-    ver_reply = xcb_sync_initialize_reply(connection, ver_cookie, NULL);
+    ver_reply = xcb_sync_initialize_reply(connection, ver_cookie,
+            &ver_error);
     if (ver_reply == NULL) {
+        xcb_reply_log_error(ver_error, "the XSync version");
         LOGGER_WARNING("Failed to query XSync version;" \
                 " disabling '_NET_WM_SYNC_REQUEST'", L_NARG);
         return 0;

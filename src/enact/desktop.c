@@ -4,7 +4,7 @@
  * @brief Every desktop-level action this window manager can carry
  *        out, one typed function per action
  *
- * Split out of what used to be a single, flat @c enact.c; see
+ * One of the files @c enact/ is made of; see
  * @c enact/internal.h for why.
  */
 /*
@@ -96,7 +96,7 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
  * @brief Send exactly this one client from one desktop to another,
  *        ignoring any transient family it may belong to
  *
- * Split out of what used to be the whole of
+ * Carries what used to sit inside
  * @a enact_desktop_client_send so that function can redirect to, and
  * cascade across, a transient family (see its own doc comment) while
  * still sharing this single client's worth of desktop-move plumbing

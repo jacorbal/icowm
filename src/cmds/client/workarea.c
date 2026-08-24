@@ -3,9 +3,8 @@
  *
  * @brief Client-relative workarea resolution
  *
- * Split out of what used to be a single, flat @c cmds/client/geom.c;
- * see that file's history for why.  Its own single function today,
- * kept separate from @c move.c/@c maximize.c regardless: shared
+ * One of the files @c cmds/client/ is made of.  Its own single function
+ * today, kept separate from @c move.c/@c maximize.c regardless: shared
  * almost evenly by positioning (centering, moving to a corner) and
  * maximize/fullscreen sizing alike, it belongs to neither one on its
  * own.

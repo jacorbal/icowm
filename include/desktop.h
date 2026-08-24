@@ -70,7 +70,7 @@
  * Reusing it here as a seed, rather than picking a second unrelated
  * number, implies that both seeds are already independently well-vetted
  * for bit dispersion, which is exactly the property double hashing
- * needs from @c h1 and @c h2 to stay uncorrelated for the same key.
+ * needs from @p h1 and @p h2 to stay uncorrelated for the same key.
  */
 #define DESKTOP_HASH_SEED_SECONDARY (0x85EBCA6Bu)
 
@@ -78,8 +78,8 @@
 /**
  * @brief Forward declaration only: a surface owns its own desktops
  *        (@c surface.h includes this header, never the other way
- *        around), so this header can only ever reference @c
- *        surface_td through a pointer, never the full definition.
+ *        around), so this header can only ever reference
+ *        @c surface_td through a pointer, never the full definition.
  *        Guarded (see @c surface.h's own matching guard) since
  *        whichever of the two headers a translation unit includes
  *        first sets it, so a later include of the other one skips
@@ -192,11 +192,13 @@ typedef struct desktop_s {
      */
     struct geometry_s monitor_workareas[WM_SURFACE_MAX_MONITORS];
 
-    bool is_outdated;       /**< Flag when data needs to be updated */
+    bool is_outdated;                       /**< Flag when data needs to
+                                                 be updated */
 
-    bool is_focus_dirty;    /**< Active client changed since last render
-                                 pass; decoration colors must be
-                                 refreshed on all clients */
+    bool is_focus_dirty;                       /**< Active client changed
+                                                 since last render pass;
+                                                 decoration colors must be
+                                                 refreshed on all clients */
 
     /**
      * @brief Whether at least one client on this desktop currently has

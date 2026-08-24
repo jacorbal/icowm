@@ -3,8 +3,8 @@
  *
  * @brief Selection and activation of a context menu's own entries
  *
- * Split out of what used to be a single, flat
- * @c menu/context/ctxmenu.c.
+ * One of the files
+ * @c menu/context/ctxmenu/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

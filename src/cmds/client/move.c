@@ -3,11 +3,11 @@
  *
  * @brief Client positioning command implementation
  *
- * Split out of what used to be a single, flat @c cmds/client/geom.c;
- * see that file's history for why.  Covers moving a client (including
- * to a specific monitor, or centering it), plus @a ccmd_client_apply_
- * geometry, the single shared XCB call every geometry-changing
- * operation across move, resize, and maximize alike funnels through.
+ * One of the files @c cmds/client/ is made of.  Covers moving a
+ * client (including to a specific monitor, or centering it), plus
+ * @a ccmd_client_apply_geometry, the single shared XCB call every
+ * geometry-changing operation across move, resize, and maximize
+ * alike funnels through.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -47,13 +47,13 @@
  *        XCB call
  *
  * Openbox's own real answer to configuring a window's geometry
- * (confirmed directly against its source, @c client_configure in @c
- * client.c): one shared function every geometry-changing operation
- * funnels through, rather than each one building its own @c
- * xcb_configure_window values array by hand.  @c XCB_CONFIG_WINDOW_*
+ * (confirmed directly against its source, @c client_configure in
+ * @c client.c): one shared function every geometry-changing operation
+ * funnels through, rather than each one building its own
+ * @c xcb_configure_window values array by hand.  @c XCB_CONFIG_WINDOW_*
  * bit values themselves fix the order @c xcb_configure_window's own
- * values array must list whichever fields @p mask selects in (@c X @c
- * <@c Y @c <@c WIDTH @c <@c HEIGHT @c <@c BORDER_WIDTH, confirmed
+ * values array must list whichever fields @p mask selects in (@c X
+ * @c <@c Y @c <@c WIDTH @c <@c HEIGHT @c <@c BORDER_WIDTH, confirmed
  * directly against @c xproto.h), the exact ordering every one of this
  * function's own former call sites had to get right by hand, on its
  * own, every single time; this function gets it right once.
@@ -84,8 +84,8 @@
  *                      WINDOW_WIDTH is set in @p mask
  * @param h            New height, only applied if @c XCB_CONFIG_
  *                      WINDOW_HEIGHT is set in @p mask
- * @param border_width New native border width, only applied if @c
- *                      XCB_CONFIG_WINDOW_BORDER_WIDTH is set in
+ * @param border_width New native border width, only applied if
+ *                      @c XCB_CONFIG_WINDOW_BORDER_WIDTH is set in
  *                      @p mask
  *
  * @note A null @p client, one with no connection, or a @c XCB_WINDOW_

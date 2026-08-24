@@ -4,7 +4,7 @@
  * @brief Signal handlers and the flags they set, queried back by the
  *        main loop
  *
- * Split out of what used to be a single, flat @c startup.c.
+ * One of the files @c wm/startup/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

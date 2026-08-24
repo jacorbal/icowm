@@ -4,7 +4,7 @@
  * @brief Restricted-memory mode's own fixed default configuration
  *        profile implementation
  *
- * Split out of @c config/memguard.c to keep that file focused on
+ * Kept apart from @c config/memguard.c so that file stays focused on
  * orchestrating restricted-memory mode's own config loading, not on
  * the profile's own long, mechanical list of fixed field values.
  */

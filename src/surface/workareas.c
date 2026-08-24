@@ -3,7 +3,7 @@
  *
  * @brief Per-desktop work-area recomputation for a surface
  *
- * Split out of what used to be a single, flat @c surface.c; see
+ * One of the files @c surface/ is made of; see
  * @c surface.c's own doc comment for why.  Its own single function
  * today, kept separate from @c surface/desktops.c regardless: work
  * area is a rendering/placement concern, not desktop-list navigation,

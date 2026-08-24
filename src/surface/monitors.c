@@ -3,7 +3,7 @@
  *
  * @brief RandR physical-monitor detection and lookup for a surface
  *
- * Split out of what used to be a single, flat @c surface.c; see
+ * One of the files @c surface/ is made of; see
  * @c surface.c's own doc comment for why.
  */
 /*
@@ -42,8 +42,8 @@
 /**
  * @brief Whole-surface fallback for the monitor list
  *
- * Fills @p surface->monitors with a single entry spanning @p
- * surface->properties.dim, used whenever RandR cannot supply a real
+ * Fills @p surface->monitors with a single entry spanning
+ * @p surface->properties.dim, used whenever RandR cannot supply a real
  * monitor list.
  *
  * @param surface Pointer to the surface to fall back

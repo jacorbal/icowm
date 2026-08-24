@@ -5,8 +5,8 @@
  *        show a rectangle around a target without touching the
  *        target's own geometry
  *
- * Split out of what used to be @c input/mouse/drag/outline.c, drag-
- * specific state and all; see that file's own history for why.  A
+ * The strip-window mechanism itself, with no drag-specific state of
+ * its own.  A
  * caller owns its own 4-element @c xcb_window_t array (initialized to
  * @c XCB_WINDOW_NONE before first use) and passes it to every call
  * below; this file itself keeps none of that state.

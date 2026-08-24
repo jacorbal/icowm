@@ -3,7 +3,7 @@
  *
  * @brief Iconify, hide, and unhide actions over clients
  *
- * Split out of what used to be a single, flat @c cmds/client/basic.c.
+ * One of the files @c cmds/client/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -62,7 +62,7 @@
  * @brief Iconize exactly this one client, ignoring any transient
  *        family it may belong to
  *
- * Split out of what used to be the whole of @a ccmd_client_iconify so
+ * Carries what used to sit inside @a ccmd_client_iconify so
  * that function can redirect to, and cascade across, a transient
  * family (see its own doc comment) while still sharing this single
  * client's worth of ICCCM/EWMH bookkeeping with the top-level, family-
@@ -276,7 +276,7 @@ static void s_ccmd_client_iconify_one(client_td *client)
  * @brief Hide exactly this one client (minimize, but not iconify),
  *        ignoring any transient family it may belong to
  *
- * Split out of what used to be the whole of @a ccmd_client_hide so
+ * Carries what used to sit inside @a ccmd_client_hide so
  * that function can redirect to, and cascade across, a transient
  * family (see its own doc comment).
  *
@@ -324,7 +324,7 @@ static void s_ccmd_client_hide_one(client_td *client)
  * @brief Show (unhide) exactly this one client, ignoring any
  *        transient family it may belong to
  *
- * Split out of what used to be the whole of @a ccmd_client_unhide so
+ * Carries what used to sit inside @a ccmd_client_unhide so
  * that function can redirect to, and cascade across, a transient
  * family (see its own doc comment).
  *

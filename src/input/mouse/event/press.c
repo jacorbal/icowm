@@ -3,7 +3,7 @@
  *
  * @brief Mouse button-press handling
  *
- * Split out of what used to be a single, flat @c input/mouse/event.c;
+ * One of the files @c input/mouse/event/ is made of;
  * everything here feeds @c mouse_handle_press specifically. Each
  * non-trivial responsibility inside it has been extracted into its own
  * static function so the public entry point reads as a straightforward
@@ -576,8 +576,8 @@ static void s_scroll_titlebar_restore(client_td *client,
  * @param desktop  Desktop owning @p client, or @c NULL
  * @param surface  Surface owning @p desktop, or @c NULL
  * @param surfaces Full surface list, passed through to @c focus_apply
- * @param config   Active configuration, passed through to @c
- *                 focus_apply
+ * @param config   Active configuration, passed through to
+ *                 @c focus_apply
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
@@ -632,8 +632,8 @@ static void s_scroll_titlebar_shade(client_td *client,
  * @param desktop  Desktop owning @p client, or @c NULL
  * @param surface  Surface owning @p desktop, or @c NULL
  * @param surfaces Full surface list, passed through to @c focus_apply
- * @param config   Active configuration, passed through to @c
- *                 focus_apply
+ * @param config   Active configuration, passed through to
+ *                 @c focus_apply
  *
  * @note Complexity: @e O(1)
  */

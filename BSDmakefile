@@ -120,7 +120,7 @@ CCWARN_TINY = ${CCWARN_POSIX} -Wpedantic -Wall -Wextra -Wshadow -Wundef \
 CCWARN_MORE = -Wwrite-strings -Wconversion -Wdouble-promotion
 
 CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
-              -Wcast-align -Wpointer-arith -Wstrict-overflow=5 \
+              -Wcast-align -Wpointer-arith -Wstrict-overflow=2 \
               -Wunreachable-code -Wmissing-format-attribute \
               -Wdeprecated -fwrapv
 

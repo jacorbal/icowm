@@ -281,8 +281,8 @@ static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
  * already reflects everything drawn on screen.  For an icon target,
  * that geometry is not tracked anywhere on @p client itself, so it is
  * recomputed here the same way @c ccmd_client_ensure_icon_window
- * (cmds/client/icon.c) originally sized the icon window: @c
- * WM_ICON_SQUARE_SIZE alone when @p theme.icon.is-captioned is off,
+ * (cmds/client/icon.c) originally sized the icon window:
+ * @c WM_ICON_SQUARE_SIZE alone when @p theme.icon.is-captioned is off,
  * plus @c WM_ICON_CAPTION_HEIGHT when it is on, since the icon
  * window's own real height already includes room for that caption
  * text underneath the pixmap, not just the square icon area above

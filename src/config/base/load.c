@@ -3,7 +3,7 @@
  *
  * @brief Base configuration loading entry point
  *
- * Split out of what used to be a single, flat @c config/base.c;
+ * One of the files @c config/base/ is made of;
  * @c config_load_base is the top-level orchestrator, calling into
  * @c config/base/parse.c's own enumeration parsers directly,
  * @c desktops.c's @c ci_config_load_screens and

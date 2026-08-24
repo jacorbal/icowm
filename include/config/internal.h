@@ -266,8 +266,8 @@ enum config_desktop_orientation_e
  *
  * @return Parsed corner enumeration value
  *
- * @note Supported values are @c top-left, @c top-right, @c
- *       bottom-left, and @c bottom-right
+ * @note Supported values are @c top-left, @c top-right,
+ *       @c bottom-left, and @c bottom-right
  * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
  */

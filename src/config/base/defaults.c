@@ -4,7 +4,7 @@
  * @brief Compiled-in default values for the base and desktop-
  *        navigation configuration structures
  *
- * Split out of what used to be a single, flat @c config/base.c;
+ * One of the files @c config/base/ is made of;
  * @c config_set_default_base_values is used both as the initial
  * process-wide default and, before applying @c config.json (or
  * @c memguard.json) found, as the known-good starting point that

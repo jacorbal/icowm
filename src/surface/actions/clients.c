@@ -3,7 +3,7 @@
  *
  * @brief Client show/hide, sticky transfer, and reflow for a surface
  *
- * Split out of what used to be a single, flat @c surface/actions.c;
+ * One of the files @c surface/actions/ is made of;
  * everything here operates on a desktop's own clients directly (as
  * opposed to @c surface/actions/randr.c's own RandR output/CRTC/mode
  * concerns, which never touch client visibility directly).

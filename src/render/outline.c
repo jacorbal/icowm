@@ -5,8 +5,8 @@
  *        show a rectangle around a target without touching the
  *        target's own geometry
  *
- * Split out of what used to be @c input/mouse/drag/outline.c, drag-
- * specific state and all; see that file's own history for why.
+ * The strip-window mechanism itself, with no drag-specific state of
+ * its own.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -3,10 +3,9 @@
  *
  * @brief Client resize command implementation
  *
- * Split out of what used to be a single, flat @c cmds/client/geom.c;
- * see that file's history for why.  Covers resizing a client,
- * including the @c _NET_WM_SYNC_REQUEST throttling pipeline that
- * paces an ongoing interactive resize against the client's own
+ * One of the files @c cmds/client/ is made of.  Covers resizing a
+ * client, including the @c _NET_WM_SYNC_REQUEST throttling pipeline
+ * that paces an ongoing interactive resize against the client's own
  * redraw acknowledgements.
  */
 /*
@@ -179,8 +178,9 @@ static void s_ccmd_resize_dispatch_synced(client_td *client,
  *
  * Resizing is forbidden outright only where neither axis has
  * anything free to resize at all: fully maximized (both axes) or
- * fullscreen.  A client maximized on just one axis (@c
- * CLIENT_STATE_MAXIMIZED_HORZ/@c _VERT) is deliberately let through
+ * fullscreen.  A client maximized on just one axis, that is,
+ * @c CLIENT_STATE_MAXIMIZED_HORZ or @c CLIENT_STATE_MAXIMIZED_VERT,
+ * is deliberately let through
  * here: its own free axis stays genuinely resizable, matching every
  * one of this project's own interactive resize entry points (mouse
  * border drag via @a drag_start_resize_axis_locked, its matching

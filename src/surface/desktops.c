@@ -3,10 +3,10 @@
  *
  * @brief Desktop-list membership and grid navigation for a surface
  *
- * Split out of what used to be a single, flat @c surface.c; see
+ * One of the files @c surface/ is made of; see
  * @c surface.c's own doc comment for why.  @c _prev/@c _next are now
- * @c _west/@c _east, joined by two new siblings, @c _north/@c
- * _south: a flat desktop list has no genuine "previous" or "next" of
+ * @c _west and @c _east, joined by @c _north and @c _south:
+ * a flat desktop list has no genuine "previous" or "next" of
  * its own, only a configured @c topology.screens.desktops layout's
  * own reading order does, and that same order runs one of two ways
  * depending on @c orientation, so a name tied to whichever axis a
@@ -201,8 +201,8 @@ enum s_grid_direction_e {
  * @brief Step from one desktop to its own grid neighbor in a given
  *        compass direction, skipping past any desktop-less gap cell
  *        a configured layout's own @c rows @c * @c columns may
- *        legitimately exceed the real desktop count with (see @c
- *        ci_config_load_screens's own doc comment, config/base/
+ *        legitimately exceed the real desktop count with (see
+ *        @c ci_config_load_screens's own doc comment, config/base/
  *        desktops.c, for why a gap like that is accepted rather
  *        than rejected outright)
  *

@@ -3,10 +3,9 @@
  *
  * @brief Pin, urgency, and allowed-actions state toggles over clients
  *
- * Split out of what used to be a single, flat @c cmds/client/basic.c.
- * Not named @c state.c to avoid colliding with the existing @c
- * cmds/client/state.c (fullscreen/shade/maximize), an unrelated set
- * of client states already split out on its own before this session.
+ * One of the files @c cmds/client/ is made of.
+ * Not named @c state.c because @c cmds/client/state.c already holds
+ * an unrelated set of client states (fullscreen, shade, maximize).
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -65,7 +64,7 @@
  * @brief Pin exactly this one client, ignoring any transient family
  *        it may belong to
  *
- * Split out of what used to be the whole of @a ccmd_client_pin so
+ * Carries what used to sit inside @a ccmd_client_pin so
  * that function can redirect to, and cascade across, a transient
  * family (see its own doc comment).
  *
@@ -94,7 +93,7 @@ static void s_ccmd_client_pin_one(client_td *client)
  * @brief Unpin exactly this one client, ignoring any transient family
  *        it may belong to
  *
- * Split out of what used to be the whole of @a ccmd_client_unpin so
+ * Carries what used to sit inside @a ccmd_client_unpin so
  * that function can redirect to, and cascade across, a transient
  * family (see its own doc comment).
  *

@@ -509,8 +509,8 @@ static void s_client_collect(client_td *client,
  * never drift out of step on what actually counts as a group) with
  * @p out_entries itself @c NULL: every real side effect (writing an
  * entry, claiming an @c s_entry_data slot, or touching the real,
- * shared @c s_appgroup_used / @c s_appgroup_entries / @c
- * s_appgroup_state) is skipped in that mode, in favor of only
+ * shared @c s_appgroup_used / @c s_appgroup_entries /
+ * @c s_appgroup_state) is skipped in that mode, in favor of only
  * advancing @p out_count (so the same per-desktop cap still applies
  * identically either way) and, once found, @p out_appgroup_count.
  *

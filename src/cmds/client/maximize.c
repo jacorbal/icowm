@@ -3,11 +3,10 @@
  *
  * @brief Client maximize/fullscreen command implementation
  *
- * Split out of what used to be a single, flat @c cmds/client/geom.c;
- * see that file's history for why.  Covers the per-axis maximize
- * state machine (horizontal, vertical, or both), and re-filling an
- * already-maximized client's own geometry against a workarea that has
- * since changed.
+ * One of the files @c cmds/client/ is made of.  Covers the per-axis
+ * maximize state machine (horizontal, vertical, or both), and
+ * re-filling an already-maximized client's own geometry against a
+ * workarea that has since changed.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -192,10 +191,10 @@ static bool s_ccmd_maximize_precheck(client_td *client)
  *
  * Unlike Openbox, which tracks @c max_horz and @c max_vert as two
  * independent booleans, this project's own @c properties.state is a
- * single, mutually exclusive value (@c CLIENT_STATE_NORMAL, @c
- * _MAXIMIZED, @c _MAXIMIZED_HORZ, or @c _MAXIMIZED_VERT), so "is the
- * horizontal axis currently maximized" is derived (@c state @c == @c
- * MAXIMIZED @c || @c state @c == @c MAXIMIZED_HORZ) rather than read
+ * single, mutually exclusive value (@c CLIENT_STATE_NORMAL,
+ * @c _MAXIMIZED, @c _MAXIMIZED_HORZ, or @c _MAXIMIZED_VERT), so "is the
+ * horizontal axis currently maximized" is derived (@c state @c ==
+ * @c MAXIMIZED @c || @c state @c == @c MAXIMIZED_HORZ) rather than read
  * directly off a field of its own; @p dir @c == @c 0 (both axes)
  * still only ever has the two cases Openbox's own top-level toggle
  * does (already fully maximized, so restore; anything else, so

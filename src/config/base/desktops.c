@@ -3,7 +3,7 @@
  *
  * @brief Screen and desktop topology loading
  *
- * Split out of what used to be a single, flat @c config/base.c;
+ * One of the files @c config/base/ is made of;
  * everything here loads @c topology.screens (screen count, and each
  * screen's desktop count/inaugural desktop/desktop entries, in either
  * the flat or nested on-disk shape) and @c desktops (desktop-navigation

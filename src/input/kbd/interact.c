@@ -4,7 +4,7 @@
  * @brief Direct keyboard interaction with the currently focused
  *        client: program launch, move, and resize bindings
  *
- * Split out of @c input/kbd/event.c, launching a program and moving or
+ * One of the files @c input/kbd/ is made of: launching a program and moving or
  * resizing the active client are direct, immediate reactions to
  * a single keypress, independent from the cycle-menu, dialog, and
  * open-menu key handling and the generic client-action dispatch that

@@ -3,7 +3,7 @@
  *
  * @brief Icon window creation, positioning, and slot-conflict detection
  *
- * Split out of what used to be a single, flat @c cmds/client/basic.c.
+ * One of the files @c cmds/client/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

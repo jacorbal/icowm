@@ -22,8 +22,8 @@
  *
  * Shared by every subsystem that steps to a neighboring desktop or
  * monitor in a given direction, rather than each defining its own
- * private, differently-named copy of the same four values: @c
- * enact_client_send_to_desktop_north/@c _south/@c _east/@c _west
+ * private, differently-named copy of the same four values:
+ * @c enact_client_send_to_desktop_north/@c _south/@c _east/@c _west
  * (enact.h), carrying the focused client to another desktop; the
  * desktop-cycle keybind's own equivalent, switching the view itself
  * without moving any client along; and a directional monitor-move,

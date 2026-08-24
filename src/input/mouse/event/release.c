@@ -3,7 +3,7 @@
  *
  * @brief Mouse button-release handling
  *
- * Split out of what used to be a single, flat @c input/mouse/event.c;
+ * One of the files @c input/mouse/event/ is made of;
  * ends whatever drag @c input/mouse/event/press.c's own
  * @c mouse_handle_press may have started. See that file's own comment
  * for the reasoning behind the three-way split.

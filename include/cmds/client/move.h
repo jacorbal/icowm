@@ -53,8 +53,8 @@
  *                      WINDOW_WIDTH is set in @p mask
  * @param h            New height, only applied if @c XCB_CONFIG_
  *                      WINDOW_HEIGHT is set in @p mask
- * @param border_width New native border width, only applied if @c
- *                      XCB_CONFIG_WINDOW_BORDER_WIDTH is set in
+ * @param border_width New native border width, only applied if
+ *                      @c XCB_CONFIG_WINDOW_BORDER_WIDTH is set in
  *                      @p mask
  *
  * @note A null @p client, one with no connection, or a @c XCB_WINDOW_

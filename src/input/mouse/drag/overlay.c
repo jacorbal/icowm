@@ -3,7 +3,7 @@
  *
  * @brief Centered feedback overlay window shown during a drag
  *
- * Split out of what used to be a single, flat @c input/mouse/drag.c;
+ * One of the files @c input/mouse/drag/ is made of;
  * see @c drag/internal.h for why.
  */
 /*

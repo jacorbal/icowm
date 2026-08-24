@@ -46,8 +46,8 @@
  *        transient child of a client, if it has one
  *
  * A single step of @a ccmd_client_focus_target's own walk; split out
- * on its own to keep that walk's loop body simple.  Walks @p
- * client's own @c transients list directly (see its own doc comment,
+ * on its own to keep that walk's loop body simple.  Walks
+ * @p client's own @c transients list directly (see its own doc comment,
  * client.h): no lookup, no scan of any other client on any desktop,
  * just the handful of pointers @p client's own direct children
  * actually are.  The @c CLIENT_FLAG_HIDDEN check specifically
@@ -151,8 +151,8 @@ typedef void (*s_family_visitor_fn)(client_td *candidate, void *ctx);
  * file: rather than scanning every client on every desktop and
  * comparing @c transient_for window IDs (the only way this used to
  * be possible, before @c transients existed as a real, maintained
- * list; see its own doc comment, client.h), this walks only @p
- * node's own actual descendants, following real pointers, so its own
+ * list; see its own doc comment, client.h), this walks only
+ * @p node's own actual descendants, following real pointers, so its own
  * cost is proportional to the family's own size rather than to how
  * many other, unrelated clients happen to be managed.
  *
@@ -281,8 +281,8 @@ static void s_family_snapshot_visitor(client_td *candidate, void *ctx)
  *                        set to @c 0 on any early return
  *
  * @return Newly allocated array of @c *count_out client pointers,
- *         the caller's own to @c free; @c NULL if @p top or @p
- *         count_out is @c NULL, no match was found, or the
+ *         the caller's own to @c free; @c NULL if @p top or
+ *         @p count_out is @c NULL, no match was found, or the
  *         allocation itself failed
  *
  * @note Complexity: @e O(f), where @e f is the number of @p top's
@@ -426,8 +426,8 @@ client_td *client_group_transient_anchor(const client_td *client)
  *
  * @return Newly allocated array of @c *count_out client pointers,
  *         the caller's own to @c free; @c NULL if @p desktop, @p top,
- *         or @p count_out is @c NULL, no match was found on @p
- *         desktop, or the allocation itself failed
+ *         or @p count_out is @c NULL, no match was found on
+ *         @p desktop, or the allocation itself failed
  *
  * @note Complexity: @e O(f), where @e f is the number of @p top's
  *       own transient descendants at every depth combined
@@ -483,8 +483,8 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  *                  @c 0 on any early return
  *
  * @return Newly allocated array of @c *count_out client pointers,
- *         the caller's own to @c free; @c NULL if @p top or @p
- *         count_out is @c NULL, no family member was found anywhere,
+ *         the caller's own to @c free; @c NULL if @p top or
+ *         @p count_out is @c NULL, no family member was found anywhere,
  *         or the allocation itself failed
  *
  * @note Complexity: @e O(f), where @e f is the number of @p top's
@@ -545,8 +545,8 @@ client_td **ccmd_client_transient_family_snapshot_anywhere(
  * The relocation step itself is deliberately only the data move
  * (desktop membership, stacking list, @c desktop_id): unlike an
  * explicit desktop send (@a enact_desktop_client_send, @c enact/
- * desktop.c) or an EWMH one (@a hi_handle_net_wm_desktop, @c
- * handler/ewmhmsg.c), nothing here is visibly dragged across the
+ * desktop.c) or an EWMH one (@a hi_handle_net_wm_desktop,
+ * @c handler/ewmhmsg.c), nothing here is visibly dragged across the
  * screen or needs its own unmap/remap dance for that part, since a
  * family member not already mapped on the desktop being looked at
  * was, by definition, not visible there to begin with.

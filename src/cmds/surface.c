@@ -67,8 +67,8 @@ static void s_show_desktop_overlay(surface_td *surface)
  *        in cyclic order
  *
  * Shared by @a scmd_surface_desktop_switch_north and its three siblings
- * below, which only differ in direction: which of @c
- * surface_desktop_select_north/south/east/west to call, and the log
+ * below, which only differ in direction: which of
+ * @c surface_desktop_select_north/south/east/west to call, and the log
  * message's own wording.
  *
  * @param surface   Surface to switch

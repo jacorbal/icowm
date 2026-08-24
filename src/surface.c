@@ -5,12 +5,11 @@
  *
  * Desktop-list membership and navigation live in @c surface/
  * desktops.c, RandR monitor detection in @c surface/monitors.c, and
- * per-desktop work-area recomputation in @c surface/workareas.c;
- * split out of what used to be a single, flat file, once its own
- * four genuinely distinct concerns (what a surface @e is, its own
- * monitors, its own desktop list, and the work area struts and
- * margins carve out of it) grew large enough that keeping them
- * together no longer helped find anything in it.
+ * per-desktop work-area recomputation in @c surface/workareas.c.
+ * The four concerns are kept apart on purpose: what a surface @e is,
+ * its own monitors, its own desktop list, and the work area struts
+ * and margins carve out of it are large enough that holding them
+ * together would help nobody find anything.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

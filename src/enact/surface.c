@@ -4,7 +4,7 @@
  * @brief Every surface-level action this window manager can carry
  *        out, one typed function per action
  *
- * Split out of what used to be a single, flat @c enact.c; see
+ * One of the files @c enact/ is made of; see
  * @c enact/internal.h for why.
  */
 /*

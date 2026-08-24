@@ -3,9 +3,9 @@
  *
  * @brief Resistance-threshold math for a maximized-axis mouse resize
  *
- * Split out of what used to be inline in @c drag.c itself; see @c
- * drag/internal.h for why the split, the same reasoning @c drag/
- * snap.c already follows for its unrelated math.
+ * One of the files @c input/mouse/drag/ is made of; see
+ * @c drag/internal.h for why, the same reasoning @c drag/snap.c
+ * follows for its unrelated math.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

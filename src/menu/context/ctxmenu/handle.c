@@ -4,8 +4,8 @@
  * @brief Raw keyboard, click, and motion event handling for a single
  *        context menu window
  *
- * Split out of what used to be a single, flat
- * @c menu/context/ctxmenu.c.
+ * One of the files
+ * @c menu/context/ctxmenu/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

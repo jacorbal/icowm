@@ -7,8 +7,8 @@
  * @c drag/warp.c to call directly; nothing outside the drag subsystem
  * calls any of these.
  *
- * @note This header is private to @c input/mouse/drag/ (and @c
- *       input/mouse/drag.c, which orchestrates every drag/ file) and
+ * @note This header is private to @c input/mouse/drag/ (and
+ *       @c input/mouse/drag.c, which orchestrates every drag/ file) and
  *       must not be included outside of them
  */
 /*

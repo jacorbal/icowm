@@ -3,7 +3,7 @@
  *
  * @brief Systray configuration loading
  *
- * Split out of what used to be a single, flat @c config/base.c;
+ * One of the files @c config/base/ is made of;
  * @c ci_config_load_systray is also called from @c config/memguard.c
  * (declared in @c config/internal.h for exactly that reason, not just
  * for the split), since both share this exact same @c systray object

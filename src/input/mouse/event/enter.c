@@ -3,7 +3,7 @@
  *
  * @brief Mouse enter-notify handling and hover-triggered focus state
  *
- * Split out of what used to be a single, flat @c input/mouse/event.c;
+ * One of the files @c input/mouse/event/ is made of;
  * carries its own @c s_enter_focus_active state, used by nothing
  * outside this file and @c handler_focus_in (@c handler/focus.c), which
  * clears it.  See @c input/mouse/event/press.c's own comment for the

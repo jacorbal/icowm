@@ -79,9 +79,9 @@ client_td *ccmd_client_transient_top_parent(client_td *client);
  * each other would matter here specifically, unlike for centering).
  * Resolved fresh each call, rather than cached, since which sibling
  * qualifies can change as windows map, unmap, or iconify around it.
- * A client with @c is_transient_for_group set has no @c
- * transient_parent (root is never a managed client for @c
- * client_link_transient's lookup to find), so wherever that field
+ * A client with @c is_transient_for_group set has no
+ * @c transient_parent (root is never a managed client for
+ * @c client_link_transient's lookup to find), so wherever that field
  * would otherwise be read to find a specific parent, this is the
  * equivalent for one transient for its whole group instead.
  *
@@ -167,8 +167,8 @@ void ccmd_client_bring_family(client_td *client);
  *
  * @return Newly allocated array of @c *count_out client pointers,
  *         the caller's own to @c free; @c NULL if @p desktop, @p top,
- *         or @p count_out is @c NULL, no match was found on @p
- *         desktop, or the allocation itself failed
+ *         or @p count_out is @c NULL, no match was found on
+ *         @p desktop, or the allocation itself failed
  *
  * @note Implemented in @c cmds/client/transient.c
  * @note Complexity: @e O(f), where @e f is the number of @p top's
@@ -191,8 +191,8 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  * those two can genuinely differ when @p top is pinned, since
  * pinning a client never actually moves it between desktops.
  * Scoping the search to @p top's own desktop alone, as the desktop-
- * move actions genuinely need to (@a enact_desktop_client_send, @a
- * hi_handle_net_wm_desktop, @a drag_warp_tick, and @a ccmd_client_
+ * move actions genuinely need to (@a enact_desktop_client_send,
+ * @a hi_handle_net_wm_desktop, @a drag_warp_tick, and @a ccmd_client_
  * bring_family itself, which each still use @a ccmd_client_
  * transient_family_snapshot directly for exactly that reason),
  * silently fails to find a transient living elsewhere.  Counts every
@@ -210,8 +210,8 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  *                  @c 0 on any early return
  *
  * @return Newly allocated array of @c *count_out client pointers,
- *         the caller's own to @c free; @c NULL if @p top or @p
- *         count_out is @c NULL, no family member was found anywhere,
+ *         the caller's own to @c free; @c NULL if @p top or
+ *         @p count_out is @c NULL, no family member was found anywhere,
  *         or the allocation itself failed
  *
  * @note Implemented in @c cmds/client/transient.c

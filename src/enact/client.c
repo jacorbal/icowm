@@ -4,7 +4,7 @@
  * @brief Every client-level action this window manager can carry
  *        out, one typed function per action
  *
- * Split out of what used to be a single, flat @c enact.c; see
+ * One of the files @c enact/ is made of; see
  * @c enact/internal.h for why.
  */
 /*
@@ -62,10 +62,10 @@
  *        a given compass direction, following it there
  *
  * @param client    Client to move
- * @param surfaces  Full surface list, passed through to @c
- *                  focus_apply
- * @param config    Active configuration, passed through to @c
- *                  focus_apply
+ * @param surfaces  Full surface list, passed through to
+ *                  @c focus_apply
+ * @param config    Active configuration, passed through to
+ *                  @c focus_apply
  * @param direction Compass direction to move the client in
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on

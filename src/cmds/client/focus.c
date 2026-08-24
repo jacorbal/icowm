@@ -4,10 +4,10 @@
  * @brief Focus-granting, focus-fallback, close, kill, and restore
  *        actions over clients
  *
- * Split out of what used to be a single, flat @c cmds/client/basic.c;
+ * One of the files @c cmds/client/ is made of;
  * kept as one contiguous block (matching the order these already had
- * in that file) rather than separated further, since @c
- * ccmd_client_close/kill/restore all lead into the same focus-
+ * in that file) rather than separated further, since
+ * @c ccmd_client_close/kill/restore all lead into the same focus-
  * fallback mechanism @c ccmd_client_focus_fallback/client_focus_
  * fallback provide right above them.
  */
@@ -108,7 +108,7 @@ static bool s_client_focus_fallback_valid(const client_td *candidate,
  * @brief Restore exactly this one client to its normal state, ignoring
  *        any transient family it may belong to
  *
- * Split out of what used to be the whole of @a ccmd_client_restore so
+ * Carries what used to sit inside @a ccmd_client_restore so
  * that function can redirect to, and cascade across, a transient
  * family (see its own doc comment) while still sharing this single
  * client's worth of state-restoration logic with the top-level,

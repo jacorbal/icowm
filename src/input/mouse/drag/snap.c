@@ -3,7 +3,7 @@
  *
  * @brief Edge and peer-window snap math for move/resize drags
  *
- * Split out of what used to be a single, flat @c input/mouse/drag.c;
+ * One of the files @c input/mouse/drag/ is made of;
  * see @c drag/internal.h for why.
  */
 /*
@@ -142,8 +142,8 @@ static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
  *                    (top for @p horizontal, left otherwise)
  * @param cross_far  The window's far edge on the @e other axis
  *                    (bottom for @p horizontal, right otherwise)
- * @param snap       Maximum allowed gap for @p cross_near/@p
- *                    cross_far to still count as overlapping a given
+ * @param snap       Maximum allowed gap for @p cross_near and
+ *                    @p cross_far to still count as overlapping a
  *                    monitor's work area on that other axis
  * @param horizontal @c true to check every monitor's work area
  *                    left/right edges, @c false for top/bottom

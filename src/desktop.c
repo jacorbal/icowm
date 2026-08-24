@@ -458,8 +458,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
  *                             a @c NULL value folds in nothing
  * @param ignore_struts        When @c true, neither @p systray_strut
  *                             nor any client's own strut is folded
- *                             in, only whichever margins @p
- *                             apply_margin_* select
+ *                             in, only whichever margins
+ *                             @p apply_margin_* select
  *
  * @return The resulting work area, in surface coordinates
  *

@@ -208,8 +208,8 @@ void enact_client_move_monitor_west(client_td *client);
  *                 so this client, not whichever one the target
  *                 desktop's own switch just restored on its own,
  *                 ends up genuinely focused there
- * @param config   Active configuration, passed through to @c
- *                 focus_apply
+ * @param config   Active configuration, passed through to
+ *                 @c focus_apply
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the client's own top parent's own desktop
@@ -233,8 +233,8 @@ void enact_client_send_to_desktop_north(client_td *client,
  *                 so this client, not whichever one the target
  *                 desktop's own switch just restored on its own,
  *                 ends up genuinely focused there
- * @param config   Active configuration, passed through to @c
- *                 focus_apply
+ * @param config   Active configuration, passed through to
+ *                 @c focus_apply
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the client's own top parent's own desktop
@@ -257,8 +257,8 @@ void enact_client_send_to_desktop_south(client_td *client,
  *                 so this client, not whichever one the target
  *                 desktop's own switch just restored on its own,
  *                 ends up genuinely focused there
- * @param config   Active configuration, passed through to @c
- *                 focus_apply
+ * @param config   Active configuration, passed through to
+ *                 @c focus_apply
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the client's own top parent's own desktop
@@ -281,8 +281,8 @@ void enact_client_send_to_desktop_east(client_td *client,
  *                 so this client, not whichever one the target
  *                 desktop's own switch just restored on its own,
  *                 ends up genuinely focused there
- * @param config   Active configuration, passed through to @c
- *                 focus_apply
+ * @param config   Active configuration, passed through to
+ *                 @c focus_apply
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the client's own top parent's own desktop

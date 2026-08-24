@@ -72,8 +72,8 @@ struct wm_s {
      * keyboard binding grabs; owned and freed by @a loop_run, which
      * allocates it once at startup.
      *
-     * Stored here so @a wm_action_config_reload can re-run @a
-     * keyboard_load with the current bindings after every reload
+     * Stored here so @a wm_action_config_reload can re-run
+     * @a keyboard_load with the current bindings after every reload
      * trigger (@c SIGHUP, the reload keybinding, and the root menu's
      * "Reload configuration" entry) without each of those three call
      * sites needing its own copy of this pointer. */

@@ -4,7 +4,7 @@
  * @brief Restricted-memory mode's own theme restrictions
  *        implementation
  *
- * Split out of @c config/memguard.c to keep that file focused on
+ * Kept apart from @c config/memguard.c so that file stays focused on
  * orchestrating restricted-memory mode's own config loading, not on
  * any one loaded file's own contents.
  */
@@ -45,8 +45,8 @@
  * while staying on the light X core rendering path, rather than the
  * plain literal strings @c "fixed" and @c "fixed bold" alone.
  *
- * @param font Font field to check, e.g., @c
- *             config->theme.window.active.font
+ * @param font Font field to check, e.g.,
+ *             @c config->theme.window.active.font
  *
  * @return @c true if @p font's own family is exactly the lowercase
  *         @c "fixed", case-sensitive

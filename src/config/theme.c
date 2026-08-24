@@ -246,8 +246,9 @@ static void s_load_theme_colors(cJSON *json_obj,
  * distinct window or window-state on its own (@c window.active/
  * @c inactive, @c icon.active/@c inactive, @c systray.style,
  * @c overlay), never for one that styles a row or button drawn
- * inside a window shared with others (@c menu.unselected/@c
- * selected/@c label, @c dialog.button.unselected/@c selected):
+ * inside a window shared with others (@c menu.unselected,
+ * @c menu.selected, @c menu.label, @c dialog.button.unselected,
+ * @c dialog.button.selected):
  * '_NET_WM_WINDOW_OPACITY' is a per-window property, so it cannot
  * vary per row or per button the way those share one window's own
  * background/border colors can.  Called individually, only at the

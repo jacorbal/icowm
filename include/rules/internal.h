@@ -96,9 +96,9 @@ struct rules_match_s {
  * @p has_position, @p has_sticky, and so on say whether the rule
  * specifies a value for that action at all; the paired field itself
  * (@p is_focused, @p is_position_centered, @p is_pinned, and so on) is
- * the value to apply, meaningful only when its own @p has_* flag is @c
- * true.  A rule that omits a field entirely leaves the client unchanged
- * for that one action.
+ * the value to apply, meaningful only when its own @p has_* flag is
+ * @c true. A rule that omits a field entirely leaves the client
+ * unchanged for that one action.
  */
 struct rules_apply_s {
     bool has_desktop;

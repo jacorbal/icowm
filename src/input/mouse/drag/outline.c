@@ -3,7 +3,7 @@
  *
  * @brief Outline stand-in windows used by a non-solid drag
  *
- * Split out of what used to be a single, flat @c input/mouse/drag.c;
+ * One of the files @c input/mouse/drag/ is made of;
  * see @c drag/internal.h for why.  A thin adapter over @c render/
  * outline.c's shared strip-window mechanism, supplying this
  * subsystem's state (@c s_drag.root, @c s_drag.client's

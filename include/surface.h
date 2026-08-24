@@ -445,8 +445,8 @@ desktop_td *surface_desktop_south(surface_td *surface,
  *        optionally cycling
  *
  * Searches for the desktop with the given ID and returns the one
- * toward the west of it: list-previous on a surface with no @c
- * topology.screens.desktops layout configured (the common case,
+ * toward the west of it: list-previous on a surface with no
+ * @c topology.screens.desktops layout configured (the common case,
  * still the default), the desktop one cell west along the
  * configured grid otherwise, whatever @c desktop_id that cell's own
  * @c orientation/@c corner combination happens to hold (never simply
@@ -474,8 +474,8 @@ desktop_td *surface_desktop_west(surface_td *surface,
  *        optionally cycling
  *
  * Searches for the desktop with the given ID and returns the one
- * toward the east of it: list-next on a surface with no @c
- * topology.screens.desktops layout configured (the common case,
+ * toward the east of it: list-next on a surface with no
+ * @c topology.screens.desktops layout configured (the common case,
  * still the default), the desktop one cell east along the
  * configured grid otherwise (see @a surface_desktop_west's own doc
  * comment for the fuller reasoning on why this is not simply

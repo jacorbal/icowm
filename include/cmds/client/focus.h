@@ -102,8 +102,8 @@ void ccmd_client_focus(client_td *client);
  * focus itself (not a raw @c xcb_set_input_focus), so urgency
  * clearing, the ICCCM input model, @c WM_TAKE_FOCUS, and every other
  * side effect real focus already carries apply here exactly as they
- * do anywhere else focus is granted.  Relinquishes focus to @c
- * PointerRoot instead when no candidate qualifies, so the desktop is
+ * do anywhere else focus is granted.  Relinquishes focus to
+ * @c PointerRoot instead when no candidate qualifies, so the desktop is
  * never left with stale keyboard focus on a client no longer meant
  * to hold it.
  *

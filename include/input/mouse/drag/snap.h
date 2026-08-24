@@ -6,8 +6,8 @@
  * Declares the functions @c drag/snap.c exposes for @c drag.c to call
  * directly; nothing outside the drag subsystem calls either of these.
  *
- * @note This header is private to @c input/mouse/drag/ (and @c
- *       input/mouse/drag.c, which orchestrates every drag/ file) and
+ * @note This header is private to @c input/mouse/drag/ (and
+ *       @c input/mouse/drag.c, which orchestrates every drag/ file) and
  *       must not be included outside of them
  */
 /*

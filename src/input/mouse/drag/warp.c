@@ -4,7 +4,7 @@
  * @brief Desktop warp triggered by holding a drag against a screen
  *        edge
  *
- * Split out of what used to be a single, flat @c input/mouse/drag.c;
+ * One of the files @c input/mouse/drag/ is made of;
  * see @c drag/internal.h for why.
  */
 /*

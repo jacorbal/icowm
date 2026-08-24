@@ -7,8 +7,8 @@
  * for a newly iconified client window, and
  * @c place_icon_avoid_systray_overlap, which pushes an already-
  * proposed icon position away from the systray's own current
- * rectangle.  Split out of @c policy/placement/window.c to keep that
- * file focused on floating/smart window placement.
+ * rectangle.  Kept apart from @c policy/placement/window.c so that
+ * file stays focused on floating/smart window placement.
  *
  * @note "Tiling" here is the classic 1980s/90s window-manager sense
  *       (TWM, FVWM, and similar), i.e., arranging iconified windows'

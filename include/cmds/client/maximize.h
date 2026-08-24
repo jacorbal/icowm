@@ -80,8 +80,8 @@ void ccmd_client_maximize_vert(client_td *client);
  * For a caller that has already applied the correct un-maximized
  * geometry itself (a mouse-drag resize crossing the resistance
  * threshold on a maximized axis, live, on the very same motion
- * event; see @c drag_update, input/mouse/drag.c), unlike @c
- * ccmd_client_maximize_horz/@c _vert's own demote branch, which
+ * event; see @c drag_update, input/mouse/drag.c), unlike
+ * @c ccmd_client_maximize_horz/@c _vert's own demote branch, which
  * always restores geometry from @c layout.geometry.old itself as
  * part of the same call.
  *
