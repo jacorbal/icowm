@@ -1,14 +1,21 @@
 {
-    "name": "Mono theme (dark)",
+    "name": "Selenized Black (dark)",
 
     "-author": "J. A. Corbal",
-    "-creation-date": "Sun Aug 23 18:50:54 UTC 2026",
-    "-modified-date": "Sun Aug 23 22:52:00 UTC 2026",
-    "-notes": "Pure black/white retro monochrome, no color anywhere, black desktop background.  Renamed from 'mono.json'.  See 'mono_light.json' for the exact inverse (white desktop background), for use on a bright room or a light-sensitive monitor.",
+    "-creation-date": "Mon Aug 24 03:30:00 UTC 2026",
+    "-modified-date": "Mon Aug 24 03:30:00 UTC 2026",
+    "-notes": "Jan Warchol's Selenized Black, the achromatic high-contrast variant; official values.  Text Lc 49 and 6.4:1 or better, dimmed elements Lc 49, window frames 4.0:1 on the desktop.",
 
     "desktop": {
         "color": {
-            "background": "#000000"
+            "background": "#181818"
+        }
+    },
+
+    "cycle": {
+        "border": {
+            "color": "#368aeb",
+            "width": 4
         }
     },
 
@@ -17,23 +24,23 @@
         "active": {
             "opacity": 100,
             "border": {
-                "color": "#000000",
+                "color": "#4f9cfe",
                 "width": 2
             },
             "color": {
-                "background": "#ffffff",
-                "foreground": "#000000"
+                "background": "#4f9cfe",
+                "foreground": "#181818"
             },
             "font": "fixed bold"
         },
         "inactive": {
             "border": {
-                "color": "#ffffff",
-                "width": 1
+                "color": "#777777",
+                "width": 2
             },
             "color": {
-                "background": "#000000",
-                "foreground": "#ffffff"
+                "background": "#252525",
+                "foreground": "#dedede"
             },
             "font": "fixed"
         },
@@ -41,8 +48,8 @@
             "alignment": "center",
             "buttons": {
                 "color": {
-                    "off": "#808080",
-                    "on": "#000000"
+                    "off": "#b9b9b9",
+                    "on": "#181818"
                 },
                 "left": [ "pin", "layer" ],
                 "right": [ "close", "maximize", "shade", "iconize" ]
@@ -62,34 +69,26 @@
         "active": {
             "opacity": 100,
             "border": {
-                "color": "#000000",
+                "color": "#4f9cfe",
                 "width": 1
             },
             "color": {
-                "background": "#ffffff",
-                "foreground": "#000000"
+                "background": "#4f9cfe",
+                "foreground": "#181818"
             },
             "font": "fixed bold"
-
         },
         "inactive": {
             "opacity": 100,
             "border": {
-                "color": "#ffffff",
+                "color": "#777777",
                 "width": 1
             },
             "color": {
-                "background": "#000000",
-                "foreground": "#ffffff"
+                "background": "#252525",
+                "foreground": "#dedede"
             },
             "font": "fixed"
-        }
-    },
-
-    "cycle": {
-        "border": {
-            "color": "#ffffff",
-            "width": 3
         }
     },
 
@@ -97,22 +96,22 @@
         "opacity": 100,
         "show-pixmaps": true,
         "border": {
-            "color": "#ffffff",
+            "color": "#777777",
             "width": 2
         },
         "disabled": {
             "color": {
-                "foreground": "#808080"
+                "foreground": "#b9b9b9"
             }
         },
         "label": {
             "border": {
-                "color": "#ffffff",
+                "color": "#777777",
                 "width": 0
             },
             "color": {
-                "background": "#000000",
-                "foreground": "#ffffff"
+                "background": "#3b3b3b",
+                "foreground": "#dedede"
             },
             "font": "fixed"
         },
@@ -122,84 +121,35 @@
         },
         "selected": {
             "border": {
-                "color": "#000000",
+                "color": "#4f9cfe",
                 "width": 0
             },
             "color": {
-                "background": "#ffffff",
-                "foreground": "#000000"
+                "background": "#4f9cfe",
+                "foreground": "#181818"
             },
             "font": "fixed"
         },
         "separator": {
-            "color": "#ffffff"
+            "color": "#777777"
         },
         "unselected": {
             "border": {
-                "color": "#ffffff",
+                "color": "#777777",
                 "width": 0
             },
             "color": {
-                "background": "#000000",
-                "foreground": "#ffffff"
+                "background": "#252525",
+                "foreground": "#dedede"
             },
             "font": "fixed"
-        }
-    },
-
-    "search": {
-        "border": {
-            "color": "#ffffff",
-            "width": 2
-        },
-        "input": {
-            "color": {
-                "background": "#ffffff",
-                "foreground": "#000000"
-            },
-            "font": "fixed"
-        },
-        "selected": {
-            "color": {
-                "background": "#ffffff",
-                "foreground": "#000000"
-            },
-            "font": "fixed"
-        },
-        "unselected": {
-            "color": {
-                "background": "#000000",
-                "foreground": "#ffffff"
-            },
-            "font": "fixed"
-        }
-    },
-
-    "prompt": {
-        "border": {
-            "color": "#ffffff",
-            "width": 2
-        },
-        "input": {
-            "color": {
-                "background": "#ffffff",
-                "foreground": "#000000"
-            },
-            "font": "fixed"
-        },
-        "label": {
-            "color": {
-                "background": "#ffffff",
-                "foreground": "#000000"
-            },
-            "font": "fixed bold"
         }
     },
 
     "dialog": {
         "opacity": 100,
         "border": {
-            "color": "#ffffff",
+            "color": "#777777",
             "width": 2
         },
         "button": {
@@ -210,33 +160,33 @@
             },
             "selected": {
                 "border": {
-                    "color": "#000000",
+                    "color": "#4f9cfe",
                     "width": 1
                 },
                 "color": {
-                    "background": "#ffffff",
-                    "foreground": "#000000"
+                    "background": "#4f9cfe",
+                    "foreground": "#181818"
                 },
                 "font": "fixed bold"
             },
             "unselected": {
                 "border": {
-                    "color": "#ffffff",
+                    "color": "#777777",
                     "width": 1
                 },
                 "color": {
-                    "background": "#000000",
-                    "foreground": "#ffffff"
+                    "background": "#252525",
+                    "foreground": "#dedede"
                 },
                 "font": "fixed"
             }
         },
         "color": {
-            "background": "#000000"
+            "background": "#252525"
         },
         "label": {
             "color": {
-                "foreground": "#ffffff"
+                "foreground": "#dedede"
             },
             "font": "fixed bold",
             "padding": {
@@ -250,26 +200,26 @@
         "opacity": 100,
         "font": "fixed",
         "border": {
-            "color": "#ffffff",
+            "color": "#777777",
             "width": 1
         },
         "color": {
-            "background": "#000000",
-            "foreground": "#ffffff"
+            "background": "#252525",
+            "foreground": "#dedede"
         }
     },
 
     "systray": {
         "opacity": 100,
         "font": "fixed bold",
-        "height": 24,
+        "height": 22,
         "border": {
-            "color": "#ffffff",
+            "color": "#777777",
             "width": 1
         },
         "color": {
-            "background": "#000000",
-            "foreground": "#ffffff"
+            "background": "#252525",
+            "foreground": "#dedede"
         },
         "pixmap": {
             "size": 24,
@@ -279,12 +229,60 @@
             "gap": 12,
             "valign": "center"
         }
+    },
 
+    "search": {
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#4f9cfe",
+                "foreground": "#181818"
+            }
+        },
+        "selected": {
+            "font": "fixed",
+            "color": {
+                "background": "#4f9cfe",
+                "foreground": "#181818"
+            }
+        },
+        "unselected": {
+            "font": "fixed",
+            "color": {
+                "background": "#252525",
+                "foreground": "#dedede"
+            }
+        },
+        "border": {
+            "color": "#777777",
+            "width": 2
+        }
+    },
+
+    "prompt": {
+        "label": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#4f9cfe",
+                "foreground": "#181818"
+            }
+        },
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#252525",
+                "foreground": "#dedede"
+            }
+        },
+        "border": {
+            "color": "#777777",
+            "width": 2
+        }
     },
 
     "scratchpad": {
         "border": {
-            "color": "#ffffff",
+            "color": "#4f9cfe",
             "width": 2
         }
     },

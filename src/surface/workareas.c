@@ -31,6 +31,7 @@
 #include <systray.h>
 
 /* Local includes */
+#include <scratchpad.h>
 #include <surface.h>
 
 
@@ -55,4 +56,13 @@ void surface_refresh_workareas(surface_td *surface)
                     surface->strutless_maximize);
         }
     }
+
+    /* Every path that recomputes a surface's own work areas (an
+     * XRandR resolution change, a dock or panel appearing or
+     * disappearing, and every other one) needs to reach this too:
+     * without it, the scratchpad stayed positioned against whatever
+     * work area was in effect when it was last placed, however that
+     * later changed, until the underlying process happened to exit
+     * on its own. */
+    scratchpad_reposition(surface);
 }

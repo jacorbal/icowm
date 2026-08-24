@@ -51,6 +51,7 @@
 
 /* Local includes */
 #include <cmds/client/ewmh.h>
+#include <cmds/client/flags.h>
 #include <cmds/client/focus.h>
 #include <cmds/client/grab.h>
 #include <cmds/client/internal.h>
@@ -1128,6 +1129,14 @@ void ccmd_client_toggle_decorate(client_td *client)
         ccmd_client_raise(client);
         ccmd_client_focus(client);
     }
+
+    /* Toggling decoration changes whether resize/move/decoration
+     * actions actually make sense (an undecorated client's border
+     * cannot be dragged to resize it, for one), so the client's own
+     * '_NET_WM_ALLOWED_ACTIONS' needs republishing here, the same as
+     * every other place this project's own capabilities genuinely
+     * change out from under a client. */
+    ccmd_client_update_allowed_actions(client);
 
     wm_request_client_redraw(client);
     xcb_flush(client->connection);

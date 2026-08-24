@@ -90,10 +90,11 @@ void scratchpad_notice_client_created(client_td *client);
  * @brief Position the current scratchpad client against its own
  *        configured edge, size, and desktop
  *
- * Meant to be called once, at map time, right after @p client's own
- * @p desktop_id and @p screen_id are assigned, since
- * @a scratchpad_notice_client_created runs too early for either to be
- * available yet.
+ * Called once, at map time, right after @p client's own @p desktop_id
+ * and @p screen_id are assigned, since @a scratchpad_notice_client_
+ * created runs too early for either to be available yet; called
+ * again later by @a scratchpad_reposition, whenever @p surface's own
+ * work areas are recomputed for any other reason.
  *
  * @param client  Client to position
  * @param desktop Desktop @p client was just added to
@@ -106,6 +107,32 @@ void scratchpad_notice_client_created(client_td *client);
  */
 void scratchpad_position(client_td *client,
         const desktop_td *desktop, surface_td *surface);
+
+/**
+ * @brief Reposition the current scratchpad client, if its own
+ *        desktop belongs to the given surface
+ *
+ * Called from @a surface_refresh_workareas (@c surface/workareas.c)
+ * itself, right after that function recomputes every desktop's own
+ * work area on @p surface, so every path already reaching that
+ * function (an XRandR resolution change, a dock or panel appearing
+ * or disappearing, and every other one) reaches this too, without
+ * each needing its own separate call.  Without this, a scratchpad
+ * already positioned against one work area (@c "max" width against
+ * the bottom edge, say) stayed at that exact size and position no
+ * matter how the work area it was computed against later changed,
+ * until the underlying process happened to exit on its own and a
+ * fresh one was relaunched against the work area current then.
+ *
+ * @param surface Surface whose work areas were just recomputed
+ *
+ * @note A no-op if there is no current scratchpad client, or if its
+ *       own desktop does not belong to @p surface
+ * @note Complexity: @e O(1)
+ *
+ * @see @a scratchpad_position, which this calls
+ */
+void scratchpad_reposition(surface_td *surface);
 
 /**
  * @brief Release the scratchpad client reference, if @p client was it

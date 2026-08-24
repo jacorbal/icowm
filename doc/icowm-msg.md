@@ -32,8 +32,8 @@ there.
 ## 1. What `icowm-msg` is
 
 `icowm-msg` is a small, standalone command-line client for IcoWM's IPC
-control socket (`icowm.md` section 5).  It builds one JSON request line
-out of its command-line arguments, sends it to a running IcoWM's control
+control socket (`icowm.md` §5).  It builds one JSON request line out of
+its command-line arguments, sends it to a running IcoWM's control
 socket, and prints back whatever IcoWM answers with.
 
 It is built and installed alongside IcoWM itself, as a second, entirely
@@ -55,7 +55,7 @@ icowm-msg -h
 icowm-msg -v
 ```
 
-`<command>` is any of the command names `icowm.md` section 5.3 documents
+`<command>` is any of the command names `icowm.md` §5.3 documents
 (`get_version`, `goto_desktop`, `move_client`, and so on).  Each
 `<key>=<value>` becomes one field of the request object alongside
 `"cmd"`, naming that command's argument.  Which keys a given command
@@ -66,9 +66,9 @@ The full response line IcoWM sends back is printed to `stdout` exactly
 as received, on one line, whether the command succeeded or not.
 
 `-w <events> [-n <count>]` is a different mode entirely, covered in full
-in section 9: it subscribes to events instead of sending a command.
-Options `-K` and `-W` each list one build-in reference (every known
-command name, every known event name) and exit; see section 5.
+in §9: it subscribes to events instead of sending a command.  Options
+`-K` and `-W` each list one build-in reference (every known command
+name, every known event name) and exit; see §5.
 
 ## 3. Argument value types
 
@@ -86,13 +86,13 @@ This means a numeric ID never needs quoting on the command line
 (`client_id=23068673`, not `client_id="23068673"`), and a value that
 happens to look like a number but is meant as text (a client's new name
 that is only digits, say) is sent as a number instead; none of the
-commands `icowm.md` section 5.3 documents currently have a string
-argument this could affect, but it is worth knowing about if a future
-one ever does.  The `0x` form is only ever a convenience for values more
-naturally read that way (a window ID copied from `list_clients`,
-a packed `RRGGBB` color): it reaches IcoWM exactly as its decimal
-equivalent would, since JSON itself has no separate hexadecimal number
-syntax to send it as.  For example, these two commands are equivalent:
+commands `icowm.md` §5.3 documents currently have a string argument this
+could affect, but it is worth knowing about if a future one ever does.
+The `0x` form is only ever a convenience for values more naturally read
+that way (a window ID copied from `list_clients`, a packed `RRGGBB`
+color): it reaches IcoWM exactly as its decimal equivalent would, since
+JSON itself has no separate hexadecimal number syntax to send it as.
+For example, these two commands are equivalent:
 
 ```sh
 icowm-msg move_client client_id=23068673 x=100 y=200
@@ -116,7 +116,7 @@ an explanation on `stderr` naming the offending argument.
 |-------------|---------|
 | `0`         | The command reached IcoWM and it reported success (`"ok": true` in the printed response) |
 | `1`         | The command reached IcoWM but it reported failure (`"ok": false`); the reason is in the printed response's `"error"` field |
-| `2`         | The request never reached IcoWM at all: no socket at the resolved path (see section 7), a connection failure, a response IcoWM sent back that does not itself parse as JSON, or a local argument-parsing error (missing `<command>`, a malformed `key=value`, an unrecognized option).  Nothing is printed to `stdout` in this case; the reason is on `stderr` |
+| `2`         | The request never reached IcoWM at all: no socket at the resolved path (see §7), a connection failure, a response IcoWM sent back that does not itself parse as JSON, or a local argument-parsing error (missing `<command>`, a malformed `key=value`, an unrecognized option).  Nothing is printed to `stdout` in this case; the reason is on `stderr` |
 
 A script that only cares whether the command worked can check the exit
 status alone, without parsing the response at all.
@@ -128,9 +128,9 @@ status alone, without parsing the response at all.
 | `-h`          | Show usage, a few examples, and this same option list, then exit |
 | `-v`          | Show `icowm-msg`'s name, IcoWM's short name and version, its license, its copyright line, and its author, then exit |
 | `-K`          | List every command name this build knows about, one per line, then exit; see its note below on how this list is kept |
-| `-W`          | List every event name this build knows about, one per line, then exit (the same names section 9.1 documents, and the same values `-w` itself accepts, comma-separated); see its note below on how this list is kept |
-| `-w <events>` | Subscribe instead of sending a command; see section 9 |
-| `-n <count>`  | Stop watching after this many events; only meaningful together with `-w` (see section 9); rejected as an error on its own |
+| `-W`          | List every event name this build knows about, one per line, then exit (the same names §9.1 documents, and the same values `-w` itself accepts, comma-separated); see its note below on how this list is kept |
+| `-w <events>` | Subscribe instead of sending a command; see §9 |
+| `-n <count>`  | Stop watching after this many events; only meaningful together with `-w` (see §9); rejected as an error on its own |
 
 `-h`, `-v`, `-K`, and `-W` all exit `0`.  Any other option is rejected:
 usage is printed to `stderr` and `icowm-msg` exits `2`.
@@ -197,8 +197,8 @@ There is nothing listening at the resolved socket path yet.  This means
 one of:
 
 - IcoWM is not currently running.
-- IcoWM was started with `-s` (`icowm.md` section 3.1), which disables
-  the socket entirely for that run, on purpose.
+- IcoWM was started with `-s` (`icowm.md` §3.1), which disables the
+  socket entirely for that run, on purpose.
 - IcoWM is running, but its IPC socket failed to come up (see its log:
   `ipc_init` logs a warning and continues without the socket rather than
   refusing to start over this alone; every other part of IcoWM keeps
@@ -209,9 +209,9 @@ one of:
   the session IcoWM itself started under (a remote shell, a different
   user, or a terminal from before `$XDG_RUNTIME_DIR` was changed, for
   instance).  `icowm-msg` resolves the socket path the same way IcoWM
-  itself does (`icowm.md` section 5.1): under `$XDG_RUNTIME_DIR/icowm/`,
-  or `/tmp/icowm-<uid>/icowm/` when that variable is unset, so the two
-  need to agree on that variable to find the same socket.
+  itself does (`icowm.md` §5.1): under `$XDG_RUNTIME_DIR/icowm/`, or
+  `/tmp/icowm-<uid>/icowm/` when that variable is unset, so the two need
+  to agree on that variable to find the same socket.
 
 **A response is printed, but the exit status is always `2`**
 
@@ -225,7 +225,7 @@ IcoWM bug rather than an `icowm-msg` one.
 **`icowm-msg: argument 'foo' is not in 'key=value' form`**
 
 An argument after `<command>` had no `=` in it at all.  Every argument
-past the command name must be `key=value`; see section 3.
+past the command name must be `key=value`; see §3.
 
 ## 8. Command reference
 
@@ -233,7 +233,7 @@ Every command IcoWM currently understands, with its arguments (an
 argument in `[brackets]` is optional) and a one-line summary.  This is
 a compact index only; the full explanation of each, including what each
 response field means and the two actions deliberately left out of this
-catalog, is in [`icowm.md`](icowm.md) section 5.3.
+catalog, is in [`icowm.md`](icowm.md) §5.3.
 
 | Command                        | Arguments                                | Description |
 |--------------------------------|------------------------------------------|-------------|
@@ -378,8 +378,8 @@ after that is one event.
 
 ### 9.3. Exit status while watching
 
-The same three-way split as section 4 applies, adapted to what "the
-command" means in this mode:
+The same three-way split as §4 applies, adapted to what "the command"
+means in this mode:
 
 | Exit status | Meaning |
 |-------------|---------|

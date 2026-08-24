@@ -1,10 +1,10 @@
 {
-    "name": "Accessibility theme B (Okabe-Ito, all three colorblindness types)",
+    "name": "Tol medium contrast (dark)",
 
     "-author": "J. A. Corbal",
-    "-creation-date": "Sun Aug 23 00:27:26 UTC 2026",
-    "-modified-date": "Sun Aug 23 00:27:26 UTC 2026",
-    "-notes": "Blue/orange palette built on the Okabe-Ito colorblind-safe palette (Okabe & Ito, 2008), a scientifically validated eight-color set designed to remain distinguishable under every common form of color blindness at once, not only red-green.",
+    "-creation-date": "Mon Aug 24 03:30:00 UTC 2026",
+    "-modified-date": "Mon Aug 24 03:30:00 UTC 2026",
+    "-notes": "Paul Tol's medium-contrast scheme on black, colour-blind safe and designed in light and dark pairs.  Text Lc 78 and 9.6:1 or better, dimmed elements Lc 45, window frames 3.3:1 on the desktop.",
 
     "desktop": {
         "color": {
@@ -14,7 +14,7 @@
 
     "cycle": {
         "border": {
-            "color": "#33ccff",
+            "color": "#997700",
             "width": 4
         }
     },
@@ -24,23 +24,23 @@
         "active": {
             "opacity": 100,
             "border": {
-                "color": "#684800",
+                "color": "#eecc66",
                 "width": 2
             },
             "color": {
-                "background": "#e69f00",
-                "foreground": "#1a1000"
+                "background": "#eecc66",
+                "foreground": "#000000"
             },
             "font": "fixed bold"
         },
         "inactive": {
             "border": {
-                "color": "#0072b2",
+                "color": "#994455",
                 "width": 2
             },
             "color": {
-                "background": "#d1e6f1",
-                "foreground": "#001a2a"
+                "background": "#000000",
+                "foreground": "#ffffff"
             },
             "font": "fixed"
         },
@@ -48,8 +48,8 @@
             "alignment": "center",
             "buttons": {
                 "color": {
-                    "off": "#0072b2",
-                    "on": "#684800"
+                    "off": "#6699cc",
+                    "on": "#000000"
                 },
                 "left": [ "pin", "layer" ],
                 "right": [ "close", "maximize", "shade", "iconize" ]
@@ -69,24 +69,24 @@
         "active": {
             "opacity": 100,
             "border": {
-                "color": "#684800",
+                "color": "#eecc66",
                 "width": 1
             },
             "color": {
-                "background": "#e69f00",
-                "foreground": "#1a1000"
+                "background": "#eecc66",
+                "foreground": "#000000"
             },
             "font": "fixed bold"
         },
         "inactive": {
             "opacity": 100,
             "border": {
-                "color": "#0072b2",
+                "color": "#994455",
                 "width": 1
             },
             "color": {
-                "background": "#d1e6f1",
-                "foreground": "#001a2a"
+                "background": "#000000",
+                "foreground": "#ffffff"
             },
             "font": "fixed"
         }
@@ -96,22 +96,22 @@
         "opacity": 100,
         "show-pixmaps": true,
         "border": {
-            "color": "#0072b2",
+            "color": "#994455",
             "width": 2
         },
         "disabled": {
             "color": {
-                "foreground": "#5a5a5a"
+                "foreground": "#eecc66"
             }
         },
         "label": {
             "border": {
-                "color": "#0072b2",
+                "color": "#994455",
                 "width": 0
             },
             "color": {
-                "background": "#000000",
-                "foreground": "#f2f2f2"
+                "background": "#004488",
+                "foreground": "#ffffff"
             },
             "font": "fixed"
         },
@@ -121,26 +121,26 @@
         },
         "selected": {
             "border": {
-                "color": "#684800",
+                "color": "#eecc66",
                 "width": 0
             },
             "color": {
-                "background": "#e69f00",
-                "foreground": "#1a1000"
+                "background": "#eecc66",
+                "foreground": "#000000"
             },
             "font": "fixed"
         },
         "separator": {
-            "color": "#0072b2"
+            "color": "#994455"
         },
         "unselected": {
             "border": {
-                "color": "#0072b2",
+                "color": "#994455",
                 "width": 0
             },
             "color": {
-                "background": "#d1e6f1",
-                "foreground": "#001a2a"
+                "background": "#000000",
+                "foreground": "#ffffff"
             },
             "font": "fixed"
         }
@@ -149,7 +149,7 @@
     "dialog": {
         "opacity": 100,
         "border": {
-            "color": "#0072b2",
+            "color": "#994455",
             "width": 2
         },
         "button": {
@@ -160,33 +160,33 @@
             },
             "selected": {
                 "border": {
-                    "color": "#684800",
+                    "color": "#eecc66",
                     "width": 1
                 },
                 "color": {
-                    "background": "#e69f00",
-                    "foreground": "#1a1000"
+                    "background": "#eecc66",
+                    "foreground": "#000000"
                 },
                 "font": "fixed bold"
             },
             "unselected": {
                 "border": {
-                    "color": "#0072b2",
+                    "color": "#994455",
                     "width": 1
                 },
                 "color": {
-                    "background": "#d1e6f1",
-                    "foreground": "#001a2a"
+                    "background": "#000000",
+                    "foreground": "#ffffff"
                 },
                 "font": "fixed"
             }
         },
         "color": {
-            "background": "#d1e6f1"
+            "background": "#000000"
         },
         "label": {
             "color": {
-                "foreground": "#001a2a"
+                "foreground": "#ffffff"
             },
             "font": "fixed bold",
             "padding": {
@@ -200,12 +200,12 @@
         "opacity": 100,
         "font": "fixed",
         "border": {
-            "color": "#0072b2",
+            "color": "#994455",
             "width": 1
         },
         "color": {
-            "background": "#d1e6f1",
-            "foreground": "#001a2a"
+            "background": "#000000",
+            "foreground": "#ffffff"
         }
     },
 
@@ -214,12 +214,12 @@
         "font": "fixed bold",
         "height": 22,
         "border": {
-            "color": "#0072b2",
+            "color": "#994455",
             "width": 1
         },
         "color": {
-            "background": "#d1e6f1",
-            "foreground": "#001a2a"
+            "background": "#000000",
+            "foreground": "#ffffff"
         },
         "pixmap": {
             "size": 24,
@@ -235,26 +235,26 @@
         "input": {
             "font": "fixed bold",
             "color": {
-                "background": "#e69f00",
-                "foreground": "#1a1000"
+                "background": "#eecc66",
+                "foreground": "#000000"
             }
         },
         "selected": {
             "font": "fixed",
             "color": {
-                "background": "#e69f00",
-                "foreground": "#1a1000"
+                "background": "#eecc66",
+                "foreground": "#000000"
             }
         },
         "unselected": {
             "font": "fixed",
             "color": {
-                "background": "#d1e6f1",
-                "foreground": "#001a2a"
+                "background": "#000000",
+                "foreground": "#ffffff"
             }
         },
         "border": {
-            "color": "#0072b2",
+            "color": "#994455",
             "width": 2
         }
     },
@@ -263,26 +263,26 @@
         "label": {
             "font": "fixed bold",
             "color": {
-                "background": "#e69f00",
-                "foreground": "#1a1000"
+                "background": "#eecc66",
+                "foreground": "#000000"
             }
         },
         "input": {
             "font": "fixed bold",
             "color": {
-                "background": "#d1e6f1",
-                "foreground": "#1a1000"
+                "background": "#000000",
+                "foreground": "#ffffff"
             }
         },
         "border": {
-            "color": "#0072b2",
+            "color": "#994455",
             "width": 2
         }
     },
 
     "scratchpad": {
         "border": {
-            "color": "#684800",
+            "color": "#eecc66",
             "width": 2
         }
     },

@@ -133,13 +133,25 @@ placement.
 | `theme` | string | `""` (built-in theme) |
 
 Name of the theme to load, without the `.json` extension.  The file
-`themes/<value>.json` is looked up inside the configuration directory.
-An empty string or an omitted key causes the built-in default theme to
-be used.
+`<config_dir>/themes/<theme_name>.json` is looked up inside the
+configuration directory.
 
 ```json
 "theme": "default"
 ```
+
+As long as it's on the `<config_dir>/themes` directory, it can be
+specified a directory tree (always without the `.json` extension).
+For example, to use the theme `<config_dir>/modus/operandi/tinted.json`:
+
+```json
+"theme": "modus/operandi/tinted",
+
+```
+
+An empty string or an omitted key causes the built-in default theme to
+be used.  If not theme key is set, or the theme does not exist, it will
+also revert to the built-in default theme.
 
 ### 2.2. `topology`
 
@@ -644,11 +656,11 @@ on: they already have one.
 When `group-related` is `true` (the default), a newly mapped window
 whose `WM_CLIENT_LEADER` (or, failing that, its `WM_HINTS` window group)
 matches another currently visible window's is placed offset from that
-group instead of running the policy above for it, i.e., a second,
-third,... window opened by the same application lands next to the others
-instead of wherever `policy` would otherwise put it.  Set it to `false`
-to always use `policy` for every window, with no special-casing for
-related ones.
+group instead of running the policy above for it, i.e., a second, third,
+fourth, ... window opened by the same application lands next to the
+others instead of wherever `policy` would otherwise put it.  Set it to
+`false` to always use `policy` for every window, with no special-casing
+for related ones.
 
 This is named after what it actually groups by (an application's stated
 client/window group), not by `WM_CLASS`, since not every application

@@ -40,7 +40,7 @@ All color values are hex strings in the form `"#RRGGBB"` or `"RRGGBB"`.
 `-creation-date`, and `-modified-date` may also appear at the top level,
 but they are purely comments for whoever maintains the file; IcoWM never
 parses or acts on them, nor it will not parse any key that begings with
-`-` or `_`.
+the characters `-` or `_`.
 
 ```json
 {

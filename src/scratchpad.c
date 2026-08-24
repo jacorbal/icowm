@@ -385,6 +385,25 @@ void scratchpad_position(client_td *client,
 }
 
 
+/* Reposition the current scratchpad client, if its own desktop
+ * belongs to the given surface */
+void scratchpad_reposition(surface_td *surface)
+{
+    desktop_td *desktop;
+
+    if (surface == NULL || s_scratchpad_client == NULL) {
+        return;
+    }
+
+    desktop = wm_get_client_desktop(s_scratchpad_client);
+    if (desktop == NULL || desktop->screen_id != surface->id) {
+        return;
+    }
+
+    scratchpad_position(s_scratchpad_client, desktop, surface);
+}
+
+
 /* Release the scratchpad client reference, if the given client was it */
 void scratchpad_notice_client_destroyed(const client_td *client)
 {

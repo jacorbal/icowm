@@ -141,7 +141,7 @@ void ci_config_resolve_theme_name(struct config_theme_s *theme,
 
     if (theme_file_name == NULL || theme_file_name[0] == '\0' ||
             !theme_loaded) {
-        safe_strncpy(theme->name, "Default (builtin)",
+        safe_strncpy(theme->name, "Default (built-in)",
                 sizeof(theme->name));
         return;
     }

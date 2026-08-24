@@ -5,7 +5,7 @@ and restricted-memory mode's run-time behavior.  For the JSON
 configuration files themselves, namely what each one controls, every
 field each accepts, its type, and its default, see
 [`config.md`](config.md) instead.  For `icowm-msg`, the command-line
-client for the IPC control socket section 5 below documents, see
+client for the IPC control socket §5 below documents, see
 [`icowm-msg.md`](icowm-msg.md) instead.
 
 ---
@@ -57,8 +57,8 @@ a built-in default for any file that is absent.
 
 IcoWM also exposes a local IPC control socket, so an external script can
 query its state or drive it directly, without going through X11 client
-messages; see section 5 below, and `icowm-msg.md` for its small
-command-line client, built alongside IcoWM itself for exactly that.
+messages; see §5 below, and `icowm-msg.md` for its small command-line
+client, built alongside IcoWM itself for exactly that.
 
 ## 2. Starting IcoWM
 
@@ -71,8 +71,7 @@ exec icowm
 
 With no arguments, IcoWM connects to the display named by the `DISPLAY`
 environment variable, reads its configuration from the directory
-described in `config.md` section 1, and runs an ordinary, unrestricted
-session.
+described in `config.md` §1, and runs an ordinary, unrestricted session.
 
 ### 2.1. Exiting IcoWM
 
@@ -84,21 +83,21 @@ and the root menu's "Quit" entry) asks every currently open application
 to close itself first, the same request closing one window individually
 already sends, so an application with unsaved changes gets the same
 chance to warn about it that it already gets any other time.  IcoWM
-waits for all of them (see `config.md` section
-2.6's `shutdown.timeout-seconds`) before actually exiting.
+waits for all of them (see `config.md` §2.6's
+`shutdown.timeout-seconds`) before actually exiting.
 
 The emergency exit shortcut, `Ctrl+Mod1+Backspace` (off by default, see
-`config.md` section 2.6's `shutdown.enable-emergency-shortcut`), does
-none of that.  It runs with no dialog, no confirmation, and no wait of
-any kind: the moment it is pressed, IcoWM terminates immediately,
-skipping even the exit session hooks (`config.md` section 8) the normal
-quit action always runs.  This is deliberate, not an oversight: this
-shortcut exists for situations where IcoWM itself might be unresponsive
-or in some broken state, so it is kept to the smallest, most direct
-action possible.  A confirmation dialog, or any other step that waits on
-IcoWM's event loop or rendering to keep working, would only be as
-reliable as whatever it is that might be the very reason someone reaches
-for this shortcut in the first place.
+`config.md` §2.6's `shutdown.enable-emergency-shortcut`), does none of
+that.  It runs with no dialog, no confirmation, and no wait of any kind:
+the moment it is pressed, IcoWM terminates immediately, skipping even
+the exit session hooks (`config.md` §8) the normal quit action always
+runs.  This is deliberate, not an oversight: this shortcut exists for
+situations where IcoWM itself might be unresponsive or in some broken
+state, so it is kept to the smallest, most direct action possible.
+A confirmation dialog, or any other step that waits on IcoWM's event
+loop or rendering to keep working, would only be as reliable as whatever
+it is that might be the very reason someone reaches for this shortcut in
+the first place.
 
 ## 3. Command-line options
 
@@ -106,11 +105,11 @@ for this shortcut in the first place.
 
 | Option            | Description |
 |-------------------|-------------|
-| `-d <display>`    | Set the X server display to connect to (e.g., `:0`). If not given, the `DISPLAY` environment variable is used. |
-| `-c <config_dir>` | Set the configuration directory, overriding the lookup order described in `config.md` section 1. |
+| `-d <display>`    | Set the X server display to connect to (e.g., `:0`).  If not given, the `DISPLAY` environment variable is used. |
+| `-c <config_dir>` | Set the configuration directory, overriding the lookup order described in `config.md` §1. |
 | `-C`              | Check every configuration file under `<config_dir>` for JSON syntax errors, print the result, and exit without starting a session. |
-| `-M <mib>`        | Enable restricted-memory mode, with `<mib>` as the ceiling in mebibytes; see section 4. Must be at least 14. |
-| `-s`              | Disable the IPC control socket entirely for this run: the socket is never set up at all, rather than being attempted and possibly failing. See section 5 for what the socket does. |
+| `-M <mib>`        | Enable restricted-memory mode, with `<mib>` as the ceiling in mebibytes; see §4.  Must be at least 14. |
+| `-s`              | Disable the IPC control socket entirely for this run: the socket is never set up at all, rather than being attempted and possibly failing.  See §5 for what the socket does. |
 
 ### 3.2. Logging
 
@@ -141,9 +140,9 @@ regardless of anything else this mode does.
 
 This mode always runs with a single screen and a single desktop on it,
 with no way to configure more of either: `memguard.json` (see
-`config.md` section 10) has no field for a screen or desktop count at
-all.  If the system actually has more than one X screen, only the first
-is managed; the rest are left alone entirely.
+`config.md` §10) has no field for a screen or desktop count at all.  If
+the system actually has more than one X screen, only the first is
+managed; the rest are left alone entirely.
 
 Beyond that, several things are always turned off, regardless of what
 `memguard.json` or the active theme say:
@@ -168,7 +167,7 @@ Beyond that, several things are always turned off, regardless of what
   application icon.
 
 Everything else about how IcoWM looks and behaves comes from
-`memguard.json` (see `config.md` section 10 for exactly which fields it
+`memguard.json` (see `config.md` §10 for exactly which fields it
 accepts) the same way `config.json` does for an ordinary session, which
 is not read at all while `-M <mib>` is in effect.  `bindings.json`,
 `a11y.json`, and a theme file under `themes/` are read exactly as in an
@@ -210,10 +209,10 @@ this:
 
 1. A small slice of the ceiling (8 MiB, `fixed`) is set aside for IcoWM
    itself, before counting any windows at all.  This baseline reflects
-   the plain X core font restricted-memory mode always uses (see section
-   4.1), never an Xft/FreeType one: those add roughly
-   7 MiB more on their own, which this mode's font restriction exists
-     specifically to avoid paying.
+   the plain X core font restricted-memory mode always uses (see §4.1),
+   never an Xft/FreeType one: those add roughly 7 MiB more on their own,
+   which this mode's font restriction exists specifically to avoid
+   paying.
 2. Whatever is left over is divided up, generously, at a quarter of
    a mebibyte per window.
 3. The result is never fewer than one window, and never more than 64.
@@ -229,15 +228,15 @@ something broken to work with.
 
 ### 4.4. Warning and error dialogs cannot be dismissed by accident
 
-The two dialogs this mode shows (the memory-ceiling warning in section
-4.2, the too-many-windows warning in section 4.3) behave a little
-differently from IcoWM's other dialogs, on purpose: pressing Escape does
-nothing at all, and pressing Enter or Space does nothing either until
-you have actually selected the "OK" button first, either by clicking it
-directly or by pressing Tab to select it and then Enter or Space.
-A message serious enough to use one of these two dialogs is not meant to
-be dismissed by the same reflexive key press that closes whatever else
-happened to have focus a moment before.
+The two dialogs this mode shows (the memory-ceiling warning in §4.2, the
+too-many-windows warning in §4.3) behave a little differently from
+IcoWM's other dialogs, on purpose: pressing Escape does nothing at all,
+and pressing Enter or Space does nothing either until you have actually
+selected the "OK" button first, either by clicking it directly or by
+pressing Tab to select it and then Enter or Space.  A message serious
+enough to use one of these two dialogs is not meant to be dismissed by
+the same reflexive key press that closes whatever else happened to have
+focus a moment before.
 
 ### 4.5. Building an even lighter version
 
@@ -272,11 +271,11 @@ unrestricted session: no memory-ceiling warning, no window-count limit,
 icon pictures and modern font rendering both still on, exactly as an
 ordinary build would behave without `-M <mib>`, just one with smaller
 compiled-in ceilings on screens, desktops, and monitors.
-Restricted-memory mode's behavior (sections 4.1 through 4.4) only ever
-happens when you actually pass `-M <mib>` at the time you start IcoWM,
-in either kind of build.  The two are meant to complement each other for
-a build genuinely sized for a memory-constrained target from the ground
-up, but each also works perfectly well entirely without the other.
+Restricted-memory mode's behavior (§§4.1-4.4) only ever happens when you
+actually pass `-M <mib>` at the time you start IcoWM, in either kind of
+build.  The two are meant to complement each other for a build genuinely
+sized for a memory-constrained target from the ground up, but each also
+works perfectly well entirely without the other.
 
 ### 4.6. Default values compared
 
@@ -298,13 +297,13 @@ IcoWM itself before dividing up the rest among windows (8 MiB), the
 rough cost assumed per window (a quarter of a mebibyte), and the hard
 ceiling on how many windows it will ever manage regardless of a very
 generous `-M <mib>` value (64) do not change between the two kinds of
-build; see section 4.3 for how those combine.  RandR output-profile
-management (`randr.json`) is never consulted at all in restricted-memory
-mode, in either kind of build, since it always runs with a single, fixed
-screen and desktop.  Accessibility (`a11y.json`, section 6) is the one
-exception to that pattern: it is consulted exactly as in an ordinary
-session, in either kind of build, since restricted-memory mode is never
-a reason to also give up basic accessibility accommodations.
+build; see §4.3 for how those combine.  RandR output-profile management
+(`randr.json`) is never consulted at all in restricted-memory mode, in
+either kind of build, since it always runs with a single, fixed screen
+and desktop.  Accessibility (`a11y.json`, §6) is the one exception to
+that pattern: it is consulted exactly as in an ordinary session, in
+either kind of build, since restricted-memory mode is never a reason to
+also give up basic accessibility accommodations.
 
 ## 5. IPC control socket
 
@@ -351,8 +350,8 @@ menus, so the socket is a third way into that one catalog, not
 a separate one of its own.  Each command does exactly the one thing its
 internal function does, nothing more: none of them chain multiple
 actions together, even where a keyboard shortcut's behavior
-might. `focus_client`, for instance, only moves input focus; it does not
-also raise the client the way clicking on a partially covered window
+might.  `focus_client`, for instance, only moves input focus; it does
+not also raise the client the way clicking on a partially covered window
 normally would.  Combine two commands from a script when the combined
 behavior is what is actually wanted: `focus_client` followed by
 `raise_client` reproduces "focus and raise" in full.
@@ -361,11 +360,10 @@ Every `id` (a desktop's, a client's, a surface's) is the same numeric
 identifier IcoWM already uses for it internally, i.e., a client's `id`
 is its X window ID, a desktop's `id` is its index on its surface,
 a surface's `id` is its screen index.  Every command that accepts
-a `surface_id` treats it as optional in the way section
-5.2 already describes.  A `client_id` that does not currently belong to
-  any managed client, or a `desktop_id` out of range for the resolved
-  surface, is reported as a normal `"ok": false` error, never
-  a connection drop.
+a `surface_id` treats it as optional in the way §5.2 already describes.
+A `client_id` that does not currently belong to any managed client, or
+a `desktop_id` out of range for the resolved surface, is reported as
+a normal `"ok": false` error, never a connection drop.
 
 Two things that are hardcoded are deliberately left out of this catalog:
 
@@ -397,44 +395,44 @@ Read-only; take no arguments beyond what is noted.
 Every one of these takes exactly one argument, `client_id`, and responds
 with a bare `{"ok": true}` on success.
 
-| Command                       | What it does |
-|-------------------------------|--------------|
-| `close_client`                | Politely asks the client to close (`WM_DELETE_WINDOW`, the same as its close button), or destroys its window directly if it does not support that |
-| `kill_client`                 | Forcibly terminates the client's X connection; a last resort for a client `close_client` cannot reach at all |
-| `focus_client`                | Moves input focus to the client, without raising it (see this section's introduction) |
-| `unfocus_client`              | Takes input focus away from the client, if it currently had it |
-| `iconify_client`              | Iconifies (minimizes) the client |
-| `deiconify_client`            | Restores the client if it was iconified |
-| `hide_client`                 | Hides the client without iconifying it |
-| `unhide_client`               | Undoes `hide_client` |
-| `pin_client`                  | Makes the client visible on every desktop of its surface |
-| `unpin_client`                | Undoes `pin_client` |
-| `toggle_pin_client`           | Toggles between `pin_client` and `unpin_client` |
-| `urge_client`                 | Marks the client urgent (see the urgency-blinking behavior in its theme documentation) |
-| `unurge_client`               | Undoes `urge_client` |
-| `center_client`               | Centers the client on its current screen |
+| Command                        | What it does |
+|--------------------------------|--------------|
+| `close_client`                 | Politely asks the client to close (`WM_DELETE_WINDOW`, the same as its close button), or destroys its window directly if it does not support that |
+| `kill_client`                  | Forcibly terminates the client's X connection; a last resort for a client `close_client` cannot reach at all |
+| `focus_client`                 | Moves input focus to the client, without raising it (see this section's introduction) |
+| `unfocus_client`               | Takes input focus away from the client, if it currently had it |
+| `iconify_client`               | Iconifies (minimizes) the client |
+| `deiconify_client`             | Restores the client if it was iconified |
+| `hide_client`                  | Hides the client without iconifying it |
+| `unhide_client`                | Undoes `hide_client` |
+| `pin_client`                   | Makes the client visible on every desktop of its surface |
+| `unpin_client`                 | Undoes `pin_client` |
+| `toggle_pin_client`            | Toggles between `pin_client` and `unpin_client` |
+| `urge_client`                  | Marks the client urgent (see the urgency-blinking behavior in its theme documentation) |
+| `unurge_client`                | Undoes `urge_client` |
+| `center_client`                | Centers the client on its current screen |
 | `move_client_to_monitor_north` | Moves the client to the monitor north of its current one, keeping its position relative to that monitor's top-left corner.  Resolved by real physical position, never wraps; a no-op with one monitor or none, or when none lies to the north |
 | `move_client_to_monitor_south` | The same, toward the monitor south of the current one |
 | `move_client_to_monitor_east`  | The same, toward the monitor east of the current one |
 | `move_client_to_monitor_west`  | The same, toward the monitor west of the current one |
-| `maximize_client_horz`        | Maximizes the client horizontally only |
-| `maximize_client_vert`        | Maximizes the client vertically only |
-| `maximize_client`             | Maximizes the client both horizontally and vertically |
-| `raise_client`                | Raises the client to the front of its current layer |
-| `lower_client`                | Lowers the client to the back of its current layer |
-| `set_layer_above_client`      | Moves the client to the "always on top" layer |
-| `set_layer_normal_client`     | Moves the client back to the ordinary layer |
-| `set_layer_below_client`      | Moves the client to the "always below" layer |
-| `cycle_layer_client`          | Cycles the client through above, normal, and below, in that order |
-| `shade_client`                | Rolls the client up into just its titlebar |
-| `unshade_client`              | Undoes `shade_client` |
-| `toggle_shade_client`         | Toggles between `shade_client` and `unshade_client` |
-| `fullscreen_client`           | Makes the client fill its screen, without any decoration |
-| `unfullscreen_client`         | Undoes `fullscreen_client` |
-| `toggle_fullscreen_client`    | Toggles between `fullscreen_client` and `unfullscreen_client` |
-| `toggle_decorate_client`      | Shows or hides the client's titlebar and border |
-| `send_client_to_front`        | Raises the client to the front of its desktop's window stack, independent of its layer |
-| `send_client_to_back`         | Sends the client to the back of its desktop's window stack, independent of its layer |
+| `maximize_client_horz`         | Maximizes the client horizontally only |
+| `maximize_client_vert`         | Maximizes the client vertically only |
+| `maximize_client`              | Maximizes the client both horizontally and vertically |
+| `raise_client`                 | Raises the client to the front of its current layer |
+| `lower_client`                 | Lowers the client to the back of its current layer |
+| `set_layer_above_client`       | Moves the client to the "always on top" layer |
+| `set_layer_normal_client`      | Moves the client back to the ordinary layer |
+| `set_layer_below_client`       | Moves the client to the "always below" layer |
+| `cycle_layer_client`           | Cycles the client through above, normal, and below, in that order |
+| `shade_client`                 | Rolls the client up into just its titlebar |
+| `unshade_client`               | Undoes `shade_client` |
+| `toggle_shade_client`          | Toggles between `shade_client` and `unshade_client` |
+| `fullscreen_client`            | Makes the client fill its screen, without any decoration |
+| `unfullscreen_client`          | Undoes `fullscreen_client` |
+| `toggle_fullscreen_client`     | Toggles between `fullscreen_client` and `unfullscreen_client` |
+| `toggle_decorate_client`       | Shows or hides the client's titlebar and border |
+| `send_client_to_front`         | Raises the client to the front of its desktop's window stack, independent of its layer |
+| `send_client_to_back`          | Sends the client to the back of its desktop's window stack, independent of its layer |
 
 A fullscreen client's stacking is always forced above every other
 client while it holds focus, including every other above-layer one, the
@@ -480,7 +478,7 @@ broken rather than merely deferred.
 | Command              | Arguments                                        | What it does |
 |----------------------|--------------------------------------------------|--------------|
 | `goto_desktop`       | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
-| `goto_north_desktop` | `surface_id` (optional)                          | Switches the resolved surface to the desktop north of its current one; wraps if `desktops.wrap-at-bounds` allows it (`config.md`, section 2.10), otherwise a no-op at the edge, including when no `topology.screens.desktops[].layout` with more than one row is configured at all |
+| `goto_north_desktop` | `surface_id` (optional)                          | Switches the resolved surface to the desktop north of its current one; wraps if `desktops.wrap-at-bounds` allows it (`config.md`, §2.10), otherwise a no-op at the edge, including when no `topology.screens.desktops[].layout` with more than one row is configured at all |
 | `goto_south_desktop` | `surface_id` (optional)                          | The same, toward the desktop south of the current one |
 | `goto_east_desktop`  | `surface_id` (optional)                          | The same, toward the desktop east of the current one |
 | `goto_west_desktop`  | `surface_id` (optional)                          | The same, toward the desktop west of the current one |
@@ -510,15 +508,15 @@ $ icowm-msg goto_desktop desktop_id=1
 Everything specific to `icowm-msg` itself, its usage, how a `key=value`
 argument becomes a request field, its exit status, and its options, is
 documented in full in [`icowm-msg.md`](icowm-msg.md), not repeated here;
-the commands it sends and their arguments remain the ones section 5.3
-above documents.
+the commands it sends and their arguments remain the ones §5.3 above
+documents.
 
 ### 5.5. Talking to the socket directly
 
-Since the protocol is plain, newline-delimited JSON (section 5.2), it
-can also be exercised directly from a shell, without `icowm-msg`, using
-a tool like `socat`; useful for a system without `icowm-msg` installed,
-or for watching the raw traffic while debugging something:
+Since the protocol is plain, newline-delimited JSON (§5.2), it can also
+be exercised directly from a shell, without `icowm-msg`, using a tool
+like `socat`; useful for a system without `icowm-msg` installed, or for
+watching the raw traffic while debugging something:
 
 ```sh
 $ echo '{"cmd": "list_desktops"}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
@@ -530,15 +528,15 @@ $ echo '{"cmd": "goto_desktop", "desktop_id": 1}' | socat - UNIX-CONNECT:$XDG_RU
 
 ### 5.6. Subscribing to events
 
-Every command in section 5.3 follows the same request/response shape:
-one line in, one line back, connection otherwise idle in between.
-`subscribe` and `unsubscribe` are the two exceptions: once subscribed,
-that same connection starts receiving extra lines on its own, one per
-matching event, for as long as it stays open, without sending anything
-further itself.  Each event line carries its `"event"` field naming
-which one it is, alongside that event's fields; there is no `"ok"` field
-on an event line the way there is on every ordinary response, since
-nothing was asked for it to answer.
+Every command in §5.3 follows the same request/response shape: one line
+in, one line back, connection otherwise idle in between.  `subscribe`
+and `unsubscribe` are the two exceptions: once subscribed, that same
+connection starts receiving extra lines on its own, one per matching
+event, for as long as it stays open, without sending anything further
+itself.  Each event line carries its `"event"` field naming which one it
+is, alongside that event's fields; there is no `"ok"` field on an event
+line the way there is on every ordinary response, since nothing was
+asked for it to answer.
 
 ```sh
 $ echo '{"cmd": "subscribe", "events": ["window_mapped"]}' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/icowm/socket
@@ -549,7 +547,7 @@ $ echo '{"cmd": "subscribe", "events": ["window_mapped"]}' | socat - UNIX-CONNEC
 (`socat` above exits once the connection closes or is interrupted; in
 practice a real subscriber keeps the connection open and keeps reading
 for as long as it wants more events, the same way `icowm-msg -w` does;
-see `icowm-msg.md` section 9 for that.)
+see `icowm-msg.md` §9 for that.)
 
 `subscribe` takes one argument, a non-empty array `"events"` of
 recognized event names; an unrecognized name anywhere in the array

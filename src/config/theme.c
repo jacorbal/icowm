@@ -311,24 +311,24 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->window.titlebar.buttons.right_count = 4u;
 
     theme->window.titlebar.buttons.color.on =
-        json_hex2uint32("253F60");
+        json_hex2uint32("142335");
     theme->window.titlebar.buttons.color.off =
-        json_hex2uint32("7086A0");
+        json_hex2uint32("4E6076");
 
     safe_strncpy(theme->window.active.font,
             "fixed bold", sizeof(theme->window.active.font));
     theme->window.active.color.background =
         json_hex2uint32("9AAEC8");
     theme->window.active.color.foreground =
-        json_hex2uint32("253040");
-    theme->window.active.border.color = json_hex2uint32("4A5566");
+        json_hex2uint32("1B222E");
+    theme->window.active.border.color = json_hex2uint32("22272F");
     theme->window.active.border.width = 2u;
     theme->window.active.opacity = 100u;
 
     /* Same as 'window.active.border' by default: the scratchpad is
      * always undecorated (see 'scratchpad.h'), so this border is its
      * only themeable element */
-    theme->scratchpad.border.color = json_hex2uint32("4A5566");
+    theme->scratchpad.border.color = json_hex2uint32("22272F");
     theme->scratchpad.border.width = 2u;
 
     /* Deliberately outside 'window.active'/'inactive''s own cool
@@ -336,7 +336,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
      * config.h): a warm, muted amber, chosen specifically to still
      * read as distinct against this project's own default active/
      * inactive colors, not just a different shade of the same hue */
-    theme->cycle.border.color = json_hex2uint32("C9A227");
+    theme->cycle.border.color = json_hex2uint32("E3C76E");
     theme->cycle.border.width = 4u;
 
     safe_strncpy(theme->window.inactive.font,
@@ -344,8 +344,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->window.inactive.color.background =
         json_hex2uint32("D0D9E5");
     theme->window.inactive.color.foreground =
-        json_hex2uint32("4A5566");
-    theme->window.inactive.border.color = json_hex2uint32("7F9AB6");
+        json_hex2uint32("3A4351");
+    theme->window.inactive.border.color = json_hex2uint32("1D2732");
     theme->window.inactive.border.width = 2u;
     theme->window.inactive.opacity = 100u;
 
@@ -358,8 +358,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->icon.active.color.background =
         json_hex2uint32("9AAEC8");
     theme->icon.active.color.foreground =
-        json_hex2uint32("253040");
-    theme->icon.active.border.color = json_hex2uint32("4A5566");
+        json_hex2uint32("1B222E");
+    theme->icon.active.border.color = json_hex2uint32("22272F");
     theme->icon.active.border.width = 1u;
     theme->icon.active.opacity = 100u;
 
@@ -368,8 +368,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->icon.inactive.color.background =
         json_hex2uint32("D0D9E5");
     theme->icon.inactive.color.foreground =
-        json_hex2uint32("4A5566");
-    theme->icon.inactive.border.color = json_hex2uint32("7F9AB6");
+        json_hex2uint32("3A4351");
+    theme->icon.inactive.border.color = json_hex2uint32("1D2732");
     theme->icon.inactive.border.width = 1u;
     theme->icon.inactive.opacity = 100u;
 
@@ -378,13 +378,13 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->systray.style.color.background =
         json_hex2uint32("D0D9E5");
     theme->systray.style.color.foreground =
-        json_hex2uint32("4A5566");
-    theme->systray.style.border.color = json_hex2uint32("7F9AB6");
+        json_hex2uint32("3A4351");
+    theme->systray.style.border.color = json_hex2uint32("4E6076");
     theme->systray.style.border.width = 1u;
     theme->systray.style.opacity = 100u;
     theme->systray.height = 24u;
     theme->systray.pixmap.size = 24u;
-    theme->systray.pixmap.padding = 4u;
+    theme->systray.pixmap.padding = 2u;
     theme->systray.text.gap = 12u;
     theme->systray.text.valign = CONFIG_SYSTRAY_TEXT_VALIGN_CENTER;
 
@@ -405,8 +405,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->menu.unselected.color.background =
         json_hex2uint32("D0D9E5");
     theme->menu.unselected.color.foreground =
-        json_hex2uint32("4A5566");
-    theme->menu.unselected.border.color = json_hex2uint32("7F9AB6");
+        json_hex2uint32("3A4351");
+    theme->menu.unselected.border.color = json_hex2uint32("4E6076");
     theme->menu.unselected.border.width = 0u;
 
     safe_strncpy(theme->menu.selected.font,
@@ -414,35 +414,30 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->menu.selected.color.background =
         json_hex2uint32("9AAEC8");
     theme->menu.selected.color.foreground =
-        json_hex2uint32("253040");
-    theme->menu.selected.border.color = json_hex2uint32("4A5566");
+        json_hex2uint32("1B222E");
+    theme->menu.selected.border.color = json_hex2uint32("22272F");
     theme->menu.selected.border.width = 0u;
 
     safe_strncpy(theme->menu.label.font,
             "fixed", sizeof(theme->menu.label.font));
+
+    /* WCAG contrast ratio of 11.21:1 against this background, well past
+     * the 7:1 AAA threshold */
     theme->menu.label.color.background =
-        json_hex2uint32("48607F");
-    /* Picked for a WCAG contrast ratio of ~4.5:1 against this
-     * background (the same bar as any other normal-weight text in
-     * the theme): the border color this foreground used to reuse
-     * only reached ~2:1 against a light background, too low for
-     * text meant to be read normally rather than treated as a
-     * de-emphasized secondary state; the ratio itself is the same
-     * either way around, since contrast between two colors does not
-     * depend on which one is foreground and which is background. */
-    theme->menu.label.color.foreground =
         json_hex2uint32("D0D9E5");
-    theme->menu.label.border.color = json_hex2uint32("7F9AB6");
+    theme->menu.label.color.foreground =
+        json_hex2uint32("1B222E");
+    theme->menu.label.border.color = json_hex2uint32("4E6076");
     theme->menu.label.border.width = 0u;
 
-    /* Picked for a WCAG contrast ratio of ~3:1 against the menu's own
-     * background: low enough to still read as visibly de-emphasized
-     * (this is disabled, secondary text, not meant to compete with
-     * normal menu text), but not the ~1.7:1 the previous color gave,
-     * which was too low to reliably read as text at all. */
-    theme->menu.disabled_foreground = json_hex2uint32("717B88");
-    theme->menu.separator_color = json_hex2uint32("7F9AB6");
-    theme->menu.border.color = json_hex2uint32("7F9AB6");
+    /* WCAG contrast ratio of 4.52:1 against 'menu.unselected''s
+     * background (the ordinary menu item background this sits
+     * alongside), clearing the 4.5:1 AA threshold while still reading
+     * as visibly de-emphasized next to 'menu.unselected''s foreground,
+     * which reaches 7.01:1 against that same background */
+    theme->menu.disabled_foreground = json_hex2uint32("585F6A");
+    theme->menu.separator_color = json_hex2uint32("4E6076");
+    theme->menu.border.color = json_hex2uint32("4E6076");
     theme->menu.border.width = 2u;
     theme->menu.opacity = 100u;
     theme->menu.padding.horizontal = (uint32_t) WM_CTXMENU_PAD_X;
@@ -452,44 +447,44 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     safe_strncpy(theme->search.input.font,
             "fixed", sizeof(theme->search.input.font));
     theme->search.input.color.background = json_hex2uint32("9AAEC8");
-    theme->search.input.color.foreground = json_hex2uint32("253040");
+    theme->search.input.color.foreground = json_hex2uint32("1B222E");
     theme->search.input.opacity = 100u;
     safe_strncpy(theme->search.unselected.font,
             "fixed", sizeof(theme->search.unselected.font));
     theme->search.unselected.color.background =
         json_hex2uint32("D0D9E5");
     theme->search.unselected.color.foreground =
-        json_hex2uint32("4A5566");
+        json_hex2uint32("3A4351");
     theme->search.unselected.opacity = 100u;
     safe_strncpy(theme->search.selected.font,
             "fixed", sizeof(theme->search.selected.font));
     theme->search.selected.color.background = json_hex2uint32("9AAEC8");
-    theme->search.selected.color.foreground = json_hex2uint32("253040");
+    theme->search.selected.color.foreground = json_hex2uint32("1B222E");
     theme->search.selected.opacity = 100u;
-    theme->search.border.color = json_hex2uint32("7F9AB6");
+    theme->search.border.color = json_hex2uint32("4E6076");
     theme->search.border.width = 2u;
 
     safe_strncpy(theme->prompt.label.font,
             "fixed bold", sizeof(theme->prompt.label.font));
     theme->prompt.label.color.background = json_hex2uint32("9AAEC8");
-    theme->prompt.label.color.foreground = json_hex2uint32("253040");
+    theme->prompt.label.color.foreground = json_hex2uint32("1B222E");
     theme->prompt.label.opacity = 100u;
     safe_strncpy(theme->prompt.input.font,
             "fixed", sizeof(theme->prompt.input.font));
-    theme->prompt.input.color.background = json_hex2uint32("9AAEC8");
-    theme->prompt.input.color.foreground = json_hex2uint32("253040");
+    theme->prompt.input.color.background = json_hex2uint32("D0D9E5");
+    theme->prompt.input.color.foreground = json_hex2uint32("1B222E");
     theme->prompt.input.opacity = 100u;
-    theme->prompt.border.color = json_hex2uint32("7F9AB6");
+    theme->prompt.border.color = json_hex2uint32("4E6076");
     theme->prompt.border.width = 2u;
 
     theme->dialog.background = json_hex2uint32("D0D9E5");
-    theme->dialog.border.color = json_hex2uint32("7F9AB6");
+    theme->dialog.border.color = json_hex2uint32("4E6076");
     theme->dialog.border.width = 2u;
     theme->dialog.opacity = 100u;
 
     safe_strncpy(theme->dialog.label.font,
             "fixed bold", sizeof(theme->dialog.label.font));
-    theme->dialog.label.foreground = json_hex2uint32("4A5566");
+    theme->dialog.label.foreground = json_hex2uint32("3A4351");
     theme->dialog.label.padding.horizontal = 12u;
     theme->dialog.label.padding.vertical = 12u;
 
@@ -498,9 +493,9 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->dialog.button.unselected.color.background =
         json_hex2uint32("D0D9E5");
     theme->dialog.button.unselected.color.foreground =
-        json_hex2uint32("4A5566");
+        json_hex2uint32("3A4351");
     theme->dialog.button.unselected.border.color =
-        json_hex2uint32("7F9AB6");
+        json_hex2uint32("4E6076");
     theme->dialog.button.unselected.border.width = 1u;
 
     safe_strncpy(theme->dialog.button.selected.font,
@@ -508,9 +503,9 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->dialog.button.selected.color.background =
         json_hex2uint32("9AAEC8");
     theme->dialog.button.selected.color.foreground =
-        json_hex2uint32("253040");
+        json_hex2uint32("1B222E");
     theme->dialog.button.selected.border.color =
-        json_hex2uint32("4A5566");
+        json_hex2uint32("22272F");
     theme->dialog.button.selected.border.width = 1u;
 
     theme->dialog.button.gap = 24u;
@@ -519,8 +514,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
 
     safe_strncpy(theme->overlay.font, "fixed", sizeof(theme->overlay.font));
     theme->overlay.color.background = json_hex2uint32("D0D9E5");
-    theme->overlay.color.foreground = json_hex2uint32("4A5566");
-    theme->overlay.border.color = json_hex2uint32("7F9AB6");
+    theme->overlay.color.foreground = json_hex2uint32("3A4351");
+    theme->overlay.border.color = json_hex2uint32("4E6076");
     theme->overlay.border.width = 1u;
     theme->overlay.opacity = 100u;
 

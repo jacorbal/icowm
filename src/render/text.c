@@ -269,7 +269,7 @@ static int s_font_config_extract_size(char tokens[][64], size_t *ntok)
  *
  * @note Complexity: @e O(n), where @e n is @p ntok
  */
-static void s_font_config_scan_style(const char tokens[][64],
+static void s_font_config_scan_style(char tokens[][64],
         size_t ntok, bool *is_bold, bool *is_italic, bool *is_oblique)
 {
     *is_bold = false;
@@ -302,7 +302,7 @@ static void s_font_config_scan_style(const char tokens[][64],
  * @note Complexity: @e O(n), where @e n is the combined length of
  *       every token in @p tokens
  */
-static void s_font_config_build_family(const char tokens[][64],
+static void s_font_config_build_family(char tokens[][64],
         size_t ntok, char *restrict family, size_t family_size)
 {
     size_t fi = 0u;
