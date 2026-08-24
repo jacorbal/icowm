@@ -62,9 +62,13 @@ void text_renderer_disable_glyph_backend(void);
  * Binds the renderer to a connection and empties the font cache.  No
  * font is open yet afterward; @a text_renderer_use_font opens the
  * first one.  Calling this again on an already-initialized renderer
- * closes every cached font first, which is what a configuration
- * reload wants, since the new theme may name different fonts
- * entirely.
+ * closes every cached font first.
+ *
+ * A configuration reload does not need this.  The cache is keyed by
+ * font name, so a theme that names the same font as before keeps
+ * hitting the entry already open, and one that names a different font
+ * simply misses and opens it, leaving the entry it replaced to age
+ * out of the cache on its own.
  *
  * @param connection Pointer to the XCB connection
  *
