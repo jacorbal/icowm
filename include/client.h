@@ -303,11 +303,11 @@ struct client_s {
          */
         struct {
             bool is_supported;        /**< Supports @c _NET_WM_PING
-                                            protocol */
+                                           protocol */
             uint32_t last_sent;       /**< X timestamp of last ping
-                                            sent */
+                                           sent */
             uint32_t last_reply;      /**< X timestamp of last ping
-                                            reply */
+                                           reply */
         } ping;
 
         /**
@@ -343,8 +343,9 @@ struct client_s {
                                        resize session never comes
                                        close to wrapping) */
             struct geometry_s pending_geom; /**< Geometry to apply once
-                                       the pending request is
-                                       acknowledged or times out */
+                                                 the pending request is
+                                                 acknowledged or times
+                                                 out */
             /** Supports @c _NET_WM_SYNC_REQUEST */
             bool is_supported;
             bool is_waiting;      /**< @c true between sending a sync
@@ -399,7 +400,7 @@ struct client_s {
                                         @a handler_colormap_notify in
                                         @c handler/colormap.c. */
         uint32_t count;       /**< Number of entries in @p windows
-                                    actually in use */
+                                   actually in use */
     } colormap_windows;
 
     /**
@@ -412,25 +413,25 @@ struct client_s {
          */
         struct {
             bool is_valid;       /**< True when hints were read from
-                                       server */
+                                      server */
             bool has_position;   /**< True when the client itself
-                                       requested a position
-                                       (@c USPosition or @c PPosition)
-                                       rather than leaving it to this
-                                       window manager's own policy */
+                                      requested a position
+                                      (@c USPosition or @c PPosition)
+                                      rather than leaving it to this
+                                      window manager's own policy */
             struct position_s req_pos; /**< Client-requested position,
-                                             valid only when
-                                             @p has_position is true */
+                                            valid only when
+                                            @p has_position is true */
             /** Minimum size, (0, 0) meaning unset */
             struct dimensions_s min;
             /** Maximum size, (0, 0) meaning unset */
             struct dimensions_s max;
             struct dimensions_s base;  /**< Base size for increment
-                                             arithmetic */
+                                            arithmetic */
             struct dimensions_s inc;   /**< Size increment (0 or 1
-                                             = no grid) */
+                                            = no grid) */
             struct aspect_range_s aspect; /**< Minimum/maximum w/h
-                                                ratio (0,0 = unset) */
+                                               ratio (0,0 = unset) */
         } size;
 
         /**
@@ -452,19 +453,19 @@ struct client_s {
          */
         struct {
             bool has_input_hint;      /**< Client accepts input
-                                            (default true) */
+                                           (default true) */
             bool is_initial_iconic;   /**< Map iconic for @c WM_HINTS
-                                            initial state */
+                                           initial state */
             xcb_window_t group_leader; /**< Window group leader, or
-                                             @c XCB_NONE */
+                                            @c XCB_NONE */
             xcb_window_t client_leader; /**< ICCCM @c WM_CLIENT_LEADER
-                                              window, or @c XCB_NONE if
-                                              unset.  Used together with
-                                              @p group_leader (see
-                                              @a client_group_leader) to
-                                              cluster windows belonging
-                                              to the same application
-                                              for placement */
+                                             window, or @c XCB_NONE if
+                                             unset.  Used together with
+                                             @p group_leader (see
+                                             @a client_group_leader) to
+                                             cluster windows belonging
+                                             to the same application
+                                             for placement */
         } hints;
     } hints_icccm;
 

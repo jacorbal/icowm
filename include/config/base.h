@@ -439,7 +439,7 @@ struct config_base_s {
                 CONFIG_SYSTRAY_MONITOR_INDEX
             } anchor;
             uint32_t index; /**< Only meaningful when @c anchor is
-                                  @c CONFIG_SYSTRAY_MONITOR_INDEX */
+                                 @c CONFIG_SYSTRAY_MONITOR_INDEX */
         } monitor;
 
         /** Where newly docked icons are placed relative to the ones
@@ -565,7 +565,7 @@ struct config_base_s {
         struct {
             bool is_enabled;        /**< Draw the clock or not */
             char format[CONFIG_MAX_LENGTH_NAME]; /**< 'strftime(3)'
-                                                       format string */
+                                                      format string */
         } clock;
 
         /**
@@ -681,8 +681,8 @@ struct config_base_s {
                     /* Pixmap image; */         /**< Background image */
                     uint32_t color;             /**< Background color */
                 } background;
-            } settings;                         /**< Desktop settings */
-        } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
+            } settings;                 /**< Desktop settings */
+        } desktops[CONFIG_MAX_DESKTOPS];    /**< Desktops per screen */
     } screens[CONFIG_MAX_SCREENS];              /**< All screens */
 
     /**

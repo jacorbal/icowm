@@ -34,7 +34,6 @@
 #ifndef MENU_CONTEXT_ROOTMENU_H
 #define MENU_CONTEXT_ROOTMENU_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -42,11 +41,13 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Default initial values */
+/* Type includes */
 #include <types/handles.h>
+#include <types/pair.h>
+
+/* Default initial values */
 #include <defs/ctxmenu.h>
 
-/* Project includes */
 
 
 /**
@@ -69,7 +70,6 @@
 #define ROOTMENU_PATH_MAX (512)
 
 
-/* Public interface */
 /**
  * @brief Load (or reload) @c menu.json's own entries
  *

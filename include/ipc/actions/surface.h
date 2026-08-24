@@ -19,15 +19,14 @@
 #ifndef IPC_ACTIONS_SURFACE_H
 #define IPC_ACTIONS_SURFACE_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /** @c goto_desktop: arguments @c desktop_id (required), @c surface_id
  *  (optional) */
 cJSON *ipc_action_goto_desktop(const wm_td *wm, const cJSON *args);

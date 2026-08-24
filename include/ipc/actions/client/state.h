@@ -21,15 +21,14 @@
 #ifndef IPC_ACTIONS_CLIENT_STATE_H
 #define IPC_ACTIONS_CLIENT_STATE_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief @c shade_client: roll the client up into just its own
  *        titlebar

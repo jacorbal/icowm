@@ -52,14 +52,14 @@
 /** One connected client's own read state */
 struct s_ipc_client_s {
     size_t buf_len;                    /**< Bytes currently buffered,
-                                             not yet a complete line */
+                                            not yet a complete line */
     int fd;                            /**< -1 when this slot is free */
     uint32_t subscribed_events;        /**< Bitmask of 'enum ipc_
-                                             event_type_e'; 0 means
-                                             none, correctly the same
-                                             as this static array's
-                                             own zero-initialized
-                                             default */
+                                            event_type_e'; 0 means
+                                            none, correctly the same
+                                            as this static array's
+                                            own zero-initialized
+                                            default */
     char buf[IPC_MSG_MAX_LENGTH];
 };
 

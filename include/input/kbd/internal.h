@@ -27,7 +27,6 @@
 #ifndef INPUT_KBD_INTERNAL_H
 #define INPUT_KBD_INTERNAL_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -35,12 +34,10 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* ADT includes */
-
-/* Project includes */
+/* Type includes */
+#include <types/handles.h>
 
 /* Local includes */
-#include <types/handles.h>
 #include <input/kbd/bind.h>
 
 

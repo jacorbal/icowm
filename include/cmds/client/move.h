@@ -16,15 +16,12 @@
 #ifndef CMDS_CCMD_MOVE_H
 #define CMDS_CCMD_MOVE_H
 
-
 /* Type includes */
 #include <types/handles.h>
 #include <types/pair.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief Apply a client's geometry to its target window in a single
  *        XCB call

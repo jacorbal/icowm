@@ -21,7 +21,6 @@
 #ifndef POLICY_FOCUS_H
 #define POLICY_FOCUS_H
 
-
 /* System includes */
 #include <stdbool.h>
 
@@ -29,7 +28,6 @@
 #include <types/handles.h>
 
 
-/* Public interface */
 /**
  * @brief Determine whether the loaded focus policy follows the pointer
  *

@@ -29,17 +29,18 @@
 #ifndef SYSTRAY_INTERNAL_H
 #define SYSTRAY_INTERNAL_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <types/handles.h>
 #include <time.h>       /* time_t */
 
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Types includes */
+/* Type includes */
 #include <types/pair.h> /* strut_partial_s */
 
 /* Project includes */
@@ -195,7 +196,6 @@ struct systray_state_s {
 
 extern struct systray_state_s s_tray;
 
-
 /* 'systray/text.c' */
 
 /**
@@ -241,7 +241,6 @@ const char *systray_text_for_item(enum config_systray_text_item_e item,
         bool *out_enabled);
 
 
-/* systray/layout.c */
 
 /**
  * @brief Apply the configured @c systray.layer stacking rule
@@ -252,7 +251,6 @@ const char *systray_text_for_item(enum config_systray_text_item_e item,
 void systray_layout_restack(void);
 
 
-/* systray/protocol.c */
 
 /**
  * @brief Create the tray window and intern its atoms, once!

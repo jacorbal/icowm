@@ -18,19 +18,19 @@
 #ifndef CMDS_CCMD_SCREEN_H
 #define CMDS_CCMD_SCREEN_H
 
-
 /* System includes */
 #include <stdbool.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <monitor.h>
 
 
-/* Public interface */
 /**
  * @brief Return the frame window when decorated, otherwise the client
  *        window

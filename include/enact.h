@@ -27,7 +27,6 @@
 #ifndef ENACT_H
 #define ENACT_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -36,11 +35,8 @@
 #include <xcb/xcb.h>
 
 /* Type includes */
-#include <types/pair.h>
-
-/* Type includes */
 #include <types/handles.h>
-
+#include <types/pair.h>
 
 /* 'action_client_e' */
 
@@ -554,7 +550,6 @@ void enact_client_set_icon(client_td *client, const char *icon_name);
  */
 void enact_client_toggle_decorate(client_td *client);
 
-
 /* 'action_desktop_e' */
 
 /**
@@ -748,7 +743,6 @@ void enact_desktop_cycle_clients_icons_prev(xcb_connection_t *connection,
         surface_td *surface, desktop_td *desktop,
         uint16_t modifier, const config_td *cfg);
 
-
 /* 'action_surface_e' */
 
 /**
@@ -842,7 +836,6 @@ void enact_surface_desktop_remove(surface_td *surface);
  *       @p surface
  */
 void enact_surface_toggle_strutless_maximize(surface_td *surface);
-
 
 /* 'action_wm_e' */
 

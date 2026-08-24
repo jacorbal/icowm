@@ -26,18 +26,17 @@
 #ifndef IPC_RESOLVE_H
 #define IPC_RESOLVE_H
 
-
 /* System includes */
 #include <stdbool.h>
 
-/* JSON includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* JSON includes */
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief Resolve which surface a request refers to
  *

@@ -31,15 +31,14 @@
 #ifndef IPC_ACTIONS_DESKTOP_H
 #define IPC_ACTIONS_DESKTOP_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /** @c set_desktop_background: arguments @c desktop_id (required),
  *  @c surface_id" (optional), @c color (required, a packed @c 0xRRGGBB
  *  value) */

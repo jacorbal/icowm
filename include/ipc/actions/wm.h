@@ -18,15 +18,14 @@
 #ifndef IPC_ACTIONS_WM_H
 #define IPC_ACTIONS_WM_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /** @c exit_wm: request that IcoWM stop and exit; no arguments */
 cJSON *ipc_action_exit_wm(const wm_td *wm, const cJSON *args);
 

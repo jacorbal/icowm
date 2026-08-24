@@ -40,7 +40,6 @@
 #ifndef CCTL_SN_H
 #define CCTL_SN_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>
@@ -49,14 +48,13 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* ADT includes */
+/* Type includes */
+#include <types/handles.h>
 
 /* Default initial values */
-#include <types/handles.h>
 #include <defs/sn.h>
 
 
-/* Public interface */
 /**
  * @brief Override how many seconds a startup-notification sequence
  *        waits before being expired automatically

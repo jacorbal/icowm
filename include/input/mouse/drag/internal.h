@@ -68,14 +68,14 @@ typedef struct {
     uint32_t screen_w;          /**< Screen width for edge snap */
     uint32_t screen_h;          /**< Screen height for edge snap */
     uint32_t snap_window;        /**< Snap distance in pixels toward
-                                     another window's edge */
+                                      another window's edge */
     uint32_t snap_screen;        /**< Snap distance in pixels toward
-                                     the screen's edge */
+                                      the screen's edge */
     struct geometry_s client_cur; /**< Current geometry during drag
-                                     (updated each motion notify
-                                     event; only @c pos is meaningful
-                                     during an icon drag, which never
-                                     resizes) */
+                                       (updated each motion notify
+                                       event; only @c pos is meaningful
+                                       during an icon drag, which never
+                                       resizes) */
     /** While resizing, the right edge is fixed and the drag pulls
      *  from the left */
     bool is_anchor_right;
@@ -83,34 +83,33 @@ typedef struct {
      *  from the top */
     bool is_anchor_bottom;
     bool is_resize_w;              /**< Resize: width is actively being
-                                     changed in this drag */
+                                        changed in this drag */
     bool is_resize_h;              /**< Resize: height is actively being
-                                     changed in this drag */
+                                        changed in this drag */
     bool is_resist_axis_w;         /**< Width started this drag
-                                     maximize-locked (see
-                                     'drag_start_resize_axis_locked'),
-                                     making 'is_resize_w' above no
-                                     longer fixed for the whole drag
-                                     the way it is for every other
-                                     client:
-                                     'drag_update' recomputes it every
-                                     call instead, false below the
-                                     configured resistance threshold,
-                                     true past it, reversibly for the
-                                     whole drag, matching Openbox's
-                                     identical behavior
-                                     (moveresize.c) */
+                                        maximize-locked (see
+                                        'drag_start_resize_axis_locked'),
+                                        making 'is_resize_w' above no
+                                        longer fixed for the whole drag
+                                        the way it is for every other
+                                        client: 'drag_update' recomputes
+                                        it every call instead, false
+                                        below the configured resistance
+                                        threshold, true past it,
+                                        reversibly for the whole drag,
+                                        matching Openbox's identical
+                                        behavior (moveresize.c) */
     bool is_resist_axis_h;         /**< Height's analogous case */
     bool is_move_x_locked;         /**< Move: X position pinned to its
-                                     starting value for the whole drag
-                                     (a horizontally-maximized client's
-                                     width already fills its
-                                     workarea, leaving no valid X but
-                                     the one it started at) */
+                                        starting value for the whole
+                                        drag (a horizontally-maximized
+                                        client's width already fills its
+                                        workarea, leaving no valid X but
+                                        the one it started at) */
     bool is_move_y_locked;         /**< Move: Y position pinned to its
-                                     starting value for the whole drag
-                                     (a vertically-maximized client's
-                                     analogous case) */
+                                        starting value for the whole
+                                        drag (a vertically-maximized
+                                        client's analogous case) */
     xcb_window_t overlay_window;/**< Centered feedback overlay window */
     bool is_overlay_icon;       /**< Overlay belongs to icon drag */
     char overlay_text[32];      /**< Current overlay text */
@@ -148,50 +147,50 @@ typedef struct {
                                      needing it added to their
                                      public signature */
     bool is_solid_drag;            /**< Snapshot of
-                                     'config->windows.solid_drag' taken
-                                     at 'drag_start', so a config
-                                     reload mid-drag cannot switch
-                                     behavior out from under an
-                                     already-active one */
+                                        'config->windows.solid_drag'
+                                        taken at 'drag_start', so a
+                                        config reload mid-drag cannot
+                                        switch behavior out from under
+                                        an already-active one */
     bool is_outline_offscreened;   /**< Whether the real window has
-                                     already been moved off-screen for
-                                     the current outline drag;
-                                     'drag_start' itself fires on
-                                     every plain click, with no way
-                                     yet to tell it apart from
-                                     a genuine drag, so this only
-                                     happens once the first real
-                                     'drag_update' confirms actual
-                                     movement, tracked here so it only
-                                     ever happens once */
+                                        already been moved off-screen
+                                        for the current outline drag;
+                                        'drag_start' itself fires on
+                                        every plain click, with no way
+                                        yet to tell it apart from a
+                                        genuine drag, so this only
+                                        happens once the first real
+                                        'drag_update' confirms actual
+                                        movement, tracked here so it
+                                        only ever happens once */
     xcb_window_t outline_windows[4]; /**< The outline stand-in used in
-                                           place of moving the real
-                                           window live, when
-                                           '!is_solid_drag': 4 separate,
-                                           opaque, override-redirect
-                                           strip windows, one per side
-                                           (top, bottom, left, right,
-                                           in that fixed order),
-                                           rather than a single filled
-                                           rectangle, so the middle
-                                           stays uncovered and whatever
-                                           is genuinely underneath
-                                           keeps showing through
-                                           without needing a
-                                           compositor at all.  Each
-                                           entry is 'XCB_WINDOW_NONE'
-                                           whenever no outline drag is
-                                           in progress.  Real X windows
-                                           the server itself manages
-                                           the exposure/repaint of, so
-                                           unlike the XOR rubber-band
-                                           this replaced, nothing else
-                                           redrawing underneath or
-                                           around them (another window
-                                           repainting itself, or an
-                                           edge-warp desktop switch)
-                                           can ever leave a stray
-                                           artifact behind */
+                                          place of moving the real
+                                          window live, when
+                                          '!is_solid_drag': 4 separate,
+                                          opaque, override-redirect
+                                          strip windows, one per side
+                                          (top, bottom, left, right,
+                                          in that fixed order),
+                                          rather than a single filled
+                                          rectangle, so the middle
+                                          stays uncovered and whatever
+                                          is genuinely underneath
+                                          keeps showing through
+                                          without needing a
+                                          compositor at all.  Each
+                                          entry is 'XCB_WINDOW_NONE'
+                                          whenever no outline drag is
+                                          in progress.  Real X windows
+                                          the server itself manages
+                                          the exposure/repaint of, so
+                                          unlike the XOR rubber-band
+                                          this replaced, nothing else
+                                          redrawing underneath or
+                                          around them (another window
+                                          repainting itself, or an
+                                          edge-warp desktop switch)
+                                          can ever leave a stray
+                                          artifact behind */
 } drag_state_td;
 
 

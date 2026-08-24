@@ -31,15 +31,16 @@
 #ifndef SYSTRAY_H
 #define SYSTRAY_H
 
-
 /* System includes */
 #include <stdbool.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <types/pair.h> /* strut_partial_s */
 
 /* Default initial values */

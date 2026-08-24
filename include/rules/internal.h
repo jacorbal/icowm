@@ -110,9 +110,10 @@ struct rules_apply_s {
      *  of @c size */
     bool has_position;
     bool is_position_centered; /**< @c ("position": "center") was given
-                                 instead of an @c ({x,y}) object: center
-                                 the client on its screen at apply time
-                                 instead of using @p x and @p y */
+                                    instead of an @c ({x,y}) object:
+                                    center the client on its screen at
+                                    apply time instead of using @p x and
+                                    @p y */
     bool has_size;          /**< @p width & @p height independent of
                                  position */
     bool has_sticky;

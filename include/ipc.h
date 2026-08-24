@@ -26,13 +26,12 @@
 /* System includes */
 #include <stdint.h>
 
-/* Project includes */
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Public interface */
 
 /**
  * @brief Every event a client can @c subscribe to over the socket

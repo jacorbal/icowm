@@ -31,21 +31,19 @@
 #ifndef MENU_DIALOG_INFO_H
 #define MENU_DIALOG_INFO_H
 
-
 /* System includes */
 #include <stdbool.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Type includes */
+#include <types/handles.h>
 
 /* Menu includes */
-#include <types/handles.h>
 #include <menu/dialog/message.h>    /* menu_msg_level_e */
 
 
-/* Public interface */
 /**
  * @brief Open the informational message dialog
  *

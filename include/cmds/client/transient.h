@@ -20,15 +20,16 @@
 #ifndef CMDS_CCMD_TRANSIENT_H
 #define CMDS_CCMD_TRANSIENT_H
 
-
 /* System includes */
 #include <stddef.h>     /* size_t */
 
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <surface.h>
 
 

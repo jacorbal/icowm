@@ -29,15 +29,16 @@
 #ifndef RENDER_ICON_H
 #define RENDER_ICON_H
 
-
 /* System includes */
 #include <stdbool.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <config.h>
 
 

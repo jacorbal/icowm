@@ -21,7 +21,6 @@
 #ifndef MENU_INTERNAL_H
 #define MENU_INTERNAL_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -30,11 +29,12 @@
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
-/* Default initial values */
+/* Type includes */
 #include <types/handles.h>
+
+/* Default initial values */
 #include <defs/cycle.h>
 
-/* Project includes */
 
 
 /**

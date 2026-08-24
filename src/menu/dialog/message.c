@@ -54,13 +54,13 @@ typedef char s_message_line_td[DIALOG_MSG_LINE_MAX_LENGTH];
 /** Internal layout record for the message dialog */
 typedef struct {
     char *raw_message;      /**< Prefix + caller's text, before
-                                  wrapping; allocated to exactly what
-                                  this message needs, see
-                                  'menu_message_dialog_show' */
+                                 wrapping; allocated to exactly what
+                                 this message needs, see
+                                 'menu_message_dialog_show' */
 
     s_message_line_td *lines; /**< Wrapped lines; allocated to exactly
-                                    'line_count' of them, see
-                                    's_message_wrap_text' */
+                                   'line_count' of them, see
+                                   's_message_wrap_text' */
 
     menu_msg_level_e level; /**< Alert level this dialog was shown at */
     struct geometry_s btn;
@@ -69,18 +69,18 @@ typedef struct {
     int16_t msg_x;
     int16_t msg_y;
     int16_t line_height;    /**< Pixel height (ascent + descent) of
-                                  one wrapped line in the label font */
+                                 one wrapped line in the label font */
     uint8_t line_count;
     uint8_t visible_lines;  /**< How many of 'lines' fit within 'h' at
-                                  once; the rest scroll */
+                                 once; the rest scroll */
     uint8_t scroll_offset;  /**< Index into 'lines' of the first
-                                  currently visible line */
+                                 currently visible line */
 
     bool ok_selected;       /**< Whether the "OK" button is currently
-                                  selected; see 'menu_message_dialog_
-                                  show' for why this starts false for
-                                  warning/error dialogs instead of
-                                  always true */
+                                 selected; see 'menu_message_dialog_
+                                 show' for why this starts false for
+                                 warning/error dialogs instead of
+                                 always true */
 } s_message_layout_td;
 
 

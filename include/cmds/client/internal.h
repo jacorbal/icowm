@@ -30,7 +30,6 @@
 #ifndef CMDS_CLIENT_INTERNAL_H
 #define CMDS_CLIENT_INTERNAL_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -39,12 +38,13 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <surface.h>
 
 
-/* Internal interface */
 /**
  * @brief Intern an atom name in the X11 system
  *

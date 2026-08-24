@@ -26,12 +26,12 @@
 #ifndef IPC_DISPATCH_H
 #define IPC_DISPATCH_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
 /**
@@ -50,7 +50,6 @@ typedef void (*ipc_client_action_fn)(const wm_td *wm, client_td *client,
         surface_td *surface, desktop_td *desktop);
 
 
-/* Public interface */
 /**
  * @brief Resolve a request's own @c client_id, run one action on it,
  *        and report the outcome

@@ -25,15 +25,14 @@
 #ifndef IPC_ACTIONS_CLIENT_FOCUS_H
 #define IPC_ACTIONS_CLIENT_FOCUS_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief @c close_client: politely ask the client to close, or
  *        destroy its window directly if it does not support that

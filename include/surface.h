@@ -36,7 +36,6 @@
 #ifndef SURFACE_H
 #define SURFACE_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -45,8 +44,6 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
-
-/* ADT includes */
 
 /* Type includes */
 #include <types/handles.h>
@@ -176,7 +173,6 @@ struct surface_s {
 };
 
 
-/* Public interface */
 /**
  * @brief Initialize a new surface
  *

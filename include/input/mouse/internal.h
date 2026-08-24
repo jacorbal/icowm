@@ -41,7 +41,6 @@
 #ifndef INPUT_MOUSE_INTERNAL_H
 #define INPUT_MOUSE_INTERNAL_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -49,13 +48,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* ADT includes */
-
 /* Type includes */
 #include <types/handles.h>
 #include <types/pair.h>
-
-/* Project includes */
 
 /* Input includes */
 #include <input/mouse/bind.h>

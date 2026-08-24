@@ -22,15 +22,14 @@
 #ifndef IPC_ACTIONS_CLIENT_GEOM_H
 #define IPC_ACTIONS_CLIENT_GEOM_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief @c move_client: move the client, keeping its own size
  *

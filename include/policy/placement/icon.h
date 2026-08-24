@@ -20,7 +20,6 @@
 #ifndef POLICY_PLACEMENT_ICON_H
 #define POLICY_PLACEMENT_ICON_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -32,10 +31,8 @@
 /* Project includes */
 #include <config.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief Compute the icon window position for a newly iconified client
  *

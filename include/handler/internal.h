@@ -23,7 +23,6 @@
 #ifndef HANDLER_INTERNAL_H
 #define HANDLER_INTERNAL_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>

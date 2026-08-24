@@ -44,7 +44,6 @@
 #ifndef MENU_CONTEXT_CTXMENU_H
 #define MENU_CONTEXT_CTXMENU_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -54,8 +53,10 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <render/wmicon.h>
 
 /* Default initial values */
@@ -230,7 +231,6 @@ typedef struct ctxmenu_state_s {
 } ctxmenu_state_td;
 
 
-/* Public interface */
 /**
  * @brief Create and show a context menu window
  *

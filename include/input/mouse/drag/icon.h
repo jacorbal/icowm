@@ -16,7 +16,6 @@
 #ifndef INPUT_MOUSE_DRAG_ICON_H
 #define INPUT_MOUSE_DRAG_ICON_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -24,9 +23,7 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
-
-/* Types includes */
+/* Type includes */
 #include <types/handles.h>
 #include <types/pair.h>
 

@@ -21,15 +21,14 @@
 #ifndef IPC_ACTIONS_QUERY_H
 #define IPC_ACTIONS_QUERY_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /** @c get_version: no arguments */
 cJSON *ipc_action_get_version(const wm_td *wm, const cJSON *args);
 

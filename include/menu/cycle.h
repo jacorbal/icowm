@@ -20,7 +20,6 @@
 #ifndef MENU_CYCLE_H
 #define MENU_CYCLE_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -32,7 +31,6 @@
 #include <types/handles.h>
 
 
-/* Public interface */
 /**
  * @brief Initialize the cycle menu for window or icon cycling
  *

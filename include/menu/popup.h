@@ -21,7 +21,6 @@
 #ifndef MENU_POPUP_H
 #define MENU_POPUP_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -36,7 +35,6 @@
 #include <types/handles.h>
 
 
-/* Public interface */
 /**
  * @brief Show a popup near the client window with focused-client
  *        information

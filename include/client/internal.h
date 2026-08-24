@@ -18,7 +18,6 @@
 #ifndef CLIENT_INTERNAL_H
 #define CLIENT_INTERNAL_H
 
-
 /* System includes */
 #include <stddef.h>     /* size_t */
 
@@ -26,12 +25,13 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <config.h>
 
 
-/* X11 property readers (implemented in 'client/props.c') */
 /**
  * @brief Retrieve the @c WM_NAME property of a window
  *
@@ -77,7 +77,6 @@ int ci_get_wm_class(xcb_connection_t *connection,
         char *restrict class_buf, size_t class_sz,
         char *restrict inst_buf, size_t inst_sz);
 
-/* String/decoration helpers (implemented in 'client_geom.c') */
 /**
  * @brief Allocate and zero all heap string buffers for a client
  *

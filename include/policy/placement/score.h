@@ -26,7 +26,6 @@
 #ifndef POLICY_PLACEMENT_SCORE_H
 #define POLICY_PLACEMENT_SCORE_H
 
-
 /* System includes */
 #include <stdint.h>
 
@@ -34,10 +33,8 @@
 #include <types/handles.h>
 #include <types/pair.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief Accumulate overlap-penalty cost for a candidate rectangle
  *        against every visible, unlocked client on a desktop

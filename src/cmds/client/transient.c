@@ -200,7 +200,7 @@ static void s_visit_descendants(client_td *node,
  */
 struct s_family_snapshot_ctx {
     uint32_t desktop_filter; /**< @c WM_DESKTOP_ID_ALL matches every
-                                   desktop */
+                                  desktop */
     client_td **members;     /**< @c NULL during the counting pass */
     size_t capacity;         /**< Slots @c members has (filling pass) */
     size_t count;            /**< Matches found so far */

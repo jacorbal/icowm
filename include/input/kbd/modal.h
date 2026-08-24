@@ -16,7 +16,6 @@
 #ifndef INPUT_KBD_MODAL_H
 #define INPUT_KBD_MODAL_H
 
-
 /* System includes */
 #include <stdbool.h>
 
@@ -24,15 +23,16 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
-/* Default initial values */
+/* Type includes */
 #include <types/handles.h>
+
+/* Default initial values */
 #include <defs/kbd.h>
 
 /* Project includes */
 #include <render/surface.h>
 
 
-/* Public interface */
 
 /**
  * @brief Check whether a keyboard modal mode (move or resize) is active

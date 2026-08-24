@@ -25,7 +25,6 @@
 #ifndef INPUT_KBD_BIND_H
 #define INPUT_KBD_BIND_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -34,13 +33,12 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
-/* ADT includes */
+/* Type includes */
+#include <types/handles.h>
 
 /* Default initial values */
-#include <types/handles.h>
 #include <defs/kbd.h>
 
-/* Project includes */
 
 
 /**
@@ -201,7 +199,6 @@ typedef struct {
 } wm_keybinding_td;
 
 
-/* Public interface */
 /**
  * @brief Parse configured key bindings and install passive grabs
  *

@@ -20,15 +20,14 @@
 #ifndef IPC_ACTIONS_CLIENT_LAYER_H
 #define IPC_ACTIONS_CLIENT_LAYER_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief @c raise_client: raise the client to the top of its layer
  *

@@ -16,15 +16,12 @@
 #ifndef CMDS_CCMD_RESIZE_H
 #define CMDS_CCMD_RESIZE_H
 
-
 /* Type includes */
 #include <types/handles.h>
 #include <types/pair.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief Resize the client to new dimensions
  *

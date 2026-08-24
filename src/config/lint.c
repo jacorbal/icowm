@@ -31,10 +31,10 @@
 typedef struct config_lint_key_s {
     const char *name;
     const struct config_lint_key_s *children; /**< 'NULL' for a leaf,
-                                                     or for a subtree
-                                                     deliberately left
-                                                     opaque (see
-                                                     config/lint.h) */
+                                                   or for a subtree
+                                                   deliberately left
+                                                   opaque (see
+                                                   config/lint.h) */
     size_t children_count;
 } config_lint_key_td;
 
@@ -57,9 +57,9 @@ typedef struct {
  */
 typedef struct {
     const char *display_name; /**< Name to head the report with; may
-                                    differ from the file's bare name on
-                                    disk (see 'themes/' entries, headed
-                                    by 'themes/<name>.json') */
+                                   differ from the file's bare name on
+                                   disk (see 'themes/' entries, headed
+                                   by 'themes/<name>.json') */
     bool header_printed;
     int unknown_count;
 } config_lint_report_td;

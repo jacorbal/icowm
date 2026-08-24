@@ -26,15 +26,14 @@
 #ifndef IPC_ACTIONS_CLIENT_VISIBILITY_H
 #define IPC_ACTIONS_CLIENT_VISIBILITY_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* JSON includes */
-#include <types/handles.h>
 #include <cjson/cJSON.h>
 
-/* Project includes */
 
 
-/* Public interface */
 /**
  * @brief @c iconify_client: iconify (minimize) the client
  *

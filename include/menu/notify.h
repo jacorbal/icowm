@@ -17,17 +17,16 @@
 #ifndef MENU_NOTIFY_H
 #define MENU_NOTIFY_H
 
+/* Type includes */
+#include <types/handles.h>
 
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <types/handles.h>
 #include <time.h>       /* timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
-
-/* Project includes */
 
 /* Default initial values */
 #include <defs/desktop.h>
@@ -49,7 +48,6 @@ struct notify_popup_state_s {
 };
 
 
-/* Public interface */
 /**
  * @brief Destroy the notification popup window and reset its state
  *

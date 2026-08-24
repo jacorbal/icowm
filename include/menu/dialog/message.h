@@ -25,7 +25,6 @@
 #ifndef MENU_DIALOG_MESSAGE_H
 #define MENU_DIALOG_MESSAGE_H
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -33,11 +32,12 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Default initial values */
+/* Type includes */
 #include <types/handles.h>
+
+/* Default initial values */
 #include <defs/dialog.h>
 
-/* Project includes */
 
 
 /**

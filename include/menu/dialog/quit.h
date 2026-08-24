@@ -26,19 +26,18 @@
 #ifndef MENU_DIALOG_QUIT_H
 #define MENU_DIALOG_QUIT_H
 
-
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Default initial values */
+/* Type includes */
 #include <types/handles.h>
+
+/* Default initial values */
 #include <defs/dialog.h>
 #include <defs/uistr.h>
 
-/* Project includes */
 
 
-/* Thin wrapper interface */
 /**
  * @brief Open the quit-confirmation dialog centered on the screen
  *
