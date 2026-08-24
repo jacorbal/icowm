@@ -46,6 +46,8 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/policy/test_urgency \
     $(O_DIR)/tests/test_rules \
     $(O_DIR)/tests/input/mouse/test_bounds \
+    $(O_DIR)/tests/input/mouse/test_resolve \
+    $(O_DIR)/tests/input/kbd/test_resolve \
     $(O_DIR)/tests/test_memguard \
     $(O_DIR)/tests/systray/test_text \
     $(O_DIR)/tests/systray/test_battery \
@@ -217,6 +219,21 @@ $(O_DIR)/tests/test_rules: $(TESTS_DIR)/test_rules.c \
 $(O_DIR)/tests/input/mouse/test_bounds: \
 		$(TESTS_DIR)/input/mouse/test_bounds.c \
 		$(S_DIR)/input/mouse/bounds.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+# Both resolvers are pure over their own binding table, so each test
+# supplies that table itself rather than linking the 'bind.c' that
+# only ever fills one from a live X connection.
+$(O_DIR)/tests/input/mouse/test_resolve: \
+		$(TESTS_DIR)/input/mouse/test_resolve.c \
+		$(S_DIR)/input/mouse/resolve.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/kbd/test_resolve: \
+		$(TESTS_DIR)/input/kbd/test_resolve.c \
+		$(S_DIR)/input/kbd/resolve.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

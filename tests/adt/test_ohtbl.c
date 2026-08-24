@@ -315,7 +315,7 @@ static void s_test_shrink_is_deferred(void)
         ohtbl_remove(htbl, &data);
     }
 
-    TAP_OK(htbl->shrink_pending,
+    TAP_OK(htbl->is_shrink_pending,
             "crossing below the min load factor marks a shrink" \
             " pending");
     TAP_EQ_INT((long) htbl->positions, (long) positions_before,
@@ -348,11 +348,11 @@ static void s_test_shrink_cancelled_on_recovery(void)
 
         ohtbl_remove(htbl, &data);
     }
-    TAP_OK(htbl->shrink_pending, "shrink is pending after the drop");
+    TAP_OK(htbl->is_shrink_pending, "shrink is pending after the drop");
 
     ohtbl_insert(htbl, &refill);
 
-    TAP_OK(!htbl->shrink_pending,
+    TAP_OK(!htbl->is_shrink_pending,
             "reinserting back above the threshold cancels the" \
             " pending shrink");
     TAP_EQ_INT((long) htbl->positions, (long) positions_before,
@@ -390,7 +390,7 @@ static void s_test_shrink_happens_once_cooldown_elapses(void)
 
         ohtbl_remove(htbl, &data);
     }
-    TAP_OK(htbl->shrink_pending,
+    TAP_OK(htbl->is_shrink_pending,
             "shrink pending after crossing the threshold");
     TAP_EQ_INT((long) htbl->positions, (long) positions_before,
             "not yet shrunk");
@@ -402,7 +402,7 @@ static void s_test_shrink_happens_once_cooldown_elapses(void)
     last_data = &last_key;
     ohtbl_remove(htbl, &last_data);
 
-    TAP_OK(!htbl->shrink_pending,
+    TAP_OK(!htbl->is_shrink_pending,
             "no longer pending once the cooldown elapses and the" \
             " table actually shrinks");
     TAP_OK(htbl->positions < positions_before,
