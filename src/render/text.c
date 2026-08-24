@@ -108,6 +108,293 @@ static struct {
 
 
 /**
+ * @brief Split a font configuration string into whitespace-separated
+ *        tokens
+ *
+ * @param input      Null-terminated font description string
+ * @param tokens     Destination array of tokens
+ * @param max_tokens Maximum number of tokens @p tokens can hold
+ *
+ * @return Number of tokens actually found, up to @p max_tokens
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p input
+ */
+static size_t s_font_config_tokenize(const char *restrict input,
+        char tokens[][64], size_t max_tokens)
+{
+    const char *p;
+    size_t ntok = 0u;
+
+    p = input;
+    while (*p != '\0' && ntok < max_tokens) {
+        size_t tlen = 0u;
+        while (*p == ' ' || *p == '\t') {
+            p++;
+        }
+        if (*p == '\0') {
+            break;
+        }
+        while (*p != ' ' && *p != '\t' && *p != '\0' && tlen < 63u) {
+            tokens[ntok][tlen++] = *p++;
+        }
+        tokens[ntok][tlen] = '\0';
+        ntok++;
+    }
+
+    return ntok;
+}
+
+
+/**
+ * @brief Split off the trailing charset-spec token, if present, into
+ *        its own registry and encoding parts
+ *
+ * The last token is a charset spec when it contains a hyphen and is
+ * not one of the style keywords ('bold'/'italic'/'oblique'); it is
+ * then removed from @p tokens (via @p ntok) and split at its own
+ * last hyphen into @p registry and @p encoding.
+ *
+ * @param tokens         Tokens produced by @a s_font_config_tokenize
+ * @param ntok           Token count; decremented if a charset spec
+ *                        was found and removed
+ * @param registry       Destination for the registry part
+ * @param registry_size  Size of @p registry, in bytes
+ * @param encoding       Destination for the encoding part
+ * @param encoding_size  Size of @p encoding, in bytes
+ *
+ * @note @p registry and @p encoding are left empty if no charset
+ *       spec was found
+ * @note Complexity: @e O(k), where @e k is the length of the last
+ *       token in @p tokens
+ */
+static void s_font_config_extract_charset(char tokens[][64],
+        size_t *ntok, char *restrict registry, size_t registry_size,
+        char *restrict encoding, size_t encoding_size)
+{
+    char charset_tok[64];
+    size_t last_hyphen = 0u;
+    bool has_hyphen = false;
+
+    registry[0] = '\0';
+    encoding[0] = '\0';
+
+    for (size_t j = 0u; tokens[*ntok - 1u][j] != '\0'; ++j) {
+        if (tokens[*ntok - 1u][j] == '-') {
+            has_hyphen = true;
+            break;
+        }
+    }
+    if (!has_hyphen ||
+            safe_strcmp(tokens[*ntok - 1u], "bold") == 0 ||
+            safe_strcmp(tokens[*ntok - 1u], "italic") == 0 ||
+            safe_strcmp(tokens[*ntok - 1u], "oblique") == 0) {
+        return;
+    }
+
+    safe_strncpy(charset_tok, tokens[*ntok - 1u], sizeof(charset_tok));
+    (*ntok)--;
+
+    /* Find the last hyphen so we can split registry and encoding */
+    for (size_t j = 0u; charset_tok[j] != '\0'; ++j) {
+        if (charset_tok[j] == '-') {
+            last_hyphen = j;
+        }
+    }
+
+    /* 'safe_strncpy' with 'sz=last_hyphen+1' copies exactly
+     * 'last_hyphen' chars */
+    safe_strncpy(registry, charset_tok, last_hyphen + 1u);
+    (void) registry_size;
+    safe_strncpy(encoding, charset_tok + last_hyphen + 1u,
+            encoding_size);
+}
+
+
+/**
+ * @brief Split off the trailing pixel-size token, if present
+ *
+ * The last remaining token is a pixel size when every one of its
+ * characters is a digit and it parses as an integer in
+ * @e (0, 999].
+ *
+ * @param tokens Tokens remaining after
+ *               @a s_font_config_extract_charset
+ * @param ntok   Token count; decremented if a size token was found
+ *               and removed
+ *
+ * @return The parsed pixel size, or @c 0 if the last token was not a
+ *         valid one
+ *
+ * @note Complexity: @e O(k), where @e k is the length of the last
+ *       token in @p tokens
+ */
+static int s_font_config_extract_size(char tokens[][64], size_t *ntok)
+{
+    char *endptr;
+    long lval;
+    int size = 0;
+    bool is_num;
+
+    is_num = (*ntok > 0u && tokens[*ntok - 1u][0] != '\0');
+    for (size_t j = 0u; is_num && tokens[*ntok - 1u][j] != '\0'; ++j) {
+        if (tokens[*ntok - 1u][j] < '0' ||
+                tokens[*ntok - 1u][j] > '9') {
+            is_num = false;
+        }
+    }
+    if (!is_num) {
+        return 0;
+    }
+
+    lval = strtol(tokens[*ntok - 1u], &endptr, 10);
+    if (endptr != tokens[*ntok - 1u] && *endptr == '\0' &&
+            lval > 0L && lval <= 999L) {
+        size = (int) lval;
+    }
+    (*ntok)--;
+
+    return size;
+}
+
+
+/**
+ * @brief Scan tokens for the weight and slant style keywords
+ *
+ * @param tokens     Tokens remaining after
+ *                   @a s_font_config_extract_size
+ * @param ntok       Number of tokens in @p tokens
+ * @param is_bold    Set to @c true if a 'bold' token was found
+ * @param is_italic  Set to @c true if an 'italic' token was found
+ * @param is_oblique Set to @c true if an 'oblique' token was found
+ *
+ * @note Complexity: @e O(n), where @e n is @p ntok
+ */
+static void s_font_config_scan_style(const char tokens[][64],
+        size_t ntok, bool *is_bold, bool *is_italic, bool *is_oblique)
+{
+    *is_bold = false;
+    *is_italic = false;
+    *is_oblique = false;
+
+    for (size_t i = 0u; i < ntok; ++i) {
+        if (safe_strcmp(tokens[i], "bold") == 0) {
+            *is_bold = true;
+        } else if (safe_strcmp(tokens[i], "italic") == 0) {
+            *is_italic = true;
+        } else if (safe_strcmp(tokens[i], "oblique") == 0) {
+            *is_oblique = true;
+        }
+    }
+}
+
+
+/**
+ * @brief Join every non-keyword token, space-separated, into the
+ *        font family string
+ *
+ * @param tokens      Tokens remaining after
+ *                    @a s_font_config_extract_size
+ * @param ntok        Number of tokens in @p tokens
+ * @param family      Destination buffer for the family string
+ * @param family_size Size of @p family, in bytes
+ *
+ * @note @p family is left empty if every token was a style keyword
+ * @note Complexity: @e O(n), where @e n is the combined length of
+ *       every token in @p tokens
+ */
+static void s_font_config_build_family(const char tokens[][64],
+        size_t ntok, char *restrict family, size_t family_size)
+{
+    size_t fi = 0u;
+
+    family[0] = '\0';
+    for (size_t i = 0u; i < ntok; ++i) {
+        if (safe_strcmp(tokens[i], "bold") == 0 ||
+                safe_strcmp(tokens[i], "italic") == 0 ||
+                safe_strcmp(tokens[i], "oblique") == 0) {
+            continue;
+        }
+
+        if (fi > 0u && fi < family_size - 1u) {
+            family[fi++] = ' ';
+        }
+
+        for (size_t j = 0u;
+                tokens[i][j] != '\0' && fi < family_size - 1u;
+                ++j) {
+            family[fi++] = tokens[i][j];
+        }
+    }
+    family[fi] = '\0';
+}
+
+
+/**
+ * @brief Build the final XLFD pattern from every already-extracted
+ *        font field
+ *
+ * A bare family name with no size, weight, slant, or charset spec is
+ * passed through as-is, itself a valid X font alias; every other
+ * combination is rendered as an XLFD wildcard pattern, with @c '*'
+ * standing in for whichever fields were not specified.
+ *
+ * @param family   Font family, from @a s_font_config_build_family
+ * @param size     Pixel size, from @a s_font_config_extract_size
+ *                 (@c 0 for unspecified)
+ * @param is_bold  Whether the 'bold' keyword was found
+ * @param is_italic Whether the 'italic' keyword was found
+ * @param is_oblique Whether the 'oblique' keyword was found
+ * @param registry Charset registry, from
+ *                 @a s_font_config_extract_charset (empty if
+ *                 unspecified)
+ * @param encoding Charset encoding, from
+ *                 @a s_font_config_extract_charset (empty if
+ *                 unspecified)
+ * @param output   Buffer for the resulting XLFD pattern
+ * @param outsize  Size of @p output in bytes
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_font_config_build_xlfd_pattern(
+        const char *restrict family, int size, bool is_bold,
+        bool is_italic, bool is_oblique, const char *restrict registry,
+        const char *restrict encoding, char *restrict output,
+        size_t outsize)
+{
+    const char *weight_str;
+    const char *slant_str;
+
+    if (size == 0 && !is_bold && !is_italic && !is_oblique &&
+            registry[0] == '\0') {
+        safe_strncpy(output, family, outsize);
+        return;
+    }
+
+    weight_str = (is_bold) ? "bold" : "medium";
+    slant_str = (is_italic) ? "i" : ((is_oblique) ? "o" : "r");
+
+    if (size > 0 && registry[0] != '\0') {
+        (void) snprintf(output, outsize,
+                "-*-%s-%s-%s-*-*-%d-*-*-*-*-*-%s-%s",
+                family, weight_str, slant_str, size, registry,
+                encoding);
+    } else if (size > 0) {
+        (void) snprintf(output, outsize,
+                "-*-%s-%s-%s-*-*-%d-*-*-*-*-*-*-*",
+                family, weight_str, slant_str, size);
+    } else if (registry[0] != '\0') {
+        (void) snprintf(output, outsize,
+                "-*-%s-%s-%s-*-*-*-*-*-*-*-*-%s-%s",
+                family, weight_str, slant_str, registry, encoding);
+    } else {
+        (void) snprintf(output, outsize,
+                "-*-%s-%s-%s-*-*-*-*-*-*-*-*-*-*",
+                family, weight_str, slant_str);
+    }
+}
+
+
+/**
  * @brief Convert a font configuration string to an X11 XLFD pattern
  *
  * IcoWM uses a simple font description syntax in its theme files:
@@ -134,6 +421,14 @@ static struct {
  * If @p input already starts with @c '-' it is treated as a full XLFD
  * and copied verbatim into @p output.
  *
+ * Split into one static function per phase: tokenizing (@a
+ * s_font_config_tokenize), charset extraction (@a s_font_config_
+ * extract_charset), size extraction (@a s_font_config_extract_size),
+ * style keyword scanning (@a s_font_config_scan_style), family string
+ * assembly (@a s_font_config_build_family), and the final pattern
+ * assembly (@a s_font_config_build_xlfd_pattern), called here in that
+ * order.
+ *
  * @param input   Null-terminated font description string
  * @param output  Buffer for the resulting XLFD pattern
  * @param outsize Size of @p output in bytes
@@ -143,19 +438,13 @@ static void s_font_config_to_xlfd(const char *restrict input,
 {
     char tokens[8][64];
     char family[128];
-    char registry[64] = {'\0'};
-    char encoding[64] = {'\0'};
-    const char *p;
-    const char *weight_str;
-    const char *slant_str;
-    size_t ntok = 0u;
-    size_t fi = 0u;
-    int size = 0;
-    bool is_bold = false;
-    bool is_italic = false;
-    bool is_oblique = false;
-    bool has_hyphen = false;
-    bool is_num = false;
+    char registry[64];
+    char encoding[64];
+    size_t ntok;
+    int size;
+    bool is_bold;
+    bool is_italic;
+    bool is_oblique;
 
     if (input == NULL || input[0] == '\0') {
         safe_strncpy(output, "fixed", outsize);
@@ -168,146 +457,26 @@ static void s_font_config_to_xlfd(const char *restrict input,
         return;
     }
 
-    /* Tokenize on whitespace */
-    p = input;
-    while (*p != '\0' && ntok < 8u) {
-        size_t tlen = 0u;
-        while (*p == ' ' || *p == '\t') {
-            p++;
-        }
-        if (*p == '\0') {
-            break;
-        }
-        while (*p != ' ' && *p != '\t' && *p != '\0' && tlen < 63u) {
-            tokens[ntok][tlen++] = *p++;
-        }
-        tokens[ntok][tlen] = '\0';
-        ntok++;
-    }
-
+    ntok = s_font_config_tokenize(input, tokens, 8u);
     if (ntok == 0u) {
         safe_strncpy(output, "fixed", outsize);
         return;
     }
 
-    /* Check if the last token is a charset spec (contains a hyphen and
-     * is not a style keyword).  Split it into registry and encoding
-     * parts. */
-    has_hyphen = false;
-    for (size_t j = 0u; tokens[ntok - 1u][j] != '\0'; ++j) {
-        if (tokens[ntok - 1u][j] == '-') {
-            has_hyphen = true;
-            break;
-        }
-    }
-    if (has_hyphen &&
-            safe_strcmp(tokens[ntok - 1u], "bold") != 0 &&
-            safe_strcmp(tokens[ntok - 1u], "italic") != 0 &&
-            safe_strcmp(tokens[ntok - 1u], "oblique") != 0) {
-        char charset_tok[64];
-        size_t last_hyphen = 0u;
-
-        safe_strncpy(charset_tok, tokens[ntok - 1u],
-                sizeof(charset_tok));
-        ntok--;
-
-        /* Find the last hyphen so we can split registry and encoding */
-        for (size_t j = 0u; charset_tok[j] != '\0'; ++j) {
-            if (charset_tok[j] == '-') {
-                last_hyphen = j;
-            }
-        }
-
-        /* 'safe_strncpy' with 'sz=last_hyphen+1' copies exactly
-         * 'last_hyphen' chars */
-        safe_strncpy(registry, charset_tok, last_hyphen + 1u);
-        safe_strncpy(encoding, charset_tok + last_hyphen + 1u,
-                sizeof(encoding));
-    }
-
-    /* Check if the last remaining token is an all-digit pixel size */
-    is_num = (ntok > 0u && tokens[ntok - 1u][0] != '\0');
-    for (size_t j = 0u; is_num && tokens[ntok - 1u][j] != '\0'; ++j) {
-        if (tokens[ntok - 1u][j] < '0' || tokens[ntok - 1u][j] > '9') {
-            is_num = false;
-        }
-    }
-    if (is_num) {
-        char *endptr;
-        long lval = strtol(tokens[ntok - 1u], &endptr, 10);
-        if (endptr != tokens[ntok - 1u] && *endptr == '\0' &&
-                lval > 0L && lval <= 999L) {
-            size = (int) lval;
-        }
-        ntok--;
-    }
-
-    /* Scan remaining tokens for weight and slant keywords */
-    for (size_t i = 0u; i < ntok; ++i) {
-        if (safe_strcmp(tokens[i], "bold") == 0) {
-            is_bold = true;
-        } else if (safe_strcmp(tokens[i], "italic") == 0) {
-            is_italic = true;
-        } else if (safe_strcmp(tokens[i], "oblique") == 0) {
-            is_oblique = true;
-        }
-    }
-
-    /* Build family string from non-keyword tokens */
-    family[0] = '\0';
-    fi = 0u;
-    for (size_t i = 0u; i < ntok; ++i) {
-        if (safe_strcmp(tokens[i], "bold") == 0 ||
-                safe_strcmp(tokens[i], "italic") == 0 ||
-                safe_strcmp(tokens[i], "oblique") == 0) {
-            continue;
-        }
-
-        if (fi > 0u && fi < sizeof(family) - 1u) {
-            family[fi++] = ' ';
-        }
-
-        for (size_t j = 0u;
-                tokens[i][j] != '\0' && fi < sizeof(family) - 1u;
-                ++j) {
-            family[fi++] = tokens[i][j];
-        }
-    }
-    family[fi] = '\0';
+    s_font_config_extract_charset(tokens, &ntok, registry,
+            sizeof(registry), encoding, sizeof(encoding));
+    size = s_font_config_extract_size(tokens, &ntok);
+    s_font_config_scan_style(tokens, ntok, &is_bold, &is_italic,
+            &is_oblique);
+    s_font_config_build_family(tokens, ntok, family, sizeof(family));
 
     if (family[0] == '\0') {
         safe_strncpy(output, "fixed", outsize);
         return;
     }
 
-    /* A bare family name with no modifiers is a valid X font alias */
-    if (size == 0 && !is_bold && !is_italic && !is_oblique &&
-            registry[0] == '\0') {
-        safe_strncpy(output, family, outsize);
-        return;
-    }
-
-    /* Build an XLFD wildcard pattern */
-    weight_str = (is_bold) ? "bold" : "medium";
-    slant_str = (is_italic) ? "i" : ((is_oblique) ? "o" : "r");
-
-    if (size > 0 && registry[0] != '\0') {
-        (void) snprintf(output, outsize,
-                "-*-%s-%s-%s-*-*-%d-*-*-*-*-*-%s-%s",
-                family, weight_str, slant_str, size, registry, encoding);
-    } else if (size > 0) {
-        (void) snprintf(output, outsize,
-                "-*-%s-%s-%s-*-*-%d-*-*-*-*-*-*-*",
-                family, weight_str, slant_str, size);
-    } else if (registry[0] != '\0') {
-        (void) snprintf(output, outsize,
-                "-*-%s-%s-%s-*-*-*-*-*-*-*-*-%s-%s",
-                family, weight_str, slant_str, registry, encoding);
-    } else {
-        (void) snprintf(output, outsize,
-                "-*-%s-%s-%s-*-*-*-*-*-*-*-*-*-*",
-                family, weight_str, slant_str);
-    }
+    s_font_config_build_xlfd_pattern(family, size, is_bold, is_italic,
+            is_oblique, registry, encoding, output, outsize);
 }
 
 
