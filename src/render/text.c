@@ -228,7 +228,7 @@ static void s_font_config_extract_charset(char tokens[][64],
  * @note Complexity: @e O(k), where @e k is the length of the last
  *       token in @p tokens
  */
-static int s_font_config_extract_size(const char tokens[][64],
+static int s_font_config_extract_size(char tokens[][64],
         size_t *ntok)
 {
     char *endptr;

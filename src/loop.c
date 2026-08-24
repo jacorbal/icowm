@@ -86,6 +86,7 @@
 
 /* Local includes */
 #include <loop.h>
+#include <loop/context.h>
 
 
 /**
@@ -94,19 +95,17 @@
  * Re-renders only the surfaces that have been marked as outdated.
  * Called on every iteration of the main event loop.
  *
- * @param wm Window manager state
+ * @param ctx Main loop context
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
-static void s_loop_update(const wm_td *wm)
+static void s_loop_update(const loop_ctx_td *ctx)
 {
-    list_td *surfaces = wm_surfaces(wm);
-
-    if (wm == NULL || surfaces == NULL) {
+    if (ctx == NULL || ctx->surfaces == NULL) {
         return;
     }
 
-    for (list_item_td *node = list_head(surfaces);
+    for (list_item_td *node = list_head(ctx->surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
         if (surface == NULL) {
@@ -159,19 +158,18 @@ static void s_loop_tighten_poll_timeout(int *poll_timeout_ms,
  * so any surface's own current-desktop repaint is enough to clear its
  * remnants from the screen.
  *
- * @param connection XCB connection
- * @param surfaces   Surface list to find a repaint target in
- * @param close_fn   The dialog's own @c X_close function
+ * @param ctx      Main loop context
+ * @param close_fn The dialog's own @c X_close function
  *
  * @note Complexity: @e O(1), since only the first surface is needed
  */
 static void s_loop_close_and_repaint_first_surface(
-        xcb_connection_t *connection, list_td *surfaces,
+        const loop_ctx_td *ctx,
         void (*close_fn)(xcb_connection_t *))
 {
     surface_td *found = NULL;
 
-    for (list_item_td *node = list_head(surfaces); node != NULL;
+    for (list_item_td *node = list_head(ctx->surfaces); node != NULL;
             node = list_next(node)) {
         surface_td *const s = (surface_td *) list_data(node);
         if (s != NULL) {
@@ -180,7 +178,7 @@ static void s_loop_close_and_repaint_first_surface(
         }
     }
 
-    close_fn(connection);
+    close_fn(ctx->connection);
     if (found != NULL) {
         surface_render_current_desktop_repaint(found);
     }
@@ -192,7 +190,7 @@ static void s_loop_close_and_repaint_first_surface(
  *        @c user_time, for @c _NET_ACTIVE_WINDOW focus-stealing
  *        prevention to compare against later
  *
- * @param wm Window manager state, for @p surfaces
+ * @param ctx Main loop context, for its own surface list
  * @param window Window a real @c KeyPress or @c ButtonPress named as
  *               its own @c event field, i.e., the one that actually
  *               received it
@@ -212,8 +210,8 @@ static void s_loop_close_and_repaint_first_surface(
  *       the hash-table lookup cost per desktop, the same as
  *       @a lookup_find_client itself, which this wraps
  */
-static void s_loop_note_real_input(const wm_td *wm, xcb_window_t window,
-        uint8_t response_type, uint32_t time)
+static void s_loop_note_real_input(const loop_ctx_td *ctx,
+        xcb_window_t window, uint8_t response_type, uint32_t time)
 {
     client_td *client;
 
@@ -221,7 +219,7 @@ static void s_loop_note_real_input(const wm_td *wm, xcb_window_t window,
         return;
     }
 
-    client = lookup_find_client(wm_surfaces(wm), window, NULL, NULL);
+    client = lookup_find_client(ctx->surfaces, window, NULL, NULL);
     client_update_user_time(client, time);
 }
 
@@ -229,26 +227,24 @@ static void s_loop_note_real_input(const wm_td *wm, xcb_window_t window,
 /**
  * @brief Force a full re-render of all surfaces
  *
- * Marks every surface as outdated and then delegates to @c loop_update.
- * Called once before entering the event loop so pre-existing windows
- * are drawn from scratch.
+ * Marks every surface as outdated and then delegates to
+ * @a s_loop_update.  Called once before entering the event loop so
+ * pre-existing windows are drawn from scratch.
  *
- * @param wm Window manager state
+ * @param ctx Main loop context
  *
  * @note Complexity: @e O(n * m), where @e n is the number of surfaces
  *       and @e m is the number of desktops
  */
-static void s_loop_update_full(const wm_td *wm)
+static void s_loop_update_full(const loop_ctx_td *ctx)
 {
-    list_td *surfaces = wm_surfaces(wm);
-
-    if (wm == NULL || surfaces == NULL) {
+    if (ctx == NULL || ctx->surfaces == NULL) {
         return;
     }
 
     LOGGER_TRACE("Fully updating window manager", L_NARG);
 
-    for (list_item_td *node = list_head(surfaces);
+    for (list_item_td *node = list_head(ctx->surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
         if (surface != NULL) {
@@ -256,32 +252,16 @@ static void s_loop_update_full(const wm_td *wm)
         }
     }
 
-    s_loop_update(wm);
+    s_loop_update(ctx);
 }
 
 
 /* Run the main event loop until the window manager is stopped */
 void loop_run(wm_td *wm)
 {
-    xcb_key_symbols_t *keysyms;
-    xcb_generic_event_t *pending_event = NULL; /**< One-event lookahead
-                                                    used to coalesce
-                                                    a run of consecutive
-                                                    @c MotionNotify
-                                                    events (see the
-                                                    comment at the
-                                                    @c XCB_MOTION_NOTIFY
-                                                    case below) */
+    loop_ctx_td ctx;
     struct pollfd pfd[1 + IPC_MAX_CLIENTS + 1];
     bool any_outdated;
-    xcb_connection_t *connection;
-    list_td *surfaces;
-    const config_td *config;
-    uint32_t restricted_memory_mib;
-    bool is_randr_available;
-    uint8_t randr_base_event;
-    bool is_sync_available;
-    uint8_t sync_base_event;
 
     if (wm == NULL || !wm_is_running(wm)) {
         LOGGER_TRACE("Window manager is not initialized or" \
@@ -289,14 +269,10 @@ void loop_run(wm_td *wm)
         return;
     }
 
-    connection = wm_connection(wm);
-    surfaces = wm_surfaces(wm);
-    config = wm_config(wm);
-    restricted_memory_mib = wm_restricted_memory_mib(wm);
-    is_randr_available = wm_randr_available(wm);
-    randr_base_event = wm_randr_base_event(wm);
-    is_sync_available = wm_sync_available(wm);
-    sync_base_event = wm_sync_base_event(wm);
+    if (!loop_context_init(&ctx, wm)) {
+        LOGGER_ERROR("Failed to resolve main loop context", L_NARG);
+        return;
+    }
 
     if (wm_startup_install_signals() != 0) {
         LOGGER_WARNING("Continuing without termination signal handling",
@@ -308,18 +284,18 @@ void loop_run(wm_td *wm)
                 L_NARG);
     }
 
-    keysyms = xcb_key_symbols_alloc(connection);
-    if (keysyms == NULL) {
+    ctx.keysyms = xcb_key_symbols_alloc(ctx.connection);
+    if (ctx.keysyms == NULL) {
         LOGGER_ERROR("Failed to allocate key symbols table", L_NARG);
         return;
     }
-    wm_set_keysyms(wm, keysyms);
+    wm_set_keysyms(wm, ctx.keysyms);
 
-    keyboard_load(surfaces, keysyms, config);
-    mouse_load(surfaces, config);
+    keyboard_load(ctx.surfaces, ctx.keysyms, ctx.config);
+    mouse_load(ctx.surfaces, ctx.config);
 
     cctl_adopt_scan(wm);
-    s_loop_update_full(wm);
+    s_loop_update_full(&ctx);
 
     /* Synchronize EWMH root properties after the initial scan so that
      * taskbars reading '_NET_CLIENT_LIST' see the windows that were
@@ -358,15 +334,15 @@ void loop_run(wm_td *wm)
         if (wm_startup_requested_resume()) {
             LOGGER_INFO("'SIGCONT' received; re-establishing" \
                     " input grabs", L_NARG);
-            keyboard_load(surfaces, keysyms, config);
-            mouse_load(surfaces, config);
+            keyboard_load(ctx.surfaces, ctx.keysyms, ctx.config);
+            mouse_load(ctx.surfaces, ctx.config);
         }
 
         if (wm_startup_requested_child_reap()) {
             session_reap_children();
         }
 
-        conn_error = xcb_connection_has_error(connection);
+        conn_error = xcb_connection_has_error(ctx.connection);
         if (conn_error != 0) {
             LOGGER_ERROR("X connection error detected (%s);" \
                     " requesting shutdown",
@@ -375,7 +351,7 @@ void loop_run(wm_td *wm)
             break;
         }
 
-        pfd[0].fd = xcb_get_file_descriptor(connection);
+        pfd[0].fd = xcb_get_file_descriptor(ctx.connection);
         pfd[0].events = POLLIN;
         pfd[0].revents = 0;
         nfds = 1;
@@ -404,7 +380,7 @@ void loop_run(wm_td *wm)
                 systray_clock_ms_remaining());
 
         s_loop_tighten_poll_timeout(&poll_timeout_ms,
-                urgency_blink_ms_remaining(config));
+                urgency_blink_ms_remaining(ctx.config));
 
         s_loop_tighten_poll_timeout(&poll_timeout_ms, cctl_sn_ms_remaining());
 
@@ -473,42 +449,42 @@ void loop_run(wm_td *wm)
         }
 
         systray_clock_tick();
-        urgency_blink_tick(surfaces, config);
-        cctl_sn_tick(connection, surfaces);
-        mouse_hover_poll_tick(connection, surfaces);
-        menu_confirm_dialog_tick(connection, config);
-        menu_message_dialog_tick(connection);
-        drag_warp_tick(connection);
+        urgency_blink_tick(ctx.surfaces, ctx.config);
+        cctl_sn_tick(ctx.connection, ctx.surfaces);
+        mouse_hover_poll_tick(ctx.connection, ctx.surfaces);
+        menu_confirm_dialog_tick(ctx.connection, ctx.config);
+        menu_message_dialog_tick(ctx.connection);
+        drag_warp_tick(ctx.connection);
         wm_shutdown_tick(wm);
         cctl_kill_tick();
-        if (restricted_memory_mib > 0u &&
-                surfaces != NULL && !list_is_empty(surfaces)) {
-            memguard_tick(connection,
-                    (surface_td *) list_data(list_head(surfaces)),
-                    config);
+        if (ctx.restricted_memory_mib > 0u &&
+                ctx.surfaces != NULL && !list_is_empty(ctx.surfaces)) {
+            memguard_tick(ctx.connection,
+                    (surface_td *) list_data(list_head(ctx.surfaces)),
+                    ctx.config);
         }
 
-        while ((event = (pending_event != NULL)
-                    ? pending_event
-                    : xcb_poll_for_event(connection)) != NULL) {
+        while ((event = (ctx.pending_event != NULL)
+                    ? ctx.pending_event
+                    : xcb_poll_for_event(ctx.connection)) != NULL) {
             xcb_motion_notify_event_t *me;
             uint8_t event_type;
 
-            pending_event = NULL;
+            ctx.pending_event = NULL;
             event_type = (uint8_t) (event->response_type & ~0x80u);
 
-            if (is_randr_available &&
-                    (event_type == (uint8_t) (randr_base_event +
+            if (ctx.is_randr_available &&
+                    (event_type == (uint8_t) (ctx.randr_base_event +
                             XCB_RANDR_SCREEN_CHANGE_NOTIFY) ||
-                     event_type == (uint8_t) (randr_base_event +
+                     event_type == (uint8_t) (ctx.randr_base_event +
                             XCB_RANDR_NOTIFY))) {
                 handler_randr_event(wm, event);
                 free(event);
                 continue;
             }
 
-            if (is_sync_available &&
-                    event_type == (uint8_t) (sync_base_event +
+            if (ctx.is_sync_available &&
+                    event_type == (uint8_t) (ctx.sync_base_event +
                             XCB_SYNC_ALARM_NOTIFY)) {
                 handler_sync_event(wm, event);
                 free(event);
@@ -520,34 +496,34 @@ void loop_run(wm_td *wm)
                     xcb_key_press_event_t *const kp =
                         (xcb_key_press_event_t *) event;
 
-                    s_loop_note_real_input(wm, kp->event,
+                    s_loop_note_real_input(&ctx, kp->event,
                             event->response_type, kp->time);
-                    keyboard_handle_press(wm, keysyms, kp,
-                            surfaces, config);
+                    keyboard_handle_press(wm, ctx.keysyms, kp,
+                            ctx.surfaces, ctx.config);
                     break;
                 }
 
                 case XCB_KEY_RELEASE:
-                    keyboard_handle_release(keysyms,
+                    keyboard_handle_release(ctx.keysyms,
                             (xcb_key_release_event_t *) event,
-                            surfaces, config);
+                            ctx.surfaces, ctx.config);
                     break;
 
                 case XCB_BUTTON_PRESS: {
                     xcb_button_press_event_t *const bp =
                         (xcb_button_press_event_t *) event;
 
-                    s_loop_note_real_input(wm, bp->event,
+                    s_loop_note_real_input(&ctx, bp->event,
                             event->response_type, bp->time);
-                    mouse_handle_press(wm, connection, surfaces,
-                            bp, config);
+                    mouse_handle_press(wm, ctx.connection, ctx.surfaces,
+                            bp, ctx.config);
                     break;
                 }
 
                 case XCB_BUTTON_RELEASE:
-                    mouse_handle_release(connection, surfaces,
+                    mouse_handle_release(ctx.connection, ctx.surfaces,
                             (xcb_button_release_event_t *) event,
-                            config);
+                            ctx.config);
                     break;
 
                 case XCB_MOTION_NOTIFY:
@@ -568,22 +544,22 @@ void loop_run(wm_td *wm)
                      * visibly lag behind the pointer, worse the more
                      * expensive that per-event work is.  A non-motion
                      * event found while peeking ahead is kept in
-                     * 'pending_event' rather than dropped, so it is
+                     * 'ctx.pending_event' rather than dropped, so it is
                      * still handled, on the very next iteration of
                      * this same loop. */
-                    while ((pending_event =
-                                xcb_poll_for_event(connection)) !=
+                    while ((ctx.pending_event =
+                                xcb_poll_for_event(ctx.connection)) !=
                             NULL) {
-                        if ((uint8_t) (pending_event->response_type &
+                        if ((uint8_t) (ctx.pending_event->response_type &
                                     ~0x80u) != XCB_MOTION_NOTIFY) {
                             break;
                         }
                         free(event);
-                        event = pending_event;
+                        event = ctx.pending_event;
                         me = (xcb_motion_notify_event_t *) event;
                     }
 
-                    drag_update(connection,
+                    drag_update(ctx.connection,
                             (struct position_s) { me->root_x, me->root_y });
                     if (wincmenu_is_open()) {
                         wincmenu_handle_motion(me->event,
@@ -599,59 +575,59 @@ void loop_run(wm_td *wm)
                              me->child == search_window())) {
                         search_handle_motion(me->event_x, me->event_y);
                     } else if (!drag_is_active()) {
-                        mouse_handle_motion_hover(connection,
-                                surfaces, me);
+                        mouse_handle_motion_hover(ctx.connection,
+                                ctx.surfaces, me);
                     }
                     break;
 
                 case XCB_ENTER_NOTIFY:
-                    mouse_handle_enter(connection, surfaces,
+                    mouse_handle_enter(ctx.connection, ctx.surfaces,
                             (xcb_enter_notify_event_t *) event,
-                            config);
+                            ctx.config);
                     break;
 
                 case XCB_CONFIGURE_NOTIFY:
-                    handler_configure_notify(connection,
-                            surfaces,
+                    handler_configure_notify(ctx.connection,
+                            ctx.surfaces,
                             (xcb_configure_notify_event_t *) event);
                     break;
 
                 case XCB_UNMAP_NOTIFY:
-                    handler_unmap_notify(connection,
-                            surfaces,
+                    handler_unmap_notify(ctx.connection,
+                            ctx.surfaces,
                             (xcb_unmap_notify_event_t *) event);
                     break;
 
                 case XCB_DESTROY_NOTIFY:
-                    handler_destroy_notify(wm, connection,
-                            surfaces,
+                    handler_destroy_notify(wm, ctx.connection,
+                            ctx.surfaces,
                             (xcb_destroy_notify_event_t *) event);
                     break;
 
                 case XCB_PROPERTY_NOTIFY:
-                    handler_property_notify(wm, connection,
-                            surfaces,
+                    handler_property_notify(wm, ctx.connection,
+                            ctx.surfaces,
                             (xcb_property_notify_event_t *) event);
                     break;
 
                 case XCB_FOCUS_IN:
-                    handler_focus_in(connection, surfaces,
+                    handler_focus_in(ctx.connection, ctx.surfaces,
                             (xcb_focus_in_event_t *) event);
                     break;
 
                 case XCB_COLORMAP_NOTIFY:
-                    handler_colormap_notify(connection, surfaces,
+                    handler_colormap_notify(ctx.connection, ctx.surfaces,
                             (xcb_colormap_notify_event_t *) event);
                     break;
 
                 case XCB_EXPOSE:
-                    handler_expose(connection, surfaces,
-                            (xcb_expose_event_t *) event, config);
+                    handler_expose(ctx.connection, ctx.surfaces,
+                            (xcb_expose_event_t *) event, ctx.config);
                     break;
 
                 case XCB_CONFIGURE_REQUEST:
-                    handler_configure_request(connection,
-                            surfaces,
+                    handler_configure_request(ctx.connection,
+                            ctx.surfaces,
                             (xcb_configure_request_event_t *) event);
                     break;
 
@@ -666,9 +642,9 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_MAPPING_NOTIFY:
-                    handler_mapping_notify(keysyms, surfaces,
+                    handler_mapping_notify(ctx.keysyms, ctx.surfaces,
                             (xcb_mapping_notify_event_t *) event,
-                            config);
+                            ctx.config);
                     break;
 
                 case XCB_LEAVE_NOTIFY:
@@ -682,26 +658,26 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_MAP_NOTIFY:
-                    handler_map_notify(connection,
-                            surfaces,
+                    handler_map_notify(ctx.connection,
+                            ctx.surfaces,
                             (xcb_map_notify_event_t *) event);
                     break;
 
                 case XCB_GRAVITY_NOTIFY:
-                    handler_gravity_notify(connection,
-                            surfaces,
+                    handler_gravity_notify(ctx.connection,
+                            ctx.surfaces,
                             (xcb_gravity_notify_event_t *) event);
                     break;
 
                 case XCB_CIRCULATE_NOTIFY:
-                    handler_circulate_notify(connection,
-                            surfaces,
+                    handler_circulate_notify(ctx.connection,
+                            ctx.surfaces,
                             (xcb_circulate_notify_event_t *) event);
                     break;
 
                 case XCB_CIRCULATE_REQUEST:
-                    handler_circulate_request(connection,
-                            surfaces,
+                    handler_circulate_request(ctx.connection,
+                            ctx.surfaces,
                             (xcb_circulate_request_event_t *) event);
                     break;
 
@@ -732,15 +708,14 @@ void loop_run(wm_td *wm)
          * update triggered by the close is handled in the same
          * iteration. */
         if (popup_is_open() && popup_ms_remaining() == 0) {
-            s_loop_close_and_repaint_first_surface(connection,
-                    surfaces, popup_close);
+            s_loop_close_and_repaint_first_surface(&ctx, popup_close);
         }
 
         /* Auto-close the desktop notify when its timeout has elapsed */
         if (notify_desktop_is_open() &&
                 notify_desktop_ms_remaining() == 0) {
-            s_loop_close_and_repaint_first_surface(connection,
-                    surfaces, notify_desktop_close);
+            s_loop_close_and_repaint_first_surface(&ctx,
+                    notify_desktop_close);
         }
 
         /* Only sync EWMH root properties when state actually changed.
@@ -752,7 +727,7 @@ void loop_run(wm_td *wm)
          * 'loop_update' (which clears the flag) gates the sync to
          * iterations where real work happened. */
         any_outdated = false;
-        for (list_item_td *sync_node = list_head(surfaces);
+        for (list_item_td *sync_node = list_head(ctx.surfaces);
                 sync_node != NULL; sync_node = list_next(sync_node)) {
             const surface_td *s = (surface_td *) list_data(sync_node);
             if (s != NULL && s->is_outdated) {
@@ -761,13 +736,13 @@ void loop_run(wm_td *wm)
             }
         }
 
-        s_loop_update(wm);
+        s_loop_update(&ctx);
         if (any_outdated) {
             wm_ewmh_sync(wm);
         }
     }
 
     LOGGER_DEBUG("Exiting event loop", L_NARG);
-    xcb_key_symbols_free(keysyms);
+    xcb_key_symbols_free(ctx.keysyms);
     wm_set_keysyms(wm, NULL);
 }
