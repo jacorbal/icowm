@@ -49,25 +49,20 @@
  * (rendering).
  */
 struct cycle_menu_state_s {
-    xcb_window_t window;
-    client_td *clients[WM_CYCLE_MENU_MAX_ENTRIES];
-    char labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LENGTH];
-    int count;
-    int selected;
-    uint16_t width;
-    bool is_icon_menu;
     surface_td *surface;
     desktop_td *desktop;
-    uint16_t modifier;
-    xcb_window_t prev_focus;
-    xcb_keysym_t next_keysym;
-    uint16_t next_modmask;
-    xcb_keysym_t prev_keysym;
-    uint16_t prev_modmask;
     client_td *preview_client;
     const config_td *config;
+    client_td *clients[WM_CYCLE_MENU_MAX_ENTRIES];
+    xcb_window_t window;
+    int count;
+    int selected;
+    xcb_window_t prev_focus;
+    xcb_keysym_t next_keysym;
+    xcb_keysym_t prev_keysym;
     int scroll_offset;
     int viewport_rows;
+
     int last_drawn_selected;     /**< @p selected as of @a cycle_draw's
                                        own most recent call, so it can
                                        redraw only the rows that actually
@@ -76,13 +71,9 @@ struct cycle_menu_state_s {
                                        @p scroll_offset did not also
                                        change; meaningless until
                                        @p has_drawn_once */
+
     int last_drawn_scroll_offset; /**< See @p last_drawn_selected */
-    bool has_drawn_once;          /**< Whether @p last_drawn_selected /
-                                       @p last_drawn_scroll_offset hold
-                                       a real prior draw yet; false
-                                       right after @a cycle_init so its
-                                       first @a cycle_draw always paints
-                                       the whole viewport regardless */
+
     xcb_window_t outline_windows[4]; /**< The 4 strip windows (see
                                            render/outline.h) outlining
                                            whichever client is
@@ -90,6 +81,21 @@ struct cycle_menu_state_s {
                                            XCB_WINDOW_NONE in all 4
                                            slots until the first
                                            selection is applied */
+
+    uint16_t width;
+    uint16_t modifier;
+    uint16_t next_modmask;
+    uint16_t prev_modmask;
+    bool is_icon_menu;
+
+    bool has_drawn_once;          /**< Whether @p last_drawn_selected /
+                                       @p last_drawn_scroll_offset hold
+                                       a real prior draw yet; false
+                                       right after @a cycle_init so its
+                                       first @a cycle_draw always paints
+                                       the whole viewport regardless */
+
+    char labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LENGTH];
 };
 
 

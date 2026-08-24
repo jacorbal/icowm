@@ -382,7 +382,7 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
  * @note Complexity: @e O(1)
  */
 static void s_hi_handle_net_wm_desktop_one(const wm_td *wm,
-        client_td *client, surface_td *surface,
+        client_td *client, const surface_td *surface,
         desktop_td *src_desktop, desktop_td *tgt_desktop,
         uint32_t target_id)
 {
@@ -869,7 +869,7 @@ void hi_handle_net_wm_moveresize(const wm_td *wm,
     bool resize_w;
     bool resize_h;
     xcb_connection_t *connection = wm_connection(wm);
-    config_td *config = wm_config(wm);
+    const config_td *config = wm_config(wm);
 
     (void) desktop;
 

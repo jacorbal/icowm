@@ -186,6 +186,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->systray.is_enabled = true;
     config_base->systray.is_embedding_enabled = true;
     config_base->systray.reserve_space = false;
+    config_base->systray.avoid_overlap = true;
     config_base->systray.margins.top = 0u;
     config_base->systray.margins.right = 0u;
     config_base->systray.margins.bottom = 0u;

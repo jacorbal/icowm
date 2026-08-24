@@ -80,8 +80,9 @@ bool ccmd_client_resolve_workarea(client_td *client,
         return false;
     }
 
-    did = (client->desktop_id == WM_DESKTOP_ID_ALL) ?
-        surface->desktop_cur : client->desktop_id;
+    did = (client->desktop_id == WM_DESKTOP_ID_ALL)
+        ? surface->desktop_cur
+        : client->desktop_id;
     desktop = surface_desktop_get(surface, did);
     if (desktop == NULL || desktop->workarea.dim.w == 0u ||
             desktop->workarea.dim.h == 0u) {

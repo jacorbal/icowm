@@ -70,7 +70,7 @@
  * Reusing it here as a seed, rather than picking a second unrelated
  * number, implies that both seeds are already independently well-vetted
  * for bit dispersion, which is exactly the property double hashing
- * needs from @p h1 and @p h2 to stay uncorrelated for the same key.
+ * needs from @c h1 and @c h2 to stay uncorrelated for the same key.
  */
 #define DESKTOP_HASH_SEED_SECONDARY (0x85EBCA6Bu)
 
@@ -108,7 +108,6 @@ typedef struct surface_s surface_td;
 typedef struct desktop_s {
     xcb_connection_t *connection;   /**< XCB connection */
     xcb_ewmh_connection_t *ewmh;    /**< EWMH connection */
-    uint32_t screen_id;             /**< Screen index */
 
     /**
      * @brief Resolved pointer to this desktop's own XCB screen
@@ -123,9 +122,24 @@ typedef struct desktop_s {
      */
     xcb_screen_t *screen;
 
-    xcb_window_t id;                        /**< Desktop index */
+    ohtbl_td *clients;                      /**< Clients hash table */
 
-    char name[WM_DESKTOP_MAX_LENGTH_NAME];  /**< Desktop name */
+    cdlist_td *stacking;                    /**< Stacking list */
+
+    /**
+     * @brief This desktop's own surface's shared configuration
+     *
+     * Always @c &surface->config (see @a desktop_init's own two
+     * callers, surface.c and surface/switch.c), never a config from
+     * any other source: every desktop on the same surface points at
+     * the exact same @c config_td, so @p base and @p theme (what
+     * this field used to be two separate pointers for) never
+     * actually diverge from one another in practice.  One pointer
+     * also reaches @p bindings/@p randr/@p desktops/@p a11y, none of
+     * which had a field of their own here before, should a future
+     * caller ever need one of those from a desktop directly.
+     */
+    config_td *config;
 
     struct background_s {
         bool is_image;                      /**< BG color or image? */
@@ -142,24 +156,12 @@ typedef struct desktop_s {
      * cache lives per screen instead (cfr. 's_root_bg_applied_once' in
      * 'render/desktop.c'), not per desktop. */
 
-    ohtbl_td *clients;                      /**< Clients hash table */
-    cdlist_td *stacking;                    /**< Stacking list */
+    uint32_t screen_id;             /**< Screen index */
+    xcb_window_t id;                        /**< Desktop index */
     xcb_window_t client_active_id;          /**< Active window */
 
-    /**
-     * @brief This desktop's own surface's shared configuration
-     *
-     * Always @c &surface->config (see @a desktop_init's own two
-     * callers, surface.c and surface/switch.c), never a config from
-     * any other source: every desktop on the same surface points at
-     * the exact same @c config_td, so @p base and @p theme (what
-     * this field used to be two separate pointers for) never
-     * actually diverge from one another in practice.  One pointer
-     * also reaches @p bindings/@p randr/@p desktops/@p a11y, none of
-     * which had a field of their own here before, should a future
-     * caller ever need one of those from a desktop directly.
-     */
-    config_td *config;
+    /** @brief Number of valid entries in @p monitor_workareas */
+    uint32_t monitor_workarea_count;
 
     struct geometry_s geometry;
     struct geometry_s workarea;
@@ -190,15 +192,11 @@ typedef struct desktop_s {
      */
     struct geometry_s monitor_workareas[WM_SURFACE_MAX_MONITORS];
 
-    /** @brief Number of valid entries in @p monitor_workareas */
-    uint32_t monitor_workarea_count;
+    bool is_outdated;       /**< Flag when data needs to be updated */
 
-    bool is_outdated;                       /**< Flag when data needs to
-                                                 be updated */
-    bool is_focus_dirty;                       /**< Active client changed
-                                                 since last render pass;
-                                                 decoration colors must be
-                                                 refreshed on all clients */
+    bool is_focus_dirty;    /**< Active client changed since last render
+                                 pass; decoration colors must be
+                                 refreshed on all clients */
 
     /**
      * @brief Whether at least one client on this desktop currently has
@@ -225,6 +223,8 @@ typedef struct desktop_s {
      *       desktop it lands on.
      */
     bool is_urgent;
+
+    char name[WM_DESKTOP_MAX_LENGTH_NAME];  /**< Desktop name */
 } desktop_td;
 
 

@@ -104,160 +104,8 @@ struct config_desktop_layout_s {
  * @brief Base settings configuration structure
  */
 struct config_base_s {
-    char theme[CONFIG_MAX_LENGTH_FILENAME];
-
     /* Desktops: number and which on is the default one */
     uint32_t screen_count;                      /**< Number of screens */
-    struct {
-        uint32_t desktop_count;                 /**< No. of desktops */
-        uint32_t desktop_inaugural;             /**< Initial desktop */
-        struct config_desktop_layout_s
-            desktop_layout;                      /**< Grid interpretation
-                                                        of the desktop
-                                                        list below */
-
-        struct {
-            char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */
-            struct desktop_settings_s {
-                union {
-                    //Pixmap image;               /**< Background image */
-                    uint32_t color;             /**< Background color */
-                } background;
-            } settings;                         /**< Desktop settings */
-        } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
-    } screens[CONFIG_MAX_SCREENS];              /**< All screens */
-
-    /* Basic main programs: terminal and program launcher */
-    struct {
-        char terminal[CONFIG_MAX_LENGTH_COMMAND];
-        char launcher[CONFIG_MAX_LENGTH_COMMAND];
-        char file_manager[CONFIG_MAX_LENGTH_COMMAND];
-        char web_browser[CONFIG_MAX_LENGTH_COMMAND];
-        char editor[CONFIG_MAX_LENGTH_COMMAND];
-    } programs;
-
-    /**
-     * @brief Whether 'KEYBIND_LAUNCH_LAUNCHER' opens the built-in
-     *        run-box instead of spawning @p programs.launcher
-     *
-     * Its own top-level section, rather than nested under @p programs
-     * itself, specifically to avoid the confusion a second, differently
-     * typed "launcher" key nested right next to @p programs.launcher
-     * (a plain command string) would invite; see @c menu/dialog/run.h
-     * for the run-box itself.
-     *
-     * @p is_enabled defaults to @c false in normal mode; defaults to
-     * @c true in restricted-memory mode, where avoiding the extra
-     * process @p programs.launcher itself would otherwise spawn (even
-     * a minimal one, e.g., 'gmrun', this mode's own default for it)
-     * fits that mode's whole reason for existing.
-     *
-     * @see @a ik_handle_launch (input/kbd/interact.c) for where this
-     *      is consulted
-     */
-    struct {
-        bool is_enabled;
-    } prompt;
-
-    /* General behavior of environment towards windows */
-    struct {
-        uint32_t move_step;     /**< Keyboard move step in pixels */
-        uint32_t resize_step;   /**< Keyboard resize step in pixels */
-        bool show_geom;         /**< Show geometry overlay on move/resize */
-        bool solid_drag;        /**< Move/resize the real window live, as
-                                      opposed to an outline stand-in
-                                      applied only once the drag ends */
-
-        /**
-         * @brief Behavior of a window's own edges against nearby
-         *        screen edges and other windows while being
-         *        interactively moved or resized
-         */
-        struct {
-            /**
-             * @brief Attraction distance in pixels toward a nearby
-             *        edge while dragging; either @c 0 disables that
-             *        one specifically
-             */
-            struct config_edges_snap_s {
-                uint32_t window; /**< Toward another window's own
-                                       edge */
-                uint32_t screen; /**< Toward the screen's own edge */
-            } snap;
-
-            /**
-             * @brief How many pixels of deliberate extra drag it
-             *        takes for a horizontally or vertically
-             *        maximized client's own locked axis to actually
-             *        start changing while being interactively
-             *        resized, matching Openbox's own reuse of its
-             *        @c config_resist_edge (@c moveresize.c) for the
-             *        identical purpose
-             *
-             * Dragging back under this same threshold before
-             * releasing restores the maximized axis, reversibly,
-             * for the whole drag; @c 0 removes the axis lock
-             * entirely, letting the maximized axis change
-             * immediately on the very first pixel of drag.
-             */
-            uint32_t resistance;
-        } edges;
-
-        struct {
-            bool focus_new;
-            bool raise;
-        } focus;
-        enum config_gravity_e {
-            CONFIG_GRAVITY_NORTH_WEST = 1,
-            CONFIG_GRAVITY_NORTH = 2,
-            CONFIG_GRAVITY_NORTH_EAST = 3,
-            CONFIG_GRAVITY_EAST = 4,
-            CONFIG_GRAVITY_SOUTH_EAST = 5,
-            CONFIG_GRAVITY_SOUTH = 6,
-            CONFIG_GRAVITY_SOUTH_WEST = 7,
-            CONFIG_GRAVITY_WEST = 8,
-            CONFIG_GRAVITY_CENTER = 9,
-            CONFIG_GRAVITY_STATIC = 10
-        } gravity;
-        enum config_focus_policy_e {
-            CONFIG_FOCUS_POLICY_CLICK = 0,
-            CONFIG_FOCUS_POLICY_SLOPPY
-        } focus_policy;
-        enum config_placement_policy_e {
-            CONFIG_PLACEMENT_POLICY_SMART = 0,
-            CONFIG_PLACEMENT_POLICY_CASCADE,
-            CONFIG_PLACEMENT_POLICY_CENTERED,
-            CONFIG_PLACEMENT_POLICY_UNDER_MOUSE
-        } placement_policy;
-
-        /**
-         * @brief Which physical monitor a placement decision is
-         *        resolved against, on a surface made of more than one
-         *        sharing the same combined X screen
-         *
-         * @c pointer (default) picks whichever monitor the pointer is
-         * currently on (not necessarily where on that monitor the
-         * pointer actually is; the window can still land far from the
-         * cursor within it, depending on the placement policy),
-         * @c primary always picks the one RandR reports as primary.
-         *
-         * @see @a place_window_apply
-         */
-        enum config_placement_monitor_e {
-            CONFIG_PLACEMENT_MONITOR_POINTER = 0,
-            CONFIG_PLACEMENT_MONITOR_PRIMARY
-        } monitor_policy;
-
-        /**
-         * @brief Cluster a newly placed window next to others sharing
-         *        its @c WM_CLIENT_LEADER / @c WM_HINTS group (e.g.,
-         *        several windows of the same application) instead of
-         *        running the placement policy above for it
-         *
-         * @see @a place_window_apply
-         */
-        bool group_related;
-    } windows;
 
     /* Icon placement policy settings */
     struct {
@@ -347,28 +195,6 @@ struct config_base_s {
     } shutdown;
 
     /**
-     * @brief The @c fortune easter egg, whether its own keyboard
-     *        shortcut is active at all, and which command it runs
-     *
-     * @p command is run through a shell (@a popen), so it may be any
-     * shell command line, not just a bare executable name (e.g.,
-     * @c (fortune -s) for short-only fortunes, @c (fortune -o) for
-     * offensive ones, or a specific fortune database/language).
-     *
-     * Runs literally as configured, with no argument substitution or
-     * validation of its own: an invalid command simply produces no
-     * output, which the dialog already falls back to a built-in message
-     * for.
-     *
-     * @see @c menu/dialog/fortune.c
-     * @see @c STR_FORTUNE_FALLBACK in @c defs/uistr.h
-     */
-    struct {
-        bool is_enabled;
-        char command[CONFIG_MAX_LENGTH_COMMAND];
-    } fortune;
-
-    /**
      * @brief Whether launching a program begins a startup-notification
      *        sequence at all, and that sequence's own timeout
      *
@@ -396,6 +222,178 @@ struct config_base_s {
                                                          every desktop */
         } windows;
     } menus;
+
+    /* General behavior of environment towards windows */
+    struct {
+        uint32_t move_step;     /**< Keyboard move step in pixels */
+        uint32_t resize_step;   /**< Keyboard resize step in pixels */
+
+        enum config_gravity_e {
+            CONFIG_GRAVITY_NORTH_WEST = 1,
+            CONFIG_GRAVITY_NORTH = 2,
+            CONFIG_GRAVITY_NORTH_EAST = 3,
+            CONFIG_GRAVITY_EAST = 4,
+            CONFIG_GRAVITY_SOUTH_EAST = 5,
+            CONFIG_GRAVITY_SOUTH = 6,
+            CONFIG_GRAVITY_SOUTH_WEST = 7,
+            CONFIG_GRAVITY_WEST = 8,
+            CONFIG_GRAVITY_CENTER = 9,
+            CONFIG_GRAVITY_STATIC = 10
+        } gravity;
+
+        enum config_focus_policy_e {
+            CONFIG_FOCUS_POLICY_CLICK = 0,
+            CONFIG_FOCUS_POLICY_SLOPPY
+        } focus_policy;
+
+        enum config_placement_policy_e {
+            CONFIG_PLACEMENT_POLICY_SMART = 0,
+            CONFIG_PLACEMENT_POLICY_CASCADE,
+            CONFIG_PLACEMENT_POLICY_CENTERED,
+            CONFIG_PLACEMENT_POLICY_UNDER_MOUSE
+        } placement_policy;
+
+        /**
+         * @brief Which physical monitor a placement decision is
+         *        resolved against, on a surface made of more than one
+         *        sharing the same combined X screen
+         *
+         * @c pointer (default) picks whichever monitor the pointer is
+         * currently on (not necessarily where on that monitor the
+         * pointer actually is; the window can still land far from the
+         * cursor within it, depending on the placement policy),
+         * @c primary always picks the one RandR reports as primary.
+         *
+         * @see @a place_window_apply
+         */
+        enum config_placement_monitor_e {
+            CONFIG_PLACEMENT_MONITOR_POINTER = 0,
+            CONFIG_PLACEMENT_MONITOR_PRIMARY
+        } monitor_policy;
+
+        /**
+         * @brief Behavior of a window's own edges against nearby
+         *        screen edges and other windows while being
+         *        interactively moved or resized
+         */
+        struct {
+            /**
+             * @brief Attraction distance in pixels toward a nearby
+             *        edge while dragging; either @c 0 disables that
+             *        one specifically
+             */
+            struct config_edges_snap_s {
+                uint32_t window; /**< Toward another window's own
+                                       edge */
+                uint32_t screen; /**< Toward the screen's own edge */
+            } snap;
+
+            /**
+             * @brief How many pixels of deliberate extra drag it
+             *        takes for a horizontally or vertically
+             *        maximized client's own locked axis to actually
+             *        start changing while being interactively
+             *        resized, matching Openbox's own reuse of its
+             *        @c config_resist_edge (@c moveresize.c) for the
+             *        identical purpose
+             *
+             * Dragging back under this same threshold before
+             * releasing restores the maximized axis, reversibly,
+             * for the whole drag; @c 0 removes the axis lock
+             * entirely, letting the maximized axis change
+             * immediately on the very first pixel of drag.
+             */
+            uint32_t resistance;
+        } edges;
+
+        bool show_geom;         /**< Show geometry overlay on move/resize */
+        bool solid_drag;        /**< Move/resize the real window live, as
+                                      opposed to an outline stand-in
+                                      applied only once the drag ends */
+
+        /**
+         * @brief Cluster a newly placed window next to others sharing
+         *        its @c WM_CLIENT_LEADER / @c WM_HINTS group (e.g.,
+         *        several windows of the same application) instead of
+         *        running the placement policy above for it
+         *
+         * @see @a place_window_apply
+         */
+        bool group_related;
+
+        /* Focus behavior */
+        struct {
+            bool focus_new;
+            bool raise;
+        } focus;
+    } windows;
+
+    /**
+     * @brief Configuration for the scratchpad: a single dedicated
+     *        client, launched on demand from @p command, toggled
+     *        visible/hidden by its own keybind or IPC command instead
+     *        of iconified/restored
+     *
+     * @p is_enabled just gates whether the toggle action does anything
+     * at all; @p width and @p height are always applied regardless of
+     * whatever geometry the client itself requests, against whichever
+     * edge @p edge names, centered along that edge's own other axis.
+     *
+     * @see @c scratchpad.c
+     */
+    struct {
+        enum config_scratchpad_edge_e {
+            CONFIG_SCRATCHPAD_EDGE_TOP = 0,
+            CONFIG_SCRATCHPAD_EDGE_BOTTOM,
+            CONFIG_SCRATCHPAD_EDGE_LEFT,
+            CONFIG_SCRATCHPAD_EDGE_RIGHT
+        } edge;              /**< Screen edge it slides out from */
+
+        /**
+         * @brief Either dimension, given as a fixed pixel count or as
+         *        the string "max", meaning "however much of that axis
+         *        is actually available", so a user is never forced to
+         *        hard-code a resolution that may change later
+         *
+         * @p pixels is only meaningful when @p mode is
+         * @c CONFIG_SCRATCHPAD_SIZE_FIXED; under
+         * @c CONFIG_SCRATCHPAD_SIZE_MAX the scratchpad's own placement
+         * code computes it fresh every time instead, against
+         * @p desktop->workarea (or the full monitor extent, when
+         * @p ignore_margins is @c true), the same as a numeric value
+         * would be measured against.
+         */
+        struct config_scratchpad_size_s {
+            enum config_scratchpad_size_e {
+                CONFIG_SCRATCHPAD_SIZE_FIXED = 0,
+                CONFIG_SCRATCHPAD_SIZE_MAX
+            } mode;
+            uint32_t pixels;
+        } width;             /**< Always-applied width */
+        struct config_scratchpad_size_s height; /**< Always-applied
+                                                      height */
+
+        bool is_enabled;    /**< Enable the scratchpad toggle action */
+
+        /**
+         * @brief Whether the scratchpad's own placement skips
+         *       @p desktops.margins and the systray's own reserved
+         *       space
+         *
+         * @c false (the default) places it the same way an ordinary
+         * client already respects that reserved space; @c true lets it
+         * use the full edge regardless, e.g., a top-edge scratchpad
+         * sliding out from underneath an external panel that already
+         * reserves that same space rather than starting just below it.
+         */
+        bool ignore_margins;
+
+        char command[CONFIG_MAX_LENGTH_COMMAND]; /**< Launched the
+                                                      first time the
+                                                      toggle runs with
+                                                      no scratchpad
+                                                      client yet */
+    } scratchpad;
 
     /**
      * @brief Configuration for the built-in systray dock
@@ -483,16 +481,16 @@ struct config_base_s {
         bool is_embedding_enabled;
 
         /**
-         * @brief Whether the tray publishes its own
+         * @brief Whether the tray publishes an
          *        @c _NET_WM_STRUT_PARTIAL / @c _NET_WM_STRUT, reserving
-         *        its own on-screen area so maximized windows and
+         *        an on-screen area so maximized windows and
          *        placement leave it alone.
          *
          * @c false by default: nothing reserved, an explicit {0, 0, 0, 0}
          * strut published, the same as if the tray were not there at
          * all for placement purposes.  Setting this @c true instead
-         * makes the tray reserve its own on-screen area, per the
-         * specification's own recommendation for a docking area,
+         * makes the tray reserve an on-screen area, per the
+         * specification's recommendation for a docking area,
          * a taskbar, or a panel.
          *
          * @see @a systray_get_reserved_strut and
@@ -501,18 +499,42 @@ struct config_base_s {
         bool reserve_space;
 
         /**
+         * @brief Whether smart placement (@c windows.placement:
+         *        @c "smart") avoids landing a newly mapped window on
+         *        top of the tray
+         *
+         * @c true by default.  Has no effect when @p reserve_space is
+         * @c true: the tray's on-screen area is already excluded from
+         * the workarea @a place_window_smart searches in that case, so
+         * no candidate position could ever land on it regardless of
+         * this setting.  Only meaningful, then, for a tray configured
+         * strutless (@p reserve_space @c false): every candidate
+         * position @a place_window_smart scores is checked against the
+         * tray's current on-screen rectangle the same way it already
+         * checks every other visible client, so a new window still
+         * tends to avoid sitting on top of the tray even though the
+         * tray itself reserves no space for that to be guaranteed.
+         * This affects placement scoring only; the tray is not a real
+         * client, so it still cannot be moved, iconified, or otherwise
+         * acted on the way an actual window can.
+         *
+         * @see @a place_window_smart
+         */
+        bool avoid_overlap;
+
+        /**
          * @brief Extra space added on top of whatever @c reserve_space
-         *        already reserves for the tray itself, on each of the
+         *        already reserves for the tray, on each of the
          *        four screen edges
          *
-         * Mirrors @p config_desktop_s's own @p margins exactly: added
-         * to the tray's own computed strut rather than replacing it, so
-         * a taller reservation than the tray's own exact visual
+         * Mirrors @p config_desktop_s's @p margins exactly: added
+         * to the tray's computed strut rather than replacing it, so
+         * a taller reservation than the tray's exact visual
          * footprint is possible without having to fake it by inflating
          * @p height instead.  All zero by default, same as no extra
          * margin at all.  Has no effect when @p reserve_space is
          * @c false: an all-zero strut plus a margin is still all zero
-         * from @p desktop_update_workarea's own point of view, so there
+         * from @p desktop_update_workarea's point of view, so there
          * is nothing meaningful to add to.
          *
          * @see @a s_systray_strut_update in @c systray/layout.c
@@ -645,70 +667,80 @@ struct config_base_s {
         } text;
     } systray;
 
+    struct {
+        uint32_t desktop_count;                 /**< No. of desktops */
+        uint32_t desktop_inaugural;             /**< Initial desktop */
+        struct config_desktop_layout_s
+            desktop_layout;                      /**< Grid interpretation
+                                                        of the desktop
+                                                        list below */
+
+        struct {
+            char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */
+            struct desktop_settings_s {
+                union {
+                    //Pixmap image;               /**< Background image */
+                    uint32_t color;             /**< Background color */
+                } background;
+            } settings;                         /**< Desktop settings */
+        } desktops[CONFIG_MAX_DESKTOPS];        /**< Desktops per screen */
+    } screens[CONFIG_MAX_SCREENS];              /**< All screens */
+
     /**
-     * @brief Configuration for the scratchpad: a single dedicated
-     *        client, launched on demand from @p command, toggled
-     *        visible/hidden by its own keybind or IPC command instead
-     *        of iconified/restored
+     * @brief Whether 'KEYBIND_LAUNCH_LAUNCHER' opens the built-in
+     *        run-box instead of spawning @p programs.launcher
      *
-     * @p is_enabled just gates whether the toggle action does anything
-     * at all; @p width and @p height are always applied regardless of
-     * whatever geometry the client itself requests, against whichever
-     * edge @p edge names, centered along that edge's own other axis.
+     * Its own top-level section, rather than nested under @p programs
+     * itself, specifically to avoid the confusion a second, differently
+     * typed "launcher" key nested right next to @p programs.launcher
+     * (a plain command string) would invite; see @c menu/dialog/run.h
+     * for the run-box itself.
      *
-     * @see @c scratchpad.c
+     * @p is_enabled defaults to @c false in normal mode; defaults to
+     * @c true in restricted-memory mode, where avoiding the extra
+     * process @p programs.launcher itself would otherwise spawn (even
+     * a minimal one, e.g., 'gmrun', this mode's own default for it)
+     * fits that mode's whole reason for existing.
+     *
+     * @see @a ik_handle_launch (input/kbd/interact.c) for where this
+     *      is consulted
      */
     struct {
-        bool is_enabled;    /**< Enable the scratchpad toggle action */
-        char command[CONFIG_MAX_LENGTH_COMMAND]; /**< Launched the
-                                                      first time the
-                                                      toggle runs with
-                                                      no scratchpad
-                                                      client yet */
-        enum config_scratchpad_edge_e {
-            CONFIG_SCRATCHPAD_EDGE_TOP = 0,
-            CONFIG_SCRATCHPAD_EDGE_BOTTOM,
-            CONFIG_SCRATCHPAD_EDGE_LEFT,
-            CONFIG_SCRATCHPAD_EDGE_RIGHT
-        } edge;              /**< Screen edge it slides out from */
+        bool is_enabled;
+    } prompt;
 
-        /**
-         * @brief Either dimension, given as a fixed pixel count or as
-         *        the string "max", meaning "however much of that axis
-         *        is actually available", so a user is never forced to
-         *        hard-code a resolution that may change later
-         *
-         * @p pixels is only meaningful when @p mode is
-         * @c CONFIG_SCRATCHPAD_SIZE_FIXED; under
-         * @c CONFIG_SCRATCHPAD_SIZE_MAX the scratchpad's own placement
-         * code computes it fresh every time instead, against
-         * @p desktop->workarea (or the full monitor extent, when
-         * @p ignore_margins is @c true), the same as a numeric value
-         * would be measured against.
-         */
-        struct config_scratchpad_size_s {
-            enum config_scratchpad_size_e {
-                CONFIG_SCRATCHPAD_SIZE_FIXED = 0,
-                CONFIG_SCRATCHPAD_SIZE_MAX
-            } mode;
-            uint32_t pixels;
-        } width;             /**< Always-applied width */
-        struct config_scratchpad_size_s height; /**< Always-applied
-                                                       height */
+    /**
+     * @brief The @c fortune easter egg, whether its own keyboard
+     *        shortcut is active at all, and which command it runs
+     *
+     * @p command is run through a shell (@a popen), so it may be any
+     * shell command line, not just a bare executable name (e.g.,
+     * @c (fortune -s) for short-only fortunes, @c (fortune -o) for
+     * offensive ones, or a specific fortune database/language).
+     *
+     * Runs literally as configured, with no argument substitution or
+     * validation of its own: an invalid command simply produces no
+     * output, which the dialog already falls back to a built-in message
+     * for.
+     *
+     * @see @c menu/dialog/fortune.c
+     * @see @c STR_FORTUNE_FALLBACK in @c defs/uistr.h
+     */
+    struct {
+        bool is_enabled;
+        char command[CONFIG_MAX_LENGTH_COMMAND];
+    } fortune;
 
-        /**
-         * @brief Whether the scratchpad's own placement skips
-         *       @p desktops.margins and the systray's own reserved
-         *       space
-         *
-         * @c false (the default) places it the same way an ordinary
-         * client already respects that reserved space; @c true lets it
-         * use the full edge regardless, e.g., a top-edge scratchpad
-         * sliding out from underneath an external panel that already
-         * reserves that same space rather than starting just below it.
-         */
-        bool ignore_margins;
-    } scratchpad;
+    char theme[CONFIG_MAX_LENGTH_FILENAME];
+
+    /* Basic main programs: terminal and program launcher */
+    struct {
+        char terminal[CONFIG_MAX_LENGTH_COMMAND];
+        char launcher[CONFIG_MAX_LENGTH_COMMAND];
+        char file_manager[CONFIG_MAX_LENGTH_COMMAND];
+        char web_browser[CONFIG_MAX_LENGTH_COMMAND];
+        char editor[CONFIG_MAX_LENGTH_COMMAND];
+    } programs;
 };
 
 
@@ -1087,13 +1119,6 @@ struct config_theme_s {
             } padding;
 
             struct {
-                enum config_titlebar_button_e
-                    left[CONFIG_MAX_TITLEBAR_BUTTONS];
-                uint8_t left_count;
-                enum config_titlebar_button_e
-                    right[CONFIG_MAX_TITLEBAR_BUTTONS];
-                uint8_t right_count;
-
                 /**
                  * @brief Button glyph colors, independent of the
                  *        titlebar's own text foreground
@@ -1112,6 +1137,13 @@ struct config_theme_s {
                     uint32_t on;
                     uint32_t off;
                 } color;
+
+                enum config_titlebar_button_e
+                    left[CONFIG_MAX_TITLEBAR_BUTTONS];
+                enum config_titlebar_button_e
+                    right[CONFIG_MAX_TITLEBAR_BUTTONS];
+                uint8_t left_count;
+                uint8_t right_count;
             } buttons;
         } titlebar;
 
@@ -1254,26 +1286,6 @@ struct config_theme_s {
      */
     struct {
         /**
-         * @brief Style for a menu entry that is neither hovered nor the
-         *        keyboard-navigated selection
-         */
-        struct config_theme_style_s unselected;
-
-        /**
-         * @brief Style for the hovered or keyboard-navigated entry
-         */
-        struct config_theme_style_s selected;
-
-        /**
-         * @brief Style for a non-interactive heading row @c CTXMENU_LABEL
-         *
-         * Never highlighted or activated, so it never borrows
-         * @p unselected or @p selected even though it can look similar
-         * by default
-         */
-        struct config_theme_style_s label;
-
-        /**
          * @brief Text color for an entry that cannot currently be
          *        activated
          *
@@ -1304,6 +1316,39 @@ struct config_theme_s {
         } border;
 
         /**
+         * @brief Inset, in pixels, between the menu window's own edges
+         *        and every row's text, and, for a submenu, its arrow
+         *        indicator
+         *
+         * Applies equally to @p unselected, @p selected, and @p label
+         * rows.
+         */
+        struct {
+            uint32_t horizontal;
+            uint32_t vertical;
+        } padding;
+
+        /**
+         * @brief Style for a menu entry that is neither hovered nor the
+         *        keyboard-navigated selection
+         */
+        struct config_theme_style_s unselected;
+
+        /**
+         * @brief Style for the hovered or keyboard-navigated entry
+         */
+        struct config_theme_style_s selected;
+
+        /**
+         * @brief Style for a non-interactive heading row @c CTXMENU_LABEL
+         *
+         * Never highlighted or activated, so it never borrows
+         * @p unselected or @p selected even though it can look similar
+         * by default
+         */
+        struct config_theme_style_s label;
+
+        /**
          * @brief Desired opacity, 0 to 100, published on the menu
          *        window itself through @c _NET_WM_WINDOW_OPACITY
          *
@@ -1321,19 +1366,6 @@ struct config_theme_s {
          *       window
          */
         uint8_t opacity;
-
-        /**
-         * @brief Inset, in pixels, between the menu window's own edges
-         *        and every row's text, and, for a submenu, its arrow
-         *        indicator
-         *
-         * Applies equally to @p unselected, @p selected, and @p label
-         * rows.
-         */
-        struct {
-            uint32_t horizontal;
-            uint32_t vertical;
-        } padding;
 
         /**
          * @brief Draw the application's own icon to the left of the
@@ -1586,9 +1618,27 @@ struct config_theme_s {
  * @see @c surface.h
  */
 struct config_randr_output_s {
-    char name[CONFIG_RANDR_OUTPUT_NAME_LENGTH];    /**< Output name
-                                                        (e.g., "HDMI-1",
-                                                        "VESA-1", &c.) */
+    /**
+     * @brief Preferred resolution
+     *
+     * Matched against the screen's own mode list, falling back to
+     * whatever mode the output's CRTC already has (or its first
+     * preferred mode, if none) when left at @c 0 or when no mode
+     * matches exactly.
+     *
+     * @note Only applied when @p is_enabled is @c true
+     */
+    struct dimensions_s preferred_res;
+
+    /**
+     * @brief Output position @e (x, y) in the virtual screen
+     *
+     * @note Only applied when @p is_enabled is @c true
+     */
+    struct position_s position;
+
+    uint16_t rotation;  /**< Preferred rotation (XRandR mask);
+                             see @p is_enabled */
 
     /**
      * @brief Whether this output is used at all
@@ -1615,27 +1665,9 @@ struct config_randr_output_s {
      */
     bool is_primary;
 
-    /**
-     * @brief Preferred resolution
-     *
-     * Matched against the screen's own mode list, falling back to
-     * whatever mode the output's CRTC already has (or its first
-     * preferred mode, if none) when left at @c 0 or when no mode
-     * matches exactly.
-     *
-     * @note Only applied when @p is_enabled is @c true
-     */
-    struct dimensions_s preferred_res;
-
-    /**
-     * @brief Output position @e (x, y) in the virtual screen
-     *
-     * @note Only applied when @p is_enabled is @c true
-     */
-    struct position_s position;
-
-    uint16_t rotation;  /**< Preferred rotation (XRandR mask);
-                             see @p is_enabled */
+    char name[CONFIG_RANDR_OUTPUT_NAME_LENGTH];    /**< Output name
+                                                        (e.g., "HDMI-1",
+                                                        "VESA-1", &c.) */
 };
 
 

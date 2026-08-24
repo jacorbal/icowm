@@ -41,6 +41,27 @@
 #define PLACE_SMART_WIN_COST_PER_ICON_PIXEL (1024u)
 
 /**
+ * @brief Extra multiplier on top of
+ *        @c PLACE_SMART_WIN_COST_PER_WIN_PIXEL for a candidate
+ *        overlapping the systray, when @c systray.avoid-overlap applies
+ *
+ * The systray's footprint is typically a small fraction of an ordinary
+ * window's (e.g., roughly 1/35th for an 80x24 xterm against a 200x24
+ * systray), so the same per-pixel cost as an ordinary window overlap
+ * makes only a tiny contribution to a candidate's total cost once the
+ * desktop is full enough that every candidate overlaps something:
+ * a position overlapping the systray entirely can still end up cheaper
+ * overall than one overlapping more of another window only partially,
+ * defeating the whole point of avoiding it.  This multiplier scales
+ * that penalty back up so overlapping the systray stays comparably
+ * costly to overlapping a real window, regardless of how small the
+ * systray's footprint happens to be.
+ *
+ * @see @a place_window_smart, in @c policy/placement/window.c
+ */
+#define PLACE_SMART_WIN_SYSTRAY_COST_MULTIPLIER (16u)
+
+/**
  * @brief Fallback icon dimension used by the window scorer when the
  *        exact icon size is not tracked in the client structure
  */

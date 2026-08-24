@@ -51,7 +51,7 @@ void surface_refresh_workareas(surface_td *surface)
             desktop_update_workarea(d,
                     surface,
                     (surface->config != NULL)
-                        ? &surface->config->desktops : NULL,
+                        ? &((surface->config)->desktops) : NULL,
                     systray_get_reserved_strut(surface),
                     surface->strutless_maximize);
         }

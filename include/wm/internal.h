@@ -65,9 +65,7 @@
 struct wm_s {
     xcb_connection_t *connection;   /**< Pointer to XCB connection */
     xcb_ewmh_connection_t *ewmh;    /**< EWMH connection */
-    xcb_window_t ewmh_support_win;  /**< '_NET_SUPPORTING_WM_CHECK' window */
     list_td *surfaces;              /**< List of surfaces */
-    uint32_t screenp;               /**< Preferred screen */
 
     /**
      * Key symbols table used to translate keycodes to keysyms for
@@ -81,22 +79,17 @@ struct wm_s {
      * sites needing its own copy of this pointer. */
     xcb_key_symbols_t *keysyms;
 
-    bool is_randr_available;        /**< XRandR extension availability */
-    uint8_t randr_base_event;       /**< XRandR base event code */
-    bool is_sync_available;         /**< XSync extension availability */
-    uint8_t sync_base_event;        /**< XSync base event code */
     config_td *config;              /**< Window manager configuration */
     rules_td *rules;                /**< Window matching rules */
     session_td *session;            /**< Session hooks */
+
     const char *config_dir_prefix;  /**< Config dir. passed at startup,
                                          for @c NULL if the default
                                          config. dir. is used; kept to
                                          reuse it on config. reload */
 
-    bool is_running;                /**< Running state flag */
-    bool is_emergency_exit;         /**< Set when an emergency exit is
-                                         requested; suppresses pending
-                                         session hooks on shutdown */
+    xcb_window_t ewmh_support_win;  /**< '_NET_SUPPORTING_WM_CHECK' window */
+    uint32_t screenp;               /**< Preferred screen */
 
     /**
      * @brief Restricted-memory mode's available-memory ceiling, in
@@ -111,6 +104,16 @@ struct wm_s {
      * @see @a wm_start
      */
     uint32_t restricted_memory_mib;
+
+    bool is_randr_available;        /**< XRandR extension availability */
+    uint8_t randr_base_event;       /**< XRandR base event code */
+    bool is_sync_available;         /**< XSync extension availability */
+    uint8_t sync_base_event;        /**< XSync base event code */
+    bool is_running;                /**< Running state flag */
+
+    bool is_emergency_exit;         /**< Set when an emergency exit is
+                                         requested; suppresses pending
+                                         session hooks on shutdown */
 };
 
 

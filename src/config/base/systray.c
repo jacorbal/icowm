@@ -54,6 +54,8 @@ void ci_config_load_systray(cJSON *json,
             &config_base->systray.is_enabled);
     json_load_bool(systray, "reserve-space",
             &config_base->systray.reserve_space);
+    json_load_bool(systray, "avoid-overlap",
+            &config_base->systray.avoid_overlap);
 
     margins = cJSON_GetObjectItem(systray, "margins");
     if (margins != NULL) {

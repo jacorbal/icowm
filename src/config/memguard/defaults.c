@@ -152,6 +152,7 @@ void config_set_default_values_memguard(config_td *config)
      * 'is_embedding_enabled''s comment in 'config.h' */
     config->base.systray.is_embedding_enabled = false;
     config->base.systray.reserve_space = false;
+    config->base.systray.avoid_overlap = true;
     config->base.systray.margins.top = 0u;
     config->base.systray.margins.right = 0u;
     config->base.systray.margins.bottom = 0u;

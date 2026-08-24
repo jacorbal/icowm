@@ -46,11 +46,6 @@
  * @c config.xsettings being a single global (not per-surface) setting.
  */
 static struct {
-    bool is_window_ready;           /**< Window created, atoms interned;
-                                         persists across is-enabled
-                                         toggles */
-    bool is_selection_owned;        /**< Currently owns the
-                                         @c _XSETTINGS_Sn selection */
     xcb_connection_t *connection;
     surface_td *surface;
     xcb_window_t window;            /**< Settings-holder window */
@@ -58,11 +53,18 @@ static struct {
     xcb_atom_t settings_atom;       /**< @c _XSETTINGS_SETTINGS */
     xcb_atom_t manager_atom;        /**< @c MANAGER */
     uint32_t serial;                /**< Incremented on every publish */
+    unsigned int cursor_theme_size;
+    unsigned int dpi;
+
+    bool is_window_ready;           /**< Window created, atoms interned;
+                                         persists across is-enabled
+                                         toggles */
+
+    bool is_selection_owned;        /**< Currently owns the
+                                         @c _XSETTINGS_Sn selection */
     char gtk_theme_name[CONFIG_MAX_LENGTH_NAME];
     char icon_theme_name[CONFIG_MAX_LENGTH_NAME];
     char cursor_theme_name[CONFIG_MAX_LENGTH_NAME];
-    unsigned int cursor_theme_size;
-    unsigned int dpi;
 } s_xs;
 
 

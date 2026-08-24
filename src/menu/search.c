@@ -81,26 +81,25 @@ typedef struct {
 
 /** Private widget state singleton */
 static struct {
-    xcb_window_t window;
     surface_td *surface;
-    char query[WM_SEARCH_QUERY_MAX_LENGTH];
     size_t query_len;
+    const config_td *config;
 
     /** Every focusable candidate collected at open time, alongside
      *  the desktop it lives on, before any query has filtered it */
     client_td *candidates[WM_SEARCH_MAX_ENTRIES];
-    desktop_td *candidate_desktops[WM_SEARCH_MAX_ENTRIES];
-    int candidate_count;
 
+    desktop_td *candidate_desktops[WM_SEARCH_MAX_ENTRIES];
     s_search_result_td results[WM_SEARCH_MAX_ENTRIES];
+    xcb_window_t window;
+    int candidate_count;
     int result_count;
     int selected;
     int scroll_offset;
     int viewport_rows;
-
-    uint16_t height;
     xcb_window_t prev_focus;
-    const config_td *config;
+    uint16_t height;
+    char query[WM_SEARCH_QUERY_MAX_LENGTH];
 } s_search;
 
 

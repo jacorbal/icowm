@@ -237,7 +237,8 @@ static const config_lint_key_td s_schema_systray_monitor[] = {
 static const config_lint_key_td s_schema_systray[] = {
     {"is-enabled", NULL, 0u},
     {"reserve-space", NULL, 0u},
-    /* Reuses 'desktops.margins''s own schema array: identical shape
+    {"avoid-overlap", NULL, 0u},
+    /* Reuses 'desktops.margins''s schema array: identical shape
      * (top/right/bottom/left), so no separate one is needed just for
      * this section. */
     {"margins", s_schema_desktops_margins,

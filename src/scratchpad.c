@@ -142,7 +142,7 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
             (desktop_action_process_launch_with_class(desktop,
                     config->base.scratchpad.command,
                     WM_SCRATCHPAD_WM_CLASS, &launched_pid) == 0);
-        s_awaiting_scratchpad_pid = s_awaiting_scratchpad
+        s_awaiting_scratchpad_pid = (s_awaiting_scratchpad)
             ? launched_pid : (pid_t) -1;
         if (s_awaiting_scratchpad) {
             (void) clock_gettime(CLOCK_MONOTONIC,
@@ -389,7 +389,7 @@ void scratchpad_position(client_td *client,
  * belongs to the given surface */
 void scratchpad_reposition(surface_td *surface)
 {
-    desktop_td *desktop;
+    const desktop_td *desktop;
 
     if (surface == NULL || s_scratchpad_client == NULL) {
         return;

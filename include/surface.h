@@ -116,25 +116,31 @@ typedef struct surface_s surface_td;
  * with underlying changes in the XCB environment or user preferences.
  */
 struct surface_s {
-    uint32_t id;                    /**< Screen unique identifier or index */
-
     xcb_connection_t *connection;   /**< Pointer to XCB connection */
     xcb_screen_t *screen;           /**< Pointer to XCB screen */
     xcb_ewmh_connection_t *ewmh;    /**< Pointer to EWMH connection */
+    cdlist_td *desktops;            /**< Circular list of desktops */
+    config_td *config;              /**< Configuration */
+    uint32_t id;                    /**< Screen unique identifier or index */
+    uint32_t desktop_count;         /**< No. of desktops for this surface */
+    uint32_t desktop_cur;           /**< Index of current desktop */
+    uint32_t monitor_count;         /**< No. of entries in @p monitors */
 
-    /* Properties */
-    struct surface_properties_s properties;
+    uint32_t primary_monitor_index; /**< Index into 'monitors' RandR
+                                         reports as primary, or @c 0 (the
+                                         first monitor) if none was
+                                         flagged */
+
     struct {
-        bool is_known;              /**< Whether output metadata is known */
         uint32_t output_id;         /**< Active output identifier */
         uint32_t crtc_id;           /**< Active CRTC identifier */
         uint32_t mode_id;           /**< Active mode identifier */
         uint16_t rotation;          /**< Effective rotation mask */
+        bool is_known;              /**< Whether output metadata is known */
     } randr;
 
-    uint32_t desktop_count;         /**< No. of desktops for this surface */
-    uint32_t desktop_cur;           /**< Index of current desktop */
-    cdlist_td *desktops;            /**< Circular list of desktops */
+    /* Properties */
+    struct surface_properties_s properties;
 
     /**
      * @brief Physical monitors within this surface's combined area
@@ -150,13 +156,6 @@ struct surface_s {
      * block.
      */
     monitor_td monitors[WM_SURFACE_MAX_MONITORS];
-    uint32_t monitor_count;         /**< No. of entries in @p monitors */
-    uint32_t primary_monitor_index; /**< Index into 'monitors' RandR
-                                         reports as primary, or @c 0 (the
-                                         first monitor) if none was
-                                         flagged */
-
-    config_td *config;              /**< Configuration */
 
     /**
      * @brief Whether panel/tray struts are set aside when computing
@@ -167,6 +166,7 @@ struct surface_s {
      *      (desktop.h), which this flag feeds directly
      */
     bool strutless_maximize;
+
     bool is_showing_desktop;        /**< EWMH @c _NET_SHOWING_DESKTOP state */
     bool is_outdated;               /**< Flag if data needs to be updated */
 };

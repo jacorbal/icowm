@@ -38,6 +38,7 @@
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
+#include <systray.h>
 #include <wm.h>
 
 /* Local includes */
@@ -55,35 +56,125 @@ static uint32_t s_cascade_seq = 0;
 
 
 /**
+ * @brief Result of one @a s_free_rect_shrink_against call
+ */
+enum s_shrink_result_e {
+    S_SHRINK_NONE,       /**< The obstacle does not intrude at all */
+    S_SHRINK_DONE,       /**< @p right or @p bottom shrank */
+    S_SHRINK_COLLAPSED   /**< The obstacle covers the corner itself
+                              (or every shrink direction is blocked),
+                              leaving nothing free to grow from this
+                              corner at all */
+};
+
+/**
+ * @brief Shrink a growing free rectangle's right or bottom edge
+ *        against one obstacle rectangle, on whichever side loses
+ *        less area
+ *
+ * Pulled out of @a s_free_rect_grow's obstacle loop so the exact same
+ * shrink logic applies uniformly whether the obstacle is another client
+ * (iterated there) or the systray's on-screen rectangle (checked once
+ * more after that loop, when @c windows.  placement's @c "smart" mode
+ * is configured to avoid it).
+ *
+ * @param x0     Corner X coordinate the free rectangle grows from
+ * @param y0     Corner Y coordinate the free rectangle grows from
+ * @param right  Current right edge; updated in place on a shrink
+ * @param bottom Current bottom edge; updated in place on a shrink
+ * @param ox1    Obstacle's left edge
+ * @param oy1    Obstacle's top edge
+ * @param ox2    Obstacle's right edge
+ * @param oy2    Obstacle's bottom edge
+ *
+ * @return @c S_SHRINK_NONE if the obstacle does not intrude at all,
+ *         @c S_SHRINK_DONE if @p right or @p bottom shrank,
+ *         @c S_SHRINK_COLLAPSED if the obstacle covers the corner
+ *         itself (or every shrink direction is blocked), leaving
+ *         nothing free to grow from this corner at all
+ *
+ * @note Complexity: @e O(1)
+ */
+static enum s_shrink_result_e s_free_rect_shrink_against(
+        int32_t x0, int32_t y0,
+        int32_t *restrict right, int32_t *restrict bottom,
+        int32_t ox1, int32_t oy1, int32_t ox2, int32_t oy2)
+{
+    bool right_ok;
+    bool bottom_ok;
+    int32_t via_right;
+    int32_t via_bottom;
+    uint64_t area_right;
+    uint64_t area_bottom;
+
+    if (!(ox2 > x0 && ox1 < *right && oy2 > y0 && oy1 < *bottom)) {
+        return S_SHRINK_NONE;
+    }
+    if (ox1 <= x0 && oy1 <= y0) {
+        return S_SHRINK_COLLAPSED;
+    }
+
+    right_ok = (ox1 > x0);
+    bottom_ok = (oy1 > y0);
+    via_right = (right_ok) ? ox1 : *right;
+    via_bottom = (bottom_ok) ? oy1 : *bottom;
+    area_right = (right_ok)
+        ? (uint64_t) (via_right - x0) * (uint64_t) (*bottom - y0)
+        : 0u;
+    area_bottom = (bottom_ok)
+        ? (uint64_t) (*right - x0) * (uint64_t) (via_bottom - y0)
+        : 0u;
+
+    if (right_ok && (area_right >= area_bottom || !bottom_ok)) {
+        *right = via_right;
+    } else if (bottom_ok) {
+        *bottom = via_bottom;
+    } else {
+        return S_SHRINK_COLLAPSED;
+    }
+
+    return S_SHRINK_DONE;
+}
+
+
+/**
  * @brief Grow the largest obstacle-free rectangle whose top-left
  *        corner sits at a given point, extending right and down
  *
  * Starts from the full box between the corner and the placement
  * bounds, then repeatedly shrinks it on whichever side loses less
- * area whenever a visible client intrudes, until nothing intrudes
- * or the box collapses.  Repeating the whole scan (bounded by the
- * client count on @p desktop) instead of stopping after one pass
- * catches a client that only starts to intrude once an earlier
- * shrink has already pulled a boundary toward it.
+ * area whenever a visible client (or, when @p tray_rect is not
+ * @c NULL, the systray) intrudes, until nothing intrudes or the box
+ * collapses.  Repeating the whole scan (bounded by the client count
+ * on @p desktop, plus one more for @p tray_rect) instead of stopping
+ * after one pass catches an obstacle that only starts to intrude once
+ * an earlier shrink has already pulled a boundary toward it.
  *
  * @param desktop     Desktop whose clients are checked against
  * @param skip_client Client to ignore (the one being placed)
  * @param x0          Corner X coordinate the rectangle grows from
  * @param y0          Corner Y coordinate the rectangle grows from
  * @param bound_x     Right placement bound the rectangle cannot
- *                     cross
+ *                    cross
  * @param bound_y     Bottom placement bound the rectangle cannot
- *                     cross
+ *                    cross
+ * @param tray_rect   The systray's current on-screen rectangle to also
+ *                    avoid, or @c NULL to skip it (@c systray.
+ *                    avoid-overlap is @c false, or has no effect while
+ *                    @c systray.reserve-space is @c true
  * @param out_w       Receives the free width found, or 0 if the
- *                     corner itself sits inside another client
+ *                    corner itself sits inside another obstacle
  * @param out_h       Receives the free height found, or 0 likewise
  *
  * @note Complexity: @e O(n^2) worst case, where @e n is the number
  *       of clients on @p desktop
+ *
+ * @see @a place_window_smart
  */
 static void s_free_rect_grow(const desktop_td *desktop,
         const client_td *skip_client,
         int32_t x0, int32_t y0, int32_t bound_x, int32_t bound_y,
+        const struct geometry_s *tray_rect,
         uint32_t *out_w, uint32_t *out_h)
 {
     int32_t right = bound_x;
@@ -103,85 +194,79 @@ static void s_free_rect_grow(const desktop_td *desktop,
 
     guard_max = (desktop->stacking != NULL)
         ? (uint32_t) cdlist_size(desktop->stacking) + 1u : 1u;
+    if (tray_rect != NULL) {
+        guard_max += 1u;
+    }
 
     for (guard = 0u; guard < guard_max; ++guard) {
         cdlist_item_td *node;
-        const cdlist_item_td *initial;
         bool shrunk = false;
 
-        if (desktop->stacking == NULL ||
-                cdlist_size(desktop->stacking) == 0u) {
-            break;
-        }
+        if (desktop->stacking != NULL &&
+                cdlist_size(desktop->stacking) != 0u) {
+            const cdlist_item_td *initial;
 
-        node = cdlist_head(desktop->stacking);
-        initial = node;
-        if (node == NULL) {
-            break;
-        }
+            node = cdlist_head(desktop->stacking);
+            initial = node;
+            if (node != NULL) {
+                do {
+                    const client_td *other =
+                        (const client_td *) cdlist_data(node);
 
-        do {
-            const client_td *other =
-                (const client_td *) cdlist_data(node);
+                    if (other != NULL && other != skip_client &&
+                            !(other->properties.flags &
+                                CLIENT_FLAG_HIDDEN) &&
+                            !client_is_locked(other) &&
+                            other->properties.state !=
+                                (uint16_t) CLIENT_STATE_ICONIFIED) {
+                        const int32_t ox1 =
+                            other->layout.geometry.cur.pos.x;
+                        const int32_t oy1 =
+                            other->layout.geometry.cur.pos.y;
+                        const int32_t ox2 = ox1 +
+                            (int32_t) other->layout.geometry.cur.dim.w;
+                        const int32_t oy2 = oy1 +
+                            (int32_t) other->layout.geometry.cur.dim.h;
+                        const enum s_shrink_result_e r =
+                            s_free_rect_shrink_against(x0, y0,
+                                    &right, &bottom,
+                                    ox1, oy1, ox2, oy2);
 
-            if (other != NULL && other != skip_client &&
-                    !(other->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    !client_is_locked(other) &&
-                    other->properties.state !=
-                        (uint16_t) CLIENT_STATE_ICONIFIED) {
-                const int32_t ox1 = other->layout.geometry.cur.pos.x;
-                const int32_t oy1 = other->layout.geometry.cur.pos.y;
-                const int32_t ox2 = ox1 +
-                    (int32_t) other->layout.geometry.cur.dim.w;
-                const int32_t oy2 = oy1 +
-                    (int32_t) other->layout.geometry.cur.dim.h;
-
-                if (ox2 > x0 && ox1 < right &&
-                        oy2 > y0 && oy1 < bottom) {
-                    if (ox1 <= x0 && oy1 <= y0) {
-                        /* Covers the corner itself: nothing free
-                         * grows from here at all. */
-                        *out_w = 0u;
-                        *out_h = 0u;
-                        return;
-                    } else {
-                        const bool right_ok = (ox1 > x0);
-                        const bool bottom_ok = (oy1 > y0);
-                        const int32_t via_right =
-                            right_ok ? ox1 : right;
-                        const int32_t via_bottom =
-                            bottom_ok ? oy1 : bottom;
-                        const uint64_t area_right = right_ok
-                            ? (uint64_t) (via_right - x0) *
-                                (uint64_t) (bottom - y0)
-                            : 0u;
-                        const uint64_t area_bottom = bottom_ok
-                            ? (uint64_t) (right - x0) *
-                                (uint64_t) (via_bottom - y0)
-                            : 0u;
-
-                        if (right_ok &&
-                                (area_right >= area_bottom ||
-                                    !bottom_ok)) {
-                            right = via_right;
-                        } else if (bottom_ok) {
-                            bottom = via_bottom;
-                        } else {
+                        if (r == S_SHRINK_COLLAPSED) {
                             *out_w = 0u;
                             *out_h = 0u;
                             return;
                         }
-                        shrunk = true;
+                        if (r == S_SHRINK_DONE) {
+                            shrunk = true;
+                        }
                     }
-                }
+                    node = cdlist_next(node);
+                } while (node != NULL && node != initial);
             }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+        }
+
+        if (tray_rect != NULL) {
+            const enum s_shrink_result_e r = s_free_rect_shrink_against(
+                    x0, y0, &right, &bottom,
+                    tray_rect->pos.x, tray_rect->pos.y,
+                    tray_rect->pos.x + (int32_t) tray_rect->dim.w,
+                    tray_rect->pos.y + (int32_t) tray_rect->dim.h);
+
+            if (r == S_SHRINK_COLLAPSED) {
+                *out_w = 0u;
+                *out_h = 0u;
+                return;
+            }
+            if (r == S_SHRINK_DONE) {
+                shrunk = true;
+            }
+        }
 
         if (!shrunk) {
             break;
         }
-    }
+    } /* ! for (guard) */
 
     if (right > x0 && bottom > y0) {
         *out_w = (uint32_t) (right - x0);
@@ -192,14 +277,16 @@ static void s_free_rect_grow(const desktop_td *desktop,
 
 /**
  * @brief Score a candidate window position against existing clients
+ *        and, optionally, the systray
  *
  * The overlap penalty itself (@a place_overlap_score,
  * @c policy/placement/score.h) is shared with
- * @c place_icon_apply's @c CONFIG_ICON_PLACEMENT_SMART search;
- * only the tie-breaker below is specific to window placement.  A
- * small distance-to-center penalty breaks ties in favor of the
- * workarea center, staying much smaller than any overlap penalty so
- * it only matters when two positions have equal overlap cost.
+ * @c place_icon_apply's @c CONFIG_ICON_PLACEMENT_SMART search.
+ * Only the tie-breaker below, and the optional systray penalty, are
+ * specific to window placement.  A small distance-to-center penalty
+ * breaks ties in favor of the workarea center, staying much smaller
+ * than any overlap penalty so it only matters when two positions have
+ * equal overlap cost.
  *
  * @param desktop     Desktop whose clients are inspected
  * @param skip_client Client to ignore (the one being placed)
@@ -207,6 +294,12 @@ static void s_free_rect_grow(const desktop_td *desktop,
  * @param y           Candidate top coordinate
  * @param fw          Candidate width
  * @param fh          Candidate height
+ * @param tray_rect   The systray's current on-screen rectangle to
+ *                    add the same per-pixel overlap penalty as an
+ *                    ordinary window for, or @c NULL to skip it
+ *                    (@c systray.avoid-overlap is @c false, or has
+ *                    no effect while @c systray.reserve-space is
+ *                    @c true; see @a place_window_smart)
  * @param center_x    X coordinate of the workarea center
  * @param center_y    Y coordinate of the workarea center
  *
@@ -218,6 +311,7 @@ static void s_free_rect_grow(const desktop_td *desktop,
 static uint64_t s_score_window_pos(const desktop_td *desktop,
         const client_td *skip_client,
         int32_t x, int32_t y, uint32_t fw, uint32_t fh,
+        const struct geometry_s *tray_rect,
         int32_t center_x, int32_t center_y)
 {
     uint64_t cost;
@@ -228,6 +322,16 @@ static uint64_t s_score_window_pos(const desktop_td *desktop,
             (struct geometry_s) { { x, y }, { fw, fh } },
             (uint64_t) PLACE_SMART_WIN_COST_PER_WIN_PIXEL,
             (uint64_t) PLACE_SMART_WIN_COST_PER_ICON_PIXEL);
+
+    if (tray_rect != NULL) {
+        uint32_t area = geom_intersection_area(x, y, fw, fh,
+                tray_rect->pos.x, tray_rect->pos.y,
+                tray_rect->dim.w, tray_rect->dim.h);
+
+        cost += (uint64_t) PLACE_SMART_WIN_COST_PER_WIN_PIXEL *
+            (uint64_t) PLACE_SMART_WIN_SYSTRAY_COST_MULTIPLIER *
+            (uint64_t) area;
+    }
 
     /* Secondary tie-breaker: Manhattan distance from workarea center.
      * Stays much smaller than any window-overlap penalty, so it only
@@ -263,7 +367,8 @@ static uint64_t s_score_window_pos(const desktop_td *desktop,
  * @note Complexity: @e O(1)
  */
 static void s_place_window_apply_gravity(const surface_td *surface,
-        const client_td *client, int32_t *restrict x, int32_t *restrict y)
+        const client_td *client,
+        int32_t *restrict x, int32_t *restrict y)
 {
     int32_t nx;
     int32_t ny;
@@ -338,15 +443,15 @@ static void s_place_window_apply_gravity(const surface_td *surface,
  * Falls back to leaving @p out_wa and @p out_screen unclipped (copies
  * of @p wa and @p screen) on a single-monitor surface, or when the
  * intersection against @p monitor is empty (e.g., a monitor entirely
- * covered by a strut): in either case the caller's unclipped
- * rectangle is already the right answer, not an error.
+ * covered by a strut): in either case the caller's unclipped rectangle
+ * is already the right answer, not an error.
  *
- * @param surface     Surface the clip is against
- * @param wa          Workarea rectangle to clip
- * @param screen      Screen dimensions to clip alongside @p wa
- * @param monitor     Physical monitor to clip against
- * @param out_wa      Receives the clipped workarea
- * @param out_screen  Receives the clipped screen dimensions
+ * @param surface    Surface the clip is against
+ * @param wa         Workarea rectangle to clip
+ * @param screen     Screen dimensions to clip alongside @p wa
+ * @param monitor    Physical monitor to clip against
+ * @param out_wa     Receives the clipped workarea
+ * @param out_screen Receives the clipped screen dimensions
  *
  * @note Complexity: @e O(1)
  */
@@ -381,14 +486,14 @@ static void s_clip_to_monitor(const surface_td *surface,
 /**
  * @brief Resolve the monitor a placement decision should target
  *
- * Under @c CONFIG_PLACEMENT_MONITOR_PRIMARY, always returns @p
- * surface's primary monitor.  Under @c
- * CONFIG_PLACEMENT_MONITOR_POINTER (the default), queries the
- * pointer and returns whichever monitor it is currently over,
- * or a degenerate (zero-area) geometry if the query fails; passing
- * that on to @c s_clip_to_monitor is safe, since its intersection
- * against a zero-area rectangle is always empty, which is exactly
- * what makes it leave its inputs unclipped.
+ * Under @c CONFIG_PLACEMENT_MONITOR_PRIMARY, always returns
+ * @p surface's primary monitor.
+ * Under @c CONFIG_PLACEMENT_MONITOR_POINTER (the default), queries the
+ * pointer and returns whichever monitor it is currently over, or
+ * a degenerate (zero-area) geometry if the query fails; passing that on
+ * to @a s_clip_to_monitor is safe, since its intersection against
+ * a zero-area rectangle is always empty, which is exactly what makes it
+ * leave its inputs unclipped.
  *
  * @param wm             Window manager state, for the pointer query
  * @param surface        Surface to resolve a monitor on
@@ -396,8 +501,8 @@ static void s_clip_to_monitor(const surface_td *surface,
  *
  * @return The resolved monitor's geometry
  *
- * @note Complexity: @e O(n), where @e n is the number of monitors
- *       on @p surface
+ * @note Complexity: @e O(n), where @e n is the number of monitors on
+ *       @p surface
  */
 static monitor_td s_reference_monitor(const wm_td *wm,
         surface_td *surface,
@@ -428,31 +533,32 @@ static monitor_td s_reference_monitor(const wm_td *wm,
  *        preferring a related client's monitor over the configured
  *        policy when one is found
  *
- * A dialog should appear next to the window it belongs with, and a
- * fresh window from an application already running elsewhere should
+ * A dialog should appear next to the window it belongs with, and
+ * a fresh window from an application already running elsewhere should
  * appear next to that application, not wherever the pointer or the
- * primary monitor happens to be instead: checked in order, a
- * specific transient parent first (or, for a client transient for
- * the whole group per ICCCM §4.1.2.6, the resolved anchor; see
- * @a client_group_transient_anchor, cmds/client/transient.c), then
- * any currently-mapped sibling sharing the same group leader on this
- * same desktop.  Falls through to @a s_reference_monitor unchanged
- * whenever neither search finds a candidate, or the candidate found
- * resolves to a degenerate (zero-area) monitor.
+ * primary monitor happens to be instead: checked in order, a specific
+ * transient parent first (or, for a client transient for the whole
+ * group per ICCCM §4.1.2.6, the resolved anchor, then any
+ * currently-mapped sibling sharing the same group leader on this same
+ * desktop.  Falls through to @a s_reference_monitor unchanged whenever
+ * neither search finds a candidate, or the candidate found resolves to
+ * a degenerate (zero-area) monitor.
  *
  * @param wm             Window manager state, for the pointer query
- *                        @a s_reference_monitor falls back to
+ *                       @a s_reference_monitor falls back to
  * @param surface        Surface to resolve a monitor on
- * @param client          Client being placed, or @c NULL to skip both
- *                        searches and go straight to the configured
- *                        policy
+ * @param client         Client being placed, or @c NULL to skip both
+ *                       searches and go straight to the configured
+ *                       policy
  * @param monitor_policy Fallback strategy when no related client is
- *                        found
+ *                       found
  *
  * @return The resolved monitor's geometry
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       this desktop
+ *
+ * @see @a client_group_transient_anchor in @c cmds/client/transient.c
  */
 static monitor_td s_reference_monitor_for_client(const wm_td *wm,
         surface_td *surface, const client_td *client,
@@ -488,8 +594,8 @@ static monitor_td s_reference_monitor_for_client(const wm_td *wm,
                         break;
                     }
                 }
-            }
-        }
+            } /* ! if (!desktop) */
+        } /* ! if (leader) */
     }
 
     if (anchor != NULL) {
@@ -507,15 +613,12 @@ static monitor_td s_reference_monitor_for_client(const wm_td *wm,
 
 /**
  * @brief Center a client over its ICCCM §4.1.2.6 @c WM_TRANSIENT_FOR
- *        parent, clamped to that parent's monitor, and configure
- *        its window
+ *        parent, clamped to that parent's monitor, and configure its
+ *        window
  *
- * A no-op, returning @c false, when @p client is not transient for
- * anything, or its declared parent's geometry could not be resolved
- * at all (neither an already-managed client entry nor a raw
- * @c xcb_get_geometry reply).  On success, this fully places the
- * client (configures its window and updates its stored geometry) and
- * returns @c true, so @c place_window_apply has nothing further to do.
+ * On success, this fully places the client (configures its window and
+ * updates its stored geometry) and returns @c true, so
+ * @a place_window_apply has nothing further to do.
  *
  * @param wm      Window manager state
  * @param surface Surface @p client is on
@@ -527,6 +630,11 @@ static monitor_td s_reference_monitor_for_client(const wm_td *wm,
  *
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients (see @c lookup_find_client)
+ *
+ * @see A no-op, returning @c false, when @p client is not transient for
+ *      anything, or its declared parent's geometry could not be
+ *      resolved at all (neither an already-managed client entry nor
+ *      a raw @a xcb_get_geometry reply
  */
 static bool s_place_window_transient_centered(const wm_td *wm,
         surface_td *surface, client_td *client,
@@ -583,7 +691,7 @@ static bool s_place_window_transient_centered(const wm_td *wm,
                     }
                 }
             }
-        }
+        } /* ! if (leader) */
     }
 
     /* Prefer the WM's stored frame geometry over
@@ -668,18 +776,18 @@ static bool s_place_window_transient_centered(const wm_td *wm,
  * @brief Resolve the workarea and monitor-clipped bounds a placement
  *        calculation needs
  *
- * Shared by @c place_window_apply and @c place_window_apply_cascade so
+ * Shared by @a place_window_apply and @a place_window_apply_cascade so
  * both compute the exact same workarea and monitor bounds for a given
  * client.
  *
- * @param wm          Window manager instance
- * @param surface     Surface the client lives on
- * @param client      Client being placed
- * @param out_wa      Resolved workarea, unclipped to any single
- *                    monitor
- * @param out_mon_wa  Workarea, clipped to the reference monitor
- * @param out_mon_sz  Screen dimensions, clipped to the reference
- *                    monitor
+ * @param wm         Window manager instance
+ * @param surface    Surface the client lives on
+ * @param client     Client being placed
+ * @param out_wa     Resolved workarea, unclipped to any single
+ *                   monitor
+ * @param out_mon_wa Workarea, clipped to the reference monitor
+ * @param out_mon_sz Screen dimensions, clipped to the reference
+ *                   monitor
  *
  * @note Complexity: @e O(1)
  */
@@ -755,19 +863,158 @@ static void s_place_window_finalize(const wm_td *wm,
 
 
 /**
+ * @brief Shared state one @a place_window_smart call threads through
+ *        every candidate it tests
+ */
+struct s_place_window_smart_ctx_s {
+    const desktop_td *desktop;    /**< Desktop @c client is placed on */
+    const client_td *skip_client; /**< Client being placed itself,
+                                       excluded from its overlap checks */
+    uint32_t fw;            /**< Client's frame width */
+    uint32_t fh;            /**< Client's frame height */
+
+    const struct geometry_s *tray_rect; /**< Systray rectangle to also
+                                             avoid, or @c NULL */
+
+    int32_t min_x;          /**< Leftmost a candidate corner may sit */
+    int32_t min_y;          /**< Topmost a candidate corner may sit */
+    int32_t max_x;          /**< Rightmost a candidate corner may sit */
+    int32_t max_y;          /**< Bottommost a candidate corner may sit */
+    int32_t bound_right;    /**< Workarea's physical right edge */
+    int32_t bound_bottom;   /**< Workarea's physical bottom edge */
+    int32_t center_x;       /**< Workarea center X, tie-break ref */
+    int32_t center_y;       /**< Workarea center Y, tie-break ref */
+    int32_t best_x;         /**< Best candidate found so far, X */
+    int32_t best_y;         /**< Best candidate found so far, Y */
+    uint64_t best_cost;     /**< Lowest overlap cost found so far */
+    uint64_t best_area;     /**< Largest free-rectangle area found so far */
+    bool has_free_rect;     /**< Whether any candidate so far actually
+                                 fit @c client without overlapping
+                                 anything */
+};
+
+
+/**
+ * @brief Resolve the systray's current on-screen rectangle for one
+ *        placement decision, when @c systray.avoid-overlap applies
+ *
+ * A live rectangle is fetched here, rather than trusting a stale one
+ * cached earlier, since the tray can move, resize, or disappear between
+ * one placement decision and the next.
+ *
+ * @param config   Window manager configuration
+ * @param surface  Surface the placement decision is for
+ * @param out_geom Receives the systray's rectangle when resolved;
+ *                 untouched otherwise
+ *
+ * @return @p out_geom, or @c NULL when @c systray.avoid-overlap does
+ *         not apply (see its doc comment, config.h), or the
+ *         systray has no on-screen rectangle to report right now
+ *
+ * @note Complexity: @e O(1)
+ */
+static const struct geometry_s
+    *s_place_window_smart_resolve_tray_rect(const config_td *config,
+            const surface_td *surface, struct geometry_s *out_geom)
+{
+    if (config->base.systray.avoid_overlap &&
+            !config->base.systray.reserve_space &&
+            systray_get_geometry(surface, out_geom)) {
+        return out_geom;
+    }
+    return NULL;
+}
+
+
+/**
+ * @brief Test one candidate top-left corner, clamping it into the
+ *        workarea first, keeping it if it beats whichever free
+ *        rectangle or overlap cost @p ctx found so far
+ *
+ * @param ctx Placement context; @c best_x / @c best_y / @c best_cost /
+ *            @c best_area / @c has_free_rect updated in place
+ * @param x   Candidate left coordinate, not yet clamped
+ * @param y   Candidate top coordinate, not yet clamped
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @c ctx->desktop (the cost of one @a s_free_rect_grow /
+ *       @a s_score_window_pos pair)
+ */
+static void s_place_window_smart_test_candidate(
+        struct s_place_window_smart_ctx_s *ctx, int32_t x, int32_t y)
+{
+    uint32_t free_w;
+    uint32_t free_h;
+    uint64_t cost;
+
+    if (x < ctx->min_x) { x = ctx->min_x; }
+    if (x > ctx->max_x) { x = ctx->max_x; }
+    if (y < ctx->min_y) { y = ctx->min_y; }
+    if (y > ctx->max_y) { y = ctx->max_y; }
+
+    s_free_rect_grow(ctx->desktop, ctx->skip_client, x, y,
+            ctx->bound_right, ctx->bound_bottom, ctx->tray_rect,
+            &free_w, &free_h);
+    if (free_w >= ctx->fw && free_h >= ctx->fh) {
+        uint64_t area = (uint64_t) free_w * (uint64_t) free_h;
+
+        if (area > ctx->best_area) {
+            ctx->best_area = area;
+            ctx->best_x = x + (int32_t) ((free_w - ctx->fw) / 2u);
+            ctx->best_y = y + (int32_t) ((free_h - ctx->fh) / 2u);
+            ctx->has_free_rect = true;
+        }
+    }
+    cost = s_score_window_pos(ctx->desktop, ctx->skip_client, x, y,
+            ctx->fw, ctx->fh, ctx->tray_rect,
+            ctx->center_x, ctx->center_y);
+    if (cost < ctx->best_cost) {
+        ctx->best_cost = cost;
+        if (!ctx->has_free_rect) {
+            ctx->best_x = x;
+            ctx->best_y = y;
+        }
+    }
+}
+
+
+/**
  * @brief Find a non-overlapping smart position for a newly mapped
  *        client, centered inside the largest genuinely free area
  *        found on the current desktop
  *
  * Tests a bounded set of candidate top-left corners (the workarea
- * center, its four corners, and every edge of every visible client
- * already on the desktop), grows the real free rectangle anchored
- * at each one (@a s_free_rect_grow), and keeps the largest.  The
- * client lands centered inside that free rectangle: the breathing
- * room around it comes from how much real free space exists there,
- * not from any fixed margin.  Falls back to whichever candidate has
- * the least overlap when the desktop is too full for any candidate
- * to fit the client at all.
+ * center, its four corners, every edge of every visible client
+ * already on the desktop, and, when @c systray.avoid-overlap applies
+ * (see below), every edge of the tray too), grows the real free
+ * rectangle anchored at each one (@a s_free_rect_grow), and keeps the
+ * largest.  The client lands centered inside that free rectangle: the
+ * breathing room around it comes from how much real free space exists
+ * there, not from any fixed margin.  Falls back to whichever candidate
+ * has the least overlap when the desktop is too full for any
+ * candidate to fit the client at all.
+ *
+ * The systray, not a real client, is treated as one more obstacle
+ * alongside every visible client above, and its edges are tested as
+ * candidate anchors the same way every client's edges already are, when
+ * @c systray.avoid-overlap is @c true and @c systray.reserve-space is
+ * @c false (see either one's comment in @c config.h): both matter
+ * equally, since testing the tray's edges as candidates without also
+ * shrinking against the tray itself would let a candidate anchored
+ * right at its corner overlap it outright, and shrinking against it
+ * without testing its edges as candidates would leave real free space
+ * sitting right next to the tray untested, unable to ever be found
+ * (this second half is what actually went missing at first.  A corner
+ * that used to be a genuinely productive candidate, workarea (0, 0)
+ * with the tray docked there by default, collapses to zero free area
+ * once the tray shrinks against it, and nothing replaced it as
+ * a candidate anchored at the tray's edge instead, until this).
+ * Fetched fresh from @a systray_get_geometry for this one placement
+ * decision, then passed to every @a s_free_rect_grow /
+ * @a s_score_window_pos call the same way @p desktop's clients already
+ * are.  Affects placement scoring only, nothing about the tray becoming
+ * movable, iconifiable, or otherwise actable on the way a real window
+ * is.
  *
  * @param wm      Pointer to the window manager singleton
  * @param surface Pointer to the surface where the client will appear
@@ -777,40 +1024,20 @@ static void s_place_window_finalize(const wm_td *wm,
  *
  * @return @c true if a position was found, @c false otherwise
  *
- * @note Complexity: @e O(n^3) worst case, where @e n is the number
- *       of clients on the current desktop (@e n candidates, each
- *       scored by @a s_free_rect_grow's @e O(n^2))
+ * @note Complexity: @e O(n^3) worst case, where @e n is the number of
+ *       clients on the current desktop (@e n candidates, each scored by
+ *       @a s_free_rect_grow's @e O(n^2))
  */
 bool place_window_smart(const wm_td *wm,
         surface_td *surface, client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y)
 {
     desktop_td *desktop;
-    int32_t wa_x;
-    int32_t wa_y;
-    uint32_t wa_w;
-    uint32_t wa_h;
-    uint32_t fw;
-    uint32_t fh;
-    int32_t min_x;
-    int32_t min_y;
-    int32_t max_x;
-    int32_t max_y;
-    int32_t bound_right;
-    int32_t bound_bottom;
-    int32_t center_x;
-    int32_t center_y;
-    int32_t best_x;
-    int32_t best_y;
-    uint64_t best_cost;
-    uint64_t best_area;
-    int32_t cx;
-    int32_t cy;
-    bool have_free_rect;
-    monitor_td ref_monitor;
-    struct geometry_s wa_geom;
-    struct dimensions_s screen;
-    struct dimensions_s unused_screen;
+    struct geometry_s wa;
+    struct geometry_s mon_wa;
+    struct dimensions_s mon_sz;
+    struct geometry_s tray_geom;
+    struct s_place_window_smart_ctx_s ctx;
     const xcb_connection_t *connection = wm_connection(wm);
     const config_td *config = wm_config(wm);
 
@@ -825,150 +1052,108 @@ bool place_window_smart(const wm_td *wm,
         return false;
     }
 
-    fw = client->layout.geometry.cur.dim.w;
-    fh = client->layout.geometry.cur.dim.h;
+    /* Resolves the workarea (falling back to the full surface
+     * dimensions when none is set) and clips it to whichever physical
+     * monitor 'windows.placement.monitor' resolves to, on a surface
+     * made of more than one (the common case of several monitors
+     * sharing one combined X screen): a new window should land within
+     * one monitor, not be scored against the whole combined area, which
+     * could place it straddling the seam between two of them.
+     * 'wa' (unclipped) is only needed because 's_place_workarea'
+     * requires somewhere to write it; every candidate below is tested
+     * against 'mon_wa' instead. */
+    s_place_workarea(wm, surface, client, &wa, &mon_wa, &mon_sz);
 
-    /* Use workarea when available; fall back to full surface dimensions.
-     * The workarea respects strut reservations from panels and docks. */
-    if (desktop->workarea.dim.w > 0u && desktop->workarea.dim.h > 0u) {
-        wa_x = desktop->workarea.pos.x;
-        wa_y = desktop->workarea.pos.y;
-        wa_w = desktop->workarea.dim.w;
-        wa_h = desktop->workarea.dim.h;
-    } else {
-        wa_x = 0;
-        wa_y = 0;
-        wa_w = surface->properties.dim.w;
-        wa_h = surface->properties.dim.h;
-    }
-
-    /* Clip the workarea down to whichever physical monitor
-     * 'windows.placement.monitor' resolves to, on a surface made of
-     * more than one (the common case of several monitors sharing one
-     * combined X screen): a new window should land within one
-     * monitor, not be scored against the whole combined area, which
-     * could place it straddling the seam between two of them.  Falls
-     * back to the unclipped workarea above when there is only one
-     * monitor or clipping would leave nothing to place into (e.g., a
-     * monitor entirely covered by a strut). */
-    ref_monitor = s_reference_monitor_for_client(wm, surface, client,
-            config->base.windows.monitor_policy);
-    wa_geom.pos.x = wa_x;
-    wa_geom.pos.y = wa_y;
-    wa_geom.dim.w = wa_w;
-    wa_geom.dim.h = wa_h;
-    screen.w = wa_w;
-    screen.h = wa_h;
-    s_clip_to_monitor(surface, &wa_geom, &screen, ref_monitor,
-            &wa_geom, &unused_screen);
-    wa_x = wa_geom.pos.x;
-    wa_y = wa_geom.pos.y;
-    wa_w = wa_geom.dim.w;
-    wa_h = wa_geom.dim.h;
+    ctx.desktop = desktop;
+    ctx.skip_client = client;
+    ctx.fw = client->layout.geometry.cur.dim.w;
+    ctx.fh = client->layout.geometry.cur.dim.h;
+    ctx.tray_rect = s_place_window_smart_resolve_tray_rect(config,
+            surface, &tray_geom);
 
     /* Candidate range keeps the top-left corner inside the workarea;
-     * 'bound_right'/'bound_bottom' are the workarea's physical
-     * edges instead, used below to grow a free rectangle as far as
-     * it genuinely goes, not just as far as a top-left corner could
-     * still sit. */
-    min_x = wa_x;
-    min_y = wa_y;
-    max_x = (wa_w > fw) ? wa_x + (int32_t) (wa_w - fw) : wa_x;
-    max_y = (wa_h > fh) ? wa_y + (int32_t) (wa_h - fh) : wa_y;
-    bound_right = wa_x + (int32_t) wa_w;
-    bound_bottom = wa_y + (int32_t) wa_h;
+     * 'bound_right'/'bound_bottom' are the workarea's physical edges
+     * instead, used by 's_free_rect_grow' to grow a free rectangle as
+     * far as it genuinely goes, not just as far as a top-left corner
+     * could still sit. */
+    ctx.min_x = mon_wa.pos.x;
+    ctx.min_y = mon_wa.pos.y;
+    ctx.max_x = (mon_wa.dim.w > ctx.fw)
+        ? mon_wa.pos.x + (int32_t) (mon_wa.dim.w - ctx.fw)
+        : mon_wa.pos.x;
+    ctx.max_y = (mon_wa.dim.h > ctx.fh)
+        ? mon_wa.pos.y + (int32_t) (mon_wa.dim.h - ctx.fh)
+        : mon_wa.pos.y;
+    ctx.bound_right = mon_wa.pos.x + (int32_t) mon_wa.dim.w;
+    ctx.bound_bottom = mon_wa.pos.y + (int32_t) mon_wa.dim.h;
 
     /* Workarea center used as the distance tie-breaker reference */
-    center_x = wa_x + (int32_t) (wa_w / 2u);
-    center_y = wa_y + (int32_t) (wa_h / 2u);
+    ctx.center_x = mon_wa.pos.x + (int32_t) (mon_wa.dim.w / 2u);
+    ctx.center_y = mon_wa.pos.y + (int32_t) (mon_wa.dim.h / 2u);
 
-    best_x = wa_x;
-    best_y = wa_y;
-    best_cost = UINT64_MAX;
-    best_area = 0u;
-    have_free_rect = false;
+    ctx.best_x = mon_wa.pos.x;
+    ctx.best_y = mon_wa.pos.y;
+    ctx.best_cost = UINT64_MAX;
+    ctx.best_area = 0u;
+    ctx.has_free_rect = false;
 
     /* Try one candidate top-left corner at a time: the centered seed
      * first (so an empty desktop still lands the first window in the
-     * middle of the screen), every corner of the workarea itself,
-     * then every edge of every visible client already on this
-     * desktop.  A genuinely free rectangle, whenever one exists,
-     * always has at least one edge touching either another client's
-     * edge or the workarea's boundary, so these candidates are
-     * enough to find it without testing a whole grid of positions in
-     * between two clients where nothing changes.  For each corner,
-     * grow the actual free rectangle anchored there
-     * (@a s_free_rect_grow) and keep whichever one found so far is
-     * largest: the window ends up centered inside that real free
-     * space, not pinned to whichever corner happened to be tried
-     * first, so the breathing room around it comes from the free
-     * space itself rather than from any fixed margin. */
-    cx = center_x - (int32_t) (fw / 2u);
-    cy = center_y - (int32_t) (fh / 2u);
-    if (cx < min_x) { cx = min_x; }
-    if (cy < min_y) { cy = min_y; }
-    if (cx > max_x) { cx = max_x; }
-    if (cy > max_y) { cy = max_y; }
+     * middle of the screen), every corner of the workarea itself, the
+     * systray's edges when 'systray.avoid-overlap' applies (see
+     * 'ctx.tray_rect''s comment,
+     * 's_place_window_smart_resolve_tray_rect'), then every edge of
+     * every visible client already on this desktop.  A genuinely free
+     * rectangle, whenever one exists, always has at least one edge
+     * touching either another obstacle's edge or the workarea's
+     * boundary, so these candidates are enough to find it without
+     * testing a whole grid of positions in between two obstacles where
+     * nothing changes.  Each candidate keeps whichever free rectangle
+     * found so far is largest ('s_place_window_smart_test_candidate'):
+     * the window ends up centered inside that real free space, not
+     * pinned to whichever corner happened to be tried first, so the
+     * breathing room around it comes from the free space itself rather
+     * than from any fixed margin. */
+    s_place_window_smart_test_candidate(&ctx,
+            ctx.center_x - (int32_t) (ctx.fw / 2u),
+            ctx.center_y - (int32_t) (ctx.fh / 2u));
 
-    {
-        uint32_t free_w;
-        uint32_t free_h;
-        uint64_t cost;
+    for (int ci = 0; ci < 2; ++ci) {
+        const int32_t corner_x = (ci == 0) ? ctx.min_x : ctx.max_x;
 
-        s_free_rect_grow(desktop, client, cx, cy,
-                bound_right, bound_bottom, &free_w, &free_h);
-        if (free_w >= fw && free_h >= fh) {
-            uint64_t area = (uint64_t) free_w * (uint64_t) free_h;
+        for (int cj = 0; cj < 2; ++cj) {
+            const int32_t corner_y = (cj == 0) ? ctx.min_y : ctx.max_y;
 
-            if (area > best_area) {
-                best_area = area;
-                best_x = cx + (int32_t) ((free_w - fw) / 2u);
-                best_y = cy + (int32_t) ((free_h - fh) / 2u);
-                have_free_rect = true;
-            }
-        }
-        cost = s_score_window_pos(desktop, client, cx, cy, fw, fh,
-                center_x, center_y);
-        if (cost < best_cost) {
-            best_cost = cost;
-        }
-    }
+            s_place_window_smart_test_candidate(&ctx,
+                    corner_x, corner_y);
+        } /* ! for (cj) */
+    } /* ! for (ci) */
 
-    {
-        const int32_t corners_x[2] = { min_x, max_x };
-        const int32_t corners_y[2] = { min_y, max_y };
+    /* The tray, not iterated per client since it is a single fixed
+     * obstacle for this whole placement decision (unlike every client
+     * edge below, tested once per visible client): without this, the
+     * corner candidate that would otherwise land exactly on the
+     * tray's corner collapses to zero free area (that same check
+     * inside 's_free_rect_shrink_against' above), and no replacement
+     * candidate anchored at the tray's edge ever gets tried in its
+     * place, so real free space sitting right next to the tray goes
+     * completely untested. */
+    if (ctx.tray_rect != NULL) {
+        const int32_t tx = ctx.tray_rect->pos.x;
+        const int32_t ty = ctx.tray_rect->pos.y;
+        const int32_t tw = (int32_t) ctx.tray_rect->dim.w;
+        const int32_t th = (int32_t) ctx.tray_rect->dim.h;
+        const int32_t edge_x[4] = {
+            tx + tw, tx - (int32_t) ctx.fw, tx, tx
+        };
+        const int32_t edge_y[4] = {
+            ty, ty, ty + th, ty - (int32_t) ctx.fh
+        };
 
-        for (int ci = 0; ci < 2; ++ci) {
-            for (int cj = 0; cj < 2; ++cj) {
-                uint32_t free_w;
-                uint32_t free_h;
-                uint64_t cost;
-                int32_t x = corners_x[ci];
-                int32_t y = corners_y[cj];
-
-                s_free_rect_grow(desktop, client, x, y,
-                        bound_right, bound_bottom, &free_w, &free_h);
-                if (free_w >= fw && free_h >= fh) {
-                    uint64_t area = (uint64_t) free_w * (uint64_t) free_h;
-
-                    if (area > best_area) {
-                        best_area = area;
-                        best_x = x + (int32_t) ((free_w - fw) / 2u);
-                        best_y = y + (int32_t) ((free_h - fh) / 2u);
-                        have_free_rect = true;
-                    }
-                }
-                cost = s_score_window_pos(desktop, client, x, y,
-                        fw, fh, center_x, center_y);
-                if (cost < best_cost) {
-                    best_cost = cost;
-                    if (!have_free_rect) {
-                        best_x = x;
-                        best_y = y;
-                    }
-                }
-            }
-        }
+        for (int ei = 0; ei < 4; ++ei) {
+            s_place_window_smart_test_candidate(&ctx,
+                    edge_x[ei], edge_y[ei]);
+        } /* ! for (ei) */
     }
 
     if (desktop->stacking != NULL && cdlist_size(desktop->stacking) != 0u) {
@@ -992,63 +1177,33 @@ bool place_window_smart(const wm_td *wm,
                     const int32_t oh =
                         (int32_t) other->layout.geometry.cur.dim.h;
                     const int32_t edge_x[4] = {
-                        ox + ow, ox - (int32_t) fw, ox, ox
+                        ox + ow, ox - (int32_t) ctx.fw, ox, ox
                     };
                     const int32_t edge_y[4] = {
-                        oy, oy, oy + oh, oy - (int32_t) fh
+                        oy, oy, oy + oh, oy - (int32_t) ctx.fh
                     };
 
                     for (int ei = 0; ei < 4; ++ei) {
-                        uint32_t free_w;
-                        uint32_t free_h;
-                        uint64_t cost;
-                        int32_t x = edge_x[ei];
-                        int32_t y = edge_y[ei];
-
-                        if (x < min_x) { x = min_x; }
-                        if (x > max_x) { x = max_x; }
-                        if (y < min_y) { y = min_y; }
-                        if (y > max_y) { y = max_y; }
-
-                        s_free_rect_grow(desktop, client, x, y,
-                                bound_right, bound_bottom,
-                                &free_w, &free_h);
-                        if (free_w >= fw && free_h >= fh) {
-                            uint64_t area =
-                                (uint64_t) free_w * (uint64_t) free_h;
-
-                            if (area > best_area) {
-                                best_area = area;
-                                best_x = x +
-                                    (int32_t) ((free_w - fw) / 2u);
-                                best_y = y +
-                                    (int32_t) ((free_h - fh) / 2u);
-                                have_free_rect = true;
-                            }
-                        }
-                        cost = s_score_window_pos(desktop, client, x, y,
-                                fw, fh, center_x, center_y);
-                        if (cost < best_cost) {
-                            best_cost = cost;
-                            if (!have_free_rect) {
-                                best_x = x;
-                                best_y = y;
-                            }
-                        }
-                    }
-                }
+                        s_place_window_smart_test_candidate(&ctx,
+                                edge_x[ei], edge_y[ei]);
+                    } /* ! for (ei) */
+                } /* ! if (!other) */
                 node = cdlist_next(node);
             } while (node != NULL && node != initial);
-        }
+        } /* ! if (!node) */
     }
 
-    LOGGER_DEBUG("Smart-placed window (pos=%+d%+d, free-rect=%s," \
-            " wa-pos=%+d%+d, wa-size=%ux%u)",
-            best_x, best_y, have_free_rect ? "yes" : "no",
-            wa_x, wa_y, wa_w, wa_h);
+    LOGGER_DEBUG("Smart-placed window (pos=%+d%+d, size=%ux%u," \
+            " free-rect=%s, free-area=%llu, tray=%s, wa-pos=%+d%+d," \
+            " wa-size=%ux%u)",
+            ctx.best_x, ctx.best_y, ctx.fw, ctx.fh,
+            (ctx.has_free_rect) ? "yes" : "no",
+            (unsigned long long) ctx.best_area,
+            (ctx.tray_rect != NULL) ? "yes" : "no",
+            mon_wa.pos.x, mon_wa.pos.y, mon_wa.dim.w, mon_wa.dim.h);
 
-    *out_x = best_x;
-    *out_y = best_y;
+    *out_x = ctx.best_x;
+    *out_y = ctx.best_y;
     return true;
 }
 

@@ -853,6 +853,7 @@ under the pointer in that case.
 |-------------------------|---------|-------------------|
 | `systray.is-enabled`    | boolean | `true`            |
 | `systray.reserve-space` | boolean | `false`           |
+| `systray.avoid-overlap` | boolean | `true`            |
 | `systray.margins`       | object  | see below         |
 | `systray.position`      | string  | `"top-left"`      |
 | `systray.monitor`       | object  | see below         |
@@ -875,6 +876,21 @@ placement purposes.  Set to `true` for the tray to reserve its space
 instead, e.g., for a `layer` other than `"above"` or `"overlay"`, where
 nothing else already keeps windows off the tray visually.
 
+`avoid-overlap` controls whether `windows.placement`'s `"smart"` mode
+avoids landing a newly mapped window on top of the tray, if possible.
+`true` by default.  Has no effect while `reserve-space` is `true`: the
+tray's on-screen area is already excluded from the region smart
+placement searches in that case, so no candidate position could ever
+land on it regardless of this setting.  Only meaningful, then, for
+a tray configured strutless (`reserve-space` `false`), for every
+candidate position smart placement scores is checked against the tray's
+current on-screen rectangle the same way it already checks every other
+visible client, so a new window still tends to avoid sitting on top of
+the tray even though the tray itself reserves no space for that to be
+guaranteed.  This affects placement scoring only; the tray is not a real
+client, so it still cannot be moved, iconified, or otherwise acted on
+the way an actual window can.
+
 `margins` (an object with `top`/`right`/`bottom`/`left` integers, all
 `0` by default) adds extra reserved space on top of whatever the tray's
 actual size and position already reserve, mirroring `desktops.margins`
@@ -886,6 +902,7 @@ Has no effect while `reserve-space` is `false`.
 ```json
 "systray": {
     "reserve-space": false,
+    "avoid-overlap": true,
     "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
 }
 ```
@@ -2332,6 +2349,7 @@ to whatever theme loads, unconditionally.
     "systray": {
         "is-enabled": true,
         "reserve-space": false,
+        "avoid-overlap": true,
         "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
         "position": "top-right",
         "monitor": {

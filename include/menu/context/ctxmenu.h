@@ -113,9 +113,6 @@ typedef enum {
  * to @c CTXMENU_COMMAND and @c CTXMENU_SUBMENU entries only.
  */
 typedef struct ctxmenu_entry_s {
-    ctxmenu_entry_type_e type;                  /**< Entry kind */
-    char label[WM_CTXMENU_LABEL_MAX_LENGTH];    /**< Visible text */
-
     /**
      * @brief Shell command, and an optional @c WM_CLASS override to
      *        raise instead of relaunching if a matching window
@@ -135,16 +132,28 @@ typedef struct ctxmenu_entry_s {
      * apiece regardless.
      */
     char *command;
-    char *class_name;
 
-    bool is_disabled;                           /**< Grayed-out if @c true */
+    char *class_name;
 
     /** Optional callback invoked when the entry is activated */
     void (*on_activate)(xcb_connection_t *, void *userdata);
+
     void *userdata;     /**< User data passed to @p on_activate */
 
     /** Child entries for @c CTXMENU_SUBMENU */
     struct ctxmenu_entry_s *items;
+
+    /**
+     * @brief That client's own icon cache slot reused across repaints
+     *        the same way the client's own desktop icon does
+     *
+     * Ignored when @p icon_window is @c XCB_WINDOW_NONE.  A pointer
+     * into storage this struct does not own, since the client (and its
+     * cache slot) outlives any one menu that happens to list it.
+     */
+    wmicon_cache_td *icon_cache;
+
+    ctxmenu_entry_type_e type;                  /**< Entry kind */
     int item_count;
 
     /**
@@ -161,15 +170,8 @@ typedef struct ctxmenu_entry_s {
      */
     xcb_window_t icon_window;
 
-    /**
-     * @brief That client's own icon cache slot reused across repaints
-     *        the same way the client's own desktop icon does
-     *
-     * Ignored when @p icon_window is @c XCB_WINDOW_NONE.  A pointer
-     * into storage this struct does not own, since the client (and its
-     * cache slot) outlives any one menu that happens to list it.
-     */
-    wmicon_cache_td *icon_cache;
+    bool is_disabled;                           /**< Grayed-out if @c true */
+    char label[WM_CTXMENU_LABEL_MAX_LENGTH];    /**< Visible text */
 } ctxmenu_entry_td;
 
 
@@ -181,14 +183,7 @@ typedef struct ctxmenu_entry_s {
  * owns @p window after @a ctxmenu_show returns.
  */
 typedef struct ctxmenu_state_s {
-    xcb_window_t window;            /**< XCB window, or @c XCB_WINDOW_NONE */
     ctxmenu_entry_td *entries;      /**< Array of menu entries */
-    int entry_count;                /**< Number of entries in @p entries */
-    int selected;                   /**< Currently highlighted row index */
-    uint16_t width;                 /**< Computed menu window width */
-    uint16_t height;                /**< Computed menu window height */
-    int16_t origin_x;               /**< Actual X origin after clamping */
-    int16_t origin_y;               /**< Actual Y origin after clamping */
 
     /**
      * @brief Cached top-Y pixel offset per entry
@@ -198,6 +193,19 @@ typedef struct ctxmenu_state_s {
      * case row lookups fall back to walking @p entries directly
      */
     int32_t *entry_top_y;
+
+    /** Currently open child menu, or null */
+    struct ctxmenu_state_s *child;
+
+    /** Back-pointer to the parent menu, or null */
+    struct ctxmenu_state_s *parent;
+
+    xcb_connection_t *connection;   /**< Cached connection for repaints */
+    const config_td *config;        /**< Cached configuration */
+    surface_td *surface;            /**< Cached surface for activation */
+    xcb_window_t window;            /**< XCB window, or @c XCB_WINDOW_NONE */
+    int entry_count;                /**< Number of entries in @p entries */
+    int selected;                   /**< Currently highlighted row index */
 
     /**
      * @brief Window-relative Y of the last @c MotionNotify actually
@@ -212,14 +220,10 @@ typedef struct ctxmenu_state_s {
      */
     int32_t last_motion_y;
 
-    /** Currently open child menu, or null */
-    struct ctxmenu_state_s *child;
-    /** Back-pointer to the parent menu, or null */
-    struct ctxmenu_state_s *parent;
-
-    xcb_connection_t *connection;   /**< Cached connection for repaints */
-    const config_td *config;        /**< Cached configuration */
-    surface_td *surface;            /**< Cached surface for activation */
+    uint16_t width;                 /**< Computed menu window width */
+    uint16_t height;                /**< Computed menu window height */
+    int16_t origin_x;               /**< Actual X origin after clamping */
+    int16_t origin_y;               /**< Actual Y origin after clamping */
 } ctxmenu_state_td;
 
 

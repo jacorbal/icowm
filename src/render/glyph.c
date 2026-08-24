@@ -80,21 +80,21 @@ typedef struct {
  */
 static struct {
     xcb_connection_t *connection;
-    char font_name[256];
     FT_Library ft_library;
     FT_Face ft_face;
-    bool ft_ready;
     const xcb_render_query_pict_formats_reply_t *formats;
     xcb_render_pictformat_t a8_format;
     xcb_render_pictformat_t visual_format;
     xcb_render_glyphset_t glyphset;
     xcb_render_picture_t fg_picture;
     uint32_t fg_color;
+    s_glyph_cache_entry_td cache[GLYPH_CACHE_MAX];
     int16_t ascent;
     int16_t descent;
-    s_glyph_cache_entry_td cache[GLYPH_CACHE_MAX];
     uint16_t cache_count;
+    bool ft_ready;
     bool initialized;
+    char font_name[256];
 } s_glyph = {
     .connection = NULL,
     .font_name = {'\0'},
