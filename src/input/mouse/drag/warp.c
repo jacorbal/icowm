@@ -141,7 +141,11 @@ void drag_warp_tick(xcb_connection_t *connection)
 {
     surface_td *surface;
     desktop_td *old_desktop;
-    desktop_td *new_desktop;
+    /* Initialized here, not left to the switch below: that switch
+     * deliberately has no 'default:' so the compiler keeps checking
+     * it against every direction, which also means it cannot prove
+     * to itself that one of its cases always runs */
+    desktop_td *new_desktop = NULL;
     uint32_t old_desktop_id;
     uint32_t opposite_edge;
     int16_t new_root_x;
