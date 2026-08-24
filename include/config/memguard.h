@@ -30,9 +30,12 @@
  * step.  Calling it here too would just mean setting every field twice
  * for no reason.
  *
- * @return Pointer to the newly allocated (but not yet populated)
+ * @return Pointer to the newly allocated, not yet populated,
  *         configuration structure, or @c NULL on failure
  *
+ * @note The caller takes ownership of the returned configuration and
+ *       releases it with @a config_destroy, the same one an ordinary
+ *       session uses
  * @note Complexity: @e O(1)
  */
 config_td *config_memguard_init(void);

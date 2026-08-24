@@ -54,7 +54,9 @@ typedef struct util_cursor_ctx_s util_cursor_ctx_td;
  *         to the X core font every time, just without the
  *         reused-lookup-handle savings)
  *
- * @note Complexity: @e O(1), aside from the underlying library's own
+ * @note The caller takes ownership of the returned context and
+ *       releases it with @a util_cursor_ctx_free
+ * @note Complexity: @e O(1), aside from the underlying library's
  *       one-time theme lookup setup
  */
 util_cursor_ctx_td *util_cursor_ctx_new(xcb_connection_t *connection,

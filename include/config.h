@@ -66,9 +66,11 @@ typedef struct {
  * @return Pointer to the initialized configuration structure, or
  *         @c NULL on failure
  * 
- * @note Restricted-memory mode NEVER calls this
- * @note Complexity: @e O(1), as it only involves memory allocation and
- *       initialization
+ * @note The caller takes ownership of the returned configuration and
+ *       releases it with @a config_destroy
+ * @note Restricted-memory mode never calls this
+ * @note Complexity: @e O(1), as it only involves memory allocation
+ *       and initialization
  *
  * @see @a config_memguard_init in @c config/memguard.h for its own
  *      completely separate path, which this function knows nothing
@@ -349,7 +351,8 @@ uint32_t config_theme_opacity_to_raw(uint8_t percent);
  *
  * @note Complexity: @e O(1)
  */
-void config_set_default_randr_values(struct config_randr_s *config_randr);
+void config_set_default_randr_values(
+        struct config_randr_s *config_randr);
 
 /**
  * @brief Load XRandR output profiles from a JSON file

@@ -246,6 +246,8 @@ typedef struct desktop_s {
  *
  * @return Pointer to new desktop or @c NULL otherwise
  *
+ * @note The caller takes ownership of the returned desktop and
+ *       releases it with @a desktop_destroy
  * @note Complexity: @e O(1)
  */
 desktop_td *desktop_init(xcb_connection_t *connection,

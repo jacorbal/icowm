@@ -191,6 +191,8 @@ struct surface_s {
  *
  * @return Pointer to new surface, or @c NULL otherwise
  *
+ * @note The caller takes ownership of the returned surface and
+ *       releases it with @a surface_destroy
  * @note Complexity: @e O(1)
  */
 surface_td *surface_init(xcb_connection_t *connection,
