@@ -34,14 +34,14 @@
  * @brief Permanently disable the glyph (@c xcb-render / FreeType2 /
  *        fontconfig) rendering backend for the life of the process
  *
- * @a text_renderer_init never even attempts that backend afterward for
- * any font name that fails to resolve to an X core font, falling
- * straight through to its own "fixed" fallback instead, the same as if
- * the attempt had simply failed.  Meant for restricted-memory mode
- * specifically, called once at startup.  That mode already forces every
- * theme font to some variant of "fixed" (@c config/memguard.h), which
- * always resolves as an X core font on its own, so the glyph backend is
- * never actually needed there.
+ * @a text_renderer_use_font never attempts that backend afterward for
+ * a font name that fails to resolve to an X core font, falling
+ * straight through to the "fixed" fallback instead, the same as if
+ * the attempt had simply failed.  Meant for restricted-memory mode,
+ * called once at startup.  That mode already forces every theme font
+ * to some variant of "fixed", see @c config/memguard.h, which always
+ * resolves as an X core font, so the glyph backend is never needed
+ * there.
  *
  * This closes the one remaining way it could still end up loaded
  * anyway, a font name that happens to resolve to an X core font under
@@ -57,26 +57,56 @@
 void text_renderer_disable_glyph_backend(void);
 
 /**
- * @brief Initialize the text renderer using the specified font
+ * @brief Initialize the text renderer
  *
- * Opens the requested X font, creates the graphics context used for
- * text rendering, and queries the font metrics to determine the
- * character width used by string measurement functions.
+ * Binds the renderer to a connection and empties the font cache.  No
+ * font is open yet afterward; @a text_renderer_use_font opens the
+ * first one.  Calling this again on an already-initialized renderer
+ * closes every cached font first, which is what a configuration
+ * reload wants, since the new theme may name different fonts
+ * entirely.
  *
  * @param connection Pointer to the XCB connection
- * @param font_name  Name of the font to load, or @c NULL to use default
  *
  * @return Status of the operation
  * @retval  0 on success
- * @retval -1 on failure
+ * @retval -1 when @p connection is @c NULL
  *
- * @note If @p font_name is @c NULL or empty, the default font "fixed"
- *       is used
- * @note Reinitialization with the same connection is skipped when the
- *       renderer is already initialized
- * @note Complexity: @e O(1)
+ * @note The caller releases the renderer with
+ *       @a text_renderer_destroy
+ * @note Complexity: @e O(n), where @e n is the number of cached fonts
+ *       closed
  */
-int text_renderer_init(xcb_connection_t *connection,
+int text_renderer_init(xcb_connection_t *connection);
+
+/**
+ * @brief Make a font the one every later drawing call uses
+ *
+ * Looks the font up in the cache and, on a miss, opens it and stores
+ * it.  A font already cached costs a lookup and nothing else, which
+ * is what lets a caller alternate between two fonts without paying an
+ * @c xcb_close_font and an @c xcb_open_font round trip each time.
+ *
+ * The X core-font backend is tried first, on the XLFD pattern derived
+ * from @p font_name.  Should that fail, the glyph backend is tried on
+ * @p font_name as fontconfig itself would read it, unless
+ * @a text_renderer_disable_glyph_backend has been called.  Should
+ * both fail, "fixed" is opened instead, so the renderer is never left
+ * with no font at all.
+ *
+ * @param connection Pointer to the XCB connection
+ * @param font_name  Font to use, or @c NULL for the default
+ *
+ * @return Status of the operation
+ * @retval  0 The font is now the active one
+ * @retval -1 Neither backend could open it, nor the "fixed" fallback
+ *
+ * @note If @p font_name is @c NULL or empty, "fixed" is used
+ * @note Complexity: @e O(n) on a cache hit, where @e n is the number
+ *       of cached fonts scanned; the cost of opening a font on a miss
+ * @see @a text_renderer_init, which must have been called first
+ */
+int text_renderer_use_font(xcb_connection_t *connection,
         const char *font_name);
 
 /**
@@ -94,7 +124,7 @@ void text_renderer_destroy(void);
  *
  * Changes the @c XCB_GC_FOREGROUND and @c XCB_GC_BACKGROUND attributes
  * of the internal graphics context.  Call this after
- * @a text_renderer_init to select colors appropriate for the drawing
+ * @a text_renderer_use_font to select colors appropriate for the
  * context (e.g., theme active/inactive foreground colors for titlebars)
  * before invoking @a text_draw_string.
  *
@@ -115,7 +145,8 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg);
  *
  * @param connection Pointer to the XCB connection
  * @param drawable   Target drawable where the text will be drawn
- * @param gc         Graphics context to use, or @c XCB_NONE to use default
+ * @param gc         Graphics context to use, or @c XCB_NONE for
+ *                   the default one
  * @param pos        Position of the text baseline
  * @param text       Null-terminated string to draw
  *
@@ -161,7 +192,7 @@ void text_truncate_to_width(char *buf, size_t buf_size,
 
 /**
  * @brief Pixels the baseline sits below the top of a line, for
- *        whichever font @c text_renderer_init last selected
+ *        whichever font @a text_renderer_use_font last selected
  *
  * Together with @a text_font_descent, lets a caller vertically center
  * or top/bottom-align a line of text against a known pixel height
@@ -171,7 +202,7 @@ void text_truncate_to_width(char *buf, size_t buf_size,
  * passing @c top @c + @a text_font_ascent() as that Y coordinate.
  *
  * @return Font ascent in pixels; a small built-in default before the
- *         first successful @a text_renderer_init call
+ *         first successful @a text_renderer_use_font call
  *
  * @note Complexity: @e O(1)
  */
@@ -179,10 +210,10 @@ int16_t text_font_ascent(void);
 
 /**
  * @brief Pixels the baseline sits above the bottom of a line, for
- *        whichever font @a text_renderer_init last selected
+ *        whichever font @a text_renderer_use_font last selected
  *
  * @return Font descent in pixels; a small built-in default before the
- *         first successful @a text_renderer_init call
+ *         first successful @a text_renderer_use_font call
  *
  * @note Complexity: @e O(1)
  */

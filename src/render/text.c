@@ -52,55 +52,41 @@ enum s_text_backend_e {
 
 
 /**
+ * @brief One opened font the renderer keeps ready for reuse
+ *
+ * The X core-font backend fills @p font and @p gc; the glyph backend
+ * fills neither, since @c render/glyph.c holds those resources.
+ * @p key is the name exactly as the caller gave it, which is what a
+ * lookup matches on, since the XLFD pattern is derived from it and
+ * fontconfig wants that original syntax anyway.
+ */
+typedef struct {
+    char key[WM_TEXT_FONT_NAME_LENGTH];
+    xcb_font_t font;
+    xcb_gcontext_t gc;
+    uint32_t last_used;
+    enum s_text_backend_e backend;
+    uint16_t char_width;
+    int16_t ascent;
+    int16_t descent;
+    bool is_used;
+} s_text_font_td;
+
+
+/**
  * @brief Module state for the text renderer
  *
- * Stores the XCB core-font resources, the requested font name and its
- * XLFD form, cached font metrics, and the active text-rendering
- * backend.
- *
- * @note @p raw_font_name preserves the caller's original
- *       fontconfig-compatible pattern so the glyph backend can be
- *       selected as a fallback when the X core-font backend cannot load
- *       the converted XLFD name
+ * @p cache holds every font opened so far and @p current indexes
+ * whichever one drawing goes through, or equals
+ * @c WM_TEXT_FONT_CACHE_MAX when none is selected.  @p clock only
+ * counts up, and the entry carrying the lowest @p last_used is the
+ * one evicted when room is needed.
  */
 static struct {
     xcb_connection_t *connection;
-    xcb_font_t font;
-    xcb_gcontext_t gc;
-    char font_name[256];
-
-    /**
-     * @brief Just @p font_name as the caller passed it, before the XLFD
-     *        conversion below
-     *
-     * Kept so a fallback to the glyph backend can hand fontconfig its
-     * own syntax instead of a mangled XLFD pattern it would not
-     * understand.
-     */
-    char raw_font_name[256];
-
-    uint16_t char_width;
-
-    /**
-     * @brief Pixels the baseline sits below the top of a line of
-     *        text, from the font metrics
-     *
-     * Used to center text vertically, or to align it to the top or
-     * the bottom, against a known pixel height.
-     *
-     * @see @a text_font_ascent
-     */
-    int16_t ascent;
-
-    /**
-     * @brief Pixels the baseline sits above the bottom of a line of
-     *        text
-     *
-     * @see @a text_font_descent
-     */
-    int16_t descent;
-
-    enum s_text_backend_e backend;
+    s_text_font_td cache[WM_TEXT_FONT_CACHE_MAX];
+    uint32_t clock;
+    uint32_t current;
     bool is_initialized;
 
     /** Set once, for the life of the process, by
@@ -108,14 +94,8 @@ static struct {
     bool is_glyph_backend_disabled;
 } s_text = {
     .connection = NULL,
-    .font = XCB_NONE,
-    .gc = XCB_NONE,
-    .font_name = {'\0'},
-    .raw_font_name = {'\0'},
-    .char_width = 8,
-    .ascent = 10,
-    .descent = 3,
-    .backend = S_BACKEND_NONE,
+    .clock = 0u,
+    .current = WM_TEXT_FONT_CACHE_MAX,
     .is_initialized = false,
     .is_glyph_backend_disabled = false
 };
@@ -557,6 +537,9 @@ static size_t s_utf8_to_latin1(const char *restrict text,
  * @param connection Pointer to the XCB connection
  * @param xlfd       XLFD pattern to open
  *
+ * @param entry      Cache entry the font, its graphics context and
+ *                   its metrics are stored in
+ *
  * @return @c true if the font opened and its metrics could be read
  *
  * @note On failure, any font resource this call opened is closed again
@@ -564,46 +547,193 @@ static size_t s_utf8_to_latin1(const char *restrict text,
  *       X11 attempt itself
  * @note Complexity: @e O(1)
  */
-static bool s_try_x11(xcb_connection_t *connection, const char *xlfd)
+static bool s_try_x11(xcb_connection_t *connection, const char *xlfd,
+        s_text_font_td *entry)
 {
     uint32_t gc_values[2];
     xcb_query_font_reply_t *qf_reply;
 
-    s_text.font = xcb_generate_id(connection);
-    xcb_open_font(connection, s_text.font,
+    entry->font = xcb_generate_id(connection);
+    xcb_open_font(connection, entry->font,
             (uint16_t) safe_strlen(xlfd), xlfd);
 
     qf_reply = xcb_query_font_reply(connection,
-            xcb_query_font(connection, s_text.font), NULL);
+            xcb_query_font(connection, entry->font), NULL);
     if (qf_reply == NULL) {
-        xcb_close_font(connection, s_text.font);
-        s_text.font = XCB_NONE;
+        xcb_close_font(connection, entry->font);
+        entry->font = XCB_NONE;
         return false;
     }
 
     if (qf_reply->max_bounds.character_width > 0) {
-        s_text.char_width =
+        entry->char_width =
             (uint16_t) qf_reply->max_bounds.character_width;
     }
-    s_text.ascent = qf_reply->font_ascent;
-    s_text.descent = qf_reply->font_descent;
+    entry->ascent = qf_reply->font_ascent;
+    entry->descent = qf_reply->font_descent;
     free(qf_reply);
 
-    s_text.gc = xcb_generate_id(connection);
+    entry->gc = xcb_generate_id(connection);
 
     /* Neutral defaults: 'white-on-black'.
      * For themed titlebar, call 'text_renderer_set_color' afterwards to
      * use the foreground/background colors from theme */
     gc_values[0] = 0xFFFFFFu;   /* fg: white */
     gc_values[1] = 0x000000u;   /* bg: black */
-    xcb_create_gc(connection, s_text.gc,
+    xcb_create_gc(connection, entry->gc,
             xcb_setup_roots_iterator(xcb_get_setup(connection)).data->root,
             XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
-    xcb_change_gc(connection, s_text.gc, XCB_GC_FONT,
-            (const uint32_t[]) {s_text.font});
+    xcb_change_gc(connection, entry->gc, XCB_GC_FONT,
+            (const uint32_t[]) {entry->font});
 
     return true;
 }
+
+
+/**
+ * @brief Release whatever a cache entry holds and mark it free
+ *
+ * @param entry Entry to release
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_text_cache_release(s_text_font_td *entry)
+{
+    if (!entry->is_used) {
+        return;
+    }
+
+    if (entry->backend == S_BACKEND_GLYPH) {
+        glyph_renderer_destroy();
+    } else if (s_text.connection != NULL) {
+        if (entry->gc != XCB_NONE) {
+            xcb_free_gc(s_text.connection, entry->gc);
+        }
+        if (entry->font != XCB_NONE) {
+            xcb_close_font(s_text.connection, entry->font);
+        }
+    }
+
+    entry->key[0] = '\0';
+    entry->font = XCB_NONE;
+    entry->gc = XCB_NONE;
+    entry->last_used = 0u;
+    entry->backend = S_BACKEND_NONE;
+    entry->char_width = 8u;
+    entry->ascent = 10;
+    entry->descent = 3;
+    entry->is_used = false;
+}
+
+
+/**
+ * @brief Find a font already in the cache
+ *
+ * @param key Font name exactly as the caller gave it
+ *
+ * @return Index of the matching entry, or @c WM_TEXT_FONT_CACHE_MAX
+ *         when the font is not cached
+ *
+ * @note Complexity: @e O(n), where @e n is
+ *       @c WM_TEXT_FONT_CACHE_MAX
+ */
+static uint32_t s_text_cache_find(const char *key)
+{
+    for (uint32_t i = 0u; i < WM_TEXT_FONT_CACHE_MAX; ++i) {
+        if (s_text.cache[i].is_used &&
+                safe_strcmp(s_text.cache[i].key, key) == 0) {
+            return i;
+        }
+    }
+
+    return WM_TEXT_FONT_CACHE_MAX;
+}
+
+
+/**
+ * @brief Reserve a cache slot for a font about to be opened
+ *
+ * A free slot is used when there is one.  Otherwise the least
+ * recently used entry is released to make room, which is what bounds
+ * the cache: it never grows, it only replaces.
+ *
+ * The glyph backend has a quota of its own,
+ * @c WM_TEXT_FONT_CACHE_MAX_GLYPH, so a glyph font never crowds out
+ * the cheap X core fonts.  Once that quota is met, the least recently
+ * used glyph entry is the one released, whatever the global order
+ * says.
+ *
+ * @param backend Backend the new font will use
+ *
+ * @return Index of a slot ready to be filled in
+ *
+ * @note Complexity: @e O(n), where @e n is
+ *       @c WM_TEXT_FONT_CACHE_MAX
+ */
+static uint32_t s_text_cache_claim(enum s_text_backend_e backend)
+{
+    uint32_t victim = WM_TEXT_FONT_CACHE_MAX;
+    uint32_t glyph_count = 0u;
+    uint32_t oldest = UINT32_MAX;
+
+    if (backend == S_BACKEND_GLYPH) {
+        for (uint32_t i = 0u; i < WM_TEXT_FONT_CACHE_MAX; ++i) {
+            if (s_text.cache[i].is_used &&
+                    s_text.cache[i].backend == S_BACKEND_GLYPH) {
+                glyph_count++;
+                if (s_text.cache[i].last_used < oldest) {
+                    oldest = s_text.cache[i].last_used;
+                    victim = i;
+                }
+            }
+        }
+
+        if (glyph_count >= WM_TEXT_FONT_CACHE_MAX_GLYPH &&
+                victim < WM_TEXT_FONT_CACHE_MAX) {
+            s_text_cache_release(&s_text.cache[victim]);
+            return victim;
+        }
+    }
+
+    for (uint32_t i = 0u; i < WM_TEXT_FONT_CACHE_MAX; ++i) {
+        if (!s_text.cache[i].is_used) {
+            return i;
+        }
+    }
+
+    victim = 0u;
+    oldest = s_text.cache[0].last_used;
+    for (uint32_t i = 1u; i < WM_TEXT_FONT_CACHE_MAX; ++i) {
+        if (s_text.cache[i].last_used < oldest) {
+            oldest = s_text.cache[i].last_used;
+            victim = i;
+        }
+    }
+
+    s_text_cache_release(&s_text.cache[victim]);
+
+    return victim;
+}
+
+
+/**
+ * @brief The entry drawing currently goes through
+ *
+ * @return Pointer to the active entry, or @c NULL when no font has
+ *         been selected yet
+ *
+ * @note Complexity: @e O(1)
+ */
+static s_text_font_td *s_text_current(void)
+{
+    if (!s_text.is_initialized ||
+            s_text.current >= WM_TEXT_FONT_CACHE_MAX) {
+        return NULL;
+    }
+
+    return &s_text.cache[s_text.current];
+}
+
 
 
 /* Permanently disable the glyph ('xcb-render'/FreeType2/fontconfig)
@@ -614,41 +744,73 @@ void text_renderer_disable_glyph_backend(void)
 }
 
 
-/* Initialize the text renderer using the specified font */
-int text_renderer_init(xcb_connection_t *connection,
+/* Initialize the text renderer */
+int text_renderer_init(xcb_connection_t *connection)
+{
+    if (connection == NULL) {
+        return -1;
+    }
+
+    /* Closing first covers the reload case, where the new theme may
+     * name entirely different fonts and every cached one is stale */
+    text_renderer_destroy();
+
+    s_text.connection = connection;
+    s_text.clock = 0u;
+    s_text.current = WM_TEXT_FONT_CACHE_MAX;
+    s_text.is_initialized = true;
+
+    return 0;
+}
+
+
+/* Make a font the one every later drawing call uses */
+int text_renderer_use_font(xcb_connection_t *connection,
         const char *font_name)
 {
-    char xlfd[256];
+    char xlfd[WM_TEXT_FONT_NAME_LENGTH];
     const char *raw;
+    uint32_t index;
+    s_text_font_td *entry;
 
     if (connection == NULL) {
         return -1;
+    }
+
+    /* A caller that never called 'text_renderer_init' still gets a
+     * working renderer, bound to the connection it just handed over */
+    if (!s_text.is_initialized || s_text.connection != connection) {
+        if (text_renderer_init(connection) != 0) {
+            return -1;
+        }
     }
 
     raw = (font_name == NULL || font_name[0] == '\0')
         ? "fixed"
         : font_name;
 
-    if (s_text.is_initialized &&
-            s_text.connection == connection &&
-            safe_strcmp(s_text.raw_font_name, raw) == 0) {
+    s_text.clock++;
+
+    index = s_text_cache_find(raw);
+    if (index < WM_TEXT_FONT_CACHE_MAX) {
+        s_text.cache[index].last_used = s_text.clock;
+        s_text.current = index;
         return 0;
     }
-
-    text_renderer_destroy();
 
     /* Convert the config-style font description (e.g., "fixed bold 13")
      * to an XLFD wildcard pattern that 'xcb_open_font' can resolve */
     s_font_config_to_xlfd(raw, xlfd, sizeof(xlfd));
 
-    s_text.connection = connection;
-    safe_strncpy(s_text.raw_font_name, raw,
-            sizeof(s_text.raw_font_name));
+    index = s_text_cache_claim(S_BACKEND_X11);
+    entry = &s_text.cache[index];
 
-    if (s_try_x11(connection, xlfd)) {
-        safe_strncpy(s_text.font_name, xlfd, sizeof(s_text.font_name));
-        s_text.backend = S_BACKEND_X11;
-        s_text.is_initialized = true;
+    if (s_try_x11(connection, xlfd, entry)) {
+        safe_strncpy(entry->key, raw, sizeof(entry->key));
+        entry->backend = S_BACKEND_X11;
+        entry->last_used = s_text.clock;
+        entry->is_used = true;
+        s_text.current = index;
         return 0;
     }
 
@@ -664,28 +826,29 @@ int text_renderer_init(xcb_connection_t *connection,
      * 'text_renderer_disable_glyph_backend' has been called: falls
      * straight through to the "fixed" fallback below instead, the same
      * as if this attempt had failed. */
-    if (!s_text.is_glyph_backend_disabled &&
-            glyph_renderer_init(connection, raw) == 0) {
-        s_text.ascent = glyph_font_ascent();
-        s_text.descent = glyph_font_descent();
-        s_text.backend = S_BACKEND_GLYPH;
-        s_text.is_initialized = true;
-        return 0;
+    if (!s_text.is_glyph_backend_disabled) {
+        index = s_text_cache_claim(S_BACKEND_GLYPH);
+        entry = &s_text.cache[index];
+
+        if (glyph_renderer_init(connection, raw) == 0) {
+            safe_strncpy(entry->key, raw, sizeof(entry->key));
+            entry->backend = S_BACKEND_GLYPH;
+            entry->ascent = glyph_font_ascent();
+            entry->descent = glyph_font_descent();
+            entry->last_used = s_text.clock;
+            entry->is_used = true;
+            s_text.current = index;
+            return 0;
+        }
     }
 
     /* Both backends failed for this specific font description: fall
      * back to "fixed", which every X server ships and is guaranteed to
      * open, so the renderer is never left completely unusable. */
-    if (safe_strcmp(raw, "fixed") != 0 &&
-            s_try_x11(connection, "fixed")) {
-        safe_strncpy(s_text.font_name, "fixed",
-                sizeof(s_text.font_name));
-        s_text.backend = S_BACKEND_X11;
-        s_text.is_initialized = true;
-        return 0;
+    if (safe_strcmp(raw, "fixed") != 0) {
+        return text_renderer_use_font(connection, "fixed");
     }
 
-    s_text.connection = NULL;
     return -1;
 }
 
@@ -693,28 +856,13 @@ int text_renderer_init(xcb_connection_t *connection,
 /* Destroy global text renderer resources */
 void text_renderer_destroy(void)
 {
-    if (!s_text.is_initialized) {
-        return;
-    }
-
-    if (s_text.backend == S_BACKEND_GLYPH) {
-        glyph_renderer_destroy();
-    } else if (s_text.connection != NULL) {
-        if (s_text.gc != XCB_NONE) {
-            xcb_free_gc(s_text.connection, s_text.gc);
-        }
-        if (s_text.font != XCB_NONE) {
-            xcb_close_font(s_text.connection, s_text.font);
-        }
+    for (uint32_t i = 0u; i < WM_TEXT_FONT_CACHE_MAX; ++i) {
+        s_text_cache_release(&s_text.cache[i]);
     }
 
     s_text.connection = NULL;
-    s_text.font = XCB_NONE;
-    s_text.gc = XCB_NONE;
-    s_text.font_name[0] = '\0';
-    s_text.raw_font_name[0] = '\0';
-    s_text.char_width = 8;
-    s_text.backend = S_BACKEND_NONE;
+    s_text.clock = 0u;
+    s_text.current = WM_TEXT_FONT_CACHE_MAX;
     s_text.is_initialized = false;
 }
 
@@ -723,23 +871,24 @@ void text_renderer_destroy(void)
 void text_renderer_set_color(uint32_t fg, uint32_t bg)
 {
     uint32_t gc_values[2];
+    const s_text_font_td *const entry = s_text_current();
 
-    if (!s_text.is_initialized) {
+    if (entry == NULL) {
         return;
     }
 
-    if (s_text.backend == S_BACKEND_GLYPH) {
+    if (entry->backend == S_BACKEND_GLYPH) {
         glyph_renderer_set_color(fg, bg);
         return;
     }
 
-    if (s_text.gc == XCB_NONE || s_text.connection == NULL) {
+    if (entry->gc == XCB_NONE || s_text.connection == NULL) {
         return;
     }
 
     gc_values[0] = fg;
     gc_values[1] = bg;
-    xcb_change_gc(s_text.connection, s_text.gc,
+    xcb_change_gc(s_text.connection, entry->gc,
             XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
 }
 
@@ -758,8 +907,8 @@ void text_draw_string(xcb_connection_t *connection,
         return;
     }
 
-    if (!s_text.is_initialized || s_text.connection != connection) {
-        if (text_renderer_init(connection, "fixed") != 0) {
+    if (s_text_current() == NULL || s_text.connection != connection) {
+        if (text_renderer_use_font(connection, "fixed") != 0) {
             return;
         }
     }
@@ -786,7 +935,7 @@ void text_draw_string(xcb_connection_t *connection,
     }
     sanitized[len] = '\0';
 
-    if (s_text.backend == S_BACKEND_GLYPH) {
+    if (s_text_current()->backend == S_BACKEND_GLYPH) {
         glyph_draw_string(connection, drawable, pos, sanitized);
         return;
     }
@@ -802,7 +951,7 @@ void text_draw_string(xcb_connection_t *connection,
     draw_error = xcb_request_check(connection,
             xcb_image_text_8_checked(connection, (uint8_t) len,
                 drawable, (gc == XCB_NONE)
-                    ? s_text.gc
+                    ? s_text_current()->gc
                     : gc, (int16_t) pos.x, (int16_t) pos.y, latin1));
     if (draw_error != NULL) {
         LOGGER_WARNING("'xcb_image_text_8' failed on drawable %#x" \
@@ -816,10 +965,14 @@ void text_draw_string(xcb_connection_t *connection,
 /* Measure the rendered width of a string */
 uint16_t text_string_measure(const char *text)
 {
+    const s_text_font_td *const entry = s_text_current();
     size_t char_count = 0u;
     size_t byte_index = 0u;
 
-    if (s_text.backend == S_BACKEND_GLYPH) {
+    if (entry == NULL) {
+        return 0u;
+    }
+    if (entry->backend == S_BACKEND_GLYPH) {
         return glyph_measure_string(text);
     }
     if (text == NULL) {
@@ -836,11 +989,11 @@ uint16_t text_string_measure(const char *text)
         char_count += 1u;
     }
 
-    if (char_count > UINT16_MAX / s_text.char_width) {
+    if (char_count > UINT16_MAX / entry->char_width) {
         return UINT16_MAX;
     }
 
-    return (uint16_t) (char_count * s_text.char_width);
+    return (uint16_t) (char_count * entry->char_width);
 }
 
 
@@ -878,7 +1031,9 @@ void text_truncate_to_width(char *buf, size_t buf_size,
  * font */
 int16_t text_font_ascent(void)
 {
-    return s_text.ascent;
+    const s_text_font_td *const entry = s_text_current();
+
+    return (entry != NULL) ? entry->ascent : 10;
 }
 
 
@@ -886,5 +1041,7 @@ int16_t text_font_ascent(void)
  * font */
 int16_t text_font_descent(void)
 {
-    return s_text.descent;
+    const s_text_font_td *const entry = s_text_current();
+
+    return (entry != NULL) ? entry->descent : 3;
 }

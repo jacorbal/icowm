@@ -114,7 +114,7 @@ void notify_popup_show_centered(xcb_connection_t *connection,
 
     notify_popup_close(connection, state);
 
-    text_renderer_init(connection, cfg->theme.overlay.font);
+    text_renderer_use_font(connection, cfg->theme.overlay.font);
     text_w = menu_draw_measure(state->text);
 
     width = (int16_t) ((text_w > 40u) ? (text_w + 32u) : 72u);
@@ -158,7 +158,7 @@ void notify_popup_repaint_centered(xcb_connection_t *connection,
         return;
     }
 
-    text_renderer_init(connection, cfg->theme.overlay.font);
+    text_renderer_use_font(connection, cfg->theme.overlay.font);
     text_renderer_set_color(cfg->theme.overlay.color.foreground,
             cfg->theme.overlay.color.background);
     text_w = menu_draw_measure(state->text);

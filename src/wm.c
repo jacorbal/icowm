@@ -389,6 +389,14 @@ int wm_start(const char *restrict display_name,
         return 2;
     }
 
+    /* The text renderer is bound to the connection once, here, and
+     * every later call only selects which cached font to draw with */
+    if (text_renderer_init(wm->connection) != 0) {
+        LOGGER_FATAL("Failed to initialize the text renderer", L_NARG);
+        s_wm_cleanup();
+        return 2;
+    }
+
     LOGGER_DEBUG("Allocating memory for EWMH connection", L_NARG);
     wm->ewmh = malloc(sizeof(xcb_ewmh_connection_t));
     if (wm->ewmh == NULL) {

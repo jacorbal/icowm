@@ -201,7 +201,7 @@ uint16_t ctxmenu_width_compute(xcb_connection_t *connection,
      * single entry, which is what interleaving the two fonts would
      * otherwise force on every call. */
 
-    text_renderer_init(connection, config->theme.menu.label.font);
+    text_renderer_use_font(connection, config->theme.menu.label.font);
     for (int i = 0; i < entry_count; ++i) {
         uint16_t w;
 
@@ -215,11 +215,11 @@ uint16_t ctxmenu_width_compute(xcb_connection_t *connection,
         }
     }
 
-    text_renderer_init(connection, config->theme.menu.unselected.font);
+    text_renderer_use_font(connection, config->theme.menu.unselected.font);
     max_w = s_max_width_for_selectable(entries, entry_count, pad2,
             icon_offset, max_w);
 
-    text_renderer_init(connection, config->theme.menu.selected.font);
+    text_renderer_use_font(connection, config->theme.menu.selected.font);
     max_w = s_max_width_for_selectable(entries, entry_count, pad2,
             icon_offset, max_w);
 

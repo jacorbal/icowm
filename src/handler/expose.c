@@ -250,7 +250,7 @@ void handler_expose(xcb_connection_t *connection,
                     ? client->icon_info.visible_icon_name
                     : client->info.name;
 
-            text_renderer_init(connection,
+            text_renderer_use_font(connection,
                 (is_active_visual)
                     ? cfg->theme.icon.active.font
                     : cfg->theme.icon.inactive.font);

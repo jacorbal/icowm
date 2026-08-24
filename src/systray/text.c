@@ -107,7 +107,7 @@ uint16_t systray_text_width(void)
     uint16_t shown = 0u;
 
     if (s_tray.theme != NULL) {
-        text_renderer_init(s_tray.connection,
+        text_renderer_use_font(s_tray.connection,
                 s_tray.theme->systray.style.font);
     }
 

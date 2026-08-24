@@ -324,7 +324,7 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     pad_x = (uint16_t) config->theme.dialog.button.padding.horizontal;
     pad_y = (uint16_t) config->theme.dialog.button.padding.vertical;
 
-    text_renderer_init(connection, config->theme.dialog.label.font);
+    text_renderer_use_font(connection, config->theme.dialog.label.font);
 
     /* Freed defensively before this call's own assignment below, the
      * same as 'menu_message_dialog_show' already does for
@@ -351,12 +351,12 @@ static void s_message_compute_layout(xcb_connection_t *connection,
      * for warning/error levels; see 'menu_message_dialog_show'), and
      * sizing off only one font risks an off-center label once the
      * other one is actually the one drawn. */
-    text_renderer_init(connection,
+    text_renderer_use_font(connection,
             config->theme.dialog.button.unselected.font);
     ok_w = menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK));
     btn_text_h = (uint16_t) (text_font_ascent() + text_font_descent());
 
-    text_renderer_init(connection, config->theme.dialog.button.selected.font);
+    text_renderer_use_font(connection, config->theme.dialog.button.selected.font);
     ok_w = dlgutil_u16max(ok_w, menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK)));
     btn_text_h = dlgutil_u16max(btn_text_h,
             (uint16_t) (text_font_ascent() + text_font_descent()));
@@ -518,7 +518,7 @@ static void s_message_draw(xcb_connection_t *connection,
      * sideways relative to the others.  Only 'visible_lines' worth of
      * 'lines', starting at 'scroll_offset', are ever drawn: the rest
      * exist off-screen in the buffer and are reached by scrolling. */
-    text_renderer_init(connection, config->theme.dialog.label.font);
+    text_renderer_use_font(connection, config->theme.dialog.label.font);
     text_renderer_set_color(fg_nor, bg_win);
     shown = (uint8_t) (lo->line_count - lo->scroll_offset);
 
@@ -589,7 +589,7 @@ static void s_message_draw(xcb_connection_t *connection,
      * descent against 'btn.dim.h' so it stays centered regardless of
      * which font is taller.  Same reasoning as the cancel/confirm
      * labels in 's_confirm_draw' (menu/dialog/confirm.c). */
-    text_renderer_init(connection, (lo->ok_selected)
+    text_renderer_use_font(connection, (lo->ok_selected)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
     label_w = menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK));

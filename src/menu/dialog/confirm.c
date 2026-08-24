@@ -156,7 +156,7 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
     gap = (uint16_t) config->theme.dialog.button.gap;
     label_pad_x = (uint16_t) config->theme.dialog.label.padding.horizontal;
 
-    text_renderer_init(connection, config->theme.dialog.label.font);
+    text_renderer_use_font(connection, config->theme.dialog.label.font);
     prompt_w = menu_draw_measure(layout->prompt);
 
     /* Room for the countdown line, in the same font as the prompt
@@ -176,13 +176,13 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
      * 'button.selected.font' (bold by default), and sizing off only
      * 'unselected' would leave no room for that, causing the
      * off-center look this whole function exists to avoid. */
-    text_renderer_init(connection,
+    text_renderer_use_font(connection,
             config->theme.dialog.button.unselected.font);
     cancel_w = menu_draw_measure(layout->cancel_label);
     confirm_w = menu_draw_measure(layout->confirm_label);
     btn_text_h = (uint16_t) (text_font_ascent() + text_font_descent());
 
-    text_renderer_init(connection,
+    text_renderer_use_font(connection,
             config->theme.dialog.button.selected.font);
     cancel_w = dlgutil_u16max(cancel_w,
             menu_draw_measure(layout->cancel_label));
@@ -361,7 +361,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
                 { lo->confirm_x, lo->btn_y }, { lo->btn_w, lo->btn_h } });
 
     /* Prompt text */
-    text_renderer_init(connection, config->theme.dialog.label.font);
+    text_renderer_use_font(connection, config->theme.dialog.label.font);
     text_renderer_set_color(config->theme.dialog.label.foreground, bg_win);
     menu_draw_label(connection, s_confirm_window,
             (struct position_s) { lo->prompt_x, lo->prompt_y },
@@ -397,7 +397,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
      * the vertical centering the same way, using the active font's
      * own ascent/descent against 'btn_h' so it stays centered
      * regardless of which font is taller. */
-    text_renderer_init(connection, (s_confirm_selected == 0)
+    text_renderer_use_font(connection, (s_confirm_selected == 0)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
     label_w = menu_draw_measure(lo->cancel_label);
@@ -415,7 +415,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
             (struct position_s) { label_x, label_y }, lo->cancel_label);
 
     /* Confirm label: same reasoning as the cancel label above */
-    text_renderer_init(connection, (s_confirm_selected == 1)
+    text_renderer_use_font(connection, (s_confirm_selected == 1)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
     label_w = menu_draw_measure(lo->confirm_label);

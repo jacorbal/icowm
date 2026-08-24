@@ -110,7 +110,7 @@ void drag_overlay_show(xcb_connection_t *connection,
             "%s", text);
     s_drag.is_overlay_icon = is_icon;
 
-    (void) text_renderer_init(connection,
+    (void) text_renderer_use_font(connection,
             (is_icon)
                 ? s_drag.client->config->theme.icon.active.font
                 : s_drag.client->config->theme.window.active.font);
@@ -218,7 +218,7 @@ void drag_overlay_repaint(xcb_connection_t *connection)
             (const uint32_t[]) { bg, border });
     xcb_clear_area(connection, 0, s_drag.overlay_window, 0, 0, 0, 0);
 
-    (void) text_renderer_init(connection, font_name);
+    (void) text_renderer_use_font(connection, font_name);
     text_renderer_set_color(fg, bg);
 
     text_w = text_string_measure(s_drag.overlay_text);

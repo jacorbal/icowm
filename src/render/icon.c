@@ -193,7 +193,7 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
             client->info.name != NULL) {
         char caption[CONFIG_MAX_LENGTH_NAME];
 
-        text_renderer_init(desktop->connection,
+        text_renderer_use_font(desktop->connection,
                 desktop->config->theme.icon.inactive.font);
         text_renderer_set_color(
                 (display_active)
@@ -275,7 +275,7 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
                 ? client->icon_info.visible_icon_name
                 : client->info.name;
 
-        text_renderer_init(connection,
+        text_renderer_use_font(connection,
                 client->config->theme.icon.active.font);
         text_renderer_set_color(
                 client->config->theme.icon.active.color.foreground,
@@ -389,7 +389,7 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
      * (see the 'is_captioned' block in 'ri_render_client_icon' above),
      * so both pieces of text on the icon read as one consistent style
      * rather than two different-looking labels. */
-    text_renderer_init(connection, theme->icon.inactive.font);
+    text_renderer_use_font(connection, theme->icon.inactive.font);
     text_renderer_set_color(
             (is_cycle_sel)
                 ? theme->icon.active.color.foreground

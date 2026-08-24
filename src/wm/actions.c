@@ -38,6 +38,9 @@
 #include <input/kbd/bind.h>
 #include <input/mouse/bind.h>
 
+/* Render includes */
+#include <render/text.h>
+
 /* Default initial values */
 #include <defs/icon.h>
 
@@ -293,6 +296,10 @@ int wm_action_config_reload(const wm_td *wm)
         wm_json_syntax_errors_warn();
         return 1;
     }
+
+    /* The new theme may name entirely different fonts, so every font
+     * cached under the old one is stale and the renderer starts over */
+    (void) text_renderer_init(wm_connection(wm));
 
     /* Apply any 'randr.json' output profile that changed since the last
      * load, offering a chance to revert it (see 'dialog_rrsafe_ show')

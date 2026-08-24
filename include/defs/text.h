@@ -42,6 +42,31 @@
  *  terminator */
 #define WM_TEXT_FONT_FAMILY_LENGTH (128)
 
+/** Size of a whole font name buffer, including the null terminator */
+#define WM_TEXT_FONT_NAME_LENGTH (256)
+
+/**
+ * @brief How many opened fonts the renderer keeps ready for reuse
+ *
+ * A theme names at most seventeen fonts and most of them repeat, so
+ * this covers an ordinary configuration without ever growing.  When
+ * the cache is full the least recently used entry is closed to make
+ * room.
+ */
+#define WM_TEXT_FONT_CACHE_MAX (8u)
+
+/**
+ * @brief How many of those may be glyph-backend fonts at once
+ *
+ * Lower than @c WM_TEXT_FONT_CACHE_MAX because a glyph-backend font
+ * carries a FreeType face, an X Render glyphset and a cache of
+ * @c WM_TEXT_GLYPH_CACHE_MAX codepoints, where an X core font costs
+ * only two server-side identifiers.  At one, which is what
+ * @c render/glyph.c supports today, a second glyph font evicts the
+ * first.
+ */
+#define WM_TEXT_FONT_CACHE_MAX_GLYPH (1u)
+
 /**
  * @brief Size of each half of a charset spec, including the null
  *        terminator

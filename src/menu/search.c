@@ -809,7 +809,7 @@ static void s_search_draw_bar(xcb_connection_t *connection,
 
     snprintf(shown, sizeof(shown), "%s_", s_search.query);
 
-    text_renderer_init(connection, cfg->theme.search.input.font);
+    text_renderer_use_font(connection, cfg->theme.search.input.font);
     text_renderer_set_color(cfg->theme.search.input.color.foreground,
             cfg->theme.search.input.color.background);
     menu_draw_label(connection, s_search.window,
@@ -875,7 +875,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
      * would otherwise survive only until the next row happens to
      * request a different font than this one, right up until then
      * looking like nothing was ever wrong at all. */
-    text_renderer_init(connection, is_sel
+    text_renderer_use_font(connection, is_sel
             ? cfg->theme.search.selected.font
             : cfg->theme.search.unselected.font);
     text_renderer_set_color(fg, bg);
@@ -1025,7 +1025,7 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
         int16_t down_y = (int16_t) (S_SEARCH_ROWS_TOP +
                 s_search.viewport_rows * WM_SEARCH_ROW_HEIGHT);
 
-        text_renderer_init(connection, cfg->theme.search.selected.font);
+        text_renderer_use_font(connection, cfg->theme.search.selected.font);
 
         if (s_search.scroll_offset > 0) {
             text_renderer_set_color(
