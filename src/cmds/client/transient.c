@@ -133,13 +133,6 @@ static client_td *s_client_mapped_transient_child(client_td *client)
 }
 
 
-/**
- * @brief Per-candidate callback used by @a s_visit_descendants
- *
- * @param candidate Family member found; never @c NULL
- * @param ctx       Caller-supplied context, passed through unchanged
- */
-typedef void (*s_family_visitor_fn)(client_td *candidate, void *ctx);
 
 
 /**
@@ -169,7 +162,7 @@ typedef void (*s_family_visitor_fn)(client_td *candidate, void *ctx);
  *       own transient descendants at every depth combined
  */
 static void s_visit_descendants(client_td *node,
-        s_family_visitor_fn visit, void *ctx, uint32_t depth)
+        ccmd_family_fn visit, void *ctx, uint32_t depth)
 {
     cdlist_item_td *item;
     const cdlist_item_td *initial;
@@ -215,7 +208,7 @@ struct s_family_snapshot_ctx {
 
 
 /**
- * @brief @a s_family_visitor_fn shared by both @a ccmd_client_
+ * @brief @a ccmd_family_fn shared by both @a ccmd_client_
  *        transient_family_snapshot and its all-desktops counterpart,
  *        via @a s_family_snapshot
  *
@@ -494,6 +487,14 @@ client_td **ccmd_client_transient_family_snapshot_anywhere(
         client_td *top, size_t *count_out)
 {
     return s_family_snapshot(top, WM_DESKTOP_ID_ALL, count_out);
+}
+
+
+/* Apply an action to every transient descendant of a client */
+void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
+        void *ctx)
+{
+    s_visit_descendants(top, fn, ctx, 0);
 }
 
 

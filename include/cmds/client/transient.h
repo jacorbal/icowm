@@ -222,6 +222,43 @@ client_td **ccmd_client_transient_family_snapshot_anywhere(
         client_td *top, size_t *count_out);
 
 /**
+ * @brief Per-member callback used by @a ccmd_client_family_apply
+ *
+ * @param member Family member found; never @c NULL
+ * @param ctx    Caller-supplied context, passed through unchanged
+ */
+typedef void (*ccmd_family_fn)(client_td *member, void *ctx);
+
+/**
+ * @brief Apply an action to every transient descendant of a client
+ *
+ * Walks the transient tree below @p top, on every desktop, and hands
+ * each member to @p fn.  The top parent itself is not visited, since
+ * every caller treats it under a condition of its own, and sometimes
+ * in a different order.
+ *
+ * Nothing is allocated and the tree is walked once, which is what
+ * separates this from @a ccmd_client_transient_family_snapshot_
+ * anywhere: that one walks twice and allocates an array, and is what
+ * a caller needs when its own action moves clients between desktops
+ * and so cannot walk and mutate at the same time.
+ *
+ * @param top Top-most ancestor of the family; may be @c NULL
+ * @param fn  Action applied to each descendant
+ * @param ctx Context handed to @p fn unchanged; may be @c NULL
+ *
+ * @warning @p fn must not link or unlink any family member, nor move
+ *          one between desktops: the walk holds its position in the
+ *          tree across the call
+ *
+ * @note Implemented in @c cmds/client/transient.c
+ * @note Complexity: @e O(f), where @e f is the number of @p top's
+ *       transient descendants at every depth combined
+ */
+void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
+        void *ctx);
+
+/**
  * @brief Link a newly managed client into its parent's transient
  *        tree, if @c transient_for names an already-managed client
  *

@@ -18,7 +18,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* NULL, free, malloc */
+#include <stddef.h>     /* NULL */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -90,6 +90,24 @@ static void s_ccmd_client_pin_one(client_td *client)
 
 
 /**
+ * @brief Pin one transient family member
+ *
+ * @param member Family member to act on
+ * @param ctx    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_pin_visit(client_td *member, void *ctx)
+{
+    (void) ctx;
+
+    if (!client_is_pinned(member)) {
+        s_ccmd_client_pin_one(member);
+    }
+}
+
+
+/**
  * @brief Unpin exactly this one client, ignoring any transient family
  *        it may belong to
  *
@@ -147,6 +165,24 @@ static void s_ccmd_client_unpin_one(client_td *client)
 
 
 /**
+ * @brief Unpin one transient family member
+ *
+ * @param member Family member to act on
+ * @param ctx    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_unpin_visit(client_td *member, void *ctx)
+{
+    (void) ctx;
+
+    if (client_is_pinned(member) && !client_is_locked(member)) {
+        s_ccmd_client_unpin_one(member);
+    }
+}
+
+
+/**
  * @brief Pin the client to every desktop, taking its whole transient
  *        family along with it
  *
@@ -173,8 +209,6 @@ static void s_ccmd_client_unpin_one(client_td *client)
 void ccmd_client_pin(client_td *client)
 {
     client_td *top;
-    size_t count;
-    client_td **siblings;
 
     if (client == NULL) {
         return;
@@ -189,17 +223,7 @@ void ccmd_client_pin(client_td *client)
         s_ccmd_client_pin_one(top);
     }
 
-    siblings = ccmd_client_transient_family_snapshot_anywhere(top,
-            &count);
-    if (siblings != NULL) {
-        for (size_t i = 0; i < count; i++) {
-            if (!client_is_pinned(siblings[i])) {
-                s_ccmd_client_pin_one(siblings[i]);
-            }
-        }
-
-        free(siblings);
-    }
+    ccmd_client_family_apply(top, s_ccmd_client_pin_visit, NULL);
 }
 
 
@@ -222,8 +246,6 @@ void ccmd_client_pin(client_td *client)
 void ccmd_client_unpin(client_td *client)
 {
     client_td *top;
-    size_t count;
-    client_td **siblings;
 
     if (client == NULL || client_is_locked(client)) {
         return;
@@ -238,18 +260,7 @@ void ccmd_client_unpin(client_td *client)
         s_ccmd_client_unpin_one(top);
     }
 
-    siblings = ccmd_client_transient_family_snapshot_anywhere(top,
-            &count);
-    if (siblings != NULL) {
-        for (size_t i = 0; i < count; i++) {
-            if (client_is_pinned(siblings[i]) &&
-                    !client_is_locked(siblings[i])) {
-                s_ccmd_client_unpin_one(siblings[i]);
-            }
-        }
-
-        free(siblings);
-    }
+    ccmd_client_family_apply(top, s_ccmd_client_unpin_visit, NULL);
 }
 
 

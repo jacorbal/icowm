@@ -16,7 +16,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>     /* NULL, free, malloc */
+#include <stdlib.h>     /* NULL, free */
 #include <string.h>     /* memset */
 
 /* XCB includes */
@@ -273,6 +273,24 @@ static void s_ccmd_client_iconify_one(client_td *client)
 
 
 /**
+ * @brief Iconify one transient family member
+ *
+ * @param member Family member to act on
+ * @param ctx    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_iconify_visit(client_td *member, void *ctx)
+{
+    (void) ctx;
+
+    if (!client_is_iconified(member) && !client_is_locked(member)) {
+        s_ccmd_client_iconify_one(member);
+    }
+}
+
+
+/**
  * @brief Hide exactly this one client (minimize, but not iconify),
  *        ignoring any transient family it may belong to
  *
@@ -317,6 +335,24 @@ static void s_ccmd_client_hide_one(client_td *client)
     ccmd_client_focus_fallback(client);
     wm_request_client_redraw(client);
     xcb_flush(client->connection);
+}
+
+
+/**
+ * @brief Hide one transient family member
+ *
+ * @param member Family member to act on
+ * @param ctx    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_hide_visit(client_td *member, void *ctx)
+{
+    (void) ctx;
+
+    if (!client_is_hidden(member) && !client_is_locked(member)) {
+        s_ccmd_client_hide_one(member);
+    }
 }
 
 
@@ -368,6 +404,24 @@ static void s_ccmd_client_unhide_one(client_td *client)
         ccmd_client_focus(client);
     }
     wm_request_client_redraw(client);
+}
+
+
+/**
+ * @brief Unhide one transient family member
+ *
+ * @param member Family member to act on
+ * @param ctx    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_unhide_visit(client_td *member, void *ctx)
+{
+    (void) ctx;
+
+    if (client_is_hidden(member) && !client_is_locked(member)) {
+        s_ccmd_client_unhide_one(member);
+    }
 }
 
 
@@ -447,8 +501,6 @@ void ccmd_client_unmap_decorated(client_td *client,
 void ccmd_client_iconify(client_td *client)
 {
     client_td *top;
-    size_t count;
-    client_td **siblings;
 
     if (client == NULL || client_is_locked(client)) {
         return;
@@ -463,18 +515,7 @@ void ccmd_client_iconify(client_td *client)
         s_ccmd_client_iconify_one(top);
     }
 
-    siblings = ccmd_client_transient_family_snapshot_anywhere(top,
-            &count);
-    if (siblings != NULL) {
-        for (size_t i = 0; i < count; i++) {
-            if (!client_is_iconified(siblings[i]) &&
-                    !client_is_locked(siblings[i])) {
-                s_ccmd_client_iconify_one(siblings[i]);
-            }
-        }
-
-        free(siblings);
-    }
+    ccmd_client_family_apply(top, s_ccmd_client_iconify_visit, NULL);
 }
 
 
@@ -505,8 +546,6 @@ void ccmd_client_iconify(client_td *client)
 void ccmd_client_hide(client_td *client)
 {
     client_td *top;
-    size_t count;
-    client_td **siblings;
 
     if (client == NULL) {
         return;
@@ -521,18 +560,7 @@ void ccmd_client_hide(client_td *client)
         s_ccmd_client_hide_one(top);
     }
 
-    siblings = ccmd_client_transient_family_snapshot_anywhere(top,
-            &count);
-    if (siblings != NULL) {
-        for (size_t i = 0; i < count; i++) {
-            if (!client_is_hidden(siblings[i]) &&
-                    !client_is_locked(siblings[i])) {
-                s_ccmd_client_hide_one(siblings[i]);
-            }
-        }
-
-        free(siblings);
-    }
+    ccmd_client_family_apply(top, s_ccmd_client_hide_visit, NULL);
 }
 
 
@@ -561,8 +589,6 @@ void ccmd_client_hide(client_td *client)
 void ccmd_client_unhide(client_td *client)
 {
     client_td *top;
-    size_t count;
-    client_td **siblings;
 
     if (client == NULL) {
         return;
@@ -573,18 +599,7 @@ void ccmd_client_unhide(client_td *client)
         return;
     }
 
-    siblings = ccmd_client_transient_family_snapshot_anywhere(top,
-            &count);
-    if (siblings != NULL) {
-        for (size_t i = 0; i < count; i++) {
-            if (client_is_hidden(siblings[i]) &&
-                    !client_is_locked(siblings[i])) {
-                s_ccmd_client_unhide_one(siblings[i]);
-            }
-        }
-
-        free(siblings);
-    }
+    ccmd_client_family_apply(top, s_ccmd_client_unhide_visit, NULL);
 
     if (client_is_hidden(top)) {
         s_ccmd_client_unhide_one(top);
