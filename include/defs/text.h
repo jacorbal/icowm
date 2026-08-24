@@ -61,11 +61,11 @@
  * Lower than @c WM_TEXT_FONT_CACHE_MAX because a glyph-backend font
  * carries a FreeType face, an X Render glyphset and a cache of
  * @c WM_TEXT_GLYPH_CACHE_MAX codepoints, where an X core font costs
- * only two server-side identifiers.  At one, which is what
- * @c render/glyph.c supports today, a second glyph font evicts the
- * first.
+ * only two server-side identifiers.  Two is enough for a theme that
+ * draws one element in a TrueType font and another in a different
+ * one, which is the case the cache exists for.
  */
-#define WM_TEXT_FONT_CACHE_MAX_GLYPH (1u)
+#define WM_TEXT_FONT_CACHE_MAX_GLYPH (2u)
 
 /**
  * @brief Size of each half of a charset spec, including the null

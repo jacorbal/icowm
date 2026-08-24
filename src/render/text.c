@@ -604,7 +604,7 @@ static void s_text_cache_release(s_text_font_td *entry)
     }
 
     if (entry->backend == S_BACKEND_GLYPH) {
-        glyph_renderer_destroy();
+        glyph_renderer_release(entry->key);
     } else if (s_text.connection != NULL) {
         if (entry->gc != XCB_NONE) {
             xcb_free_gc(s_text.connection, entry->gc);
@@ -793,6 +793,18 @@ int text_renderer_use_font(xcb_connection_t *connection,
 
     index = s_text_cache_find(raw);
     if (index < WM_TEXT_FONT_CACHE_MAX) {
+        /* A glyph-backend font lives in 'render/glyph.c', which keeps
+         * a selection of its own, so a hit here has to point that
+         * selection at this font too.  Without it, drawing would go
+         * through whichever font the glyph backend happened to have
+         * selected last, which is another one entirely as soon as a
+         * theme names more than one. */
+        if (s_text.cache[index].backend == S_BACKEND_GLYPH &&
+                glyph_renderer_init(connection, raw) != 0) {
+            s_text_cache_release(&s_text.cache[index]);
+            return -1;
+        }
+
         s_text.cache[index].last_used = s_text.clock;
         s_text.current = index;
         return 0;
@@ -859,6 +871,11 @@ void text_renderer_destroy(void)
     for (uint32_t i = 0u; i < WM_TEXT_FONT_CACHE_MAX; ++i) {
         s_text_cache_release(&s_text.cache[i]);
     }
+
+    /* Releasing each cached font one by one closes its face and its
+     * glyph set, but not what the glyph backend shares across all of
+     * them: the FreeType library and its solid-fill picture */
+    glyph_renderer_destroy();
 
     s_text.connection = NULL;
     s_text.clock = 0u;

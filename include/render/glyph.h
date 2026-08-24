@@ -44,7 +44,7 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Types includes */
+/* Type includes */
 #include <types/pair.h>
 
 
@@ -98,13 +98,29 @@ int glyph_renderer_init(xcb_connection_t *connection,
         const char *font_name);
 
 /**
+ * @brief Release one open font, leaving the others alone
+ *
+ * Frees that font's FreeType face and the glyph set the X server
+ * holds for it.  What every font shares, the FreeType library and the
+ * picture formats, stays open.
+ *
+ * @param font_name Font to release, named as it was opened
+ *
+ * @note Called by @c render/text.c when its cache evicts a
+ *       glyph-backend font
+ * @note Complexity: @e O(n), where @e n is
+ *       @c WM_TEXT_FONT_CACHE_MAX_GLYPH
+ */
+void glyph_renderer_release(const char *font_name);
+
+/**
  * @brief Destroy the glyph renderer's resources
  *
- * Frees the glyph set, FreeType face and library, and every
- * @c xcb-render object owned by the renderer, then resets its internal
- * state.
+ * Frees every open font and every @c xcb-render object the renderer
+ * owns, closes the FreeType library, and resets its state.
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(n), where @e n is
+ *       @c WM_TEXT_FONT_CACHE_MAX_GLYPH
  */
 void glyph_renderer_destroy(void);
 

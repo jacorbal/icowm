@@ -54,40 +54,75 @@ typedef struct {
 
 
 /**
- * @brief Global state for X Render glyph loading, caching, and drawing
+ * @brief One open font the glyph renderer can draw with
+ *
+ * Each carries a FreeType face of its own, the glyphset the X server
+ * holds for it, and the metrics of the glyphs uploaded so far.  What
+ * every font shares, the connection, the FreeType library and the
+ * picture formats, lives in @c s_glyph below instead.
+ */
+typedef struct {
+    FT_Face ft_face;
+    xcb_render_glyphset_t glyphset;
+    s_glyph_cache_entry_td cache[WM_TEXT_GLYPH_CACHE_MAX];
+    char font_name[WM_TEXT_FONT_NAME_LENGTH];
+    int16_t ascent;
+    int16_t descent;
+    uint16_t cache_count;
+    bool is_used;
+} s_glyph_font_td;
+
+
+/**
+ * @brief State the X Render glyph renderer shares across every font
+ *
+ * @p fonts holds every open font and @p current indexes whichever one
+ * drawing goes through, or equals @c WM_TEXT_FONT_CACHE_MAX_GLYPH
+ * when none is selected.  The FreeType library and the picture
+ * formats are opened once for the life of the connection, not once
+ * per font.
  */
 static struct {
     xcb_connection_t *connection;
     FT_Library ft_library;
-    FT_Face ft_face;
     const xcb_render_query_pict_formats_reply_t *formats;
+    s_glyph_font_td fonts[WM_TEXT_FONT_CACHE_MAX_GLYPH];
     xcb_render_pictformat_t a8_format;
     xcb_render_pictformat_t visual_format;
-    xcb_render_glyphset_t glyphset;
     xcb_render_picture_t fg_picture;
     uint32_t fg_color;
-    s_glyph_cache_entry_td cache[WM_TEXT_GLYPH_CACHE_MAX];
-    int16_t ascent;
-    int16_t descent;
-    uint16_t cache_count;
+    uint32_t current;
     bool ft_ready;
     bool initialized;
-    char font_name[256];
 } s_glyph = {
     .connection = NULL,
-    .font_name = {'\0'},
-    .ft_ready = false,
     .formats = NULL,
     .a8_format = 0,
     .visual_format = 0,
-    .glyphset = 0,
     .fg_picture = 0,
     .fg_color = 0xFFFFFFu,
-    .ascent = 10,
-    .descent = 3,
-    .cache_count = 0u,
+    .current = WM_TEXT_FONT_CACHE_MAX_GLYPH,
+    .ft_ready = false,
     .initialized = false
 };
+
+
+/**
+ * @brief The font drawing currently goes through
+ *
+ * @return Pointer to the selected font, or @c NULL when none is
+ *
+ * @note Complexity: @e O(1)
+ */
+static s_glyph_font_td *s_glyph_current(void)
+{
+    if (!s_glyph.initialized ||
+            s_glyph.current >= WM_TEXT_FONT_CACHE_MAX_GLYPH) {
+        return NULL;
+    }
+
+    return &s_glyph.fonts[s_glyph.current];
+}
 
 
 /**
@@ -248,10 +283,35 @@ static void s_render_objects_free(void)
         xcb_render_free_picture(s_glyph.connection, s_glyph.fg_picture);
         s_glyph.fg_picture = 0;
     }
-    if (s_glyph.glyphset != 0) {
-        xcb_render_free_glyph_set(s_glyph.connection, s_glyph.glyphset);
-        s_glyph.glyphset = 0;
+}
+
+
+/**
+ * @brief Release one open font and free the slot it occupied
+ *
+ * @param font Font to release
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_glyph_font_free(s_glyph_font_td *font)
+{
+    if (!font->is_used) {
+        return;
     }
+
+    if (font->glyphset != 0 && s_glyph.connection != NULL) {
+        xcb_render_free_glyph_set(s_glyph.connection, font->glyphset);
+    }
+    if (s_glyph.ft_ready) {
+        FT_Done_Face(font->ft_face);
+    }
+
+    font->glyphset = 0;
+    font->font_name[0] = '\0';
+    font->cache_count = 0u;
+    font->ascent = 10;
+    font->descent = 3;
+    font->is_used = false;
 }
 
 
@@ -276,6 +336,7 @@ static void s_render_objects_free(void)
  */
 static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
 {
+    s_glyph_font_td *const font = s_glyph_current();
     FT_UInt glyph_index;
     const FT_Bitmap *bitmap;
     xcb_render_glyphinfo_t ginfo;
@@ -283,36 +344,40 @@ static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
     uint16_t stride;
     uint8_t *padded;
 
-    for (uint16_t i = 0u; i < s_glyph.cache_count; ++i) {
-        if (s_glyph.cache[i].codepoint == codepoint) {
-            *out_advance = s_glyph.cache[i].advance_x;
+    if (font == NULL) {
+        return false;
+    }
+
+    for (uint16_t i = 0u; i < font->cache_count; ++i) {
+        if (font->cache[i].codepoint == codepoint) {
+            *out_advance = font->cache[i].advance_x;
             return true;
         }
     }
 
-    *out_advance = (int16_t) (s_glyph.ascent / 2);
+    *out_advance = (int16_t) (font->ascent / 2);
 
     if (!s_glyph.ft_ready) {
         return false;
     }
 
-    glyph_index = FT_Get_Char_Index(s_glyph.ft_face, codepoint);
+    glyph_index = FT_Get_Char_Index(font->ft_face, codepoint);
     if (glyph_index == 0u) {
         return false;
     }
-    if (FT_Load_Glyph(s_glyph.ft_face, glyph_index,
+    if (FT_Load_Glyph(font->ft_face, glyph_index,
                 FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT) != 0) {
         return false;
     }
 
-    bitmap = &s_glyph.ft_face->glyph->bitmap;
+    bitmap = &font->ft_face->glyph->bitmap;
 
-    ginfo.x = (int16_t) (-s_glyph.ft_face->glyph->bitmap_left);
-    ginfo.y = (int16_t) s_glyph.ft_face->glyph->bitmap_top;
+    ginfo.x = (int16_t) (-font->ft_face->glyph->bitmap_left);
+    ginfo.y = (int16_t) font->ft_face->glyph->bitmap_top;
     ginfo.width = (uint16_t) bitmap->width;
     ginfo.height = (uint16_t) bitmap->rows;
-    ginfo.x_off = (int16_t) (s_glyph.ft_face->glyph->advance.x / 64);
-    ginfo.y_off = (int16_t) (s_glyph.ft_face->glyph->advance.y / 64);
+    ginfo.x_off = (int16_t) (font->ft_face->glyph->advance.x / 64);
+    ginfo.y_off = (int16_t) (font->ft_face->glyph->advance.y / 64);
 
     /* Each glyph row is stored padded to a 4-byte boundary, per the
      * RENDER protocol's AddGlyphs image format */
@@ -346,14 +411,14 @@ static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
 
     gid = codepoint;
     (void) xcb_render_add_glyphs_checked(s_glyph.connection,
-            s_glyph.glyphset, 1u, &gid, &ginfo,
+            font->glyphset, 1u, &gid, &ginfo,
             (uint32_t) stride * (uint32_t) ginfo.height, padded);
     free(padded);
 
-    if (s_glyph.cache_count < WM_TEXT_GLYPH_CACHE_MAX) {
-        s_glyph.cache[s_glyph.cache_count].codepoint = codepoint;
-        s_glyph.cache[s_glyph.cache_count].advance_x = ginfo.x_off;
-        ++s_glyph.cache_count;
+    if (font->cache_count < WM_TEXT_GLYPH_CACHE_MAX) {
+        font->cache[font->cache_count].codepoint = codepoint;
+        font->cache[font->cache_count].advance_x = ginfo.x_off;
+        ++font->cache_count;
     }
 
     *out_advance = ginfo.x_off;
@@ -392,78 +457,73 @@ static int16_t s_glyph_advance_for(uint32_t codepoint)
 }
 
 
-/* Try to initialize the glyph renderer for a font description */
-int glyph_renderer_init(xcb_connection_t *connection,
-        const char *font_name)
+/**
+ * @brief Find an already-open font by name
+ *
+ * @param font_name Name to match, as the caller gave it
+ *
+ * @return Index of the matching font, or
+ *         @c WM_TEXT_FONT_CACHE_MAX_GLYPH when it is not open
+ *
+ * @note Complexity: @e O(n), where @e n is
+ *       @c WM_TEXT_FONT_CACHE_MAX_GLYPH
+ */
+static uint32_t s_glyph_font_find(const char *font_name)
 {
-    char file_path[512];
-    int face_index;
-    int pixel_size;
+    for (uint32_t i = 0u; i < WM_TEXT_FONT_CACHE_MAX_GLYPH; ++i) {
+        if (s_glyph.fonts[i].is_used &&
+                safe_strcmp(s_glyph.fonts[i].font_name,
+                        font_name) == 0) {
+            return i;
+        }
+    }
+
+    return WM_TEXT_FONT_CACHE_MAX_GLYPH;
+}
+
+
+/**
+ * @brief Open the shared resources every font draws through
+ *
+ * The FreeType library and the picture formats are opened once for
+ * the life of the connection, not once per font, since a redraw pass
+ * can switch fonts many times and none of this ever changes while the
+ * connection is open.
+ *
+ * @param connection XCB connection
+ *
+ * @return @c true when the shared resources are ready
+ *
+ * @note Complexity: @e O(1), one round trip on the first call
+ */
+static bool s_glyph_shared_ready(xcb_connection_t *connection)
+{
     xcb_screen_t *screen;
     const xcb_render_pictforminfo_t *a8_info;
     const xcb_render_pictvisual_t *visual_info;
     xcb_render_color_t color;
 
-    if (connection == NULL || font_name == NULL ||
-            font_name[0] == '\0') {
-        return -1;
-    }
-
-    if (s_glyph.initialized && s_glyph.connection == connection &&
-            safe_strcmp(s_glyph.font_name, font_name) == 0) {
-        return 0;
-    }
-
-    if (!s_resolve_font(font_name, file_path, sizeof(file_path),
-                &face_index, &pixel_size)) {
-        return -1;
+    if (s_glyph.initialized && s_glyph.connection == connection) {
+        return true;
     }
 
     glyph_renderer_destroy();
 
     if (FT_Init_FreeType(&s_glyph.ft_library) != 0) {
-        return -1;
-    }
-    if (FT_New_Face(s_glyph.ft_library, file_path, face_index,
-                &s_glyph.ft_face) != 0) {
-        FT_Done_FreeType(s_glyph.ft_library);
-        return -1;
-    }
-    if (FT_Set_Pixel_Sizes(s_glyph.ft_face, 0u,
-                (FT_UInt) pixel_size) != 0) {
-        FT_Done_Face(s_glyph.ft_face);
-        FT_Done_FreeType(s_glyph.ft_library);
-        return -1;
+        return false;
     }
     s_glyph.ft_ready = true;
-    s_glyph.ascent = (int16_t) (s_glyph.ft_face->size->metrics.ascender
-            / 64);
-    /* Negated after the division, not before: distributing a
-     * negation across a signed division is a transformation the
-     * optimizer may only make by assuming the operand never
-     * overflows, which is what '-Wstrict-overflow' reports on.  Both
-     * forms agree for every value, since C truncates toward zero. */
-    s_glyph.descent = (int16_t) -(s_glyph.ft_face->size->metrics.descender
-            / 64);
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
     if (screen == NULL) {
         glyph_renderer_destroy();
-        return -1;
+        return false;
     }
 
-    /* Cached across calls (re-fetched only when the connection itself
-     * changes).  This is queried on every font switch otherwise, and
-     * a single redraw pass can switch fonts many times (once per
-     * differently styled label), which would otherwise mean a full
-     * round trip to the X server for something that never actually
-     * changes while the connection is open. */
-    if (s_glyph.formats == NULL || s_glyph.connection != connection) {
-        s_glyph.formats = xcb_render_util_query_formats(connection);
-    }
+    s_glyph.formats = xcb_render_util_query_formats(connection);
     if (s_glyph.formats == NULL) {
         glyph_renderer_destroy();
-        return -1;
+        return false;
     }
 
     a8_info = xcb_render_util_find_standard_format(s_glyph.formats,
@@ -472,15 +532,11 @@ int glyph_renderer_init(xcb_connection_t *connection,
             screen->root_visual);
     if (a8_info == NULL || visual_info == NULL) {
         glyph_renderer_destroy();
-        return -1;
+        return false;
     }
     s_glyph.a8_format = a8_info->id;
     s_glyph.visual_format = visual_info->format;
-
     s_glyph.connection = connection;
-    s_glyph.glyphset = xcb_generate_id(connection);
-    (void) xcb_render_create_glyph_set_checked(connection,
-            s_glyph.glyphset, s_glyph.a8_format);
 
     color.red = (uint16_t) (((s_glyph.fg_color >> 16) & 0xffu) * 257u);
     color.green = (uint16_t) (((s_glyph.fg_color >> 8) & 0xffu) * 257u);
@@ -490,30 +546,131 @@ int glyph_renderer_init(xcb_connection_t *connection,
     (void) xcb_render_create_solid_fill_checked(connection,
             s_glyph.fg_picture, color);
 
-    (void) safe_strncpy(s_glyph.font_name, font_name,
-            sizeof(s_glyph.font_name) - 1u);
-    s_glyph.font_name[sizeof(s_glyph.font_name) - 1u] = '\0';
-    s_glyph.cache_count = 0u;
     s_glyph.initialized = true;
 
+    return true;
+}
+
+
+/* Initialize the glyph renderer for the given font description */
+int glyph_renderer_init(xcb_connection_t *connection,
+        const char *font_name)
+{
+    char file_path[512];
+    int face_index;
+    int pixel_size;
+    uint32_t index;
+    s_glyph_font_td *font;
+
+    if (connection == NULL || font_name == NULL ||
+            font_name[0] == '\0') {
+        return -1;
+    }
+
+    if (!s_glyph_shared_ready(connection)) {
+        return -1;
+    }
+
+    index = s_glyph_font_find(font_name);
+    if (index < WM_TEXT_FONT_CACHE_MAX_GLYPH) {
+        s_glyph.current = index;
+        return 0;
+    }
+
+    if (!s_resolve_font(font_name, file_path, sizeof(file_path),
+                &face_index, &pixel_size)) {
+        return -1;
+    }
+
+    /* A free slot is guaranteed by the caller: render/text.c releases
+     * the least recently used font before ever asking for a new one,
+     * which is what keeps this array bounded */
+    index = WM_TEXT_FONT_CACHE_MAX_GLYPH;
+    for (uint32_t i = 0u; i < WM_TEXT_FONT_CACHE_MAX_GLYPH; ++i) {
+        if (!s_glyph.fonts[i].is_used) {
+            index = i;
+            break;
+        }
+    }
+    if (index >= WM_TEXT_FONT_CACHE_MAX_GLYPH) {
+        index = 0u;
+        s_glyph_font_free(&s_glyph.fonts[index]);
+    }
+
+    font = &s_glyph.fonts[index];
+
+    if (FT_New_Face(s_glyph.ft_library, file_path, face_index,
+                &font->ft_face) != 0) {
+        return -1;
+    }
+    if (FT_Set_Pixel_Sizes(font->ft_face, 0u,
+                (FT_UInt) pixel_size) != 0) {
+        FT_Done_Face(font->ft_face);
+        return -1;
+    }
+
+    font->ascent = (int16_t) (font->ft_face->size->metrics.ascender
+            / 64);
+    /* Negated after the division, not before: distributing a
+     * negation across a signed division is a transformation the
+     * optimizer may only make by assuming the operand never
+     * overflows, which is what '-Wstrict-overflow' reports on.  Both
+     * forms agree for every value, since C truncates toward zero. */
+    font->descent = (int16_t) -(font->ft_face->size->metrics.descender
+            / 64);
+
+    font->glyphset = xcb_generate_id(connection);
+    (void) xcb_render_create_glyph_set_checked(connection,
+            font->glyphset, s_glyph.a8_format);
+
+    (void) safe_strncpy(font->font_name, font_name,
+            sizeof(font->font_name));
+    font->cache_count = 0u;
+    font->is_used = true;
+    s_glyph.current = index;
+
     return 0;
+}
+
+
+/* Release one open font, leaving the others alone */
+void glyph_renderer_release(const char *font_name)
+{
+    uint32_t index;
+
+    if (font_name == NULL) {
+        return;
+    }
+
+    index = s_glyph_font_find(font_name);
+    if (index >= WM_TEXT_FONT_CACHE_MAX_GLYPH) {
+        return;
+    }
+
+    s_glyph_font_free(&s_glyph.fonts[index]);
+    if (s_glyph.current == index) {
+        s_glyph.current = WM_TEXT_FONT_CACHE_MAX_GLYPH;
+    }
 }
 
 
 /* Destroy the glyph renderer's resources */
 void glyph_renderer_destroy(void)
 {
+    for (uint32_t i = 0u; i < WM_TEXT_FONT_CACHE_MAX_GLYPH; ++i) {
+        s_glyph_font_free(&s_glyph.fonts[i]);
+    }
+
     s_render_objects_free();
 
     if (s_glyph.ft_ready) {
-        FT_Done_Face(s_glyph.ft_face);
         FT_Done_FreeType(s_glyph.ft_library);
         s_glyph.ft_ready = false;
     }
 
     s_glyph.connection = NULL;
-    s_glyph.font_name[0] = '\0';
-    s_glyph.cache_count = 0u;
+    s_glyph.formats = NULL;
+    s_glyph.current = WM_TEXT_FONT_CACHE_MAX_GLYPH;
     s_glyph.initialized = false;
 }
 
@@ -549,6 +706,7 @@ void glyph_renderer_set_color(uint32_t fg, uint32_t bg)
 void glyph_draw_string(xcb_connection_t *connection,
         xcb_drawable_t drawable, struct position_s pos, const char *text)
 {
+    const s_glyph_font_td *const font = s_glyph_current();
     uint32_t codepoints[WM_TEXT_GLYPH_MAX_STRING_LENGTH];
     uint32_t len;
     size_t byte_index;
@@ -556,7 +714,7 @@ void glyph_draw_string(xcb_connection_t *connection,
     xcb_render_util_composite_text_stream_t *stream;
 
     if (connection == NULL || drawable == XCB_NONE || text == NULL ||
-            !s_glyph.initialized || s_glyph.connection != connection) {
+            font == NULL || s_glyph.connection != connection) {
         return;
     }
 
@@ -580,7 +738,7 @@ void glyph_draw_string(xcb_connection_t *connection,
     (void) xcb_render_create_picture_checked(connection, dst_picture,
             drawable, s_glyph.visual_format, 0u, NULL);
 
-    stream = xcb_render_util_composite_text_stream(s_glyph.glyphset,
+    stream = xcb_render_util_composite_text_stream(font->glyphset,
             len, 0u);
     if (stream != NULL) {
         xcb_render_util_glyphs_32(stream, (int16_t) pos.x,
@@ -627,7 +785,9 @@ uint16_t glyph_measure_string(const char *text)
  * font */
 int16_t glyph_font_ascent(void)
 {
-    return s_glyph.ascent;
+    const s_glyph_font_td *const font = s_glyph_current();
+
+    return (font != NULL) ? font->ascent : 10;
 }
 
 
@@ -635,5 +795,7 @@ int16_t glyph_font_ascent(void)
  * current font */
 int16_t glyph_font_descent(void)
 {
-    return s_glyph.descent;
+    const s_glyph_font_td *const font = s_glyph_current();
+
+    return (font != NULL) ? font->descent : 3;
 }
