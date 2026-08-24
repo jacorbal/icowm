@@ -386,9 +386,8 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                     from_desktop->is_focus_dirty = true;
                 }
 
-                desktop_action_client_rem(from_desktop, sticky[i]);
-                desktop_action_client_add(to_desktop, sticky[i]);
-                sticky[i]->desktop_id = to_id;
+                (void) desktop_action_client_move(from_desktop,
+                        to_desktop, sticky[i]);
 
                 /* Preserve focus: if this sticky client was the active
                  * window on the source desktop, make it active on the

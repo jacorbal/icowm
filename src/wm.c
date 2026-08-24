@@ -425,10 +425,22 @@ int wm_start(const char *restrict display_name,
     wm->config_dir_prefix = config_dir_prefix;
     json_syntax_errors_reset();
     config_missing_theme_reset();
+    /* A failed load is not fatal: every field already holds the
+     * compiled-in default that @a config_init put there, so the
+     * window manager starts usable rather than not at all.  Reported
+     * all the same, since starting with a configuration file that was
+     * never applied is worth knowing about. */
     if (wm->restricted_memory_mib > 0u) {
-        config_load_memguard(wm->config, wm->config_dir_prefix);
+        if (config_load_memguard(wm->config,
+                    wm->config_dir_prefix) != 0) {
+            LOGGER_WARNING("Failed to load the restricted-memory" \
+                    " configuration; continuing with defaults", L_NARG);
+        }
     } else {
-        config_load(wm->config, wm->config_dir_prefix);
+        if (config_load(wm->config, wm->config_dir_prefix) != 0) {
+            LOGGER_WARNING("Failed to load the configuration;" \
+                    " continuing with defaults", L_NARG);
+        }
     }
 
     wm->rules = rules_init();

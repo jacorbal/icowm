@@ -78,7 +78,11 @@ static void s_enact_client_send_to_desktop(client_td *client,
 {
     surface_td *surface;
     const desktop_td *cur_desktop;
-    desktop_td *target_desktop;
+    /* Initialized here for the same reason as every other switch in
+     * this project that carries no 'default:': the compiler keeps
+     * checking the cases cover the enum, and cannot prove that one of
+     * them always runs */
+    desktop_td *target_desktop = NULL;
     bool cycle;
 
     if (client == NULL) {

@@ -259,9 +259,8 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
             break;
         }
 
-        desktop_action_client_rem(from_desktop, client);
-        desktop_action_client_add(to_desktop, client);
-        client->desktop_id = to_desktop->id;
+        (void) desktop_action_client_move(from_desktop, to_desktop,
+                client);
 
         /* An iconified client keeps the icon position it already had
          * on 'from_desktop'; that exact spot is only a coincidence on

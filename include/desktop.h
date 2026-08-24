@@ -326,6 +326,31 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client);
 int desktop_action_client_rem(desktop_td *desktop, client_td *client);
 
 /**
+ * @brief Move a client from one desktop to another
+ *
+ * Removes @p client from @p from, adds it to @p to, and records the
+ * new desktop on the client itself, all as one step: a removal that
+ * is followed by a failed insertion would otherwise leave the client
+ * in no desktop's own table at all, still mapped on screen, reachable
+ * through nothing.  On such a failure the client is put back where it
+ * came from and @p client keeps naming its original desktop.
+ *
+ * @param from   Desktop the client currently belongs to; may be
+ *               @c NULL when it belongs to none
+ * @param to     Desktop to move it to
+ * @param client Client to move
+ *
+ * @return Status of the operation
+ * @retval  0 The client now belongs to @p to
+ * @retval  1 The insertion failed; the client was put back in @p from
+ * @retval -1 @p to or @p client was @c NULL
+ *
+ * @note Complexity: @e O(1) amortized, two hash-table operations
+ */
+int desktop_action_client_move(desktop_td *from, desktop_td *to,
+        client_td *client);
+
+/**
  * @brief Find the client on a desktop matching a given client ID
  *
  * @param desktop Desktop whose own clients are searched

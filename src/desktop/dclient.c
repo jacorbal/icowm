@@ -161,8 +161,8 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
  *
  * @note A null @p client, or exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH,
  *       is a silent no-op
- * @note Complexity: @e O(f + n), where @e f is the number of @p
- *       client's own transient descendants, at every depth combined,
+ * @note Complexity: @e O(f + n), where @e f is the number of
+ *       @p client's own transient descendants, at every depth combined,
  *       sharing @p desktop with it, and @e n is the number of clients
  *       on @p desktop (for the group-transient search)
  */
@@ -356,6 +356,44 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
             client->id, desktop->id);
     desktop->is_outdated = true;  /* Mark for redraw */
     desktop_action_recompute_urgent(desktop);
+
+    return 0;
+}
+
+
+/* Move a client from one desktop to another */
+int desktop_action_client_move(desktop_td *from, desktop_td *to,
+        client_td *client)
+{
+    if (to == NULL || client == NULL) {
+        LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
+        return -1;
+    }
+
+    if (from == to) {
+        return 0;
+    }
+
+    if (from != NULL) {
+        (void) desktop_action_client_rem(from, client);
+    }
+
+    if (desktop_action_client_add(to, client) != 0) {
+        /* Put it back where it came from: a client that belongs to
+         * no desktop's own table is reachable through nothing, yet
+         * stays mapped on screen, which is worse than a move that
+         * simply did not happen */
+        LOGGER_ERROR("Failed to move client 0x%08x to desktop %u;" \
+                " leaving it on desktop %u",
+                client->id, to->id,
+                (from != NULL) ? from->id : client->desktop_id);
+        if (from != NULL) {
+            (void) desktop_action_client_add(from, client);
+        }
+        return 1;
+    }
+
+    client->desktop_id = to->id;
 
     return 0;
 }

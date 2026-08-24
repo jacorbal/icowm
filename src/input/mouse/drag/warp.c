@@ -295,9 +295,8 @@ void drag_warp_tick(xcb_connection_t *connection)
              * describes). */
             if (top != s_drag.client &&
                     wm_get_client_desktop(top) == old_desktop) {
-                (void) desktop_action_client_rem(old_desktop, top);
-                (void) desktop_action_client_add(new_desktop, top);
-                top->desktop_id = new_desktop->id;
+                (void) desktop_action_client_move(old_desktop,
+                        new_desktop, top);
             }
 
             siblings = ccmd_client_transient_family_snapshot(
@@ -305,11 +304,8 @@ void drag_warp_tick(xcb_connection_t *connection)
             if (siblings != NULL) {
                 for (size_t i = 0; i < count; i++) {
                     if (siblings[i] != s_drag.client) {
-                        (void) desktop_action_client_rem(old_desktop,
-                                siblings[i]);
-                        (void) desktop_action_client_add(new_desktop,
-                                siblings[i]);
-                        siblings[i]->desktop_id = new_desktop->id;
+                        (void) desktop_action_client_move(old_desktop,
+                                new_desktop, siblings[i]);
                     }
                 }
 

@@ -82,7 +82,11 @@ static void s_switch_cyclic(surface_td *surface,
 {
     uint32_t old_id;
     bool cycle;
-    const char *direction_label;
+    /* Initialized here, not left to the switch below: that switch
+     * deliberately has no 'default:' so the compiler keeps checking
+     * it covers every direction, which also means it cannot prove to
+     * itself that one of its cases always runs */
+    const char *direction_label = "unknown";
 
     if (surface == NULL) {
         return;

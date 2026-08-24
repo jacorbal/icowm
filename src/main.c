@@ -491,15 +491,17 @@ int main(int argc, char *const argv[])
     LOGGER_INFO("Starting up window manager", L_NARG);
     if (wm_start(display_name, config_dir, restricted_memory_mib,
                 ipc_disabled, replace_requested) != 0) {
-        logger_stop();
+        (void) logger_stop();
         s_deallocate_buffers(&log_filename, &display_name, &config_dir);
         return 1;
     }
 
-    /* Stop everything */
-    wm_stop();
+    /* Stop everything.  Neither result changes what happens next,
+     * since the process is on its way out either way, so both are
+     * discarded deliberately rather than by omission. */
+    (void) wm_stop();
     LOGGER_INFO("Shutting down window manager", L_NARG);
-    logger_stop();
+    (void) logger_stop();
 
     /* Deallocate last things... */
     s_deallocate_buffers(&log_filename, &display_name, &config_dir);

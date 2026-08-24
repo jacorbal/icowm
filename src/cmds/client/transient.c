@@ -622,9 +622,8 @@ void ccmd_client_bring_family(client_td *client)
             desktop_td *const home = wm_get_client_desktop(siblings[i]);
 
             if (home != NULL) {
-                (void) desktop_action_client_rem(home, siblings[i]);
-                (void) desktop_action_client_add(target, siblings[i]);
-                siblings[i]->desktop_id = target->id;
+                (void) desktop_action_client_move(home, target,
+                        siblings[i]);
             }
         }
 

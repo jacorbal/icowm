@@ -261,9 +261,8 @@ void handler_client_message(wm_td *wm,
 
                     cur_desktop = surface_desktop_get(surface, cur_id);
                     if (cur_desktop != NULL && cur_desktop != desktop) {
-                        desktop_action_client_rem(desktop, client);
-                        desktop_action_client_add(cur_desktop, client);
-                        client->desktop_id = cur_id;
+                        (void) desktop_action_client_move(desktop,
+                                cur_desktop, client);
                         if (ewmh != NULL) {
                             xcb_change_property(connection,
                                     XCB_PROP_MODE_REPLACE,
@@ -289,9 +288,8 @@ void handler_client_message(wm_td *wm,
                                 surface->desktop_cur);
 
                     if (cur_desktop != NULL && cur_desktop != desktop) {
-                        desktop_action_client_rem(desktop, client);
-                        desktop_action_client_add(cur_desktop, client);
-                        client->desktop_id = surface->desktop_cur;
+                        (void) desktop_action_client_move(desktop,
+                                cur_desktop, client);
 
                         if (ewmh != NULL) {
                             xcb_change_property(connection,
