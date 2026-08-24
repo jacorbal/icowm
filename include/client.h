@@ -376,8 +376,9 @@ struct client_s {
      * private colormaps largely obsolete; tracked at all only for the
      * rare client still declaring one, typically on an 8-bit
      * @c PseudoColor-class display.  @c ColormapChangeMask is
-     * subscribed on every window listed here (@a client_props_refresh_
-     * colormap_windows, @c client/props.c), so a later change to any
+     * subscribed on every window listed here, by
+     * @a client_props_refresh_colormap_windows in
+     * @c client/props.c, so a later change to any
      * of their colormap attributes is caught via @c ColormapNotify
      * (@a handler_colormap_notify, @c handler/colormap.c) even between
      * refreshes of this list.

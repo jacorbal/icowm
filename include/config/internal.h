@@ -470,7 +470,7 @@ void ci_config_load_screens(cJSON *json,
  *        behavior) from parsed @c config.json
  *
  * A sibling of @p topology at the root of @c config.json, not nested
- * inside it. Unlike @p topology, every field this loads is meant to
+ * inside it.  Unlike @p topology, every field this loads is meant to
  * take effect again on a configuration reload, so
  * @a ci_config_load_screens and this function are deliberately kept
  * separate despite both being called from @a config_load_base.  A

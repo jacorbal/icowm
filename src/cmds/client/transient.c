@@ -133,8 +133,6 @@ static client_td *s_client_mapped_transient_child(client_td *client)
 }
 
 
-
-
 /**
  * @brief Recursively walk every transient descendant of a node
  *        (children, grandchildren, and so on), calling @p visit once

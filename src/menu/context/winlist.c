@@ -746,19 +746,302 @@ static int s_count_appgroups_needed(surface_td *surface, int desktop_count)
 }
 
 
+/**
+ * @brief Build one root entry per desktop, each a submenu of its own
+ *
+ * Only for a surface with more than one desktop; a single one is
+ * flattened by the caller instead, since there would be nothing to
+ * choose between.
+ *
+ * @param surface       Surface whose desktops are listed
+ * @param desktop_count How many desktops to list at most
+ * @param n_out         Entry count, advanced by what is written
+ *
+ * @note Complexity: @e O(d * c), where @e d is the number of
+ *       desktops and @e c the clients on each
+ */
+static void s_winlist_build_desktop_submenus(surface_td *surface,
+        int desktop_count, int *n_out)
+{
+    const desktop_td *desktop;
+    const uint32_t cur_did = surface->desktop_cur;
+    int n = *n_out;
+
+    cdlist_item_td *dnode;
+    char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
+    uint32_t did = 0u;
+
+    cdlist_foreach(surface->desktops, dnode) {
+        winlist_entry_data_td *data;
+        const char *label_fmt;
+        int desktop_n;
+        bool is_cur;
+        uint32_t row = 0u;
+        uint32_t col = 0u;
+        bool has_row_col;
+        bool show_row_col;
+
+        if ((int) did >= desktop_count) {
+            break;
+        }
+        desktop = (desktop_td *) cdlist_data(dnode);
+        if (desktop == NULL) {
+            ++did;
+            continue;
+        }
+
+        desktop_n = 0;
+        s_build_desktop_entries(surface, did, s_desktop_entries[did],
+                &desktop_n, NULL);
+
+        is_cur = did == cur_did;
+
+        /* Always add a "Go there..." entry at the top of the desktop's
+         * own submenu, same as before, so picking the desktop itself
+         * (with no particular window) still works.  Followed by a
+         * separator before the real client entries below it, but
+         * only when this desktop actually has any: with none,
+         * "Go there..." would otherwise be followed by a bare
+         * separator leading nowhere. */
+        if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
+            /* Compared against the room left rather than
+             * against the count plus one: a signed sum tested
+             * against a constant lets the optimizer assume the
+             * sum never overflows */
+            int shift_count = (desktop_n > 0 &&
+                    desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP - 1)
+                ? 2 : 1;
+
+            data = s_alloc_entry_data();
+            if (data != NULL) {
+                /* Shift existing entries down to make room at the
+                 * front for "Go there..." (and the separator, if
+                 * one fits); desktop_n is always small enough for
+                 * this to be cheap */
+                for (int i = desktop_n + shift_count - 1;
+                        i >= shift_count; --i) {
+                    s_desktop_entries[did][i] =
+                        s_desktop_entries[did][i - shift_count];
+                }
+                s_desktop_entries[did][0].type = CTXMENU_COMMAND;
+                safe_strncpy(s_desktop_entries[did][0].label,
+                        _(STR_WINLIST_GO_THERE),
+                        sizeof(s_desktop_entries[did][0].label) - 1u);
+                s_desktop_entries[did][0].is_disabled = is_cur;
+                s_desktop_entries[did][0].on_activate = NULL;
+                s_desktop_entries[did][0].userdata = NULL;
+                /* Never inherited from whichever real client entry
+                 * used to occupy this same slot before the shift
+                 * above: without this, "Go there..." would show
+                 * that client's own icon. */
+                s_desktop_entries[did][0].icon_window =
+                    XCB_WINDOW_NONE;
+                s_desktop_entries[did][0].icon_cache = NULL;
+                if (!is_cur) {
+                    data->surface = surface;
+                    data->client = NULL;
+                    data->desktop_id = did;
+                    s_desktop_entries[did][0].on_activate =
+                        s_cb_goto_desktop;
+                    s_desktop_entries[did][0].userdata = data;
+                }
+
+                if (shift_count == 2) {
+                    s_desktop_entries[did][1].type = CTXMENU_SEPARATOR;
+                    s_desktop_entries[did][1].icon_window =
+                        XCB_WINDOW_NONE;
+                    s_desktop_entries[did][1].icon_cache = NULL;
+                }
+
+                desktop_n += shift_count;
+            }
+        }
+
+        if (desktop_n == 0) {
+            ++did;
+            continue;
+        }
+
+        memset(&s_desktop_state[did], 0, sizeof(s_desktop_state[did]));
+        s_desktop_state[did].window = XCB_WINDOW_NONE;
+        s_desktop_state[did].entries = s_desktop_entries[did];
+        s_desktop_state[did].entry_count = desktop_n;
+
+        row = 0u;
+        col = 0u;
+        has_row_col = surface_desktop_row_col(surface,
+                did, &row, &col);
+        /* Only worth showing once the grid is genuinely more
+         * than the one row a desktop's own ID already fully
+         * describes on its own; see 'surface_desktop_row_col'
+         * itself (surface.h) for what "row 0" always means on
+         * a linear (or unconfigured) layout, the exact case
+         * this excludes here. */
+        show_row_col = has_row_col &&
+            surface->config != NULL &&
+            surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
+            surface->config->base.screens[surface->id]
+                .desktop_layout.rows > 1u;
+
+        if (desktop->name[0] != '\0') {
+            label_fmt = (show_row_col)
+                ? "%s[%u (%u, %u)] -- %s%s"
+                : "%s[%u] -- %s%s";
+            if (show_row_col) {
+                (void) snprintf(label_buf, sizeof(label_buf),
+                        label_fmt,
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        did, row, col, desktop->name,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            } else {
+                (void) snprintf(label_buf, sizeof(label_buf),
+                        label_fmt,
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        did, desktop->name,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            }
+        } else {
+            label_fmt = (show_row_col)
+                ? "%s[%u (%u, %u)]%s"
+                : "%s[%u]%s";
+            if (show_row_col) {
+                (void) snprintf(label_buf, sizeof(label_buf),
+                        label_fmt,
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        did, row, col,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            } else {
+                (void) snprintf(label_buf, sizeof(label_buf),
+                        label_fmt,
+                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
+                        did,
+                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            }
+        }
+
+        s_root_entries[n].type = CTXMENU_SUBMENU;
+        safe_strncpy(s_root_entries[n].label, label_buf,
+                sizeof(s_root_entries[n].label) - 1u);
+        s_root_entries[n].items = s_desktop_entries[did];
+        s_root_entries[n].item_count = desktop_n;
+        s_root_entries[n].userdata = &s_desktop_state[did];
+        ++n;
+        ++did;
+    }
+
+    *n_out = n;
+}
+
+
+/**
+ * @brief Append the add and remove desktop actions
+ *
+ * A surface-wide pair, not tied to any one desktop's window list, so
+ * it belongs after every entry above rather than duplicated into
+ * each submenu.  Skipped outright when the buffer is already full,
+ * rather than overflowing it, and under restricted-memory mode,
+ * which stays locked to exactly one desktop for the life of the
+ * process, so neither action could ever succeed there.
+ *
+ * @param surface       Surface the actions operate on
+ * @param root_target   Entry buffer the caller is filling
+ * @param desktop_count How many desktops the surface has
+ * @param n_out         Entry count, advanced by what is written
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_winlist_append_desktop_actions(surface_td *surface,
+        ctxmenu_entry_td *root_target, int desktop_count, int *n_out)
+{
+    winlist_entry_data_td *add_data;
+    winlist_entry_data_td *remove_data;
+    int n = *n_out;
+
+    /* "Add new desktop" / "Remove last desktop", always appended at
+     * the very end after a separator, in both display modes: a
+     * surface-wide action, not tied to any particular desktop's own
+     * window list, so it belongs outside the per-desktop submenu
+     * layer above rather than duplicated into every one of them.
+     * Guarded against whichever buffer 'root_target' actually points
+     * to being completely full already (an extreme number of windows
+     * on the one desktop that exists, in the flattened single-desktop
+     * case): skipped outright rather than overflowing it, the same
+     * defensive reasoning the "Go there" prepend above already
+     * follows for the exact same kind of buffer.  Also skipped
+     * outright, omitted rather than merely disabled, under
+     * restricted-memory mode, which is deliberately locked to
+     * exactly one desktop always (see
+     * 'surface_action_desktop_add''s comment): a person
+     * running that mode has no use for either action ever
+     * succeeding, unlike an ordinary session's own "only one desktop
+     * remains for now" case just below, where adding a second one
+     * back remains a real possibility worth surfacing. */
+    if (memguard_max_clients() == 0u &&
+            n <= ((desktop_count <= 1)
+                ? WINLIST_MAX_ENTRIES_PER_DESKTOP
+                : (int) (sizeof(s_root_entries) /
+                    sizeof(s_root_entries[0]))) - 3) {
+        root_target[n].type = CTXMENU_SEPARATOR;
+        root_target[n].icon_window = XCB_WINDOW_NONE;
+        root_target[n].icon_cache = NULL;
+        ++n;
+
+        add_data = s_alloc_entry_data();
+        root_target[n].type = CTXMENU_COMMAND;
+        safe_strncpy(root_target[n].label, _(STR_WINLIST_DESKTOP_ADD),
+                sizeof(root_target[n].label) - 1u);
+        root_target[n].is_disabled =
+            (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS);
+        root_target[n].on_activate = s_cb_add_desktop;
+        root_target[n].icon_window = XCB_WINDOW_NONE;
+        root_target[n].icon_cache = NULL;
+        if (add_data != NULL) {
+            add_data->surface = surface;
+            add_data->client = NULL;
+            add_data->desktop_id = 0u;
+        }
+        root_target[n].userdata = add_data;
+        ++n;
+
+        /* Disabled, not omitted, when only one desktop remains:
+         * unlike the desktop-count-driven omission of the whole
+         * per-desktop submenu layer elsewhere in this function, a
+         * person opening this menu specifically to manage desktops
+         * still benefits from seeing this entry exists, just not
+         * currently available, the same way "Send to desktop"'s own
+         * "All desktops (pin)" entry (wincmenu.c) stays visible
+         * rather than disappearing. */
+        remove_data = s_alloc_entry_data();
+        root_target[n].type = CTXMENU_COMMAND;
+        safe_strncpy(root_target[n].label, _(STR_WINLIST_DESKTOP_REMOVE),
+                sizeof(root_target[n].label) - 1u);
+        root_target[n].is_disabled = (surface->desktop_count <= 1u);
+        root_target[n].on_activate = s_cb_remove_desktop;
+        root_target[n].icon_window = XCB_WINDOW_NONE;
+        root_target[n].icon_cache = NULL;
+        if (remove_data != NULL) {
+            remove_data->surface = surface;
+            remove_data->client = NULL;
+            remove_data->desktop_id = 0u;
+        }
+        root_target[n].userdata = remove_data;
+        ++n;
+    }
+
+    *n_out = n;
+}
+
+
 /* Open the window list menu */
 void winlist_show(xcb_connection_t *connection,
         surface_td *surface, struct position_s pos,
         const config_td *config)
 {
-    uint32_t cur_did;
     const desktop_td *desktop;
     int n;
     int desktop_count;
     int needed_appgroups;
     ctxmenu_entry_td *root_target;
-    winlist_entry_data_td *add_data;
-    winlist_entry_data_td *remove_data;
 
     if (connection == NULL || surface == NULL || config == NULL) {
         return;
@@ -779,7 +1062,6 @@ void winlist_show(xcb_connection_t *connection,
     s_appgroup_used = 0;
     memset(s_root_entries, 0, sizeof(s_root_entries));
 
-    cur_did = surface->desktop_cur;
     desktop_count = (surface->desktop_count < (uint32_t) WINLIST_MAX_DESKTOPS)
         ? (int) surface->desktop_count : WINLIST_MAX_DESKTOPS;
 
@@ -859,167 +1141,8 @@ void winlist_show(xcb_connection_t *connection,
                     &n, NULL);
         }
     } else {
-        cdlist_item_td *dnode;
-        char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
-        uint32_t did = 0u;
-
-        cdlist_foreach(surface->desktops, dnode) {
-            winlist_entry_data_td *data;
-            const char *label_fmt;
-            int desktop_n;
-            bool is_cur;
-            uint32_t row = 0u;
-            uint32_t col = 0u;
-            bool has_row_col;
-            bool show_row_col;
-
-            if ((int) did >= desktop_count) {
-                break;
-            }
-            desktop = (desktop_td *) cdlist_data(dnode);
-            if (desktop == NULL) {
-                ++did;
-                continue;
-            }
-
-            desktop_n = 0;
-            s_build_desktop_entries(surface, did, s_desktop_entries[did],
-                    &desktop_n, NULL);
-
-            is_cur = did == cur_did;
-
-            /* Always add a "Go there..." entry at the top of the desktop's
-             * own submenu, same as before, so picking the desktop itself
-             * (with no particular window) still works.  Followed by a
-             * separator before the real client entries below it, but
-             * only when this desktop actually has any: with none,
-             * "Go there..." would otherwise be followed by a bare
-             * separator leading nowhere. */
-            if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
-                /* Compared against the room left rather than
-                 * against the count plus one: a signed sum tested
-                 * against a constant lets the optimizer assume the
-                 * sum never overflows */
-                int shift_count = (desktop_n > 0 &&
-                        desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP - 1)
-                    ? 2 : 1;
-
-                data = s_alloc_entry_data();
-                if (data != NULL) {
-                    /* Shift existing entries down to make room at the
-                     * front for "Go there..." (and the separator, if
-                     * one fits); desktop_n is always small enough for
-                     * this to be cheap */
-                    for (int i = desktop_n + shift_count - 1;
-                            i >= shift_count; --i) {
-                        s_desktop_entries[did][i] =
-                            s_desktop_entries[did][i - shift_count];
-                    }
-                    s_desktop_entries[did][0].type = CTXMENU_COMMAND;
-                    safe_strncpy(s_desktop_entries[did][0].label,
-                            _(STR_WINLIST_GO_THERE),
-                            sizeof(s_desktop_entries[did][0].label) - 1u);
-                    s_desktop_entries[did][0].is_disabled = is_cur;
-                    s_desktop_entries[did][0].on_activate = NULL;
-                    s_desktop_entries[did][0].userdata = NULL;
-                    /* Never inherited from whichever real client entry
-                     * used to occupy this same slot before the shift
-                     * above: without this, "Go there..." would show
-                     * that client's own icon. */
-                    s_desktop_entries[did][0].icon_window =
-                        XCB_WINDOW_NONE;
-                    s_desktop_entries[did][0].icon_cache = NULL;
-                    if (!is_cur) {
-                        data->surface = surface;
-                        data->client = NULL;
-                        data->desktop_id = did;
-                        s_desktop_entries[did][0].on_activate =
-                            s_cb_goto_desktop;
-                        s_desktop_entries[did][0].userdata = data;
-                    }
-
-                    if (shift_count == 2) {
-                        s_desktop_entries[did][1].type = CTXMENU_SEPARATOR;
-                        s_desktop_entries[did][1].icon_window =
-                            XCB_WINDOW_NONE;
-                        s_desktop_entries[did][1].icon_cache = NULL;
-                    }
-
-                    desktop_n += shift_count;
-                }
-            }
-
-            if (desktop_n == 0) {
-                ++did;
-                continue;
-            }
-
-            memset(&s_desktop_state[did], 0, sizeof(s_desktop_state[did]));
-            s_desktop_state[did].window = XCB_WINDOW_NONE;
-            s_desktop_state[did].entries = s_desktop_entries[did];
-            s_desktop_state[did].entry_count = desktop_n;
-
-            row = 0u;
-            col = 0u;
-            has_row_col = surface_desktop_row_col(surface,
-                    did, &row, &col);
-            /* Only worth showing once the grid is genuinely more
-             * than the one row a desktop's own ID already fully
-             * describes on its own; see 'surface_desktop_row_col'
-             * itself (surface.h) for what "row 0" always means on
-             * a linear (or unconfigured) layout, the exact case
-             * this excludes here. */
-            show_row_col = has_row_col &&
-                surface->config != NULL &&
-                surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
-                surface->config->base.screens[surface->id]
-                    .desktop_layout.rows > 1u;
-
-            if (desktop->name[0] != '\0') {
-                label_fmt = (show_row_col)
-                    ? "%s[%u (%u, %u)] -- %s%s"
-                    : "%s[%u] -- %s%s";
-                if (show_row_col) {
-                    (void) snprintf(label_buf, sizeof(label_buf),
-                            label_fmt,
-                            MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                            did, row, col, desktop->name,
-                            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-                } else {
-                    (void) snprintf(label_buf, sizeof(label_buf),
-                            label_fmt,
-                            MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                            did, desktop->name,
-                            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-                }
-            } else {
-                label_fmt = (show_row_col)
-                    ? "%s[%u (%u, %u)]%s"
-                    : "%s[%u]%s";
-                if (show_row_col) {
-                    (void) snprintf(label_buf, sizeof(label_buf),
-                            label_fmt,
-                            MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                            did, row, col,
-                            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-                } else {
-                    (void) snprintf(label_buf, sizeof(label_buf),
-                            label_fmt,
-                            MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                            did,
-                            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-                }
-            }
-
-            s_root_entries[n].type = CTXMENU_SUBMENU;
-            safe_strncpy(s_root_entries[n].label, label_buf,
-                    sizeof(s_root_entries[n].label) - 1u);
-            s_root_entries[n].items = s_desktop_entries[did];
-            s_root_entries[n].item_count = desktop_n;
-            s_root_entries[n].userdata = &s_desktop_state[did];
-            ++n;
-            ++did;
-        }
+        s_winlist_build_desktop_submenus(surface,
+                desktop_count, &n);
     }
 
     /* Whichever of the two buffers above 'n' actually counts entries
@@ -1038,76 +1161,8 @@ void winlist_show(xcb_connection_t *connection,
         ++n;
     }
 
-    /* "Add new desktop" / "Remove last desktop", always appended at
-     * the very end after a separator, in both display modes: a
-     * surface-wide action, not tied to any particular desktop's own
-     * window list, so it belongs outside the per-desktop submenu
-     * layer above rather than duplicated into every one of them.
-     * Guarded against whichever buffer 'root_target' actually points
-     * to being completely full already (an extreme number of windows
-     * on the one desktop that exists, in the flattened single-desktop
-     * case): skipped outright rather than overflowing it, the same
-     * defensive reasoning the "Go there" prepend above already
-     * follows for the exact same kind of buffer.  Also skipped
-     * outright, omitted rather than merely disabled, under
-     * restricted-memory mode, which is deliberately locked to
-     * exactly one desktop always (see
-     * 'surface_action_desktop_add''s comment): a person
-     * running that mode has no use for either action ever
-     * succeeding, unlike an ordinary session's own "only one desktop
-     * remains for now" case just below, where adding a second one
-     * back remains a real possibility worth surfacing. */
-    if (memguard_max_clients() == 0u &&
-            n <= ((desktop_count <= 1)
-                ? WINLIST_MAX_ENTRIES_PER_DESKTOP
-                : (int) (sizeof(s_root_entries) /
-                    sizeof(s_root_entries[0]))) - 3) {
-        root_target[n].type = CTXMENU_SEPARATOR;
-        root_target[n].icon_window = XCB_WINDOW_NONE;
-        root_target[n].icon_cache = NULL;
-        ++n;
-
-        add_data = s_alloc_entry_data();
-        root_target[n].type = CTXMENU_COMMAND;
-        safe_strncpy(root_target[n].label, _(STR_WINLIST_DESKTOP_ADD),
-                sizeof(root_target[n].label) - 1u);
-        root_target[n].is_disabled =
-            (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS);
-        root_target[n].on_activate = s_cb_add_desktop;
-        root_target[n].icon_window = XCB_WINDOW_NONE;
-        root_target[n].icon_cache = NULL;
-        if (add_data != NULL) {
-            add_data->surface = surface;
-            add_data->client = NULL;
-            add_data->desktop_id = 0u;
-        }
-        root_target[n].userdata = add_data;
-        ++n;
-
-        /* Disabled, not omitted, when only one desktop remains:
-         * unlike the desktop-count-driven omission of the whole
-         * per-desktop submenu layer elsewhere in this function, a
-         * person opening this menu specifically to manage desktops
-         * still benefits from seeing this entry exists, just not
-         * currently available, the same way "Send to desktop"'s own
-         * "All desktops (pin)" entry (wincmenu.c) stays visible
-         * rather than disappearing. */
-        remove_data = s_alloc_entry_data();
-        root_target[n].type = CTXMENU_COMMAND;
-        safe_strncpy(root_target[n].label, _(STR_WINLIST_DESKTOP_REMOVE),
-                sizeof(root_target[n].label) - 1u);
-        root_target[n].is_disabled = (surface->desktop_count <= 1u);
-        root_target[n].on_activate = s_cb_remove_desktop;
-        root_target[n].icon_window = XCB_WINDOW_NONE;
-        root_target[n].icon_cache = NULL;
-        if (remove_data != NULL) {
-            remove_data->surface = surface;
-            remove_data->client = NULL;
-            remove_data->desktop_id = 0u;
-        }
-        root_target[n].userdata = remove_data;
-        ++n;
-    }
+    s_winlist_append_desktop_actions(surface, root_target,
+            desktop_count, &n);
 
     memset(&s_root, 0, sizeof(s_root));
     s_root.window = XCB_WINDOW_NONE;

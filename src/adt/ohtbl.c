@@ -134,7 +134,7 @@ static void s_ohtbl_cancel_pending_shrink_if_recovered(ohtbl_td *htbl)
  * @brief Resize the open-addressed hash table to a new capacity
  *
  * Resizes the current positions of the hash table to the specific new
- * capacity, and rehashes all existing items into the new table. If the
+ * capacity, and rehashes all existing items into the new table.  If the
  * memory allocation for the new table fails, the operation is aborted
  * and an error code is returned.
  *

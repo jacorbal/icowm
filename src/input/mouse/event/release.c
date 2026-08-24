@@ -5,7 +5,7 @@
  *
  * One of the files @c input/mouse/event/ is made of;
  * ends whatever drag @c input/mouse/event/press.c's own
- * @c mouse_handle_press may have started. See that file's own comment
+ * @c mouse_handle_press may have started.  See that file's own comment
  * for the reasoning behind the three-way split.
  */
 /*

@@ -5,9 +5,10 @@
  *
  * Low-level XCB, EWMH, and ICCCM plumbing used by more than one
  * client-command module, but never called from outside @c cmds/
- * client/ itself; @c ccmd_target_win, @c ccmd_client_monitor,
- * @c ccmd_client_grab_buttons, @c ccmd_set_wm_state, and @c ccmd_
- * clear_wm_state moved out to the genuinely public @c cmds/client/
+ * client/ itself; @a ccmd_target_win, @a ccmd_client_monitor,
+ * @a ccmd_client_grab_buttons, @a ccmd_set_wm_state and
+ * @a ccmd_clear_wm_state moved out to the genuinely public
+ * @c cmds/client/
  * basic.h once every one of those turned out to already be called
  * from outside this directory too (@c client.c, @c handler/map.c,
  * @c handler/ewmhmsg.c, and @c menu/popup.c among them), which this

@@ -16,6 +16,12 @@
  * headers defining these types already use, so including both this
  * file and the real one in any order is fine.
  *
+ * @note Unlike its neighbours in @c types/, this file defines
+ *       nothing.  @c types/pair.h and @c types/direction.h are where
+ *       their own types live, whereas every name here belongs to a
+ *       module of its own and is merely named again, so a header can
+ *       refer to it without the definition
+ *
  * @ingroup types
  */
 /*

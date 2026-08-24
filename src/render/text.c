@@ -225,7 +225,7 @@ static void s_font_config_extract_charset(
  *       token in @p tokens
  */
 static int s_font_config_extract_size(
-        char tokens[][WM_TEXT_FONT_TOKEN_LENGTH], size_t *ntok)
+        const char tokens[][WM_TEXT_FONT_TOKEN_LENGTH], size_t *ntok)
 {
     char *endptr;
     long lval;
@@ -673,10 +673,11 @@ static uint32_t s_text_cache_find(const char *key)
 static uint32_t s_text_cache_claim(enum s_text_backend_e backend)
 {
     uint32_t victim = WM_TEXT_FONT_CACHE_MAX;
-    uint32_t glyph_count = 0u;
     uint32_t oldest = UINT32_MAX;
 
     if (backend == S_BACKEND_GLYPH) {
+        uint32_t glyph_count = 0u;
+
         for (uint32_t i = 0u; i < WM_TEXT_FONT_CACHE_MAX; ++i) {
             if (s_text.cache[i].is_used &&
                     s_text.cache[i].backend == S_BACKEND_GLYPH) {

@@ -41,9 +41,10 @@
  * is itself transient for a third window, and so on; this follows that
  * whole chain to find the one client at its root, the "main"
  * application window the entire chain ultimately belongs to.  Used by
- * @a ccmd_client_iconify and @a ccmd_client_restore (@c cmds/client/
- * visibility.c and @c cmds/client/focus.c) and by @a enact_desktop_
- * client_send (@c enact/desktop.c) to redirect an iconify, restore,
+ * @a ccmd_client_iconify and @a ccmd_client_restore, in
+ * @c cmds/client/visibility.c and @c cmds/client/focus.c, and by
+ * @a enact_desktop_client_send in @c enact/desktop.c, to redirect an
+ * iconify, restore,
  * or desktop change requested on any single member of a transient
  * family to the family as a whole, the same way a person would
  * expect minimizing (or sending to another desktop) a "save changes?"
@@ -111,8 +112,9 @@ client_td *client_group_transient_anchor(const client_td *client);
  * moved onto the desktop the parent is being interacted with on
  * right then, so it is right there to actually receive the
  * redirected focus.  Called from @a focus_apply (@c policy/focus.c)
- * only, immediately before its own redirect to @a ccmd_client_focus_
- * target, not from @a ccmd_client_focus itself (@c cmds/client/
+ * only, immediately before its own redirect to
+ * @a ccmd_client_focus_target, not from @a ccmd_client_focus itself
+ * (@c cmds/client/
  * focus.c): that function is also reached from purely automatic
  * focus restoration having nothing to do with someone actually
  * interacting with a client right now (@a surface_clients_show's own
@@ -123,8 +125,8 @@ client_td *client_group_transient_anchor(const client_td *client);
  * been focused on despite never being pinned itself.  Deliberately
  * the desktop currently viewed on the top parent's own surface, not
  * that top parent's own literal "home" desktop, since pinning a
- * client never actually moves it between desktops (see @a ccmd_
- * client_bring_family's own full doc comment, cmds/client/
+ * client never actually moves it between desktops (see
+ * @a ccmd_client_bring_family's comment in @c cmds/client/
  * transient.c, for why that distinction matters here specifically).
  *
  * @param client Client whose transient family to bring together;
@@ -158,9 +160,9 @@ void ccmd_client_bring_family(client_td *client);
  * site still needs its own way.
  *
  * @param desktop   Desktop to restrict the result to
- * @param top       Family's own top-most ancestor (see @a ccmd_
- *                  client_transient_top_parent); excluded from the
- *                  result even if found on @p desktop itself
+ * @param top       Family's top-most ancestor; excluded from the
+ *                  result even if found on @p desktop itself.  See
+ *                  @a ccmd_client_transient_top_parent
  * @param count_out Receives the number of clients collected; set to
  *                  @c 0 on any early return, including allocation
  *                  failure
@@ -182,8 +184,9 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  *        any desktop of any surface, into a newly allocated snapshot
  *        array
  *
- * The all-desktops counterpart to @a ccmd_client_transient_family_
- * snapshot (see its comment for the shared reasoning behind
+ * The all-desktops counterpart to
+ * @a ccmd_client_transient_family_snapshot, whose comment holds the
+ * shared reasoning behind
  * collecting into a snapshot at all): every family-wide action that
  * is not itself about desktops (iconify, restore, hide, unhide, pin,
  * unpin) must find every family member regardless of which desktop
@@ -192,9 +195,10 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  * pinning a client never actually moves it between desktops.
  * Scoping the search to @p top's own desktop alone, as the desktop-
  * move actions genuinely need to (@a enact_desktop_client_send,
- * @a hi_handle_net_wm_desktop, @a drag_warp_tick, and @a ccmd_client_
- * bring_family itself, which each still use @a ccmd_client_
- * transient_family_snapshot directly for exactly that reason),
+ * @a hi_handle_net_wm_desktop, @a drag_warp_tick and
+ * @a ccmd_client_bring_family itself, which each still use
+ * @a ccmd_client_transient_family_snapshot directly for exactly that
+ * reason),
  * silently fails to find a transient living elsewhere.  Counts every
  * match first, allocates exactly that many slots once, then fills
  * them in an identical second pass, rather than growing one array as
@@ -203,9 +207,9 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  * same idea was tried once already); see the full reasoning in
  * @c cmds/client/transient.c, right above the implementation.
  *
- * @param top       Family's own top-most ancestor (see @a ccmd_
- *                  client_transient_top_parent); excluded from the
- *                  result even where found
+ * @param top       Family's top-most ancestor; excluded from the
+ *                  result even where found.  See
+ *                  @a ccmd_client_transient_top_parent
  * @param count_out Receives the number of clients collected; set to
  *                  @c 0 on any early return
  *
@@ -238,8 +242,9 @@ typedef void (*ccmd_family_fn)(client_td *member, void *ctx);
  * in a different order.
  *
  * Nothing is allocated and the tree is walked once, which is what
- * separates this from @a ccmd_client_transient_family_snapshot_
- * anywhere: that one walks twice and allocates an array, and is what
+ * separates this from
+ * @a ccmd_client_transient_family_snapshot_anywhere: that one walks
+ * twice and allocates an array, and is what
  * a caller needs when its own action moves clients between desktops
  * and so cannot walk and mutate at the same time.
  *

@@ -78,7 +78,7 @@ static bool s_parse_titlebar_button(const char *name,
  * A button name the theme repeats is kept only for its first
  * occurrence; later repeats are silently skipped rather than
  * consuming another one of the limited @c CONFIG_MAX_TITLEBAR_BUTTONS
- * slots for a visual duplicate that would add nothing. An
+ * slots for a visual duplicate that would add nothing.  An
  * unrecognized name is also silently skipped rather than aborting
  * the whole list; recognized names beyond
  * @c CONFIG_MAX_TITLEBAR_BUTTONS are also silently dropped.
@@ -271,18 +271,6 @@ static void s_load_theme_opacity(cJSON *json_obj, const char *key,
     if (json_load_uint(json_obj, key, &raw) == 0) {
         *dest = (uint8_t) ((raw > 100u) ? 100u : raw);
     }
-}
-
-
-/* Convert a 0-100 opacity percentage to _NET_WM_WINDOW_OPACITY's own
- * 32-bit range */
-uint32_t config_theme_opacity_to_raw(uint8_t percent)
-{
-    uint8_t clamped;
-
-    clamped = (percent > 100u) ? 100u : percent;
-
-    return (uint32_t) ((double) clamped / 100.0 * (double) 0xffffffffu);
 }
 
 
@@ -830,6 +818,18 @@ static void s_config_theme_load_cycle(cJSON *json,
         json_load_uint(cycle_border, "width",
                 &config_theme->cycle.border.width);
     }
+}
+
+
+/* Convert a 0-100 opacity percentage to _NET_WM_WINDOW_OPACITY's own
+ * 32-bit range */
+uint32_t config_theme_opacity_to_raw(uint8_t percent)
+{
+    uint8_t clamped;
+
+    clamped = (percent > 100u) ? 100u : percent;
+
+    return (uint32_t) ((double) clamped / 100.0 * (double) 0xffffffffu);
 }
 
 

@@ -58,6 +58,43 @@ static int s_keybindings_count = 0;
 
 
 /**
+ * @brief One configured binding string paired with its action
+ */
+typedef struct {
+    const char *binding;
+    enum wm_keybind_type_e type;
+} s_keybind_def_td;
+
+
+/**
+ * @brief Lock modifiers a grab is installed under as well as bare
+ *
+ * Caps Lock and Num Lock are reported in a key press's own state, so
+ * a grab that named neither would simply not fire while either is
+ * on.  Installing every combination is what makes a binding work
+ * regardless.
+ */
+static const uint16_t s_lockmods[] = {
+    0,
+    XCB_MOD_MASK_LOCK,
+    XCB_MOD_MASK_2,
+    XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2
+};
+
+
+/**
+ * @brief Cycling pairs whose two halves must not resolve alike
+ */
+static const struct {
+    enum wm_keybind_type_e a;
+    enum wm_keybind_type_e b;
+} s_cycle_pairs[] = {
+    { KEYBIND_CLIENT_CYCLE_NEXT, KEYBIND_CLIENT_CYCLE_PREV },
+    { KEYBIND_DESKTOP_ICON_NEXT, KEYBIND_DESKTOP_ICON_PREV }
+};
+
+
+/**
  * @brief Map a key-name token to an X11 keysym
  *
  * Converts a textual key name into its corresponding X11 keysym value.
@@ -258,15 +295,24 @@ static bool s_surface_has_multiple_desktops(const surface_td *surface)
 }
 
 
-/* Parse configured key bindings and install passive grabs */
-void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
-        const config_td *config)
+/**
+ * @brief Fill in every binding the configuration names
+ *
+ * The array is terminated by an entry whose @c binding is @c NULL,
+ * the same way the loop reading it expects.
+ *
+ * @param config Configuration the binding strings come from
+ * @param defs   Array to fill, of at least @p max entries
+ * @param max    How many entries @p defs can hold
+ *
+ * @return Number of entries written, terminator excluded
+ *
+ * @note Complexity: @e O(n), where @e n is the number of bindings
+ */
+static size_t s_keyboard_binding_defs(const config_td *config,
+        s_keybind_def_td *defs, size_t max)
 {
-    /* Each binding pairs a configured string with an action type */
-    struct {
-        const char *binding;
-        enum wm_keybind_type_e type;
-    } defs[] = {
+    const s_keybind_def_td all[] = {
         { config->bindings.keyboard.wm.menus.root,
           KEYBIND_WM_ROOT_MENU },
         { config->bindings.keyboard.wm.menus.windows,
@@ -423,64 +469,139 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
          * 'Ctrl+Mod1+F10', which is commonly reserved by the system
          * for switching to a text console */
         { config->bindings.keyboard.wm.fortune, KEYBIND_WM_FORTUNE },
-        /* Hardcoded emergency exit (grabbed only if enabled) */
-        { "Ctrl+Mod1+Backspace", KEYBIND_WM_EMERGENCY_EXIT },
-        { NULL, KEYBIND_NONE }
+        /* Hardcoded emergency exit, grabbed only when enabled */
+        { "Ctrl+Mod1+Backspace", KEYBIND_WM_EMERGENCY_EXIT }
     };
+    const size_t count = sizeof(all) / sizeof(all[0]);
+    size_t written = 0u;
 
-    /* Lock-modifier variants, so grabs fire under Caps or Num
-     * Lock too */
-    static const uint16_t lockmods[] = {
-        0,
-        XCB_MOD_MASK_LOCK,
-        XCB_MOD_MASK_2,
-        XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2
-    };
+    while (written < count && written + 1u < max) {
+        defs[written] = all[written];
+        written++;
+    }
 
-    /* Cycle-next/prev pairs: warn if both have identical binding */
-    static const struct {
-        enum wm_keybind_type_e a;
-        enum wm_keybind_type_e b;
-    } pairs[] = {
-        { KEYBIND_CLIENT_CYCLE_NEXT, KEYBIND_CLIENT_CYCLE_PREV },
-        { KEYBIND_DESKTOP_ICON_NEXT, KEYBIND_DESKTOP_ICON_PREV }
-    };
+    defs[written].binding = NULL;
+    defs[written].type = KEYBIND_NONE;
 
-    /* Resolved up front (only when the emergency exit is actually
-     * enabled, since there is nothing to protect when it is off), so
-     * every other binding below can be checked against it and skipped
-     * on a collision, guaranteeing the emergency exit always wins its
-     * own key combination no matter what a user's 'bindings.json'
-     * happens to say. */
-    xcb_keysym_t emergency_keysym = XCB_NO_SYMBOL;
-    uint16_t emergency_modmask = 0;
+    return written;
+}
 
-    /* Resolved up front too: whether the "move to next monitor" grab
-     * below is worth installing at all.  This is a global check (any
-     * surface with more than one monitor unlocks it everywhere), not
-     * a genuinely per-surface one, since every grab in this function
-     * is already installed on every surface uniformly; a surface with
-     * only one monitor sitting alongside another with several is rare
-     * enough not to be worth restructuring the grab loop over. */
-    bool has_multi_monitor_surface =
-        s_any_surface_matches(surfaces, s_surface_has_multiple_monitors);
 
-    /* Same reasoning as 'has_multi_monitor_surface' just above, for
-     * the desktop-cycling and go-to-desktop-N grabs instead of the
-     * move-to-next-monitor one. */
-    bool has_multi_desktop_surface =
-        s_any_surface_matches(surfaces, s_surface_has_multiple_desktops);
+/**
+ * @brief Release every key grab made on each root window
+ *
+ * Called before re-grabbing, so a reload leaves no stale grab
+ * behind: @c xcb_grab_key only ever adds one, and a binding whose
+ * combination changed would otherwise keep firing on the old one as
+ * well as the new.
+ *
+ * @param surfaces Every surface to release grabs on
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+static void s_keyboard_ungrab_all(list_td *surfaces)
+{
+/* Release every key grab this window manager previously made on
+ * each root window before re-grabbing below.  Without this, calling
+ * 'keyboard_load' again after a configuration reload (vid.
+ * 'wm_action_config_reload') would leave a binding's OLD key
+ * combination still grabbed and firing in addition to its new one
+ * whenever a binding actually changed, since 'xcb_grab_key' only
+ * adds a grab and there was previously nothing here that removed
+ * a stale one. */
+for (list_item_td *node = list_head(surfaces);
+        node != NULL; node = list_next(node)) {
+    surface_td *surface = (surface_td *) list_data(node);
 
-    s_keybindings_count = 0;
+    if (surface == NULL || surface->screen == NULL) {
+        continue;
+    }
 
-    /* Release every key grab this window manager previously made on
-     * each root window before re-grabbing below.  Without this, calling
-     * 'keyboard_load' again after a configuration reload (vid.
-     * 'wm_action_config_reload') would leave a binding's OLD key
-     * combination still grabbed and firing in addition to its new one
-     * whenever a binding actually changed, since 'xcb_grab_key' only
-     * adds a grab and there was previously nothing here that removed
-     * a stale one. */
+    xcb_ungrab_key(surface->connection, XCB_GRAB_ANY,
+            surface->screen->root, XCB_MOD_MASK_ANY);
+}
+}
+
+
+/**
+ * @brief Whether a binding is disabled and must not be grabbed
+ *
+ * @param type                Binding to judge
+ * @param config              Active configuration
+ * @param has_multi_monitor   Whether any surface has several
+ *                            monitors
+ * @param has_multi_desktop   Whether any surface has several
+ *                            desktops
+ *
+ * @return @c true when the binding must be skipped
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_keyboard_is_disabled(enum wm_keybind_type_e type,
+        const config_td *config, bool has_multi_monitor,
+        bool has_multi_desktop)
+{
+    /* Named directly rather than through @c KEYBIND_NONE: that value
+     * only ever appears on the array's terminator, which the loop
+     * reading it stops before reaching, so the emergency exit has to
+     * be named itself or its grab happens regardless of the flag. */
+    if (type == KEYBIND_WM_EMERGENCY_EXIT &&
+            !config->base.shutdown.enable_emergency_shortcut) {
+        return true;
+    }
+
+    /* The fortune easter egg, the same way */
+    if (type == KEYBIND_WM_FORTUNE &&
+            !config->base.fortune.is_enabled) {
+        return true;
+    }
+
+    /* Every "move to monitor" direction, when no surface has more
+     * than one monitor to move to.  All four are named: an earlier
+     * two-direction version of this guard named only 'next', which
+     * silently left 'prev' grabbed, and so reachable as a no-op, on
+     * a genuinely single-monitor surface. */
+    if ((type == KEYBIND_CLIENT_MOVE_MONITOR_NORTH ||
+                type == KEYBIND_CLIENT_MOVE_MONITOR_SOUTH ||
+                type == KEYBIND_CLIENT_MOVE_MONITOR_EAST ||
+                type == KEYBIND_CLIENT_MOVE_MONITOR_WEST) &&
+            !has_multi_monitor) {
+        return true;
+    }
+
+    /* Every desktop-cycling and go-to-desktop-N binding, when no
+     * surface has more than one desktop to switch to */
+    if ((type == KEYBIND_DESKTOP_NORTH ||
+                type == KEYBIND_DESKTOP_SOUTH ||
+                type == KEYBIND_DESKTOP_EAST ||
+                type == KEYBIND_DESKTOP_WEST ||
+                (type >= KEYBIND_DESKTOP_GOTO_0 &&
+                 type <= KEYBIND_DESKTOP_GOTO_9)) &&
+            !has_multi_desktop) {
+        return true;
+    }
+
+    return false;
+}
+
+
+/**
+ * @brief Install one binding's grab on every surface
+ *
+ * Grabbed once per lock-modifier combination, so the binding fires
+ * whatever the lock state happens to be.
+ *
+ * @param surfaces Every surface to grab on
+ * @param keycodes Null-terminated keycodes the key symbol resolved
+ *                 to
+ * @param modmask  Modifiers the binding itself names
+ *
+ * @note Complexity: @e O(n * k), where @e n is the number of
+ *       surfaces and @e k the number of keycodes
+ */
+static void s_keyboard_grab_on_surfaces(list_td *surfaces,
+        const xcb_keycode_t *keycodes, uint16_t modmask)
+{
     for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
@@ -489,12 +610,88 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
             continue;
         }
 
-        xcb_ungrab_key(surface->connection, XCB_GRAB_ANY,
-                surface->screen->root, XCB_MOD_MASK_ANY);
+        for (int j = 0; keycodes[j] != 0; ++j) {
+            for (size_t k = 0;
+                    k < sizeof(s_lockmods) / sizeof(s_lockmods[0]);
+                    ++k) {
+                xcb_void_cookie_t ck;
+                xcb_generic_error_t *err;
+                ck = xcb_grab_key_checked(
+                        surface->connection,
+                        1,
+                        surface->screen->root,
+                        (uint16_t) (modmask | s_lockmods[k]),
+                        keycodes[j],
+                        XCB_GRAB_MODE_ASYNC,
+                        XCB_GRAB_MODE_ASYNC);
+                err = xcb_request_check(surface->connection, ck);
+                if (err != NULL) {
+                    LOGGER_WARNING(
+                            "xcb_grab_key failed for" \
+                            " keycode=%u modmask=0x%x error=%d",
+                            keycodes[j],
+                            (unsigned) (modmask | s_lockmods[k]),
+                            err->error_code);
+                    free(err);
+                }
+            }
+        }
     }
+}
 
-    /* Resolve the emergency exit combo now that all declarations are
-     * in place above */
+
+/**
+ * @brief Warn when a cycling pair's two halves resolve alike
+ *
+ * A next and a prev sharing one combination leaves the second
+ * unreachable, since dispatch stops at the first match.
+ *
+ * @note Complexity: @e O(n), where @e n is the number of pairs
+ */
+static void s_keyboard_warn_cycle_pairs(void)
+{
+    /* Warn on identical next/prev bindings */
+    const int count =
+        (int) (sizeof(s_cycle_pairs) / sizeof(s_cycle_pairs[0]));
+
+    for (int i = 0; i < count; ++i) {
+        xcb_keysym_t aks = XCB_NO_SYMBOL;
+        xcb_keysym_t bks = XCB_NO_SYMBOL;
+        uint16_t amm = 0;
+        uint16_t bmm = 0;
+        if (keyboard_find(s_cycle_pairs[i].a, &aks, &amm) &&
+                keyboard_find(s_cycle_pairs[i].b, &bks, &bmm)) {
+            if (aks == bks && amm == bmm) {
+                LOGGER_WARNING("Cycle next/prev bindings are" \
+                        " identical (next type %u); 'prev' will" \
+                        " never fire",
+                        (unsigned int) s_cycle_pairs[i].a);
+            }
+        }
+}
+}
+
+
+/* Load and grab every configured key binding */
+void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
+        const config_td *config)
+{
+    s_keybind_def_td defs[WM_MAX_KEYBINDINGS + 1];
+    xcb_keysym_t emergency_keysym = XCB_NO_SYMBOL;
+    uint16_t emergency_modmask = 0;
+    bool has_multi_monitor_surface;
+    bool has_multi_desktop_surface;
+
+    has_multi_monitor_surface = s_any_surface_matches(surfaces,
+            s_surface_has_multiple_monitors);
+    has_multi_desktop_surface = s_any_surface_matches(surfaces,
+            s_surface_has_multiple_desktops);
+
+    s_keybindings_count = 0;
+    (void) s_keyboard_binding_defs(config, defs,
+            sizeof(defs) / sizeof(defs[0]));
+    s_keyboard_ungrab_all(surfaces);
+
     if (config->base.shutdown.enable_emergency_shortcut) {
         (void) s_parse_binding(config, "Ctrl+Mod1+Backspace",
                 &emergency_modmask, &emergency_keysym);
@@ -505,51 +702,9 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         uint16_t modmask;
         xcb_keycode_t *keycodes;
 
-        /* Skip emergency exit grab when disabled in configuration.
-         * ('defs[i].type == KEYBIND_NONE' would never match here:
-         * that value only ever appears on the array's own NULL
-         * terminator, which the loop condition above already stops
-         * before reaching, so this has to name the emergency exit
-         * entry's own type directly or the grab happens regardless
-         * of the flag below.) */
-        if (defs[i].type == KEYBIND_WM_EMERGENCY_EXIT &&
-                !config->base.shutdown.enable_emergency_shortcut) {
-            continue;
-        }
-
-        /* Skip the fortune easter egg grab the same way, when
-         * disabled in configuration */
-        if (defs[i].type == KEYBIND_WM_FORTUNE &&
-                !config->base.fortune.is_enabled) {
-            continue;
-        }
-
-        /* Skip every "move to monitor" grab the same way, when no
-         * surface actually has more than one monitor to move to; see
-         * 'has_multi_monitor_surface' above.  Corrected here to cover
-         * all four directions: the two-direction version of this same
-         * guard, before this replaced it, only ever named the 'next'
-         * keybind, silently leaving 'prev' grabbed (and so a no-op
-         * keybind reachable) on a genuinely single-monitor surface. */
-        if ((defs[i].type == KEYBIND_CLIENT_MOVE_MONITOR_NORTH ||
-                    defs[i].type == KEYBIND_CLIENT_MOVE_MONITOR_SOUTH ||
-                    defs[i].type == KEYBIND_CLIENT_MOVE_MONITOR_EAST ||
-                    defs[i].type == KEYBIND_CLIENT_MOVE_MONITOR_WEST) &&
-                !has_multi_monitor_surface) {
-            continue;
-        }
-
-        /* Skip every desktop-cycling and go-to-desktop-N grab the
-         * same way, when no surface actually has more than one
-         * desktop to switch to; see 'has_multi_desktop_surface'
-         * above */
-        if ((defs[i].type == KEYBIND_DESKTOP_NORTH ||
-                    defs[i].type == KEYBIND_DESKTOP_SOUTH ||
-                    defs[i].type == KEYBIND_DESKTOP_EAST ||
-                    defs[i].type == KEYBIND_DESKTOP_WEST ||
-                    (defs[i].type >= KEYBIND_DESKTOP_GOTO_0 &&
-                     defs[i].type <= KEYBIND_DESKTOP_GOTO_9)) &&
-                !has_multi_desktop_surface) {
+        if (s_keyboard_is_disabled(defs[i].type, config,
+                    has_multi_monitor_surface,
+                    has_multi_desktop_surface)) {
             continue;
         }
 
@@ -558,14 +713,13 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
             continue;
         }
 
-        /* Any OTHER binding that happens to resolve to the exact same
-         * key combination as the (enabled) emergency exit shortcut is
-         * ignored in its favor: two bindings sharing one combo would
-         * otherwise both end up grabbed, and whichever happened to be
-         * checked first at dispatch time would silently win, which
-         * for this one combination must always be the emergency exit
-         * and never something a configuration file could override,
-         * intentionally or by accident. */
+        /* Any other binding resolving to the same combination as the
+         * enabled emergency exit is ignored in its favor: both would
+         * otherwise end up grabbed, and whichever dispatch happened
+         * to check first would silently win, which for this one
+         * combination must always be the emergency exit and never
+         * something a configuration file could override, by
+         * intention or by accident. */
         if (defs[i].type != KEYBIND_WM_EMERGENCY_EXIT &&
                 emergency_keysym != XCB_NO_SYMBOL &&
                 keysym == emergency_keysym &&
@@ -589,71 +743,20 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
             s_keybindings_count++;
         }
 
-        for (list_item_td *node = list_head(surfaces);
-                node != NULL; node = list_next(node)) {
-            surface_td *surface = (surface_td *) list_data(node);
-
-            if (surface == NULL || surface->screen == NULL) {
-                continue;
-            }
-
-            for (int j = 0; keycodes[j] != 0; ++j) {
-                for (size_t k = 0;
-                        k < sizeof(lockmods) / sizeof(lockmods[0]);
-                        ++k) {
-                    xcb_void_cookie_t ck;
-                    xcb_generic_error_t *err;
-                    ck = xcb_grab_key_checked(
-                            surface->connection,
-                            1,
-                            surface->screen->root,
-                            (uint16_t) (modmask | lockmods[k]),
-                            keycodes[j],
-                            XCB_GRAB_MODE_ASYNC,
-                            XCB_GRAB_MODE_ASYNC);
-                    err = xcb_request_check(surface->connection, ck);
-                    if (err != NULL) {
-                        LOGGER_WARNING(
-                                "xcb_grab_key failed for" \
-                                " keycode=%u modmask=0x%x error=%d",
-                                keycodes[j],
-                                (unsigned) (modmask | lockmods[k]),
-                                err->error_code);
-                        free(err);
-                    }
-                }
-            }
-        }
-
+        s_keyboard_grab_on_surfaces(surfaces, keycodes, modmask);
         free(keycodes);
     }
 
-    /* Warn on identical next/prev bindings */
-    for (int i = 0;
-            i < (int) (sizeof(pairs) / sizeof(pairs[0]));
-            ++i) {
-        xcb_keysym_t aks = XCB_NO_SYMBOL;
-        xcb_keysym_t bks = XCB_NO_SYMBOL;
-        uint16_t amm = 0;
-        uint16_t bmm = 0;
-        if (keyboard_find(pairs[i].a, &aks, &amm) &&
-                keyboard_find(pairs[i].b, &bks, &bmm)) {
-            if (aks == bks && amm == bmm) {
-                LOGGER_WARNING("Cycle next/prev bindings are" \
-                        " identical (next type %u); 'prev' will" \
-                        " never fire", (unsigned int) pairs[i].a);
-            }
-        }
-    }
+    s_keyboard_warn_cycle_pairs();
 
     if (surfaces != NULL && !list_is_empty(surfaces)) {
-        surface_td *const s0 = (surface_td *) list_data(list_head(surfaces));
-        if (s0 != NULL) {
-            xcb_flush(s0->connection);
+        surface_td *first =
+            (surface_td *) list_data(list_head(surfaces));
+
+        if (first != NULL && first->connection != NULL) {
+            xcb_flush(first->connection);
         }
     }
-
-    LOGGER_DEBUG("Grabbed %d key binding(s)", s_keybindings_count);
 }
 
 

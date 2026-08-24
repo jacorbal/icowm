@@ -98,8 +98,9 @@ void ccmd_client_focus(client_td *client);
  * first finds nothing, so a client with no group-mates left visible
  * falls back exactly as it always did.
  *
- * The winner, if any, is given real focus through @a ccmd_client_
- * focus itself (not a raw @c xcb_set_input_focus), so urgency
+ * The winner, if any, is given real focus through
+ * @a ccmd_client_focus itself, not a raw @c xcb_set_input_focus, so
+ * urgency
  * clearing, the ICCCM input model, @c WM_TAKE_FOCUS, and every other
  * side effect real focus already carries apply here exactly as they
  * do anywhere else focus is granted.  Relinquishes focus to

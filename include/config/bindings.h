@@ -224,15 +224,17 @@ struct config_bindings_s {
                  *        north/south/east/west of the current one,
                  *        following it there
                  *
-                 * Parallels @c cycle.desktop.north/@c .south/@c
-                 * .east/@c .west below, which only switch the view
-                 * itself, without moving any client along; a silent
-                 * no-op when there is no different desktop to move
-                 * to in that direction at all (see @c enact_client_
-                 * send_to_desktop_north's own doc comment, enact.h,
-                 * and its three siblings, for the fuller reasoning),
-                 * the same as it naturally becomes in restricted-
-                 * memory mode, always locked to exactly one desktop.
+                 * Parallels the @c cycle.desktop siblings below,
+                 * @c north, @c south, @c east and @c west, which
+                 * only switch the view itself without moving any
+                 * client along.  A silent no-op when there is no
+                 * different desktop to move to in that direction,
+                 * which is what restricted-memory mode naturally
+                 * becomes, always locked to exactly one desktop.
+                 *
+                 * @see @a enact_client_send_to_desktop_north in
+                 *      @c enact.h, and its three siblings, for the
+                 *      fuller reasoning
                  */
                 struct {
                     char north[CONFIG_MAX_LENGTH_BINDING];
@@ -247,11 +249,12 @@ struct config_bindings_s {
                  *        on its own surface
                  *
                  * Unlike @c desktop just above, never wraps around
-                 * at all, and has no equivalent of @c desktops.
-                 * wrap-at-bounds to make that configurable; see @c
-                 * ccmd_client_move_to_monitor_north's own doc
-                 * comment, cmds/client/geom.h, and its three
-                 * siblings, for the fuller reasoning.  A no-op on a
+                 * at all, and has no equivalent of
+                 * @c desktops.wrap-at-bounds to make that
+                 * configurable.  See
+                 * @a ccmd_client_move_to_monitor_north in
+                 * @c cmds/client/geom.h, and its three siblings,
+                 * for the fuller reasoning.  A no-op on a
                  * surface with one monitor or none, or when no
                  * monitor lies in the given direction at all.
                  */

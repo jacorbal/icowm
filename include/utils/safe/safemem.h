@@ -30,7 +30,7 @@
  *        non-null
  *
  * This function checks if the provided pointer is non-null and, if so,
- * it frees the memory it points to. After freeing, the pointer is set
+ * it frees the memory it points to.  After freeing, the pointer is set
  * to @c NULL to prevent accidental access to freed memory.
  *
  * @param ptr A pointer to the pointer to be freed

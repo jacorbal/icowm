@@ -187,7 +187,8 @@ static void s_wm_all_clients_unmanage(void)
 
         dinitial = dnode;
         do {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
+            desktop_td *const desktop =
+                (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->stacking != NULL) {
                 cdlist_item_td *cnode = cdlist_head(desktop->stacking);
@@ -293,52 +294,20 @@ static void s_wm_cleanup(void)
 }
 
 
-/* Initialize a window manager instance */
-int wm_start(const char *restrict display_name,
-        const char *restrict config_dir_prefix,
-        uint32_t restricted_memory_mib, bool ipc_disabled,
-        bool replace_requested)
+/**
+ * @brief Leave every field of a fresh window manager well defined
+ *
+ * Every pointer starts null so @a s_wm_cleanup can tell what was
+ * reached from what was not, whichever step of the startup below
+ * happens to fail.
+ *
+ * @param restricted_memory_mib Memory ceiling in MiB, or @c 0 for an
+ *                              ordinary session
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_wm_zero_fields(uint32_t restricted_memory_mib)
 {
-    uint32_t screens_detected;
-    uint32_t screens_managed;
-    xcb_screen_iterator_t it;
-
-    LOGGER_DEBUG("Initializing window manager", L_NARG);
-
-    if (wm != NULL) {
-        return -1;
-    }
-
-    /* Checked before allocating anything at all, so refusing to start
-     * costs as little as possible: restricted-memory mode promises a
-     * ceiling on this process's own future usage (see
-     * 'memguard.h'), and that promise is meaningless if the system
-     * does not even have that much memory free right now for this
-     * process to grow into in the first place. */
-    if (restricted_memory_mib > 0u) {
-        uint32_t available_mib;
-
-        LOGGER_NOTICE("Entering mode of restricted memory" \
-                " (ceiling=%u MiB)", (unsigned int) restricted_memory_mib);
-
-        if (sysmem_available_mib(&available_mib) &&
-                available_mib < restricted_memory_mib) {
-            LOGGER_FATAL("Restricted-memory mode: only %u MiB of" \
-                    " system memory is available, less than the" \
-                    " configured %u MiB ceiling; refusing to start",
-                    (unsigned int) available_mib,
-                    (unsigned int) restricted_memory_mib);
-            return 11;
-        }
-    }
-
-    wm = malloc(sizeof(wm_td));
-    if (wm == NULL) {
-        LOGGER_FATAL("Failed to allocate memory for window manager",
-                L_NARG);
-        return 1;
-    }
-
     /* Zero-initialize all pointer fields so s_wm_cleanup can check
      * each one safely during any subsequent error path */
     wm->connection = NULL;
@@ -355,14 +324,21 @@ int wm_start(const char *restrict display_name,
     wm->sync_base_event = 0u;
     wm->is_emergency_exit = false;
     wm->restricted_memory_mib = restricted_memory_mib;
+}
 
-    /* Called this early, before any surface or desktop gets set up
-     * below, specifically so 'memguard_max_clients' already has a
-     * real answer by the time 'desktop_init' asks it how many
-     * positions to size a desktop's own client hash table to; see
-     * 'desktop_init' itself in desktop.c. */
-    memguard_init(wm->restricted_memory_mib);
 
+/**
+ * @brief Open the X connection and everything that rides on it
+ *
+ * @param display_name Display to open, or @c NULL for the default
+ *
+ * @return @c 0 on success, or the exit status the caller reports
+ *
+ * @note Complexity: @e O(1), plus the round trips the EWMH atoms
+ *       take
+ */
+static int s_wm_connect(const char *display_name)
+{
     /* Restricted-memory mode already forces every theme font to some
      * variant of "fixed" ('config/memguard.h'), which always resolves
      * as an X core font on its own, so the heavier 'xcb-render'/
@@ -385,7 +361,6 @@ int wm_start(const char *restrict display_name,
             LOGGER_FATAL("Failed to open X display '%s'",
                     display_name);
         }
-        s_wm_cleanup();
         return 2;
     }
 
@@ -393,7 +368,6 @@ int wm_start(const char *restrict display_name,
      * every later call only selects which cached font to draw with */
     if (text_renderer_init(wm->connection) != 0) {
         LOGGER_FATAL("Failed to initialize the text renderer", L_NARG);
-        s_wm_cleanup();
         return 2;
     }
 
@@ -402,7 +376,6 @@ int wm_start(const char *restrict display_name,
     if (wm->ewmh == NULL) {
         LOGGER_FATAL("Failed to allocate memory for EWMH connection",
                 L_NARG);
-        s_wm_cleanup();
         return 1;
     }
 
@@ -410,10 +383,25 @@ int wm_start(const char *restrict display_name,
                 xcb_ewmh_init_atoms(wm->connection, wm->ewmh),
                 NULL)) {
         LOGGER_FATAL("Failed to initialize EWMH atoms", L_NARG);
-        s_wm_cleanup();
         return 10;
     }
 
+    return 0;
+}
+
+
+/**
+ * @brief Load the configuration, the rules and the session
+ *
+ * @param config_dir_prefix Directory the configuration is read from
+ *
+ * @return @c 0 on success, or the exit status the caller reports
+ *
+ * @note Complexity: @e O(n), where @e n is the size of the
+ *       configuration read
+ */
+static int s_wm_load_config(const char *config_dir_prefix)
+{
     /* Two entirely separate configuration paths, not one with
      * restricted-memory branches woven through it: 'config_init'/
      * 'config_load' know nothing about restricted-memory mode at all,
@@ -425,7 +413,6 @@ int wm_start(const char *restrict display_name,
         ? config_memguard_init()
         : config_init();
     if (wm->config == NULL) {
-        s_wm_cleanup();
         return 3;
     }
 
@@ -468,6 +455,23 @@ int wm_start(const char *restrict display_name,
      * an 'init' handle here. */
     rootmenu_menu_json_load(wm->config_dir_prefix);
 
+    return 0;
+}
+
+
+/**
+ * @brief Detect the screens and build a surface for each
+ *
+ * @return @c 0 on success, or the exit status the caller reports
+ *
+ * @note Complexity: @e O(n), where @e n is the number of screens
+ */
+static int s_wm_create_surfaces(void)
+{
+    uint32_t screens_detected;
+    uint32_t screens_managed;
+    xcb_screen_iterator_t it;
+
     it = xcb_setup_roots_iterator(xcb_get_setup(wm->connection));
     screens_detected = 0;
     for (; it.rem > 0; xcb_screen_next(&it)) {
@@ -476,7 +480,6 @@ int wm_start(const char *restrict display_name,
 
     if (screens_detected == 0) {
         LOGGER_FATAL("No screens detected", L_NARG);
-        s_wm_cleanup();
         return 5;
     } else {
         LOGGER_INFO("Detected screen %u as preferred", wm->screenp);
@@ -487,7 +490,6 @@ int wm_start(const char *restrict display_name,
     if (wm->surfaces == NULL) {
         LOGGER_FATAL("Failed to allocate memory for surfaces array",
                 L_NARG);
-        s_wm_cleanup();
         return 6;
     }
 
@@ -523,7 +525,6 @@ int wm_start(const char *restrict display_name,
                     (uint32_t) i, desktops_count, wm->config);
         if (surface == NULL) {
             LOGGER_FATAL("Failed to initialize surface %u", i);
-            s_wm_cleanup();
             return 7;
         }
 
@@ -533,7 +534,6 @@ int wm_start(const char *restrict display_name,
             LOGGER_FATAL("Failed to insert surface %u" \
                     " into surface list", i);
             surface_destroy(surface);
-            s_wm_cleanup();
             return 8;
         }
 
@@ -546,13 +546,28 @@ int wm_start(const char *restrict display_name,
                 " on surface %u", surface->desktop_cur, i);
     }
 
+    return 0;
+}
+
+
+/**
+ * @brief Claim the manager selection and subscribe to what it needs
+ *
+ * @param replace_requested Whether another window manager may be
+ *                          replaced
+ * @param ipc_disabled      Whether the control socket stays closed
+ *
+ * @return @c 0 on success, or the exit status the caller reports
+ *
+ * @note Complexity: @e O(1)
+ */
+static int s_wm_register(bool replace_requested, bool ipc_disabled)
+{
     if (wm_startup_acquire_selection(wm, replace_requested) != 0) {
-        s_wm_cleanup();
         return 12;
     }
 
     if (wm_startup_subscribe_root_events(wm) != 0) {
-        s_wm_cleanup();
         return 9;
     }
 
@@ -587,11 +602,23 @@ int wm_start(const char *restrict display_name,
     cctl_sn_set_timeout_seconds(
             wm->config->base.startup_notification.timeout_seconds);
 
+    return 0;
+}
+
+
+/**
+ * @brief Announce a finished startup, and whatever it has to warn of
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+static void s_wm_announce(void)
+{
     LOGGER_DEBUG("Setting running status flag to" \
             " an unquestionable 'true'", L_NARG);
     wm->is_running = true;
     if (wm->session != NULL) {
-        session_run_hook(wm->session, wm->connection, SESSION_HOOK_START);
+        session_run_hook(wm->session, wm->connection,
+                SESSION_HOOK_START);
     }
 
     /* Any JSON file that failed to parse during the load just above
@@ -619,7 +646,75 @@ int wm_start(const char *restrict display_name,
                 _(STR_WM_RESTRICTED_MEMORY_MODE_ANNOUNCE),
                 MENU_MSG_LEVEL_INFO);
     }
+}
 
+
+/* Initialize a window manager instance */
+int wm_start(const char *restrict display_name,
+        const char *restrict config_dir_prefix,
+        uint32_t restricted_memory_mib, bool ipc_disabled,
+        bool replace_requested)
+{
+    int status;
+
+    LOGGER_DEBUG("Initializing window manager", L_NARG);
+
+    if (wm != NULL) {
+        return -1;
+    }
+
+    /* Checked before allocating anything at all, so refusing to start
+     * costs as little as possible: restricted-memory mode promises a
+     * ceiling on this process's own future usage (see
+     * 'memguard.h'), and that promise is meaningless if the system
+     * does not even have that much memory free right now for this
+     * process to grow into in the first place. */
+    if (restricted_memory_mib > 0u) {
+        uint32_t available_mib;
+
+        LOGGER_NOTICE("Entering mode of restricted memory" \
+                " (ceiling=%u MiB)",
+                (unsigned int) restricted_memory_mib);
+
+        if (sysmem_available_mib(&available_mib) &&
+                available_mib < restricted_memory_mib) {
+            LOGGER_FATAL("Restricted-memory mode: only %u MiB of" \
+                    " system memory is available, less than the" \
+                    " configured %u MiB ceiling; refusing to start",
+                    (unsigned int) available_mib,
+                    (unsigned int) restricted_memory_mib);
+            return 11;
+        }
+    }
+
+    wm = malloc(sizeof(wm_td));
+    if (wm == NULL) {
+        LOGGER_FATAL("Failed to allocate memory for window manager",
+                L_NARG);
+        return 1;
+    }
+
+    s_wm_zero_fields(restricted_memory_mib);
+
+    /* Called this early, before any surface or desktop gets set up,
+     * so every later allocation is already accounted against the
+     * ceiling this mode imposes */
+    memguard_init(wm->restricted_memory_mib);
+
+    /* Short-circuiting on purpose: every phase below assumes the
+     * one before it succeeded, so a failed connection must never
+     * reach the surface creation that dereferences it, and the
+     * status carries the first failure's own exit code untouched */
+    if ((status = s_wm_connect(display_name)) != 0 ||
+            (status = s_wm_load_config(config_dir_prefix)) != 0 ||
+            (status = s_wm_create_surfaces()) != 0 ||
+            (status = s_wm_register(replace_requested,
+                    ipc_disabled)) != 0) {
+        s_wm_cleanup();
+        return status;
+    }
+
+    s_wm_announce();
     loop_run(wm);
 
     return 0;
@@ -649,8 +744,9 @@ void wm_json_syntax_errors_warn(void)
                 : _(STR_WM_JSON_SYNTAX_ERROR_MULTIPLE_FMT),
             json_syntax_errors_get(0u));
     for (uint32_t i = 1u; i < count && offset < sizeof(message); ++i) {
-        int written = snprintf(message + offset, sizeof(message) - offset,
-                ", '%s'", json_syntax_errors_get(i));
+        int written = snprintf(message + offset,
+                sizeof(message) - offset, ", '%s'",
+                json_syntax_errors_get(i));
         if (written < 0) {
             break;
         }
@@ -665,8 +761,8 @@ void wm_json_syntax_errors_warn(void)
      * missing-theme note below) starting a properly new sentence
      * rather than running directly into the last filename. */
     if (count > 1u && offset < sizeof(message)) {
-        int written = snprintf(message + offset, sizeof(message) - offset,
-                ".");
+        int written =
+            snprintf(message + offset, sizeof(message) - offset, ".");
         if (written > 0) {
             offset += (size_t) written;
         }

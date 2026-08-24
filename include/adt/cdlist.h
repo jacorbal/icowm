@@ -235,9 +235,10 @@ int cdlist_rem_next(cdlist_td *cdlist, cdlist_item_td *item,
  * the macro instead advances to @c NULL itself the moment doing so
  * would otherwise revisit the very head it started from, letting the
  * loop's own ordinary @c NULL condition end it right there, exactly
- * once around, the same guarantee a hand-written @e initial/current
- * comparison elsewhere in this codebase (e.g., @c s_desktop_client_
- * send_to_end, desktop/dclient.c) already provides by hand for this
+ * once around, the same guarantee a hand-written @e initial or
+ * @e current comparison elsewhere in this codebase already provides
+ * by hand, as @a s_desktop_client_send_to_end does in
+ * @c desktop/dclient.c, for this
  * exact same reason.
  *
  * @param self Pointer to the list to iterate over

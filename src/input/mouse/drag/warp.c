@@ -58,136 +58,27 @@
 #include <input/mouse/drag/warp.h>
 
 
-/* Track whether the pointer is held against a warp-eligible screen
- * edge, and schedule (or keep, or cancel) the pending desktop-warp
- * countdown accordingly; see the header's doc comment for the
- * full reasoning */
-void drag_warp_edge_check(int16_t root_x, int16_t root_y)
+/**
+ * @brief Resolve which desktop a warp in the pending direction lands
+ *        on
+ *
+ * @param surface Surface the warp happens on
+ * @param cycle   Whether the surface wraps around at its bounds
+ *
+ * @return The desktop to warp to, or @c NULL when there is none in
+ *         that direction
+ *
+ * @note Complexity: @e O(1)
+ */
+static desktop_td *s_warp_target_desktop(surface_td *surface,
+        bool cycle)
 {
-    const surface_td *surface;
-    bool at_left;
-    bool at_right;
-    bool at_top;
-    bool at_bottom;
-    enum compass_direction_e direction;
-
-    if (s_drag.client == NULL) {
-        s_drag.is_warp_pending = false;
-        return;
-    }
-
-    surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    if (surface == NULL || surface->config == NULL ||
-            !surface->config->desktops.warp_on_edge_drag ||
-            surface->desktop_count <= 1u) {
-        s_drag.is_warp_pending = false;
-        return;
-    }
-
-    at_left = root_x <= 0;
-    at_right = (int32_t) root_x >= (int32_t) s_drag.screen_w - 1;
-    at_top = root_y <= 0;
-    at_bottom = (int32_t) root_y >= (int32_t) s_drag.screen_h - 1;
-
-    /* A screen corner holds two edges at once; the horizontal one
-     * wins, matching whichever edge this same check already
-     * preferred before a vertical one existed at all. */
-    if (at_left) {
-        direction = COMPASS_WEST;
-    } else if (at_right) {
-        direction = COMPASS_EAST;
-    } else if (at_top) {
-        direction = COMPASS_NORTH;
-    } else if (at_bottom) {
-        direction = COMPASS_SOUTH;
-    } else {
-        s_drag.is_warp_pending = false;
-        return;
-    }
-
-    if (s_drag.is_warp_pending && s_drag.warp_direction == direction) {
-        /* Same edge still held: let the existing countdown keep
-         * running rather than restarting it on every motion event. */
-        return;
-    }
-
-    s_drag.is_warp_pending = true;
-    s_drag.warp_direction = direction;
-    if (clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due) == 0) {
-        clock_add_ms(&s_drag.warp_due, WM_DESKTOP_WARP_DELAY_MS);
-    } else {
-        /* Could not read the clock to schedule the countdown; safer
-         * to not warp at all than to warp immediately on every edge
-         * touch. */
-        s_drag.is_warp_pending = false;
-    }
-}
-
-
-/* Milliseconds until a pointer held against a warp-eligible screen
- * edge is due to switch desktops */
-int drag_warp_ms_remaining(void)
-{
-    if (!s_drag.is_warp_pending) {
-        return -1;
-    }
-
-    return (int) clock_ms_until(&s_drag.warp_due);
-}
-
-
-/* Perform the pending warp, if due */
-void drag_warp_tick(xcb_connection_t *connection)
-{
-    surface_td *surface;
-    desktop_td *old_desktop;
+    const uint32_t old_desktop_id = surface->desktop_cur;
     /* Initialized here, not left to the switch below: that switch
      * deliberately has no 'default:' so the compiler keeps checking
      * it against every direction, which also means it cannot prove
      * to itself that one of its cases always runs */
     desktop_td *new_desktop = NULL;
-    uint32_t old_desktop_id;
-    uint32_t opposite_edge;
-    int16_t new_root_x;
-    int16_t new_root_y;
-    int32_t new_window_x;
-    int32_t new_window_y;
-    bool cycle;
-    bool is_icon;
-    bool show_geom;
-    bool is_horizontal;
-
-    if (connection == NULL || !s_drag.is_warp_pending ||
-            drag_warp_ms_remaining() > 0) {
-        return;
-    }
-
-    s_drag.is_warp_pending = false;
-
-    if (s_drag.client == NULL ||
-            s_drag.operation != CLIENT_OPERATION_MOVING ||
-            (s_drag.drag_window != XCB_WINDOW_NONE &&
-                s_drag.drag_window != s_drag.client->icon_window)) {
-        /* Not (or no longer) a plain window move or icon move; nothing
-         * to warp for, as a resize never sets 'is_warp_pending' in the
-         * first place (see 'drag_warp_edge_check'), but this still
-         * guards against it having somehow become stale. */
-        return;
-    }
-
-    is_icon = s_drag.drag_window != XCB_WINDOW_NONE;
-
-    surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    if (surface == NULL || surface->screen == NULL ||
-            surface->config == NULL ||
-            !surface->config->desktops.warp_on_edge_drag ||
-            surface->desktop_count <= 1u) {
-        return;
-    }
-
-    old_desktop_id = surface->desktop_cur;
-    old_desktop = surface_desktop_get(surface, old_desktop_id);
-    cycle = surface->config->desktops.wrap_at_bounds;
 
     switch (s_drag.warp_direction) {
     case COMPASS_NORTH:
@@ -207,11 +98,23 @@ void drag_warp_tick(xcb_connection_t *connection)
                 cycle);
         break;
     }
-    if (new_desktop == NULL || new_desktop->id == old_desktop_id) {
-        /* Already at the end and 'cycle' is off: nothing to warp to. */
-        return;
-    }
 
+    return new_desktop;
+}
+
+
+/**
+ * @brief Move the dragged client, and its transient family, across
+ *
+ * @param old_desktop Desktop being left, which may be @c NULL
+ * @param new_desktop Desktop being entered
+ *
+ * @note Complexity: @e O(f), where @e f is the size of the client's
+ *       transient family
+ */
+static void s_warp_move_family(desktop_td *old_desktop,
+        desktop_td *new_desktop)
+{
     /* Move the dragged client itself to the new desktop without
      * touching its mapped state at all: unlike a normal desktop
      * switch, it must stay visible and uninterrupted throughout the
@@ -313,19 +216,23 @@ void drag_warp_tick(xcb_connection_t *connection)
             }
         }
     }
+}
 
-    surface->desktop_cur = new_desktop->id;
-    surface_clients_hide(surface, old_desktop_id);
-    surface_clients_show(surface, new_desktop->id);
-    surface->is_outdated = true;
 
-    /* Same desktop-switch notification a normal (non-warp) switch
-     * shows (see 's_show_desktop_overlay' in cmds/surface.c, whose
-     * thin wrapper over this same call this mirrors): without it, a
-     * warp is the one way to switch desktops that never shows which
-     * one just became active. */
-    notify_desktop_show(surface->connection, surface,
-            surface->desktop_cur, new_desktop->name, surface->config);
+/**
+ * @brief Work out where the pointer lands on the opposite edge
+ *
+ * @param out_x Receives the root X the pointer warps to
+ * @param out_y Receives the root Y the same
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_warp_pointer_target(int16_t *out_x, int16_t *out_y)
+{
+    uint32_t opposite_edge;
+    int16_t new_root_x;
+    int16_t new_root_y;
+    bool is_horizontal;
 
     /* Reposition the pointer to the opposite edge, one pixel in from
      * it rather than exactly on it, so the very next motion notify
@@ -358,6 +265,31 @@ void drag_warp_tick(xcb_connection_t *connection)
             : (int16_t) 1;
         new_root_x = s_drag.last_root_x;
     }
+
+    *out_x = new_root_x;
+    *out_y = new_root_y;
+}
+
+
+/**
+ * @brief Move the dragged window or icon by the pointer's own delta
+ *
+ * Keeps whatever is being dragged under the cursor across the warp,
+ * and the geometry overlay with it.
+ *
+ * @param connection XCB connection
+ * @param is_icon    Whether an icon window is being dragged
+ * @param new_root_x Root X the pointer is warping to
+ * @param new_root_y Root Y the same
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_warp_move_dragged(xcb_connection_t *connection,
+        bool is_icon, int16_t new_root_x, int16_t new_root_y)
+{
+    int32_t new_window_x;
+    int32_t new_window_y;
+    bool show_geom;
 
     /* Move the dragged window or icon by the exact same delta the
      * pointer itself is about to jump, so it stays under the cursor
@@ -450,6 +382,155 @@ void drag_warp_tick(xcb_connection_t *connection)
                         : s_drag.client_start.dim.h } },
                 geom_buf);
     }
+}
+
+
+/* Track whether the pointer is held against a warp-eligible screen
+ * edge, and schedule (or keep, or cancel) the pending desktop-warp
+ * countdown accordingly; see the header's doc comment for the
+ * full reasoning */
+void drag_warp_edge_check(int16_t root_x, int16_t root_y)
+{
+    const surface_td *surface;
+    bool at_left;
+    bool at_right;
+    bool at_top;
+    bool at_bottom;
+    enum compass_direction_e direction;
+
+    if (s_drag.client == NULL) {
+        s_drag.is_warp_pending = false;
+        return;
+    }
+
+    surface = wm_get_surface_by_id(s_drag.client->screen_id);
+    if (surface == NULL || surface->config == NULL ||
+            !surface->config->desktops.warp_on_edge_drag ||
+            surface->desktop_count <= 1u) {
+        s_drag.is_warp_pending = false;
+        return;
+    }
+
+    at_left = root_x <= 0;
+    at_right = (int32_t) root_x >= (int32_t) s_drag.screen_w - 1;
+    at_top = root_y <= 0;
+    at_bottom = (int32_t) root_y >= (int32_t) s_drag.screen_h - 1;
+
+    /* A screen corner holds two edges at once; the horizontal one
+     * wins, matching whichever edge this same check already
+     * preferred before a vertical one existed at all. */
+    if (at_left) {
+        direction = COMPASS_WEST;
+    } else if (at_right) {
+        direction = COMPASS_EAST;
+    } else if (at_top) {
+        direction = COMPASS_NORTH;
+    } else if (at_bottom) {
+        direction = COMPASS_SOUTH;
+    } else {
+        s_drag.is_warp_pending = false;
+        return;
+    }
+
+    if (s_drag.is_warp_pending && s_drag.warp_direction == direction) {
+        /* Same edge still held: let the existing countdown keep
+         * running rather than restarting it on every motion event. */
+        return;
+    }
+
+    s_drag.is_warp_pending = true;
+    s_drag.warp_direction = direction;
+    if (clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due) == 0) {
+        clock_add_ms(&s_drag.warp_due, WM_DESKTOP_WARP_DELAY_MS);
+    } else {
+        /* Could not read the clock to schedule the countdown; safer
+         * to not warp at all than to warp immediately on every edge
+         * touch. */
+        s_drag.is_warp_pending = false;
+    }
+}
+
+
+/* Milliseconds until a pointer held against a warp-eligible screen
+ * edge is due to switch desktops */
+int drag_warp_ms_remaining(void)
+{
+    if (!s_drag.is_warp_pending) {
+        return -1;
+    }
+
+    return (int) clock_ms_until(&s_drag.warp_due);
+}
+
+
+/* Perform the pending warp, if due */
+void drag_warp_tick(xcb_connection_t *connection)
+{
+    surface_td *surface;
+    desktop_td *old_desktop;
+    desktop_td *new_desktop;
+    uint32_t old_desktop_id;
+    int16_t new_root_x;
+    int16_t new_root_y;
+    bool cycle;
+    bool is_icon;
+
+    if (connection == NULL || !s_drag.is_warp_pending ||
+            drag_warp_ms_remaining() > 0) {
+        return;
+    }
+
+    s_drag.is_warp_pending = false;
+
+    if (s_drag.client == NULL ||
+            s_drag.operation != CLIENT_OPERATION_MOVING ||
+            (s_drag.drag_window != XCB_WINDOW_NONE &&
+                s_drag.drag_window != s_drag.client->icon_window)) {
+        /* Not (or no longer) a plain window move or icon move; nothing
+         * to warp for, as a resize never sets 'is_warp_pending' in the
+         * first place (see 'drag_warp_edge_check'), but this still
+         * guards against it having somehow become stale. */
+        return;
+    }
+
+    is_icon = s_drag.drag_window != XCB_WINDOW_NONE;
+
+    surface = wm_get_surface_by_id(s_drag.client->screen_id);
+    if (surface == NULL || surface->screen == NULL ||
+            surface->config == NULL ||
+            !surface->config->desktops.warp_on_edge_drag ||
+            surface->desktop_count <= 1u) {
+        return;
+    }
+
+    old_desktop_id = surface->desktop_cur;
+    old_desktop = surface_desktop_get(surface, old_desktop_id);
+    cycle = surface->config->desktops.wrap_at_bounds;
+
+    new_desktop = s_warp_target_desktop(surface, cycle);
+    if (new_desktop == NULL || new_desktop->id == old_desktop_id) {
+        /* Already at the end and 'cycle' is off: nothing to warp to. */
+        return;
+    }
+
+    s_warp_move_family(old_desktop, new_desktop);
+
+    surface->desktop_cur = new_desktop->id;
+    surface_clients_hide(surface, old_desktop_id);
+    surface_clients_show(surface, new_desktop->id);
+    surface->is_outdated = true;
+
+    /* Same desktop-switch notification a normal (non-warp) switch
+     * shows (see 's_show_desktop_overlay' in cmds/surface.c, whose
+     * thin wrapper over this same call this mirrors): without it, a
+     * warp is the one way to switch desktops that never shows which
+     * one just became active. */
+    notify_desktop_show(surface->connection, surface,
+            surface->desktop_cur, new_desktop->name, surface->config);
+
+    s_warp_pointer_target(&new_root_x, &new_root_y);
+
+    s_warp_move_dragged(connection, is_icon, new_root_x, new_root_y);
 
     xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,
             0, 0, 0, 0, new_root_x, new_root_y);

@@ -56,7 +56,7 @@
  * kernel's own estimate of how much memory is available for starting
  * new applications without swapping, already accounting for reclaimable
  * caches and buffers, so this is a meaningfully better signal than
- * @c MemFree alone would be. Linux-specific; on any other kernel, or
+ * @c MemFree alone would be.  Linux-specific; on any other kernel, or
  * if the file cannot be read or parsed, returns @c false and leaves
  * @p out_mib untouched.
  *

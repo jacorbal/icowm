@@ -10,7 +10,7 @@
  * such as 'dmenu'/'gmrun'), consulted only when
  * @p config_base_s.programs.use_builtin_launcher is set; see
  * @a ik_handle_launch (input/kbd/interact.c) for where that choice is
- * made. Deliberately does none of what a real launcher like those
+ * made.  Deliberately does none of what a real launcher like those
  * does (no fuzzy matching over installed programs, no history, no
  * cache of any kind): typing @c Return attempts to run whatever was
  * typed exactly as given, showing an informational dialog (never a

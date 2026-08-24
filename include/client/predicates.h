@@ -160,7 +160,7 @@
  * @brief Macro that evaluates to whether this client currently holds
  *        real X11 input focus
  *
- * @see @c CLIENT_FLAG_FOCUSED's own doc comment above for why this is
+ * @see @c CLIENT_FLAG_FOCUSED's comment above for why this is
  *      its own tracked flag rather than derived from @c desktop->
  *      client_active_id on demand
  *
@@ -191,9 +191,9 @@
  *
  * Normalized to @c 0 or @c 1, unlike leaving the raw flag bit's own
  * numeric value (@c CLIENT_FLAG_DECORATED, not necessarily @c 1)
- * exposed: a caller comparing this against a proper @c bool with @c
- * !=/@c == (as @c ccmd_client_toggle_decorate's own callers in @c
- * rules/apply.c and @c handler/focus.c both do) would otherwise
+ * exposed: a caller comparing this against a proper @c bool with
+ * @c != or @c ==, as @c ccmd_client_toggle_decorate's own callers in
+ * @c rules/apply.c and @c handler/focus.c both do, would otherwise
  * mismatch and toggle decoration off by mistake, every single time,
  * whenever the client already happened to be decorated (the common
  * case for an ordinary client) and the caller wanted it to stay that

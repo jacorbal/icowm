@@ -179,6 +179,370 @@ static uint16_t s_drag_dim_sat(uint32_t value)
 }
 
 
+/**
+ * @brief Follow the pointer while an iconified client's icon is
+ *        dragged
+ *
+ * @param connection XCB connection
+ * @param client     Client whose icon is being dragged
+ * @param dx         Pointer displacement since the drag began, on X
+ * @param dy         The same, on Y
+ * @param root_pos   Pointer position in root coordinates
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_update_icon(xcb_connection_t *connection,
+        client_td *client, int32_t dx, int32_t dy,
+        struct position_s root_pos)
+{
+    bool show_geom = client->config != NULL &&
+        client->config->base.icons.show_geom;
+    int32_t new_x = s_drag.client_start.pos.x + dx;
+    int32_t new_y = s_drag.client_start.pos.y + dy;
+    uint32_t vals[2];
+
+    s_drag.client_cur.pos.x = new_x;
+    s_drag.client_cur.pos.y = new_y;
+
+    vals[0] = (uint32_t) new_x;
+    vals[1] = (uint32_t) new_y;
+    xcb_configure_window(connection, client->icon_window,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+
+    if (show_geom) {
+        char geom_buf[24];
+
+        (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
+                (int) new_x, (int) new_y);
+        drag_overlay_show(connection, true, (struct geometry_s) {
+                    { new_x, new_y },
+                    { WM_ICON_SQUARE_SIZE,
+                        drag_icon_height(client) } },
+                geom_buf);
+    } else {
+        drag_overlay_hide(connection);
+    }
+    drag_warp_edge_check((int16_t) root_pos.x,
+            (int16_t) root_pos.y);
+    xcb_flush(connection);
+}
+
+
+/**
+ * @brief Follow the pointer while a client window is moved
+ *
+ * @param connection XCB connection
+ * @param client     Client being moved
+ * @param dx         Pointer displacement since the drag began, on X
+ * @param dy         The same, on Y
+ * @param root_pos   Pointer position in root coordinates
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_update_move(xcb_connection_t *connection,
+        client_td *client, int32_t dx, int32_t dy,
+        struct position_s root_pos)
+{
+    bool show_geom = client->config != NULL &&
+        client->config->base.windows.show_geom;
+    int32_t new_x = s_drag.client_start.pos.x + dx;
+    int32_t new_y = s_drag.client_start.pos.y + dy;
+
+    drag_snap_move(&new_x, &new_y,
+            s_drag.client_start.dim.w, s_drag.client_start.dim.h);
+
+    /* A client maximized on just one axis has nothing valid to
+     * move to on that axis at all: its width (horizontally
+     * maximized) or height (vertically maximized) already fills
+     * the whole workarea, so the one position that still fits is
+     * the one it started this drag at.  Pinned after snapping,
+     * not before, so nothing above can nudge it away from that
+     * exact starting value regardless. */
+    if (s_drag.is_move_x_locked) {
+        new_x = s_drag.client_start.pos.x;
+    }
+    if (s_drag.is_move_y_locked) {
+        new_y = s_drag.client_start.pos.y;
+    }
+
+    s_drag.client_cur.pos.x = new_x;
+    s_drag.client_cur.pos.y = new_y;
+    if (s_drag.is_solid_drag) {
+        enact_client_move(client,
+                (struct position_s) { new_x, new_y });
+    } else {
+        drag_outline_move(connection, (struct geometry_s) {
+                    { new_x, new_y },
+                    { s_drag.client_start.dim.w,
+                        s_drag.client_start.dim.h } });
+    }
+
+    if (show_geom) {
+        char geom_buf[24];
+
+        (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
+                (int) new_x, (int) new_y);
+        drag_overlay_show(connection, false, (struct geometry_s) {
+                    { new_x, new_y },
+                    { s_drag.client_start.dim.w,
+                        s_drag.client_start.dim.h } },
+                geom_buf);
+    } else {
+        drag_overlay_hide(connection);
+    }
+    drag_warp_edge_check((int16_t) root_pos.x,
+            (int16_t) root_pos.y);
+}
+
+
+/**
+ * @brief Work out the geometry a resize drag has reached
+ *
+ * Applies the anchor the drag started from, the snapping, and every
+ * size hint the client declared, in that order.
+ *
+ * @param client Client being resized
+ * @param dx     Pointer displacement since the drag began, on X
+ * @param dy     The same, on Y
+ * @param out    Receives the position and dimensions reached
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_resize_geometry(client_td *client, int32_t dx,
+        int32_t dy, struct geometry_s *out)
+{
+    uint32_t drag_dist_w = (uint32_t) ((dx < 0) ? -dx : dx);
+    uint32_t drag_dist_h = (uint32_t) ((dy < 0) ? -dy : dy);
+    int32_t new_x = s_drag.client_start.pos.x;
+    int32_t new_y = s_drag.client_start.pos.y;
+    uint32_t new_w;
+    uint32_t new_h;
+    uint32_t resize_ext_w;
+    uint32_t resize_ext_h;
+    uint32_t resize_content_w;
+    uint32_t resize_content_h;
+    uint32_t resize_floor_w;
+    uint32_t resize_floor_h;
+    uint32_t resize_constrained_w;
+    uint32_t resize_constrained_h;
+    uint32_t resistance = (client->config != NULL)
+        ? client->config->base.windows.edges.resistance : 0u;
+
+    /* A maximize-locked axis is not fixed for the whole drag the way
+     * it is for every other client, so the flags are recomputed on
+     * every update rather than read once at the start */
+    drag_resist_axis_update(drag_dist_w, drag_dist_h, resistance);
+
+    /* Determine resize direction from the anchor computed at drag
+     * start.  When 'is_anchor_right' is set the right edge is fixed
+     * and we resize from the left: the window moves and
+     * shrinks/grows as the pointer moves right/left.  Similarly for
+     * 'is_anchor_bottom' and the top edge.  When an axis is not
+     * actively resized its dimension is frozen at the start value
+     * so that client_size_constrain cannot floor it due to
+     * sub-increment pointer noise, which would cause size-hinted
+     * clients to lose a row or column and enter
+     * a 'ConfigureRequest' loop. */
+    if (!s_drag.is_resize_w) {
+        new_w = s_drag.client_start.dim.w;
+    } else if (s_drag.is_anchor_right) {
+        int32_t clamped_dx = dx;
+        int32_t min_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
+
+        if ((int32_t) s_drag.client_start.dim.w - clamped_dx < min_w) {
+            clamped_dx = (int32_t) s_drag.client_start.dim.w - min_w;
+        }
+        new_x = s_drag.client_start.pos.x + clamped_dx;
+        new_w = geom_dim_clamp(
+                (int32_t) s_drag.client_start.dim.w - clamped_dx);
+    } else {
+        new_w = geom_dim_clamp(
+                (int32_t) s_drag.client_start.dim.w + dx);
+    }
+
+    if (!s_drag.is_resize_h) {
+        new_h = s_drag.client_start.dim.h;
+    } else if (s_drag.is_anchor_bottom) {
+        int32_t clamped_dy = dy;
+        int32_t min_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
+
+        if ((int32_t) s_drag.client_start.dim.h - clamped_dy < min_h) {
+            clamped_dy = (int32_t) s_drag.client_start.dim.h - min_h;
+        }
+        new_y = s_drag.client_start.pos.y + clamped_dy;
+        new_h = geom_dim_clamp(
+                (int32_t) s_drag.client_start.dim.h - clamped_dy);
+    } else {
+        new_h = geom_dim_clamp(
+                (int32_t) s_drag.client_start.dim.h + dy);
+    }
+
+    drag_snap_resize(&new_x, &new_y, &new_w, &new_h);
+
+    /* 'client_size_constrain' (client/geom.c) expects its
+     * width/height in terms of the client's content window
+     * (what its 'WM_NORMAL_HINTS' actually describe, per
+     * ICCCM), not 'new_w'/'new_h' here, which are frame-relative
+     * (this whole function's 'client_start.dim.w'/'.h', what
+     * they were seeded from, already store 'geometry.cur.dim.w'/
+     * '.h', established elsewhere ('ci_create_decorations', in
+     * 'client/geom.c') as the frame's total, decoration
+     * included), converted here to content space, constrained, then
+     * back, the same round trip 's_kb_resize_axis_target'
+     * ('input/kbd/interact.c') already makes for the keyboard
+     * resize path.
+     *
+     * Only ever grows either dimension past what the drag alone
+     * would have left it at, never shrinks one back down, since
+     * that would fight the user's drag instead of merely
+     * flooring it. */
+    resize_ext_w = (uint32_t) client->layout.frame_extents.left +
+        (uint32_t) client->layout.frame_extents.right;
+    resize_ext_h = (uint32_t) client->layout.frame_extents.top +
+        (uint32_t) client->layout.frame_extents.bottom;
+    resize_content_w = (new_w > resize_ext_w)
+        ? (uint32_t) new_w - resize_ext_w : 0u;
+    resize_content_h = (new_h > resize_ext_h)
+        ? (uint32_t) new_h - resize_ext_h : 0u;
+    resize_floor_w = resize_ext_w + WM_MIN_WINDOW_DIMENSION;
+    resize_floor_h = resize_ext_h + WM_MIN_WINDOW_DIMENSION;
+
+    client_size_constrain(client,
+            &resize_content_w, &resize_content_h);
+    resize_constrained_w = resize_content_w + resize_ext_w;
+    resize_constrained_h = resize_content_h + resize_ext_h;
+    if (resize_constrained_w < resize_floor_w) {
+        resize_constrained_w = resize_floor_w;
+    }
+    if (resize_constrained_h < resize_floor_h) {
+        resize_constrained_h = resize_floor_h;
+    }
+
+    if (s_drag.is_anchor_right &&
+            resize_constrained_w > (uint32_t) new_w) {
+        new_x -= (int32_t) (resize_constrained_w - (uint32_t) new_w);
+    }
+    if (s_drag.is_anchor_bottom &&
+            resize_constrained_h > (uint32_t) new_h) {
+        new_y -= (int32_t) (resize_constrained_h - (uint32_t) new_h);
+    }
+    new_w = geom_dim_clamp((int32_t) resize_constrained_w);
+    new_h = geom_dim_clamp((int32_t) resize_constrained_h);
+
+    out->pos.x = new_x;
+    out->pos.y = new_y;
+    out->dim.w = new_w;
+    out->dim.h = new_h;
+}
+
+
+/**
+ * @brief Show the size overlay while a resize drag is under way
+ *
+ * @param connection XCB connection
+ * @param client     Client being resized
+ * @param reached    Geometry the drag has reached
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_resize_show_geometry(xcb_connection_t *connection,
+        client_td *client, struct geometry_s reached)
+{
+    /* 'reached.dim.w'/'reached.dim.h' are the decorated frame's total
+     * (border and titlebar included, established elsewhere; see
+     * 'ci_create_decorations', in client/geom.c), the same as
+     * 'client->layout.geometry.cur.dim' itself, but both the
+     * size hints below (ICCCM, always about a client's
+     * content, decoration notwithstanding) and the geometry
+     * text shown here are about that content alone, so convert
+     * to content space first, the same round trip the
+     * resize-floor block above already makes. */
+    uint32_t ext_w = (uint32_t)
+    client->layout.frame_extents.left +
+        (uint32_t) client->layout.frame_extents.right;
+    uint32_t ext_h = (uint32_t) client->layout.frame_extents.top +
+        (uint32_t) client->layout.frame_extents.bottom;
+    uint32_t content_w = (reached.dim.w > ext_w)
+        ? reached.dim.w - ext_w : 0u;
+    uint32_t content_h = (reached.dim.h > ext_h)
+        ? reached.dim.h - ext_h : 0u;
+    char geom_buf[24];
+
+    if (client->hints_icccm.size.inc.w > 1 &&
+            client->hints_icccm.size.inc.h > 1) {
+        /* ICCCM §4.1.2.3: falls back to 'MIN_SIZE' as the grid
+         * base */
+        uint32_t base_w = (client->hints_icccm.size.base.w > 0)
+            ? client->hints_icccm.size.base.w
+            : ((client->hints_icccm.size.min.w > 0)
+                    ? client->hints_icccm.size.min.w : 0u);
+        uint32_t base_h = (client->hints_icccm.size.base.h > 0)
+            ? client->hints_icccm.size.base.h
+            : ((client->hints_icccm.size.min.h > 0)
+                    ? client->hints_icccm.size.min.h : 0u);
+        uint32_t inc_w = client->hints_icccm.size.inc.w;
+        uint32_t inc_h = client->hints_icccm.size.inc.h;
+        uint32_t cols = ((content_w > base_w)
+                ? (content_w - base_w) : 0u) / inc_w;
+        uint32_t lines = ((content_h > base_h)
+                ? (content_h - base_h) : 0u) / inc_h;
+
+        /* Cell count, columns by lines, for a terminal */
+        (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
+                cols, lines);
+        /* Raw pixel dimensions */
+        /*
+        (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
+                reached.dim.w, reached.dim.h);
+        */
+    } else {
+        /* Raw pixel dimensions, content only, not the decorated
+         * frame's total; see this block's comment above */
+        (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
+                content_w, content_h);
+    }
+    drag_overlay_show(connection, false, (struct geometry_s) {
+                { reached.pos.x, reached.pos.y },
+                { s_drag_dim_sat(reached.dim.w),
+                  s_drag_dim_sat(reached.dim.h) } },
+            geom_buf);
+}
+
+
+/**
+ * @brief Follow the pointer while a client window is resized
+ *
+ * @param connection XCB connection
+ * @param client     Client being resized
+ * @param dx         Pointer displacement since the drag began, on X
+ * @param dy         The same, on Y
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_update_resize(xcb_connection_t *connection,
+        client_td *client, int32_t dx, int32_t dy)
+{
+    const bool show_geom = client->config != NULL &&
+        client->config->base.windows.show_geom;
+    struct geometry_s reached;
+
+    s_drag_resize_geometry(client, dx, dy, &reached);
+    s_drag.client_cur = reached;
+
+    if (s_drag.is_solid_drag) {
+        enact_client_resize(client, reached);
+    } else {
+        drag_outline_move(connection, reached);
+    }
+
+    if (show_geom) {
+        s_drag_resize_show_geometry(connection, client, reached);
+    } else {
+        drag_overlay_hide(connection);
+    }
+}
+
+
 void drag_start(xcb_connection_t *connection, xcb_window_t root,
         client_td *client, desktop_td *desktop,
         enum window_operation_e operation,
@@ -468,298 +832,11 @@ void drag_update(xcb_connection_t *connection,
     if (s_drag.operation == CLIENT_OPERATION_MOVING &&
             s_drag.drag_window != XCB_WINDOW_NONE &&
             s_drag.drag_window == client->icon_window) {
-        bool show_geom = client->config != NULL &&
-            client->config->base.icons.show_geom;
-        int32_t new_x = s_drag.client_start.pos.x + dx;
-        int32_t new_y = s_drag.client_start.pos.y + dy;
-        uint32_t vals[2];
-
-        s_drag.client_cur.pos.x = new_x;
-        s_drag.client_cur.pos.y = new_y;
-
-        vals[0] = (uint32_t) new_x;
-        vals[1] = (uint32_t) new_y;
-        xcb_configure_window(connection, client->icon_window,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
-
-        if (show_geom) {
-            char geom_buf[24];
-
-            (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
-                    (int) new_x, (int) new_y);
-            drag_overlay_show(connection, true, (struct geometry_s) {
-                        { new_x, new_y },
-                        { WM_ICON_SQUARE_SIZE,
-                            drag_icon_height(client) } },
-                    geom_buf);
-        } else {
-            drag_overlay_hide(connection);
-        }
-        drag_warp_edge_check((int16_t) root_pos.x,
-                (int16_t) root_pos.y);
-        xcb_flush(connection);
+        s_drag_update_icon(connection, client, dx, dy, root_pos);
     } else if (s_drag.operation == CLIENT_OPERATION_MOVING) {
-        bool show_geom = client->config != NULL &&
-            client->config->base.windows.show_geom;
-        int32_t new_x = s_drag.client_start.pos.x + dx;
-        int32_t new_y = s_drag.client_start.pos.y + dy;
-
-        drag_snap_move(&new_x, &new_y,
-                s_drag.client_start.dim.w, s_drag.client_start.dim.h);
-
-        /* A client maximized on just one axis has nothing valid to
-         * move to on that axis at all: its width (horizontally
-         * maximized) or height (vertically maximized) already fills
-         * the whole workarea, so the one position that still fits is
-         * the one it started this drag at.  Pinned after snapping,
-         * not before, so nothing above can nudge it away from that
-         * exact starting value regardless. */
-        if (s_drag.is_move_x_locked) {
-            new_x = s_drag.client_start.pos.x;
-        }
-        if (s_drag.is_move_y_locked) {
-            new_y = s_drag.client_start.pos.y;
-        }
-
-        s_drag.client_cur.pos.x = new_x;
-        s_drag.client_cur.pos.y = new_y;
-        if (s_drag.is_solid_drag) {
-            enact_client_move(client,
-                    (struct position_s) { new_x, new_y });
-        } else {
-            drag_outline_move(connection, (struct geometry_s) {
-                        { new_x, new_y },
-                        { s_drag.client_start.dim.w,
-                            s_drag.client_start.dim.h } });
-        }
-
-        if (show_geom) {
-            char geom_buf[24];
-
-            (void) snprintf(geom_buf, sizeof(geom_buf), "%+d%+d",
-                    (int) new_x, (int) new_y);
-            drag_overlay_show(connection, false, (struct geometry_s) {
-                        { new_x, new_y },
-                        { s_drag.client_start.dim.w,
-                            s_drag.client_start.dim.h } },
-                    geom_buf);
-        } else {
-            drag_overlay_hide(connection);
-        }
-        drag_warp_edge_check((int16_t) root_pos.x,
-                (int16_t) root_pos.y);
+        s_drag_update_move(connection, client, dx, dy, root_pos);
     } else if (s_drag.operation == CLIENT_OPERATION_RESIZING) {
-        bool show_geom = client->config != NULL &&
-            client->config->base.windows.show_geom;
-        uint32_t resistance = (client->config != NULL)
-            ? client->config->base.windows.edges.resistance : 0u;
-        uint32_t drag_dist_w = (uint32_t) (dx < 0 ? -dx : dx);
-        uint32_t drag_dist_h = (uint32_t) (dy < 0 ? -dy : dy);
-        int32_t new_x = s_drag.client_start.pos.x;
-        int32_t new_y = s_drag.client_start.pos.y;
-        uint32_t new_w;
-        uint32_t new_h;
-        uint32_t resize_ext_w;
-        uint32_t resize_ext_h;
-        uint32_t resize_content_w;
-        uint32_t resize_content_h;
-        uint32_t resize_floor_w;
-        uint32_t resize_floor_h;
-        uint32_t resize_constrained_w;
-        uint32_t resize_constrained_h;
-
-        /* A maximize-locked axis is not fixed for the whole drag the
-         * way every other frozen axis below still is: recomputed
-         * fresh on every single motion event against how far the
-         * drag has come from its start so far, in whichever
-         * direction that axis moves in at all, so dragging back
-         * under the threshold before releasing re-freezes it at
-         * exactly 'client_start' again, the exact same reversible
-         * behavior Openbox's 'do_resize' (moveresize.c) applies
-         * to its identical 'config_resist_edge'; see 'drag_resist_
-         * axis_update''s doc comment, drag/resist.h, for the
-         * fuller reasoning, including why state syncs live here only
-         * under 'is_solid_drag'. */
-        drag_resist_axis_update(drag_dist_w, drag_dist_h, resistance);
-
-        if (s_drag.is_resist_axis_w || s_drag.is_resist_axis_h) {
-            LOGGER_TRACE("Resist threshold (dx=%d, dy=%d," \
-                    " drag-dist-w=%u, drag-dist-h=%u, resistance=%u," \
-                    " resist-w=%d, resist-h=%d, resize-w=%d," \
-                    " resize-h=%d)",
-                    dx, dy, drag_dist_w, drag_dist_h, resistance,
-                    (int) s_drag.is_resist_axis_w,
-                    (int) s_drag.is_resist_axis_h,
-                    (int) s_drag.is_resize_w, (int) s_drag.is_resize_h);
-        }
-
-        /* Determine resize direction from the anchor computed at drag
-         * start.  When 'is_anchor_right' is set the right edge is fixed
-         * and we resize from the left: the window moves and
-         * shrinks/grows as the pointer moves right/left.  Similarly for
-         * 'is_anchor_bottom' and the top edge.  When an axis is not
-         * actively resized its dimension is frozen at the start value
-         * so that client_size_constrain cannot floor it due to
-         * sub-increment pointer noise, which would cause size-hinted
-         * clients to lose a row or column and enter
-         * a 'ConfigureRequest' loop. */
-        if (!s_drag.is_resize_w) {
-            new_w = s_drag.client_start.dim.w;
-        } else if (s_drag.is_anchor_right) {
-            int32_t clamped_dx = dx;
-            int32_t min_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
-
-            if ((int32_t) s_drag.client_start.dim.w - clamped_dx < min_w) {
-                clamped_dx = (int32_t) s_drag.client_start.dim.w - min_w;
-            }
-            new_x = s_drag.client_start.pos.x + clamped_dx;
-            new_w = geom_dim_clamp(
-                    (int32_t) s_drag.client_start.dim.w - clamped_dx);
-        } else {
-            new_w = geom_dim_clamp(
-                    (int32_t) s_drag.client_start.dim.w + dx);
-        }
-
-        if (!s_drag.is_resize_h) {
-            new_h = s_drag.client_start.dim.h;
-        } else if (s_drag.is_anchor_bottom) {
-            int32_t clamped_dy = dy;
-            int32_t min_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
-
-            if ((int32_t) s_drag.client_start.dim.h - clamped_dy < min_h) {
-                clamped_dy = (int32_t) s_drag.client_start.dim.h - min_h;
-            }
-            new_y = s_drag.client_start.pos.y + clamped_dy;
-            new_h = geom_dim_clamp(
-                    (int32_t) s_drag.client_start.dim.h - clamped_dy);
-        } else {
-            new_h = geom_dim_clamp(
-                    (int32_t) s_drag.client_start.dim.h + dy);
-        }
-
-        drag_snap_resize(&new_x, &new_y, &new_w, &new_h);
-
-        /* 'client_size_constrain' (client/geom.c) expects its
-         * width/height in terms of the client's content window
-         * (what its 'WM_NORMAL_HINTS' actually describe, per
-         * ICCCM), not 'new_w'/'new_h' here, which are frame-relative
-         * (this whole function's 'client_start.dim.w'/'.h', what
-         * they were seeded from, already store 'geometry.cur.dim.w'/
-         * '.h', established elsewhere ('ci_create_decorations', in
-         * 'client/geom.c') as the frame's total, decoration
-         * included), converted here to content space, constrained, then
-         * back, the same round trip 's_kb_resize_axis_target'
-         * ('input/kbd/interact.c') already makes for the keyboard
-         * resize path.
-         *
-         * Only ever grows either dimension past what the drag alone
-         * would have left it at, never shrinks one back down, since
-         * that would fight the user's drag instead of merely
-         * flooring it. */
-        resize_ext_w = (uint32_t) client->layout.frame_extents.left +
-            (uint32_t) client->layout.frame_extents.right;
-        resize_ext_h = (uint32_t) client->layout.frame_extents.top +
-            (uint32_t) client->layout.frame_extents.bottom;
-        resize_content_w = (new_w > resize_ext_w)
-            ? (uint32_t) new_w - resize_ext_w : 0u;
-        resize_content_h = (new_h > resize_ext_h)
-            ? (uint32_t) new_h - resize_ext_h : 0u;
-        resize_floor_w = resize_ext_w + WM_MIN_WINDOW_DIMENSION;
-        resize_floor_h = resize_ext_h + WM_MIN_WINDOW_DIMENSION;
-
-        client_size_constrain(client,
-                &resize_content_w, &resize_content_h);
-        resize_constrained_w = resize_content_w + resize_ext_w;
-        resize_constrained_h = resize_content_h + resize_ext_h;
-        if (resize_constrained_w < resize_floor_w) {
-            resize_constrained_w = resize_floor_w;
-        }
-        if (resize_constrained_h < resize_floor_h) {
-            resize_constrained_h = resize_floor_h;
-        }
-
-        if (s_drag.is_anchor_right &&
-                resize_constrained_w > (uint32_t) new_w) {
-            new_x -= (int32_t) (resize_constrained_w - (uint32_t) new_w);
-        }
-        if (s_drag.is_anchor_bottom &&
-                resize_constrained_h > (uint32_t) new_h) {
-            new_y -= (int32_t) (resize_constrained_h - (uint32_t) new_h);
-        }
-        new_w = geom_dim_clamp((int32_t) resize_constrained_w);
-        new_h = geom_dim_clamp((int32_t) resize_constrained_h);
-
-        s_drag.client_cur.pos.x = new_x;
-        s_drag.client_cur.pos.y = new_y;
-        s_drag.client_cur.dim.w = new_w;
-        s_drag.client_cur.dim.h = new_h;
-        if (s_drag.is_solid_drag) {
-            enact_client_resize(client,
-                    (struct geometry_s) {
-                        { new_x, new_y }, { new_w, new_h } });
-        } else {
-            drag_outline_move(connection, (struct geometry_s) {
-                        { new_x, new_y }, { new_w, new_h } });
-        }
-        if (show_geom) {
-            /* 'new_w'/'new_h' are the decorated frame's total
-             * (border and titlebar included, established elsewhere; see
-             * 'ci_create_decorations', in client/geom.c), the same as
-             * 'client->layout.geometry.cur.dim' itself, but both the
-             * size hints below (ICCCM, always about a client's
-             * content, decoration notwithstanding) and the geometry
-             * text shown here are about that content alone, so convert
-             * to content space first, the same round trip the
-             * resize-floor block above already makes. */
-            uint32_t ext_w = (uint32_t)
-            client->layout.frame_extents.left +
-                (uint32_t) client->layout.frame_extents.right;
-            uint32_t ext_h = (uint32_t) client->layout.frame_extents.top +
-                (uint32_t) client->layout.frame_extents.bottom;
-            uint32_t content_w = (new_w > ext_w) ? new_w - ext_w : 0u;
-            uint32_t content_h = (new_h > ext_h) ? new_h - ext_h : 0u;
-            char geom_buf[24];
-
-            if (client->hints_icccm.size.inc.w > 1 &&
-                    client->hints_icccm.size.inc.h > 1) {
-                /* ICCCM §4.1.2.3: falls back to 'MIN_SIZE' as the grid
-                 * base */
-                uint32_t base_w = (client->hints_icccm.size.base.w > 0)
-                    ? client->hints_icccm.size.base.w
-                    : ((client->hints_icccm.size.min.w > 0)
-                            ? client->hints_icccm.size.min.w : 0u);
-                uint32_t base_h = (client->hints_icccm.size.base.h > 0)
-                    ? client->hints_icccm.size.base.h
-                    : ((client->hints_icccm.size.min.h > 0)
-                            ? client->hints_icccm.size.min.h : 0u);
-                uint32_t inc_w = client->hints_icccm.size.inc.w;
-                uint32_t inc_h = client->hints_icccm.size.inc.h;
-                uint32_t cols = ((content_w > base_w)
-                        ? (content_w - base_w) : 0u) / inc_w;
-                uint32_t lines = ((content_h > base_h)
-                        ? (content_h - base_h) : 0u) / inc_h;
-
-                /* Cell count, columns by lines, for a terminal */
-                (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
-                        cols, lines);
-                /* Raw pixel dimensions */
-                /*
-                (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
-                        new_w, new_h);
-                */
-            } else {
-                /* Raw pixel dimensions, content only, not the decorated
-                 * frame's total; see this block's comment above */
-                (void) snprintf(geom_buf, sizeof(geom_buf), "%ux%u",
-                        content_w, content_h);
-            }
-            drag_overlay_show(connection, false, (struct geometry_s) {
-                        { new_x, new_y },
-                        { s_drag_dim_sat(new_w), s_drag_dim_sat(new_h) } },
-                    geom_buf);
-        } else {
-            drag_overlay_hide(connection);
-        }
+        s_drag_update_resize(connection, client, dx, dy);
     }
 }
 

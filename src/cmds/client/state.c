@@ -234,6 +234,308 @@ static void s_client_unshade_if_needed(client_td *client)
 }
 
 
+/**
+ * @brief Strip a client's decoration and reparent it to the root
+ *
+ * @param client Client losing its decoration
+ * @param bw     Border width the client had while decorated
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
+{
+    if (client->frame != 0) {
+        struct geometry_s inner;
+        int32_t inner_w =
+            (int32_t) client->layout.geometry.cur.dim.w -
+            client->layout.frame_extents.left -
+            client->layout.frame_extents.right;
+        int32_t inner_h =
+            (int32_t) client->layout.geometry.cur.dim.h -
+            client->layout.frame_extents.top -
+            client->layout.frame_extents.bottom;
+
+        inner.pos.x = client->layout.geometry.cur.pos.x +
+            client->layout.frame_extents.left;
+        inner.pos.y = client->layout.geometry.cur.pos.y +
+            client->layout.frame_extents.top;
+
+        if (inner_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+            inner_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
+        }
+        if (inner_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+            inner_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
+        }
+
+        /* Above, 'inner.pos' keeps the content's own top-left
+         * corner fixed on screen, correct outright for
+         * 'CLIENT_GRAVITY_NORTH_WEST' (the ICCCM default) and
+         * 'CLIENT_GRAVITY_STATIC', for which this call is a
+         * no-op; for any other gravity a client's own
+         * 'WM_NORMAL_HINTS' actually requested, this adds
+         * whatever further displacement keeps that gravity's own
+         * anchor fixed instead, given the frame shrinking from
+         * its decorated outer size down to this content's own,
+         * now-undecorated one. */
+        client_gravity_adjust_pos(&inner.pos.x, &inner.pos.y,
+                client->layout.geometry.cur.dim.w,
+                client->layout.geometry.cur.dim.h,
+                (uint32_t) inner_w, (uint32_t) inner_h,
+                client->layout.gravity);
+
+        inner.dim.w = (uint32_t) inner_w;
+        inner.dim.h = (uint32_t) inner_h;
+
+        if (client->titlebar != 0) {
+            xcb_destroy_window(client->connection, client->titlebar);
+            client->titlebar = 0;
+        }
+
+        /* Reparenting generates a synthetic 'UnmapNotify' for the
+         * content window.  Absorb it so 'handler_unmap_notify' does
+         * not mistake the event for a voluntary hide and does not
+         * steal focus from the window. */
+        client->ignore.unmap += 2u;
+        client->ignore.focus_unmap++;
+        xcb_reparent_window(client->connection,
+                client->window,
+                client->parent_id,
+                (int16_t) inner.pos.x, (int16_t) inner.pos.y);
+
+        ccmd_client_apply_geometry(client, client->window,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                    (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                    (uint16_t) XCB_CONFIG_WINDOW_HEIGHT |
+                    (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                inner.pos.x, inner.pos.y,
+                inner.dim.w, inner.dim.h, (uint32_t) bw);
+
+        xcb_destroy_window(client->connection, client->frame);
+        client->frame = 0;
+
+        client->layout.geometry.cur.pos.x = inner.pos.x;
+        client->layout.geometry.cur.pos.y = inner.pos.y;
+        client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
+        client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
+
+        /* Keeps 'client_border_apply' (client.c) from seeing
+         * a stale 'last_border_width' the moment focus is
+         * reapplied a few lines below (via 'ccmd_client_focus'):
+         * without this, that call would compare its own freshly
+         * computed width against whatever this field happened to
+         * hold from this same client's own last undecorated
+         * period (or 'UINT32_MAX' if there never was one), and
+         * shift the position it just correctly set above by
+         * whatever spurious delta that comparison produces, on
+         * every single toggle. */
+        client->last_border_width = (uint32_t) bw;
+    } else {
+        ccmd_client_apply_geometry(client, client->window,
+                (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                0, 0, 0u, 0u, (uint32_t) bw);
+        client->last_border_width = (uint32_t) bw;
+    }
+
+    client->layout.frame_extents.left = 0;
+    client->layout.frame_extents.right = 0;
+    client->layout.frame_extents.top = 0;
+    client->layout.frame_extents.bottom = 0;
+    client_undecorate(client);
+    ccmd_client_grab_buttons(client);
+
+    ccmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
+}
+
+
+/**
+ * @brief Give a client its decoration back, frame and titlebar
+ *
+ * @param client Client regaining its decoration
+ * @param bw     Border width to apply once framed
+ * @param th     Titlebar height the theme asks for
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
+        int32_t th)
+{
+    if (client->frame == 0) {
+        s_client_enable_decoration(client, bw, th);
+    } else {
+        struct geometry_s frame;
+        int32_t frame_w =
+            (int32_t) client->layout.geometry.cur.dim.w + 2 * bw;
+        int32_t frame_h =
+            (int32_t) client->layout.geometry.cur.dim.h + 2 * bw + th;
+
+        frame.pos.x = client->layout.geometry.cur.pos.x - bw;
+        frame.pos.y = client->layout.geometry.cur.pos.y - (bw + th);
+
+        if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+            frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
+        }
+
+        if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
+            frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
+        }
+
+        /* Same reasoning as the remove-decoration branch above,
+         * mirrored: the baseline 'frame.pos' keeps the content's
+         * own top-left corner fixed, correct outright for
+         * 'CLIENT_GRAVITY_NORTH_WEST'/'STATIC'; any other gravity
+         * gets whatever further displacement keeps its own
+         * anchor fixed instead, now going from this content's
+         * own undecorated size up to the restored frame's own,
+         * larger one. */
+        client_gravity_adjust_pos(&frame.pos.x, &frame.pos.y,
+                client->layout.geometry.cur.dim.w,
+                client->layout.geometry.cur.dim.h,
+                (uint32_t) frame_w, (uint32_t) frame_h,
+                client->layout.gravity);
+
+        frame.dim.w = (uint32_t) frame_w;
+        frame.dim.h = (uint32_t) frame_h;
+
+        ccmd_client_apply_geometry(client, client->frame,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                    (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                    (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
+                frame.pos.x, frame.pos.y,
+                frame.dim.w, frame.dim.h, 0u);
+
+        ccmd_client_apply_geometry(client, client->window,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                    (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                    (uint16_t) XCB_CONFIG_WINDOW_HEIGHT |
+                    (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
+                bw, bw + th,
+                client->layout.geometry.cur.dim.w,
+                client->layout.geometry.cur.dim.h, 0u);
+
+        if (client->titlebar != 0) {
+            ccmd_client_apply_geometry(client, client->titlebar,
+                    (uint16_t) XCB_CONFIG_WINDOW_X |
+                        (uint16_t) XCB_CONFIG_WINDOW_Y |
+                        (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                        (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
+                    bw, bw,
+                    client->layout.geometry.cur.dim.w,
+                    (uint32_t) th, 0u);
+            xcb_map_window(client->connection, client->titlebar);
+        }
+        xcb_map_window(client->connection, client->frame);
+        xcb_map_window(client->connection, client->window);
+
+        client->layout.geometry.cur.pos.x = frame.pos.x;
+        client->layout.geometry.cur.pos.y = frame.pos.y;
+        client->layout.geometry.cur.dim.w = (uint16_t) frame_w;
+        client->layout.geometry.cur.dim.h = (uint16_t) frame_h;
+        client->layout.frame_extents.left = bw;
+        client->layout.frame_extents.right = bw;
+        client->layout.frame_extents.top = bw + th;
+        client->layout.frame_extents.bottom = bw;
+        client_decorate(client);
+
+        ccmd_publish_frame_extents(client,
+                (uint32_t) bw, (uint32_t) bw,
+                (uint32_t) (bw + th), (uint32_t) bw);
+    }
+}
+
+
+/**
+ * @brief Recompute a maximized client's geometry after the toggle
+ *
+ * The workarea a maximized client fills does not change, but the
+ * frame extents it is measured against just did, so the geometry has
+ * to be worked out again rather than kept.
+ *
+ * @param client Client to recompute
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_decorate_remaximize(client_td *client)
+{
+    /* A maximized client's own geometry, computed just above, only ever
+     * grows or shrinks its existing frame in place around whatever
+     * position/size that already was (exactly right for an ordinary
+     * client, but not for one that was filling the workarea a moment
+     * ago).  Decoration changes how much of that area its own frame
+     * extents eat into, so what it should still fill afterward is the
+     * workarea itself, not "whatever it already had, offset by however
+     * much bigger or smaller its own frame extents just became".
+     * Recomputed here instead, against 'ccmd_client_resolve_workarea'
+     * (the same resolution 'ccmd_client_maximize' itself already uses),
+     * so the client ends up exactly refilling the workarea under its
+     * new decorated state, the same as if it had only just been
+     * maximized now.
+     *
+     * Only the axis (or axes) 'client->properties.state' itself
+     * actually names gets touched: a client maximized on one axis alone
+     * leaves its own other axis exactly as the base decorate/
+     * undecorate logic above already placed it, rather than growing it
+     * to fill the workarea too and silently turning a horizontal- or
+     * vertical-only maximize into a full one. */
+    if (client_is_maximized_any(client)) {
+        int32_t mx = 0;
+        int32_t my = 0;
+        uint16_t sw;
+        uint16_t sh;
+
+        if (ccmd_client_resolve_workarea(client, &mx, &my, &sw, &sh)) {
+            xcb_window_t target = ccmd_target_win(client);
+            bool touch_x = client->properties.state !=
+                (uint16_t) CLIENT_STATE_MAXIMIZED_VERT;
+            bool touch_y = client->properties.state !=
+                (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+            /* This function always ends by focusing 'client' (see
+             * 'keep_focus' below), so its border width right after
+             * this toggle is always the active one, regardless of
+             * whichever one it had a moment ago. */
+            /* 'ignore_frame=false': by this point the decorate/
+             * undecorate branch above has already settled, so
+             * 'client->frame' now correctly reflects whether one
+             * exists; for a now-decorated client this correctly stays
+             * 0, since the frame's own size (not an additional
+             * border atop it) already fills the workarea, matching
+             * 'target' being the frame itself just below. */
+            uint32_t border = 2u * client_border_width(client, true,
+                    false);
+            uint16_t mask = 0u;
+
+            sw = (uint16_t) ((sw > border) ? sw - border : 0u);
+            sh = (uint16_t) ((sh > border) ? sh - border : 0u);
+
+            if (touch_x) {
+                mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_WIDTH;
+                client->layout.geometry.cur.pos.x = mx;
+                client->layout.geometry.cur.dim.w = sw;
+            }
+            if (touch_y) {
+                mask |= XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_HEIGHT;
+                client->layout.geometry.cur.pos.y = my;
+                client->layout.geometry.cur.dim.h = sh;
+            }
+
+            if (mask != 0u) {
+                ccmd_client_apply_geometry(client, target, mask,
+                        client->layout.geometry.cur.pos.x,
+                        client->layout.geometry.cur.pos.y,
+                        client->layout.geometry.cur.dim.w,
+                        client->layout.geometry.cur.dim.h, 0u);
+            }
+
+            if (client->frame != 0) {
+                client_decoration_layout_sync(client);
+            }
+        }
+    }
+}
+
+
 /* Shade client (roll-up), if decorated */
 void ccmd_client_shade(client_td *client)
 {
@@ -856,267 +1158,12 @@ void ccmd_client_toggle_decorate(client_td *client)
     s_client_unshade_if_needed(client);
 
     if (client_is_decorated(client)) {  /* Remove decoration */
-        if (client->frame != 0) {
-            struct geometry_s inner;
-            int32_t inner_w =
-                (int32_t) client->layout.geometry.cur.dim.w -
-                client->layout.frame_extents.left -
-                client->layout.frame_extents.right;
-            int32_t inner_h =
-                (int32_t) client->layout.geometry.cur.dim.h -
-                client->layout.frame_extents.top -
-                client->layout.frame_extents.bottom;
-
-            inner.pos.x = client->layout.geometry.cur.pos.x +
-                client->layout.frame_extents.left;
-            inner.pos.y = client->layout.geometry.cur.pos.y +
-                client->layout.frame_extents.top;
-
-            if (inner_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-                inner_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
-            }
-            if (inner_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-                inner_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
-            }
-
-            /* Above, 'inner.pos' keeps the content's own top-left
-             * corner fixed on screen, correct outright for
-             * 'CLIENT_GRAVITY_NORTH_WEST' (the ICCCM default) and
-             * 'CLIENT_GRAVITY_STATIC', for which this call is a
-             * no-op; for any other gravity a client's own
-             * 'WM_NORMAL_HINTS' actually requested, this adds
-             * whatever further displacement keeps that gravity's own
-             * anchor fixed instead, given the frame shrinking from
-             * its decorated outer size down to this content's own,
-             * now-undecorated one. */
-            client_gravity_adjust_pos(&inner.pos.x, &inner.pos.y,
-                    client->layout.geometry.cur.dim.w,
-                    client->layout.geometry.cur.dim.h,
-                    (uint32_t) inner_w, (uint32_t) inner_h,
-                    client->layout.gravity);
-
-            inner.dim.w = (uint32_t) inner_w;
-            inner.dim.h = (uint32_t) inner_h;
-
-            if (client->titlebar != 0) {
-                xcb_destroy_window(client->connection, client->titlebar);
-                client->titlebar = 0;
-            }
-
-            /* Reparenting generates a synthetic 'UnmapNotify' for the
-             * content window.  Absorb it so 'handler_unmap_notify' does
-             * not mistake the event for a voluntary hide and does not
-             * steal focus from the window. */
-            client->ignore.unmap += 2u;
-            client->ignore.focus_unmap++;
-            xcb_reparent_window(client->connection,
-                    client->window,
-                    client->parent_id,
-                    (int16_t) inner.pos.x, (int16_t) inner.pos.y);
-
-            ccmd_client_apply_geometry(client, client->window,
-                    (uint16_t) XCB_CONFIG_WINDOW_X |
-                        (uint16_t) XCB_CONFIG_WINDOW_Y |
-                        (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
-                        (uint16_t) XCB_CONFIG_WINDOW_HEIGHT |
-                        (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                    inner.pos.x, inner.pos.y,
-                    inner.dim.w, inner.dim.h, (uint32_t) bw);
-
-            xcb_destroy_window(client->connection, client->frame);
-            client->frame = 0;
-
-            client->layout.geometry.cur.pos.x = inner.pos.x;
-            client->layout.geometry.cur.pos.y = inner.pos.y;
-            client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
-            client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
-
-            /* Keeps 'client_border_apply' (client.c) from seeing
-             * a stale 'last_border_width' the moment focus is
-             * reapplied a few lines below (via 'ccmd_client_focus'):
-             * without this, that call would compare its own freshly
-             * computed width against whatever this field happened to
-             * hold from this same client's own last undecorated
-             * period (or 'UINT32_MAX' if there never was one), and
-             * shift the position it just correctly set above by
-             * whatever spurious delta that comparison produces, on
-             * every single toggle. */
-            client->last_border_width = (uint32_t) bw;
-        } else {
-            ccmd_client_apply_geometry(client, client->window,
-                    (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                    0, 0, 0u, 0u, (uint32_t) bw);
-            client->last_border_width = (uint32_t) bw;
-        }
-
-        client->layout.frame_extents.left = 0;
-        client->layout.frame_extents.right = 0;
-        client->layout.frame_extents.top = 0;
-        client->layout.frame_extents.bottom = 0;
-        client_undecorate(client);
-        ccmd_client_grab_buttons(client);
-
-        ccmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
+        s_ccmd_decorate_remove(client, bw);
     } else {                            /* Restore decoration */
-        if (client->frame == 0) {
-            s_client_enable_decoration(client, bw, th);
-        } else {
-            struct geometry_s frame;
-            int32_t frame_w =
-                (int32_t) client->layout.geometry.cur.dim.w + 2 * bw;
-            int32_t frame_h =
-                (int32_t) client->layout.geometry.cur.dim.h + 2 * bw + th;
-
-            frame.pos.x = client->layout.geometry.cur.pos.x - bw;
-            frame.pos.y = client->layout.geometry.cur.pos.y - (bw + th);
-
-            if (frame_w < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-                frame_w = (int32_t) WM_MIN_WINDOW_DIMENSION;
-            }
-
-            if (frame_h < (int32_t) WM_MIN_WINDOW_DIMENSION) {
-                frame_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
-            }
-
-            /* Same reasoning as the remove-decoration branch above,
-             * mirrored: the baseline 'frame.pos' keeps the content's
-             * own top-left corner fixed, correct outright for
-             * 'CLIENT_GRAVITY_NORTH_WEST'/'STATIC'; any other gravity
-             * gets whatever further displacement keeps its own
-             * anchor fixed instead, now going from this content's
-             * own undecorated size up to the restored frame's own,
-             * larger one. */
-            client_gravity_adjust_pos(&frame.pos.x, &frame.pos.y,
-                    client->layout.geometry.cur.dim.w,
-                    client->layout.geometry.cur.dim.h,
-                    (uint32_t) frame_w, (uint32_t) frame_h,
-                    client->layout.gravity);
-
-            frame.dim.w = (uint32_t) frame_w;
-            frame.dim.h = (uint32_t) frame_h;
-
-            ccmd_client_apply_geometry(client, client->frame,
-                    (uint16_t) XCB_CONFIG_WINDOW_X |
-                        (uint16_t) XCB_CONFIG_WINDOW_Y |
-                        (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
-                        (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
-                    frame.pos.x, frame.pos.y,
-                    frame.dim.w, frame.dim.h, 0u);
-
-            ccmd_client_apply_geometry(client, client->window,
-                    (uint16_t) XCB_CONFIG_WINDOW_X |
-                        (uint16_t) XCB_CONFIG_WINDOW_Y |
-                        (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
-                        (uint16_t) XCB_CONFIG_WINDOW_HEIGHT |
-                        (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                    bw, bw + th,
-                    client->layout.geometry.cur.dim.w,
-                    client->layout.geometry.cur.dim.h, 0u);
-
-            if (client->titlebar != 0) {
-                ccmd_client_apply_geometry(client, client->titlebar,
-                        (uint16_t) XCB_CONFIG_WINDOW_X |
-                            (uint16_t) XCB_CONFIG_WINDOW_Y |
-                            (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
-                            (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
-                        bw, bw,
-                        client->layout.geometry.cur.dim.w,
-                        (uint32_t) th, 0u);
-                xcb_map_window(client->connection, client->titlebar);
-            }
-            xcb_map_window(client->connection, client->frame);
-            xcb_map_window(client->connection, client->window);
-
-            client->layout.geometry.cur.pos.x = frame.pos.x;
-            client->layout.geometry.cur.pos.y = frame.pos.y;
-            client->layout.geometry.cur.dim.w = (uint16_t) frame_w;
-            client->layout.geometry.cur.dim.h = (uint16_t) frame_h;
-            client->layout.frame_extents.left = bw;
-            client->layout.frame_extents.right = bw;
-            client->layout.frame_extents.top = bw + th;
-            client->layout.frame_extents.bottom = bw;
-            client_decorate(client);
-
-            ccmd_publish_frame_extents(client,
-                    (uint32_t) bw, (uint32_t) bw,
-                    (uint32_t) (bw + th), (uint32_t) bw);
-        }
+        s_ccmd_decorate_restore(client, bw, th);
     }
 
-    /* A maximized client's own geometry, computed just above, only ever
-     * grows or shrinks its existing frame in place around whatever
-     * position/size that already was (exactly right for an ordinary
-     * client, but not for one that was filling the workarea a moment
-     * ago).  Decoration changes how much of that area its own frame
-     * extents eat into, so what it should still fill afterward is the
-     * workarea itself, not "whatever it already had, offset by however
-     * much bigger or smaller its own frame extents just became".
-     * Recomputed here instead, against 'ccmd_client_resolve_workarea'
-     * (the same resolution 'ccmd_client_maximize' itself already uses),
-     * so the client ends up exactly refilling the workarea under its
-     * new decorated state, the same as if it had only just been
-     * maximized now.
-     *
-     * Only the axis (or axes) 'client->properties.state' itself
-     * actually names gets touched: a client maximized on one axis alone
-     * leaves its own other axis exactly as the base decorate/
-     * undecorate logic above already placed it, rather than growing it
-     * to fill the workarea too and silently turning a horizontal- or
-     * vertical-only maximize into a full one. */
-    if (client_is_maximized_any(client)) {
-        int32_t mx = 0;
-        int32_t my = 0;
-        uint16_t sw;
-        uint16_t sh;
-
-        if (ccmd_client_resolve_workarea(client, &mx, &my, &sw, &sh)) {
-            xcb_window_t target = ccmd_target_win(client);
-            bool touch_x = client->properties.state !=
-                (uint16_t) CLIENT_STATE_MAXIMIZED_VERT;
-            bool touch_y = client->properties.state !=
-                (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
-            /* This function always ends by focusing 'client' (see
-             * 'keep_focus' below), so its border width right after
-             * this toggle is always the active one, regardless of
-             * whichever one it had a moment ago. */
-            /* 'ignore_frame=false': by this point the decorate/
-             * undecorate branch above has already settled, so
-             * 'client->frame' now correctly reflects whether one
-             * exists; for a now-decorated client this correctly stays
-             * 0, since the frame's own size (not an additional
-             * border atop it) already fills the workarea, matching
-             * 'target' being the frame itself just below. */
-            uint32_t border = 2u * client_border_width(client, true,
-                    false);
-            uint16_t mask = 0u;
-
-            sw = (uint16_t) ((sw > border) ? sw - border : 0u);
-            sh = (uint16_t) ((sh > border) ? sh - border : 0u);
-
-            if (touch_x) {
-                mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_WIDTH;
-                client->layout.geometry.cur.pos.x = mx;
-                client->layout.geometry.cur.dim.w = sw;
-            }
-            if (touch_y) {
-                mask |= XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_HEIGHT;
-                client->layout.geometry.cur.pos.y = my;
-                client->layout.geometry.cur.dim.h = sh;
-            }
-
-            if (mask != 0u) {
-                ccmd_client_apply_geometry(client, target, mask,
-                        client->layout.geometry.cur.pos.x,
-                        client->layout.geometry.cur.pos.y,
-                        client->layout.geometry.cur.dim.w,
-                        client->layout.geometry.cur.dim.h, 0u);
-            }
-
-            if (client->frame != 0) {
-                client_decoration_layout_sync(client);
-            }
-        }
-    }
+    s_ccmd_decorate_remaximize(client);
 
     if (keep_focus) {
         if (desktop != NULL) {

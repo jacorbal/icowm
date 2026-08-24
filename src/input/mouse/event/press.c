@@ -4,10 +4,10 @@
  * @brief Mouse button-press handling
  *
  * One of the files @c input/mouse/event/ is made of;
- * everything here feeds @c mouse_handle_press specifically. Each
+ * everything here feeds @c mouse_handle_press specifically.  Each
  * non-trivial responsibility inside it has been extracted into its own
  * static function so the public entry point reads as a straightforward
- * sequence of checks rather than a monolith. Button release lives in
+ * sequence of checks rather than a monolith.  Button release lives in
  * @c input/mouse/event/release.c and enter-notify (including its own,
  * unrelated hover-focus state) lives in @c input/mouse/event/enter.c
  * instead, neither of which this file's own static helpers are ever

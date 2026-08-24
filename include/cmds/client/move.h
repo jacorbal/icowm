@@ -45,20 +45,20 @@
  * @param mask         Bitwise OR of whichever @c XCB_CONFIG_WINDOW_X/
  *                      @c _Y/@c _WIDTH/@c _HEIGHT/@c _BORDER_WIDTH
  *                      bits are actually changing
- * @param x            New X position, only applied if @c XCB_CONFIG_
- *                      WINDOW_X is set in @p mask
- * @param y            New Y position, only applied if @c XCB_CONFIG_
- *                      WINDOW_Y is set in @p mask
- * @param w            New width, only applied if @c XCB_CONFIG_
- *                      WINDOW_WIDTH is set in @p mask
- * @param h            New height, only applied if @c XCB_CONFIG_
- *                      WINDOW_HEIGHT is set in @p mask
+ * @param x            New X position, only applied when
+ *                     @c XCB_CONFIG_WINDOW_X is set in @p mask
+ * @param y            New Y position, only applied when
+ *                     @c XCB_CONFIG_WINDOW_Y is set in @p mask
+ * @param w            New width, only applied when
+ *                     @c XCB_CONFIG_WINDOW_WIDTH is set in @p mask
+ * @param h            New height, only applied when
+ *                     @c XCB_CONFIG_WINDOW_HEIGHT is set in @p mask
  * @param border_width New native border width, only applied if
  *                      @c XCB_CONFIG_WINDOW_BORDER_WIDTH is set in
  *                      @p mask
  *
- * @note A null @p client, one with no connection, or a @c XCB_WINDOW_
- *       NONE @p target is a silent no-op
+ * @note A null @p client, one with no connection, or a @p target of
+ *       @c XCB_WINDOW_NONE is a silent no-op
  * @note Implemented in @c cmds/client/geom.c
  * @note Complexity: @e O(1)
  */
@@ -113,16 +113,18 @@ void ccmd_client_move_to_monitor(client_td *client,
  * @brief Move the client to the monitor north of the current one on
  *        its own surface
  *
- * Resolves @p client's current monitor, then calls @a surface_
- * monitor_direction (surface.h) to find whichever one of the
- * surface's own monitors genuinely lies to the north of it, by real
+ * Resolves @p client's current monitor, then calls
+ * @a surface_monitor_direction in @c surface.h to find whichever one
+ * of the surface's own monitors genuinely lies to the north of it,
+ * by real
  * physical position rather than RandR's own arbitrary detection
  * order the way the array-index-based @c next/@c prev pair this
  * replaced did.  Deliberately never wraps around to the southmost
- * monitor once already at the northmost, the same as @c windows.
- * desktop's own move-to-desktop pair (@a enact_client_send_to_
- * desktop_north and its three siblings, enact.h) already does not,
- * by default, without @c desktops.wrap-at-bounds enabled: unlike
+ * monitor once already at the northmost, the same as the
+ * @c windows.desktop move-to-desktop pair,
+ * @a enact_client_send_to_desktop_north and its three siblings in
+ * @c enact.h, already does not by default, without
+ * @c desktops.wrap-at-bounds enabled: unlike
  * wrapping a definite, ordered list (a desktop's own circular list,
  * or the array order this pair used to walk before it had any real
  * spatial meaning), wrapping a genuinely 2-D physical arrangement

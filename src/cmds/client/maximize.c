@@ -332,7 +332,7 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
 
     /* Complete this single axis to full maximize: the other axis is
      * already the one currently maximized, so fold this one in from
-     * the workarea without disturbing it. Only reachable for a
+     * the workarea without disturbing it.  Only reachable for a
      * single-axis 'dir'. */
     if (dir == 1 && vert_now) {
         ccmd_client_apply_geometry(client, target,
@@ -368,7 +368,7 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
     /* Maximize fresh: either both axes at once ('dir == 0', which can
      * only still reach here with neither axis currently fully
      * maximized), or this single axis alone with the other left
-     * exactly as it is. Only remember the geometry to restore to if
+     * exactly as it is.  Only remember the geometry to restore to if
      * it is not already a maximized state's geometry, or restoring
      * later would land at whichever partial-maximize size happened
      * to be current instead of the window's true original one. */
