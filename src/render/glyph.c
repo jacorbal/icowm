@@ -36,33 +36,11 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
+/* Default initial values */
+#include <defs/text.h>
+
 /* Local includes */
 #include <render/glyph.h>
-
-
-/**
- * @brief Maximum distinct codepoints this renderer will cache and
- *        upload for one font
- *
- * A WM's own text uses a small, stable alphabet, so a flat array with
- * linear search is simpler than a hash table and fast enough at this
- * size
- */
-#define GLYPH_CACHE_MAX (512u)
-
-/**
- * @brief Fallback pixel size when fontconfig's match does not resolve
- *        one
- */
-#define GLYPH_DEFAULT_PIXEL_SIZE (12)
-
-/**
- * @brief Maximum codepoints drawn or measured in a single call
- *
- * Long enough for any label this window manager itself draws (window
- * titles, menu entries, dialog text)
- */
-#define GLYPH_MAX_STRING_LEN (512u)
 
 
 /**
@@ -88,7 +66,7 @@ static struct {
     xcb_render_glyphset_t glyphset;
     xcb_render_picture_t fg_picture;
     uint32_t fg_color;
-    s_glyph_cache_entry_td cache[GLYPH_CACHE_MAX];
+    s_glyph_cache_entry_td cache[WM_TEXT_GLYPH_CACHE_MAX];
     int16_t ascent;
     int16_t descent;
     uint16_t cache_count;
@@ -238,11 +216,11 @@ static bool s_resolve_font(const char *restrict font_name,
     (void) FcPatternGetInteger(matched, FC_INDEX, 0, &index);
     *out_face_index = index;
 
-    pixel_size = (double) GLYPH_DEFAULT_PIXEL_SIZE;
+    pixel_size = (double) WM_TEXT_GLYPH_DEFAULT_PIXEL_SIZE;
     (void) FcPatternGetDouble(matched, FC_PIXEL_SIZE, 0, &pixel_size);
     *out_pixel_size = (int) (pixel_size + 0.5);
     if (*out_pixel_size <= 0) {
-        *out_pixel_size = GLYPH_DEFAULT_PIXEL_SIZE;
+        *out_pixel_size = WM_TEXT_GLYPH_DEFAULT_PIXEL_SIZE;
     }
 
     FcPatternDestroy(matched);
@@ -291,9 +269,10 @@ static void s_render_objects_free(void)
  *         written to @p out_advance in that case, so a missing glyph
  *         does not throw off the layout of the rest of the string)
  *
- * @note Complexity: @e O(c), where @e c is @c GLYPH_CACHE_MAX, for the
- *       linear cache lookup; @e O(1) amortized in practice since the
- *       cache is small and lookups cluster around a stable alphabet
+ * @note Complexity: @e O(c), where @e c is
+ *       @c WM_TEXT_GLYPH_CACHE_MAX, for the linear cache lookup;
+ *       @e O(1) amortized in practice since the cache is small and
+ *       lookups cluster around a stable alphabet
  */
 static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
 {
@@ -371,7 +350,7 @@ static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
             (uint32_t) stride * (uint32_t) ginfo.height, padded);
     free(padded);
 
-    if (s_glyph.cache_count < GLYPH_CACHE_MAX) {
+    if (s_glyph.cache_count < WM_TEXT_GLYPH_CACHE_MAX) {
         s_glyph.cache[s_glyph.cache_count].codepoint = codepoint;
         s_glyph.cache[s_glyph.cache_count].advance_x = ginfo.x_off;
         ++s_glyph.cache_count;
@@ -565,7 +544,7 @@ void glyph_renderer_set_color(uint32_t fg, uint32_t bg)
 void glyph_draw_string(xcb_connection_t *connection,
         xcb_drawable_t drawable, struct position_s pos, const char *text)
 {
-    uint32_t codepoints[GLYPH_MAX_STRING_LEN];
+    uint32_t codepoints[WM_TEXT_GLYPH_MAX_STRING_LENGTH];
     uint32_t len;
     size_t byte_index;
     xcb_render_picture_t dst_picture;
@@ -578,7 +557,7 @@ void glyph_draw_string(xcb_connection_t *connection,
 
     len = 0u;
     byte_index = 0u;
-    while (len < GLYPH_MAX_STRING_LEN) {
+    while (len < WM_TEXT_GLYPH_MAX_STRING_LENGTH) {
         uint32_t codepoint = glyph_utf8_next(text, &byte_index);
 
         if (codepoint == 0u) {

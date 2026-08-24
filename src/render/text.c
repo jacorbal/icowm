@@ -23,6 +23,9 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
+/* Default initial values */
+#include <defs/text.h>
+
 /* Project includes */
 #include <logger.h>
 
@@ -120,7 +123,7 @@ static struct {
  * @note Complexity: @e O(n), where @e n is the length of @p input
  */
 static size_t s_font_config_tokenize(const char *restrict input,
-        char tokens[][64], size_t max_tokens)
+        char tokens[][WM_TEXT_FONT_TOKEN_LENGTH], size_t max_tokens)
 {
     const char *p;
     size_t ntok = 0u;
@@ -134,7 +137,8 @@ static size_t s_font_config_tokenize(const char *restrict input,
         if (*p == '\0') {
             break;
         }
-        while (*p != ' ' && *p != '\t' && *p != '\0' && tlen < 63u) {
+        while (*p != ' ' && *p != '\t' && *p != '\0' &&
+                tlen < (size_t) (WM_TEXT_FONT_TOKEN_LENGTH - 1)) {
             tokens[ntok][tlen++] = *p++;
         }
         tokens[ntok][tlen] = '\0';
@@ -167,11 +171,12 @@ static size_t s_font_config_tokenize(const char *restrict input,
  * @note Complexity: @e O(k), where @e k is the length of the last
  *       token in @p tokens
  */
-static void s_font_config_extract_charset(char tokens[][64],
-        size_t *ntok, char *restrict registry, size_t registry_size,
+static void s_font_config_extract_charset(
+        char tokens[][WM_TEXT_FONT_TOKEN_LENGTH], size_t *ntok,
+        char *restrict registry, size_t registry_size,
         char *restrict encoding, size_t encoding_size)
 {
-    char charset_tok[64];
+    char charset_tok[WM_TEXT_FONT_TOKEN_LENGTH];
     size_t last_hyphen = 0u;
     bool has_hyphen = false;
 
@@ -228,8 +233,8 @@ static void s_font_config_extract_charset(char tokens[][64],
  * @note Complexity: @e O(k), where @e k is the length of the last
  *       token in @p tokens
  */
-static int s_font_config_extract_size(char tokens[][64],
-        size_t *ntok)
+static int s_font_config_extract_size(
+        char tokens[][WM_TEXT_FONT_TOKEN_LENGTH], size_t *ntok)
 {
     char *endptr;
     long lval;
@@ -270,8 +275,9 @@ static int s_font_config_extract_size(char tokens[][64],
  *
  * @note Complexity: @e O(n), where @e n is @p ntok
  */
-static void s_font_config_scan_style(char tokens[][64],
-        size_t ntok, bool *is_bold, bool *is_italic, bool *is_oblique)
+static void s_font_config_scan_style(
+        char tokens[][WM_TEXT_FONT_TOKEN_LENGTH], size_t ntok,
+        bool *is_bold, bool *is_italic, bool *is_oblique)
 {
     *is_bold = false;
     *is_italic = false;
@@ -303,8 +309,9 @@ static void s_font_config_scan_style(char tokens[][64],
  * @note Complexity: @e O(n), where @e n is the combined length of
  *       every token in @p tokens
  */
-static void s_font_config_build_family(char tokens[][64],
-        size_t ntok, char *restrict family, size_t family_size)
+static void s_font_config_build_family(
+        char tokens[][WM_TEXT_FONT_TOKEN_LENGTH], size_t ntok,
+        char *restrict family, size_t family_size)
 {
     size_t fi = 0u;
 
@@ -437,10 +444,10 @@ static void s_font_config_build_xlfd_pattern(
 static void s_font_config_to_xlfd(const char *restrict input,
         char *restrict output, size_t outsize)
 {
-    char tokens[8][64];
-    char family[128];
-    char registry[64];
-    char encoding[64];
+    char tokens[WM_TEXT_FONT_MAX_TOKENS][WM_TEXT_FONT_TOKEN_LENGTH];
+    char family[WM_TEXT_FONT_FAMILY_LENGTH];
+    char registry[WM_TEXT_FONT_CHARSET_LENGTH];
+    char encoding[WM_TEXT_FONT_CHARSET_LENGTH];
     size_t ntok;
     int size;
     bool is_bold;
@@ -458,7 +465,8 @@ static void s_font_config_to_xlfd(const char *restrict input,
         return;
     }
 
-    ntok = s_font_config_tokenize(input, tokens, 8u);
+    ntok = s_font_config_tokenize(input, tokens,
+            WM_TEXT_FONT_MAX_TOKENS);
     if (ntok == 0u) {
         safe_strncpy(output, "fixed", outsize);
         return;
