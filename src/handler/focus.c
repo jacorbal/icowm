@@ -1,8 +1,8 @@
 /**
  * @file handler/focus.c
  *
- * @brief X @c PROPERTY_NOTIFY, @c FOCUS_IN, and @c MAPPING_NOTIFY event
- *        handlers
+ * @brief X @c PROPERTY_NOTIFY, @c FOCUS_IN, @c FOCUS_OUT, and
+ *        @c MAPPING_NOTIFY event handlers
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -354,6 +354,25 @@ void handler_focus_in(xcb_connection_t *connection,
 
     if (mouse_enter_focus_is_active()) {
         mouse_enter_focus_clear();
+    }
+}
+
+
+/* Handle a 'FOCUS_OUT' event */
+void handler_focus_out(const wm_td *wm, xcb_focus_out_event_t *event)
+{
+    surface_td *surface = NULL;
+
+    if (wm == NULL || event == NULL) {
+        return;
+    }
+
+    if ((event->mode == XCB_NOTIFY_MODE_NORMAL ||
+                event->mode == XCB_NOTIFY_MODE_WHILE_GRABBED) &&
+            lookup_find_client(wm_surfaces(wm), event->event,
+                    &surface, NULL) != NULL &&
+            surface != NULL) {
+        surface->is_outdated = true;
     }
 }
 

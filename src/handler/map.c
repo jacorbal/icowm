@@ -49,6 +49,7 @@
 #include <memguard.h>
 #include <scratchpad.h>
 #include <surface.h>
+#include <systray.h>
 #include <wm.h>
 
 /* JSON includes */
@@ -432,7 +433,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
 
 
 /* Handle a 'DESTROY_NOTIFY' event */
-void handler_destroy_notify(xcb_connection_t *connection,
+void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
         list_td *surfaces, xcb_destroy_notify_event_t *event)
 {
     client_td *client;
@@ -447,6 +448,13 @@ void handler_destroy_notify(xcb_connection_t *connection,
     }
 
     LOGGER_TRACE("Destroy notify event (window=0x%x)", event->window);
+
+    /* Before the managed-client lookup below, and unconditionally: a
+     * docked systray icon is never a managed client at all, so the
+     * early return that lookup takes for an unmanaged window would
+     * otherwise leave the destroyed icon in the tray's own array
+     * forever */
+    systray_handle_destroy(wm, event->window);
 
     client = lookup_find_client(surfaces, event->window,
             &surface, &desktop);

@@ -41,7 +41,6 @@
 #include <render/surface.h>
 
 /* Policy includes */
-#include <policy/focus.h>
 #include <policy/urgency.h>
 
 /* IPC includes */
@@ -125,87 +124,6 @@ static void s_loop_update(const wm_td *wm)
 
 
 /**
- * @brief Handle pointer-leave notifications for focus-sloppy
- *
- * @param wm    Window-manager singleton
- * @param event Leave-notify event to process
- *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       clients inspected by @c lookup_find_client
- */
-static void s_loop_handle_leave_notify(const wm_td *wm,
-        xcb_leave_notify_event_t *event)
-{
-    surface_td *surface = NULL;
-    desktop_td *desktop = NULL;
-    const config_td *config = wm_config(wm);
-    xcb_connection_t *connection = wm_connection(wm);
-
-    if (wm == NULL || event == NULL) {
-        return;
-    }
-
-    /* Independent of focus-follows-mouse below: a resize-cursor poll
-     * target (see 'mouse_hover_poll_tick' in input/mouse/hover.h)
-     * tracked for this window must stop being polled once the pointer
-     * has actually left it, regardless of whether hover also affects
-     * focus. */
-    mouse_hover_poll_clear(event->event);
-
-    if (focus_is_sloppy(config) &&
-            event->mode == XCB_NOTIFY_MODE_NORMAL &&
-            event->detail != XCB_NOTIFY_DETAIL_INFERIOR &&
-            lookup_find_client(wm_surfaces(wm), event->event,
-                    &surface, &desktop) != NULL) {
-        /* Pointer left a managed window; release focus so the cursor
-         * resting on the root background leaves all clients visually
-         * unfocused */
-        xcb_set_input_focus(connection,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                event->time);
-        if (desktop != NULL) {
-            desktop->client_active_id = 0;
-            desktop->is_focus_dirty = true;
-            desktop->is_outdated = true;
-        }
-        if (surface != NULL) {
-            surface->is_outdated = true;
-        }
-        xcb_flush(connection);
-    }
-}
-
-
-/**
- * @brief Mark a client dirty after losing X input focus
- *
- * @param wm    Window-manager singleton
- * @param event Focus-out event to process
- *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       clients inspected by @c lookup_find_client
- */
-static void s_loop_handle_focus_out(const wm_td *wm,
-        xcb_focus_out_event_t *event)
-{
-    surface_td *surface = NULL;
-
-    if (wm == NULL || event == NULL) {
-        return;
-    }
-
-    if ((event->mode == XCB_NOTIFY_MODE_NORMAL ||
-                event->mode == XCB_NOTIFY_MODE_WHILE_GRABBED) &&
-            lookup_find_client(wm_surfaces(wm), event->event,
-                    &surface, NULL) != NULL &&
-            surface != NULL) {
-        surface->is_outdated = true;
-    }
-}
-
-
-/**
  * @brief Tighten a poll timeout to a candidate deadline, if sooner
  *
  * Shared by every "shorten the poll timeout so some pending countdown
@@ -265,58 +183,6 @@ static void s_loop_close_and_repaint_first_surface(
     close_fn(connection);
     if (found != NULL) {
         surface_render_current_desktop_repaint(found);
-    }
-}
-
-
-/**
- * @brief Human-readable description for an @c xcb_connection_has_error
- *        return value
- *
- * Distinguishes an ordinary per-window protocol error, which XCB
- * delivers as a regular event and never causes this, from an actual
- * connection failure: the socket to the X server itself is gone,
- * something no window manager can recover from, since the window
- * manager is just another client of that same server.  Logging which
- * one occurred is the most this function's caller can do about it;
- * an @c XCB_CONN_ERROR here in particular, especially right after a
- * client (e.g., a game attempting hardware-accelerated rendering) was
- * seen doing something unusual, is worth checking the system's own
- * logs (Xorg's own log file, @c dmesg for a GPU driver crash) for,
- * outside of icowm entirely.
- *
- * @param error_code Value returned by @c xcb_connection_has_error
- *
- * @return A short, constant description; never @c NULL
- *
- * @note Complexity: @e O(1)
- */
-static const char *s_loop_connection_error_string(int error_code)
-{
-    switch (error_code) {
-        case XCB_CONN_ERROR:
-            return "XCB_CONN_ERROR (socket, pipe, or other stream" \
-                " error; most likely the X server itself is gone)";
-        case XCB_CONN_CLOSED_EXT_NOTSUPPORTED:
-            return "XCB_CONN_CLOSED_EXT_NOTSUPPORTED" \
-                " (a required X extension is not supported)";
-        case XCB_CONN_CLOSED_MEM_INSUFFICIENT:
-            return "XCB_CONN_CLOSED_MEM_INSUFFICIENT" \
-                " (out of memory)";
-        case XCB_CONN_CLOSED_REQ_LEN_EXCEED:
-            return "XCB_CONN_CLOSED_REQ_LEN_EXCEED" \
-                " (a request exceeded the server's maximum length)";
-        case XCB_CONN_CLOSED_PARSE_ERR:
-            return "XCB_CONN_CLOSED_PARSE_ERR" \
-                " (error parsing the display name)";
-        case XCB_CONN_CLOSED_INVALID_SCREEN:
-            return "XCB_CONN_CLOSED_INVALID_SCREEN" \
-                " (the server has no screen matching the display)";
-        case XCB_CONN_CLOSED_FDPASSING_FAILED:
-            return "XCB_CONN_CLOSED_FDPASSING_FAILED" \
-                " (file descriptor passing failed)";
-        default:
-            return "unknown XCB connection error code";
     }
 }
 
@@ -391,109 +257,6 @@ static void s_loop_update_full(const wm_td *wm)
     }
 
     s_loop_update(wm);
-}
-
-
-/**
- * @brief Log an X protocol error (event type 0) at the right severity
- *
- * X has no named constant for a protocol error as an event type; 0
- * never collides with a real one, since those start at 1.  Not
- * inherently fatal on its own, unlike an actual connection failure
- * (see @a s_loop_connection_error_string's call site in @a
- * loop_run).
- *
- * X11's request/reply model is asynchronous: a window this window
- * manager just sent a routine request against (reconfigure it,
- * change or delete one of its properties, query its geometry, give
- * it input focus, ...) can legitimately have been destroyed by
- * whichever client owned it before the server gets around to
- * processing that request, and nothing on this side can prevent
- * that race without a synchronous round trip before every single
- * such request, far too costly to do routinely.  @c BadWindow/@c
- * BadDrawable (the resource itself is simply gone by then) and @c
- * BadMatch (ICCCM's defined failure for, e.g., @c SetInputFocus on
- * a target that is no longer viewable) against one of the request
- * codes in @a s_routine_target_ops below are exactly that expected
- * race, not a sign of anything actually wrong on this window
- * manager's end, so they are logged at DEBUG instead, e.g.,
- *
- * +-------+-----------------+-----------+--------+
- * | major | request         | error     | result |
- * +-------+-----------------+-----------+--------+
- * | 12    | ConfigureWindow | BadWindow | DEBUG  |
- * | 18    | ChangeProperty  | BadWindow | DEBUG  |
- * | 19    | DeleteProperty  | BadWindow | DEBUG  |
- * | 42    | SetInputFocus   | BadMatch  | DEBUG  |
- * +-------+-----------------+-----------+--------+
- *
- * Any other error (@c BadValue, @c BadAlloc, @c BadAccess, or even
- * @c BadWindow/@c BadMatch on a request outside that "routine" set)
- * still gets WARNING (rather than @a loop_run's switch's usual
- * TRACE-level default), so it is not lost among routine
- * unhandled-event traffic, since it is far more likely to be
- * a genuine bug worth noticing.
- *
- * @param event The raw event @a loop_run received with response
- *              type 0, reinterpreted here as the protocol error it
- *              actually is
- *
- * @note Complexity: @e O(1)
- */
-static void s_loop_handle_protocol_error(const xcb_generic_event_t *event)
-{
-    static const uint8_t s_routine_target_ops[] = {
-        2u,  /* X_ChangeWindowAttributes */
-        3u,  /* X_GetWindowAttributes */
-        4u,  /* X_DestroyWindow */
-        8u,  /* X_MapWindow */
-        10u, /* X_UnmapWindow */
-        12u, /* X_ConfigureWindow */
-        14u, /* X_GetGeometry */
-        15u, /* X_QueryTree */
-        18u, /* X_ChangeProperty */
-        19u, /* X_DeleteProperty */
-        20u, /* X_GetProperty */
-        42u  /* X_SetInputFocus */
-    };
-    const xcb_generic_error_t *proto_error;
-    bool is_routine_target_op = false;
-    bool is_vanished_resource_error;
-
-    proto_error = (const xcb_generic_error_t *) event;
-
-    for (size_t oi = 0u; oi < sizeof(s_routine_target_ops) /
-            sizeof(s_routine_target_ops[0]); ++oi) {
-        if (proto_error->major_code == s_routine_target_ops[oi]) {
-            is_routine_target_op = true;
-            break;
-        }
-    }
-
-    is_vanished_resource_error = is_routine_target_op &&
-        (proto_error->error_code == 3u  /* BadWindow */ ||
-         proto_error->error_code == 9u  /* BadDrawable */ ||
-         proto_error->error_code == 8u  /* BadMatch */);
-
-    if (is_vanished_resource_error) {
-        LOGGER_DEBUG("X protocol error (code=%u," \
-                " resource=0x%x, major=%u, minor=%u," \
-                " sequence=%u)",
-                proto_error->error_code,
-                proto_error->resource_id,
-                proto_error->major_code,
-                proto_error->minor_code,
-                proto_error->sequence);
-    } else {
-        LOGGER_WARNING("X protocol error (code=%u," \
-                " resource=0x%x, major=%u, minor=%u," \
-                " sequence=%u)",
-                proto_error->error_code,
-                proto_error->resource_id,
-                proto_error->major_code,
-                proto_error->minor_code,
-                proto_error->sequence);
-    }
 }
 
 
@@ -607,7 +370,7 @@ void loop_run(wm_td *wm)
         if (conn_error != 0) {
             LOGGER_ERROR("X connection error detected (%s);" \
                     " requesting shutdown",
-                    s_loop_connection_error_string(conn_error));
+                    handler_connection_error_string(conn_error));
             wm_request_stop();
             break;
         }
@@ -860,10 +623,7 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_DESTROY_NOTIFY:
-                    systray_handle_destroy(wm,
-                            ((xcb_destroy_notify_event_t *)
-                                event)->window);
-                    handler_destroy_notify(connection,
+                    handler_destroy_notify(wm, connection,
                             surfaces,
                             (xcb_destroy_notify_event_t *) event);
                     break;
@@ -912,12 +672,12 @@ void loop_run(wm_td *wm)
                     break;
 
                 case XCB_LEAVE_NOTIFY:
-                    s_loop_handle_leave_notify(wm,
+                    handler_leave_notify(wm,
                             (xcb_leave_notify_event_t *) event);
                     break;
 
                 case XCB_FOCUS_OUT:
-                    s_loop_handle_focus_out(wm,
+                    handler_focus_out(wm,
                             (xcb_focus_out_event_t *) event);
                     break;
 
@@ -955,7 +715,7 @@ void loop_run(wm_td *wm)
                     break;
 
                 case 0:
-                    s_loop_handle_protocol_error(event);
+                    handler_protocol_error(event);
                     break;
 
                 default:

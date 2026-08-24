@@ -187,17 +187,19 @@ void handler_unmap_notify(xcb_connection_t *connection,
 /**
  * @brief Handle a @c DESTROY_NOTIFY event
  *
- * Cancels any in-progress drag for the destroyed client, removes it
+ * Drops the window from the systray when it was a docked icon,
+ * cancels any in-progress drag for the destroyed client, removes it
  * from its desktop, and releases its resources.
  *
+ * @param wm         Window-manager singleton
  * @param connection XCB connection
  * @param surfaces   All managed surfaces
  * @param event      Destroy notify event
  *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
+ * @note Complexity: @e O(n + t), where @e n is the number of managed
+ *       surfaces and @e t the number of docked systray icons
  */
-void handler_destroy_notify(xcb_connection_t *connection,
+void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
         list_td *surfaces, xcb_destroy_notify_event_t *event);
 
 /**
@@ -222,6 +224,23 @@ void handler_property_notify(const wm_td *wm,
         list_td *surfaces, xcb_property_notify_event_t *event);
 
 /**
+ * @brief Handle a @c LEAVE_NOTIFY event
+ *
+ * Stops polling the resize-cursor target the pointer just left and,
+ * under focus-follows-mouse, releases the X11 input focus so that no
+ * client stays visually focused while the pointer rests on the root
+ * background.
+ *
+ * @param wm    Window-manager singleton
+ * @param event Leave-notify event to process
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients inspected by @a lookup_find_client
+ */
+void handler_leave_notify(const wm_td *wm,
+        xcb_leave_notify_event_t *event);
+
+/**
  * @brief Handle a @c FOCUS_IN event
  *
  * Synchronizes the desktop active-client identifier with the real X11
@@ -236,6 +255,21 @@ void handler_property_notify(const wm_td *wm,
  */
 void handler_focus_in(xcb_connection_t *connection,
         list_td *surfaces, const xcb_focus_in_event_t *event);
+
+/**
+ * @brief Handle a @c FOCUS_OUT event
+ *
+ * Marks the surface owning the client that lost the real X11 input
+ * focus as outdated, so its decoration colors are repainted on the
+ * next render pass.
+ *
+ * @param wm    Window-manager singleton
+ * @param event Focus-out event to process
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients inspected by @a lookup_find_client
+ */
+void handler_focus_out(const wm_td *wm, xcb_focus_out_event_t *event);
 
 /**
  * @brief Handle a @c COLORMAP_NOTIFY event
@@ -311,6 +345,55 @@ void handler_expose(xcb_connection_t *connection,
  */
 void handler_client_message(wm_td *wm,
         xcb_client_message_event_t *event);
+
+/**
+ * @brief Handle an X protocol error delivered as an event
+ *
+ * XCB reports a failed request whose reply was never waited for as
+ * a regular event with a response type of @c 0, which is what this
+ * receives, reinterpreted as the @c xcb_generic_error_t it actually
+ * is.  A @c BadWindow, @c BadDrawable, or @c BadMatch on one of the
+ * routine per-window requests the window manager issues constantly
+ * (mapping, configuring, reading properties) is logged at DEBUG
+ * level, since it is the expected outcome of a client destroying its
+ * own window in the gap between the request and the server processing
+ * it, and races of that kind cannot be prevented from this side.
+ *
+ * Any other error (@c BadValue, @c BadAlloc, @c BadAccess, or even
+ * @c BadWindow/@c BadMatch on a request outside that routine set)
+ * is logged at WARNING level instead, so it is not lost among routine
+ * traffic, since it is far more likely to be a genuine bug worth
+ * noticing.
+ *
+ * @param event The raw event received with response type @c 0
+ *
+ * @note Complexity: @e O(1)
+ */
+void handler_protocol_error(const xcb_generic_event_t *event);
+
+/**
+ * @brief Human-readable description for an @a xcb_connection_has_error
+ *        return value
+ *
+ * Distinguishes an ordinary per-window protocol error, which XCB
+ * delivers as a regular event and never causes this, from an actual
+ * connection failure: the socket to the X server itself is gone,
+ * something no window manager can recover from, since the window
+ * manager is just another client of that same server.  Logging which
+ * one occurred is the most the caller can do about it; an
+ * @c XCB_CONN_ERROR in particular, especially right after a client
+ * (e.g., a game attempting hardware-accelerated rendering) was seen
+ * doing something unusual, is worth checking the system's own logs
+ * (Xorg's own log file, @c dmesg for a GPU driver crash) for, outside
+ * of icowm entirely.
+ *
+ * @param error_code Value returned by @a xcb_connection_has_error
+ *
+ * @return A short, constant description; never @c NULL
+ *
+ * @note Complexity: @e O(1)
+ */
+const char *handler_connection_error_string(int error_code);
 
 /**
  * @brief Handle XRandR extension events
