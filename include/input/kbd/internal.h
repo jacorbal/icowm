@@ -43,6 +43,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <surface.h>
+#include <wm.h>
 
 /* Local includes */
 #include <input/kbd/bind.h>
@@ -157,6 +158,8 @@ enum wm_keybind_type_e ik_resolve_binding(xcb_keysym_t keysym,
 /**
  * @brief Carry out the action a resolved binding names
  *
+ * @param wm       Window-manager singleton, for the actions that
+ *                 reach beyond one surface
  * @param btype    Action to carry out, as resolved by
  *                 @a ik_resolve_binding
  * @param modmask  Raw modifier mask of the matched binding, which the
@@ -170,7 +173,7 @@ enum wm_keybind_type_e ik_resolve_binding(xcb_keysym_t keysym,
  * @note Complexity: depends entirely on the action; @e O(1) for most,
  *       @e O(n) over managed clients for the ones that walk them
  */
-void ik_execute_binding(enum wm_keybind_type_e btype,
+void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         uint16_t modmask, xcb_keycode_t keycode,
         surface_td *surface, list_td *surfaces,
         const config_td *config);

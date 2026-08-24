@@ -312,7 +312,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
 
 
 /* Carry out the action a resolved binding names */
-void ik_execute_binding(enum wm_keybind_type_e btype,
+void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         uint16_t modmask, xcb_keycode_t keycode,
         surface_td *surface, list_td *surfaces,
         const config_td *config)
@@ -419,11 +419,11 @@ void ik_execute_binding(enum wm_keybind_type_e btype,
                     if (btype == KEYBIND_CLIENT_CYCLE_NEXT) {
                         enact_desktop_cycle_clients_active(
                                 surface->connection, surface,
-                                desktop, bmm, config);
+                                desktop, modmask, config);
                     } else {
                         enact_desktop_cycle_clients_prev(
                                 surface->connection, surface,
-                                desktop, bmm, config);
+                                desktop, modmask, config);
                     }
                 }
             }
@@ -438,11 +438,11 @@ void ik_execute_binding(enum wm_keybind_type_e btype,
                     if (btype == KEYBIND_DESKTOP_ICON_NEXT) {
                         enact_desktop_cycle_clients_icons_next(
                                 surface->connection,
-                                surface, desktop, bmm, config);
+                                surface, desktop, modmask, config);
                     } else {
                         enact_desktop_cycle_clients_icons_prev(
                                 surface->connection,
-                                surface, desktop, bmm, config);
+                                surface, desktop, modmask, config);
                     }
                 }
             }

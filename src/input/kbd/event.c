@@ -114,8 +114,6 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
     uint16_t modmask = 0u;
     surface_td *surface;
 
-    (void) wm;
-
     if (keysyms == NULL || event == NULL || config == NULL) {
         LOGGER_ERROR("Received null pointer in key press handler",
                 L_NARG);
@@ -156,6 +154,6 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
         return;
     }
 
-    ik_execute_binding(btype, modmask, event->detail, surface,
+    ik_execute_binding(wm, btype, modmask, event->detail, surface,
             surfaces, config);
 }
