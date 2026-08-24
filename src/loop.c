@@ -1,7 +1,7 @@
 /**
  * @file loop.c
  *
- * @brief Main event loop, partial update, and full update
+ * @brief Main event loop
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -25,12 +25,6 @@
 /* Type includes */
 #include <types/pair.h>
 
-/* ADT includes */
-#include <adt/list.h>
-
-/* Render includes */
-#include <render/surface.h>
-
 /* Input includes */
 #include <input/kbd/bind.h>
 #include <input/kbd/event.h>
@@ -43,8 +37,6 @@
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
-#include <menu/notify/desktop.h>
-#include <menu/popup.h>
 #include <menu/search.h>
 
 /* Project includes */
@@ -54,85 +46,15 @@
 #include <lookup.h>
 #include <logger.h>
 #include <wm/startup/install.h>
-#include <surface.h>
 #include <wm.h>
 
 /* Local includes */
 #include <loop.h>
 #include <loop/context.h>
 #include <loop/pollset.h>
+#include <loop/refresh.h>
 #include <loop/signals.h>
 #include <loop/timers.h>
-
-
-/**
- * @brief Perform a partial (outdated-only) surface update
- *
- * Re-renders only the surfaces that have been marked as outdated.
- * Called on every iteration of the main event loop.
- *
- * @param ctx Main loop context
- *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
- */
-static void s_loop_update(const loop_ctx_td *ctx)
-{
-    if (ctx == NULL || ctx->surfaces == NULL) {
-        return;
-    }
-
-    for (list_item_td *node = list_head(ctx->surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
-        if (surface == NULL) {
-            continue;
-        }
-
-        if (surface->is_outdated) {
-            if (surface_render_all_desktops(surface) != 0) {
-                LOGGER_ERROR("Failed to render surface %u",
-                        surface->id);
-            }
-        }
-    }
-}
-
-
-/**
- * @brief Close a single-instance overlay dialog and repaint whichever
- *        surface is first in the surface list
- *
- * Shared by @c loop_run's own timed auto-close for the info popup and
- * the desktop-switch notification below: both close a dialog that,
- * unlike a per-client one, is not tied to any one particular surface,
- * so any surface's own current-desktop repaint is enough to clear its
- * remnants from the screen.
- *
- * @param ctx      Main loop context
- * @param close_fn The dialog's own @c X_close function
- *
- * @note Complexity: @e O(1), since only the first surface is needed
- */
-static void s_loop_close_and_repaint_first_surface(
-        const loop_ctx_td *ctx,
-        void (*close_fn)(xcb_connection_t *))
-{
-    surface_td *found = NULL;
-
-    for (list_item_td *node = list_head(ctx->surfaces); node != NULL;
-            node = list_next(node)) {
-        surface_td *const s = (surface_td *) list_data(node);
-        if (s != NULL) {
-            found = s;
-            break;
-        }
-    }
-
-    close_fn(ctx->connection);
-    if (found != NULL) {
-        surface_render_current_desktop_repaint(found);
-    }
-}
 
 
 /**
@@ -174,43 +96,10 @@ static void s_loop_note_real_input(const loop_ctx_td *ctx,
 }
 
 
-/**
- * @brief Force a full re-render of all surfaces
- *
- * Marks every surface as outdated and then delegates to
- * @a s_loop_update.  Called once before entering the event loop so
- * pre-existing windows are drawn from scratch.
- *
- * @param ctx Main loop context
- *
- * @note Complexity: @e O(n * m), where @e n is the number of surfaces
- *       and @e m is the number of desktops
- */
-static void s_loop_update_full(const loop_ctx_td *ctx)
-{
-    if (ctx == NULL || ctx->surfaces == NULL) {
-        return;
-    }
-
-    LOGGER_TRACE("Fully updating window manager", L_NARG);
-
-    for (list_item_td *node = list_head(ctx->surfaces);
-            node != NULL; node = list_next(node)) {
-        surface_td *const surface = (surface_td *) list_data(node);
-        if (surface != NULL) {
-            surface->is_outdated = true;
-        }
-    }
-
-    s_loop_update(ctx);
-}
-
-
 /* Run the main event loop until the window manager is stopped */
 void loop_run(wm_td *wm)
 {
     loop_ctx_td ctx;
-    bool any_outdated;
 
     if (wm == NULL || !wm_is_running(wm)) {
         LOGGER_TRACE("Window manager is not initialized or" \
@@ -244,15 +133,15 @@ void loop_run(wm_td *wm)
     mouse_load(ctx.surfaces, ctx.config);
 
     cctl_adopt_scan(wm);
-    s_loop_update_full(&ctx);
+    loop_refresh_full(&ctx);
 
     /* Synchronize EWMH root properties after the initial scan so that
      * taskbars reading '_NET_CLIENT_LIST' see the windows that were
      * adopted by 'cctl_adopt_scan'.  The earlier 'wm_ewmh_sync'
      * call in 'wm_init' ran before any clients were managed, leaving
-     * the list empty; 'loop_update_full' then cleared 'is_outdated', so
-     * the first main-loop iteration would never trigger a sync on its
-     * own. */
+     * the list empty; 'loop_refresh_full' then cleared 'is_outdated',
+     * so the first main-loop iteration would never trigger a sync on
+     * its own. */
     wm_ewmh_sync(wm);
 
     LOGGER_DEBUG("Entering main event loop", L_NARG);
@@ -510,43 +399,7 @@ void loop_run(wm_td *wm)
             free(event);
         }
 
-        /* Auto-close the info popup when its display timeout has
-         * elapsed.  Close before the 'loop_update' call so any visual
-         * update triggered by the close is handled in the same
-         * iteration. */
-        if (popup_is_open() && popup_ms_remaining() == 0) {
-            s_loop_close_and_repaint_first_surface(&ctx, popup_close);
-        }
-
-        /* Auto-close the desktop notify when its timeout has elapsed */
-        if (notify_desktop_is_open() &&
-                notify_desktop_ms_remaining() == 0) {
-            s_loop_close_and_repaint_first_surface(&ctx,
-                    notify_desktop_close);
-        }
-
-        /* Only sync EWMH root properties when state actually changed.
-         * Calling 'wm_ewmh_sync' unconditionally writes root window
-         * properties every iteration; the X server then sends
-         * 'PropertyNotify' events back (root has 'PROPERTY_CHANGE'
-         * selected), keeping 'poll' permanently readable and spinning
-         * the CPU more than it should.  Checking 'is_outdated' before
-         * 'loop_update' (which clears the flag) gates the sync to
-         * iterations where real work happened. */
-        any_outdated = false;
-        for (list_item_td *sync_node = list_head(ctx.surfaces);
-                sync_node != NULL; sync_node = list_next(sync_node)) {
-            const surface_td *s = (surface_td *) list_data(sync_node);
-            if (s != NULL && s->is_outdated) {
-                any_outdated = true;
-                break;
-            }
-        }
-
-        s_loop_update(&ctx);
-        if (any_outdated) {
-            wm_ewmh_sync(wm);
-        }
+        loop_refresh(&ctx);
     }
 
     LOGGER_DEBUG("Exiting event loop", L_NARG);

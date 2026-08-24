@@ -271,7 +271,7 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
     desktop->background.bg.color = color;
     desktop->is_outdated = true;
     /* Marking only 'desktop->is_outdated' is not enough on its own:
-     * 'loop_update' only calls 'surface_render_all_desktops' at all
+     * 'loop_refresh' only calls 'surface_render_all_desktops' at all
      * when this desktop's own surface is itself outdated (see
      * 'enact_desktop_show', right below, for the same pattern).
      * Without this, the new color never actually repaints until
