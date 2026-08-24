@@ -313,7 +313,27 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
 }
 
 
-/* Carry out the action a resolved binding names */
+/* Carry out the action a resolved binding names
+ *
+ * Long on purpose.  What follows is a dispatch table written as a
+ * switch: seventy-four labels, none of whose bodies runs past a
+ * couple of dozen lines, and almost every line of it sits directly
+ * inside the switch rather than nested any deeper.  Its length is
+ * proportional to how many bindings the window manager has, not to
+ * any complexity of its own.
+ *
+ * Splitting it by family would cost more than it returns.  The
+ * families are interleaved here rather than contiguous, so each
+ * would need either a switch of its own that no longer covers the
+ * whole enumeration, which '-Wswitch-enum' and
+ * '-Wcovered-switch-default' between them rule out, or a narrow
+ * enumeration whose translation from the wide one would have to
+ * happen in this very switch.  Either way the labels stay and more
+ * switches appear.
+ *
+ * Covering every value here is what keeps the compiler checking this
+ * dispatch against the whole enumeration, so a binding added later
+ * cannot be silently forgotten. */
 void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         uint16_t modmask, xcb_keycode_t keycode,
         surface_td *surface, list_td *surfaces,
