@@ -37,9 +37,6 @@
 #include <adt/cdlist.h>
 #include <adt/list.h>
 
-/* Utils includes */
-#include <utils/cursor.h>
-
 /* Render includes */
 #include <render/outdate.h>
 #include <render/surface.h>
@@ -60,16 +57,12 @@
 
 /* Default initial values */
 #include <defs/client.h>
-#include <defs/cursor.h>
-#include <defs/cycle.h>
-#include <defs/input.h>
 
 /* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
-#include <logger.h>
 #include <lookup.h>
 #include <surface.h>
 #include <wm.h>
@@ -79,17 +72,12 @@
 #include <cmds/client/state.h>
 
 /* Local includes */
+#include <input/mouse/bind.h>
+#include <input/mouse/bounds.h>
 #include <input/mouse/drag.h>
 #include <input/mouse/drag/icon.h>
-#include <input/mouse/bounds.h>
-#include <input/mouse/bind.h>
 #include <input/mouse/event.h>
-
-
-/* State for double-click detection on titlebars.  A double-click on the
- * titlebar drag area (i.e., not on a button) toggles shade/unshade. */
-static xcb_timestamp_t s_last_titlebar_press_time = 0;
-static xcb_window_t s_last_titlebar_press_win = XCB_NONE;
+#include <input/mouse/internal.h>
 
 
 /* Small utilities */
@@ -106,7 +94,7 @@ static xcb_window_t s_last_titlebar_press_win = XCB_NONE;
  *                   @c XCB_ALLOW_REPLAY_POINTER
  * @param time       Event timestamp
  */
-static void s_allow_and_flush(xcb_connection_t *connection,
+void im_allow_and_flush(xcb_connection_t *connection,
         uint8_t mode, xcb_timestamp_t time)
 {
     xcb_allow_events(connection, mode, time);
@@ -151,183 +139,6 @@ static bool s_mouse_near_edge(const client_td *client,
 
 /* Overlay dismissal */
 
-/**
- * @brief Handle a button press on one already-open context menu type
- *        (window menu, root menu, or window list), forward the click if
- *        it landed on that menu, or close it otherwise
- *
- * Shared by @a s_mouse_close_open_overlays' three near-identical
- * context-menu cases below, which only differ in which module's own
- * @a owns_window/handle_click/close functions to call; each of those
- * three menu types exposes the exact same signature for all three, so
- * passing them in directly loses no type safety over writing each case
- * out by hand.
- *
- * @param connection   XCB connection
- * @param surfaces     Surface list (for root lookup)
- * @param event        Incoming button-press event
- * @param config       Active configuration
- * @param owns_window  The menu type's own @c X_owns_window
- * @param handle_click The menu type's own @c X_handle_click
- * @param close        The menu type's own @c X_close
- *
- * @note Complexity: @e O(1)
- */
-static void s_mouse_handle_open_ctxmenu_click(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
-        const config_td *config,
-        bool (*owns_window)(xcb_window_t),
-        bool (*handle_click)(xcb_connection_t *, surface_td *,
-                xcb_window_t, int, const config_td *),
-        void (*close)(void))
-{
-    surface_td *const surface = lookup_surface_for_root(surfaces,
-            event->root);
-    bool owns_event = owns_window(event->event);
-
-    if (owns_event || owns_window(event->child)) {
-        xcb_window_t mw = (owns_event) ? event->event : event->child;
-        (void) handle_click(connection, surface, mw,
-                (int) event->root_y, config);
-    } else {
-        close();
-    }
-    s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER, event->time);
-}
-
-
-/**
- * @brief Close any open overlay (popup, dialogs, cycle menu, menus)
- *        when a mouse button is pressed elsewhere
- *
- * Checks each overlay in priority order.  For the popup, processing
- * continues so the click can reach its target client.  For all other
- * overlays the event is fully consumed and the caller must return.
- *
- * @param connection Active XCB connection
- * @param surfaces   Surface list (for root lookup)
- * @param event      Incoming button-press event
- * @param config     Active configuration (passed to cycle confirm)
- *
- * @return Status of the operation
- * @retval  true when an overlay was open and the event was consumed;
- *               the caller must return without further processing;
- * @retval false when no overlay was open (or only the popup was closed)
- */
-static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
-        const config_td *config)
-{
-    /* Popup: close unconditionally on any click, then allow processing */
-    if (popup_is_open()) {
-        surface_td *const surface = lookup_surface_for_root(surfaces,
-                event->root);
-
-        popup_close(connection);
-        if (surface != NULL) {
-            surface_render_current_desktop_repaint(surface);
-        }
-        xcb_flush(connection);
-        /* Do NOT consume: allow the click to proceed to the client */
-        return false;
-    }
-
-    /* Generic confirm dialog (quit-confirmation or any other dialog
-     * built on 'menu/dialog/confirm.h'; only one instance can ever be
-     * open at a time, so which wrapper opened it does not matter here) */
-    if (menu_confirm_dialog_is_open()) {
-        if (event->event == menu_confirm_dialog_window() ||
-                event->child == menu_confirm_dialog_window()) {
-            (void) menu_confirm_dialog_handle_click(connection, config,
-                    (int) event->event_x, (int) event->event_y);
-        }
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
-                event->time);
-        return true;
-    }
-
-    /* Info dialog */
-    if (dialog_info_is_open()) {
-        if (event->event == dialog_info_window() ||
-                event->child == dialog_info_window()) {
-            if ((xcb_button_index_t) event->detail ==
-                    XCB_BUTTON_INDEX_4) {
-                menu_message_dialog_scroll(connection, config, -3);
-            } else if ((xcb_button_index_t) event->detail ==
-                    XCB_BUTTON_INDEX_5) {
-                menu_message_dialog_scroll(connection, config, 3);
-            } else {
-                dialog_info_handle_click(connection, config,
-                        (int) event->event_x, (int) event->event_y);
-            }
-        }
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
-                event->time);
-        return true;
-    }
-
-    /* Cycle menu */
-    if (cycle_is_open()) {
-        if (event->event == cycle_window() ||
-                event->child == cycle_window()) {
-            if ((int) event->event_y >= WM_CYCLE_MENU_PAD_Y) {
-                unsigned int row = (unsigned int)(
-                        ((int) event->event_y - WM_CYCLE_MENU_PAD_Y) /
-                        WM_CYCLE_MENU_ROW_HEIGHT);
-                cycle_navigate_to(row);
-                cycle_confirm(connection, surfaces, config);
-            } else {
-                cycle_destroy(connection);
-            }
-        } else {
-            cycle_destroy(connection);
-        }
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
-                event->time);
-        return true;
-    }
-
-    /* Fuzzy window-search widget: a click on a result row selects
-     * and confirms it (search_handle_click resolves the row from its
-     * own Y internally); a click anywhere else closes it */
-    if (search_is_open()) {
-        if (event->event == search_window() ||
-                event->child == search_window()) {
-            search_handle_click(connection, surfaces,
-                    (int16_t) event->event_x, (int16_t) event->event_y,
-                    config);
-        } else {
-            search_destroy(connection);
-        }
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
-                event->time);
-        return true;
-    }
-
-    /* Context menus: window menu, root menu, window list */
-    if (wincmenu_is_open()) {
-        s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
-                config, wincmenu_owns_window, wincmenu_handle_click,
-                wincmenu_close);
-        return true;
-    }
-
-    if (rootmenu_is_open()) {
-        s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
-                config, rootmenu_owns_window, rootmenu_handle_click,
-                rootmenu_close);
-        return true;
-    }
-
-    if (winlist_is_open()) {
-        s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
-                config, winlist_owns_window, winlist_handle_click,
-                winlist_close);
-        return true;
-    }
-
-    return false;
-}
 
 
 /**
@@ -355,7 +166,7 @@ static bool s_mouse_close_open_overlays(xcb_connection_t *connection,
  * @note Complexity: @e O(d), where @e d is the number of desktops on
  *       @p surface
  */
-static void s_mouse_sync_sticky_active(surface_td *surface,
+void im_sync_sticky_active(surface_td *surface,
         const desktop_td *desktop, const client_td *client)
 {
     cdlist_item_td *dnode;
@@ -438,696 +249,13 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
         surface = lookup_surface_for_root(surfaces, event->root);
         if (surface != NULL && desktop != NULL) {
             focus_apply(surfaces, surface, desktop, client, true, config);
-            s_mouse_sync_sticky_active(surface, desktop, client);
+            im_sync_sticky_active(surface, desktop, client);
         }
     }
 
-    s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER, event->time);
+    im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER, event->time);
 }
 
-
-/* Scroll-binding handling (shade/unshade or maximize/restore on
- * titlebar, desktop switch) */
-
-/**
- * @brief Find the client that should regain focus after @p client
- *        loses it, searching @p desktop's own stacking order from
- *        the top down
- *
- * Skips @p client itself, any hidden or shaded client, and any
- * client that is not currently focusable, is iconified, or has no
- * focus fallback (see @c client_has_no_focus_fallback's own doc
- * comment, client.h).  The first client encountered that clears all
- * of those, searching from the top of the stack downward, is the
- * one returned.
- *
- * @param desktop Desktop whose own stacking order to search
- * @param client  Client to exclude from the search
- *
- * @return The client to focus instead, or @c NULL if @p desktop has
- *         no stacking order at all, or none of its other clients
- *         qualify
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p desktop
- */
-static client_td *s_focus_fallback_in_stacking(const desktop_td *desktop,
-        const client_td *client)
-{
-    cdlist_item_td *node = NULL;
-    cdlist_item_td *tail;
-
-    if (desktop == NULL || desktop->stacking == NULL) {
-        return NULL;
-    }
-
-    tail = cdlist_tail(desktop->stacking);
-    if (tail != NULL) {
-        node = cdlist_prev(tail);
-    }
-
-    while (node != NULL && node != cdlist_tail(desktop->stacking)) {
-        client_td *const c = (client_td *) cdlist_data(node);
-        if (c != NULL && c != client &&
-                !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                !client_is_shaded(c) &&
-                client_is_focusable(c) &&
-                !client_is_iconified(c) &&
-                !client_has_no_focus_fallback(c)) {
-            return c;
-        }
-        node = cdlist_prev(node);
-    }
-
-    return NULL;
-}
-
-
-/**
- * @brief Scroll north on a client's own titlebar: maximize it,
- *        only when not already fully maximized
- *
- * Never moves focus: the client stays exactly as interactable, and
- * exactly as focused, either side of the change.
- *
- * @param client  Client whose titlebar the scroll landed on
- * @param desktop Desktop owning @p client, or @c NULL
- * @param surface Surface owning @p desktop, or @c NULL
- *
- * @note Complexity: @e O(1)
- */
-static void s_scroll_titlebar_maximize(client_td *client,
-        desktop_td *desktop, surface_td *surface)
-{
-    if (client_is_maximized(client)) {
-        return;
-    }
-    ccmd_client_maximize(client);
-    if (desktop != NULL) {
-        desktop->is_outdated = true;
-    }
-    if (surface != NULL) {
-        surface->is_outdated = true;
-    }
-}
-
-
-/**
- * @brief Scroll south on a client's own titlebar: restore it from
- *        fully maximized, only when it currently is
- *
- * Calls the exact same toggle @a s_scroll_titlebar_maximize does,
- * guarded so it only ever runs when it would actually restore, not
- * maximize.  Never moves focus, for the same reason that one does
- * not either.
- *
- * @param client  Client whose titlebar the scroll landed on
- * @param desktop Desktop owning @p client, or @c NULL
- * @param surface Surface owning @p desktop, or @c NULL
- *
- * @note Complexity: @e O(1)
- */
-static void s_scroll_titlebar_restore(client_td *client,
-        desktop_td *desktop, surface_td *surface)
-{
-    if (!client_is_maximized(client)) {
-        return;
-    }
-    ccmd_client_maximize(client);
-    if (desktop != NULL) {
-        desktop->is_outdated = true;
-    }
-    if (surface != NULL) {
-        surface->is_outdated = true;
-    }
-}
-
-
-/**
- * @brief Scroll west on a client's own titlebar (the exact same
- *        gesture @c DESKTOP_PREV always was): shade it
- *
- * Transfers focus away only when @p client was the one actually
- * holding it, via @a s_focus_fallback_in_stacking; shading an
- * already-inactive client leaves whichever other client currently
- * has real focus untouched.
- *
- * @param client   Client whose titlebar the scroll landed on
- * @param desktop  Desktop owning @p client, or @c NULL
- * @param surface  Surface owning @p desktop, or @c NULL
- * @param surfaces Full surface list, passed through to @c focus_apply
- * @param config   Active configuration, passed through to
- *                 @c focus_apply
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p desktop
- */
-static void s_scroll_titlebar_shade(client_td *client,
-        desktop_td *desktop, surface_td *surface, list_td *surfaces,
-        const config_td *config)
-{
-    bool was_active;
-    client_td *prev_c;
-
-    if (client_is_shaded(client)) {
-        return;
-    }
-
-    was_active = (desktop != NULL &&
-            desktop->client_active_id == client->id);
-
-    ccmd_client_shade(client);
-
-    if (was_active && desktop != NULL && surface != NULL) {
-        prev_c = s_focus_fallback_in_stacking(desktop, client);
-        if (prev_c != NULL) {
-            focus_apply(surfaces, surface, desktop, prev_c, false,
-                    config);
-            s_mouse_sync_sticky_active(surface, desktop, prev_c);
-        } else {
-            enact_client_unfocus(client);
-            desktop->client_active_id = 0;
-            desktop->is_focus_dirty = true;
-        }
-    }
-
-    if (desktop != NULL) {
-        desktop->is_outdated = true;
-    }
-    if (surface != NULL) {
-        surface->is_outdated = true;
-    }
-}
-
-
-/**
- * @brief Scroll east on a client's own titlebar (the exact same
- *        gesture @c DESKTOP_NEXT always was): unshade it
- *
- * Regains focus only when @p client was the one actually holding it
- * before being shaded; unshading an already-inactive client leaves
- * whichever other client currently has real focus untouched.
- *
- * @param client   Client whose titlebar the scroll landed on
- * @param desktop  Desktop owning @p client, or @c NULL
- * @param surface  Surface owning @p desktop, or @c NULL
- * @param surfaces Full surface list, passed through to @c focus_apply
- * @param config   Active configuration, passed through to
- *                 @c focus_apply
- *
- * @note Complexity: @e O(1)
- */
-static void s_scroll_titlebar_unshade(client_td *client,
-        desktop_td *desktop, surface_td *surface, list_td *surfaces,
-        const config_td *config)
-{
-    bool was_active;
-
-    if (!client_is_shaded(client)) {
-        return;
-    }
-
-    was_active = (desktop != NULL &&
-            desktop->client_active_id == client->id);
-
-    ccmd_client_unshade(client);
-
-    if (was_active && surface != NULL && desktop != NULL) {
-        focus_apply(surfaces, surface, desktop, client, false, config);
-        s_mouse_sync_sticky_active(surface, desktop, client);
-    }
-
-    if (desktop != NULL) {
-        desktop->is_outdated = true;
-    }
-    if (surface != NULL) {
-        surface->is_outdated = true;
-    }
-}
-
-
-/**
- * @brief Whether a scroll event's own root coordinates land on
- *        @p client's own titlebar
- *
- * Checks both the child-window identity and a Y-range, to handle
- * frame sync-grab events where @p event's own child may be the
- * content window rather than the titlebar itself.
- *
- * @param client Client to check against
- * @param event  Incoming button-press event
- *
- * @return @c true if the scroll landed on @p client's own titlebar
- *
- * @note Complexity: @e O(1)
- */
-static bool s_scroll_on_titlebar(const client_td *client,
-        const xcb_button_press_event_t *event)
-{
-    int32_t bw;
-    int32_t fy;
-    int32_t ty0;
-    int32_t ty1;
-    int32_t ry;
-
-    if (client->titlebar == 0) {
-        return false;
-    }
-
-    bw = client->layout.frame_extents.left;
-    fy = client->layout.geometry.cur.pos.y;
-    ty0 = fy + bw;
-    ty1 = fy + client->layout.frame_extents.top;
-    ry = (int32_t) event->root_y;
-
-    return event->child == client->titlebar ||
-        (ry >= ty0 && ry < ty1);
-}
-
-
-/**
- * @brief Handle a scroll-wheel event matched to a @c DESKTOP_NORTH /
- *        @c _SOUTH / @c _EAST / @c _WEST binding
- *
- * When the scroll is over a client's titlebar: @c DESKTOP_WEST (the
- * exact same gesture @c DESKTOP_PREV always was) shades the window,
- * transferring focus away from it; @c DESKTOP_EAST (the exact same
- * gesture @c DESKTOP_NEXT always was) unshades it, regaining focus;
- * @c DESKTOP_NORTH maximizes it, only when not already fully
- * maximized; @c DESKTOP_SOUTH restores it from fully maximized, only
- * when it currently is.  Maximizing or restoring never moves focus
- * away the way shading does: the client stays exactly as
- * interactable, and exactly as focused, either side of that one
- * change.  When the scroll is over the root or over a client's
- * content area, the desktop switch happens right away,
- * synchronously, in whichever of the four directions was scrolled.
- *
- * @param connection Active XCB connection
- * @param surfaces   Full surface list
- * @param event      Incoming button-press event
- * @param client     Client under the pointer, or @c NULL
- * @param desktop    Desktop owning @p client, or @c NULL
- * @param type       One of the four @c MOUSEBIND_DESKTOP_* values
- * @param config     Active configuration
- */
-static void s_mouse_handle_scroll_binding(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
-        client_td *client, desktop_td *desktop,
-        enum wm_mousebind_type_e type, const config_td *config)
-{
-    surface_td *const surface =
-        lookup_surface_for_root(surfaces, event->root);
-
-    if (client != NULL) {
-        if (s_scroll_on_titlebar(client, event)) {
-            switch (type) {
-            case MOUSEBIND_DESKTOP_NORTH:
-                s_scroll_titlebar_maximize(client, desktop, surface);
-                break;
-            case MOUSEBIND_DESKTOP_SOUTH:
-                s_scroll_titlebar_restore(client, desktop, surface);
-                break;
-            case MOUSEBIND_DESKTOP_WEST:
-                s_scroll_titlebar_shade(client, desktop, surface,
-                        surfaces, config);
-                break;
-            case MOUSEBIND_DESKTOP_EAST:
-                s_scroll_titlebar_unshade(client, desktop, surface,
-                        surfaces, config);
-                break;
-            case MOUSEBIND_NONE:
-            case MOUSEBIND_MOVE:
-            case MOUSEBIND_RESIZE:
-            case MOUSEBIND_LOWER:
-                /* Never actually reached, listed here anyway so
-                 * this switch stays exhaustive under
-                 * '-Wswitch-enum'; see the equivalent list further
-                 * down in this same function for the fuller
-                 * reasoning. */
-                break;
-            }
-
-            s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
-                    event->time);
-            return;
-        }
-
-        /* Scroll over client content area: replay so the application
-         * receives the scroll event */
-        s_allow_and_flush(connection, XCB_ALLOW_REPLAY_POINTER,
-                event->time);
-        return;
-    }
-
-    /* No client under pointer: switch desktop right away */
-    if (surface != NULL) {
-        switch (type) {
-        case MOUSEBIND_DESKTOP_NORTH:
-            enact_surface_desktop_switch_north(surface);
-            break;
-        case MOUSEBIND_DESKTOP_SOUTH:
-            enact_surface_desktop_switch_south(surface);
-            break;
-        case MOUSEBIND_DESKTOP_EAST:
-            enact_surface_desktop_switch_east(surface);
-            break;
-        case MOUSEBIND_DESKTOP_WEST:
-            enact_surface_desktop_switch_west(surface);
-            break;
-        case MOUSEBIND_NONE:
-        case MOUSEBIND_MOVE:
-        case MOUSEBIND_RESIZE:
-        case MOUSEBIND_LOWER:
-            /* Never actually reached: this whole function is only
-             * ever called for one of the four desktop-scroll types
-             * above, gated by its own caller (see 'type ==
-             * MOUSEBIND_DESKTOP_NORTH || ...' just before the call
-             * to 's_mouse_handle_scroll_binding').  Listed here
-             * anyway, one per value rather than a catch-all
-             * 'default', purely so this switch stays exhaustive
-             * under '-Wswitch-enum' the same way every other switch
-             * on a keybind/mousebind type in this project already
-             * does. */
-            break;
-        }
-    }
-
-    s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER, event->time);
-}
-
-
-/* Titlebar button hit-test */
-
-/**
- * @brief Mark a client, its own desktop, and its own surface as
- *        outdated together
- *
- * Shared by every titlebar-click and scroll case in
- * @c s_mouse_hit_titlebar_buttons that changes the client's state and
- * needs the next render pass to pick it up.
- *
- * @param client  Client whose own visual state just changed, or
- *                @c NULL to skip
- * @param desktop Desktop to mark outdated, or @c NULL to skip
- * @param surface Surface to mark outdated, or @c NULL to skip
- *
- * @note Complexity: @e O(1)
- */
-static void s_mark_outdated(client_td *client, desktop_td *desktop,
-        surface_td *surface)
-{
-    wm_outdate_client(client);
-    if (desktop != NULL) { desktop->is_outdated = true; }
-    if (surface != NULL) { surface->is_outdated = true; }
-}
-
-
-/**
- * @brief Look up which titlebar button, if any, a client's own button
- *        list has at a given frame-relative X position
- */
-static bool s_titlebar_button_at(
-        const struct titlebar_button_layout_s *entries, uint8_t count,
-        int16_t x, enum config_titlebar_button_e *out)
-{
-    for (uint8_t i = 0u; i < count; ++i) {
-        if (x >= entries[i].x &&
-                x < entries[i].x + (int16_t) WM_DECOR_BTN_SIZE) {
-            *out = entries[i].button;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
-/**
- * @brief Dispatch the action a titlebar button click should trigger
- *
- * @param button       Which button was clicked
- * @param client       Client whose titlebar was clicked
- * @param can_maximize Whether maximize/fullscreen are currently enabled
- * @param event        Incoming button-press event (button 1/2/3 select
- *                     full/vertical/horizontal maximize respectively)
- */
-static void s_titlebar_button_action(enum config_titlebar_button_e button,
-        client_td *client, bool can_maximize,
-        const xcb_button_press_event_t *event)
-{
-    switch (button) {
-        case CONFIG_TITLEBAR_BUTTON_PIN:
-            enact_client_toggle_pin(client);
-            break;
-
-        case CONFIG_TITLEBAR_BUTTON_LAYER:
-            enact_client_cycle_layer(client);
-            break;
-
-        case CONFIG_TITLEBAR_BUTTON_ICONIZE:
-            enact_client_iconify(client);
-            break;
-
-        case CONFIG_TITLEBAR_BUTTON_HIDE:
-            enact_client_hide(client);
-            break;
-
-        case CONFIG_TITLEBAR_BUTTON_SHADE:
-            enact_client_toggle_shade(client);
-            break;
-
-        case CONFIG_TITLEBAR_BUTTON_MAXIMIZE:
-            if (!can_maximize) {
-                break;
-            }
-            if ((xcb_button_index_t) event->detail ==
-                    XCB_BUTTON_INDEX_2) {
-                enact_client_maximize_vert(client);
-            } else if ((xcb_button_index_t) event->detail ==
-                    XCB_BUTTON_INDEX_3) {
-                enact_client_maximize_horz(client);
-            } else {
-                enact_client_maximize(client);
-            }
-            break;
-
-        case CONFIG_TITLEBAR_BUTTON_FULLSCREEN:
-            if (!can_maximize) {
-                break;
-            }
-            enact_client_toggle_fullscreen(client);
-            break;
-
-        case CONFIG_TITLEBAR_BUTTON_CLOSE:
-            enact_client_close(client);
-            break;
-    }
-}
-
-
-/**
- * @brief Test whether a click on the titlebar landed on a configured
- *        button and dispatch its action
- *
- * Uses @c client_titlebar_layout to find each button's position, the
- * exact same computation @c desktop_titlebar_buttons_draw uses to paint
- * them, so a click can never land "between" where a button looks like
- * it is and where this function thinks it is.  If the click lands on
- * a button its action is dispatched and the function returns @c true.
- * Scroll-wheel events (buttons 4 and 5) on the titlebar area also count
- * as a hit and are handled here.
- *
- * @param connection Active XCB connection (unused directly but kept for
- *                   symmetry)
- * @param client     The client whose titlebar was clicked
- * @param desktop    The desktop that owns @p client
- * @param surface    Current surface
- * @param event      Incoming button-press event
- *
- * @return @c true when the click was consumed by a button
- */
-static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
-        client_td *client, desktop_td *desktop, surface_td *surface,
-        xcb_button_press_event_t *event)
-{
-    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
-    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
-    uint8_t left_n;
-    uint8_t right_n;
-    int16_t title_x;
-    uint16_t title_w;
-    int16_t btn_y;
-    int ex = (int) event->event_x;
-    int ey = (int) event->event_y;
-    int left_extent = (int) client->layout.frame_extents.left;
-    int right_extent = (int) client->layout.frame_extents.right;
-    int top_extent = (int) client->layout.frame_extents.top;
-    int frame_w = (int) client->layout.geometry.cur.dim.w;
-    int fw = (frame_w > left_extent + right_extent)
-        ? frame_w - left_extent - right_extent : 1;
-    int title_h = (int) client->title_height;
-    int title_y = (top_extent > title_h)
-        ? top_extent - title_h : 0;
-    bool can_maximize;
-    bool hide_pin;
-    enum config_titlebar_button_e button;
-
-    (void) connection;
-    (void) title_x;
-    (void) title_w;
-
-    if (client->config == NULL) {
-        return false;
-    }
-
-    /* Per the X11 protocol, 'event_x'/'event_y' are always relative
-     * to the origin of 'event->event' (here, 'client->frame', the
-     * window this whole button-press grab was established on) never to
-     * 'event->child' ('client->titlebar', the window the click actually
-     * landed in), regardless of which one the click hit.
-     *
-     * Every button position 'client_titlebar_layout' computes below is
-     * relative to the titlebar's own origin instead, the same origin
-     * the titlebar's own physical window is created and kept synced at,
-     * '(left, title_y)', within the frame, both times
-     * ('ci_create_decorations' and 'client_decoration_layout_sync',
-     * both client/geom.c). Left unconverted, comparing a frame-relative
-     * click straight against titlebar-relative button positions is off
-     * by exactly that offset on both axes, '(left, title_y)',
-     * imperceptible at the traditional 1px border this bug shipped with
-     * for years, severe with a large one, since the offset grows with
-     * it. */
-    ex -= left_extent;
-    ey -= title_y;
-
-    can_maximize = !client_is_fullscreen(client) &&
-        (bool) client_is_resizable(client);
-    hide_pin = surface != NULL && surface->desktop_count <= 1u;
-
-    /* Same layout the render pass just painted from, computed first
-     * (not just when the click Y already looks close) since it is what
-     * determines 'btn_y' now that button rows can be vertically inset
-     * by 'padding.vertical', not just centered in the full titlebar
-     * height. */
-    client_titlebar_layout(&client->config->theme, (uint16_t) fw,
-            (uint16_t) title_h, hide_pin,
-            left, &left_n, right, &right_n, &title_x, &title_w, &btn_y);
-
-    /* Only test buttons when the click Y is within the button row */
-    if (ey >= btn_y && ey < btn_y + (int) WM_DECOR_BTN_SIZE) {
-        if (s_titlebar_button_at(left, left_n, (int16_t) ex, &button) ||
-                s_titlebar_button_at(right, right_n,
-                    (int16_t) ex, &button)) {
-            s_titlebar_button_action(button, client,
-                    can_maximize, event);
-            s_mark_outdated(client, desktop, surface);
-            return true;
-        }
-    }
-
-    /* Scroll wheel on the titlebar body: shade / unshade */
-    if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_4) {
-        if (!client_is_shaded(client)) {
-            enact_client_shade(client);
-            s_mark_outdated(client, desktop, surface);
-        }
-        return true;
-    }
-
-    if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_5) {
-        if (client_is_shaded(client)) {
-            enact_client_unshade(client);
-            s_mark_outdated(client, desktop, surface);
-        }
-        return true;
-    }
-
-    return false;
-}
-
-
-/* Titlebar interaction (buttons + drag + double-click) */
-
-/**
- * @brief Handle a click on the client titlebar
- *
- * Delegates to @a s_mouse_hit_titlebar_buttons first.
- * If no button was hit:
- *
- * - Left-click starts a move drag, or toggles shade on double-click.
- * - Right-click opens the window context menu.
- *
- * @param connection Active XCB connection
- * @param surfaces   Full surface list (for context menu)
- * @param event      Incoming button-press event
- * @param client     Client whose titlebar was clicked
- * @param desktop    Desktop owning @p client
- * @param surface    Current surface
- * @param config     Active configuration
- */
-static void s_mouse_handle_titlebar(xcb_connection_t *connection,
-        list_td *surfaces, xcb_button_press_event_t *event,
-        client_td *client, desktop_td *desktop, surface_td *surface,
-        const config_td *config)
-{
-    bool hit_btn;
-
-    hit_btn = s_mouse_hit_titlebar_buttons(connection, client, desktop,
-            surface, event);
-
-    if (!hit_btn &&
-            (xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_1) {
-        xcb_timestamp_t dt = event->time - s_last_titlebar_press_time;
-        xcb_window_t prev_win = s_last_titlebar_press_win;
-
-        s_last_titlebar_press_time = event->time;
-        s_last_titlebar_press_win = client->titlebar;
-
-        if (prev_win == client->titlebar &&
-                dt <= (xcb_timestamp_t) ((config != NULL)
-                    ? config->a11y.interaction.double_click_ms
-                    : WM_DOUBLE_CLICK_MS)) {
-            /* Double-click: toggle shade */
-            s_last_titlebar_press_time = 0;
-            s_last_titlebar_press_win = XCB_NONE;
-            enact_client_toggle_shade(client);
-            s_mark_outdated(client, desktop, surface);
-        } else {
-            /* Single left-click: start move drag */
-            if (!client_is_maximized(client) &&
-                    !client_is_fullscreen(client)) {
-                struct position_s root_pos;
-                struct dimensions_s screen_dim;
-
-                root_pos.x = event->root_x;
-                root_pos.y = event->root_y;
-                screen_dim.w = (surface != NULL)
-                    ? surface->properties.dim.w : 0u;
-                screen_dim.h = (surface != NULL)
-                    ? surface->properties.dim.h : 0u;
-                drag_start(connection, event->root, client, desktop,
-                        CLIENT_OPERATION_MOVING,
-                        event->time,
-                        root_pos, screen_dim);
-            }
-        }
-    }
-
-    /* Right-click on titlebar drag area (no button hit): window menu */
-    if (!hit_btn &&
-            (xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3) {
-        if (surface != NULL && desktop != NULL) {
-            wincmenu_show(connection, surface, desktop, client,
-                    (struct position_s) { event->root_x, event->root_y },
-                    config);
-        }
-    }
-
-    (void) surfaces;
-}
-
-
-/* Border resize */
 
 /**
  * @brief Test whether a button press should initiate a resize drag
@@ -1209,7 +337,7 @@ static void s_mouse_show_wincmenu_at_click(xcb_connection_t *connection,
                 (struct position_s) { event->root_x, event->root_y },
                 config);
     }
-    s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER, event->time);
+    im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER, event->time);
 }
 
 
@@ -1254,7 +382,7 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
             client_is_maximized_horz(client),
             client_is_maximized_vert(client));
 
-    s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+    im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
             event->time);
 }
 
@@ -1289,7 +417,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
         rootmenu_show(wm, connection, surface,
                 (struct position_s) { event->root_x, event->root_y },
                 config);
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+        im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;
     }
@@ -1311,7 +439,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
             desktop->is_outdated = true;
             surface->is_outdated = true;
         }
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+        im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;
     }
@@ -1320,7 +448,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
         winlist_show(connection, surface,
                 (struct position_s) { event->root_x, event->root_y },
                 config);
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+        im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
     }
 }
@@ -1384,7 +512,6 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     client_td *client;
     desktop_td *desktop = NULL;
     surface_td *surface = NULL;
-    uint16_t state;
     enum wm_mousebind_type_e type = MOUSEBIND_NONE;
     struct dimensions_s screen_dim;
     struct position_s root_pos;
@@ -1395,7 +522,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
 
     /* Step 1: dismiss any open overlay; return if the event was
      * consumed */
-    if (s_mouse_close_open_overlays(connection, surfaces,
+    if (im_press_close_overlays(connection, surfaces,
                 event, config)) {
         return;
     }
@@ -1413,25 +540,8 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     }
 
     /* Step 4: determine matching mouse binding */
-    state = (uint16_t) ((unsigned int) event->state &
-            ~((unsigned int) XCB_MOD_MASK_LOCK |
-                (unsigned int) XCB_MOD_MASK_2));
-
-    for (int i = 0; i < mousebind_count(); ++i) {
-        xcb_button_index_t btn;
-        uint16_t req;
-        enum wm_mousebind_type_e t = mousebind_at(i, &btn, &req);
-
-        if (t == MOUSEBIND_NONE) {
-            continue;
-        }
-
-        if ((xcb_button_index_t) event->detail == btn &&
-                (req == 0 || (state & req) == req)) {
-            type = t;
-            break;
-        }
-    }
+    type = im_resolve_binding((xcb_button_index_t) event->detail,
+            event->state);
 
     /* Step 5: scroll bindings (desktop switch / titlebar shade or
      * maximize) */
@@ -1439,7 +549,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
             type == MOUSEBIND_DESKTOP_SOUTH ||
             type == MOUSEBIND_DESKTOP_EAST ||
             type == MOUSEBIND_DESKTOP_WEST) {
-        s_mouse_handle_scroll_binding(connection, surfaces, event,
+        im_press_scroll_binding(connection, surfaces, event,
                 client, desktop, type, config);
         return;
     }
@@ -1492,7 +602,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
             /* Titlebar click */
             if (event->child == client->titlebar &&
                     client->titlebar != 0) {
-                s_mouse_handle_titlebar(connection, surfaces, event,
+                im_press_titlebar(connection, surfaces, event,
                         client, desktop, surface, config);
             }
 
@@ -1539,7 +649,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
             event->event, event->child, &desktop);
 
     if (client == NULL) {
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+        im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;
     }
@@ -1549,7 +659,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
              client_is_fullscreen(client) ||
              client_is_maximized(client) ||
              client_is_locked(client))) {
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+        im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;
     }
@@ -1560,7 +670,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
 
     if (type == MOUSEBIND_LOWER) {
         enact_client_lower(client);
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+        im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;
     }
@@ -1568,14 +678,14 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     surface = lookup_surface_for_root(surfaces, event->root);
     if (surface != NULL && desktop != NULL) {
         focus_apply(surfaces, surface, desktop, client, true, config);
-        s_mouse_sync_sticky_active(surface, desktop, client);
+        im_sync_sticky_active(surface, desktop, client);
     }
 
     if (type == MOUSEBIND_MOVE &&
             (client_is_maximized(client) ||
              client_is_fullscreen(client) ||
              client_is_locked(client))) {
-        s_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
+        im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;
     }
