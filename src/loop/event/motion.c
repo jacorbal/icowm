@@ -160,6 +160,9 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
             break;
 
         case S_MOTION_TARGET_NONE:
+            /* A running drag already got the position above, and
+             * wants nothing else looking at the pointer while it
+             * lasts */
             break;
     }
 }
