@@ -75,6 +75,41 @@ static void s_handler_send_synthetic_configure_notify(
 
 
 /**
+ * @brief What building one @c ConfigureRequest reply needs
+ *
+ * Gathered so the per-field work and the gravity adjustment can each
+ * be a function of its own rather than another hundred lines inside
+ * @a handler_configure_request.  @p values and @p count are the
+ * value list @c xcb_configure_window is handed, filled in ascending
+ * mask-bit order as X itself requires.
+ */
+struct s_configure_ctx_s {
+    client_td *client;
+    const xcb_configure_request_event_t *event;
+
+    uint32_t values[7];
+    uint32_t req_w;
+    uint32_t req_h;
+    uint32_t old_w;
+    uint32_t old_h;
+
+    uint16_t mask;
+    uint16_t target_mask;
+    uint16_t left;
+    uint16_t right;
+    uint16_t top;
+    uint16_t bottom;
+
+    unsigned int count;
+
+    bool is_reparented;
+    bool on_inner;
+    bool send_synth;
+    bool geom_changed;
+};
+
+
+/**
  * @brief Acknowledge a request this handler decided to ignore
  *
  * ICCCM asks a window manager that does not honor a
@@ -163,6 +198,196 @@ static void s_handler_configure_forward(xcb_connection_t *connection,
         xcb_configure_window(connection, event->window, target_mask,
                 values);
         xcb_flush(connection);
+    }
+}
+
+
+/**
+ * @brief Turn each requested field into a value for the reply
+ *
+ * Walks the mask in ascending bit order, which is the order X expects
+ * the value list in, translating a request aimed at the content
+ * window into frame coordinates where the client is reparented.
+ *
+ * @param ctx State of the request being built
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_handler_configure_build(struct s_configure_ctx_s *ctx)
+{
+    if (ctx->mask & XCB_CONFIG_WINDOW_X) {
+        int32_t req_x;
+
+        if (ctx->client->has_rule_position_locked) {
+            /* Position was fixed by a rule; reject the client's
+             * attempt to move the window and keep the locked X */
+            ctx->send_synth = ctx->is_reparented;
+        } else {
+            if (ctx->is_reparented && ctx->on_inner) {
+                req_x = (int32_t) ((uint32_t) (int32_t) ctx->event->x -
+                        (uint32_t) ctx->left);
+            } else {
+                req_x = ctx->event->x;
+            }
+            if ((uint32_t) req_x !=
+                    (uint32_t) ctx->client->layout.geometry.cur.pos.x) {
+                ctx->geom_changed = true;
+            }
+
+            ctx->values[ctx->count++] = (uint32_t) req_x;
+            ctx->target_mask |= XCB_CONFIG_WINDOW_X;
+            ctx->client->layout.geometry.cur.pos.x = req_x;
+            ctx->send_synth = ctx->is_reparented;
+        }
+    }
+
+    if (ctx->mask & XCB_CONFIG_WINDOW_Y) {
+        int32_t req_y;
+
+        if (ctx->client->has_rule_position_locked) {
+            /* Position was fixed by a rule; reject the client's
+             * attempt to move the window and keep the locked Y */
+            ctx->send_synth = ctx->is_reparented;
+        } else {
+            if (ctx->is_reparented && ctx->on_inner) {
+                /* Clamp before subtracting to keep req_y >= 0 and
+                 * avoid the "X - C < 0 => X < C" strict-overflow
+                 * transformation */
+                req_y = ((int32_t) ctx->event->y > (int32_t) ctx->top)
+                    ? (int32_t) ((uint32_t) (int32_t) ctx->event->y -
+                            (uint32_t) ctx->top)
+                    : 0;
+            } else {
+                req_y = (int32_t) ctx->event->y;
+                if (req_y < 0) {
+                    req_y = 0;
+                }
+            }
+
+            if ((uint32_t) req_y !=
+                    (uint32_t) ctx->client->layout.geometry.cur.pos.y) {
+                ctx->geom_changed = true;
+            }
+
+            ctx->values[ctx->count++] = (uint32_t) req_y;
+            ctx->target_mask |= XCB_CONFIG_WINDOW_Y;
+            ctx->client->layout.geometry.cur.pos.y = req_y;
+            ctx->send_synth = ctx->is_reparented;
+        }
+    }
+
+    if (ctx->mask & XCB_CONFIG_WINDOW_WIDTH) {
+        if (ctx->is_reparented && ctx->on_inner) {
+            ctx->req_w = (uint32_t) ctx->event->width +
+                ctx->left + ctx->right;
+        } else {
+            ctx->req_w = (uint32_t) ctx->event->width;
+        }
+
+        if (ctx->req_w != ctx->client->layout.geometry.cur.dim.w) {
+            ctx->geom_changed = true;
+        }
+
+        ctx->values[ctx->count++] = ctx->req_w;
+        ctx->target_mask |= XCB_CONFIG_WINDOW_WIDTH;
+        ctx->client->layout.geometry.cur.dim.w = ctx->req_w;
+        ctx->send_synth = ctx->is_reparented;
+    }
+
+    if (ctx->mask & XCB_CONFIG_WINDOW_HEIGHT) {
+        if (ctx->is_reparented && ctx->on_inner) {
+            ctx->req_h = (uint32_t) ctx->event->height +
+                ctx->top + ctx->bottom;
+        } else {
+            ctx->req_h = (uint32_t) ctx->event->height;
+        }
+
+        if (ctx->req_h != ctx->client->layout.geometry.cur.dim.h) {
+            ctx->geom_changed = true;
+        }
+
+        ctx->values[ctx->count++] = ctx->req_h;
+        ctx->target_mask |= XCB_CONFIG_WINDOW_HEIGHT;
+        ctx->client->layout.geometry.cur.dim.h = ctx->req_h;
+        ctx->send_synth = ctx->is_reparented;
+    }
+
+    if (ctx->mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+        ctx->values[ctx->count++] = (uint32_t) ctx->event->border_width;
+        ctx->target_mask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+    }
+
+    if (ctx->mask & XCB_CONFIG_WINDOW_SIBLING) {
+        ctx->values[ctx->count++] = ctx->event->sibling;
+        ctx->target_mask |= XCB_CONFIG_WINDOW_SIBLING;
+    }
+
+    if (ctx->mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+        ctx->values[ctx->count++] = (uint32_t) ctx->event->stack_mode;
+        ctx->target_mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+    }
+}
+
+
+/**
+ * @brief Keep the gravity anchor fixed when only the size changed
+ *
+ * @param ctx State of the request being built
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_handler_configure_gravity(
+        struct s_configure_ctx_s *ctx)
+{
+    /* Honor win_gravity (ICCCM §§4.1.2.3 and 4.1.5): when only the
+     * size changes without an explicit new position, keep the
+     * gravity anchor point fixed by adjusting the frame position.
+     * X/Y have lower ctx->mask bits than W/H, so the values array must
+     * be prepended and any higher-bit values shifted up by two. */
+    if ((ctx->target_mask & (XCB_CONFIG_WINDOW_WIDTH |
+                    XCB_CONFIG_WINDOW_HEIGHT)) &&
+            !(ctx->mask &
+                (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y)) &&
+            ctx->client->layout.gravity != 0u &&
+            ctx->client->layout.gravity !=
+                (uint16_t) CLIENT_GRAVITY_NORTH_WEST &&
+            ctx->client->layout.gravity !=
+                (uint16_t) CLIENT_GRAVITY_STATIC) {
+        int32_t adj_x = ctx->client->layout.geometry.cur.pos.x;
+        int32_t adj_y = ctx->client->layout.geometry.cur.pos.y;
+
+        client_gravity_adjust_pos(&adj_x, &adj_y,
+                ctx->old_w, ctx->old_h,
+                ctx->req_w, ctx->req_h, ctx->client->layout.gravity);
+        if ((uint32_t) adj_x
+                != (uint32_t) ctx->client->layout.geometry.cur.pos.x ||
+                (uint32_t) adj_y
+                != (uint32_t) ctx->client->layout.geometry.cur.pos.y) {
+            /* Counted in an unsigned index on purpose: a signed
+             * one lets the optimizer assume its arithmetic never
+             * overflows, which is what '-Wstrict-overflow' reports
+             * on from level three up, with no source location of
+             * its own to point at.
+             *
+             * The highest index written here is 'count' plus one,
+             * and 'count' can be at most 5, since this block only
+             * runs when neither X nor Y is in the mask, leaving
+             * WIDTH, HEIGHT, BORDER_WIDTH, SIBLING and STACK_MODE
+             * as the only bits that could have filled it.  That
+             * puts the last write at index 6, the final slot of
+             * the array. */
+            for (unsigned int j = ctx->count; j > 0u; --j) {
+                ctx->values[j + 1u] = ctx->values[j - 1u];
+            }
+            ctx->values[0] = (uint32_t) adj_x;
+            ctx->values[1] = (uint32_t) adj_y;
+            ctx->target_mask |=
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+            ctx->client->layout.geometry.cur.pos.x = adj_x;
+            ctx->client->layout.geometry.cur.pos.y = adj_y;
+            ctx->send_synth = ctx->is_reparented;
+            ctx->geom_changed = true;
+        }
     }
 }
 
@@ -356,9 +581,8 @@ void handler_configure_request(xcb_connection_t *connection,
     desktop_td *desktop;
     uint16_t mask;
     uint16_t target_mask;
-    uint32_t target_values[7];
+    struct s_configure_ctx_s ctx = {0};
     bool geom_changed;
-    unsigned int i;
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in configure request" \
@@ -403,7 +627,6 @@ void handler_configure_request(xcb_connection_t *connection,
 
     geom_changed = false;
     target_mask = 0;
-    i = 0u;
     if (client != NULL) {
         bool wm_owns_geometry;
         bool is_reparented = (client->frame != 0) &&
@@ -510,166 +733,32 @@ void handler_configure_request(xcb_connection_t *connection,
             target = client->frame;
         }
 
-        if (mask & XCB_CONFIG_WINDOW_X) {
-            int32_t req_x;
+        ctx.client = client;
+        ctx.event = event;
+        ctx.mask = mask;
+        ctx.left = left;
+        ctx.right = right;
+        ctx.top = top;
+        ctx.bottom = bottom;
+        ctx.req_w = req_w;
+        ctx.req_h = req_h;
+        ctx.old_w = old_w;
+        ctx.old_h = old_h;
+        ctx.is_reparented = is_reparented;
+        ctx.on_inner = on_inner;
+        ctx.send_synth = send_synth;
+        ctx.geom_changed = geom_changed;
 
-            if (client->has_rule_position_locked) {
-                /* Position was fixed by a rule; reject the client's
-                 * attempt to move the window and keep the locked X */
-                send_synth = is_reparented;
-            } else {
-                if (is_reparented && on_inner) {
-                    req_x = (int32_t) ((uint32_t) (int32_t) event->x -
-                            (uint32_t) left);
-                } else {
-                    req_x = event->x;
-                }
-                if ((uint32_t) req_x !=
-                        (uint32_t) client->layout.geometry.cur.pos.x) {
-                    geom_changed = true;
-                }
+        s_handler_configure_build(&ctx);
+        s_handler_configure_gravity(&ctx);
 
-                target_values[i++] = (uint32_t) req_x;
-                target_mask |= XCB_CONFIG_WINDOW_X;
-                client->layout.geometry.cur.pos.x = req_x;
-                send_synth = is_reparented;
-            }
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_Y) {
-            int32_t req_y;
-
-            if (client->has_rule_position_locked) {
-                /* Position was fixed by a rule; reject the client's
-                 * attempt to move the window and keep the locked Y */
-                send_synth = is_reparented;
-            } else {
-                if (is_reparented && on_inner) {
-                    /* Clamp before subtracting to keep req_y >= 0 and
-                     * avoid the "X - C < 0 => X < C" strict-overflow
-                     * transformation */
-                    req_y = ((int32_t) event->y > (int32_t) top)
-                        ? (int32_t) ((uint32_t) (int32_t) event->y -
-                                (uint32_t) top)
-                        : 0;
-                } else {
-                    req_y = (int32_t) event->y;
-                    if (req_y < 0) {
-                        req_y = 0;
-                    }
-                }
-
-                if ((uint32_t) req_y !=
-                        (uint32_t) client->layout.geometry.cur.pos.y) {
-                    geom_changed = true;
-                }
-
-                target_values[i++] = (uint32_t) req_y;
-                target_mask |= XCB_CONFIG_WINDOW_Y;
-                client->layout.geometry.cur.pos.y = req_y;
-                send_synth = is_reparented;
-            }
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_WIDTH) {
-            if (is_reparented && on_inner) {
-                req_w = (uint32_t) event->width + left + right;
-            } else {
-                req_w = (uint32_t) event->width;
-            }
-
-            if (req_w != client->layout.geometry.cur.dim.w) {
-                geom_changed = true;
-            }
-
-            target_values[i++] = req_w;
-            target_mask |= XCB_CONFIG_WINDOW_WIDTH;
-            client->layout.geometry.cur.dim.w = req_w;
-            send_synth = is_reparented;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
-            if (is_reparented && on_inner) {
-                req_h = (uint32_t) event->height + top + bottom;
-            } else {
-                req_h = (uint32_t) event->height;
-            }
-
-            if (req_h != client->layout.geometry.cur.dim.h) {
-                geom_changed = true;
-            }
-
-            target_values[i++] = req_h;
-            target_mask |= XCB_CONFIG_WINDOW_HEIGHT;
-            client->layout.geometry.cur.dim.h = req_h;
-            send_synth = is_reparented;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
-            target_values[i++] = (uint32_t) event->border_width;
-            target_mask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_SIBLING) {
-            target_values[i++] = event->sibling;
-            target_mask |= XCB_CONFIG_WINDOW_SIBLING;
-        }
-
-        if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
-            target_values[i++] = (uint32_t) event->stack_mode;
-            target_mask |= XCB_CONFIG_WINDOW_STACK_MODE;
-        }
-
-        /* Honor win_gravity (ICCCM §§4.1.2.3 and 4.1.5): when only the
-         * size changes without an explicit new position, keep the
-         * gravity anchor point fixed by adjusting the frame position.
-         * X/Y have lower mask bits than W/H, so the values array must
-         * be prepended and any higher-bit values shifted up by two. */
-        if ((target_mask & (XCB_CONFIG_WINDOW_WIDTH |
-                        XCB_CONFIG_WINDOW_HEIGHT)) &&
-                !(mask & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y)) &&
-                client->layout.gravity != 0u &&
-                client->layout.gravity !=
-                    (uint16_t) CLIENT_GRAVITY_NORTH_WEST &&
-                client->layout.gravity !=
-                    (uint16_t) CLIENT_GRAVITY_STATIC) {
-            int32_t adj_x = client->layout.geometry.cur.pos.x;
-            int32_t adj_y = client->layout.geometry.cur.pos.y;
-
-            client_gravity_adjust_pos(&adj_x, &adj_y, old_w, old_h,
-                    req_w, req_h, client->layout.gravity);
-            if ((uint32_t) adj_x
-                    != (uint32_t) client->layout.geometry.cur.pos.x ||
-                    (uint32_t) adj_y
-                    != (uint32_t) client->layout.geometry.cur.pos.y) {
-                /* Counted in an unsigned index on purpose: a signed
-                 * one lets the optimizer assume its arithmetic never
-                 * overflows, which is what '-Wstrict-overflow' at
-                 * level three and above reports on this function,
-                 * with no source location of its own to point at.
-                 *
-                 * The highest index written here is 'i + 1', and 'i'
-                 * can be at most 5: this block only runs when neither
-                 * X nor Y is in the mask, leaving WIDTH, HEIGHT,
-                 * BORDER_WIDTH, SIBLING and STACK_MODE as the only
-                 * bits that could have filled it.  That puts the last
-                 * write at index 6, the final slot of the array. */
-                for (unsigned int j = i; j > 0u; --j) {
-                    target_values[j + 1u] = target_values[j - 1u];
-                }
-                target_values[0] = (uint32_t) adj_x;
-                target_values[1] = (uint32_t) adj_y;
-                target_mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
-                client->layout.geometry.cur.pos.x = adj_x;
-                client->layout.geometry.cur.pos.y = adj_y;
-                send_synth = is_reparented;
-                geom_changed = true;
-            }
-        }
+        target_mask = ctx.target_mask;
+        send_synth = ctx.send_synth;
+        geom_changed = ctx.geom_changed;
 
         if (target_mask != 0 && connection != NULL) {
             xcb_configure_window(connection, target,
-                    target_mask, target_values);
+                    target_mask, ctx.values);
             if (is_reparented) {
                 client_decoration_layout_sync(client);
                 if (send_synth) {
