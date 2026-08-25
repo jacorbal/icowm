@@ -29,6 +29,107 @@
 
 
 /**
+ * @brief Record a newly managed client in the focus order
+ *
+ * The focus order is one list over every managed client, held
+ * most-recently-focused first, and it is what decides where focus
+ * goes whenever the window holding it stops being able to.  It is
+ * deliberately not the stacking order, which says what is drawn over
+ * what: raising a window changes that one and focusing a window does
+ * not, so a single list cannot answer both questions.
+ *
+ * One list for the session rather than one per desktop, which is how
+ * Openbox holds its own @c focus_order.  A client keeps its place
+ * while moving from desktop to desktop, and a desktop's focus is
+ * worked out by filtering this order rather than remembered
+ * separately, where it would go stale the moment the window it named
+ * was iconified, hidden, or carried elsewhere.
+ *
+ * A client is placed at the far end here, as the least recently used
+ * thing: it exists, so a fallback must be able to reach it, but
+ * nobody has worked in it yet.
+ *
+ * @param client Client that has just come under management
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients
+ */
+void focus_order_add(client_td *client);
+
+/**
+ * @brief Forget a client that is no longer managed
+ *
+ * Called as a client is destroyed, and never merely because it
+ * changed desktop: the order spans every managed client whichever
+ * desktop holds it, and that is exactly what lets a pinned window
+ * keep its place while following the person around.
+ *
+ * @param client Client to forget
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients
+ */
+void focus_order_remove(client_td *client);
+
+/**
+ * @brief Move a client to the front of the focus order
+ *
+ * @param client Client that has just received focus
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients
+ */
+void focus_order_to_top(client_td *client);
+
+/**
+ * @brief Most recently focused client on a desktop that may hold
+ *        focus now
+ *
+ * Walks the order from its front and returns the first client that
+ * belongs to @p desktop and that @p is_valid accepts.
+ *
+ * @param desktop  Desktop to restrict the search to
+ * @param is_valid Predicate deciding whether a candidate qualifies
+ * @param exclude  Client being replaced, passed on to @p is_valid,
+ *                 which may itself be @c NULL
+ *
+ * @return The client to focus, or @c NULL when none qualifies
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients
+ */
+client_td *focus_order_best(const desktop_td *desktop,
+        bool (*is_valid)(const client_td *candidate,
+                const client_td *exclude),
+        const client_td *exclude);
+
+/**
+ * @brief Visit every client of a desktop in focus order
+ *
+ * Calls @p visit on each client belonging to @p desktop, from the
+ * most recently focused toward the least.  For a caller that needs
+ * the whole ordering rather than only its first eligible member, the
+ * cycle menu being the one that does.
+ *
+ * @param desktop Desktop to restrict the walk to
+ * @param visit   Called once per client, with @p data passed through
+ * @param data    Opaque pointer handed to @p visit
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients
+ */
+void focus_order_walk(const desktop_td *desktop,
+        void (*visit)(client_td *client, void *data), void *data);
+
+/**
+ * @brief Release the focus order
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients
+ */
+void focus_order_destroy(void);
+
+/**
  * @brief Determine whether the loaded focus policy follows the pointer
  *
  * @param cfg Configuration to query; may be null

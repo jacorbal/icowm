@@ -126,6 +126,22 @@
 #define WM_MOVERESIZE_FLAG_HEIGHT (1u << 11)
 
 /**
+ * @brief Source indication values carried by a client message, per
+ *        EWMH §2.12
+ *
+ * Says who is asking, which decides how much weight the request
+ * carries.  @c WM_SOURCE_APPLICATION is a program asking on its own
+ * behalf, and may be weighed against whatever the person is doing
+ * right now; @c WM_SOURCE_USER is a pager, a taskbar or a
+ * notification, which is to say the person acting through one, and is
+ * honored.  @c WM_SOURCE_LEGACY is what a client too old to set the
+ * field leaves behind, and counts as an application.
+ */
+#define WM_SOURCE_LEGACY (0u)
+#define WM_SOURCE_APPLICATION (1u)
+#define WM_SOURCE_USER (2u)
+
+/**
  * @brief Detail values of @c _NET_RESTACK_WINDOW, per EWMH §4.3
  */
 #define WM_RESTACK_DETAIL_ABOVE (0u)

@@ -72,11 +72,14 @@ bool scratchpad_is_client(const client_td *client)
     return false;
 }
 
-int desktop_focus_order_to_top(desktop_td *desktop, client_td *client)
+/* Link-only stand-in: the focus order walks the desktop's own client
+ * table to filter by desktop, which no test here builds */
+client_td *desktop_find_client_by_id(const desktop_td *desktop,
+        xcb_window_t client_id)
 {
     (void) desktop;
-    (void) client;
-    return 0;
+    (void) client_id;
+    return NULL;
 }
 
 void ipc_broadcast_event(uint32_t type, cJSON *fields)

@@ -132,15 +132,6 @@ struct desktop_s {
 
     cdlist_td *stacking;                    /**< Stacking list */
 
-    /**
-     * @brief Most-recently-focused order over the same clients
-     *
-     * Head is the most recently focused, tail the least.  Distinct
-     * from @p stacking, which is where each window sits on screen:
-     * focusing a window without raising it moves it here and leaves
-     * that one alone.  Maintained by @c desktop/focus.h.
-     */
-    cdlist_td *focus_order;
 
     /**
      * @brief This desktop's own surface's shared configuration

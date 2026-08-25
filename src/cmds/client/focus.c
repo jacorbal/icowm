@@ -49,7 +49,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <desktop/focus.h>
+#include <policy/focus.h>
 #include <ipc.h>
 #include <lookup.h>
 #include <render/outdate.h>
@@ -73,7 +73,7 @@
  * @brief Group leader the same-application fallback pass is looking
  *        for
  *
- * File-scope because @a desktop_focus_order_first takes a plain
+ * File-scope because @a focus_order_best takes a plain
  * predicate of two clients, and the leader being sought is neither of
  * them.  Set immediately before that pass and read only by
  * @a s_focus_fallback_valid_same_group, which runs to completion
@@ -340,12 +340,12 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
 
     s_fallback_leader = exclude_leader;
     if (exclude_leader != XCB_WINDOW_NONE) {
-        next_focus = desktop_focus_order_first(desktop,
+        next_focus = focus_order_best(desktop,
                 s_focus_fallback_valid_same_group, exclude);
     }
 
     if (next_focus == NULL) {
-        next_focus = desktop_focus_order_first(desktop,
+        next_focus = focus_order_best(desktop,
                 s_client_focus_fallback_valid, exclude);
     }
 
@@ -356,7 +356,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
          * list: this client is now the most recently focused one, and
          * saying so must not also raise it over whatever the person
          * had deliberately placed above it */
-        (void) desktop_focus_order_to_top(desktop, next_focus);
+        focus_order_to_top(next_focus);
         ccmd_client_focus(next_focus);
     } else if (desktop->connection != NULL) {
         xcb_set_input_focus(desktop->connection,

@@ -12,10 +12,10 @@
  */
 
 /* Project includes */
+#include <adt/cdlist.h>
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
-#include <desktop/focus.h>
 #include <scratchpad.h>
 #include <enact.h>
 #include <logger.h>
@@ -36,6 +36,228 @@
 
 
 /* Determine whether the loaded focus policy follows the pointer */
+/**
+ * @brief Every managed client, most recently focused first
+ *
+ * See @c policy/focus.h for why there is one of these rather than one
+ * per desktop.  The clients belong to their desktops; this list only
+ * refers to them, so it is created without a destructor.
+ */
+static cdlist_td *s_focus_order = NULL;
+
+
+/**
+ * @brief Find the node holding a client, and the one before it
+ *
+ * @param client Client to look for
+ * @param prev   Receives the node before the one found, which
+ *               @a cdlist_rem_next needs, or @c NULL when the client
+ *               sits at the head; may itself be @c NULL
+ *
+ * @return The node holding @p client, or @c NULL when it is absent
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients
+ */
+static cdlist_item_td *s_focus_order_find(const client_td *client,
+        cdlist_item_td **prev)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *behind = NULL;
+    const cdlist_item_td *initial;
+
+    if (prev != NULL) {
+        *prev = NULL;
+    }
+
+    if (s_focus_order == NULL || cdlist_size(s_focus_order) == 0u) {
+        return NULL;
+    }
+
+    node = cdlist_head(s_focus_order);
+    initial = node;
+    if (node == NULL) {
+        return NULL;
+    }
+
+    do {
+        if ((const client_td *) cdlist_data(node) == client) {
+            if (prev != NULL) {
+                *prev = behind;
+            }
+            return node;
+        }
+        behind = node;
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    return NULL;
+}
+
+
+/**
+ * @brief Create the focus order on first use
+ *
+ * @return @c true when the list is available
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_focus_order_ensure(void)
+{
+    if (s_focus_order == NULL) {
+        s_focus_order = cdlist_init(NULL);
+    }
+
+    return s_focus_order != NULL;
+}
+
+
+/* Record a newly managed client in the focus order */
+void focus_order_add(client_td *client)
+{
+    if (client == NULL || !s_focus_order_ensure()) {
+        return;
+    }
+
+    /* Left where it is when already recorded, so that a path running
+     * twice cannot demote a client the person did use recently */
+    if (s_focus_order_find(client, NULL) != NULL) {
+        return;
+    }
+
+    (void) cdlist_ins_next(s_focus_order,
+            cdlist_tail(s_focus_order), client);
+}
+
+
+/* Forget a client that is no longer managed */
+void focus_order_remove(client_td *client)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *prev = NULL;
+    void *removed = NULL;
+
+    if (client == NULL || s_focus_order == NULL) {
+        return;
+    }
+
+    node = s_focus_order_find(client, &prev);
+    if (node == NULL) {
+        return;
+    }
+
+    (void) cdlist_rem_next(s_focus_order, prev, &removed);
+}
+
+
+/* Move a client to the front of the focus order */
+void focus_order_to_top(client_td *client)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *prev = NULL;
+
+    if (client == NULL || !s_focus_order_ensure()) {
+        return;
+    }
+
+    node = s_focus_order_find(client, &prev);
+    if (node != NULL) {
+        void *removed = NULL;
+
+        /* Already at the front: removing and reinserting would churn
+         * a node to no end */
+        if (node == cdlist_head(s_focus_order)) {
+            return;
+        }
+        (void) cdlist_rem_next(s_focus_order, prev, &removed);
+    }
+
+    /* Inserted after no node at all, which 'cdlist_ins_next' takes as
+     * the head of an otherwise untouched list */
+    (void) cdlist_ins_next(s_focus_order, NULL, client);
+}
+
+
+/* Most recently focused client on a desktop that may hold focus now */
+client_td *focus_order_best(const desktop_td *desktop,
+        bool (*is_valid)(const client_td *candidate,
+                const client_td *exclude),
+        const client_td *exclude)
+{
+    cdlist_item_td *node;
+    const cdlist_item_td *initial;
+
+    if (desktop == NULL || is_valid == NULL ||
+            s_focus_order == NULL ||
+            cdlist_size(s_focus_order) == 0u) {
+        return NULL;
+    }
+
+    node = cdlist_head(s_focus_order);
+    initial = node;
+    if (node == NULL) {
+        return NULL;
+    }
+
+    do {
+        client_td *const candidate = (client_td *) cdlist_data(node);
+
+        /* Filtered by desktop here rather than by holding a list per
+         * desktop, which is what lets a client moving between them
+         * keep its place in the order untouched */
+        if (candidate != NULL &&
+                desktop_find_client_by_id(desktop,
+                    candidate->id) == candidate &&
+                is_valid(candidate, exclude)) {
+            return candidate;
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+
+    return NULL;
+}
+
+
+/* Visit every client of a desktop in focus order */
+void focus_order_walk(const desktop_td *desktop,
+        void (*visit)(client_td *client, void *data), void *data)
+{
+    cdlist_item_td *node;
+    const cdlist_item_td *initial;
+
+    if (desktop == NULL || visit == NULL || s_focus_order == NULL ||
+            cdlist_size(s_focus_order) == 0u) {
+        return;
+    }
+
+    node = cdlist_head(s_focus_order);
+    initial = node;
+    if (node == NULL) {
+        return;
+    }
+
+    do {
+        client_td *const c = (client_td *) cdlist_data(node);
+
+        if (c != NULL &&
+                desktop_find_client_by_id(desktop, c->id) == c) {
+            visit(c, data);
+        }
+        node = cdlist_next(node);
+    } while (node != NULL && node != initial);
+}
+
+
+/* Release the focus order */
+void focus_order_destroy(void)
+{
+    if (s_focus_order != NULL) {
+        cdlist_destroy(s_focus_order);
+        s_focus_order = NULL;
+    }
+}
+
+
 bool focus_is_sloppy(const config_td *cfg)
 {
     if (cfg == NULL) {
@@ -156,8 +378,8 @@ void focus_apply(list_td *surfaces, surface_td *surface,
      * that switch replays the stacking list onto the X server, so a
      * window merely focused came back on top although
      * 'windows.focus.raise' had said not to raise it.  See
-     * 'desktop/focus.h'. */
-    (void) desktop_focus_order_to_top(desktop, client);
+     * 'policy/focus.h'. */
+    focus_order_to_top(client);
 
     should_raise = (raise ||
             (cfg != NULL &&

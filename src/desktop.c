@@ -517,20 +517,6 @@ desktop_td *desktop_init(xcb_connection_t *connection,
         return NULL;
     }
 
-    /* And a second order over those same clients, by how recently
-     * each was focused rather than by where it sits on screen; see
-     * 'desktop/focus.h' for why the two are kept apart */
-    desktop->focus_order = cdlist_init(NULL);
-    if (desktop->focus_order == NULL) {
-        LOGGER_ERROR("Failed to allocate memory for focus order" \
-                " on desktop %u ('%s') on screen %u",
-                desktop_id, desktop->name, screen_id);
-        cdlist_destroy(desktop->stacking);
-        ohtbl_destroy(desktop->clients);
-        free(desktop);
-        return NULL;
-    }
-
     /* Get XCB screen to obtain dimensions */
     iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
     screen = NULL;
@@ -650,12 +636,6 @@ void desktop_destroy(desktop_td *desktop)
         desktop->stacking = NULL;
     }
 
-    /* Likewise the focus order: it holds the same clients, and owns
-     * none of them either */
-    if (desktop->focus_order != NULL) {
-        cdlist_destroy(desktop->focus_order);
-        desktop->focus_order = NULL;
-    }
 
     /* Destroy hash table (also destroys all clients via client_destroy
      * callback) */

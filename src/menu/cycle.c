@@ -89,6 +89,75 @@ struct cycle_menu_state_s g_cycle_menu = {
 
 
 /**
+ * @brief What @a s_cycle_collect needs that the client itself is not
+ */
+struct s_cycle_collect_ctx_s {
+    bool is_icon;               /**< Collecting icons, not windows */
+    xcb_window_t active_id;     /**< Desktop's own active client */
+    int active_idx;             /**< Index it landed at, or -1 */
+};
+
+
+/**
+ * @brief Add one client to the cycle menu, in focus order
+ *
+ * @param c    Client being visited
+ * @param data Pointer to a @c s_cycle_collect_ctx_s
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_cycle_collect(client_td *c, void *data)
+{
+    struct s_cycle_collect_ctx_s *const ctx = data;
+    const char *name;
+    bool want;
+    int idx;
+
+    if (c == NULL || ctx == NULL || !client_is_focusable(c) ||
+            (c->properties.flags & CLIENT_FLAG_SKIP_TASKBAR)) {
+        return;
+    }
+
+    want = (ctx->is_icon)
+        ? (bool) client_is_iconified(c)
+        : !client_is_iconified(c);
+    if (!want || g_cycle_menu.count >= WM_CYCLE_MENU_MAX_ENTRIES) {
+        return;
+    }
+
+    idx = g_cycle_menu.count;
+    name = (c->info.name != NULL && c->info.name[0] != '\0')
+        ? c->info.name : "(unnamed)";
+    g_cycle_menu.clients[idx] = c;
+
+    /* Encode window state directly in the menu label:
+     *  - icon   -> "(name)"
+     *  - hidden -> "<name>"
+     *  - normal ->  "name"
+     * 'CLIENT_FLAG_HIDDEN' is set for BOTH an iconified and a
+     * genuinely hidden client (see 'client_hide', called from both
+     * paths), so the more specific iconified state has to be checked
+     * first; the hidden flag is only checked once iconified has
+     * already been ruled out. */
+    if (client_is_iconified(c)) {
+        (void) snprintf(g_cycle_menu.labels[idx],
+                WM_CYCLE_MENU_ENTRY_LENGTH, "(%s)", name);
+    } else if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
+        (void) snprintf(g_cycle_menu.labels[idx],
+                WM_CYCLE_MENU_ENTRY_LENGTH, "<%s>", name);
+    } else {
+        (void) snprintf(g_cycle_menu.labels[idx],
+                WM_CYCLE_MENU_ENTRY_LENGTH, "%s", name);
+    }
+
+    if (c->id == ctx->active_id) {
+        ctx->active_idx = idx;
+    }
+    g_cycle_menu.count++;
+}
+
+
+/**
  * @brief Restore the preview style for all clients in the cycle menu
  *
  * Iterates over the clients listed in the global cycle menu and resets
@@ -237,8 +306,7 @@ void cycle_init(xcb_connection_t *connection,
         bool is_icon, int preselect, uint16_t modifier,
         const config_td *cfg)
 {
-    cdlist_item_td *node;
-    const cdlist_item_td *initial;
+    struct s_cycle_collect_ctx_s ctx;
     xcb_get_input_focus_cookie_t foc_cookie;
     xcb_get_input_focus_reply_t *foc_reply;
     uint32_t mask;
@@ -264,7 +332,7 @@ void cycle_init(xcb_connection_t *connection,
             (unsigned int) XCB_MOD_MASK_2);
 
     if (connection == NULL || surface == NULL || desktop == NULL ||
-            desktop->focus_order == NULL || cfg == NULL) {
+            cfg == NULL) {
         return;
     }
 
@@ -336,62 +404,16 @@ void cycle_init(xcb_connection_t *connection,
     g_cycle_menu.preview_client = NULL;
     g_cycle_menu.config = cfg;
 
-    /* Collected from the focus order rather than from the stacking
-     * list, walking its head (most recently focused) toward its tail,
-     * which is the ordering Openbox and evilwm cycle in.  The
-     * stacking list answers a different question, where each window
-     * sits on screen, and reading it here made cycling follow the
-     * last window raised rather than the last one worked in; see
-     * 'desktop/focus.h'. */
-    node = cdlist_head(desktop->focus_order);
-    initial = node;
-    if (node != NULL) {
-        do {
-            client_td *const c = (client_td *) cdlist_data(node);
-            if (c != NULL && client_is_focusable(c) &&
-                    !(c->properties.flags & CLIENT_FLAG_SKIP_TASKBAR)) {
-                bool want = (is_icon)
-                    ? (bool) client_is_iconified(c)
-                    : !client_is_iconified(c);
-                if (want &&
-                        g_cycle_menu.count < WM_CYCLE_MENU_MAX_ENTRIES) {
-                    int idx = g_cycle_menu.count;
-                    const char *name = (c->info.name != NULL &&
-                            c->info.name[0] != '\0')
-                        ? c->info.name : "(unnamed)";
-
-                    g_cycle_menu.clients[idx] = c;
-
-                    /* Encode window state directly in the menu label:
-                     *  - icon   -> "(name)"
-                     *  - hidden -> "<name>"
-                     *  - normal ->  "name"
-                     * 'CLIENT_FLAG_HIDDEN' is set for BOTH an
-                     * iconified and a genuinely hidden client (see
-                     * 'client_hide', called from both paths), so
-                     * the more specific iconified state has to be
-                     * checked first; the hidden flag is only checked
-                     * once iconified has already been ruled out. */
-                    if (client_is_iconified(c)) {
-                        (void) snprintf(g_cycle_menu.labels[idx],
-                                WM_CYCLE_MENU_ENTRY_LENGTH, "(%s)", name);
-                    } else if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
-                        (void) snprintf(g_cycle_menu.labels[idx],
-                                WM_CYCLE_MENU_ENTRY_LENGTH, "<%s>", name);
-                    } else {
-                        (void) snprintf(g_cycle_menu.labels[idx],
-                                WM_CYCLE_MENU_ENTRY_LENGTH, "%s", name);
-                    }
-
-                    if (c->id == desktop->client_active_id) {
-                        active_idx = idx;
-                    }
-                    g_cycle_menu.count++;
-                }
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
-    }
+    /* Collected in focus order, most recently worked in first, which
+     * is the ordering Openbox and evilwm cycle in.  The stacking list
+     * answers a different question, where each window sits on screen,
+     * and reading it here followed the last window raised rather than
+     * the last one worked in; see 'policy/focus.h'. */
+    ctx.is_icon = is_icon;
+    ctx.active_id = desktop->client_active_id;
+    ctx.active_idx = -1;
+    focus_order_walk(desktop, s_cycle_collect, &ctx);
+    active_idx = ctx.active_idx;
 
     if (g_cycle_menu.count == 0) {
         return;

@@ -118,7 +118,8 @@ $(O_DIR)/tests/test_lookup: $(TESTS_DIR)/test_lookup.c \
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 $(O_DIR)/tests/policy/test_focus: $(TESTS_DIR)/policy/test_focus.c \
-		$(S_DIR)/policy/focus.c
+		$(S_DIR)/policy/focus.c \
+		$(S_DIR)/adt/cdlist.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
 

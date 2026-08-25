@@ -55,6 +55,7 @@
 #include <config.h>
 #include <logger.h>
 #include <render/wmicon.h>
+#include <policy/focus.h>
 #include <scratchpad.h>
 #include <wm.h>
 
@@ -848,6 +849,11 @@ void client_destroy(client_td *client)
         return;
     }
 
+    /* Out of the focus order before anything else: a client left in
+     * it once gone would be handed real input focus by the next
+     * fallback that walked far enough to reach it */
+    focus_order_remove(client);
+
     /* Removes 'client' from its own parent's 'transients' list (true
      * O(1), see 'transient_node''s comment, client.h) and
      * orphans every one of its own children, before anything below
@@ -1303,6 +1309,10 @@ client_td *client_init(xcb_connection_t *connection,
      * on the first render pass so the decoration and content area are
      * correctly sized and positioned from the outset */
     client->is_outdated = true;
+
+    /* Into the focus order, at its far end: it exists, so a fallback
+     * must be able to reach it, but nobody has worked in it yet */
+    focus_order_add(client);
 
     scratchpad_notice_client_created(client);
 

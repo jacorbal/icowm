@@ -43,6 +43,9 @@
 /* Render includes */
 #include <render/outdate.h>
 
+/* Definition includes */
+#include <defs/ewmh.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -225,16 +228,51 @@ void handler_client_message(wm_td *wm,
              * ('client_active_id' still 0), or when the requesting
              * client already is the one currently focused, since
              * neither case has an actual rival claim to weigh this
-             * one against. */
-            if (active_desktop != NULL &&
+             * one against.
+             *
+             * Skipped as well when the message declares itself to
+             * come from the person rather than from the program.
+             * EWMH §2.12 has the sender state a source indication,
+             * and 'WM_SOURCE_USER' is a pager, a taskbar or a
+             * notification passing on a click; weighing that against
+             * anything would be second-guessing an instruction
+             * already given. */
+            if (event->data.data32[0] != (uint32_t) WM_SOURCE_USER &&
+                    active_desktop != NULL &&
                     active_desktop->client_active_id != 0 &&
                     active_desktop->client_active_id != client->id) {
                 const client_td *const active =
                     desktop_find_client_by_id( active_desktop,
                         active_desktop->client_active_id);
 
-                if (active != NULL &&
-                        !client_user_time_is_newer(client->user_time,
+                /* The timestamp that decides this is the one inside
+                 * the message, which EWMH §3 defines as the
+                 * requesting client's own last user activity at the
+                 * moment it asked, and not this window's own tracked
+                 * 'user_time'.  They are different things, and the
+                 * difference is the whole mechanism: a notification
+                 * daemon passing on a click has just been interacted
+                 * with and sends a current timestamp, while an
+                 * application raising itself unbidden sends the stale
+                 * one it has carried since the person last touched
+                 * it.
+                 *
+                 * Weighing this window's own instead, as this did,
+                 * asked the wrong question.  An iconified window has
+                 * by definition not been touched lately, so it lost
+                 * every comparison it was ever put through and could
+                 * never be activated by anything at all, click or no
+                 * click: the request was refused and the window left
+                 * sitting as an icon, merely marked urgent.
+                 *
+                 * A zero means a client too old to fill the field in,
+                 * which §3 says to ignore, so this window's own is
+                 * used then as before. */
+                const uint32_t asked_at = event->data.data32[1];
+
+                if (active != NULL && !client_user_time_is_newer(
+                            (asked_at != 0u)
+                                ? asked_at : client->user_time,
                             active->user_time)) {
                     /* 'ccmd_client_urge' (cmds/client/flags.c) already
                      * covers the EWMH state publish and the IPC
