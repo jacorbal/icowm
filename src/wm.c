@@ -44,6 +44,9 @@
 #include <defs/uistr.h>
 #include <i18n.h>
 
+/* Command includes */
+#include <cmds/client/ewmh.h>
+
 /* Project includes */
 #include <config.h>
 #include <config/memguard.h>
@@ -132,6 +135,25 @@ static void s_client_unmanage(client_td *client)
         return;
     }
 
+    /* Map the window back before letting go of it.  This window
+     * manager unmaps routinely, every client on a desktop that is not
+     * the current one and every iconified client among them, and a
+     * window left unmapped once nobody is managing it is lost: it is
+     * still there, its process still running, but no
+     * 'MapRequest' will ever be sent for it again, so neither the
+     * person nor the next window manager has any way to bring it
+     * back.
+     *
+     * ICCCM asks for exactly this of a window manager giving up its
+     * clients, so that another may adopt them in a sane state
+     * (Scheifler and Gettys, 1994, "Inter-Client Communication
+     * Conventions Manual", v2.0, §4.1.4).
+     *
+     * Strictly after the reparenting below, never before it: 'X'
+     * unmaps a mapped window itself as the first step of reparenting
+     * it, so a map issued ahead of that would simply be undone again
+     * (X Consortium, 1994, "X Window System Protocol", v11 R6,
+     * ReparentWindow). */
     if (client->frame != 0u) {
         int16_t abs_x = (int16_t) (client->layout.geometry.cur.pos.x +
                 (int32_t) client->layout.frame_extents.left);
@@ -141,6 +163,9 @@ static void s_client_unmanage(client_td *client)
         xcb_reparent_window(client->connection, client->window,
                 client->parent_id, abs_x, abs_y);
     }
+
+    xcb_map_window(client->connection, client->window);
+    ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
 
     /* 'client_destroy' only ever destroys 'window' itself when this
      * is still non-zero; every other field it destroys ('frame',
@@ -284,6 +309,14 @@ static void s_wm_cleanup(void)
             xcb_destroy_window(wm->connection, wm->ewmh_support_win);
             wm->ewmh_support_win = XCB_NONE;
         }
+
+        /* Flushed rather than left to 'xcb_disconnect', which makes
+         * no promise about a request still sitting in the buffer.
+         * Everything 's_client_unmanage' just did to hand the clients
+         * back in a sane state is in that buffer, and a client left
+         * unmapped because its map never reached the server is a
+         * window the person cannot get back. */
+        xcb_flush(wm->connection);
         xcb_disconnect(wm->connection);
         wm->connection = NULL;
     }
