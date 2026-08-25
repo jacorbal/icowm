@@ -1,0 +1,295 @@
+{
+    "name": "Moss dark",
+    "-author": "J. A. Corbal",
+    "-creation-date": "Tue Aug 25 21:21:00 UTC 2026",
+    "-modified-date": "Tue Aug 25 21:21:00 UTC 2026",
+    "-notes": "Muted greens with a gold accent; meant for long sessions.  Text 8.7:1 on active and 8.8:1 on inactive, window frames 5.0:1 and the cycling frame 9.5:1 on the desktop.",
+    "desktop": {
+        "color": {
+            "background": "#171C14"
+        }
+    },
+    "cycle": {
+        "border": {
+            "color": "#E0BC5A",
+            "width": 4
+        }
+    },
+    "window": {
+        "is-decorated": true,
+        "active": {
+            "opacity": 100,
+            "border": {
+                "color": "#7E8F70",
+                "width": 2
+            },
+            "color": {
+                "background": "#33402C",
+                "foreground": "#DCE8D2"
+            },
+            "font": "fixed bold"
+        },
+        "inactive": {
+            "border": {
+                "color": "#4A5642",
+                "width": 2
+            },
+            "color": {
+                "background": "#252E21",
+                "foreground": "#C2D2B4"
+            },
+            "font": "fixed"
+        },
+        "titlebar": {
+            "alignment": "center",
+            "buttons": {
+                "color": {
+                    "off": "#4A5642",
+                    "on": "#DCE8D2"
+                },
+                "left": [
+                    "pin",
+                    "layer"
+                ],
+                "right": [
+                    "close",
+                    "maximize",
+                    "shade",
+                    "iconize"
+                ]
+            },
+            "height": 22,
+            "padding": {
+                "horizontal": 2,
+                "vertical": 2
+            }
+        }
+    },
+    "icon": {
+        "is-captioned": true,
+        "show-hints": true,
+        "show-pixmaps": true,
+        "active": {
+            "opacity": 100,
+            "border": {
+                "color": "#7E8F70",
+                "width": 1
+            },
+            "color": {
+                "background": "#33402C",
+                "foreground": "#DCE8D2"
+            },
+            "font": "fixed bold"
+        },
+        "inactive": {
+            "opacity": 100,
+            "border": {
+                "color": "#4A5642",
+                "width": 1
+            },
+            "color": {
+                "background": "#252E21",
+                "foreground": "#C2D2B4"
+            },
+            "font": "fixed"
+        }
+    },
+    "menu": {
+        "opacity": 100,
+        "show-pixmaps": true,
+        "border": {
+            "color": "#4A5642",
+            "width": 2
+        },
+        "disabled": {
+            "color": {
+                "foreground": "#75836A"
+            }
+        },
+        "label": {
+            "border": {
+                "color": "#4A5642",
+                "width": 0
+            },
+            "color": {
+                "background": "#33402C",
+                "foreground": "#DCE8D2"
+            },
+            "font": "fixed bold"
+        },
+        "padding": {
+            "horizontal": 12,
+            "vertical": 4
+        },
+        "selected": {
+            "border": {
+                "color": "#7E8F70",
+                "width": 0
+            },
+            "color": {
+                "background": "#33402C",
+                "foreground": "#DCE8D2"
+            },
+            "font": "fixed"
+        },
+        "separator": {
+            "color": "#4A5642"
+        },
+        "unselected": {
+            "border": {
+                "color": "#4A5642",
+                "width": 0
+            },
+            "color": {
+                "background": "#252E21",
+                "foreground": "#C2D2B4"
+            },
+            "font": "fixed"
+        }
+    },
+    "dialog": {
+        "opacity": 100,
+        "border": {
+            "color": "#4A5642",
+            "width": 2
+        },
+        "button": {
+            "gap": 24,
+            "padding": {
+                "horizontal": 12,
+                "vertical": 6
+            },
+            "selected": {
+                "border": {
+                    "color": "#7E8F70",
+                    "width": 1
+                },
+                "color": {
+                    "background": "#33402C",
+                    "foreground": "#DCE8D2"
+                },
+                "font": "fixed bold"
+            },
+            "unselected": {
+                "border": {
+                    "color": "#4A5642",
+                    "width": 1
+                },
+                "color": {
+                    "background": "#252E21",
+                    "foreground": "#C2D2B4"
+                },
+                "font": "fixed"
+            }
+        },
+        "color": {
+            "background": "#252E21"
+        },
+        "label": {
+            "color": {
+                "foreground": "#C2D2B4"
+            },
+            "font": "fixed bold",
+            "padding": {
+                "horizontal": 12,
+                "vertical": 12
+            }
+        }
+    },
+    "overlay": {
+        "opacity": 100,
+        "font": "fixed",
+        "border": {
+            "color": "#4A5642",
+            "width": 1
+        },
+        "color": {
+            "background": "#252E21",
+            "foreground": "#C2D2B4"
+        }
+    },
+    "systray": {
+        "opacity": 100,
+        "font": "fixed bold",
+        "height": 24,
+        "border": {
+            "color": "#4A5642",
+            "width": 1
+        },
+        "color": {
+            "background": "#252E21",
+            "foreground": "#C2D2B4"
+        },
+        "pixmap": {
+            "size": 24,
+            "padding": 2
+        },
+        "text": {
+            "gap": 12,
+            "valign": "center"
+        }
+    },
+    "search": {
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#33402C",
+                "foreground": "#DCE8D2"
+            }
+        },
+        "selected": {
+            "font": "fixed",
+            "color": {
+                "background": "#33402C",
+                "foreground": "#DCE8D2"
+            }
+        },
+        "unselected": {
+            "font": "fixed",
+            "color": {
+                "background": "#252E21",
+                "foreground": "#C2D2B4"
+            }
+        },
+        "border": {
+            "color": "#4A5642",
+            "width": 2
+        }
+    },
+    "prompt": {
+        "label": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#33402C",
+                "foreground": "#DCE8D2"
+            }
+        },
+        "input": {
+            "font": "fixed bold",
+            "color": {
+                "background": "#252E21",
+                "foreground": "#DCE8D2"
+            }
+        },
+        "border": {
+            "color": "#4A5642",
+            "width": 2
+        }
+    },
+    "scratchpad": {
+        "border": {
+            "color": "#7E8F70",
+            "width": 2
+        }
+    },
+    "xsettings": {
+        "dpi": 96,
+        "is-enabled": false,
+        "theme": {
+            "gtk-theme-name": "Adwaita",
+            "icon-theme-name": "Adwaita",
+            "cursor-theme-name": "Adwaita",
+            "cursor-theme-size": 24
+        }
+    }
+}
