@@ -108,20 +108,23 @@ void ccmd_publish_frame_extents(client_td *client,
 
 
 /**
- * @brief Transfer focus away from a client that is leaving the current
- *        visible focus chain
+ * @brief Transfer focus away from a client that is losing it
  *
- * Thin wrapper resolving @p client's own surface/desktop before
+ * Thin wrapper resolving @p client's own surface and desktop before
  * deferring to @a client_focus_fallback itself; a no-op unless
- * @p client is genuinely this desktop's own current active client,
+ * @p client is genuinely that desktop's own current active client,
  * since some other, already-unfocused client being hidden or
  * iconified has no focus of its own to hand off in the first place.
+ *
+ * Note that the desktop resolved is the one @p client lives on and
+ * not whichever is showing, the two being different whenever a client
+ * loses focus while the person is looking elsewhere.
  *
  * @param client Client that is being hidden or iconified
  *
  * @note Implemented in @c cmds/client/focus.c
- * @note Complexity: @e O(n), where @e n is the number of clients on the
- *       current desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       that desktop
  */
 void ccmd_client_focus_fallback(const client_td *client);
 

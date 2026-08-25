@@ -49,6 +49,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <desktop/focus.h>
 #include <ipc.h>
 #include <lookup.h>
 #include <render/outdate.h>
@@ -66,6 +67,19 @@
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
+
+
+/**
+ * @brief Group leader the same-application fallback pass is looking
+ *        for
+ *
+ * File-scope because @a desktop_focus_order_first takes a plain
+ * predicate of two clients, and the leader being sought is neither of
+ * them.  Set immediately before that pass and read only by
+ * @a s_focus_fallback_valid_same_group, which runs to completion
+ * within it.
+ */
+static xcb_window_t s_fallback_leader = XCB_WINDOW_NONE;
 
 
 /**
@@ -101,6 +115,26 @@ static bool s_client_focus_fallback_valid(const client_td *candidate,
          client_is_modal(candidate) ||
          client_is_urgent(candidate) ||
          candidate->properties.type == (uint16_t) CLIENT_TYPE_DIALOG);
+}
+
+
+/**
+ * @brief Whether a candidate is a valid fallback of the same
+ *        application
+ *
+ * @param candidate Client being considered
+ * @param exclude   Client being replaced, which never qualifies
+ *
+ * @return @c true if @p candidate is valid and shares
+ *         @c s_fallback_leader
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_focus_fallback_valid_same_group(const client_td *candidate,
+        const client_td *exclude)
+{
+    return s_client_focus_fallback_valid(candidate, exclude) &&
+        client_group_leader(candidate) == s_fallback_leader;
 }
 
 
@@ -251,13 +285,22 @@ void ccmd_client_focus_fallback(const client_td *client)
         return;
     }
 
+    /* Resolved to the desktop this client actually lives on, not to
+     * whichever one happens to be showing.  A client can lose focus
+     * while the person is looking elsewhere, the scratchpad being
+     * hidden from another desktop is the ordinary case, and asking
+     * the current desktop then compares this client's id against a
+     * different desktop's active client, finds no match, and hands
+     * focus to nobody.  The desktop it left is then holding an
+     * active id that names a client no longer eligible, which is
+     * only noticed on switching back to it.
+     *
+     * This is what the destroy path in 'handler/map.c' already does,
+     * and for the same reason. */
     surface = wm_get_surface_by_id(client->screen_id);
-    if (surface == NULL) {
-        return;
-    }
-
-    desktop = lookup_current_desktop(surface);
-    if (desktop == NULL || desktop->client_active_id != client->id) {
+    desktop = wm_get_client_desktop(client);
+    if (surface == NULL || desktop == NULL ||
+            desktop->client_active_id != client->id) {
         return;
     }
 
@@ -272,7 +315,6 @@ void ccmd_client_focus_fallback(const client_td *client)
 void client_focus_fallback(desktop_td *desktop, surface_td *surface,
         const client_td *exclude)
 {
-    cdlist_item_td *node;
     client_td *next_focus = NULL;
     xcb_window_t exclude_leader;
 
@@ -296,48 +338,25 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     exclude_leader = (exclude != NULL)
         ? client_group_leader(exclude) : XCB_WINDOW_NONE;
 
-    if (exclude_leader != XCB_WINDOW_NONE &&
-            desktop->stacking != NULL &&
-            cdlist_size(desktop->stacking) > 0) {
-        const cdlist_item_td *initial;
-
-        node = cdlist_tail(desktop->stacking);
-        initial = node;
-        if (node != NULL) {
-            do {
-                client_td *candidate = (client_td *) cdlist_data(node);
-                if (s_client_focus_fallback_valid(candidate, exclude) &&
-                        client_group_leader(candidate) == exclude_leader) {
-                    next_focus = candidate;
-                    break;
-                }
-                node = cdlist_prev(node);
-            } while (node != NULL && node != initial);
-        }
+    s_fallback_leader = exclude_leader;
+    if (exclude_leader != XCB_WINDOW_NONE) {
+        next_focus = desktop_focus_order_first(desktop,
+                s_focus_fallback_valid_same_group, exclude);
     }
 
-    if (next_focus == NULL &&
-            desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
-        const cdlist_item_td *initial;
-
-        node = cdlist_tail(desktop->stacking);
-        initial = node;
-        if (node != NULL) {
-            do {
-                client_td *candidate = (client_td *) cdlist_data(node);
-                if (s_client_focus_fallback_valid(candidate, exclude)) {
-                    next_focus = candidate;
-                    break;
-                }
-                node = cdlist_prev(node);
-            } while (node != NULL && node != initial);
-        } /* ! if (node) */
+    if (next_focus == NULL) {
+        next_focus = desktop_focus_order_first(desktop,
+                s_client_focus_fallback_valid, exclude);
     }
 
     if (next_focus != NULL) {
         desktop->client_active_id = next_focus->id;
         desktop->is_focus_dirty = true;
-        (void) desktop_action_client_send_front(desktop, next_focus);
+        /* Recorded in the focus order, not moved in the stacking
+         * list: this client is now the most recently focused one, and
+         * saying so must not also raise it over whatever the person
+         * had deliberately placed above it */
+        (void) desktop_focus_order_to_top(desktop, next_focus);
         ccmd_client_focus(next_focus);
     } else if (desktop->connection != NULL) {
         xcb_set_input_focus(desktop->connection,

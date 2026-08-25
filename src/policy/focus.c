@@ -15,6 +15,7 @@
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
+#include <desktop/focus.h>
 #include <scratchpad.h>
 #include <enact.h>
 #include <logger.h>
@@ -148,11 +149,15 @@ void focus_apply(list_td *surfaces, surface_td *surface,
     desktop->is_outdated = true;
     surface->is_outdated = true;
 
-    /* Always move the newly focused client to the tail of the stacking
-     * list (MRU head) so that the cycle menu, the Z-order restoration
-     * on desktop switch, and focus recovery all track the last focused
-     * window, regardless of whether the window is being raised. */
-    (void) desktop_action_client_send_front(desktop, client);
+    /* Recorded in the focus order, which is what the cycle menu and
+     * focus recovery read, and never in the stacking list, which is
+     * where the window sits on screen.  Moving it there instead, as
+     * this once did, raised the window on the next desktop switch:
+     * that switch replays the stacking list onto the X server, so a
+     * window merely focused came back on top although
+     * 'windows.focus.raise' had said not to raise it.  See
+     * 'desktop/focus.h'. */
+    (void) desktop_focus_order_to_top(desktop, client);
 
     should_raise = (raise ||
             (cfg != NULL &&

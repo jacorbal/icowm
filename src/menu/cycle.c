@@ -264,7 +264,7 @@ void cycle_init(xcb_connection_t *connection,
             (unsigned int) XCB_MOD_MASK_2);
 
     if (connection == NULL || surface == NULL || desktop == NULL ||
-            desktop->stacking == NULL || cfg == NULL) {
+            desktop->focus_order == NULL || cfg == NULL) {
         return;
     }
 
@@ -336,10 +336,14 @@ void cycle_init(xcb_connection_t *connection,
     g_cycle_menu.preview_client = NULL;
     g_cycle_menu.config = cfg;
 
-    /* Collect matching clients, i.e., iterate from tail (top of stack,
-     * most recently raised) to head (bottom), so the list order matches
-     * the MRU ordering used by openbox and evilwm. */
-    node = cdlist_tail(desktop->stacking);
+    /* Collected from the focus order rather than from the stacking
+     * list, walking its head (most recently focused) toward its tail,
+     * which is the ordering Openbox and evilwm cycle in.  The
+     * stacking list answers a different question, where each window
+     * sits on screen, and reading it here made cycling follow the
+     * last window raised rather than the last one worked in; see
+     * 'desktop/focus.h'. */
+    node = cdlist_head(desktop->focus_order);
     initial = node;
     if (node != NULL) {
         do {
@@ -385,7 +389,7 @@ void cycle_init(xcb_connection_t *connection,
                     g_cycle_menu.count++;
                 }
             }
-            node = cdlist_prev(node);
+            node = cdlist_next(node);
         } while (node != NULL && node != initial);
     }
 

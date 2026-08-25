@@ -72,7 +72,7 @@ bool scratchpad_is_client(const client_td *client)
     return false;
 }
 
-int desktop_action_client_send_front(desktop_td *desktop, client_td *client)
+int desktop_focus_order_to_top(desktop_td *desktop, client_td *client)
 {
     (void) desktop;
     (void) client;

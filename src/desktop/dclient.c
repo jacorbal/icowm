@@ -55,6 +55,7 @@
 
 /* Local includes */
 #include <desktop.h>
+#include <desktop/focus.h>
 
 /**
  * @brief Move a client to the front or back of the desktop's window
@@ -305,6 +306,12 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
         return -1;
     }
 
+    /* And into the focus order, at its far end: the client is here,
+     * so a fallback has to be able to reach it, but it is the least
+     * recently used thing on the desktop rather than the most.
+     * Focusing it moves it to the head from there. */
+    (void) desktop_focus_order_add(desktop, client);
+
     LOGGER_TRACE("Added client 0x%08x to desktop %u ('%s')",
             client->id, desktop->id, desktop->name);
     desktop->is_outdated = true;  /* Mark for redraw */
@@ -353,6 +360,11 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
             node = cdlist_next(node);
         } while (node != NULL && node != initial);
     }
+
+    /* And out of the focus order.  A client left there after it has
+     * gone would be handed real input focus by the next fallback that
+     * walked far enough to reach it. */
+    (void) desktop_focus_order_remove(desktop, client);
 
     LOGGER_TRACE("Removed client 0x%08x from desktop %u",
             client->id, desktop->id);

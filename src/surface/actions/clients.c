@@ -30,6 +30,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <desktop/focus.h>
 #include <surface.h>
 #include <systray.h>
 
@@ -278,16 +279,29 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 
 
     /* When the desktop's own remembered active client could not be
-     * restored above, only let 'client_focus_fallback' guess another
-     * reasonable visible, focusable client on this same desktop (see
-     * its comment, cmds/client/focus.h, for the exact
-     * criteria, skip-taskbar exclusion included) when a
-     * 'client_active_id' genuinely existed to begin with, i.e.,
-     * someone really had focused something on this desktop before;
-     * relinquish focus to 'PointerRoot' directly otherwise, without
-     * ever guessing, e.g., for a desktop whose only client is a pinned
-     * window merely visible there on loan from wherever it actually
-     * got focused. */
+     * restored above, hand focus to whatever 'client_focus_fallback'
+     * finds, which is the most recently focused still-eligible client
+     * on this desktop (see its comment, cmds/client/focus.h, for the
+     * exact criteria, skip-taskbar exclusion included).
+     *
+     * Tried even when 'client_active_id' is zero.  It once was not,
+     * on the reasoning that a zero meant nobody had ever focused
+     * anything here and so there was nothing to guess at; but a zero
+     * is also what is left behind whenever the client that did hold
+     * focus stopped being on this desktop, which
+     * 'surface_clients_sticky_transfer_all' below does deliberately
+     * every time a pinned window follows the person elsewhere.
+     * Returning to such a desktop then went straight to
+     * 'PointerRoot', which is not "no focus" but "focus follows the
+     * pointer": the keyboard reached whichever window the pointer
+     * happened to rest over, with no titlebar highlighted anywhere,
+     * from a window manager configured for click-to-focus.
+     *
+     * The focus order the fallback walks is what makes this safe to
+     * try: a desktop nobody ever worked on has nothing in it that
+     * qualifies, so the 'PointerRoot' path below is still reached,
+     * only now for genuinely empty desktops rather than for any
+     * desktop whose focused window merely left. */
     if (focus_target != NULL) {
         desktop->client_active_id = focus_target->id;
         desktop->is_focus_dirty = true;
@@ -307,16 +321,16 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
          * client's own focus ring or cursor never actually reappeared
          * on switching back to it. */
         ccmd_client_focus(focus_target);
-        (void) desktop_action_client_send_front(desktop, focus_target);
-    } else if (desktop->client_active_id != 0) {
-        client_focus_fallback(desktop, surface, NULL);
+        /* Recorded in the focus order rather than moved in the
+         * stacking list: coming back to a desktop restores which
+         * window the person was working in, and must not reorder
+         * what is drawn over what */
+        (void) desktop_focus_order_to_top(desktop, focus_target);
     } else {
-        desktop->client_active_id = 0;
-        desktop->is_focus_dirty = true;
-        xcb_set_input_focus(surface->connection,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_CURRENT_TIME);
+        /* 'client_focus_fallback' relinquishes to 'PointerRoot'
+         * itself when nothing on the desktop qualifies, so the empty
+         * case needs no branch of its own here */
+        client_focus_fallback(desktop, surface, NULL);
     }
 
     desktop->is_outdated = true;
@@ -388,10 +402,21 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                 /* Preserve focus: if this sticky client was the active
                  * window on the source desktop, make it active on the
                  * destination desktop so 'surface_clients_show'
-                 * restores input focus to it */
+                 * restores input focus to it, and put it at the head
+                 * of that desktop's focus order too, since it is now
+                 * the most recently focused thing there.
+                 *
+                 * The desktop it left keeps its own order untouched
+                 * beyond this client's removal, which
+                 * 'desktop_action_client_move' above already did:
+                 * whatever was focused there before this client is
+                 * still the best answer for when the person returns,
+                 * and is what the fallback will now find. */
                 if (was_active) {
                     to_desktop->client_active_id = sticky[i]->id;
                     to_desktop->is_focus_dirty = true;
+                    (void) desktop_focus_order_to_top(to_desktop,
+                            sticky[i]);
                 }
             }
         }
