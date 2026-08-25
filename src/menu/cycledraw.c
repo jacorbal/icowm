@@ -188,8 +188,10 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
  * @brief Resolve the on-screen rectangle a cycle-selection outline
  *        should surround for a given target
  *
- * For a window target, @p client's own tracked frame/window geometry
- * already reflects everything drawn on screen.  For an icon target,
+ * For a decorated window target, @p client's own tracked frame
+ * geometry already reflects everything drawn on screen.  An
+ * undecorated one is grown by its own native border width, for the
+ * reason given at that branch below.  For an icon target,
  * that geometry is not tracked anywhere on @p client itself, so it is
  * recomputed here the same way @c ccmd_client_ensure_icon_window
  * (cmds/client/icon.c) originally sized the icon window:
@@ -197,13 +199,12 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
  * plus @c WM_ICON_CAPTION_HEIGHT when it is on, since the icon
  * window's own real height already includes room for that caption
  * text underneath the pixmap, not just the square icon area above
- * it.  Also grown by the icon's own currently-active native border
- * width on every side, X11's own border being drawn entirely outside
- * a window's core rectangle rather than inside it, the same reason
- * @a client_border_apply (client.c) has to compensate position for
- * an undecorated client's own border width change: without this, the
- * outline would sit just inside the icon's own visible border rather
- * than around the whole of it.
+ * it.  Also grown by twice the icon's own native border width, X11
+ * drawing that border outside a window's core rectangle rather than
+ * inside it: without this the outline would sit just inside the
+ * icon's own visible border rather than around the whole of it.  The
+ * position is left alone, for the reason given at the window branch
+ * below.
  *
  * @param client       Client currently selected
  * @param is_icon_menu Whether the cycle menu is showing icon previews
@@ -236,10 +237,43 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
                      ? WM_ICON_CAPTION_HEIGHT : 0u));
         bw = client->config->theme.icon.active.border.width;
 
-        geom.pos.x = client->icon_pos.x - (int32_t) bw;
-        geom.pos.y = client->icon_pos.y - (int32_t) bw;
+        geom.pos.x = client->icon_pos.x;
+        geom.pos.y = client->icon_pos.y;
         geom.dim.w = WM_ICON_SQUARE_SIZE + 2u * bw;
         geom.dim.h = (uint32_t) icon_h + 2u * bw;
+        return geom;
+    }
+
+    /* A decorated client's own 'layout.geometry.cur' is its frame
+     * rectangle, which already covers everything drawn for it, so it
+     * is outlined as it stands.
+     *
+     * An undecorated one has no frame at all: the geometry is the
+     * client window's own core rectangle, and its border is an X11
+     * native border, which the server draws entirely outside that
+     * rectangle rather than inside it (see 'client_border_apply' in
+     * client.c, which has to compensate the position for exactly the
+     * same reason whenever that width changes).  Outlining the core
+     * rectangle alone therefore falls short by one border width on
+     * every side.
+     *
+     * Only the size is adjusted, never the position: a window's own
+     * x and y are already the upper-left corner of its outer
+     * rectangle, border included, so the border grows a window
+     * rightward and downward alone (X Consortium, 1994, "X Window
+     * System Protocol", v11 R6, under CreateWindow).  Subtracting the
+     * width from the position as well would start the outline one
+     * border width above and to the left of the window. */
+    if (!client_is_decorated(client) || client->frame == 0) {
+        /* Asked with 'ignore_frame' set, since what is wanted is the
+         * width actually drawn on this client's own window, and with
+         * the active style, which is what a client being cycled to is
+         * wearing by the time the outline goes around it. */
+        const uint32_t bw = client_border_width(client, true, true);
+
+        geom = client->layout.geometry.cur;
+        geom.dim.w += 2u * bw;
+        geom.dim.h += 2u * bw;
         return geom;
     }
 
