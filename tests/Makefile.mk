@@ -31,7 +31,6 @@ TEST_LDFLAGS = -fsanitize=address,undefined
 
 TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/adt/test_list \
-    $(O_DIR)/tests/adt/test_heap \
     $(O_DIR)/tests/adt/test_ohtbl \
     $(O_DIR)/tests/test_logger \
     $(O_DIR)/tests/test_lookup \
@@ -96,11 +95,6 @@ $(O_DIR)/tests/adt/test_cdlist: $(TESTS_DIR)/adt/test_cdlist.c \
 
 $(O_DIR)/tests/adt/test_list: $(TESTS_DIR)/adt/test_list.c \
 		$(S_DIR)/adt/list.c
-	@mkdir -p $(@D)
-	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
-
-$(O_DIR)/tests/adt/test_heap: $(TESTS_DIR)/adt/test_heap.c \
-		$(S_DIR)/adt/heap.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

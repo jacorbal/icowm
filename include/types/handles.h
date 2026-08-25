@@ -55,12 +55,6 @@ typedef struct cdlist_s cdlist_td;
 typedef struct ohtbl_s ohtbl_td;
 #endif
 
-#ifndef HEAP_TD_DECLARED
-#define HEAP_TD_DECLARED
-/** Binary heap; defined in @c adt/heap.h */
-typedef struct heap_s heap_td;
-#endif
-
 /* Window manager domain */
 #ifndef CLIENT_TD_DECLARED
 #define CLIENT_TD_DECLARED
