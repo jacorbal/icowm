@@ -55,8 +55,7 @@ uint64_t place_overlap_score(const desktop_td *desktop,
                 if (other != NULL && other != skip_client &&
                         !(other->properties.flags & CLIENT_FLAG_HIDDEN) &&
                         !client_is_locked(other)) {
-                    if (other->properties.state !=
-                            (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    if (!client_is_iconified(other)) {
                         /* Visible window */
                         uint32_t area = geom_intersection_area(
                                 candidate.pos.x, candidate.pos.y,

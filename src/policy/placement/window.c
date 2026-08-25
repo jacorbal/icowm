@@ -222,8 +222,7 @@ static bool s_place_window_transient_centered(const wm_td *wm,
 
                     if (sibling != client &&
                             client_group_leader(sibling) == leader &&
-                            sibling->properties.state !=
-                                (uint16_t) CLIENT_STATE_ICONIFIED) {
+                            !client_is_iconified(sibling)) {
                         parent = sibling;
                         break;
                     }

@@ -212,8 +212,7 @@ void placement_free_rect_grow(const desktop_td *desktop,
                             !(other->properties.flags &
                                 CLIENT_FLAG_HIDDEN) &&
                             !client_is_locked(other) &&
-                            other->properties.state !=
-                                (uint16_t) CLIENT_STATE_ICONIFIED) {
+                            !client_is_iconified(other)) {
                         const int32_t ox1 =
                             other->layout.geometry.cur.pos.x;
                         const int32_t oy1 =

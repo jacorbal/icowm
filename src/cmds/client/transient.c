@@ -383,8 +383,7 @@ client_td *client_group_transient_anchor(const client_td *client)
         if (sibling != NULL && sibling != client &&
                 !sibling->is_transient_for_group &&
                 client_group_leader(sibling) == leader &&
-                sibling->properties.state !=
-                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+                !client_is_iconified(sibling)) {
             return sibling;
         }
     }

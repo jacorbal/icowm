@@ -77,8 +77,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
              * and breaking the systray restore path in
              * 'handler_message'. */
             if (!(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    client->properties.state !=
-                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    !client_is_iconified(client)) {
                 xcb_window_t target =
                     (client_is_decorated(client) && client->frame != 0)
                     ? client->frame
@@ -146,8 +145,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
                 client_td *const client = (client_td *) cdlist_data(node);
                 if (client != NULL &&
                         !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                        client->properties.state !=
-                            (uint16_t) CLIENT_STATE_ICONIFIED) {
+                        !client_is_iconified(client)) {
                     xcb_window_t target =
                         (client_is_decorated(client) && client->frame != 0)
                         ? client->frame
@@ -235,8 +233,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
             client_td *c = (client_td *) cdlist_data(node);
             if (c != NULL &&
                     !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    c->properties.state !=
-                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    !client_is_iconified(c)) {
                 xcb_window_t tgt =
                     (client_is_decorated(c) && c->frame != 0)
                     ? c->frame : c->window;
@@ -273,8 +270,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
                 desktop->client_active_id);
 
         if (c != NULL && !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                c->properties.state !=
-                    (uint16_t) CLIENT_STATE_ICONIFIED &&
+                !client_is_iconified(c) &&
                 (c->properties.flags & CLIENT_FLAG_FOCUSABLE)) {
             focus_target = c;
         }

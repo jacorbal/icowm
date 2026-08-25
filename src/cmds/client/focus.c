@@ -94,8 +94,7 @@ static bool s_client_focus_fallback_valid(const client_td *candidate,
 {
     return candidate != NULL && candidate != exclude &&
         !(candidate->properties.flags & CLIENT_FLAG_HIDDEN) &&
-        candidate->properties.state !=
-            (uint16_t) CLIENT_STATE_ICONIFIED &&
+        !client_is_iconified(candidate) &&
         (candidate->properties.flags & CLIENT_FLAG_FOCUSABLE) &&
         !client_has_no_focus_fallback(candidate) &&
         (!(candidate->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) ||

@@ -359,8 +359,7 @@ bool place_window_smart(const wm_td *wm,
                 if (other != NULL && other != client &&
                         !(other->properties.flags & CLIENT_FLAG_HIDDEN) &&
                         !client_is_locked(other) &&
-                        other->properties.state !=
-                            (uint16_t) CLIENT_STATE_ICONIFIED) {
+                        !client_is_iconified(other)) {
                     const int32_t ox = other->layout.geometry.cur.pos.x;
                     const int32_t oy = other->layout.geometry.cur.pos.y;
                     const int32_t ow =

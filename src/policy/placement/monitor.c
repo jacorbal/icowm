@@ -201,8 +201,7 @@ monitor_td placement_reference_monitor(const wm_td *wm,
 
                     if (sibling != NULL && sibling != client &&
                             client_group_leader(sibling) == leader &&
-                            sibling->properties.state !=
-                                (uint16_t) CLIENT_STATE_ICONIFIED) {
+                            !client_is_iconified(sibling)) {
                         anchor = sibling;
                         break;
                     }

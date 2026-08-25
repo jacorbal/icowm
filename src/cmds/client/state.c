@@ -488,10 +488,8 @@ static void s_ccmd_decorate_remaximize(client_td *client)
 
         if (ccmd_client_resolve_workarea(client, &mx, &my, &sw, &sh)) {
             xcb_window_t target = ccmd_target_win(client);
-            bool touch_x = client->properties.state !=
-                (uint16_t) CLIENT_STATE_MAXIMIZED_VERT;
-            bool touch_y = client->properties.state !=
-                (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+            bool touch_x = !client_is_maximized_vert(client);
+            bool touch_y = !client_is_maximized_horz(client);
             /* This function always ends by focusing 'client' (see
              * 'keep_focus' below), so its border width right after
              * this toggle is always the active one, regardless of

@@ -128,7 +128,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
     if (surface != NULL &&
             desktop->id == surface->desktop_cur &&
             !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-            client->properties.state != (uint16_t) CLIENT_STATE_ICONIFIED) {
+            !client_is_iconified(client)) {
         win_target = (client_is_decorated(client) && client->frame != 0)
             ? client->frame : client->window;
         ccmd_client_unmap_decorated(client, surface->connection,

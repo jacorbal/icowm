@@ -694,8 +694,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
             const client_td *client = (client_td *) cdlist_data(node);
             if (client != NULL && !client_is_locked(client) &&
                     !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    client->properties.state !=
-                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    !client_is_iconified(client)) {
                 any_visible = true;
                 break;
             }
@@ -721,8 +720,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
             client_td *client = (client_td *) cdlist_data(node);
             if (client != NULL && !client_is_locked(client) &&
                     (client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    client->properties.state !=
-                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    !client_is_iconified(client)) {
                 client_unhide(client);
                 changed_hidden_state = true;
                 ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL,
@@ -748,8 +746,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
             client_td *client = (client_td *) cdlist_data(node);
             if (client != NULL && !client_is_locked(client) &&
                     !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    client->properties.state !=
-                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    !client_is_iconified(client)) {
                 client_hide(client);
                 changed_hidden_state = true;
                 ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC,
