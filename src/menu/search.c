@@ -59,8 +59,9 @@
 /**
  * @brief Pixel Y where the first result row starts: the top padding,
  *        the query bar, and a second padding strip reserved for the
- *        up-scroll indicator, the same reasoning @c WM_CYCLE_MENU_
- *        PAD_Y reserves around @c cycledraw.c's own menu
+ *        up-scroll indicator, the same reasoning
+ *        @c WM_CYCLE_MENU_PAD_Y reserves around @c cycledraw.c's
+ *        own menu
  */
 #define S_SEARCH_ROWS_TOP \
     (WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT + WM_SEARCH_PAD_Y)
@@ -503,8 +504,9 @@ static void s_search_confirm(xcb_connection_t *connection,
         /* A pinned client is already visible on whichever desktop is
          * currently shown: pinning never actually moves a client
          * between desktops, it stays registered under whichever one
-         * it was originally on forever; see 'ccmd_client_bring_
-         * family''s comment, cmds/client/transient.c, for
+         * it was originally on forever; see
+         * 'ccmd_client_bring_family''s comment in
+         * 'cmds/client/transient.c' for
          * the fuller reasoning; so there is nothing to switch to
          * here.  Using its own recorded 'desktop' below instead
          * (wherever it still happens to be registered) would switch

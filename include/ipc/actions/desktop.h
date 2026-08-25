@@ -60,8 +60,9 @@ cJSON *ipc_action_send_client_to_front(const wm_td *wm, const cJSON *args);
  *  desktop's window stack; argument @c client_id */
 cJSON *ipc_action_send_client_to_back(const wm_td *wm, const cJSON *args);
 
-/** @c iconify_all: arguments @c desktop_id (optional; the resolved
- *  surface's own current desktop otherwise), @c surface_id (optional) */
+/** @c iconify_all: arguments @c desktop_id, optional and defaulting
+ *  to the resolved surface's own current desktop, and
+ *  @c surface_id, optional */
 cJSON *ipc_action_iconify_all(const wm_td *wm, const cJSON *args);
 
 /** @c deiconify_all: same arguments as @c iconify_all */

@@ -133,8 +133,9 @@ void enact_client_center(client_td *client);
  *        its surface
  *
  * A no-op on a surface with one monitor or none, or when no monitor
- * lies to the north at all; see @a ccmd_client_move_to_monitor_
- * north's comment, cmds/client/geom.h, for the fuller
+ * lies to the north at all.  See
+ * @a ccmd_client_move_to_monitor_north in @c cmds/client/geom.h for
+ * the fuller
  * reasoning, including why this never wraps around either.
  *
  * @param client Client to move
@@ -238,8 +239,9 @@ void enact_client_send_to_desktop_south(client_td *client,
  *
  * A silent no-op when there is no different desktop to move to at
  * all (only one exists, or wrapping is disabled and this is already
- * the eastmost one in its own row); see @c s_enact_client_send_to_
- * desktop's comment, enact/client.c, for the fuller
+ * the eastmost one in its own row).  See
+ * @a s_enact_client_send_to_desktop in @c enact/client.c for the
+ * fuller
  * reasoning.
  *
  * @param client   Client to move
@@ -262,8 +264,9 @@ void enact_client_send_to_desktop_east(client_td *client,
  *
  * A silent no-op when there is no different desktop to move to at
  * all (only one exists, or wrapping is disabled and this is already
- * the westmost one in its own row); see @c s_enact_client_send_to_
- * desktop's comment, enact/client.c, for the fuller
+ * the westmost one in its own row).  See
+ * @a s_enact_client_send_to_desktop in @c enact/client.c for the
+ * fuller
  * reasoning.
  *
  * @param client   Client to move

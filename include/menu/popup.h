@@ -49,7 +49,8 @@
  * @param surface    Surface where the popup should appear
  * @param desktop    Desktop associated with the client
  * @param client     Client to describe
- * @param modifier   Modifier mask of the opening key binding (0 if none)
+ * @param modifier   Modifier mask of the opening key binding, or
+ *                   @c 0 when it has none
  * @param keycode    Keycode of the opening key binding
  * @param cfg        Active configuration (for theme colors and font)
  *

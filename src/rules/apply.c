@@ -110,8 +110,8 @@ static void s_rules_broadcast_client_event(client_td *client,
  *                   @p apply->has_desktop is @c true
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's own top parent's own desktop (see @a enact_
- *       desktop_client_send's comment)
+ *       the client's own top parent's own desktop, as
+ *       @a enact_desktop_client_send's comment describes
  */
 static void s_rules_apply_desktop(client_td *client,
         surface_td *surface, desktop_td **desktop_io,
@@ -176,8 +176,9 @@ static void s_rules_apply_layer(client_td *client,
 /**
  * @brief Apply the geometry rule to a client
  *
- * Position (@p apply->x, @p apply->y, or @p apply->is_position_centered),
- * size (@p apply->w, @p apply->h), and monitor (@p apply->monitor) are
+ * Position, through @c apply->x and @c apply->y or through
+ * @c apply->is_position_centered, size, through @c apply->w and
+ * @c apply->h, and monitor, through @c apply->monitor, are
  * applied independently: only the fields flagged as present are
  * touched.  When the client has a decoration frame, the
  * synchronization helper is called to keep the inner window aligned.
@@ -457,8 +458,9 @@ static void s_rules_apply_visibility(client_td *client,
 /**
  * @brief Apply the focus rule to a client
  *
- * Focuses @p client when @p apply->has_focus and @p apply->is_focused are
- * both set, @p config is available, and @p client is focusable; a
+ * Focuses @p client when @c apply->has_focus and
+ * @c apply->is_focused are both set, @p config is available, and
+ * @p client is focusable; a
  * no-op otherwise.
  *
  * @param wm      Window manager instance, for @a wm_surfaces

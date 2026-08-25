@@ -136,8 +136,9 @@ void ccmd_client_refill_maximized(client_td *client)
 
 /**
  * @brief Precondition checks shared by @c ccmd_client_maximize,
- *        @c ccmd_client_maximize_horz, and @c ccmd_client_maximize_vert,
- *        restoring an iconified client and unshading a shaded one
+ *        @a ccmd_client_maximize_horz and
+ *        @a ccmd_client_maximize_vert, restoring an iconified
+ *        client and unshading a shaded one
  *        along the way
  *
  * @param client Client about to be maximized, on one axis or both
@@ -181,8 +182,9 @@ static bool s_ccmd_maximize_precheck(client_td *client)
  * @brief Maximize a client on one axis or both, or restore/demote/
  *        complete depending on its current maximize state
  *
- * The shared implementation behind @c ccmd_client_maximize, @c ccmd_
- * client_maximize_horz, and @c ccmd_client_maximize_vert, each now a
+ * The shared implementation behind @a ccmd_client_maximize,
+ * @a ccmd_client_maximize_horz and @a ccmd_client_maximize_vert,
+ * each now a
  * thin wrapper passing its own fixed @p dir; matches Openbox's own
  * @c client_maximize (@c client.c), which takes the identical @p dir
  * convention for the identical reason: one function, one place the
@@ -213,8 +215,8 @@ static bool s_ccmd_maximize_precheck(client_td *client)
  * @param dir    @c 0 for both axes, @c 1 for horizontal only, @c 2
  *               for vertical only
  *
- * @note A null @p client, or the precheck in @a s_ccmd_maximize_
- *       precheck failing, is a silent no-op
+ * @note A null @p client, or a failing
+ *       @a s_ccmd_maximize_precheck, is a silent no-op
  * @note Complexity: @e O(1)
  */
 static void s_ccmd_client_maximize_dir(client_td *client, int dir)

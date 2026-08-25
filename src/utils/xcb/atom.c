@@ -41,8 +41,8 @@
 #define ATOM_CACHE_NAME_MAX_LENGTH (64)
 
 /**
- * @brief How many distinct (name, only_if_exists) pairs @a atom_intern's
- *        own cache holds at once
+ * @brief How many distinct name and only-if-exists pairs
+ *        @a atom_intern's own cache holds at once
  *
  * A window manager only ever interns a fixed, small set of well-known
  * EWMH/ICCCM atom names over its own lifetime, entirely independent of

@@ -1295,7 +1295,8 @@ void place_window_apply(const wm_td *wm,
     placed_as_sibling = false;
 
     /* Determine the usable workarea (respects panel struts).
-     * Fall back to the full screen dimensions when no workarea is set */
+     * Fall back to the full screen dimensions when no workarea is
+     * set */
     desktop = surface_desktop_get(surface, surface->desktop_cur);
     if (desktop != NULL && desktop->workarea.dim.w > 0u &&
             desktop->workarea.dim.h > 0u) {

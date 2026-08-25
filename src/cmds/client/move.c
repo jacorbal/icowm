@@ -58,12 +58,14 @@
  * function's own former call sites had to get right by hand, on its
  * own, every single time; this function gets it right once.
  *
- * Deliberately narrow in scope: only the single @c xcb_configure_
- * window call itself, nothing about updating @p client's own tracked
+ * Deliberately narrow in scope: only the single
+ * @c xcb_configure_window call itself, nothing about updating
+ * @p client's own tracked
  * @c layout.geometry.cur fields to match, which stays each caller's
- * own concern, since which fields to track (and anything else a
- * caller needs alongside, such as clearing @c has_rule_position_
- * locked) genuinely varies from one call site to the next in ways a
+ * own concern, since which fields to track, and anything else a
+ * caller needs alongside such as clearing
+ * @c has_rule_position_locked, genuinely varies from one call site
+ * to the next in ways a
  * single shared function covering both would only obscure.
  *
  * @param client       Client whose target window to configure
@@ -76,20 +78,20 @@
  *                      bit is not set here is never read at all,
  *                      whatever @p x/@p y/@p w/@p h/@p border_width
  *                      themselves happen to hold
- * @param x            New X position, only applied if @c XCB_CONFIG_
- *                      WINDOW_X is set in @p mask
- * @param y            New Y position, only applied if @c XCB_CONFIG_
- *                      WINDOW_Y is set in @p mask
- * @param w            New width, only applied if @c XCB_CONFIG_
- *                      WINDOW_WIDTH is set in @p mask
- * @param h            New height, only applied if @c XCB_CONFIG_
- *                      WINDOW_HEIGHT is set in @p mask
+ * @param x            New X position, only applied when
+ *                     @c XCB_CONFIG_WINDOW_X is set in @p mask
+ * @param y            New Y position, only applied when
+ *                     @c XCB_CONFIG_WINDOW_Y is set in @p mask
+ * @param w            New width, only applied when
+ *                     @c XCB_CONFIG_WINDOW_WIDTH is set in @p mask
+ * @param h            New height, only applied when
+ *                     @c XCB_CONFIG_WINDOW_HEIGHT is set in @p mask
  * @param border_width New native border width, only applied if
  *                      @c XCB_CONFIG_WINDOW_BORDER_WIDTH is set in
  *                      @p mask
  *
- * @note A null @p client, one with no connection, or a @c XCB_WINDOW_
- *       NONE @p target is a silent no-op
+ * @note A null @p client, one with no connection, or a @p target of
+ *       @c XCB_WINDOW_NONE is a silent no-op
  * @note Complexity: @e O(1)
  */
 void ccmd_client_apply_geometry(client_td *client, xcb_window_t target,

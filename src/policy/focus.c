@@ -72,8 +72,9 @@ void focus_apply(list_td *surfaces, surface_td *surface,
      * anything else below (including the 'accepts_input_focus' check
      * immediately following, and every piece of this function's own
      * active-client bookkeeping past it) ever sees the original,
-     * un-redirected 'client'.  Doing this only inside 'ccmd_client_
-     * focus' itself (cmds/client/focus.c) is not enough on its own:
+     * un-redirected 'client'.  Doing this only inside
+     * 'ccmd_client_focus' itself, in 'cmds/client/focus.c', is not
+     * enough on its own:
      * that would still correctly steer the raw X11 input focus to the
      * dialog, but this function's own 'desktop->client_active_id'
      * assignment below, and the stacking-order raise further down,

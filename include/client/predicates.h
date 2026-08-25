@@ -505,7 +505,7 @@
 /**
  * @brief Macro that sets the decoration flag of a client
  *
- * @param w Pointer to the client structure whose decoration is to be set
+ * @param w Client whose decoration is set
  *
  * @note Complexity: @e O(1)
  */

@@ -117,8 +117,9 @@ void ccmd_client_focus(client_td *client);
  * @c surface_clients_show's own two-block split,
  * surface/actions/clients.c, for exactly this distinction).
  *
- * @param desktop Desktop whose stacking order is searched, and whose
- *                own @c client_active_id / @c is_focus_dirty are updated
+ * @param desktop Desktop whose stacking order is searched, and
+ *                whose @c client_active_id and @c is_focus_dirty
+ *                are updated
  * @param surface Surface @p desktop belongs to, marked outdated
  * @param exclude Client to exclude from the search (the one losing
  *                focus); may be null

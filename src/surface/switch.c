@@ -161,8 +161,9 @@ static void s_surface_layout_grow_for(surface_td *surface,
  * member at all, removing it leaves that same row (or column)
  * genuinely empty only when it was that row's (or column's) sole
  * occupant to begin with, in which case shrinking the non-primary
- * axis back by one restores exactly the shape @a s_surface_layout_
- * grow_for last grew it from.  A no-op otherwise (that row or
+ * axis back by one restores exactly the shape
+ * @a s_surface_layout_grow_for last grew it from.  A no-op
+ * otherwise (that row or
  * column still has another real desktop left in it), and a no-op
  * once the non-primary axis is already down to a single row or
  * column, so this never shrinks a surface's own layout below @c 1
@@ -476,8 +477,9 @@ int surface_action_desktop_remove(surface_td *surface)
     /* If the desktop to be removed is the current one, switch first.
      * Set 'desktop_cur' to 'fallback' directly, the exact same
      * desktop 's_surface_desktop_evacuate' just above already moved
-     * every client onto, rather than through 'surface_desktop_select_
-     * west': west is grid-aware since desktops gained a configurable
+     * every client onto, rather than through
+     * 'surface_desktop_select_west': west is grid-aware since
+     * desktops gained a configurable
      * row/column layout, and can genuinely find nothing at all once
      * the desktop being removed sits at the west edge of its own
      * row (column 0), even though 'fallback' itself, one row/column
@@ -492,15 +494,17 @@ int surface_action_desktop_remove(surface_td *surface)
         /* The removed desktop was not the one on screen, but its own
          * fallback already was, so neither branch above ever ran a
          * 'show' cycle for it: without this, every client (and every
-         * iconified client's own icon window) 's_surface_desktop_
-         * evacuate' just moved onto it stays exactly as mapped or
+         * iconified client's own icon window) that
+         * 's_surface_desktop_evacuate' just moved onto it stays
+         * exactly as mapped or
          * unmapped as it was on the desktop just destroyed, which for
          * anything that was not the surface's own current desktop
          * before this whole operation started means unmapped, i.e.,
          * invisible, with nothing else left to ever map it: no further
          * desktop switch is coming (fallback is already current), and
          * with only the two desktops involved existing at all, there
-         * may be nowhere left to switch to and back from even by hand. */
+         * may be nowhere left to switch to and back from, even by
+         * hand. */
         surface_clients_show(surface, surface->desktop_cur);
     }
 

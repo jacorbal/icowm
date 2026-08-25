@@ -7,9 +7,10 @@
  * One of the files @c cmds/client/ is made of;
  * kept as one contiguous block (matching the order these already had
  * in that file) rather than separated further, since
- * @c ccmd_client_close/kill/restore all lead into the same focus-
- * fallback mechanism @c ccmd_client_focus_fallback/client_focus_
- * fallback provide right above them.
+ * @a ccmd_client_close, @a ccmd_client_kill and
+ * @a ccmd_client_restore all lead into the same focus-fallback
+ * mechanism that @a ccmd_client_focus_fallback and
+ * @a client_focus_fallback provide right above them.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -427,8 +428,9 @@ void ccmd_client_restore(client_td *client)
      * own focus-granting step (inside 's_ccmd_client_restore_one',
      * gated on 'was_iconified && client_is_focusable') redirects
      * through 'ccmd_client_focus_target' to whichever transient
-     * dialog should actually end up focused (see 'ccmd_client_
-     * focus''s comment), which only finds that dialog if it
+     * dialog should actually end up focused, as
+     * 'ccmd_client_focus''s comment describes, which only finds that
+     * dialog if it
      * is already mapped by the time this reaches that step. */
     siblings = ccmd_client_transient_family_snapshot_anywhere(top,
             &count);
@@ -463,8 +465,9 @@ void ccmd_client_focus(client_td *client)
      * surface/actions/clients.c, which runs on every single desktop
      * switch).  Calling it unconditionally here dragged a transient
      * family across onto whatever desktop merely happened to be
-     * switched to, the moment its pinned parent's own 'client_
-     * active_id' from some earlier, unrelated visit to that desktop
+     * switched to, the moment its pinned parent's own
+     * 'client_active_id' from some earlier, unrelated visit to that
+     * desktop
      * was restored, leaving the family effectively "chasing" every
      * desktop the parent had ever been focused on, indistinguishable
      * from actually being pinned even though nothing pinned it.
@@ -522,8 +525,9 @@ void ccmd_client_focus(client_td *client)
 
     /* ICCCM §4.1.8/§2.8: colormap focus follows input focus here, the
      * common policy most window managers implement.  Only the
-     * explicit 'WM_COLORMAP_WINDOWS' case is covered (the one client_
-     * props_refresh_colormap_windows, client/props.c, populates this
+     * explicit 'WM_COLORMAP_WINDOWS' case is covered, the one
+     * 'client_props_refresh_colormap_windows' in 'client/props.c'
+     * populates this
      * from, caching each window's own colormap attribute there
      * already, so nothing here needs a round trip of its own); a
      * client that omits it but still uses a non-default colormap on

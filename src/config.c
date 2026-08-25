@@ -23,7 +23,8 @@
  *      Each passing hour doth remind me of the ill-advised choices of
  *      yore; verily, I remain a prisoner of mine own flawed creations.
  *
- * Regarding my rambling selves of yesteryear (Sat Feb 14 11:36 CET 2026):
+ * Regarding my rambling selves of yesteryear, on Sat Feb 14 11:36
+ * CET 2026:
  *      Pish!  Let it matter not, ye idle knaves!  I shall alter naught!
  *
  * Regarding the self now undone by toil (Sun Aug 09 04:38 CET 2026):

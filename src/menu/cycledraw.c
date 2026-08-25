@@ -111,8 +111,9 @@ static void s_cycle_row_style(const config_td *config,
  * repainting the whole viewport or just this one row on its own.
  *
  * @param connection XCB connection
- * @param i          Absolute entry index to draw (not viewport-relative);
- *                   must fall within the current viewport
+ * @param i          Absolute entry index to draw, not one relative
+ *                   to the viewport; must fall within the current
+ *                   viewport
  * @param pad_y      Vertical padding, for this row's own Y offset
  * @param style      Drawing constants from @a s_cycle_row_style
  *
@@ -238,8 +239,8 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
  * border for decorated client frames, and the normal window border
  * width for undecorated window targets.
  *
- * @param client         Pointer to the client associated with the target
- * @param config         Pointer to the active configuration
+ * @param client         Client the target belongs to
+ * @param config         Active configuration
  * @param is_icon_menu   Whether the cycle menu is showing icon previews
  *
  * @return Border width to apply to the preview target
@@ -265,8 +266,9 @@ static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
          * a fullscreen client either: applying the normal window
          * border width here would paint a real, visible border over
          * fullscreen content (e.g., mpv, undecorated from the start),
-         * the exact same reasoning 'ccmd_client_focus' (cmds/client/focus.c)
-         * already applies for a plain focus change. */
+         * the exact same reasoning 'ccmd_client_focus' in
+         * 'cmds/client/focus.c' already applies for a plain focus
+         * change. */
         border_width = 0u;
     } else {
         border_width = config->theme.window.active.border.width;

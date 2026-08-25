@@ -135,7 +135,8 @@ bool im_press_close_overlays(xcb_connection_t *connection,
 
     /* Generic confirm dialog (quit-confirmation or any other dialog
      * built on 'menu/dialog/confirm.h'; only one instance can ever be
-     * open at a time, so which wrapper opened it does not matter here) */
+     * open at a time, so which wrapper opened it does not matter
+     * here) */
     if (menu_confirm_dialog_is_open()) {
         if (event->event == menu_confirm_dialog_window() ||
                 event->child == menu_confirm_dialog_window()) {

@@ -35,7 +35,8 @@
 
 
 /**
- * @brief Event that causes a rule entry to be evaluated against a client
+ * @brief Event that causes a rule entry to be evaluated against a
+ *        client
  */
 enum rules_trigger_e {
     RULES_TRIGGER_MAP = 0,  /**< Triggered when a window is mapped */

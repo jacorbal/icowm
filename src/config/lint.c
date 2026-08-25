@@ -996,8 +996,9 @@ static void s_lint_object(const cJSON *obj,
  * @param display_name Name to head the report with if anything is
  *                      found; distinct from @c spec->filename so a
  *                      theme file can be headed by its path relative
- *                      to @p config_dir (e.g., @c "themes/default.json")
- *                      rather than its bare name alone
+ *                      to @p config_dir, such as
+ *                      @c "themes/default.json", rather than its
+ *                      bare name alone
  * @param unknown_count Running count of unknown keys found; advanced
  *                      by this call
  *

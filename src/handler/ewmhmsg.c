@@ -73,8 +73,9 @@
  *        end up set"
  *
  * Shared by every state @c s_handle_wm_state_atom below reacts to:
- * @c WM_STATE_ACTION_ADD always resolves to @c true, @c WM_STATE_
- * ACTION_REMOVE always to @c false, and @c WM_STATE_ACTION_TOGGLE
+ * @c WM_STATE_ACTION_ADD always resolves to @c true,
+ * @c WM_STATE_ACTION_REMOVE always to @c false, and
+ * @c WM_STATE_ACTION_TOGGLE
  * resolves to whichever @p already_set is not; each caller only
  * differs in how @p already_set itself is determined (a @c state or
  * @c layer comparison, a flag bit, or an existing @c client_is_*
@@ -96,7 +97,8 @@ static bool s_wm_state_resolve_add(uint32_t action, bool already_set)
 
 
 /**
- * @brief Dispatch a single EWMH @c _NET_WM_STATE atom for a given action
+ * @brief Dispatch a single EWMH @c _NET_WM_STATE atom for one
+ *        action
  *
  * @param client     Pointer to the client being updated
  * @param state_atom EWMH @c _NET_WM_STATE atom to process

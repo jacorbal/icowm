@@ -27,16 +27,18 @@
 /**
  * @brief Activate the entry at the given index in a context menu
  *
- * Closes the entire menu hierarchy first (releasing keyboard and pointer
- * grabs), then invokes the entry's @p on_activate callback or calls
+ * Closes the entire menu hierarchy first, releasing the keyboard
+ * and pointer grabs, then invokes the entry's @c on_activate
+ * callback or calls
  * @c cctl_launch_dispatch for command entries.  Closing before the
  * callback allows the callback to establish its own grabs (e.g., for
  * interactive keyboard move or resize) without conflicting with the
  * menu's active grab.  For separator, label, or disabled entries no
  * action is taken but @c true is returned to consume the event.
  *
- * Also records @p by_keyboard for @c ctxmenu_last_activation_was_
- * keyboard to report back to the entry's own @c on_activate callback.
+ * Also records @p by_keyboard for
+ * @a ctxmenu_last_activation_was_keyboard to report back to the
+ * entry's own @c on_activate callback.
  *
  * @param state       Menu state that contains the entry
  * @param idx         Zero-based index of the entry to activate
@@ -56,8 +58,9 @@ bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
  * @brief Move a menu's selection one step in a direction, skipping
  *        separators, labels, and disabled entries
  *
- * Shared by the Up and Down arrow handling in @c ctxmenu_handle_
- * keypress, which only differ in @p step's sign and where an
+ * Shared by the Up and Down arrow handling in
+ * @a ctxmenu_handle_keypress, which only differ in @p step's sign
+ * and where an
  * initially-unselected state (@c selected @c < @c 0) starts scanning
  * from; everything else (wrapping around either end of the entry
  * list, skipping unselectable entries, repainting once a valid one is

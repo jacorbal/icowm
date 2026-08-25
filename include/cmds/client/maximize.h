@@ -30,8 +30,9 @@
  * ever right immediately after actually maximizing it: anything that
  * later changes what its own workarea resolves to (a panel mapped or
  * unmapped, @c desktops.margins reloaded, or the surface's
- * strutless-maximization mode, @a surface_action_toggle_strutless_maximize,
- * @c surface.h, toggled) leaves it still filling wherever the OLD
+ * strutless-maximization mode toggled through
+ * @a surface_action_toggle_strutless_maximize in @c surface.h)
+ * leaves it still filling wherever the old
  * workarea was, not the new one, until something re-applies its
  * maximize geometry from scratch.  This does exactly that: resolved
  * against @a ccmd_client_resolve_workarea (the same resolution
@@ -104,8 +105,9 @@ void ccmd_client_demote_axis_state(client_td *client, int dir);
  * at its maximized geometry itself (a mouse-drag resize dragged back
  * under the resistance threshold before release, live, on the very
  * same motion event; see @c drag_update, input/mouse/drag.c): the
- * live, reversible half of the same mechanism @c ccmd_client_demote_
- * axis_state's comment describes, restoring @c MAXIMIZED
+ * live, reversible half of the same mechanism
+ * @a ccmd_client_demote_axis_state's comment describes, restoring
+ * @c MAXIMIZED
  * itself rather than @c NORMAL when the other axis is already
  * maximized on its own, @c MAXIMIZED_HORZ/@c _VERT otherwise.
  *

@@ -94,10 +94,11 @@ void ccmd_client_set_opacity_inactive(client_td *client,
  * Sets @c border_override.is_set/@c .color/@c .width together, so
  * this one client's own border stops following the theme's own
  * @p window.active/@p .inactive.border until unset (there is
- * currently no way to unset it once set; see @c scratchpad_notice_
- * client_created's comment, scratchpad.c, for the one
- * existing caller).  Deliberately narrow, the same as @a ccmd_client_apply_
- * geometry: only the state itself, nothing about re-applying the
+ * currently no way to unset it once set; see
+ * @a scratchpad_notice_client_created in @c scratchpad.c for the
+ * one existing caller).  Deliberately narrow, the same as
+ * @a ccmd_client_apply_geometry: only the state itself, nothing
+ * about re-applying the
  * border to the actual window right away, which stays each caller's
  * own concern (a caller wanting that immediately, rather than
  * waiting for the next natural @c client_border_apply call a focus

@@ -476,8 +476,9 @@ static void s_menu_confirm_dialog_close(xcb_connection_t *connection)
     s_confirm_prev_focus = XCB_WINDOW_NONE;
 
     /* Also cancels any click-triggered close/accept still scheduled
-     * (see 'menu_dialog_defer_schedule' in menu_confirm_dialog_
-     * handle_click), so 'menu_dialog_defer_tick' has nothing left to
+     * (see 'menu_dialog_defer_schedule' in
+     * 'menu_confirm_dialog_handle_click'), so
+     * 'menu_dialog_defer_tick' has nothing left to
      * do once this dialog is gone through some other path (e.g.,
      * Escape) before that delay elapsed on its own. */
     menu_dialog_defer_cancel();

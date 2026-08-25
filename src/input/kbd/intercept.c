@@ -298,8 +298,9 @@ bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
                 return true;
             }
         }
-        /* Warning and error dialogs (see 'menu_message_dialog_
-         * requires_selection') cannot be reflex-dismissed: Escape
+        /* Warning and error dialogs, as
+         * 'menu_message_dialog_requires_selection' decides, cannot
+         * be reflex-dismissed: Escape
          * does nothing at all, and Enter/Space only activate "OK"
          * once it has actually been selected (Tab, just above, or a
          * direct click; see 'menu_message_dialog_handle_click' in

@@ -102,8 +102,8 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
              * rare occasion one gets clamped close enough to overlap
              * it anyway, destroying it (just below) already makes the
              * X server generate its own 'Expose' for whatever area of
-             * the parent that uncovers, which 'ctxmenu_tree_redraw_
-             * window' already handles. */
+             * the parent that uncovers, which
+             * 'ctxmenu_tree_redraw_window' already handles. */
             ctxmenu_close(state);
             state->parent->child = NULL;
         }

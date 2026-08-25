@@ -528,8 +528,9 @@ static struct geometry_s s_desktop_compute_workarea(
      * top of whatever clients themselves already reserve on each
      * edge above, rather than only keeping whichever of the two is
      * larger.  They cover a distinct case (a program that reserves
-     * screen space without publishing '_NET_WM_STRUT'/'_NET_WM_
-     * STRUT_PARTIAL' itself, e.g., Conky) so both are meant to
+     * screen space without publishing '_NET_WM_STRUT' or
+     * '_NET_WM_STRUT_PARTIAL' itself, e.g., Conky) so both are
+     * meant to
      * coexist, not override one another.  Applied even with no
      * clients at all (the early return this replaced never used to
      * reach here), so a configured margin still reserves its space

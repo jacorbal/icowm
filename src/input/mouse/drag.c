@@ -658,8 +658,9 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     }
 
     /* An outline drag draws a stand-in rectangle from the very start,
-     * rather than moving the real window live; see 's_drag.is_solid_drag'
-     * itself for the config option this follows. */
+     * rather than moving the real window live; see
+     * 's_drag.is_solid_drag' itself for the configuration option
+     * this follows. */
     if (!s_drag.is_solid_drag) {
         drag_outline_start(connection, s_drag.client_start);
     }
@@ -936,7 +937,8 @@ void drag_end(xcb_connection_t *connection,
                  * visually on top of it for long either way.  Forced
                  * here too, right as the icon settles into its final
                  * position, so there is no window at all, however
-                 * brief, where it could still be showing over the tray. */
+                 * brief, where it could still be showing over the
+                 * tray. */
                 systray_restack();
 
                 /* Restore whatever mapped state the icon window had

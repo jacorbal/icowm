@@ -427,8 +427,9 @@ static void s_font_config_build_xlfd_pattern(
  * and copied verbatim into @p output.
  *
  * One static function per phase: tokenizing
- * (@a s_font_config_tokenize), charset extraction (@a s_font_config_
- * extract_charset), size extraction (@a s_font_config_extract_size),
+ * (@a s_font_config_tokenize), charset extraction
+ * (@a s_font_config_extract_charset), size extraction
+ * (@a s_font_config_extract_size),
  * style keyword scanning (@a s_font_config_scan_style), family string
  * assembly (@a s_font_config_build_family), and the final pattern
  * assembly (@a s_font_config_build_xlfd_pattern), called here in that

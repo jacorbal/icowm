@@ -51,8 +51,9 @@
  * client.h): no lookup, no scan of any other client on any desktop,
  * just the handful of pointers @p client's own direct children
  * actually are.  The @c CLIENT_FLAG_HIDDEN check specifically
- * matters for a client in the middle of closing: @a handler_unmap_
- * notify (@c handler/map.c) marks a withdrawing client hidden before
+ * matters for a client in the middle of closing:
+ * @a handler_unmap_notify in @c handler/map.c marks a withdrawing
+ * client hidden before
  * it ever calls @a client_focus_fallback, and a fallback landing back
  * on this child's own parent must not find this same closing child
  * here and redirect focus right back onto it.
@@ -206,8 +207,9 @@ struct s_family_snapshot_ctx {
 
 
 /**
- * @brief @a ccmd_family_fn shared by both @a ccmd_client_
- *        transient_family_snapshot and its all-desktops counterpart,
+ * @brief @a ccmd_family_fn shared by both
+ *        @a ccmd_client_transient_family_snapshot and its
+ *        all-desktops counterpart,
  *        via @a s_family_snapshot
  *
  * @param candidate Family member found
@@ -251,10 +253,12 @@ static void s_family_snapshot_visitor(client_td *candidate, void *ctx)
  *        restricted to one desktop, into a newly allocated snapshot
  *        array
  *
- * Shared implementation behind both @a ccmd_client_transient_family_
- * snapshot (@p desktop_filter set to a specific desktop's own @c id)
- * and @a ccmd_client_transient_family_snapshot_anywhere (@p desktop_
- * filter set to @c WM_DESKTOP_ID_ALL, matching every desktop):
+ * Shared implementation behind both
+ * @a ccmd_client_transient_family_snapshot, whose @p desktop_filter
+ * names a specific desktop's own @c id, and
+ * @a ccmd_client_transient_family_snapshot_anywhere, whose
+ * @p desktop_filter is @c WM_DESKTOP_ID_ALL and matches every
+ * desktop:
  * counts every match first via @a s_visit_descendants, allocates
  * exactly that many slots once, then fills them in an identical
  * second pass, rather than growing one array as matches are found (a
@@ -408,8 +412,9 @@ client_td *client_group_transient_anchor(const client_td *client)
  * every call site still needs its own way.
  *
  * @param desktop   Desktop to restrict the result to
- * @param top       Family's own top-most ancestor (see @a ccmd_
- *                  client_transient_top_parent); excluded from the
+ * @param top       Family's top-most ancestor, as
+ *                  @a ccmd_client_transient_top_parent resolves it;
+ *                  excluded from the
  *                  result even if found on @p desktop itself
  * @param count_out Receives the number of clients collected; set to
  *                  @c 0 on any early return, including allocation
@@ -443,22 +448,24 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  *        any desktop of any surface, into a newly allocated snapshot
  *        array
  *
- * The all-desktops counterpart to @a ccmd_client_transient_family_
- * snapshot just above: every family-wide action that is not itself
+ * The all-desktops counterpart to
+ * @a ccmd_client_transient_family_snapshot just above: every
+ * family-wide action that is not itself
  * about desktops (iconify, restore, hide, unhide, pin, unpin) must
  * find every family member regardless of which desktop each one
  * happens to be registered under, not just @p top's own; those two
  * can genuinely differ when @p top is pinned, since pinning a client
  * never actually moves it between desktops (it stays registered
- * under whichever one it was originally on forever; see @a ccmd_
- * client_bring_family's comment below for the fuller
+ * under whichever one it was originally on forever; see
+ * @a ccmd_client_bring_family below for the fuller
  * reasoning), while an un-pinned transient dialog of it is registered
  * under whichever desktop happened to be current when it was
  * created.  Restricting the search to @p top's own desktop alone, as
- * the desktop-move actions genuinely need to (@a enact_desktop_
- * client_send, @a hi_handle_net_wm_desktop, @a drag_warp_tick, and
- * @a ccmd_client_bring_family itself, which each still use @a ccmd_
- * client_transient_family_snapshot directly for exactly that reason),
+ * the desktop-move actions genuinely need to
+ * (@a enact_desktop_client_send, @a hi_handle_net_wm_desktop,
+ * @a drag_warp_tick and @a ccmd_client_bring_family itself, which
+ * each still use @a ccmd_client_transient_family_snapshot directly
+ * for exactly that reason),
  * silently fails to find a transient living elsewhere: hiding or
  * iconifying a pinned parent this way leaves its own dialog neither
  * hidden nor found again on restore, stranding it invisible with no
@@ -467,8 +474,9 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  * desktop; see that function's comment for the full
  * reasoning behind the two-pass count-then-fill approach.
  *
- * @param top       Family's own top-most ancestor (see @a ccmd_
- *                  client_transient_top_parent); excluded from the
+ * @param top       Family's top-most ancestor, as
+ *                  @a ccmd_client_transient_top_parent resolves it;
+ *                  excluded from the
  *                  result even where found
  * @param count_out Receives the number of clients collected; set to
  *                  @c 0 on any early return
@@ -503,8 +511,9 @@ void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
  *
  * Openbox's own real answer to a transient family split across
  * desktops or visibility states (confirmed directly against its
- * source, @c client_bring_modal_windows / @c client_bring_windows_
- * recursive in @c client.c): a pinned parent followed to a new
+ * source, @a client_bring_modal_windows and
+ * @a client_bring_windows_recursive in @c client.c): a pinned
+ * parent followed to a new
  * desktop leaves its own modal dialog behind, exactly as it started
  * out, but the moment someone tries to focus that parent again, the
  * dialog is moved onto the desktop the parent is being interacted
@@ -519,8 +528,9 @@ void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
  * un-iconify, or @c client_set_desktop(self, desktop, ...) to
  * relocate.  This mirrors both halves: a family member left
  * iconified or hidden (this project's own two separate visibility
- * states, where Openbox has only the one) is revealed via @a ccmd_
- * client_restore or @a ccmd_client_unhide, not just silently left
+ * states, where Openbox has only the one) is revealed through
+ * @a ccmd_client_restore or @a ccmd_client_unhide, not just
+ * silently left
  * that way forever with no redirect ever able to find it again,
  * since @a ccmd_client_focus_target's own walk (see its doc comment)
  * only ever considers a mapped, non-iconified, non-hidden candidate

@@ -322,8 +322,9 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
     /* Which edge actually moves as the pointer moves depends on which
      * corner or side the user grabbed: 'is_anchor_right' means the LEFT
      * edge is the one being dragged (the right edge stays put), and
-     * symmetrically for 'is_anchor_bottom' and the top edge.  Every delta
-     * and snap check below has to target whichever edge that is, not
+     * symmetrically for 'is_anchor_bottom' and the top edge.  Every
+     * delta and snap check below has to target whichever edge that
+     * is, not
      * always assume it is the right/bottom edge the way a
      * left-edge-fixed resize would. */
     if (snap_window > 0 && s_drag.desktop != NULL &&

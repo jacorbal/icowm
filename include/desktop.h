@@ -192,9 +192,9 @@ struct desktop_s {
      * reservation touching it at all simply equals its own physical
      * @c surface->monitors entry.
      *
-     * Indices line up with @p surface->monitors (see @a desktop_
-     * update_workarea's comment); only the first @p monitor_
-     * workarea_count entries are valid.
+     * Indices line up with @c surface->monitors, as
+     * @a desktop_update_workarea's comment describes; only the first
+     * @c monitor_workarea_count entries are valid.
      */
     struct geometry_s monitor_workareas[WM_SURFACE_MAX_MONITORS];
 
@@ -545,8 +545,9 @@ int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
  * X server as @c _NET_WORKAREA.
  *
  * Repeats the same reservation math once more per individual monitor
- * on @p surface, storing the result in @p desktop->monitor_
- * workareas (see its comment, this same file, for why): each
+ * on @p surface, storing the result in
+ * @c desktop->monitor_workareas, whose own comment in this same
+ * file says why: each
  * monitor's own along-edge span, rather than the whole surface's, is
  * what a strut's own start/end range is checked against there, so a
  * monitor with no panel of its own keeps its full area even while a

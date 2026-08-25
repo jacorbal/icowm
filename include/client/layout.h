@@ -67,8 +67,9 @@ struct client_layout_s {
      * §2.4): that config field is only ever a fallback for a client
      * that never states its own gravity, at any point in its life, not
      * a way to override one that does.  A later 'WM_NORMAL_HINTS'
-     * update (see 'client_props_refresh_normal_hints', 'client/props.c')
-     * keeps this field in sync with whatever 'win_gravity' that update
+     * update, in 'client_props_refresh_normal_hints'
+     * ('client/props.c'), keeps this field in sync with whatever
+     * 'win_gravity' that update
      * itself carries, per ICCCM's own "MUST honor" mandate; several
      * common toolkits (xterm's Xt shell, LibreOffice's VCL) only send
      * their real hints a moment after their first map, once fonts and

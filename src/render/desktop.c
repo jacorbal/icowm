@@ -267,8 +267,9 @@ static xcb_pixmap_t
  * Pin and layer buttons reflect their own state (sticky or non-normal
  * layer) with the active accent color regardless of window focus; every
  * other button reflects window focus instead, the same way the titlebar
- * text itself does.  Maximize and fullscreen fall back to the background
- * color (effectively invisible) when the client cannot be resized,
+ * text itself does.  Maximize and fullscreen fall back to the
+ * background color, which makes them effectively invisible, when the
+ * client cannot be resized,
  * instead of drawing a button that would do nothing if clicked.
  */
 static uint32_t s_titlebar_button_color(

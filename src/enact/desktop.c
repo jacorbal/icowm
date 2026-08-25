@@ -146,8 +146,9 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * after: 'ccmd_client_focus' (called from inside
      * 'client_focus_fallback') redirects to whichever mapped
      * transient descendant of the new fallback target should
-     * actually receive focus in its place (see 'ccmd_client_
-     * focus_target''s comment, cmds/client/transient.h), and
+     * actually receive focus in its place, as
+     * 'ccmd_client_focus_target''s comment in
+     * 'cmds/client/transient.h' describes, and
      * that redirect walk would otherwise still find 'client' sitting
      * in 'desktop->clients' at the moment of the search, even though
      * it is already on its way to 'target'; the same reasoning
@@ -193,8 +194,9 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * on this desktop, rather than something they have to go hunt
      * for.  Left unset for a genuinely unfocusable client (the same
      * gate 'surface_clients_show' itself re-checks on the read side
-     * regardless, gracefully falling through to 'client_focus_
-     * fallback''s own guess if this one somehow no longer qualifies
+     * regardless, gracefully falling through to
+     * 'client_focus_fallback''s own guess if this one somehow no
+     * longer qualifies
      * by the time it is actually read), so it never becomes the
      * remembered target only to be silently skipped over later.
      * Deliberately unconditional otherwise, overwriting whatever

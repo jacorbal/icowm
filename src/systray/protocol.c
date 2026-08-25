@@ -191,8 +191,9 @@ void systray_protocol_dock(xcb_window_t icon)
     }
 
     /* A dock request for a window already tracked is refused outright
-     * rather than adding a second entry for it: 'systray_handle_
-     * destroy' below only ever removes the first matching entry it
+     * rather than adding a second entry for it:
+     * 'systray_handle_destroy' below only ever removes the first
+     * matching entry it
      * finds and returns immediately, so a second one for the same
      * window would be left dangling, still referencing the window
      * once it is actually destroyed, and 'systray_layout_reflow'

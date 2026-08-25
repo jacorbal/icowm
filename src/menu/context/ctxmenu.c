@@ -65,8 +65,9 @@ void ctxmenu_show(xcb_connection_t *connection,
 
     /* Copied into a 'size_t' local right after the guard above proved
      * it positive: GCC's allocation-size analysis cannot otherwise
-     * see past the 'ctxmenu_close'/'ctxmenu_width_compute' calls between
-     * here and the 'calloc' below to know 'state->entry_count' is
+     * see past the 'ctxmenu_close' and 'ctxmenu_width_compute' calls
+     * between here and the 'calloc' below to know
+     * 'state->entry_count' is
      * still positive at that point, since either call could in
      * principle modify the struct through the same pointer, so
      * without this it falls back to assuming the field's entire

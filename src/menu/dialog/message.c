@@ -586,8 +586,8 @@ static void s_message_draw(xcb_connection_t *connection,
 
     /* OK label: font, and therefore width, depends on whether the
      * button is currently selected, so both are recomputed fresh on
-     * every repaint (see the doc comment on 's_message_compute_
-     * layout') rather than using a fixed position; the vertical
+     * every repaint, as 's_message_compute_layout''s own comment
+     * describes, rather than using a fixed position; the vertical
      * centering the same way, using the active font's own ascent/
      * descent against 'btn.dim.h' so it stays centered regardless of
      * which font is taller.  Same reasoning as the cancel/confirm
@@ -798,8 +798,9 @@ void menu_message_dialog_close(xcb_connection_t *connection)
     s_message_prev_focus = XCB_WINDOW_NONE;
 
     /* Also cancels any click-triggered close still scheduled (see
-     * 'menu_dialog_defer_schedule' in menu_message_dialog_handle_
-     * click), so 'menu_dialog_defer_tick' has nothing left to do once
+     * 'menu_dialog_defer_schedule' in
+     * 'menu_message_dialog_handle_click'), so
+     * 'menu_dialog_defer_tick' has nothing left to do once
      * this dialog is gone through some other path (e.g., Escape)
      * before that delay elapsed on its own. */
     menu_dialog_defer_cancel();

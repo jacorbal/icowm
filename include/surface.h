@@ -377,9 +377,9 @@ desktop_td *surface_desktop_get(surface_td *surface,
  * the position @p desktop_id's own @c orientation/@c corner
  * combination actually places it at, which is not simply @c row
  * @c 0, @c col @c desktop_id once @c corner is anything other than
- * top-left, nor once @c orientation is vertical (see @a s_layout_
- * row_col's comment, surface/desktops.c, for the fuller
- * reasoning).
+ * top-left, nor once @c orientation is vertical.  See
+ * @a s_layout_row_col in @c surface/desktops.c for the fuller
+ * reasoning.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the desktop to locate

@@ -40,7 +40,8 @@
 /* Populate default values for the base and desktop-navigation
  * configuration structures, used both as the initial process-wide
  * default and, before applying config.json (or 'memguard.json') found,
- * as the known-good starting point that file's own fields then overlay */
+ * as the known-good starting point that file's own fields then
+ * overlay */
 void config_set_default_base_values(struct config_base_s *config_base,
         struct config_desktop_s *config_desktop)
 {

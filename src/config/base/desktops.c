@@ -377,8 +377,9 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
     }
 
     /* This screen's own 'desktop_count' is fully finalized as of
-     * right here, the exact precondition 's_config_load_desktop_
-     * layout' itself depends on for its own 'rows * columns'
+     * right here, the exact precondition
+     * 's_config_load_desktop_layout' itself depends on for its own
+     * 'rows * columns'
      * validation just below. */
     s_config_load_desktop_layout(desktop_item, screen_idx, config_base,
             filename);

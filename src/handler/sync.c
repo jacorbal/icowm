@@ -140,6 +140,7 @@ void handler_sync_event(const wm_td *wm, xcb_generic_event_t *event)
     /* The client has caught up to (or past) the last size the window
      * manager sent it; release the wait and, if a newer resize step
      * arrived meanwhile, apply it now and re-arm the wait for the next
-     * one so an ongoing interactive resize keeps throttling correctly */
+     * one, so an ongoing interactive resize keeps throttling
+     * correctly */
     ccmd_client_resize_flush_pending(client);
 }

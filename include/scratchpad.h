@@ -91,8 +91,9 @@ void scratchpad_notice_client_created(client_td *client);
  *        configured edge, size, and desktop
  *
  * Called once, at map time, right after @p client's own @p desktop_id
- * and @p screen_id are assigned, since @a scratchpad_notice_client_
- * created runs too early for either to be available yet; called
+ * and @p screen_id are assigned, since
+ * @a scratchpad_notice_client_created runs too early for either to
+ * be available yet; called
  * again later by @a scratchpad_reposition, whenever @p surface's own
  * work areas are recomputed for any other reason.
  *

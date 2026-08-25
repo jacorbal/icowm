@@ -60,8 +60,9 @@
  * @brief Move a client to the front or back of the desktop's window
  *        stack
  *
- * Shared by @c desktop_action_client_send_front and @c desktop_
- * action_client_send_back below, which only differ in which end of
+ * Shared by @a desktop_action_client_send_front and
+ * @a desktop_action_client_send_back below, which only differ in
+ * which end of
  * the stacking list the client is reinserted at and the wording of
  * their own log message.
  *
@@ -140,8 +141,9 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
  * relationship from scratch on every call.  A client transient for
  * its whole group (ICCCM §4.1.2.6) has no @c transient_parent to
  * appear in that tree; raised alongside @p client too, right after
- * its specific-parent descendants, whenever @a client_group_
- * transient_anchor (@c cmds/client/transient.c) currently resolves
+ * its specific-parent descendants, whenever
+ * @a client_group_transient_anchor in @c cmds/client/transient.c
+ * currently resolves
  * it to @p client specifically, the same check @c cmds/client/
  * layer.c's @c s_enforce_layer_place_family already makes for
  * stacking.

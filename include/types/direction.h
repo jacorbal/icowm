@@ -27,9 +27,11 @@
  * (enact.h), carrying the focused client to another desktop; the
  * desktop-cycle keybind's own equivalent, switching the view itself
  * without moving any client along; and a directional monitor-move,
- * replacing the flat array-order @c next/@c prev @c ccmd_client_
- * move_to_next_monitor/@c _prev_monitor still use today (cmds/
- * client/geom.c), unlike a desktop, a monitor's own real, physical
+ * replacing the flat array order that
+ * @a ccmd_client_move_to_next_monitor and
+ * @a ccmd_client_move_to_prev_monitor still use today in
+ * @c cmds/client/geom.c; unlike a desktop, a monitor's own real,
+ * physical
  * position already makes "the one to the north" a meaningful
  * question with no configured layout needed to answer it at all.
  */

@@ -97,8 +97,9 @@ static void s_resync_after_reload(const wm_td *wm)
         uint32_t i = 0u;
         /* Queried once per surface here, ahead of the desktop/client
          * loop below, rather than once per icon inside it.  This is
-         * a synchronous round trip to the X server (see 'systray_get_
-         * geometry''s comment), and every icon on this same surface
+         * a synchronous round trip to the X server, as
+         * 'systray_get_geometry''s comment notes, and every icon on
+         * this same surface
          * shares the identical tray rectangle regardless. */
         bool tray_visible = systray_get_geometry(s, &tray);
 

@@ -63,8 +63,9 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  * place.
  *
  * Called once, after whichever single field actually changed has
- * already been updated, by every caller that used to call @a ccmd_
- * add_states/@a ccmd_rem_states directly; @a ccmd_add_states and
+ * already been updated, by every caller that used to call
+ * @a ccmd_add_states or @a ccmd_rem_states directly;
+ * @a ccmd_add_states and
  * @a ccmd_rem_states themselves no longer exist; every one of their
  * old call sites now sets its own underlying field first (most
  * already did, right alongside the old add/rem call, since the
@@ -85,8 +86,9 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  * that EWMH itself does not distinguish, so it is published whenever
  * either one holds.
  *
- * @c _NET_WM_STATE_FOCUSED has no matching field on @c xcb_ewmh_
- * connection_t (a newer, less universally standard extension than
+ * @c _NET_WM_STATE_FOCUSED has no matching field on
+ * @c xcb_ewmh_connection_t (a newer, less universally standard
+ * extension than
  * the rest), so it is the one atom here still resolved through
  * @a ccmd_intern_atom rather than read directly off @p client->ewmh;
  * @a atom_intern's own internal cache (@c utils/xcb/atom.c) already

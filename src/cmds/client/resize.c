@@ -122,7 +122,8 @@ static void s_ccmd_resize_configure(client_td *client,
  * to the same value once done.  Marks the client as waiting for the
  * corresponding @c AlarmNotify.
  *
- * @param client Client to notify; must have @c hints_ewmh.sync.is_supported
+ * @param client Client to notify; must have
+ *               @c hints_ewmh.sync.is_supported
  */
 static void s_ccmd_resize_send_sync_request(client_td *client)
 {

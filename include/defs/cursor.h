@@ -27,7 +27,8 @@
 #define WM_CURSOR_LEFT_PTR_GLYPH (68u)
 
 /**
- * @brief Glyph index of the mask for @c XC_left_ptr in the X cursor font
+ * @brief Glyph index of the mask for @c XC_left_ptr in the X
+ *        cursor font
  */
 #define WM_CURSOR_LEFT_PTR_MASK_GLYPH (69u)
 
@@ -56,8 +57,8 @@
  * @brief Glyph index of @c XC_fleur (source) in the X cursor font
  *
  * The four-way move cursor, shown for the duration of an interactive
- * window move (see @p drag_start in @c input/mouse/drag.c); its mask is,
- * as with every other glyph here, the very next index.
+ * window move; see @a drag_start in @c input/mouse/drag.c.  Its
+ * mask is, as with every other glyph here, the very next index.
  */
 #define WM_CURSOR_FLEUR_GLYPH (52u)
 

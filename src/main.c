@@ -10,7 +10,8 @@
  *
  * @version 1.0.1-rc.1 ("'ovelya")
  * @copyright Copyright (c) 2026, J. A. Corbal.
- *            ISC License <https://opensource.org/license/isc-license-txt>
+ *            ISC License, whose text is at
+ *            opensource.org/license/isc-license-txt
  *
  * @note Compiled according to the ISO/IEC 9899:1999 (C99) standard;
  *       conforms to POSIX.1-2001
@@ -281,7 +282,8 @@ static inline void s_deallocate_buffers(char **s1, char **s2, char **s3)
 
 
 /**
- * @brief Replace an option-owned string without leaking the previous one
+ * @brief Replace an option-owned string without leaking the
+ *        previous one
  *
  * @param dst Pointer to the owned string slot
  * @param src Replacement string

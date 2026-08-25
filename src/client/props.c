@@ -385,7 +385,8 @@ void client_props_refresh_normal_hints(client_td *client)
     /* ICCCM §4.1.2.3: a fixed-size window has min == max in at least
      * one axis.  Some applications (e.g., gmrun) constrain only height,
      * leaving width free; the window is still effectively non-resizable
-     * from the WM's perspective and must not be maximized or resized. */
+     * from the window manager's perspective and must not be
+     * maximized or resized. */
     if ((hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) &&
             (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
         bool fixed_w = (hints.min_width > 0 &&

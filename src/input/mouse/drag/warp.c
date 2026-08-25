@@ -190,9 +190,10 @@ static void s_warp_move_family(desktop_td *old_desktop,
              * (handled by the visual drag below already) and is
              * actually registered on 'old_desktop' to begin with (a
              * pinned top parent stays registered under whichever
-             * desktop it was originally on forever; see 'ccmd_
-             * client_bring_family''s doc comment, cmds/client/
-             * transient.c, for why that distinction matters, and
+             * desktop it was originally on forever; see
+             * 'ccmd_client_bring_family' in
+             * 'cmds/client/transient.c' for why that distinction
+             * matters, and
              * moving it off of a desktop it never really left would
              * be exactly the same class of bug that comment
              * describes). */
@@ -311,8 +312,9 @@ static void s_warp_move_dragged(xcb_connection_t *connection,
      * after the warp, keeping the dragged window or icon pinned at its
      * old spot rather than following the pointer to the new one).  The
      * axis 'warp_direction' did not warp along shifts by exactly zero
-     * here ('new_root_x'/'new_root_y' above already equal 'last_root_x'/
-     * '_y' on that axis), so this same pair of assignments is correct
+     * here, since 'new_root_x' and 'new_root_y' above already equal
+     * 'last_root_x' and 'last_root_y' on that axis, so this same
+     * pair of assignments is correct
      * unconditionally, without needing its 'is_horizontal' branch
      * too. */
     new_window_x = s_drag.client_cur.pos.x +

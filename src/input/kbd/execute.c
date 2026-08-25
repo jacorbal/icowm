@@ -106,8 +106,9 @@ static void s_menu_position_resolve(surface_td *surface, bool under_mouse,
  *
  * Resolves the focused client and dispatches the action identified by
  * @p btype.  Each binding type maps to exactly one @c enact_client_*
- * function.  Actions that require resize capability (maximize, fullscreen)
- * are silently dropped when the client is not resizable, and
+ * function.  Actions that require resize capability, maximize and
+ * fullscreen among them, are silently dropped when the client is
+ * not resizable, and
  * @c KEYBIND_CLIENT_CYCLE_LAYER is silently dropped when the client is
  * fullscreen (see @a ccmd_desktop_enforce_layers's comment on
  * why changing its layer there would have no visible effect).
@@ -299,8 +300,9 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_CYCLE_LAYER:
             /* A fullscreen client's own stacking is always forced
              * above everything else while it holds focus, regardless
-             * of its own real layer (see 'ccmd_desktop_enforce_
-             * layers''s comment); cycling its layer here
+             * of its own real layer, as
+             * 'ccmd_desktop_enforce_layers''s comment describes;
+             * cycling its layer here
              * would silently do nothing visible until it later
              * leaves fullscreen, the same reasoning the window
              * context menu's own 'Layer' submenu is disabled for

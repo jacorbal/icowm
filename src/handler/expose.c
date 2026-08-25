@@ -190,8 +190,9 @@ void handler_expose(xcb_connection_t *connection,
         is_icon_dragging = drag_is_active() && drag_is_icon_drag() &&
             drag_client() == client;
         /* The icon's own drag ('drag_icon_start' in
-         * 'input/mouse/drag/icon.c') sets the active styling once, at the
-         * start of the drag, and nothing re-applies it afterward; an
+         * 'input/mouse/drag/icon.c') sets the active styling once,
+         * at the start of the drag, and nothing re-applies it
+         * afterward; an
          * icon passing behind another window mid-drag gets exposed
          * again once it re-emerges, and without this check that repaint
          * would fall back to the inactive styling for the rest of the

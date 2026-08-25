@@ -6,8 +6,9 @@
  * Split by competency into @c wm/startup/install.h (registering signal
  * handlers), @c wm/startup/handle.h (the handlers themselves and the
  * flags they set, queried back by the main loop), and
- * @c wm/startup/subscribe.h (X server event subscriptions).  This header
- * keeps only the two X extension probes that belong to no single one
+ * @c wm/startup/subscribe.h, for the X server event subscriptions.
+ * This header keeps only the two X extension probes that belong to
+ * no single one
  * of those.
  *
  * @ingroup loop

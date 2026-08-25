@@ -53,7 +53,8 @@
  * @param surfaces All managed surfaces (for lookup and focus)
  * @param cfg      Active configuration
  *
- * @note Complexity: @e O(n), where @e n is the number of loaded bindings
+ * @note Complexity: @e O(n), where @e n is the number of loaded
+ *       bindings
  */
 void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
         xcb_key_press_event_t *event,

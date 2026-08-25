@@ -63,8 +63,8 @@ void drag_resist_axis_update(uint32_t drag_dist_w, uint32_t drag_dist_h,
 
 /**
  * @brief Settle a maximize-locked axis's own final state once a
- *        resize drag ends, for whichever case @c drag_resist_axis_
- *        update's own live sync could not already handle
+ *        resize drag ends, for whichever case the live sync of
+ *        @a drag_resist_axis_update could not already handle
  *
  * Under @c solid_drag, every threshold crossing already updated
  * @c s_drag.client's own state live, on the very motion event it

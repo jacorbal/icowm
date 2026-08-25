@@ -156,8 +156,9 @@ void cctl_adopt_scan(const wm_td *wm)
                          * screen-relative geometry now that the frame
                          * has been positioned.  Without this the client
                          * only knows the coordinates that were set
-                         * before the window manager started, which are
-                         * frame-relative rather than screen-relative. */
+                         * before the window manager started, which
+                         * are frame-relative rather than
+                         * screen-relative. */
                         if (client->frame != 0 &&
                                 client_is_decorated(client)) {
                             client_send_synthetic_configure_notify(

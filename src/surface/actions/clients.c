@@ -263,8 +263,9 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     /* Restore input focus to the previously active client.
      * If no suitable client is found, relinquish focus to 'PointerRoot'
      * so the previous desktop's windows do not retain keyboard input.
-     * Shaded is fine here, same reasoning as 's_client_focus_fallback_
-     * valid' (cmds/client/focus.c): 'ccmd_client_focus' below already
+     * Shaded is fine here, same reasoning as
+     * 's_client_focus_fallback_valid' in 'cmds/client/focus.c':
+     * 'ccmd_client_focus' below already
      * targets a shaded client's own frame instead of its unmapped
      * content. */
     focus_target = NULL;
@@ -443,8 +444,8 @@ void surface_clients_reflow(surface_td *surface)
             client_td *const client = (client_td *) cdlist_data(cnode);
 
             if (client != NULL) {
-                /* Use the frame for decorated windows, the client window
-                 * otherwise */
+                /* Use the frame for decorated windows, the client
+                 * window otherwise */
                 xcb_window_t target =
                     (client_is_decorated(client) && client->frame != 0)
                     ? client->frame : client->window;

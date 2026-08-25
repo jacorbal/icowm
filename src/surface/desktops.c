@@ -109,8 +109,9 @@ static void s_layout_row_col(uint32_t index,
  * itself correctly since mirroring within a fixed extent twice is
  * always the identity.  @p row/@p col are taken as @c int64_t,
  * rather than @c uint32_t the way a valid position always ends up
- * being, specifically so a caller mid-step (@a s_surface_desktop_
- * direction below) can pass a tentative, possibly negative
+ * being, specifically so a caller mid-step, namely
+ * @a s_surface_desktop_direction below, can pass a tentative,
+ * possibly negative
  * one-past-the-edge position straight through without checking for
  * unsigned underflow itself first; this function's own bounds check
  * catches that either way.

@@ -56,7 +56,8 @@
  *
  * @param desktop    Desktop whose rendering context and theme are used
  * @param client     The iconified client to render
- * @param is_current @c true when @p desktop is the currently visible one
+ * @param is_current @c true when @p desktop is the one currently
+ *                   visible
  *
  * @note No-op when @p client has no icon window or is not icon-mapped
  * @note Implemented in @c render/icon.c

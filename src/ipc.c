@@ -54,12 +54,10 @@ struct s_ipc_client_s {
     size_t buf_len;                    /**< Bytes currently buffered,
                                             not yet a complete line */
     int fd;                            /**< -1 when this slot is free */
-    uint32_t subscribed_events;        /**< Bitmask of 'enum ipc_
-                                            event_type_e'; 0 means
-                                            none, correctly the same
-                                            as this static array's
-                                            own zero-initialized
-                                            default */
+    /** Bitmask of 'enum ipc_event_type_e'; 0 means none, which is
+     *  correctly the same as this static array's own
+     *  zero-initialized default */
+    uint32_t subscribed_events;
     char buf[IPC_MSG_MAX_LENGTH];
 };
 

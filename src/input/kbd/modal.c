@@ -90,7 +90,8 @@ static void s_geometry_restore(void)
 
 
 /**
- * @brief Exit modal mode, releasing the keyboard grab and clearing state
+ * @brief Exit modal mode, releasing the keyboard grab and clearing
+ *        state
  */
 static void s_modal_exit(void)
 {

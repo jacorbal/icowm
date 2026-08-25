@@ -266,8 +266,9 @@
 /* Configuration-file syntax-error dialog ('src/wm.c',
  * 'wm_json_syntax_errors_warn'), one file or several.
  *
- * TRANSLATION: keep the single '%s' in the first, and the trailing '%s'
- * in the second (a filename list is appended after it, comma-separated) */
+ * TRANSLATION: keep the single '%s' in the first, and the trailing
+ * '%s' in the second, after which a comma-separated filename list is
+ * appended */
 #define STR_WM_JSON_SYNTAX_ERROR_SINGLE_FMT \
     "Error parsing '%s'; possible syntax error.  Reverted to " \
     "default values."

@@ -89,7 +89,8 @@ desktop_td *ipc_resolve_desktop(const wm_td *wm, const cJSON *args,
  * @brief Resolve which client a request refers to
  *
  * @param wm          Window manager instance
- * @param args        The request object; must have a numeric @c client_id
+ * @param args        The request object; must carry a numeric
+ *                    @c client_id
  * @param out_surface Receives the client's own surface on success;
  *                    untouched on failure
  * @param out_desktop Receives the client's own desktop on success;

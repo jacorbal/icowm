@@ -102,8 +102,9 @@ void popup_show(xcb_connection_t *connection,
         ? client->info.class_name[0] : "";
 
     /* Resolve which physical monitor the client's own center point
-     * currently falls on, the same way 'ccmd_client_move_to_next_
-     * monitor' (cmds/client/geom.c) does, to display alongside its
+     * currently falls on, the same way
+     * 'ccmd_client_move_to_next_monitor' in 'cmds/client/geom.c'
+     * does, to display alongside its
      * desktop/surface; a client on a single-monitor surface always
      * resolves to monitor 0. */
     if (ccmd_client_monitor(client, &client_surface, &client_monitor) &&

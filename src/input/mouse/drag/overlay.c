@@ -223,8 +223,9 @@ void drag_overlay_repaint(xcb_connection_t *connection)
 
     text_w = text_string_measure(s_drag.overlay_text);
     /* Horizontally centered within the overlay window's actual
-     * width, computed with the exact same formula 's_drag_overlay_
-     * show' used to size that window in the first place, rather than
+     * width, computed with the exact same formula
+     * 's_drag_overlay_show' used to size that window in the first
+     * place, rather than
      * a separately hardcoded threshold that happened to only agree with
      * it for a wide-enough or narrow-enough string.
      *

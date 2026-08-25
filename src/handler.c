@@ -8,7 +8,8 @@
  *
  *   - handler/configure.c: @c CONFIGURE_REQUEST, @c CONFIGURE_NOTIFY
  *   - handler/map.c: @c MAP_REQUEST, @c UNMAP_NOTIFY, @c DESTROY_NOTIFY
- *   - handler/focus.c: @c PROPERTY_NOTIFY, @c FOCUS_IN, @c MAPPING_NOTIFY
+ *   - handler/focus.c: @c PROPERTY_NOTIFY, @c FOCUS_IN and
+ *     @c MAPPING_NOTIFY
  *   - handler/expose.c: @c EXPOSE
  *   - handler/message.c: @c CLIENT_MESSAGE dispatcher (dispatches EWMH
  *     and ICCCM protocol messages to handler/ewmhmsg.c's own

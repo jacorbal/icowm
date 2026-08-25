@@ -224,7 +224,8 @@ void handler_map_request(const wm_td *wm,
     surface_refresh_workareas(surface);
 
     /* Apply map-time rules before placement so explicit rule geometry
-     * can lock the client position and exempt it from policy placement */
+     * can lock the client position and exempt it from policy
+     * placement */
     if (rules_apply(wm, client, &surface, &desktop, RULES_TRIGGER_MAP)) {
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);

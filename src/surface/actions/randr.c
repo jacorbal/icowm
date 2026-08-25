@@ -720,8 +720,8 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
 }
 
 
-/* Undo the most recent snapshotting 'surface_action_apply_randr_
- * profiles' call */
+/* Undo the most recent snapshotting call of
+ * 'surface_action_apply_randr_profiles' */
 void surface_action_revert_randr_profiles(void)
 {
     surface_td *const surface = s_randr_snapshot_surface;

@@ -570,7 +570,8 @@ void ccmd_client_shade(client_td *client)
     /* Refresh 'geometry.cur' from the real X11 state right before
      * saving it.  An application-driven resize the window manager did
      * not initiate could leave 'geometry.cur' stale, and shading would
-     * then save (and unshading would later restore) the wrong height. */
+     * then save, and unshading would later restore, the wrong
+     * height. */
     geom_ck = xcb_get_geometry(client->connection, target);
     geom_r = xcb_get_geometry_reply(client->connection, geom_ck, NULL);
     if (geom_r != NULL) {

@@ -454,9 +454,9 @@ static void s_ccmd_client_unhide_visit(client_td *member, void *ctx)
  * @param client     Client being unmapped; its own @c ignore.unmap is
  *                    incremented here
  * @param connection Connection to issue the unmap requests on
- * @param target     Window to unmap (the frame if decorated, the
- *                    bare content window otherwise; see @a ccmd_
- *                    target_win, cmds/client/screen.c)
+ * @param target     Window to unmap: the frame when decorated, the
+ *                   bare content window otherwise, as
+ *                   @a ccmd_target_win resolves it
  *
  * @note A null @p client or @p connection is a silent no-op
  * @note Complexity: @e O(1)
@@ -573,8 +573,9 @@ void ccmd_client_hide(client_td *client)
  * to the family's top-most ancestor, then unhides every other family
  * member still hidden, so a family hidden together comes back
  * together too.  Every other family member is unhidden before the
- * top parent's own unhide, not after, the same ordering @a ccmd_
- * client_restore already uses and for the same reason (see its own
+ * top parent's own unhide, not after, the same ordering
+ * @a ccmd_client_restore already uses and for the same reason (see
+ * its own
  * doc comment, cmds/client/focus.c): the top parent's own focus-
  * granting step redirects through @a ccmd_client_focus_target to
  * whichever transient dialog should actually end up focused, which

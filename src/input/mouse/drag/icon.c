@@ -4,8 +4,9 @@
  * @brief Everything specific to dragging an icon window
  *
  * One of the files @c input/mouse/drag/ is made of.  Kept apart from
- * @c input/mouse/drag/overlay.c even though @c drag_icon_sync_active_
- * visual and @c drag_icon_height touch the overlay window: icon
+ * @c input/mouse/drag/overlay.c even though
+ * @a drag_icon_sync_active_visual and @a drag_icon_height touch the
+ * overlay window: icon
  * dragging merely reuses that window, and neither function is about
  * the overlay itself.
  */
