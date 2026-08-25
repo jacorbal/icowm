@@ -207,9 +207,8 @@ static void s_ccmd_resize_dispatch_synced(client_td *client,
  */
 static bool s_ccmd_resize_allowed(client_td *client)
 {
-    if (client->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN ||
-            client->properties.state ==
-                (uint16_t) CLIENT_STATE_MAXIMIZED) {
+    if (client_is_fullscreen(client) ||
+            client_is_maximized(client)) {
         return false;
     }
 

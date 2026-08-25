@@ -36,33 +36,51 @@
  * @note Complexity: @e O(1)
  */
 #define client_is_iconified(w) \
-    ((w)->properties.state == (uint16_t) CLIENT_STATE_ICONIFIED)
+    (((w)->properties.state & (uint16_t) CLIENT_STATE_ICONIFIED) != 0u)
 
 /**
- * @brief Macro that evaluates to the client maximization state
+ * @brief Macro that evaluates to whether the client is maximized in
+ *        both directions at once
+ *
+ * EWMH has no single atom for this: a window maximized outright is one
+ * holding @c _NET_WM_STATE_MAXIMIZED_HORZ and
+ * @c _NET_WM_STATE_MAXIMIZED_VERT together, which is exactly what this
+ * tests.  A window may also hold the full screen bit alongside either
+ * of them, and still be maximized underneath.
  *
  * @note Complexity: @e O(1)
  */
 #define client_is_maximized(w) \
-    ((w)->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED)
+    (((w)->properties.state & (uint16_t) CLIENT_STATE_MAXIMIZED) == \
+     (uint16_t) CLIENT_STATE_MAXIMIZED)
 
 /**
- * @brief Macro that evaluates to the client horizontal maximization
- *        state
+ * @brief Macro that evaluates to whether the client's horizontal axis
+ *        is maximized
+ *
+ * True of a window maximized horizontally alone and of one maximized
+ * in both directions, since both hold this bit.  Ask
+ * @a client_is_maximized to tell the two apart.
  *
  * @note Complexity: @e O(1)
  */
 #define client_is_maximized_horz(w) \
-    ((w)->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ)
+    (((w)->properties.state & \
+      (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ) != 0u)
 
 /**
- * @brief Macro that evaluates to the client vertical maximization
- *        state
+ * @brief Macro that evaluates to whether the client's vertical axis is
+ *        maximized
+ *
+ * True of a window maximized vertically alone and of one maximized in
+ * both directions, since both hold this bit.  Ask
+ * @a client_is_maximized to tell the two apart.
  *
  * @note Complexity: @e O(1)
  */
 #define client_is_maximized_vert(w) \
-    ((w)->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED_VERT)
+    (((w)->properties.state & \
+      (uint16_t) CLIENT_STATE_MAXIMIZED_VERT) != 0u)
 
 /**
  * @brief Macro that evaluates to whether the client is maximized in any
@@ -71,17 +89,16 @@
  * Used wherever an operation needs to know only that the client's
  * @p layout.geometry.old already holds a valid pre-maximize geometry
  * (regardless of which maximize variant is currently active), most
- * notably to decide whether it is safe to call @c client_geometry_save
+ * notably to decide whether it is safe to call @a client_geometry_save
  * again without stranding that original geometry.
  *
  * @note Complexity: @e O(1)
  *
- * @see @c ccmd_client_maximize, @c ccmd_client_maximize_horz,
- *      @c ccmd_client_maximize_vert, and @c ccmd_client_iconify.
+ * @see @a ccmd_client_maximize, @a ccmd_client_maximize_horz,
+ *      @a ccmd_client_maximize_vert, and @a ccmd_client_iconify.
  */
 #define client_is_maximized_any(w) \
-    (client_is_maximized(w) || client_is_maximized_horz(w) || \
-     client_is_maximized_vert(w))
+    (((w)->properties.state & (uint16_t) CLIENT_STATE_MAXIMIZED) != 0u)
 
 /**
  * @brief Macro that evaluates to the client full screen state
@@ -89,7 +106,7 @@
  * @note Complexity: @e O(1)
  */
 #define client_is_fullscreen(w) \
-    ((w)->properties.state == (uint16_t) CLIENT_STATE_FULLSCREEN)
+    (((w)->properties.state & (uint16_t) CLIENT_STATE_FULLSCREEN) != 0u)
 
 /**
  * @brief Macro that evaluates to the client hidden flag
@@ -192,7 +209,7 @@
  * Normalized to @c 0 or @c 1, unlike leaving the raw flag bit's own
  * numeric value (@c CLIENT_FLAG_DECORATED, not necessarily @c 1)
  * exposed: a caller comparing this against a proper @c bool with
- * @c != or @c ==, as @c ccmd_client_toggle_decorate's own callers in
+ * @c != or @c ==, as @a ccmd_client_toggle_decorate's own callers in
  * @c rules/apply.c and @c handler/focus.c both do, would otherwise
  * mismatch and toggle decoration off by mistake, every single time,
  * whenever the client already happened to be decorated (the common

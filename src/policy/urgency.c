@@ -210,8 +210,7 @@ static void s_repaint_urgent_clients(list_td *surfaces)
             }
 
             if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
-                if (c->properties.state ==
-                        (uint16_t) CLIENT_STATE_ICONIFIED) {
+                if (client_is_iconified(c)) {
                     ri_render_client_icon(desktop, c, true);
                     repainted_any = true;
                 }

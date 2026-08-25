@@ -660,8 +660,8 @@ void ccmd_client_unshade(client_td *client)
      * fresh, the exact same way 's_ccmd_client_maximize_dir'
      * (maximize.c) computes it, is what the vertical axis is
      * actually supposed to be at right now instead. */
-    if (client->properties.state == CLIENT_STATE_MAXIMIZED ||
-            client->properties.state == CLIENT_STATE_MAXIMIZED_VERT) {
+    if (client_is_maximized(client) ||
+            client_is_maximized_vert(client)) {
         uint16_t sw = 0;
         uint16_t sh = 0;
         const desktop_td *maximize_desktop;
@@ -825,13 +825,6 @@ void ccmd_client_fullscreen(client_td *client)
         client_geometry_save(client);
     }
 
-    /* EWMH treats '_NET_WM_STATE_FULLSCREEN' and the two maximized
-     * states as independent of one another, so a client that was
-     * maximized before going fullscreen must still be maximized once
-     * it leaves.  Remembered here rather than derived on the way out,
-     * where the state has already been overwritten. */
-    client->state_before_fullscreen = client->properties.state;
-
     was_decorated = client_is_decorated(client);
     client->was_decorated_fullscreen = was_decorated;
     target = ccmd_target_win(client);
@@ -905,7 +898,7 @@ void ccmd_client_fullscreen(client_td *client)
      * a fresh redraw. */
     client_send_synthetic_configure_notify(client->connection, client);
 
-    client->properties.state = CLIENT_STATE_FULLSCREEN;
+    client->properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
     (void) clock_gettime(CLOCK_MONOTONIC,
             &client->fullscreen_transition_time);
 
@@ -1072,14 +1065,13 @@ void ccmd_client_unfullscreen(client_td *client)
      * frame-relative instead. */
     client_send_synthetic_configure_notify(client->connection, client);
 
-    /* Back to whatever the client held before, not unconditionally to
-     * normal: EWMH keeps '_NET_WM_STATE_FULLSCREEN' independent of
-     * the maximized states, so leaving fullscreen must not clear a
-     * maximization the client never asked to lose.  A client that was
-     * merely normal before recorded exactly that, so the ordinary
-     * case still lands on 'CLIENT_STATE_NORMAL'. */
-    client->properties.state = client->state_before_fullscreen;
-    client->state_before_fullscreen = (uint16_t) CLIENT_STATE_NORMAL;
+    /* Only the full screen bit is cleared.  EWMH keeps
+     * '_NET_WM_STATE_FULLSCREEN' independent of the maximized states,
+     * so a window maximized before going full screen is maximized
+     * still on leaving it, having never asked for that to be
+     * forgotten; and one that was merely normal has no other bit to
+     * keep. */
+    client->properties.state &= (uint16_t) ~CLIENT_STATE_FULLSCREEN;
     (void) clock_gettime(CLOCK_MONOTONIC,
             &client->fullscreen_transition_time);
 
@@ -1128,7 +1120,7 @@ void ccmd_client_toggle_fullscreen(client_td *client)
 
     /* No 'client_is_resizable' gate; see 'ccmd_client_fullscreen''s own
      * comment for why fullscreen is deliberately exempt. */
-    if (client->properties.state == CLIENT_STATE_FULLSCREEN) {
+    if (client_is_fullscreen(client)) {
         ccmd_client_unfullscreen(client);
     } else {
         ccmd_client_fullscreen(client);

@@ -26,7 +26,7 @@
  *        nearest screen/monitor edge, and between one such icon and
  *        the next
  *
- * See @c place_icon_apply (policy/placement/icon.h): added to
+ * See @a place_icon_apply (policy/placement/icon.h): added to
  * @c WM_ICON_SQUARE_SIZE (and an icon's own caption height, when
  * captioned) to get the grid's own step between one candidate slot
  * and the next, and used on its own as the offset from the screen
@@ -42,7 +42,7 @@
  *        @c _NET_WM_ICON image is scaled to fill
  *
  * Applies uniformly regardless of whichever size the client actually
- * published (see @c wmicon_draw in render/wmicon.h), so every icon ends
+ * published (see @a wmicon_draw in render/wmicon.h), so every icon ends
  * up the same visual size on screen instead of each one being however
  * large or small its own source image happened to be.  Kept below
  * @c 100 so the image sits with a small margin inside the square rather
@@ -75,12 +75,13 @@
  * @brief Single-letter state-hint characters drawn in an iconified
  *        client's own top-right corner and in the fuzzy window-search
  *
- * One is drawn for each @p pre_iconify_state restored when a client is
- * de-iconified; @c CLIENT_STATE_NORMAL draws no indicator.  The same
- * indicators, together with @c WM_ICON_HINT_HIDDEN, are also drawn
- * beside the matching client's row in the fuzzy window-search widget.
- * A hidden client has its own indicator because @p pre_iconify_state
- * never records the hidden state.
+ * One is drawn for the outermost state bit an iconified client still
+ * holds, which is the state it will come back to; a client holding
+ * none draws no indicator at all.  The same indicators, together with
+ * @c WM_ICON_HINT_HIDDEN, are also drawn beside the matching client's
+ * row in the fuzzy window-search widget.  Hidden has an indicator of
+ * its own because it is a flag apart from the state bits rather than
+ * one of them.
  *
  * @see @a ri_icon_hints_draw in @c render/icon.c, and
  *      @a s_search_build_hints, @c menu/search.c

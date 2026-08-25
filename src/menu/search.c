@@ -167,11 +167,13 @@ static int s_search_fuzzy_score(const char *restrict query,
 /**
  * @brief Build the bracketed state-hint text for one client
  *
- * Combines the client's mutually exclusive geometry state (fullscreen
- * or one of the maximized variants) with its independent shaded,
- * sticky, and urgent flags into a single comma-separated list, e.g.,
- * @c "[p,m,!]".  Writes nothing (an empty string) when no hint
- * applies.
+ * A client may hold several geometry states at once, full screen over
+ * a maximized window being the ordinary case, so the chain below
+ * reports the outermost one alone, the same one the window is
+ * actually drawn as.  That is combined with the shaded, sticky and
+ * urgent flags, which are independent of it and of each other, into a
+ * single comma-separated list such as @c "[p,m,!]".  Writes nothing
+ * at all when no hint applies.
  *
  * @param client Client to inspect
  * @param out    Destination buffer
@@ -188,14 +190,11 @@ static void s_search_build_hints(const client_td *client, char *out,
 
     if (client_is_fullscreen(client)) {
         letters[n++] = WM_ICON_HINT_FULLSCREEN;
-    } else if (client->properties.state ==
-            (uint16_t) CLIENT_STATE_MAXIMIZED) {
+    } else if (client_is_maximized(client)) {
         letters[n++] = WM_ICON_HINT_MAXIMIZED;
-    } else if (client->properties.state ==
-            (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ) {
+    } else if (client_is_maximized_horz(client)) {
         letters[n++] = WM_ICON_HINT_MAXIMIZED_HORZ;
-    } else if (client->properties.state ==
-            (uint16_t) CLIENT_STATE_MAXIMIZED_VERT) {
+    } else if (client_is_maximized_vert(client)) {
         letters[n++] = WM_ICON_HINT_MAXIMIZED_VERT;
     } else if (client_is_iconified(client)) {
         letters[n++] = WM_ICON_HINT_ICONIFIED;
@@ -238,7 +237,7 @@ static void s_search_build_hints(const client_td *client, char *out,
  *        every desktop of @c s_search.surface into @c s_search.
  *        candidates
  *
- * Same eligibility filter @c cycle_init uses for its own window list;
+ * Same eligibility filter @a cycle_init uses for its own window list;
  * unrelated to the currently active desktop, so a client on a desktop
  * other than the one showing right now is still collected.
  *
@@ -360,7 +359,7 @@ static void s_search_refilter(void)
  *        count from the current result count
  *
  * Caps visible height at @c WM_SEARCH_MAX_HEIGHT_PERCENT of the
- * surface's own height, the same reasoning @c cycle_init uses for
+ * surface's own height, the same reasoning @a cycle_init uses for
  * its own menu.
  *
  * @note Complexity: @e O(1)
@@ -452,7 +451,7 @@ static int s_search_row_at_y(int16_t y)
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces, passed through to
- *                   @c focus_apply
+ *                   @a focus_apply
  *
  * @note Complexity: @e O(1)
  */

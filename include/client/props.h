@@ -40,27 +40,6 @@ struct client_properties_s {
     uint16_t type;       /**< Type (normal, notification...) */
     uint16_t operation;  /**< Operation (moving, resizing...) */
     uint16_t focusing;   /**< Focusing (focused, unfocused) */
-
-    /**
-     * @brief The @c state this client was in right before it was last
-     *        iconified, so @a ccmd_client_restore can re-enter that
-     *        exact state (normal, maximized in any of its three
-     *        variants, or fullscreen) instead of always landing back on
-     *        plain @c CLIENT_STATE_NORMAL
-     *
-     * Only meaningful while @p state is @c CLIENT_STATE_ICONIFIED;
-     * @c CLIENT_STATE_NORMAL otherwise.  Also drives the icon's own
-     * state-hint letter:
-     *
-     * - nil for @c CLIENT_STATE_NORMAL;
-     * - 'f' for @c CLIENT_STATE_FULLSCREEN;
-     * - 'm' for @c CLIENT_STATE_MAXIMIZED;
-     * - 'h' for @c CLIENT_STATE_MAXIMIZED_HORZ; and
-     * - 'v' for @c CLIENT_STATE_MAXIMIZED_VERT.
-     *
-     * @see @a ri_icon_hints_draw in @c render/icon.c:
-     */
-    uint16_t pre_iconify_state;
 };
 
 

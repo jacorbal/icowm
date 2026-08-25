@@ -110,23 +110,20 @@ void ccmd_client_sync_states(client_td *client)
         return;
     }
 
-    if (client->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED ||
-            client->properties.state ==
-                (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ) {
+    /* Each bit is published on its own, since EWMH holds them
+     * independent: a window may be maximized on one axis, on both, or
+     * on both while also full screen, and every combination has to
+     * read back off the property exactly as it stands. */
+    if (client_is_maximized_horz(client)) {
         states[num++] = client->ewmh->_NET_WM_STATE_MAXIMIZED_HORZ;
     }
-    if (client->properties.state == (uint16_t) CLIENT_STATE_MAXIMIZED ||
-            client->properties.state ==
-                (uint16_t) CLIENT_STATE_MAXIMIZED_VERT) {
+    if (client_is_maximized_vert(client)) {
         states[num++] = client->ewmh->_NET_WM_STATE_MAXIMIZED_VERT;
     }
-    if (client->properties.state ==
-            (uint16_t) CLIENT_STATE_FULLSCREEN) {
+    if (client_is_fullscreen(client)) {
         states[num++] = client->ewmh->_NET_WM_STATE_FULLSCREEN;
     }
-    if (client->properties.state ==
-                (uint16_t) CLIENT_STATE_ICONIFIED ||
-            client_is_hidden(client)) {
+    if (client_is_iconified(client) || client_is_hidden(client)) {
         states[num++] = client->ewmh->_NET_WM_STATE_HIDDEN;
     }
     if (client_is_pinned(client)) {

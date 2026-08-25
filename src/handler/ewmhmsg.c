@@ -72,7 +72,7 @@
  * @brief Resolve a @c _NET_WM_STATE action into "should this state
  *        end up set"
  *
- * Shared by every state @c s_handle_wm_state_atom below reacts to:
+ * Shared by every state @a s_handle_wm_state_atom below reacts to:
  * @c WM_STATE_ACTION_ADD always resolves to @c true,
  * @c WM_STATE_ACTION_REMOVE always to @c false, and
  * @c WM_STATE_ACTION_TOGGLE
@@ -159,32 +159,38 @@ static void s_handle_wm_state_atom(client_td *client,
         return;
     }
 
+    /* Each axis is added or removed on its own, and only when the
+     * request actually asks for a change.  'ccmd_client_maximize_horz'
+     * and '_vert' each toggle their own axis, so calling one when the
+     * axis is already where it is asked to be would undo the request
+     * rather than honour it; and reaching for a whole restore instead
+     * would clear the other axis too, which EWMH never asked for. */
     if (is_max_h) {
+        bool want;
+
         if (!client_is_resizable(client)) {
             return;
         }
 
-        if (s_wm_state_resolve_add(action,
-                    client->properties.state ==
-                        CLIENT_STATE_MAXIMIZED_HORZ)) {
+        want = s_wm_state_resolve_add(action,
+                client_is_maximized_horz(client));
+        if (want != client_is_maximized_horz(client)) {
             ccmd_client_maximize_horz(client);
-        } else {
-            ccmd_client_restore(client);
         }
         return;
     }
 
     if (is_max_v) {
+        bool want;
+
         if (!client_is_resizable(client)) {
             return;
         }
 
-        if (s_wm_state_resolve_add(action,
-                    client->properties.state ==
-                        CLIENT_STATE_MAXIMIZED_VERT)) {
+        want = s_wm_state_resolve_add(action,
+                client_is_maximized_vert(client));
+        if (want != client_is_maximized_vert(client)) {
             ccmd_client_maximize_vert(client);
-        } else {
-            ccmd_client_restore(client);
         }
         return;
     }
@@ -842,8 +848,7 @@ void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
                 "_NET_WM_FULLSCREEN_MONITORS", false),
             XCB_ATOM_CARDINAL, 32, 4, monitors);
 
-    if (client->properties.state ==
-            (uint16_t) CLIENT_STATE_FULLSCREEN) {
+    if (client_is_fullscreen(client)) {
         ccmd_client_fullscreen(client);
     }
 

@@ -105,8 +105,7 @@ static xcb_window_t s_systray_fullscreen_target_find(void)
     ohtbl_foreach(desktop->clients, elem) {
         client_td *const client = (client_td *) elem;
 
-        if (client->properties.state ==
-                (uint16_t) CLIENT_STATE_FULLSCREEN) {
+        if (client_is_fullscreen(client)) {
             return (client->frame != 0) ? client->frame : client->window;
         }
     }

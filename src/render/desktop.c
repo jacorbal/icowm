@@ -804,8 +804,7 @@ static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
         /* Keep icon windows visible only for iconified clients.
          * Plain hidden windows must stay fully unmapped. */
         if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-            if (client->properties.state ==
-                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+            if (client_is_iconified(client)) {
                 ri_render_client_icon(desktop, client, is_current);
             }
             stacking_node = cdlist_next(stacking_node);
@@ -877,8 +876,7 @@ void desktop_render_one_client(desktop_td *desktop,
     }
 
     hide_decoration =
-        (client->properties.state ==
-             (uint16_t) CLIENT_STATE_FULLSCREEN &&
+        (client_is_fullscreen(client) &&
          client->was_decorated_fullscreen);
 
     /* Computed once here rather than re-spelled out as 'client->

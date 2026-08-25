@@ -279,8 +279,7 @@ void handler_client_message(wm_td *wm,
                 }
             }
 
-            if (client->properties.state ==
-                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+            if (client_is_iconified(client)) {
                 if (!(client->properties.flags & CLIENT_FLAG_PIN) &&
                         surface != NULL && desktop != NULL &&
                         surface->desktop_cur != desktop->id) {

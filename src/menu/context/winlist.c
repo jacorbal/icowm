@@ -284,8 +284,7 @@ static void s_cb_focus_client(xcb_connection_t *connection,
 
     /* Restore the window that was selected */
     if (data->client->properties.flags & CLIENT_FLAG_HIDDEN) {
-        if (data->client->properties.state ==
-                (uint16_t) CLIENT_STATE_ICONIFIED) {
+        if (client_is_iconified(data->client)) {
             enact_client_restore(data->client);
         } else {
             enact_client_unhide(data->client);
@@ -327,7 +326,7 @@ static void s_client_label_format(const client_td *client,
         return;
     }
 
-    if (client->properties.state == (uint16_t) CLIENT_STATE_ICONIFIED) {
+    if (client_is_iconified(client)) {
         (void) snprintf(buf, buf_size, "(%s)", name);
     } else if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
         (void) snprintf(buf, buf_size, "<%s>", name);

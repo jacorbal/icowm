@@ -76,7 +76,7 @@
  * iconified; shaded is fine, @a ccmd_client_focus below already
  * targets a shaded client's own frame instead of its unmapped
  * content), able to take real focus by window type, not explicitly
- * opted out via @c client_has_no_focus_fallback, and not skipping
+ * opted out via @a client_has_no_focus_fallback, and not skipping
  * the taskbar unless it is modal, urgent, or a dialog (which need
  * the person's attention regardless of that flag).
  *
@@ -125,18 +125,32 @@ static void s_ccmd_client_restore_one(client_td *client)
 {
     xcb_window_t target;
     xcb_atom_t icon_geom_atom;
-    bool was_iconified;
 
-    /* Fullscreen clients must be un-fullscreened first so the
-     * decoration and EWMH atom are cleaned up properly */
-    if (client_is_fullscreen(client)) {
-        ccmd_client_unfullscreen(client);
+    /* Restoring means two different things depending on where the
+     * client is, and the iconified case has to be settled first.  A
+     * client sitting as an icon is restored by bringing it back,
+     * whatever geometry state it may also hold; only a client already
+     * on the desktop is restored by leaving that geometry state.
+     *
+     * Testing full screen ahead of this, as this function once did,
+     * left an iconified full screen client merely losing its full
+     * screen bit and staying an icon, since that bit now survives
+     * being iconified where before it did not. */
+    if (!client_is_iconified(client)) {
+        /* Outermost state first, so one restore undoes one thing:
+         * full screen over a maximized window comes back maximized,
+         * and a second restore takes that away in turn. */
+        if (client_is_fullscreen(client)) {
+            ccmd_client_unfullscreen(client);
+        } else if (client_is_maximized(client)) {
+            ccmd_client_maximize(client);
+        } else if (client_is_maximized_horz(client)) {
+            ccmd_client_maximize_horz(client);
+        } else if (client_is_maximized_vert(client)) {
+            ccmd_client_maximize_vert(client);
+        }
         return;
     }
-
-    /* Remember whether we are restoring from an iconified state so the
-     * window can be raised and focused afterwards */
-    was_iconified = client_is_iconified(client);
 
     target = ccmd_target_win(client);
     client_geometry_restore(client);
@@ -155,7 +169,11 @@ static void s_ccmd_client_restore_one(client_td *client)
     }
 
     client_unhide(client);
-    client->properties.state = CLIENT_STATE_NORMAL;
+
+    /* Only the iconified bit is cleared: whatever maximization or
+     * full screen the window held before being iconified it holds
+     * still, never having asked for that to be forgotten. */
+    client->properties.state &= (uint16_t) ~CLIENT_STATE_ICONIFIED;
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
 
@@ -167,35 +185,38 @@ static void s_ccmd_client_restore_one(client_td *client)
 
     ccmd_client_sync_states(client);
 
-    /* Re-enter whichever state this client was in right before it was
-     * iconified (see 'pre_iconify_state''s own comment in client.h and
-     * where it is captured in 'ccmd_client_iconify'), rather than
-     * always settling for plain normal.  Each of these re-computes
-     * its own geometry fresh against the current workarea/monitor
-     * rather than replaying a stale saved one, since the screen
-     * layout may have changed while this client sat iconified. */
-    if (was_iconified) {
-        uint16_t pre_iconify_state = client->properties.pre_iconify_state;
-
-        client->properties.pre_iconify_state =
-            (uint16_t) CLIENT_STATE_NORMAL;
-
-        switch (pre_iconify_state) {
-            case CLIENT_STATE_MAXIMIZED:
-                ccmd_client_maximize(client);
-                break;
-            case CLIENT_STATE_MAXIMIZED_HORZ:
-                ccmd_client_maximize_horz(client);
-                break;
-            case CLIENT_STATE_MAXIMIZED_VERT:
-                ccmd_client_maximize_vert(client);
-                break;
-            case CLIENT_STATE_FULLSCREEN:
-                ccmd_client_fullscreen(client);
-                break;
-            default:
-                break;
-        }
+    /* Put the geometry every state bit still standing calls for back
+     * on the window.  The bits themselves survived being iconified,
+     * so nothing had to be remembered anywhere; what is left to do is
+     * re-apply the geometry each one implies, computed fresh against
+     * the workarea as it is now, the screen layout having possibly
+     * changed while the client sat as an icon.
+     *
+     * Maximization is re-applied through 'ccmd_client_refill_maximized'
+     * rather than through the maximize command, since that one toggles
+     * and would have to have its bits cleared first, which would in
+     * turn let its own 'client_geometry_save' fire on a window whose
+     * current geometry is the maximized one, burying the true
+     * original.
+     *
+     * Full screen does go through its own command, the window having
+     * genuinely left that state when it was iconified (see
+     * 'ccmd_client_iconify'), so there is real work to redo.  Only
+     * its own bit is cleared first, so that the command re-enters
+     * rather than toggling out; the maximize bits stay standing
+     * throughout, which is exactly what makes that command's
+     * 'client_geometry_save' skip a maximized window and leave
+     * 'layout.geometry.old' alone.
+     *
+     * Maximization is re-applied first so that a client holding both
+     * ends up full screen over a maximized window, as it went away. */
+    if (client_is_maximized_any(client)) {
+        ccmd_client_refill_maximized(client);
+    }
+    if (client_is_fullscreen(client)) {
+        client->properties.state &=
+            (uint16_t) ~CLIENT_STATE_FULLSCREEN;
+        ccmd_client_fullscreen(client);
     }
 
     /* When restoring from an icon, raise the client to the top of the
@@ -203,7 +224,7 @@ static void s_ccmd_client_restore_one(client_td *client)
      * keyboard shortcuts and other window manager operations target
      * this window immediately, rather than whichever window was
      * previously active */
-    if (was_iconified && client_is_focusable(client)) {
+    if (client_is_focusable(client)) {
         desktop_td *const desktop = wm_get_client_desktop(client);
 
         if (desktop != NULL) {
@@ -426,7 +447,7 @@ void ccmd_client_restore(client_td *client)
     /* Every other family member still iconified is restored before
      * the top parent's own restore below, not after: that restore's
      * own focus-granting step (inside 's_ccmd_client_restore_one',
-     * gated on 'was_iconified && client_is_focusable') redirects
+     * gated on 'client_is_focusable') redirects
      * through 'ccmd_client_focus_target' to whichever transient
      * dialog should actually end up focused, as
      * 'ccmd_client_focus''s comment describes, which only finds that

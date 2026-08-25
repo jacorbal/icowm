@@ -365,24 +365,18 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
          * otherwise show (a state letter, or nothing at all) */
         if (blink_on) {
             letter[0] = WM_ICON_HINT_URGENT;
+        } else if (client_is_fullscreen(client)) {
+            letter[0] = WM_ICON_HINT_FULLSCREEN;
+        } else if (client_is_maximized(client)) {
+            letter[0] = WM_ICON_HINT_MAXIMIZED;
+        } else if (client_is_maximized_horz(client)) {
+            letter[0] = WM_ICON_HINT_MAXIMIZED_HORZ;
+        } else if (client_is_maximized_vert(client)) {
+            letter[0] = WM_ICON_HINT_MAXIMIZED_VERT;
         } else {
-            switch (client->properties.pre_iconify_state) {
-                case CLIENT_STATE_FULLSCREEN:
-                    letter[0] = WM_ICON_HINT_FULLSCREEN;
-                    break;
-                case CLIENT_STATE_MAXIMIZED:
-                    letter[0] = WM_ICON_HINT_MAXIMIZED;
-                    break;
-                case CLIENT_STATE_MAXIMIZED_HORZ:
-                    letter[0] = WM_ICON_HINT_MAXIMIZED_HORZ;
-                    break;
-                case CLIENT_STATE_MAXIMIZED_VERT:
-                    letter[0] = WM_ICON_HINT_MAXIMIZED_VERT;
-                    break;
-                default:
-                    return; /* CLIENT_STATE_NORMAL, not blinking:
-                               nothing more to draw */
-            }
+            /* Holding no state bit but the iconified one, and not
+             * blinking: nothing more to draw */
+            return;
         }
     }
 

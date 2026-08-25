@@ -28,16 +28,43 @@
 #include <utils/safe/safeflg.h>
 
 /**
- * @brief Possible client states a client can be in
+ * @brief States a client can be in, as independent bits
+ *
+ * A bitmask rather than an enumeration of alternatives, because EWMH
+ * treats @c _NET_WM_STATE_MAXIMIZED_HORZ,
+ * @c _NET_WM_STATE_MAXIMIZED_VERT and @c _NET_WM_STATE_FULLSCREEN as
+ * independent of one another: a
+ * client may hold any combination of them, and asks for each to be
+ * added, removed or toggled on its own.  There is no
+ * @c _NET_WM_STATE_MAXIMIZED atom at all in the specification; a
+ * window maximized in both directions simply holds both bits, which
+ * is what @a client_is_maximized tests for.
+ *
+ * What is drawn follows a precedence rather than the bits being
+ * exclusive: full screen covers a maximized window, which covers a
+ * normal one.  Holding the bits separately is what lets a client that
+ * was maximized before going full screen still be maximized on
+ * leaving it, having never asked for that to be forgotten.
+ *
+ * @note Iconified is a bit here too, but of a different kind: EWMH
+ *       spells that @c _NET_WM_STATE_HIDDEN, and it says nothing
+ *       about whether the window is also maximized underneath, which
+ *       it may well be
  */
 enum client_state_e {
-    CLIENT_STATE_NORMAL,            /**< Regular state */
-    CLIENT_STATE_ICONIFIED,         /**< Iconified */
-    CLIENT_STATE_MAXIMIZED,         /**< Maximized */
-    CLIENT_STATE_MAXIMIZED_HORZ,    /**< Maximized horizontally */
-    CLIENT_STATE_MAXIMIZED_VERT,    /**< Maximized vertically */
-    CLIENT_STATE_FULLSCREEN,        /**< Full screen */
+    CLIENT_STATE_NORMAL = 0u,           /**< No state bit at all */
+    CLIENT_STATE_ICONIFIED = 1u << 0,   /**< Iconified */
+    CLIENT_STATE_MAXIMIZED_HORZ = 1u << 1,
+                                        /**< Maximized horizontally */
+    CLIENT_STATE_MAXIMIZED_VERT = 1u << 2,
+                                        /**< Maximized vertically */
+    CLIENT_STATE_FULLSCREEN = 1u << 3,  /**< Full screen */
 };
+
+/** Both maximize bits at once, which is what "maximized" means */
+#define CLIENT_STATE_MAXIMIZED \
+    ((uint16_t) (CLIENT_STATE_MAXIMIZED_HORZ | \
+                 CLIENT_STATE_MAXIMIZED_VERT))
 
 
 /**

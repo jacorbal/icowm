@@ -130,8 +130,8 @@ void ri_render_client_icon_selected(xcb_connection_t *connection,
  *                     caller already drew the rest of the icon in)
  * @param theme        Active theme
  *
- * @see @p client_properties_s.pre_iconify_state in client.h, for the
- *      maximize/fullscreen state each letter comes from
+ * @see @c client_properties_s.state in @c client.h, for the state
+ *      bits each letter comes from
  * @see This function's own implementation comment in @c render/icon.c,
  *      for the derivation of the pin square's size
  *

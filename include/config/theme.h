@@ -182,12 +182,12 @@ struct config_theme_s {
          *        top corners
          *
          * A filled square in the top-left when the client is pinned,
-         * and a single letter in the top-right for whichever
-         * maximize/fullscreen state it was in right before being
-         * iconified ('f'/'m'/'h'/'v'; none for plain normal).
+         * and a single letter in the top-right for the outermost
+         * maximize or full screen state it still holds while
+         * iconified ('f'/'m'/'h'/'v'; none when it holds neither).
          *
-         * @see @p client_properties_s.pre_iconify_state in @c client.h
-         *      and @a ri_icon_hints_draw in @c render/icon.c
+         * @see @c client_properties_s.state in @c client.h and
+         *      @a ri_icon_hints_draw in @c render/icon.c
          */
         bool show_hints;
 
@@ -598,7 +598,7 @@ struct config_theme_s {
      * began can otherwise end up displayed with the exact same
      * color as the one currently selected, the only difference
      * being a few pixels of width, easy to miss at a glance.
-     * Applied through @c render_outline_show/_move/_hide
+     * Applied through @a render_outline_show/_move/_hide
      * (render/outline.h), never through the target's own native
      * border width, so cycling never shifts the target by however
      * many pixels @p width itself happens to be, regardless of

@@ -122,7 +122,7 @@ struct client_s {
      * every desktop whenever the transient family needs walking:
      * with this node cached, removing this client from its parent's
      * list when it closes, or is reparented, is a true @e O(1)
-     * operation (@c cdlist_rem_next on this node's own @c prev),
+     * operation (@a cdlist_rem_next on this node's own @c prev),
      * never a search.
      */
     cdlist_item_td *transient_node;
@@ -320,8 +320,8 @@ struct client_s {
          * @c xcb/sync.h.  Call sites that actually issue XSync
          * requests cast as needed.
          *
-         * @see @c ccmd_client_resize (throttling) and
-         *      @c handler_sync_event (acknowledgement) for how these
+         * @see @a ccmd_client_resize (throttling) and
+         *      @a handler_sync_event (acknowledgement) for how these
          *      fields are driven
          */
         struct {
@@ -507,13 +507,6 @@ struct client_s {
     bool is_icon_mapped;            /**< Whether the icon is mapped */
     bool was_decorated_fullscreen;  /**< Save decor. state for full
                                          screen */
-    uint16_t state_before_fullscreen;
-                                    /**< State held on entering full
-                                         screen, restored on leaving
-                                         it, since EWMH treats
-                                         @c _NET_WM_STATE_FULLSCREEN
-                                         and the maximized states as
-                                         independent of one another */
     bool has_rule_position_locked;  /**< Position was set by a rule;
                                          ignore client-initiated
                                          @c ConfigureRequests that try
@@ -894,7 +887,7 @@ void client_size_constrain(const client_td *client,
  * (ICCCM §4.1.2.3), separately from @a client_size_constrain's own
  * minimum/maximum/increment handling, so a caller that already
  * produced a fully snapped size for one axis (see
- * @c input/kbd/interact.c's own @c ik_handle_resize) can still apply
+ * @c input/kbd/interact.c's own @a ik_handle_resize) can still apply
  * just this one constraint without @a client_size_constrain's other
  * rules snapping the values a second time.
  *
@@ -1087,7 +1080,7 @@ void client_props_refresh_colormap_windows(client_td *client);
  *        client's own @c WM_COLORMAP_WINDOWS list
  *
  * The client's own top-level window already gets this same mask bit
- * from @c client_init's own event-mask setup; this covers the
+ * from @a client_init's own event-mask setup; this covers the
  * separate subwindows ICCCM §4.1.8 lets a client list there instead,
  * which @a client_props_refresh_colormap_windows (@c client/props.c)
  * must already have populated @p client's own @c colormap_windows

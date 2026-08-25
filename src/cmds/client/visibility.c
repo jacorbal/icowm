@@ -86,33 +86,37 @@ static void s_ccmd_client_iconify_one(client_td *client)
     uint16_t icon_h_out;
     bool skip_icon_win;
 
-    /* Remember the state this client is in right now (normal,
-     * maximized in any of its three variants, or fullscreen) so
-     * 'ccmd_client_restore' can later re-enter that exact state
-     * instead of always landing back on plain normal: "A window
-     * manager may implement [additional states] as proper substates
-     * of NormalState and IconicState, or it may treat them as
+    /* Nothing is remembered here on purpose.  The state bits are
+     * independent, so whatever this client holds it goes on holding
+     * while iconified, and 'ccmd_client_restore' has only to clear
+     * the iconified bit and put the geometry back: "A window manager
+     * may implement [additional states] as proper substates of
+     * NormalState and IconicState, or it may treat them as
      * independent flags, allowing e.g., a maximized window to be
      * iconified and to re-appear as maximized upon de-iconification"
      * (X Desktop Group, 2013, "Extended Window Manager Hints", v1.5,
-     * §2.1.1).  Guarded against an already-iconified client calling
-     * this again, which would otherwise overwrite the real remembered
-     * state with 'CLIENT_STATE_ICONIFIED' itself. */
-    if (client->properties.state != (uint16_t) CLIENT_STATE_ICONIFIED) {
-        client->properties.pre_iconify_state = client->properties.state;
-    }
-
+     * §2.1.1). */
     if (client_is_shaded(client)) {
         ccmd_client_unshade(client);
     }
 
-    /* Un-fullscreen first, the same reasoning as unshading above: an
-     * iconified client's geometry is meant to be restored to its
-     * pre-iconify size later (see the 'client_geometry_save' call
-     * just below), and while still fullscreen that size is the whole
-     * screen, not the window's real one. */
+    /* Leave full screen for its geometry alone, then put the state
+     * bit straight back.  An iconified client's geometry is meant to
+     * be restored to its pre-iconify size later (see the
+     * 'client_geometry_save' call just below), and while still full
+     * screen that size is the whole screen rather than the window's
+     * own; leaving it is what puts the real geometry back, along with
+     * the decoration and the frame extents.
+     *
+     * The bit itself is another matter, and belongs to the client:
+     * asking to be iconified says nothing about full screen, so
+     * dropping it here would discard a state nobody asked to lose,
+     * which is exactly what the quotation above forbids.  Restored
+     * with the bit still standing, 'ccmd_client_restore' re-enters
+     * full screen and the window comes back as it went away. */
     if (client_is_fullscreen(client)) {
         ccmd_client_unfullscreen(client);
+        client->properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
     }
 
     target = ccmd_target_win(client);
@@ -251,7 +255,11 @@ static void s_ccmd_client_iconify_one(client_td *client)
     }
 
     client_hide(client);
-    client->properties.state = CLIENT_STATE_ICONIFIED;
+
+    /* Added rather than assigned: a maximized window that is
+     * iconified is still maximized, only hidden, and EWMH says
+     * nothing that would let one state discard the other. */
+    client->properties.state |= (uint16_t) CLIENT_STATE_ICONIFIED;
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC,
             (skip_icon_win) ? XCB_NONE : client->icon_window);

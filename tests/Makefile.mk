@@ -52,6 +52,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/systray/test_text \
     $(O_DIR)/tests/systray/test_battery \
     $(O_DIR)/tests/render/test_surface \
+    $(O_DIR)/tests/client/test_state \
     $(O_DIR)/tests/policy/test_placement \
     $(O_DIR)/tests/policy/test_tiling \
     $(O_DIR)/tests/surface/test_desktop_grid \
@@ -263,6 +264,11 @@ $(O_DIR)/tests/render/test_surface: $(TESTS_DIR)/render/test_surface.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lxcb -lpthread
+
+$(O_DIR)/tests/client/test_state: \
+		$(TESTS_DIR)/client/test_state.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
 
 $(O_DIR)/tests/policy/test_placement: $(TESTS_DIR)/policy/test_placement.c \
 		$(S_DIR)/policy/placement/window.c \

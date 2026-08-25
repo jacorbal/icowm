@@ -368,8 +368,7 @@ void cycle_init(xcb_connection_t *connection,
                      * the more specific iconified state has to be
                      * checked first; the hidden flag is only checked
                      * once iconified has already been ruled out. */
-                    if (c->properties.state ==
-                            (uint16_t) CLIENT_STATE_ICONIFIED) {
+                    if (client_is_iconified(c)) {
                         (void) snprintf(g_cycle_menu.labels[idx],
                                 WM_CYCLE_MENU_ENTRY_LENGTH, "(%s)", name);
                     } else if (c->properties.flags & CLIENT_FLAG_HIDDEN) {

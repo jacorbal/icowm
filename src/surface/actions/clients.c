@@ -179,8 +179,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
                                 client->window);
                     }
                 } else if (client != NULL &&
-                        client->properties.state ==
-                            (uint16_t) CLIENT_STATE_ICONIFIED &&
+                        client_is_iconified(client) &&
                         client->icon_window != 0) {
                     xcb_window_t tray_below;
 
