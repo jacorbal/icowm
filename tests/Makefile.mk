@@ -477,6 +477,13 @@ $(O_DIR)/tests/config/test_memguard: \
 $(O_DIR)/tests/config/test_lint: \
 		$(TESTS_DIR)/config/test_lint.c \
 		$(S_DIR)/config/lint.c \
+		$(S_DIR)/config/lint/a11y.c \
+		$(S_DIR)/config/lint/bindings.c \
+		$(S_DIR)/config/lint/common.c \
+		$(S_DIR)/config/lint/config.c \
+		$(S_DIR)/config/lint/memguard.c \
+		$(S_DIR)/config/lint/misc.c \
+		$(S_DIR)/config/lint/theme.c \
 		$(S_DIR)/utils/config/json.c \
 		$(S_DIR)/utils/safe/safestr.c \
 		$(S_DIR)/logger.c

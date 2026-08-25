@@ -165,13 +165,25 @@ static inline void s_show_help(FILE *fp)
         fprintf(fp, "'%s'\n", CONFIG_DIR_BASE);
     }
 
-    /* Restricted-memory information */
+    /* Restricted-memory information.
+     *
+     * Two separate facts, not two alternatives: whether the mode is on
+     * at all, which is what the build decides, and what the mode does
+     * once on, which is the same either way.  Reported together because
+     * a 'COMPACT' build has both true at once, and saying only the
+     * first left people guessing whether the refusal applied to them. */
 #ifdef COMPACT
-    fprintf(fp, "Restricted memory is enabled by default in this" \
-                " 'COMPACT' build\n");
+    fprintf(fp, "Restricted-memory mode is on by default in this" \
+                " 'COMPACT' build, with a\n" \
+                "   ceiling of %u MiB; '-M <mib>' raises it and, while" \
+                " on, IcoWM refuses to\n"
+                "   start when less than that ceiling of system memory" \
+                " is free\n", (unsigned int) MEMGUARD_MIN_CEILING_MIB);
 #else
-    fprintf(fp, "Restricted memory refuses to start if less than" \
-                " <mib> of system memory is free\n");
+    fprintf(fp, "Restricted-memory mode is off unless '-M <mib>'" \
+                " turns it on, and while on,\n" \
+                "   IcoWM refuses to start when less than <mib> of" \
+                " system memory is free\n");
 #endif  /* ! COMPACT */
 
     /* Show default logging information */
