@@ -25,11 +25,9 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
-#include <adt/list.h>
 
 /* Project includes */
-#include <config.h>
-#include <wm.h>
+#include <types/handles.h>
 
 
 /* Public interface */

@@ -41,38 +41,6 @@ struct util_cursor_ctx_s {
     bool fallback_font_open;
 };
 
-
-/* Create a cursor-loading context for the given screen */
-util_cursor_ctx_td *util_cursor_ctx_new(xcb_connection_t *connection,
-        xcb_screen_t *screen)
-{
-    util_cursor_ctx_td *ctx;
-
-    if (connection == NULL || screen == NULL) {
-        return NULL;
-    }
-
-    ctx = malloc(sizeof(*ctx));
-    if (ctx == NULL) {
-        return NULL;
-    }
-
-    ctx->connection = connection;
-    ctx->fallback_font = 0;
-    ctx->fallback_font_open = false;
-
-    if (xcb_cursor_context_new(connection, screen, &ctx->theme_ctx) < 0) {
-        /* Theme lookup unavailable (no theme installed, or the library
-         * itself could not initialize): every load will use the
-         * fallback font instead, still through this same context so the
-         * caller's code does not have to change either way. */
-        ctx->theme_ctx = NULL;
-    }
-
-    return ctx;
-}
-
-
 /**
  * @brief Load @p fallback_glyph from the X core "cursor" font,
  *        opening that font on @p ctx the first time it is needed
@@ -108,6 +76,37 @@ static xcb_cursor_t s_load_fallback(util_cursor_ctx_td *ctx,
             0u, 0u, 0u, 0xffffu, 0xffffu, 0xffffu);
 
     return cursor;
+}
+
+
+/* Create a cursor-loading context for the given screen */
+util_cursor_ctx_td *util_cursor_ctx_new(xcb_connection_t *connection,
+        xcb_screen_t *screen)
+{
+    util_cursor_ctx_td *ctx;
+
+    if (connection == NULL || screen == NULL) {
+        return NULL;
+    }
+
+    ctx = malloc(sizeof(*ctx));
+    if (ctx == NULL) {
+        return NULL;
+    }
+
+    ctx->connection = connection;
+    ctx->fallback_font = 0;
+    ctx->fallback_font_open = false;
+
+    if (xcb_cursor_context_new(connection, screen, &ctx->theme_ctx) < 0) {
+        /* Theme lookup unavailable (no theme installed, or the library
+         * itself could not initialize): every load will use the
+         * fallback font instead, still through this same context so the
+         * caller's code does not have to change either way. */
+        ctx->theme_ctx = NULL;
+    }
+
+    return ctx;
 }
 
 

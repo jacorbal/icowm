@@ -30,6 +30,14 @@
 /* Local includes */
 #include <utils/config/json.h>
 
+/** Files recorded so far as having failed to parse */
+static char s_syntax_error_files[JSON_SYNTAX_ERROR_MAX_FILES]
+    [CONFIG_MAX_LENGTH_PATH_CONFIG];
+
+/** Number of entries currently in 's_syntax_error_files' */
+static uint32_t s_syntax_error_count = 0u;
+
+
 
 /* Convert a hexadecimal color string to an unsigned 32-bit integer */
 uint32_t json_hex2uint32(const char *hex_color)
@@ -324,14 +332,6 @@ int json_load_config(const char *filename, cJSON **json_out)
     *json_out = json;
     return 0;
 }
-
-
-/** Files recorded so far as having failed to parse */
-static char s_syntax_error_files[JSON_SYNTAX_ERROR_MAX_FILES]
-    [CONFIG_MAX_LENGTH_PATH_CONFIG];
-
-/** Number of entries currently in 's_syntax_error_files' */
-static uint32_t s_syntax_error_count = 0u;
 
 
 /* Clear the list of files json_load_config has recorded a syntax

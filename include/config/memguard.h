@@ -17,7 +17,7 @@
 
 
 /* Project includes */
-#include <config.h>
+#include <types/handles.h>
 
 
 /**

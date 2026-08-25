@@ -22,7 +22,7 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
-#include <adt/list.h>
+#include <types/handles.h>
 
 
 /* Public interface */

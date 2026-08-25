@@ -166,7 +166,6 @@ int wm_startup_init_randr(wm_td *wm)
 }
 
 
-
 /* Probe XSync extension support and cache metadata in 'wm' */
 int wm_startup_init_sync(wm_td *wm)
 {

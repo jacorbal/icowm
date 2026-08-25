@@ -185,100 +185,6 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
 
 
 /**
- * @brief Resolve the X window used as the visual target for cycle
- *        preview
- *
- * Determines which X window should be used to represent a client during
- * cycle preview operations.  The function accounts for icon menu mode,
- * hidden clients, and window decorations to select the appropriate
- * drawable target.
- *
- * @param client       Pointer to the client to evaluate
- * @param is_icon_menu Whether the cycle preview is operating in icon
- *                     menu mode
- *
- * @return The X window ID to use as preview target, or
- *         @c XCB_WINDOW_NONE if no valid target is available
- *
- * @note Returns @c XCB_WINDOW_NONE if @p client is null, hidden, or
- *       lacks a valid drawable target
- * @note Prefers @p client->icon_window in icon menu mode when available
- * @note Uses the frame window when the client is decorated
- * @note Complexity: @e O(1)
- */
-xcb_window_t mi_cycle_preview_target(const client_td *client,
-        bool is_icon_menu)
-{
-    if (client == NULL) {
-        return XCB_WINDOW_NONE;
-    }
-
-    if (is_icon_menu) {
-        return (client->icon_window != 0)
-            ? client->icon_window
-            : XCB_WINDOW_NONE;
-    }
-
-    if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-        return XCB_WINDOW_NONE;
-    }
-
-    if (client_is_decorated(client) && client->frame != 0) {
-        return client->frame;
-    }
-
-    return client->window;
-}
-
-
-/**
- * @brief Return the border width for a cycle-preview target
- *
- * Computes the border width to use for a preview target in the cycle
- * interface, selecting the icon border width for icon previews, no
- * border for decorated client frames, and the normal window border
- * width for undecorated window targets.
- *
- * @param client         Client the target belongs to
- * @param config         Active configuration
- * @param is_icon_menu   Whether the cycle menu is showing icon previews
- *
- * @return Border width to apply to the preview target
- *
- * @note Complexity: @e O(1)
- */
-static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
-        const config_td *config, bool is_icon_menu)
-{
-    uint32_t border_width;
-
-    if (config == NULL) {
-        return 0u;
-    }
-
-    if (is_icon_menu) {
-        border_width = config->theme.icon.active.border.width;
-    } else if (client != NULL &&
-            ((client_is_decorated(client) && client->frame != 0) ||
-             client_is_fullscreen(client))) {
-        /* No border for a decorated client's own frame (it already
-         * has its own themed border painted elsewhere), and none for
-         * a fullscreen client either: applying the normal window
-         * border width here would paint a real, visible border over
-         * fullscreen content (e.g., mpv, undecorated from the start),
-         * the exact same reasoning 'ccmd_client_focus' in
-         * 'cmds/client/focus.c' already applies for a plain focus
-         * change. */
-        border_width = 0u;
-    } else {
-        border_width = config->theme.window.active.border.width;
-    }
-
-    return border_width;
-}
-
-
-/**
  * @brief Resolve the on-screen rectangle a cycle-selection outline
  *        should surround for a given target
  *
@@ -338,6 +244,100 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
     }
 
     return client->layout.geometry.cur;
+}
+
+
+/**
+ * @brief Return the border width for a cycle-preview target
+ *
+ * Computes the border width to use for a preview target in the cycle
+ * interface, selecting the icon border width for icon previews, no
+ * border for decorated client frames, and the normal window border
+ * width for undecorated window targets.
+ *
+ * @param client         Client the target belongs to
+ * @param config         Active configuration
+ * @param is_icon_menu   Whether the cycle menu is showing icon previews
+ *
+ * @return Border width to apply to the preview target
+ *
+ * @note Complexity: @e O(1)
+ */
+static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
+        const config_td *config, bool is_icon_menu)
+{
+    uint32_t border_width;
+
+    if (config == NULL) {
+        return 0u;
+    }
+
+    if (is_icon_menu) {
+        border_width = config->theme.icon.active.border.width;
+    } else if (client != NULL &&
+            ((client_is_decorated(client) && client->frame != 0) ||
+             client_is_fullscreen(client))) {
+        /* No border for a decorated client's own frame (it already
+         * has its own themed border painted elsewhere), and none for
+         * a fullscreen client either: applying the normal window
+         * border width here would paint a real, visible border over
+         * fullscreen content (e.g., mpv, undecorated from the start),
+         * the exact same reasoning 'ccmd_client_focus' in
+         * 'cmds/client/focus.c' already applies for a plain focus
+         * change. */
+        border_width = 0u;
+    } else {
+        border_width = config->theme.window.active.border.width;
+    }
+
+    return border_width;
+}
+
+
+/**
+ * @brief Resolve the X window used as the visual target for cycle
+ *        preview
+ *
+ * Determines which X window should be used to represent a client during
+ * cycle preview operations.  The function accounts for icon menu mode,
+ * hidden clients, and window decorations to select the appropriate
+ * drawable target.
+ *
+ * @param client       Pointer to the client to evaluate
+ * @param is_icon_menu Whether the cycle preview is operating in icon
+ *                     menu mode
+ *
+ * @return The X window ID to use as preview target, or
+ *         @c XCB_WINDOW_NONE if no valid target is available
+ *
+ * @note Returns @c XCB_WINDOW_NONE if @p client is null, hidden, or
+ *       lacks a valid drawable target
+ * @note Prefers @p client->icon_window in icon menu mode when available
+ * @note Uses the frame window when the client is decorated
+ * @note Complexity: @e O(1)
+ */
+xcb_window_t mi_cycle_preview_target(const client_td *client,
+        bool is_icon_menu)
+{
+    if (client == NULL) {
+        return XCB_WINDOW_NONE;
+    }
+
+    if (is_icon_menu) {
+        return (client->icon_window != 0)
+            ? client->icon_window
+            : XCB_WINDOW_NONE;
+    }
+
+    if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+        return XCB_WINDOW_NONE;
+    }
+
+    if (client_is_decorated(client) && client->frame != 0) {
+        return client->frame;
+    }
+
+    return client->window;
 }
 
 

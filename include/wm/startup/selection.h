@@ -22,7 +22,7 @@
 #include <stdbool.h>
 
 /* Project includes */
-#include <wm.h>
+#include <types/handles.h>
 
 
 /**

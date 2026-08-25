@@ -512,7 +512,8 @@ static void s_config_theme_load_menu(cJSON *json,
 
         disabled = cJSON_GetObjectItem(menu, "disabled");
         if (disabled) {
-            cJSON *const disabled_color = cJSON_GetObjectItem(disabled, "color");
+            cJSON *const disabled_color =
+                cJSON_GetObjectItem(disabled, "color");
             if (disabled_color) {
                 json_load_color(disabled_color, "foreground",
                         &config_theme->menu.disabled_foreground);
@@ -685,7 +686,8 @@ static void s_config_theme_load_dialog(cJSON *json,
         if (button) {
             cJSON *const btn_unselected = cJSON_GetObjectItem(button,
                     "unselected");
-            cJSON *const btn_selected = cJSON_GetObjectItem(button, "selected");
+            cJSON *const btn_selected =
+                cJSON_GetObjectItem(button, "selected");
             cJSON *const btn_padding = cJSON_GetObjectItem(button, "padding");
 
             s_load_theme_colors(btn_unselected,

@@ -472,7 +472,12 @@ static void s_font_config_to_xlfd(const char *restrict input,
 
     s_font_config_extract_charset(tokens, &ntok, registry,
             sizeof(registry), encoding, sizeof(encoding));
-    size = s_font_config_extract_size(tokens, &ntok);
+    /* Cast written out because C99 does not convert a pointer to an
+     * array of 'char' into one to an array of 'const char' on its
+     * own, unlike a plain object pointer; C23 does, this project
+     * does not target it */
+    size = s_font_config_extract_size(
+            (const char (*)[WM_TEXT_FONT_TOKEN_LENGTH]) tokens, &ntok);
     s_font_config_scan_style(tokens, ntok, &is_bold, &is_italic,
             &is_oblique);
     s_font_config_build_family(tokens, ntok, family, sizeof(family));
@@ -735,7 +740,6 @@ static s_text_font_td *s_text_current(void)
 
     return &s_text.cache[s_text.current];
 }
-
 
 
 /* Permanently disable the glyph ('xcb-render'/FreeType2/fontconfig)

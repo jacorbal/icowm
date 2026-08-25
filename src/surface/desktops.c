@@ -168,25 +168,6 @@ static bool s_layout_index(int64_t row, int64_t col,
 }
 
 
-/* Get a desktop's own row/column position in its surface's
- * configured layout */
-bool surface_desktop_row_col(const surface_td *surface,
-        uint32_t desktop_id, uint32_t *row_out, uint32_t *col_out)
-{
-    const struct config_desktop_layout_s *layout;
-
-    if (surface == NULL || surface->config == NULL ||
-            surface->id >= (uint32_t) CONFIG_MAX_SCREENS ||
-            row_out == NULL || col_out == NULL) {
-        return false;
-    }
-
-    layout = &surface->config->base.screens[surface->id].desktop_layout;
-    s_layout_row_col(desktop_id, layout, row_out, col_out);
-    return true;
-}
-
-
 /**
  * @brief One compass direction a desktop grid can be stepped in
  */
@@ -301,6 +282,25 @@ static desktop_td *s_surface_desktop_direction(surface_td *surface,
     }
 
     return NULL;
+}
+
+
+/* Get a desktop's own row/column position in its surface's
+ * configured layout */
+bool surface_desktop_row_col(const surface_td *surface,
+        uint32_t desktop_id, uint32_t *row_out, uint32_t *col_out)
+{
+    const struct config_desktop_layout_s *layout;
+
+    if (surface == NULL || surface->config == NULL ||
+            surface->id >= (uint32_t) CONFIG_MAX_SCREENS ||
+            row_out == NULL || col_out == NULL) {
+        return false;
+    }
+
+    layout = &surface->config->base.screens[surface->id].desktop_layout;
+    s_layout_row_col(desktop_id, layout, row_out, col_out);
+    return true;
 }
 
 

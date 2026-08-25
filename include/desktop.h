@@ -43,7 +43,7 @@
 #include <defs/surface.h>
 
 /* Project includes */
-#include <client.h>
+#include <types/handles.h>
 #include <config.h>
 
 

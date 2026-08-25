@@ -66,6 +66,10 @@
 static const xcb_render_query_pict_formats_reply_t *s_formats = NULL;
 static xcb_connection_t *s_formats_connection = NULL;
 
+static xcb_gcontext_t s_default_icon_gc = XCB_NONE;
+static xcb_connection_t *s_default_icon_gc_connection = NULL;
+
+
 
 /**
  * @brief Convert a plain floating-point value to the 16.16 fixed-point
@@ -586,10 +590,6 @@ static void s_composite_cached(xcb_connection_t *connection,
 
     xcb_render_free_picture(connection, dst_picture);
 }
-
-
-static xcb_gcontext_t s_default_icon_gc = XCB_NONE;
-static xcb_connection_t *s_default_icon_gc_connection = NULL;
 
 
 /**

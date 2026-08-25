@@ -16,7 +16,7 @@
 
 
 /* Project includes */
-#include <surface.h>
+#include <types/handles.h>
 
 
 /* Public interface */

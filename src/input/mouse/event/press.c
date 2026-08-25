@@ -82,25 +82,6 @@
 
 /* Small utilities */
 
-/**
- * @brief Allow pointer events and flush the XCB connection
- *
- * This idiom appears at almost every return point inside
- * @c mouse_handle_press.  Centralizing it removes the repetition and
- * makes each call site self-documenting.
- *
- * @param connection Active XCB connection
- * @param mode       @c XCB_ALLOW_ASYNC_POINTER or
- *                   @c XCB_ALLOW_REPLAY_POINTER
- * @param time       Event timestamp
- */
-void im_allow_and_flush(xcb_connection_t *connection,
-        uint8_t mode, xcb_timestamp_t time)
-{
-    xcb_allow_events(connection, mode, time);
-    xcb_flush(connection);
-}
-
 
 /**
  * @brief Check whether a pointer position is near the edge of a client
@@ -138,62 +119,6 @@ static bool s_mouse_near_edge(const client_td *client,
 
 
 /* Overlay dismissal */
-
-
-
-/**
- * @brief Keep a sticky client's active-window state consistent across
- *        every desktop on its surface
- *
- * @a focus_apply only updates @a client_active_id on the one @p desktop
- * passed to it.  For an ordinary client that is enough, but a sticky
- * one (visible on every desktop; see @a client_is_pinned) is expected
- * to keep showing as the active window no matter which desktop the user
- * switches to next.  Without this,
- * @a surface_clients_sticky_transfer_all's own "was this sticky client
- * active on the desktop being switched away from" check (see
- * surface/actions.c) would only see the single desktop @a focus_apply
- * touched, silently dropping the active-window highlight the next time
- * the user switches through any other desktop first.  A no-op for
- * a non-sticky @p client, or when either @p surface or @p client is
- * null.
- *
- * @param surface Surface whose desktops are kept in sync
- * @param desktop The one desktop @c focus_apply already updated,
- *                skipped here to avoid redundant work
- * @param client  The client that just received focus
- *
- * @note Complexity: @e O(d), where @e d is the number of desktops on
- *       @p surface
- */
-void im_sync_sticky_active(surface_td *surface,
-        const desktop_td *desktop, const client_td *client)
-{
-    cdlist_item_td *dnode;
-    const cdlist_item_td *dinitial;
-
-    if (surface == NULL || surface->desktops == NULL ||
-            client == NULL || !client_is_pinned(client)) {
-        return;
-    }
-
-    dnode = cdlist_head(surface->desktops);
-    if (dnode == NULL) {
-        return;
-    }
-
-    dinitial = dnode;
-    do {
-        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
-
-        if (d != NULL && d != desktop &&
-                d->client_active_id != client->id) {
-            d->client_active_id = client->id;
-            d->is_focus_dirty = true;
-        }
-        dnode = cdlist_next(dnode);
-    } while (dnode != NULL && dnode != dinitial);
-}
 
 
 /* Icon click handling */
@@ -502,6 +427,80 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
 
 
 /* Public event handlers */
+/**
+ * @brief Keep a sticky client's active-window state consistent across
+ *        every desktop on its surface
+ *
+ * @a focus_apply only updates @a client_active_id on the one @p desktop
+ * passed to it.  For an ordinary client that is enough, but a sticky
+ * one (visible on every desktop; see @a client_is_pinned) is expected
+ * to keep showing as the active window no matter which desktop the user
+ * switches to next.  Without this,
+ * @a surface_clients_sticky_transfer_all's own "was this sticky client
+ * active on the desktop being switched away from" check (see
+ * surface/actions.c) would only see the single desktop @a focus_apply
+ * touched, silently dropping the active-window highlight the next time
+ * the user switches through any other desktop first.  A no-op for
+ * a non-sticky @p client, or when either @p surface or @p client is
+ * null.
+ *
+ * @param surface Surface whose desktops are kept in sync
+ * @param desktop The one desktop @c focus_apply already updated,
+ *                skipped here to avoid redundant work
+ * @param client  The client that just received focus
+ *
+ * @note Complexity: @e O(d), where @e d is the number of desktops on
+ *       @p surface
+ */
+void im_sync_sticky_active(surface_td *surface,
+        const desktop_td *desktop, const client_td *client)
+{
+    cdlist_item_td *dnode;
+    const cdlist_item_td *dinitial;
+
+    if (surface == NULL || surface->desktops == NULL ||
+            client == NULL || !client_is_pinned(client)) {
+        return;
+    }
+
+    dnode = cdlist_head(surface->desktops);
+    if (dnode == NULL) {
+        return;
+    }
+
+    dinitial = dnode;
+    do {
+        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
+
+        if (d != NULL && d != desktop &&
+                d->client_active_id != client->id) {
+            d->client_active_id = client->id;
+            d->is_focus_dirty = true;
+        }
+        dnode = cdlist_next(dnode);
+    } while (dnode != NULL && dnode != dinitial);
+}
+
+
+/**
+ * @brief Allow pointer events and flush the XCB connection
+ *
+ * This idiom appears at almost every return point inside
+ * @c mouse_handle_press.  Centralizing it removes the repetition and
+ * makes each call site self-documenting.
+ *
+ * @param connection Active XCB connection
+ * @param mode       @c XCB_ALLOW_ASYNC_POINTER or
+ *                   @c XCB_ALLOW_REPLAY_POINTER
+ * @param time       Event timestamp
+ */
+void im_allow_and_flush(xcb_connection_t *connection,
+        uint8_t mode, xcb_timestamp_t time)
+{
+    xcb_allow_events(connection, mode, time);
+    xcb_flush(connection);
+}
+
 
 /* Dispatch a button-press event */
 void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,

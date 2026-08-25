@@ -391,44 +391,6 @@ static void s_loop_dispatch_circulate_request(loop_ctx_td *ctx,
 
 
 /**
- * @brief Every handler, indexed by the event type that reaches it
- *
- * A type nobody handles is left @c NULL, which the dispatcher reports
- * rather than acts on.  Response type @c 0 is not an event type at
- * all but a protocol error, which is why it has an entry of its own.
- */
-static const s_loop_dispatch_fn
-        s_loop_dispatch_table[S_LOOP_DISPATCH_TABLE_SIZE] = {
-    [0] = s_loop_dispatch_protocol_error,
-    [XCB_KEY_PRESS] = loop_event_key_press,
-    [XCB_KEY_RELEASE] = loop_event_key_release,
-    [XCB_BUTTON_PRESS] = loop_event_button_press,
-    [XCB_BUTTON_RELEASE] = loop_event_button_release,
-    [XCB_MOTION_NOTIFY] = loop_event_motion_notify,
-    [XCB_ENTER_NOTIFY] = s_loop_dispatch_enter_notify,
-    [XCB_LEAVE_NOTIFY] = s_loop_dispatch_leave_notify,
-    [XCB_FOCUS_IN] = s_loop_dispatch_focus_in,
-    [XCB_FOCUS_OUT] = s_loop_dispatch_focus_out,
-    [XCB_EXPOSE] = s_loop_dispatch_expose,
-    [XCB_CREATE_NOTIFY] = s_loop_dispatch_ignore,
-    [XCB_DESTROY_NOTIFY] = s_loop_dispatch_destroy_notify,
-    [XCB_UNMAP_NOTIFY] = s_loop_dispatch_unmap_notify,
-    [XCB_MAP_NOTIFY] = s_loop_dispatch_map_notify,
-    [XCB_MAP_REQUEST] = s_loop_dispatch_map_request,
-    [XCB_REPARENT_NOTIFY] = s_loop_dispatch_ignore,
-    [XCB_CONFIGURE_NOTIFY] = s_loop_dispatch_configure_notify,
-    [XCB_CONFIGURE_REQUEST] = s_loop_dispatch_configure_request,
-    [XCB_GRAVITY_NOTIFY] = s_loop_dispatch_gravity_notify,
-    [XCB_CIRCULATE_NOTIFY] = s_loop_dispatch_circulate_notify,
-    [XCB_CIRCULATE_REQUEST] = s_loop_dispatch_circulate_request,
-    [XCB_PROPERTY_NOTIFY] = s_loop_dispatch_property_notify,
-    [XCB_COLORMAP_NOTIFY] = s_loop_dispatch_colormap_notify,
-    [XCB_CLIENT_MESSAGE] = s_loop_dispatch_client_message,
-    [XCB_MAPPING_NOTIFY] = s_loop_dispatch_mapping_notify
-};
-
-
-/**
  * @brief Route an extension event to its own handler, if it is one
  *
  * Neither XRandR nor XSync has a response type known at compile time:
@@ -467,6 +429,45 @@ static bool s_loop_dispatch_extension(loop_ctx_td *ctx,
 
     return false;
 }
+
+
+/**
+ * @brief Every handler, indexed by the event type that reaches it
+ *
+ * A type nobody handles is left @c NULL, which the dispatcher reports
+ * rather than acts on.  Response type @c 0 is not an event type at
+ * all but a protocol error, which is why it has an entry of its own.
+ */
+static const s_loop_dispatch_fn
+        s_loop_dispatch_table[S_LOOP_DISPATCH_TABLE_SIZE] = {
+    [0] = s_loop_dispatch_protocol_error,
+    [XCB_KEY_PRESS] = loop_event_key_press,
+    [XCB_KEY_RELEASE] = loop_event_key_release,
+    [XCB_BUTTON_PRESS] = loop_event_button_press,
+    [XCB_BUTTON_RELEASE] = loop_event_button_release,
+    [XCB_MOTION_NOTIFY] = loop_event_motion_notify,
+    [XCB_ENTER_NOTIFY] = s_loop_dispatch_enter_notify,
+    [XCB_LEAVE_NOTIFY] = s_loop_dispatch_leave_notify,
+    [XCB_FOCUS_IN] = s_loop_dispatch_focus_in,
+    [XCB_FOCUS_OUT] = s_loop_dispatch_focus_out,
+    [XCB_EXPOSE] = s_loop_dispatch_expose,
+    [XCB_CREATE_NOTIFY] = s_loop_dispatch_ignore,
+    [XCB_DESTROY_NOTIFY] = s_loop_dispatch_destroy_notify,
+    [XCB_UNMAP_NOTIFY] = s_loop_dispatch_unmap_notify,
+    [XCB_MAP_NOTIFY] = s_loop_dispatch_map_notify,
+    [XCB_MAP_REQUEST] = s_loop_dispatch_map_request,
+    [XCB_REPARENT_NOTIFY] = s_loop_dispatch_ignore,
+    [XCB_CONFIGURE_NOTIFY] = s_loop_dispatch_configure_notify,
+    [XCB_CONFIGURE_REQUEST] = s_loop_dispatch_configure_request,
+    [XCB_GRAVITY_NOTIFY] = s_loop_dispatch_gravity_notify,
+    [XCB_CIRCULATE_NOTIFY] = s_loop_dispatch_circulate_notify,
+    [XCB_CIRCULATE_REQUEST] = s_loop_dispatch_circulate_request,
+    [XCB_PROPERTY_NOTIFY] = s_loop_dispatch_property_notify,
+    [XCB_COLORMAP_NOTIFY] = s_loop_dispatch_colormap_notify,
+    [XCB_CLIENT_MESSAGE] = s_loop_dispatch_client_message,
+    [XCB_MAPPING_NOTIFY] = s_loop_dispatch_mapping_notify
+};
+
 
 
 /* Hand one X event to its handler */

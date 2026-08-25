@@ -37,8 +37,7 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
-#include <config.h>
-#include <surface.h>
+#include <types/handles.h>
 
 
 /* Public interface */

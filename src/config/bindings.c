@@ -585,7 +585,8 @@ void config_set_default_bindings_values(
             "modc+mod1+f",
             sizeof(config_bindings->keyboard.window.fullscreen));
     safe_strncpy(config_bindings->keyboard.window.hide,
-            "modc+mod1+mods+u", sizeof(config_bindings->keyboard.window.hide));
+            "modc+mod1+mods+u",
+            sizeof(config_bindings->keyboard.window.hide));
     safe_strncpy(config_bindings->keyboard.window.iconify,
             "modc+mod1+i", sizeof(config_bindings->keyboard.window.iconify));
     safe_strncpy(config_bindings->keyboard.window.iconify_all,
@@ -598,7 +599,8 @@ void config_set_default_bindings_values(
             "modc+mod1+mods+a",
             sizeof(config_bindings->keyboard.window.arrange));
     safe_strncpy(config_bindings->keyboard.window.info,
-            "modc+mod4+mods+i", sizeof(config_bindings->keyboard.window.info));
+            "modc+mod4+mods+i",
+            sizeof(config_bindings->keyboard.window.info));
     safe_strncpy(config_bindings->keyboard.window.kill,
             "modc+mod1+mods+Escape",
             sizeof(config_bindings->keyboard.window.kill));
@@ -654,7 +656,9 @@ void config_set_default_bindings_values(
      * every other default in this function is explicit, so this
      * reads as an intentional choice rather than a forgotten one. */
     safe_strncpy(config_bindings->keyboard.wm.toggle_strutless_maximize,
-            "", sizeof(config_bindings->keyboard.wm.toggle_strutless_maximize));
+            "",
+            sizeof(config_bindings->keyboard.wm
+                    .toggle_strutless_maximize));
 
     safe_strncpy(config_bindings->keyboard.desktop.add,
             "modc+mod4+mods+Right",

@@ -139,7 +139,8 @@ cJSON *ipc_action_remove_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_toggle_strutless_maximize(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_toggle_strutless_maximize(const wm_td *wm,
+        const cJSON *args)
 {
     surface_td *const surface = ipc_resolve_surface(wm, args);
 

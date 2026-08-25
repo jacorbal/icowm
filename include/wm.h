@@ -30,7 +30,7 @@
 #include <adt/list.h>   /* Singly linked list */
 
 /* Project includes */
-#include <config.h>
+#include <types/handles.h>
 #include <surface.h>
 
 

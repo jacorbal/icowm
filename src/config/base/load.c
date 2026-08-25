@@ -218,7 +218,8 @@ int config_load_base(const char *filename,
                 &config_base->icons.show_geom);
         placement = cJSON_GetObjectItem(icons, "placement");
         if (placement && cJSON_IsObject(placement)) {
-            cJSON *const icon_policy_item = json_get_item(placement, "policy");
+            cJSON *const icon_policy_item =
+                json_get_item(placement, "policy");
             if (icon_policy_item != NULL &&
                     cJSON_IsString(icon_policy_item)) {
                 config_base->icons.placement_policy =

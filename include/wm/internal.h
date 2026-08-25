@@ -34,11 +34,9 @@
 #include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
-#include <adt/list.h>
 
 /* Project includes */
-#include <client.h>
-#include <config.h>
+#include <types/handles.h>
 #include <wm.h>
 
 

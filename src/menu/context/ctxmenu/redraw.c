@@ -142,7 +142,8 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
         rect.x = (int16_t) state->config->theme.menu.padding.horizontal;
         rect.y = (int16_t) (top_y + WM_CTXMENU_SEP_HEIGHT / 2);
         rect.width = (uint16_t) (state->width -
-                (uint16_t) (state->config->theme.menu.padding.horizontal * 2u));
+                (uint16_t) (state->config->theme.menu.padding
+                        .horizontal * 2u));
         rect.height = 1;
         xcb_poly_fill_rectangle(conn, state->window, gc, 1, &rect);
         xcb_free_gc(conn, gc);
@@ -245,7 +246,6 @@ void ctxmenu_redraw_entries(ctxmenu_state_td *state,
 
     xcb_flush(state->connection);
 }
-
 
 
 /* Repaint the context menu window */

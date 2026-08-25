@@ -81,6 +81,53 @@ static int s_ipc_fd = -1;
  *  unlink; empty when not up */
 static char s_ipc_socket_path[CONFIG_MAX_LENGTH_PATH_BASE] = { 0 };
 
+/** One event type's own name and bit, shared by both directions of
+ *  the name-to-bit mapping below (subscribing reads a name off the
+ *  wire and needs its bit; broadcasting has a bit and needs to write
+ *  its name back out), so the two stay in step by construction
+ *  rather than by two lists someone has to remember to edit
+ *  together. */
+struct s_ipc_event_def_s {
+    const char *name;
+    uint32_t bit;
+};
+
+static const struct s_ipc_event_def_s s_event_defs[] = {
+    { "window_mapped",    IPC_EVENT_WINDOW_MAPPED },
+    { "window_closed",    IPC_EVENT_WINDOW_CLOSED },
+    { "desktop_switched", IPC_EVENT_DESKTOP_SWITCHED },
+    { "focus_changed",    IPC_EVENT_FOCUS_CHANGED },
+    { "urgency_set",      IPC_EVENT_URGENCY_SET },
+    { "urgency_cleared",  IPC_EVENT_URGENCY_CLEARED },
+    { "window_moved",     IPC_EVENT_WINDOW_MOVED },
+    { "window_resized",   IPC_EVENT_WINDOW_RESIZED },
+    { "rule_applied",     IPC_EVENT_RULE_APPLIED },
+    { "pin_set",              IPC_EVENT_PIN_SET },
+    { "pin_cleared",          IPC_EVENT_PIN_CLEARED },
+    { "fullscreen_set",       IPC_EVENT_FULLSCREEN_SET },
+    { "fullscreen_cleared",   IPC_EVENT_FULLSCREEN_CLEARED },
+    { "shade_set",            IPC_EVENT_SHADE_SET },
+    { "shade_cleared",        IPC_EVENT_SHADE_CLEARED },
+    { "hide_set",             IPC_EVENT_HIDE_SET },
+    { "hide_cleared",         IPC_EVENT_HIDE_CLEARED },
+    { "decoration_set",       IPC_EVENT_DECORATION_SET },
+    { "decoration_cleared",   IPC_EVENT_DECORATION_CLEARED },
+    { "client_iconified",     IPC_EVENT_CLIENT_ICONIFIED },
+    { "client_deiconified",   IPC_EVENT_CLIENT_DEICONIFIED },
+    { "layer_changed",        IPC_EVENT_LAYER_CHANGED },
+    { "client_desktop_changed", IPC_EVENT_CLIENT_DESKTOP_CHANGED },
+    { "client_renamed",       IPC_EVENT_CLIENT_RENAMED },
+    { "client_reclassed",     IPC_EVENT_CLIENT_RECLASSED },
+    { "client_reroled",       IPC_EVENT_CLIENT_REROLED },
+    { "client_icon_changed",  IPC_EVENT_CLIENT_ICON_CHANGED },
+    { "desktop_background_changed", IPC_EVENT_DESKTOP_BACKGROUND_CHANGED },
+    { "desktop_shown",        IPC_EVENT_DESKTOP_SHOWN },
+    { "desktop_hidden",       IPC_EVENT_DESKTOP_HIDDEN },
+    { "config_reloaded",      IPC_EVENT_CONFIG_RELOADED },
+    { "stacking_changed",     IPC_EVENT_STACKING_CHANGED },
+};
+
+
 
 /**
  * @brief Ensure the runtime directory exists, belongs to the calling
@@ -144,140 +191,6 @@ static int s_runtime_dir_ensure(const char *dir)
 }
 
 
-/* Initialize the IPC control socket */
-int ipc_init(void)
-{
-    char runtime_dir[CONFIG_MAX_LENGTH_PATH_BASE];
-    char tmp_fallback[CONFIG_MAX_LENGTH_PATH_BASE];
-    char socket_path[CONFIG_MAX_LENGTH_PATH_BASE];
-    struct sockaddr_un addr;
-    int fd;
-
-    if (s_ipc_fd != -1) {
-        return 0;   /* Already up; not an error */
-    }
-
-    if (!s_clients_initialized) {
-        for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
-            s_clients[i].fd = -1;
-            s_clients[i].buf_len = 0;
-            s_clients[i].subscribed_events = 0;
-        }
-        s_clients_initialized = true;
-    }
-
-    snprintf(tmp_fallback, sizeof(tmp_fallback), "%s%u",
-            IPC_TMP_FALLBACK_PREFIX, (unsigned int) getuid());
-
-    xdg_resolve_dir(XDG_DIR_RUNTIME, tmp_fallback,
-            runtime_dir, sizeof(runtime_dir));
-
-    if (s_runtime_dir_ensure(runtime_dir) != 0) {
-        return -1;
-    }
-
-    /* Built with 'safe_strncpy'/'safe_strncat' rather than
-     * 'snprintf("%s/%s", ...)' on purpose: both take the full
-     * destination size and truncate safely against it, exactly like
-     * 'snprintf' does, but neither is a 'printf'-family call, so
-     * neither one gives GCC's '-Wformat-truncation' anything to
-     * reason about in the first place.  That checker judges a '%s'
-     * argument by its source array's own declared capacity, not by
-     * what a function like 'xdg_resolve_dir' actually promises to
-     * leave in it, so composing same-sized path buffers through it
-     * always reads as a possible overflow to the compiler even when
-     * it can never really happen; growing the destination past its
-     * neighbors only relocates the same mismatch to whichever
-     * buffer receives it next (as happened here, into
-     * 's_ipc_socket_path' below, previously copied via that same
-     * 'snprintf ("%s", ...)' pattern). */
-    safe_strncpy(socket_path, runtime_dir, sizeof(socket_path));
-    safe_strncat(socket_path, "/", sizeof(socket_path));
-    safe_strncat(socket_path, IPC_SOCKET_FILENAME, sizeof(socket_path));
-
-    if (safe_strlen(socket_path) >= sizeof(addr.sun_path)) {
-        LOGGER_ERROR("IPC socket path '%s' is too long for" \
-                " 'sockaddr_un' (%zu bytes available)",
-                socket_path, sizeof(addr.sun_path));
-        return -1;
-    }
-
-    /* A leftover file from a run that did not shut down cleanly
-     * (crash, 'SIGKILL') rather than a second live instance; see
-     * this function's comment in 'ipc.h' for why that is the only
-     * possibility left by the time this ever runs.
-     *
-     * 'unlink' failing only because there was nothing there to remove
-     * ('ENOENT') is expected and fine.  Any other failure means 'bind'
-     * below would fail anyway, so it is caught there instead of
-     * duplicating the same check twice. */
-    if (unlink(socket_path) != 0 && errno != ENOENT) {
-        LOGGER_WARNING("Could not remove existing IPC socket file" \
-                " '%s': %s", socket_path, strerror(errno));
-    }
-
-    fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
-    if (fd < 0) {
-        LOGGER_ERROR("Failed to create IPC socket: %s",
-                strerror(errno));
-        return -1;
-    }
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    memcpy(addr.sun_path, socket_path, safe_strlen(socket_path) + 1u);
-
-    if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
-        LOGGER_ERROR("Failed to bind IPC socket to '%s': %s",
-                socket_path, strerror(errno));
-        close(fd);
-        return -1;
-    }
-
-    if (listen(fd, IPC_LISTEN_BACKLOG) != 0) {
-        LOGGER_ERROR("Failed to listen on IPC socket '%s': %s",
-                socket_path, strerror(errno));
-        close(fd);
-        (void) unlink(socket_path);
-        return -1;
-    }
-
-    s_ipc_fd = fd;
-    safe_strncpy(s_ipc_socket_path, socket_path,
-            sizeof(s_ipc_socket_path));
-
-    LOGGER_INFO("IPC control socket listening at '%s'", socket_path);
-
-    return 0;
-}
-
-
-/* Destroy the IPC control socket */
-void ipc_destroy(void)
-{
-    if (s_ipc_fd == -1) {
-        return;
-    }
-
-    for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
-        if (s_clients[i].fd != -1) {
-            close(s_clients[i].fd);
-            s_clients[i].fd = -1;
-            s_clients[i].buf_len = 0;
-            s_clients[i].subscribed_events = 0;
-        }
-    }
-
-    close(s_ipc_fd);
-    s_ipc_fd = -1;
-
-    if (s_ipc_socket_path[0] != '\0') {
-        (void) unlink(s_ipc_socket_path);
-        s_ipc_socket_path[0] = '\0';
-    }
-}
-
-
 /**
  * @brief Close one connected client's own descriptor and free its
  *        slot
@@ -297,52 +210,6 @@ static void s_client_close(int idx)
     s_clients[idx].subscribed_events = 0;
 }
 
-
-/** One event type's own name and bit, shared by both directions of
- *  the name-to-bit mapping below (subscribing reads a name off the
- *  wire and needs its bit; broadcasting has a bit and needs to write
- *  its name back out), so the two stay in step by construction
- *  rather than by two lists someone has to remember to edit
- *  together. */
-struct s_ipc_event_def_s {
-    const char *name;
-    uint32_t bit;
-};
-
-static const struct s_ipc_event_def_s s_event_defs[] = {
-    { "window_mapped",    IPC_EVENT_WINDOW_MAPPED },
-    { "window_closed",    IPC_EVENT_WINDOW_CLOSED },
-    { "desktop_switched", IPC_EVENT_DESKTOP_SWITCHED },
-    { "focus_changed",    IPC_EVENT_FOCUS_CHANGED },
-    { "urgency_set",      IPC_EVENT_URGENCY_SET },
-    { "urgency_cleared",  IPC_EVENT_URGENCY_CLEARED },
-    { "window_moved",     IPC_EVENT_WINDOW_MOVED },
-    { "window_resized",   IPC_EVENT_WINDOW_RESIZED },
-    { "rule_applied",     IPC_EVENT_RULE_APPLIED },
-    { "pin_set",              IPC_EVENT_PIN_SET },
-    { "pin_cleared",          IPC_EVENT_PIN_CLEARED },
-    { "fullscreen_set",       IPC_EVENT_FULLSCREEN_SET },
-    { "fullscreen_cleared",   IPC_EVENT_FULLSCREEN_CLEARED },
-    { "shade_set",            IPC_EVENT_SHADE_SET },
-    { "shade_cleared",        IPC_EVENT_SHADE_CLEARED },
-    { "hide_set",             IPC_EVENT_HIDE_SET },
-    { "hide_cleared",         IPC_EVENT_HIDE_CLEARED },
-    { "decoration_set",       IPC_EVENT_DECORATION_SET },
-    { "decoration_cleared",   IPC_EVENT_DECORATION_CLEARED },
-    { "client_iconified",     IPC_EVENT_CLIENT_ICONIFIED },
-    { "client_deiconified",   IPC_EVENT_CLIENT_DEICONIFIED },
-    { "layer_changed",        IPC_EVENT_LAYER_CHANGED },
-    { "client_desktop_changed", IPC_EVENT_CLIENT_DESKTOP_CHANGED },
-    { "client_renamed",       IPC_EVENT_CLIENT_RENAMED },
-    { "client_reclassed",     IPC_EVENT_CLIENT_RECLASSED },
-    { "client_reroled",       IPC_EVENT_CLIENT_REROLED },
-    { "client_icon_changed",  IPC_EVENT_CLIENT_ICON_CHANGED },
-    { "desktop_background_changed", IPC_EVENT_DESKTOP_BACKGROUND_CHANGED },
-    { "desktop_shown",        IPC_EVENT_DESKTOP_SHOWN },
-    { "desktop_hidden",       IPC_EVENT_DESKTOP_HIDDEN },
-    { "config_reloaded",      IPC_EVENT_CONFIG_RELOADED },
-    { "stacking_changed",     IPC_EVENT_STACKING_CHANGED },
-};
 
 #define S_IPC_EVENT_COUNT \
     (sizeof(s_event_defs) / sizeof(s_event_defs[0]))
@@ -582,6 +449,140 @@ static void s_handle_client_data(wm_td *wm, int idx)
                 " IPC_MSG_MAX_LENGTH (%d bytes) without a newline;" \
                 " dropping its connection", IPC_MSG_MAX_LENGTH);
         s_client_close(idx);
+    }
+}
+
+
+/* Initialize the IPC control socket */
+int ipc_init(void)
+{
+    char runtime_dir[CONFIG_MAX_LENGTH_PATH_BASE];
+    char tmp_fallback[CONFIG_MAX_LENGTH_PATH_BASE];
+    char socket_path[CONFIG_MAX_LENGTH_PATH_BASE];
+    struct sockaddr_un addr;
+    int fd;
+
+    if (s_ipc_fd != -1) {
+        return 0;   /* Already up; not an error */
+    }
+
+    if (!s_clients_initialized) {
+        for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
+            s_clients[i].fd = -1;
+            s_clients[i].buf_len = 0;
+            s_clients[i].subscribed_events = 0;
+        }
+        s_clients_initialized = true;
+    }
+
+    snprintf(tmp_fallback, sizeof(tmp_fallback), "%s%u",
+            IPC_TMP_FALLBACK_PREFIX, (unsigned int) getuid());
+
+    xdg_resolve_dir(XDG_DIR_RUNTIME, tmp_fallback,
+            runtime_dir, sizeof(runtime_dir));
+
+    if (s_runtime_dir_ensure(runtime_dir) != 0) {
+        return -1;
+    }
+
+    /* Built with 'safe_strncpy'/'safe_strncat' rather than
+     * 'snprintf("%s/%s", ...)' on purpose: both take the full
+     * destination size and truncate safely against it, exactly like
+     * 'snprintf' does, but neither is a 'printf'-family call, so
+     * neither one gives GCC's '-Wformat-truncation' anything to
+     * reason about in the first place.  That checker judges a '%s'
+     * argument by its source array's own declared capacity, not by
+     * what a function like 'xdg_resolve_dir' actually promises to
+     * leave in it, so composing same-sized path buffers through it
+     * always reads as a possible overflow to the compiler even when
+     * it can never really happen; growing the destination past its
+     * neighbors only relocates the same mismatch to whichever
+     * buffer receives it next (as happened here, into
+     * 's_ipc_socket_path' below, previously copied via that same
+     * 'snprintf ("%s", ...)' pattern). */
+    safe_strncpy(socket_path, runtime_dir, sizeof(socket_path));
+    safe_strncat(socket_path, "/", sizeof(socket_path));
+    safe_strncat(socket_path, IPC_SOCKET_FILENAME, sizeof(socket_path));
+
+    if (safe_strlen(socket_path) >= sizeof(addr.sun_path)) {
+        LOGGER_ERROR("IPC socket path '%s' is too long for" \
+                " 'sockaddr_un' (%zu bytes available)",
+                socket_path, sizeof(addr.sun_path));
+        return -1;
+    }
+
+    /* A leftover file from a run that did not shut down cleanly
+     * (crash, 'SIGKILL') rather than a second live instance; see
+     * this function's comment in 'ipc.h' for why that is the only
+     * possibility left by the time this ever runs.
+     *
+     * 'unlink' failing only because there was nothing there to remove
+     * ('ENOENT') is expected and fine.  Any other failure means 'bind'
+     * below would fail anyway, so it is caught there instead of
+     * duplicating the same check twice. */
+    if (unlink(socket_path) != 0 && errno != ENOENT) {
+        LOGGER_WARNING("Could not remove existing IPC socket file" \
+                " '%s': %s", socket_path, strerror(errno));
+    }
+
+    fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    if (fd < 0) {
+        LOGGER_ERROR("Failed to create IPC socket: %s",
+                strerror(errno));
+        return -1;
+    }
+
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    memcpy(addr.sun_path, socket_path, safe_strlen(socket_path) + 1u);
+
+    if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
+        LOGGER_ERROR("Failed to bind IPC socket to '%s': %s",
+                socket_path, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    if (listen(fd, IPC_LISTEN_BACKLOG) != 0) {
+        LOGGER_ERROR("Failed to listen on IPC socket '%s': %s",
+                socket_path, strerror(errno));
+        close(fd);
+        (void) unlink(socket_path);
+        return -1;
+    }
+
+    s_ipc_fd = fd;
+    safe_strncpy(s_ipc_socket_path, socket_path,
+            sizeof(s_ipc_socket_path));
+
+    LOGGER_INFO("IPC control socket listening at '%s'", socket_path);
+
+    return 0;
+}
+
+
+/* Destroy the IPC control socket */
+void ipc_destroy(void)
+{
+    if (s_ipc_fd == -1) {
+        return;
+    }
+
+    for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
+        if (s_clients[i].fd != -1) {
+            close(s_clients[i].fd);
+            s_clients[i].fd = -1;
+            s_clients[i].buf_len = 0;
+            s_clients[i].subscribed_events = 0;
+        }
+    }
+
+    close(s_ipc_fd);
+    s_ipc_fd = -1;
+
+    if (s_ipc_socket_path[0] != '\0') {
+        (void) unlink(s_ipc_socket_path);
+        s_ipc_socket_path[0] = '\0';
     }
 }
 

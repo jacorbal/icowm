@@ -26,7 +26,7 @@
 
 
 /* Project includes */
-#include <wm.h>
+#include <types/handles.h>
 
 
 /** XSETTINGS setting-value type codes, per the specification */

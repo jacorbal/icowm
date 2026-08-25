@@ -32,11 +32,9 @@
 #include <xcb/xcb_keysyms.h>
 
 /* ADT includes */
-#include <adt/list.h>
 
 /* Project includes */
-#include <config.h>
-#include <wm.h>
+#include <types/handles.h>
 
 
 /** Cached state the main event loop carries across one whole run */

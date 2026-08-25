@@ -182,6 +182,7 @@ void wm_startup_handle_crash(int signum)
     (void) raise(signum);
 }
 
+
 /* Query whether a termination signal has been received */
 bool wm_startup_requested_stop(void)
 {

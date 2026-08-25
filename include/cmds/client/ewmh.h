@@ -26,7 +26,7 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
-#include <client.h>
+#include <types/handles.h>
 
 
 /* ICCCM WM_STATE property values (ICCCM section 4.1.3.1) */

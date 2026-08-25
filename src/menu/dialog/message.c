@@ -359,7 +359,8 @@ static void s_message_compute_layout(xcb_connection_t *connection,
 
     (void) text_renderer_use_font(connection,
             config->theme.dialog.button.selected.font);
-    ok_w = dlgutil_u16max(ok_w, menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK)));
+    ok_w = dlgutil_u16max(ok_w,
+            menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK)));
     btn_text_h = dlgutil_u16max(btn_text_h,
             (uint16_t) (text_font_ascent() + text_font_descent()));
 

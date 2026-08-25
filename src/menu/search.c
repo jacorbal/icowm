@@ -529,6 +529,197 @@ static void s_search_confirm(xcb_connection_t *connection,
 }
 
 
+/**
+ * @brief Paint one result row: background, optional icon, name,
+ *        desktop name, and bracketed hints
+ *
+ * @param connection XCB connection
+ * @param cfg        Active configuration
+ * @param i          Absolute result index to draw
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_search_draw_row(xcb_connection_t *connection,
+        const config_td *cfg, int i)
+{
+    const s_search_result_td *r = &s_search.results[i];
+    int16_t row_y = (int16_t) (S_SEARCH_ROWS_TOP +
+            (i - s_search.scroll_offset) * WM_SEARCH_ROW_HEIGHT);
+    int16_t text_x = (int16_t) WM_SEARCH_PAD_X;
+    int16_t safe_right = (int16_t) (WM_SEARCH_WIDTH - WM_SEARCH_PAD_X -
+            WM_SEARCH_HINTS_RESERVED_WIDTH);
+    char name_buf[WM_SEARCH_ENTRY_LENGTH];
+    uint32_t fg;
+    uint32_t bg;
+    bool is_sel = (i == s_search.selected);
+
+    fg = (is_sel) ? cfg->theme.search.selected.color.foreground
+        : cfg->theme.search.unselected.color.foreground;
+    bg = (is_sel) ? cfg->theme.search.selected.color.background
+        : cfg->theme.search.unselected.color.background;
+
+    menu_draw_row_bg(connection, s_search.window, bg, row_y,
+            (uint16_t) WM_SEARCH_ROW_HEIGHT, (uint16_t) WM_SEARCH_WIDTH);
+
+    if (cfg->theme.menu.show_pixmaps && r->client != NULL &&
+            s_search.surface != NULL) {
+        uint16_t icon_size = (uint16_t) (WM_SEARCH_ROW_HEIGHT - 4);
+        struct position_s icon_pos;
+
+        icon_pos.x = text_x;
+        icon_pos.y = row_y +
+                (WM_SEARCH_ROW_HEIGHT - (int) icon_size) / 2;
+
+        wmicon_draw_at(connection, s_search.surface->ewmh,
+                r->client->window, s_search.window,
+                icon_pos, icon_size, fg, bg,
+                &r->client->icon_pixmap_cache);
+        text_x = (int16_t) (text_x + icon_size + WM_SEARCH_PAD_X);
+    }
+
+    /* Each cached font carries a graphics context of its own, so
+     * 'text_renderer_set_color' always applies to whichever font is
+     * selected at that moment.  It must therefore run after
+     * 'text_renderer_use_font', never before, or this row's colors
+     * would land on the font the previous row happened to leave
+     * selected. */
+    (void) text_renderer_use_font(connection, is_sel
+            ? cfg->theme.search.selected.font
+            : cfg->theme.search.unselected.font);
+    text_renderer_set_color(fg, bg);
+
+    snprintf(name_buf, sizeof(name_buf), "%s", r->name);
+    if (safe_right > text_x) {
+        uint16_t name_max = (uint16_t) (safe_right - text_x);
+
+        if (name_max > (uint16_t) WM_SEARCH_NAME_MAX_WIDTH) {
+            name_max = (uint16_t) WM_SEARCH_NAME_MAX_WIDTH;
+        }
+        menu_draw_truncate(name_buf, name_max);
+    }
+    menu_draw_label(connection, s_search.window,
+            (struct position_s) { text_x,
+                row_y + WM_SEARCH_ROW_HEIGHT - 4 }, name_buf);
+
+    if (s_search.surface->desktop_count > 1u && r->desktop != NULL) {
+        int16_t desk_x = (int16_t) (text_x +
+                menu_draw_measure(name_buf) + WM_SEARCH_COLUMN_GAP);
+
+        if (desk_x < safe_right) {
+            char desk_buf[WM_SEARCH_ENTRY_LENGTH];
+
+            /* A pinned client is not really on any one desktop in
+             * particular (see 'ccmd_client_bring_family''s own doc
+             * comment, cmds/client/transient.c, for why pinning
+             * never actually moves a client between desktops):
+             * showing its own recorded 'r->desktop' here regardless,
+             * wherever it still happens to be registered, would name
+             * one specific desktop for a client that is, in truth,
+             * equally on every one of them.  Deliberately distinct
+             * from leaving this whole label blank instead, the way
+             * it already is above whenever a session has only a
+             * single desktop to begin with: shown here for a pinned
+             * client on a session with more than one, so the two
+             * cases ("nothing to disambiguate" and "this one client
+             * is pinned across all of them") never look identical to
+             * someone reading the results. */
+            if (r->client != NULL && client_is_pinned(r->client)) {
+                snprintf(desk_buf, sizeof(desk_buf), "%s",
+                        _(STR_SEARCH_ALL_DESKTOPS));
+            } else {
+                uint32_t row = 0u;
+                uint32_t col = 0u;
+                bool has_row_col = surface_desktop_row_col(
+                        s_search.surface, r->desktop->id, &row, &col);
+                /* Only worth showing once the grid is genuinely more
+                 * than the one row a desktop's own ID already fully
+                 * describes on its own; see 'surface_desktop_row_col'
+                 * itself (surface.h) for what "row 0" always means on
+                 * a linear (or unconfigured) layout, the exact case
+                 * this excludes here. */
+                bool show_row_col = has_row_col &&
+                    s_search.surface->config != NULL &&
+                    s_search.surface->id <
+                        (uint32_t) CONFIG_MAX_SCREENS &&
+                    s_search.surface->config->base.
+                        screens[s_search.surface->id].
+                        desktop_layout.rows > 1u;
+
+                if (r->desktop->name[0] != '\0') {
+                    if (show_row_col) {
+                        snprintf(desk_buf, sizeof(desk_buf),
+                                "[%u (%u, %u)] -- %s",
+                                r->desktop->id, row, col,
+                                r->desktop->name);
+                    } else {
+                        snprintf(desk_buf, sizeof(desk_buf),
+                                "[%u] -- %s",
+                                r->desktop->id, r->desktop->name);
+                    }
+                } else {
+                    if (show_row_col) {
+                        snprintf(desk_buf, sizeof(desk_buf),
+                                "[%u (%u, %u)]",
+                                r->desktop->id, row, col);
+                    } else {
+                        snprintf(desk_buf, sizeof(desk_buf), "[%u]",
+                                r->desktop->id);
+                    }
+                }
+            }
+            menu_draw_truncate(desk_buf,
+                    (uint16_t) (safe_right - desk_x));
+            menu_draw_label(connection, s_search.window,
+                    (struct position_s) { desk_x,
+                        row_y + WM_SEARCH_ROW_HEIGHT - 4 },
+                    desk_buf);
+        }
+    }
+
+    if (r->hints[0] != '\0') {
+        uint16_t hint_w = menu_draw_measure(r->hints);
+        int16_t hint_x = (int16_t) (WM_SEARCH_WIDTH - WM_SEARCH_PAD_X -
+                hint_w);
+
+        menu_draw_label(connection, s_search.window,
+                (struct position_s) { hint_x,
+                    row_y + WM_SEARCH_ROW_HEIGHT - 4 }, r->hints);
+    }
+}
+
+
+/**
+ * @brief Draw the query bar at the top of the widget, including a
+ *        trailing block cursor
+ *
+ * @param connection XCB connection
+ * @param cfg        Active configuration
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_search_draw_bar(xcb_connection_t *connection,
+        const config_td *cfg)
+{
+    char shown[WM_SEARCH_QUERY_MAX_LENGTH + 2];
+
+    menu_draw_row_bg(connection, s_search.window,
+            cfg->theme.search.input.color.background,
+            (int16_t) WM_SEARCH_PAD_Y, (uint16_t) WM_SEARCH_BAR_HEIGHT,
+            (uint16_t) WM_SEARCH_WIDTH);
+
+    snprintf(shown, sizeof(shown), "%s_", s_search.query);
+
+    (void) text_renderer_use_font(connection,
+            cfg->theme.search.input.font);
+    text_renderer_set_color(cfg->theme.search.input.color.foreground,
+            cfg->theme.search.input.color.background);
+    menu_draw_label(connection, s_search.window,
+            (struct position_s) { WM_SEARCH_PAD_X,
+                WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT - 7 },
+            shown);
+}
+
+
 /* Query whether the window-search widget is currently open */
 bool search_is_open(void)
 {
@@ -786,197 +977,6 @@ void search_handle_motion(int16_t x, int16_t y)
 
     if (s_search.surface != NULL) {
         search_draw(s_search.surface->connection, s_search.config);
-    }
-}
-
-
-/**
- * @brief Draw the query bar at the top of the widget, including a
- *        trailing block cursor
- *
- * @param connection XCB connection
- * @param cfg        Active configuration
- *
- * @note Complexity: @e O(1)
- */
-static void s_search_draw_bar(xcb_connection_t *connection,
-        const config_td *cfg)
-{
-    char shown[WM_SEARCH_QUERY_MAX_LENGTH + 2];
-
-    menu_draw_row_bg(connection, s_search.window,
-            cfg->theme.search.input.color.background,
-            (int16_t) WM_SEARCH_PAD_Y, (uint16_t) WM_SEARCH_BAR_HEIGHT,
-            (uint16_t) WM_SEARCH_WIDTH);
-
-    snprintf(shown, sizeof(shown), "%s_", s_search.query);
-
-    (void) text_renderer_use_font(connection,
-            cfg->theme.search.input.font);
-    text_renderer_set_color(cfg->theme.search.input.color.foreground,
-            cfg->theme.search.input.color.background);
-    menu_draw_label(connection, s_search.window,
-            (struct position_s) { WM_SEARCH_PAD_X,
-                WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT - 7 },
-            shown);
-}
-
-
-/**
- * @brief Paint one result row: background, optional icon, name,
- *        desktop name, and bracketed hints
- *
- * @param connection XCB connection
- * @param cfg        Active configuration
- * @param i          Absolute result index to draw
- *
- * @note Complexity: @e O(1)
- */
-static void s_search_draw_row(xcb_connection_t *connection,
-        const config_td *cfg, int i)
-{
-    const s_search_result_td *r = &s_search.results[i];
-    int16_t row_y = (int16_t) (S_SEARCH_ROWS_TOP +
-            (i - s_search.scroll_offset) * WM_SEARCH_ROW_HEIGHT);
-    int16_t text_x = (int16_t) WM_SEARCH_PAD_X;
-    int16_t safe_right = (int16_t) (WM_SEARCH_WIDTH - WM_SEARCH_PAD_X -
-            WM_SEARCH_HINTS_RESERVED_WIDTH);
-    char name_buf[WM_SEARCH_ENTRY_LENGTH];
-    uint32_t fg;
-    uint32_t bg;
-    bool is_sel = (i == s_search.selected);
-
-    fg = (is_sel) ? cfg->theme.search.selected.color.foreground
-        : cfg->theme.search.unselected.color.foreground;
-    bg = (is_sel) ? cfg->theme.search.selected.color.background
-        : cfg->theme.search.unselected.color.background;
-
-    menu_draw_row_bg(connection, s_search.window, bg, row_y,
-            (uint16_t) WM_SEARCH_ROW_HEIGHT, (uint16_t) WM_SEARCH_WIDTH);
-
-    if (cfg->theme.menu.show_pixmaps && r->client != NULL &&
-            s_search.surface != NULL) {
-        uint16_t icon_size = (uint16_t) (WM_SEARCH_ROW_HEIGHT - 4);
-        struct position_s icon_pos;
-
-        icon_pos.x = text_x;
-        icon_pos.y = row_y +
-                (WM_SEARCH_ROW_HEIGHT - (int) icon_size) / 2;
-
-        wmicon_draw_at(connection, s_search.surface->ewmh,
-                r->client->window, s_search.window,
-                icon_pos, icon_size, fg, bg,
-                &r->client->icon_pixmap_cache);
-        text_x = (int16_t) (text_x + icon_size + WM_SEARCH_PAD_X);
-    }
-
-    /* Each cached font carries a graphics context of its own, so
-     * 'text_renderer_set_color' always applies to whichever font is
-     * selected at that moment.  It must therefore run after
-     * 'text_renderer_use_font', never before, or this row's colors
-     * would land on the font the previous row happened to leave
-     * selected. */
-    (void) text_renderer_use_font(connection, is_sel
-            ? cfg->theme.search.selected.font
-            : cfg->theme.search.unselected.font);
-    text_renderer_set_color(fg, bg);
-
-    snprintf(name_buf, sizeof(name_buf), "%s", r->name);
-    if (safe_right > text_x) {
-        uint16_t name_max = (uint16_t) (safe_right - text_x);
-
-        if (name_max > (uint16_t) WM_SEARCH_NAME_MAX_WIDTH) {
-            name_max = (uint16_t) WM_SEARCH_NAME_MAX_WIDTH;
-        }
-        menu_draw_truncate(name_buf, name_max);
-    }
-    menu_draw_label(connection, s_search.window,
-            (struct position_s) { text_x,
-                row_y + WM_SEARCH_ROW_HEIGHT - 4 }, name_buf);
-
-    if (s_search.surface->desktop_count > 1u && r->desktop != NULL) {
-        int16_t desk_x = (int16_t) (text_x +
-                menu_draw_measure(name_buf) + WM_SEARCH_COLUMN_GAP);
-
-        if (desk_x < safe_right) {
-            char desk_buf[WM_SEARCH_ENTRY_LENGTH];
-
-            /* A pinned client is not really on any one desktop in
-             * particular (see 'ccmd_client_bring_family''s own doc
-             * comment, cmds/client/transient.c, for why pinning
-             * never actually moves a client between desktops):
-             * showing its own recorded 'r->desktop' here regardless,
-             * wherever it still happens to be registered, would name
-             * one specific desktop for a client that is, in truth,
-             * equally on every one of them.  Deliberately distinct
-             * from leaving this whole label blank instead, the way
-             * it already is above whenever a session has only a
-             * single desktop to begin with: shown here for a pinned
-             * client on a session with more than one, so the two
-             * cases ("nothing to disambiguate" and "this one client
-             * is pinned across all of them") never look identical to
-             * someone reading the results. */
-            if (r->client != NULL && client_is_pinned(r->client)) {
-                snprintf(desk_buf, sizeof(desk_buf), "%s",
-                        _(STR_SEARCH_ALL_DESKTOPS));
-            } else {
-                uint32_t row = 0u;
-                uint32_t col = 0u;
-                bool has_row_col = surface_desktop_row_col(
-                        s_search.surface, r->desktop->id, &row, &col);
-                /* Only worth showing once the grid is genuinely more
-                 * than the one row a desktop's own ID already fully
-                 * describes on its own; see 'surface_desktop_row_col'
-                 * itself (surface.h) for what "row 0" always means on
-                 * a linear (or unconfigured) layout, the exact case
-                 * this excludes here. */
-                bool show_row_col = has_row_col &&
-                    s_search.surface->config != NULL &&
-                    s_search.surface->id <
-                        (uint32_t) CONFIG_MAX_SCREENS &&
-                    s_search.surface->config->base.
-                        screens[s_search.surface->id].
-                        desktop_layout.rows > 1u;
-
-                if (r->desktop->name[0] != '\0') {
-                    if (show_row_col) {
-                        snprintf(desk_buf, sizeof(desk_buf),
-                                "[%u (%u, %u)] -- %s",
-                                r->desktop->id, row, col,
-                                r->desktop->name);
-                    } else {
-                        snprintf(desk_buf, sizeof(desk_buf),
-                                "[%u] -- %s",
-                                r->desktop->id, r->desktop->name);
-                    }
-                } else {
-                    if (show_row_col) {
-                        snprintf(desk_buf, sizeof(desk_buf),
-                                "[%u (%u, %u)]",
-                                r->desktop->id, row, col);
-                    } else {
-                        snprintf(desk_buf, sizeof(desk_buf), "[%u]",
-                                r->desktop->id);
-                    }
-                }
-            }
-            menu_draw_truncate(desk_buf,
-                    (uint16_t) (safe_right - desk_x));
-            menu_draw_label(connection, s_search.window,
-                    (struct position_s) { desk_x,
-                        row_y + WM_SEARCH_ROW_HEIGHT - 4 },
-                    desk_buf);
-        }
-    }
-
-    if (r->hints[0] != '\0') {
-        uint16_t hint_w = menu_draw_measure(r->hints);
-        int16_t hint_x = (int16_t) (WM_SEARCH_WIDTH - WM_SEARCH_PAD_X -
-                hint_w);
-
-        menu_draw_label(connection, s_search.window,
-                (struct position_s) { hint_x,
-                    row_y + WM_SEARCH_ROW_HEIGHT - 4 }, r->hints);
     }
 }
 

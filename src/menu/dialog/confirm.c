@@ -237,7 +237,6 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
 }
 
 
-
 /**
  * @brief Milliseconds remaining until the running countdown timeout
  *        fully elapses

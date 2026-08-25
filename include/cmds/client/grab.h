@@ -19,7 +19,7 @@
 
 
 /* Project includes */
-#include <client.h>
+#include <types/handles.h>
 
 
 /* Public interface */

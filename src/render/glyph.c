@@ -126,66 +126,6 @@ static s_glyph_font_td *s_glyph_current(void)
 
 
 /**
- * @brief Decode the next UTF-8 codepoint from @p text
- *
- * Malformed sequences are treated permissively: an invalid leading
- * byte is returned as its own Latin-1 codepoint rather than rejecting
- * the whole string, since this draws UI text, not untrusted input,
- * and a best-effort result reads better than nothing at all.
- *
- * @param text   Null-terminated UTF-8 string
- * @param index  Byte offset to start decoding from; advanced past the
- *               consumed bytes on return
- *
- * @return The decoded codepoint, or 0 at the end of the string
- *
- * @note Complexity: @e O(1)
- */
-uint32_t glyph_utf8_next(const char *text, size_t *index)
-{
-    unsigned char b0;
-    uint32_t codepoint = 0u;
-    int extra = 0;
-
-    b0 = (unsigned char) text[*index];
-    if (b0 == 0u) {
-        return 0u;
-    }
-
-    if (b0 < 0x80u) {
-        *index += 1u;
-        return b0;
-    }
-    if ((b0 & 0xe0u) == 0xc0u) {
-        codepoint = b0 & 0x1fu;
-        extra = 1;
-    } else if ((b0 & 0xf0u) == 0xe0u) {
-        codepoint = b0 & 0x0fu;
-        extra = 2;
-    } else if ((b0 & 0xf8u) == 0xf0u) {
-        codepoint = b0 & 0x07u;
-        extra = 3;
-    } else {
-        *index += 1u;
-        return b0;
-    }
-
-    *index += 1u;
-    for (int i = 0; i < extra; ++i) {
-        unsigned char bn = (unsigned char) text[*index];
-
-        if ((bn & 0xc0u) != 0x80u) {
-            return codepoint;
-        }
-        codepoint = (codepoint << 6) | (bn & 0x3fu);
-        *index += 1u;
-    }
-
-    return codepoint;
-}
-
-
-/**
  * @brief Resolve @p font_name through fontconfig to a font file, face
  *        index, and pixel size
  *
@@ -549,6 +489,66 @@ static bool s_glyph_shared_ready(xcb_connection_t *connection)
     s_glyph.initialized = true;
 
     return true;
+}
+
+
+/**
+ * @brief Decode the next UTF-8 codepoint from @p text
+ *
+ * Malformed sequences are treated permissively: an invalid leading
+ * byte is returned as its own Latin-1 codepoint rather than rejecting
+ * the whole string, since this draws UI text, not untrusted input,
+ * and a best-effort result reads better than nothing at all.
+ *
+ * @param text   Null-terminated UTF-8 string
+ * @param index  Byte offset to start decoding from; advanced past the
+ *               consumed bytes on return
+ *
+ * @return The decoded codepoint, or 0 at the end of the string
+ *
+ * @note Complexity: @e O(1)
+ */
+uint32_t glyph_utf8_next(const char *text, size_t *index)
+{
+    unsigned char b0;
+    uint32_t codepoint = 0u;
+    int extra = 0;
+
+    b0 = (unsigned char) text[*index];
+    if (b0 == 0u) {
+        return 0u;
+    }
+
+    if (b0 < 0x80u) {
+        *index += 1u;
+        return b0;
+    }
+    if ((b0 & 0xe0u) == 0xc0u) {
+        codepoint = b0 & 0x1fu;
+        extra = 1;
+    } else if ((b0 & 0xf0u) == 0xe0u) {
+        codepoint = b0 & 0x0fu;
+        extra = 2;
+    } else if ((b0 & 0xf8u) == 0xf0u) {
+        codepoint = b0 & 0x07u;
+        extra = 3;
+    } else {
+        *index += 1u;
+        return b0;
+    }
+
+    *index += 1u;
+    for (int i = 0; i < extra; ++i) {
+        unsigned char bn = (unsigned char) text[*index];
+
+        if ((bn & 0xc0u) != 0x80u) {
+            return codepoint;
+        }
+        codepoint = (codepoint << 6) | (bn & 0x3fu);
+        *index += 1u;
+    }
+
+    return codepoint;
 }
 
 

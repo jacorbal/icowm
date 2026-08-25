@@ -52,7 +52,8 @@ cJSON *ipc_action_add_desktop(const wm_td *wm, const cJSON *args);
 cJSON *ipc_action_remove_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c toggle_strutless_maximize: argument @c surface_id (optional) */
-cJSON *ipc_action_toggle_strutless_maximize(const wm_td *wm, const cJSON *args);
+cJSON *ipc_action_toggle_strutless_maximize(const wm_td *wm,
+        const cJSON *args);
 
 
 #endif  /* ! IPC_ACTIONS_SURFACE_H */

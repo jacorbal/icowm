@@ -177,8 +177,8 @@ static void s_append_goto_desktop(char *buf, size_t buf_size,
         if (desktop[i][0] == '\0') {
             continue;
         }
-        s_append_line(buf, buf_size, offset, _(STR_SHORTCUTS_GOTO_DESKTOP_FMT),
-                i, desktop[i]);
+        s_append_line(buf, buf_size, offset,
+                _(STR_SHORTCUTS_GOTO_DESKTOP_FMT), i, desktop[i]);
     }
 }
 

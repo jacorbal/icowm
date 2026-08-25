@@ -119,6 +119,56 @@ static void s_systray_config_apply(const wm_td *wm)
 }
 
 
+/**
+ * @brief Force every already-docked icon back to the tray's current
+ *        @p pixmap.size
+ *
+ * A docked icon's own size is otherwise only ever set once, at dock
+ * time (see @a systray_protocol_dock in @c systray/protocol.c).
+ * Reparent, resize, only then map, the icon is never actually visible
+ * at its old size in the first place, so it never needs to redraw
+ * itself to fit a new one either.  Nothing about reloading the
+ * configuration on its own revisits an icon that was already docked
+ * (and already mapped, already painted once) under a previous, possibly
+ * different @p pixmap.size.
+ *
+ * @a systray_layout_reflow, called separately, does reposition every
+ * icon using the newly reloaded size and padding for its own spacing
+ * math, but repositioning is not resizing.
+ *
+ * Unmapping first, then resizing, then remapping mirrors that same
+ * dock-time sequence as closely as possible, rather than resizing the
+ * icon in place while still mapped and already painted: many minimal
+ * XEmbed tray-icon implementations paint themselves once at whatever
+ * size they were first mapped at and never repaint in response to a
+ * later live @c ConfigureNotify the way a full GTK/Qt widget would;
+ * an in-place resize left the icon showing as a blank square in at
+ * least one real client, not a correctly rescaled one, since nothing
+ * in that client ever repainted it.  Briefly unmapping first, so the
+ * icon is invisible precisely while it does not yet have its new
+ * size, and only remapping once it does, gives it the same "resized
+ * before ever visible at the new size" situation dock time already
+ * relies on, though, without XEmbed guaranteeing this, an individual
+ * client could still fail to repaint correctly here too.
+ *
+ * @note Complexity: @e O(n), where @e n is the number of docked icons
+ */
+static void s_systray_icons_resize(void)
+{
+    for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
+        xcb_window_t icon = s_tray.icons[i].window;
+
+        xcb_unmap_window(s_tray.connection, icon);
+        xcb_configure_window(s_tray.connection, icon,
+                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+                (const uint32_t[]) {
+                    s_tray.pixmap_size, s_tray.pixmap_size
+                });
+        xcb_map_window(s_tray.connection, icon);
+    }
+}
+
+
 /* Acquire the tray selection and create the dock window */
 void systray_init(const wm_td *wm)
 {
@@ -273,56 +323,6 @@ bool systray_icon_size_enforce(xcb_window_t window)
     }
 
     return false;
-}
-
-
-/**
- * @brief Force every already-docked icon back to the tray's current
- *        @p pixmap.size
- *
- * A docked icon's own size is otherwise only ever set once, at dock
- * time (see @a systray_protocol_dock in @c systray/protocol.c).
- * Reparent, resize, only then map, the icon is never actually visible
- * at its old size in the first place, so it never needs to redraw
- * itself to fit a new one either.  Nothing about reloading the
- * configuration on its own revisits an icon that was already docked
- * (and already mapped, already painted once) under a previous, possibly
- * different @p pixmap.size.
- *
- * @a systray_layout_reflow, called separately, does reposition every
- * icon using the newly reloaded size and padding for its own spacing
- * math, but repositioning is not resizing.
- *
- * Unmapping first, then resizing, then remapping mirrors that same
- * dock-time sequence as closely as possible, rather than resizing the
- * icon in place while still mapped and already painted: many minimal
- * XEmbed tray-icon implementations paint themselves once at whatever
- * size they were first mapped at and never repaint in response to a
- * later live @c ConfigureNotify the way a full GTK/Qt widget would;
- * an in-place resize left the icon showing as a blank square in at
- * least one real client, not a correctly rescaled one, since nothing
- * in that client ever repainted it.  Briefly unmapping first, so the
- * icon is invisible precisely while it does not yet have its new
- * size, and only remapping once it does, gives it the same "resized
- * before ever visible at the new size" situation dock time already
- * relies on, though, without XEmbed guaranteeing this, an individual
- * client could still fail to repaint correctly here too.
- *
- * @note Complexity: @e O(n), where @e n is the number of docked icons
- */
-static void s_systray_icons_resize(void)
-{
-    for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
-        xcb_window_t icon = s_tray.icons[i].window;
-
-        xcb_unmap_window(s_tray.connection, icon);
-        xcb_configure_window(s_tray.connection, icon,
-                XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                (const uint32_t[]) {
-                    s_tray.pixmap_size, s_tray.pixmap_size
-                });
-        xcb_map_window(s_tray.connection, icon);
-    }
 }
 
 

@@ -32,10 +32,7 @@
 #include <stdbool.h>
 
 /* Project includes */
-#include <client.h>
-#include <desktop.h>
-#include <surface.h>
-#include <wm.h>
+#include <types/handles.h>
 
 
 /**

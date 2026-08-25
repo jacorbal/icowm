@@ -69,28 +69,6 @@
  */
 static char s_missing_theme_file[CONFIG_MAX_LENGTH_PATH_THEME] = "";
 
-
-/* Resolve the configuration directory from a prefix, or environment
- * variables when none is given (see config.h for the fallback order) */
-void config_resolve_dir(const char *restrict config_dir_prefix,
-        char *restrict config_dir_base)
-{
-    if (config_dir_prefix) {
-        char temp_path[CONFIG_MAX_LENGTH_PATH_BASE];
-
-        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
-                "%s", config_dir_prefix);
-        path_simplify(temp_path);
-        safe_strncpy(config_dir_base, temp_path,
-                CONFIG_MAX_LENGTH_PATH_BASE);
-        return;
-    }
-
-    xdg_resolve_dir(XDG_DIR_CONFIG, "./" CONFIG_DIR_BASE,
-            config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE);
-}
-
-
 /**
  * @brief Populate the configuration structure with an ordinary
  *        session's own default values
@@ -120,6 +98,27 @@ static void s_config_set_default_values(config_td *config)
     config_set_default_bindings_values(&config->bindings);
     config_set_default_a11y_values(&config->a11y);
     config_set_default_theme_values(&config->theme);
+}
+
+
+/* Resolve the configuration directory from a prefix, or environment
+ * variables when none is given (see config.h for the fallback order) */
+void config_resolve_dir(const char *restrict config_dir_prefix,
+        char *restrict config_dir_base)
+{
+    if (config_dir_prefix) {
+        char temp_path[CONFIG_MAX_LENGTH_PATH_BASE];
+
+        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
+                "%s", config_dir_prefix);
+        path_simplify(temp_path);
+        safe_strncpy(config_dir_base, temp_path,
+                CONFIG_MAX_LENGTH_PATH_BASE);
+        return;
+    }
+
+    xdg_resolve_dir(XDG_DIR_CONFIG, "./" CONFIG_DIR_BASE,
+            config_dir_base, CONFIG_MAX_LENGTH_PATH_BASE);
 }
 
 

@@ -73,7 +73,6 @@ static void s_handler_send_synthetic_configure_notify(
 }
 
 
-
 /**
  * @brief What building one @c ConfigureRequest reply needs
  *

@@ -20,9 +20,8 @@
 
 
 /* Project includes */
-#include <client.h>
+#include <types/handles.h>
 #include <desktop.h>
-#include <surface.h>
 
 
 /* Public interface */

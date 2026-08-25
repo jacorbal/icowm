@@ -841,10 +841,6 @@ static void s_client_events_subscribe(xcb_connection_t *connection,
 }
 
 
-
-
-
-
 /* Destroy the specified client and free associated resources */
 void client_destroy(client_td *client)
 {

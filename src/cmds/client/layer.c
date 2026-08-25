@@ -292,7 +292,6 @@ void ccmd_client_lower(client_td *client)
 }
 
 
-
 /* Place the client in the above layer */
 void ccmd_client_layer_above(client_td *client)
 {

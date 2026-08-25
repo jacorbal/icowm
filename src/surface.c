@@ -222,6 +222,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     return surface;
 }
 
+
 /* Free allocated memory for a surface */
 void surface_destroy(surface_td *surface)
 {

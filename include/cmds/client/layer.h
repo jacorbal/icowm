@@ -18,8 +18,7 @@
 
 
 /* Project includes */
-#include <client.h>
-#include <desktop.h>
+#include <types/handles.h>
 
 
 /* Public interface */

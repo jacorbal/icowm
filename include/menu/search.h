@@ -30,11 +30,9 @@
 #include <xcb/xcb.h>
 
 /* ADT includes */
-#include <adt/list.h>
 
 /* Project includes */
-#include <config.h>
-#include <surface.h>
+#include <types/handles.h>
 
 
 /* Public interface */

@@ -27,10 +27,9 @@
 #include <stdbool.h>
 
 /* ADT includes */
-#include <adt/list.h>
 
 /* Project includes */
-#include <config.h>
+#include <types/handles.h>
 
 
 /**

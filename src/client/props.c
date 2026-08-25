@@ -90,8 +90,6 @@ static void s_client_read_legacy_name_prop(client_td *client,
 }
 
 
-
-
 /* Retrieve the 'WM_NAME' property of a window */
 size_t ci_get_wm_name(xcb_connection_t *connection,
         xcb_window_t window, char *buffer, size_t buffer_sz)

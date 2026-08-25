@@ -37,12 +37,15 @@ static xcb_window_t s_deepest_window(const ctxmenu_state_td *state)
     }
 
     cur = state;
-    while (cur->child != NULL && cur->child->window != XCB_WINDOW_NONE) {
+    while (cur->child != NULL &&
+            cur->child->window != XCB_WINDOW_NONE) {
         cur = cur->child;
     }
 
     return cur->window;
 }
+
+
 /* Find the state owning the given XCB window */
 ctxmenu_state_td *ctxmenu_tree_state_find_for_window(ctxmenu_state_td *state,
         xcb_window_t win)
@@ -63,6 +66,8 @@ ctxmenu_state_td *ctxmenu_tree_state_find_for_window(ctxmenu_state_td *state,
 
     return NULL;
 }
+
+
 /* Repaint whichever submenu under 'root' currently owns 'win' */
 void ctxmenu_tree_redraw_window(ctxmenu_state_td *root, xcb_window_t win)
 {
@@ -73,6 +78,8 @@ void ctxmenu_tree_redraw_window(ctxmenu_state_td *root, xcb_window_t win)
         ctxmenu_redraw(state);
     }
 }
+
+
 /* Forward a pointer-motion event to whichever submenu under 'root'
  * currently owns 'win' */
 void ctxmenu_tree_handle_motion_window(ctxmenu_state_td *root,
@@ -85,6 +92,8 @@ void ctxmenu_tree_handle_motion_window(ctxmenu_state_td *root,
         ctxmenu_handle_motion(state, x, y);
     }
 }
+
+
 /* Forward a click, translated to menu-local coordinates, to whichever
  * submenu under 'root' currently owns 'win' */
 bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
@@ -101,6 +110,8 @@ bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
     y -= state->origin_y;
     return ctxmenu_handle_click(connection, surface, state, y, config);
 }
+
+
 /* Forward a keypress to the deepest open submenu under 'root' */
 bool ctxmenu_tree_handle_keypress_deepest(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *root,

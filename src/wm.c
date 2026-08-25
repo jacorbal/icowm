@@ -187,8 +187,7 @@ static void s_wm_all_clients_unmanage(void)
 
         dinitial = dnode;
         do {
-            desktop_td *const desktop =
-                (desktop_td *) cdlist_data(dnode);
+            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->stacking != NULL) {
                 cdlist_item_td *cnode = cdlist_head(desktop->stacking);
@@ -617,8 +616,7 @@ static void s_wm_announce(void)
             " an unquestionable 'true'", L_NARG);
     wm->is_running = true;
     if (wm->session != NULL) {
-        session_run_hook(wm->session, wm->connection,
-                SESSION_HOOK_START);
+        session_run_hook(wm->session, wm->connection, SESSION_HOOK_START);
     }
 
     /* Any JSON file that failed to parse during the load just above
@@ -673,8 +671,7 @@ int wm_start(const char *restrict display_name,
         uint32_t available_mib;
 
         LOGGER_NOTICE("Entering mode of restricted memory" \
-                " (ceiling=%u MiB)",
-                (unsigned int) restricted_memory_mib);
+                " (ceiling=%u MiB)", (unsigned int) restricted_memory_mib);
 
         if (sysmem_available_mib(&available_mib) &&
                 available_mib < restricted_memory_mib) {
@@ -744,9 +741,8 @@ void wm_json_syntax_errors_warn(void)
                 : _(STR_WM_JSON_SYNTAX_ERROR_MULTIPLE_FMT),
             json_syntax_errors_get(0u));
     for (uint32_t i = 1u; i < count && offset < sizeof(message); ++i) {
-        int written = snprintf(message + offset,
-                sizeof(message) - offset, ", '%s'",
-                json_syntax_errors_get(i));
+        int written = snprintf(message + offset, sizeof(message) - offset,
+                ", '%s'", json_syntax_errors_get(i));
         if (written < 0) {
             break;
         }
@@ -761,8 +757,8 @@ void wm_json_syntax_errors_warn(void)
      * missing-theme note below) starting a properly new sentence
      * rather than running directly into the last filename. */
     if (count > 1u && offset < sizeof(message)) {
-        int written =
-            snprintf(message + offset, sizeof(message) - offset, ".");
+        int written = snprintf(message + offset, sizeof(message) - offset,
+                ".");
         if (written > 0) {
             offset += (size_t) written;
         }

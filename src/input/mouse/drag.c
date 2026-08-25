@@ -774,8 +774,9 @@ void drag_start_resize_axis_locked(xcb_connection_t *connection,
      * already-active grab's cursor to match whichever single-axis
      * shape is left, the same reasoning as 'drag_start_directed'. */
     xcb_change_active_pointer_grab(connection,
-            mouse_resize_cursor_for_axes(s_drag.is_resize_w, s_drag.is_resize_h,
-                    s_drag.is_anchor_right, s_drag.is_anchor_bottom),
+            mouse_resize_cursor_for_axes(s_drag.is_resize_w,
+                    s_drag.is_resize_h, s_drag.is_anchor_right,
+                    s_drag.is_anchor_bottom),
             event_time,
             XCB_EVENT_MASK_BUTTON_RELEASE |
             XCB_EVENT_MASK_POINTER_MOTION);

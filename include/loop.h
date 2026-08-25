@@ -22,7 +22,7 @@
 
 
 /* Project includes */
-#include <wm.h>
+#include <types/handles.h>
 
 
 /* Public interface */

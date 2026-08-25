@@ -26,9 +26,7 @@
 #include <stdint.h>
 
 /* Project includes */
-#include <client.h>
-#include <surface.h>
-#include <wm.h>
+#include <types/handles.h>
 
 
 /* Public interface */

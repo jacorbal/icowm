@@ -442,140 +442,6 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
 
 
 /**
- * @brief Repaint the frame background, border and corner resize
- *        grips
- *
- * @param connection       XCB connection
- * @param client           Client whose frame is repainted
- * @param use_active_style Whether the active colors apply
- * @param theme            Theme the colors come from
- *
- * @note Complexity: @e O(1)
- */
-static void s_repaint_frame_decoration(xcb_connection_t *connection,
-        const client_td *client, bool use_active_style,
-        const struct config_theme_s *theme)
-{
-    uint8_t opacity_percent;
-
-    if (connection == NULL || client == NULL || client->frame == 0 ||
-            theme == NULL || !client_is_decorated(client)) {
-        return;
-    }
-
-    xcb_change_window_attributes(connection, client->frame,
-            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-            (const uint32_t[]) {
-                (use_active_style)
-                    ? theme->window.active.border.color
-                    : theme->window.inactive.border.color,
-                (use_active_style)
-                    ? theme->window.active.border.color
-                    : theme->window.inactive.border.color
-            });
-
-    if (use_active_style) {
-        opacity_percent = (client->opacity_override.is_set_active)
-            ? client->opacity_override.active
-            : theme->window.active.opacity;
-    } else {
-        opacity_percent = (client->opacity_override.is_set_inactive)
-            ? client->opacity_override.inactive
-            : theme->window.inactive.opacity;
-    }
-    atom_set_window_opacity(connection, client->frame,
-            config_theme_opacity_to_raw(opacity_percent));
-    xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
-}
-
-
-/**
- * @brief Repaint a titlebar's background, text and buttons
- *
- * @param connection XCB connection
- * @param client     Client whose titlebar is repainted
- * @param is_focused Whether the client currently holds focus
- * @param inner_w    Width available inside the frame
- * @param title_h    Height of the titlebar itself
- * @param theme      Theme the colors and fonts come from
- *
- * @note Complexity: @e O(n), where @e n is the number of buttons
- */
-static void s_repaint_titlebar_content(xcb_connection_t *connection,
-        client_td *client, bool is_focused, uint16_t inner_w,
-        uint16_t title_h, const struct config_theme_s *theme)
-{
-    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
-    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
-    uint8_t left_n;
-    uint8_t right_n;
-    int16_t title_x;
-    uint16_t title_w;
-    int16_t btn_y;
-    int16_t text_y;
-    bool can_maximize;
-    bool hide_pin;
-    surface_td *surface;
-
-    if (connection == NULL || client == NULL || theme == NULL ||
-            client->titlebar == 0) {
-        return;
-    }
-
-    surface = wm_get_surface_by_id(client->screen_id);
-    hide_pin = surface != NULL && surface->desktop_count <= 1u;
-
-    xcb_change_window_attributes(connection,
-            client->titlebar, XCB_CW_BACK_PIXEL,
-            (const uint32_t[]) {
-                (is_focused)
-                    ? theme->window.active.color.background
-                    : theme->window.inactive.color.background
-            });
-    xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
-
-    (void) text_renderer_use_font(connection,
-            (is_focused)
-                ? theme->window.active.font
-                : theme->window.inactive.font);
-    text_renderer_set_color(
-            (is_focused)
-                ? theme->window.active.color.foreground
-                : theme->window.inactive.color.foreground,
-            (is_focused)
-                ? theme->window.active.color.background
-                : theme->window.inactive.color.background);
-
-    client_titlebar_layout(theme, inner_w, title_h, hide_pin, left,
-            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
-
-    /* Vertically centered against the titlebar's own font ascent and
-     * descent, the same way 'client_titlebar_layout' above already
-     * centers 'btn_y' against the button size, rather than a fixed
-     * pixel offset from the bottom: a fixed offset only happens to
-     * look centered for whichever font it was tuned against, and
-     * drifts visibly off-center for any other (a restricted-memory
-     * session's own plain X core font included, since that swap
-     * changes the font's own ascent/descent without this titlebar's
-     * own height changing to match). */
-    text_y = (int16_t) (((int16_t) title_h -
-                (int16_t) (text_font_ascent() + text_font_descent())) / 2 +
-            text_font_ascent());
-    s_titlebar_draw_title(connection, client, client->titlebar,
-            title_x, title_w, text_y, client->info.name,
-            theme->window.titlebar.alignment);
-
-    can_maximize = !client_is_fullscreen(client) &&
-        (bool) client_is_resizable(client);
-    s_desktop_titlebar_buttons_draw(connection, client->titlebar,
-            btn_y, left, left_n, right, right_n, is_focused,
-            (bool) client_is_pinned(client),
-            (client->properties.layer != CLIENT_LAYER_NORMAL),
-            can_maximize, theme);
-}
-
-
-/**
  * @brief Repaint a client's own frame decoration, unless it is
  *        currently forced hidden
  *
@@ -862,6 +728,106 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
 
 
 /**
+ * @brief Draw all clients on a desktop
+ *
+ * Iterates through all clients in the desktop's stacking list and
+ * configures their geometry.  Windows are only mapped (made visible)
+ * when @p is_current is @c true; for a desktop that is not the one
+ * currently displayed on its surface, only geometry/stacking is updated
+ * so that a stale full-render pass (triggered by an unrelated
+ * @p is_outdated flag, e.g., after moving/resizing a client) cannot
+ * undo an explicit @a surface_clients_hide and make a client reappear
+ * on top of the desktop the user actually switched to.
+ *
+ * @param desktop    Pointer to the desktop to draw
+ * @param is_current Whether @p desktop is the surface's currently
+ *                   displayed desktop; when @c false, clients are not
+ *                   (re-)mapped, only their geometry is updated
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 Failed to draw clients
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients
+ */
+static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
+{
+    cdlist_item_td *stacking_node;
+    const cdlist_item_td *stacking_initial;
+    client_td *client;
+    int client_count = 0;
+    size_t stacking_size;
+
+    if (desktop == NULL) {
+        LOGGER_ERROR("Received null desktop pointer", L_NARG);
+        return 1;
+    }
+
+    if (desktop->stacking == NULL) {
+        LOGGER_ERROR("Desktop stacking list is null", L_NARG);
+        return 1;
+    }
+
+    stacking_size = cdlist_size(desktop->stacking);
+    LOGGER_DEBUG("Rendering %zu client(s) from stacking list" \
+            " on desktop %u ('%s')",
+            stacking_size, desktop->id, desktop->name);
+
+    /* If no clients, return early */
+    if (stacking_size == 0) {
+        LOGGER_TRACE("No clients to render on desktop %u ('%s')",
+                desktop->id, desktop->name);
+        return 0;
+    }
+
+    stacking_node = cdlist_head(desktop->stacking);
+    if (stacking_node == NULL) {
+        LOGGER_ERROR("Stacking list head is null despite size > 0",
+                L_NARG);
+        return 1;
+    }
+
+    stacking_initial = stacking_node;
+
+    /* Iterate through stacking list (back to front) */
+    do {
+        client = (client_td *) cdlist_data(stacking_node);
+
+        if (client == NULL) {
+            LOGGER_ERROR("Null client found in stacking list at" \
+                    " position %d", client_count);
+            stacking_node = cdlist_next(stacking_node);
+            continue;
+        }
+        client_count++;
+
+        /* Keep icon windows visible only for iconified clients.
+         * Plain hidden windows must stay fully unmapped. */
+        if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+            if (client->properties.state ==
+                    (uint16_t) CLIENT_STATE_ICONIFIED) {
+                ri_render_client_icon(desktop, client, is_current);
+            }
+            stacking_node = cdlist_next(stacking_node);
+            continue;
+        }
+
+        desktop_render_one_client(desktop, client, is_current);
+
+        stacking_node = cdlist_next(stacking_node);
+    } while (stacking_node != NULL &&
+             stacking_node != stacking_initial &&
+             client_count < (int)stacking_size);
+
+    LOGGER_DEBUG("Successfully rendered %d clients" \
+            " on desktop %u ('%s')",
+            client_count, desktop->id, desktop->name);
+
+    return 0;
+}
+
+
+/**
  * @brief Render, position, and decorate a single already-non-hidden
  *        client during a stacking-order render pass
  *
@@ -889,7 +855,7 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
  *
  * @note Complexity: @e O(1)
  */
-static void s_render_one_client(desktop_td *desktop,
+void desktop_render_one_client(desktop_td *desktop,
         client_td *client, bool is_current)
 {
     struct s_render_ctx_s ctx = {0};
@@ -1027,102 +993,136 @@ static void s_render_one_client(desktop_td *desktop,
 
 
 /**
- * @brief Draw all clients on a desktop
+ * @brief Repaint a titlebar's background, text and buttons
  *
- * Iterates through all clients in the desktop's stacking list and
- * configures their geometry.  Windows are only mapped (made visible)
- * when @p is_current is @c true; for a desktop that is not the one
- * currently displayed on its surface, only geometry/stacking is updated
- * so that a stale full-render pass (triggered by an unrelated
- * @p is_outdated flag, e.g., after moving/resizing a client) cannot
- * undo an explicit @a surface_clients_hide and make a client reappear
- * on top of the desktop the user actually switched to.
+ * @param connection XCB connection
+ * @param client     Client whose titlebar is repainted
+ * @param is_focused Whether the client currently holds focus
+ * @param inner_w    Width available inside the frame
+ * @param title_h    Height of the titlebar itself
+ * @param theme      Theme the colors and fonts come from
  *
- * @param desktop    Pointer to the desktop to draw
- * @param is_current Whether @p desktop is the surface's currently
- *                   displayed desktop; when @c false, clients are not
- *                   (re-)mapped, only their geometry is updated
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to draw clients
- *
- * @note Complexity: @e O(n), where @e n is the number of clients
+ * @note Complexity: @e O(n), where @e n is the number of buttons
  */
-static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
+void desktop_repaint_titlebar_content(xcb_connection_t *connection,
+        client_td *client, bool is_focused, uint16_t inner_w,
+        uint16_t title_h, const struct config_theme_s *theme)
 {
-    cdlist_item_td *stacking_node;
-    const cdlist_item_td *stacking_initial;
-    client_td *client;
-    int client_count = 0;
-    size_t stacking_size;
+    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
+    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
+    uint8_t left_n;
+    uint8_t right_n;
+    int16_t title_x;
+    uint16_t title_w;
+    int16_t btn_y;
+    int16_t text_y;
+    bool can_maximize;
+    bool hide_pin;
+    surface_td *surface;
 
-    if (desktop == NULL) {
-        LOGGER_ERROR("Received null desktop pointer", L_NARG);
-        return 1;
+    if (connection == NULL || client == NULL || theme == NULL ||
+            client->titlebar == 0) {
+        return;
     }
 
-    if (desktop->stacking == NULL) {
-        LOGGER_ERROR("Desktop stacking list is null", L_NARG);
-        return 1;
+    surface = wm_get_surface_by_id(client->screen_id);
+    hide_pin = surface != NULL && surface->desktop_count <= 1u;
+
+    xcb_change_window_attributes(connection,
+            client->titlebar, XCB_CW_BACK_PIXEL,
+            (const uint32_t[]) {
+                (is_focused)
+                    ? theme->window.active.color.background
+                    : theme->window.inactive.color.background
+            });
+    xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
+
+    (void) text_renderer_use_font(connection,
+            (is_focused)
+                ? theme->window.active.font
+                : theme->window.inactive.font);
+    text_renderer_set_color(
+            (is_focused)
+                ? theme->window.active.color.foreground
+                : theme->window.inactive.color.foreground,
+            (is_focused)
+                ? theme->window.active.color.background
+                : theme->window.inactive.color.background);
+
+    client_titlebar_layout(theme, inner_w, title_h, hide_pin, left,
+            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
+
+    /* Vertically centered against the titlebar's own font ascent and
+     * descent, the same way 'client_titlebar_layout' above already
+     * centers 'btn_y' against the button size, rather than a fixed
+     * pixel offset from the bottom: a fixed offset only happens to
+     * look centered for whichever font it was tuned against, and
+     * drifts visibly off-center for any other (a restricted-memory
+     * session's own plain X core font included, since that swap
+     * changes the font's own ascent/descent without this titlebar's
+     * own height changing to match). */
+    text_y = (int16_t) (((int16_t) title_h -
+                (int16_t) (text_font_ascent() + text_font_descent())) / 2 +
+            text_font_ascent());
+    s_titlebar_draw_title(connection, client, client->titlebar,
+            title_x, title_w, text_y, client->info.name,
+            theme->window.titlebar.alignment);
+
+    can_maximize = !client_is_fullscreen(client) &&
+        (bool) client_is_resizable(client);
+    s_desktop_titlebar_buttons_draw(connection, client->titlebar,
+            btn_y, left, left_n, right, right_n, is_focused,
+            (bool) client_is_pinned(client),
+            (client->properties.layer != CLIENT_LAYER_NORMAL),
+            can_maximize, theme);
+}
+
+
+/**
+ * @brief Repaint the frame background, border and corner resize
+ *        grips
+ *
+ * @param connection       XCB connection
+ * @param client           Client whose frame is repainted
+ * @param use_active_style Whether the active colors apply
+ * @param theme            Theme the colors come from
+ *
+ * @note Complexity: @e O(1)
+ */
+void desktop_repaint_frame_decoration(xcb_connection_t *connection,
+        const client_td *client, bool use_active_style,
+        const struct config_theme_s *theme)
+{
+    uint8_t opacity_percent;
+
+    if (connection == NULL || client == NULL || client->frame == 0 ||
+            theme == NULL || !client_is_decorated(client)) {
+        return;
     }
 
-    stacking_size = cdlist_size(desktop->stacking);
-    LOGGER_DEBUG("Rendering %zu client(s) from stacking list" \
-            " on desktop %u ('%s')",
-            stacking_size, desktop->id, desktop->name);
+    xcb_change_window_attributes(connection, client->frame,
+            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+            (const uint32_t[]) {
+                (use_active_style)
+                    ? theme->window.active.border.color
+                    : theme->window.inactive.border.color,
+                (use_active_style)
+                    ? theme->window.active.border.color
+                    : theme->window.inactive.border.color
+            });
 
-    /* If no clients, return early */
-    if (stacking_size == 0) {
-        LOGGER_TRACE("No clients to render on desktop %u ('%s')",
-                desktop->id, desktop->name);
-        return 0;
+    if (use_active_style) {
+        opacity_percent = (client->opacity_override.is_set_active)
+            ? client->opacity_override.active
+            : theme->window.active.opacity;
+    } else {
+        opacity_percent = (client->opacity_override.is_set_inactive)
+            ? client->opacity_override.inactive
+            : theme->window.inactive.opacity;
     }
-
-    stacking_node = cdlist_head(desktop->stacking);
-    if (stacking_node == NULL) {
-        LOGGER_ERROR("Stacking list head is null despite size > 0",
-                L_NARG);
-        return 1;
-    }
-
-    stacking_initial = stacking_node;
-
-    /* Iterate through stacking list (back to front) */
-    do {
-        client = (client_td *) cdlist_data(stacking_node);
-
-        if (client == NULL) {
-            LOGGER_ERROR("Null client found in stacking list at" \
-                    " position %d", client_count);
-            stacking_node = cdlist_next(stacking_node);
-            continue;
-        }
-        client_count++;
-
-        /* Keep icon windows visible only for iconified clients.
-         * Plain hidden windows must stay fully unmapped. */
-        if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-            if (client->properties.state ==
-                    (uint16_t) CLIENT_STATE_ICONIFIED) {
-                ri_render_client_icon(desktop, client, is_current);
-            }
-            stacking_node = cdlist_next(stacking_node);
-            continue;
-        }
-
-        desktop_render_one_client(desktop, client, is_current);
-
-        stacking_node = cdlist_next(stacking_node);
-    } while (stacking_node != NULL &&
-             stacking_node != stacking_initial &&
-             client_count < (int)stacking_size);
-
-    LOGGER_DEBUG("Successfully rendered %d clients" \
-            " on desktop %u ('%s')",
-            client_count, desktop->id, desktop->name);
-
-    return 0;
+    atom_set_window_opacity(connection, client->frame,
+            config_theme_opacity_to_raw(opacity_percent));
+    xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
 }
 
 
@@ -1273,34 +1273,6 @@ int desktop_render_background(desktop_td *desktop)
             desktop->id, desktop->name);
 
     return 0;
-}
-
-
-/* Repaint a client's frame border and background */
-void desktop_repaint_frame_decoration(xcb_connection_t *connection,
-        const client_td *client, bool use_active_style,
-        const struct config_theme_s *theme)
-{
-    s_repaint_frame_decoration(connection, client, use_active_style,
-            theme);
-}
-
-
-/* Repaint a titlebar's background, text, and buttons */
-void desktop_repaint_titlebar_content(xcb_connection_t *connection,
-        client_td *client, bool is_focused, uint16_t inner_w,
-        uint16_t title_h, const struct config_theme_s *theme)
-{
-    s_repaint_titlebar_content(connection, client, is_focused,
-            inner_w, title_h, theme);
-}
-
-
-/* Render one client: geometry, decoration and mapping */
-void desktop_render_one_client(desktop_td *desktop,
-        client_td *client, bool is_current)
-{
-    s_render_one_client(desktop, client, is_current);
 }
 
 
