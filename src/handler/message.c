@@ -269,8 +269,32 @@ void handler_client_message(wm_td *wm,
                  * which §3 says to ignore, so this window's own is
                  * used then as before. */
                 const uint32_t asked_at = event->data.data32[1];
+                const xcb_window_t asker_active =
+                    (xcb_window_t) event->data.data32[2];
+                bool hands_over_from_active;
 
-                if (active != NULL && !client_user_time_is_newer(
+                /* The third field is the requesting client's own
+                 * currently active toplevel, and EWMH §3 says the
+                 * window manager may be likelier to obey when
+                 * honoring the request would mean handing focus from
+                 * one active window to another.  It is read for
+                 * exactly that: an asker naming an active window of
+                 * its own is a program the person is already working
+                 * in, asking to bring a second window of its own
+                 * forward, which is what the field exists to mark out
+                 * from a background program trying to jump the queue.
+                 *
+                 * Honored only when the window it names really is the
+                 * one holding focus here.  Taken on trust, it would
+                 * be a way around the prevention altogether: any
+                 * client could name the focused window and be let
+                 * through. */
+                hands_over_from_active = (active != NULL &&
+                        asker_active != XCB_WINDOW_NONE &&
+                        asker_active == active->window);
+
+                if (active != NULL && !hands_over_from_active &&
+                        !client_user_time_is_newer(
                             (asked_at != 0u)
                                 ? asked_at : client->user_time,
                             active->user_time)) {

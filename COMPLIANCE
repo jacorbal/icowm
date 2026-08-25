@@ -37,6 +37,33 @@ EWMH Compliance
 - [`+`] `_NET_CURRENT_DESKTOP` (1.3)
 - [`+`] `_NET_DESKTOP_NAMES` (1.3)
 - [`+`] `_NET_ACTIVE_WINDOW` (1.3)
+        Published as focus moves, and honored as a request using all
+        three fields the message carries (§3), not some of them.
+
+        The source indication decides whether the request is weighed at
+        all: one declaring itself to come from a pager, a taskbar or
+        a notification is the person acting through it, and is honored
+        outright, switching desktop, de-iconifying and focusing as
+        needed.
+
+        A request from an application is weighed.  The timestamp used is
+        the one in the message, the requesting client's own last user
+        activity when it asked, and not the target window's, which would
+        be stale for any window not on screen and so would refuse every
+        request to raise an iconified one.  A zero, which §3 says to
+        ignore, falls back to the target's own.
+
+        The requestor's active window is read too, since §3 notes the
+        window manager may be likelier to obey when honoring the request
+        hands focus from one active window to another.  An asker naming
+        a window that really does hold focus here is already what the
+        person is working in, and is honored without further weighing.
+        Named windows are checked rather than trusted, or any client
+        could name the focused one to get through.
+
+        A request that fails all of that is refused with
+        `_NET_WM_STATE_DEMANDS_ATTENTION`, as §5 provides for
+        (`src/handler/message.c`).
 - [`+`] `_NET_WORKAREA` (1.3)
 - [`+`] `_NET_SUPPORTING_WM_CHECK` (1.3)
 - [`-`] `_NET_VIRTUAL_ROOTS` (1.3)
