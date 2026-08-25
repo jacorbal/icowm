@@ -39,6 +39,58 @@
 #include <cmds/client/state.h>
 #include <cmds/client/workarea.h>
 /**
+ * @brief Hold a maximized size to whatever maximum the client declared
+ *
+ * ICCCM §4.1.2.3 has the window manager honor @c WM_NORMAL_HINTS
+ * @c max_width and @c max_height, and nothing in EWMH exempts
+ * maximization from that: a client stating a maximum expects it to
+ * hold here too, which is why a dialog or a fixed-size utility being
+ * maximized should stop at its own limit rather than stretch past it.
+ *
+ * Only the maximum is applied, deliberately.  The minimum cannot bind,
+ * the workarea being larger than it in any sane case, and the resize
+ * increments are left alone: snapping a maximized window down to whole
+ * character cells is defensible, but it is a different decision from
+ * this one and would change the size of every maximized terminal on
+ * the desktop.
+ *
+ * The hints describe the client's own content, so the frame the
+ * decoration adds is taken off before comparing and put back after.
+ *
+ * @param client Client whose hints apply
+ * @param w      Frame width to hold, updated in place
+ * @param h      Frame height to hold, updated in place
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_clamp_to_size_hints(const client_td *client,
+        uint16_t *w, uint16_t *h)
+{
+    uint32_t deco_w;
+    uint32_t deco_h;
+
+    if (client == NULL || w == NULL || h == NULL ||
+            !client->hints_icccm.size.is_valid) {
+        return;
+    }
+
+    deco_w = (uint32_t) (client->layout.frame_extents.left +
+            client->layout.frame_extents.right);
+    deco_h = (uint32_t) (client->layout.frame_extents.top +
+            client->layout.frame_extents.bottom);
+
+    if (client->hints_icccm.size.max.w > 0u &&
+            (uint32_t) *w > client->hints_icccm.size.max.w + deco_w) {
+        *w = (uint16_t) (client->hints_icccm.size.max.w + deco_w);
+    }
+    if (client->hints_icccm.size.max.h > 0u &&
+            (uint32_t) *h > client->hints_icccm.size.max.h + deco_h) {
+        *h = (uint16_t) (client->hints_icccm.size.max.h + deco_h);
+    }
+}
+
+
+/**
  * @brief Precondition checks shared by @a ccmd_client_maximize,
  *        @a ccmd_client_maximize_horz and
  *        @a ccmd_client_maximize_vert, restoring an iconified
@@ -226,6 +278,9 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
     sw = (uint16_t) ((sw > border) ? sw - border : 0u);
     sh = (uint16_t) ((sh > border) ? sh - border : 0u);
 
+    s_clamp_to_size_hints(client, &sw, &sh);
+
+
     /* Complete this single axis to full maximize: the other axis is
      * already the one currently maximized, so fold this one in from
      * the workarea without disturbing it.  Only reachable for a
@@ -379,6 +434,7 @@ void ccmd_client_refill_maximized(client_td *client)
 
     sw = (uint16_t) ((sw > border) ? sw - border : 0u);
     sh = (uint16_t) ((sh > border) ? sh - border : 0u);
+    s_clamp_to_size_hints(client, &sw, &sh);
 
     if (touch_x) {
         mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_WIDTH;

@@ -342,27 +342,22 @@ void handler_client_message(wm_td *wm,
             }
 
             if (client_is_iconified(client)) {
+                /* An iconified client on another desktop is reached by
+                 * going to that desktop, the same as a visible one:
+                 * the icon lives there, and being iconified is not a
+                 * reason to move a window out from under the desktop
+                 * it belongs to.  It once was brought here instead,
+                 * which meant the same request did opposite things
+                 * depending on a state the person had not asked about.
+                 *
+                 * A pinned client needs none of this: it is on every
+                 * desktop already, so it is on this one, and there is
+                 * nowhere to go. */
                 if (!(client->properties.flags & CLIENT_FLAG_PIN) &&
                         surface != NULL && desktop != NULL &&
                         surface->desktop_cur != desktop->id) {
-                    desktop_td *cur_desktop =
-                        surface_desktop_get(surface,
-                                surface->desktop_cur);
-
-                    if (cur_desktop != NULL && cur_desktop != desktop) {
-                        (void) desktop_action_client_move(desktop,
-                                cur_desktop, client);
-
-                        if (ewmh != NULL) {
-                            xcb_change_property(connection,
-                                    XCB_PROP_MODE_REPLACE,
-                                    client->window,
-                                    ewmh->_NET_WM_DESKTOP,
-                                    XCB_ATOM_CARDINAL, 32, 1,
-                                    &surface->desktop_cur);
-                        }
-                        desktop = cur_desktop;
-                    }
+                    scmd_surface_desktop_switch(surface, desktop->id);
+                    desktop = lookup_current_desktop(surface);
                 }
 
                 ccmd_client_restore(client);

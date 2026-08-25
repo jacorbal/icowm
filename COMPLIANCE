@@ -221,6 +221,13 @@ was individually confirmed by reading its handling code.
         `PMinSize`, `PMaxSize`, `PBaseSize`, `PResizeInc`,
         `PWinGravity`, and `PAspect` are all read and applied
         (`src/client/props.c`).
+
+        `PMaxSize` binds when maximizing too, which §4.1.2.3 asks for
+        and nothing in EWMH exempts maximization from: a dialog or
+        a fixed-size utility stops at the size it declared rather than
+        stretching to the workarea (`src/cmds/client/maximize.c`).  Full
+        screen is the deliberate exception, EWMH having that state
+        ignore the client's own constraints and take the monitor whole.
 - [`*`] `WM_NORMAL_HINTS` `USPosition`/`PPosition` (2.0)
         Read into `client->size_hints`, but neither flag changes IcoWM's
         placement policy.  A client's requested position is not
@@ -235,15 +242,6 @@ was individually confirmed by reading its handling code.
         else, whichever way its `input` field reads, since §4.1.7 has
         the client itself do the setting in both the Locally and the
         Globally Active models.  A No Input client receives neither.
-
-        Doing both for a Locally Active client, as this once did, is
-        worse than redundant: the window manager spends the timestamp on
-        its own call, X ignores a `SetInputFocus` whose time is not
-        later than the last focus change, and the client's own answer is
-        therefore discarded.  The window took focus and its titlebar lit
-        while the application's focus stayed where it was.  A legacy
-        `icon_pixmap`/`icon_mask` bitmap icon is read as a fallback when
-        `_NET_WM_ICON` is absent (`src/render/wmicon.c`).
 - [`+`] `WM_CLASS` (2.0)
 - [`+`] `WM_TRANSIENT_FOR` (2.0)
         Read and stored (`src/client.c`).  §4.1.2.6's special case (the
