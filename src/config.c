@@ -109,7 +109,7 @@ void config_resolve_dir(const char *restrict config_dir_prefix,
     if (config_dir_prefix) {
         char temp_path[CONFIG_MAX_LENGTH_PATH_BASE];
 
-        snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
+        (void) snprintf(temp_path, CONFIG_MAX_LENGTH_PATH_BASE,
                 "%s", config_dir_prefix);
         path_simplify(temp_path);
         safe_strncpy(config_dir_base, temp_path,
@@ -264,7 +264,7 @@ int config_load(config_td *config, const char *config_prefix)
             config_dir);
 
     /* Set main base configuration path */
-    snprintf(config_base_file, sizeof(config_base_file),
+    (void) snprintf(config_base_file, sizeof(config_base_file),
             "%s/%s", config_dir, CONFIG_FILENAME_BASE);
 
     /* Load base configuration */
@@ -278,7 +278,7 @@ int config_load(config_td *config, const char *config_prefix)
             config_base_file);
 
     /* Set bindings configuration path */
-    snprintf(config_bindings_file, sizeof(config_bindings_file),
+    (void) snprintf(config_bindings_file, sizeof(config_bindings_file),
             "%s/%s", config_dir, CONFIG_FILENAME_BINDINGS);
 
     /* Load bindings */
@@ -293,7 +293,7 @@ int config_load(config_td *config, const char *config_prefix)
     }
 
     /* Set theme file path */
-    snprintf(config_theme_file,
+    (void) snprintf(config_theme_file,
             sizeof(config_theme_file),
             "%s/%s/%s.json", config_dir, CONFIG_DIR_THEMES,
             config->base.theme);
@@ -349,7 +349,7 @@ int config_load(config_td *config, const char *config_prefix)
     }
 
     /* Set RandR config file path and load (optional) */
-    snprintf(config_randr_file, sizeof(config_randr_file),
+    (void) snprintf(config_randr_file, sizeof(config_randr_file),
             "%s/%s", config_dir, CONFIG_FILENAME_RANDR);
     if (config_load_randr(config_randr_file, &(config->randr)) != 0) {
         LOGGER_DEBUG("RandR configuration not found or could not be" \
@@ -364,7 +364,7 @@ int config_load(config_td *config, const char *config_prefix)
     }
 
     /* Set a11y config file path and load (optional) */
-    snprintf(config_a11y_file, sizeof(config_a11y_file),
+    (void) snprintf(config_a11y_file, sizeof(config_a11y_file),
             "%s/%s", config_dir, CONFIG_FILENAME_A11Y);
     if (config_load_a11y(config_a11y_file,
                 &(config->a11y)) != 0) {

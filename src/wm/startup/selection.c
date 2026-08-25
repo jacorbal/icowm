@@ -140,7 +140,7 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
     xcb_generic_error_t *owner_error = NULL;
     xcb_window_t previous_owner;
 
-    snprintf(selection_name, sizeof(selection_name),
+    (void) snprintf(selection_name, sizeof(selection_name),
             "WM_S%u", surface->id);
     selection_atom = atom_intern(connection, selection_name, false);
     if (selection_atom == XCB_ATOM_NONE) {

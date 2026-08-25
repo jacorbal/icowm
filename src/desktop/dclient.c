@@ -473,14 +473,14 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
             char text[WM_DESKTOP_MAX_LENGTH_NAME + 48];
             size_t used;
 
-            snprintf(text, sizeof(text),
+            (void) snprintf(text, sizeof(text),
                     _(STR_DESKTOP_ACTIVITY_UNNAMED_FMT),
                     (unsigned int) desktop->id);
 
             if (desktop->name[0] != '\0') {
                 used = safe_strlen(text);
                 if (used < sizeof(text)) {
-                    snprintf(text + used, sizeof(text) - used,
+                    (void) snprintf(text + used, sizeof(text) - used,
                             _(STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT),
                             desktop->name);
                 }
@@ -489,7 +489,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
             if (surface_count > 1u) {
                 used = safe_strlen(text);
                 if (used < sizeof(text)) {
-                    snprintf(text + used, sizeof(text) - used,
+                    (void) snprintf(text + used, sizeof(text) - used,
                             _(STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT),
                             (unsigned int) surface->id);
                 }

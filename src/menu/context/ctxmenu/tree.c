@@ -37,8 +37,7 @@ static xcb_window_t s_deepest_window(const ctxmenu_state_td *state)
     }
 
     cur = state;
-    while (cur->child != NULL &&
-            cur->child->window != XCB_WINDOW_NONE) {
+    while (cur->child != NULL && cur->child->window != XCB_WINDOW_NONE) {
         cur = cur->child;
     }
 

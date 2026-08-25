@@ -777,7 +777,7 @@ void wm_json_syntax_errors_warn(void)
         const char *missing_theme = config_missing_theme_get();
 
         if (missing_theme != NULL) {
-            snprintf(message + offset, sizeof(message) - offset,
+            (void) snprintf(message + offset, sizeof(message) - offset,
                     _(STR_WM_MISSING_THEME_FMT), missing_theme);
         }
     }

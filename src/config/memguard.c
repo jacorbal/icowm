@@ -74,7 +74,7 @@ int config_load_memguard(config_td *config, const char *config_prefix)
     LOGGER_DEBUG("Loading restricted-memory mode configuration from" \
             " files on: '%s'", config_dir);
 
-    snprintf(config_memguard_file, sizeof(config_memguard_file),
+    (void) snprintf(config_memguard_file, sizeof(config_memguard_file),
             "%s/%s", config_dir, CONFIG_FILENAME_MEMGUARD);
     if (ci_memguard_load_json(config_memguard_file, config) != 0) {
         LOGGER_WARNING("Restricted-memory mode configuration could" \
@@ -86,7 +86,7 @@ int config_load_memguard(config_td *config, const char *config_prefix)
                 " from '%s'", config_memguard_file);
     }
 
-    snprintf(config_bindings_file, sizeof(config_bindings_file),
+    (void) snprintf(config_bindings_file, sizeof(config_bindings_file),
             "%s/%s", config_dir, CONFIG_FILENAME_BINDINGS);
     if (config_load_bindings(config_bindings_file,
                 &(config->bindings)) != 0) {
@@ -97,7 +97,7 @@ int config_load_memguard(config_td *config, const char *config_prefix)
                 config_bindings_file);
     }
 
-    snprintf(config_theme_file, sizeof(config_theme_file),
+    (void) snprintf(config_theme_file, sizeof(config_theme_file),
             "%s/%s/%s.json", config_dir, CONFIG_DIR_THEMES,
             config->base.theme);
     if (safe_strlen(config->base.theme) == 0u) {
@@ -132,7 +132,7 @@ int config_load_memguard(config_td *config, const char *config_prefix)
      * above, rather than folded into 'memguard.json' itself; wanting
      * to save memory is never a reason to also give up basic
      * accessibility accommodations */
-    snprintf(config_a11y_file, sizeof(config_a11y_file),
+    (void) snprintf(config_a11y_file, sizeof(config_a11y_file),
             "%s/%s", config_dir, CONFIG_FILENAME_A11Y);
     if (config_load_a11y(config_a11y_file, &(config->a11y)) != 0) {
         LOGGER_DEBUG("Accessibility (a11y) configuration not found or" \

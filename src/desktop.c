@@ -443,7 +443,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
      * is the desired, harmless behavior here anyway. */
     if (config->base.screens[screen_id].desktops[desktop_id].name[0] ==
         '\0') {
-        snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME,
+        (void) snprintf(desktop->name, WM_DESKTOP_MAX_LENGTH_NAME,
                 "Desktop %u", desktop_id);
     } else {
         safe_strncpy(desktop->name,

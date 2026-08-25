@@ -61,12 +61,12 @@ static void s_spawn_child(char **argv, const spawn_opts_td *opts,
     int child_errno;
     ssize_t write_result;
 
-    close(err_pipe[0]);
+    (void) close(err_pipe[0]);
 
     /* The child has no business holding the window manager's own
      * socket to the X server open once it becomes another program */
     if (opts->connection != NULL) {
-        close(xcb_get_file_descriptor(opts->connection));
+        (void) close(xcb_get_file_descriptor(opts->connection));
     }
 
     /* Set here, in the child, and not in the parent after 'fork':
@@ -148,8 +148,8 @@ int spawn_command(const char *command, const spawn_opts_td *opts,
     pid = fork();
     if (pid < 0) {
         LOGGER_ERROR("Failed to fork for command '%s'", command);
-        close(err_pipe[0]);
-        close(err_pipe[1]);
+        (void) close(err_pipe[0]);
+        (void) close(err_pipe[1]);
         wordfree(&words);
         return 1;
     }
@@ -158,10 +158,10 @@ int spawn_command(const char *command, const spawn_opts_td *opts,
         s_spawn_child(words.we_wordv, opts, err_pipe);
     }
 
-    close(err_pipe[1]);
+    (void) close(err_pipe[1]);
     exec_errno = 0;
     nread = read(err_pipe[0], &exec_errno, sizeof(exec_errno));
-    close(err_pipe[0]);
+    (void) close(err_pipe[0]);
     wordfree(&words);
 
     if (nread > 0) {

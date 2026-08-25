@@ -162,7 +162,7 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
     memset(rules, 0, sizeof(*rules));
 
     config_resolve_dir(config_dir_prefix, config_dir);
-    snprintf(rules_file, sizeof(rules_file), "%s/%s",
+    (void) snprintf(rules_file, sizeof(rules_file), "%s/%s",
             config_dir, CONFIG_FILENAME_RULES);
 
     if (json_load_config(rules_file, &json) != 0 || json == NULL) {

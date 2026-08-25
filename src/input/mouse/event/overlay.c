@@ -90,7 +90,7 @@ static void s_mouse_handle_open_ctxmenu_click(xcb_connection_t *connection,
         (void) handle_click(connection, surface, mw,
                 (int) event->root_y, config);
     } else {
-        close();
+        (void) close();
     }
     im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
             event->time);

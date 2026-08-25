@@ -326,7 +326,7 @@ static void s_search_refilter(void)
         r->client = c;
         r->desktop = s_search.candidate_desktops[i];
         r->score = score;
-        snprintf(r->name, sizeof(r->name), "%s", name);
+        (void) snprintf(r->name, sizeof(r->name), "%s", name);
         s_search_build_hints(c, r->hints, sizeof(r->hints));
         s_search.result_count++;
     }
@@ -588,7 +588,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
             : cfg->theme.search.unselected.font);
     text_renderer_set_color(fg, bg);
 
-    snprintf(name_buf, sizeof(name_buf), "%s", r->name);
+    (void) snprintf(name_buf, sizeof(name_buf), "%s", r->name);
     if (safe_right > text_x) {
         uint16_t name_max = (uint16_t) (safe_right - text_x);
 
@@ -624,7 +624,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
              * is pinned across all of them") never look identical to
              * someone reading the results. */
             if (r->client != NULL && client_is_pinned(r->client)) {
-                snprintf(desk_buf, sizeof(desk_buf), "%s",
+                (void) snprintf(desk_buf, sizeof(desk_buf), "%s",
                         _(STR_SEARCH_ALL_DESKTOPS));
             } else {
                 uint32_t row = 0u;
@@ -647,22 +647,22 @@ static void s_search_draw_row(xcb_connection_t *connection,
 
                 if (r->desktop->name[0] != '\0') {
                     if (show_row_col) {
-                        snprintf(desk_buf, sizeof(desk_buf),
+                        (void) snprintf(desk_buf, sizeof(desk_buf),
                                 "[%u (%u, %u)] -- %s",
                                 r->desktop->id, row, col,
                                 r->desktop->name);
                     } else {
-                        snprintf(desk_buf, sizeof(desk_buf),
+                        (void) snprintf(desk_buf, sizeof(desk_buf),
                                 "[%u] -- %s",
                                 r->desktop->id, r->desktop->name);
                     }
                 } else {
                     if (show_row_col) {
-                        snprintf(desk_buf, sizeof(desk_buf),
+                        (void) snprintf(desk_buf, sizeof(desk_buf),
                                 "[%u (%u, %u)]",
                                 r->desktop->id, row, col);
                     } else {
-                        snprintf(desk_buf, sizeof(desk_buf), "[%u]",
+                        (void) snprintf(desk_buf, sizeof(desk_buf), "[%u]",
                                 r->desktop->id);
                     }
                 }
@@ -707,7 +707,7 @@ static void s_search_draw_bar(xcb_connection_t *connection,
             (int16_t) WM_SEARCH_PAD_Y, (uint16_t) WM_SEARCH_BAR_HEIGHT,
             (uint16_t) WM_SEARCH_WIDTH);
 
-    snprintf(shown, sizeof(shown), "%s_", s_search.query);
+    (void) snprintf(shown, sizeof(shown), "%s_", s_search.query);
 
     (void) text_renderer_use_font(connection,
             cfg->theme.search.input.font);

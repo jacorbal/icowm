@@ -204,7 +204,7 @@ static void s_client_close(int idx)
     if (s_clients[idx].fd == -1) {
         return;
     }
-    close(s_clients[idx].fd);
+    (void) close(s_clients[idx].fd);
     s_clients[idx].fd = -1;
     s_clients[idx].buf_len = 0;
     s_clients[idx].subscribed_events = 0;
@@ -324,7 +324,7 @@ static void s_new_client_accept(void)
     if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
         LOGGER_WARNING("Failed to make an accepted IPC connection" \
                 " non-blocking: %s", strerror(errno));
-        close(fd);
+        (void) close(fd);
         return;
     }
 
@@ -338,7 +338,7 @@ static void s_new_client_accept(void)
     if (slot == -1) {
         LOGGER_WARNING("IPC client limit (%d) reached;" \
                 " dropping a new connection", IPC_MAX_CLIENTS);
-        close(fd);
+        (void) close(fd);
         return;
     }
 
@@ -475,7 +475,7 @@ int ipc_init(void)
         s_clients_initialized = true;
     }
 
-    snprintf(tmp_fallback, sizeof(tmp_fallback), "%s%u",
+    (void) snprintf(tmp_fallback, sizeof(tmp_fallback), "%s%u",
             IPC_TMP_FALLBACK_PREFIX, (unsigned int) getuid());
 
     xdg_resolve_dir(XDG_DIR_RUNTIME, tmp_fallback,
@@ -539,14 +539,14 @@ int ipc_init(void)
     if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
         LOGGER_ERROR("Failed to bind IPC socket to '%s': %s",
                 socket_path, strerror(errno));
-        close(fd);
+        (void) close(fd);
         return -1;
     }
 
     if (listen(fd, IPC_LISTEN_BACKLOG) != 0) {
         LOGGER_ERROR("Failed to listen on IPC socket '%s': %s",
                 socket_path, strerror(errno));
-        close(fd);
+        (void) close(fd);
         (void) unlink(socket_path);
         return -1;
     }
@@ -570,14 +570,14 @@ void ipc_destroy(void)
 
     for (int i = 0; i < IPC_MAX_CLIENTS; ++i) {
         if (s_clients[i].fd != -1) {
-            close(s_clients[i].fd);
+            (void) close(s_clients[i].fd);
             s_clients[i].fd = -1;
             s_clients[i].buf_len = 0;
             s_clients[i].subscribed_events = 0;
         }
     }
 
-    close(s_ipc_fd);
+    (void) close(s_ipc_fd);
     s_ipc_fd = -1;
 
     if (s_ipc_socket_path[0] != '\0') {

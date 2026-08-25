@@ -1159,9 +1159,9 @@ client_td *client_init(xcb_connection_t *connection,
     }
 
     /* Default string values */
-    snprintf(client->info.name,
+    (void) snprintf(client->info.name,
             CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
-    snprintf(client->info.visible_name,
+    (void) snprintf(client->info.visible_name,
             CONFIG_MAX_LENGTH_NAME - 1, "Window %#x", window);
 
     /* Read '_NET_WM_NAME', which is UTF-8, and fall back to

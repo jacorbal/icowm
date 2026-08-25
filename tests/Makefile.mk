@@ -266,6 +266,9 @@ $(O_DIR)/tests/render/test_surface: $(TESTS_DIR)/render/test_surface.c \
 
 $(O_DIR)/tests/policy/test_placement: $(TESTS_DIR)/policy/test_placement.c \
 		$(S_DIR)/policy/placement/window.c \
+		$(S_DIR)/policy/placement/monitor.c \
+		$(S_DIR)/policy/placement/rect.c \
+		$(S_DIR)/policy/placement/smart.c \
 		$(S_DIR)/policy/placement/score.c \
 		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/adt/cdlist.c \

@@ -302,7 +302,7 @@ int session_load(session_td *session, const char *config_dir_prefix)
     }
 
     config_resolve_dir(config_dir_prefix, config_dir);
-    snprintf(session_file, sizeof(session_file), "%s/%s",
+    (void) snprintf(session_file, sizeof(session_file), "%s/%s",
             config_dir, CONFIG_FILENAME_SESSION);
 
     if (json_load_config(session_file, &json) != 0 || json == NULL) {

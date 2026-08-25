@@ -124,21 +124,21 @@ void popup_show(xcb_connection_t *connection,
      * fixed guess wide enough for the longest line this popup could
      * ever show) reliably wastes space for every shorter one, since
      * most lines never come close to the longest possible. */
-    snprintf(s_popup_lines[0], sizeof(s_popup_lines[0]),
+    (void) snprintf(s_popup_lines[0], sizeof(s_popup_lines[0]),
             "name=%s class=%s instance=%s",
             name, class_name, instance_name);
-    snprintf(s_popup_lines[1], sizeof(s_popup_lines[1]),
+    (void) snprintf(s_popup_lines[1], sizeof(s_popup_lines[1]),
             "frame_id=%#x client_id=%#x desktop_id=%u surface_id=%u" \
             " monitor_id=%u",
             client->frame, client->id, desktop->id, surface->id,
             monitor_id);
-    snprintf(s_popup_lines[2], sizeof(s_popup_lines[2]),
+    (void) snprintf(s_popup_lines[2], sizeof(s_popup_lines[2]),
             "geom=%ux%u%+d%+d",
             client->layout.geometry.cur.dim.w,
             client->layout.geometry.cur.dim.h,
             client->layout.geometry.cur.pos.x,
             client->layout.geometry.cur.pos.y);
-    snprintf(s_popup_lines[3], sizeof(s_popup_lines[3]),
+    (void) snprintf(s_popup_lines[3], sizeof(s_popup_lines[3]),
             "flags=%#x state=%#x",
             client->properties.flags, client->properties.state);
 

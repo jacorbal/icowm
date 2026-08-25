@@ -78,18 +78,18 @@ void notify_desktop_show(xcb_connection_t *connection,
 
     if (desktop_name != NULL && desktop_name[0] != '\0') {
         if (show_row_col) {
-            snprintf(text, sizeof(text), "[%u (%u, %u)] -- %s",
+            (void) snprintf(text, sizeof(text), "[%u (%u, %u)] -- %s",
                     desktop_idx, row, col, desktop_name);
         } else {
-            snprintf(text, sizeof(text),
+            (void) snprintf(text, sizeof(text),
                     "[%u] -- %s", desktop_idx, desktop_name);
         }
     } else {
         if (show_row_col) {
-            snprintf(text, sizeof(text), "[%u (%u, %u)]",
+            (void) snprintf(text, sizeof(text), "[%u (%u, %u)]",
                     desktop_idx, row, col);
         } else {
-            snprintf(text, sizeof(text),
+            (void) snprintf(text, sizeof(text),
                     "[%u]", desktop_idx);
         }
     }

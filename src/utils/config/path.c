@@ -187,14 +187,14 @@ void xdg_resolve_dir(enum xdg_dir_kind_e kind,
     char temp_path[CONFIG_MAX_LENGTH_PATH_BASE];
 
     if (xdg_value != NULL && xdg_value[0] != '\0') {
-        snprintf(temp_path, sizeof(temp_path), "%s/%s",
+        (void) snprintf(temp_path, sizeof(temp_path), "%s/%s",
                 xdg_value, def->xdg_suffix);
     } else if (def->home_relative != NULL &&
             home != NULL && home[0] != '\0') {
-        snprintf(temp_path, sizeof(temp_path), "%s/%s",
+        (void) snprintf(temp_path, sizeof(temp_path), "%s/%s",
                 home, def->home_relative);
     } else {
-        snprintf(temp_path, sizeof(temp_path), "%s", final_fallback);
+        (void) snprintf(temp_path, sizeof(temp_path), "%s", final_fallback);
     }
 
     path_simplify(temp_path);

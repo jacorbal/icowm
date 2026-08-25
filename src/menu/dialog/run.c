@@ -124,7 +124,7 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
     result = desktop_action_process_launch(desktop, command);
     if (result != 0) {
         char message[WM_RUN_COMMAND_MAX_LENGTH + 32];
-        snprintf(message, sizeof(message),
+        (void) snprintf(message, sizeof(message),
                 _(STR_RUN_COMMAND_NOT_FOUND_FMT), command);
         dialog_info_show(connection, surface, cfg, message,
                 MENU_MSG_LEVEL_INFO);
@@ -356,7 +356,7 @@ void run_draw(xcb_connection_t *connection, const config_td *cfg)
                 WM_RUN_PAD_Y + WM_RUN_BAR_HEIGHT - 7 },
             prompt);
 
-    snprintf(shown, sizeof(shown), "%s_", s_run.command);
+    (void) snprintf(shown, sizeof(shown), "%s_", s_run.command);
 
     (void) text_renderer_use_font(connection,
             cfg->theme.prompt.input.font);

@@ -62,9 +62,9 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
         return;
     }
 
-    fflush(fp_a);
+    (void) fflush(fp_a);
     if (dual) {
-        fflush(fp_b);
+        (void) fflush(fp_b);
     }
 
     for (unsigned int i = 0; i < logger_buffer->count; ++i) {
@@ -75,9 +75,9 @@ static void s_logger_buffer_flush(struct logger_buffer_s *logger_buffer,
         free(logger_buffer->messages[i]);
     }
 
-    fflush(fp_a);
+    (void) fflush(fp_a);
     if (dual) {
-        fflush(fp_b);
+        (void) fflush(fp_b);
     }
 
     logger_buffer->count = 0;
@@ -119,7 +119,7 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz)
 
     gettimeofday(&tv, NULL);
     if (localtime_r(&tv.tv_sec, &tm_info) == NULL) {
-        snprintf(buffer, buffer_sz, "Timestamp error");
+        (void) snprintf(buffer, buffer_sz, "Timestamp error");
         return;
     }
 
@@ -151,7 +151,7 @@ static void s_timestamp_fmt(char *buffer, size_t buffer_sz)
     tz_hours = (int) tz_offset_seconds / 3600;
     tz_minutes = ((int) tz_offset_seconds % 3600) / 60;
 
-    snprintf(buffer, buffer_sz,
+    (void) snprintf(buffer, buffer_sz,
             "%04d-%02d-%02d %02d:%02d:%02d.%06ld %c%02d%02d",
             tm_info.tm_year + 1900,
             tm_info.tm_mon + 1,
@@ -274,11 +274,11 @@ int logger_stop(void)
         free(logger->buffer);
     } else {
         if (logger->file.fp_out) {
-            fflush(logger->file.fp_out);
+            (void) fflush(logger->file.fp_out);
         }
         if (logger->file.fp_err &&
                 logger->file.fp_err != logger->file.fp_out) {
-            fflush(logger->file.fp_err);
+            (void) fflush(logger->file.fp_err);
         }
     }
 

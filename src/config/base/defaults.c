@@ -121,7 +121,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
                 j < config_base->screens[i].desktop_count;
                 ++j) {
             char desktop_name[CONFIG_MAX_LENGTH_NAME];
-            snprintf(desktop_name, sizeof(desktop_name),
+            (void) snprintf(desktop_name, sizeof(desktop_name),
                     "Desktop %u", j);
             safe_strncpy(config_base->screens[i].desktops[j].name,
                 desktop_name, CONFIG_MAX_LENGTH_NAME);
