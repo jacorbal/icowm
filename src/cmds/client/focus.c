@@ -504,6 +504,14 @@ void ccmd_client_restore(client_td *client)
 /* Focus a client */
 void ccmd_client_focus(client_td *client)
 {
+    /* The timestamp both the focus request and the 'WM_TAKE_FOCUS'
+     * message further down carry.  'XCB_CURRENT_TIME' only when
+     * nothing has happened yet and there is genuinely nothing better:
+     * ICCCM forbids it for the message, but a window manager that has
+     * seen no input at all has no real timestamp to offer. */
+    const uint32_t focus_time = (client_last_user_time() != 0u)
+        ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
+
     if (client == NULL) {
         return;
     }
@@ -568,11 +576,11 @@ void ccmd_client_focus(client_td *client)
      * which left nothing to give a desktop's own keyboard focus
      * anywhere valid once its only client was shaded and the desktop
      * was left and returned to. */
-    if (client->hints_icccm.hints.has_input_hint) {
+    if (client->hints_icccm.hints.accepts_input) {
         xcb_window_t focus_win = (client_is_shaded(client) &&
                 client->frame != 0) ? client->frame : client->window;
         xcb_set_input_focus(client->connection, XCB_INPUT_FOCUS_PARENT,
-                            focus_win, XCB_CURRENT_TIME);
+                            focus_win, focus_time);
     }
 
     /* ICCCM §4.1.8/§2.8: colormap focus follows input focus here, the
@@ -595,7 +603,16 @@ void ccmd_client_focus(client_td *client)
 
     /* ICCCM §4.2.7: send 'WM_TAKE_FOCUS' 'ClientMessage' when the
      * client has registered that protocol.  This covers both the
-     * Locally Active and Globally Active input models. */
+     * Locally Active and Globally Active input models.
+     *
+     * The timestamp is the real one, never 'CurrentTime', which
+     * §4.1.7 forbids here in as many words: the client is to echo
+     * this value back in its own 'SetInputFocus', and is itself
+     * forbidden from using 'CurrentTime' there, so sending it one
+     * leaves it with nothing valid to answer with.  A Locally or
+     * Globally Active client handed 'CurrentTime' may simply decline
+     * to take focus, which looks from the outside like a titlebar
+     * that lights up while the keyboard goes elsewhere. */
     if (client->hints_icccm.protocols.has_take_focus &&
             client->ewmh != NULL) {
         xcb_client_message_event_t ev;
@@ -605,7 +622,7 @@ void ccmd_client_focus(client_td *client)
         ev.window = client->window;
         ev.type = client->ewmh->WM_PROTOCOLS;
         ev.data.data32[0] = client->hints_icccm.protocols.take_focus_atom;
-        ev.data.data32[1] = XCB_CURRENT_TIME;
+        ev.data.data32[1] = focus_time;
         xcb_send_event(client->connection, 0, client->window,
                 XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
     }

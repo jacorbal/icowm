@@ -515,10 +515,6 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
     const bool is_focused = ctx->is_focused;
     const bool hide_decoration = ctx->hide_decoration;
     const bool titlebar_visible = ctx->titlebar_visible;
-    uint16_t left;
-    uint16_t right;
-    uint16_t inner_w;
-    uint16_t title_h;
     uint16_t mask;
     int32_t values[4];
 
@@ -549,7 +545,11 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
     if (target != client->window) {
         uint16_t top;
         uint16_t bottom;
+        uint16_t left;
+        uint16_t right;
         uint16_t inner_h;
+        uint16_t inner_w;
+        uint16_t title_h;
 
         /* Forced to zero outright for a fullscreen client, rather
          * than trusting 'frame_extents' to already be zero: this

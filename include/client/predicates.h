@@ -182,7 +182,7 @@
  * @note Complexity: @e O(1)
  */
 #define client_accepts_input_focus(w) \
-    ((w)->hints_icccm.hints.has_input_hint || \
+    ((w)->hints_icccm.hints.accepts_input || \
      (w)->hints_icccm.protocols.has_take_focus)
 
 /**

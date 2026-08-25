@@ -67,6 +67,21 @@
 
 
 /**
+ * @brief Timestamp of the most recent genuine user input seen
+ *
+ * Kept for the focus-granting path, which ICCCM requires to carry a
+ * real timestamp and forbids from carrying @c CurrentTime, but which
+ * is reached from places that hold no event of their own: a fallback
+ * after a window closed, a desktop switch, an activation request.
+ *
+ * File scope, and updated by the event loop from every real key or
+ * button press, which is how Openbox keeps its own @c event_curtime
+ * for the same purpose.
+ */
+static uint32_t s_last_user_time = 0u;
+
+
+/**
  * @brief Free every heap-owned client field
  *
  * @param client Client whose owned buffers should be released
@@ -111,7 +126,7 @@ static void s_client_init_common(client_td *client,
     client->ewmh = ewmh;
     client->config = config;
     client->process.pid = -1;
-    client->hints_icccm.hints.has_input_hint = true;
+    client->hints_icccm.hints.accepts_input = true;
     client->icon_pos.x = -1;
     client->icon_pos.y = -1;
     client->layout.gravity =
@@ -331,7 +346,7 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
                 xcb_icccm_get_wm_hints(connection, window),
                 &wm_hints, NULL)) {
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
-            client->hints_icccm.hints.has_input_hint =
+            client->hints_icccm.hints.accepts_input =
                 (wm_hints.input != 0);
         }
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_STATE &&
@@ -913,6 +928,22 @@ void client_destroy(client_td *client)
 
 /* Refresh a client's own user-time from a genuine input event that
  * just reached it */
+/* Record the timestamp of a genuine user input event */
+void client_note_user_time(uint32_t time)
+{
+    if (client_user_time_is_newer(time, s_last_user_time)) {
+        s_last_user_time = time;
+    }
+}
+
+
+/* Most recent genuine user input timestamp seen */
+uint32_t client_last_user_time(void)
+{
+    return s_last_user_time;
+}
+
+
 void client_update_user_time(client_td *client, uint32_t time)
 {
     if (client == NULL) {

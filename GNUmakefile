@@ -181,6 +181,7 @@ endif
 STRIP ?= 0
 ifeq ($(STRIP), 1)
     LDFLAGS += -s
+    MSG_LDFLAGS += -s
 endif
 
 # Use 'make COMPACT=1' to shrink several compile-time array capacities

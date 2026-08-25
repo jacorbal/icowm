@@ -762,7 +762,6 @@ static int s_count_appgroups_needed(surface_td *surface, int desktop_count)
 static void s_winlist_build_desktop_submenus(surface_td *surface,
         int desktop_count, int *n_out)
 {
-    const desktop_td *desktop;
     const uint32_t cur_did = surface->desktop_cur;
     int n = *n_out;
 
@@ -771,6 +770,7 @@ static void s_winlist_build_desktop_submenus(surface_td *surface,
     uint32_t did = 0u;
 
     cdlist_foreach(surface->desktops, dnode) {
+        const desktop_td *desktop;
         winlist_entry_data_td *data;
         int desktop_n;
         bool is_cur;
@@ -1034,7 +1034,6 @@ void winlist_show(xcb_connection_t *connection,
         surface_td *surface, struct position_s pos,
         const config_td *config)
 {
-    const desktop_td *desktop;
     int n;
     int desktop_count;
     int needed_appgroups;
@@ -1059,8 +1058,10 @@ void winlist_show(xcb_connection_t *connection,
     s_appgroup_used = 0;
     memset(s_root_entries, 0, sizeof(s_root_entries));
 
-    desktop_count = (surface->desktop_count < (uint32_t) WINLIST_MAX_DESKTOPS)
-        ? (int) surface->desktop_count : WINLIST_MAX_DESKTOPS;
+    desktop_count =
+        (surface->desktop_count < (uint32_t) WINLIST_MAX_DESKTOPS)
+        ? (int) surface->desktop_count
+        : WINLIST_MAX_DESKTOPS;
 
     /* Sized to 'desktop_count' itself, computed fresh just above from
      * 'surface->desktop_count' as it stands at this exact moment,
@@ -1132,7 +1133,7 @@ void winlist_show(xcb_connection_t *connection,
      * for "Send to desktop" and desktop-cycling key bindings; see
      * 'wincmenu.c' and 'input/kbd/bind.c'. */
     if (desktop_count <= 1) {
-        desktop = surface_desktop_get(surface, 0u);
+        const desktop_td *desktop = surface_desktop_get(surface, 0u);
         if (desktop != NULL) {
             s_build_desktop_entries(surface, 0u, s_desktop_entries[0],
                     &n, NULL);

@@ -69,7 +69,7 @@ void focus_order_add(client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients
  */
-void focus_order_remove(client_td *client);
+void focus_order_remove(const client_td *client);
 
 /**
  * @brief Move a client to the front of the focus order

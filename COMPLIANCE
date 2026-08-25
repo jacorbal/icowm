@@ -227,7 +227,12 @@ was individually confirmed by reading its handling code.
         distinguished from one left to the window manager to decide.
 - [`+`] `WM_HINTS` (2.0)
         Input model, initial state, window group, and urgency are all
-        read (`src/client.c`); a legacy `icon_pixmap`/`icon_mask` bitmap
+        read (`src/client.c`).  All four input models of §4.1.7 are
+        honored separately: `SetInputFocus` is issued only for a client
+        whose `input` field is true, Passive and Locally Active, and
+        `WM_TAKE_FOCUS` is sent to any client registering that protocol,
+        which covers Locally and Globally Active, so a No Input client
+        receives neither.  A legacy `icon_pixmap`/`icon_mask` bitmap
         icon is read as a fallback when `_NET_WM_ICON` is absent
         (`src/render/wmicon.c`).
 - [`+`] `WM_CLASS` (2.0)
@@ -248,6 +253,17 @@ was individually confirmed by reading its handling code.
         `WM_DELETE_WINDOW` and `WM_TAKE_FOCUS` are both recognized
         alongside `_NET_WM_PING` and `_NET_WM_SYNC_REQUEST`
         (`src/client.c`).
+
+        The `WM_TAKE_FOCUS` message carries a real timestamp and never
+        `CurrentTime`, which §4.1.7 forbids in as many words: the client
+        is to echo that value back in its own `SetInputFocus`, and is
+        itself forbidden from using `CurrentTime` there, so a Locally or
+        Globally Active client sent one is left with nothing valid to
+        answer with.  The timestamp used is that of the most recent
+        genuine key or button press, kept by `client_note_user_time`
+        (`src/client.c`) since focus is also granted from places holding
+        no event of their own, such as a fallback after a window closed
+        or a desktop switch.
 - [`+`] `WM_CLIENT_LEADER` (2.0)
         Read to cluster windows belonging to the same application for
         placement purposes, together with `WM_HINTS`' window group

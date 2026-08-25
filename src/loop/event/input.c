@@ -64,6 +64,12 @@ static void s_loop_event_note_real_input(const loop_ctx_td *ctx,
         return;
     }
 
+    /* Noted before the lookup, and regardless of whether it finds
+     * anything: the timestamp is a fact about the event, and the
+     * focus-granting path needs one whether or not this particular
+     * press landed on a managed client */
+    client_note_user_time(time);
+
     client = lookup_find_client(ctx->surfaces, window, NULL, NULL);
     client_update_user_time(client, time);
 }

@@ -131,9 +131,9 @@ void focus_order_add(client_td *client)
 
 
 /* Forget a client that is no longer managed */
-void focus_order_remove(client_td *client)
+void focus_order_remove(const client_td *client)
 {
-    cdlist_item_td *node;
+    const cdlist_item_td *node;
     cdlist_item_td *prev = NULL;
     void *removed = NULL;
 
@@ -153,7 +153,7 @@ void focus_order_remove(client_td *client)
 /* Move a client to the front of the focus order */
 void focus_order_to_top(client_td *client)
 {
-    cdlist_item_td *node;
+    const cdlist_item_td *node;
     cdlist_item_td *prev = NULL;
 
     if (client == NULL || !s_focus_order_ensure()) {

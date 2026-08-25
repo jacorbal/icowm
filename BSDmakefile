@@ -251,6 +251,7 @@ LDFLAGS += ${LTO_FLAG} -Wl,-z,relro,-z,now -Wl,-z,noexecstack -pie
 STRIP ?= 0
 .if ${STRIP} == "1"
 LDFLAGS += -s
+MSG_LDFLAGS += -s
 .endif
 
 # Use 'make COMPACT=1' to shrink several compile-time array capacities

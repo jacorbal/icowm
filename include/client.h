@@ -453,8 +453,23 @@ struct client_s {
          * @brief ICCCM @c WM_HINTS fields
          */
         struct {
-            bool has_input_hint;      /**< Client accepts input
-                                           (default true) */
+            /**
+              * @brief Value of the @c input field of @c WM_HINTS
+              *
+              * True when the client asks the window manager to set
+              * the input focus to its own toplevel for it, which
+              * ICCCM §4.1.7 calls the Passive and Locally Active
+              * models; false when it would rather do that itself on
+              * receiving @c WM_TAKE_FOCUS, the No Input and Globally
+              * Active models.  Defaults to true, as ICCCM says an
+              * absent field does.
+              *
+              * Named for what it holds and not for whether the hint
+              * was present: reading it as presence and testing the
+              * flag instead would invert the very thing ICCCM asks
+              * about here.
+              */
+            bool accepts_input;
             bool is_initial_iconic;   /**< Map iconic for @c WM_HINTS
                                            initial state */
             xcb_window_t group_leader; /**< Window group leader, or
@@ -633,6 +648,39 @@ void client_destroy(client_td *client);
  * @note Complexity: @e O(1)
  */
 void client_update_user_time(client_td *client, uint32_t time);
+
+/**
+ * @brief Record the timestamp of a genuine user input event
+ *
+ * Kept apart from any one client, because what needs it is the
+ * focus-granting path: ICCCM §4.1.7 requires the @c WM_TAKE_FOCUS
+ * message to carry a valid timestamp and says in as many words that
+ * it must not be @c CurrentTime, since the client is to echo that
+ * value back in its own @c SetInputFocus and is itself forbidden from
+ * using @c CurrentTime there.  Focus is granted from places holding
+ * no event of their own, a fallback after a window closed or a
+ * desktop switch among them, and this is what they use.
+ *
+ * @param time X server timestamp of the event, straight off the
+ *             @c xcb_key_press_event_t or
+ *             @c xcb_button_press_event_t
+ *
+ * @note No-op for a timestamp not actually newer than the one held,
+ *       guarding against events arriving out of order
+ * @note Complexity: @e O(1)
+ */
+void client_note_user_time(uint32_t time);
+
+/**
+ * @brief Most recent genuine user input timestamp seen
+ *
+ * @return The timestamp, or @c 0 when no real input has arrived yet,
+ *         in which case a caller has nothing better than
+ *         @c XCB_CURRENT_TIME to fall back on
+ *
+ * @note Complexity: @e O(1)
+ */
+uint32_t client_last_user_time(void);
 
 /**
  * @brief Apply a client's own themed border color and width to its own
