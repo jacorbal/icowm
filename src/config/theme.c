@@ -981,12 +981,12 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->menu.selected.border.width = 0u;
 
     safe_strncpy(theme->menu.label.font,
-            "fixed", sizeof(theme->menu.label.font));
+            "fixed bold", sizeof(theme->menu.label.font));
 
-    /* WCAG contrast ratio of 11.21:1 against this background, well past
+    /* WCAG contrast ratio of 7.04:1 against this background, just past
      * the 7:1 AAA threshold */
     theme->menu.label.color.background =
-        json_hex2uint32("D0D9E5");
+        json_hex2uint32("9AAEC8");
     theme->menu.label.color.foreground =
         json_hex2uint32("1B222E");
     theme->menu.label.border.color = json_hex2uint32("4E6076");
@@ -1007,7 +1007,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->menu.show_pixmaps = true;
 
     safe_strncpy(theme->search.input.font,
-            "fixed", sizeof(theme->search.input.font));
+            "fixed bold", sizeof(theme->search.input.font));
     theme->search.input.color.background = json_hex2uint32("9AAEC8");
     theme->search.input.color.foreground = json_hex2uint32("1B222E");
     theme->search.input.opacity = 100u;
@@ -1032,7 +1032,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->prompt.label.color.foreground = json_hex2uint32("1B222E");
     theme->prompt.label.opacity = 100u;
     safe_strncpy(theme->prompt.input.font,
-            "fixed", sizeof(theme->prompt.input.font));
+            "fixed bold", sizeof(theme->prompt.input.font));
     theme->prompt.input.color.background = json_hex2uint32("D0D9E5");
     theme->prompt.input.color.foreground = json_hex2uint32("1B222E");
     theme->prompt.input.opacity = 100u;

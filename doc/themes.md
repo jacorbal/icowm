@@ -67,22 +67,22 @@ the characters `-` or `_`.
 
 Appearance settings for managed windows.
 
-| Key            | Type    | Default | Description |
-|----------------|---------|---------|-------------|
+| Key            | Type    | Default | Description                                                                                                                                      |
+|----------------|---------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------|
 | `is-decorated` | boolean | `true`  | When `false`, windows start without any decoration (no title bar, no themed border).  Equivalent to setting `titlebar.height` to `0`; see below. |
 
 #### `window.titlebar`
 
-| Key                  | Type             | Default            | Description |
-|----------------------|------------------|--------------------|-------------|
-| `height`             | integer          | `19`               | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s value. |
-| `alignment`          | string           | `"left"`           | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`. |
-| `padding.horizontal` | integer          | `2`                | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text. |
-| `padding.vertical`   | integer          | `2`                | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
-| `buttons.left`       | array of strings | `["pin", "layer"]` | Buttons drawn left-to-right starting at the frame's left edge. |
-| `buttons.right`      | array of strings | `["iconize", "hide", "shade", "maximize", "fullscreen", "close"]` | Buttons drawn right-to-left starting at the frame's right edge. |
-| `buttons.color.on`   | string           | `"#253040"`        | Color for a button whose state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button. |
-| `buttons.color.off`  | string           | `"#4A5566"`        | Color for a button otherwise, i.e., not engaged. |
+| Key                  | Type             | Default                                     | Description                                                                                                                                                                                                                                              |
+|----------------------|------------------|---------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `height`             | integer          | `22`                                        | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s value.                                   |
+| `alignment`          | string           | `"center"`                                  | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`.                                                                                                                                         |
+| `padding.horizontal` | integer          | `2`                                         | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text.                                                                                                             |
+| `padding.vertical`   | integer          | `2`                                         | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
+| `buttons.left`       | array of strings | `['pin', 'layer']`                          | Buttons drawn left-to-right starting at the frame's left edge.                                                                                                                                                                                           |
+| `buttons.right`      | array of strings | `['close', 'maximize', 'shade', 'iconize']` | Buttons drawn right-to-left starting at the frame's right edge.                                                                                                                                                                                          |
+| `buttons.color.on`   | string           | `"#142335"`                                 | Color for a button whose state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button.                                                                                                              |
+| `buttons.color.off`  | string           | `"#4E6076"`                                 | Color for a button otherwise, i.e., not engaged.                                                                                                                                                                                                         |
 
 Accepted button names, for both `buttons.left` and `buttons.right`, are:
 `"pin"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`, `"maximize"`,
@@ -104,13 +104,13 @@ drawn at all rather than needing a separate color for that case.
 Appearance of the focused window (`active`) and of windows that do not
 have focus (`inactive`).  Both share the same shape:
 
-| Key                | Type    | Default (active) | Default (inactive) | Description |
-|--------------------|---------|------------------|--------------------|-------------|
-| `font`             | string  | `"fixed bold"`   | `"fixed"`          | Title bar font (see note below). |
-| `color.background` | string  | `"#9AAEC8"`      | `"#D0D9E5"`        | Title bar background color. |
-| `color.foreground` | string  | `"#253040"`      | `"#4A5566"`        | Title bar text color. |
-| `border.color`     | string  | `"#4A5566"`      | `"#7F9AB6"`        | Border color. |
-| `border.width`     | integer | `2`              | `2`                | Border thickness in pixels. |
+| Key                | Type    | Default (active) | Default (inactive) | Description                                                                                                                                                                                                                                                                                                                               |
+|--------------------|---------|------------------|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `font`             | string  | `"fixed bold"`   | `"fixed"`          | Title bar font (see note below).                                                                                                                                                                                                                                                                                                          |
+| `color.background` | string  | `"#9AAEC8"`      | `"#D0D9E5"`        | Title bar background color.                                                                                                                                                                                                                                                                                                               |
+| `color.foreground` | string  | `"#1B222E"`      | `"#3A4351"`        | Title bar text color.                                                                                                                                                                                                                                                                                                                     |
+| `border.color`     | string  | `"#22272F"`      | `"#1D2732"`        | Border color.                                                                                                                                                                                                                                                                                                                             |
+| `border.width`     | integer | `2`              | `2`                | Border thickness in pixels.                                                                                                                                                                                                                                                                                                               |
 | `opacity`          | integer | `100`            | `100`              | Desired opacity, 0 to 100, published on the frame through `_NET_WM_WINDOW_OPACITY`.  IcoWM never composites anything itself, so this has no visible effect at all unless a compositing manager, e.g., picom, is also running and reading the property back off the window.  See `config.md` §7 for a per-window override in `rules.json`. |
 
 `border.width` need not match between `active` and `inactive`.  When
@@ -123,11 +123,11 @@ happen automatically.
 
 Appearance settings for iconified windows.
 
-| Key            | Type    | Default | Description |
-|----------------|---------|---------|-------------|
-| `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
+| Key            | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+|----------------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `show-pixmaps` | boolean | `true`  | When `true`, draws the client's `_NET_WM_ICON` image, centered in and clipped to the icon's square graphic area, above the caption (the two never overlap).  Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`.  Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another (not currently configurable from a JSON file, only at compile time).  The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again.  Forced to `false` automatically in restricted-memory mode (see `-M`), regardless of what this file says. |
-| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's top corners.  A filled square in the top-left when the client is sticky/pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal). |
+| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's top corners.  A filled square in the top-left when the client is sticky/pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 #### `icon.active` / `icon.inactive`
 
@@ -140,8 +140,8 @@ every other icon (`inactive`).
 |--------------------|---------|------------------|--------------------|
 | `font`             | string  | `"fixed bold"`   | `"fixed"`          |
 | `color.background` | string  | `"#9AAEC8"`      | `"#D0D9E5"`        |
-| `color.foreground` | string  | `"#253040"`      | `"#4A5566"`        |
-| `border.color`     | string  | `"#4A5566"`      | `"#7F9AB6"`        |
+| `color.foreground` | string  | `"#1B222E"`      | `"#3A4351"`        |
+| `border.color`     | string  | `"#22272F"`      | `"#1D2732"`        |
 | `border.width`     | integer | `1`              | `1`                |
 | `opacity`          | integer | `100`            | `100`              |
 
@@ -162,10 +162,10 @@ the target's position by however many pixels `cycle.border.width`
 happens to be, regardless of what `window.active`/`inactive` (or
 `icon.active`/`inactive`) themselves are configured to.
 
-| Key                  | Type    | Default     | Description |
-|----------------------|---------|-------------|-------------|
-| `cycle.border.color` | string  | `"#C9A227"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
-| `cycle.border.width` | integer | `4`         | Border width in pixels. |
+| Key                  | Type    | Default     | Description                                            |
+|----------------------|---------|-------------|--------------------------------------------------------|
+| `cycle.border.color` | string  | `"#E3C76E"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
+| `cycle.border.width` | integer | `4`         | Border width in pixels.                                |
 
 A theme that moves `window.active`/`inactive` away from this project's
 default color family should reconsider this field too, for the same
@@ -178,7 +178,7 @@ guaranteed to still stand out against a different one.
 ```json
 "cycle": {
     "border": {
-        "color": "#C9A227",
+        "color": "#E3C76E",
         "width": 4
     }
 }
@@ -191,19 +191,19 @@ above, applied to the systray dock itself, plus its height, each docked
 icon's size and padding, and the placement of the clock/battery text
 within it.
 
-| Key                | Type    | Default     |
-|--------------------|---------|-------------|
-| `font`             | string  | `"fixed"`   |
-| `color.background` | string  | `"#D0D9E5"` |
-| `color.foreground` | string  | `"#4A5566"` |
-| `border.color`     | string  | `"#7F9AB6"` |
-| `border.width`     | integer | `1`         |
-| `opacity`          | integer | `100`       |
-| `height`           | integer | `22`        |
-| `pixmap.size`      | integer | `24`        |
-| `pixmap.padding`   | integer | `4`         |
-| `text.gap`         | integer | `12`        |
-| `text.valign`      | string  | `"center"`  |
+| Key                | Type    | Default        |
+|--------------------|---------|----------------|
+| `font`             | string  | `"fixed bold"` |
+| `color.background` | string  | `"#D0D9E5"`    |
+| `color.foreground` | string  | `"#3A4351"`    |
+| `border.color`     | string  | `"#4E6076"`    |
+| `border.width`     | integer | `1`            |
+| `opacity`          | integer | `100`          |
+| `height`           | integer | `24`           |
+| `pixmap.size`      | integer | `24`           |
+| `pixmap.padding`   | integer | `2`            |
+| `text.gap`         | integer | `12`           |
+| `text.valign`      | string  | `"center"`     |
 
 `pixmap.size` is the side length, in pixels, every docked icon's embed
 window is forced to regardless of whatever size it originally requested;
@@ -230,13 +230,13 @@ vertical alignment are theme concerns.
 
 ```json
 "systray": {
-    "font": "fixed",
-    "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-    "border": { "color": "#7F9AB6", "width": 1 },
-    "height": 22,
+    "font": "fixed bold",
+    "color": { "background": "#D0D9E5", "foreground": "#3A4351" },
+    "border": { "color": "#4E6076", "width": 1 },
+    "height": 24,
     "pixmap": {
         "size": 24,
-        "padding": 4
+        "padding": 2
     },
     "text": {
         "gap": 12,
@@ -261,7 +261,7 @@ so it wants a more neutral, less attention-grabbing tone, and a darker
 one gives windows placed on top of it more contrast to stand out against
 than a light background would.  It still reads as the same overall
 blue-gray palette as the rest of the default theme, close to
-`window.active.color.foreground`'s `"#4A5566"`, rather than an unrelated
+`window.active.color.foreground`'s `"#3A4351"`, rather than an unrelated
 new hue.
 
 This value is used only when a desktop's entry in
@@ -304,23 +304,23 @@ border happens to be set to.
 |-------------------------------|---------|----------------|
 | `unselected.font`             | string  | `"fixed"`      |
 | `unselected.color.background` | string  | `"#D0D9E5"`    |
-| `unselected.color.foreground` | string  | `"#4A5566"`    |
-| `unselected.border.color`     | string  | `"#7F9AB6"`    |
-| `unselected.border.width`     | integer | `1`            |
-| `selected.font`               | string  | `"fixed bold"` |
+| `unselected.color.foreground` | string  | `"#3A4351"`    |
+| `unselected.border.color`     | string  | `"#4E6076"`    |
+| `unselected.border.width`     | integer | `0`            |
+| `selected.font`               | string  | `"fixed"`      |
 | `selected.color.background`   | string  | `"#9AAEC8"`    |
-| `selected.color.foreground`   | string  | `"#253040"`    |
-| `selected.border.color`       | string  | `"#4A5566"`    |
-| `selected.border.width`       | integer | `1`            |
-| `label.font`                  | string  | `"fixed"`      |
-| `label.color.background`      | string  | `"#D0D9E5"`    |
-| `label.color.foreground`      | string  | `"#7F9AB6"`    |
-| `label.border.color`          | string  | `"#7F9AB6"`    |
+| `selected.color.foreground`   | string  | `"#1B222E"`    |
+| `selected.border.color`       | string  | `"#22272F"`    |
+| `selected.border.width`       | integer | `0`            |
+| `label.font`                  | string  | `"fixed bold"` |
+| `label.color.background`      | string  | `"#9AAEC8"`    |
+| `label.color.foreground`      | string  | `"#1B222E"`    |
+| `label.border.color`          | string  | `"#4E6076"`    |
 | `label.border.width`          | integer | `0`            |
-| `disabled.color.foreground`   | string  | `"#A0A8B0"`    |
-| `separator.color`             | string  | `"#7F9AB6"`    |
-| `border.color`                | string  | `"#7F9AB6"`    |
-| `border.width`                | integer | `1`            |
+| `disabled.color.foreground`   | string  | `"#585F6A"`    |
+| `separator.color`             | string  | `"#4E6076"`    |
+| `border.color`                | string  | `"#4E6076"`    |
+| `border.width`                | integer | `2`            |
 | `opacity`                     | integer | `100`          |
 | `padding.horizontal`          | integer | `12`           |
 | `padding.vertical`            | integer | `4`            |
@@ -373,30 +373,30 @@ are unaffected either way.
 "menu": {
     "unselected": {
         "font": "fixed",
-        "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-        "border": { "color": "#7F9AB6", "width": 1 }
+        "color": { "background": "#D0D9E5", "foreground": "#3A4351" },
+        "border": { "color": "#4E6076", "width": 0 }
     },
     "selected": {
-        "font": "fixed bold",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" },
-        "border": { "color": "#4A5566", "width": 1 }
+        "font": "fixed",
+        "color": { "background": "#9AAEC8", "foreground": "#1B222E" },
+        "border": { "color": "#22272F", "width": 0 }
     },
     "label": {
-        "font": "fixed",
-        "color": { "background": "#D0D9E5", "foreground": "#7F9AB6" },
-        "border": { "color": "#7F9AB6", "width": 0 }
+        "font": "fixed bold",
+        "color": { "background": "#9AAEC8", "foreground": "#1B222E" },
+        "border": { "color": "#4E6076", "width": 0 }
     },
     "disabled": {
-        "color": { "foreground": "#A0A8B0" }
+        "color": { "foreground": "#585F6A" }
     },
     "separator": {
-        "color": "#7F9AB6"
+        "color": "#4E6076"
     },
     "padding": {
         "horizontal": 12,
         "vertical": 4
     },
-    "border": { "color": "#7F9AB6", "width": 1 },
+    "border": { "color": "#4E6076", "width": 2 },
     "show-pixmaps": true
 }
 ```
@@ -408,24 +408,24 @@ Applies to the quit-confirmation dialog and the generic message dialog.
 | Key                                  | Type    | Default        |
 |--------------------------------------|---------|----------------|
 | `color.background`                   | string  | `"#D0D9E5"`    |
-| `border.color`                       | string  | `"#7F9AB6"`    |
+| `border.color`                       | string  | `"#4E6076"`    |
 | `border.width`                       | integer | `2`            |
 | `opacity`                            | integer | `100`          |
-| `label.font`                         | string  | `"fixed"`      |
-| `label.color.foreground`             | string  | `"#4A5566"`    |
+| `label.font`                         | string  | `"fixed bold"` |
+| `label.color.foreground`             | string  | `"#3A4351"`    |
 | `label.padding.horizontal`           | integer | `12`           |
 | `label.padding.vertical`             | integer | `12`           |
 | `button.unselected.font`             | string  | `"fixed"`      |
 | `button.unselected.color.background` | string  | `"#D0D9E5"`    |
-| `button.unselected.color.foreground` | string  | `"#4A5566"`    |
-| `button.unselected.border.color`     | string  | `"#7F9AB6"`    |
+| `button.unselected.color.foreground` | string  | `"#3A4351"`    |
+| `button.unselected.border.color`     | string  | `"#4E6076"`    |
 | `button.unselected.border.width`     | integer | `1`            |
 | `button.selected.font`               | string  | `"fixed bold"` |
 | `button.selected.color.background`   | string  | `"#9AAEC8"`    |
-| `button.selected.color.foreground`   | string  | `"#253040"`    |
-| `button.selected.border.color`       | string  | `"#4A5566"`    |
+| `button.selected.color.foreground`   | string  | `"#1B222E"`    |
+| `button.selected.border.color`       | string  | `"#22272F"`    |
 | `button.selected.border.width`       | integer | `1`            |
-| `button.gap`                         | integer | `12`           |
+| `button.gap`                         | integer | `24`           |
 | `button.padding.horizontal`          | integer | `12`           |
 | `button.padding.vertical`            | integer | `6`            |
 
@@ -451,24 +451,24 @@ a wider `selected` font (bold by default) never looks off-center.
 ```json
 "dialog": {
     "color": { "background": "#D0D9E5" },
-    "border": { "color": "#7F9AB6", "width": 2 },
+    "border": { "color": "#4E6076", "width": 2 },
     "label": {
-        "font": "fixed",
-        "color": { "foreground": "#4A5566" },
+        "font": "fixed bold",
+        "color": { "foreground": "#3A4351" },
         "padding": { "horizontal": 12, "vertical": 12 }
     },
     "button": {
         "unselected": {
             "font": "fixed",
-            "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-            "border": { "color": "#7F9AB6", "width": 1 }
+            "color": { "background": "#D0D9E5", "foreground": "#3A4351" },
+            "border": { "color": "#4E6076", "width": 1 }
         },
         "selected": {
             "font": "fixed bold",
-            "color": { "background": "#9AAEC8", "foreground": "#253040" },
-            "border": { "color": "#4A5566", "width": 1 }
+            "color": { "background": "#9AAEC8", "foreground": "#1B222E" },
+            "border": { "color": "#22272F", "width": 1 }
         },
-        "gap": 12,
+        "gap": 24,
         "padding": { "horizontal": 12, "vertical": 6 }
     }
 }
@@ -486,16 +486,16 @@ selected/unselected state to distinguish.
 |--------------------|---------|-------------|
 | `font`             | string  | `"fixed"`   |
 | `color.background` | string  | `"#D0D9E5"` |
-| `color.foreground` | string  | `"#4A5566"` |
-| `border.color`     | string  | `"#7F9AB6"` |
+| `color.foreground` | string  | `"#3A4351"` |
+| `border.color`     | string  | `"#4E6076"` |
 | `border.width`     | integer | `1`         |
 | `opacity`          | integer | `100`       |
 
 ```json
 "overlay": {
     "font": "fixed",
-    "color": { "background": "#D0D9E5", "foreground": "#4A5566" },
-    "border": { "color": "#7F9AB6", "width": 1 }
+    "color": { "background": "#D0D9E5", "foreground": "#3A4351" },
+    "border": { "color": "#4E6076", "width": 1 }
 }
 ```
 
@@ -652,15 +652,15 @@ undecorated and so never has any other decoration to theme.  Same as
 `window.active.border` by default, since the scratchpad's window is
 meant to stand out the same way the active window's border already does.
 
-| Key                       | Type    | Default     | Description |
-|---------------------------|---------|-------------|-------------|
-| `scratchpad.border.color` | string  | `"#4A5566"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
+| Key                       | Type    | Default     | Description                                                                                                                   |
+|---------------------------|---------|-------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `scratchpad.border.color` | string  | `"#22272F"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`.                                                                        |
 | `scratchpad.border.width` | integer | `2`         | Border width in pixels; `0` disables the border entirely, the same way `window.titlebar.height` of `0` disables the titlebar. |
 
 ```json
 "scratchpad": {
     "border": {
-        "color": "#4A5566",
+        "color": "#22272F",
         "width": 2
     }
 }
@@ -678,35 +678,35 @@ stand out from ordinary context menus if they want to.
 and `unselected` style a result row depending on whether it is the
 current hovered or keyboard-navigated one.
 
-| Key                                  | Type      | Default     | Description |
-|--------------------------------------|-----------|-------------|-------------|
-| `search.input.font`                  | string    | `"fixed"`   | Font for the query bar. |
-| `search.input.color.background`      | string    | `"#9AAEC8"` | Query bar background. |
-| `search.input.color.foreground`      | string    | `"#253040"` | Query bar text. |
-| `search.unselected.font`             | string    | `"fixed"`   | Font for a result row that is neither hovered nor the keyboard-navigated selection. |
-| `search.unselected.color.background` | string    | `"#D0D9E5"` | Unselected row background. |
-| `search.unselected.color.foreground` | string    | `"#4A5566"` | Unselected row text. |
-| `search.selected.font`               | string    | `"fixed"`   | Font for the hovered or keyboard-navigated result row. |
-| `search.selected.color.background`   | string    | `"#9AAEC8"` | Selected row background. |
-| `search.selected.color.foreground`   | string    | `"#253040"` | Selected row text. |
-| `search.border.color`                | string    | `"#7F9AB6"` | Widget window's outer frame color. |
-| `search.border.width`                | integer   | `2`         | Widget window's outer frame width in pixels. |
+| Key                                  | Type    | Default        | Description                                                                         |
+|--------------------------------------|---------|----------------|-------------------------------------------------------------------------------------|
+| `search.input.font`                  | string  | `"fixed bold"` | Font for the query bar.                                                             |
+| `search.input.color.background`      | string  | `"#9AAEC8"`    | Query bar background.                                                               |
+| `search.input.color.foreground`      | string  | `"#1B222E"`    | Query bar text.                                                                     |
+| `search.unselected.font`             | string  | `"fixed"`      | Font for a result row that is neither hovered nor the keyboard-navigated selection. |
+| `search.unselected.color.background` | string  | `"#D0D9E5"`    | Unselected row background.                                                          |
+| `search.unselected.color.foreground` | string  | `"#3A4351"`    | Unselected row text.                                                                |
+| `search.selected.font`               | string  | `"fixed"`      | Font for the hovered or keyboard-navigated result row.                              |
+| `search.selected.color.background`   | string  | `"#9AAEC8"`    | Selected row background.                                                            |
+| `search.selected.color.foreground`   | string  | `"#1B222E"`    | Selected row text.                                                                  |
+| `search.border.color`                | string  | `"#4E6076"`    | Widget window's outer frame color.                                                  |
+| `search.border.width`                | integer | `2`            | Widget window's outer frame width in pixels.                                        |
 
 ```json
 "search": {
     "input": {
-        "font": "fixed",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" }
+        "font": "fixed bold",
+        "color": { "background": "#9AAEC8", "foreground": "#1B222E" }
     },
     "unselected": {
         "font": "fixed",
-        "color": { "background": "#D0D9E5", "foreground": "#4A5566" }
+        "color": { "background": "#D0D9E5", "foreground": "#3A4351" }
     },
     "selected": {
         "font": "fixed",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" }
+        "color": { "background": "#9AAEC8", "foreground": "#1B222E" }
     },
-    "border": { "color": "#7F9AB6", "width": 2 }
+    "border": { "color": "#4E6076", "width": 2 }
 }
 ```
 
@@ -718,36 +718,49 @@ next to it with its independent font and colors, so the two can be told
 apart at a glance the same way `label` and `input` can be given
 different backgrounds below.
 
-| Key                             | Type    | Default        | Description |
-|---------------------------------|---------|----------------|-------------|
-| `prompt.label.font`             | string  | `"fixed bold"` | Font for the "Run:" prompt. |
-| `prompt.label.color.background` | string  | `"#9AAEC8"`    | Prompt background. |
-| `prompt.label.color.foreground` | string  | `"#253040"`    | Prompt text. |
-| `prompt.input.font`             | string  | `"fixed"`      | Font for the typed command. |
-| `prompt.input.color.background` | string  | `"#9AAEC8"`    | Typed-command background. |
-| `prompt.input.color.foreground` | string  | `"#253040"`    | Typed-command text. |
-| `prompt.border.color`           | string  | `"#7F9AB6"`    | Box's outer frame color. |
+| Key                             | Type    | Default        | Description                        |
+|---------------------------------|---------|----------------|------------------------------------|
+| `prompt.label.font`             | string  | `"fixed bold"` | Font for the "Run:" prompt.        |
+| `prompt.label.color.background` | string  | `"#9AAEC8"`    | Prompt background.                 |
+| `prompt.label.color.foreground` | string  | `"#1B222E"`    | Prompt text.                       |
+| `prompt.input.font`             | string  | `"fixed bold"` | Font for the typed command.        |
+| `prompt.input.color.background` | string  | `"#D0D9E5"`    | Typed-command background.          |
+| `prompt.input.color.foreground` | string  | `"#1B222E"`    | Typed-command text.                |
+| `prompt.border.color`           | string  | `"#4E6076"`    | Box's outer frame color.           |
 | `prompt.border.width`           | integer | `2`            | Box's outer frame width in pixels. |
 
 ```json
 "prompt": {
     "label": {
         "font": "fixed bold",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" }
+        "color": { "background": "#9AAEC8", "foreground": "#1B222E" }
     },
     "input": {
-        "font": "fixed",
-        "color": { "background": "#9AAEC8", "foreground": "#253040" }
+        "font": "fixed bold",
+        "color": { "background": "#D0D9E5", "foreground": "#1B222E" }
     },
-    "border": { "color": "#7F9AB6", "width": 2 }
+    "border": { "color": "#4E6076", "width": 2 }
 }
 ```
 
 ## 14. Full example: `themes/default.json`
 
+This is the theme IcoWM falls back on, reproduced here exactly as it
+ships in `themes/default.json`.  IcoWM also carries the same values
+built into the binary, so a session with no theme file at all still
+looks like this.  The only difference between the two is the name they
+report: `"Default (built-in)"` when the values come from the binary,
+and whatever `"name"` this file sets, `"Default theme"` here, when the
+file was actually read.
+
 ```json
 {
     "name": "Default theme",
+
+    "-author": "J. A. Corbal",
+    "-creation-date": "Sat Aug  1 03:57:31 UTC 2026",
+    "-modified-date": "Mon Aug 24 03:30:00 UTC 2026",
+    "-notes": "In-house blue-grey scheme: slate desktop, pale blue-grey window surfaces, a mid-blue active title bar and a warm gold cycling frame.  Text Lc 56 and 7.0:1 or better, dimmed elements Lc 56, window frames 3.0:1 on the desktop.",
 
     "desktop": {
         "color": {
@@ -757,7 +770,7 @@ different backgrounds below.
 
     "cycle": {
         "border": {
-            "color": "#c9a227",
+            "color": "#e3c76e",
             "width": 4
         }
     },
@@ -767,23 +780,23 @@ different backgrounds below.
         "active": {
             "opacity": 100,
             "border": {
-                "color": "#4a5566",
+                "color": "#22272f",
                 "width": 2
             },
             "color": {
                 "background": "#9aaec8",
-                "foreground": "#253040"
+                "foreground": "#1b222e"
             },
             "font": "fixed bold"
         },
         "inactive": {
             "border": {
-                "color": "#7f9ab6",
+                "color": "#1d2732",
                 "width": 2
             },
             "color": {
                 "background": "#d0d9e5",
-                "foreground": "#4a5566"
+                "foreground": "#3a4351"
             },
             "font": "fixed"
         },
@@ -791,8 +804,8 @@ different backgrounds below.
             "alignment": "center",
             "buttons": {
                 "color": {
-                    "off": "#7086a0",
-                    "on": "#253f60"
+                    "off": "#4e6076",
+                    "on": "#142335"
                 },
                 "left": [ "pin", "layer" ],
                 "right": [ "close", "maximize", "shade", "iconize" ]
@@ -812,12 +825,12 @@ different backgrounds below.
         "active": {
             "opacity": 100,
             "border": {
-                "color": "#4a5566",
+                "color": "#22272f",
                 "width": 1
             },
             "color": {
                 "background": "#9aaec8",
-                "foreground": "#253040"
+                "foreground": "#1b222e"
             },
             "font": "fixed bold"
 
@@ -825,12 +838,12 @@ different backgrounds below.
         "inactive": {
             "opacity": 100,
             "border": {
-                "color": "#7f9ab6",
+                "color": "#1d2732",
                 "width": 1
             },
             "color": {
                 "background": "#d0d9e5",
-                "foreground": "#4a5566"
+                "foreground": "#3a4351"
             },
             "font": "fixed"
         }
@@ -840,24 +853,24 @@ different backgrounds below.
         "opacity": 100,
         "show-pixmaps": true,
         "border": {
-            "color": "#7f9ab6",
+            "color": "#4e6076",
             "width": 2
         },
         "disabled": {
             "color": {
-                "foreground": "#717b88"
+                "foreground": "#585f6a"
             }
         },
         "label": {
             "border": {
-                "color": "#7f9ab6",
+                "color": "#4e6076",
                 "width": 0
             },
             "color": {
-                "background": "#48607f",
-                "foreground": "#d0d9e5"
+                "background": "#9aaec8",
+                "foreground": "#1b222e"
             },
-            "font": "fixed"
+            "font": "fixed bold"
         },
         "padding": {
             "horizontal": 12,
@@ -865,26 +878,26 @@ different backgrounds below.
         },
         "selected": {
             "border": {
-                "color": "#4a5566",
+                "color": "#22272f",
                 "width": 0
             },
             "color": {
                 "background": "#9aaec8",
-                "foreground": "#253040"
+                "foreground": "#1b222e"
             },
             "font": "fixed"
         },
         "separator": {
-            "color": "#7f9ab6"
+            "color": "#4e6076"
         },
         "unselected": {
             "border": {
-                "color": "#7f9ab6",
+                "color": "#4e6076",
                 "width": 0
             },
             "color": {
                 "background": "#d0d9e5",
-                "foreground": "#4a5566"
+                "foreground": "#3a4351"
             },
             "font": "fixed"
         }
@@ -893,7 +906,7 @@ different backgrounds below.
     "dialog": {
         "opacity": 100,
         "border": {
-            "color": "#7f9ab6",
+            "color": "#4e6076",
             "width": 2
         },
         "button": {
@@ -904,23 +917,23 @@ different backgrounds below.
             },
             "selected": {
                 "border": {
-                    "color": "#4a5566",
+                    "color": "#22272f",
                     "width": 1
                 },
                 "color": {
                     "background": "#9aaec8",
-                    "foreground": "#253040"
+                    "foreground": "#1b222e"
                 },
                 "font": "fixed bold"
             },
             "unselected": {
                 "border": {
-                    "color": "#7f9ab6",
+                    "color": "#4e6076",
                     "width": 1
                 },
                 "color": {
                     "background": "#d0d9e5",
-                    "foreground": "#4a5566"
+                    "foreground": "#3a4351"
                 },
                 "font": "fixed"
             }
@@ -930,7 +943,7 @@ different backgrounds below.
         },
         "label": {
             "color": {
-                "foreground": "#4a5566"
+                "foreground": "#3a4351"
             },
             "font": "fixed bold",
             "padding": {
@@ -944,12 +957,12 @@ different backgrounds below.
         "opacity": 100,
         "font": "fixed",
         "border": {
-            "color": "#7f9ab6",
+            "color": "#4e6076",
             "width": 1
         },
         "color": {
             "background": "#d0d9e5",
-            "foreground": "#4a5566"
+            "foreground": "#3a4351"
         }
     },
 
@@ -958,12 +971,12 @@ different backgrounds below.
         "font": "fixed bold",
         "height": 24,
         "border": {
-            "color": "#7f9ab6",
+            "color": "#4e6076",
             "width": 1
         },
         "color": {
             "background": "#d0d9e5",
-            "foreground": "#4a5566"
+            "foreground": "#3a4351"
         },
         "pixmap": {
             "size": 24,
@@ -973,7 +986,6 @@ different backgrounds below.
             "gap": 12,
             "valign": "center"
         }
-
     },
 
     "search": {
@@ -981,25 +993,25 @@ different backgrounds below.
             "font": "fixed bold",
             "color": {
                 "background": "#9aaec8",
-                "foreground": "#253040"
+                "foreground": "#1b222e"
             }
         },
         "selected": {
             "font": "fixed",
             "color": {
                 "background": "#9aaec8",
-                "foreground": "#253040"
+                "foreground": "#1b222e"
             }
         },
         "unselected": {
             "font": "fixed",
             "color": {
                 "background": "#d0d9e5",
-                "foreground": "#4a5566"
+                "foreground": "#3a4351"
             }
         },
         "border": {
-            "color": "#7f9ab6",
+            "color": "#4e6076",
             "width": 2
         }
     },
@@ -1009,25 +1021,25 @@ different backgrounds below.
             "font": "fixed bold",
             "color": {
                 "background": "#9aaec8",
-                "foreground": "#253040"
+                "foreground": "#1b222e"
             }
         },
         "input": {
             "font": "fixed bold",
             "color": {
                 "background": "#d0d9e5",
-                "foreground": "#253040"
+                "foreground": "#1b222e"
             }
         },
         "border": {
-            "color": "#7f9ab6",
+            "color": "#4e6076",
             "width": 2
         }
     },
 
     "scratchpad": {
         "border": {
-            "color": "#4a5566",
+            "color": "#22272f",
             "width": 2
         }
     },
