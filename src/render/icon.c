@@ -335,7 +335,17 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
     if (theme->icon.show_hints &&
             (client->properties.flags & CLIENT_FLAG_PIN) != 0u) {
         xcb_gcontext_t gc = xcb_generate_id(connection);
-        uint32_t color = theme->window.titlebar.buttons.color.on;
+        /* The same foreground the state letter in the opposite corner
+         * is drawn in, and for the same reason it uses that one: this
+         * square is a state hint like 'f', 'm' or 'v', only shaped
+         * rather than lettered, so it has to read as one of them
+         * rather than as a stray piece of titlebar borrowed onto the
+         * icon.  It used the titlebar buttons' own color before,
+         * which is a different palette answering a different question
+         * and left the two hints on one icon looking unrelated. */
+        uint32_t color = (is_cycle_sel)
+            ? theme->icon.active.color.foreground
+            : theme->icon.inactive.color.foreground;
 
         /* Sized from 'WM_ICON_SQUARE_SIZE' and
          * 'WM_ICON_PIXMAP_SCALE_PERCENT' rather than picked by eye or
