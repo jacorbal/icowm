@@ -15,6 +15,7 @@ client for the IPC control socket §5 below documents, see
 1. [What IcoWM is](#1-what-icowm-is)
 2. [Starting IcoWM](#2-starting-icowm)
    - [2.1. Exiting IcoWM](#21-exiting-icowm)
+   - [2.2. Exit status](#22-exit-status)
 3. [Command-line options](#3-command-line-options)
    - [3.1. Main options](#31-main-options)
    - [3.2. Logging](#32-logging)
@@ -99,6 +100,30 @@ loop or rendering to keep working, would only be as reliable as whatever
 it is that might be the very reason someone reaches for this shortcut in
 the first place.
 
+### 2.2. Exit status
+
+IcoWM reports why it stopped through its exit status, which matters most
+to a session script deciding whether to fall back to another window
+manager or to give up.
+
+| Status | Meaning |
+|--------|---------|
+| `0`    | Normal exit: the session ended through the quit action, the emergency shortcut, `SIGTERM`, or the `exit_wm` IPC command.  Also what `-h` and `-v` return |
+| `-1`   | An unrecognized command-line option, or an argument that could not be used (a `-M` ceiling below the minimum, say) |
+| `1`    | Out of memory before the session could start |
+| `2`    | The X display could not be opened, or the text renderer could not be set up on it |
+| `3`    | The configuration could not be initialized |
+| `5`    | The X server reported no screens at all |
+| `6`    | Out of memory while allocating the surface list |
+| `7`    | A surface could not be initialized |
+| `8`    | A surface could not be recorded |
+| `9`    | Root window events could not be subscribed to.  This normally means another window manager is already running and holds `SubstructureRedirect` on the root window |
+| `10`   | The EWMH atoms could not be interned |
+| `11`   | Restricted-memory mode (`-M`) found less free memory than its own ceiling and refused to start; see §4.2 |
+| `12`   | The `WM_S<n>` manager selection could not be acquired: another window manager owns it and `-r` was not given, or the previous owner did not release it in time |
+
+Status `4` is not used.
+
 ## 3. Command-line options
 
 ### 3.1. Main options
@@ -110,6 +135,7 @@ the first place.
 | `-C`              | Check every configuration file under `<config_dir>` for JSON syntax errors, print the result, and exit without starting a session. |
 | `-M <mib>`        | Enable restricted-memory mode, with `<mib>` as the ceiling in mebibytes; see §4.  Must be at least 14. |
 | `-s`              | Disable the IPC control socket entirely for this run: the socket is never set up at all, rather than being attempted and possibly failing.  See §5 for what the socket does. |
+| `-r`              | Replace an already-running window manager.  Without it, IcoWM refuses to start when another window manager already owns the `WM_S<n>` selection on the display; with it, IcoWM claims that selection and waits for the previous owner to release it.  See §2. |
 
 ### 3.2. Logging
 
@@ -475,15 +501,16 @@ broken rather than merely deferred.
 
 #### 5.3.5. Surface actions
 
-| Command              | Arguments                                        | What it does |
-|----------------------|--------------------------------------------------|--------------|
-| `goto_desktop`       | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
-| `goto_north_desktop` | `surface_id` (optional)                          | Switches the resolved surface to the desktop north of its current one; wraps if `desktops.wrap-at-bounds` allows it (`config.md`, §2.10), otherwise a no-op at the edge, including when no `topology.screens.desktops[].layout` with more than one row is configured at all |
-| `goto_south_desktop` | `surface_id` (optional)                          | The same, toward the desktop south of the current one |
-| `goto_east_desktop`  | `surface_id` (optional)                          | The same, toward the desktop east of the current one |
-| `goto_west_desktop`  | `surface_id` (optional)                          | The same, toward the desktop west of the current one |
-| `add_desktop`        | `surface_id` (optional)                          | Adds a new desktop after the resolved surface's last one, growing its configured grid layout by one row or column first if there is not already a gap cell for it to land on (see `config.md`'s `topology.screens.desktops[].layout`).  Refused, with an error, once the maximum of 16 desktops is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
-| `remove_desktop`     | `surface_id` (optional)                          | Removes the resolved surface's last desktop, moving any client still on it to the one before it, and switching the surface's current view there too if it was the one being removed.  Shrinks the grid layout back down by one row or column if that was its last member.  Refused, with an error, while only one desktop remains |
+| Command                     | Arguments                                        | What it does |
+|-----------------------------|--------------------------------------------------|--------------|
+| `goto_desktop`              | `desktop_id` (required), `surface_id` (optional) | Switches the resolved surface to that desktop |
+| `goto_north_desktop`        | `surface_id` (optional)                          | Switches the resolved surface to the desktop north of its current one; wraps if `desktops.wrap-at-bounds` allows it (`config.md`, §2.10), otherwise a no-op at the edge, including when no `topology.screens.desktops[].layout` with more than one row is configured at all |
+| `goto_south_desktop`        | `surface_id` (optional)                          | The same, toward the desktop south of the current one |
+| `goto_east_desktop`         | `surface_id` (optional)                          | The same, toward the desktop east of the current one |
+| `goto_west_desktop`         | `surface_id` (optional)                          | The same, toward the desktop west of the current one |
+| `add_desktop`               | `surface_id` (optional)                          | Adds a new desktop after the resolved surface's last one, growing its configured grid layout by one row or column first if there is not already a gap cell for it to land on (see `config.md`'s `topology.screens.desktops[].layout`).  Refused, with an error, once the maximum of 16 desktops is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `remove_desktop`            | `surface_id` (optional)                          | Removes the resolved surface's last desktop, moving any client still on it to the one before it, and switching the surface's current view there too if it was the one being removed.  Shrinks the grid layout back down by one row or column if that was its last member.  Refused, with an error, while only one desktop remains |
+| `toggle_strutless_maximize` | `surface_id` (optional)                          | Toggles whether panel and tray struts are set aside when computing every desktop's own work area on the resolved surface.  With it on, a maximized window fills the whole screen underneath wherever a panel would otherwise have reserved space.  Every work area is recomputed at once, and every already-maximized window re-applied to it.  Also reachable through the `windows.toggle-strutless-maximization` keybinding (`config.md`, §2.11) and the root menu |
 
 #### 5.3.6. Whole window manager
 

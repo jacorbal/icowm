@@ -135,14 +135,14 @@ int config_load_base(const char *filename,
 
         json_load_uint(windows, "move-step",
                 &config_base->windows.move_step);
-/*
-        // Resize step is usually overwritten by hints and it has no
-        // effect on the window, so, just in case I decide to do
-        // something with it, I leave it here, but commented, so it
-        // raises no warning on the logger output.
+
+        /* Resize step is usually overwritten by hints and it has no
+         * effect on the window, so, just in case I decide to do
+         * something with it, I leave it here, but commented, so it
+         * raises no warning on the logger output. */
         json_load_uint(windows, "resize-step",
                 &config_base->windows.resize_step);
-*/
+
         json_load_bool(windows, "show-geom",
                 &config_base->windows.show_geom);
         json_load_bool(windows, "solid-drag",

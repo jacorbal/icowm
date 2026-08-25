@@ -573,6 +573,22 @@ Keyboard movement step in pixels.  Each key press that moves the focused
 window changes its position by this amount.  Values lower than `1` are
 treated as `1`.
 
+#### `windows.resize-step`
+
+| Key                   | Type    | Default |
+|-----------------------|---------|---------|
+| `windows.resize-step` | integer | `20`    |
+
+Keyboard resize step in pixels.  Each key press that resizes the focused
+window changes the size of the axis being resized by this amount.
+Values lower than `1` are treated as `1`.
+
+This applies only to a window that publishes no usable size hints.
+A window that does publish them, a terminal emulator sizing itself in
+whole character cells being the usual case, is resized by whole
+increments of its own instead, snapped from its base (or minimum) size,
+so that it never lands on a size it cannot actually render.
+
 #### `windows.show-geom`
 
 | Key                 | Type    | Default |
