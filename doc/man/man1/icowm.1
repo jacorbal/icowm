@@ -185,6 +185,40 @@ Base directory for configuration; see
 Used to resolve the configuration directory when
 .Ev XDG_CONFIG_HOME
 is unset.
+.It Ev LC_ALL , Ev LC_MESSAGES , Ev LC_CTYPE , Ev LC_TIME , Ev LANG
+.Nm
+sets every locale category from the environment at startup, so these
+are consulted in the usual order: for each category,
+.Ev LC_ALL
+if set, then that category's own variable, then
+.Ev LANG .
+.Pp
+.Ev LC_MESSAGES
+picks which translation of the interface is used, and
+.Ev LC_CTYPE
+decides the encoding the translated text comes back in, so a locale
+naming no encoding, or none at all, leaves accented characters
+replaced even where a translation exists.
+.Ev LC_TIME
+is what the system tray clock's own format is rendered against.
+.It Ev LANGUAGE
+Not consulted by
+.Nm
+itself, but honoured by GNU gettext, where it takes precedence over
+every variable above for the choice of translation alone.
+It holds a colon-separated list of catalogue names matched literally,
+so
+.Ql es
+finds a catalogue while
+.Ql es_ES.UTF-8
+does not, unlike
+.Ev LANG ,
+which falls back through the shorter forms.
+A session that already sets this will not change its interface
+language through
+.Ev LANG
+or
+.Ev LC_ALL .
 .El
 .Sh FILES
 The configuration directory is resolved in this order: the argument to
@@ -222,6 +256,17 @@ Configuration used in place of
 .Pa config.json
 under
 .Fl M .
+.El
+.Pp
+Translations live apart from the configuration, one directory per
+language, named the short way so that both
+.Ev LANG
+and
+.Ev LANGUAGE
+find them:
+.Bl -tag -width Ds
+.It Pa locale/ Ns Ar lang Ns Pa /LC_MESSAGES/default.mo
+The compiled catalogue for one language.
 .El
 .Sh EXIT STATUS
 .Bl -tag -width Ds -compact
@@ -318,7 +363,7 @@ An incoming
 .Ql _NET_ACTIVE_WINDOW
 request is weighed against whichever client already holds focus before
 being honoured, so a window idle for some while cannot seize the
-keyboard from whatever the user is presently engaged with.
+keyboard from whatever the person is presently engaged with.
 .Pp
 It likewise follows the
 .Rs
