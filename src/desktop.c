@@ -1,11 +1,12 @@
 /**
  * @file desktop.c
  *
- * @brief Desktop lifecycle: init, update, destroy, rename, background
+ * @brief Desktop lifecycle: init, destroy, workarea
  *
- * Implements @c desktop_init, @c desktop_destroy, @c desktop_update,
- * @c desktop_update_full, @c desktop_update_workarea, @c desktop_clear,
- * @c desktop_action_rename, and @c desktop_action_background_update.
+ * Implements @a desktop_init, @a desktop_destroy,
+ * @a desktop_update_workarea and @a desktop_mark_outdated.  Renaming,
+ * backgrounds and everything a desktop does with its own clients live
+ * under @c desktop/ instead.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

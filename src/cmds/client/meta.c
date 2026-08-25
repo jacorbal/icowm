@@ -34,7 +34,6 @@
 
 
 /* Rename the client window */
-/* Rename the client window */
 void ccmd_client_rename(client_td *client, const char *name)
 {
     if (client == NULL || name == NULL) {

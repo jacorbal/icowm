@@ -296,20 +296,6 @@ void desktop_destroy(desktop_td *desktop);
 void desktop_mark_outdated(desktop_td *desktop);
 
 /**
- * @brief Clear a desktop by removing all its clients
- *
- * Deallocates each and every client of the desktop and resets the
- * client counter to zero.
- *
- * @param desktop Pointer to the desktop to be cleared from clients
- *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       clients, as it iterates through the array of clients to free
- *       each one of them
- */
-void desktop_clear(desktop_td *desktop);
-
-/**
  * @brief Add a previously allocated client to the desktop
  *
  * @param desktop Pointer to the desktop where to add the new client
@@ -507,23 +493,6 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         const char *restrict executable_path,
         const char *restrict class_name,
         pid_t *restrict out_pid);
-
-/**
- * @brief Terminate a process
- *
- * Stops the specified process that is running in the desktop session by
- * killing it.
- *
- * @param desktop    Pointer to the desktop to receive the action
- * @param process_id Identifier of the process to be terminated
- *
- * @return Status of the operation
- * @retval  0 Success
- * @retval  1 Failed to perform the action
- *
- * @note Complexity: @e O(1)
- */
-int desktop_action_process_kill(desktop_td *desktop, pid_t process_id);
 
 /**
  * @brief Recompute the desktop work area from active client struts,

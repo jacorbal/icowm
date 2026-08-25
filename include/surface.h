@@ -205,26 +205,6 @@ surface_td *surface_init(xcb_connection_t *connection,
 void surface_destroy(surface_td *surface);
 
 /**
- * @brief Soft surface update
- *
- * @param surface Pointer to the surface to soft update
- *
- * @note Complexity: @e O(1)
- */
-void surface_update(surface_td *surface);
-
-/**
- * @brief Full surface update
- *
- * Updates the surface by updating every window of every desktop.
- *
- * @param surface Pointer to the surface to full update
- *
- * @note Complexity: @e O(n), where @e n is the number of desktops
- */
-void surface_update_full(surface_td *surface);
-
-/**
  * @brief Resize the specified surface to the new dimensions
  *
  * @param surface Pointer to the surface to be resized
