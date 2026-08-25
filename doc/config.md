@@ -623,7 +623,7 @@ nothing.  Restricted-memory mode (`memguard.json`) always runs with this
 |----------------------------|---------|-----------|-------------|
 | `focus.policy`             | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
 | `focus.focus-new`          | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
-| `focus.raise`              | boolean | `false`   | When `true`, a window is raised to the top of the stack when it receives focus. |
+| `focus.raise`              | boolean | `false`   | When `true`, a window is also raised when it gains focus by pointer or wheel. |
 
 ```json
 "windows": {
@@ -634,6 +634,23 @@ nothing.  Restricted-memory mode (`memguard.json`) always runs with this
     }
 }
 ```
+
+`raise` only ever adds raising; it never takes it away.  Most ways of
+focusing a window raise it regardless, because raising is part of what
+was asked for: clicking a window, choosing it from the window list or
+the search box, cycling to it with the keyboard, activating it from
+another application, and a per-window rule that focuses it all bring it
+to the front whatever this is set to.
+
+What it governs is the handful of ways a window can gain focus without
+anyone asking for it to come forward: the pointer entering it under
+`"sloppy"` focus, and the wheel over the desktop shading or unshading
+it.  With `false` those move the keyboard without disturbing the
+stacking order, so a window can be typed into while staying under
+whatever the person had deliberately placed above it.
+
+It therefore makes no observable difference under `"click"` focus, where
+none of those paths is reached.
 
 #### `windows.placement`
 

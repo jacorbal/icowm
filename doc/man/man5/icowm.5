@@ -163,7 +163,23 @@ gives it to whatever the pointer is over.
 .It Ic windows.focus.focus-new Pq boolean, default Ql true
 Whether a newly mapped window takes focus.
 .It Ic windows.focus.raise Pq boolean, default Ql false
-Whether taking focus also raises the window.
+Whether a window is also raised when it gains focus by pointer or
+wheel.
+.Pp
+This only ever adds raising, never takes it away.
+Most ways of focusing a window raise it regardless, raising being what
+was
+asked for: clicking it, choosing it from the window list or the search
+box, cycling to it, activating it from another application, and a
+per-window rule that focuses it.
+.Pp
+What it governs is the few ways a window gains focus without anyone
+asking it to come forward: the pointer entering it under
+.Ql sloppy
+focus, and the wheel over the desktop shading or unshading it.
+It therefore makes no observable difference under
+.Ql click
+focus.
 .It Ic windows.placement.policy Pq string, default Ql \&"smart\&"
 Where a newly mapped window is put:
 .Ql smart
