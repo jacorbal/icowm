@@ -54,7 +54,8 @@
 /* Public interface */
 /**
  * @brief Check every known JSON configuration file under @p config_dir
- *        for unknown keys, printing one line per finding to @c stderr
+ *        for unknown and duplicate keys, printing one line per
+ *        finding to @c stderr
  *
  * Files that do not exist under @p config_dir are silently skipped
  * (every configuration file is optional, falling back to built-in
@@ -65,12 +66,22 @@
  * @c themes/ is checked, not only the one @c config.json's @c theme
  * field names.
  *
+ * A key given twice within the same object is reported too, and the
+ * report says which of the two takes effect: the first, since
+ * @a json_get_item returns the first child whose name matches and the
+ * loaders all go through it.  That is the opposite of what most
+ * people expect from writing a line twice, so leaving it unreported
+ * meant someone appending a corrected value saw no change, no error
+ * and nothing in the log.  JSON itself only says names should be
+ * unique and leaves the behavior undefined, so this is a decision
+ * rather than a rule being followed.
+ *
  * @param config_dir Configuration directory to check, the same one
  *                    @c -c selects for normal startup
  *
- * @return The number of unknown keys found across every file, or a
- *         negative value if @p config_dir itself could not be read
- *         at all
+ * @return The number of unknown and duplicate keys found across every
+ *         file, or a negative value if @p config_dir itself could not
+ *         be read at all
  *
  * @note Complexity: @e O(n), where @e n is the total number of keys
  *       across every configuration file checked
