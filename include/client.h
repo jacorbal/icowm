@@ -507,6 +507,13 @@ struct client_s {
     bool is_icon_mapped;            /**< Whether the icon is mapped */
     bool was_decorated_fullscreen;  /**< Save decor. state for full
                                          screen */
+    uint16_t state_before_fullscreen;
+                                    /**< State held on entering full
+                                         screen, restored on leaving
+                                         it, since EWMH treats
+                                         @c _NET_WM_STATE_FULLSCREEN
+                                         and the maximized states as
+                                         independent of one another */
     bool has_rule_position_locked;  /**< Position was set by a rule;
                                          ignore client-initiated
                                          @c ConfigureRequests that try

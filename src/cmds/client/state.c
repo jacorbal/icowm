@@ -56,6 +56,7 @@
 #include <cmds/client/grab.h>
 #include <cmds/client/internal.h>
 #include <cmds/client/layer.h>
+#include <cmds/client/maximize.h>
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/state.h>
@@ -823,6 +824,14 @@ void ccmd_client_fullscreen(client_td *client)
     if (!client_is_maximized_any(client)) {
         client_geometry_save(client);
     }
+
+    /* EWMH treats '_NET_WM_STATE_FULLSCREEN' and the two maximized
+     * states as independent of one another, so a client that was
+     * maximized before going fullscreen must still be maximized once
+     * it leaves.  Remembered here rather than derived on the way out,
+     * where the state has already been overwritten. */
+    client->state_before_fullscreen = client->properties.state;
+
     was_decorated = client_is_decorated(client);
     client->was_decorated_fullscreen = was_decorated;
     target = ccmd_target_win(client);
@@ -1063,9 +1072,24 @@ void ccmd_client_unfullscreen(client_td *client)
      * frame-relative instead. */
     client_send_synthetic_configure_notify(client->connection, client);
 
-    client->properties.state = CLIENT_STATE_NORMAL;
+    /* Back to whatever the client held before, not unconditionally to
+     * normal: EWMH keeps '_NET_WM_STATE_FULLSCREEN' independent of
+     * the maximized states, so leaving fullscreen must not clear a
+     * maximization the client never asked to lose.  A client that was
+     * merely normal before recorded exactly that, so the ordinary
+     * case still lands on 'CLIENT_STATE_NORMAL'. */
+    client->properties.state = client->state_before_fullscreen;
+    client->state_before_fullscreen = (uint16_t) CLIENT_STATE_NORMAL;
     (void) clock_gettime(CLOCK_MONOTONIC,
             &client->fullscreen_transition_time);
+
+    /* The workarea may well have moved while the client was covering
+     * it, a panel having appeared or a monitor changed, so a restored
+     * maximization is measured against the workarea as it is now
+     * rather than the geometry saved on the way in */
+    if (client_is_maximized_any(client)) {
+        ccmd_client_refill_maximized(client);
+    }
 
     ccmd_publish_frame_extents(client,
             (uint32_t) client->layout.frame_extents.left,
