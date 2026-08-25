@@ -1,0 +1,144 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM-MEMGUARD 5
+.Os icowm-1.0.1
+.Sh NAME
+.Nm memguard.json
+.Nd restricted-memory configuration for IcoWM
+.Sh DESCRIPTION
+.Pa memguard.json
+is read only when
+.Xr icowm 1
+is started with
+.Fl M Ar mib .
+An ordinary session never looks at it, and it has no effect at all
+without that option.
+.Pp
+For that one session it replaces
+.Pa config.json
+entirely, which is not consulted at all.
+.Pa bindings.json
+and a theme under
+.Pa themes/
+are still read exactly as usual.
+The file is optional: missing or unreadable, a fixed built-in profile is
+used instead.
+.Pp
+Only the keys below are ever read; anything else in the file is
+silently ignored.
+Each has the same meaning as the key of the same name in
+.Xr icowm 5 ,
+so only the differences are spelled out here.
+.Bl -tag -width Ds
+.It Ic theme
+.It Ic programs.editor
+.It Ic programs.file-manager
+.It Ic programs.launcher
+.It Ic programs.terminal
+.It Ic programs.web-browser
+.It Ic desktops.margins.top
+.It Ic desktops.margins.right
+.It Ic desktops.margins.bottom
+.It Ic desktops.margins.left
+.It Ic windows.move-step
+.It Ic windows.show-geom
+.It Ic windows.gravity
+.It Ic windows.edges.snap.window
+.It Ic windows.edges.snap.screen
+.It Ic windows.edges.resistance
+.It Ic windows.focus.policy
+.It Ic windows.focus.focus-new
+.It Ic windows.focus.raise
+.It Ic windows.placement.policy
+.It Ic windows.placement.monitor
+.It Ic windows.placement.group-related
+.It Ic icons.show-geom
+.It Ic icons.placement.policy
+.It Ic systray
+.It Ic shutdown.enable-emergency-shortcut
+.It Ic shutdown.timeout-seconds
+As in
+.Xr icowm 5 .
+.It Ic prompt.is-enabled Pq boolean, default Ql true
+As in
+.Xr icowm 5 ,
+except that this mode defaults it to true rather than false,
+deliberately, so that the launcher binding opens the built-in box rather
+than spawning a separate process.
+.El
+.Ss What this mode fixes regardless of the file
+The screen count, the desktop count, the RandR handling and the
+startup-notification setting are fixed in this mode and cannot be
+configured here at all.
+The single desktop the session starts with stays the only one: the
+window list's entries for adding and removing a desktop, and their
+bindings, do not appear at all rather than appearing and refusing.
+.Pp
+Three more are read and then overridden, since this mode never docks a
+tray icon:
+.Ic systray.text.position
+and
+.Ic systray.order
+are forced back to
+.Ql left
+and
+.Ql left-to-right ,
+and embedding itself can never be switched on.
+The tray still shows its clock, battery and frame while
+.Ic systray.is-enabled
+is true; it simply accepts no docked application icon.
+.Pp
+.Ic windows.solid-drag
+is different again: it is not accepted in the file at all, rather than
+read and overridden, since this mode always runs with it off.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_CONFIG_HOME}/icowm/memguard.json
+The file this page describes, at the first of the several locations
+.Xr icowm 1
+looks in.
+.El
+.Sh EXAMPLES
+A profile for a small machine, keeping the launcher in-process and the
+tray to its clock alone:
+.Bd -literal -offset indent
+{
+    "programs": { "terminal": "xterm -fn fixed" },
+    "prompt": { "is-enabled": true },
+    "windows": {
+        "focus": { "policy": "sloppy" },
+        "placement": { "policy": "cascade" }
+    },
+    "systray": {
+        "is-enabled": true,
+        "clock": { "is-enabled": true, "format": "%R" },
+        "battery": { "is-enabled": true }
+    }
+}
+.Ed
+.Pp
+Start a session with a ceiling of 24 mebibytes, which is what makes this
+file be read at all:
+.Bd -literal -offset indent
+exec icowm -M 24
+.Ed
+.Sh SEE ALSO
+.Xr icowm 1 ,
+.Xr icowm-msg 1 ,
+.Xr icowm 5 ,
+.Xr icowm-a11y 5 ,
+.Xr icowm-bindings 5 ,
+.Xr icowm-menu 5 ,
+.Xr icowm-randr 5 ,
+.Xr icowm-rules 5 ,
+.Xr icowm-session 5 ,
+.Xr icowm-theme 5
+.Sh HISTORY
+This format first appeared in IcoWM 1.0.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com

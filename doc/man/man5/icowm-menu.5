@@ -1,0 +1,112 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM-MENU 5
+.Os icowm-1.0.1
+.Sh NAME
+.Nm menu.json
+.Nd root desktop menu for IcoWM
+.Sh DESCRIPTION
+.Pa menu.json
+holds the entries of the menu that opens on a right click over the
+empty desktop.
+The file is optional: absent or unparseable, the menu still shows its
+built-in footer, namely
+.Ql Reload configuration ,
+.Ql Redraw all windows
+and
+.Ql Exit ,
+with no separator before it.
+.Pp
+The file is a single object with one key,
+.Ic menu ,
+holding an array of entry objects.
+Every entry has a
+.Ic type ,
+which is one of four:
+.Bl -tag -width Ds
+.It Ql command
+A clickable item that launches something.
+It also needs
+.Ic name ,
+the label shown, and
+.Ic command ,
+what to run.
+.It Ql submenu
+A nested menu, revealed on hover or click.
+It needs
+.Ic name
+and an
+.Ic items
+array of further entries.
+.It Ql label
+A heading that cannot be clicked.
+It needs
+.Ic name .
+.It Ql separator
+A dividing line, needing nothing else.
+.El
+.Pp
+A
+.Ic command
+is expanded through
+.Xr wordexp 3 ,
+so
+.Ql ~ ,
+.Ql ${HOME}
+and the like work.
+Sub-shell command substitution is disabled.
+Should the command fail to run,
+.Xr icowm 1
+logs a warning and shows an informational dialog, so nothing fails in
+silence.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_CONFIG_HOME}/icowm/menu.json
+The file this page describes, at the first of the several locations
+.Xr icowm 1
+looks in.
+.El
+.Sh EXAMPLES
+A menu with a heading, two entries, a nested menu and a divider:
+.Bd -literal -offset indent
+{
+    "menu": [
+        { "type": "label", "name": "Applications" },
+        { "type": "command", "name": "Terminal",
+          "command": "xterm" },
+        { "type": "command", "name": "Editor",
+          "command": "gvim" },
+        { "type": "separator" },
+        {
+            "type": "submenu",
+            "name": "Utilities",
+            "items": [
+                { "type": "command", "name": "Files",
+                  "command": "pcmanfm" },
+                { "type": "command", "name": "Calculator",
+                  "command": "xcalc" }
+            ]
+        }
+    ]
+}
+.Ed
+.Sh SEE ALSO
+.Xr icowm 1 ,
+.Xr icowm-msg 1 ,
+.Xr icowm 5 ,
+.Xr icowm-a11y 5 ,
+.Xr icowm-bindings 5 ,
+.Xr icowm-memguard 5 ,
+.Xr icowm-randr 5 ,
+.Xr icowm-rules 5 ,
+.Xr icowm-session 5 ,
+.Xr icowm-theme 5
+.Sh HISTORY
+This format first appeared in IcoWM 1.0.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com

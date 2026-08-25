@@ -583,8 +583,8 @@ Keyboard resize step in pixels.  Each key press that resizes the focused
 window changes the size of the axis being resized by this amount.
 Values lower than `1` are treated as `1`.
 
-This applies only to a window that publishes no usable size hints.
-A window that does publish them, a terminal emulator sizing itself in
+This applies only to a window that publishes no usable size hints.  A
+window that does publish them, a terminal emulator sizing itself in
 whole character cells being the usual case, is resized by whole
 increments of its own instead, snapped from its base (or minimum) size,
 so that it never lands on a size it cannot actually render.
@@ -699,7 +699,7 @@ name.
 
 | Key               | Type    | Default |
 |-------------------|---------|---------|
-| `icons.show-geom` | boolean | `true`  |
+| `icons.show-geom` | boolean | `false` |
 
 When `true`, geometry when moving (mouse drag) is shown in the center of
 the icon.
@@ -813,7 +813,7 @@ Purely for fun; harmless to leave off, and harmless to turn on.
 
 | Key                                    | Type    | Default |
 |----------------------------------------|---------|---------|
-| `startup-notification.timeout-seconds` | integer | `20`    |
+| `startup-notification.timeout-seconds` | integer | `15`    |
 
 How long a startup-notification sequence (the busy cursor shown while
 a launched application is starting up, see the freedesktop.org Startup
@@ -822,7 +822,7 @@ Not every application is startup-notification aware, so this is what
 keeps the busy cursor from staying on indefinitely when a launched
 process never signals that it is ready.  Raise it for applications that
 are slow to show their first window (some office suites, for example);
-lower it if 20 seconds feels like it lingers too long for the
+lower it if 15 seconds feels like it lingers too long for the
 applications actually launched day to day.
 
 ```json

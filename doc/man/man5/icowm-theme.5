@@ -1,0 +1,344 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM-THEME 5
+.Os icowm-1.0.1
+.Sh NAME
+.Nm themes/name.json
+.Nd theme file format for IcoWM
+.Sh DESCRIPTION
+A theme file describes the appearance of everything
+.Xr icowm 1
+draws: window frames and titlebars, desktop icons, the menus, the
+dialogs, the system tray, the search box and the prompt.
+.Pp
+Themes live under
+.Pa themes/
+in the configuration directory, one file each, and the one to load is
+named by
+.Ic theme
+in
+.Xr icowm 5 ,
+without the
+.Ql .json
+suffix.
+Every key is optional: what a file leaves out keeps the built-in
+default, so a theme need only state what it changes.
+.Pp
+.Ic name
+at the top level is the theme's own name, reported in the window
+information dialog.
+A key beginning with
+.Ql -
+or
+.Ql _
+is ignored, which is how
+.Ic -author ,
+.Ic -creation-date
+and the like are written as comments.
+.Ss Common shapes
+Several shapes recur throughout, and are described once here:
+.Bl -tag -width Ds
+.It Ic color
+An object with
+.Ic background
+and
+.Ic foreground ,
+each an
+.Ql #RRGGBB
+string.
+.It Ic border
+An object with
+.Ic color ,
+an
+.Ql #RRGGBB
+string, and
+.Ic width ,
+in pixels.
+.It Ic padding
+An object with
+.Ic horizontal
+and
+.Ic vertical ,
+in pixels.
+.It Ic font
+A string; see
+.Sx Fonts
+below.
+.It Ic opacity
+An integer from 0 to 100.
+.Pp
+Opacity is published on the window through
+.Ql _NET_WM_WINDOW_OPACITY
+and nothing more.
+.Xr icowm 1
+never composites anything itself, so any value other than 100 has no
+visible effect whatever unless a compositing manager, such as
+.Xr picom 1 ,
+is also running and reading the property back.
+Without one, a theme may set this freely and nothing on screen will
+change.
+.El
+.Ss Sections
+.Bl -tag -width Ds
+.It Ic window
+The frame around an ordinary window.
+.Ic active
+and
+.Ic inactive
+each hold a
+.Ic color ,
+a
+.Ic border ,
+a
+.Ic font
+and an
+.Ic opacity ,
+for the focused window and the rest.
+.Ic titlebar
+holds its
+.Ic height ,
+its text
+.Ic alignment ,
+its
+.Ic padding ,
+and a
+.Ic buttons
+object naming which buttons sit
+.Ic left
+and which
+.Ic right ,
+with a
+.Ic color
+having
+.Ic on
+and
+.Ic off
+for pressed and idle.
+.Ic is-decorated
+decides whether a window is framed at all by default.
+.It Ic icon
+A desktop icon, in the same
+.Ic active
+and
+.Ic inactive
+shape.
+.Ic is-captioned
+decides whether the window name is shown beneath it, and
+.Ic show-hints
+and
+.Ic show-pixmaps
+whether the icon comes from the window's own hints and pixmaps.
+.It Ic cycle
+The frame drawn around the window being cycled to, through
+.Ic border .
+.It Ic systray
+The tray's own
+.Ic color ,
+.Ic border ,
+.Ic font ,
+.Ic opacity
+and
+.Ic height ,
+plus
+.Ic pixmap
+with the
+.Ic size
+of a docked icon and the
+.Ic padding
+around it, and
+.Ic text
+with the
+.Ic gap
+before the clock and its vertical
+.Ic valign .
+.It Ic desktop
+The desktop background, through
+.Ic color .
+.It Ic menu
+.Ic unselected ,
+.Ic selected
+and
+.Ic label
+each hold a
+.Ic color ,
+a
+.Ic border
+and a
+.Ic font ,
+for an ordinary row, the one under the pointer, and a heading.
+.Ic disabled
+holds the
+.Ic color
+of a row that cannot be chosen,
+.Ic separator
+the
+.Ic color
+of a dividing line, and the section itself a
+.Ic border ,
+a
+.Ic padding ,
+an
+.Ic opacity
+and
+.Ic show-pixmaps .
+.It Ic dialog
+.Ic color
+and
+.Ic border
+for the dialog itself,
+.Ic label
+for its text, and
+.Ic button
+holding the
+.Ic gap
+between buttons, their
+.Ic padding ,
+and a
+.Ic selected
+and
+.Ic unselected
+style each.
+.It Ic overlay
+The small box reporting a geometry during a drag, through
+.Ic color ,
+.Ic border ,
+.Ic font
+and
+.Ic opacity .
+.It Ic search
+The window search box:
+.Ic input
+for the field,
+.Ic selected
+and
+.Ic unselected
+for its rows, and a
+.Ic border .
+.It Ic prompt
+The command box:
+.Ic label ,
+.Ic input
+and a
+.Ic border .
+.It Ic scratchpad
+The scratchpad window's own
+.Ic border .
+.It Ic xsettings
+What is published to XSettings-aware toolkits:
+.Ic is-enabled ,
+a
+.Ic dpi ,
+and a
+.Ic theme
+object naming
+.Ic gtk-theme-name ,
+.Ic icon-theme-name ,
+.Ic cursor-theme-name
+and
+.Ic cursor-theme-size .
+This changes nothing about what
+.Xr icowm 1
+itself draws; it only tells other applications what to use.
+.El
+.Ss Fonts
+Every
+.Ic font
+field takes the same kind of string, tried through two backends in
+order.
+.Pp
+X core fonts are tried first, through XCB.
+Only X11 bitmap fonts, BDF and PCF, are reachable this way; it goes
+first because it costs nothing per glyph and every X server ships the
+.Ql fixed
+family.
+A short description such as
+.Ql \&"fixed bold 13\&"
+almost always takes this path.
+.Pp
+Anything that does not resolve as an X core font is tried through
+fontconfig for matching, FreeType for rasterizing and the X RENDER
+extension for compositing.
+A family name such as
+.Ql \&"DejaVu Sans\&" ,
+which most systems have only as a scalable font, takes this path, and
+uses fontconfig's own pattern syntax.
+This is what gives real anti-aliasing and full UTF-8, neither of which
+the core font path can provide.
+.Pp
+No field or prefix selects the backend: it is decided purely by whether
+the string resolves as an X core font first.
+A string resolving through neither falls back to
+.Ql fixed ,
+so one bad value never leaves text unrenderable.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_CONFIG_HOME}/icowm/themes/
+Where theme files live, at the first of the several locations
+.Xr icowm 1
+looks in.
+.It Pa ${XDG_CONFIG_HOME}/icowm/themes/default.json
+The theme shipped with
+.Xr icowm 1 .
+The same values are built into the binary, so a session with no theme
+file still looks like this; the two differ only in the name they
+report,
+.Ql Default (built-in)
+when the values come from the binary.
+.El
+.Sh EXAMPLES
+A theme that changes only its window colors, everything else keeping
+the built-in default:
+.Bd -literal -offset indent
+{
+    "name": "Slate",
+    "-author": "Jane Doe",
+
+    "window": {
+        "active": {
+            "color": {
+                "background": "#9AAEC8",
+                "foreground": "#1B222E"
+            },
+            "font": "fixed bold"
+        },
+        "inactive": {
+            "color": {
+                "background": "#D0D9E5",
+                "foreground": "#3A4351"
+            },
+            "font": "fixed"
+        }
+    }
+}
+.Ed
+.Pp
+A theme asking for a scalable font, which takes the fontconfig path:
+.Bd -literal -offset indent
+{
+    "name": "Sans",
+    "window": {
+        "active": { "font": "DejaVu Sans:size=11:bold" },
+        "inactive": { "font": "DejaVu Sans:size=11" }
+    }
+}
+.Ed
+.Sh SEE ALSO
+.Xr icowm 1 ,
+.Xr icowm-msg 1 ,
+.Xr icowm 5 ,
+.Xr icowm-a11y 5 ,
+.Xr icowm-bindings 5 ,
+.Xr icowm-memguard 5 ,
+.Xr icowm-menu 5 ,
+.Xr icowm-randr 5 ,
+.Xr icowm-rules 5 ,
+.Xr icowm-session 5
+.Sh HISTORY
+This format first appeared in IcoWM 1.0.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com

@@ -1,0 +1,270 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM-BINDINGS 5
+.Os icowm-1.0.1
+.Sh NAME
+.Nm bindings.json
+.Nd keyboard and mouse bindings for IcoWM
+.Sh DESCRIPTION
+.Pa bindings.json
+holds every keyboard shortcut and mouse binding.
+The file is optional: absent, the defaults given below are used.
+.Ss Syntax
+A binding is a chain of modifier aliases and one final key or button
+name, joined by
+.Ql + :
+.Bd -literal -offset indent
+modifier1+[modifier2+[modifier3+]]KeyName
+.Ed
+.Pp
+Modifier aliases are the symbolic names the
+.Ic modifiers
+object defines, such as
+.Ql modc
+or
+.Ql mod1 .
+Using an alias rather than a literal name is what lets every shortcut be
+remapped by editing that one object.
+.Pp
+A key name is a standard X11 keysym, such as
+.Ql Return ,
+.Ql Tab ,
+.Ql Left ,
+.Ql a
+or
+.Ql F1 .
+A button name is
+.Ql button1
+through
+.Ql button5 .
+An empty string leaves the action unbound.
+.Pp
+So
+.Ql modc+mod1+Return ,
+with the default modifiers, resolves to
+.Ql Control+Alt+Return .
+.Ss modifiers
+Each alias names the real modifier it stands for.
+.Bl -tag -width Ds -compact
+.It Ic modc Pq default Ql Control
+.It Ic mods Pq default Ql Shift
+.It Ic modl Pq default Ql Caps_Lock
+.It Ic mod1 Pq default Ql Alt
+.It Ic mod2 Pq default Ql Num_Lock
+.It Ic mod3 Pq unbound by default
+.It Ic mod4 Pq default Ql Super
+.It Ic mod5 Pq default Ql Hyper
+.El
+.Ss keyboard.launch
+Starts the programs
+.Xr icowm 5
+names under
+.Ic programs .
+.Bl -tag -width Ds -compact
+.It Ic terminal Pq Ql modc+mod1+Return
+.It Ic launcher Pq Ql modc+mod1+r
+.It Ic file-manager Pq Ql modc+mod1+q
+.It Ic web-browser Pq Ql modc+mod1+w
+.It Ic editor Pq Ql modc+mod1+e
+.El
+.Ss keyboard.window
+Acts on the focused window.
+.Bl -tag -width Ds -compact
+.It Ic close Pq Ql modc+mod1+c
+.It Ic kill Pq Ql modc+mod1+mods+Escape
+.It Ic iconify Pq Ql modc+mod1+i
+.It Ic iconify-all Pq Ql modc+mod1+mods+i
+.It Ic deiconify-all Pq Ql modc+mod1+mods+d
+.It Ic arrange Pq Ql modc+mod1+mods+a
+.It Ic hide Pq Ql modc+mod1+mods+u
+.It Ic maximize Pq Ql modc+mod1+m
+.It Ic fullscreen Pq Ql modc+mod1+f
+.It Ic shade Pq Ql modc+mod1+s
+.It Ic pin Pq Ql modc+mod1+p
+.It Ic decorate Pq Ql modc+mod1+d
+.It Ic layer Pq Ql modc+mod1+mods+y
+.It Ic info Pq Ql modc+mod4+mods+i
+.El
+.Pp
+.Ic move.relative
+shifts the window by
+.Ic windows.move-step
+pixels:
+.Bl -tag -width Ds -compact
+.It Ic right Pq Ql modc+mod1+l
+.It Ic left Pq Ql modc+mod1+h
+.It Ic up Pq Ql modc+mod1+k
+.It Ic down Pq Ql modc+mod1+j
+.El
+.Pp
+.Ic move.absolute
+sends it to one place outright:
+.Bl -tag -width Ds -compact
+.It Ic center Pq Ql modc+mod1+g
+.It Ic top-left Pq Ql modc+mod1+y
+.It Ic top-right Pq Ql modc+mod1+u
+.It Ic bottom-left Pq Ql modc+mod1+b
+.It Ic bottom-right Pq Ql modc+mod1+n
+.El
+.Pp
+.Ic resize
+grows or shrinks one edge by
+.Ic windows.resize-step
+pixels:
+.Bl -tag -width Ds -compact
+.It Ic right Pq Ql modc+mod1+mods+l
+.It Ic left Pq Ql modc+mod1+mods+h
+.It Ic up Pq Ql modc+mod1+mods+k
+.It Ic down Pq Ql modc+mod1+mods+j
+.El
+.Pp
+.Ic send-to.desktop
+carries the window to the neighbouring desktop and follows it there:
+.Bl -tag -width Ds -compact
+.It Ic north Pq Ql modc+mod1+mods+Up
+.It Ic south Pq Ql modc+mod1+mods+Down
+.It Ic east Pq Ql modc+mod1+mods+Right
+.It Ic west Pq Ql modc+mod1+mods+Left
+.El
+.Pp
+.Ic send-to.monitor
+carries it to the neighbouring monitor instead:
+.Bl -tag -width Ds -compact
+.It Ic north Pq Ql modc+mod1+mod4+mods+Up
+.It Ic south Pq Ql modc+mod1+mod4+mods+Down
+.It Ic east Pq Ql modc+mod1+mod4+mods+Right
+.It Ic west Pq Ql modc+mod1+mod4+mods+Left
+.El
+.Ss keyboard.wm
+Acts on the window manager itself.
+.Bl -tag -width Ds -compact
+.It Ic search Pq Ql modc+mod4+mods+s
+.It Ic scratchpad Pq Ql modc+mod1+mods+F12
+.It Ic toggle-strutless-maximization Pq unbound by default
+.It Ic redraw Pq Ql modc+mod1+mods+r
+.It Ic reload Pq Ql modc+mod1+mods+c
+.It Ic quit Pq Ql modc+mod1+mods+x
+.It Ic shortcuts Pq Ql modc+mod4+F1
+.It Ic fortune Pq Ql modc+mod4+Backspace
+.El
+.Pp
+.Ic menus
+opens one of the two menus:
+.Bl -tag -width Ds -compact
+.It Ic root Pq Ql modc+mod1+mods+m
+.It Ic windows Pq Ql modc+mod1+mods+w
+.El
+.Ss keyboard.desktop
+Acts on the desktops of the current surface.
+.Bl -tag -width Ds -compact
+.It Ic add Pq Ql modc+mod4+mods+Right
+.It Ic remove Pq Ql modc+mod4+mods+Left
+.It Ic show Pq Ql modc+mod4+mods+d
+.El
+.Pp
+.Ic go-to
+switches straight to one desktop by number, from
+.Ic desktop0
+at
+.Ql modc+mod1+0
+through
+.Ic desktop9
+at
+.Ql modc+mod1+9 .
+.Ss keyboard.cycle
+Moves through desktops and windows in turn.
+.Ic desktop
+switches the view without carrying anything along:
+.Bl -tag -width Ds -compact
+.It Ic north Pq Ql modc+mod1+Up
+.It Ic south Pq Ql modc+mod1+Down
+.It Ic east Pq Ql modc+mod1+Right
+.It Ic west Pq Ql modc+mod1+Left
+.El
+.Pp
+.Ic window
+and
+.Ic icon
+step through what is on the current desktop:
+.Bl -tag -width Ds -compact
+.It Ic window.next Pq Ql mod1+Tab
+.It Ic window.prev Pq Ql mod1+mods+Tab
+.It Ic icon.next Pq Ql modc+mod1+Tab
+.It Ic icon.prev Pq Ql modc+mod1+mods+Tab
+.El
+.Ss mouse.window
+.Bl -tag -width Ds -compact
+.It Ic move Pq Ql mod1+button1
+.It Ic lower Pq Ql mod1+button2
+.It Ic resize Pq Ql mod1+button3
+.El
+.Ss mouse.cycle
+Bound to the wheel over the empty desktop.
+.Bl -tag -width Ds -compact
+.It Ic north Pq Ql mods+button4
+.It Ic south Pq Ql mods+button5
+.It Ic east Pq Ql button5
+.It Ic west Pq Ql button4
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_CONFIG_HOME}/icowm/bindings.json
+The file this page describes, at the first of the several locations
+.Xr icowm 1
+looks in.
+.El
+.Sh EXAMPLES
+Move every shortcut off Control and onto Super, which is what the
+aliases exist for:
+.Bd -literal -offset indent
+{
+    "modifiers": {
+        "modc": "Super"
+    }
+}
+.Ed
+.Pp
+That is the whole file.
+Not one binding is named, yet every shortcut written with
+.Ic modc ,
+which is most of them, now wants Super where it wanted Control.
+Spelling the real modifier into each binding instead would have meant
+editing all of them.
+.Pp
+Rebind one action and leave another unbound, on top of the above:
+.Bd -literal -offset indent
+{
+    "modifiers": {
+        "modc": "Super"
+    },
+    "keyboard": {
+        "launch": { "terminal": "modc+mods+Return" },
+        "wm": { "quit": "" }
+    }
+}
+.Ed
+.Pp
+Here the terminal wants Super and Shift together, and quitting has no
+shortcut at all.
+Everything not named keeps its default, with the new
+.Ic modc .
+.Sh SEE ALSO
+.Xr icowm 1 ,
+.Xr icowm-msg 1 ,
+.Xr icowm 5 ,
+.Xr icowm-a11y 5 ,
+.Xr icowm-memguard 5 ,
+.Xr icowm-menu 5 ,
+.Xr icowm-randr 5 ,
+.Xr icowm-rules 5 ,
+.Xr icowm-session 5 ,
+.Xr icowm-theme 5
+.Sh HISTORY
+This format first appeared in IcoWM 1.0.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com

@@ -1,0 +1,209 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM-RULES 5
+.Os icowm-1.0.1
+.Sh NAME
+.Nm rules.json
+.Nd per-window rules for IcoWM
+.Sh DESCRIPTION
+.Pa rules.json
+matches windows as they appear and applies settings to the ones that
+match: which desktop a browser opens on, which windows never take focus,
+which are pinned to every desktop.
+The file is optional, and
+.Xr icowm 1
+carries on without any rules when it is absent or unparseable.
+.Pp
+The file is either an array of rule objects, or an object with a
+.Ic rules
+array.
+Rules are evaluated in the order written, and where several match the
+same window, a later one overrides an earlier one field by field, not
+wholesale.
+.Pp
+A rule has three fields:
+.Bl -tag -width Ds
+.It Ic when Pq string, default Ql \&"map\&"
+When the rule may run.
+.Ql map
+decides once, as the window first appears.
+.Ql property
+runs only after a later change to a tracked property such as the title,
+the role or the type.
+.Ql both
+does each.
+.It Ic match Pq object
+What the window must look like.
+Omitted or empty, the rule matches every window.
+.It Ic apply Pq object
+What to do about it.
+Absent, the rule is ignored.
+.El
+.Ss Matching
+Every field of
+.Ic match
+takes either one string or an array of them, in which case any one
+matching is enough.
+All the fields given must match together.
+.Bl -tag -width Ds
+.It Ic match.instance
+.It Ic match.class
+The two halves of
+.Ql WM_CLASS .
+.It Ic match.role
+.Ql WM_WINDOW_ROLE .
+.It Ic match.title
+The window title.
+.It Ic match.type
+The EWMH window type, such as
+.Ql dialog
+or
+.Ql dock .
+.It Ic match.transient Pq boolean
+Whether the window is transient for another.
+.El
+.Ss Applying
+.Bl -tag -width Ds
+.It Ic apply.desktop Pq integer
+Send the window to this desktop.
+.It Ic apply.monitor Pq integer
+Place it on this monitor.
+.It Ic apply.layer Pq string
+Put it in this stacking layer.
+.It Ic apply.focus Pq boolean
+Whether it takes focus on appearing.
+.It Ic apply.pinned Pq boolean
+Whether it shows on every desktop.
+.It Ic apply.decorated Pq boolean
+Whether it gets a frame and titlebar.
+.It Ic apply.opacity Pq integer or object
+Desired opacity, 0 to 100, overriding the theme's own for this one
+window.
+One value serves both states, or an object with
+.Ic active
+and
+.Ic inactive
+sets each; an object naming only one of the two leaves the other
+following the theme.
+.Pp
+This is published on the window through
+.Ql _NET_WM_WINDOW_OPACITY
+and nothing more.
+.Xr icowm 1
+never composites anything itself, so the property has no visible effect
+whatever unless a compositing manager, such as
+.Xr picom 1 ,
+is also running and reading it back.
+Without one, setting this changes nothing on screen.
+.It Ic apply.position
+Where to put the window, overriding the placement policy.
+Either an object with
+.Ic x
+and
+.Ic y ,
+an absolute pixel position, or the string
+.Ql center ,
+which centers the window at the moment the rule runs rather than
+pinning it to a fixed point.
+.Pp
+Combining
+.Ql center
+with an explicit
+.Ic size
+centers the window at that new size, not at whatever size it happened
+to have already been given.
+.Pp
+When
+.Ic monitor
+is set as well, every position here becomes relative to that monitor's
+own top left corner rather than to the whole surface, and
+.Ql center
+targets that monitor.
+A rule naming a
+.Ic monitor
+and no
+.Ic position
+at all centers on it.
+.It Ic apply.size.width Pq integer
+.It Ic apply.size.height Pq integer
+Give it this size.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_CONFIG_HOME}/icowm/rules.json
+The file this page describes, at the first of the several locations
+.Xr icowm 1
+looks in.
+.El
+.Sh EXAMPLES
+Put every terminal on desktop 1 and give it focus, and keep a music
+player pinned and undecorated wherever it goes:
+.Bd -literal -offset indent
+{
+    "rules": [
+        {
+            "when": "map",
+            "match": { "class": "XTerm" },
+            "apply": { "desktop": 1, "focus": true }
+        },
+        {
+            "when": "both",
+            "match": { "class": ["Cmus", "Ncmpcpp"] },
+            "apply": { "pinned": true, "decorated": false }
+        }
+    ]
+}
+.Ed
+.Pp
+Dim every window that is not focused, which needs a compositing manager
+running to be seen at all, and never let a notification take focus
+away:
+.Bd -literal -offset indent
+[
+    {
+        "match": {},
+        "apply": { "opacity": { "active": 100, "inactive": 85 } }
+    },
+    {
+        "match": { "type": "notification" },
+        "apply": { "focus": false }
+    }
+]
+.Ed
+.Pp
+Give a calculator a fixed size and center it on the second monitor,
+which is where the size being resolved first matters:
+.Bd -literal -offset indent
+{
+    "rules": [
+        {
+            "match": { "class": "Xcalc" },
+            "apply": {
+                "monitor": 1,
+                "position": "center",
+                "size": { "width": 400, "height": 500 }
+            }
+        }
+    ]
+}
+.Ed
+.Sh SEE ALSO
+.Xr icowm 1 ,
+.Xr icowm-msg 1 ,
+.Xr icowm 5 ,
+.Xr icowm-a11y 5 ,
+.Xr icowm-bindings 5 ,
+.Xr icowm-memguard 5 ,
+.Xr icowm-menu 5 ,
+.Xr icowm-randr 5 ,
+.Xr icowm-session 5 ,
+.Xr icowm-theme 5
+.Sh HISTORY
+This format first appeared in IcoWM 1.0.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com

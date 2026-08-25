@@ -1,0 +1,314 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM-MSG 1
+.Os icowm-1.0.1
+.Sh NAME
+.Nm icowm-msg
+.Nd command-line client for the IcoWM control socket
+.Sh SYNOPSIS
+.Nm
+.Ar command
+.Op Ar key Ns = Ns Ar value ...
+.Nm
+.Fl w Ar events
+.Op Fl n Ar count
+.Nm
+.Op Fl hvKW
+.Sh DESCRIPTION
+.Nm
+is a small, standalone client for
+.Xr icowm 1 Ns 's
+control socket.
+It builds one JSON request line out of its arguments, sends it to a
+running
+.Xr icowm 1 ,
+and prints back whatever answer comes.
+.Pp
+.Ar command
+is any command name the server knows;
+.Fl K
+lists them.
+Each
+.Ar key Ns = Ns Ar value
+becomes one field of the request object alongside
+.Ql cmd ,
+naming that command's argument.
+.Pp
+The response is printed to standard output exactly as received, on one
+line, whether the command succeeded or not.
+.Pp
+.Nm
+is built and installed alongside
+.Xr icowm 1
+as an entirely separate binary: building either never forces a rebuild
+of the other.
+It is independent at the source level too, linking only against
+.Sy cjson
+and never touching X11, XCB or any font library, since an IPC client has
+no reason to pull in what a window manager needs only in order to be
+one.
+.Ss Options
+.Bl -tag -width Ds
+.It Fl h
+Print usage, a few examples and this option list, then exit.
+.It Fl K
+List every command name this build knows about, one per line, then exit.
+.It Fl n Ar count
+Stop watching after
+.Ar count
+events.
+Only meaningful together with
+.Fl w ;
+on its own it is rejected, having nothing to count.
+.It Fl v
+Print this program's name,
+.Xr icowm 1 Ns 's
+short name and version, its license, its copyright line and its author,
+then exit.
+.It Fl W
+List every event name this build knows about, one per line, then exit.
+These are the same names
+.Fl w
+accepts.
+.It Fl w Ar events
+Subscribe to
+.Ar events
+instead of sending a command.
+See
+.Sx Watching for events
+below.
+.El
+.Pp
+The lists
+.Fl K
+and
+.Fl W
+print are hand-maintained snapshots of the server's own tables, kept
+here so that both work offline, the same way
+.Fl h
+and
+.Fl v
+already do, rather than needing a running server to query.
+They can therefore fall behind the server over time.
+Neither is ever used to validate a command or an event name before
+sending it: what is typed reaches the server unfiltered, so a stale
+listing makes only its own output incomplete, and never rejects
+something the server would have accepted.
+.Ss Argument values
+Every
+.Ar key Ns = Ns Ar value
+is split on its first
+.Ql = ,
+and the value half is sent as follows:
+.Bl -tag -width Ds
+.It Ql true No or Ql false
+A JSON boolean, when that is the whole value.
+.It A number
+A JSON number, when the value parses in full as one, for instance
+.Ql 23068673 ,
+.Ql -5
+or
+.Ql 3.5 .
+.It A hexadecimal number
+A JSON number holding its decimal value, when the value parses in full
+as one prefixed
+.Ql 0x ,
+for instance
+.Ql 0x1600001
+or
+.Ql 0xaaccff .
+.It Anything else
+A JSON string, verbatim.
+.El
+.Pp
+A numeric identifier therefore never needs quoting, and the
+.Ql 0x
+form is a convenience for values more naturally read that way, a window
+identifier or a packed
+.Ql RRGGBB
+color: it reaches the server exactly as its decimal equivalent would,
+JSON having no hexadecimal syntax of its own to carry it in.
+.Pp
+Note the other side of this: a value that looks like a number but is
+meant as text, a client's new name made only of digits say, is sent as
+a number.
+No command currently has an argument this could affect.
+.Pp
+An argument not in
+.Ar key Ns = Ns Ar value
+form at all, or with an empty key, is rejected before anything is sent,
+naming the offending argument on standard error.
+.Ss Watching for events
+.Nm Fl w Ar events
+leaves the one-request, one-response flow entirely: rather than sending
+a command, it subscribes and prints one JSON line per event as they
+arrive, for as long as the connection stays open.
+A
+.Ar command
+and any
+.Ar key Ns = Ns Ar value
+arguments are unused in this mode.
+.Pp
+.Ar events
+is a comma-separated list of event names, without spaces, such as
+.Ql window_mapped,desktop_switched .
+With
+.Fl n Ar count ,
+watching stops once that many events have arrived; without it, watching
+continues until the connection drops or the process is killed.
+.Sh ENVIRONMENT
+.Bl -tag -width XDG_RUNTIME_DIR
+.It Ev XDG_RUNTIME_DIR
+Base directory holding the control socket.
+.Nm
+resolves the path the same way the server does, so the two must agree on
+this variable to find the same socket.
+When unset, both fall back to
+.Pa /tmp/icowm- Ns Ar uid .
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_RUNTIME_DIR}/icowm/socket
+The control socket, created by
+.Xr icowm 1
+with mode 0700 on its containing directory, so nothing else on the
+system can see it, let alone connect.
+On a typical
+.Xr systemd 1 Ns -managed
+Linux system this resolves to
+.Pa /run/user/ Ns Ar uid Ns Pa /icowm/socket .
+.It Pa /tmp/icowm- Ns Ar uid Ns Pa /icowm/socket
+Where the socket lives instead when
+.Ev XDG_RUNTIME_DIR
+is unset.
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds -compact
+.It 0
+The command reached the server and it reported success, printing
+.Ql \&"ok\&": true .
+While watching, this instead means that
+.Fl n Ar count
+was given and that many events were printed.
+.It 1
+The command reached the server and it reported failure, printing
+.Ql \&"ok\&": false ;
+the reason is in the response's
+.Ql error
+field.
+While watching, this means the subscription itself was rejected.
+.It 2
+The request never reached the server at all: no socket at the resolved
+path, a connection failure, a response that does not parse as JSON, or
+a local error such as a missing command, a malformed argument or an
+unrecognized option.
+Nothing is printed to standard output in this case; the reason is on
+standard error.
+While watching, this also covers a connection lost partway through.
+.El
+.Pp
+.Fl h ,
+.Fl v ,
+.Fl K
+and
+.Fl W
+all exit 0.
+.Pp
+A script that only cares whether the command worked can check the exit
+status alone, without parsing the response.
+.Pp
+The last case deserves its own note.
+Unlike the ordinary request and response flow, a watch that has already
+printed real events can still end in failure, if the connection drops
+before
+.Fl n
+is reached, or at any point at all when no
+.Fl n
+was given, since nothing else ever ends it.
+A script telling
+.Dq watched to completion
+apart from
+.Dq the connection dropped partway
+checks the exit status, not merely whether any event lines appeared.
+.Sh EXAMPLES
+Ask which protocol version the server speaks:
+.Bd -literal -offset indent
+$ icowm-msg get_version
+{"ok":true,"protocol_version":1}
+.Ed
+.Pp
+Switch to another desktop, and the same with one that does not exist:
+.Bd -literal -offset indent
+$ icowm-msg goto_desktop desktop_id=1
+{"ok":true}
+
+$ icowm-msg goto_desktop desktop_id=99
+{"ok":false,"error":"no such desktop on that surface"}
+.Ed
+.Pp
+Move a client, giving its identifier either way round:
+.Bd -literal -offset indent
+$ icowm-msg move_client client_id=23068673 x=100 y=200
+$ icowm-msg move_client client_id=0x1600001 x=100 y=200
+.Ed
+.Pp
+Act on the exit status alone, ignoring the response:
+.Bd -literal -offset indent
+if icowm-msg iconify_all desktop_id=0 >/dev/null; then
+	echo "iconified everything on desktop 0"
+fi
+.Ed
+.Pp
+Pull one field out of a response with any JSON tool:
+.Bd -literal -offset indent
+$ icowm-msg get_focused | jq -r '.focused[0].client_id'
+23068673
+.Ed
+.Pp
+Watch until the connection drops, which is what the trailing status
+reports:
+.Bd -literal -offset indent
+$ icowm-msg -w window_mapped
+{"ok":true}
+{"client_id":23068673,"desktop_id":0,"surface_id":0,"event":"window_mapped"}
+icowm-msg: connection closed with no response
+$ echo $?
+2
+.Ed
+.Sh DIAGNOSTICS
+.Bl -tag -width Ds
+.It Sy failed to connect to Ar path
+Nothing is listening at the resolved path.
+Either
+.Xr icowm 1
+is not running, or it was started with
+.Fl s ,
+which disables the socket for that run on purpose, or its socket failed
+to come up, which it logs a warning about and continues without, or
+.Nm
+resolved a different path than the running server bound, most often
+because
+.Ev XDG_RUNTIME_DIR
+differs between the two shells.
+.It Sy argument Ar foo Sy is not in key=value form
+An argument after the command name had no
+.Ql =
+in it.
+.El
+.Sh SEE ALSO
+.Xr icowm 1
+.Sh HISTORY
+.Nm
+first appeared in version 1.0, together with
+.Xr icowm 1 .
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com
+.Sh BUGS
+Probably.
+Please report any found at
+.Lk https://github.com/jacorbal/icowm/issues .

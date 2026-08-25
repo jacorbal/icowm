@@ -1,0 +1,76 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM-A11Y 5
+.Os icowm-1.0.1
+.Sh NAME
+.Nm a11y.json
+.Nd timing and visual-feedback overrides for IcoWM
+.Sh DESCRIPTION
+.Pa a11y.json
+adjusts timings and visual feedback for people who find the defaults
+hard to work with: a double click that has to be too quick, a focused
+window whose border is too thin to pick out, an urgent window that
+announces itself too fast or too faintly.
+.Pp
+The file is optional, and every key within it is too.
+.Bl -tag -width Ds
+.It Ic is-enabled Pq boolean, default Ql false
+Whether anything in this file is honoured at all.
+While false the rest is read but not applied, so a set of overrides can
+be kept ready and switched on when wanted.
+.It Ic interaction.double-click-ms Pq integer, default Ql 400
+How long, in milliseconds, may pass between two clicks for them to count
+as a double click.
+Raise it when two deliberate clicks keep being read as one.
+.It Ic focus-indicator.min-border-width Pq integer, default Ql 0
+A floor, in pixels, under the border width of the focused window,
+whatever the theme asks for.
+Zero leaves the theme alone.
+.It Ic urgency.sound-bell Pq boolean, default Ql false
+Whether the X bell rings when a window demands attention.
+.It Ic urgency.blink-interval-ms Pq integer, default Ql 600
+How long, in milliseconds, each half of the urgency blink lasts.
+A longer interval blinks more slowly, which is easier to follow and
+less likely to trouble someone sensitive to flashing.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_CONFIG_HOME}/icowm/a11y.json
+The file this page describes, at the first of the several locations
+.Xr icowm 1
+looks in.
+.El
+.Sh EXAMPLES
+A slower double click, a border thick enough to see, and a slow blink
+with the bell:
+.Bd -literal -offset indent
+{
+    "is-enabled": true,
+    "interaction": { "double-click-ms": 750 },
+    "focus-indicator": { "min-border-width": 4 },
+    "urgency": {
+        "sound-bell": true,
+        "blink-interval-ms": 1200
+    }
+}
+.Ed
+.Sh SEE ALSO
+.Xr icowm 1 ,
+.Xr icowm-msg 1 ,
+.Xr icowm 5 ,
+.Xr icowm-bindings 5 ,
+.Xr icowm-memguard 5 ,
+.Xr icowm-menu 5 ,
+.Xr icowm-randr 5 ,
+.Xr icowm-rules 5 ,
+.Xr icowm-session 5 ,
+.Xr icowm-theme 5
+.Sh HISTORY
+This format first appeared in IcoWM 1.0.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com

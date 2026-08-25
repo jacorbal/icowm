@@ -1,0 +1,356 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM 1
+.Os icowm-1.0.1
+.Sh NAME
+.Nm icowm
+.Nd minimalist stacking window manager with desktop icons
+.Sh SYNOPSIS
+.Nm
+.Op Fl hv
+.Op Fl C
+.Op Fl c Ar config_dir
+.Op Fl d Ar display
+.Op Fl L Ar log_level
+.Op Fl l Ar log_file
+.Op Fl M Ar mib
+.Op Fl qrst
+.Sh DESCRIPTION
+.Nm
+is a minimalist stacking window manager for the X Window System.
+It manages ordinary, freely overlapping windows: there is no tiling and
+no automatic layout of application windows.
+An iconified window is represented as an actual icon placed on the
+desktop, in the manner of classic window managers such as
+.Xr twm 1 ,
+rather than as an entry in a taskbar.
+.Pp
+Configuration lives in a set of JSON files under a single directory.
+None of them is required: a value absent from a file, or a file absent
+altogether, falls back to a built-in default, so
+.Nm
+starts and runs with no configuration at all.
+See
+.Sx FILES
+below, and the section 5 pages listed under
+.Sx SEE ALSO
+for each file's own format.
+.Pp
+.Nm
+also exposes a local control socket, so a script can query its state or
+drive it without going through X11 client messages.
+See
+.Xr icowm-msg 1 .
+.Ss Options
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl C
+Check every configuration file under the resolved configuration
+directory for JSON syntax errors, report the result, and exit without
+starting a session.
+.It Fl c Ar config_dir
+Read configuration from
+.Ar config_dir ,
+overriding the resolution order described under
+.Sx FILES .
+.It Fl d Ar display
+Connect to
+.Ar display ,
+for instance
+.Ql :0 .
+When absent, the
+.Ev DISPLAY
+environment variable is used.
+.It Fl h
+Print usage information and exit.
+.It Fl L Ar log_level
+Set the minimum log verbosity, from 0 to 8, running from
+.Ql trace
+through
+.Ql fatal .
+.Nm Fl h
+prints the level names in full.
+.It Fl l Ar log_file
+Set the log destination: a file path, or one of the keywords
+.Ql DEFAULT ,
+which sends errors to standard error and informational messages to
+standard output,
+.Ql STDOUT ,
+.Ql STDERR ,
+or
+.Ql NULL
+to disable logging altogether.
+.It Fl M Ar mib
+Run in restricted-memory mode with a ceiling of
+.Ar mib
+mebibytes.
+The value must be at least 14.
+See
+.Sx Restricted-memory mode
+below.
+.It Fl q
+Log fatal errors only, which is identical to the highest
+.Fl L
+level.
+.It Fl r
+Replace an already-running window manager.
+Without this,
+.Nm
+refuses to start when another window manager already owns the
+.Ql WM_S Ns Ar n
+selection on the display; with it,
+.Nm
+claims that selection and waits for the previous owner to relinquish it.
+.It Fl s
+Disable the control socket for this run.
+The socket is never set up at all, rather than being attempted and
+possibly failing.
+.It Fl t
+Record the originating function in every logged message, not only at the
+.Ql trace
+level.
+.It Fl v
+Print version and license information, and exit.
+.El
+.Ss Exiting
+There are two ways to shut
+.Nm
+down, and they behave differently on purpose.
+.Pp
+The ordinary quit action, whether reached through its key binding, its
+confirmation dialog, or the root menu, asks every open application to
+close itself first, the same request that closing one window
+individually already sends, so an application with unsaved work gets the
+same chance to warn about it that it gets at any other time.
+.Nm
+waits for all of them, up to the configured shutdown timeout, before
+exiting.
+.Pp
+The emergency exit shortcut,
+.Ql Ctrl+Mod1+Backspace ,
+disabled by default, does none of that.
+It runs with no dialog, no confirmation and no wait: the moment it is
+pressed,
+.Nm
+terminates, skipping even the exit session hooks that the ordinary quit
+action runs.
+This is deliberate.
+The shortcut exists for situations where
+.Nm
+itself might be unresponsive or in some broken state, so it is kept to
+the smallest, most direct action possible: any step that waited on the
+event loop or on rendering would only be as reliable as whatever it is
+that might be the very reason someone reaches for this shortcut.
+.Ss Restricted-memory mode
+.Nm Fl M Ar mib
+aims at genuinely memory-constrained systems: an old machine, a
+low-power single-board computer, a virtual machine given very little
+RAM.
+.Pp
+Before doing anything else,
+.Nm
+checks how much memory the system has free.
+If that is less than
+.Ar mib ,
+it does not start at all, and says so in the log: promising to stay
+under a ceiling is not meaningful if the system cannot spare that much
+to begin with.
+.Pp
+Once running,
+.Nm
+watches its own memory use.
+On reaching the ceiling, a dialog reports how much is in use and
+suggests closing a window before opening anything else.
+This is a warning rather than a wall: nothing is forcibly cut off at
+that number.
+.Pp
+The mode also caps how many windows are managed at once, locks the
+session to a single desktop, and reads its own configuration file in
+place of the ordinary one.
+.Sh ENVIRONMENT
+.Bl -tag -width XDG_RUNTIME_DIR
+.It Ev DISPLAY
+The X display to connect to, when
+.Fl d
+is not given.
+.It Ev XDG_CONFIG_HOME
+Base directory for configuration; see
+.Sx FILES .
+.It Ev HOME
+Used to resolve the configuration directory when
+.Ev XDG_CONFIG_HOME
+is unset.
+.El
+.Sh FILES
+The configuration directory is resolved in this order: the argument to
+.Fl c ,
+if given; otherwise
+.Pa ${XDG_CONFIG_HOME}/icowm ;
+otherwise
+.Pa ${HOME}/.icowm ;
+otherwise
+.Pa ./.icowm
+in the current working directory.
+Within it:
+.Bl -tag -width themes/
+.It Pa config.json
+Base configuration: screens, desktops, windows, focus and placement
+policy, icons, menus, the system tray and the scratchpad.
+.It Pa bindings.json
+Keyboard and mouse bindings.
+.It Pa themes/
+One JSON file per theme, of which one is selected from
+.Pa config.json .
+.It Pa randr.json
+XRandR output profiles: resolution, position, rotation, and which
+output is primary.
+.It Pa a11y.json
+Timing and visual-feedback overrides.
+.It Pa rules.json
+Per-window rules, matched when a window is mapped.
+.It Pa session.json
+Commands run at session start and at session end.
+.It Pa menu.json
+Contents of the root desktop menu.
+.It Pa memguard.json
+Configuration used in place of
+.Pa config.json
+under
+.Fl M .
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds -compact
+.It 0
+Normal exit, through the quit action, the emergency shortcut,
+.Dv SIGTERM ,
+or the control socket.
+.Fl h
+and
+.Fl v
+also exit with 0.
+.It -1
+An unrecognized option, or an argument that could not be used.
+.It 1
+Out of memory before the session could start.
+.It 2
+The X display could not be opened, or the text renderer could not be set
+up on it.
+.It 3
+The configuration could not be initialized.
+.It 5
+The X server reported no screens.
+.It 6
+Out of memory while allocating the surface list.
+.It 7
+A surface could not be initialized.
+.It 8
+A surface could not be recorded.
+.It 9
+Root window events could not be subscribed to, which normally means
+another window manager is already running.
+.It 10
+The EWMH atoms could not be interned.
+.It 11
+Restricted-memory mode found less free memory than its own ceiling.
+.It 12
+The manager selection could not be acquired: another window manager owns
+it and
+.Fl r
+was not given, or the previous owner did not release it in time.
+.El
+.Pp
+Status 4 is not used.
+.Sh EXAMPLES
+Start from an
+.Pa ~/.xinitrc ,
+which is the usual way:
+.Bd -literal -offset indent
+exec icowm
+.Ed
+.Pp
+Check the configuration without starting a session, which is what a
+packaging script or an editor hook would run:
+.Bd -literal -offset indent
+icowm -C -c ~/.config/icowm
+.Ed
+.Pp
+Run on a small machine with a ceiling of 24 mebibytes, logging to a
+file:
+.Bd -literal -offset indent
+exec icowm -M 24 -l /tmp/icowm.log
+.Ed
+.Pp
+Replace a window manager already running on the display:
+.Bd -literal -offset indent
+icowm -r
+.Ed
+.Sh SEE ALSO
+.Xr icowm-msg 1 ,
+.Xr icowm 5 ,
+.Xr icowm-a11y 5 ,
+.Xr icowm-bindings 5 ,
+.Xr icowm-memguard 5 ,
+.Xr icowm-menu 5 ,
+.Xr icowm-randr 5 ,
+.Xr icowm-rules 5 ,
+.Xr icowm-session 5 ,
+.Xr icowm-theme 5
+.Sh STANDARDS
+.Nm
+follows the
+.Rs
+.%T Extended Window Manager Hints
+.Re
+specification, publishing
+.Ql _NET_SUPPORTED ,
+.Ql _NET_ACTIVE_WINDOW ,
+.Ql _NET_WM_DESKTOP ,
+.Ql _NET_WM_STATE ,
+.Ql _NET_WM_STRUT_PARTIAL ,
+.Ql _NET_WM_PING
+and their kindred atoms, so panels, taskbars and pagers work with it.
+An incoming
+.Ql _NET_ACTIVE_WINDOW
+request is weighed against whichever client already holds focus before
+being honoured, so a window idle for some while cannot seize the
+keyboard from whatever the person is presently engaged with.
+.Pp
+It likewise follows the
+.Rs
+.%T Inter-Client Communication Conventions Manual
+.Re
+in its treatment of
+.Ql WM_DELETE_WINDOW ,
+.Ql WM_TAKE_FOCUS ,
+.Ql WM_TRANSIENT_FOR ,
+.Ql WM_NORMAL_HINTS ,
+.Ql WM_HINTS
+and
+.Ql WM_PROTOCOLS ,
+so that both modern and legacy X11 applications behave correctly.
+A window's
+.Ql WM_TRANSIENT_FOR
+descendants, its dialogs and the like, are raised along with it, so none
+is left stranded beneath the window it belongs to.
+.Pp
+The source is strict C99 and POSIX.
+.Sh HISTORY
+.Nm
+first appeared in version 1.0, together with
+.Xr icowm-msg 1 .
+.Pp
+It was written out of a wish for a window manager of moderate appetite
+that brought back the old-school notion of iconification, a window
+becoming an icon on the desktop, in place of the minimization that
+hides a window into a taskbar and leaves nothing of it in view.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com
+.Sh BUGS
+Probably.
+Please report any found at
+.Lk https://github.com/jacorbal/icowm/issues .

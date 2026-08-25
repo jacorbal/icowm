@@ -1,0 +1,388 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM 5
+.Os icowm-1.0.1
+.Sh NAME
+.Nm config.json
+.Nd base configuration file for IcoWM
+.Sh DESCRIPTION
+.Pa config.json
+holds the base configuration of
+.Xr icowm 1 :
+how many screens and desktops there are, how windows are focused and
+placed, what the icons and menus do, and what the system tray shows.
+It lives in the configuration directory
+.Xr icowm 1
+resolves at startup.
+.Pp
+The file is JSON.
+Every key is optional: one that is absent keeps its built-in default,
+and so does every key of an absent object, so a file holding only
+.Ql {}
+is valid and changes nothing.
+A key whose name begins with
+.Ql -
+or
+.Ql _
+is ignored outright, which is how a comment is written.
+.Pp
+Unless said otherwise below, a change takes effect on the next
+configuration reload.
+.Ss theme
+.Bl -tag -width Ds
+.It Ic theme Pq string, default Ql \&"default\&"
+Name of the theme to load, without the
+.Ql .json
+suffix, from the
+.Pa themes/
+subdirectory.
+When the named file is missing,
+.Xr icowm 1
+says so in the log and carries on with its built-in theme.
+See
+.Xr icowm-theme 5 .
+.El
+.Ss topology
+Describes how many screens there are and how each divides into
+desktops.
+.Pp
+This whole section is read only when the session starts.
+Changing anything under it and reloading has no effect on a running
+window manager: not the screen count, not how many desktops each screen
+has, not a desktop's own name or background color.
+Growing or shrinking the number of screens or desktops while running
+would mean deciding what becomes of the clients, the focus and the EWMH
+state already living on a desktop about to disappear, and reload does
+none of that.
+Restart to pick up a change here.
+.Pp
+Note that the sibling
+.Ic desktops
+section is a different thing despite the similar name: it describes
+navigation and reserved space rather than topology, and does take effect
+on reload like everything else.
+.Bl -tag -width Ds
+.It Ic topology.screens.count Pq integer, default Ql 1
+How many X screens to manage.
+.It Ic topology.screens.desktops[].count Pq integer, default Ql 4
+How many desktops that screen has, at most 16.
+.It Ic topology.screens.desktops[].inaugural Pq integer, default Ql 0
+Which desktop is current when the session starts.
+.It Ic topology.screens.desktops[].settings[].name Pq string
+Name of one desktop, shown in menus and in the switch overlay.
+Defaults to
+.Ql Desktop Ar N .
+.It Ic topology.screens.desktops[].settings[].background-color Pq string
+Background color of one desktop, as
+.Ql #RRGGBB .
+Absent, the theme's own desktop color is used.
+.El
+.Pp
+A screen's desktops may be arranged as a grid rather than a flat list,
+which is what lets navigation, the search box and the switch overlay
+address a desktop by row and column and move north, south, east or
+west:
+.Bl -tag -width Ds
+.It Ic layout.orientation Pq string, default Ql \&"horizontal\&"
+Whether consecutive desktops advance along a row
+.Pq Ql horizontal
+or down a column
+.Pq Ql vertical .
+.It Ic layout.corner Pq string, default Ql \&"top-left\&"
+Which corner desktop 0 occupies:
+.Ql top-left ,
+.Ql top-right ,
+.Ql bottom-left
+or
+.Ql bottom-right .
+.It Ic layout.rows Pq integer, default Ql 1
+.It Ic layout.columns Pq integer, default Ql 1
+Size of the grid.
+A layout with a single row or column behaves exactly as a flat list.
+.El
+.Ss programs
+External commands the key bindings and menus launch.
+Each is run through the shell, so arguments may be given.
+.Bl -tag -width Ds
+.It Ic programs.terminal Pq string, default Ql \&"xterm\&"
+.It Ic programs.launcher Pq string, default Ql \&"gmrun\&"
+.It Ic programs.file-manager Pq string, default Ql \&"pcmanfm\&"
+.It Ic programs.editor Pq string, default Ql \&"gvim\&"
+.It Ic programs.web-browser Pq string, default Ql \&"firefox\&"
+.El
+.Ss windows
+How ordinary windows behave.
+.Bl -tag -width Ds
+.It Ic windows.gravity Pq string, default Ql \&"north-west\&"
+Which corner or edge a window is anchored by when it has no gravity
+hint of its own.
+.It Ic windows.edges.snap.window Pq integer, default Ql 6
+.It Ic windows.edges.snap.screen Pq integer, default Ql 6
+How near, in pixels, a dragged window must come to another window's
+border or to a screen edge before it snaps to it.
+Zero disables snapping on that kind of edge.
+.It Ic windows.edges.resistance Pq integer, default Ql 20
+How far, in pixels, a drag must continue past an edge before the window
+breaks free of it.
+.It Ic windows.move-step Pq integer, default Ql 10
+How many pixels each keyboard move shifts the focused window.
+A value below 1 is treated as 1.
+.It Ic windows.resize-step Pq integer, default Ql 20
+How many pixels each keyboard resize changes the axis being resized.
+A value below 1 is treated as 1.
+.Pp
+With the direct resize bindings this applies only to a window that
+publishes no usable size hints: one that does, a terminal emulator
+sizing itself in whole character cells being the usual case, is resized
+by whole increments of its own instead, snapped from its base or
+minimum size, so it never lands on a size it cannot render.
+In the keyboard resize mode the step always applies, hints or not.
+.It Ic windows.show-geom Pq boolean, default Ql true
+Whether an overlay reports the position while a window is being moved
+and the size while it is being resized.
+.It Ic windows.solid-drag Pq boolean, default Ql true
+Whether a window is moved live during a drag, or only an outline is,
+the window itself jumping to its new place on release.
+.It Ic windows.focus.policy Pq string, default Ql \&"click\&"
+.Ql click
+gives focus on a button press,
+.Ql sloppy
+gives it to whatever the pointer is over.
+.It Ic windows.focus.focus-new Pq boolean, default Ql true
+Whether a newly mapped window takes focus.
+.It Ic windows.focus.raise Pq boolean, default Ql false
+Whether taking focus also raises the window.
+.It Ic windows.placement.policy Pq string, default Ql \&"smart\&"
+Where a newly mapped window is put:
+.Ql smart
+looks for the position overlapping least of what is already on screen,
+.Ql cascade
+steps each new window down and to the right of the last,
+.Ql centered
+centers it on the workarea, and
+.Ql under-mouse
+puts it where the pointer is.
+A transient or dialog window is centered on its parent regardless.
+.It Ic windows.placement.monitor Pq string, default Ql \&"pointer\&"
+Which monitor a new window lands on:
+.Ql pointer ,
+.Ql active ,
+.Ql primary ,
+or an explicit index.
+.It Ic windows.placement.group-related Pq boolean, default Ql true
+Whether a window is placed near others of its own application rather
+than judged on its own.
+.El
+.Ss icons
+How an iconified window is represented on the desktop.
+.Bl -tag -width Ds
+.It Ic icons.show-geom Pq boolean, default Ql false
+Whether an overlay reports the position while an icon is dragged.
+.It Ic icons.placement.policy Pq string, default Ql \&"smart\&"
+Where a new icon is put, the same policies windows have.
+.El
+.Ss shutdown and fortune
+.Bl -tag -width Ds
+.It Ic shutdown.enable-emergency-shortcut Pq boolean, default Ql false
+Whether
+.Ql Ctrl+Mod1+Backspace
+terminates the session at once, with no dialog and no wait.
+See
+.Xr icowm 1 .
+.It Ic shutdown.timeout-seconds Pq integer, default Ql 15
+How long the ordinary quit action waits for applications to close
+themselves before exiting anyway.
+.It Ic fortune.is-enabled Pq boolean, default Ql true
+Whether the fortune binding is grabbed at all.
+.It Ic fortune.command Pq string, default Ql \&"fortune\&"
+Command whose output that binding displays.
+.El
+.Ss startup-notification
+.Bl -tag -width Ds
+.It Ic startup-notification.timeout-seconds Pq integer, default Ql 15
+How long a busy cursor is shown after launching an application before
+giving up on it announcing itself.
+.El
+.Ss menus
+.Bl -tag -width Ds
+.It Ic menus.root.position Pq string, default Ql \&"under-mouse\&"
+.It Ic menus.windows.position Pq string, default Ql \&"under-mouse\&"
+Where the root menu and the window list open:
+.Ql under-mouse ,
+or a fixed corner of the workarea.
+The root menu's contents come from a file of their own; see
+.Xr icowm-menu 5 .
+.El
+.Ss systray
+The docking area for XEmbed tray icons, and the clock and battery
+readouts beside them.
+.Bl -tag -width Ds
+.It Ic systray.is-enabled Pq boolean, default Ql true
+Whether the tray is claimed and shown at all.
+.It Ic systray.reserve-space Pq boolean, default Ql false
+Whether the tray reserves a strut, so that maximized windows stop short
+of it rather than passing underneath.
+.It Ic systray.avoid-overlap Pq boolean, default Ql true
+Whether window placement treats the tray as occupied even when it
+reserves no space.
+.It Ic systray.position Pq string, default Ql \&"top-left\&"
+Which corner or edge of its monitor the tray docks against.
+.It Ic systray.margins Pq object
+Gap, in pixels, between the tray and each edge, through
+.Ic top ,
+.Ic right ,
+.Ic bottom
+and
+.Ic left .
+.It Ic systray.monitor Pq object
+Which monitor holds the tray, through
+.Ic anchor
+and
+.Ic index .
+.It Ic systray.order Pq string, default Ql \&"left-to-right\&"
+The direction icons accumulate in.
+.It Ic systray.layer Pq string, default Ql \&"below\&"
+Where the tray sits in the stacking order.
+.It Ic systray.clock.is-enabled Pq boolean, default Ql true
+.It Ic systray.clock.format Pq string, default Ql \&"%a %R\&"
+Whether a clock is shown beside the icons, and in what format.
+The format is handed to
+.Xr strftime 3
+unchanged, so any conversion it accepts may be used.
+.It Ic systray.battery.is-enabled Pq boolean, default Ql false
+Whether a battery readout is shown.
+.It Ic systray.battery.threshold.charged Pq integer, default Ql 100
+.It Ic systray.battery.threshold.low Pq integer, default Ql 20
+.It Ic systray.battery.threshold.critical Pq integer, default Ql 5
+Percentages at which the readout changes how it presents itself.
+.It Ic systray.battery.backend.type Pq string, default Ql \&"acpi\&"
+Where the charge is read from.
+.It Ic systray.battery.backend.number Pq integer, default Ql 0
+Which battery, on a machine with more than one.
+.It Ic systray.battery.poll-seconds Pq integer, default Ql 30
+How often it is read.
+.It Ic systray.text.position Pq string, default Ql \&"left\&"
+Which side of the icons the clock and battery text sits on.
+Its spacing and vertical alignment are theme concerns instead; see
+.Xr icowm-theme 5 .
+.El
+.Ss desktops
+How switching between desktops behaves, and how much of each is left
+free.
+.Bl -tag -width Ds
+.It Ic desktops.show-overlay Pq boolean, default Ql true
+Whether switching desktops announces which one became current.
+.It Ic desktops.notify-activity Pq boolean, default Ql true
+Whether a window demanding attention on another desktop is reported.
+.It Ic desktops.warp-on-edge-drag Pq boolean, default Ql true
+Whether dragging a window against a screen edge carries it through to
+the neighbouring desktop.
+.It Ic desktops.wrap-at-bounds Pq boolean, default Ql true
+Whether moving past the last desktop comes back around to the first.
+.It Ic desktops.margins.top Pq integer, default Ql 0
+.It Ic desktops.margins.right Pq integer, default Ql 0
+.It Ic desktops.margins.bottom Pq integer, default Ql 0
+.It Ic desktops.margins.left Pq integer, default Ql 0
+Space, in pixels, kept clear at each edge of every desktop, on top of
+whatever panels already reserve.
+.El
+.Ss scratchpad
+A single window kept aside, shown and hidden by its own binding rather
+than living on any desktop.
+.Bl -tag -width Ds
+.It Ic scratchpad.is-enabled Pq boolean, default Ql true
+Whether the scratchpad binding does anything.
+.It Ic scratchpad.command Pq string
+Command run to produce the scratchpad window on first use.
+.It Ic scratchpad.edge Pq string, default Ql \&"top\&"
+Which edge the window slides in from.
+.It Ic scratchpad.ignore-margins Pq boolean, default Ql false
+Whether it may cover the space
+.Ic desktops.margins
+keeps clear.
+.El
+.Ss prompt
+A single always-centered field for typing a command directly, with no
+application listing, no fuzzy matching and no cache, unlike
+.Ic programs.launcher .
+A mistyped or missing command shows an informational dialog rather than
+failing silently, and a successful one closes the box at once.
+.Bl -tag -width Ds
+.It Ic prompt.is-enabled Pq boolean
+When true, the launcher binding opens this built-in box rather than
+spawning
+.Ic programs.launcher .
+Defaults to false ordinarily, and to true under restricted-memory mode,
+which prefers it precisely to avoid the extra process.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_CONFIG_HOME}/icowm/config.json
+The file this page describes, at the first of the several locations
+.Xr icowm 1
+looks in.
+.El
+.Sh EXAMPLES
+A file that changes only what it means to change, everything else
+keeping its default:
+.Bd -literal -offset indent
+{
+    "theme": "default",
+    "windows": {
+        "focus": { "policy": "sloppy" },
+        "placement": { "policy": "cascade" }
+    },
+    "topology": {
+        "screens": [
+            { "desktops": { "count": 6, "inaugural": 0 } }
+        ]
+    }
+}
+.Ed
+.Pp
+Two rows of three desktops, navigated by direction, with the first at
+the top left:
+.Bd -literal -offset indent
+{
+    "topology": {
+        "screens": [
+            {
+                "desktops": {
+                    "count": 6,
+                    "layout": {
+                        "orientation": "horizontal",
+                        "corner": "top-left",
+                        "rows": 2,
+                        "columns": 3
+                    }
+                }
+            }
+        ]
+    }
+}
+.Ed
+.Pp
+Check a file for syntax errors without starting a session:
+.Bd -literal -offset indent
+icowm -C -c ~/.config/icowm
+.Ed
+.Sh SEE ALSO
+.Xr icowm 1 ,
+.Xr icowm-msg 1 ,
+.Xr icowm-a11y 5 ,
+.Xr icowm-bindings 5 ,
+.Xr icowm-memguard 5 ,
+.Xr icowm-menu 5 ,
+.Xr icowm-randr 5 ,
+.Xr icowm-rules 5 ,
+.Xr icowm-session 5 ,
+.Xr icowm-theme 5
+.Sh HISTORY
+This format first appeared in IcoWM 1.0.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com

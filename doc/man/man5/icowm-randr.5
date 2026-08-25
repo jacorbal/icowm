@@ -1,0 +1,170 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM-RANDR 5
+.Os icowm-1.0.1
+.Sh NAME
+.Nm randr.json
+.Nd XRandR output profiles for IcoWM
+.Sh DESCRIPTION
+.Pa randr.json
+describes what each physical display output should do: its resolution,
+where it sits, how it is rotated, and whether it is used at all.
+.Xr icowm 1
+applies these through the XRandR extension at startup, and again
+whenever an output is connected or disconnected.
+.Pp
+The file is optional.
+Without it, hot-plug events are still handled and surfaces reflow as
+outputs come and go; only the profiles are absent.
+At most sixteen outputs are described, or two in a low-memory build.
+.Bl -tag -width Ds
+.It Ic is-enabled Pq boolean, default Ql false
+Master switch for profile management.
+While false the rest of the file is ignored.
+.El
+.Pp
+.Ic outputs
+holds an array, each entry describing one output.
+An entry naming an output that is not currently connected is skipped
+until one by that name appears, which is what makes a profile for a
+monitor that is only sometimes plugged in useful.
+.Bl -tag -width Ds
+.It Ic name Pq string
+The connector name as the X server reports it, such as
+.Ql HDMI-1 ,
+.Ql eDP-1
+or
+.Ql DP-2 .
+Run
+.Xr xrandr 1
+to see what is available.
+.It Ic is-enabled Pq boolean, default Ql false
+Whether this output is used.
+True applies the rest of the profile and lets
+.Xr icowm 1
+place windows there.
+False turns the output off outright, blanking it as though unplugged,
+and excludes it from placement, which is what a permanently connected
+output that should never receive windows wants.
+.It Ic is-primary Pq boolean, default Ql false
+Whether this is the primary display.
+Only applied when
+.Ic is-enabled
+is true, and as a separate step after the rest of the profile.
+.It Ic resolution.w Pq integer, default Ql 0
+.It Ic resolution.h Pq integer, default Ql 0
+Mode to set, in pixels.
+Zero leaves the output at whatever mode it already has.
+.It Ic position.x Pq integer, default Ql 0
+.It Ic position.y Pq integer, default Ql 0
+Where the top left corner of this output sits in the combined screen.
+.It Ic rotation Pq string, default Ql \&"normal\&"
+One of
+.Ql normal ,
+.Ql left ,
+.Ql right
+or
+.Ql inverted .
+.El
+.Ss Applying a change to a running session
+.Pa randr.json
+is re-read on every configuration reload and applied before anything
+else that reload does, so that whatever resyncs afterward already sees
+the new geometry.
+.Pp
+When the reload actually changes something, a dialog appears on the
+affected screen asking whether to keep the new profile or go back to the
+previous one, with
+.Ql Revert
+selected and a countdown running underneath.
+Choosing
+.Ql Keep
+keeps it; choosing
+.Ql Revert ,
+pressing
+.Ql Escape ,
+or simply letting the countdown reach zero puts every changed output
+back exactly as it was, mode, position, rotation and primary status
+alike.
+The countdown is ten seconds.
+.Pp
+This exists for the obvious reason: a profile that leaves a monitor
+blank or unreadable would otherwise be very hard to undo, since undoing
+it needs the very screen it just broke.
+Letting it expire is therefore the safe outcome, which is why
+.Ql Revert
+is what is selected to begin with.
+.Pp
+No dialog appears when nothing actually changed, nor at startup, nor on
+a hotplug event.
+Only a reload offers it, that being the one moment somebody is at the
+keyboard to have asked for it.
+.Pp
+On a machine with more than one screen, every screen still gets its
+profiles applied on the same reload, but only the first one to actually
+change is offered the dialog: only one can be open at a time, and only
+the most recent change is remembered well enough to undo.
+.Pp
+Each profile is compared against the output's current state before
+anything is written, so a file already matching reality issues no XRandR
+request at all, including on a reload triggered by some unrelated file.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_CONFIG_HOME}/icowm/randr.json
+The file this page describes, at the first of the several locations
+.Xr icowm 1
+looks in.
+.El
+.Sh EXAMPLES
+A laptop panel with an external monitor to its right, the external one
+primary:
+.Bd -literal -offset indent
+{
+    "is-enabled": true,
+    "outputs": [
+        {
+            "name": "eDP-1",
+            "is-enabled": true,
+            "resolution": { "w": 1920, "h": 1080 },
+            "position": { "x": 0, "y": 0 }
+        },
+        {
+            "name": "HDMI-1",
+            "is-enabled": true,
+            "is-primary": true,
+            "resolution": { "w": 2560, "h": 1440 },
+            "position": { "x": 1920, "y": 0 }
+        }
+    ]
+}
+.Ed
+.Pp
+A projector that stays plugged in but must never receive windows:
+.Bd -literal -offset indent
+{
+    "is-enabled": true,
+    "outputs": [
+        { "name": "DP-2", "is-enabled": false }
+    ]
+}
+.Ed
+.Sh SEE ALSO
+.Xr icowm 1 ,
+.Xr icowm-msg 1 ,
+.Xr icowm 5 ,
+.Xr icowm-a11y 5 ,
+.Xr icowm-bindings 5 ,
+.Xr icowm-memguard 5 ,
+.Xr icowm-menu 5 ,
+.Xr icowm-rules 5 ,
+.Xr icowm-session 5 ,
+.Xr icowm-theme 5
+.Sh HISTORY
+This format first appeared in IcoWM 1.0.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com

@@ -1,0 +1,91 @@
+.\" Copyright (c) 2026, J. A. Corbal.
+.\" All rights reserved.
+.\"
+.\" This file is licensed under the 'ISC License'.
+.\" Read the 'LICENSE' file in the root of this repository for details.
+.\"
+.Dd December 21, 2026
+.Dt ICOWM-SESSION 5
+.Os icowm-1.0.1
+.Sh NAME
+.Nm session.json
+.Nd session lifecycle hooks for IcoWM
+.Sh DESCRIPTION
+.Pa session.json
+lists commands
+.Xr icowm 1
+launches at three points in a session's life.
+The file is optional: absent or malformed, no hooks run at all.
+.Pp
+Each command is expanded with
+.Xr wordexp 3
+semantics and then started through
+.Xr fork 2
+and
+.Xr execvp 3 .
+A hook runs independently of the window manager, which only logs that it
+started and how it ended.
+Command substitution is disabled, and environment-variable expansion is
+disabled as well wherever
+.Dv WRDE_NOENV
+is available.
+.Pp
+Every key holds an array of strings, empty by default.
+Only non-empty strings are used; anything else in the array is ignored.
+.Bl -tag -width Ds
+.It Ic on-start
+Run once startup initialization has finished.
+.It Ic on-reload
+Run after a configuration reload, whether from
+.Dv SIGHUP
+or from the reload action.
+.It Ic on-exit
+Run as
+.Xr icowm 1
+is exiting.
+.El
+.Pp
+Note that the emergency exit shortcut skips
+.Ic on-exit
+entirely, along with everything else the ordinary quit action does.
+That is the point of it: it exists for a session that may already be
+broken, so it takes the shortest path out.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ${XDG_CONFIG_HOME}/icowm/session.json
+The file this page describes, at the first of the several locations
+.Xr icowm 1
+looks in.
+.El
+.Sh EXAMPLES
+Set a wallpaper and start a compositor with the session, and put the
+wallpaper back after a reload:
+.Bd -literal -offset indent
+{
+    "on-start": [
+        "xsetroot -solid '#5f7187'",
+        "picom --daemon"
+    ],
+    "on-reload": [
+        "xsetroot -solid '#5f7187'"
+    ],
+    "on-exit": [
+        "pkill picom"
+    ]
+}
+.Ed
+.Sh SEE ALSO
+.Xr icowm 1 ,
+.Xr icowm-msg 1 ,
+.Xr icowm 5 ,
+.Xr icowm-a11y 5 ,
+.Xr icowm-bindings 5 ,
+.Xr icowm-memguard 5 ,
+.Xr icowm-menu 5 ,
+.Xr icowm-randr 5 ,
+.Xr icowm-rules 5 ,
+.Xr icowm-theme 5
+.Sh HISTORY
+This format first appeared in IcoWM 1.0.
+.Sh AUTHORS
+.An J. A. Corbal Aq Mt jacorbal@gmail.com
