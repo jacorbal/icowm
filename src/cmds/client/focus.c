@@ -372,10 +372,18 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
         focus_order_to_top(next_focus);
         ccmd_client_focus(next_focus);
     } else if (desktop->connection != NULL) {
+        /* Same timestamp every other focus call in this file uses,
+         * so that relinquishing here cannot record a last focus
+         * change later than a subsequent request carries and have
+         * the server discard that request */
+        const uint32_t relinquish_time =
+            (client_last_user_time() != 0u)
+                ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
+
         xcb_set_input_focus(desktop->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_CURRENT_TIME);
+                relinquish_time);
     }
 
     wm_outdate_desktop(desktop);
@@ -731,15 +739,27 @@ void ccmd_client_unfocus(client_td *client)
      * 'KeyPress'/'KeyRelease' after being visually unfocused (e.g., by
      * clicking the empty desktop), since nothing ever told the X
      * server to stop delivering keyboard events to its window.
-     * A caller that is unfocusing this client only to immediately
-     * focus another one (see 'focus_apply') harmlessly overrides this
-     * a moment later via that client's own 'SetInputFocus' call, same
-     * as the existing pattern in 'ccmd_client_close' below. */
+     * The timestamp is the same one 'ccmd_client_focus' uses, and
+     * that matters more than it looks.  A caller unfocusing this
+     * client only to focus another a moment later, which is what
+     * 'focus_apply' does on every focus change, was once said to
+     * override this harmlessly; that was true only while both calls
+     * carried 'CurrentTime', which the server replaces with the
+     * current time on each one.  With a real timestamp, relinquishing
+     * here with 'CurrentTime' records a last focus change later than
+     * the one the next call carries, and X ignores a 'SetInputFocus'
+     * older than the last focus change: the new window would light
+     * its titlebar while the keyboard went nowhere, following the
+     * pointer instead. */
     if (client->connection != NULL) {
+        const uint32_t relinquish_time =
+            (client_last_user_time() != 0u)
+                ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
+
         xcb_set_input_focus(client->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_CURRENT_TIME);
+                relinquish_time);
     }
 
     if ((!client_is_decorated(client) || client->frame == 0) &&

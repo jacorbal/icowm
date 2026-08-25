@@ -541,10 +541,17 @@ void cycle_init(xcb_connection_t *connection,
             config_theme_opacity_to_raw(cfg->theme.menu.opacity));
 
     xcb_map_window(connection, g_cycle_menu.window);
+    /* Same timestamp the focus commands use.  Taking the focus here
+     * with 'CurrentTime' would record a last focus change later than
+     * the one 'focus_apply' carries when the selection is confirmed,
+     * and X discards a 'SetInputFocus' older than the last focus
+     * change: the chosen window would light its titlebar with the
+     * keyboard left behind. */
     xcb_set_input_focus(connection,
             XCB_INPUT_FOCUS_POINTER_ROOT,
             g_cycle_menu.window,
-            XCB_CURRENT_TIME);
+            (client_last_user_time() != 0u)
+                ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME);
 
     /* Already applies the same "selected" icon render (active colors,
      * caption and hints, no pixmap) that every later navigation call
@@ -596,7 +603,9 @@ void cycle_destroy(xcb_connection_t *connection)
         xcb_set_input_focus(connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 restore_focus,
-                XCB_CURRENT_TIME);
+                (client_last_user_time() != 0u)
+                    ? client_last_user_time()
+                    : (uint32_t) XCB_CURRENT_TIME);
     }
 
     if (surface != NULL) {

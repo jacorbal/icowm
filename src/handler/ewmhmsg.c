@@ -759,7 +759,9 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         xcb_set_input_focus(surface->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_CURRENT_TIME);
+                (client_last_user_time() != 0u)
+                ? client_last_user_time()
+                : (uint32_t) XCB_CURRENT_TIME);
     }
 
     surface->is_showing_desktop = show && changed_hidden_state;

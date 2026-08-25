@@ -38,6 +38,7 @@
 #include <utils/xcb/atom.h>
 
 /* Project includes */
+#include <client.h>
 #include <config.h>
 #include <render/text.h>
 #include <surface.h>
@@ -470,7 +471,9 @@ static void s_menu_confirm_dialog_close(xcb_connection_t *connection)
      * nothing at all. */
     if (s_confirm_prev_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
-                s_confirm_prev_focus, XCB_CURRENT_TIME);
+                s_confirm_prev_focus, (client_last_user_time() != 0u)
+                ? client_last_user_time()
+                : (uint32_t) XCB_CURRENT_TIME);
     }
     s_confirm_prev_focus = XCB_WINDOW_NONE;
 
@@ -641,7 +644,9 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     xcb_set_input_focus(connection,
             XCB_INPUT_FOCUS_POINTER_ROOT,
-            s_confirm_window, XCB_CURRENT_TIME);
+            s_confirm_window, (client_last_user_time() != 0u)
+                ? client_last_user_time()
+                : (uint32_t) XCB_CURRENT_TIME);
     xcb_flush(connection);
 }
 

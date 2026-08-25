@@ -31,6 +31,7 @@
 
 /* Project includes */
 #include <config.h>
+#include <client.h>
 #include <desktop.h>
 #include <i18n.h>
 #include <render/text.h>
@@ -77,7 +78,9 @@ static void s_run_destroy(xcb_connection_t *connection)
 
     if (s_run.prev_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
-                s_run.prev_focus, XCB_CURRENT_TIME);
+                s_run.prev_focus, (client_last_user_time() != 0u)
+                ? client_last_user_time()
+                : (uint32_t) XCB_CURRENT_TIME);
     }
 
     memset(&s_run, 0, sizeof(s_run));
@@ -252,7 +255,9 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
     xcb_set_input_focus(connection,
             XCB_INPUT_FOCUS_POINTER_ROOT,
             s_run.window,
-            XCB_CURRENT_TIME);
+            (client_last_user_time() != 0u)
+                ? client_last_user_time()
+                : (uint32_t) XCB_CURRENT_TIME);
 
     run_draw(connection, cfg);
 }

@@ -837,7 +837,9 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
     xcb_set_input_focus(connection,
             XCB_INPUT_FOCUS_POINTER_ROOT,
             s_search.window,
-            XCB_CURRENT_TIME);
+            (client_last_user_time() != 0u)
+                ? client_last_user_time()
+                : (uint32_t) XCB_CURRENT_TIME);
 
     /* Paint immediately: every candidate is shown right away with an
      * empty query (see 's_search_refilter''s comment), so the widget
@@ -859,7 +861,9 @@ void search_destroy(xcb_connection_t *connection)
 
     if (s_search.prev_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
-                s_search.prev_focus, XCB_CURRENT_TIME);
+                s_search.prev_focus, (client_last_user_time() != 0u)
+                ? client_last_user_time()
+                : (uint32_t) XCB_CURRENT_TIME);
     }
 
     xcb_flush(connection);
