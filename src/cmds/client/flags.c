@@ -434,7 +434,10 @@ void ccmd_client_update_allowed_actions(client_td *client)
      * reached. */
     actions[n++] = client->ewmh->_NET_WM_ACTION_FULLSCREEN;
 
-    if (client_is_focusable(client)) {
+    /* The same predicate 'ccmd_client_iconify' refuses on, so that
+     * what is advertised here and what actually happens cannot drift
+     * apart */
+    if (client_is_iconifiable(client)) {
         actions[n++] = client->ewmh->_NET_WM_ACTION_MINIMIZE;
     }
 

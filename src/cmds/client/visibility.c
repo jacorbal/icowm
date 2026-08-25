@@ -510,7 +510,18 @@ void ccmd_client_iconify(client_td *client)
 {
     client_td *top;
 
-    if (client == NULL || client_is_locked(client)) {
+    /* Refused for a window this window manager has already told the
+     * display it will not do this to, by leaving
+     * '_NET_WM_ACTION_MINIMIZE' out of that window's own
+     * '_NET_WM_ALLOWED_ACTIONS' (see
+     * 'ccmd_client_update_allowed_actions').  A panel is what this
+     * keeps out in practice, and it is refused here rather than at
+     * each of the several callers so that every route in, the
+     * titlebar button,
+     * the key binding, the window menu, the IPC command and the
+     * iconify-all action alike, obeys the same rule. */
+    if (client == NULL || client_is_locked(client) ||
+            !client_is_iconifiable(client)) {
         return;
     }
 

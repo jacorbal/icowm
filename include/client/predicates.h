@@ -134,6 +134,26 @@
     ((w)->properties.flags & CLIENT_FLAG_FOCUSABLE)
 
 /**
+ * @brief Macro that evaluates to whether a client may be iconified
+ *
+ * This is the same condition @a ccmd_client_update_allowed_actions uses
+ * to decide whether to advertise @c _NET_WM_ACTION_MINIMIZE in the
+ * client's own @c _NET_WM_ALLOWED_ACTIONS, and it exists so that both
+ * sides say the same thing: a window manager that publishes an action
+ * as disallowed and then performs it anyway is telling every client
+ * on the display something untrue.
+ *
+ * A panel or a dock is what this keeps out in practice.  Such a window
+ * is desktop furniture rather than an application: it has no titlebar
+ * to iconify from, it is pinned to every desktop, and an icon standing
+ * in for it would represent something the person never asked to put
+ * away.
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_iconifiable(w) client_is_focusable(w)
+
+/**
  * @brief Macro that evaluates to whether a client can receive real
  *        keyboard focus under its own declared ICCCM input model
  *
