@@ -81,7 +81,15 @@ EWMH Compliance
         ` _FULLSCREEN`, ` _ABOVE`, ` _BELOW`, ` _DEMANDS_ATTENTION`, and
         ` _FOCUSED` are all supported both ways (a client's initial
         state is honored, and a pager or other tool changing it through
-        a client message is honored too).
+        a client message is honored too).  They are held independent of
+        one another, as the spec requires: a window may be maximized on
+        one axis, on both, or on both while also full screen, and every
+        combination reads back off the property exactly as it stands.
+        `_ADD`, `_REMOVE` and `_TOGGLE` each act on the one state named
+        and leave the others alone, so removing ` _MAXIMIZED_HORZ` keeps
+        a vertical maximization the client never asked to lose, and
+        a window iconified while maximized comes back maximized (ICCCM
+        §2.1.1's independent-flags reading).
 - [`+`] `_NET_WM_ALLOWED_ACTIONS` (1.3)
         ` _MOVE`, ` _RESIZE`, ` _MINIMIZE`, ` _SHADE`, ` _STICK`,
         ` _MAXIMIZE_HORZ`, ` _MAXIMIZE_VERT`, ` _FULLSCREEN`,
@@ -236,6 +244,28 @@ was individually confirmed by reading its handling code.
         use mainly to a session manager or remote-process indicator,
         neither of which IcoWM implements).
 
+### Window Manager Withdrawal (ICCCM 4.1.4)
+
+- [`+`] Releasing clients on exit (2.0)
+        Every managed client is reparented back to the root window, at
+        the absolute position it occupied inside its frame, then mapped
+        and given `WM_STATE` `Normal` before the frames are destroyed,
+        so that another window manager may adopt it and so that nothing
+        the person had open becomes unreachable (`src/wm.c`).  The map
+        matters because IcoWM unmaps routinely, every client on
+        a desktop that is not the current one and every iconified one
+        among them; a window left unmapped with nobody managing it is
+        gone, its process still running but no `MapRequest` ever coming
+        for it again.  The map is issued strictly after the reparent,
+        since `X` unmaps a mapped window itself as the first step of
+        reparenting it, and the whole sequence is flushed before
+        `xcb_disconnect`, which makes no promise about a request still
+        in the buffer.
+
+        Only for an orderly exit.  A death by fatal signal runs none of
+        this and cannot be made to: almost nothing this needs is safe to
+        call from a signal handler.
+
 ### Client to Window Manager Communication (ICCCM 4.2)
 
 - [`+`] `ConfigureRequest` handling (2.0)
@@ -260,7 +290,9 @@ was individually confirmed by reading its handling code.
         Set on every managed client window (`Withdrawn`/`Normal`/
         `Iconic`), read by pagers that scan the window tree directly
         instead of relying on EWMH alone
-        (`src/cmds/client/visibility.c`, `src/cmds/client/ewmh.c`).
+        (`src/cmds/client/visibility.c`, `src/cmds/client/ewmh.c`), and
+        set back to `Normal` on every client as IcoWM releases them
+        (§4.1.4 above).
 - [`+`] `WM_ICON_SIZE` (2.0)
         Advertised on the root window, matching the fixed square size
         IcoWM's on-screen icons use (`src/wm/ewmhinit.c`).
