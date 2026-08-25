@@ -170,10 +170,12 @@ static int s_search_fuzzy_score(const char *restrict query,
  * A client may hold several geometry states at once, full screen over
  * a maximized window being the ordinary case, so the chain below
  * reports the outermost one alone, the same one the window is
- * actually drawn as.  That is combined with the shaded, sticky and
- * urgent flags, which are independent of it and of each other, into a
- * single comma-separated list such as @c "[p,m,!]".  Writes nothing
- * at all when no hint applies.
+ * actually drawn as.  Everything after it is independent, of that
+ * letter and of the others: iconified, shaded, hidden, sticky and
+ * urgent each report on their own, so a maximized window sitting as
+ * an icon says so twice over.  The result is one comma-separated
+ * list such as @c "[p,m,!]", and nothing at all when no hint
+ * applies.
  *
  * @param client Client to inspect
  * @param out    Destination buffer
@@ -196,7 +198,13 @@ static void s_search_build_hints(const client_td *client, char *out,
         letters[n++] = WM_ICON_HINT_MAXIMIZED_HORZ;
     } else if (client_is_maximized_vert(client)) {
         letters[n++] = WM_ICON_HINT_MAXIMIZED_VERT;
-    } else if (client_is_iconified(client)) {
+    }
+
+    /* On its own rather than in the chain above: being an icon is not
+     * one of the geometry states, it is a thing that happens to a
+     * window whatever geometry state it holds, so a maximized window
+     * sitting as an icon has to report both. */
+    if (client_is_iconified(client) && n < sizeof(letters)) {
         letters[n++] = WM_ICON_HINT_ICONIFIED;
     }
 
