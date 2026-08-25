@@ -133,15 +133,22 @@ breaks free of it.
 How many pixels each keyboard move shifts the focused window.
 A value below 1 is treated as 1.
 .It Ic windows.resize-step Pq integer, default Ql 20
-How many pixels each keyboard resize changes the axis being resized.
+How many pixels one step of a resize changes the axis being resized.
 A value below 1 is treated as 1.
 .Pp
-With the direct resize bindings this applies only to a window that
-publishes no usable size hints: one that does, a terminal emulator
-sizing itself in whole character cells being the usual case, is resized
-by whole increments of its own instead, snapped from its base or
-minimum size, so it never lands on a size it cannot render.
-In the keyboard resize mode the step always applies, hints or not.
+This applies only to a window that publishes no usable size hints.
+One that does, a terminal emulator sizing itself in whole character
+cells being the usual case, is resized by whole increments of its own
+instead, snapped from its base or minimum size, so it never lands on a
+size it cannot render.
+.Pp
+That is true of the resize key bindings and of a mouse drag on a
+border alike.
+The one exception is the modal resize the window menu's
+own
+.Ql Resize
+entry begins when that menu was opened from the keyboard: there the
+step always applies, hints or not.
 .It Ic windows.show-geom Pq boolean, default Ql true
 Whether an overlay reports the position while a window is being moved
 and the size while it is being resized.

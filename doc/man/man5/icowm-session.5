@@ -63,11 +63,13 @@ wallpaper back after a reload:
 .Bd -literal -offset indent
 {
     "on-start": [
-        "xsetroot -solid '#5f7187'",
+        "xsetbg -fullscreen '~/.background",
+        "dex -a",
+        "nm-applet",
         "picom --daemon"
     ],
     "on-reload": [
-        "xsetroot -solid '#5f7187'"
+        "notify-send -e -i 'configuration' 'IcoWM' 'Configuration reloaded'"
     ],
     "on-exit": [
         "pkill picom"

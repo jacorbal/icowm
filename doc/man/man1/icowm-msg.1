@@ -106,11 +106,11 @@ is split on its first
 .Ql = ,
 and the value half is sent as follows:
 .Bl -tag -width Ds
-.It Ql true No or Ql false
+.It Cm true No or Cm false
 A JSON boolean, when that is the whole value.
 .It A number
 A JSON number, when the value parses in full as one, for instance
-.Ql 23068673 ,
+.Ql 25165831 ,
 .Ql -5
 or
 .Ql 3.5 .
@@ -119,9 +119,9 @@ A JSON number holding its decimal value, when the value parses in full
 as one prefixed
 .Ql 0x ,
 for instance
-.Ql 0x1600001
+.Ql 0x1800007
 or
-.Ql 0xaaccff .
+.Ql 0xbadbabe .
 .It Anything else
 A JSON string, verbatim.
 .El
@@ -169,7 +169,7 @@ Base directory holding the control socket.
 resolves the path the same way the server does, so the two must agree on
 this variable to find the same socket.
 When unset, both fall back to
-.Pa /tmp/icowm- Ns Ar uid .
+.Pa /tmp/icowm-$(id -u)\& .
 .El
 .Sh FILES
 .Bl -tag -width Ds
@@ -181,11 +181,18 @@ system can see it, let alone connect.
 On a typical
 .Xr systemd 1 Ns -managed
 Linux system this resolves to
-.Pa /run/user/ Ns Ar uid Ns Pa /icowm/socket .
-.It Pa /tmp/icowm- Ns Ar uid Ns Pa /icowm/socket
+.Pa /run/user/$(id -u)/icowm/socket ,
+where
+.Ql user
+is that literal word rather than any account name.
+.It Pa /tmp/icowm-$(id -u)/socket
 Where the socket lives instead when
 .Ev XDG_RUNTIME_DIR
 is unset.
+Note that this path has no
+.Pa icowm/
+component of its own: the directory is already named after the program
+and the user, so only the socket name is appended to it.
 .El
 .Sh EXIT STATUS
 .Bl -tag -width Ds -compact

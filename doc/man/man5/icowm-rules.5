@@ -164,16 +164,18 @@ Dim every window that is not focused, which needs a compositing manager
 running to be seen at all, and never let a notification take focus
 away:
 .Bd -literal -offset indent
-[
-    {
-        "match": {},
-        "apply": { "opacity": { "active": 100, "inactive": 85 } }
-    },
-    {
-        "match": { "type": "notification" },
-        "apply": { "focus": false }
-    }
-]
+{
+    "rules": [
+        {
+            "match": {},
+            "apply": { "opacity": { "active": 100, "inactive": 85 } }
+        },
+        {
+            "match": { "type": "notification" },
+            "apply": { "focus": false }
+        }
+    ]
+}
 .Ed
 .Pp
 Give a calculator a fixed size and center it on the second monitor,

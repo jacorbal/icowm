@@ -115,7 +115,11 @@ sends it to one place outright:
 .Ic resize
 grows or shrinks one edge by
 .Ic windows.resize-step
-pixels:
+pixels, or by the window's own resize increment where it publishes one
+through
+.Ql WM_NORMAL_HINTS ,
+a terminal emulator sizing itself in whole character cells being the
+usual case:
 .Bl -tag -width Ds -compact
 .It Ic right Pq Ql modc+mod1+mods+l
 .It Ic left Pq Ql modc+mod1+mods+h
