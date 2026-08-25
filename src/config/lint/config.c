@@ -139,9 +139,7 @@ const config_lint_key_td s_schema_config[] = {
 
 
 /* A key added to 's_schema_config' without its count in the header
- * following makes this declaration negative, and so the build fail
- * here rather than the linter read past the end of the table */
-typedef char config_lint_config_size_check
-    [(sizeof(s_schema_config) /
-      sizeof(s_schema_config[0]) == CONFIG_LINT_CONFIG_KEYS)
-     ? 1 : -1];
+ * following makes this declaration negative, and so the build fail here
+ * rather than the linter read past the end of the table */
+typedef char config_lint_config_size_check[(sizeof(s_schema_config) /
+        sizeof(s_schema_config[0]) == CONFIG_LINT_CONFIG_KEYS) ? 1 : -1];

@@ -228,13 +228,22 @@ was individually confirmed by reading its handling code.
 - [`+`] `WM_HINTS` (2.0)
         Input model, initial state, window group, and urgency are all
         read (`src/client.c`).  All four input models of §4.1.7 are
-        honored separately: `SetInputFocus` is issued only for a client
-        whose `input` field is true, Passive and Locally Active, and
-        `WM_TAKE_FOCUS` is sent to any client registering that protocol,
-        which covers Locally and Globally Active, so a No Input client
-        receives neither.  A legacy `icon_pixmap`/`icon_mask` bitmap
-        icon is read as a fallback when `_NET_WM_ICON` is absent
-        (`src/render/wmicon.c`).
+        honored, and each by exactly one mechanism.  `SetInputFocus` is
+        issued only for a Passive client, meaning one whose `input`
+        field is true and that does not register `WM_TAKE_FOCUS`.  Every
+        client registering that protocol is sent the message and nothing
+        else, whichever way its `input` field reads, since §4.1.7 has
+        the client itself do the setting in both the Locally and the
+        Globally Active models.  A No Input client receives neither.
+
+        Doing both for a Locally Active client, as this once did, is
+        worse than redundant: the window manager spends the timestamp on
+        its own call, X ignores a `SetInputFocus` whose time is not
+        later than the last focus change, and the client's own answer is
+        therefore discarded.  The window took focus and its titlebar lit
+        while the application's focus stayed where it was.  A legacy
+        `icon_pixmap`/`icon_mask` bitmap icon is read as a fallback when
+        `_NET_WM_ICON` is absent (`src/render/wmicon.c`).
 - [`+`] `WM_CLASS` (2.0)
 - [`+`] `WM_TRANSIENT_FOR` (2.0)
         Read and stored (`src/client.c`).  §4.1.2.6's special case (the

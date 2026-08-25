@@ -558,10 +558,25 @@ void ccmd_client_focus(client_td *client)
         ccmd_client_unurge(client);
     }
 
-    /* ICCCM §4.2.7: only call 'SetInputFocus' when the client's input
-     * model accepts it ('WM_HINTS' input field, default 'true').
-     * Clients that set 'input=false' rely solely on the 'WM_TAKE_FOCUS'
-     * message to direct keyboard focus to themselves.
+    /* ICCCM §4.1.7: 'SetInputFocus' is called only for a client whose
+     * input model actually wants it, meaning one whose 'WM_HINTS'
+     * input field is true and that does not register 'WM_TAKE_FOCUS'.
+     * That is the Passive model, and it is the only one where the
+     * window manager sets the focus itself.
+     *
+     * A client registering 'WM_TAKE_FOCUS' sets its own focus, on
+     * receiving the message sent further down, whatever its input
+     * field says: with the field false that is the Globally Active
+     * model and with it true the Locally Active one, and §4.1.7
+     * describes both as the client doing the setting.  Doing both, as
+     * this once did for a Locally Active client, is not merely
+     * redundant but actively breaks it: the timestamp is spent here
+     * first, and X ignores a 'SetInputFocus' whose time is not later
+     * than the last focus change, so the client's own call with that
+     * same timestamp is discarded.  The frame took the focus and lit
+     * its titlebar while the application's own focus stayed wherever
+     * it had been, which is what cycling with a key binding looked
+     * like.
      *
      * Target 'client->window' itself, except while shaded: content is
      * unmapped then (that is the entire point of shading), and ICCCM
@@ -576,7 +591,8 @@ void ccmd_client_focus(client_td *client)
      * which left nothing to give a desktop's own keyboard focus
      * anywhere valid once its only client was shaded and the desktop
      * was left and returned to. */
-    if (client->hints_icccm.hints.accepts_input) {
+    if (client->hints_icccm.hints.accepts_input &&
+            !client->hints_icccm.protocols.has_take_focus) {
         xcb_window_t focus_win = (client_is_shaded(client) &&
                 client->frame != 0) ? client->frame : client->window;
         xcb_set_input_focus(client->connection, XCB_INPUT_FOCUS_PARENT,
@@ -603,7 +619,10 @@ void ccmd_client_focus(client_td *client)
 
     /* ICCCM §4.2.7: send 'WM_TAKE_FOCUS' 'ClientMessage' when the
      * client has registered that protocol.  This covers both the
-     * Locally Active and Globally Active input models.
+     * Locally Active and Globally Active input models, and for those
+     * this message is the whole of it: no 'SetInputFocus' was issued
+     * above, precisely so that the timestamp below is still unspent
+     * when the client answers with one of its own.
      *
      * The timestamp is the real one, never 'CurrentTime', which
      * §4.1.7 forbids here in as many words: the client is to echo
