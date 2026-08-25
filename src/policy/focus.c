@@ -180,9 +180,8 @@ void focus_order_to_top(client_td *client)
 
 /* Most recently focused client on a desktop that may hold focus now */
 client_td *focus_order_best(const desktop_td *desktop,
-        bool (*is_valid)(const client_td *candidate,
-                const client_td *exclude),
-        const client_td *exclude)
+        bool (*is_valid)(const client_td *candidate, void *data),
+        void *data)
 {
     cdlist_item_td *node;
     const cdlist_item_td *initial;
@@ -208,7 +207,7 @@ client_td *focus_order_best(const desktop_td *desktop,
         if (candidate != NULL &&
                 desktop_find_client_by_id(desktop,
                     candidate->id) == candidate &&
-                is_valid(candidate, exclude)) {
+                is_valid(candidate, data)) {
             return candidate;
         }
         node = cdlist_next(node);

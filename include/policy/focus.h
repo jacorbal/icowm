@@ -90,8 +90,8 @@ void focus_order_to_top(client_td *client);
  *
  * @param desktop  Desktop to restrict the search to
  * @param is_valid Predicate deciding whether a candidate qualifies
- * @param exclude  Client being replaced, passed on to @p is_valid,
- *                 which may itself be @c NULL
+ * @param data     Opaque pointer handed to @p is_valid, carrying
+ *                 whatever else that predicate needs to decide
  *
  * @return The client to focus, or @c NULL when none qualifies
  *
@@ -99,9 +99,8 @@ void focus_order_to_top(client_td *client);
  *       clients
  */
 client_td *focus_order_best(const desktop_td *desktop,
-        bool (*is_valid)(const client_td *candidate,
-                const client_td *exclude),
-        const client_td *exclude);
+        bool (*is_valid)(const client_td *candidate, void *data),
+        void *data);
 
 /**
  * @brief Visit every client of a desktop in focus order

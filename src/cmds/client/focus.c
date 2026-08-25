@@ -70,16 +70,18 @@
 
 
 /**
- * @brief Group leader the same-application fallback pass is looking
- *        for
+ * @brief What a fallback search needs beyond the candidate itself
  *
- * File-scope because @a focus_order_best takes a plain
- * predicate of two clients, and the leader being sought is neither of
- * them.  Set immediately before that pass and read only by
- * @a s_focus_fallback_valid_same_group, which runs to completion
- * within it.
+ * Handed through @a focus_order_best's own opaque pointer rather than
+ * kept at file scope, so that a search carries its own state and two
+ * of them could never read each other's.
  */
-static xcb_window_t s_fallback_leader = XCB_WINDOW_NONE;
+struct s_fallback_ctx_s {
+    /** Client that must never be chosen, or @c NULL for none */
+    const client_td *exclude;
+    /** Group leader the same-application pass insists on */
+    xcb_window_t leader;
+};
 
 
 /**
@@ -95,17 +97,21 @@ static xcb_window_t s_fallback_leader = XCB_WINDOW_NONE;
  * the person's attention regardless of that flag).
  *
  * @param candidate Client being considered as a fallback target
- * @param exclude   Client that must never be chosen (the one
- *                  leaving the current visible focus chain), or
- *                  @c NULL when nothing is excluded
+ * @param data      Pointer to the @c s_fallback_ctx_s this search
+ *                  carries, naming the client that must never be
+ *                  chosen
  *
  * @return @c true if @p candidate is a valid fallback target
  *
  * @note Complexity: @e O(1)
  */
 static bool s_client_focus_fallback_valid(const client_td *candidate,
-        const client_td *exclude)
+        void *data)
 {
+    const struct s_fallback_ctx_s *const ctx = data;
+    const client_td *const exclude =
+        (ctx != NULL) ? ctx->exclude : NULL;
+
     return candidate != NULL && candidate != exclude &&
         !(candidate->properties.flags & CLIENT_FLAG_HIDDEN) &&
         !client_is_iconified(candidate) &&
@@ -123,18 +129,22 @@ static bool s_client_focus_fallback_valid(const client_td *candidate,
  *        application
  *
  * @param candidate Client being considered
- * @param exclude   Client being replaced, which never qualifies
+ * @param data      Pointer to the @c s_fallback_ctx_s this search
+ *                  carries
  *
- * @return @c true if @p candidate is valid and shares
- *         @c s_fallback_leader
+ * @return @c true if @p candidate is valid and shares the leader that
+ *         context names
  *
  * @note Complexity: @e O(1)
  */
 static bool s_focus_fallback_valid_same_group(const client_td *candidate,
-        const client_td *exclude)
+        void *data)
 {
-    return s_client_focus_fallback_valid(candidate, exclude) &&
-        client_group_leader(candidate) == s_fallback_leader;
+    const struct s_fallback_ctx_s *const ctx = data;
+
+    return ctx != NULL &&
+        s_client_focus_fallback_valid(candidate, data) &&
+        client_group_leader(candidate) == ctx->leader;
 }
 
 
@@ -317,6 +327,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
 {
     client_td *next_focus = NULL;
     xcb_window_t exclude_leader;
+    struct s_fallback_ctx_s ctx;
 
     if (desktop == NULL) {
         return;
@@ -338,15 +349,17 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     exclude_leader = (exclude != NULL)
         ? client_group_leader(exclude) : XCB_WINDOW_NONE;
 
-    s_fallback_leader = exclude_leader;
+    ctx.exclude = exclude;
+    ctx.leader = exclude_leader;
+
     if (exclude_leader != XCB_WINDOW_NONE) {
         next_focus = focus_order_best(desktop,
-                s_focus_fallback_valid_same_group, exclude);
+                s_focus_fallback_valid_same_group, &ctx);
     }
 
     if (next_focus == NULL) {
         next_focus = focus_order_best(desktop,
-                s_client_focus_fallback_valid, exclude);
+                s_client_focus_fallback_valid, &ctx);
     }
 
     if (next_focus != NULL) {

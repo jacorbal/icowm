@@ -54,6 +54,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
+#include <policy/focus.h>
 #include <loop.h>
 #include <memguard.h>
 #include <wm/startup.h>
@@ -249,6 +250,10 @@ static void s_wm_cleanup(void)
     }
 
     s_wm_all_clients_unmanage();
+
+    /* The focus order refers to clients and owns none of them, so it
+     * is released once nothing will consult it again */
+    focus_order_destroy();
 
     systray_shutdown(wm);
     xsettings_shutdown(wm);
