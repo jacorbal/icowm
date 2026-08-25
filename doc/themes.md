@@ -757,9 +757,6 @@ file was actually read.
 {
     "name": "Default theme",
 
-    "-author": "J. A. Corbal",
-    "-creation-date": "Sat Aug  1 03:57:31 UTC 2026",
-    "-modified-date": "Mon Aug 24 03:30:00 UTC 2026",
     "-notes": "In-house blue-grey scheme: slate desktop, pale blue-grey window surfaces, a mid-blue active title bar and a warm gold cycling frame.  Text Lc 56 and 7.0:1 or better, dimmed elements Lc 56, window frames 3.0:1 on the desktop.",
 
     "desktop": {
