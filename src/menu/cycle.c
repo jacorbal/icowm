@@ -627,6 +627,21 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
     desktop = g_cycle_menu.desktop;
     is_icon = g_cycle_menu.is_icon_menu;
 
+    /* Cleared so that 'cycle_destroy' below does not hand focus back
+     * to whatever held it before the menu opened.  That restore is
+     * for the cancel path, where nothing else will set the focus; on
+     * this path 'focus_apply' is about to, and the restore does real
+     * harm rather than merely wasted work.
+     *
+     * It sets the focus with 'CurrentTime', which the X server
+     * replaces with the current server time and records as the last
+     * focus change.  Every later 'SetInputFocus' carrying the
+     * timestamp of the key press that started all this is then older
+     * than that, and the server ignores it: the window came forward
+     * and its titlebar lit, while the keyboard stayed with the window
+     * the person had just cycled away from. */
+    g_cycle_menu.prev_focus = XCB_WINDOW_NONE;
+
     cycle_destroy(connection);
 
     if (target == NULL || surface == NULL || desktop == NULL) {
