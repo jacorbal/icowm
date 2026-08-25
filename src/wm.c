@@ -529,7 +529,7 @@ static int s_wm_create_surfaces(void)
 
         LOGGER_TRACE("Inserting surface %u into surface list", i);
         if (list_ins_next(wm->surfaces, list_tail(wm->surfaces),
-                    (const void *) surface) != 0) {
+                    surface) != 0) {
             LOGGER_FATAL("Failed to insert surface %u" \
                     " into surface list", i);
             surface_destroy(surface);

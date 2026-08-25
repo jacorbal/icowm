@@ -154,6 +154,10 @@ static void s_lint_object(const cJSON *obj,
 {
     const cJSON *item;
 
+    /* The cast is cJSON's own doing, not this file's: its predicates
+     * take a non-const pointer even though they only ever read, so
+     * asking one of them a question about a 'const cJSON *' cannot be
+     * done without dropping the qualifier here. */
     if (obj == NULL || !cJSON_IsObject((cJSON *) obj)) {
         return;
     }

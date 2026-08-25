@@ -336,7 +336,7 @@ monitor_td surface_monitor_direction(const surface_td *surface,
  * @retval  1 Failed to insert the desktop to the list
  * @retval -1 Invalid surface
  */
-int surface_desktop_add(surface_td *surface, const desktop_td *desktop);
+int surface_desktop_add(surface_td *surface, desktop_td *desktop);
 
 /**
  * @brief Remove a desktop from the list by its ID

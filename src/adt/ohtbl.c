@@ -366,7 +366,7 @@ void ohtbl_reset(ohtbl_td *htbl)
 
 
 /* Insert a new item in the hash table */
-int ohtbl_insert(ohtbl_td *htbl, const void *data)
+int ohtbl_insert(ohtbl_td *htbl, void *data)
 {
     size_t insert_pos = 0;
     bool has_insert_pos = false;
@@ -398,7 +398,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
                 insert_pos = position;
             }
 
-            htbl->table[insert_pos] = (void *) data;
+            htbl->table[insert_pos] = data;
             htbl->size++;
             s_ohtbl_cancel_pending_shrink_if_recovered(htbl);
             return 0;
@@ -418,7 +418,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
     /* All positions probed; insert at the first vacated slot if one was
      * found (table is full of vacated/occupied but non-null) */
     if (has_insert_pos) {
-        htbl->table[insert_pos] = (void *) data;
+        htbl->table[insert_pos] = data;
         htbl->size++;
         s_ohtbl_cancel_pending_shrink_if_recovered(htbl);
         return 0;
@@ -430,7 +430,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data)
 
 
 /* Update an existing element, or insert it as new if didn't exist */
-int ohtbl_update(ohtbl_td *htbl, const void *data)
+int ohtbl_update(ohtbl_td *htbl, void *data)
 {
     size_t insert_pos = 0;
     bool has_insert_pos = false;
@@ -458,7 +458,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
                 insert_pos = position;
             }
 
-            htbl->table[insert_pos] = (void *) data;
+            htbl->table[insert_pos] = data;
             htbl->size++;
             s_ohtbl_cancel_pending_shrink_if_recovered(htbl);
             return 0;
@@ -473,7 +473,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
             }
         } else if (htbl->match(htbl->table[position], data)) {
             /* Overwrite the old value with the new one */
-            htbl->table[position] = (void *) data;
+            htbl->table[position] = data;
             return 0;
         }
     } /* ! for */
@@ -481,7 +481,7 @@ int ohtbl_update(ohtbl_td *htbl, const void *data)
     /* All positions probed; insert at the first vacated slot if one was
      * found (table is full of vacated/occupied but non-null) */
     if (has_insert_pos) {
-        htbl->table[insert_pos] = (void *) data;
+        htbl->table[insert_pos] = data;
         htbl->size++;
         s_ohtbl_cancel_pending_shrink_if_recovered(htbl);
         return 0;

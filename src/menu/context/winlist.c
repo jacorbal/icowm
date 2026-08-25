@@ -773,7 +773,6 @@ static void s_winlist_build_desktop_submenus(surface_td *surface,
 
     cdlist_foreach(surface->desktops, dnode) {
         winlist_entry_data_td *data;
-        const char *label_fmt;
         int desktop_n;
         bool is_cur;
         uint32_t row = 0u;
@@ -883,36 +882,35 @@ static void s_winlist_build_desktop_submenus(surface_td *surface,
             surface->config->base.screens[surface->id]
                 .desktop_layout.rows > 1u;
 
+        /* The format is written out at each call rather than picked
+         * into a variable first: a variable is not a string literal,
+         * so the compiler stops checking that the arguments match
+         * it, which is exactly the check worth keeping here.  The
+         * branches were already there either way. */
         if (desktop->name[0] != '\0') {
-            label_fmt = (show_row_col)
-                ? "%s[%u (%u, %u)] -- %s%s"
-                : "%s[%u] -- %s%s";
             if (show_row_col) {
                 (void) snprintf(label_buf, sizeof(label_buf),
-                        label_fmt,
+                        "%s[%u (%u, %u)] -- %s%s",
                         MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                         did, row, col, desktop->name,
                         MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
             } else {
                 (void) snprintf(label_buf, sizeof(label_buf),
-                        label_fmt,
+                        "%s[%u] -- %s%s",
                         MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                         did, desktop->name,
                         MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
             }
         } else {
-            label_fmt = (show_row_col)
-                ? "%s[%u (%u, %u)]%s"
-                : "%s[%u]%s";
             if (show_row_col) {
                 (void) snprintf(label_buf, sizeof(label_buf),
-                        label_fmt,
+                        "%s[%u (%u, %u)]%s",
                         MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                         did, row, col,
                         MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
             } else {
                 (void) snprintf(label_buf, sizeof(label_buf),
-                        label_fmt,
+                        "%s[%u]%s",
                         MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
                         did,
                         MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);

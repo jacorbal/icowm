@@ -305,7 +305,7 @@ bool surface_desktop_row_col(const surface_td *surface,
 
 
 /* Add a new desktop to the list */
-int surface_desktop_add(surface_td *surface, const desktop_td *desktop)
+int surface_desktop_add(surface_td *surface, desktop_td *desktop)
 {
     if (surface == NULL || desktop == NULL) {
         return -1;

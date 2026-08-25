@@ -113,7 +113,7 @@ void heap_destroy(heap_td *heap);
  *
  * @note Complexity: @e O(log n), where @e n is the number of nodes
  */
-int heap_insert(heap_td *heap, const void *data);
+int heap_insert(heap_td *heap, void *data);
 
 /**
  * @brief Extract a node at the top of the heap

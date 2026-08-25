@@ -59,7 +59,7 @@ void list_clear(list_td *list)
 
 /* Insert an item after a given item */
 int list_ins_next(list_td *list, list_item_td *item,
-        const void *data) {
+        void *data) {
 
     list_item_td *new_item;
 
@@ -69,7 +69,7 @@ int list_ins_next(list_td *list, list_item_td *item,
     }
 
     /* Insert the item into the list */
-    new_item->data = (void *) data;
+    new_item->data = data;
 
     if (item == NULL) {
         /* Handle insertion at the head of the list */

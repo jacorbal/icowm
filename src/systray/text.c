@@ -54,6 +54,13 @@ void systray_text_refresh_clock(void)
         return;
     }
 
+    /* The format comes from the configuration, so it cannot be a
+     * string literal here and the compiler cannot check it.  That is
+     * deliberate: the whole point of the setting is that a person
+     * writes their own.  'strftime' takes no variadic arguments, so
+     * a wrong format produces wrong text, never a wrong read; and a
+     * result of zero, which the guard below catches, is how a format
+     * that did not fit reports itself. */
     if (strftime(s_tray.clock_text, sizeof(s_tray.clock_text),
             s_tray.clock_format, local) == 0u) {
         s_tray.clock_text[0] = '\0';

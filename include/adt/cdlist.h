@@ -97,7 +97,7 @@ void cdlist_clear(cdlist_td *cdlist);
  * @note Complexity: @e O(1)
  */
 int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
-        const void *data);
+        void *data);
 
 /**
  * @brief Insert an item after a given item
@@ -113,7 +113,7 @@ int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
  * @note Complexity: @e O(1)
  */
 int cdlist_ins_next(cdlist_td *cdlist, cdlist_item_td *item,
-        const void *data);
+        void *data);
 
 /**
  * @brief Remove an item before a given item

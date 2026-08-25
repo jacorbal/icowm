@@ -78,7 +78,7 @@ void heap_destroy(heap_td *heap)
 
 
 /* Insert a node into the heap */
-int heap_insert(heap_td *heap, const void *data)
+int heap_insert(heap_td *heap, void *data)
 {
     void *temp;
     size_t ipos, ppos;
@@ -98,7 +98,7 @@ int heap_insert(heap_td *heap, const void *data)
     }
 
     /* Insert the node after the last node */
-    heap->tree[heap_size(heap)] = (void *) data;
+    heap->tree[heap_size(heap)] = data;
 
     /* Heapify by pushing the new node's contents upward */
     ipos = heap_size(heap);

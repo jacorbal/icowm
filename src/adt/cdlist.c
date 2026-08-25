@@ -58,7 +58,7 @@ void cdlist_clear(cdlist_td *cdlist)
 
 /* Insert an item before a given item */
 int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
-        const void *data)
+        void *data)
 {
     cdlist_item_td *new_item;
 
@@ -68,7 +68,7 @@ int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
     }
 
     /* Insert the item into the list */
-    new_item->data = (void *) data;
+    new_item->data = data;
 
     if (cdlist_size(cdlist) == 0) {
         /* Handle insertion at the tail of the list */
@@ -111,7 +111,7 @@ int cdlist_ins_prev(cdlist_td *cdlist, cdlist_item_td *item,
 
 /* Insert an item after a given item */
 int cdlist_ins_next(cdlist_td *cdlist, cdlist_item_td *item,
-        const void *data)
+        void *data)
 {
     cdlist_item_td *new_item;
 
@@ -121,7 +121,7 @@ int cdlist_ins_next(cdlist_td *cdlist, cdlist_item_td *item,
     }
 
     /* Insert the item into the list */
-    new_item->data = (void *) data;
+    new_item->data = data;
 
     if (cdlist_size(cdlist) == 0) {
         /* Handle insertion at the head of the list */

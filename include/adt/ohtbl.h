@@ -266,7 +266,7 @@ void ohtbl_reset(ohtbl_td *htbl);
  *
  * @note Complexity: @e O(1)
  */
-int ohtbl_insert(ohtbl_td *htbl, const void *data);
+int ohtbl_insert(ohtbl_td *htbl, void *data);
 
 /**
  * @brief Update an existing element in the has table, or insert it as
@@ -291,7 +291,7 @@ int ohtbl_insert(ohtbl_td *htbl, const void *data);
  *
  * @note Complexity: @e O(1)
  */
-int ohtbl_update(ohtbl_td *htbl, const void *data);
+int ohtbl_update(ohtbl_td *htbl, void *data);
 
 /**
  * @brief Remove an item from the hash table that matches @p data

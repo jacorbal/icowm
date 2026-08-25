@@ -111,7 +111,7 @@ void list_clear(list_td *list);
  * @note Complexity: @e O(1)
  */
 int list_ins_next(list_td *list, list_item_td *item,
-        const void *data);
+        void *data);
 
 /**
  * @brief Remove an item after a given item
