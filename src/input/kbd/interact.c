@@ -417,6 +417,7 @@ void ik_handle_move(enum ik_move_e direction,
     int32_t new_y;
     int32_t max_x;
     int32_t max_y;
+    int32_t border;
     int32_t wa_x = 0;
     int32_t wa_y = 0;
     uint16_t wa_w = 0;
@@ -456,19 +457,31 @@ void ik_handle_move(enum ik_move_e direction,
     have_workarea = ccmd_client_resolve_workarea(client,
             &wa_x, &wa_y, &wa_w, &wa_h);
 
+    /* The border counts against the space available.  A window's
+     * recorded width and height cover the frame alone, while the X
+     * window it sits in occupies that plus a border on each side, so
+     * a right or bottom edge worked out from the width by itself sat
+     * one border past where it was meant to and pushed that much of
+     * the window off the work area.
+     *
+     * Only the far edges are affected: the left and top ones are the
+     * window's own position, which the border grows away from rather
+     * than into. */
+    border = 2 * (int32_t) client_border_width(client, true, false);
+
     max_x = (have_workarea)
         ? wa_x + (int32_t) wa_w -
-          (int32_t) client->layout.geometry.cur.dim.w
+          (int32_t) client->layout.geometry.cur.dim.w - border
         : ((cs != NULL)
             ? (int32_t) cs->properties.dim.w -
-              (int32_t) client->layout.geometry.cur.dim.w
+              (int32_t) client->layout.geometry.cur.dim.w - border
             : new_x);
     max_y = (have_workarea)
         ? wa_y + (int32_t) wa_h -
-          (int32_t) client->layout.geometry.cur.dim.h
+          (int32_t) client->layout.geometry.cur.dim.h - border
         : ((cs != NULL)
             ? (int32_t) cs->properties.dim.h -
-              (int32_t) client->layout.geometry.cur.dim.h
+              (int32_t) client->layout.geometry.cur.dim.h - border
             : new_y);
 
     switch (direction) {
