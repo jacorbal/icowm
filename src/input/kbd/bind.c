@@ -783,39 +783,6 @@ bool keyboard_find(enum wm_keybind_type_e type,
 }
 
 
-/* Translate a raw key-press event into a binding action */
-bool keyboard_find_action(xcb_key_symbols_t *keysyms,
-        xcb_key_press_event_t *event,
-        enum wm_keybind_type_e *type_out,
-        uint16_t *raw_modmask_out)
-{
-    xcb_keysym_t keysym;
-    uint16_t state;
-
-    if (keysyms == NULL || event == NULL ||
-            type_out == NULL || raw_modmask_out == NULL) {
-        return false;
-    }
-
-    keysym = xcb_key_symbols_get_keysym(keysyms, event->detail, 0);
-    state = INPUT_STRIP_LOCK_MASK(event->state);
-
-    for (int i = 0; i < s_keybindings_count; ++i) {
-        uint16_t bind_state = INPUT_STRIP_LOCK_MASK(
-                s_keybindings[i].modmask);
-
-        if (keysym == s_keybindings[i].keysym &&
-                state == bind_state) {
-            *type_out = s_keybindings[i].type;
-            *raw_modmask_out = s_keybindings[i].modmask;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
 /* Test whether a keysym maps to a modifier in the given mask */
 bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask)
 {

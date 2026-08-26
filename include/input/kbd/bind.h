@@ -236,31 +236,6 @@ bool keyboard_find(enum wm_keybind_type_e type,
         xcb_keysym_t *keysym_out, uint16_t *modmask_out);
 
 /**
- * @brief Translate a raw key-press event into a binding action
- *
- * Converts the keycode in @p event to a keysym, strips locking
- * modifiers from the event state, and scans the binding table for the
- * first match.  On success the matched action type and the raw
- * (unstripped) modifier mask of the binding are written to the output
- * parameters.
- *
- * @param keysyms         Allocated XCB key-symbols table
- * @param event           Incoming key-press event
- * @param type_out        Receives the matched action type
- * @param raw_modmask_out Receives the raw modifier mask of the matched
- *                        binding (useful for passing to the cycle menu)
- *
- * @return @c true when a binding is matched
- *
- * @note Complexity: @e O(n), where @e n is the number of loaded
- *       bindings
- */
-bool keyboard_find_action(xcb_key_symbols_t *keysyms,
-        xcb_key_press_event_t *event,
-        enum wm_keybind_type_e *type_out,
-        uint16_t *raw_modmask_out);
-
-/**
  * @brief Test whether a keysym corresponds to a modifier covered by the
  *        given modifier mask
  *

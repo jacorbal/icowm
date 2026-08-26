@@ -625,7 +625,6 @@ void handler_configure_request(xcb_connection_t *connection,
     }
 
     geom_changed = false;
-    target_mask = 0;
     if (client != NULL) {
         bool wm_owns_geometry;
         bool is_reparented = (client->frame != 0) &&
