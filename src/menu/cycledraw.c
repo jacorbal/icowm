@@ -485,8 +485,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                  * first place
                  * (this one never learned to omit the pixmap for a
                  * newly *selected* icon, below). */
-                ri_render_client_icon(g_cycle_menu.desktop, previous,
-                        true);
+                ri_render_client_icon(previous, true, true);
             } /* ! if (g_cycle_menu.is_icon_menu) */
         } /* ! if (previous_target) */
     }
@@ -506,7 +505,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
          * rather than this function's own separate, previously
          * duplicated implementation, which (unlike that shared one)
          * never learned to omit the pixmap here at all. */
-        ri_render_client_icon_selected(connection, selected);
+        ri_render_client_icon(selected, true, true);
     }
 
     values[0] = g_cycle_menu.window;

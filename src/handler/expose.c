@@ -222,9 +222,9 @@ void handler_expose(xcb_connection_t *connection,
          * 'input/mouse/drag/icon.c' clears the icon window without
          * drawing its pixmap when the drag starts, on purpose) or
          * currently selected in the icon cycle menu
-         * ('ri_render_client_icon_selected' in 'render/icon.c' does the
-         * exact same thing when a cycle selection lands on it), both
-         * cases already folded into 'is_active_visual' above.
+         * ('ri_render_client_icon' in 'render/icon.c' draws either
+         * case the same way, asking about both itself), both
+         * already folded into 'is_active_visual' above.
          *
          * Without this check, an 'Expose' from passing behind another
          * window (or the cycle menu's own floating window happening to

@@ -805,7 +805,7 @@ static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
          * Plain hidden windows must stay fully unmapped. */
         if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
             if (client_is_iconified(client)) {
-                ri_render_client_icon(desktop, client, is_current);
+                ri_render_client_icon(client, is_current, false);
             }
             stacking_node = cdlist_next(stacking_node);
             continue;

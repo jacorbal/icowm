@@ -54,49 +54,32 @@
  * reflects that immediately rather than staying stuck at whichever it
  * was the last time an unrelated full desktop repaint happened to run.
  *
- * @param desktop    Desktop whose rendering context and theme are used
+ * The icon draws in its selected styling, meaning active colors, the
+ * active font and no pixmap, whenever the cycle menu has picked this
+ * client or a drag has hold of it.  Both are asked here rather than
+ * painted by whoever started them, so that every repaint of a
+ * picked-up icon agrees whatever triggered it; painting it from
+ * outside did not hold, an ordinary render pass arriving afterwards
+ * having drawn it plain again.
+ *
+ * The theme and the connection come from @p client itself, which is
+ * why no desktop is passed: the desktop was only ever a route to
+ * those two, and needing one shut this function out of callers that
+ * hold a client and nothing else.
+ *
  * @param client     The iconified client to render
- * @param is_current @c true when @p desktop is the one currently
- *                   visible
+ * @param is_current @c true when the client's own desktop is the one
+ *                   currently visible
+ * @param force      Render even when nothing about the icon changed
+ *                   since its last one, for a caller that needs the
+ *                   window repainted now rather than on the next pass
  *
  * @note No-op when @p client has no icon window or is not icon-mapped
  * @note Implemented in @c render/icon.c
  * @note Complexity: @e O(1)
  */
-void ri_render_client_icon(desktop_td *desktop, client_td *client,
-        bool is_current);
-
-/**
- * @brief Render an iconified client's icon window in its "currently
- *        selected" state.  Active colors, its own caption, and its
- *        hint indicators stay, but not the pixmap
- *
- * Clears the icon window, redraws only its caption (when
- * @p theme.icon.is-captioned is set) and its hint indicators
- * (@a ri_icon_hints_draw below), all in the client's own active colors.
- * It deliberately omits only the pixmap a full render
- * (@a ri_render_client_icon above) would otherwise draw.
- *
- * Originally mirrored the exact same simplified look an icon gets the
- * moment it starts being dragged, a separate, deliberately independent
- * implementation of the same idea rather than a shared call, so
- * a change meant for one never risks the other, which hides its caption
- * too and stays that way for the rest of the drag.  This one differs on
- * purpose, keeping caption and hints visible, since a busy icon being
- * cycled through only needs its pixmap out of the way to read clearly,
- * not its name or state hints as well.
- *
- * @param connection XCB connection
- * @param client     The iconified client to render
- *
- * @see @a drag_icon_sync_active_visual in input/mouse/drag/icon.c
- *
- * @note No-op when @p client has no icon window, is not icon-mapped, or
- *       its own @p theme is unset
- * @note Complexity: @e O(1)
- */
-void ri_render_client_icon_selected(xcb_connection_t *connection,
-        client_td *client);
+void ri_render_client_icon(client_td *client, bool is_current,
+        bool force);
 
 /**
  * @brief Draw the state-hint indicators in an iconified client's own

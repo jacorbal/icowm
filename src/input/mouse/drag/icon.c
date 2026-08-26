@@ -40,20 +40,6 @@
 #include <input/mouse/drag/overlay.h>
 
 
-/**
- * @brief Repaint the dragged client's icon in its selected
- *        (active) visual, for as long as an icon drag is in progress
- *
- * @param connection XCB connection used to repaint the icon
- *
- * @note Complexity: @e O(1)
- */
-static void s_drag_icon_sync_active_visual(xcb_connection_t *connection)
-{
-    ri_render_client_icon_selected(connection, s_drag.client);
-}
-
-
 /* Begin a drag operation for an icon window */
 void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
         client_td *client, desktop_td *desktop,
@@ -96,7 +82,10 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
 
     client->properties.operation = CLIENT_OPERATION_MOVING;
     client->is_icon_mapped = true;
-    s_drag_icon_sync_active_visual(connection);
+    /* Repainted at once, and forced: the icon has just become the
+     * picked-up one, and waiting for the next render pass would show
+     * it unselected for a frame first. */
+    ri_render_client_icon(client, true, true);
 
     xcb_grab_pointer(connection,
             0,

@@ -258,13 +258,13 @@ static void s_cycle_scroll_to_selection(void)
  * every navigation, this keeps their real icons in sync with the menu
  * immediately instead.
  *
- * @p is_selected picks which of the two very different renders that
- * sync actually needs: the client this cycle just selected gets
- * @a ri_render_client_icon_selected (active colors, its caption, and
- * its own hint indicators, but deliberately no pixmap) while the client
- * just passed over gets a full @a ri_render_client_icon render instead,
- * back to its ordinary inactive appearance, pixmap, caption, and hint
- * indicators all included.
+ * Both sides go through @a ri_render_client_icon, which works out on
+ * its own whether the client it is handed is the one the cycle has
+ * picked: the newly selected one comes out in active colors, its
+ * active font and no pixmap, and the one just passed over back in its
+ * ordinary inactive appearance with its pixmap.  Each is asked for
+ * with the render forced, since either may look the same to that
+ * function's own skip check as it did a moment earlier.
  *
  * @param client      Client whose real desktop icon to repaint
  * @param is_selected Whether @p client is the cycle's own newly
@@ -278,8 +278,7 @@ static void s_cycle_scroll_to_selection(void)
  *       needs no separate call here
  * @note Complexity: @e O(1)
  *
- * @see @a ri_render_client_icon_selected's own comment in
- *      @c render/icon.h
+ * @see @a ri_render_client_icon's own comment in @c render/icon.h
  * @ see @a mi_cycle_preview_apply in @c menu/cycledraw.c, which already
  *       applies the very same "selected" render this function itself
  *       calls below.
@@ -291,10 +290,9 @@ static void s_cycle_repaint_icon(client_td *client, bool is_selected)
     }
 
     if (is_selected) {
-        ri_render_client_icon_selected(g_cycle_menu.desktop->connection,
-                client);
+        ri_render_client_icon(client, true, true);
     } else {
-        ri_render_client_icon(g_cycle_menu.desktop, client, true);
+        ri_render_client_icon(client, true, true);
     }
     xcb_flush(g_cycle_menu.desktop->connection);
 }
@@ -556,8 +554,8 @@ void cycle_init(xcb_connection_t *connection,
     /* Already applies the same "selected" icon render (active colors,
      * caption and hints, no pixmap) that every later navigation call
      * gets via 's_cycle_repaint_icon' (see 'mi_cycle_preview_apply''s
-     * implementation in 'menu/cycledraw.c', which calls
-     * 'ri_render_client_icon_selected' directly for exactly this
+     * implementation in 'menu/cycledraw.c', which forces that render
+     * directly for exactly this
      * reason) so the cycle's own initial preselection needs no separate
      * call here to match it. */
     mi_cycle_preview_apply(connection, cfg);

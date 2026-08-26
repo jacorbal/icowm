@@ -56,10 +56,12 @@
  * pinned/state-hint indicators.  Called from @p desktop_render_clients
  * for clients that are both hidden and iconified.
  *
- * @param desktop    Desktop whose rendering context and theme are used
- * @param client     The iconified client to render
- * @param is_current @c true when @p desktop is the one currently
- *                   visible
+ * @param client     The iconified client to render; its own theme and
+ *                   connection are what this draws with
+ * @param is_current @c true when the client's own desktop is the one
+ *                   currently visible
+ * @param force      Render even when nothing about the icon changed
+ *                   since its last one
  *
  * @note No-op when @p client has no icon window or is not icon-mapped
  * @note Complexity: @e O(1)
@@ -67,15 +69,16 @@
  * @see @a ri_icon_hints_draw and @p theme.icon.show-hints, also
  *      @p theme.icon.show-pixmaps
  */
-void ri_render_client_icon(desktop_td *desktop, client_td *client,
-        bool is_current)
+void ri_render_client_icon(client_td *client, bool is_current,
+        bool force)
 {
     bool is_cycle_sel;
     uint32_t border_width;
     xcb_window_t tray_below;
     bool display_active;
 
-    if (desktop == NULL || client == NULL) {
+    if (client == NULL || client->connection == NULL ||
+            client->config == NULL) {
         return;
     }
 
@@ -121,7 +124,7 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
      * own skip-check tracks, so an urgent client always falls through
      * and repaints in full on every blink phase change regardless of
      * whether either tracked reason actually changed. */
-    if (!client->is_outdated &&
+    if (!force && !client->is_outdated &&
             is_cycle_sel == client->was_icon_cycle_selected &&
             !client_is_urgent(client)) {
         return;
@@ -144,34 +147,34 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
         display_active = !display_active;
     }
 
-    xcb_change_window_attributes(desktop->connection,
+    xcb_change_window_attributes(client->connection,
             client->icon_window,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
         (display_active)
-            ? desktop->config->theme.icon.active.color.background
-            : desktop->config->theme.icon.inactive.color.background,
+            ? client->config->theme.icon.active.color.background
+            : client->config->theme.icon.inactive.color.background,
         (display_active)
-            ? desktop->config->theme.icon.active.border.color
-            : desktop->config->theme.icon.inactive.border.color
+            ? client->config->theme.icon.active.border.color
+            : client->config->theme.icon.inactive.border.color
             });
 
     border_width = (display_active)
         ? client->config->theme.icon.active.border.width
         : client->config->theme.icon.inactive.border.width;
-    xcb_configure_window(desktop->connection,
+    xcb_configure_window(client->connection,
             client->icon_window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH,
             &border_width);
-    atom_set_window_opacity(desktop->connection,
+    atom_set_window_opacity(client->connection,
             client->icon_window,
             config_theme_opacity_to_raw((display_active)
-                ? desktop->config->theme.icon.active.opacity
-                : desktop->config->theme.icon.inactive.opacity));
+                ? client->config->theme.icon.active.opacity
+                : client->config->theme.icon.inactive.opacity));
 
-    xcb_clear_area(desktop->connection, 0,
+    xcb_clear_area(client->connection, 0,
             client->icon_window, 0, 0, 0, 0);
-    xcb_map_window(desktop->connection, client->icon_window);
+    xcb_map_window(client->connection, client->icon_window);
 
     /* Icons stay lower than the tray even within the shared 'below'
      * layer, "stuck to the desktop".
@@ -181,61 +184,56 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
      * that on its own. */
     tray_below = systray_below_window();
     if (tray_below != XCB_WINDOW_NONE) {
-        xcb_configure_window(desktop->connection, client->icon_window,
+        xcb_configure_window(client->connection, client->icon_window,
                 XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) {
                 tray_below, XCB_STACK_MODE_BELOW
                 });
     } else {
-        xcb_configure_window(desktop->connection, client->icon_window,
+        xcb_configure_window(client->connection, client->icon_window,
                 XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) { XCB_STACK_MODE_BELOW });
     }
 
-    /* The pixmap is left out while this icon is the picked one, which
-     * is what 'ri_render_client_icon_selected' does and the reason
-     * that function exists: the caption and the hint letters read
-     * against the plain selected background instead of over whatever
-     * image would otherwise sit under them.  Checked here as well so
-     * that a repaint reaching this path, the whole-desktop one a
-     * desktop warp triggers foremost, agrees with it rather than
-     * putting the image back.
+    /* The pixmap is left out while this icon is the picked one: the
+     * caption and the hint letters read against the plain selected
+     * background rather than over whatever image would otherwise sit
+     * under them.
      *
      * Tested against 'is_cycle_sel' and not 'display_active': the
      * latter carries the urgency blink's swap, and a blinking client
      * would otherwise have its pixmap appear and vanish on every
      * phase rather than simply changing color. */
-    if (desktop->config->theme.icon.show_pixmaps && !is_cycle_sel) {
-        wmicon_draw(desktop->connection, client->ewmh, client->window,
+    if (client->config->theme.icon.show_pixmaps && !is_cycle_sel) {
+        wmicon_draw(client->connection, client->ewmh, client->window,
                 client->icon_window, WM_ICON_SQUARE_SIZE,
                 (display_active)
-                    ? desktop->config->theme.icon.active.color.foreground
-                    : desktop->config->theme.icon.inactive.color.foreground,
+                    ? client->config->theme.icon.active.color.foreground
+                    : client->config->theme.icon.inactive.color.foreground,
                 (display_active)
-                    ? desktop->config->theme.icon.active.color.background
-                    : desktop->config->theme.icon.inactive.color.background,
+                    ? client->config->theme.icon.active.color.background
+                    : client->config->theme.icon.inactive.color.background,
                 &client->icon_pixmap_cache);
     }
 
-    if (desktop->config->theme.icon.is_captioned &&
+    if (client->config->theme.icon.is_captioned &&
             client->info.name != NULL) {
         char caption[CONFIG_MAX_LENGTH_NAME];
 
         /* The picked-up icon takes the active font as well as the
-         * active colors, which is what 'ri_render_client_icon_selected'
-         * does; drawn in the inactive one it still read as a different
-         * icon from the one the person had hold of. */
-        (void) text_renderer_use_font(desktop->connection,
+         * active colors: drawn in the inactive one it read as a
+         * different icon from the one the person had hold of. */
+        (void) text_renderer_use_font(client->connection,
                 (is_cycle_sel)
-                    ? desktop->config->theme.icon.active.font
-                    : desktop->config->theme.icon.inactive.font);
+                    ? client->config->theme.icon.active.font
+                    : client->config->theme.icon.inactive.font);
         text_renderer_set_color(
                 (display_active)
-                    ? desktop->config->theme.icon.active.color.foreground
-                    : desktop->config->theme.icon.inactive.color.foreground,
+                    ? client->config->theme.icon.active.color.foreground
+                    : client->config->theme.icon.inactive.color.foreground,
                 (display_active)
-                    ? desktop->config->theme.icon.active.color.background
-                    : desktop->config->theme.icon.inactive.color.background);
+                    ? client->config->theme.icon.active.color.background
+                    : client->config->theme.icon.inactive.color.background);
 
         text_truncate_to_width(caption, sizeof(caption),
                 client->info.name, WM_ICON_SQUARE_SIZE);
@@ -249,7 +247,7 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
         }
 
         if (caption[0] != '\0') {
-            text_draw_string(desktop->connection,
+            text_draw_string(client->connection,
                     client->icon_window, XCB_NONE,
                     (struct position_s) { 2,
                         WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
@@ -258,8 +256,8 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
         }
     }
 
-    ri_icon_hints_draw(desktop->connection, client, display_active,
-            &desktop->config->theme);
+    ri_icon_hints_draw(client->connection, client, display_active,
+            &client->config->theme);
 
     /* This is not reset anywhere else for a hidden/iconified client.
      * Only 's_desktop_render_one_client' ('render/desktop.c') clears
@@ -268,67 +266,6 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
      * instead).  Left uncleared, it would stay 'true' forever once set,
      * permanently defeating the skip check above. */
     client->is_outdated = false;
-}
-
-
-/* Render an iconified client's icon window in its "currently selected"
- * state.  Active colors, its own caption, and its hint indicators all
- * stay visible.  Only the pixmap is left out. */
-void ri_render_client_icon_selected(xcb_connection_t *connection,
-        client_td *client)
-{
-    if (connection == NULL || client == NULL || client->config == NULL ||
-            !client->is_icon_mapped || client->icon_window == 0) {
-        return;
-    }
-
-    /* Kept in sync with 'ri_render_client_icon''s own use of this same
-     * field.  Left untouched here, a client selected through this
-     * function (rather than a full 'ri_render_client_icon' render)
-     * would still read as 'was_icon_cycle_selected == false' the
-     * moment it is later deselected, matching the freshly computed
-     * 'is_cycle_sel == false' there and wrongly tripping that
-     * function's own skip-check, silently discarding the full render
-     * (pixmap, caption, hint indicators) deselecting is supposed to
-     * restore. */
-    client->was_icon_cycle_selected = true;
-
-    xcb_change_window_attributes(connection, client->icon_window,
-            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-            (const uint32_t[]) {
-                client->config->theme.icon.active.color.background,
-                client->config->theme.icon.active.border.color
-            });
-    xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
-
-    if (client->config->theme.icon.is_captioned &&
-            client->info.name != NULL) {
-        const char *caption =
-            (client->icon_info.visible_icon_name != NULL &&
-             client->icon_info.visible_icon_name[0] != '\0')
-                ? client->icon_info.visible_icon_name
-                : client->info.name;
-
-        (void) text_renderer_use_font(connection,
-                client->config->theme.icon.active.font);
-        text_renderer_set_color(
-                client->config->theme.icon.active.color.foreground,
-                client->config->theme.icon.active.color.background);
-        text_draw_string(connection, client->icon_window, XCB_NONE,
-                (struct position_s) { 2,
-                    WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
-                        2u },
-                caption);
-    }
-
-    /* Only the pixmap is deliberately omitted here, which is the entire
-     * point of this function as opposed to a full
-     * 'ri_render_client_icon' render.  The caption above, and these
-     * hint indicators, both stay exactly as visible as they would in
-     * any ordinary render, just drawn against the plain active-color
-     * background this function already cleared to instead of over
-     * whatever pixmap would otherwise sit underneath them. */
-    ri_icon_hints_draw(connection, client, true, &client->config->theme);
 }
 
 
