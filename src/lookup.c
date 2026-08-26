@@ -30,6 +30,35 @@
 #include <lookup.h>
 
 
+/**
+ * @brief Test whether an X window belongs to a managed client
+ *
+ * Checks whether the specified window matches any of the windows
+ * associated with the client: client window, frame, titlebar, icon
+ * window, or client identifier.
+ *
+ * @param client Pointer to the client to test
+ * @param window Window ID to compare against the client
+ *
+ * @return @c true if the window belongs to the client
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_lookup_client_matches_window(const client_td *client,
+        xcb_window_t window)
+{
+    if (client == NULL || window == XCB_WINDOW_NONE) {
+        return false;
+    }
+
+    return client->id == window ||
+           client->window == window ||
+           client->frame == window ||
+           client->titlebar == window ||
+           client->icon_window == window;
+}
+
+
 /* Find the surface whose root window matches 'root' */
 surface_td *lookup_surface_for_root(list_td *surfaces,
         xcb_window_t root)
@@ -59,35 +88,6 @@ desktop_td *lookup_current_desktop(surface_td *surface)
     }
 
     return surface_desktop_get(surface, surface->desktop_cur);
-}
-
-
-/**
- * @brief Test whether an X window belongs to a managed client
- *
- * Checks whether the specified window matches any of the windows
- * associated with the client: client window, frame, titlebar, icon
- * window, or client identifier.
- *
- * @param client Pointer to the client to test
- * @param window Window ID to compare against the client
- *
- * @return @c true if the window belongs to the client
- *
- * @note Complexity: @e O(1)
- */
-bool lookup_client_matches_window(const client_td *client,
-        xcb_window_t window)
-{
-    if (client == NULL || window == XCB_WINDOW_NONE) {
-        return false;
-    }
-
-    return client->id == window ||
-           client->window == window ||
-           client->frame == window ||
-           client->titlebar == window ||
-           client->icon_window == window;
 }
 
 
@@ -141,7 +141,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
                 if (ohtbl_lookup(desktop->clients,
                             (void **) &found) == 0 &&
                         found != NULL &&
-                        lookup_client_matches_window(found, window)) {
+                        s_lookup_client_matches_window(found, window)) {
 
                     if (out_surface != NULL) {
                         *out_surface = surface;
@@ -159,7 +159,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
                 ohtbl_foreach(desktop->clients, elem) {
                     client_td *const client = (client_td *) elem;
 
-                    if (!lookup_client_matches_window(client, window)) {
+                    if (!s_lookup_client_matches_window(client, window)) {
                         continue;
                     }
 

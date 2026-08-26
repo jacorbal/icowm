@@ -721,7 +721,7 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  *       '_NET_WM_STATE' lists
  */
 static void s_client_read_pre_existing_state(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh, xcb_window_t window,
+        const xcb_ewmh_connection_t *ewmh, xcb_window_t window,
         client_td *client,
         const struct s_client_init_cookies_s *ck)
 {
