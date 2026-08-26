@@ -18,10 +18,13 @@
 #include <stdarg.h>     /* va_list, va_start, va_end */
 #include <stdbool.h>
 #include <pthread.h>    /* pthread_mutex_t, pthread_mutex_lock */
-#include <stdio.h>      /* FILE, fflush, fprintf, snprintf, vsnprintf */
+#include <stdio.h>      /* FILE, fflush, fileno, fprintf, snprintf,
+                           vsnprintf */
 #include <stdlib.h>     /* NULL, free, malloc, size_t */
+#include <string.h>     /* strlen */
 #include <sys/time.h>   /* gettimeofday */
 #include <time.h>       /* localtime, strftime, time, tm */
+#include <unistd.h>     /* STDERR_FILENO, ssize_t, write */
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
@@ -257,6 +260,53 @@ int logger_start(const char *filename,
 
 
 /* Free allocated memory */
+/* Write out whatever is buffered, from a signal handler */
+void logger_emergency_flush(void)
+{
+    int fd;
+
+    if (logger == NULL || logger->buffer == NULL ||
+            logger->buffer->count == 0u) {
+        return;
+    }
+
+    /* The stream's own descriptor rather than the stream: 'fprintf'
+     * and 'fflush' are not async-signal-safe, and this runs from a
+     * handler for a signal that has already left the process in an
+     * undefined state.  'write' is on the guaranteed-safe list. */
+    fd = (logger->file.fp_out != NULL)
+        ? fileno(logger->file.fp_out) : STDERR_FILENO;
+    if (fd < 0) {
+        fd = STDERR_FILENO;
+    }
+
+    /* 'logger_mutex' is deliberately not taken.  A handler that
+     * blocked on a mutex the interrupted code already holds would
+     * hang the process instead of letting it die, which is the one
+     * outcome worse than losing the log.  Reading the buffer
+     * unlocked is safe enough here only because this program runs a
+     * single thread: the signal interrupted that thread, so nothing
+     * is concurrently writing, and the worst case is a final message
+     * that was half-formatted when the signal arrived. */
+    for (unsigned int i = 0u; i < logger->buffer->count; ++i) {
+        const char *const msg = logger->buffer->messages[i];
+        ssize_t written;
+
+        if (msg == NULL) {
+            continue;
+        }
+        written = write(fd, msg, strlen(msg));
+        (void) written;
+        written = write(fd, "\n", 1u);
+        (void) written;
+    }
+
+    /* Not freed and not zeroed: the process is about to re-raise the
+     * signal and die, and touching the allocator from a handler is
+     * exactly what this function exists to avoid. */
+}
+
+
 int logger_stop(void)
 {
     pthread_mutex_lock(&logger_mutex);

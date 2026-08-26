@@ -217,6 +217,34 @@ int logger_start(const char *filename,
         enum logger_level_e level_min, bool is_tracking);
 
 /**
+ * @brief Write out whatever is still buffered, from a signal handler
+ *
+ * The ordinary flush goes through @c fprintf and @c fflush, neither of
+ * which is async-signal-safe, so a process dying on @c SIGSEGV or a
+ * sibling took its buffered messages with it: exactly the ones worth
+ * reading afterwards.  This writes them with @c write, which is on the
+ * guaranteed-safe list, and is called from
+ * @a wm_startup_handle_crash before that handler re-raises the signal.
+ *
+ * Not reached on an ordinary exit, nor on the emergency exit shortcut:
+ * that one raises @c SIGTERM and so goes through @a wm_stop and the
+ * normal flush like any other shutdown.  Only a genuine crash gets
+ * here.
+ *
+ * @note Takes no lock, and so reads the buffer unsynchronised.  A
+ *       handler blocking on a mutex the interrupted code already held
+ *       would hang the process rather than let it die.  This is safe
+ *       only because the program runs a single thread; see the
+ *       function's own comment
+ * @note Frees nothing and resets nothing: the process re-raises the
+ *       signal immediately afterwards, and the allocator is not
+ *       async-signal-safe either
+ * @note Complexity: @e O(n), where @e n is the number of buffered
+ *       messages
+ */
+void logger_emergency_flush(void);
+
+/**
  * @brief Deallocate memory used by this logger instance
  *
  * @return Status of the operation

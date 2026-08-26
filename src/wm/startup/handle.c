@@ -24,6 +24,7 @@
 #include <unistd.h>     /* write */
 
 /* Local includes */
+#include <logger.h>
 #include <wm/startup/handle.h>
 
 
@@ -122,13 +123,19 @@ void wm_startup_handle_child(int signum)
  * recover and keep running, only make sure
  * dying is not silent.  Every operation here is restricted to what
  * POSIX guarantees is safe from within a signal handler: the @c write
- * syscall directly to standard error (never the logger's own
- * buffered, allocating machinery), a hand-rolled digit-by-digit
+ * syscall directly to standard error, a hand-rolled digit-by-digit
  * conversion of the signal number (never @c snprintf or similar,
  * which are not on the guaranteed-safe list), @c sigaction to restore
  * the signal's default disposition, and @c raise to re-deliver it so
  * the process actually terminates through the normal mechanism
  * afterward.
+ *
+ * @a logger_emergency_flush is called too, which is the one thing
+ * here that touches the logger at all.  It goes nowhere near that
+ * module's ordinary buffered, allocating path: it writes the pending
+ * messages out with @c write and returns, leaving the buffer as it
+ * found it.  Without it the messages leading up to a crash die with
+ * the process, which are the ones worth reading afterwards.
  *
  * @param signum Number of the received fatal signal
  */
@@ -173,6 +180,15 @@ void wm_startup_handle_crash(int signum)
     (void) write_result;
     write_result = write(STDERR_FILENO, s_suffix, sizeof(s_suffix) - 1u);
     (void) write_result;
+
+    /* Whatever the logger still holds goes out here, before the signal
+     * is re-raised.  Its ordinary flush runs through 'fprintf' and
+     * 'fflush', neither async-signal-safe, so without this the
+     * messages leading up to a crash die with the process: the ones
+     * most worth having.  'logger_emergency_flush' writes them with
+     * 'write' and takes no lock; see its own note on why that is
+     * sound here and nowhere else. */
+    logger_emergency_flush();
 
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = SIG_DFL;
