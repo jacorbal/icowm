@@ -52,6 +52,7 @@
 
 /* Local includes */
 #include <input/mouse/drag/icon.h>
+#include <policy/focus.h>
 #include <input/mouse/drag/internal.h>
 #include <input/mouse/drag/overlay.h>
 #include <input/mouse/drag/outline.h>
@@ -146,6 +147,15 @@ static void s_warp_move_family(desktop_td *old_desktop,
      * as soon as the drag settles there. */
     new_desktop->client_active_id = s_drag.client->id;
     new_desktop->is_focus_dirty = true;
+
+    /* And said in the focus order too, which is what
+     * 'surface_clients_show' consults when the switch below settles:
+     * it works out a desktop's focus by walking that order rather
+     * than reading 'client_active_id', so a client that had only just
+     * been added here would sit at the far end of it, as the least
+     * recently used thing on a desktop it has been on for an instant,
+     * and lose the focus this line just gave it. */
+    focus_order_to_top(s_drag.client);
 
     /* 'desktop_action_client_rem'/'_add' above only move the client
      * between each desktop's stacking list and lookup table;
