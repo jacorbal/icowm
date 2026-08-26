@@ -192,7 +192,20 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
                 (const uint32_t[]) { XCB_STACK_MODE_BELOW });
     }
 
-    if (desktop->config->theme.icon.show_pixmaps) {
+    /* The pixmap is left out while this icon is the picked one, which
+     * is what 'ri_render_client_icon_selected' does and the reason
+     * that function exists: the caption and the hint letters read
+     * against the plain selected background instead of over whatever
+     * image would otherwise sit under them.  Checked here as well so
+     * that a repaint reaching this path, the whole-desktop one a
+     * desktop warp triggers foremost, agrees with it rather than
+     * putting the image back.
+     *
+     * Tested against 'is_cycle_sel' and not 'display_active': the
+     * latter carries the urgency blink's swap, and a blinking client
+     * would otherwise have its pixmap appear and vanish on every
+     * phase rather than simply changing color. */
+    if (desktop->config->theme.icon.show_pixmaps && !is_cycle_sel) {
         wmicon_draw(desktop->connection, client->ewmh, client->window,
                 client->icon_window, WM_ICON_SQUARE_SIZE,
                 (display_active)
