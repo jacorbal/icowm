@@ -4,7 +4,7 @@
     "-author": "J. A. Corbal",
     "-creation-date": "Mon Aug 24 03:30:00 UTC 2026",
     "-modified-date": "Mon Aug 24 03:30:00 UTC 2026",
-    "-notes": "KDE's Breeze colour scheme, dark variant, values from the shipped scheme file.  Text Lc 54 and 7.3:1 or better, dimmed elements Lc 51, window frames 3.1:1 on the desktop.",
+    "-notes": "KDE's Breeze color scheme, dark variant, values from the shipped scheme file.  Text Lc 54 and 7.3:1 or better, dimmed elements Lc 51, window frames 3.1:1 on the desktop.",
 
     "desktop": {
         "color": {

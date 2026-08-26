@@ -4,7 +4,7 @@
     "-author": "J. A. Corbal",
     "-creation-date": "Mon Aug 24 03:30:00 UTC 2026",
     "-modified-date": "Mon Aug 24 03:30:00 UTC 2026",
-    "-notes": "Paul Tol's high-contrast scheme, colour-blind safe and monochrome-printer safe.  Text Lc 96 and 9.6:1 or better, dimmed elements Lc 31, window frames 4.6:1 on the desktop.",
+    "-notes": "Paul Tol's high-contrast scheme, color-blind safe and monochrome-printer safe.  Text Lc 96 and 9.6:1 or better, dimmed elements Lc 31, window frames 4.6:1 on the desktop.",
 
     "desktop": {
         "color": {

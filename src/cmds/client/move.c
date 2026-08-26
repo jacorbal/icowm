@@ -51,13 +51,13 @@
  * A surface with a single monitor has nowhere to move to, and so does
  * one where the search comes back with the monitor the client is
  * already on, which is what @a surface_monitor_direction returns when
- * there is no neighbour that way.
+ * there is no neighbor that way.
  *
  * @param client    Client to move; may be @c NULL
- * @param direction Which way to look for a neighbouring monitor
+ * @param direction Which way to look for a neighboring monitor
  *
  * @note Complexity: @e O(n), where @e n is the number of monitors on
- *       the client's own surface, scanned to turn the neighbour's
+ *       the client's own surface, scanned to turn the neighbor's
  *       coordinates back into the index @a ccmd_client_move_to_monitor
  *       takes
  */
@@ -81,7 +81,7 @@ static void s_move_to_monitor_toward(client_td *client,
             direction);
     if (target_monitor.x == cur_monitor.x &&
             target_monitor.y == cur_monitor.y) {
-        /* No neighbour that way; nothing to move to */
+        /* No neighbor that way; nothing to move to */
         return;
     }
 

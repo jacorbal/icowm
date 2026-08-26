@@ -163,7 +163,7 @@ static void s_handle_wm_state_atom(client_td *client,
      * request actually asks for a change.  'ccmd_client_maximize_horz'
      * and '_vert' each toggle their own axis, so calling one when the
      * axis is already where it is asked to be would undo the request
-     * rather than honour it; and reaching for a whole restore instead
+     * rather than honor it; and reaching for a whole restore instead
      * would clear the other axis too, which EWMH never asked for. */
     if (is_max_h) {
         bool want;

@@ -630,7 +630,7 @@ nothing.  Restricted-memory mode (`memguard.json`) always runs with this
     "focus": {
         "policy": "click",
         "focus-new": true,
-        "raise": false
+        "raise: false
     }
 }
 ```
@@ -784,7 +784,7 @@ possible: a signal sent to its process, detected the very next time its
 main loop gets to check for one.  Every one of the things this shortcut
 skips (a dialog, a menu, the coordinated client-closing wait) depends on
 that same main loop and its rendering still working; adding any of them
-back in as a required step, even one that can itself be cancelled, would
+back in as a required step, even one that can itself be canceled, would
 make the emergency exit only as reliable as whatever it is that might be
 the very reason someone is reaching for it in the first place.  For the
 same reason, this shortcut is detected ahead of every other keyboard
@@ -2229,7 +2229,7 @@ not merely refuse to act.
 | `windows.edges.resistance`               | integer | `20`           | Same as `config.json`'s `windows.edges.resistance`: pixels of deliberate extra drag before a maximized axis starts changing while interactively resizing. |
 | `windows.gravity`                        | string  | `"north-west"` | Same as `config.json`'s `windows.gravity`: a fallback only, for a client that never declares its ; see §2.4 for the accepted values and why this is fallback-only. |
 | `windows.focus.focus-new`                | boolean | `true`         | Same as `config.json`'s `focus.focus-new`: when `true`, newly mapped windows receive focus automatically. |
-| `windows.focus.raise`                    | boolean | `false`        | Same as `config.json`'s `focus.raise`: when `true`, a window is raised to the top of the stack when it receives focus. |
+| `windows.focus.raise`                    | boolean | `false`        | Same as `config.json`'s `focus.raise`: when `true`, a window is also raised when it gains focus by pointer or wheel. |
 | `windows.focus.policy`                   | string  | `"click"`      | Same as `config.json`'s `focus.policy`: `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
 | `windows.placement.policy`               | string  | `"smart"`      | Same as `config.json`'s `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
 | `windows.placement.monitor`              | string  | `"pointer"`    | Same as `config.json`'s `windows.placement.monitor`: which physical monitor a placement decision targets, on a surface with more than one. |

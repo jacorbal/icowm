@@ -328,7 +328,7 @@ static void s_test_shrink_is_deferred(void)
 /* Climbing back up to OHTBL_MIN_LOAD_FACTOR before the cooldown
  * elapses cancels the pending shrink outright, rather than merely
  * postponing it */
-static void s_test_shrink_cancelled_on_recovery(void)
+static void s_test_shrink_canceled_on_recovery(void)
 {
     ohtbl_td *htbl = ohtbl_init(16, 8, s_hash1, s_hash2,
             s_int_match, NULL);
@@ -640,7 +640,7 @@ int main(void)
     s_test_grows_past_max_load_factor();
     s_test_shrinks_but_not_below_min_positions();
     s_test_shrink_is_deferred();
-    s_test_shrink_cancelled_on_recovery();
+    s_test_shrink_canceled_on_recovery();
     s_test_shrink_happens_once_cooldown_elapses();
     s_test_update_inserts_new_and_overwrites_existing();
     s_test_update_skips_tombstones_to_find_existing_key();

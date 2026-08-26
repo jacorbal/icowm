@@ -102,7 +102,7 @@ void path_simplify(char *restrict path)
              * whole component can be removed, not just the slash
              * before it.  Only a genuine, already-resolved component
              * (neither empty nor itself an unresolved '..') can
-             * actually be cancelled this way; otherwise '..' cannot
+             * actually be canceled this way; otherwise '..' cannot
              * be resolved here at all, so it is either kept as a
              * literal component (a relative path with nothing left
              * behind it to cancel against, or a previous component

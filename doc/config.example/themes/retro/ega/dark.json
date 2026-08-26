@@ -4,7 +4,7 @@
     "-author": "J. A. Corbal",
     "-creation-date": "Mon Aug 24 03:30:00 UTC 2026",
     "-modified-date": "Mon Aug 24 03:30:00 UTC 2026",
-    "-notes": "The sixteen colours EGA loads by default, the palette of its era's games and text screens; dark variant.  Text Lc 91 and 7.5:1 or better, dimmed elements Lc 56, window frames 5.7:1 on the desktop.",
+    "-notes": "The sixteen colors EGA loads by default, the palette of its era's games and text screens; dark variant.  Text Lc 91 and 7.5:1 or better, dimmed elements Lc 56, window frames 5.7:1 on the desktop.",
 
     "desktop": {
         "color": {

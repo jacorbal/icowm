@@ -4,7 +4,7 @@
     "-author": "J. A. Corbal",
     "-creation-date": "Mon Aug 24 03:30:00 UTC 2026",
     "-modified-date": "Mon Aug 24 03:30:00 UTC 2026",
-    "-notes": "The four-colour CGA graphics palette 1 in high intensity, cyan, magenta, white and black; dark variant.  Text Lc 54 and 8.0:1 or better, dimmed elements Lc 52, window frames 8.0:1 on the desktop.",
+    "-notes": "The four-color CGA graphics palette 1 in high intensity, cyan, magenta, white and black; dark variant.  Text Lc 54 and 8.0:1 or better, dimmed elements Lc 52, window frames 8.0:1 on the desktop.",
 
     "desktop": {
         "color": {

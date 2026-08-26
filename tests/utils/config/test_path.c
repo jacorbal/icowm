@@ -10,7 +10,7 @@
  * the slash right before the popped component, never removing that
  * component's own name, so e.g. "a/../b" simplified to "ab" instead
  * of "b" (the slash itself silently disappeared, and the component
- * it should have cancelled stayed behind).  Fixed to scan back to
+ * it should have canceled stayed behind).  Fixed to scan back to
  * where that component actually starts.  s_test_dotdot_regression
  * below is that exact reported case.
  */

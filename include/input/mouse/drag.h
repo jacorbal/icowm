@@ -122,7 +122,7 @@ void drag_start_directed(xcb_connection_t *connection,
  * grab, and its own normal per-axis inference from @p root_pos), then
  * clears whichever axis flag(s) @p axis_w_locked / @p axis_h_locked ask
  * for; if that leaves neither axis resizable at all (the grab point was
- * only ever near the locked edge), the drag is cancelled outright via
+ * only ever near the locked edge), the drag is canceled outright via
  * @a drag_cancel rather than left running inert.
  *
  * @param connection    XCB connection
