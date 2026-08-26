@@ -168,6 +168,49 @@ static void s_client_display_name_set(client_td *client,
 
 
 /**
+ * @brief Every request @a client_init issues in one go, awaiting reply
+ *
+ * XCB splits a request from its reply: the request function returns a
+ * cookie without blocking, and only the reply function waits.  Issuing
+ * every independent request first and collecting the replies
+ * afterwards costs one round trip to the server rather than one per
+ * property, which is the whole reason this project uses XCB rather
+ * than Xlib.
+ *
+ * Three requests are deliberately absent.  @c GetWindowAttributes is
+ * issued and awaited before any of these, since an override-redirect
+ * window is discarded on its answer and issuing a dozen requests for a
+ * window about to be thrown away would make every menu and tooltip
+ * more expensive rather than less.  The plain @c _NET_WM_STRUT is
+ * asked for only when @c _NET_WM_STRUT_PARTIAL has no answer, so
+ * batching it would ask every time.  And @c _NET_WM_USER_TIME is asked
+ * of whichever window @c _NET_WM_USER_TIME_WINDOW names, which is not
+ * known until that reply arrives.
+ *
+ * A dependency between what two readers do with their replies does not
+ * stop their requests going out together: @c _MOTIF_WM_HINTS is read
+ * after the window type because it overrides the defaults that type
+ * chose, and that orders the processing alone.
+ */
+struct s_client_init_cookies_s {
+    xcb_get_geometry_cookie_t geometry;      /**< @c GetGeometry */
+    xcb_get_property_cookie_t wm_protocols;  /**< @c WM_PROTOCOLS */
+    xcb_get_property_cookie_t wm_hints;      /**< @c WM_HINTS */
+    xcb_get_property_cookie_t client_leader; /**< @c WM_CLIENT_LEADER */
+    xcb_get_property_cookie_t transient_for; /**< @c WM_TRANSIENT_FOR */
+    /** @c _NET_WM_STRUT_PARTIAL */
+    xcb_get_property_cookie_t strut_partial;
+    /** @c _NET_WM_WINDOW_TYPE */
+    xcb_get_property_cookie_t window_type;
+    xcb_get_property_cookie_t motif_hints;   /**< @c _MOTIF_WM_HINTS */
+    xcb_get_property_cookie_t wm_state;      /**< @c _NET_WM_STATE */
+    xcb_get_property_cookie_t wm_pid;        /**< @c _NET_WM_PID */
+    /** @c _NET_WM_USER_TIME_WINDOW */
+    xcb_get_property_cookie_t user_time_window;
+};
+
+
+/**
  * @brief Read 'WM_PROTOCOLS' and set up '_NET_WM_SYNC_REQUEST' support
  *
  * Interns 'WM_DELETE_WINDOW', 'WM_TAKE_FOCUS', and '_NET_WM_PING',
@@ -182,6 +225,8 @@ static void s_client_display_name_set(client_td *client,
  * @param ewmh       EWMH connection, for 'WM_PROTOCOLS' and
  *                   '_NET_WM_SYNC_REQUEST_COUNTER'
  * @param window     Window being adopted
+ * @param ck         Requests already issued by @a client_init; this
+ *                   reader awaits its own rather than making one
  * @param client     Client being initialized; its protocol-support
  *                   flags, 'sync_counter', and 'sync_alarm' fields
  *                   are set here
@@ -191,7 +236,8 @@ static void s_client_display_name_set(client_td *client,
  */
 static void s_client_read_wm_protocols(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
-        client_td *client)
+        client_td *client,
+        const struct s_client_init_cookies_s *ck)
 {
     xcb_atom_t wm_delete_atom;
     xcb_atom_t wm_take_focus_atom;
@@ -212,9 +258,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
     client->hints_ewmh.sync.is_supported = false;
 
     memset(&proto, 0, sizeof(proto));
-    if (xcb_icccm_get_wm_protocols_reply(connection,
-                xcb_icccm_get_wm_protocols(connection, window,
-                    ewmh->WM_PROTOCOLS),
+    if (xcb_icccm_get_wm_protocols_reply(connection, ck->wm_protocols,
                 &proto, NULL)) {
         for (uint32_t pi = 0; pi < proto.atoms_len; ++pi) {
             if (proto.atoms[pi] == wm_delete_atom) {
@@ -326,24 +370,24 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
  * parent.
  *
  * @param connection XCB connection
- * @param window     Window being adopted
+ * @param ck         Requests already issued by @a client_init; this
+ *                   reader awaits its own rather than making one
  * @param client     Client being initialized; every field these three
  *                   properties feed is set here
  *
  * @note Complexity: @e O(1)
  */
 static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
-        xcb_window_t window, client_td *client)
+        client_td *client, const struct s_client_init_cookies_s *ck)
 {
     xcb_atom_t client_leader_atom;
-    xcb_get_property_cookie_t client_leader_cookie;
     xcb_icccm_wm_hints_t wm_hints;
     xcb_window_t transient = XCB_WINDOW_NONE;
 
     /* Read 'WM_HINTS': input model and window group */
     memset(&wm_hints, 0, sizeof(wm_hints));
     if (xcb_icccm_get_wm_hints_reply(connection,
-                xcb_icccm_get_wm_hints(connection, window),
+                ck->wm_hints,
                 &wm_hints, NULL)) {
         if (wm_hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
             client->hints_icccm.hints.accepts_input =
@@ -370,10 +414,8 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
     if (client_leader_atom != XCB_ATOM_NONE) {
         xcb_get_property_reply_t *client_leader_reply;
 
-        client_leader_cookie = xcb_get_property(connection, 0, window,
-                client_leader_atom, XCB_ATOM_WINDOW, 0, 1);
         client_leader_reply = xcb_get_property_reply(connection,
-                client_leader_cookie, NULL);
+                ck->client_leader, NULL);
         if (client_leader_reply != NULL) {
             if (client_leader_reply->type == XCB_ATOM_WINDOW &&
                     client_leader_reply->format == 32 &&
@@ -396,7 +438,7 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
     client->transient_for = XCB_WINDOW_NONE;
     client->is_transient_for_group = false;
     if (xcb_icccm_get_wm_transient_for_reply(connection,
-                xcb_icccm_get_wm_transient_for(connection, window),
+                ck->transient_for,
                 &transient, NULL)) {
         client->transient_for = transient;
         client->is_transient_for_group =
@@ -416,13 +458,16 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
  *
  * @param ewmh   EWMH connection
  * @param window Window being adopted
+ * @param ck     Requests already issued by @a client_init; this reader
+ *               awaits its own rather than making one
  * @param client Client being initialized; its
  *               @c layout.strut_partial fields are set here
  *
  * @note Complexity: @e O(1)
  */
 static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
-        xcb_window_t window, client_td *client)
+        xcb_window_t window, client_td *client,
+        const struct s_client_init_cookies_s *ck)
 {
     xcb_ewmh_get_extents_reply_t strut;
     xcb_ewmh_wm_strut_partial_t partial;
@@ -430,7 +475,7 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
     memset(&strut, 0, sizeof(strut));
     memset(&partial, 0, sizeof(partial));
     if (xcb_ewmh_get_wm_strut_partial_reply(ewmh,
-                xcb_ewmh_get_wm_strut_partial(ewmh, window),
+                ck->strut_partial,
                 &partial, NULL)) {
         client->layout.strut_partial.sides.left =
             (int32_t) partial.left;
@@ -491,7 +536,8 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
  * @param connection XCB connection, to intern
  *                   @c _NET_WM_WINDOW_TYPE_NOTIFICATION
  * @param ewmh       EWMH connection
- * @param window     Window being adopted
+ * @param ck         Requests already issued by @a client_init; this
+ *                   reader awaits its own rather than making one
  * @param client     Client being initialized; its type, decoration,
  *                   frame extents, and several property flags are
  *                   set here
@@ -500,14 +546,14 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
  *       '_NET_WM_WINDOW_TYPE' lists
  */
 static void s_client_read_window_type(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh, xcb_window_t window,
-        client_td *client)
+        xcb_ewmh_connection_t *ewmh, client_td *client,
+        const struct s_client_init_cookies_s *ck)
 {
     xcb_ewmh_get_atoms_reply_t type_reply;
 
     memset(&type_reply, 0, sizeof(type_reply));
     if (xcb_ewmh_get_wm_window_type_reply(ewmh,
-                xcb_ewmh_get_wm_window_type(ewmh, window),
+                ck->window_type,
                 &type_reply, NULL)) {
         xcb_atom_t atom_notification = atom_intern(connection,
                 "_NET_WM_WINDOW_TYPE_NOTIFICATION", true);
@@ -595,7 +641,8 @@ static void s_client_read_window_type(xcb_connection_t *connection,
  * there.
  *
  * @param connection XCB connection
- * @param window     Window being adopted
+ * @param ck         Requests already issued by @a client_init; this
+ *                   reader awaits its own rather than making one
  * @param client     Client being initialized; its decoration flag,
  *                   frame extents, and own @c config (checked for
  *                   @c window.is_decorated before honoring a request
@@ -605,18 +652,16 @@ static void s_client_read_window_type(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 static void s_client_read_motif_hints(xcb_connection_t *connection,
-        xcb_window_t window, client_td *client)
+        client_td *client, const struct s_client_init_cookies_s *ck)
 {
     xcb_atom_t motif_hints_atom;
-    xcb_get_property_cookie_t motif_ck;
 
     motif_hints_atom = atom_intern(connection, "_MOTIF_WM_HINTS", true);
     if (motif_hints_atom != XCB_ATOM_NONE) {
         xcb_get_property_reply_t *motif_r;
 
-        motif_ck = xcb_get_property(connection, 0, window,
-                motif_hints_atom, motif_hints_atom, 0, 5);
-        motif_r = xcb_get_property_reply(connection, motif_ck, NULL);
+        motif_r = xcb_get_property_reply(connection, ck->motif_hints,
+                NULL);
         if (motif_r != NULL) {
             if (motif_r->format == 32 &&
                     xcb_get_property_value_length(motif_r) >=
@@ -667,6 +712,8 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  * @param connection XCB connection
  * @param ewmh       EWMH connection; a no-op if @c NULL
  * @param window     Window being adopted
+ * @param ck         Requests already issued by @a client_init; this
+ *                   reader awaits its own rather than making one
  * @param client     Client being initialized; its layer and
  *                   skip-taskbar/skip-pager flags may be set here
  *
@@ -675,10 +722,10 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  */
 static void s_client_read_pre_existing_state(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
-        client_td *client)
+        client_td *client,
+        const struct s_client_init_cookies_s *ck)
 {
     if (ewmh != NULL) {
-        xcb_get_property_cookie_t state_ck;
         xcb_atom_t atom_above;
         xcb_atom_t atom_below;
         xcb_atom_t atom_skip_taskbar;
@@ -713,8 +760,8 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
                 atom_demands_attention != XCB_ATOM_NONE) {
             xcb_get_property_reply_t *state_r;
 
-            state_ck = xcb_ewmh_get_wm_state(ewmh, window);
-            state_r = xcb_get_property_reply(connection, state_ck, NULL);
+            state_r = xcb_get_property_reply(connection, ck->wm_state,
+                    NULL);
             if (state_r != NULL) {
                 uint32_t natoms = (uint32_t)
                     xcb_get_property_value_length(state_r) /
@@ -1139,6 +1186,9 @@ client_td *client_init(xcb_connection_t *connection,
     uint32_t ewmh_pid;
     uint32_t utime;
     xcb_window_t user_time_window;
+    struct s_client_init_cookies_s ck;
+    xcb_atom_t client_leader_atom;
+    xcb_atom_t motif_hints_atom;
     uint32_t user_time_window_raw;
 
     LOGGER_TRACE("Attempting to manage existing window %#x", window);
@@ -1170,8 +1220,37 @@ client_td *client_init(xcb_connection_t *connection,
     client->id = window;
 
     /* Query existing geometry */
-    geom_reply = xcb_get_geometry_reply(connection,
-            xcb_get_geometry(connection, window), NULL);
+    /* Every independent request goes out here, before a single reply
+     * is awaited, so that the whole set costs one round trip to the
+     * server rather than one apiece.  See
+     * 'struct s_client_init_cookies_s' for what is deliberately left
+     * out of the batch and why.
+     *
+     * The two atoms are interned first because a request needs them,
+     * and 'atom_intern' answers from its own cache after the first
+     * window, so they cost no round trip of their own here. */
+    client_leader_atom = atom_intern(connection, "WM_CLIENT_LEADER",
+            true);
+    motif_hints_atom = atom_intern(connection, "_MOTIF_WM_HINTS", true);
+
+    ck.geometry = xcb_get_geometry(connection, window);
+    ck.wm_protocols = xcb_icccm_get_wm_protocols(connection, window,
+            ewmh->WM_PROTOCOLS);
+    ck.wm_hints = xcb_icccm_get_wm_hints(connection, window);
+    ck.client_leader = xcb_get_property(connection, 0, window,
+            client_leader_atom, XCB_ATOM_WINDOW, 0, 1);
+    ck.transient_for = xcb_icccm_get_wm_transient_for(connection,
+            window);
+    ck.strut_partial = xcb_ewmh_get_wm_strut_partial(ewmh, window);
+    ck.window_type = xcb_ewmh_get_wm_window_type(ewmh, window);
+    ck.motif_hints = xcb_get_property(connection, 0, window,
+            motif_hints_atom, motif_hints_atom, 0, 5);
+    ck.wm_state = xcb_ewmh_get_wm_state(ewmh, window);
+    ck.wm_pid = xcb_ewmh_get_wm_pid(ewmh, window);
+    ck.user_time_window = xcb_ewmh_get_wm_user_time_window(ewmh,
+            window);
+
+    geom_reply = xcb_get_geometry_reply(connection, ck.geometry, NULL);
     if (geom_reply != NULL) {
         client->parent_id = geom_reply->root;
         client->layout.geometry.cur.pos.x = geom_reply->x;
@@ -1229,10 +1308,11 @@ client_td *client_init(xcb_connection_t *connection,
     }
 
     /* Read 'WM_PROTOCOLS' and set up '_NET_WM_SYNC_REQUEST' support */
-    s_client_read_wm_protocols(connection, ewmh, window, client);
+    s_client_read_wm_protocols(connection, ewmh, window, client,
+            &ck);
 
     /* Read 'WM_HINTS', 'WM_CLIENT_LEADER', and 'WM_TRANSIENT_FOR' */
-    s_client_read_wm_hints_and_leader(connection, window, client);
+    s_client_read_wm_hints_and_leader(connection, client, &ck);
 
     /* Read 'WM_NORMAL_HINTS': size constraints and increment grid */
     client_props_refresh_normal_hints(client);
@@ -1245,15 +1325,15 @@ client_td *client_init(xcb_connection_t *connection,
     client_subscribe_colormap_windows(connection, client);
 
     /* Read '_NET_WM_STRUT_PARTIAL' for dock/panel windows */
-    s_client_read_struts(ewmh, window, client);
+    s_client_read_struts(ewmh, window, client, &ck);
 
     /* Read '_NET_WM_WINDOW_TYPE' to determine client type and
      * decoration */
-    s_client_read_window_type(connection, ewmh, window, client);
+    s_client_read_window_type(connection, ewmh, client, &ck);
 
     /* Read '_MOTIF_WM_HINTS': see the sibling function's comment for
      * the full rationale */
-    s_client_read_motif_hints(connection, window, client);
+    s_client_read_motif_hints(connection, client, &ck);
 
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
             client->ewmh != NULL) {
@@ -1265,12 +1345,12 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Read the pre-existing '_NET_WM_STATE' property; see the sibling
      * function's comment for the full explanation */
-    s_client_read_pre_existing_state(connection, ewmh, window, client);
+    s_client_read_pre_existing_state(connection, ewmh, window,
+            client, &ck);
 
     /* Read '_NET_WM_PID': associate X window with its owning process */
     ewmh_pid = 0u;
-    if (xcb_ewmh_get_wm_pid_reply(ewmh,
-                xcb_ewmh_get_wm_pid(ewmh, window),
+    if (xcb_ewmh_get_wm_pid_reply(ewmh, ck.wm_pid,
                 &ewmh_pid, NULL)) {
         client->process.pid = (int) ewmh_pid;
     }
@@ -1289,7 +1369,7 @@ client_td *client_init(xcb_connection_t *connection,
     user_time_window = window;
     user_time_window_raw = 0u;
     if (xcb_ewmh_get_wm_user_time_window_reply(ewmh,
-                xcb_ewmh_get_wm_user_time_window(ewmh, window),
+                ck.user_time_window,
                 &user_time_window_raw, NULL) &&
             user_time_window_raw != 0u) {
         user_time_window = (xcb_window_t) user_time_window_raw;

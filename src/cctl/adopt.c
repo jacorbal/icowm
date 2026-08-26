@@ -13,7 +13,7 @@
 
 /* System includes */
 #include <stdint.h>
-#include <stdlib.h>     /* NULL, free */
+#include <stdlib.h>     /* NULL, calloc, free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -61,6 +61,7 @@ void cctl_adopt_scan(const wm_td *wm)
             node != NULL; node = list_next(node)) {
         surface_td *surface = (surface_td *) list_data(node);
         xcb_query_tree_cookie_t qt_cookie;
+        xcb_get_window_attributes_cookie_t *cookies;
         xcb_query_tree_reply_t *qt_reply;
         xcb_generic_error_t *qt_error = NULL;
         xcb_window_t *children;
@@ -84,19 +85,42 @@ void cctl_adopt_scan(const wm_td *wm)
             continue;
         }
 
+        cookies = NULL;
         children = xcb_query_tree_children(qt_reply);
         nchildren = xcb_query_tree_children_length(qt_reply);
 
         LOGGER_TRACE("Found %d child window(s) on surface %u",
                 nchildren, surface->id);
 
+        /* Every child's attributes are asked for before any answer is
+         * awaited, so that the whole scan costs one round trip to the
+         * server rather than one per window already on the screen.
+         * A session being adopted holds as many windows as the person
+         * had open, and over a remote display that difference is the
+         * whole of the startup delay.
+         *
+         * Allocated rather than kept on the stack: 'nchildren' is
+         * whatever the root window happens to hold, which is not a
+         * number this can bound.  Failing to allocate is not fatal,
+         * only slower, so the scan falls back to asking one at a
+         * time. */
+        cookies = calloc((size_t) nchildren, sizeof(*cookies));
+        if (cookies != NULL) {
+            for (int i = 0; i < nchildren; ++i) {
+                cookies[i] = xcb_get_window_attributes(connection,
+                        children[i]);
+            }
+        }
+
         for (int i = 0; i < nchildren; ++i) {
-            xcb_get_window_attributes_cookie_t ac;
             xcb_get_window_attributes_reply_t *ar;
 
-            ac = xcb_get_window_attributes(connection, children[i]);
-            ar = xcb_get_window_attributes_reply(
-                    connection, ac, NULL);
+            ar = xcb_get_window_attributes_reply(connection,
+                    (cookies != NULL)
+                        ? cookies[i]
+                        : xcb_get_window_attributes(connection,
+                                children[i]),
+                    NULL);
 
             if (ar == NULL) {
                 LOGGER_TRACE("Failed to get attributes for window %#x;" \
@@ -176,6 +200,7 @@ void cctl_adopt_scan(const wm_td *wm)
             free(ar);
         }
 
+        free(cookies);
         surface_refresh_workareas(surface);
         free(qt_reply);
     }

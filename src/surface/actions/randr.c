@@ -639,8 +639,22 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
         return false;
     }
 
+    /* Both requests go out before either answer is awaited: they are
+     * independent of one another, so asking together costs one round
+     * trip to the server rather than two.  The primary output's reply
+     * is only consulted further down, once the resources have been
+     * checked.
+     *
+     * The primary output is fetched once up front and shared by every
+     * profile below (see 's_surface_randr_apply_profile'), so an
+     * output already marked primary skips
+     * 'xcb_randr_set_output_primary' instead of reissuing it every
+     * reload regardless of whether it would change anything. */
     res_cookie = xcb_randr_get_screen_resources_current(
             surface->connection, surface->screen->root);
+    primary_cookie = xcb_randr_get_output_primary(surface->connection,
+            surface->screen->root);
+
     res_reply = xcb_randr_get_screen_resources_current_reply(
             surface->connection, res_cookie, &res_error);
     if (res_reply == NULL) {
@@ -651,13 +665,6 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
         return false;
     }
 
-    /* Fetched once up front, shared by every profile below (see
-     * 's_surface_randr_apply_profile'), so an output already marked
-     * primary skips 'xcb_randr_set_output_primary' too instead of
-     * reissuing it every reload regardless of whether it would actually
-     * change anything. */
-    primary_cookie = xcb_randr_get_output_primary(surface->connection,
-            surface->screen->root);
     primary_reply = xcb_randr_get_output_primary_reply(
             surface->connection, primary_cookie, &primary_error);
     xcb_reply_log_error(primary_error, "the primary XRandR output");

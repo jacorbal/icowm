@@ -403,6 +403,9 @@ void client_props_refresh_colormap_windows(client_td *client)
 {
     xcb_atom_t colormap_windows_atom;
     xcb_icccm_get_wm_colormap_windows_reply_t reply;
+    xcb_get_window_attributes_cookie_t
+        cookies[WM_COLORMAP_WINDOWS_MAX];
+    uint32_t n;
 
     if (client == NULL) {
         return;
@@ -427,14 +430,23 @@ void client_props_refresh_colormap_windows(client_td *client)
      * entries past 'WM_COLORMAP_WINDOWS_MAX' are already its own
      * lowest-priority ones, so simply not tracking them is the
      * correct degradation, not an arbitrary truncation. */
-    for (uint32_t i = 0u;
-            i < reply.windows_len && i < WM_COLORMAP_WINDOWS_MAX; ++i) {
-        xcb_get_window_attributes_cookie_t wac =
-            xcb_get_window_attributes(client->connection,
-                    reply.windows[i]);
+    n = (reply.windows_len < WM_COLORMAP_WINDOWS_MAX)
+        ? (uint32_t) reply.windows_len
+        : (uint32_t) WM_COLORMAP_WINDOWS_MAX;
+
+    /* Every window's attributes are asked for before any answer is
+     * awaited, so the list costs one round trip to the server rather
+     * than one per window it names.  The array is on the stack
+     * because 'WM_COLORMAP_WINDOWS_MAX' bounds the loop already. */
+    for (uint32_t i = 0u; i < n; ++i) {
+        cookies[i] = xcb_get_window_attributes(client->connection,
+                reply.windows[i]);
+    }
+
+    for (uint32_t i = 0u; i < n; ++i) {
         xcb_get_window_attributes_reply_t *const war =
-            xcb_get_window_attributes_reply(client->connection, wac,
-                    NULL);
+            xcb_get_window_attributes_reply(client->connection,
+                    cookies[i], NULL);
 
         client->colormap_windows.windows[i] = reply.windows[i];
         client->colormap_windows.colormap_ids[i] = (war != NULL)
