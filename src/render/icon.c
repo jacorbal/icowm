@@ -221,8 +221,14 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
             client->info.name != NULL) {
         char caption[CONFIG_MAX_LENGTH_NAME];
 
+        /* The picked-up icon takes the active font as well as the
+         * active colors, which is what 'ri_render_client_icon_selected'
+         * does; drawn in the inactive one it still read as a different
+         * icon from the one the person had hold of. */
         (void) text_renderer_use_font(desktop->connection,
-                desktop->config->theme.icon.inactive.font);
+                (is_cycle_sel)
+                    ? desktop->config->theme.icon.active.font
+                    : desktop->config->theme.icon.inactive.font);
         text_renderer_set_color(
                 (display_active)
                     ? desktop->config->theme.icon.active.color.foreground
@@ -422,7 +428,9 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
      * so both pieces of text on the icon read as one consistent style
      * rather than two different-looking labels. */
     (void) text_renderer_use_font(connection,
-            theme->icon.inactive.font);
+            (is_cycle_sel)
+                ? theme->icon.active.font
+                : theme->icon.inactive.font);
     text_renderer_set_color(
             (is_cycle_sel)
                 ? theme->icon.active.color.foreground
