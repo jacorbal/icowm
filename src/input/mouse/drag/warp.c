@@ -53,7 +53,6 @@
 /* Local includes */
 #include <input/mouse/drag/icon.h>
 #include <policy/focus.h>
-#include <render/icon.h>
 #include <input/mouse/drag/internal.h>
 #include <input/mouse/drag/overlay.h>
 #include <input/mouse/drag/outline.h>
@@ -544,18 +543,6 @@ void drag_warp_tick(xcb_connection_t *connection)
     s_warp_pointer_target(&new_root_x, &new_root_y);
 
     s_warp_move_dragged(connection, is_icon, new_root_x, new_root_y);
-
-    /* An icon being dragged is drawn in its selected colors, which
-     * 'drag_icon_start' applied once when the drag began.  The
-     * 'surface_clients_show' above has just repainted the whole
-     * destination desktop through the ordinary path, and that path
-     * has no notion of a drag in progress: it draws every icon on the
-     * desktop unselected, this one included.  Re-applied here so the
-     * icon under the pointer keeps looking picked up across the warp
-     * rather than only until something else happens to repaint it. */
-    if (is_icon && s_drag.client != NULL) {
-        ri_render_client_icon_selected(connection, s_drag.client);
-    }
 
     xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,
             0, 0, 0, 0, new_root_x, new_root_y);

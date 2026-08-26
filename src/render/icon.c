@@ -25,6 +25,8 @@
 #include <xcb/xcb.h>
 
 /* Menu includes */
+#include <input/mouse/drag.h>
+#include <input/mouse/drag/icon.h>
 #include <menu/cycle.h>
 
 /* Policy includes */
@@ -82,8 +84,20 @@ void ri_render_client_icon(desktop_td *desktop, client_td *client,
         return;
     }
 
-    is_cycle_sel = cycle_is_open() &&
-        cycle_get_selected_client() == client;
+    /* An icon draws in its selected colors while it is the one the
+     * cycle menu has picked, and equally while it is the one being
+     * dragged: in both the person has hold of it and expects it to
+     * look that way.
+     *
+     * Asked here rather than repainted from the drag itself, which is
+     * what once happened and did not hold: this render pass runs
+     * after a warp finishes, so anything the warp drew was painted
+     * over a moment later by the ordinary path drawing the icon
+     * unselected.  Deciding it here means every repaint agrees,
+     * whatever triggered it. */
+    is_cycle_sel = (cycle_is_open() &&
+            cycle_get_selected_client() == client) ||
+        (drag_is_icon_drag() && drag_client() == client);
 
     /* Nothing about this icon changed since its own last render (no
      * geometry/decoration change on the client itself, and its
