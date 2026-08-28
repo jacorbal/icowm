@@ -289,7 +289,6 @@ static void s_cycle_repaint_icon(client_td *client)
     }
 
     ri_render_client_icon(client, true, true);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -555,7 +554,6 @@ void cycle_init(xcb_connection_t *connection,
      * call here to match it. */
     mi_cycle_preview_apply(connection, cfg);
 
-    xcb_flush(connection);
 }
 
 
@@ -604,7 +602,6 @@ void cycle_destroy(xcb_connection_t *connection)
     if (surface != NULL) {
         surface_render_current_desktop_repaint(surface);
     } else {
-        xcb_flush(connection);
     }
 }
 

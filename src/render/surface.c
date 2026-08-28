@@ -206,5 +206,4 @@ void surface_render_flush(surface_td *surface)
     }
 
     LOGGER_DEBUG("Flushing surface %u to X server", surface->id);
-    xcb_flush(xcb_connection_get());
 }

@@ -199,7 +199,6 @@ void popup_show(xcb_connection_t *connection,
             config_theme_opacity_to_raw(cfg->theme.overlay.opacity));
 
     xcb_map_window(connection, s_popup_window);
-    xcb_flush(connection);
 
     /* Record the time the popup was shown so the main loop can close
      * it automatically after 'WM_INFO_POPUP_TIMEOUT_MS'. */
@@ -217,7 +216,6 @@ void popup_close(xcb_connection_t *connection)
     }
 
     xcb_destroy_window(connection, s_popup_window);
-    xcb_flush(connection);
     s_popup_window = XCB_WINDOW_NONE;
     s_popup_modifier = 0;
     s_popup_keycode = 0;
@@ -270,7 +268,6 @@ void popup_repaint(xcb_connection_t *connection,
             (struct position_s) { 8, 52 }, s_popup_lines[2]);
     menu_draw_label(connection, s_popup_window,
             (struct position_s) { 8, 70 }, s_popup_lines[3]);
-    xcb_flush(connection);
 }
 
 

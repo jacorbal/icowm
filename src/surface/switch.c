@@ -605,7 +605,6 @@ int surface_action_toggle_strutless_maximize(surface_td *surface)
      * remove. */
     s_surface_mark_all_desktops_outdated(surface);
     surface->is_outdated = true;
-    xcb_flush(xcb_connection_get());
 
     return 0;
 }

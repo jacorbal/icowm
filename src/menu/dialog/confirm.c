@@ -433,7 +433,6 @@ static void s_confirm_draw(xcb_connection_t *connection,
     menu_draw_label(connection, s_confirm_window,
             (struct position_s) { label_x, label_y }, lo->confirm_label);
 
-    xcb_flush(connection);
 }
 
 
@@ -456,7 +455,6 @@ static void s_menu_confirm_dialog_close(xcb_connection_t *connection)
 
     xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
     xcb_destroy_window(connection, s_confirm_window);
-    xcb_flush(connection);
 
     s_confirm_window = XCB_WINDOW_NONE;
     s_confirm_selected = 0;
@@ -514,7 +512,6 @@ static void s_confirm_defer_click(xcb_connection_t *connection,
 {
     if (config != NULL) {
         s_confirm_draw(connection, config);
-        xcb_flush(connection);
     }
 
     menu_dialog_defer_schedule(connection,
@@ -637,7 +634,6 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
     xcb_configure_window(connection, s_confirm_window,
             XCB_CONFIG_WINDOW_STACK_MODE,
             (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
-    xcb_flush(connection);
 
     xcb_grab_keyboard(connection, 0, s_confirm_window,
             XCB_CURRENT_TIME,
@@ -647,7 +643,6 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
             s_confirm_window, (client_last_user_time() != 0u)
                 ? client_last_user_time()
                 : (uint32_t) XCB_CURRENT_TIME);
-    xcb_flush(connection);
 }
 
 
@@ -718,7 +713,6 @@ void menu_confirm_dialog_tick(xcb_connection_t *connection,
         s_confirm_timeout_last_shown = shown_seconds;
         if (config != NULL) {
             s_confirm_draw(connection, config);
-            xcb_flush(connection);
         }
     }
 }

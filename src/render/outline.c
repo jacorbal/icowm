@@ -142,7 +142,6 @@ static void s_render_outline_place(xcb_connection_t *connection,
             xcb_window_stack_below(windows[i], stack_below);
         }
     }
-    xcb_flush(connection);
 }
 
 
@@ -178,5 +177,4 @@ void render_outline_hide(xcb_connection_t *connection,
         xcb_destroy_window(connection, windows[i]);
         windows[i] = XCB_WINDOW_NONE;
     }
-    xcb_flush(connection);
 }

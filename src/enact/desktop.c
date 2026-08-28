@@ -141,7 +141,6 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
             client->is_icon_mapped = false;
             unmapped_icon = true;
         }
-        xcb_flush(xcb_connection_get());
     }
 
     /* Moved to 'target' before the fallback call just below, not
@@ -181,7 +180,6 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
                 xcb_window_show(client->icon_window);
                 client->is_icon_mapped = true;
             }
-            xcb_flush(xcb_connection_get());
         }
         return;
     }
@@ -249,7 +247,6 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
         client_focus_fallback(desktop, surface, client);
     }
 
-    xcb_flush(xcb_connection_get());
     enact_broadcast_client_event(client, IPC_EVENT_CLIENT_DESKTOP_CHANGED);
 }
 
@@ -331,7 +328,6 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
      * something else marks the surface outdated for an unrelated
      * reason, e.g., switching desktops away and back. */
     surface->is_outdated = true;
-    xcb_flush(xcb_connection_get());
     s_broadcast_desktop_event(desktop,
             IPC_EVENT_DESKTOP_BACKGROUND_CHANGED);
 }
@@ -352,7 +348,6 @@ void enact_desktop_show(desktop_td *desktop, bool show)
     }
 
     hi_handle_net_showing_desktop(surface, show);
-    xcb_flush(xcb_connection_get());
     s_broadcast_desktop_event(desktop,
             (show) ? IPC_EVENT_DESKTOP_SHOWN : IPC_EVENT_DESKTOP_HIDDEN);
 }
@@ -428,7 +423,6 @@ void enact_desktop_client_send_front(desktop_td *desktop,
     }
 
     (void) desktop_action_client_send_front(desktop, client);
-    xcb_flush(xcb_connection_get());
     enact_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
 }
 
@@ -442,7 +436,6 @@ void enact_desktop_client_send_back(desktop_td *desktop,
     }
 
     (void) desktop_action_client_send_back(desktop, client);
-    xcb_flush(xcb_connection_get());
     enact_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
 }
 
@@ -473,7 +466,6 @@ void enact_desktop_clients_rearrange(const wm_td *wm,
     rearrange_ctx.is_first = true;
     stacking_walk(desktop, s_desktop_rearrange_visit, &rearrange_ctx);
 
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -485,7 +477,6 @@ void enact_desktop_clients_iconify_all(desktop_td *desktop)
     }
 
     desktop_action_clients_iconify_all(desktop);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -497,7 +488,6 @@ void enact_desktop_clients_deiconify_all(desktop_td *desktop)
     }
 
     desktop_action_clients_deiconify_all(desktop);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -513,7 +503,6 @@ void enact_desktop_cycle_clients_active(xcb_connection_t *connection,
     cycle_init(connection, surface, desktop, false, 1,
             modifier, cfg);
     cycle_draw(connection, cfg);
-    xcb_flush(connection);
 }
 
 
@@ -529,7 +518,6 @@ void enact_desktop_cycle_clients_prev(xcb_connection_t *connection,
     cycle_init(connection, surface, desktop, false, -1,
             modifier, cfg);
     cycle_draw(connection, cfg);
-    xcb_flush(connection);
 }
 
 
@@ -545,7 +533,6 @@ void enact_desktop_cycle_clients_icons_next(xcb_connection_t *connection,
     cycle_init(connection, surface, desktop, true, 1,
             modifier, cfg);
     cycle_draw(connection, cfg);
-    xcb_flush(connection);
 }
 
 
@@ -561,5 +548,4 @@ void enact_desktop_cycle_clients_icons_prev(xcb_connection_t *connection,
     cycle_init(connection, surface, desktop, true, -1,
             modifier, cfg);
     cycle_draw(connection, cfg);
-    xcb_flush(connection);
 }

@@ -273,7 +273,6 @@ void handler_expose(xcb_connection_t *connection,
         ri_icon_hints_draw(connection, client, is_active_visual,
                 &cfg->theme);
 
-        xcb_flush(connection);
         return;
     }
 
@@ -298,7 +297,6 @@ void handler_expose(xcb_connection_t *connection,
             desktop_repaint_frame_decoration(connection, client,
                     use_active_style, &cfg->theme);
         }
-        xcb_flush(connection);
         return;
     }
 
@@ -316,5 +314,4 @@ void handler_expose(xcb_connection_t *connection,
     desktop_repaint_titlebar_content(connection, client,
             use_active_style, inner_w, title_h, &cfg->theme);
 
-    xcb_flush(connection);
 }

@@ -368,7 +368,6 @@ void systray_layout_restack(void)
     if (s_tray.layer == CONFIG_SYSTRAY_LAYER_BELOW) {
         xcb_window_lower(s_tray.window);
         s_systray_icons_push_below();
-        xcb_flush(xcb_connection_get());
         return;
     }
 
@@ -388,7 +387,6 @@ void systray_layout_restack(void)
         xcb_window_raise(s_tray.window);
     }
 
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -425,7 +423,6 @@ void systray_layout_reflow(void)
         xcb_window_hide(s_tray.window);
         s_systray_strut_update((struct geometry_s) {
                     { 0, 0 }, { 0u, 0u } }, 0);
-        xcb_flush(xcb_connection_get());
         return;
     }
 
@@ -436,7 +433,6 @@ void systray_layout_reflow(void)
         xcb_window_hide(s_tray.window);
         s_systray_strut_update((struct geometry_s) {
                     { 0, 0 }, { 0u, 0u } }, 0);
-        xcb_flush(xcb_connection_get());
         return;
     }
 
@@ -572,7 +568,6 @@ void systray_layout_reflow(void)
         }
     }
 
-    xcb_flush(xcb_connection_get());
 
     systray_layout_restack();
 

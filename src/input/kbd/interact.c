@@ -310,7 +310,6 @@ static void s_kbd_resize_apply(client_td *client,
      * before their 'Expose' handler runs the correct geometry. */
     xcb_clear_area(xcb_connection_get(), 1, client->window, 0, 0, 0, 0);
 
-    xcb_flush(xcb_connection_get());
 
     /* Mark the desktop as needing a repaint so frame decorations are
      * refreshed at the correct new dimensions */

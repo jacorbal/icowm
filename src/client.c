@@ -944,7 +944,6 @@ void client_destroy(client_td *client)
      * to ensure the request is processed */
     if (xcb_connection_get() != NULL && client->window != 0) {
         xcb_destroy_window(xcb_connection_get(), client->window);
-        xcb_flush(xcb_connection_get());
     }
 
     /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is

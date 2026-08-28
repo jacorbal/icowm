@@ -168,7 +168,6 @@ void drag_overlay_show(xcb_connection_t *connection,
     }
 
     drag_overlay_repaint(connection);
-    xcb_flush(connection);
 }
 
 

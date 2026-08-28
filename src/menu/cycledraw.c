@@ -544,7 +544,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     }
 
     g_cycle_menu.preview_client = selected;
-    xcb_flush(connection);
 }
 
 
@@ -665,5 +664,4 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
     }
 
     mi_cycle_preview_apply(connection, config);
-    xcb_flush(connection);
 }

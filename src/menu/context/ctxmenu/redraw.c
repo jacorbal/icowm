@@ -245,7 +245,6 @@ void ctxmenu_redraw_entries(ctxmenu_state_td *state,
         s_draw_entry(state, idx_b);
     }
 
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -266,5 +265,4 @@ void ctxmenu_redraw(ctxmenu_state_td *state)
         s_draw_entry(state, i);
     }
 
-    xcb_flush(xcb_connection_get());
 }

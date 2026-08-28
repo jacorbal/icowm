@@ -228,7 +228,6 @@ static void s_cb_move(xcb_connection_t *connection,
     xcb_warp_pointer(connection, XCB_NONE, root_win,
             0, 0, 0, 0,
             (int16_t) center_pos.x, (int16_t) center_pos.y);
-    xcb_flush(connection);
 
     screen_dim.w = s_surface->properties.dim.w;
     screen_dim.h = s_surface->properties.dim.h;
@@ -359,7 +358,6 @@ static void s_cb_resize(xcb_connection_t *connection,
     xcb_warp_pointer(connection, XCB_NONE, root_win,
             0, 0, 0, 0,
             (int16_t) corner_pos.x, (int16_t) corner_pos.y);
-    xcb_flush(connection);
 
     screen_dim.w = s_surface->properties.dim.w;
     screen_dim.h = s_surface->properties.dim.h;

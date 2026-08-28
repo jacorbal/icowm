@@ -181,7 +181,6 @@ void mouse_resize_cursors_init(xcb_connection_t *connection)
     s_move_cursor = util_cursor_load(ctx, "fleur", WM_CURSOR_FLEUR_GLYPH);
 
     util_cursor_ctx_free(ctx);
-    xcb_flush(connection);
 }
 
 
@@ -309,7 +308,6 @@ client_td *im_update_resize_cursor(xcb_connection_t *connection,
     xcb_change_window_attributes(connection, window,
             XCB_CW_CURSOR,
             (const uint32_t[]) { s_resize_cursors[zone] });
-    xcb_flush(connection);
 
     return client;
 }

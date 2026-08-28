@@ -612,7 +612,6 @@ static void s_message_draw(xcb_connection_t *connection,
             (struct position_s) { label_x, label_y },
             _(STR_DIALOG_MSG_LABEL_OK));
 
-    xcb_flush(connection);
 }
 
 
@@ -763,7 +762,6 @@ void menu_message_dialog_show(xcb_connection_t *connection,
     xcb_configure_window(connection, s_message_window,
             XCB_CONFIG_WINDOW_STACK_MODE,
             (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
-    xcb_flush(connection);
 
     xcb_grab_keyboard(connection, 0, s_message_window,
             XCB_CURRENT_TIME,
@@ -773,7 +771,6 @@ void menu_message_dialog_show(xcb_connection_t *connection,
             s_message_window, (client_last_user_time() != 0u)
                 ? client_last_user_time()
                 : (uint32_t) XCB_CURRENT_TIME);
-    xcb_flush(connection);
 }
 
 
@@ -786,7 +783,6 @@ void menu_message_dialog_close(xcb_connection_t *connection)
 
     xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
     xcb_destroy_window(connection, s_message_window);
-    xcb_flush(connection);
     s_message_window = XCB_WINDOW_NONE;
 
     /* Restore whichever real X11 focus this dialog displaced when it

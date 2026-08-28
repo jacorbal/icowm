@@ -188,7 +188,6 @@ void ctxmenu_show(xcb_connection_t *connection,
                 XCB_CURRENT_TIME);
     }
 
-    xcb_flush(connection);
 }
 
 
@@ -219,7 +218,6 @@ void ctxmenu_close(ctxmenu_state_td *state)
     }
 
     if (xcb_connection_get() != NULL) {
-        xcb_flush(xcb_connection_get());
     }
 
     state->window = XCB_WINDOW_NONE;

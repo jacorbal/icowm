@@ -415,7 +415,6 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
                     (uint16_t) XCB_MOD_MASK_ANY);
         }
 
-        xcb_flush(connection);
     }
 
     keyboard_load(surfaces, keysyms, cfg);
@@ -434,7 +433,6 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
                     (uint16_t) XCB_MOD_MASK_ANY);
         }
 
-        xcb_flush(connection);
         mouse_load(surfaces, cfg);
     }
 }

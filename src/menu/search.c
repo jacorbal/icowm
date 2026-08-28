@@ -825,7 +825,6 @@ void search_destroy(xcb_connection_t *connection)
                 : (uint32_t) XCB_CURRENT_TIME);
     }
 
-    xcb_flush(connection);
 
     s_search.window = XCB_WINDOW_NONE;
     s_search.surface = NULL;
@@ -1021,5 +1020,4 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
         }
     }
 
-    xcb_flush(connection);
 }

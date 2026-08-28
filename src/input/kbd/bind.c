@@ -751,7 +751,6 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
     s_keyboard_warn_cycle_pairs();
 
     if (xcb_connection_get() != NULL) {
-        xcb_flush(xcb_connection_get());
     }
 }
 

@@ -133,7 +133,6 @@ static void s_handler_configure_acknowledge(
     }
 
     s_handler_send_synthetic_configure_notify(connection, client);
-    xcb_flush(connection);
 }
 
 
@@ -196,7 +195,6 @@ static void s_handler_configure_forward(xcb_connection_t *connection,
     if (target_mask != 0 && connection != NULL) {
         xcb_configure_window(connection, event->window, target_mask,
                 values);
-        xcb_flush(connection);
     }
 }
 
@@ -765,7 +763,6 @@ void handler_configure_request(xcb_connection_t *connection,
                 }
             }
 
-            xcb_flush(connection);
         }
     } else {
         s_handler_configure_forward(connection, event, mask);
@@ -923,7 +920,6 @@ void handler_configure_notify(xcb_connection_t *connection,
                                         ? &client->config->theme : NULL));
                 }
                 if (connection != NULL) {
-                    xcb_flush(connection);
                 }
             }
             if (geom_changed) {

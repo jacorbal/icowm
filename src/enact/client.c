@@ -183,7 +183,6 @@ void enact_client_close(client_td *client)
 {
     ccmd_client_close(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
     }
 }
 
@@ -193,7 +192,6 @@ void enact_client_kill(client_td *client)
 {
     ccmd_client_kill(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
     }
 }
 
@@ -203,7 +201,6 @@ void enact_client_restore(client_td *client)
 {
     ccmd_client_restore(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client,
                 IPC_EVENT_CLIENT_DEICONIFIED);
     }
@@ -215,7 +212,6 @@ void enact_client_focus(client_td *client)
 {
     ccmd_client_focus(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
     }
 }
 
@@ -225,7 +221,6 @@ void enact_client_unfocus(client_td *client)
 {
     ccmd_client_unfocus(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         if (scratchpad_is_client(client) && !client_is_hidden(client)) {
             enact_client_hide(client);
         }
@@ -238,7 +233,6 @@ void enact_client_resize(client_td *client, struct geometry_s geom)
 {
     ccmd_client_resize(client, geom);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
     }
 }
@@ -250,7 +244,6 @@ void enact_client_resize_force(client_td *client, struct geometry_s geom)
 {
     ccmd_client_resize_force(client, geom);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
     }
 }
@@ -261,7 +254,6 @@ void enact_client_move(client_td *client, struct position_s pos)
 {
     ccmd_client_move(client, pos);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
@@ -272,7 +264,6 @@ void enact_client_center(client_td *client)
 {
     ccmd_client_center(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
@@ -324,7 +315,6 @@ void enact_client_move_monitor_north(client_td *client)
 {
     ccmd_client_move_to_monitor_north(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
@@ -336,7 +326,6 @@ void enact_client_move_monitor_south(client_td *client)
 {
     ccmd_client_move_to_monitor_south(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
@@ -348,7 +337,6 @@ void enact_client_move_monitor_east(client_td *client)
 {
     ccmd_client_move_to_monitor_east(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
@@ -360,7 +348,6 @@ void enact_client_move_monitor_west(client_td *client)
 {
     ccmd_client_move_to_monitor_west(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
@@ -372,7 +359,6 @@ void enact_client_move_to_monitor(client_td *client,
 {
     ccmd_client_move_to_monitor(client, monitor_index);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }
 }
@@ -387,7 +373,6 @@ void enact_client_reclass(client_td *client,
     if (client != NULL) {
         cJSON *fields;
 
-        xcb_flush(xcb_connection_get());
 
         fields = cJSON_CreateObject();
         if (fields != NULL) {
@@ -414,7 +399,6 @@ void enact_client_rerole(client_td *client, const char *role)
     if (client != NULL) {
         cJSON *fields;
 
-        xcb_flush(xcb_connection_get());
 
         fields = cJSON_CreateObject();
         if (fields != NULL) {
@@ -439,7 +423,6 @@ void enact_client_rename(client_td *client, const char *name)
     if (client != NULL) {
         cJSON *fields;
 
-        xcb_flush(xcb_connection_get());
 
         fields = cJSON_CreateObject();
         if (fields != NULL) {
@@ -462,7 +445,6 @@ void enact_client_maximize(client_td *client)
 {
     ccmd_client_maximize(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
     }
 }
@@ -473,7 +455,6 @@ void enact_client_maximize_horz(client_td *client)
 {
     ccmd_client_maximize_horz(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
     }
 }
@@ -484,7 +465,6 @@ void enact_client_maximize_vert(client_td *client)
 {
     ccmd_client_maximize_vert(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_WINDOW_RESIZED);
     }
 }
@@ -495,7 +475,6 @@ void enact_client_iconify(client_td *client)
 {
     ccmd_client_iconify(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_CLIENT_ICONIFIED);
     }
 }
@@ -506,7 +485,6 @@ void enact_client_hide(client_td *client)
 {
     ccmd_client_hide(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_HIDE_SET);
     }
 }
@@ -517,7 +495,6 @@ void enact_client_unhide(client_td *client)
 {
     ccmd_client_unhide(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_HIDE_CLEARED);
     }
 }
@@ -528,7 +505,6 @@ void enact_client_shade(client_td *client)
 {
     ccmd_client_shade(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_SHADE_SET);
     }
 }
@@ -539,7 +515,6 @@ void enact_client_unshade(client_td *client)
 {
     ccmd_client_unshade(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_SHADE_CLEARED);
     }
 }
@@ -550,7 +525,6 @@ void enact_client_toggle_shade(client_td *client)
 {
     ccmd_client_toggle_shade(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, client_is_shaded(client)
                 ? IPC_EVENT_SHADE_SET : IPC_EVENT_SHADE_CLEARED);
     }
@@ -562,7 +536,6 @@ void enact_client_pin(client_td *client)
 {
     ccmd_client_pin(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_PIN_SET);
     }
 }
@@ -573,7 +546,6 @@ void enact_client_unpin(client_td *client)
 {
     ccmd_client_unpin(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_PIN_CLEARED);
     }
 }
@@ -584,7 +556,6 @@ void enact_client_toggle_pin(client_td *client)
 {
     ccmd_client_toggle_pin(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, client_is_pinned(client)
                 ? IPC_EVENT_PIN_SET
                 : IPC_EVENT_PIN_CLEARED);
@@ -597,7 +568,6 @@ void enact_client_fullscreen(client_td *client)
 {
     ccmd_client_fullscreen(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_FULLSCREEN_SET);
     }
 }
@@ -608,7 +578,6 @@ void enact_client_unfullscreen(client_td *client)
 {
     ccmd_client_unfullscreen(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_FULLSCREEN_CLEARED);
     }
 }
@@ -619,7 +588,6 @@ void enact_client_toggle_fullscreen(client_td *client)
 {
     ccmd_client_toggle_fullscreen(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, client_is_fullscreen(client)
                 ? IPC_EVENT_FULLSCREEN_SET
                 : IPC_EVENT_FULLSCREEN_CLEARED);
@@ -632,7 +600,6 @@ void enact_client_raise(client_td *client)
 {
     ccmd_client_raise(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
     }
 }
@@ -643,7 +610,6 @@ void enact_client_lower(client_td *client)
 {
     ccmd_client_lower(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
     }
 }
@@ -654,7 +620,6 @@ void enact_client_layer_above(client_td *client)
 {
     ccmd_client_layer_above(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_LAYER_CHANGED);
     }
 }
@@ -665,7 +630,6 @@ void enact_client_layer_normal(client_td *client)
 {
     ccmd_client_layer_normal(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_LAYER_CHANGED);
     }
 }
@@ -676,7 +640,6 @@ void enact_client_layer_below(client_td *client)
 {
     ccmd_client_layer_below(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_LAYER_CHANGED);
     }
 }
@@ -687,7 +650,6 @@ void enact_client_cycle_layer(client_td *client)
 {
     ccmd_client_cycle_layer(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, IPC_EVENT_LAYER_CHANGED);
     }
 }
@@ -698,7 +660,6 @@ void enact_client_urge(client_td *client)
 {
     ccmd_client_urge(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
     }
 }
 
@@ -708,7 +669,6 @@ void enact_client_unurge(client_td *client)
 {
     ccmd_client_unurge(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
     }
 }
 
@@ -720,7 +680,6 @@ void enact_client_set_icon(client_td *client, const char *icon_name)
     if (client != NULL) {
         cJSON *fields;
 
-        xcb_flush(xcb_connection_get());
 
         fields = cJSON_CreateObject();
         if (fields != NULL) {
@@ -743,7 +702,6 @@ void enact_client_toggle_decorate(client_td *client)
 {
     ccmd_client_toggle_decorate(client);
     if (client != NULL) {
-        xcb_flush(xcb_connection_get());
         enact_broadcast_client_event(client, client_is_decorated(client)
                 ? IPC_EVENT_DECORATION_SET
                 : IPC_EVENT_DECORATION_CLEARED);

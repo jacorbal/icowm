@@ -283,7 +283,6 @@ void systray_protocol_dock(xcb_window_t icon)
     xcb_configure_window(xcb_connection_get(), s_tray.window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH,
             (const uint32_t[]) { s_tray.theme->systray.style.border.width });
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -372,7 +371,6 @@ bool systray_protocol_window_ensure(const wm_td *wm)
     atom_set_window_opacity(connection, s_tray.window,
             config_theme_opacity_to_raw(
                 config->theme.systray.style.opacity));
-    xcb_flush(connection);
 
     s_tray.is_window_ready = true;
     return true;
@@ -408,7 +406,6 @@ bool systray_protocol_selection_acquire(void)
             32, 1, &s_tray.surface->screen->root_visual);
 
     s_tray.is_selection_owned = true;
-    xcb_flush(xcb_connection_get());
 
     LOGGER_INFO("Systray dock active on surface %u (selection atom" \
             " 0x%x, %u icon(s) already docked)", s_tray.surface->id,

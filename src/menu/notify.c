@@ -47,7 +47,6 @@ void notify_popup_close(xcb_connection_t *connection,
     }
 
     xcb_destroy_window(connection, state->window);
-    xcb_flush(connection);
     state->window = XCB_WINDOW_NONE;
     state->open_time.tv_sec = 0;
     state->open_time.tv_nsec = 0;
@@ -138,7 +137,6 @@ void notify_popup_show_centered(xcb_connection_t *connection,
     atom_set_window_opacity(connection, state->window,
             config_theme_opacity_to_raw(cfg->theme.overlay.opacity));
     xcb_map_window(connection, state->window);
-    xcb_flush(connection);
     (void) clock_gettime(CLOCK_MONOTONIC, &state->open_time);
 }
 
@@ -172,5 +170,4 @@ void notify_popup_repaint_centered(xcb_connection_t *connection,
     text_y = (int16_t) (height / 2 + 5);
     menu_draw_label(connection, state->window,
             (struct position_s) { text_x, text_y }, state->text);
-    xcb_flush(connection);
 }

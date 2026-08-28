@@ -59,7 +59,6 @@ void ccmd_client_grab_buttons(client_td *client)
                 s_grab_buttons[bi],
                 XCB_MOD_MASK_ANY);
     }
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -75,5 +74,4 @@ void ccmd_client_ungrab_buttons(client_td *client)
             (uint8_t) XCB_BUTTON_INDEX_ANY,
             client->window,
             (uint16_t) XCB_MOD_MASK_ANY);
-    xcb_flush(xcb_connection_get());
 }

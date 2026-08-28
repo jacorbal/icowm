@@ -552,5 +552,4 @@ void drag_warp_tick(xcb_connection_t *connection)
     s_drag.last_root_y = new_root_y;
     s_drag.desktop = new_desktop;
 
-    xcb_flush(connection);
 }

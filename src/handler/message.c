@@ -419,7 +419,6 @@ void handler_client_message(wm_td *wm,
             xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
                     event->window, ewmh->_NET_FRAME_EXTENTS,
                     XCB_ATOM_CARDINAL, 32, 4, extents);
-            xcb_flush(connection);
         }
         return;
     }
@@ -440,7 +439,6 @@ void handler_client_message(wm_td *wm,
                     (int) surf->id, (show) ? 1u : 0u);
         }
 
-        xcb_flush(connection);
         return;
     }
 

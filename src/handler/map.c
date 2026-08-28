@@ -176,7 +176,6 @@ static void s_map_unmanaged(xcb_connection_t *connection,
         xcb_window_t window)
 {
     xcb_map_window(connection, window);
-    xcb_flush(connection);
 }
 
 
@@ -433,7 +432,6 @@ void handler_map_request(const wm_td *wm,
 
     wm_outdate_surface(surface);
     wm_outdate_desktop(desktop);
-    xcb_flush(connection);
 
     LOGGER_DEBUG("Mapped and adopted window %#x ('%s') on desktop %u",
             event->window, client->info.name, desktop->id);
@@ -542,7 +540,6 @@ void handler_unmap_notify(xcb_connection_t *connection,
         wm_outdate_desktop(desktop);
 
         if (connection != NULL) {
-            xcb_flush(connection);
         }
     }
 }
@@ -608,7 +605,6 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
     if (desktop != NULL && desktop->client_active_id == client->id) {
         client_focus_fallback(desktop, surface, client);
         if (connection != NULL) {
-            xcb_flush(connection);
         }
     }
 
@@ -635,7 +631,6 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
         if (connection != NULL && client->frame != 0) {
             client->ignore.unmap++;
             xcb_destroy_window(connection, client->frame);
-            xcb_flush(connection);
         }
         client->frame = 0;
         client->titlebar = 0;
@@ -730,7 +725,6 @@ void handler_map_notify(xcb_connection_t *connection,
             LOGGER_TRACE("Set cursor (window=0x%x, cursor=0x%x)",
                     client->window, mouse_plain_cursor());
         }
-        xcb_flush(connection);
     }
 }
 
@@ -824,6 +818,5 @@ void handler_circulate_request(xcb_connection_t *connection,
 
     xcb_configure_window(connection, target,
             XCB_CONFIG_WINDOW_STACK_MODE, &stack_mode);
-    xcb_flush(connection);
     wm_request_client_redraw(client);
 }

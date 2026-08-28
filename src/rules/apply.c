@@ -347,7 +347,6 @@ static void s_rules_apply_geometry(const surface_td *surface,
         client_decoration_layout_sync(client);
     }
 
-    xcb_flush(xcb_connection_get());
     if (set_pos) {
         s_rules_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }

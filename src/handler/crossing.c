@@ -74,6 +74,5 @@ void handler_leave_notify(const wm_td *wm,
         if (surface != NULL) {
             surface->is_outdated = true;
         }
-        xcb_flush(connection);
     }
 }

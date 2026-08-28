@@ -128,7 +128,6 @@ void mouse_handle_enter(xcb_connection_t *connection,
     s_enter_focus_active = true;
     focus_apply(surfaces, surface, desktop, client, false, config);
 
-    xcb_flush(connection);
 }
 
 

@@ -158,7 +158,6 @@ void ccmd_client_sync_states(client_td *client)
     }
 
     xcb_ewmh_set_wm_state(xcb_ewmh_connection_get(), client->window, num, states);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -183,7 +182,6 @@ void ccmd_set_wm_state(client_td *client,
     values[1] = icon_window;
     xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
             client->window, wm_state, wm_state, 32, 2, values);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -203,7 +201,6 @@ void ccmd_clear_wm_state(client_td *client)
     }
 
     xcb_delete_property(xcb_connection_get(), client->window, wm_state);
-    xcb_flush(xcb_connection_get());
 }
 
 

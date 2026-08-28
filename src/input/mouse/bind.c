@@ -276,7 +276,6 @@ void mouse_load(list_td *surfaces, const config_td *config)
     }
 
     if (connection != NULL) {
-        xcb_flush(connection);
     }
 
     LOGGER_DEBUG("Grabbed %d mouse binding(s)", s_mousebindings_count);

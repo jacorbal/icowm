@@ -128,7 +128,6 @@ bool im_press_close_overlays(xcb_connection_t *connection,
         if (surface != NULL) {
             surface_render_current_desktop_repaint(surface);
         }
-        xcb_flush(connection);
         /* Do NOT consume: allow the click to proceed to the client */
         return false;
     }

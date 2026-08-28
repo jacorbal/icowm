@@ -85,7 +85,6 @@ static void s_run_destroy(xcb_connection_t *connection)
 
     memset(&s_run, 0, sizeof(s_run));
     s_run.window = XCB_WINDOW_NONE;
-    xcb_flush(connection);
 }
 
 
@@ -372,5 +371,4 @@ void run_draw(xcb_connection_t *connection, const config_td *cfg)
                 WM_RUN_PAD_Y + WM_RUN_BAR_HEIGHT - 7 },
             shown);
 
-    xcb_flush(connection);
 }

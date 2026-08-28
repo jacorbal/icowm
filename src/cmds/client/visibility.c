@@ -271,7 +271,6 @@ static void s_ccmd_client_iconify_one(client_td *client)
      * iconification would otherwise not trigger wm_ewmh_sync. */
     wm_request_client_redraw(client);
 
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -337,7 +336,6 @@ static void s_ccmd_client_hide_one(client_td *client)
 
     ccmd_client_focus_fallback(client);
     wm_request_client_redraw(client);
-    xcb_flush(xcb_connection_get());
 }
 
 

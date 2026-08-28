@@ -136,7 +136,6 @@ static void s_switch_cyclic(surface_td *surface,
         surface_clients_show(surface, surface->desktop_cur);
         s_show_desktop_overlay(surface);
         surface->is_outdated = true;
-        xcb_flush(xcb_connection_get());
     } else {
         /* No switch happened; restore visibility */
         surface_clients_show(surface, old_id);
@@ -173,7 +172,6 @@ void scmd_surface_desktop_switch(surface_td *surface,
     s_show_desktop_overlay(surface);
 
     surface->is_outdated = true;
-    xcb_flush(xcb_connection_get());
 }
 
 

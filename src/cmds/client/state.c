@@ -626,7 +626,6 @@ void ccmd_client_shade(client_td *client)
     ccmd_client_sync_states(client);
 
     wm_request_client_redraw(client);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -736,7 +735,6 @@ void ccmd_client_unshade(client_td *client)
     }
 
     wm_request_client_redraw(client);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -934,7 +932,6 @@ void ccmd_client_fullscreen(client_td *client)
     systray_restack();
 
     wm_request_client_redraw(client);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -1107,7 +1104,6 @@ void ccmd_client_unfullscreen(client_td *client)
     systray_restack();
 
     wm_request_client_redraw(client);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -1203,5 +1199,4 @@ void ccmd_client_toggle_decorate(client_td *client)
     ccmd_client_update_allowed_actions(client);
 
     wm_request_client_redraw(client);
-    xcb_flush(xcb_connection_get());
 }

@@ -97,7 +97,6 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
             XCB_NONE,
             XCB_NONE,
             event_time);
-    xcb_flush(connection);
 }
 
 

@@ -112,6 +112,16 @@ void loop_run(wm_td *wm)
         }
 
         loop_refresh(&ctx);
+
+        /* Everything this turn asked of the server goes out here, in
+         * one write, rather than each place sending its own the moment
+         * it had something to say.  A request waits in XCB's output
+         * buffer until something sends it, and nothing that ran above
+         * could know whether more were coming after it: flushing where
+         * the work is done means a turn that moves ten windows can
+         * reach the socket ten times, and the intermediate states go
+         * out with it. */
+        xcb_flush(xcb_connection_get());
     }
 
     LOGGER_DEBUG("Exiting event loop", L_NARG);

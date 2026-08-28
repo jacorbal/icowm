@@ -258,7 +258,6 @@ void urgency_blink_tick(list_td *surfaces, const config_td *config)
 
         if (connection != NULL) {
             xcb_bell(connection, 0);
-            xcb_flush(connection);
         }
     }
 

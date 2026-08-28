@@ -728,7 +728,6 @@ void hi_handle_net_moveresize_window(const wm_td *wm,
                 client_is_decorated(client) && client->frame != 0) {
             client_decoration_layout_sync(client);
         }
-        xcb_flush(connection);
         wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
@@ -843,7 +842,6 @@ void hi_handle_net_restack_window(const wm_td *wm,
     (void) i;
 
     xcb_configure_window(connection, target, mask, values);
-    xcb_flush(connection);
     wm_outdate_surface(surface);
     wm_outdate_desktop(desktop);
 }

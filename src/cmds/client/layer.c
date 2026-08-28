@@ -59,7 +59,6 @@ static void s_client_layer_finish(client_td *client, desktop_td *desktop)
     }
 
     wm_request_client_redraw(client);
-    xcb_flush(xcb_connection_get());
 }
 
 
@@ -284,7 +283,6 @@ void ccmd_client_raise(client_td *client)
         xcb_window_t target = ccmd_target_win(client);
 
         xcb_window_raise(target);
-        xcb_flush(xcb_connection_get());
     }
 
 }
@@ -309,7 +307,6 @@ void ccmd_client_lower(client_td *client)
         xcb_window_t target = ccmd_target_win(client);
 
         xcb_window_lower(target);
-        xcb_flush(xcb_connection_get());
     }
 }
 
@@ -443,6 +440,5 @@ void ccmd_desktop_enforce_layers(desktop_td *desktop)
     }
 
     if (xcb_connection_get() != NULL) {
-        xcb_flush(xcb_connection_get());
     }
 }
