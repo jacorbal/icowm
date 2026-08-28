@@ -34,6 +34,7 @@
 /* Local includes */
 #include <menu/context/ctxmenu/layout.h>
 #include <menu/context/ctxmenu/redraw.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -68,13 +69,13 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
     xcb_rectangle_t rect;
     xcb_connection_t *conn;
 
-    if (state == NULL || state->connection == NULL ||
+    if (state == NULL || xcb_connection_get() == NULL ||
             state->config == NULL || idx < 0 ||
             idx >= state->entry_count) {
         return;
     }
 
-    conn = state->connection;
+    conn = xcb_connection_get();
     e = &state->entries[idx];
     top_y = ctxmenu_entry_top_y(state, idx);
     row_h = (e->type == CTXMENU_SEPARATOR)
@@ -177,7 +178,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
             icon_pos.x = text_x;
             icon_pos.y = icon_y;
-            wmicon_draw_at(conn, state->surface->ewmh, e->icon_window,
+            wmicon_draw_at(conn, xcb_ewmh_connection_get(), e->icon_window,
                     state->window, icon_pos, icon_size,
                     fg, bg, e->icon_cache);
         }
@@ -232,7 +233,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 void ctxmenu_redraw_entries(ctxmenu_state_td *state,
         int idx_a, int idx_b)
 {
-    if (state == NULL || state->connection == NULL ||
+    if (state == NULL || xcb_connection_get() == NULL ||
             state->window == XCB_WINDOW_NONE) {
         return;
     }
@@ -244,20 +245,20 @@ void ctxmenu_redraw_entries(ctxmenu_state_td *state,
         s_draw_entry(state, idx_b);
     }
 
-    xcb_flush(state->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
 /* Repaint the context menu window */
 void ctxmenu_redraw(ctxmenu_state_td *state)
 {
-    if (state == NULL || state->connection == NULL ||
+    if (state == NULL || xcb_connection_get() == NULL ||
             state->window == XCB_WINDOW_NONE) {
         return;
     }
 
     /* Clear background */
-    menu_draw_row_bg(state->connection, state->window,
+    menu_draw_row_bg(xcb_connection_get(), state->window,
             state->config->theme.menu.unselected.color.background,
             0, state->height, state->width);
 
@@ -265,5 +266,5 @@ void ctxmenu_redraw(ctxmenu_state_td *state)
         s_draw_entry(state, i);
     }
 
-    xcb_flush(state->connection);
+    xcb_flush(xcb_connection_get());
 }

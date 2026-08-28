@@ -25,13 +25,13 @@
 
 /* Local includes */
 #include <utils/cursor.h>
+#include <utils/xcb/connection.h>
 
 
 /**
  * @brief Cursor-loading context, one per screen
  */
 struct util_cursor_ctx_s {
-    xcb_connection_t *connection;
     xcb_cursor_context_t *theme_ctx; /**< @c NULL if the theme lookup
                                           itself could not be set up;
                                           every load then falls back
@@ -63,14 +63,14 @@ static xcb_cursor_t s_load_fallback(util_cursor_ctx_td *ctx,
     }
 
     if (!ctx->fallback_font_open) {
-        ctx->fallback_font = xcb_generate_id(ctx->connection);
-        xcb_open_font(ctx->connection, ctx->fallback_font,
+        ctx->fallback_font = xcb_generate_id(xcb_connection_get());
+        xcb_open_font(xcb_connection_get(), ctx->fallback_font,
                 (uint16_t) safe_strlen("cursor"), "cursor");
         ctx->fallback_font_open = true;
     }
 
-    cursor = xcb_generate_id(ctx->connection);
-    xcb_create_glyph_cursor(ctx->connection, cursor,
+    cursor = xcb_generate_id(xcb_connection_get());
+    xcb_create_glyph_cursor(xcb_connection_get(), cursor,
             ctx->fallback_font, ctx->fallback_font,
             fallback_glyph, (uint16_t) (fallback_glyph + 1u),
             0u, 0u, 0u, 0xffffu, 0xffffu, 0xffffu);
@@ -94,7 +94,6 @@ util_cursor_ctx_td *util_cursor_ctx_new(xcb_connection_t *connection,
         return NULL;
     }
 
-    ctx->connection = connection;
     ctx->fallback_font = 0;
     ctx->fallback_font_open = false;
 
@@ -144,7 +143,7 @@ void util_cursor_ctx_free(util_cursor_ctx_td *ctx)
         xcb_cursor_context_free(ctx->theme_ctx);
     }
     if (ctx->fallback_font_open) {
-        xcb_close_font(ctx->connection, ctx->fallback_font);
+        xcb_close_font(xcb_connection_get(), ctx->fallback_font);
     }
 
     free(ctx);

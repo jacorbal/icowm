@@ -32,6 +32,7 @@
 #include <cmds/client/layer.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/transient.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -57,7 +58,7 @@ static void s_client_layer_finish(client_td *client, desktop_td *desktop)
     }
 
     wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -173,21 +174,21 @@ static void s_enforce_layer_place_family(client_td *top,
             xcb_window_t tray_below = systray_below_window();
 
             if (tray_below != XCB_WINDOW_NONE) {
-                xcb_configure_window(top->connection, target,
+                xcb_configure_window(xcb_connection_get(), target,
                         XCB_CONFIG_WINDOW_SIBLING |
                         XCB_CONFIG_WINDOW_STACK_MODE,
                         (const uint32_t[]) {
                         tray_below, XCB_STACK_MODE_ABOVE
                         });
             } else {
-                xcb_configure_window(top->connection, target,
+                xcb_configure_window(xcb_connection_get(), target,
                         XCB_CONFIG_WINDOW_STACK_MODE,
                         (const uint32_t[]) {
                         XCB_STACK_MODE_BELOW
                         });
             }
         } else {
-            xcb_configure_window(top->connection, target,
+            xcb_configure_window(xcb_connection_get(), target,
                     XCB_CONFIG_WINDOW_SIBLING |
                     XCB_CONFIG_WINDOW_STACK_MODE,
                     (const uint32_t[]) {
@@ -295,9 +296,9 @@ void ccmd_client_raise(client_td *client)
     } else {
         uint32_t values[] = { XCB_STACK_MODE_ABOVE };
         xcb_window_t target = ccmd_target_win(client);
-        xcb_configure_window(client->connection, target,
+        xcb_configure_window(xcb_connection_get(), target,
                 XCB_CONFIG_WINDOW_STACK_MODE, values);
-        xcb_flush(client->connection);
+        xcb_flush(xcb_connection_get());
     }
 
 }
@@ -321,9 +322,9 @@ void ccmd_client_lower(client_td *client)
     } else {
         uint32_t values[] = { XCB_STACK_MODE_BELOW };
         xcb_window_t target = ccmd_target_win(client);
-        xcb_configure_window(client->connection, target,
+        xcb_configure_window(xcb_connection_get(), target,
                 XCB_CONFIG_WINDOW_STACK_MODE, values);
-        xcb_flush(client->connection);
+        xcb_flush(xcb_connection_get());
     }
 }
 
@@ -451,14 +452,14 @@ void ccmd_desktop_enforce_layers(desktop_td *desktop)
             xcb_window_t active_target = ccmd_target_win(active);
 
             if (active_target != XCB_WINDOW_NONE) {
-                xcb_configure_window(active->connection, active_target,
+                xcb_configure_window(xcb_connection_get(), active_target,
                         XCB_CONFIG_WINDOW_STACK_MODE,
                         (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
             }
         }
     }
 
-    if (desktop->connection != NULL) {
-        xcb_flush(desktop->connection);
+    if (xcb_connection_get() != NULL) {
+        xcb_flush(xcb_connection_get());
     }
 }

@@ -32,6 +32,7 @@
 /* Local includes */
 #include <client.h>
 #include <client/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -65,9 +66,9 @@ static void s_client_read_legacy_name_prop(client_td *client,
     xcb_get_property_cookie_t cookie;
     xcb_get_property_reply_t *reply;
 
-    cookie = xcb_get_property(client->connection, 0, client->window,
+    cookie = xcb_get_property(xcb_connection_get(), 0, client->window,
             atom, XCB_ATOM_STRING, 0, 255);
-    reply = xcb_get_property_reply(client->connection, cookie, NULL);
+    reply = xcb_get_property_reply(xcb_connection_get(), cookie, NULL);
 
     if (reply != NULL && reply->value_len > 0) {
         size_t len = (reply->value_len < 255u)
@@ -230,9 +231,9 @@ void client_props_refresh_icon_name(client_td *client)
     /* Prefer '_NET_WM_ICON_NAME', which is UTF-8, over
      * 'WM_ICON_NAME', which is Latin-1 */
     memset(&net_reply, 0, sizeof(net_reply));
-    if (client->ewmh != NULL &&
-            xcb_ewmh_get_wm_icon_name_reply(client->ewmh,
-                xcb_ewmh_get_wm_icon_name(client->ewmh, client->window),
+    if (xcb_ewmh_connection_get() != NULL &&
+            xcb_ewmh_get_wm_icon_name_reply(xcb_ewmh_connection_get(),
+                xcb_ewmh_get_wm_icon_name(xcb_ewmh_connection_get(), client->window),
                 &net_reply, NULL) &&
             net_reply.strings_len > 0) {
         size_t len = (net_reply.strings_len < (CONFIG_MAX_LENGTH_NAME - 1u))
@@ -262,9 +263,9 @@ void client_props_refresh_name(client_td *client)
 
     /* Prefer '_NET_WM_NAME' (UTF-8) over 'WM_NAME' (Latin-1) */
     memset(&net_reply, 0, sizeof(net_reply));
-    if (client->ewmh != NULL &&
-            xcb_ewmh_get_wm_name_reply(client->ewmh,
-                xcb_ewmh_get_wm_name(client->ewmh, client->window),
+    if (xcb_ewmh_connection_get() != NULL &&
+            xcb_ewmh_get_wm_name_reply(xcb_ewmh_connection_get(),
+                xcb_ewmh_get_wm_name(xcb_ewmh_connection_get(), client->window),
                 &net_reply, NULL) &&
             net_reply.strings_len > 0) {
         size_t len = (net_reply.strings_len < (CONFIG_MAX_LENGTH_NAME - 1u))
@@ -296,7 +297,7 @@ void client_props_refresh_role(client_td *client)
         return;
     }
 
-    role_atom = atom_intern(client->connection, "WM_WINDOW_ROLE", true);
+    role_atom = atom_intern(xcb_connection_get(), "WM_WINDOW_ROLE", true);
     if (role_atom == XCB_ATOM_NONE) {
         client->info.role_name[0] = '\0';
         return;
@@ -318,8 +319,8 @@ void client_props_refresh_normal_hints(client_td *client)
 
     memset(&hints, 0, sizeof(hints));
     memset(&client->hints_icccm.size, 0, sizeof(client->hints_icccm.size));
-    if (!xcb_icccm_get_wm_normal_hints_reply(client->connection,
-                xcb_icccm_get_wm_normal_hints(client->connection,
+    if (!xcb_icccm_get_wm_normal_hints_reply(xcb_connection_get(),
+                xcb_icccm_get_wm_normal_hints(xcb_connection_get(),
                     client->window),
                 &hints, NULL)) {
         return;
@@ -435,14 +436,14 @@ void client_props_refresh_colormap_windows(client_td *client)
 
     client->colormap_windows.count = 0u;
 
-    colormap_windows_atom = atom_intern(client->connection,
+    colormap_windows_atom = atom_intern(xcb_connection_get(),
             "WM_COLORMAP_WINDOWS", false);
     if (colormap_windows_atom == XCB_ATOM_NONE) {
         return;
     }
 
-    if (!xcb_icccm_get_wm_colormap_windows_reply(client->connection,
-                xcb_icccm_get_wm_colormap_windows(client->connection,
+    if (!xcb_icccm_get_wm_colormap_windows_reply(xcb_connection_get(),
+                xcb_icccm_get_wm_colormap_windows(xcb_connection_get(),
                     client->window, colormap_windows_atom),
                 &reply, NULL)) {
         return;
@@ -461,13 +462,13 @@ void client_props_refresh_colormap_windows(client_td *client)
      * than one per window it names.  The array is on the stack
      * because 'WM_COLORMAP_WINDOWS_MAX' bounds the loop already. */
     for (uint32_t i = 0u; i < n; ++i) {
-        cookies[i] = xcb_get_window_attributes(client->connection,
+        cookies[i] = xcb_get_window_attributes(xcb_connection_get(),
                 reply.windows[i]);
     }
 
     for (uint32_t i = 0u; i < n; ++i) {
         xcb_get_window_attributes_reply_t *const war =
-            xcb_get_window_attributes_reply(client->connection,
+            xcb_get_window_attributes_reply(xcb_connection_get(),
                     cookies[i], NULL);
 
         client->colormap_windows.windows[i] = reply.windows[i];

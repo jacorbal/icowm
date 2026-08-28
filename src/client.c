@@ -65,6 +65,7 @@
 
 /* Local includes */
 #include <client/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -110,21 +111,15 @@ static void s_client_heap_fields_release(client_td *client)
  * @brief Initialize the common non-zero client defaults
  *
  * @param client        Client structure to initialize
- * @param connection    XCB connection
- * @param ewmh          EWMH connection
  * @param config        Shared base/theme/a11y configuration
  */
 static void s_client_init_common(client_td *client,
-        xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh,
         const config_td *config)
 {
     if (client == NULL) {
         return;
     }
 
-    client->connection = connection;
-    client->ewmh = ewmh;
     client->config = config;
     client->process.pid = -1;
     client->hints_icccm.hints.accepts_input = true;
@@ -947,9 +942,9 @@ void client_destroy(client_td *client)
 
     /* Destroy the XCB window representation and flush the output buffer
      * to ensure the request is processed */
-    if (client->connection != NULL && client->window != 0) {
-        xcb_destroy_window(client->connection, client->window);
-        xcb_flush(client->connection);
+    if (xcb_connection_get() != NULL && client->window != 0) {
+        xcb_destroy_window(xcb_connection_get(), client->window);
+        xcb_flush(xcb_connection_get());
     }
 
     /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is
@@ -957,26 +952,26 @@ void client_destroy(client_td *client)
      * connection (unlike the counter it watches, which belongs to the
      * client and is not ours to destroy), so it is not freed
      * automatically when the client window above is destroyed */
-    if (client->connection != NULL &&
+    if (xcb_connection_get() != NULL &&
             client->hints_ewmh.sync.alarm != 0u) {
-        xcb_sync_destroy_alarm(client->connection,
+        xcb_sync_destroy_alarm(xcb_connection_get(),
                 (xcb_sync_alarm_t) client->hints_ewmh.sync.alarm);
     }
 
     /* Destroy decorations if any */
-    if (client->connection != NULL && client->titlebar != 0) {
-        xcb_destroy_window(client->connection, client->titlebar);
+    if (xcb_connection_get() != NULL && client->titlebar != 0) {
+        xcb_destroy_window(xcb_connection_get(), client->titlebar);
     }
-    if (client->connection != NULL && client->icon_window != 0) {
-        xcb_destroy_window(client->connection, client->icon_window);
+    if (xcb_connection_get() != NULL && client->icon_window != 0) {
+        xcb_destroy_window(xcb_connection_get(), client->icon_window);
     }
     /* Frees the cached '_NET_WM_ICON' Picture built by 'wmicon_draw'
      * (see render/wmicon.h), if any; a no-op if nothing was ever
      * cached, e.g., a client that never had 'theme.icon.show-pixmaps'
      * draw anything for it in the first place */
-    wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
-    if (client->connection != NULL && client->frame != 0) {
-        xcb_destroy_window(client->connection, client->frame);
+    wmicon_invalidate(xcb_connection_get(), &client->icon_pixmap_cache);
+    if (xcb_connection_get() != NULL && client->frame != 0) {
+        xcb_destroy_window(xcb_connection_get(), client->frame);
     }
 
     /* Free all allocated string buffers */
@@ -1025,7 +1020,7 @@ void client_sync_visible_name(client_td *client, char *cached,
             xcb_window_t, uint32_t, const char *),
         xcb_atom_t atom)
 {
-    if (client == NULL || client->ewmh == NULL || cached == NULL ||
+    if (client == NULL || xcb_ewmh_connection_get() == NULL || cached == NULL ||
             full_name == NULL || rendered == NULL || set_fn == NULL) {
         return;
     }
@@ -1036,7 +1031,7 @@ void client_sync_visible_name(client_td *client, char *cached,
             return;
         }
         safe_strncpy(cached, rendered, CONFIG_MAX_LENGTH_NAME);
-        set_fn(client->ewmh, client->window,
+        set_fn(xcb_ewmh_connection_get(), client->window,
                 (uint32_t) safe_strlen(rendered), rendered);
     } else {
         /* No longer (or never) truncated: the property should not be
@@ -1046,7 +1041,7 @@ void client_sync_visible_name(client_td *client, char *cached,
             return;
         }
         safe_strncpy(cached, full_name, CONFIG_MAX_LENGTH_NAME);
-        xcb_delete_property(client->connection, client->window, atom);
+        xcb_delete_property(xcb_connection_get(), client->window, atom);
     }
 }
 
@@ -1059,7 +1054,7 @@ void client_border_apply(client_td *client, bool use_active_style)
     uint32_t width;
     uint8_t opacity_percent;
 
-    if (client == NULL || client->connection == NULL ||
+    if (client == NULL || xcb_connection_get() == NULL ||
             client->config == NULL || client_is_fullscreen(client) ||
             (client_is_decorated(client) && client->frame != 0)) {
         return;
@@ -1093,7 +1088,7 @@ void client_border_apply(client_td *client, bool use_active_style)
         width = client->config->a11y.focus_indicator.min_border_width;
     }
 
-    xcb_change_window_attributes(client->connection, client->window,
+    xcb_change_window_attributes(xcb_connection_get(), client->window,
             XCB_CW_BORDER_PIXEL, &color);
 
     /* X11's native border is drawn OUTSIDE a window's own core
@@ -1130,7 +1125,7 @@ void client_border_apply(client_td *client, bool use_active_style)
     }
     client->last_border_width = width;
 
-    atom_set_window_opacity(client->connection, client->window,
+    atom_set_window_opacity(xcb_connection_get(), client->window,
             config_theme_opacity_to_raw(opacity_percent));
 }
 
@@ -1227,7 +1222,7 @@ client_td *client_init(xcb_connection_t *connection,
         return NULL;
     }
 
-    s_client_init_common(client, connection, ewmh, config);
+    s_client_init_common(client, config);
 
     /* Use the X window ID as both window handle and hash/lookup key */
     client->window = window;
@@ -1350,7 +1345,7 @@ client_td *client_init(xcb_connection_t *connection,
     s_client_read_motif_hints(connection, client, &ck);
 
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
-            client->ewmh != NULL) {
+            xcb_ewmh_connection_get() != NULL) {
         client_pin(client);
         client_skip_taskbar(client);
         client_skip_pager(client);
@@ -1423,8 +1418,8 @@ client_td *client_init(xcb_connection_t *connection,
             client->properties.type == (uint16_t) CLIENT_TYPE_DIALOG ||
             client->properties.type == (uint16_t) CLIENT_TYPE_TOOLBAR ||
             client->properties.type == (uint16_t) CLIENT_TYPE_UTILITY) {
-        if (client->ewmh != NULL) {
-            xcb_ewmh_set_wm_state(client->ewmh, client->window, 0, NULL);
+        if (xcb_ewmh_connection_get() != NULL) {
+            xcb_ewmh_set_wm_state(xcb_ewmh_connection_get(), client->window, 0, NULL);
         }
     }
 

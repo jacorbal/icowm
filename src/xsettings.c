@@ -37,6 +37,7 @@
 
 /* Local includes */
 #include <xsettings.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -46,7 +47,6 @@
  * @c config.xsettings being a single global (not per-surface) setting.
  */
 static struct {
-    xcb_connection_t *connection;
     surface_td *surface;
     xcb_window_t window;            /**< Settings-holder window */
     xcb_atom_t selection_atom;      /**< @c _XSETTINGS_Sn */
@@ -297,10 +297,10 @@ static void s_xs_publish(void)
         return;
     }
 
-    xcb_change_property(s_xs.connection, XCB_PROP_MODE_REPLACE,
+    xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
             s_xs.window, s_xs.settings_atom, s_xs.settings_atom,
             8, len, buf);
-    xcb_flush(s_xs.connection);
+    xcb_flush(xcb_connection_get());
 
     free(buf);
 
@@ -393,7 +393,6 @@ static bool s_xs_ensure_window(const wm_td *wm)
         return false;
     }
 
-    s_xs.connection = connection;
     s_xs.surface = surface;
 
     (void) snprintf(selection_name, sizeof(selection_name),
@@ -443,7 +442,7 @@ static bool s_xs_acquire_selection(void)
         return false;
     }
 
-    if (!util_xcb_acquire_manager_selection(s_xs.connection,
+    if (!util_xcb_acquire_manager_selection(xcb_connection_get(),
                 s_xs.window, s_xs.selection_atom, s_xs.manager_atom,
                 s_xs.surface->screen->root)) {
         LOGGER_NOTICE("Another XSETTINGS manager already owns the" \
@@ -471,9 +470,9 @@ static void s_xs_release_selection(void)
         return;
     }
 
-    xcb_set_selection_owner(s_xs.connection, XCB_NONE,
+    xcb_set_selection_owner(xcb_connection_get(), XCB_NONE,
             s_xs.selection_atom, XCB_CURRENT_TIME);
-    xcb_flush(s_xs.connection);
+    xcb_flush(xcb_connection_get());
     s_xs.is_selection_owned = false;
 
     LOGGER_INFO("XSETTINGS selection released", L_NARG);
@@ -510,10 +509,10 @@ void xsettings_shutdown(wm_td *wm)
 
     s_xs_release_selection();
 
-    if (s_xs.is_window_ready && s_xs.connection != NULL &&
+    if (s_xs.is_window_ready && xcb_connection_get() != NULL &&
             s_xs.window != XCB_WINDOW_NONE) {
-        xcb_destroy_window(s_xs.connection, s_xs.window);
-        xcb_flush(s_xs.connection);
+        xcb_destroy_window(xcb_connection_get(), s_xs.window);
+        xcb_flush(xcb_connection_get());
     }
 
     memset(&s_xs, 0, sizeof(s_xs));

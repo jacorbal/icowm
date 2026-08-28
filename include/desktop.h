@@ -113,8 +113,6 @@ typedef struct desktop_s desktop_td;
  * information about their environment.
  */
 struct desktop_s {
-    xcb_connection_t *connection;   /**< XCB connection */
-    xcb_ewmh_connection_t *ewmh;    /**< EWMH connection */
 
     /**
      * @brief Resolved pointer to this desktop's own XCB screen
@@ -246,7 +244,6 @@ struct desktop_s {
  * @brief Initialize a new desktop
  *
  * @param connection Pointer to the XCB connection
- * @param ewmh       EWMH connection pointer
  * @param screen_id  Screen identifier where this desktop belongs
  * @param desktop_id Desktop identifier
  * @param config     This desktop's own surface's shared configuration
@@ -258,7 +255,6 @@ struct desktop_s {
  * @note Complexity: @e O(1)
  */
 desktop_td *desktop_init(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh,
         uint32_t screen_id, uint32_t desktop_id,
         config_td *config);
 

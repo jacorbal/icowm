@@ -38,6 +38,7 @@
 #include <cmds/client/screen.h>
 #include <cmds/client/state.h>
 #include <cmds/client/workarea.h>
+#include <utils/xcb/connection.h>
 /**
  * @brief Hold a maximized size to whatever maximum the client declared
  *
@@ -459,7 +460,7 @@ void ccmd_client_refill_maximized(client_td *client)
         client_decoration_layout_sync(client);
     }
 
-    client_send_synthetic_configure_notify(client->connection, client);
+    client_send_synthetic_configure_notify(xcb_connection_get(), client);
     wm_request_client_redraw(client);
 }
 

@@ -57,6 +57,7 @@
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -408,7 +409,7 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(surfaces, event->window,
                 &surface, &desktop);
 
-        if (client != NULL && client->ewmh != NULL) {
+        if (client != NULL && xcb_ewmh_connection_get() != NULL) {
             uint32_t extents[4];
 
             extents[0] = (uint32_t) client->layout.frame_extents.left;

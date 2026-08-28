@@ -31,6 +31,7 @@
 
 /* Local includes */
 #include <cmds/surface.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -49,13 +50,13 @@ static void s_show_desktop_overlay(surface_td *surface)
 {
     const desktop_td *desktop;
 
-    if (surface == NULL || surface->connection == NULL ||
+    if (surface == NULL || xcb_connection_get() == NULL ||
             surface->config == NULL) {
         return;
     }
 
     desktop = lookup_current_desktop(surface);
-    notify_desktop_show(surface->connection, surface,
+    notify_desktop_show(xcb_connection_get(), surface,
             surface->desktop_cur,
             (desktop != NULL) ? desktop->name : "",
             surface->config);
@@ -135,7 +136,7 @@ static void s_switch_cyclic(surface_td *surface,
         surface_clients_show(surface, surface->desktop_cur);
         s_show_desktop_overlay(surface);
         surface->is_outdated = true;
-        xcb_flush(surface->connection);
+        xcb_flush(xcb_connection_get());
     } else {
         /* No switch happened; restore visibility */
         surface_clients_show(surface, old_id);
@@ -172,7 +173,7 @@ void scmd_surface_desktop_switch(surface_td *surface,
     s_show_desktop_overlay(surface);
 
     surface->is_outdated = true;
-    xcb_flush(surface->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 

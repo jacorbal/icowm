@@ -56,6 +56,7 @@
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -134,10 +135,10 @@ static void s_ccmd_client_iconify_one(client_td *client)
     /* EWMH: if a pager sets '_NET_WM_HANDLED_ICONS' on the root window,
      * it manages icon display itself; the window manager must not
      * create icon windows */
-    handled_atom = ccmd_intern_atom(client->connection,
+    handled_atom = ccmd_intern_atom(xcb_connection_get(),
             "_NET_WM_HANDLED_ICONS");
-    handled_reply = xcb_get_property_reply(client->connection,
-            xcb_get_property(client->connection, 0, client->parent_id,
+    handled_reply = xcb_get_property_reply(xcb_connection_get(),
+            xcb_get_property(xcb_connection_get(), 0, client->parent_id,
                 handled_atom, XCB_ATOM_CARDINAL, 0, 1), NULL);
 
     /* A client that both asks to be left out of the taskbar/cycle
@@ -184,10 +185,10 @@ static void s_ccmd_client_iconify_one(client_td *client)
      * 'handler_unmap_notify' with 'ignore_unmap' still zero, which
      * that handler reads as the client withdrawing itself rather
      * than the window manager iconifying it. */
-    ccmd_client_unmap_decorated(client, client->connection, target);
+    ccmd_client_unmap_decorated(client, xcb_connection_get(), target);
     if (target != client->window) {
         client->ignore.unmap += 2u;
-        xcb_unmap_window(client->connection, client->window);
+        xcb_unmap_window(xcb_connection_get(), client->window);
     }
 
     if (!skip_icon_win) {
@@ -195,7 +196,7 @@ static void s_ccmd_client_iconify_one(client_td *client)
         uint32_t wm_state_vals[2];
         uint32_t icon_geom[4];
 
-        xcb_map_window(client->connection, client->icon_window);
+        xcb_map_window(xcb_connection_get(), client->icon_window);
 
         /* Icons are meant to sit even lower than the tray whenever it
          * is in the 'below' layer, "stuck to the desktop": stack just
@@ -207,14 +208,14 @@ static void s_ccmd_client_iconify_one(client_td *client)
          * 'systray_layout_restack'. */
         tray_below = systray_below_window();
         if (tray_below != XCB_WINDOW_NONE) {
-            xcb_configure_window(client->connection, client->icon_window,
+            xcb_configure_window(xcb_connection_get(), client->icon_window,
                     XCB_CONFIG_WINDOW_SIBLING |
                     XCB_CONFIG_WINDOW_STACK_MODE,
                     (const uint32_t[]) {
                     tray_below, XCB_STACK_MODE_BELOW
                     });
         } else {
-            xcb_configure_window(client->connection, client->icon_window,
+            xcb_configure_window(xcb_connection_get(), client->icon_window,
                     XCB_CONFIG_WINDOW_STACK_MODE,
                     (const uint32_t[]) { XCB_STACK_MODE_BELOW });
         }
@@ -222,22 +223,22 @@ static void s_ccmd_client_iconify_one(client_td *client)
 
         /* ICCCM §4.1.3: mark the WM icon window as Withdrawn so pagers
          * that scan window trees treat it as unmanaged */
-        wm_state_atom = ccmd_intern_atom(client->connection, "WM_STATE");
+        wm_state_atom = ccmd_intern_atom(xcb_connection_get(), "WM_STATE");
         wm_state_vals[0] = CCMD_WM_STATE_WITHDRAWN;
         wm_state_vals[1] = XCB_NONE;
 
-        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
                 client->icon_window, wm_state_atom, wm_state_atom,
                 32, 2, wm_state_vals);
 
         /* EWMH: tell pagers and taskbars to skip the WM icon window */
-        net_wm_state_atom = ccmd_intern_atom(client->connection,
+        net_wm_state_atom = ccmd_intern_atom(xcb_connection_get(),
                 "_NET_WM_STATE");
-        skip_atoms[0] = ccmd_intern_atom(client->connection,
+        skip_atoms[0] = ccmd_intern_atom(xcb_connection_get(),
                 "_NET_WM_STATE_SKIP_PAGER");
-        skip_atoms[1] = ccmd_intern_atom(client->connection,
+        skip_atoms[1] = ccmd_intern_atom(xcb_connection_get(),
                 "_NET_WM_STATE_SKIP_TASKBAR");
-        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
                 client->icon_window, net_wm_state_atom,
                 XCB_ATOM_ATOM, 32, 2, skip_atoms);
 
@@ -247,9 +248,9 @@ static void s_ccmd_client_iconify_one(client_td *client)
         icon_geom[1] = (uint32_t) client->icon_pos.y;
         icon_geom[2] = WM_ICON_SQUARE_SIZE;
         icon_geom[3] = icon_h_out;
-        icon_geom_atom = ccmd_intern_atom(client->connection,
+        icon_geom_atom = ccmd_intern_atom(xcb_connection_get(),
                 "_NET_WM_ICON_GEOMETRY");
-        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
                 client->window, icon_geom_atom,
                 XCB_ATOM_CARDINAL, 32, 4, icon_geom);
     }
@@ -276,7 +277,7 @@ static void s_ccmd_client_iconify_one(client_td *client)
      * iconification would otherwise not trigger wm_ewmh_sync. */
     wm_request_client_redraw(client);
 
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -329,10 +330,10 @@ static void s_ccmd_client_hide_one(client_td *client)
      * 'SubstructureNotify'.  If 'target' is the frame, the content
      * window is also unmapped explicitly below, producing two more
      * events for 'client->window'. */
-    ccmd_client_unmap_decorated(client, client->connection, target);
+    ccmd_client_unmap_decorated(client, xcb_connection_get(), target);
     if (target != client->window) {
         client->ignore.unmap += 2u;
-        xcb_unmap_window(client->connection, client->window);
+        xcb_unmap_window(xcb_connection_get(), client->window);
     }
 
     client_hide(client);
@@ -342,7 +343,7 @@ static void s_ccmd_client_hide_one(client_td *client)
 
     ccmd_client_focus_fallback(client);
     wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -383,13 +384,13 @@ static void s_ccmd_client_unhide_one(client_td *client)
     target = ccmd_target_win(client);
 
     if (client->titlebar != 0) {
-        xcb_map_window(client->connection, client->titlebar);
+        xcb_map_window(xcb_connection_get(), client->titlebar);
     }
 
-    xcb_map_window(client->connection, target);
+    xcb_map_window(xcb_connection_get(), target);
 
     if (target != client->window) {
-        xcb_map_window(client->connection, client->window);
+        xcb_map_window(xcb_connection_get(), client->window);
     }
 
     client_unhide(client);

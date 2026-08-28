@@ -46,6 +46,7 @@
 /* Local includes */
 #include <rules.h>
 #include <rules/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -346,7 +347,7 @@ static void s_rules_apply_geometry(const surface_td *surface,
         client_decoration_layout_sync(client);
     }
 
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
     if (set_pos) {
         s_rules_broadcast_client_event(client, IPC_EVENT_WINDOW_MOVED);
     }

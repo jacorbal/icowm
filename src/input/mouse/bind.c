@@ -46,6 +46,7 @@
 /* Local includes */
 #include <input/modifier.h>
 #include <input/mouse/bind.h>
+#include <utils/xcb/connection.h>
 
 
 /* Module state */
@@ -181,15 +182,7 @@ void mouse_load(list_td *surfaces, const config_td *config)
     defs[7].binding = NULL;
     defs[7].type = MOUSEBIND_NONE;
 
-    if (surfaces != NULL) {
-        list_item_td *const head = list_head(surfaces);
-        if (head != NULL) {
-            const surface_td *first = (surface_td *) list_data(head);
-            if (first != NULL) {
-                connection = first->connection;
-            }
-        }
-    }
+    connection = xcb_connection_get();
 
     s_mousebindings_count = 0;
 
@@ -207,7 +200,7 @@ void mouse_load(list_td *surfaces, const config_td *config)
                 continue;
             }
 
-            xcb_ungrab_button(surface->connection,
+            xcb_ungrab_button(xcb_connection_get(),
                     XCB_BUTTON_INDEX_ANY, surface->screen->root,
                     XCB_MOD_MASK_ANY);
         }
@@ -266,7 +259,7 @@ void mouse_load(list_td *surfaces, const config_td *config)
             for (size_t k = 0;
                     k < sizeof(lockmods) / sizeof(lockmods[0]);
                     ++k) {
-                xcb_grab_button(surface->connection,
+                xcb_grab_button(xcb_connection_get(),
                         0,
                         surface->screen->root,
                         XCB_EVENT_MASK_BUTTON_PRESS   |

@@ -63,6 +63,7 @@
 
 /* Local includes */
 #include <handler.h>
+#include <utils/xcb/connection.h>
 
 
 /* Handle an 'EXPOSE' event for decoration repaints */
@@ -236,7 +237,7 @@ void handler_expose(xcb_connection_t *connection,
              * 'is_active_visual': this whole block is already gated on
              * '!is_active_visual' above, so it is always false by the
              * time this runs */
-            wmicon_draw(connection, client->ewmh, client->window,
+            wmicon_draw(connection, xcb_ewmh_connection_get(), client->window,
                     client->icon_window, WM_ICON_SQUARE_SIZE,
                     cfg->theme.icon.inactive.color.foreground,
                     cfg->theme.icon.inactive.color.background,

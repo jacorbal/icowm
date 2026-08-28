@@ -40,6 +40,7 @@
 
 /* Local includes */
 #include <policy/urgency.h>
+#include <utils/xcb/connection.h>
 
 
 /** Current blink phase: @c true during the "swapped colors" half */
@@ -253,12 +254,11 @@ void urgency_blink_tick(list_td *surfaces, const config_td *config)
     if (!had_urgent && s_has_urgent && config != NULL &&
             config->a11y.urgency.sound_bell &&
             surfaces != NULL && !list_is_empty(surfaces)) {
-        surface_td *const first =
-            (surface_td *) list_data(list_head(surfaces));
+        xcb_connection_t *const connection = xcb_connection_get();
 
-        if (first != NULL && first->connection != NULL) {
-            xcb_bell(first->connection, 0);
-            xcb_flush(first->connection);
+        if (connection != NULL) {
+            xcb_bell(connection, 0);
+            xcb_flush(connection);
         }
     }
 

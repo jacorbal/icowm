@@ -35,6 +35,7 @@
 
 /* Local includes */
 #include <loop/refresh.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -96,7 +97,7 @@ static void s_loop_refresh_close_overlay(const loop_ctx_td *ctx,
         }
     }
 
-    close_fn(ctx->connection);
+    close_fn(xcb_connection_get());
     if (found != NULL) {
         surface_render_current_desktop_repaint(found);
     }

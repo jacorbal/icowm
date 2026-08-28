@@ -41,6 +41,7 @@
 #include <input/kbd/bind.h>
 #include <input/kbd/event.h>
 #include <input/kbd/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /* Surface lookup */
@@ -96,7 +97,7 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
         surface_td *const surface = s_lookup_surface_fallback(surfaces,
                 event->root);
         if (surface != NULL) {
-            cycle_confirm(surface->connection, surfaces, config);
+            cycle_confirm(xcb_connection_get(), surfaces, config);
         }
         return;
     }

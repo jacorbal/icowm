@@ -57,6 +57,7 @@
 #include <menu/draw.h>
 #include <menu/cycle.h>
 #include <menu/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /** Private cycle menu state */
@@ -288,7 +289,7 @@ static void s_cycle_repaint_icon(client_td *client)
     }
 
     ri_render_client_icon(client, true, true);
-    xcb_flush(g_cycle_menu.desktop->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 

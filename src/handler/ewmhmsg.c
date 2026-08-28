@@ -67,6 +67,7 @@
 
 /* Default initial values */
 #include <defs/ewmh.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -742,7 +743,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
     bool any_visible;
     bool changed_hidden_state;
 
-    if (surface == NULL || surface->connection == NULL) {
+    if (surface == NULL || xcb_connection_get() == NULL) {
         return;
     }
 
@@ -781,7 +782,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         stacking_walk(desktop, s_client_hide_visit,
                 &changed_hidden_state);
 
-        xcb_set_input_focus(surface->connection,
+        xcb_set_input_focus(xcb_connection_get(),
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 (client_last_user_time() != 0u)

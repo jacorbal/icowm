@@ -49,6 +49,7 @@
 /* Local includes */
 #include <input/kbd/internal.h>
 #include <input/kbd/modal.h>
+#include <utils/xcb/connection.h>
 
 /**
  * @brief Handle a key press while the window-cycle menu is open
@@ -71,7 +72,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
         const config_td *config)
 {
     xcb_connection_t *const conn = (surface != NULL)
-        ? surface->connection : NULL;
+        ? xcb_connection_get() : NULL;
 
     /* Up arrow: go to previous entry */
     if (keysym == KS_UP) {
@@ -157,7 +158,7 @@ static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
         surface_td *surface, const config_td *config)
 {
     xcb_connection_t *const conn = (surface != NULL)
-        ? surface->connection : NULL;
+        ? xcb_connection_get() : NULL;
 
     /* Tab, Left arrow, Right arrow: toggle selected button */
     if (keysym == KS_TAB || keysym == KS_LEFT || keysym == KS_RIGHT) {
@@ -228,7 +229,7 @@ bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
     /* Keyboard modal move/resize intercepts all keys while active */
     if (kbd_modal_is_active()) {
         kbd_modal_handle_keypress(
-                (surface != NULL) ? surface->connection : NULL,
+                (surface != NULL) ? xcb_connection_get() : NULL,
                 surface, keysym, config);
         return true;
     }
@@ -242,7 +243,7 @@ bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
     /* Fuzzy window-search widget intercepts all keys while open */
     if (search_is_open()) {
         search_handle_keypress(
-                (surface != NULL) ? surface->connection : NULL,
+                (surface != NULL) ? xcb_connection_get() : NULL,
                 surfaces, keysym, state, config);
         return true;
     }
@@ -250,7 +251,7 @@ bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
     /* Built-in run-box intercepts all keys while open */
     if (run_is_open()) {
         run_handle_keypress(
-                (surface != NULL) ? surface->connection : NULL,
+                (surface != NULL) ? xcb_connection_get() : NULL,
                 surface, keysym, config);
         return true;
     }
@@ -271,29 +272,29 @@ bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
      * without scrolling; see 'menu_message_dialog_scroll'), and
      * Enter, Space, or Escape close it same as clicking "OK" would */
     if (dialog_info_is_open()) {
-        if (surface != NULL && surface->connection != NULL) {
+        if (surface != NULL && xcb_connection_get() != NULL) {
             if (keysym == KS_UP) {
-                menu_message_dialog_scroll(surface->connection,
+                menu_message_dialog_scroll(xcb_connection_get(),
                         config, -1);
                 return true;
             }
             if (keysym == KS_DOWN) {
-                menu_message_dialog_scroll(surface->connection,
+                menu_message_dialog_scroll(xcb_connection_get(),
                         config, 1);
                 return true;
             }
             if (keysym == KS_PAGE_UP) {
-                menu_message_dialog_scroll(surface->connection,
+                menu_message_dialog_scroll(xcb_connection_get(),
                         config, -(int32_t) DIALOG_MSG_MAX_LINES);
                 return true;
             }
             if (keysym == KS_PAGE_DOWN) {
-                menu_message_dialog_scroll(surface->connection,
+                menu_message_dialog_scroll(xcb_connection_get(),
                         config, (int32_t) DIALOG_MSG_MAX_LINES);
                 return true;
             }
             if (keysym == KS_TAB) {
-                menu_message_dialog_select_ok(surface->connection,
+                menu_message_dialog_select_ok(xcb_connection_get(),
                         config);
                 return true;
             }
@@ -312,15 +313,15 @@ bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
          * behavior, where all four keys always just close it. */
         if (keysym == KS_RETURN || keysym == KS_KP_ENTER ||
                 keysym == KS_SPACE) {
-            if (surface != NULL && surface->connection != NULL &&
+            if (surface != NULL && xcb_connection_get() != NULL &&
                     (!menu_message_dialog_requires_selection() ||
                      menu_message_dialog_ok_selected())) {
-                dialog_info_close(surface->connection);
+                dialog_info_close(xcb_connection_get());
             }
         } else if (keysym == KS_ESCAPE) {
-            if (surface != NULL && surface->connection != NULL &&
+            if (surface != NULL && xcb_connection_get() != NULL &&
                     !menu_message_dialog_requires_selection()) {
-                dialog_info_close(surface->connection);
+                dialog_info_close(xcb_connection_get());
             }
         }
         return true;
@@ -335,26 +336,26 @@ bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
     if (menu_message_dialog_is_open()) {
         if (keysym == KS_RETURN || keysym == KS_KP_ENTER ||
                 keysym == KS_SPACE) {
-            if (surface != NULL && surface->connection != NULL &&
+            if (surface != NULL && xcb_connection_get() != NULL &&
                     (!menu_message_dialog_requires_selection() ||
                      menu_message_dialog_ok_selected())) {
-                menu_message_dialog_close(surface->connection);
+                menu_message_dialog_close(xcb_connection_get());
             }
         } else if (keysym == KS_ESCAPE) {
-            if (surface != NULL && surface->connection != NULL &&
+            if (surface != NULL && xcb_connection_get() != NULL &&
                     !menu_message_dialog_requires_selection()) {
-                menu_message_dialog_close(surface->connection);
+                menu_message_dialog_close(xcb_connection_get());
             }
         } else if (keysym == KS_TAB &&
-                surface != NULL && surface->connection != NULL) {
-            menu_message_dialog_select_ok(surface->connection, config);
+                surface != NULL && xcb_connection_get() != NULL) {
+            menu_message_dialog_select_ok(xcb_connection_get(), config);
         }
         return true;
     }
 
     /* Context menus intercept all keys while any menu is open */
     if (s_dispatch_open_menu_key(keysym, (surface != NULL)
-                ? surface->connection : NULL,
+                ? xcb_connection_get() : NULL,
             surface, config)) {
         return true;
     }

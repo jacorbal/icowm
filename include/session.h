@@ -117,7 +117,6 @@ int session_load(session_td *session, const char *config_dir_prefix);
  *
  * @param session    Session table that holds the command lists; if
  *                   @c NULL the function returns immediately
- * @param connection XCB connection whose file descriptor is closed in
  *                   each child before @c execvp (may be null)
  * @param hook       Lifecycle event whose commands are to be run
  *
@@ -127,7 +126,7 @@ int session_load(session_td *session, const char *config_dir_prefix);
  *       the hook's list
  */
 void session_run_hook(const session_td *session,
-        xcb_connection_t *connection, enum session_hook_e hook);
+        enum session_hook_e hook);
 
 /**
  * @brief Reap all finished child processes spawned by session hooks

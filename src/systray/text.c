@@ -34,6 +34,7 @@
 /* Local includes */
 #include <systray/battery.h>
 #include <systray/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /* Format the current local time into 's_tray.clock_text' */
@@ -116,7 +117,7 @@ uint16_t systray_text_width(void)
     uint16_t shown = 0u;
 
     if (s_tray.theme != NULL) {
-        (void) text_renderer_use_font(s_tray.connection,
+        (void) text_renderer_use_font(xcb_connection_get(),
                 s_tray.theme->systray.style.font);
     }
 

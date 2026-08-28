@@ -30,6 +30,7 @@
 
 /* Local includes */
 #include <cctl/launch.h>
+#include <utils/xcb/connection.h>
 
 
 /* Build and enqueue a launch event for a desktop */
@@ -53,13 +54,13 @@ void cctl_launch_dispatch(surface_td *surface, const char *restrict prog,
     } else {
         result = desktop_action_process_launch(desktop, prog);
     }
-    if (result == -2 && surface->connection != NULL &&
+    if (result == -2 && xcb_connection_get() != NULL &&
             surface->config != NULL) {
         char msg[256];
 
         (void) snprintf(msg, sizeof(msg),
                 _(STR_LAUNCH_COMMAND_NOT_FOUND_FMT), prog);
-        dialog_info_show(surface->connection, surface,
+        dialog_info_show(xcb_connection_get(), surface,
                 surface->config, msg, MENU_MSG_LEVEL_WARNING);
     }
 }

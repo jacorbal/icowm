@@ -38,6 +38,7 @@
 
 /* Local includes */
 #include <systray/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /* Module-level built-in systray state; see 'systray/internal.h' for
@@ -158,13 +159,13 @@ static void s_systray_icons_resize(void)
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         xcb_window_t icon = s_tray.icons[i].window;
 
-        xcb_unmap_window(s_tray.connection, icon);
-        xcb_configure_window(s_tray.connection, icon,
+        xcb_unmap_window(xcb_connection_get(), icon);
+        xcb_configure_window(xcb_connection_get(), icon,
                 XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
                 (const uint32_t[]) {
                     s_tray.pixmap_size, s_tray.pixmap_size
                 });
-        xcb_map_window(s_tray.connection, icon);
+        xcb_map_window(xcb_connection_get(), icon);
     }
 }
 
@@ -209,7 +210,7 @@ void systray_shutdown(wm_td *wm)
 
     systray_protocol_selection_release();
 
-    if (s_tray.is_window_ready && s_tray.connection != NULL &&
+    if (s_tray.is_window_ready && xcb_connection_get() != NULL &&
             s_tray.window != XCB_WINDOW_NONE) {
         /* Destroying the tray window implicitly reparents any
          * still-docked icons back to the root window; each icon's own
@@ -219,8 +220,8 @@ void systray_shutdown(wm_td *wm)
          * toggling 'is-enabled' off goes through 'systray_reload',
          * which keeps the window and icons alive via
          * 'systray_protocol_selection_release' instead. */
-        xcb_destroy_window(s_tray.connection, s_tray.window);
-        xcb_flush(s_tray.connection);
+        xcb_destroy_window(xcb_connection_get(), s_tray.window);
+        xcb_flush(xcb_connection_get());
     }
 
     memset(&s_tray, 0, sizeof(s_tray));
@@ -281,8 +282,8 @@ bool systray_get_geometry(const surface_td *surface,
         return false;
     }
 
-    cookie = xcb_get_geometry(s_tray.connection, s_tray.window);
-    reply = xcb_get_geometry_reply(s_tray.connection, cookie, NULL);
+    cookie = xcb_get_geometry(xcb_connection_get(), s_tray.window);
+    reply = xcb_get_geometry_reply(xcb_connection_get(), cookie, NULL);
     if (reply == NULL) {
         return false;
     }
@@ -312,12 +313,12 @@ bool systray_icon_size_enforce(xcb_window_t window)
 
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         if (s_tray.icons[i].window == window) {
-            xcb_configure_window(s_tray.connection, window,
+            xcb_configure_window(xcb_connection_get(), window,
                     XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
                     (const uint32_t[]) {
                         s_tray.pixmap_size, s_tray.pixmap_size
                     });
-            xcb_flush(s_tray.connection);
+            xcb_flush(xcb_connection_get());
             return true;
         }
     }

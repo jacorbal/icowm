@@ -30,6 +30,7 @@
 #include <cmds/client/ewmh.h>
 #include <cmds/client/internal.h>
 #include <cmds/client/visibility.h>
+#include <utils/xcb/connection.h>
 
 
 /* Intern an atom name in the X11 system */
@@ -90,7 +91,8 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  * @c xcb_ewmh_connection_t (a newer, less universally standard
  * extension than
  * the rest), so it is the one atom here still resolved through
- * @a ccmd_intern_atom rather than read directly off @p client->ewmh;
+ * @a ccmd_intern_atom rather than read directly off the EWMH
+ * connection;
  * @a atom_intern's own internal cache (@c utils/xcb/atom.c) already
  * makes every call after the very first one a plain lookup, no XCB
  * round trip, so this costs nothing extra on every later sync.
@@ -106,7 +108,7 @@ void ccmd_client_sync_states(client_td *client)
     xcb_atom_t states[13];
     uint32_t num = 0;
 
-    if (client == NULL || client->ewmh == NULL) {
+    if (client == NULL || xcb_ewmh_connection_get() == NULL) {
         return;
     }
 
@@ -115,48 +117,48 @@ void ccmd_client_sync_states(client_td *client)
      * on both while also full screen, and every combination has to
      * read back off the property exactly as it stands. */
     if (client_is_maximized_horz(client)) {
-        states[num++] = client->ewmh->_NET_WM_STATE_MAXIMIZED_HORZ;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_MAXIMIZED_HORZ;
     }
     if (client_is_maximized_vert(client)) {
-        states[num++] = client->ewmh->_NET_WM_STATE_MAXIMIZED_VERT;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_MAXIMIZED_VERT;
     }
     if (client_is_fullscreen(client)) {
-        states[num++] = client->ewmh->_NET_WM_STATE_FULLSCREEN;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_FULLSCREEN;
     }
     if (client_is_iconified(client) || client_is_hidden(client)) {
-        states[num++] = client->ewmh->_NET_WM_STATE_HIDDEN;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_HIDDEN;
     }
     if (client_is_pinned(client)) {
-        states[num++] = client->ewmh->_NET_WM_STATE_STICKY;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_STICKY;
     }
     if (client_is_urgent(client)) {
-        states[num++] = client->ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_DEMANDS_ATTENTION;
     }
     if (client_is_shaded(client)) {
-        states[num++] = client->ewmh->_NET_WM_STATE_SHADED;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_SHADED;
     }
     if (client->properties.layer == (uint16_t) CLIENT_LAYER_ABOVE) {
-        states[num++] = client->ewmh->_NET_WM_STATE_ABOVE;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_ABOVE;
     }
     if (client->properties.layer == (uint16_t) CLIENT_LAYER_BELOW) {
-        states[num++] = client->ewmh->_NET_WM_STATE_BELOW;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_BELOW;
     }
     if (client_is_modal(client)) {
-        states[num++] = client->ewmh->_NET_WM_STATE_MODAL;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_MODAL;
     }
     if (client_is_focused(client)) {
-        states[num++] = ccmd_intern_atom(client->connection,
+        states[num++] = ccmd_intern_atom(xcb_connection_get(),
                 "_NET_WM_STATE_FOCUSED");
     }
     if (client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) {
-        states[num++] = client->ewmh->_NET_WM_STATE_SKIP_TASKBAR;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_SKIP_TASKBAR;
     }
     if (client->properties.flags & CLIENT_FLAG_SKIP_PAGER) {
-        states[num++] = client->ewmh->_NET_WM_STATE_SKIP_PAGER;
+        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_SKIP_PAGER;
     }
 
-    xcb_ewmh_set_wm_state(client->ewmh, client->window, num, states);
-    xcb_flush(client->connection);
+    xcb_ewmh_set_wm_state(xcb_ewmh_connection_get(), client->window, num, states);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -167,21 +169,21 @@ void ccmd_set_wm_state(client_td *client,
     xcb_atom_t wm_state;
     uint32_t values[2];
 
-    if (client == NULL || client->connection == NULL ||
+    if (client == NULL || xcb_connection_get() == NULL ||
             client->window == XCB_WINDOW_NONE) {
         return;
     }
 
-    wm_state = ccmd_intern_atom(client->connection, "WM_STATE");
+    wm_state = ccmd_intern_atom(xcb_connection_get(), "WM_STATE");
     if (wm_state == XCB_ATOM_NONE) {
         return;
     }
 
     values[0] = state;
     values[1] = icon_window;
-    xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+    xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
             client->window, wm_state, wm_state, 32, 2, values);
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -190,18 +192,18 @@ void ccmd_clear_wm_state(client_td *client)
 {
     xcb_atom_t wm_state;
 
-    if (client == NULL || client->connection == NULL ||
+    if (client == NULL || xcb_connection_get() == NULL ||
             client->window == XCB_WINDOW_NONE) {
         return;
     }
 
-    wm_state = ccmd_intern_atom(client->connection, "WM_STATE");
+    wm_state = ccmd_intern_atom(xcb_connection_get(), "WM_STATE");
     if (wm_state == XCB_ATOM_NONE) {
         return;
     }
 
-    xcb_delete_property(client->connection, client->window, wm_state);
-    xcb_flush(client->connection);
+    xcb_delete_property(xcb_connection_get(), client->window, wm_state);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -211,7 +213,7 @@ void ccmd_publish_frame_extents(client_td *client,
 {
     uint32_t extents[4];
 
-    if (client == NULL || client->ewmh == NULL) {
+    if (client == NULL || xcb_ewmh_connection_get() == NULL) {
         return;
     }
 
@@ -219,7 +221,7 @@ void ccmd_publish_frame_extents(client_td *client,
     extents[1] = right;
     extents[2] = top;
     extents[3] = bottom;
-    xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
-            client->window, client->ewmh->_NET_FRAME_EXTENTS,
+    xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
+            client->window, xcb_ewmh_connection_get()->_NET_FRAME_EXTENTS,
             XCB_ATOM_CARDINAL, 32, 4, extents);
 }

@@ -56,6 +56,7 @@
 /* Local includes */
 #include <desktop.h>
 #include <policy/stacking.h>
+#include <utils/xcb/connection.h>
 
 /**
  * @brief Move a client to the front or back of the desktop's window
@@ -238,10 +239,10 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
             existing != NULL) {
         bool existing_is_stale = false;
 
-        if (existing->connection != NULL && existing->window != 0) {
+        if (xcb_connection_get() != NULL && existing->window != 0) {
             xcb_get_window_attributes_reply_t *attr_reply =
-                xcb_get_window_attributes_reply(existing->connection,
-                        xcb_get_window_attributes(existing->connection,
+                xcb_get_window_attributes_reply(xcb_connection_get(),
+                        xcb_get_window_attributes(xcb_connection_get(),
                                 existing->window),
                         NULL);
 
@@ -435,7 +436,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
                 }
             }
 
-            menu_message_dialog_show(desktop->connection, surface,
+            menu_message_dialog_show(xcb_connection_get(), surface,
                     config, text, MENU_MSG_LEVEL_INFO);
         }
     }
@@ -531,7 +532,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
         const char *restrict class_name,
         pid_t *restrict out_pid)
 {
-    spawn_opts_td opts = { NULL, NULL, NULL };
+    spawn_opts_td opts = { NULL, NULL };
     pid_t pid = 0;
     int spawn_result;
     char startup_id[128];
@@ -554,19 +555,18 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
      * Skipped entirely when 'startup_notification.is_enabled' is
      * false: 'have_startup_id' then stays false too, so the option
      * handed to 'spawn_command' below simply stays null. */
-    have_startup_id = (desktop->connection != NULL) &&
+    have_startup_id = (xcb_connection_get() != NULL) &&
         desktop->config->base.startup_notification.is_enabled &&
-        cctl_sn_begin(desktop->connection, wm_get_surfaces(),
+        cctl_sn_begin(xcb_connection_get(), wm_get_surfaces(),
                 executable_path, startup_id, sizeof(startup_id));
 
-    opts.connection = desktop->connection;
     opts.startup_id = (have_startup_id) ? startup_id : NULL;
     opts.class_name = class_name;
 
     spawn_result = spawn_command(executable_path, &opts, &pid);
     if (spawn_result != 0) {
         if (have_startup_id) {
-            cctl_sn_cancel(desktop->connection, wm_get_surfaces(),
+            cctl_sn_cancel(xcb_connection_get(), wm_get_surfaces(),
                     startup_id);
         }
         return spawn_result;

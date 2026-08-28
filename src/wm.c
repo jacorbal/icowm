@@ -69,6 +69,7 @@
 /* Utils includes */
 #include <utils/config/json.h>
 #include <utils/sysmem.h>
+#include <utils/xcb/connection.h>
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
@@ -132,7 +133,7 @@ wm_td *wm = NULL;   /**< Singleton window manager instance */
  */
 static void s_client_unmanage(client_td *client)
 {
-    if (client == NULL || client->connection == NULL ||
+    if (client == NULL || xcb_connection_get() == NULL ||
             client->window == 0u) {
         return;
     }
@@ -162,11 +163,11 @@ static void s_client_unmanage(client_td *client)
         int16_t abs_y = (int16_t) (client->layout.geometry.cur.pos.y +
                 (int32_t) client->layout.frame_extents.top);
 
-        xcb_reparent_window(client->connection, client->window,
+        xcb_reparent_window(xcb_connection_get(), client->window,
                 client->parent_id, abs_x, abs_y);
     }
 
-    xcb_map_window(client->connection, client->window);
+    xcb_map_window(xcb_connection_get(), client->window);
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
 
     /* 'client_destroy' only ever destroys 'window' itself when this
@@ -272,7 +273,7 @@ static void s_wm_cleanup(void)
             LOGGER_NOTICE("Emergency exit in effect;" \
                     " pending session hooks will not be run", L_NARG);
         } else {
-            session_run_hook(wm->session, wm->connection,
+            session_run_hook(wm->session,
                     SESSION_HOOK_EXIT);
         }
     }
@@ -314,6 +315,7 @@ static void s_wm_cleanup(void)
         xcb_ewmh_connection_wipe(wm->ewmh);
         free(wm->ewmh);
         wm->ewmh = NULL;
+        xcb_ewmh_connection_set(NULL);
     }
 
     if (wm->connection != NULL) {
@@ -330,6 +332,7 @@ static void s_wm_cleanup(void)
          * window the person cannot get back. */
         xcb_flush(wm->connection);
         xcb_disconnect(wm->connection);
+        xcb_connection_set(NULL);
         wm->connection = NULL;
     }
 
@@ -398,6 +401,11 @@ static int s_wm_connect(const char *display_name)
     wm->connection = xcb_connect(display_name,
             (int *) &(wm->screenp));
 
+    /* Recorded before the check below: 'xcb_connection_get' is what
+     * everything else asks, and it must answer the same thing this
+     * function is about to test, error or not */
+    xcb_connection_set(wm->connection);
+
     if (xcb_connection_has_error(wm->connection)) {
         if (display_name == NULL) {
             LOGGER_FATAL("Failed to open X display", L_NARG);
@@ -429,6 +437,11 @@ static int s_wm_connect(const char *display_name)
         LOGGER_FATAL("Failed to initialize EWMH atoms", L_NARG);
         return 10;
     }
+
+    /* Recorded only once its atoms are interned: an EWMH connection
+     * whose replies never arrived is of no use to anything asking for
+     * one, and this function is about to abandon it */
+    xcb_ewmh_connection_set(wm->ewmh);
 
     return 0;
 }
@@ -565,7 +578,7 @@ static int s_wm_create_surfaces(void)
         uint32_t desktops_count =
             wm->config->base.screens[i].desktop_count;
         surface_td *const surface =
-            surface_init(wm->connection, wm->ewmh,
+            surface_init(wm->connection,
                     (uint32_t) i, desktops_count, wm->config);
         if (surface == NULL) {
             LOGGER_FATAL("Failed to initialize surface %u", i);
@@ -661,7 +674,7 @@ static void s_wm_announce(void)
             " an unquestionable 'true'", L_NARG);
     wm->is_running = true;
     if (wm->session != NULL) {
-        session_run_hook(wm->session, wm->connection, SESSION_HOOK_START);
+        session_run_hook(wm->session, SESSION_HOOK_START);
     }
 
     /* Any JSON file that failed to parse during the load just above

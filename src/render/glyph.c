@@ -41,6 +41,7 @@
 
 /* Local includes */
 #include <render/glyph.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -83,7 +84,6 @@ typedef struct {
  * per font.
  */
 static struct {
-    xcb_connection_t *connection;
     FT_Library ft_library;
     const xcb_render_query_pict_formats_reply_t *formats;
     s_glyph_font_td fonts[WM_TEXT_FONT_CACHE_MAX_GLYPH];
@@ -95,7 +95,6 @@ static struct {
     bool ft_ready;
     bool initialized;
 } s_glyph = {
-    .connection = NULL,
     .formats = NULL,
     .a8_format = 0,
     .visual_format = 0,
@@ -215,12 +214,12 @@ static bool s_resolve_font(const char *restrict font_name,
  */
 static void s_render_objects_free(void)
 {
-    if (s_glyph.connection == NULL) {
+    if (xcb_connection_get() == NULL) {
         return;
     }
 
     if (s_glyph.fg_picture != 0) {
-        xcb_render_free_picture(s_glyph.connection, s_glyph.fg_picture);
+        xcb_render_free_picture(xcb_connection_get(), s_glyph.fg_picture);
         s_glyph.fg_picture = 0;
     }
 }
@@ -239,8 +238,8 @@ static void s_glyph_font_free(s_glyph_font_td *font)
         return;
     }
 
-    if (font->glyphset != 0 && s_glyph.connection != NULL) {
-        xcb_render_free_glyph_set(s_glyph.connection, font->glyphset);
+    if (font->glyphset != 0 && xcb_connection_get() != NULL) {
+        xcb_render_free_glyph_set(xcb_connection_get(), font->glyphset);
     }
     if (s_glyph.ft_ready) {
         FT_Done_Face(font->ft_face);
@@ -350,7 +349,7 @@ static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
     }
 
     gid = codepoint;
-    (void) xcb_render_add_glyphs_checked(s_glyph.connection,
+    (void) xcb_render_add_glyphs_checked(xcb_connection_get(),
             font->glyphset, 1u, &gid, &ginfo,
             (uint32_t) stride * (uint32_t) ginfo.height, padded);
     free(padded);
@@ -443,7 +442,7 @@ static bool s_glyph_shared_ready(xcb_connection_t *connection)
     const xcb_render_pictvisual_t *visual_info;
     xcb_render_color_t color;
 
-    if (s_glyph.initialized && s_glyph.connection == connection) {
+    if (s_glyph.initialized && xcb_connection_get() == connection) {
         return true;
     }
 
@@ -476,7 +475,6 @@ static bool s_glyph_shared_ready(xcb_connection_t *connection)
     }
     s_glyph.a8_format = a8_info->id;
     s_glyph.visual_format = visual_info->format;
-    s_glyph.connection = connection;
 
     color.red = (uint16_t) (((s_glyph.fg_color >> 16) & 0xffu) * 257u);
     color.green = (uint16_t) (((s_glyph.fg_color >> 8) & 0xffu) * 257u);
@@ -668,7 +666,6 @@ void glyph_renderer_destroy(void)
         s_glyph.ft_ready = false;
     }
 
-    s_glyph.connection = NULL;
     s_glyph.formats = NULL;
     s_glyph.current = WM_TEXT_FONT_CACHE_MAX_GLYPH;
     s_glyph.initialized = false;
@@ -684,20 +681,20 @@ void glyph_renderer_set_color(uint32_t fg, uint32_t bg)
 
     s_glyph.fg_color = fg;
 
-    if (!s_glyph.initialized || s_glyph.connection == NULL) {
+    if (!s_glyph.initialized || xcb_connection_get() == NULL) {
         return;
     }
 
     if (s_glyph.fg_picture != 0) {
-        xcb_render_free_picture(s_glyph.connection, s_glyph.fg_picture);
+        xcb_render_free_picture(xcb_connection_get(), s_glyph.fg_picture);
     }
 
     color.red = (uint16_t) (((fg >> 16) & 0xffu) * 257u);
     color.green = (uint16_t) (((fg >> 8) & 0xffu) * 257u);
     color.blue = (uint16_t) ((fg & 0xffu) * 257u);
     color.alpha = 0xffffu;
-    s_glyph.fg_picture = xcb_generate_id(s_glyph.connection);
-    (void) xcb_render_create_solid_fill_checked(s_glyph.connection,
+    s_glyph.fg_picture = xcb_generate_id(xcb_connection_get());
+    (void) xcb_render_create_solid_fill_checked(xcb_connection_get(),
             s_glyph.fg_picture, color);
 }
 
@@ -714,7 +711,7 @@ void glyph_draw_string(xcb_connection_t *connection,
     xcb_render_util_composite_text_stream_t *stream;
 
     if (connection == NULL || drawable == XCB_NONE || text == NULL ||
-            font == NULL || s_glyph.connection != connection) {
+            font == NULL || xcb_connection_get() != connection) {
         return;
     }
 

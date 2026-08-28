@@ -38,6 +38,7 @@
 
 /* Local includes */
 #include <surface.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -110,14 +111,14 @@ void surface_refresh_monitors(surface_td *surface)
     xcb_generic_error_t *error = NULL;
     xcb_randr_monitor_info_iterator_t it;
 
-    if (surface == NULL || surface->connection == NULL ||
+    if (surface == NULL || xcb_connection_get() == NULL ||
             surface->screen == NULL) {
         return;
     }
 
-    cookie = xcb_randr_get_monitors(surface->connection,
+    cookie = xcb_randr_get_monitors(xcb_connection_get(),
             surface->screen->root, 1u);
-    reply = xcb_randr_get_monitors_reply(surface->connection,
+    reply = xcb_randr_get_monitors_reply(xcb_connection_get(),
             cookie, &error);
     if (reply == NULL) {
         xcb_reply_log_error(error, "the XRandR monitor list");
@@ -137,7 +138,7 @@ void surface_refresh_monitors(surface_td *surface)
         monitor_td *slot;
         bool name_resolved;
 
-        name_resolved = atom_name(surface->connection, info->name,
+        name_resolved = atom_name(xcb_connection_get(), info->name,
                 output_name, sizeof(output_name));
         if (name_resolved && !s_surface_output_is_used(surface->config,
                     output_name)) {

@@ -78,6 +78,7 @@
 #include <input/mouse/drag/icon.h>
 #include <input/mouse/event.h>
 #include <input/mouse/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /* Small utilities */

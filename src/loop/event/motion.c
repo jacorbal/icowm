@@ -35,6 +35,7 @@
 
 /* Local includes */
 #include <loop/event.h>
+#include <utils/xcb/connection.h>
 
 
 /** Whoever owns the pointer at the moment a motion event arrives */
@@ -75,7 +76,7 @@ static void s_loop_event_motion_collapse(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
     while ((ctx->pending_event =
-                xcb_poll_for_event(ctx->connection)) != NULL) {
+                xcb_poll_for_event(xcb_connection_get())) != NULL) {
         if ((uint8_t) (ctx->pending_event->response_type & ~0x80u) !=
                 XCB_MOTION_NOTIFY) {
             break;
@@ -134,7 +135,7 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
 
     /* Fed the newest position unconditionally, before deciding who
      * else gets it: an inactive drag ignores it anyway */
-    drag_update(ctx->connection,
+    drag_update(xcb_connection_get(),
             (struct position_s) { me->root_x, me->root_y });
 
     switch (s_loop_event_motion_target(me)) {
@@ -155,7 +156,7 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
             break;
 
         case S_MOTION_TARGET_HOVER:
-            mouse_handle_motion_hover(ctx->connection, ctx->surfaces,
+            mouse_handle_motion_hover(xcb_connection_get(), ctx->surfaces,
                     me);
             break;
 

@@ -38,6 +38,7 @@
 #include <cmds/client/resize.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/state.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -82,7 +83,7 @@ static void s_ccmd_resize_configure(client_td *client,
      * the client redraws the newly exposed area immediately after
      * a non-interactive (keyboard or programmatic) resize, rather than
      * leaving stale content until the next user-triggered redraw */
-    xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
+    xcb_clear_area(xcb_connection_get(), 1, client->window, 0, 0, 0, 0);
 
     /* Mark the client's desktop as outdated so the frame decoration
      * (titlebar background, text, border grips) is repainted on the
@@ -108,7 +109,7 @@ static void s_ccmd_resize_configure(client_td *client,
      * the next user-triggered repaint.  Send the synthetic event
      * unconditionally so every client always receives the definitive
      * geometry notification. */
-    client_send_synthetic_configure_notify(client->connection, client);
+    client_send_synthetic_configure_notify(xcb_connection_get(), client);
 }
 
 
@@ -133,7 +134,7 @@ static void s_ccmd_resize_send_sync_request(client_td *client)
     client->hints_ewmh.sync.is_waiting = true;
     client->hints_ewmh.sync.wait_ticks = 0u;
 
-    if (client->ewmh == NULL) {
+    if (xcb_ewmh_connection_get() == NULL) {
         return;
     }
 
@@ -141,12 +142,12 @@ static void s_ccmd_resize_send_sync_request(client_td *client)
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.format = 32;
     ev.window = client->window;
-    ev.type = client->ewmh->WM_PROTOCOLS;
-    ev.data.data32[0] = client->ewmh->_NET_WM_SYNC_REQUEST;
+    ev.type = xcb_ewmh_connection_get()->WM_PROTOCOLS;
+    ev.data.data32[0] = xcb_ewmh_connection_get()->_NET_WM_SYNC_REQUEST;
     ev.data.data32[1] = XCB_CURRENT_TIME;
     ev.data.data32[2] = client->hints_ewmh.sync.value;
     ev.data.data32[3] = 0u;    /* high 32 bits: always 0 at our scale */
-    xcb_send_event(client->connection, 0, client->window,
+    xcb_send_event(xcb_connection_get(), 0, client->window,
             XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
 }
 

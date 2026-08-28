@@ -60,6 +60,7 @@
 /* Local includes */
 #include <enact.h>
 #include <enact/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -132,15 +133,15 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
             !client_is_iconified(client)) {
         win_target = (client_is_decorated(client) && client->frame != 0)
             ? client->frame : client->window;
-        ccmd_client_unmap_decorated(client, surface->connection,
+        ccmd_client_unmap_decorated(client, xcb_connection_get(),
                 win_target);
         unmapped_main = true;
         if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(surface->connection, client->icon_window);
+            xcb_unmap_window(xcb_connection_get(), client->icon_window);
             client->is_icon_mapped = false;
             unmapped_icon = true;
         }
-        xcb_flush(surface->connection);
+        xcb_flush(xcb_connection_get());
     }
 
     /* Moved to 'target' before the fallback call just below, not
@@ -172,16 +173,16 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
             win_target = (client_is_decorated(client) &&
                     client->frame != 0)
                 ? client->frame : client->window;
-            xcb_map_window(surface->connection, win_target);
+            xcb_map_window(xcb_connection_get(), win_target);
             if (win_target != client->window) {
-                xcb_map_window(surface->connection, client->window);
+                xcb_map_window(xcb_connection_get(), client->window);
             }
             if (unmapped_icon) {
-                xcb_map_window(surface->connection,
+                xcb_map_window(xcb_connection_get(),
                         client->icon_window);
                 client->is_icon_mapped = true;
             }
-            xcb_flush(surface->connection);
+            xcb_flush(xcb_connection_get());
         }
         return;
     }
@@ -224,12 +225,12 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * comment, cmds/client/transient.c, for the fuller
      * reasoning on why a pinned client's own registration and its
      * own published desktop can differ like this). */
-    if (client->ewmh != NULL) {
+    if (xcb_ewmh_connection_get() != NULL) {
         uint32_t did = (client->properties.flags & CLIENT_FLAG_PIN)
             ? WM_DESKTOP_ID_ALL : target->id;
 
-        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
-                client->window, client->ewmh->_NET_WM_DESKTOP,
+        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
+                client->window, xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &did);
     }
 
@@ -249,7 +250,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
         client_focus_fallback(desktop, surface, client);
     }
 
-    xcb_flush(desktop->connection);
+    xcb_flush(xcb_connection_get());
     enact_broadcast_client_event(client, IPC_EVENT_CLIENT_DESKTOP_CHANGED);
 }
 
@@ -331,7 +332,7 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
      * something else marks the surface outdated for an unrelated
      * reason, e.g., switching desktops away and back. */
     surface->is_outdated = true;
-    xcb_flush(desktop->connection);
+    xcb_flush(xcb_connection_get());
     s_broadcast_desktop_event(desktop,
             IPC_EVENT_DESKTOP_BACKGROUND_CHANGED);
 }
@@ -352,7 +353,7 @@ void enact_desktop_show(desktop_td *desktop, bool show)
     }
 
     hi_handle_net_showing_desktop(surface, show);
-    xcb_flush(surface->connection);
+    xcb_flush(xcb_connection_get());
     s_broadcast_desktop_event(desktop,
             (show) ? IPC_EVENT_DESKTOP_SHOWN : IPC_EVENT_DESKTOP_HIDDEN);
 }
@@ -428,7 +429,7 @@ void enact_desktop_client_send_front(desktop_td *desktop,
     }
 
     (void) desktop_action_client_send_front(desktop, client);
-    xcb_flush(desktop->connection);
+    xcb_flush(xcb_connection_get());
     enact_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
 }
 
@@ -442,7 +443,7 @@ void enact_desktop_client_send_back(desktop_td *desktop,
     }
 
     (void) desktop_action_client_send_back(desktop, client);
-    xcb_flush(desktop->connection);
+    xcb_flush(xcb_connection_get());
     enact_broadcast_client_event(client, IPC_EVENT_STACKING_CHANGED);
 }
 
@@ -473,7 +474,7 @@ void enact_desktop_clients_rearrange(const wm_td *wm,
     rearrange_ctx.is_first = true;
     stacking_walk(desktop, s_desktop_rearrange_visit, &rearrange_ctx);
 
-    xcb_flush(surface->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -485,7 +486,7 @@ void enact_desktop_clients_iconify_all(desktop_td *desktop)
     }
 
     desktop_action_clients_iconify_all(desktop);
-    xcb_flush(desktop->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -497,7 +498,7 @@ void enact_desktop_clients_deiconify_all(desktop_td *desktop)
     }
 
     desktop_action_clients_deiconify_all(desktop);
-    xcb_flush(desktop->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 

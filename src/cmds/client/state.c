@@ -62,6 +62,7 @@
 #include <cmds/client/state.h>
 #include <cmds/client/visibility.h>
 #include <cmds/client/workarea.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -124,7 +125,7 @@ static void s_client_enable_decoration(client_td *client,
 
     ccmd_client_ungrab_buttons(client);
 
-    client->frame = xcb_generate_id(client->connection);
+    client->frame = xcb_generate_id(xcb_connection_get());
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = border_color;
     values[1] = border_color;
@@ -138,7 +139,7 @@ static void s_client_enable_decoration(client_td *client,
                 XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY  |
                 XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
                 XCB_EVENT_MASK_POINTER_MOTION;
-    xcb_create_window(client->connection,
+    xcb_create_window(xcb_connection_get(),
             XCB_COPY_FROM_PARENT,
             client->frame,
             client->parent_id,
@@ -149,11 +150,11 @@ static void s_client_enable_decoration(client_td *client,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    client->titlebar = xcb_generate_id(client->connection);
+    client->titlebar = xcb_generate_id(xcb_connection_get());
     mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = bg_color;
     values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS;
-    xcb_create_window(client->connection,
+    xcb_create_window(xcb_connection_get(),
             XCB_COPY_FROM_PARENT,
             client->titlebar,
             client->frame,
@@ -176,7 +177,7 @@ static void s_client_enable_decoration(client_td *client,
     client->ignore.unmap += 2u;
     client->ignore.focus_unmap++;
 
-    xcb_reparent_window(client->connection,
+    xcb_reparent_window(xcb_connection_get(),
             client->window,
             client->frame,
             (int16_t) bw, (int16_t) (bw + th));
@@ -186,7 +187,7 @@ static void s_client_enable_decoration(client_td *client,
             0, 0, 0u, 0u, 0u);
 
     for (size_t bi = 0; bi < nb; ++bi) {
-        xcb_grab_button(client->connection,
+        xcb_grab_button(xcb_connection_get(),
                 0,
                 client->frame,
                 XCB_EVENT_MASK_BUTTON_PRESS |
@@ -199,9 +200,9 @@ static void s_client_enable_decoration(client_td *client,
                 XCB_MOD_MASK_ANY);
     }
 
-    xcb_map_window(client->connection, client->frame);
-    xcb_map_window(client->connection, client->titlebar);
-    xcb_map_window(client->connection, client->window);
+    xcb_map_window(xcb_connection_get(), client->frame);
+    xcb_map_window(xcb_connection_get(), client->titlebar);
+    xcb_map_window(xcb_connection_get(), client->window);
 
     client->layout.geometry.cur.pos.x = frame.pos.x;
     client->layout.geometry.cur.pos.y = frame.pos.y;
@@ -288,7 +289,7 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
         inner.dim.h = (uint32_t) inner_h;
 
         if (client->titlebar != 0) {
-            xcb_destroy_window(client->connection, client->titlebar);
+            xcb_destroy_window(xcb_connection_get(), client->titlebar);
             client->titlebar = 0;
         }
 
@@ -298,7 +299,7 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
          * steal focus from the window. */
         client->ignore.unmap += 2u;
         client->ignore.focus_unmap++;
-        xcb_reparent_window(client->connection,
+        xcb_reparent_window(xcb_connection_get(),
                 client->window,
                 client->parent_id,
                 (int16_t) inner.pos.x, (int16_t) inner.pos.y);
@@ -312,7 +313,7 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
                 inner.pos.x, inner.pos.y,
                 inner.dim.w, inner.dim.h, (uint32_t) bw);
 
-        xcb_destroy_window(client->connection, client->frame);
+        xcb_destroy_window(xcb_connection_get(), client->frame);
         client->frame = 0;
 
         client->layout.geometry.cur.pos.x = inner.pos.x;
@@ -425,10 +426,10 @@ static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
                     bw, bw,
                     client->layout.geometry.cur.dim.w,
                     (uint32_t) th, 0u);
-            xcb_map_window(client->connection, client->titlebar);
+            xcb_map_window(xcb_connection_get(), client->titlebar);
         }
-        xcb_map_window(client->connection, client->frame);
-        xcb_map_window(client->connection, client->window);
+        xcb_map_window(xcb_connection_get(), client->frame);
+        xcb_map_window(xcb_connection_get(), client->window);
 
         client->layout.geometry.cur.pos.x = frame.pos.x;
         client->layout.geometry.cur.pos.y = frame.pos.y;
@@ -571,8 +572,8 @@ void ccmd_client_shade(client_td *client)
      * not initiate could leave 'geometry.cur' stale, and shading would
      * then save, and unshading would later restore, the wrong
      * height. */
-    geom_ck = xcb_get_geometry(client->connection, target);
-    geom_r = xcb_get_geometry_reply(client->connection, geom_ck, NULL);
+    geom_ck = xcb_get_geometry(xcb_connection_get(), target);
+    geom_r = xcb_get_geometry_reply(xcb_connection_get(), geom_ck, NULL);
     if (geom_r != NULL) {
         client->layout.geometry.cur.dim.w = geom_r->width;
         client->layout.geometry.cur.dim.h = geom_r->height;
@@ -602,7 +603,7 @@ void ccmd_client_shade(client_td *client)
     ccmd_client_apply_geometry(client, target,
             (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
             0, 0, 0u, shaded_h, 0u);
-    xcb_map_window(client->connection, target);
+    xcb_map_window(xcb_connection_get(), target);
 
     /* Absorb both 'UnmapNotify' events generated by the content window
      * unmap: the frame's 'SubstructureNotify' ('event=frame,
@@ -614,7 +615,7 @@ void ccmd_client_shade(client_td *client)
      * wrongly unmap the frame and titlebar and make the shaded titlebar
      * disappear. */
     client->ignore.unmap += 2u;
-    xcb_unmap_window(client->connection, client->window);
+    xcb_unmap_window(xcb_connection_get(), client->window);
 
     client->layout.geometry.cur.dim.h = (uint16_t) shaded_h;
     client_shade(client);
@@ -624,7 +625,7 @@ void ccmd_client_shade(client_td *client)
     ccmd_client_sync_states(client);
 
     wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -688,7 +689,7 @@ void ccmd_client_unshade(client_td *client)
     ccmd_client_apply_geometry(client, target,
             (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
             0, 0, 0u, restored_h, 0u);
-    xcb_map_window(client->connection, client->window);
+    xcb_map_window(xcb_connection_get(), client->window);
 
     client_unshade(client);
     client_unhide(client);
@@ -734,7 +735,7 @@ void ccmd_client_unshade(client_td *client)
     }
 
     wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -860,7 +861,7 @@ void ccmd_client_fullscreen(client_td *client)
 
     if (was_decorated && client->frame != 0) {
         if (client->titlebar != 0) {
-            xcb_unmap_window(client->connection, client->titlebar);
+            xcb_unmap_window(xcb_connection_get(), client->titlebar);
         }
         ccmd_client_apply_geometry(client, client->window,
                 (uint16_t) XCB_CONFIG_WINDOW_X |
@@ -894,7 +895,7 @@ void ccmd_client_fullscreen(client_td *client)
      * about relative to their own last known good state, which can
      * otherwise show as a blank frame until an unrelated event forces
      * a fresh redraw. */
-    client_send_synthetic_configure_notify(client->connection, client);
+    client_send_synthetic_configure_notify(xcb_connection_get(), client);
 
     client->properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
     (void) clock_gettime(CLOCK_MONOTONIC,
@@ -932,7 +933,7 @@ void ccmd_client_fullscreen(client_td *client)
     systray_restack();
 
     wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -1032,7 +1033,7 @@ void ccmd_client_unfullscreen(client_td *client)
                         (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
                     (int32_t) border_width, (int32_t) border_width,
                     inner_w, title_height, 0u);
-            xcb_map_window(client->connection, client->titlebar);
+            xcb_map_window(xcb_connection_get(), client->titlebar);
         }
     }
 
@@ -1061,7 +1062,7 @@ void ccmd_client_unfullscreen(client_td *client)
      * position, not just (0,0), where a decorated client's real
      * 'ConfigureNotify' from the frame reparenting above would be
      * frame-relative instead. */
-    client_send_synthetic_configure_notify(client->connection, client);
+    client_send_synthetic_configure_notify(xcb_connection_get(), client);
 
     /* Only the full screen bit is cleared.  EWMH keeps
      * '_NET_WM_STATE_FULLSCREEN' independent of the maximized states,
@@ -1105,7 +1106,7 @@ void ccmd_client_unfullscreen(client_td *client)
     systray_restack();
 
     wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -1201,5 +1202,5 @@ void ccmd_client_toggle_decorate(client_td *client)
     ccmd_client_update_allowed_actions(client);
 
     wm_request_client_redraw(client);
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }

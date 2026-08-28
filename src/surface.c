@@ -37,6 +37,7 @@
 
 /* Local includes */
 #include <surface.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -126,7 +127,6 @@ static void s_properties_update(surface_td *surface,
 
 /* Initialize a new surface */
 surface_td *surface_init(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh,
         const uint32_t surface_id, uint32_t desktop_count,
         config_td *config)
 {
@@ -155,8 +155,6 @@ surface_td *surface_init(xcb_connection_t *connection,
     }
 
     surface->id = surface_id;
-    surface->connection = connection;
-    surface->ewmh = ewmh;
     surface->config = config;
     surface->is_showing_desktop = false;
     surface->strutless_maximize = false;
@@ -190,8 +188,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     /* Initialize desktops */
     surface->desktop_count = 0;
     for (uint32_t i = 0; i < desktop_count; ++i) {
-        desktop_td *const desktop = desktop_init(surface->connection,
-                surface->ewmh,
+        desktop_td *const desktop = desktop_init(xcb_connection_get(),
                 surface_id, i,
                 surface->config);
         if (desktop == NULL) {

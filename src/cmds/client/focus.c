@@ -67,6 +67,7 @@
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -199,16 +200,16 @@ static void s_ccmd_client_restore_one(client_td *client)
     client_geometry_restore(client);
 
     if (client->icon_window != 0) {
-        xcb_destroy_window(client->connection, client->icon_window);
+        xcb_destroy_window(xcb_connection_get(), client->icon_window);
         client->icon_window = 0;
         client->is_icon_mapped = false;
     }
     if (client->titlebar != 0) {
-        xcb_map_window(client->connection, client->titlebar);
+        xcb_map_window(xcb_connection_get(), client->titlebar);
     }
-    xcb_map_window(client->connection, target);
+    xcb_map_window(xcb_connection_get(), target);
     if (target != client->window) {
-        xcb_map_window(client->connection, client->window);
+        xcb_map_window(xcb_connection_get(), client->window);
     }
 
     client_unhide(client);
@@ -221,9 +222,9 @@ static void s_ccmd_client_restore_one(client_td *client)
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
 
     /* EWMH §5.9: remove icon geometry hint when restoring to normal */
-    icon_geom_atom = ccmd_intern_atom(client->connection,
+    icon_geom_atom = ccmd_intern_atom(xcb_connection_get(),
             "_NET_WM_ICON_GEOMETRY");
-    xcb_delete_property(client->connection, client->window,
+    xcb_delete_property(xcb_connection_get(), client->window,
             icon_geom_atom);
 
     ccmd_client_sync_states(client);
@@ -371,7 +372,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
          * had deliberately placed above it */
         focus_order_to_top(next_focus);
         ccmd_client_focus(next_focus);
-    } else if (desktop->connection != NULL) {
+    } else if (xcb_connection_get() != NULL) {
         /* Same timestamp every other focus call in this file uses,
          * so that relinquishing here cannot record a last focus
          * change later than a subsequent request carries and have
@@ -380,7 +381,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
             (client_last_user_time() != 0u)
                 ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
 
-        xcb_set_input_focus(desktop->connection,
+        xcb_set_input_focus(xcb_connection_get(),
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 relinquish_time);
@@ -402,22 +403,22 @@ void ccmd_client_close(client_td *client)
      * client advertises support in 'WM_PROTOCOLS'; fall back to
      * 'xcb_destroy_window' only when it does not */
     if (client->hints_icccm.protocols.has_delete &&
-            client->ewmh != NULL) {
+            xcb_ewmh_connection_get() != NULL) {
         xcb_client_message_event_t ev;
 
         memset(&ev, 0, sizeof(ev));
         ev.response_type = XCB_CLIENT_MESSAGE;
         ev.format = 32;
         ev.window = client->window;
-        ev.type = client->ewmh->WM_PROTOCOLS;
+        ev.type = xcb_ewmh_connection_get()->WM_PROTOCOLS;
         ev.data.data32[0] = client->hints_icccm.protocols.delete_atom;
         ev.data.data32[1] = XCB_CURRENT_TIME;
-        xcb_send_event(client->connection, 0, client->window,
+        xcb_send_event(xcb_connection_get(), 0, client->window,
                 XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
     } else {
         /* The client does not support 'WM_DELETE_WINDOW', so
          * destroy it directly */
-        xcb_destroy_window(client->connection, client->window);
+        xcb_destroy_window(xcb_connection_get(), client->window);
     }
 }
 
@@ -433,7 +434,7 @@ void ccmd_client_kill(client_td *client)
      * resource), 'xcb_kill_client' terminates the owning client's
      * ENTIRE connection to the X server.  Meant as a last resort for
      * unresponsive clients that ignore a normal close request. */
-    xcb_kill_client(client->connection, client->window);
+    xcb_kill_client(xcb_connection_get(), client->window);
 
     /* Enough for the common case: losing its own X connection is
      * normally fatal to whatever toolkit the client is built on, so
@@ -613,7 +614,7 @@ void ccmd_client_focus(client_td *client)
     if (client->hints_icccm.hints.accepts_input) {
         xcb_window_t focus_win = (client_is_shaded(client) &&
                 client->frame != 0) ? client->frame : client->window;
-        xcb_set_input_focus(client->connection, XCB_INPUT_FOCUS_PARENT,
+        xcb_set_input_focus(xcb_connection_get(), XCB_INPUT_FOCUS_PARENT,
                             focus_win, focus_time);
     }
 
@@ -630,7 +631,7 @@ void ccmd_client_focus(client_td *client)
     for (uint32_t i = 0u; i < client->colormap_windows.count; ++i) {
         if (client->colormap_windows.colormap_ids[i] !=
                 (xcb_colormap_t) XCB_NONE) {
-            xcb_install_colormap(client->connection,
+            xcb_install_colormap(xcb_connection_get(),
                     client->colormap_windows.colormap_ids[i]);
         }
     }
@@ -651,16 +652,16 @@ void ccmd_client_focus(client_td *client)
      * to take focus, which looks from the outside like a titlebar
      * that lights up while the keyboard goes elsewhere. */
     if (client->hints_icccm.protocols.has_take_focus &&
-            client->ewmh != NULL) {
+            xcb_ewmh_connection_get() != NULL) {
         xcb_client_message_event_t ev;
         memset(&ev, 0, sizeof(ev));
         ev.response_type = XCB_CLIENT_MESSAGE;
         ev.format = 32;
         ev.window = client->window;
-        ev.type = client->ewmh->WM_PROTOCOLS;
+        ev.type = xcb_ewmh_connection_get()->WM_PROTOCOLS;
         ev.data.data32[0] = client->hints_icccm.protocols.take_focus_atom;
         ev.data.data32[1] = focus_time;
-        xcb_send_event(client->connection, 0, client->window,
+        xcb_send_event(xcb_connection_get(), 0, client->window,
                 XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
     }
 
@@ -682,7 +683,7 @@ void ccmd_client_focus(client_td *client)
      * 'desktop_render_one_client' (render/desktop.c) already applies
      * to this same window for the same reason. */
     if (!client_is_shaded(client)) {
-        xcb_map_window(client->connection, client->window);
+        xcb_map_window(xcb_connection_get(), client->window);
     }
     /* 'client_border_apply' ('client.h') preserves this same condition
      * (undecorated-or-frameless, never fullscreen) internally, and
@@ -711,8 +712,8 @@ void ccmd_client_focus(client_td *client)
         client_theme_layout_resync(client, true);
     }
 
-    if (client->ewmh != NULL) {
-        xcb_ewmh_set_active_window(client->ewmh,
+    if (xcb_ewmh_connection_get() != NULL) {
+        xcb_ewmh_set_active_window(xcb_ewmh_connection_get(),
                 (int) client->screen_id,
                 client->window);
     }
@@ -751,12 +752,12 @@ void ccmd_client_unfocus(client_td *client)
      * older than the last focus change: the new window would light
      * its titlebar while the keyboard went nowhere, following the
      * pointer instead. */
-    if (client->connection != NULL) {
+    if (xcb_connection_get() != NULL) {
         const uint32_t relinquish_time =
             (client_last_user_time() != 0u)
                 ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
 
-        xcb_set_input_focus(client->connection,
+        xcb_set_input_focus(xcb_connection_get(),
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 XCB_INPUT_FOCUS_POINTER_ROOT,
                 relinquish_time);
@@ -775,8 +776,8 @@ void ccmd_client_unfocus(client_td *client)
         client_theme_layout_resync(client, false);
     }
 
-    if (client->ewmh != NULL) {
-        xcb_ewmh_set_active_window(client->ewmh,
+    if (xcb_ewmh_connection_get() != NULL) {
+        xcb_ewmh_set_active_window(xcb_ewmh_connection_get(),
                 (int) client->screen_id,
                 XCB_NONE);
     }

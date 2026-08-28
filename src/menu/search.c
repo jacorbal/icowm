@@ -55,6 +55,7 @@
 
 /* Local includes */
 #include <menu/search.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -582,7 +583,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
         icon_pos.y = row_y +
                 (WM_SEARCH_ROW_HEIGHT - (int) icon_size) / 2;
 
-        wmicon_draw_at(connection, s_search.surface->ewmh,
+        wmicon_draw_at(connection, xcb_ewmh_connection_get(),
                 r->client->window, s_search.window,
                 icon_pos, icon_size, fg, bg,
                 &r->client->icon_pixmap_cache);
@@ -945,7 +946,7 @@ void search_handle_motion(int16_t x, int16_t y)
     s_search.selected = idx;
 
     if (s_search.surface != NULL) {
-        search_draw(s_search.surface->connection, s_search.config);
+        search_draw(xcb_connection_get(), s_search.config);
     }
 }
 

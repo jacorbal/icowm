@@ -56,6 +56,7 @@
 /* Local includes */
 #include <render/desktop.h>
 #include <render/icon.h>
+#include <utils/xcb/connection.h>
 
 
 /* Per-screen (not per-desktop) cache of the root window's own last
@@ -414,7 +415,7 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
         return;
     }
 
-    can_sync = (client != NULL && client->ewmh != NULL);
+    can_sync = (client != NULL && xcb_ewmh_connection_get() != NULL);
 
     text_truncate_to_width(buf, sizeof(buf), text, title_w);
     text_w = text_string_measure(buf);
@@ -422,7 +423,7 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
     if (can_sync) {
         client_sync_visible_name(client, client->info.visible_name,
                 text, buf, xcb_ewmh_set_wm_visible_name_checked,
-                client->ewmh->_NET_WM_VISIBLE_NAME);
+                xcb_ewmh_connection_get()->_NET_WM_VISIBLE_NAME);
     }
 
     if (buf[0] == '\0') {
@@ -541,7 +542,7 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
     values[2] = (int32_t) client->layout.geometry.cur.dim.w;
     values[3] = (int32_t) client->layout.geometry.cur.dim.h;
 
-    xcb_configure_window(desktop->connection, target, mask,
+    xcb_configure_window(xcb_connection_get(), target, mask,
             (uint32_t *) values);
     if (target != client->window) {
         uint16_t top;
@@ -595,7 +596,7 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
          * still needed below this whole 'if' to position the
          * titlebar correctly even while shaded. */
         if (!client_is_shaded(client)) {
-            xcb_configure_window(desktop->connection, client->window,
+            xcb_configure_window(xcb_connection_get(), client->window,
                     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
                     XCB_CONFIG_WINDOW_WIDTH |
                     XCB_CONFIG_WINDOW_HEIGHT,
@@ -618,7 +619,7 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
              * fill the frame until the next user-triggered
              * repaint. */
             client_send_synthetic_configure_notify(
-                    desktop->connection, client);
+                    xcb_connection_get(), client);
 
             /* Force a repaint AFTER the synthetic
              * 'ConfigureNotify' so the client always redraws at
@@ -632,15 +633,15 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
              * arrives in the client's queue after both the
              * 'xcb_configure_window' and the synthetic
              * 'ConfigureNotify' above. */
-            xcb_clear_area(desktop->connection, 1,
+            xcb_clear_area(xcb_connection_get(), 1,
                     client->window, 0, 0, 0, 0);
         }
-        s_repaint_frame_decoration_unless_hidden(desktop->connection,
+        s_repaint_frame_decoration_unless_hidden(xcb_connection_get(),
                 client, is_focused, hide_decoration,
                 &desktop->config->theme);
 
         if (titlebar_visible) {
-            xcb_configure_window(desktop->connection,
+            xcb_configure_window(xcb_connection_get(),
                     client->titlebar,
                     XCB_CONFIG_WINDOW_X     |
                     XCB_CONFIG_WINDOW_Y     |
@@ -652,10 +653,10 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
                         inner_w, title_h
                     });
             desktop_repaint_titlebar_content(
-                    desktop->connection, client, is_focused,
+                    xcb_connection_get(), client, is_focused,
                     inner_w, title_h, &desktop->config->theme);
         } else if (client->titlebar != 0) {
-            xcb_unmap_window(desktop->connection, client->titlebar);
+            xcb_unmap_window(xcb_connection_get(), client->titlebar);
         }
     }
 
@@ -714,16 +715,16 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
      * this lighter branch only meant to refresh existing colors,
      * not decide from scratch whether a border belongs here at
      * all. */
-    s_repaint_frame_decoration_unless_hidden(desktop->connection,
+    s_repaint_frame_decoration_unless_hidden(xcb_connection_get(),
             client, is_focused, hide_decoration,
             &desktop->config->theme);
 
     if (titlebar_visible) {
-        desktop_repaint_titlebar_content(desktop->connection,
+        desktop_repaint_titlebar_content(xcb_connection_get(),
                 client, is_focused, inner_w, title_h,
                 &desktop->config->theme);
     } else if (client->titlebar != 0) {
-        xcb_unmap_window(desktop->connection, client->titlebar);
+        xcb_unmap_window(xcb_connection_get(), client->titlebar);
     }
 }
 
@@ -928,7 +929,7 @@ void desktop_render_one_client(desktop_td *desktop,
      * one window previously still re-sent border width for every
      * other window on the desktop each time). */
     if (border_width != client->last_border_width) {
-        xcb_configure_window(desktop->connection, target,
+        xcb_configure_window(xcb_connection_get(), target,
                 XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
         client->last_border_width = border_width;
     }
@@ -952,16 +953,16 @@ void desktop_render_one_client(desktop_td *desktop,
      * 'surface_clients_hide'/'surface_clients_show' */
     if (is_current) {
         if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(desktop->connection,
+            xcb_unmap_window(xcb_connection_get(),
                     client->icon_window);
             client->is_icon_mapped = false;
         }
         if (titlebar_visible) {
-            xcb_map_window(desktop->connection, client->titlebar);
+            xcb_map_window(xcb_connection_get(), client->titlebar);
         } else if (client->titlebar != 0) {
-            xcb_unmap_window(desktop->connection, client->titlebar);
+            xcb_unmap_window(xcb_connection_get(), client->titlebar);
         }
-        xcb_map_window(desktop->connection, target);
+        xcb_map_window(xcb_connection_get(), target);
 
         /* Do not re-map the content window for shaded clients: the
          * shade operation explicitly unmaps it, and mapping it here
@@ -969,7 +970,7 @@ void desktop_render_one_client(desktop_td *desktop,
          * from being painted correctly, especially for inactive
          * windows that receive no 'FocusOut'-triggered repaint */
         if (target != client->window && !client_is_shaded(client)) {
-            xcb_map_window(desktop->connection, client->window);
+            xcb_map_window(xcb_connection_get(), client->window);
         }
     }
 
@@ -1202,7 +1203,7 @@ int desktop_render_background(desktop_td *desktop)
         return 1;
     }
 
-    root_pixmap = s_get_root_background_pixmap(desktop->connection,
+    root_pixmap = s_get_root_background_pixmap(xcb_connection_get(),
             screen->root, desktop->screen_id);
     if (root_pixmap != XCB_NONE) {
         /* An external tool ('xsetbg', 'xsetroot', 'nitrogen', 'feh',
@@ -1266,9 +1267,9 @@ int desktop_render_background(desktop_td *desktop)
 
     values[0] = XCB_BACK_PIXMAP_NONE;
     values[1] = desktop->background.bg.color;
-    xcb_change_window_attributes(desktop->connection, screen->root,
+    xcb_change_window_attributes(xcb_connection_get(), screen->root,
             XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL, values);
-    xcb_clear_area(desktop->connection, 0, screen->root, 0, 0,
+    xcb_clear_area(xcb_connection_get(), 0, screen->root, 0, 0,
             screen->width_in_pixels, screen->height_in_pixels);
     s_root_bg_applied_once[desktop->screen_id] = true;
     s_root_bg_color_applied[desktop->screen_id] =

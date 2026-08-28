@@ -40,6 +40,7 @@
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/workarea.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -154,7 +155,7 @@ void ccmd_client_apply_geometry(client_td *client, xcb_window_t target,
     uint32_t values[5];
     uint32_t num = 0;
 
-    if (client == NULL || client->connection == NULL ||
+    if (client == NULL || xcb_connection_get() == NULL ||
             target == XCB_WINDOW_NONE) {
         return;
     }
@@ -175,7 +176,7 @@ void ccmd_client_apply_geometry(client_td *client, xcb_window_t target,
         values[num++] = border_width;
     }
 
-    xcb_configure_window(client->connection, target, mask, values);
+    xcb_configure_window(xcb_connection_get(), target, mask, values);
 }
 
 

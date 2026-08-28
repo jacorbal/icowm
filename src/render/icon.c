@@ -45,6 +45,7 @@
 #include <render/text.h>
 #include <render/wmicon.h>
 #include <systray.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -77,7 +78,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
     xcb_window_t tray_below;
     bool display_active;
 
-    if (client == NULL || client->connection == NULL ||
+    if (client == NULL || xcb_connection_get() == NULL ||
             client->config == NULL) {
         return;
     }
@@ -147,7 +148,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
         display_active = !display_active;
     }
 
-    xcb_change_window_attributes(client->connection,
+    xcb_change_window_attributes(xcb_connection_get(),
             client->icon_window,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
@@ -162,19 +163,19 @@ void ri_render_client_icon(client_td *client, bool is_current,
     border_width = (display_active)
         ? client->config->theme.icon.active.border.width
         : client->config->theme.icon.inactive.border.width;
-    xcb_configure_window(client->connection,
+    xcb_configure_window(xcb_connection_get(),
             client->icon_window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH,
             &border_width);
-    atom_set_window_opacity(client->connection,
+    atom_set_window_opacity(xcb_connection_get(),
             client->icon_window,
             config_theme_opacity_to_raw((display_active)
                 ? client->config->theme.icon.active.opacity
                 : client->config->theme.icon.inactive.opacity));
 
-    xcb_clear_area(client->connection, 0,
+    xcb_clear_area(xcb_connection_get(), 0,
             client->icon_window, 0, 0, 0, 0);
-    xcb_map_window(client->connection, client->icon_window);
+    xcb_map_window(xcb_connection_get(), client->icon_window);
 
     /* Icons stay lower than the tray even within the shared 'below'
      * layer, "stuck to the desktop".
@@ -184,13 +185,13 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * that on its own. */
     tray_below = systray_below_window();
     if (tray_below != XCB_WINDOW_NONE) {
-        xcb_configure_window(client->connection, client->icon_window,
+        xcb_configure_window(xcb_connection_get(), client->icon_window,
                 XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) {
                 tray_below, XCB_STACK_MODE_BELOW
                 });
     } else {
-        xcb_configure_window(client->connection, client->icon_window,
+        xcb_configure_window(xcb_connection_get(), client->icon_window,
                 XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) { XCB_STACK_MODE_BELOW });
     }
@@ -205,7 +206,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * would otherwise have its pixmap appear and vanish on every
      * phase rather than simply changing color. */
     if (client->config->theme.icon.show_pixmaps && !is_cycle_sel) {
-        wmicon_draw(client->connection, client->ewmh, client->window,
+        wmicon_draw(xcb_connection_get(), xcb_ewmh_connection_get(), client->window,
                 client->icon_window, WM_ICON_SQUARE_SIZE,
                 (display_active)
                     ? client->config->theme.icon.active.color.foreground
@@ -223,7 +224,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
         /* The picked-up icon takes the active font as well as the
          * active colors: drawn in the inactive one it read as a
          * different icon from the one the person had hold of. */
-        (void) text_renderer_use_font(client->connection,
+        (void) text_renderer_use_font(xcb_connection_get(),
                 (is_cycle_sel)
                     ? client->config->theme.icon.active.font
                     : client->config->theme.icon.inactive.font);
@@ -238,16 +239,16 @@ void ri_render_client_icon(client_td *client, bool is_current,
         text_truncate_to_width(caption, sizeof(caption),
                 client->info.name, WM_ICON_SQUARE_SIZE);
 
-        if (client->ewmh != NULL) {
+        if (xcb_ewmh_connection_get() != NULL) {
             client_sync_visible_name(client,
                     client->icon_info.visible_icon_name,
                     client->info.name, caption,
                     xcb_ewmh_set_wm_visible_icon_name_checked,
-                    client->ewmh->_NET_WM_VISIBLE_ICON_NAME);
+                    xcb_ewmh_connection_get()->_NET_WM_VISIBLE_ICON_NAME);
         }
 
         if (caption[0] != '\0') {
-            text_draw_string(client->connection,
+            text_draw_string(xcb_connection_get(),
                     client->icon_window, XCB_NONE,
                     (struct position_s) { 2,
                         WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
@@ -256,7 +257,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
         }
     }
 
-    ri_icon_hints_draw(client->connection, client, display_active,
+    ri_icon_hints_draw(xcb_connection_get(), client, display_active,
             &client->config->theme);
 
     /* This is not reset anywhere else for a hidden/iconified client.

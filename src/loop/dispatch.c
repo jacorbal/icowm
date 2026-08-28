@@ -31,6 +31,7 @@
 /* Local includes */
 #include <loop/dispatch.h>
 #include <loop/event.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -100,7 +101,7 @@ static void s_loop_dispatch_protocol_error(loop_ctx_td *ctx,
 static void s_loop_dispatch_enter_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    mouse_handle_enter(ctx->connection, ctx->surfaces,
+    mouse_handle_enter(xcb_connection_get(), ctx->surfaces,
             (xcb_enter_notify_event_t *) *event, ctx->config);
 }
 
@@ -133,7 +134,7 @@ static void s_loop_dispatch_leave_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_focus_in(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_focus_in(ctx->connection, ctx->surfaces,
+    handler_focus_in(xcb_connection_get(), ctx->surfaces,
             (xcb_focus_in_event_t *) *event);
 }
 
@@ -166,7 +167,7 @@ static void s_loop_dispatch_focus_out(loop_ctx_td *ctx,
 static void s_loop_dispatch_configure_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_configure_notify(ctx->connection, ctx->surfaces,
+    handler_configure_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_configure_notify_event_t *) *event);
 }
 
@@ -183,7 +184,7 @@ static void s_loop_dispatch_configure_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_configure_request(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_configure_request(ctx->connection, ctx->surfaces,
+    handler_configure_request(xcb_connection_get(), ctx->surfaces,
             (xcb_configure_request_event_t *) *event);
 }
 
@@ -215,7 +216,7 @@ static void s_loop_dispatch_map_request(loop_ctx_td *ctx,
 static void s_loop_dispatch_map_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_map_notify(ctx->connection, ctx->surfaces,
+    handler_map_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_map_notify_event_t *) *event);
 }
 
@@ -232,7 +233,7 @@ static void s_loop_dispatch_map_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_unmap_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_unmap_notify(ctx->connection, ctx->surfaces,
+    handler_unmap_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_unmap_notify_event_t *) *event);
 }
 
@@ -249,7 +250,7 @@ static void s_loop_dispatch_unmap_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_destroy_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_destroy_notify(ctx->wm, ctx->connection, ctx->surfaces,
+    handler_destroy_notify(ctx->wm, xcb_connection_get(), ctx->surfaces,
             (xcb_destroy_notify_event_t *) *event);
 }
 
@@ -266,7 +267,7 @@ static void s_loop_dispatch_destroy_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_property_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_property_notify(ctx->wm, ctx->connection, ctx->surfaces,
+    handler_property_notify(ctx->wm, xcb_connection_get(), ctx->surfaces,
             (xcb_property_notify_event_t *) *event);
 }
 
@@ -283,7 +284,7 @@ static void s_loop_dispatch_property_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_colormap_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_colormap_notify(ctx->connection, ctx->surfaces,
+    handler_colormap_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_colormap_notify_event_t *) *event);
 }
 
@@ -300,7 +301,7 @@ static void s_loop_dispatch_colormap_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_expose(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_expose(ctx->connection, ctx->surfaces,
+    handler_expose(xcb_connection_get(), ctx->surfaces,
             (xcb_expose_event_t *) *event, ctx->config);
 }
 
@@ -351,7 +352,7 @@ static void s_loop_dispatch_mapping_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_gravity_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_gravity_notify(ctx->connection, ctx->surfaces,
+    handler_gravity_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_gravity_notify_event_t *) *event);
 }
 
@@ -368,7 +369,7 @@ static void s_loop_dispatch_gravity_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_circulate_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_circulate_notify(ctx->connection, ctx->surfaces,
+    handler_circulate_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_circulate_notify_event_t *) *event);
 }
 
@@ -385,7 +386,7 @@ static void s_loop_dispatch_circulate_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_circulate_request(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_circulate_request(ctx->connection, ctx->surfaces,
+    handler_circulate_request(xcb_connection_get(), ctx->surfaces,
             (xcb_circulate_request_event_t *) *event);
 }
 

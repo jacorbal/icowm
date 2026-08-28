@@ -24,6 +24,7 @@
 /* Local includes */
 #include <cmds/client/grab.h>
 #include <cmds/client/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /* Passively grab mouse buttons (excluding scroll wheel) on an
@@ -41,13 +42,13 @@ void ccmd_client_grab_buttons(client_td *client)
     };
     size_t nb = sizeof(s_grab_buttons) / sizeof(s_grab_buttons[0]);
 
-    if (client == NULL || client->connection == NULL ||
+    if (client == NULL || xcb_connection_get() == NULL ||
             client->window == XCB_WINDOW_NONE) {
         return;
     }
 
     for (size_t bi = 0; bi < nb; ++bi) {
-        xcb_grab_button(client->connection,
+        xcb_grab_button(xcb_connection_get(),
                 0,
                 client->window,
                 XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
@@ -58,21 +59,21 @@ void ccmd_client_grab_buttons(client_td *client)
                 s_grab_buttons[bi],
                 XCB_MOD_MASK_ANY);
     }
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
 /* Remove passive button grabs from an undecorated client */
 void ccmd_client_ungrab_buttons(client_td *client)
 {
-    if (client == NULL || client->connection == NULL ||
+    if (client == NULL || xcb_connection_get() == NULL ||
             client->window == XCB_WINDOW_NONE) {
         return;
     }
 
-    xcb_ungrab_button(client->connection,
+    xcb_ungrab_button(xcb_connection_get(),
             (uint8_t) XCB_BUTTON_INDEX_ANY,
             client->window,
             (uint16_t) XCB_MOD_MASK_ANY);
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 }

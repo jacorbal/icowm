@@ -62,6 +62,7 @@
 /* Local includes */
 #include <input/kbd/bind.h>
 #include <input/kbd/internal.h>
+#include <utils/xcb/connection.h>
 
 /**
  * @brief Resolve where a keyboard-triggered root/window-list menu
@@ -89,9 +90,9 @@ static void s_menu_position_resolve(surface_td *surface, bool under_mouse,
 
     if (under_mouse && surface->screen != NULL) {
         xcb_query_pointer_cookie_t qc =
-            xcb_query_pointer(surface->connection, surface->screen->root);
+            xcb_query_pointer(xcb_connection_get(), surface->screen->root);
         xcb_query_pointer_reply_t *const qr =
-            xcb_query_pointer_reply(surface->connection, qc, NULL);
+            xcb_query_pointer_reply(xcb_connection_get(), qc, NULL);
         if (qr != NULL) {
             out_pos->x = qr->root_x;
             out_pos->y = qr->root_y;
@@ -205,7 +206,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_INFO:
-            popup_show(surface->connection, surface, desktop, client,
+            popup_show(xcb_connection_get(), surface, desktop, client,
                     bmm, detail, config);
             return;
 
@@ -442,11 +443,11 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
                 if (desktop != NULL) {
                     if (btype == KEYBIND_CLIENT_CYCLE_NEXT) {
                         enact_desktop_cycle_clients_active(
-                                surface->connection, surface,
+                                xcb_connection_get(), surface,
                                 desktop, modmask, config);
                     } else {
                         enact_desktop_cycle_clients_prev(
-                                surface->connection, surface,
+                                xcb_connection_get(), surface,
                                 desktop, modmask, config);
                     }
                 }
@@ -461,11 +462,11 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
                 if (desktop != NULL) {
                     if (btype == KEYBIND_DESKTOP_ICON_NEXT) {
                         enact_desktop_cycle_clients_icons_next(
-                                surface->connection,
+                                xcb_connection_get(),
                                 surface, desktop, modmask, config);
                     } else {
                         enact_desktop_cycle_clients_icons_prev(
-                                surface->connection,
+                                xcb_connection_get(),
                                 surface, desktop, modmask, config);
                     }
                 }
@@ -478,8 +479,8 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
 
         case KEYBIND_WM_FORTUNE:
             if (config->base.fortune.is_enabled &&
-                    surface != NULL && surface->connection != NULL) {
-                dialog_fortune_show(surface->connection, surface,
+                    surface != NULL && xcb_connection_get() != NULL) {
+                dialog_fortune_show(xcb_connection_get(), surface,
                         config);
             }
             return;
@@ -489,15 +490,15 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_WM_QUIT:
-            if (surface != NULL && surface->connection != NULL) {
-                dialog_quit_show(surface->connection, surface,
+            if (surface != NULL && xcb_connection_get() != NULL) {
+                dialog_quit_show(xcb_connection_get(), surface,
                         config);
             }
             return;
 
         case KEYBIND_WM_SHORTCUTS_LIST:
-            if (surface != NULL && surface->connection != NULL) {
-                dialog_shortcuts_show(surface->connection, surface,
+            if (surface != NULL && xcb_connection_get() != NULL) {
+                dialog_shortcuts_show(xcb_connection_get(), surface,
                         config);
             }
             return;
@@ -507,7 +508,7 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_WM_ROOT_MENU:
-            if (surface != NULL && surface->connection != NULL) {
+            if (surface != NULL && xcb_connection_get() != NULL) {
                 struct position_s pos;
 
                 /* When configured to appear under the cursor
@@ -520,13 +521,13 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
                                 CONFIG_MENU_POSITION_UNDER_MOUSE,
                         &pos);
 
-                rootmenu_show(wm, surface->connection, surface,
+                rootmenu_show(wm, xcb_connection_get(), surface,
                         pos, config);
             }
             return;
 
         case KEYBIND_WM_WINDOWS_MENU:
-            if (surface != NULL && surface->connection != NULL) {
+            if (surface != NULL && xcb_connection_get() != NULL) {
                 struct position_s pos;
 
                 /* Same "under the cursor instead of a fixed point"
@@ -539,14 +540,14 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
                                 CONFIG_MENU_POSITION_UNDER_MOUSE,
                         &pos);
 
-                winlist_show(surface->connection, surface,
+                winlist_show(xcb_connection_get(), surface,
                         pos, config);
             }
             return;
 
         case KEYBIND_WM_SEARCH_WINDOWS:
-            if (surface != NULL && surface->connection != NULL) {
-                search_init(surfaces, surface->connection,
+            if (surface != NULL && xcb_connection_get() != NULL) {
+                search_init(surfaces, xcb_connection_get(),
                         surface, config);
             }
             return;
@@ -558,10 +559,10 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
             client_td *const client = ik_get_active_client(surface,
                     surfaces, NULL, NULL);
             if (client != NULL && surface != NULL &&
-                    surface->connection != NULL) {
+                    xcb_connection_get() != NULL) {
                 desktop_td *desktop =
                     lookup_current_desktop(surface);
-                wincmenu_show(surface->connection, surface,
+                wincmenu_show(xcb_connection_get(), surface,
                         desktop, client,
                         client->layout.geometry.cur.pos, config);
             }

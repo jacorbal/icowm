@@ -27,6 +27,7 @@
 /* Local includes */
 #include <menu/context/ctxmenu/redraw.h>
 #include <menu/context/ctxmenu/select.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -71,7 +72,7 @@ bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
     }
 
     /* Save connection and surface before close clears them */
-    conn = root->connection;
+    conn = xcb_connection_get();
     surf = root->surface;
 
     /* Close first so keyboard and pointer grabs are released before the

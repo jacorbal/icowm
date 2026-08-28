@@ -29,6 +29,7 @@
 /* Local includes */
 #include <cmds/client/internal.h>
 #include <cmds/client/screen.h>
+#include <utils/xcb/connection.h>
 
 
 /* Return the frame when decorated, the client window otherwise */
@@ -54,7 +55,7 @@ bool ccmd_screen_dim(client_td *client, uint16_t *restrict out_w,
         return false;
     }
 
-    iter = xcb_setup_roots_iterator(xcb_get_setup(client->connection));
+    iter = xcb_setup_roots_iterator(xcb_get_setup(xcb_connection_get()));
     for (uint32_t i = 0; i < client->screen_id && iter.rem > 0; ++i) {
         xcb_screen_next(&iter);
     }

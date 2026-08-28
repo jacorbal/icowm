@@ -45,6 +45,7 @@
 
 /* Local includes */
 #include <systray/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -166,7 +167,7 @@ static void s_systray_icons_push_below(void)
 
                     if (client->is_icon_mapped &&
                             client->icon_window != 0u) {
-                        xcb_configure_window(s_tray.connection,
+                        xcb_configure_window(xcb_connection_get(),
                                 client->icon_window,
                                 XCB_CONFIG_WINDOW_SIBLING |
                                 XCB_CONFIG_WINDOW_STACK_MODE,
@@ -265,10 +266,10 @@ static void s_systray_strut_update(struct geometry_s geom,
         partial.left += s_tray.strut_margins.left;
     }
 
-    if (s_tray.ewmh != NULL && s_tray.window != XCB_WINDOW_NONE) {
-        (void) xcb_ewmh_set_wm_strut_partial(s_tray.ewmh, s_tray.window,
+    if (xcb_ewmh_connection_get() != NULL && s_tray.window != XCB_WINDOW_NONE) {
+        (void) xcb_ewmh_set_wm_strut_partial(xcb_ewmh_connection_get(), s_tray.window,
                 partial);
-        (void) xcb_ewmh_set_wm_strut(s_tray.ewmh, s_tray.window,
+        (void) xcb_ewmh_set_wm_strut(xcb_ewmh_connection_get(), s_tray.window,
                 partial.left, partial.right, partial.top,
                 partial.bottom);
     }
@@ -364,16 +365,16 @@ void systray_layout_restack(void)
 {
     xcb_window_t fullscreen_target;
 
-    if (!s_tray.is_window_ready || s_tray.connection == NULL) {
+    if (!s_tray.is_window_ready || xcb_connection_get() == NULL) {
         return;
     }
 
     if (s_tray.layer == CONFIG_SYSTRAY_LAYER_BELOW) {
-        xcb_configure_window(s_tray.connection, s_tray.window,
+        xcb_configure_window(xcb_connection_get(), s_tray.window,
                 XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) { XCB_STACK_MODE_BELOW });
         s_systray_icons_push_below();
-        xcb_flush(s_tray.connection);
+        xcb_flush(xcb_connection_get());
         return;
     }
 
@@ -388,19 +389,19 @@ void systray_layout_restack(void)
      * visible as a flash on every restack (every reflow, and every
      * fullscreen toggle) rather than only when actually needed. */
     if (fullscreen_target != XCB_WINDOW_NONE) {
-        xcb_configure_window(s_tray.connection, s_tray.window,
+        xcb_configure_window(xcb_connection_get(), s_tray.window,
                 XCB_CONFIG_WINDOW_SIBLING |
                 XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) {
                     fullscreen_target, XCB_STACK_MODE_BELOW
                 });
     } else {
-        xcb_configure_window(s_tray.connection, s_tray.window,
+        xcb_configure_window(xcb_connection_get(), s_tray.window,
                 XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
     }
 
-    xcb_flush(s_tray.connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -435,10 +436,10 @@ void systray_layout_reflow(void)
     if (!s_tray.is_active ||
             (s_tray.icon_count == 0u && !s_tray.clock_enabled &&
                 !s_tray.battery_enabled)) {
-        xcb_unmap_window(s_tray.connection, s_tray.window);
+        xcb_unmap_window(xcb_connection_get(), s_tray.window);
         s_systray_strut_update((struct geometry_s) {
                     { 0, 0 }, { 0u, 0u } }, 0);
-        xcb_flush(s_tray.connection);
+        xcb_flush(xcb_connection_get());
         return;
     }
 
@@ -446,10 +447,10 @@ void systray_layout_reflow(void)
     text_w = systray_text_width();
     w = s_systray_content_width();
     if (w == 0u) {
-        xcb_unmap_window(s_tray.connection, s_tray.window);
+        xcb_unmap_window(xcb_connection_get(), s_tray.window);
         s_systray_strut_update((struct geometry_s) {
                     { 0, 0 }, { 0u, 0u } }, 0);
-        xcb_flush(s_tray.connection);
+        xcb_flush(xcb_connection_get());
         return;
     }
 
@@ -495,7 +496,7 @@ void systray_layout_reflow(void)
     geom_values[1] = (uint32_t) y;
     geom_values[2] = w;
     geom_values[3] = h;
-    xcb_configure_window(s_tray.connection, s_tray.window,
+    xcb_configure_window(xcb_connection_get(), s_tray.window,
             XCB_CONFIG_WINDOW_X     |
             XCB_CONFIG_WINDOW_Y     |
             XCB_CONFIG_WINDOW_WIDTH |
@@ -527,11 +528,11 @@ void systray_layout_reflow(void)
         icon_pos[0] = (uint32_t) icons_base_x +
             (uint32_t) s_tray.pixmap_pad + (uint32_t) i * stride;
         icon_pos[1] = icon_y;
-        xcb_configure_window(s_tray.connection, s_tray.icons[i].window,
+        xcb_configure_window(xcb_connection_get(), s_tray.icons[i].window,
                 XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, icon_pos);
     }
 
-    xcb_map_window(s_tray.connection, s_tray.window);
+    xcb_map_window(xcb_connection_get(), s_tray.window);
 
     if (text_w > 0u && s_tray.theme != NULL) {
         uint16_t icons_w = (uint16_t) (w - text_w);
@@ -543,9 +544,9 @@ void systray_layout_reflow(void)
         int16_t item_y = 0;
         int16_t pen_x;
 
-        xcb_clear_area(s_tray.connection, 0, s_tray.window,
+        xcb_clear_area(xcb_connection_get(), 0, s_tray.window,
                 block_x, 0, text_w, h);
-        (void) text_renderer_use_font(s_tray.connection,
+        (void) text_renderer_use_font(xcb_connection_get(),
                 s_tray.theme->systray.style.font);
         text_renderer_set_color(s_tray.theme->systray.style.color.foreground,
                 s_tray.theme->systray.style.color.background);
@@ -586,7 +587,7 @@ void systray_layout_reflow(void)
                 continue;
             }
 
-            text_draw_string(s_tray.connection, s_tray.window, XCB_NONE,
+            text_draw_string(xcb_connection_get(), s_tray.window, XCB_NONE,
                     (struct position_s) { pen_x, item_y }, text);
             pen_x = (int16_t) (pen_x +
                     (int16_t) text_string_measure(text) +
@@ -594,7 +595,7 @@ void systray_layout_reflow(void)
         }
     }
 
-    xcb_flush(s_tray.connection);
+    xcb_flush(xcb_connection_get());
 
     systray_layout_restack();
 

@@ -74,9 +74,6 @@ typedef struct {
  *       through this declaration
  */
 struct systray_state_s {
-    xcb_connection_t *connection;
-    xcb_ewmh_connection_t *ewmh;    /**< For publishing the tray's own
-                                         reserved-space strut */
     surface_td *surface;            /**< Surface the tray docks on */
 
     const struct config_theme_s *theme; /**< Shared pointer into

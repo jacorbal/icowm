@@ -25,6 +25,7 @@
 
 /* Local includes */
 #include <render/surface.h>
+#include <utils/xcb/connection.h>
 
 
 /* Render the current desktop on a surface */
@@ -198,12 +199,12 @@ void surface_render_current_desktop_repaint(surface_td *surface)
 /* Flush rendering operations */
 void surface_render_flush(surface_td *surface)
 {
-    if (surface == NULL || surface->connection == NULL) {
+    if (surface == NULL || xcb_connection_get() == NULL) {
         LOGGER_ERROR("Invalid surface or connection for flushing",
                 L_NARG);
         return;
     }
 
     LOGGER_DEBUG("Flushing surface %u to X server", surface->id);
-    xcb_flush(surface->connection);
+    xcb_flush(xcb_connection_get());
 }

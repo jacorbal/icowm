@@ -57,6 +57,7 @@
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/visibility.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -199,7 +200,7 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
     client->icon_pos.x = (int16_t) icon_pos.x;
     client->icon_pos.y = (int16_t) icon_pos.y;
 
-    if (client->connection != NULL) {
+    if (xcb_connection_get() != NULL) {
         ccmd_client_apply_geometry(client, client->icon_window,
                 (uint16_t) XCB_CONFIG_WINDOW_X |
                     (uint16_t) XCB_CONFIG_WINDOW_Y,
@@ -363,7 +364,7 @@ void ccmd_client_ensure_icon_window(client_td *client,
         client->icon_pos.x = ix;
         client->icon_pos.y = iy;
 
-        client->icon_window = xcb_generate_id(client->connection);
+        client->icon_window = xcb_generate_id(xcb_connection_get());
         mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
             XCB_CW_EVENT_MASK;
 
@@ -373,7 +374,7 @@ void ccmd_client_ensure_icon_window(client_td *client,
             XCB_EVENT_MASK_BUTTON_PRESS |
             XCB_EVENT_MASK_BUTTON_MOTION;
 
-        xcb_create_window(client->connection,
+        xcb_create_window(xcb_connection_get(),
                 XCB_COPY_FROM_PARENT,
                 client->icon_window,
                 client->parent_id,

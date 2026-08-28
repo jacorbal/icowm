@@ -20,6 +20,7 @@
 
 /* Local includes */
 #include <loop/context.h>
+#include <utils/xcb/connection.h>
 
 
 /* Resolve the window manager values the loop caches for a run */
@@ -30,7 +31,6 @@ bool loop_context_init(loop_ctx_td *ctx, wm_td *wm)
     }
 
     ctx->wm = wm;
-    ctx->connection = wm_connection(wm);
     ctx->surfaces = wm_surfaces(wm);
     ctx->config = wm_config(wm);
     ctx->keysyms = NULL;

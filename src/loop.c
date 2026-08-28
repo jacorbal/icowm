@@ -37,6 +37,7 @@
 #include <loop/refresh.h>
 #include <loop/signals.h>
 #include <loop/timers.h>
+#include <utils/xcb/connection.h>
 
 
 /* Run the main event loop until the window manager is stopped */
@@ -65,7 +66,7 @@ void loop_run(wm_td *wm)
                 L_NARG);
     }
 
-    ctx.keysyms = xcb_key_symbols_alloc(ctx.connection);
+    ctx.keysyms = xcb_key_symbols_alloc(xcb_connection_get());
     if (ctx.keysyms == NULL) {
         LOGGER_ERROR("Failed to allocate key symbols table", L_NARG);
         return;
@@ -104,7 +105,7 @@ void loop_run(wm_td *wm)
 
         while ((event = (ctx.pending_event != NULL)
                     ? ctx.pending_event
-                    : xcb_poll_for_event(ctx.connection)) != NULL) {
+                    : xcb_poll_for_event(xcb_connection_get())) != NULL) {
             ctx.pending_event = NULL;
             loop_dispatch_event(&ctx, &event);
             free(event);

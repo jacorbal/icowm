@@ -32,6 +32,7 @@
 /* Local includes */
 #include <render/glyph.h>
 #include <render/text.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -83,7 +84,6 @@ typedef struct {
  * one evicted when room is needed.
  */
 static struct {
-    xcb_connection_t *connection;
     s_text_font_td cache[WM_TEXT_FONT_CACHE_MAX];
     uint32_t clock;
     uint32_t current;
@@ -93,7 +93,6 @@ static struct {
      *  @a text_renderer_disable_glyph_backend */
     bool is_glyph_backend_disabled;
 } s_text = {
-    .connection = NULL,
     .clock = 0u,
     .current = WM_TEXT_FONT_CACHE_MAX,
     .is_initialized = false,
@@ -611,12 +610,12 @@ static void s_text_cache_release(s_text_font_td *entry)
 
     if (entry->backend == S_BACKEND_GLYPH) {
         glyph_renderer_release(entry->key);
-    } else if (s_text.connection != NULL) {
+    } else if (xcb_connection_get() != NULL) {
         if (entry->gc != XCB_NONE) {
-            xcb_free_gc(s_text.connection, entry->gc);
+            xcb_free_gc(xcb_connection_get(), entry->gc);
         }
         if (entry->font != XCB_NONE) {
-            xcb_close_font(s_text.connection, entry->font);
+            xcb_close_font(xcb_connection_get(), entry->font);
         }
     }
 
@@ -761,7 +760,6 @@ int text_renderer_init(xcb_connection_t *connection)
      * name entirely different fonts and every cached one is stale */
     text_renderer_destroy();
 
-    s_text.connection = connection;
     s_text.clock = 0u;
     s_text.current = WM_TEXT_FONT_CACHE_MAX;
     s_text.is_initialized = true;
@@ -785,7 +783,7 @@ int text_renderer_use_font(xcb_connection_t *connection,
 
     /* A caller that never called 'text_renderer_init' still gets a
      * working renderer, bound to the connection it just handed over */
-    if (!s_text.is_initialized || s_text.connection != connection) {
+    if (!s_text.is_initialized || xcb_connection_get() != connection) {
         if (text_renderer_init(connection) != 0) {
             return -1;
         }
@@ -883,7 +881,6 @@ void text_renderer_destroy(void)
      * them: the FreeType library and its solid-fill picture */
     glyph_renderer_destroy();
 
-    s_text.connection = NULL;
     s_text.clock = 0u;
     s_text.current = WM_TEXT_FONT_CACHE_MAX;
     s_text.is_initialized = false;
@@ -905,13 +902,13 @@ void text_renderer_set_color(uint32_t fg, uint32_t bg)
         return;
     }
 
-    if (entry->gc == XCB_NONE || s_text.connection == NULL) {
+    if (entry->gc == XCB_NONE || xcb_connection_get() == NULL) {
         return;
     }
 
     gc_values[0] = fg;
     gc_values[1] = bg;
-    xcb_change_gc(s_text.connection, entry->gc,
+    xcb_change_gc(xcb_connection_get(), entry->gc,
             XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
 }
 
@@ -930,7 +927,7 @@ void text_draw_string(xcb_connection_t *connection,
         return;
     }
 
-    if (s_text_current() == NULL || s_text.connection != connection) {
+    if (s_text_current() == NULL || xcb_connection_get() != connection) {
         if (text_renderer_use_font(connection, "fixed") != 0) {
             return;
         }

@@ -56,13 +56,12 @@
  *  work that function does, which this file has no live connection
  *  to perform.  Only 'id' matters to anything this file checks. */
 desktop_td *desktop_init(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh, uint32_t screen_id,
+        uint32_t screen_id,
         uint32_t desktop_id, config_td *config)
 {
     desktop_td *desktop = calloc(1, sizeof(desktop_td));
 
     (void) connection;
-    (void) ewmh;
     (void) screen_id;
     (void) config;
     desktop->id = desktop_id;

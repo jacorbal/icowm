@@ -43,6 +43,7 @@
 
 /* Local includes */
 #include <systray/internal.h>
+#include <utils/xcb/connection.h>
 
 
 
@@ -71,9 +72,9 @@ static void s_systray_icon_sort_key_fetch(xcb_window_t icon,
         return;
     }
 
-    cookie = xcb_get_property(s_tray.connection, 0, icon,
+    cookie = xcb_get_property(xcb_connection_get(), 0, icon,
             XCB_ATOM_WM_CLASS, XCB_ATOM_STRING, 0, 64);
-    reply = xcb_get_property_reply(s_tray.connection, cookie, NULL);
+    reply = xcb_get_property_reply(xcb_connection_get(), cookie, NULL);
     if (reply == NULL) {
         return;
     }
@@ -218,18 +219,18 @@ void systray_protocol_dock(xcb_window_t icon)
     /* Track 'StructureNotify' so 'systray_handle_destroy' learns when
      * the icon's application exits or otherwise destroys the window */
     attr_values[0] = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
-    xcb_change_window_attributes(s_tray.connection, icon,
+    xcb_change_window_attributes(xcb_connection_get(), icon,
             XCB_CW_EVENT_MASK, attr_values);
 
-    xcb_reparent_window(s_tray.connection, icon, s_tray.window, 0, 0);
+    xcb_reparent_window(xcb_connection_get(), icon, s_tray.window, 0, 0);
 
     size_values[0] = s_tray.pixmap_size;
     size_values[1] = s_tray.pixmap_size;
-    xcb_configure_window(s_tray.connection, icon,
+    xcb_configure_window(xcb_connection_get(), icon,
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             size_values);
 
-    xcb_map_window(s_tray.connection, icon);
+    xcb_map_window(xcb_connection_get(), icon);
 
     /* The XEMBED handshake tells the icon it is now embedded, and
      * by whom */
@@ -243,7 +244,7 @@ void systray_protocol_dock(xcb_window_t icon)
     ev.data.data32[2] = 0u;
     ev.data.data32[3] = s_tray.window;
     ev.data.data32[4] = 0u;
-    xcb_send_event(s_tray.connection, 0, icon, XCB_EVENT_MASK_NO_EVENT,
+    xcb_send_event(xcb_connection_get(), 0, icon, XCB_EVENT_MASK_NO_EVENT,
             (const char *) &ev);
 
     s_systray_icon_sort_key_fetch(icon, sort_key, sizeof(sort_key));
@@ -272,16 +273,16 @@ void systray_protocol_dock(xcb_window_t icon)
         return;
     }
 
-    xcb_change_window_attributes(s_tray.connection, s_tray.window,
+    xcb_change_window_attributes(xcb_connection_get(), s_tray.window,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
                 s_tray.theme->systray.style.color.background,
                 s_tray.theme->systray.style.border.color
             });
-    xcb_configure_window(s_tray.connection, s_tray.window,
+    xcb_configure_window(xcb_connection_get(), s_tray.window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH,
             (const uint32_t[]) { s_tray.theme->systray.style.border.width });
-    xcb_flush(s_tray.connection);
+    xcb_flush(xcb_connection_get());
 }
 
 
@@ -297,7 +298,6 @@ bool systray_protocol_window_ensure(const wm_td *wm)
     uint32_t mask;
     uint32_t values[4];
     xcb_connection_t *connection = wm_connection(wm);
-    xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
     config_td *config = wm_config(wm);
     list_td *surfaces = wm_surfaces(wm);
 
@@ -315,8 +315,6 @@ bool systray_protocol_window_ensure(const wm_td *wm)
         return false;
     }
 
-    s_tray.connection = connection;
-    s_tray.ewmh = ewmh;
     s_tray.surface = surface;
 
     (void) snprintf(selection_name, sizeof(selection_name),
@@ -392,7 +390,7 @@ bool systray_protocol_selection_acquire(void)
         return false;
     }
 
-    if (!util_xcb_acquire_manager_selection(s_tray.connection,
+    if (!util_xcb_acquire_manager_selection(xcb_connection_get(),
                 s_tray.window, s_tray.selection_atom,
                 s_tray.manager_atom, s_tray.surface->screen->root)) {
         LOGGER_NOTICE("Another systray manager already owns the tray" \
@@ -401,15 +399,15 @@ bool systray_protocol_selection_acquire(void)
     }
 
     orientation = 0u;   /* '_NET_SYSTEM_TRAY_ORIENTATION_HORZ' */
-    xcb_change_property(s_tray.connection, XCB_PROP_MODE_REPLACE,
+    xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
             s_tray.window, s_tray.orientation_atom, XCB_ATOM_CARDINAL,
             32, 1, &orientation);
-    xcb_change_property(s_tray.connection, XCB_PROP_MODE_REPLACE,
+    xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
             s_tray.window, s_tray.visual_atom, XCB_ATOM_VISUALID,
             32, 1, &s_tray.surface->screen->root_visual);
 
     s_tray.is_selection_owned = true;
-    xcb_flush(s_tray.connection);
+    xcb_flush(xcb_connection_get());
 
     LOGGER_INFO("Systray dock active on surface %u (selection atom" \
             " 0x%x, %u icon(s) already docked)", s_tray.surface->id,
@@ -427,7 +425,7 @@ void systray_protocol_selection_release(void)
         return;
     }
 
-    xcb_set_selection_owner(s_tray.connection, XCB_NONE,
+    xcb_set_selection_owner(xcb_connection_get(), XCB_NONE,
             s_tray.selection_atom, XCB_CURRENT_TIME);
     s_tray.is_selection_owned = false;
     /* Actually unmaps only if 'is_active' is also already false by now:

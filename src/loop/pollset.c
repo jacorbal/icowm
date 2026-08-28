@@ -37,6 +37,7 @@
 
 /* Local includes */
 #include <loop/pollset.h>
+#include <utils/xcb/connection.h>
 
 
 /* Wait for the X connection or any IPC descriptor to be ready */
@@ -53,7 +54,7 @@ bool loop_pollset_wait(const loop_ctx_td *ctx, int timeout_ms)
         return false;
     }
 
-    conn_error = xcb_connection_has_error(ctx->connection);
+    conn_error = xcb_connection_has_error(xcb_connection_get());
     if (conn_error != 0) {
         LOGGER_ERROR("X connection error detected (%s);" \
                 " requesting shutdown",
@@ -65,7 +66,7 @@ bool loop_pollset_wait(const loop_ctx_td *ctx, int timeout_ms)
     ipc_count = ipc_poll_fds(ipc_fds,
             (int) (sizeof(ipc_fds) / sizeof(ipc_fds[0])));
 
-    pfd[0].fd = xcb_get_file_descriptor(ctx->connection);
+    pfd[0].fd = xcb_get_file_descriptor(xcb_connection_get());
     pfd[0].events = POLLIN;
     pfd[0].revents = 0;
     nfds = 1;

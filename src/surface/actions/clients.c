@@ -40,6 +40,7 @@
 #include <cmds/client/focus.h>
 #include <cmds/client/state.h>
 #include <cmds/client/visibility.h>
+#include <utils/xcb/connection.h>
 
 /**
  * @brief Unmap one client as its own desktop stops being shown
@@ -86,12 +87,12 @@ static void s_client_hide_visit(client_td *client, void *data)
              * 'CLIENT_FLAG_HIDDEN': that flag represents an
              * explicit user/application hidden state, not temporary
              * invisibility on another desktop. */
-            ccmd_client_unmap_decorated(client, surface->connection,
+            ccmd_client_unmap_decorated(client, xcb_connection_get(),
                     target);
         }
 
         if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(surface->connection,
+            xcb_unmap_window(xcb_connection_get(),
                     client->icon_window);
             client->is_icon_mapped = false;
         }
@@ -123,10 +124,10 @@ static void s_client_show_visit(client_td *client, void *data)
             ? client->frame
             : client->window;
         if (client->titlebar != 0) {
-            xcb_map_window(surface->connection,
+            xcb_map_window(xcb_connection_get(),
                     client->titlebar);
         }
-        xcb_map_window(surface->connection, target);
+        xcb_map_window(xcb_connection_get(), target);
         /* A shaded client's own content window must stay
          * unmapped until an explicit unshade: mapping it
          * here regardless (as this used to) puts it back
@@ -145,7 +146,7 @@ static void s_client_show_visit(client_td *client, void *data)
          * is refocused or closed. */
         if (target != client->window &&
                 !client_is_shaded(client)) {
-            xcb_map_window(surface->connection,
+            xcb_map_window(xcb_connection_get(),
                     client->window);
         }
     } else if (client != NULL &&
@@ -153,7 +154,7 @@ static void s_client_show_visit(client_td *client, void *data)
             client->icon_window != 0) {
         xcb_window_t tray_below;
 
-        xcb_map_window(surface->connection,
+        xcb_map_window(xcb_connection_get(),
                 client->icon_window);
         /* Icons stay lower than the tray even within the
          * shared 'below' layer, "stuck to the desktop";
@@ -163,7 +164,7 @@ static void s_client_show_visit(client_td *client, void *data)
          * its own. */
         tray_below = systray_below_window();
         if (tray_below != XCB_WINDOW_NONE) {
-            xcb_configure_window(surface->connection,
+            xcb_configure_window(xcb_connection_get(),
                     client->icon_window,
                     XCB_CONFIG_WINDOW_SIBLING |
                     XCB_CONFIG_WINDOW_STACK_MODE,
@@ -171,7 +172,7 @@ static void s_client_show_visit(client_td *client, void *data)
                     tray_below, XCB_STACK_MODE_BELOW
                     });
         } else {
-            xcb_configure_window(surface->connection,
+            xcb_configure_window(xcb_connection_get(),
                     client->icon_window,
                     XCB_CONFIG_WINDOW_STACK_MODE,
                     (const uint32_t[]) {
@@ -190,7 +191,6 @@ static void s_client_show_visit(client_td *client, void *data)
  * everything.
  */
 struct s_restack_ctx_s {
-    xcb_connection_t *connection;   /**< XCB connection */
     xcb_window_t prev_target;       /**< Window stacked just below */
 };
 
@@ -218,12 +218,12 @@ static void s_client_restack_visit(client_td *client, void *data)
         ? client->frame : client->window;
 
     if (restack_ctx->prev_target != XCB_WINDOW_NONE) {
-        xcb_configure_window(restack_ctx->connection, target,
+        xcb_configure_window(xcb_connection_get(), target,
                 XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) {
                     restack_ctx->prev_target, XCB_STACK_MODE_ABOVE });
     } else {
-        xcb_configure_window(restack_ctx->connection, target,
+        xcb_configure_window(xcb_connection_get(), target,
                 XCB_CONFIG_WINDOW_STACK_MODE,
                 (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
     }
@@ -373,7 +373,7 @@ static void s_client_reflow_visit(client_td *client, void *data)
                 vals[0] = (uint32_t) new_x;
                 vals[1] = (uint32_t) new_y;
 
-                xcb_configure_window(surface->connection,
+                xcb_configure_window(xcb_connection_get(),
                         target,
                         XCB_CONFIG_WINDOW_X |
                         XCB_CONFIG_WINDOW_Y,
@@ -448,7 +448,6 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
      * pushed to 'below' just above) until the next iteration covered it
      * again, visible as a rapid, distracting flash on every desktop
      * switch with more than a couple of windows on it. */
-    restack_ctx.connection = surface->connection;
     restack_ctx.prev_target = XCB_WINDOW_NONE;
     stacking_walk(desktop, s_client_restack_visit, &restack_ctx);
 

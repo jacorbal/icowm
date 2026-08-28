@@ -41,6 +41,7 @@
 
 /* Local includes */
 #include <client/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /* Allocate and zero all heap string buffers for a client */
@@ -414,7 +415,7 @@ void client_decoration_layout_sync(client_td *client)
      * then, and X11 never generates 'Expose' for an unmapped window,
      * so this would be a no-op request anyway. */
     if (!is_shaded_now) {
-        xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
+        xcb_clear_area(xcb_connection_get(), 1, client->window, 0, 0, 0, 0);
     }
 }
 
@@ -656,7 +657,7 @@ int ci_create_decorations(client_td *client)
     frame.dim.h = (uint16_t)
         (client->layout.geometry.cur.dim.h + top + bottom);
 
-    client->frame = xcb_generate_id(client->connection);
+    client->frame = xcb_generate_id(xcb_connection_get());
     mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = client->config->theme.window.inactive.border.color;
     values[1] = client->config->theme.window.inactive.border.color;
@@ -680,7 +681,7 @@ int ci_create_decorations(client_td *client)
                 XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY  |
                 XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
                 XCB_EVENT_MASK_POINTER_MOTION;
-    xcb_create_window(client->connection,
+    xcb_create_window(xcb_connection_get(),
             XCB_COPY_FROM_PARENT,
             client->frame,
             client->parent_id,
@@ -691,12 +692,12 @@ int ci_create_decorations(client_td *client)
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    client->titlebar = xcb_generate_id(client->connection);
+    client->titlebar = xcb_generate_id(xcb_connection_get());
     mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = client->config->theme.window.inactive.color.background;
     values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
         XCB_EVENT_MASK_ENTER_WINDOW;
-    xcb_create_window(client->connection,
+    xcb_create_window(xcb_connection_get(),
             XCB_COPY_FROM_PARENT,
             client->titlebar,
             client->frame,
@@ -707,7 +708,7 @@ int ci_create_decorations(client_td *client)
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    xcb_reparent_window(client->connection,
+    xcb_reparent_window(xcb_connection_get(),
             client->window,
             client->frame,
             (int16_t) left, (int16_t) top);
@@ -737,7 +738,7 @@ int ci_create_decorations(client_td *client)
      * modifier beats 'XCB_MOD_MASK_ANY') and therefore still take
      * priority for move/resize interactions. */
     for (size_t bi = 0; bi < nb; ++bi) {
-        xcb_grab_button(client->connection,
+        xcb_grab_button(xcb_connection_get(),
                 0,                              /* owner_events */
                 client->frame,
                 XCB_EVENT_MASK_BUTTON_PRESS |
@@ -756,14 +757,14 @@ int ci_create_decorations(client_td *client)
 
     /* Publish '_NET_FRAME_EXTENTS' so clients and taskbars know the
      * size of the WM-added decoration around the content window */
-    if (client->ewmh != NULL) {
+    if (xcb_ewmh_connection_get() != NULL) {
         uint32_t extents[4];
         extents[0] = (uint32_t) client->layout.frame_extents.left;
         extents[1] = (uint32_t) client->layout.frame_extents.right;
         extents[2] = (uint32_t) client->layout.frame_extents.top;
         extents[3] = (uint32_t) client->layout.frame_extents.bottom;
-        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
-                client->window, client->ewmh->_NET_FRAME_EXTENTS,
+        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
+                client->window, xcb_ewmh_connection_get()->_NET_FRAME_EXTENTS,
                 XCB_ATOM_CARDINAL, 32, 4, extents);
     }
 

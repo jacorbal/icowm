@@ -58,6 +58,7 @@
 
 /* Local includes */
 #include <handler.h>
+#include <utils/xcb/connection.h>
 
 
 /* Handle a 'PROPERTY_NOTIFY' event */
@@ -137,8 +138,8 @@ void handler_property_notify(const wm_td *wm,
     }
 
     if (event->atom == XCB_ATOM_WM_NAME ||
-            (client->ewmh != NULL &&
-             event->atom == client->ewmh->_NET_WM_NAME)) {
+            (xcb_ewmh_connection_get() != NULL &&
+             event->atom == xcb_ewmh_connection_get()->_NET_WM_NAME)) {
         client_props_refresh_name(client);
 
         if (surface != NULL && desktop != NULL) {
@@ -161,8 +162,8 @@ void handler_property_notify(const wm_td *wm,
     }
 
     if (event->atom == XCB_ATOM_WM_ICON_NAME ||
-            (client->ewmh != NULL &&
-             event->atom == client->ewmh->_NET_WM_ICON_NAME)) {
+            (xcb_ewmh_connection_get() != NULL &&
+             event->atom == xcb_ewmh_connection_get()->_NET_WM_ICON_NAME)) {
         client_props_refresh_icon_name(client);
         wm_outdate_client(client);
         wm_outdate_surface(surface);
@@ -184,17 +185,17 @@ void handler_property_notify(const wm_td *wm,
      * invalidation, even though most of 'WM_HINTS' otherwise unrelated
      * to icons (input model, urgency, window group) is not itself
      * re-read here. */
-    if ((client->ewmh != NULL &&
-                event->atom == client->ewmh->_NET_WM_ICON) ||
+    if ((xcb_ewmh_connection_get() != NULL &&
+                event->atom == xcb_ewmh_connection_get()->_NET_WM_ICON) ||
             event->atom == XCB_ATOM_WM_HINTS) {
-        wmicon_invalidate(client->connection, &client->icon_pixmap_cache);
+        wmicon_invalidate(xcb_connection_get(), &client->icon_pixmap_cache);
         wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
         return;
     }
 
-    wm_window_role = atom_intern(client->connection, "WM_WINDOW_ROLE",
+    wm_window_role = atom_intern(xcb_connection_get(), "WM_WINDOW_ROLE",
             true);
 
     if (event->atom == XCB_ATOM_WM_CLASS ||
@@ -218,16 +219,16 @@ void handler_property_notify(const wm_td *wm,
      * de-facto hint 'client_init' already reads once at initial map
      * time (see there for the field layout), just applied live here
      * whenever it actually changes. */
-    motif_hints_atom = atom_intern(client->connection, "_MOTIF_WM_HINTS",
+    motif_hints_atom = atom_intern(xcb_connection_get(), "_MOTIF_WM_HINTS",
             true);
     if (motif_hints_atom != XCB_ATOM_NONE &&
             event->atom == motif_hints_atom) {
         xcb_get_property_reply_t *motif_r;
 
-        motif_ck = xcb_get_property(client->connection, 0,
+        motif_ck = xcb_get_property(xcb_connection_get(), 0,
                 client->window, motif_hints_atom, motif_hints_atom,
                 0, 5);
-        motif_r = xcb_get_property_reply(client->connection, motif_ck,
+        motif_r = xcb_get_property_reply(xcb_connection_get(), motif_ck,
                 NULL);
         if (motif_r != NULL) {
             if (motif_r->format == 32 &&
@@ -262,13 +263,13 @@ void handler_property_notify(const wm_td *wm,
         return;
     }
 
-    if (client->ewmh != NULL &&
-            (event->atom == client->ewmh->_NET_WM_STRUT_PARTIAL ||
-             event->atom == client->ewmh->_NET_WM_STRUT)) {
+    if (xcb_ewmh_connection_get() != NULL &&
+            (event->atom == xcb_ewmh_connection_get()->_NET_WM_STRUT_PARTIAL ||
+             event->atom == xcb_ewmh_connection_get()->_NET_WM_STRUT)) {
         memset(&strut, 0, sizeof(strut));
         memset(&partial, 0, sizeof(partial));
-        if (xcb_ewmh_get_wm_strut_partial_reply(client->ewmh,
-                    xcb_ewmh_get_wm_strut_partial(client->ewmh,
+        if (xcb_ewmh_get_wm_strut_partial_reply(xcb_ewmh_connection_get(),
+                    xcb_ewmh_get_wm_strut_partial(xcb_ewmh_connection_get(),
                             client->window),
                     &partial, NULL)) {
             client->layout.strut_partial.sides.left =
@@ -295,8 +296,8 @@ void handler_property_notify(const wm_td *wm,
                 (int32_t) partial.top_end_x;
             client->layout.strut_partial.end.bottom =
                 (int32_t) partial.bottom_end_x;
-        } else if (xcb_ewmh_get_wm_strut_reply(client->ewmh,
-                    xcb_ewmh_get_wm_strut(client->ewmh, client->window),
+        } else if (xcb_ewmh_get_wm_strut_reply(xcb_ewmh_connection_get(),
+                    xcb_ewmh_get_wm_strut(xcb_ewmh_connection_get(), client->window),
                     &strut, NULL)) {
             client->layout.strut_partial.sides.left =
                 (int32_t) strut.left;
@@ -321,12 +322,12 @@ void handler_property_notify(const wm_td *wm,
      * set it names now (a window dropped from the list keeps
      * whatever mask it already had, since nothing else in this
      * project relies on it being cleared again afterward). */
-    colormap_windows_atom = atom_intern(client->connection,
+    colormap_windows_atom = atom_intern(xcb_connection_get(),
             "WM_COLORMAP_WINDOWS", true);
     if (colormap_windows_atom != XCB_ATOM_NONE &&
             event->atom == colormap_windows_atom) {
         client_props_refresh_colormap_windows(client);
-        client_subscribe_colormap_windows(client->connection, client);
+        client_subscribe_colormap_windows(xcb_connection_get(), client);
         return;
     }
 
@@ -397,16 +398,7 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms,
     LOGGER_TRACE("Mapping notify (request=%u); refreshing grabs",
             (unsigned int) event->request);
 
-    /* Obtain the XCB connection from the first surface */
-    if (surfaces != NULL) {
-        list_item_td *const head = list_head(surfaces);
-        if (head != NULL) {
-            const surface_td *first = (surface_td *) list_data(head);
-            if (first != NULL) {
-                connection = first->connection;
-            }
-        }
-    }
+    connection = xcb_connection_get();
 
     xcb_refresh_keyboard_mapping(keysyms, event);
 

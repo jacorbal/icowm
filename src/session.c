@@ -41,6 +41,7 @@
 
 /* Local includes */
 #include <session.h>
+#include <utils/xcb/connection.h>
 
 
 
@@ -208,7 +209,6 @@ static struct session_tracked_pid_s *s_session_find_pid(pid_t pid)
 /**
  * @brief Run one hook command and record the child it produces
  *
- * @param connection XCB connection whose file descriptor is closed in
  *                   the child before executing (may be null)
  * @param command    Shell command to run; word-expanded before
  *                   @a exec
@@ -225,13 +225,12 @@ static struct session_tracked_pid_s *s_session_find_pid(pid_t pid)
  * @note Complexity: @e O(n), where @e n is the number of words
  *       @p command expands to
  */
-static int s_session_spawn_command(xcb_connection_t *connection,
-        const char *restrict command, const char *restrict hook)
+static int s_session_spawn_command(const char *restrict command,
+        const char *restrict hook)
 {
-    spawn_opts_td opts = { NULL, NULL, NULL };
+    spawn_opts_td opts = { NULL, NULL };
     pid_t pid = 0;
 
-    opts.connection = connection;
 
     if (spawn_command(command, &opts, &pid) != 0) {
         LOGGER_ERROR("Failed to start session hook '%s' command '%s'",
@@ -360,7 +359,7 @@ int session_load(session_td *session, const char *config_dir_prefix)
 
 /* Spawn every command registered for a session lifecycle hook */
 void session_run_hook(const session_td *session,
-        xcb_connection_t *connection, enum session_hook_e hook)
+        enum session_hook_e hook)
 {
     const list_td *list;
     const char *hook_name;
@@ -373,7 +372,7 @@ void session_run_hook(const session_td *session,
     hook_name = s_session_hook_name(hook);
     for (list_item_td *item = list_head(list);
             item != NULL; item = list_next(item)) {
-        (void) s_session_spawn_command(connection,
+        (void) s_session_spawn_command(
                 (const char *) list_data(item), hook_name);
     }
 }

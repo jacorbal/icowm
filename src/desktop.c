@@ -48,6 +48,7 @@
 /* Local includes */
 #include <desktop.h>
 #include <policy/stacking.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -462,7 +463,6 @@ static struct geometry_s s_desktop_compute_workarea(
 
 /* Initialize a new desktop */
 desktop_td *desktop_init(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh,
         uint32_t screen_id, uint32_t desktop_id,
         config_td *config)
 {
@@ -485,8 +485,6 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     desktop->screen_id = screen_id;
     desktop->id = desktop_id;
     desktop->client_active_id = 0;
-    desktop->ewmh = ewmh;
-    desktop->connection = connection;
 
     /* Get the configuration */
     desktop->config = config;

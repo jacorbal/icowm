@@ -45,6 +45,7 @@
 #include <menu/draw.h>
 #include <menu/cycle.h>
 #include <menu/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -155,7 +156,7 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
         icon_pos.y = row_y +
                 (WM_CYCLE_MENU_ROW_HEIGHT - (int) style->icon_size) / 2;
 
-        wmicon_draw_at(connection, g_cycle_menu.surface->ewmh,
+        wmicon_draw_at(connection, xcb_ewmh_connection_get(),
                 row_client->window, g_cycle_menu.window,
                 icon_pos, style->icon_size,
                 (i == g_cycle_menu.selected) ? style->fg_sel

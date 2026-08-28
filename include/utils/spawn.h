@@ -39,15 +39,6 @@
  */
 typedef struct spawn_opts_s {
     /**
-     * @brief Connection whose descriptor the child closes
-     *
-     * A child inherits the window manager's own socket to the X
-     * server, which it has no business holding open once it becomes
-     * another program.
-     */
-    xcb_connection_t *connection;
-
-    /**
      * @brief Value for the child's own @c DESKTOP_STARTUP_ID
      *
      * A startup-notification aware application reads this and

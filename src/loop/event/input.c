@@ -28,6 +28,7 @@
 
 /* Local includes */
 #include <loop/event.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -120,7 +121,7 @@ void loop_event_button_press(loop_ctx_td *ctx,
     bp = (xcb_button_press_event_t *) *event;
     s_loop_event_note_real_input(ctx, bp->event,
             (*event)->response_type, bp->time);
-    mouse_handle_press(ctx->wm, ctx->connection, ctx->surfaces, bp,
+    mouse_handle_press(ctx->wm, xcb_connection_get(), ctx->surfaces, bp,
             ctx->config);
 }
 
@@ -133,6 +134,6 @@ void loop_event_button_release(loop_ctx_td *ctx,
         return;
     }
 
-    mouse_handle_release(ctx->connection, ctx->surfaces,
+    mouse_handle_release(xcb_connection_get(), ctx->surfaces,
             (xcb_button_release_event_t *) *event, ctx->config);
 }

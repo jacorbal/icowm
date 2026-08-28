@@ -39,6 +39,7 @@
 /* Local includes */
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/layout.h>
+#include <utils/xcb/connection.h>
 
 
 /* Create and show a context menu window */
@@ -76,7 +77,6 @@ void ctxmenu_show(xcb_connection_t *connection,
 
     ctxmenu_close(state);
 
-    state->connection = connection;
     state->surface = surface;
     state->config = config;
     state->selected = -1;
@@ -205,28 +205,27 @@ void ctxmenu_close(ctxmenu_state_td *state)
         state->child = NULL;
     }
 
-    if (state->connection != NULL && state->window != XCB_WINDOW_NONE) {
-        xcb_destroy_window(state->connection, state->window);
+    if (xcb_connection_get() != NULL && state->window != XCB_WINDOW_NONE) {
+        xcb_destroy_window(xcb_connection_get(), state->window);
     }
 
     /* Always release keyboard and pointer grabs when the root menu
      * closes, even if the window was already gone.  This prevents stale
      * grabs from blocking further input when a race condition or early
      * destroy leaves 'window' as 'XCB_WINDOW_NONE' before close. */
-    if (state->parent == NULL && state->connection != NULL) {
-        xcb_ungrab_keyboard(state->connection, XCB_CURRENT_TIME);
-        xcb_ungrab_pointer(state->connection, XCB_CURRENT_TIME);
+    if (state->parent == NULL && xcb_connection_get() != NULL) {
+        xcb_ungrab_keyboard(xcb_connection_get(), XCB_CURRENT_TIME);
+        xcb_ungrab_pointer(xcb_connection_get(), XCB_CURRENT_TIME);
     }
 
-    if (state->connection != NULL) {
-        xcb_flush(state->connection);
+    if (xcb_connection_get() != NULL) {
+        xcb_flush(xcb_connection_get());
     }
 
     state->window = XCB_WINDOW_NONE;
     state->selected = -1;
     state->width = 0;
     state->height = 0;
-    state->connection = NULL;
     state->surface = NULL;
     state->config = NULL;
 

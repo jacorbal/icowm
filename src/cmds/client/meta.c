@@ -31,6 +31,7 @@
 /* Local includes */
 #include <cmds/client/meta.h>
 #include <cmds/client/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /* Rename the client window */
@@ -46,7 +47,7 @@ void ccmd_client_rename(client_td *client, const char *name)
     free(client->info.name);
     client->info.name = safe_strdup(name);
 
-    xcb_change_property(client->connection,
+    xcb_change_property(xcb_connection_get(),
             XCB_PROP_MODE_REPLACE,
             client->window,
             XCB_ATOM_WM_NAME,
@@ -55,7 +56,7 @@ void ccmd_client_rename(client_td *client, const char *name)
             (uint32_t) safe_strlen(client->info.name),
             client->info.name);
 
-    xcb_ewmh_set_wm_name(client->ewmh, client->window,
+    xcb_ewmh_set_wm_name(xcb_ewmh_connection_get(), client->window,
             (uint32_t) safe_strlen(client->info.name),
             client->info.name);
 }
@@ -98,11 +99,11 @@ void ccmd_client_reclass(client_td *client,
                 client->info.class_name[1], len1);
         wm_class_combined[len0 + 1 + len1] = '\0';
 
-        xcb_icccm_set_wm_class(client->connection, client->window,
+        xcb_icccm_set_wm_class(xcb_connection_get(), client->window,
                 (uint32_t) wm_class_combined_len, wm_class_combined);
         free(wm_class_combined);
     } else {
-        xcb_icccm_set_wm_class(client->connection, client->window,
+        xcb_icccm_set_wm_class(xcb_connection_get(), client->window,
                 (uint32_t) (len0 + 1), client->info.class_name[0]);
     }
 }
@@ -123,12 +124,12 @@ void ccmd_client_rerole(client_td *client, const char *role)
     free(client->info.role_name);
     client->info.role_name = safe_strdup(role);
 
-    role_atom = atom_intern(client->connection, "WM_WINDOW_ROLE", false);
+    role_atom = atom_intern(xcb_connection_get(), "WM_WINDOW_ROLE", false);
     if (role_atom == XCB_ATOM_NONE) {
         return;
     }
 
-    xcb_change_property(client->connection,
+    xcb_change_property(xcb_connection_get(),
             XCB_PROP_MODE_REPLACE,
             client->window,
             role_atom,
@@ -149,7 +150,7 @@ void ccmd_client_set_icon(client_td *client, const char *icon_name)
     LOGGER_TRACE("Setting icon name for client window=0x%x to '%s'",
             client->window, icon_name);
 
-    xcb_change_property(client->connection,
+    xcb_change_property(xcb_connection_get(),
             XCB_PROP_MODE_REPLACE,
             client->window,
             XCB_ATOM_WM_ICON_NAME,
@@ -158,7 +159,7 @@ void ccmd_client_set_icon(client_td *client, const char *icon_name)
             (uint32_t) safe_strlen(icon_name),
             icon_name);
 
-    xcb_ewmh_set_wm_icon_name(client->ewmh, client->window,
+    xcb_ewmh_set_wm_icon_name(xcb_ewmh_connection_get(), client->window,
             (uint32_t) safe_strlen(icon_name),
             icon_name);
 }

@@ -48,6 +48,7 @@
 /* Local includes */
 #include <input/kbd/bind.h>
 #include <input/modifier.h>
+#include <utils/xcb/connection.h>
 
 
 /** Resolved key bindings loaded from configuration */
@@ -517,7 +518,7 @@ for (list_item_td *node = list_head(surfaces);
         continue;
     }
 
-    xcb_ungrab_key(surface->connection, XCB_GRAB_ANY,
+    xcb_ungrab_key(xcb_connection_get(), XCB_GRAB_ANY,
             surface->screen->root, XCB_MOD_MASK_ANY);
 }
 }
@@ -617,14 +618,14 @@ static void s_keyboard_grab_on_surfaces(list_td *surfaces,
                 xcb_void_cookie_t ck;
                 xcb_generic_error_t *err;
                 ck = xcb_grab_key_checked(
-                        surface->connection,
+                        xcb_connection_get(),
                         1,
                         surface->screen->root,
                         (uint16_t) (modmask | s_lockmods[k]),
                         keycodes[j],
                         XCB_GRAB_MODE_ASYNC,
                         XCB_GRAB_MODE_ASYNC);
-                err = xcb_request_check(surface->connection, ck);
+                err = xcb_request_check(xcb_connection_get(), ck);
                 if (err != NULL) {
                     LOGGER_WARNING(
                             "xcb_grab_key failed for" \
@@ -749,13 +750,8 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
 
     s_keyboard_warn_cycle_pairs();
 
-    if (surfaces != NULL && !list_is_empty(surfaces)) {
-        surface_td *first =
-            (surface_td *) list_data(list_head(surfaces));
-
-        if (first != NULL && first->connection != NULL) {
-            xcb_flush(first->connection);
-        }
+    if (xcb_connection_get() != NULL) {
+        xcb_flush(xcb_connection_get());
     }
 }
 

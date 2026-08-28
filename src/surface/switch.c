@@ -39,6 +39,7 @@
 #include <cmds/client/flags.h>
 #include <cmds/client/icon.h>
 #include <cmds/client/maximize.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -320,11 +321,11 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
          * and never meant to track a specific desktop again; only a
          * genuinely single-desktop client needs this property
          * brought in line with where it actually landed. */
-        if (!client_is_pinned(client) && client->ewmh != NULL &&
-                client->connection != NULL) {
-            xcb_change_property(client->connection,
+        if (!client_is_pinned(client) && xcb_ewmh_connection_get() != NULL &&
+                xcb_connection_get() != NULL) {
+            xcb_change_property(xcb_connection_get(),
                     XCB_PROP_MODE_REPLACE, client->window,
-                    client->ewmh->_NET_WM_DESKTOP, XCB_ATOM_CARDINAL,
+                    xcb_ewmh_connection_get()->_NET_WM_DESKTOP, XCB_ATOM_CARDINAL,
                     32, 1, &to_desktop->id);
         }
     }
@@ -437,8 +438,7 @@ int surface_action_desktop_add(surface_td *surface)
 
     s_surface_layout_grow_for(surface, surface->desktop_count + 1u);
 
-    desktop = desktop_init(surface->connection,
-            surface->ewmh,
+    desktop = desktop_init(xcb_connection_get(),
             surface->id,
             surface->desktop_count,
             surface->config);
@@ -605,7 +605,7 @@ int surface_action_toggle_strutless_maximize(surface_td *surface)
      * remove. */
     s_surface_mark_all_desktops_outdated(surface);
     surface->is_outdated = true;
-    xcb_flush(surface->connection);
+    xcb_flush(xcb_connection_get());
 
     return 0;
 }

@@ -185,6 +185,7 @@ $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 $(O_DIR)/tests/policy/test_urgency: $(TESTS_DIR)/policy/test_urgency.c \
+		$(S_DIR)/utils/xcb/connection.c \
 		$(S_DIR)/policy/urgency.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/cdlist.c \
@@ -242,6 +243,7 @@ $(O_DIR)/tests/test_memguard: $(TESTS_DIR)/test_memguard.c \
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
 
 $(O_DIR)/tests/systray/test_text: $(TESTS_DIR)/systray/test_text.c \
+		$(S_DIR)/utils/xcb/connection.c \
 		$(S_DIR)/systray/text.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
@@ -253,6 +255,7 @@ $(O_DIR)/tests/systray/test_battery: $(TESTS_DIR)/systray/test_battery.c \
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 $(O_DIR)/tests/render/test_surface: $(TESTS_DIR)/render/test_surface.c \
+		$(S_DIR)/utils/xcb/connection.c \
 		$(S_DIR)/render/surface.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/logger.c \
@@ -316,6 +319,7 @@ $(O_DIR)/tests/surface/test_desktop_grid: \
 # round trip, at all.
 $(O_DIR)/tests/surface/test_monitor_direction: \
 		$(TESTS_DIR)/surface/test_monitor_direction.c \
+		$(S_DIR)/utils/xcb/connection.c \
 		$(S_DIR)/surface/monitors.c \
 		$(S_DIR)/utils/xcb/reply.c \
 		$(S_DIR)/logger.c \
@@ -325,6 +329,7 @@ $(O_DIR)/tests/surface/test_monitor_direction: \
 
 $(O_DIR)/tests/surface/test_desktop_add_remove: \
 		$(TESTS_DIR)/surface/test_desktop_add_remove.c \
+		$(S_DIR)/utils/xcb/connection.c \
 		$(S_DIR)/surface/switch.c \
 		$(S_DIR)/policy/stacking.c \
 		$(S_DIR)/desktop/dfind.c \
@@ -349,6 +354,7 @@ $(O_DIR)/tests/surface/test_desktop_add_remove: \
 $(O_DIR)/tests/enact/test_send_to_desktop: \
 		$(TESTS_DIR)/enact/test_send_to_desktop.c \
 		$(S_DIR)/enact/desktop.c \
+		$(S_DIR)/utils/xcb/connection.c \
 		$(S_DIR)/policy/stacking.c \
 		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/adt/cdlist.c \

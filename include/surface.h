@@ -112,9 +112,7 @@ typedef struct surface_s surface_td;
  * with underlying changes in the XCB environment or user preferences.
  */
 struct surface_s {
-    xcb_connection_t *connection;   /**< Pointer to XCB connection */
     xcb_screen_t *screen;           /**< Pointer to XCB screen */
-    xcb_ewmh_connection_t *ewmh;    /**< Pointer to EWMH connection */
     cdlist_td *desktops;            /**< Circular list of desktops */
     config_td *config;              /**< Configuration */
     uint32_t id;                    /**< Screen identifier or index */
@@ -177,7 +175,6 @@ struct surface_s {
  * @brief Initialize a new surface
  *
  * @param connection    Pointer to XCB connection
- * @param ewmh          EWMH connection pointer
  * @param surface_id    Surface identifier
  * @param desktop_count Number of desktops on this surface
  * @param config        Configuration this surface reads its own theme
@@ -190,7 +187,6 @@ struct surface_s {
  * @note Complexity: @e O(1)
  */
 surface_td *surface_init(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh,
         uint32_t surface_id, uint32_t desktop_count,
         config_td *config);
 

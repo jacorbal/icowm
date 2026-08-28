@@ -58,6 +58,7 @@
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -78,10 +79,10 @@ static void s_ccmd_client_pin_one(client_td *client)
 
     client_pin(client);
     ccmd_client_sync_states(client);
-    if (client->ewmh != NULL) {
+    if (xcb_ewmh_connection_get() != NULL) {
         all_desktops = WM_DESKTOP_ID_ALL;
-        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
-                client->window, client->ewmh->_NET_WM_DESKTOP,
+        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
+                client->window, xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &all_desktops);
     }
 
@@ -128,9 +129,9 @@ static void s_ccmd_client_unpin_one(client_td *client)
 
     client_unpin(client);
     ccmd_client_sync_states(client);
-    if (client->ewmh != NULL) {
-        xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
-                client->window, client->ewmh->_NET_WM_DESKTOP,
+    if (xcb_ewmh_connection_get() != NULL) {
+        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
+                client->window, xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
                 XCB_ATOM_CARDINAL, 32, 1, &client->desktop_id);
     }
 
@@ -148,10 +149,10 @@ static void s_ccmd_client_unpin_one(client_td *client)
          * unmapped target ('SubstructureNotify' on parent
          * + 'StructureNotify' on target) and one additional event for
          * the titlebar via the frame's 'SubstructureNotify'. */
-        ccmd_client_unmap_decorated(client, client->connection, target);
+        ccmd_client_unmap_decorated(client, xcb_connection_get(), target);
 
         if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(client->connection, client->icon_window);
+            xcb_unmap_window(xcb_connection_get(), client->icon_window);
             client->is_icon_mapped = false;
         }
 
@@ -407,13 +408,13 @@ void ccmd_client_update_allowed_actions(client_td *client)
     xcb_atom_t actions[12];
     uint32_t n = 0u;
 
-    if (client == NULL || client->ewmh == NULL) {
+    if (client == NULL || xcb_ewmh_connection_get() == NULL) {
         return;
     }
 
     /* Actions available to all managed, visible clients */
-    actions[n++] = client->ewmh->_NET_WM_ACTION_CLOSE;
-    actions[n++] = client->ewmh->_NET_WM_ACTION_CHANGE_DESKTOP;
+    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_CLOSE;
+    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_CHANGE_DESKTOP;
 
     /* None of moving, resizing or maximizing means anything while a
      * client is fullscreen: it occupies the monitor whole, and the
@@ -421,10 +422,10 @@ void ccmd_client_update_allowed_actions(client_td *client)
      * Advertising them anyway told a client it could ask for
      * something that would be refused. */
     if (client_is_resizable(client) && !client_is_fullscreen(client)) {
-        actions[n++] = client->ewmh->_NET_WM_ACTION_MOVE;
-        actions[n++] = client->ewmh->_NET_WM_ACTION_RESIZE;
-        actions[n++] = client->ewmh->_NET_WM_ACTION_MAXIMIZE_HORZ;
-        actions[n++] = client->ewmh->_NET_WM_ACTION_MAXIMIZE_VERT;
+        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_MOVE;
+        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_RESIZE;
+        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_MAXIMIZE_HORZ;
+        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_MAXIMIZE_VERT;
     }
 
     /* Not folded into the 'client_is_resizable' block above, unlike
@@ -438,21 +439,21 @@ void ccmd_client_update_allowed_actions(client_td *client)
      * at all, so advertising it as disallowed here would have kept
      * the fix in ccmd_client_fullscreen itself from ever being
      * reached. */
-    actions[n++] = client->ewmh->_NET_WM_ACTION_FULLSCREEN;
+    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_FULLSCREEN;
 
     /* The same predicate 'ccmd_client_iconify' refuses on, so that
      * what is advertised here and what actually happens cannot drift
      * apart */
     if (client_is_iconifiable(client)) {
-        actions[n++] = client->ewmh->_NET_WM_ACTION_MINIMIZE;
+        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_MINIMIZE;
     }
 
     /* All clients may be shaded, sticked, and re-stacked */
-    actions[n++] = client->ewmh->_NET_WM_ACTION_SHADE;
-    actions[n++] = client->ewmh->_NET_WM_ACTION_STICK;
-    actions[n++] = client->ewmh->_NET_WM_ACTION_ABOVE;
-    actions[n++] = client->ewmh->_NET_WM_ACTION_BELOW;
-    xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
-            client->window, client->ewmh->_NET_WM_ALLOWED_ACTIONS,
+    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_SHADE;
+    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_STICK;
+    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_ABOVE;
+    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_BELOW;
+    xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
+            client->window, xcb_ewmh_connection_get()->_NET_WM_ALLOWED_ACTIONS,
             XCB_ATOM_ATOM, 32, n, actions);
 }

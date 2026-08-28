@@ -32,6 +32,7 @@
 
 /* Local includes */
 #include <utils/spawn.h>
+#include <utils/xcb/connection.h>
 
 
 /** Exit status of a child that never managed to execute anything */
@@ -65,8 +66,8 @@ static void s_spawn_child(char **argv, const spawn_opts_td *opts,
 
     /* The child has no business holding the window manager's own
      * socket to the X server open once it becomes another program */
-    if (opts->connection != NULL) {
-        (void) close(xcb_get_file_descriptor(opts->connection));
+    if (xcb_connection_get() != NULL) {
+        (void) close(xcb_get_file_descriptor(xcb_connection_get()));
     }
 
     /* Set here, in the child, and not in the parent after 'fork':
@@ -103,7 +104,7 @@ static void s_spawn_child(char **argv, const spawn_opts_td *opts,
 int spawn_command(const char *command, const spawn_opts_td *opts,
         pid_t *out_pid)
 {
-    static const spawn_opts_td s_spawn_no_opts = { NULL, NULL, NULL };
+    static const spawn_opts_td s_spawn_no_opts = { NULL, NULL };
     wordexp_t words = (wordexp_t) {0};
     int wordexp_flags = WRDE_NOCMD;
     int err_pipe[2];

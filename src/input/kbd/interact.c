@@ -64,6 +64,7 @@
 
 /* Local includes */
 #include <input/kbd/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -298,7 +299,7 @@ static void s_kbd_resize_apply(client_td *client,
      * screen-relative coordinates so the application always knows its
      * true on-screen position and content-area size, regardless of
      * reparenting. */
-    client_send_synthetic_configure_notify(client->connection, client);
+    client_send_synthetic_configure_notify(xcb_connection_get(), client);
 
     /* Force a repaint AFTER the synthetic 'ConfigureNotify' so the
      * application draws at the correct screen-relative geometry.
@@ -307,9 +308,9 @@ static void s_kbd_resize_apply(client_td *client,
      * 'client_decoration_layout_sync') and the synthetic
      * 'ConfigureNotify', giving programs that rely on size and position
      * before their 'Expose' handler runs the correct geometry. */
-    xcb_clear_area(client->connection, 1, client->window, 0, 0, 0, 0);
+    xcb_clear_area(xcb_connection_get(), 1, client->window, 0, 0, 0, 0);
 
-    xcb_flush(client->connection);
+    xcb_flush(xcb_connection_get());
 
     /* Mark the desktop as needing a repaint so frame decorations are
      * refreshed at the correct new dimensions */
@@ -381,7 +382,7 @@ void ik_handle_launch(enum ik_launch_e program,
             break;
         case IK_LAUNCH_LAUNCHER:
             if (config->base.prompt.is_enabled) {
-                run_init(surface->connection, surface, config);
+                run_init(xcb_connection_get(), surface, config);
                 return;
             }
             path = config->base.programs.launcher;

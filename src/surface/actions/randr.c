@@ -38,6 +38,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
+#include <utils/xcb/connection.h>
 
 /**
  * @brief One CRTC's own state, as it was immediately before
@@ -354,9 +355,9 @@ static bool s_surface_randr_blank_crtc(surface_td *surface,
     if (take_snapshot) {
         xcb_randr_get_crtc_info_reply_t *ci_reply;
 
-        ci_cookie = xcb_randr_get_crtc_info(surface->connection, crtc,
+        ci_cookie = xcb_randr_get_crtc_info(xcb_connection_get(), crtc,
                 res_reply->config_timestamp);
-        ci_reply = xcb_randr_get_crtc_info_reply(surface->connection,
+        ci_reply = xcb_randr_get_crtc_info_reply(xcb_connection_get(),
                 ci_cookie, NULL);
         if (ci_reply != NULL) {
             s_surface_randr_snapshot_save(true, crtc, output_id,
@@ -366,11 +367,11 @@ static bool s_surface_randr_blank_crtc(surface_td *surface,
         free(ci_reply);
     }
 
-    cfg_cookie = xcb_randr_set_crtc_config(surface->connection, crtc,
+    cfg_cookie = xcb_randr_set_crtc_config(xcb_connection_get(), crtc,
             XCB_CURRENT_TIME, res_reply->config_timestamp, 0, 0,
             (xcb_randr_mode_t) XCB_NONE,
             (uint16_t) XCB_RANDR_ROTATION_ROTATE_0, 0u, NULL);
-    cfg_reply = xcb_randr_set_crtc_config_reply(surface->connection,
+    cfg_reply = xcb_randr_set_crtc_config_reply(xcb_connection_get(),
             cfg_cookie, NULL);
 
     ok = cfg_reply != NULL &&
@@ -468,7 +469,7 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
 
     prior_crtc = info->crtc;
     crtc = (prior_crtc != (xcb_randr_crtc_t) XCB_NONE) ? prior_crtc
-        : s_surface_randr_find_free_crtc(surface->connection, info,
+        : s_surface_randr_find_free_crtc(xcb_connection_get(), info,
                 res_reply->config_timestamp);
     if (crtc == (xcb_randr_crtc_t) XCB_NONE) {
         LOGGER_WARNING("XRandR: no free CRTC compatible with output" \
@@ -484,9 +485,9 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
      * current one, so an already-matching profile issues no XRandR
      * write at all (see 'crtc_matches_current' below) rather than
      * reasserting an identical configuration on every reload. */
-    ci_cookie = xcb_randr_get_crtc_info(surface->connection, crtc,
+    ci_cookie = xcb_randr_get_crtc_info(xcb_connection_get(), crtc,
             res_reply->config_timestamp);
-    ci_reply = xcb_randr_get_crtc_info_reply(surface->connection,
+    ci_reply = xcb_randr_get_crtc_info_reply(xcb_connection_get(),
             ci_cookie, NULL);
 
     mode = s_surface_randr_find_mode(res_reply, profile->preferred_res);
@@ -572,11 +573,11 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
     if (!crtc_matches_current) {
         xcb_randr_set_crtc_config_reply_t *cfg_reply;
 
-        cfg_cookie = xcb_randr_set_crtc_config(surface->connection, crtc,
+        cfg_cookie = xcb_randr_set_crtc_config(xcb_connection_get(), crtc,
                 XCB_CURRENT_TIME, res_reply->config_timestamp,
                 pos_x, pos_y, mode,
                 profile->rotation, 1u, &output_id);
-        cfg_reply = xcb_randr_set_crtc_config_reply(surface->connection,
+        cfg_reply = xcb_randr_set_crtc_config_reply(xcb_connection_get(),
                 cfg_cookie, NULL);
 
         if (cfg_reply == NULL ||
@@ -598,7 +599,7 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
     }
 
     if (profile->is_primary && output_id != current_primary) {
-        xcb_randr_set_output_primary(surface->connection,
+        xcb_randr_set_output_primary(xcb_connection_get(),
                 surface->screen->root, output_id);
         LOGGER_NOTICE("XRandR: marked output '%s' as primary on" \
                 " surface %u", profile->name, surface->id);
@@ -633,7 +634,7 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
         s_randr_snapshot_surface = surface;
     }
 
-    if (surface == NULL || surface->connection == NULL ||
+    if (surface == NULL || xcb_connection_get() == NULL ||
             surface->screen == NULL || surface->config == NULL ||
             !surface->config->randr.is_enabled) {
         return false;
@@ -651,12 +652,12 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
      * 'xcb_randr_set_output_primary' instead of reissuing it every
      * reload regardless of whether it would change anything. */
     res_cookie = xcb_randr_get_screen_resources_current(
-            surface->connection, surface->screen->root);
-    primary_cookie = xcb_randr_get_output_primary(surface->connection,
+            xcb_connection_get(), surface->screen->root);
+    primary_cookie = xcb_randr_get_output_primary(xcb_connection_get(),
             surface->screen->root);
 
     res_reply = xcb_randr_get_screen_resources_current_reply(
-            surface->connection, res_cookie, &res_error);
+            xcb_connection_get(), res_cookie, &res_error);
     if (res_reply == NULL) {
         xcb_reply_log_error(res_error, "the XRandR screen resources");
         LOGGER_WARNING("XRandR: failed to query screen resources on" \
@@ -666,7 +667,7 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
     }
 
     primary_reply = xcb_randr_get_output_primary_reply(
-            surface->connection, primary_cookie, &primary_error);
+            xcb_connection_get(), primary_cookie, &primary_error);
     xcb_reply_log_error(primary_error, "the primary XRandR output");
     current_primary = (primary_reply != NULL)
         ? primary_reply->output : (xcb_randr_output_t) XCB_NONE;
@@ -687,7 +688,7 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
             continue;
         }
 
-        info = s_surface_randr_find_output_by_name(surface->connection,
+        info = s_surface_randr_find_output_by_name(xcb_connection_get(),
                 res_reply, profile->name, &output_id);
         if (info == NULL) {
             LOGGER_DEBUG("XRandR: output '%s' (configured profile)" \
@@ -741,7 +742,7 @@ void surface_action_revert_randr_profiles(void)
      * at all) would otherwise leave this function returning immediately
      * without ever reaching the primary-output revert near the bottom,
      * silently leaving that one change stuck. */
-    if (surface == NULL || surface->connection == NULL ||
+    if (surface == NULL || xcb_connection_get() == NULL ||
             (s_randr_snapshot_count == 0u &&
              !s_randr_snapshot_primary_known)) {
         s_randr_snapshot_count = 0u;
@@ -757,9 +758,9 @@ void surface_action_revert_randr_profiles(void)
      * already follow, both using a screen-resources reply's own
      * 'config_timestamp' rather than that constant. */
     res_cookie = xcb_randr_get_screen_resources_current(
-            surface->connection, surface->screen->root);
+            xcb_connection_get(), surface->screen->root);
     res_reply = xcb_randr_get_screen_resources_current_reply(
-            surface->connection, res_cookie, &res_error);
+            xcb_connection_get(), res_cookie, &res_error);
     if (res_reply == NULL) {
         xcb_reply_log_error(res_error, "the XRandR screen resources");
         LOGGER_WARNING("XRandR: failed to query screen resources on" \
@@ -778,7 +779,7 @@ void surface_action_revert_randr_profiles(void)
         xcb_randr_set_crtc_config_reply_t *cfg_reply;
         bool was_off = snap->prior_mode == (xcb_randr_mode_t) XCB_NONE;
 
-        cfg_cookie = xcb_randr_set_crtc_config(surface->connection,
+        cfg_cookie = xcb_randr_set_crtc_config(xcb_connection_get(),
                 snap->crtc, XCB_CURRENT_TIME,
                 res_reply->config_timestamp,
                 (was_off) ? 0 : snap->prior_x,
@@ -791,7 +792,7 @@ void surface_action_revert_randr_profiles(void)
                     : snap->prior_rotation,
                 (was_off) ? 0u : 1u,
                 (was_off) ? NULL : &snap->output_id);
-        cfg_reply = xcb_randr_set_crtc_config_reply(surface->connection,
+        cfg_reply = xcb_randr_set_crtc_config_reply(xcb_connection_get(),
                 cfg_cookie, NULL);
 
         if (cfg_reply == NULL ||
@@ -809,7 +810,7 @@ void surface_action_revert_randr_profiles(void)
     free(res_reply);
 
     if (s_randr_snapshot_primary_known) {
-        xcb_randr_set_output_primary(surface->connection,
+        xcb_randr_set_output_primary(xcb_connection_get(),
                 surface->screen->root, s_randr_snapshot_prior_primary);
     }
 

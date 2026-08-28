@@ -32,6 +32,7 @@
 #include <config.h>
 #include <harness/tap.h>
 #include <render/surface.h>
+#include <utils/xcb/connection.h>
 
 
 static int s_render_full_calls;
@@ -272,7 +273,10 @@ static void s_test_flush_guards(void)
     TAP_OK(true, "a NULL surface is safely ignored, no crash");
 
     memset(&surface, 0, sizeof(surface));
-    surface.connection = NULL;
+    /* The connection is no longer a member of the surface: it is held
+     * by 'utils/xcb/connection.h' for the whole session, so an absent
+     * one is expressed by leaving that unset */
+    xcb_connection_set(NULL);
     surface_render_flush(&surface);
     TAP_OK(true, "a NULL connection is safely ignored, no crash");
 }

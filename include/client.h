@@ -78,8 +78,6 @@ typedef struct client_s client_td;
  * base, theme, and accessibility settings driving its visual aspects.
  */
 struct client_s {
-    xcb_connection_t *connection;   /**< XCB display / connection */
-    xcb_ewmh_connection_t *ewmh;    /**< Pointer to EWMH connection */
 
     /**
      * @brief Direct pointer to the managed parent this client is

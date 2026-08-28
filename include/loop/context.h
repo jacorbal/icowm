@@ -42,9 +42,6 @@ typedef struct loop_ctx_s {
     /** Window-manager singleton this loop runs for */
     wm_td *wm;
 
-    /** XCB connection, i.e., @a wm_connection of @p wm */
-    xcb_connection_t *connection;
-
     /** All managed surfaces, i.e., @a wm_surfaces of @p wm */
     list_td *surfaces;
 

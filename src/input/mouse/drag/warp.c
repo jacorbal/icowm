@@ -57,6 +57,7 @@
 #include <input/mouse/drag/overlay.h>
 #include <input/mouse/drag/outline.h>
 #include <input/mouse/drag/warp.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -537,7 +538,7 @@ void drag_warp_tick(xcb_connection_t *connection)
      * thin wrapper over this same call this mirrors): without it, a
      * warp is the one way to switch desktops that never shows which
      * one just became active. */
-    notify_desktop_show(surface->connection, surface,
+    notify_desktop_show(xcb_connection_get(), surface,
             surface->desktop_cur, new_desktop->name, surface->config);
 
     s_warp_pointer_target(&new_root_x, &new_root_y);

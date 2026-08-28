@@ -48,6 +48,7 @@
 
 /* Local includes */
 #include <loop/timers.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -156,11 +157,11 @@ void loop_timers_tick(const loop_ctx_td *ctx)
 
     systray_clock_tick();
     urgency_blink_tick(ctx->surfaces, ctx->config);
-    cctl_sn_tick(ctx->connection, ctx->surfaces);
-    mouse_hover_poll_tick(ctx->connection, ctx->surfaces);
-    menu_confirm_dialog_tick(ctx->connection, ctx->config);
-    menu_message_dialog_tick(ctx->connection);
-    drag_warp_tick(ctx->connection);
+    cctl_sn_tick(xcb_connection_get(), ctx->surfaces);
+    mouse_hover_poll_tick(xcb_connection_get(), ctx->surfaces);
+    menu_confirm_dialog_tick(xcb_connection_get(), ctx->config);
+    menu_message_dialog_tick(xcb_connection_get());
+    drag_warp_tick(xcb_connection_get());
     wm_shutdown_tick(ctx->wm);
     cctl_kill_tick();
 
@@ -168,7 +169,7 @@ void loop_timers_tick(const loop_ctx_td *ctx)
      * the window manager was started with a cap at all */
     if (ctx->restricted_memory_mib > 0u && ctx->surfaces != NULL &&
             !list_is_empty(ctx->surfaces)) {
-        memguard_tick(ctx->connection,
+        memguard_tick(xcb_connection_get(),
                 (surface_td *) list_data(list_head(ctx->surfaces)),
                 ctx->config);
     }

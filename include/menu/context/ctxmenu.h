@@ -203,7 +203,6 @@ typedef struct ctxmenu_state_s {
     struct ctxmenu_state_s *parent;
 
     /** Cached connection, for repaints */
-    xcb_connection_t *connection;
     const config_td *config;        /**< Cached configuration */
     surface_td *surface;            /**< Cached activation surface */
     /** XCB window, or @c XCB_WINDOW_NONE */

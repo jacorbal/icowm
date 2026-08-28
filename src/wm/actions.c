@@ -361,7 +361,7 @@ int wm_action_config_reload(const wm_td *wm)
     LOGGER_INFO("Configuration reloaded successfully", L_NARG);
     wm_json_syntax_errors_warn();
     if (wm_session(wm) != NULL) {
-        session_run_hook(wm_session(wm), wm_connection(wm),
+        session_run_hook(wm_session(wm),
                 SESSION_HOOK_RELOAD);
     }
 
