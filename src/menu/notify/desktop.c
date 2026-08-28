@@ -49,10 +49,6 @@ void notify_desktop_show(xcb_connection_t *connection,
         const char *desktop_name, const config_td *cfg)
 {
     char text[WM_DESKTOP_MAX_LENGTH_NAME + 32];
-    uint32_t row = 0u;
-    uint32_t col = 0u;
-    bool has_row_col;
-    bool show_row_col;
 
     if (connection == NULL || surface == NULL || cfg == NULL ||
             surface->screen == NULL) {
@@ -63,36 +59,12 @@ void notify_desktop_show(xcb_connection_t *connection,
         return;
     }
 
-    has_row_col = surface_desktop_row_col(surface, desktop_idx,
-            &row, &col);
-    /* Only worth showing once the grid is genuinely more than the
-     * one row a desktop's own ID already fully describes on its
-     * own; see 'surface_desktop_row_col' itself (surface.h) for
-     * what "row 0" always means on a linear (or unconfigured)
-     * layout, the exact case this excludes here. */
-    show_row_col = has_row_col &&
-        surface->config != NULL &&
-        surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
-        surface->config->base.screens[surface->id]
-            .desktop_layout.rows > 1u;
-
-    if (desktop_name != NULL && desktop_name[0] != '\0') {
-        if (show_row_col) {
-            (void) snprintf(text, sizeof(text), "[%u (%u, %u)] -- %s",
-                    desktop_idx, row, col, desktop_name);
-        } else {
-            (void) snprintf(text, sizeof(text),
-                    "[%u] -- %s", desktop_idx, desktop_name);
-        }
-    } else {
-        if (show_row_col) {
-            (void) snprintf(text, sizeof(text), "[%u (%u, %u)]",
-                    desktop_idx, row, col);
-        } else {
-            (void) snprintf(text, sizeof(text),
-                    "[%u]", desktop_idx);
-        }
-    }
+    /* The one place that names a desktop is 'surface_desktop_label',
+     * so that this overlay and every window list say it the same way.
+     * The name is wanted here: an overlay announcing a switch has
+     * room for it and nothing else to identify the desktop by. */
+    surface_desktop_label(surface, desktop_idx, desktop_name, false,
+            true, text, sizeof(text));
 
     notify_popup_show_centered(connection, surface, &s_desktop_notify,
             text, cfg);

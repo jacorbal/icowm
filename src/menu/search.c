@@ -600,6 +600,34 @@ static void s_search_draw_row(xcb_connection_t *connection,
             : cfg->theme.search.unselected.font);
     text_renderer_set_color(fg, bg);
 
+    /* The desktop label comes first and the window title after it,
+     * rather than the other way round.  A title is as long as the
+     * application cares to make it, so with the title leading, the
+     * label lands at a different offset on every row and cannot be
+     * read down the list; at the front the labels line up in a column.
+     *
+     * That is also why the label leaves out the desktop's own name
+     * here: what identifies an entry in a list of windows is the
+     * window's own title, and the name would take width from it. */
+    if (s_search.surface->desktop_count > 1u && r->desktop != NULL) {
+        char desk_buf[WM_SEARCH_ENTRY_LENGTH];
+
+        surface_desktop_label(s_search.surface, r->desktop->id,
+                r->desktop->name,
+                r->client != NULL && client_is_pinned(r->client),
+                false, desk_buf, sizeof(desk_buf));
+
+        if (desk_buf[0] != '\0' && text_x < safe_right) {
+            menu_draw_truncate(desk_buf,
+                    (uint16_t) (safe_right - text_x));
+            menu_draw_label(connection, s_search.window,
+                    (struct position_s) { text_x,
+                        row_y + WM_SEARCH_ROW_HEIGHT - 4 }, desk_buf);
+            text_x = (int16_t) (text_x + menu_draw_measure(desk_buf) +
+                    WM_SEARCH_COLUMN_GAP);
+        }
+    }
+
     (void) snprintf(name_buf, sizeof(name_buf), "%s", r->name);
     if (safe_right > text_x) {
         uint16_t name_max = (uint16_t) (safe_right - text_x);
@@ -612,81 +640,6 @@ static void s_search_draw_row(xcb_connection_t *connection,
     menu_draw_label(connection, s_search.window,
             (struct position_s) { text_x,
                 row_y + WM_SEARCH_ROW_HEIGHT - 4 }, name_buf);
-
-    if (s_search.surface->desktop_count > 1u && r->desktop != NULL) {
-        int16_t desk_x = (int16_t) (text_x +
-                menu_draw_measure(name_buf) + WM_SEARCH_COLUMN_GAP);
-
-        if (desk_x < safe_right) {
-            char desk_buf[WM_SEARCH_ENTRY_LENGTH];
-
-            /* A pinned client is not really on any one desktop in
-             * particular (see 'ccmd_client_bring_family''s own doc
-             * comment, cmds/client/transient.c, for why pinning
-             * never actually moves a client between desktops):
-             * showing its own recorded 'r->desktop' here regardless,
-             * wherever it still happens to be registered, would name
-             * one specific desktop for a client that is, in truth,
-             * equally on every one of them.  Deliberately distinct
-             * from leaving this whole label blank instead, the way
-             * it already is above whenever a session has only a
-             * single desktop to begin with: shown here for a pinned
-             * client on a session with more than one, so the two
-             * cases ("nothing to disambiguate" and "this one client
-             * is pinned across all of them") never look identical to
-             * someone reading the results. */
-            if (r->client != NULL && client_is_pinned(r->client)) {
-                (void) snprintf(desk_buf, sizeof(desk_buf), "%s",
-                        _(STR_SEARCH_ALL_DESKTOPS));
-            } else {
-                uint32_t row = 0u;
-                uint32_t col = 0u;
-                bool has_row_col = surface_desktop_row_col(
-                        s_search.surface, r->desktop->id, &row, &col);
-                /* Only worth showing once the grid is genuinely more
-                 * than the one row a desktop's own ID already fully
-                 * describes on its own; see 'surface_desktop_row_col'
-                 * itself (surface.h) for what "row 0" always means on
-                 * a linear (or unconfigured) layout, the exact case
-                 * this excludes here. */
-                bool show_row_col = has_row_col &&
-                    s_search.surface->config != NULL &&
-                    s_search.surface->id <
-                        (uint32_t) CONFIG_MAX_SCREENS &&
-                    s_search.surface->config->base.
-                        screens[s_search.surface->id].
-                        desktop_layout.rows > 1u;
-
-                if (r->desktop->name[0] != '\0') {
-                    if (show_row_col) {
-                        (void) snprintf(desk_buf, sizeof(desk_buf),
-                                "[%u (%u, %u)] -- %s",
-                                r->desktop->id, row, col,
-                                r->desktop->name);
-                    } else {
-                        (void) snprintf(desk_buf, sizeof(desk_buf),
-                                "[%u] -- %s",
-                                r->desktop->id, r->desktop->name);
-                    }
-                } else {
-                    if (show_row_col) {
-                        (void) snprintf(desk_buf, sizeof(desk_buf),
-                                "[%u (%u, %u)]",
-                                r->desktop->id, row, col);
-                    } else {
-                        (void) snprintf(desk_buf, sizeof(desk_buf), "[%u]",
-                                r->desktop->id);
-                    }
-                }
-            }
-            menu_draw_truncate(desk_buf,
-                    (uint16_t) (safe_right - desk_x));
-            menu_draw_label(connection, s_search.window,
-                    (struct position_s) { desk_x,
-                        row_y + WM_SEARCH_ROW_HEIGHT - 4 },
-                    desk_buf);
-        }
-    }
 
     if (r->hints[0] != '\0') {
         uint16_t hint_w = menu_draw_measure(r->hints);

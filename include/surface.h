@@ -377,6 +377,44 @@ bool surface_desktop_row_col(const surface_td *surface,
         uint32_t desktop_id, uint32_t *row_out, uint32_t *col_out);
 
 /**
+ * @brief Compose the label naming the desktop a client is on
+ *
+ * The one place that decides how a desktop is named to the person, so
+ * that everything showing one says it the same way.  Three cases, and
+ * each leaves out what would not help:
+ *
+ *  - a client pinned across every desktop names none of them;
+ *  - a layout of more than one row gives the desktop's own ID and its
+ *    row and column, the grid being what makes a coordinate mean
+ *    something;
+ *  - anything else gives the ID alone, a single row's coordinate
+ *    saying no more than the ID already does.
+ *
+ * A session with only one desktop is not a case here: the caller that
+ * can meet one, the search menu, leaves the label out entirely rather
+ * than naming the only desktop there is.
+ *
+ * @param surface      Surface the desktop belongs to
+ * @param desktop_id   Desktop to name
+ * @param desktop_name Its own name, or @c NULL when it has none
+ * @param is_pinned    Whether the client is on every desktop
+ * @param shows_name   Whether to append @p desktop_name, which the
+ *                     overlay wants and a list of windows does not:
+ *                     there the window's own title identifies the
+ *                     entry, and the name would take width from it
+ * @param out_label    Receives the label; emptied when it cannot be
+ *                     made
+ * @param length       Size of @p out_label, in bytes
+ *
+ * @note @p shows_name does not apply to a pinned client: there is no
+ *       one desktop to name, so there is no name to append either
+ * @note Complexity: @e O(1)
+ */
+void surface_desktop_label(const surface_td *surface,
+        uint32_t desktop_id, const char *desktop_name, bool is_pinned,
+        bool shows_name, char *out_label, size_t length);
+
+/**
  * @brief Get the desktop toward the north in the configured layout,
  *        optionally cycling
  *

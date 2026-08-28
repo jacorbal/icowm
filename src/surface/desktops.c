@@ -36,16 +36,19 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL, size_t */
 #include <stdint.h>
+#include <stdio.h>      /* snprintf */
 
 /* ADT includes */
 #include <adt/cdlist.h>
 
 /* Project includes */
 #include <config.h>
+#include <i18n.h>
 #include <desktop.h>
 
 /* Local includes */
 #include <surface.h>
+#include <defs/uistr.h>
 
 
 /**
@@ -301,6 +304,63 @@ bool surface_desktop_row_col(const surface_td *surface,
     layout = &surface->config->base.screens[surface->id].desktop_layout;
     s_layout_row_col(desktop_id, layout, row_out, col_out);
     return true;
+}
+
+
+/* Compose the label naming the desktop a client is on */
+void surface_desktop_label(const surface_td *surface,
+        uint32_t desktop_id, const char *desktop_name, bool is_pinned,
+        bool shows_name, char *out_label, size_t length)
+{
+    uint32_t row = 0u;
+    uint32_t col = 0u;
+    bool has_row_col;
+    bool shows_row_col;
+
+    if (out_label == NULL || length == 0u) {
+        return;
+    }
+    out_label[0] = '\0';
+
+    if (surface == NULL) {
+        return;
+    }
+
+    /* A pinned client is on every desktop, so there is no one desktop
+     * to name and nothing for 'shows_name' to append either */
+    if (is_pinned) {
+        (void) snprintf(out_label, length, "%s",
+                _(STR_SEARCH_ALL_DESKTOPS));
+        return;
+    }
+
+    /* Only worth showing the coordinate once the grid is genuinely
+     * more than the one row a desktop's own ID already fully describes
+     * on its own; see 'surface_desktop_row_col' above for what "row 0"
+     * always means on a linear (or unconfigured) layout, the exact
+     * case this excludes. */
+    has_row_col = surface_desktop_row_col(surface, desktop_id,
+            &row, &col);
+    shows_row_col = has_row_col && surface->config != NULL &&
+        surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
+        surface->config->base.screens[surface->id]
+            .desktop_layout.rows > 1u;
+
+    if (shows_name && desktop_name != NULL &&
+            desktop_name[0] != '\0') {
+        if (shows_row_col) {
+            (void) snprintf(out_label, length, "[%u (%u, %u)] -- %s",
+                    desktop_id, row, col, desktop_name);
+        } else {
+            (void) snprintf(out_label, length, "[%u] -- %s",
+                    desktop_id, desktop_name);
+        }
+    } else if (shows_row_col) {
+        (void) snprintf(out_label, length, "[%u (%u, %u)]",
+                desktop_id, row, col);
+    } else {
+        (void) snprintf(out_label, length, "[%u]", desktop_id);
+    }
 }
 
 
