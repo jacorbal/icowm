@@ -24,6 +24,7 @@
 #include <adt/list.h>
 
 /* Policy includes */
+#include <cmds/client/focus.h>
 #include <policy/focus.h>
 
 /* Command includes */
@@ -47,60 +48,6 @@
 /* Local includes */
 #include <input/mouse/event.h>
 #include <input/mouse/internal.h>
-
-/**
- * @brief Find the client that should regain focus after @p client
- *        loses it, searching @p desktop's own stacking order from
- *        the top down
- *
- * Skips @p client itself, any hidden or shaded client, and any
- * client that is not currently focusable, is iconified, or has no
- * focus fallback (see @c client_has_no_focus_fallback's own doc
- * comment, client.h).  The first client encountered that clears all
- * of those, searching from the top of the stack downward, is the
- * one returned.
- *
- * @param desktop Desktop whose own stacking order to search
- * @param client  Client to exclude from the search
- *
- * @return The client to focus instead, or @c NULL if @p desktop has
- *         no stacking order at all, or none of its other clients
- *         qualify
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p desktop
- */
-static client_td *s_focus_fallback_in_stacking(const desktop_td *desktop,
-        const client_td *client)
-{
-    cdlist_item_td *node = NULL;
-    cdlist_item_td *tail;
-
-    if (desktop == NULL || desktop->stacking == NULL) {
-        return NULL;
-    }
-
-    tail = cdlist_tail(desktop->stacking);
-    if (tail != NULL) {
-        node = cdlist_prev(tail);
-    }
-
-    while (node != NULL && node != cdlist_tail(desktop->stacking)) {
-        client_td *const c = (client_td *) cdlist_data(node);
-        if (c != NULL && c != client &&
-                !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                !client_is_shaded(c) &&
-                client_is_focusable(c) &&
-                !client_is_iconified(c) &&
-                !client_has_no_focus_fallback(c)) {
-            return c;
-        }
-        node = cdlist_prev(node);
-    }
-
-    return NULL;
-}
-
 
 /**
  * @brief Scroll north on a client's own titlebar: maximize it,
@@ -166,27 +113,22 @@ static void s_scroll_titlebar_restore(client_td *client,
  * @brief Scroll west on a client's own titlebar (the exact same
  *        gesture @c DESKTOP_PREV always was): shade it
  *
- * Transfers focus away only when @p client was the one actually
- * holding it, via @a s_focus_fallback_in_stacking; shading an
- * already-inactive client leaves whichever other client currently
- * has real focus untouched.
+ * Sends the client to the end of both orders the desktop keeps, the
+ * stacking one and the focus one, and lets losing focus follow from
+ * being last rather than arranging it separately.  A client that was
+ * not the one holding focus keeps whatever had it.
  *
- * @param client   Client whose titlebar the scroll landed on
- * @param desktop  Desktop owning @p client, or @c NULL
- * @param surface  Surface owning @p desktop, or @c NULL
- * @param surfaces Full surface list, passed through to @c focus_apply
- * @param config   Active configuration, passed through to
- *                 @c focus_apply
+ * @param client  Client whose titlebar the scroll landed on
+ * @param desktop Desktop owning @p client, or @c NULL
+ * @param surface Surface owning @p desktop, or @c NULL
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
 static void s_scroll_titlebar_shade(client_td *client,
-        desktop_td *desktop, surface_td *surface, list_td *surfaces,
-        const config_td *config)
+        desktop_td *desktop, surface_td *surface)
 {
     bool was_active;
-    client_td *prev_c;
 
     if (client_is_shaded(client)) {
         return;
@@ -197,17 +139,30 @@ static void s_scroll_titlebar_shade(client_td *client,
 
     ccmd_client_shade(client);
 
+    /* Sent to the end of both orders the desktop keeps, and nothing
+     * else done about focus.  Shading a window with the wheel is a way
+     * of putting it out of the way, so it goes last among the windows
+     * on this desktop: last in the stacking order, where a rolled-up
+     * title bar would otherwise sit over whatever it was shaded to get
+     * at, and last in the focus order.
+     *
+     * Losing focus then follows from being last rather than being
+     * arranged separately, which is what this did before: it picked
+     * the replacement out of the stacking list, and so handed focus to
+     * whichever window happened to be drawn highest rather than to the
+     * one the person had been working in.
+     *
+     * Only the wheel does this.  Shading from a key binding or from an
+     * EWMH request is a state change and nothing more, which is why
+     * neither 'ccmd_client_shade' nor its other callers demote
+     * anything. */
+    if (desktop != NULL) {
+        (void) desktop_action_client_send_back(desktop, client);
+        focus_order_to_bottom(desktop, client);
+    }
+
     if (was_active && desktop != NULL && surface != NULL) {
-        prev_c = s_focus_fallback_in_stacking(desktop, client);
-        if (prev_c != NULL) {
-            focus_apply(surfaces, surface, desktop, prev_c, false,
-                    config);
-            im_sync_sticky_active(surface, desktop, prev_c);
-        } else {
-            enact_client_unfocus(client);
-            desktop->client_active_id = 0;
-            desktop->is_focus_dirty = true;
-        }
+        client_focus_fallback(desktop, surface, client);
     }
 
     if (desktop != NULL) {
@@ -347,8 +302,7 @@ void im_press_scroll_binding(xcb_connection_t *connection,
                 s_scroll_titlebar_restore(client, desktop, surface);
                 break;
             case MOUSEBIND_DESKTOP_WEST:
-                s_scroll_titlebar_shade(client, desktop, surface,
-                        surfaces, config);
+                s_scroll_titlebar_shade(client, desktop, surface);
                 break;
             case MOUSEBIND_DESKTOP_EAST:
                 s_scroll_titlebar_unshade(client, desktop, surface,

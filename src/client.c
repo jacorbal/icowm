@@ -606,6 +606,17 @@ static void s_client_read_window_type(xcb_connection_t *connection,
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_SPLASH) {
                 client->properties.type = CLIENT_TYPE_SPLASH;
                 client_undecorate(client);
+                /* A start-up screen is not somewhere the person works:
+                 * it is not worth a taskbar entry it will outlive by
+                 * seconds, and it must not take the keyboard away from
+                 * whatever they were typing into while the application
+                 * behind it loads.  Neither is spelled out in EWMH,
+                 * which says only what the type means, but both are
+                 * what every desktop does with one. */
+                client->properties.flags |=
+                    (uint16_t) CLIENT_FLAG_SKIP_TASKBAR;
+                client->properties.flags &=
+                    (uint16_t) ~(uint16_t) CLIENT_FLAG_FOCUSABLE;
                 break;
             }
 

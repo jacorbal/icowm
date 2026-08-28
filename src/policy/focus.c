@@ -150,6 +150,56 @@ void focus_order_remove(const client_td *client)
 }
 
 
+/* Move a client behind every other client of its own desktop */
+void focus_order_to_bottom(const desktop_td *desktop, client_td *client)
+{
+    cdlist_item_td *node;
+    cdlist_item_td *prev = NULL;
+    cdlist_item_td *last_of_desktop = NULL;
+    const cdlist_item_td *initial;
+
+    if (desktop == NULL || client == NULL || !s_focus_order_ensure()) {
+        return;
+    }
+
+    /* The last client of this same desktop other than this one, which
+     * is where this goes: behind that one, and no further.  The order
+     * spans every managed client, so its far end is behind the windows
+     * of every other desktop too, and putting it there would rank it
+     * against windows it shares no screen with. */
+    node = cdlist_head(s_focus_order);
+    initial = node;
+    if (node != NULL) {
+        do {
+            const client_td *const c = cdlist_data(node);
+
+            if (c != NULL && c != client &&
+                    desktop_find_client_by_id(desktop, c->id) == c) {
+                last_of_desktop = node;
+            }
+            node = cdlist_next(node);
+        } while (node != NULL && node != initial);
+    }
+
+    /* Nothing else on this desktop to be behind, so nothing to do.
+     * Moving it anyway would shift it among the clients of other
+     * desktops, which is the opposite of what demoting it here
+     * means. */
+    if (last_of_desktop == NULL) {
+        return;
+    }
+
+    node = s_focus_order_find(client, &prev);
+    if (node != NULL) {
+        void *removed = NULL;
+
+        (void) cdlist_rem_next(s_focus_order, prev, &removed);
+    }
+
+    (void) cdlist_ins_next(s_focus_order, last_of_desktop, client);
+}
+
+
 /* Move a client to the front of the focus order */
 void focus_order_to_top(client_td *client)
 {

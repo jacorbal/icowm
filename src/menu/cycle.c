@@ -258,22 +258,20 @@ static void s_cycle_scroll_to_selection(void)
  * every navigation, this keeps their real icons in sync with the menu
  * immediately instead.
  *
- * Both sides go through @a ri_render_client_icon, which works out on
+ * Which of the two a client is does not need saying here, and that is
+ * why this takes no flag for it: @a ri_render_client_icon works out on
  * its own whether the client it is handed is the one the cycle has
- * picked: the newly selected one comes out in active colors, its
- * active font and no pixmap, and the one just passed over back in its
- * ordinary inactive appearance with its pixmap.  Each is asked for
- * with the render forced, since either may look the same to that
- * function's own skip check as it did a moment earlier.
+ * picked.  The newly selected one comes out in active colors, its
+ * active font and no pixmap; the one just passed over, back in its
+ * ordinary inactive appearance with its pixmap.  The render is forced,
+ * since either may look to that function's own skip check the same as
+ * it did a moment earlier.
  *
- * @param client      Client whose real desktop icon to repaint
- * @param is_selected Whether @p client is the cycle's own newly
- *                     selected entry (@c true), or the one just
- *                     passed over (@c false)
+ * @param client Client whose real desktop icon to repaint
  *
  * @note A no-op for a client that is not actually an iconified icon (or
- *       @c NULL, or with no cycle menu open at all); both render
- *       functions already guard that safely on their own
+ *       @c NULL, or with no cycle menu open at all); the render
+ *       function already guards that safely on its own
  * @note The cycle's own initial preselection at @a cycle_init time
  *       needs no separate call here
  * @note Complexity: @e O(1)
@@ -283,17 +281,13 @@ static void s_cycle_scroll_to_selection(void)
  *       applies the very same "selected" render this function itself
  *       calls below.
  */
-static void s_cycle_repaint_icon(client_td *client, bool is_selected)
+static void s_cycle_repaint_icon(client_td *client)
 {
     if (client == NULL || g_cycle_menu.desktop == NULL) {
         return;
     }
 
-    if (is_selected) {
-        ri_render_client_icon(client, true, true);
-    } else {
-        ri_render_client_icon(client, true, true);
-    }
+    ri_render_client_icon(client, true, true);
     xcb_flush(g_cycle_menu.desktop->connection);
 }
 
@@ -688,8 +682,8 @@ void cycle_navigate_to(unsigned int idx)
     s_cycle_scroll_to_selection();
 
     if (prev_client != cycle_get_selected_client()) {
-        s_cycle_repaint_icon(prev_client, false);
-        s_cycle_repaint_icon(cycle_get_selected_client(), true);
+        s_cycle_repaint_icon(prev_client);
+        s_cycle_repaint_icon(cycle_get_selected_client());
     }
 }
 
@@ -716,8 +710,8 @@ void cycle_navigate_next(void)
         (g_cycle_menu.selected + 1) % g_cycle_menu.count;
     s_cycle_scroll_to_selection();
 
-    s_cycle_repaint_icon(prev_client, false);
-    s_cycle_repaint_icon(cycle_get_selected_client(), true);
+    s_cycle_repaint_icon(prev_client);
+    s_cycle_repaint_icon(cycle_get_selected_client());
 }
 
 
@@ -736,8 +730,8 @@ void cycle_navigate_prev(void)
          g_cycle_menu.count) % g_cycle_menu.count;
     s_cycle_scroll_to_selection();
 
-    s_cycle_repaint_icon(prev_client, false);
-    s_cycle_repaint_icon(cycle_get_selected_client(), true);
+    s_cycle_repaint_icon(prev_client);
+    s_cycle_repaint_icon(cycle_get_selected_client());
 }
 
 

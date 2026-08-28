@@ -121,7 +121,18 @@ EWMH Compliance
         ` _MOVE`, ` _RESIZE`, ` _MINIMIZE`, ` _SHADE`, ` _STICK`,
         ` _MAXIMIZE_HORZ`, ` _MAXIMIZE_VERT`, ` _FULLSCREEN`,
         ` _CHANGE_DESKTOP`, ` _CLOSE`, ` _ABOVE`, and ` _BELOW` are all
-        advertised.
+        advertised, each only where it can actually be carried out.
+
+        Moving, resizing and maximizing are withheld from a client
+        whose `WM_NORMAL_HINTS` pins both axes, its declared minimum
+        and maximum being the same size, and from one that is
+        currently fullscreen, since it holds the monitor whole until
+        that state is dropped.  Advertising them regardless told a
+        client it could ask for what would be refused.  Fullscreen
+        itself stays advertised for a fixed-size client, deliberately:
+        it overrides the client's own geometry rather than honoring
+        it, and some clients check this property before asking
+        (`src/cmds/client/flags.c`, `src/client/props.c`).
 - [`+`] `_NET_WM_STRUT` (1.3)
 - [`+`] `_NET_WM_STRUT_PARTIAL` (1.3)
 - [`/`] `_NET_WM_ICON_GEOMETRY` (1.3)
@@ -235,13 +246,13 @@ was individually confirmed by reading its handling code.
 - [`+`] `WM_HINTS` (2.0)
         Input model, initial state, window group, and urgency are all
         read (`src/client.c`).  All four input models of §4.1.7 are
-        honored, and each by exactly one mechanism.  `SetInputFocus` is
-        issued only for a Passive client, meaning one whose `input`
-        field is true and that does not register `WM_TAKE_FOCUS`.  Every
-        client registering that protocol is sent the message and nothing
-        else, whichever way its `input` field reads, since §4.1.7 has
-        the client itself do the setting in both the Locally and the
-        Globally Active models.  A No Input client receives neither.
+        honored separately: `SetInputFocus` is issued only for a client
+        whose `input` field is true, Passive and Locally Active, and
+        `WM_TAKE_FOCUS` is sent to any client registering that protocol,
+        which covers Locally and Globally Active, so a No Input client
+        receives neither.  A legacy `icon_pixmap`/`icon_mask` bitmap
+        icon is read as a fallback when `_NET_WM_ICON` is absent
+        (`src/render/wmicon.c`).
 - [`+`] `WM_CLASS` (2.0)
 - [`+`] `WM_TRANSIENT_FOR` (2.0)
         Read and stored (`src/client.c`).  §4.1.2.6's special case (the

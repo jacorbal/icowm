@@ -70,10 +70,88 @@
 
 /* Project includes */
 #include <lookup.h>
+#include <utils/xcb/atom.h>
 #include <surface.h>
 
 /* Local includes */
 #include <handler.h>
+
+
+/**
+ * @brief Read @c _NET_WM_STATE again, just before the window is shown
+ *
+ * @a client_init already read it when the window was adopted, but a
+ * client that sets the property around that same moment can be sampled
+ * before it gets there.  Nothing reads the property a second time
+ * afterwards, so the state was lost for good: the window came up at
+ * its own size while every later check still believed it fullscreen,
+ * leaving something that could not be moved or resized and was not
+ * fullscreen either.
+ *
+ * Only the two states this function's caller acts on are looked for.
+ * The rest of @c _NET_WM_STATE was applied at adoption and does not
+ * need doing twice.
+ *
+ * @param connection XCB connection
+ * @param ewmh       EWMH connection
+ * @param client     Client whose recorded initial state is refreshed
+ *
+ * @note Never clears what was already recorded: a client that set the
+ *       state early and had it seen is not made to lose it by a reply
+ *       that arrives without it
+ * @note Complexity: @e O(n), where @e n is the number of atoms the
+ *       property holds
+ */
+static void s_map_refresh_initial_state(xcb_connection_t *connection,
+        xcb_ewmh_connection_t *ewmh, client_td *client)
+{
+    xcb_get_property_reply_t *reply;
+    xcb_atom_t atom_fullscreen;
+    xcb_atom_t atom_max_horz;
+    xcb_atom_t atom_max_vert;
+    const xcb_atom_t *atoms;
+    uint32_t natoms;
+
+    if (connection == NULL || ewmh == NULL || client == NULL) {
+        return;
+    }
+
+    atom_fullscreen = atom_intern(connection,
+            "_NET_WM_STATE_FULLSCREEN", true);
+    atom_max_horz = atom_intern(connection,
+            "_NET_WM_STATE_MAXIMIZED_HORZ", true);
+    atom_max_vert = atom_intern(connection,
+            "_NET_WM_STATE_MAXIMIZED_VERT", true);
+
+    reply = xcb_get_property_reply(connection,
+            xcb_ewmh_get_wm_state(ewmh, client->window), NULL);
+    if (reply == NULL) {
+        return;
+    }
+
+    if (reply->type == XCB_ATOM_ATOM && reply->format == 32) {
+        atoms = (const xcb_atom_t *) xcb_get_property_value(reply);
+        natoms = (uint32_t) xcb_get_property_value_length(reply) /
+            (uint32_t) sizeof(xcb_atom_t);
+
+        for (uint32_t i = 0u; atoms != NULL && i < natoms; ++i) {
+            if (atom_fullscreen != XCB_ATOM_NONE &&
+                    atoms[i] == atom_fullscreen) {
+                client->hints_ewmh.initial_state.is_fullscreen = true;
+            } else if (atom_max_horz != XCB_ATOM_NONE &&
+                    atoms[i] == atom_max_horz) {
+                client->hints_ewmh.initial_state.is_maximized_horz =
+                    true;
+            } else if (atom_max_vert != XCB_ATOM_NONE &&
+                    atoms[i] == atom_max_vert) {
+                client->hints_ewmh.initial_state.is_maximized_vert =
+                    true;
+            }
+        }
+    }
+
+    free(reply);
+}
 
 
 /**
@@ -293,6 +371,17 @@ void handler_map_request(const wm_td *wm,
          * fullscreen geometry, and sending the ordinary one afterward
          * would tell the client its old, pre-fullscreen position and
          * size right after telling it the correct one. */
+        /* Re-read rather than trusting what 'client_init' saw.  That
+         * read happens when the window is first adopted, and a client
+         * that sets '_NET_WM_STATE' around that moment could be
+         * sampled before it got there: the state was then lost for
+         * good, since nothing reads the property again, and the
+         * window came up at its own small size while every later
+         * check still believed it was fullscreen.  Asking again here,
+         * with the window about to be shown, makes the outcome the
+         * same whichever order the two happened in. */
+        s_map_refresh_initial_state(connection, ewmh, client);
+
         if (client->hints_ewmh.initial_state.is_fullscreen) {
             ccmd_client_fullscreen(client);
         } else if (client->hints_ewmh.initial_state.is_maximized_horz &&

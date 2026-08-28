@@ -542,7 +542,6 @@ void ccmd_client_shade(client_td *client)
     uint32_t shaded_h;
     xcb_get_geometry_cookie_t geom_ck;
     xcb_get_geometry_reply_t *geom_r;
-    desktop_td *desktop;
 
     if (client == NULL || !client_is_decorated(client) ||
             client_is_shaded(client) || client_is_fullscreen(client)) {
@@ -623,17 +622,6 @@ void ccmd_client_shade(client_td *client)
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
 
     ccmd_client_sync_states(client);
-
-    /* Sent to the back of its own desktop's stack.  A shaded window is
-     * a title bar and nothing else, so leaving it where it was keeps a
-     * strip of it over whatever the person shaded it to get at, which
-     * is the opposite of what shading was for.  Done here rather than
-     * at the callers so that the wheel over the title bar, the EWMH
-     * '_NET_WM_STATE_SHADED' request and the key binding all agree. */
-    desktop = wm_get_client_desktop(client);
-    if (desktop != NULL) {
-        (void) desktop_action_client_send_back(desktop, client);
-    }
 
     wm_request_client_redraw(client);
     xcb_flush(client->connection);

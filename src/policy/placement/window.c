@@ -452,6 +452,49 @@ void place_window_apply(const wm_td *wm,
         wa_dim = screen;
     }
 
+    /* A splash screen goes in the middle of the work area.  EWMH does
+     * not require this, saying only what the type means, but it is
+     * what every toolkit that offers a splash does of its own accord
+     * and what the person expects to see: a start-up screen cascaded
+     * into a corner alongside ordinary windows looks like a mistake.
+     *
+     * Placed ahead of the honored-position branch below, and not
+     * merely ahead of the transient centering: a splash routinely
+     * computes its own centre and asks for it through 'PPosition',
+     * which that branch obeys, so a splash never reached this at all
+     * while it sat after.  What it asks for is a guess at where the
+     * middle is, made without knowing the work area or which monitor
+     * it will land on, and this knows both.
+     *
+     * Ahead of the transient centering too, since a splash may be
+     * transient for something and its own screen is the frame that
+     * matters for it rather than whatever window spawned it. */
+    if (client->properties.type == (uint16_t) CLIENT_TYPE_SPLASH) {
+        struct position_s centered;
+
+        centered.x = wa_pos.x + ((int32_t) wa_dim.w -
+                (int32_t) client->layout.geometry.cur.dim.w) / 2;
+        centered.y = wa_pos.y + ((int32_t) wa_dim.h -
+                (int32_t) client->layout.geometry.cur.dim.h) / 2;
+
+        /* Placed without going through 's_place_window_finalize',
+         * which applies the client's own window gravity to whatever
+         * position it is handed.  That is right for a position the
+         * client asked for, which is stated in terms of its gravity,
+         * and wrong for this one: the middle worked out here is
+         * already where the window goes, so a splash declaring
+         * centre gravity had half its width taken off again and
+         * landed left of centre. */
+        xcb_configure_window(connection,
+                (client_is_decorated(client) && client->frame != 0)
+                    ? client->frame : client->window,
+                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+                (const uint32_t[]) { (uint32_t) centered.x,
+                    (uint32_t) centered.y });
+        client->layout.geometry.cur.pos = centered;
+        return;
+    }
+
     /* ICCCM 4.1.2.3: a client-requested position takes priority over
      * every placement policy below, including the transient-centering
      * convenience immediately following this: an explicit position

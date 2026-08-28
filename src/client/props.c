@@ -360,6 +360,28 @@ void client_props_refresh_normal_hints(client_td *client)
         client->hints_icccm.size.inc.h = (uint32_t) hints.height_inc;
     }
 
+    /* A client whose declared minimum and maximum are the same size
+     * cannot be resized at all, and saying otherwise in
+     * '_NET_WM_ALLOWED_ACTIONS' advertises a move, a resize and a
+     * maximize that its own 'WM_NORMAL_HINTS' forbids.  The flag is
+     * kept in step with the hints on every update, in both
+     * directions: a client is free to drop its maximum later and
+     * become resizable again.
+     *
+     * Both axes have to be pinned for this.  One fixed axis leaves
+     * the other free, which is still a resizable window. */
+    if (client->hints_icccm.size.max.w > 0u &&
+            client->hints_icccm.size.max.h > 0u &&
+            client->hints_icccm.size.max.w ==
+                client->hints_icccm.size.min.w &&
+            client->hints_icccm.size.max.h ==
+                client->hints_icccm.size.min.h) {
+        client->properties.flags &=
+            (uint16_t) ~(uint16_t) CLIENT_FLAG_RESIZABLE;
+    } else {
+        client->properties.flags |= (uint16_t) CLIENT_FLAG_RESIZABLE;
+    }
+
     /* Always wins over 'windows.gravity' in 'config.json' ('client.h',
      * 'layout.gravity' itself), including on a later hint update like
      * this one, per ICCCM's own "MUST honor" mandate; that config field

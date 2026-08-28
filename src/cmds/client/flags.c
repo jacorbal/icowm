@@ -414,7 +414,13 @@ void ccmd_client_update_allowed_actions(client_td *client)
     /* Actions available to all managed, visible clients */
     actions[n++] = client->ewmh->_NET_WM_ACTION_CLOSE;
     actions[n++] = client->ewmh->_NET_WM_ACTION_CHANGE_DESKTOP;
-    if (client_is_resizable(client)) {
+
+    /* None of moving, resizing or maximizing means anything while a
+     * client is fullscreen: it occupies the monitor whole, and the
+     * window manager holds it there until the state is dropped.
+     * Advertising them anyway told a client it could ask for
+     * something that would be refused. */
+    if (client_is_resizable(client) && !client_is_fullscreen(client)) {
         actions[n++] = client->ewmh->_NET_WM_ACTION_MOVE;
         actions[n++] = client->ewmh->_NET_WM_ACTION_RESIZE;
         actions[n++] = client->ewmh->_NET_WM_ACTION_MAXIMIZE_HORZ;

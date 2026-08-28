@@ -72,6 +72,32 @@ void focus_order_add(client_td *client);
 void focus_order_remove(const client_td *client);
 
 /**
+ * @brief Move a client behind every other client of its own desktop
+ *
+ * The opposite of @a focus_order_to_top: this client becomes the least
+ * recently used one on @p desktop, so every fallback there prefers
+ * anything else before reaching it.
+ *
+ * For an action that puts a window out of the way rather than closing
+ * it, shading being the one that does, where saying so once is enough:
+ * the window loses focus because it is now last, not because something
+ * separately took focus off it.
+ *
+ * Behind that desktop's own clients and no further.  The order spans
+ * every managed client, so its far end is behind the windows of every
+ * other desktop too, and being demoted on one desktop says nothing
+ * about where this client stands among another's.
+ *
+ * @param desktop Desktop the client is being demoted within
+ * @param client  Client to demote
+ *
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients
+ */
+void focus_order_to_bottom(const desktop_td *desktop,
+        client_td *client);
+
+/**
  * @brief Move a client to the front of the focus order
  *
  * @param client Client that has just received focus
