@@ -25,6 +25,7 @@
 #include <xcb/xcb.h>
 
 /* Local includes */
+#include <config.h>
 #include <harness/tap.h>
 #include <input/modifier.h>
 

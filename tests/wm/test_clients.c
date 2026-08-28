@@ -27,8 +27,10 @@
 #include <adt/ohtbl.h>
 
 /* Local includes */
+#include <client.h>
 #include <desktop.h>
 #include <harness/tap.h>
+#include <surface.h>
 #include <wm/internal.h>
 
 

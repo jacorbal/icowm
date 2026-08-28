@@ -32,8 +32,12 @@
 #include <time.h>
 
 /* Local includes */
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
 #include <harness/tap.h>
 #include <scratchpad.h>
+#include <surface.h>
 #include <wm/internal.h>
 
 

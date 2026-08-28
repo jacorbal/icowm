@@ -37,8 +37,11 @@
 #include <xcb/xcb.h>
 
 /* Local includes */
+#include <client.h>
+#include <desktop.h>
 #include <harness/tap.h>
 #include <lookup.h>
+#include <surface.h>
 
 
 /** Link-only stand-in for surface_desktop_get (surface.c): lookup.c

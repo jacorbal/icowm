@@ -285,6 +285,8 @@ $(O_DIR)/tests/policy/test_tiling: $(TESTS_DIR)/policy/test_tiling.c \
 		$(S_DIR)/policy/placement/icon.c \
 		$(S_DIR)/policy/stacking.c \
 		$(S_DIR)/desktop/dfind.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/utils/hash/murmurhash.c \
 		$(S_DIR)/policy/placement/score.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/logger.c \

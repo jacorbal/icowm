@@ -23,11 +23,65 @@
 #include <adt/cdlist.h>
 
 /* Local includes */
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include <client.h>
+#include <policy/stacking.h>
+#include <adt/ohtbl.h>
 #include <desktop.h>
 #include <config.h>
 #include <harness/tap.h>
 #include <policy/placement/icon.h>
+
+
+/**
+ * @brief Hash a client by its own address
+ *
+ * @param key Client to hash
+ *
+ * @return A hash of @p key
+ *
+ * @note Complexity: @e O(1)
+ */
+static size_t s_client_hash1(const void *key)
+{
+    return (size_t) (uintptr_t) key;
+}
+
+
+/**
+ * @brief Second hash for the open-addressed table
+ *
+ * @param key Unused
+ *
+ * @return @c 1, probing every slot in turn
+ *
+ * @note Complexity: @e O(1)
+ */
+static size_t s_client_hash2(const void *key)
+{
+    (void) key;
+
+    return 1u;
+}
+
+
+/**
+ * @brief Whether two table entries are the same client
+ *
+ * @param key1 First client
+ * @param key2 Second client
+ *
+ * @return @c true when they are the same
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_client_match(const void *key1, const void *key2)
+{
+    return key1 == key2;
+}
 
 
 /* place_icon_apply's own guard clauses: any missing required
@@ -186,8 +240,14 @@ static void s_test_icon_avoids_occupied_slot(void)
     occupant.icon_pos.x = 8;
     occupant.icon_pos.y = 560;
 
-    desktop.stacking = cdlist_init(NULL);
-    cdlist_ins_next(desktop.stacking, NULL, &occupant);
+    /* The stacking order spans every managed client and filters by
+     * asking the desktop's client table which of them it shows, so a
+     * client has to be put in both to be seen by a walk */
+    desktop.clients = ohtbl_init(8, 8, s_client_hash1, s_client_hash2,
+            s_client_match, NULL);
+    (void) stacking_create(&desktop);
+    (void) ohtbl_insert(desktop.clients, &occupant);
+    (void) stacking_add(&desktop, &occupant);
 
     place_icon_apply(&client, &desktop, CONFIG_ICON_PLACEMENT_BOTTOM,
             (struct dimensions_s) { 32u, 32u },
@@ -196,7 +256,8 @@ static void s_test_icon_avoids_occupied_slot(void)
     TAP_OK(!(out_pos.x == 8 && out_pos.y == 560),
             "the occupied first slot is skipped for the next free one");
 
-    cdlist_destroy(desktop.stacking);
+    stacking_destroy(&desktop);
+    ohtbl_destroy(desktop.clients);
 }
 
 
@@ -248,8 +309,11 @@ static void s_test_icon_smart_avoids_visible_window(void)
     window.layout.geometry.cur.dim.w = 800u;
     window.layout.geometry.cur.dim.h = 100u;
 
-    desktop.stacking = cdlist_init(NULL);
-    cdlist_ins_next(desktop.stacking, NULL, &window);
+    desktop.clients = ohtbl_init(8, 8, s_client_hash1, s_client_hash2,
+            s_client_match, NULL);
+    (void) stacking_create(&desktop);
+    (void) ohtbl_insert(desktop.clients, &window);
+    (void) stacking_add(&desktop, &window);
 
     place_icon_apply(&client, &desktop, CONFIG_ICON_PLACEMENT_SMART,
             (struct dimensions_s) { 32u, 32u },
@@ -259,7 +323,8 @@ static void s_test_icon_smart_avoids_visible_window(void)
             "a visible window covering slot 0 pushes SMART to a" \
             " different, cheaper slot");
 
-    cdlist_destroy(desktop.stacking);
+    stacking_destroy(&desktop);
+    ohtbl_destroy(desktop.clients);
 }
 
 

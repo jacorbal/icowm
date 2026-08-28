@@ -30,7 +30,9 @@
 #include <adt/cdlist.h>
 
 /* Local includes */
+#include <client.h>
 #include <harness/tap.h>
+#include <policy/stacking.h>
 #include <desktop.h>
 #include <surface.h>
 
@@ -55,6 +57,84 @@ xcb_screen_iterator_t xcb_setup_roots_iterator(const xcb_setup_t *R)
 void xcb_screen_next(xcb_screen_iterator_t *i)
 {
     (void) i;
+}
+
+
+/**
+ * @brief Hash a client by its own address
+ *
+ * @param key Client to hash
+ *
+ * @return A hash of @p key
+ *
+ * @note Complexity: @e O(1)
+ */
+static size_t s_client_hash1(const void *key)
+{
+    return (size_t) (uintptr_t) key;
+}
+
+
+/**
+ * @brief Second hash for the open-addressed table
+ *
+ * @param key Unused
+ *
+ * @return @c 1, probing every slot in turn
+ *
+ * @note Complexity: @e O(1)
+ */
+static size_t s_client_hash2(const void *key)
+{
+    (void) key;
+
+    return 1u;
+}
+
+
+/**
+ * @brief Whether two table entries are the same client
+ *
+ * @param key1 First client
+ * @param key2 Second client
+ *
+ * @return @c true when they are the same
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_client_match(const void *key1, const void *key2)
+{
+    return key1 == key2;
+}
+
+
+/**
+ * @brief Put a client on a desktop, in both structures
+ *
+ * The table is what says which desktop shows a client, and the
+ * stacking order is what says where it sits among the rest; a walk
+ * over the order asks the table, so a client missing from either is
+ * invisible to it.
+ *
+ * @param desktop Desktop to put it on
+ * @param client  Client to place
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_place_client(desktop_td *desktop, client_td *client)
+{
+    static uint32_t next_id = 1u;
+
+    /* Every client gets an ID of its own.  The stacking order asks
+     * 'desktop_find_client_by_id' which desktop shows a client, and
+     * that hands back the first client bearing the ID it was given:
+     * with several clients left at zero it answers with the wrong one
+     * for all but the first, which then looks like it is on no
+     * desktop at all and is never taken back out of the order. */
+    client->id = next_id++;
+    (void) ohtbl_insert(desktop->clients, client);
+    (void) stacking_add(desktop, client);
 }
 
 
@@ -86,13 +166,20 @@ static void s_make_surface(surface_td *surface, desktop_td *desktop,
     surface->monitors[0].y = 0;
     surface->monitors[0].w = screen_w;
     surface->monitors[0].h = screen_h;
-    desktop->stacking = cdlist_init(NULL);
+    /* The stacking order is no longer a list of the desktop's own:
+     * it spans every managed client and filters by asking the
+     * desktop's client table which of them it shows, so a test
+     * putting a client on a desktop has to put it in both */
+    desktop->clients = ohtbl_init(8, 8, s_client_hash1, s_client_hash2,
+            s_client_match, NULL);
+    (void) stacking_create(desktop);
 }
 
 
 static void s_destroy_surface(surface_td *surface, desktop_td *desktop)
 {
-    cdlist_destroy(desktop->stacking);
+    stacking_destroy(desktop);
+    ohtbl_destroy(desktop->clients);
     (void) surface;
 }
 
@@ -159,7 +246,7 @@ static void s_test_single_client_strut(void)
     memset(&client, 0, sizeof(client));
     client.layout.strut_partial.sides.top = 30u;
     /* Legacy strut, start==end==0: unbounded, always applies */
-    cdlist_ins_next(desktop.stacking, NULL, &client);
+    s_place_client(&desktop, &client);
 
     desktop_update_workarea(&desktop, &surface, NULL, NULL, false);
 
@@ -186,8 +273,8 @@ static void s_test_multiple_struts_take_the_max(void)
     memset(&large_strut, 0, sizeof(large_strut));
     small_strut.layout.strut_partial.sides.top = 20u;
     large_strut.layout.strut_partial.sides.top = 50u;
-    cdlist_ins_next(desktop.stacking, NULL, &small_strut);
-    cdlist_ins_next(desktop.stacking, NULL, &large_strut);
+    s_place_client(&desktop, &small_strut);
+    s_place_client(&desktop, &large_strut);
 
     desktop_update_workarea(&desktop, &surface, NULL, NULL, false);
 
@@ -210,7 +297,7 @@ static void s_test_margin_and_strut_are_additive(void)
     s_make_surface(&surface, &desktop, 800u, 600u);
     memset(&client, 0, sizeof(client));
     client.layout.strut_partial.sides.top = 30u;
-    cdlist_ins_next(desktop.stacking, NULL, &client);
+    s_place_client(&desktop, &client);
     memset(&cfg, 0, sizeof(cfg));
     cfg.margins.top = 10u;
 
@@ -236,7 +323,7 @@ static void s_test_ignore_struts_still_applies_margins(void)
     s_make_surface(&surface, &desktop, 800u, 600u);
     memset(&client, 0, sizeof(client));
     client.layout.strut_partial.sides.top = 30u;
-    cdlist_ins_next(desktop.stacking, NULL, &client);
+    s_place_client(&desktop, &client);
     memset(&cfg, 0, sizeof(cfg));
     cfg.margins.top = 10u;
 
@@ -265,7 +352,7 @@ static void s_test_strut_out_of_range_is_ignored(void)
      * to the right of an 800-wide screen: never overlaps */
     client.layout.strut_partial.start.top = 900;
     client.layout.strut_partial.end.top = 1000;
-    cdlist_ins_next(desktop.stacking, NULL, &client);
+    s_place_client(&desktop, &client);
 
     desktop_update_workarea(&desktop, &surface, NULL, NULL, false);
 
@@ -310,7 +397,7 @@ static void s_test_oversized_strut_clamps_to_zero(void)
     s_make_surface(&surface, &desktop, 800u, 600u);
     memset(&client, 0, sizeof(client));
     client.layout.strut_partial.sides.top = 700u;
-    cdlist_ins_next(desktop.stacking, NULL, &client);
+    s_place_client(&desktop, &client);
 
     desktop_update_workarea(&desktop, &surface, NULL, NULL, false);
 
@@ -333,7 +420,9 @@ static void s_test_monitor_margin_only_on_screen_edge(void)
 
     memset(&surface, 0, sizeof(surface));
     memset(&desktop, 0, sizeof(desktop));
-    desktop.stacking = cdlist_init(NULL);
+    desktop.clients = ohtbl_init(8, 8, s_client_hash1,
+            s_client_hash2, s_client_match, NULL);
+    (void) stacking_create(&desktop);
     surface.properties.dim.w = 1600u;
     surface.properties.dim.h = 600u;
     surface.monitor_count = 2u;
@@ -362,7 +451,8 @@ static void s_test_monitor_margin_only_on_screen_edge(void)
             " boundary between monitors: the left margin does" \
             " not apply there");
 
-    cdlist_destroy(desktop.stacking);
+    stacking_destroy(&desktop);
+    ohtbl_destroy(desktop.clients);
 }
 
 
