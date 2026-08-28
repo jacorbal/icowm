@@ -160,8 +160,16 @@ static const struct s_ascii_fallback_s s_ascii_fallbacks[] = {
     { "...", 0x2026u },     /* ellipsis */
     { "/",   0x2044u },     /* fraction slash */
     { "/",   0x2215u },     /* division slash */
+
+    /* Arrows */
     { "<-",  0x2190u },     /* leftwards arrow */
     { "->",  0x2192u },     /* rightwards arrow */
+    { "|<-", 0x21E4u },     /* leftwards arrow to bar */
+    { "->|", 0x21E5u },     /* rightwards arrow to bar */
+    { "<->", 0x2194u },     /* left right arrow */
+    { "<=",  0x21D0u },     /* leftwards double arrow */
+    { "=>",  0x21D2u },     /* rightwards double arrow */
+    { "<=>", 0x21D4u },     /* left right double arrow */
 
     /* Comparisons and the arithmetic signs that keep them company.
      * A title carrying "x \u2265 3" is as unreadable with a question
