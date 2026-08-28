@@ -217,10 +217,15 @@ DOXIGEN_FILE = Doxyfile
 ARGS ?=
 
 # Sources, objects and auto-generated dependencies
-SRCS = $(wildcard $(S_DIR)/*.c) \
-       $(wildcard $(S_DIR)/*/*.c) \
-       $(wildcard $(S_DIR)/*/*/*.c) \
-       $(wildcard $(S_DIR)/*/*/*/*.c)
+#
+# Found rather than listed one directory level at a time.  The four
+# 'wildcard' patterns this replaces reached exactly as deep as the tree
+# currently goes, so a source added one level below that would have
+# been left out of the build with nothing said about it: the failure
+# shows up at link time, as a missing symbol, naming neither the file
+# nor the reason.  Sorted so the same tree always builds in the same
+# order.  This is what 'BSDmakefile' already does.
+SRCS = $(shell find $(S_DIR) -name '*.c' | sort)
 OBJS = $(patsubst $(S_DIR)/%.c, $(O_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
@@ -228,7 +233,7 @@ DEPS = $(OBJS:.o=.d)
 # separately from icowm itself: its own single object never joins
 # 'OBJS', and its own binary never joins 'TARGET', so a change to
 # one never forces a rebuild of the other.
-MSG_SRCS = $(wildcard $(T_DIR)/*.c)
+MSG_SRCS = $(shell find $(T_DIR) -maxdepth 1 -name '*.c' | sort)
 MSG_OBJS = $(patsubst $(T_DIR)/%.c, $(O_DIR)/tools/%.o, $(MSG_SRCS))
 MSG_DEPS = $(MSG_OBJS:.o=.d)
 
