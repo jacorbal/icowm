@@ -329,7 +329,14 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                 cnode = cdlist_next(cnode);
             } while (cnode != NULL && cnode != cinitial);
 
-            for (int i = 0; i < n; ++i) {
+            /* Walked from the last collected to the first, and the
+             * collection above ran from the bottom of the stack
+             * upward.  Each client sent to the bottom below lands
+             * under the one sent before it, so taking them in
+             * collection order would leave them stacked the wrong way
+             * round, and swapped again on the next desktop change:
+             * two pinned windows would trade places every time. */
+            for (int i = n - 1; i >= 0; --i) {
                 bool was_active =
                     (from_desktop->client_active_id == sticky[i]->id);
                 if (was_active) {
@@ -339,6 +346,23 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
 
                 (void) desktop_action_client_move(from_desktop,
                         to_desktop, sticky[i]);
+
+                /* Arriving at the bottom unless it was the window
+                 * being worked in.  'desktop_action_client_move' adds
+                 * to the top, which is right for a window the person
+                 * deliberately sent elsewhere but not for one that is
+                 * merely following them: a pinned window nobody had
+                 * touched climbed over whatever they did have open,
+                 * on every desktop change.
+                 *
+                 * The focused one still arrives on top, since putting
+                 * the window being worked in underneath everything
+                 * would interrupt that work just as badly in the
+                 * other direction. */
+                if (!was_active) {
+                    (void) desktop_action_client_send_back(to_desktop,
+                            sticky[i]);
+                }
 
                 /* Preserve focus: if this sticky client was the active
                  * window on the source desktop, make it active on the
