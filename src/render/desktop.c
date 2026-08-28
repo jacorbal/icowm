@@ -57,6 +57,7 @@
 #include <render/desktop.h>
 #include <render/icon.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /* Per-screen (not per-desktop) cache of the root window's own last
@@ -517,8 +518,6 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
     const bool is_focused = ctx->is_focused;
     const bool hide_decoration = ctx->hide_decoration;
     const bool titlebar_visible = ctx->titlebar_visible;
-    uint16_t mask;
-    int32_t values[4];
 
     /* Configure position and size; only when the client's
      * geometry or decoration changed.  Skipping this for
@@ -535,15 +534,11 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
             client->layout.geometry.cur.pos.x,
             client->layout.geometry.cur.pos.y);
 
-    mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-           XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-    values[0] = client->layout.geometry.cur.pos.x;
-    values[1] = client->layout.geometry.cur.pos.y;
-    values[2] = (int32_t) client->layout.geometry.cur.dim.w;
-    values[3] = (int32_t) client->layout.geometry.cur.dim.h;
-
-    xcb_configure_window(xcb_connection_get(), target, mask,
-            (uint32_t *) values);
+    xcb_window_place(target,
+            client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y,
+            client->layout.geometry.cur.dim.w,
+            client->layout.geometry.cur.dim.h);
     if (target != client->window) {
         uint16_t top;
         uint16_t bottom;
@@ -596,13 +591,8 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
          * still needed below this whole 'if' to position the
          * titlebar correctly even while shaded. */
         if (!client_is_shaded(client)) {
-            xcb_configure_window(xcb_connection_get(), client->window,
-                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                    XCB_CONFIG_WINDOW_WIDTH |
-                    XCB_CONFIG_WINDOW_HEIGHT,
-                    (const uint32_t[]) {
-                        left, top, inner_w, inner_h
-                    });
+            xcb_window_place(client->window, left, top,
+                    inner_w, inner_h);
 
             /* ICCCM §4.2.3: the xcb_configure_window above
              * positions the inner window relative to the frame
@@ -641,22 +631,14 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
                 &desktop->config->theme);
 
         if (titlebar_visible) {
-            xcb_configure_window(xcb_connection_get(),
-                    client->titlebar,
-                    XCB_CONFIG_WINDOW_X     |
-                    XCB_CONFIG_WINDOW_Y     |
-                    XCB_CONFIG_WINDOW_WIDTH |
-                    XCB_CONFIG_WINDOW_HEIGHT,
-                    (const uint32_t[]) {
-                        left,
-                        (top > title_h) ? top - title_h : 0,
-                        inner_w, title_h
-                    });
+            xcb_window_place(client->titlebar, left,
+                    (top > title_h) ? top - title_h : 0,
+                    inner_w, title_h);
             desktop_repaint_titlebar_content(
                     xcb_connection_get(), client, is_focused,
                     inner_w, title_h, &desktop->config->theme);
         } else if (client->titlebar != 0) {
-            xcb_unmap_window(xcb_connection_get(), client->titlebar);
+            xcb_window_hide(client->titlebar);
         }
     }
 
@@ -724,7 +706,7 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
                 client, is_focused, inner_w, title_h,
                 &desktop->config->theme);
     } else if (client->titlebar != 0) {
-        xcb_unmap_window(xcb_connection_get(), client->titlebar);
+        xcb_window_hide(client->titlebar);
     }
 }
 
@@ -929,8 +911,7 @@ void desktop_render_one_client(desktop_td *desktop,
      * one window previously still re-sent border width for every
      * other window on the desktop each time). */
     if (border_width != client->last_border_width) {
-        xcb_configure_window(xcb_connection_get(), target,
-                XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
+        xcb_window_set_border(target, border_width);
         client->last_border_width = border_width;
     }
 
@@ -953,16 +934,15 @@ void desktop_render_one_client(desktop_td *desktop,
      * 'surface_clients_hide'/'surface_clients_show' */
     if (is_current) {
         if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(xcb_connection_get(),
-                    client->icon_window);
+            xcb_window_hide(client->icon_window);
             client->is_icon_mapped = false;
         }
         if (titlebar_visible) {
-            xcb_map_window(xcb_connection_get(), client->titlebar);
+            xcb_window_show(client->titlebar);
         } else if (client->titlebar != 0) {
-            xcb_unmap_window(xcb_connection_get(), client->titlebar);
+            xcb_window_hide(client->titlebar);
         }
-        xcb_map_window(xcb_connection_get(), target);
+        xcb_window_show(target);
 
         /* Do not re-map the content window for shaded clients: the
          * shade operation explicitly unmaps it, and mapping it here
@@ -970,7 +950,7 @@ void desktop_render_one_client(desktop_td *desktop,
          * from being painted correctly, especially for inactive
          * windows that receive no 'FocusOut'-triggered repaint */
         if (target != client->window && !client_is_shaded(client)) {
-            xcb_map_window(xcb_connection_get(), client->window);
+            xcb_window_show(client->window);
         }
     }
 

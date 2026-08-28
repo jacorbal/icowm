@@ -29,6 +29,7 @@
 
 /* Local includes */
 #include <render/outline.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -126,14 +127,8 @@ static void s_render_outline_place(xcb_connection_t *connection,
                     create_mask, create_values);
             xcb_map_window(connection, windows[i]);
         } else if (windows[i] != XCB_WINDOW_NONE) {
-            const uint32_t vals[4] = {
-                strip_x[i], strip_y[i], strip_w[i], strip_h[i]
-            };
-
-            xcb_configure_window(connection, windows[i],
-                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-                    vals);
+            xcb_window_place(windows[i], (int32_t) strip_x[i],
+                    (int32_t) strip_y[i], strip_w[i], strip_h[i]);
         }
 
         /* Re-asserted on every create and every move, not just once
@@ -144,14 +139,7 @@ static void s_render_outline_place(xcb_connection_t *connection,
          * one window, not that it never moves again afterward. */
         if (windows[i] != XCB_WINDOW_NONE &&
                 stack_below != XCB_WINDOW_NONE) {
-            const uint32_t stack_vals[2] = {
-                stack_below, (uint32_t) XCB_STACK_MODE_BELOW
-            };
-
-            xcb_configure_window(connection, windows[i],
-                    XCB_CONFIG_WINDOW_SIBLING |
-                    XCB_CONFIG_WINDOW_STACK_MODE,
-                    stack_vals);
+            xcb_window_stack_below(windows[i], stack_below);
         }
     }
     xcb_flush(connection);

@@ -46,6 +46,7 @@
 /* Local includes */
 #include <systray/internal.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -167,13 +168,8 @@ static void s_systray_icons_push_below(void)
 
                     if (client->is_icon_mapped &&
                             client->icon_window != 0u) {
-                        xcb_configure_window(xcb_connection_get(),
-                                client->icon_window,
-                                XCB_CONFIG_WINDOW_SIBLING |
-                                XCB_CONFIG_WINDOW_STACK_MODE,
-                                (const uint32_t[]) {
-                                s_tray.window, XCB_STACK_MODE_BELOW
-                                });
+                        xcb_window_stack_below(client->icon_window,
+                                s_tray.window);
                     }
                 }
             }
@@ -370,9 +366,7 @@ void systray_layout_restack(void)
     }
 
     if (s_tray.layer == CONFIG_SYSTRAY_LAYER_BELOW) {
-        xcb_configure_window(xcb_connection_get(), s_tray.window,
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+        xcb_window_lower(s_tray.window);
         s_systray_icons_push_below();
         xcb_flush(xcb_connection_get());
         return;
@@ -389,16 +383,9 @@ void systray_layout_restack(void)
      * visible as a flash on every restack (every reflow, and every
      * fullscreen toggle) rather than only when actually needed. */
     if (fullscreen_target != XCB_WINDOW_NONE) {
-        xcb_configure_window(xcb_connection_get(), s_tray.window,
-                XCB_CONFIG_WINDOW_SIBLING |
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) {
-                    fullscreen_target, XCB_STACK_MODE_BELOW
-                });
+        xcb_window_stack_below(s_tray.window, fullscreen_target);
     } else {
-        xcb_configure_window(xcb_connection_get(), s_tray.window,
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
+        xcb_window_raise(s_tray.window);
     }
 
     xcb_flush(xcb_connection_get());
@@ -426,7 +413,6 @@ void systray_layout_reflow(void)
     int16_t x = 0;
     int16_t y = 0;
     int32_t border2;
-    uint32_t geom_values[4];
     monitor_td anchor;
 
     if (!s_tray.is_window_ready || s_tray.surface == NULL) {
@@ -436,7 +422,7 @@ void systray_layout_reflow(void)
     if (!s_tray.is_active ||
             (s_tray.icon_count == 0u && !s_tray.clock_enabled &&
                 !s_tray.battery_enabled)) {
-        xcb_unmap_window(xcb_connection_get(), s_tray.window);
+        xcb_window_hide(s_tray.window);
         s_systray_strut_update((struct geometry_s) {
                     { 0, 0 }, { 0u, 0u } }, 0);
         xcb_flush(xcb_connection_get());
@@ -447,7 +433,7 @@ void systray_layout_reflow(void)
     text_w = systray_text_width();
     w = s_systray_content_width();
     if (w == 0u) {
-        xcb_unmap_window(xcb_connection_get(), s_tray.window);
+        xcb_window_hide(s_tray.window);
         s_systray_strut_update((struct geometry_s) {
                     { 0, 0 }, { 0u, 0u } }, 0);
         xcb_flush(xcb_connection_get());
@@ -492,16 +478,7 @@ void systray_layout_reflow(void)
             break;
     }
 
-    geom_values[0] = (uint32_t) x;
-    geom_values[1] = (uint32_t) y;
-    geom_values[2] = w;
-    geom_values[3] = h;
-    xcb_configure_window(xcb_connection_get(), s_tray.window,
-            XCB_CONFIG_WINDOW_X     |
-            XCB_CONFIG_WINDOW_Y     |
-            XCB_CONFIG_WINDOW_WIDTH |
-            XCB_CONFIG_WINDOW_HEIGHT,
-            geom_values);
+    xcb_window_place(s_tray.window, x, y, w, h);
     s_systray_strut_update((struct geometry_s) {
                 { x, y }, { w, h } }, border2);
 
@@ -528,11 +505,11 @@ void systray_layout_reflow(void)
         icon_pos[0] = (uint32_t) icons_base_x +
             (uint32_t) s_tray.pixmap_pad + (uint32_t) i * stride;
         icon_pos[1] = icon_y;
-        xcb_configure_window(xcb_connection_get(), s_tray.icons[i].window,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, icon_pos);
+        xcb_window_move(s_tray.icons[i].window,
+                (int32_t) icon_pos[0], (int32_t) icon_pos[1]);
     }
 
-    xcb_map_window(xcb_connection_get(), s_tray.window);
+    xcb_window_show(s_tray.window);
 
     if (text_w > 0u && s_tray.theme != NULL) {
         uint16_t icons_w = (uint16_t) (w - text_w);

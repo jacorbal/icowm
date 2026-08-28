@@ -46,6 +46,7 @@
 #include <render/wmicon.h>
 #include <systray.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -163,10 +164,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
     border_width = (display_active)
         ? client->config->theme.icon.active.border.width
         : client->config->theme.icon.inactive.border.width;
-    xcb_configure_window(xcb_connection_get(),
-            client->icon_window,
-            XCB_CONFIG_WINDOW_BORDER_WIDTH,
-            &border_width);
+    xcb_window_set_border(client->icon_window, border_width);
     atom_set_window_opacity(xcb_connection_get(),
             client->icon_window,
             config_theme_opacity_to_raw((display_active)
@@ -175,7 +173,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
 
     xcb_clear_area(xcb_connection_get(), 0,
             client->icon_window, 0, 0, 0, 0);
-    xcb_map_window(xcb_connection_get(), client->icon_window);
+    xcb_window_show(client->icon_window);
 
     /* Icons stay lower than the tray even within the shared 'below'
      * layer, "stuck to the desktop".
@@ -185,15 +183,9 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * that on its own. */
     tray_below = systray_below_window();
     if (tray_below != XCB_WINDOW_NONE) {
-        xcb_configure_window(xcb_connection_get(), client->icon_window,
-                XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) {
-                tray_below, XCB_STACK_MODE_BELOW
-                });
+        xcb_window_stack_below(client->icon_window, tray_below);
     } else {
-        xcb_configure_window(xcb_connection_get(), client->icon_window,
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+        xcb_window_lower(client->icon_window);
     }
 
     /* The pixmap is left out while this icon is the picked one: the

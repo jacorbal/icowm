@@ -44,6 +44,7 @@
 /* Local includes */
 #include <systray/internal.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 
@@ -230,7 +231,7 @@ void systray_protocol_dock(xcb_window_t icon)
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             size_values);
 
-    xcb_map_window(xcb_connection_get(), icon);
+    xcb_window_show(icon);
 
     /* The XEMBED handshake tells the icon it is now embedded, and
      * by whom */

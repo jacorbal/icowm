@@ -48,6 +48,7 @@
 #include <policy/placement/score.h>
 #include <policy/placement/smart.h>
 #include <policy/placement/window.h>
+#include <utils/xcb/window.h>
 
 
 /* Cascade sequence: how many clients this policy has placed so
@@ -158,7 +159,6 @@ static void s_place_window_apply_gravity(const surface_td *surface,
  * updates its stored geometry) and returns @c true, so
  * @a place_window_apply has nothing further to do.
  *
- * @param wm      Window manager state
  * @param surface Surface @p client is on
  * @param client  Client being placed
  * @param wa      Surface-wide workarea, for the fallback monitor
@@ -297,12 +297,7 @@ static bool s_place_window_transient_centered(const wm_td *wm,
 
     target = (client_is_decorated(client) && client->frame != 0)
         ? client->frame : client->window;
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-            (const uint32_t[]) {
-                (uint32_t) new_x,
-                (uint32_t) new_y
-            });
+    xcb_window_move(target, new_x, new_y);
     client->layout.geometry.cur.pos.x = new_x;
     client->layout.geometry.cur.pos.y = new_y;
     return true;
@@ -317,7 +312,6 @@ static bool s_place_window_transient_centered(const wm_td *wm,
  * gravity, clamps so the title bar never ends up above the workarea or
  * the physical screen edge, then issues the actual @c ConfigureWindow
  *
- * @param wm      Window manager instance
  * @param surface Surface the client lives on
  * @param client  Client being placed
  * @param wa_pos  Workarea origin, unclipped to any single monitor
@@ -325,12 +319,11 @@ static bool s_place_window_transient_centered(const wm_td *wm,
  *
  * @note Complexity: @e O(1)
  */
-static void s_place_window_finalize(const wm_td *wm,
-        const surface_td *surface, client_td *client,
-        struct position_s wa_pos, struct position_s new_pos)
+static void s_place_window_finalize(const surface_td *surface,
+        client_td *client, struct position_s wa_pos,
+        struct position_s new_pos)
 {
     xcb_window_t target;
-    xcb_connection_t *connection = wm_connection(wm);
 
     s_place_window_apply_gravity(surface, client,
             &new_pos.x, &new_pos.y);
@@ -344,10 +337,7 @@ static void s_place_window_finalize(const wm_td *wm,
         ? client->frame
         : client->window;
 
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-            (const uint32_t[]) {(uint32_t) new_pos.x,
-                (uint32_t) new_pos.y});
+    xcb_window_move(target, new_pos.x, new_pos.y);
     client->layout.geometry.cur.pos = new_pos;
 }
 
@@ -396,7 +386,7 @@ void place_window_apply_cascade(const wm_td *wm,
         (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
     s_cascade_seq++;
 
-    s_place_window_finalize(wm, surface, client, wa.pos,
+    s_place_window_finalize(surface, client, wa.pos,
             (struct position_s) { new_x, new_y });
 }
 
@@ -520,7 +510,7 @@ void place_window_apply(const wm_td *wm,
         client->hints_icccm.size.req_pos.y == 0;
     if (client->hints_icccm.size.has_position &&
             !ignore_junk_origin_hint) {
-        s_place_window_finalize(wm, surface, client, wa_pos,
+        s_place_window_finalize(surface, client, wa_pos,
                 client->hints_icccm.size.req_pos);
         return;
     }
@@ -682,6 +672,6 @@ void place_window_apply(const wm_td *wm,
         }
     }
 
-    s_place_window_finalize(wm, surface, client, wa_pos,
+    s_place_window_finalize(surface, client, wa_pos,
             (struct position_s) { new_x, new_y });
 }

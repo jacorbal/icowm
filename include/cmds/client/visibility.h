@@ -83,16 +83,15 @@ void ccmd_client_unhide(client_td *client);
  *
  * @param client     Client being unmapped; its own @c ignore.unmap is
  *                    incremented here
- * @param connection Connection to issue the unmap requests on
  * @param target     Window to unmap: the frame when decorated, the
  *                   bare content window otherwise, as
  *                   @a ccmd_target_win resolves it
  *
- * @note A null @p client or @p connection is a silent no-op
+ * @note A null @p client is a silent no-op
  * @note Complexity: @e O(1)
  */
 void ccmd_client_unmap_decorated(client_td *client,
-        xcb_connection_t *connection, xcb_window_t target);
+        xcb_window_t target);
 
 
 #endif  /* ! CMDS_CCMD_VISIBILITY_H */

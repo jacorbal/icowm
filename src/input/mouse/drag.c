@@ -68,6 +68,7 @@
 #include <input/mouse/drag/snap.h>
 #include <input/mouse/drag/outline.h>
 #include <input/mouse/drag/warp.h>
+#include <utils/xcb/window.h>
 
 
 drag_state_td s_drag = {
@@ -140,9 +141,6 @@ static void s_drag_client_move_offscreen(xcb_connection_t *connection,
         client_td *client)
 {
     xcb_window_t target;
-    const uint32_t vals[2] = {
-        (uint32_t) WM_DRAG_OFFSCREEN_POS, (uint32_t) WM_DRAG_OFFSCREEN_POS
-    };
 
     if (connection == NULL || client == NULL) {
         return;
@@ -151,8 +149,8 @@ static void s_drag_client_move_offscreen(xcb_connection_t *connection,
     target = (client_is_decorated(client) && client->frame != 0)
         ? client->frame
         : client->window;
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+    xcb_window_move(target, WM_DRAG_OFFSCREEN_POS,
+            WM_DRAG_OFFSCREEN_POS);
 }
 
 
@@ -199,15 +197,11 @@ static void s_drag_update_icon(xcb_connection_t *connection,
         client->config->base.icons.show_geom;
     int32_t new_x = s_drag.client_start.pos.x + dx;
     int32_t new_y = s_drag.client_start.pos.y + dy;
-    uint32_t vals[2];
 
     s_drag.client_cur.pos.x = new_x;
     s_drag.client_cur.pos.y = new_y;
 
-    vals[0] = (uint32_t) new_x;
-    vals[1] = (uint32_t) new_y;
-    xcb_configure_window(connection, client->icon_window,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+    xcb_window_move(client->icon_window, new_x, new_y);
 
     if (show_geom) {
         char geom_buf[24];
@@ -921,14 +915,9 @@ void drag_end(xcb_connection_t *connection,
                  * 'icon_pos' above already disagrees with what
                  * is on screen. */
                 if (pushed_out_of_tray && connection != NULL) {
-                    uint32_t vals[2];
 
-                    vals[0] = (uint32_t) new_icon_x;
-                    vals[1] = (uint32_t) new_icon_y;
-                    xcb_configure_window(connection,
-                            s_drag.client->icon_window,
-                            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-                            vals);
+                    xcb_window_move(s_drag.client->icon_window,
+                            new_icon_x, new_icon_y);
                 }
 
                 /* Restacking already happens on its own every second
@@ -1076,13 +1065,9 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
                 s_drag.client->frame != 0)
             ? s_drag.client->frame
             : s_drag.client->window;
-        const uint32_t vals[2] = {
-            (uint32_t) s_drag.client->layout.geometry.cur.pos.x,
-            (uint32_t) s_drag.client->layout.geometry.cur.pos.y
-        };
-
-        xcb_configure_window(connection, target,
-                XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+        xcb_window_move(target,
+                s_drag.client->layout.geometry.cur.pos.x,
+                s_drag.client->layout.geometry.cur.pos.y);
     }
     /* A no-op whenever no outline drag was in progress (solid drag,
      * or an icon drag, which is always solid regardless); otherwise

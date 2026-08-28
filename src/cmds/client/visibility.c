@@ -57,6 +57,7 @@
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -185,10 +186,10 @@ static void s_ccmd_client_iconify_one(client_td *client)
      * 'handler_unmap_notify' with 'ignore_unmap' still zero, which
      * that handler reads as the client withdrawing itself rather
      * than the window manager iconifying it. */
-    ccmd_client_unmap_decorated(client, xcb_connection_get(), target);
+    ccmd_client_unmap_decorated(client, target);
     if (target != client->window) {
         client->ignore.unmap += 2u;
-        xcb_unmap_window(xcb_connection_get(), client->window);
+        xcb_window_hide(client->window);
     }
 
     if (!skip_icon_win) {
@@ -196,7 +197,7 @@ static void s_ccmd_client_iconify_one(client_td *client)
         uint32_t wm_state_vals[2];
         uint32_t icon_geom[4];
 
-        xcb_map_window(xcb_connection_get(), client->icon_window);
+        xcb_window_show(client->icon_window);
 
         /* Icons are meant to sit even lower than the tray whenever it
          * is in the 'below' layer, "stuck to the desktop": stack just
@@ -208,16 +209,9 @@ static void s_ccmd_client_iconify_one(client_td *client)
          * 'systray_layout_restack'. */
         tray_below = systray_below_window();
         if (tray_below != XCB_WINDOW_NONE) {
-            xcb_configure_window(xcb_connection_get(), client->icon_window,
-                    XCB_CONFIG_WINDOW_SIBLING |
-                    XCB_CONFIG_WINDOW_STACK_MODE,
-                    (const uint32_t[]) {
-                    tray_below, XCB_STACK_MODE_BELOW
-                    });
+            xcb_window_stack_below(client->icon_window, tray_below);
         } else {
-            xcb_configure_window(xcb_connection_get(), client->icon_window,
-                    XCB_CONFIG_WINDOW_STACK_MODE,
-                    (const uint32_t[]) { XCB_STACK_MODE_BELOW });
+            xcb_window_lower(client->icon_window);
         }
         client->is_icon_mapped = true;
 
@@ -330,10 +324,10 @@ static void s_ccmd_client_hide_one(client_td *client)
      * 'SubstructureNotify'.  If 'target' is the frame, the content
      * window is also unmapped explicitly below, producing two more
      * events for 'client->window'. */
-    ccmd_client_unmap_decorated(client, xcb_connection_get(), target);
+    ccmd_client_unmap_decorated(client, target);
     if (target != client->window) {
         client->ignore.unmap += 2u;
-        xcb_unmap_window(xcb_connection_get(), client->window);
+        xcb_window_hide(client->window);
     }
 
     client_hide(client);
@@ -384,13 +378,13 @@ static void s_ccmd_client_unhide_one(client_td *client)
     target = ccmd_target_win(client);
 
     if (client->titlebar != 0) {
-        xcb_map_window(xcb_connection_get(), client->titlebar);
+        xcb_window_show(client->titlebar);
     }
 
-    xcb_map_window(xcb_connection_get(), target);
+    xcb_window_show(target);
 
     if (target != client->window) {
-        xcb_map_window(xcb_connection_get(), client->window);
+        xcb_window_show(client->window);
     }
 
     client_unhide(client);
@@ -462,27 +456,26 @@ static void s_ccmd_client_unhide_visit(client_td *member, void *ctx)
  *
  * @param client     Client being unmapped; its own @c ignore.unmap is
  *                    incremented here
- * @param connection Connection to issue the unmap requests on
  * @param target     Window to unmap: the frame when decorated, the
  *                   bare content window otherwise, as
  *                   @a ccmd_target_win resolves it
  *
- * @note A null @p client or @p connection is a silent no-op
+ * @note A null @p client is a silent no-op
  * @note Complexity: @e O(1)
  */
 void ccmd_client_unmap_decorated(client_td *client,
-        xcb_connection_t *connection, xcb_window_t target)
+        xcb_window_t target)
 {
-    if (client == NULL || connection == NULL) {
+    if (client == NULL) {
         return;
     }
 
     client->ignore.unmap += 2u;
     if (client->titlebar != 0) {
         client->ignore.unmap += 1u;
-        xcb_unmap_window(connection, client->titlebar);
+        xcb_window_hide(client->titlebar);
     }
-    xcb_unmap_window(connection, target);
+    xcb_window_hide(target);
 }
 
 

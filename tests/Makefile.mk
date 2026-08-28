@@ -269,7 +269,9 @@ $(O_DIR)/tests/client/test_state: \
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
 
 $(O_DIR)/tests/policy/test_placement: $(TESTS_DIR)/policy/test_placement.c \
+		$(S_DIR)/utils/xcb/window.c \
 		$(S_DIR)/policy/placement/window.c \
+		$(S_DIR)/utils/xcb/connection.c \
 		$(S_DIR)/policy/stacking.c \
 		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/policy/placement/monitor.c \
@@ -282,7 +284,7 @@ $(O_DIR)/tests/policy/test_placement: $(TESTS_DIR)/policy/test_placement.c \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
-	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS) -lpthread
 
 $(O_DIR)/tests/policy/test_tiling: $(TESTS_DIR)/policy/test_tiling.c \
 		$(S_DIR)/policy/placement/icon.c \
@@ -353,6 +355,7 @@ $(O_DIR)/tests/surface/test_desktop_add_remove: \
 # needs them).
 $(O_DIR)/tests/enact/test_send_to_desktop: \
 		$(TESTS_DIR)/enact/test_send_to_desktop.c \
+		$(S_DIR)/utils/xcb/window.c \
 		$(S_DIR)/enact/desktop.c \
 		$(S_DIR)/utils/xcb/connection.c \
 		$(S_DIR)/policy/stacking.c \
@@ -361,7 +364,7 @@ $(O_DIR)/tests/enact/test_send_to_desktop: \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
-	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS) $(JSON_LFLAGS)
 
 $(O_DIR)/tests/desktop/test_workarea: \
 		$(TESTS_DIR)/desktop/test_workarea.c \

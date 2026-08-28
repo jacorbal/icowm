@@ -68,6 +68,7 @@
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -205,11 +206,11 @@ static void s_ccmd_client_restore_one(client_td *client)
         client->is_icon_mapped = false;
     }
     if (client->titlebar != 0) {
-        xcb_map_window(xcb_connection_get(), client->titlebar);
+        xcb_window_show(client->titlebar);
     }
-    xcb_map_window(xcb_connection_get(), target);
+    xcb_window_show(target);
     if (target != client->window) {
-        xcb_map_window(xcb_connection_get(), client->window);
+        xcb_window_show(client->window);
     }
 
     client_unhide(client);
@@ -683,7 +684,7 @@ void ccmd_client_focus(client_td *client)
      * 'desktop_render_one_client' (render/desktop.c) already applies
      * to this same window for the same reason. */
     if (!client_is_shaded(client)) {
-        xcb_map_window(xcb_connection_get(), client->window);
+        xcb_window_show(client->window);
     }
     /* 'client_border_apply' ('client.h') preserves this same condition
      * (undecorated-or-frameless, never fullscreen) internally, and

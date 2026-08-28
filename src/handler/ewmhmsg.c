@@ -418,7 +418,7 @@ static void s_hi_handle_net_wm_desktop_one(const wm_td *wm,
          * on parent + 'StructureNotify' on target) and one additional
          * event for the titlebar via the frame's
          * 'SubstructureNotify'. */
-        ccmd_client_unmap_decorated(client, connection, target);
+        ccmd_client_unmap_decorated(client, target);
     }
 
     if (wm_ewmh(wm) != NULL) {

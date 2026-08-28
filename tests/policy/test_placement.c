@@ -45,6 +45,16 @@
 #include <harness/tap.h>
 #include <policy/placement/window.h>
 #include <wm/internal.h>
+#include <utils/xcb/connection.h>
+
+
+/**
+ * @brief Stands in for a live connection
+ *
+ * Its address is all that is wanted: every XCB call this file reaches
+ * is answered by a stub below, so nothing ever looks inside it.
+ */
+static int s_placement_conn;
 
 
 /* ===== XCB stand-ins (libxcb itself is never linked here) ===== */
@@ -299,6 +309,10 @@ static void s_test_cascade_advances_by_one_step(void)
      * consecutive calls essentially never wrap in practice */
     s_make_surface(&surface, &desktop, 2000u, 1600u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
 
@@ -336,6 +350,10 @@ static void s_test_cascade_wraps_around(void)
     /* max_steps = min((248-200)/24, (148-100)/24) = min(2, 2) = 2 */
     s_make_surface(&surface, &desktop, 248u, 148u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
 
@@ -369,6 +387,10 @@ static void s_test_cascade_guards(void)
     s_make_wm(&wm, &config);
     s_make_surface(&surface, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
 
     place_window_apply_cascade(NULL, &surface, &client);
     place_window_apply_cascade(&wm, NULL, &client);
@@ -393,6 +415,10 @@ static void s_test_apply_guards(void)
     s_make_wm(&wm, &config);
     s_make_surface(&surface, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
 
     place_window_apply(NULL, &surface, &client);
     place_window_apply(&wm, NULL, &client);
@@ -418,6 +444,10 @@ static void s_test_apply_centered(void)
     config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_CENTERED;
     s_make_surface(&surface, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
@@ -446,6 +476,10 @@ static void s_test_apply_none_leaves_valid_position(void)
         (enum config_placement_policy_e) 999; /* unrecognized */
     s_make_surface(&surface, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     client.layout.geometry.cur.pos.x = 50;
     client.layout.geometry.cur.pos.y = 60;
     client.layout.geometry.cur.dim.w = 200u;
@@ -474,6 +508,10 @@ static void s_test_apply_none_clamps_offscreen_position(void)
         (enum config_placement_policy_e) 999;
     s_make_surface(&surface, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     client.layout.geometry.cur.pos.x = -30;
     client.layout.geometry.cur.pos.y = -10;
     client.layout.geometry.cur.dim.w = 200u;
@@ -516,6 +554,10 @@ static void s_test_apply_transient_centers_over_parent(void)
     s_found_client = &parent;
 
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     client.transient_for = 42u; /* any non-zero window id */
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
@@ -545,6 +587,10 @@ static void s_test_apply_cascade_delegates(void)
     config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_CASCADE;
     s_make_surface(&surface, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
 
@@ -573,6 +619,10 @@ static void s_test_apply_under_mouse(void)
         CONFIG_PLACEMENT_POLICY_UNDER_MOUSE;
     s_make_surface(&surface, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
     client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
@@ -607,6 +657,10 @@ static void s_test_apply_under_mouse_query_fails(void)
         CONFIG_PLACEMENT_POLICY_UNDER_MOUSE;
     s_make_surface(&surface, &desktop, 1000u, 800u);
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
     s_pointer_reply = NULL; /* query fails */
@@ -664,6 +718,10 @@ static void s_test_apply_groups_with_sibling(void)
     ohtbl_insert(desktop.clients, &sibling);
 
     memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
     /* same group as 'sibling' */
     client.hints_icccm.hints.client_leader = 42u;
     client.layout.geometry.cur.dim.w = 200u;
@@ -685,6 +743,12 @@ static void s_test_apply_groups_with_sibling(void)
 
 int main(void)
 {
+    /* Placement reaches the server through 'utils/xcb/window.h', which
+     * does nothing at all without a connection.  The stubs below are
+     * what actually answer, so any non-null pointer will do: it is
+     * never dereferenced, only checked for being there. */
+    xcb_connection_set((xcb_connection_t *) &s_placement_conn);
+
     TAP_PLAN(19);
 
     s_test_cascade_advances_by_one_step();

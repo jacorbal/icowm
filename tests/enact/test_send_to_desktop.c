@@ -173,10 +173,9 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
 /** Link-only stand-in for ccmd_client_unmap_decorated
  *  (cmds/client/basic.c) */
 void ccmd_client_unmap_decorated(client_td *client,
-        xcb_connection_t *connection, xcb_window_t target)
+        xcb_window_t target)
 {
     (void) client;
-    (void) connection;
     (void) target;
 }
 

@@ -61,6 +61,7 @@
 #include <enact.h>
 #include <enact/internal.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -133,11 +134,10 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
             !client_is_iconified(client)) {
         win_target = (client_is_decorated(client) && client->frame != 0)
             ? client->frame : client->window;
-        ccmd_client_unmap_decorated(client, xcb_connection_get(),
-                win_target);
+        ccmd_client_unmap_decorated(client, win_target);
         unmapped_main = true;
         if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(xcb_connection_get(), client->icon_window);
+            xcb_window_hide(client->icon_window);
             client->is_icon_mapped = false;
             unmapped_icon = true;
         }
@@ -173,13 +173,12 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
             win_target = (client_is_decorated(client) &&
                     client->frame != 0)
                 ? client->frame : client->window;
-            xcb_map_window(xcb_connection_get(), win_target);
+            xcb_window_show(win_target);
             if (win_target != client->window) {
-                xcb_map_window(xcb_connection_get(), client->window);
+                xcb_window_show(client->window);
             }
             if (unmapped_icon) {
-                xcb_map_window(xcb_connection_get(),
-                        client->icon_window);
+                xcb_window_show(client->icon_window);
                 client->is_icon_mapped = true;
             }
             xcb_flush(xcb_connection_get());

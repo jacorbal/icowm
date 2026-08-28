@@ -39,6 +39,7 @@
 /* Local includes */
 #include <systray/internal.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /* Module-level built-in systray state; see 'systray/internal.h' for
@@ -159,13 +160,13 @@ static void s_systray_icons_resize(void)
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         xcb_window_t icon = s_tray.icons[i].window;
 
-        xcb_unmap_window(xcb_connection_get(), icon);
+        xcb_window_hide(icon);
         xcb_configure_window(xcb_connection_get(), icon,
                 XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
                 (const uint32_t[]) {
                     s_tray.pixmap_size, s_tray.pixmap_size
                 });
-        xcb_map_window(xcb_connection_get(), icon);
+        xcb_window_show(icon);
     }
 }
 

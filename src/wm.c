@@ -83,6 +83,7 @@
 #include <wm.h>
 #include <wm/internal.h>
 #include <wm/shutdown.h>
+#include <utils/xcb/window.h>
 
 
 /* Though variable static dost often lurk near,
@@ -167,7 +168,7 @@ static void s_client_unmanage(client_td *client)
                 client->parent_id, abs_x, abs_y);
     }
 
-    xcb_map_window(xcb_connection_get(), client->window);
+    xcb_window_show(client->window);
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
 
     /* 'client_destroy' only ever destroys 'window' itself when this

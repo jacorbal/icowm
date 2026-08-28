@@ -41,6 +41,7 @@
 #include <cmds/client/state.h>
 #include <cmds/client/visibility.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /**
  * @brief Unmap one client as its own desktop stops being shown
@@ -87,13 +88,11 @@ static void s_client_hide_visit(client_td *client, void *data)
              * 'CLIENT_FLAG_HIDDEN': that flag represents an
              * explicit user/application hidden state, not temporary
              * invisibility on another desktop. */
-            ccmd_client_unmap_decorated(client, xcb_connection_get(),
-                    target);
+            ccmd_client_unmap_decorated(client, target);
         }
 
         if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(xcb_connection_get(),
-                    client->icon_window);
+            xcb_window_hide(client->icon_window);
             client->is_icon_mapped = false;
         }
     }
@@ -124,10 +123,9 @@ static void s_client_show_visit(client_td *client, void *data)
             ? client->frame
             : client->window;
         if (client->titlebar != 0) {
-            xcb_map_window(xcb_connection_get(),
-                    client->titlebar);
+            xcb_window_show(client->titlebar);
         }
-        xcb_map_window(xcb_connection_get(), target);
+        xcb_window_show(target);
         /* A shaded client's own content window must stay
          * unmapped until an explicit unshade: mapping it
          * here regardless (as this used to) puts it back
@@ -146,16 +144,14 @@ static void s_client_show_visit(client_td *client, void *data)
          * is refocused or closed. */
         if (target != client->window &&
                 !client_is_shaded(client)) {
-            xcb_map_window(xcb_connection_get(),
-                    client->window);
+            xcb_window_show(client->window);
         }
     } else if (client != NULL &&
             client_is_iconified(client) &&
             client->icon_window != 0) {
         xcb_window_t tray_below;
 
-        xcb_map_window(xcb_connection_get(),
-                client->icon_window);
+        xcb_window_show(client->icon_window);
         /* Icons stay lower than the tray even within the
          * shared 'below' layer, "stuck to the desktop";
          * see 'ccmd_client_iconify' for the fuller
@@ -164,19 +160,9 @@ static void s_client_show_visit(client_td *client, void *data)
          * its own. */
         tray_below = systray_below_window();
         if (tray_below != XCB_WINDOW_NONE) {
-            xcb_configure_window(xcb_connection_get(),
-                    client->icon_window,
-                    XCB_CONFIG_WINDOW_SIBLING |
-                    XCB_CONFIG_WINDOW_STACK_MODE,
-                    (const uint32_t[]) {
-                    tray_below, XCB_STACK_MODE_BELOW
-                    });
+            xcb_window_stack_below(client->icon_window, tray_below);
         } else {
-            xcb_configure_window(xcb_connection_get(),
-                    client->icon_window,
-                    XCB_CONFIG_WINDOW_STACK_MODE,
-                    (const uint32_t[]) {
-                    XCB_STACK_MODE_BELOW });
+            xcb_window_lower(client->icon_window);
         }
         client->is_icon_mapped = true;
     }
@@ -218,14 +204,9 @@ static void s_client_restack_visit(client_td *client, void *data)
         ? client->frame : client->window;
 
     if (restack_ctx->prev_target != XCB_WINDOW_NONE) {
-        xcb_configure_window(xcb_connection_get(), target,
-                XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) {
-                    restack_ctx->prev_target, XCB_STACK_MODE_ABOVE });
+        xcb_window_stack_above(target, restack_ctx->prev_target);
     } else {
-        xcb_configure_window(xcb_connection_get(), target,
-                XCB_CONFIG_WINDOW_STACK_MODE,
-                (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
+        xcb_window_raise(target);
     }
     restack_ctx->prev_target = target;
 }
@@ -369,15 +350,7 @@ static void s_client_reflow_visit(client_td *client, void *data)
             }
 
             if (new_x != cx || new_y != cy) {
-                uint32_t vals[2];
-                vals[0] = (uint32_t) new_x;
-                vals[1] = (uint32_t) new_y;
-
-                xcb_configure_window(xcb_connection_get(),
-                        target,
-                        XCB_CONFIG_WINDOW_X |
-                        XCB_CONFIG_WINDOW_Y,
-                        vals);
+                xcb_window_move(target, new_x, new_y);
 
                 client->layout.geometry.cur.pos.x = new_x;
                 client->layout.geometry.cur.pos.y = new_y;

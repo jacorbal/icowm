@@ -33,6 +33,7 @@
 #include <cmds/client/screen.h>
 #include <cmds/client/transient.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -174,26 +175,12 @@ static void s_enforce_layer_place_family(client_td *top,
             xcb_window_t tray_below = systray_below_window();
 
             if (tray_below != XCB_WINDOW_NONE) {
-                xcb_configure_window(xcb_connection_get(), target,
-                        XCB_CONFIG_WINDOW_SIBLING |
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) {
-                        tray_below, XCB_STACK_MODE_ABOVE
-                        });
+                xcb_window_stack_above(target, tray_below);
             } else {
-                xcb_configure_window(xcb_connection_get(), target,
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) {
-                        XCB_STACK_MODE_BELOW
-                        });
+                xcb_window_lower(target);
             }
         } else {
-            xcb_configure_window(xcb_connection_get(), target,
-                    XCB_CONFIG_WINDOW_SIBLING |
-                    XCB_CONFIG_WINDOW_STACK_MODE,
-                    (const uint32_t[]) {
-                    *prev_target, XCB_STACK_MODE_ABOVE
-                    });
+            xcb_window_stack_above(target, *prev_target);
         }
         *prev_target = target;
     }
@@ -294,10 +281,9 @@ void ccmd_client_raise(client_td *client)
         (void) desktop_action_client_send_front(desktop, client);
         ccmd_desktop_enforce_layers(desktop);
     } else {
-        uint32_t values[] = { XCB_STACK_MODE_ABOVE };
         xcb_window_t target = ccmd_target_win(client);
-        xcb_configure_window(xcb_connection_get(), target,
-                XCB_CONFIG_WINDOW_STACK_MODE, values);
+
+        xcb_window_raise(target);
         xcb_flush(xcb_connection_get());
     }
 
@@ -320,10 +306,9 @@ void ccmd_client_lower(client_td *client)
         (void) desktop_action_client_send_back(desktop, client);
         ccmd_desktop_enforce_layers(desktop);
     } else {
-        uint32_t values[] = { XCB_STACK_MODE_BELOW };
         xcb_window_t target = ccmd_target_win(client);
-        xcb_configure_window(xcb_connection_get(), target,
-                XCB_CONFIG_WINDOW_STACK_MODE, values);
+
+        xcb_window_lower(target);
         xcb_flush(xcb_connection_get());
     }
 }
@@ -452,9 +437,7 @@ void ccmd_desktop_enforce_layers(desktop_td *desktop)
             xcb_window_t active_target = ccmd_target_win(active);
 
             if (active_target != XCB_WINDOW_NONE) {
-                xcb_configure_window(xcb_connection_get(), active_target,
-                        XCB_CONFIG_WINDOW_STACK_MODE,
-                        (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
+                xcb_window_raise(active_target);
             }
         }
     }

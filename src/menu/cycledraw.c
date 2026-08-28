@@ -46,6 +46,7 @@
 #include <menu/cycle.h>
 #include <menu/internal.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -391,8 +392,7 @@ void mi_cycle_preview_style_target(xcb_connection_t *connection,
 
     border_width = s_mi_cycle_preview_border_width(client, config,
             is_icon_menu);
-    xcb_configure_window(connection, target,
-            XCB_CONFIG_WINDOW_BORDER_WIDTH, &border_width);
+    xcb_window_set_border(target, border_width);
 
     if (!is_icon_menu &&
             client != NULL &&
@@ -419,7 +419,6 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     client_td *previous;
     xcb_window_t selected_target;
     xcb_window_t previous_target;
-    uint32_t values[2];
     uint32_t selected_border;
 
     if (connection == NULL || config == NULL ||
@@ -509,12 +508,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
         ri_render_client_icon(selected, true, true);
     }
 
-    values[0] = g_cycle_menu.window;
-    values[1] = XCB_STACK_MODE_BELOW;
-    xcb_configure_window(connection, selected_target,
-            XCB_CONFIG_WINDOW_SIBLING |
-            XCB_CONFIG_WINDOW_STACK_MODE,
-            values);
+    xcb_window_stack_below(selected_target, g_cycle_menu.window);
 
     /* The cycle-selection outline itself: a separate overlay (see
      * render/outline.h), never the target's own native border width,

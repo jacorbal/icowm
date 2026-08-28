@@ -59,6 +59,7 @@
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -149,10 +150,10 @@ static void s_ccmd_client_unpin_one(client_td *client)
          * unmapped target ('SubstructureNotify' on parent
          * + 'StructureNotify' on target) and one additional event for
          * the titlebar via the frame's 'SubstructureNotify'. */
-        ccmd_client_unmap_decorated(client, xcb_connection_get(), target);
+        ccmd_client_unmap_decorated(client, target);
 
         if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_unmap_window(xcb_connection_get(), client->icon_window);
+            xcb_window_hide(client->icon_window);
             client->is_icon_mapped = false;
         }
 

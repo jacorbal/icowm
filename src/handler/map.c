@@ -77,6 +77,7 @@
 /* Local includes */
 #include <handler.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -502,11 +503,11 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * later render passes never remap the ghost frame */
         if (client->frame != 0) {
             client->ignore.unmap++;
-            xcb_unmap_window(xcb_connection_get(), client->frame);
+            xcb_window_hide(client->frame);
         }
         if (client->titlebar != 0) {
             client->ignore.unmap++;
-            xcb_unmap_window(xcb_connection_get(), client->titlebar);
+            xcb_window_hide(client->titlebar);
         }
         /* 'properties.state' itself, not just the published EWMH
          * property, must also stop claiming fullscreen here: a
