@@ -30,6 +30,8 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <cmds/client/layer.h>
+#include <policy/stacking.h>
 #include <policy/focus.h>
 #include <surface.h>
 #include <systray.h>
@@ -39,72 +41,369 @@
 #include <cmds/client/state.h>
 #include <cmds/client/visibility.h>
 
+/**
+ * @brief Unmap one client as its own desktop stops being shown
+ *
+ * @param client Client reached by the walk
+ * @param data   The surface, as a @c surface_td pointer
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_hide_visit(client_td *client, void *data)
+{
+    surface_td *const surface = data;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    if (client != NULL &&
+            !(client->properties.flags & CLIENT_FLAG_PIN)) {
+        /* Only unmap and track events for clients whose windows are
+         * currently mapped.  Hidden and iconified clients have
+         * already had their windows unmapped by other code paths;
+         * issuing another unmap would generate no 'UnmapNotify'
+         * events, yet incrementing 'ignore_unmap' would leave the
+         * counter positive.  That residual count would then
+         * silently absorb the next genuine 'UnmapNotify' (e.g., the
+         * app self-unmapping to go to the system tray), preventing
+         * 'handler_unmap_notify' from setting 'CLIENT_FLAG_HIDDEN'
+         * and breaking the systray restore path in
+         * 'handler_message'. */
+        if (!(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+                !client_is_iconified(client)) {
+            xcb_window_t target =
+                (client_is_decorated(client) && client->frame != 0)
+                ? client->frame
+                : client->window;
+            /* Two 'UnmapNotify' events arrive for the unmapped
+             * target: one via the parent's 'SubstructureNotify'
+             * (event=parent, window=target) and one via the
+             * target's own 'StructureNotify' (event=target,
+             * window=target).  An additional event arrives for the
+             * titlebar via the frame's 'SubstructureNotify'.
+             * Desktop switches must not toggle
+             * 'CLIENT_FLAG_HIDDEN': that flag represents an
+             * explicit user/application hidden state, not temporary
+             * invisibility on another desktop. */
+            ccmd_client_unmap_decorated(client, surface->connection,
+                    target);
+        }
+
+        if (client->icon_window != 0 && client->is_icon_mapped) {
+            xcb_unmap_window(surface->connection,
+                    client->icon_window);
+            client->is_icon_mapped = false;
+        }
+    }
+}
+
+
+/**
+ * @brief Map one client as its own desktop starts being shown
+ *
+ * @param client Client reached by the walk
+ * @param data   The surface, as a @c surface_td pointer
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_show_visit(client_td *client, void *data)
+{
+    surface_td *const surface = data;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    if (client != NULL &&
+            !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
+            !client_is_iconified(client)) {
+        xcb_window_t target =
+            (client_is_decorated(client) && client->frame != 0)
+            ? client->frame
+            : client->window;
+        if (client->titlebar != 0) {
+            xcb_map_window(surface->connection,
+                    client->titlebar);
+        }
+        xcb_map_window(surface->connection, target);
+        /* A shaded client's own content window must stay
+         * unmapped until an explicit unshade: mapping it
+         * here regardless (as this used to) puts it back
+         * on screen, sized to whatever tiny remnant its
+         * shaded frame currently allows, while every
+         * other part of this project still believes it
+         * is shaded, and while its own real input focus
+         * target (revert-to Parent) is still whatever
+         * ccmd_client_shade last left it at.  This state
+         * split (mapped at the X server, still shaded to
+         * the WM) is a genuine bug on its own regardless
+         * of the exact downstream consequence; it also
+         * lines up, in practice, with switching away
+         * from and back to a shaded client's own desktop
+         * leaving keyboard input dead until that client
+         * is refocused or closed. */
+        if (target != client->window &&
+                !client_is_shaded(client)) {
+            xcb_map_window(surface->connection,
+                    client->window);
+        }
+    } else if (client != NULL &&
+            client_is_iconified(client) &&
+            client->icon_window != 0) {
+        xcb_window_t tray_below;
+
+        xcb_map_window(surface->connection,
+                client->icon_window);
+        /* Icons stay lower than the tray even within the
+         * shared 'below' layer, "stuck to the desktop";
+         * see 'ccmd_client_iconify' for the fuller
+         * explanation of why an unqualified 'below' with
+         * no sibling is not enough to guarantee that on
+         * its own. */
+        tray_below = systray_below_window();
+        if (tray_below != XCB_WINDOW_NONE) {
+            xcb_configure_window(surface->connection,
+                    client->icon_window,
+                    XCB_CONFIG_WINDOW_SIBLING |
+                    XCB_CONFIG_WINDOW_STACK_MODE,
+                    (const uint32_t[]) {
+                    tray_below, XCB_STACK_MODE_BELOW
+                    });
+        } else {
+            xcb_configure_window(surface->connection,
+                    client->icon_window,
+                    XCB_CONFIG_WINDOW_STACK_MODE,
+                    (const uint32_t[]) {
+                    XCB_STACK_MODE_BELOW });
+        }
+        client->is_icon_mapped = true;
+    }
+}
+
+
+/**
+ * @brief What @a s_client_restack_visit carries between clients
+ *
+ * The window stacked just below this one, since each is placed
+ * relative to its own lower neighbour rather than to the top of
+ * everything.
+ */
+struct s_restack_ctx_s {
+    xcb_connection_t *connection;   /**< XCB connection */
+    xcb_window_t prev_target;       /**< Window stacked just below */
+};
+
+
+/**
+ * @brief Stack one client directly above whichever came before it
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_restack_ctx_s this walk carries
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_restack_visit(client_td *client, void *data)
+{
+    struct s_restack_ctx_s *const restack_ctx = data;
+    xcb_window_t target;
+
+    if (client == NULL || restack_ctx == NULL ||
+            (client->properties.flags & CLIENT_FLAG_HIDDEN) ||
+            client_is_iconified(client)) {
+        return;
+    }
+
+    target = (client_is_decorated(client) && client->frame != 0)
+        ? client->frame : client->window;
+
+    if (restack_ctx->prev_target != XCB_WINDOW_NONE) {
+        xcb_configure_window(restack_ctx->connection, target,
+                XCB_CONFIG_WINDOW_SIBLING | XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) {
+                    restack_ctx->prev_target, XCB_STACK_MODE_ABOVE });
+    } else {
+        xcb_configure_window(restack_ctx->connection, target,
+                XCB_CONFIG_WINDOW_STACK_MODE,
+                (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
+    }
+    restack_ctx->prev_target = target;
+}
+
+
+/**
+ * @brief What @a s_client_sticky_visit is gathering into
+ */
+struct s_sticky_ctx_s {
+    client_td **out;    /**< Array the pinned clients are put in */
+    int capacity;       /**< How many it holds */
+    int count;          /**< How many have been put in so far */
+};
+
+
+/**
+ * @brief Gather one client if it is pinned
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_sticky_ctx_s being filled
+ *
+ * @note Clients past the array's own capacity are left where they are,
+ *       which is bounded and visible rather than an unbounded array
+ * @note Complexity: @e O(1)
+ */
+static void s_client_sticky_visit(client_td *client, void *data)
+{
+    struct s_sticky_ctx_s *const sticky_ctx = data;
+
+    if (client == NULL || sticky_ctx == NULL ||
+            sticky_ctx->count >= sticky_ctx->capacity ||
+            !client_is_pinned(client)) {
+        return;
+    }
+
+    sticky_ctx->out[sticky_ctx->count++] = client;
+}
+
+
+/**
+ * @brief What @a s_client_reflow_visit needs beyond the client
+ */
+struct s_reflow_ctx_s {
+    surface_td *surface;    /**< Surface whose monitors are consulted */
+    desktop_td *desktop;    /**< Desktop to mark for redraw on a move */
+};
+
+
+/**
+ * @brief Bring one client back onto a monitor after a layout change
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_reflow_ctx_s this walk carries
+ *
+ * @note Complexity: @e O(m), where @e m is the number of monitors on
+ *       the surface
+ */
+static void s_client_reflow_visit(client_td *client, void *data)
+{
+    struct s_reflow_ctx_s *const reflow_ctx = data;
+    surface_td *const surface =
+        (reflow_ctx != NULL) ? reflow_ctx->surface : NULL;
+    desktop_td *const desktop =
+        (reflow_ctx != NULL) ? reflow_ctx->desktop : NULL;
+
+    if (surface == NULL || desktop == NULL) {
+        return;
+    }
+
+    if (client != NULL) {
+        /* Use the frame for decorated windows, the client
+         * window otherwise */
+        xcb_window_t target =
+            (client_is_decorated(client) && client->frame != 0)
+            ? client->frame : client->window;
+
+        int32_t cx = client->layout.geometry.cur.pos.x;
+        int32_t cy = client->layout.geometry.cur.pos.y;
+        uint32_t cw = client->layout.geometry.cur.dim.w;
+        uint32_t ch = client->layout.geometry.cur.dim.h;
+        bool still_on_a_monitor = false;
+
+        /* A window overlapping two adjacent, still-connected
+         * monitors (a common, legitimate arrangement, e.g.,
+         * a wide window straddling the seam between them) must
+         * not be "corrected" just because it is not fully
+         * inside any single one of them: only reposition
+         * a window that has landed with no overlap at all
+         * against any currently known monitor, e.g., because
+         * the one it used to be on was unplugged, or the
+         * combined layout changed shape around it (RandR does
+         * not require monitors to stay contiguous, so
+         * a disconnected one need not even have been at the
+         * edge of the old combined area). */
+        for (uint32_t mi = 0u; mi < surface->monitor_count;
+                ++mi) {
+            const monitor_td *m = &surface->monitors[mi];
+
+            if (geom_intersection_area(cx, cy, cw, ch,
+                        m->x, m->y, m->w, m->h) > 0u) {
+                still_on_a_monitor = true;
+                break;
+            }
+        }
+
+        if (!still_on_a_monitor) {
+            monitor_td target_monitor =
+                surface_monitor_for_point(surface,
+                        (struct position_s) {
+                            cx + (int32_t) (cw / 2u),
+                            cy + (int32_t) (ch / 2u) });
+            int32_t mx0 = target_monitor.x;
+            int32_t my0 = target_monitor.y;
+            int32_t mx1 = mx0 + (int32_t) target_monitor.w;
+            int32_t my1 = my0 + (int32_t) target_monitor.h;
+
+            /* Minimum visible strip to keep on screen. */
+            int32_t margin = (int32_t)
+                ((surface->config->base.windows.move_step > 0u)
+                 ? surface->config->base.windows.move_step
+                 : 1u);
+            int32_t new_x = cx;
+            int32_t new_y = cy;
+
+            /* Clamp horizontally, within the resolved
+             * monitor rather than the whole combined
+             * surface */
+            if (new_x + (int32_t) cw < mx0 + margin) {
+                new_x = mx0 + margin - (int32_t) cw;
+            }
+            if (new_x > mx1 - margin) {
+                new_x = mx1 - margin;
+            }
+
+            /* Clamp vertically, within the resolved monitor */
+            if (new_y + (int32_t) ch < my0 + margin) {
+                new_y = my0 + margin - (int32_t) ch;
+            }
+            if (new_y > my1 - margin) {
+                new_y = my1 - margin;
+            }
+
+            if (new_x != cx || new_y != cy) {
+                uint32_t vals[2];
+                vals[0] = (uint32_t) new_x;
+                vals[1] = (uint32_t) new_y;
+
+                xcb_configure_window(surface->connection,
+                        target,
+                        XCB_CONFIG_WINDOW_X |
+                        XCB_CONFIG_WINDOW_Y,
+                        vals);
+
+                client->layout.geometry.cur.pos.x = new_x;
+                client->layout.geometry.cur.pos.y = new_y;
+                client->is_outdated = true;
+                desktop->is_outdated = true;
+            }
+        }
+    }
+}
+
+
 /* Unmap all non-sticky clients on the specified desktop */
 void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 {
     desktop_td *desktop;
-    cdlist_item_td *node;
-    const cdlist_item_td *initial;
 
     if (surface == NULL) {
         return;
     }
 
     desktop = surface_desktop_get(surface, desktop_id);
-    if (desktop == NULL || desktop->stacking == NULL ||
-            cdlist_size(desktop->stacking) == 0) {
+    if (desktop == NULL) {
         return;
     }
 
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return;
-    }
-
-    initial = node;
-    do {
-        client_td *const client = (client_td *) cdlist_data(node);
-        if (client != NULL &&
-                !(client->properties.flags & CLIENT_FLAG_PIN)) {
-            /* Only unmap and track events for clients whose windows are
-             * currently mapped.  Hidden and iconified clients have
-             * already had their windows unmapped by other code paths;
-             * issuing another unmap would generate no 'UnmapNotify'
-             * events, yet incrementing 'ignore_unmap' would leave the
-             * counter positive.  That residual count would then
-             * silently absorb the next genuine 'UnmapNotify' (e.g., the
-             * app self-unmapping to go to the system tray), preventing
-             * 'handler_unmap_notify' from setting 'CLIENT_FLAG_HIDDEN'
-             * and breaking the systray restore path in
-             * 'handler_message'. */
-            if (!(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    !client_is_iconified(client)) {
-                xcb_window_t target =
-                    (client_is_decorated(client) && client->frame != 0)
-                    ? client->frame
-                    : client->window;
-                /* Two 'UnmapNotify' events arrive for the unmapped
-                 * target: one via the parent's 'SubstructureNotify'
-                 * (event=parent, window=target) and one via the
-                 * target's own 'StructureNotify' (event=target,
-                 * window=target).  An additional event arrives for the
-                 * titlebar via the frame's 'SubstructureNotify'.
-                 * Desktop switches must not toggle
-                 * 'CLIENT_FLAG_HIDDEN': that flag represents an
-                 * explicit user/application hidden state, not temporary
-                 * invisibility on another desktop. */
-                ccmd_client_unmap_decorated(client, surface->connection,
-                        target);
-            }
-
-            if (client->icon_window != 0 && client->is_icon_mapped) {
-                xcb_unmap_window(surface->connection,
-                        client->icon_window);
-                client->is_icon_mapped = false;
-            }
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
+    stacking_walk(desktop, s_client_hide_visit, surface);
 }
 
 
@@ -113,8 +412,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 {
     desktop_td *desktop;
-    cdlist_item_td *node;
-    const cdlist_item_td *initial;
+    struct s_restack_ctx_s restack_ctx;
 
     if (surface == NULL) {
         return;
@@ -137,80 +435,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
      * 'None' delivers key events nowhere at all, until something
      * else happens to reassert real focus on returning to whichever
      * desktop still has a client on it. */
-    if (desktop->stacking != NULL && cdlist_size(desktop->stacking) > 0) {
-        node = cdlist_head(desktop->stacking);
-        if (node != NULL) {
-            initial = node;
-            do {
-                client_td *const client = (client_td *) cdlist_data(node);
-                if (client != NULL &&
-                        !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                        !client_is_iconified(client)) {
-                    xcb_window_t target =
-                        (client_is_decorated(client) && client->frame != 0)
-                        ? client->frame
-                        : client->window;
-                    if (client->titlebar != 0) {
-                        xcb_map_window(surface->connection,
-                                client->titlebar);
-                    }
-                    xcb_map_window(surface->connection, target);
-                    /* A shaded client's own content window must stay
-                     * unmapped until an explicit unshade: mapping it
-                     * here regardless (as this used to) puts it back
-                     * on screen, sized to whatever tiny remnant its
-                     * shaded frame currently allows, while every
-                     * other part of this project still believes it
-                     * is shaded, and while its own real input focus
-                     * target (revert-to Parent) is still whatever
-                     * ccmd_client_shade last left it at.  This state
-                     * split (mapped at the X server, still shaded to
-                     * the WM) is a genuine bug on its own regardless
-                     * of the exact downstream consequence; it also
-                     * lines up, in practice, with switching away
-                     * from and back to a shaded client's own desktop
-                     * leaving keyboard input dead until that client
-                     * is refocused or closed. */
-                    if (target != client->window &&
-                            !client_is_shaded(client)) {
-                        xcb_map_window(surface->connection,
-                                client->window);
-                    }
-                } else if (client != NULL &&
-                        client_is_iconified(client) &&
-                        client->icon_window != 0) {
-                    xcb_window_t tray_below;
-
-                    xcb_map_window(surface->connection,
-                            client->icon_window);
-                    /* Icons stay lower than the tray even within the
-                     * shared 'below' layer, "stuck to the desktop";
-                     * see 'ccmd_client_iconify' for the fuller
-                     * explanation of why an unqualified 'below' with
-                     * no sibling is not enough to guarantee that on
-                     * its own. */
-                    tray_below = systray_below_window();
-                    if (tray_below != XCB_WINDOW_NONE) {
-                        xcb_configure_window(surface->connection,
-                                client->icon_window,
-                                XCB_CONFIG_WINDOW_SIBLING |
-                                XCB_CONFIG_WINDOW_STACK_MODE,
-                                (const uint32_t[]) {
-                                tray_below, XCB_STACK_MODE_BELOW
-                                });
-                    } else {
-                        xcb_configure_window(surface->connection,
-                                client->icon_window,
-                                XCB_CONFIG_WINDOW_STACK_MODE,
-                                (const uint32_t[]) {
-                                XCB_STACK_MODE_BELOW });
-                    }
-                    client->is_icon_mapped = true;
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        }
-    }
+    stacking_walk(desktop, s_client_show_visit, surface);
 
     /* Restore Z-order: iterate from head (bottom) to tail (top),
      * raising each window so the tail (topmost client) ends up at the
@@ -223,38 +448,23 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
      * pushed to 'below' just above) until the next iteration covered it
      * again, visible as a rapid, distracting flash on every desktop
      * switch with more than a couple of windows on it. */
-    node = (desktop->stacking != NULL)
-        ? cdlist_head(desktop->stacking) : NULL;
-    if (node != NULL) {
-        xcb_window_t prev_tgt = XCB_WINDOW_NONE;
+    restack_ctx.connection = surface->connection;
+    restack_ctx.prev_target = XCB_WINDOW_NONE;
+    stacking_walk(desktop, s_client_restack_visit, &restack_ctx);
 
-        initial = node;
-        do {
-            client_td *c = (client_td *) cdlist_data(node);
-            if (c != NULL &&
-                    !(c->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    !client_is_iconified(c)) {
-                xcb_window_t tgt =
-                    (client_is_decorated(c) && c->frame != 0)
-                    ? c->frame : c->window;
-
-                if (prev_tgt != XCB_WINDOW_NONE) {
-                    xcb_configure_window(surface->connection, tgt,
-                            XCB_CONFIG_WINDOW_SIBLING |
-                            XCB_CONFIG_WINDOW_STACK_MODE,
-                            (const uint32_t[]) {
-                            prev_tgt, XCB_STACK_MODE_ABOVE
-                            });
-                } else {
-                    xcb_configure_window(surface->connection, tgt,
-                            XCB_CONFIG_WINDOW_STACK_MODE,
-                            (const uint32_t[]) { XCB_STACK_MODE_ABOVE });
-                }
-                prev_tgt = tgt;
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
-    }
+    /* The walk above puts the windows in the order they are stacked
+     * among themselves, which says nothing about layers: a client kept
+     * below or above its neighbours is a property of the client, not
+     * of where it sits in that order.  Re-imposed here, so that
+     * showing a desktop leaves its layers as they were.
+     *
+     * Done for every caller rather than at the desktop switch alone.
+     * Nothing did it before, and a window put below stayed wherever
+     * this walk left it until some later action happened to enforce
+     * layers again, which is why the wrong stacking was seen after a
+     * drag between desktops but corrected itself as soon as anything
+     * was selected. */
+    ccmd_desktop_enforce_layers(desktop);
 
     /* Focus is worked out here rather than remembered.  The most
      * recently focused client on this desktop that may still hold
@@ -286,8 +496,6 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
 {
     cdlist_item_td *dnode;
     const cdlist_item_td *dinitial;
-    cdlist_item_td *cnode;
-    const cdlist_item_td *cinitial;
     desktop_td *to_desktop;
     desktop_td *from_desktop;
     client_td *sticky[32];
@@ -311,23 +519,20 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
     do {
         from_desktop = (desktop_td *) cdlist_data(dnode);
         if (from_desktop != NULL && from_desktop != to_desktop &&
-                from_desktop->stacking != NULL &&
-                cdlist_size(from_desktop->stacking) > 0) {
-            /* Collect sticky clients first to avoid modifying the
-             * stacking list while iterating it. */
-            int n = 0;
+                stacking_count(from_desktop) > 0u) {
+            /* Collected before any of them is moved: moving one takes
+             * it off this desktop, and a walk that moved as it went
+             * would be reading a set it was itself changing. */
+            struct s_sticky_ctx_s sticky_ctx;
+            int n;
 
-            cnode = cdlist_head(from_desktop->stacking);
-            cinitial = cnode;
-            do {
-                client_td *const c = (client_td *) cdlist_data(cnode);
-
-                if (c != NULL && client_is_pinned(c) &&
-                        n < (int) (sizeof(sticky) / sizeof(sticky[0]))) {
-                    sticky[n++] = c;
-                }
-                cnode = cdlist_next(cnode);
-            } while (cnode != NULL && cnode != cinitial);
+            sticky_ctx.out = sticky;
+            sticky_ctx.capacity =
+                (int) (sizeof(sticky) / sizeof(sticky[0]));
+            sticky_ctx.count = 0;
+            stacking_walk(from_desktop, s_client_sticky_visit,
+                    &sticky_ctx);
+            n = sticky_ctx.count;
 
             /* Walked from the last collected to the first, and the
              * collection above ran from the bottom of the stack
@@ -389,6 +594,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
 /* Reposition clients that no longer overlap any known monitor */
 void surface_clients_reflow(surface_td *surface)
 {
+    struct s_reflow_ctx_s reflow_ctx;
     cdlist_item_td *dnode;
     const cdlist_item_td *dinitial;
 
@@ -404,119 +610,10 @@ void surface_clients_reflow(surface_td *surface)
     dinitial = dnode;
     do {
         desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-        cdlist_item_td *cnode;
-        const cdlist_item_td *cinitial;
 
-        if (desktop == NULL || desktop->stacking == NULL ||
-                cdlist_size(desktop->stacking) == 0) {
-            dnode = cdlist_next(dnode);
-            continue;
-        }
-
-        cnode = cdlist_head(desktop->stacking);
-        if (cnode == NULL) {
-            dnode = cdlist_next(dnode);
-            continue;
-        }
-
-        cinitial = cnode;
-        do {
-            client_td *const client = (client_td *) cdlist_data(cnode);
-
-            if (client != NULL) {
-                /* Use the frame for decorated windows, the client
-                 * window otherwise */
-                xcb_window_t target =
-                    (client_is_decorated(client) && client->frame != 0)
-                    ? client->frame : client->window;
-
-                int32_t cx = client->layout.geometry.cur.pos.x;
-                int32_t cy = client->layout.geometry.cur.pos.y;
-                uint32_t cw = client->layout.geometry.cur.dim.w;
-                uint32_t ch = client->layout.geometry.cur.dim.h;
-                bool still_on_a_monitor = false;
-
-                /* A window overlapping two adjacent, still-connected
-                 * monitors (a common, legitimate arrangement, e.g.,
-                 * a wide window straddling the seam between them) must
-                 * not be "corrected" just because it is not fully
-                 * inside any single one of them: only reposition
-                 * a window that has landed with no overlap at all
-                 * against any currently known monitor, e.g., because
-                 * the one it used to be on was unplugged, or the
-                 * combined layout changed shape around it (RandR does
-                 * not require monitors to stay contiguous, so
-                 * a disconnected one need not even have been at the
-                 * edge of the old combined area). */
-                for (uint32_t mi = 0u; mi < surface->monitor_count;
-                        ++mi) {
-                    const monitor_td *m = &surface->monitors[mi];
-
-                    if (geom_intersection_area(cx, cy, cw, ch,
-                                m->x, m->y, m->w, m->h) > 0u) {
-                        still_on_a_monitor = true;
-                        break;
-                    }
-                }
-
-                if (!still_on_a_monitor) {
-                    monitor_td target_monitor =
-                        surface_monitor_for_point(surface,
-                                (struct position_s) {
-                                    cx + (int32_t) (cw / 2u),
-                                    cy + (int32_t) (ch / 2u) });
-                    int32_t mx0 = target_monitor.x;
-                    int32_t my0 = target_monitor.y;
-                    int32_t mx1 = mx0 + (int32_t) target_monitor.w;
-                    int32_t my1 = my0 + (int32_t) target_monitor.h;
-
-                    /* Minimum visible strip to keep on screen. */
-                    int32_t margin = (int32_t)
-                        ((surface->config->base.windows.move_step > 0u)
-                         ? surface->config->base.windows.move_step
-                         : 1u);
-                    int32_t new_x = cx;
-                    int32_t new_y = cy;
-
-                    /* Clamp horizontally, within the resolved
-                     * monitor rather than the whole combined
-                     * surface */
-                    if (new_x + (int32_t) cw < mx0 + margin) {
-                        new_x = mx0 + margin - (int32_t) cw;
-                    }
-                    if (new_x > mx1 - margin) {
-                        new_x = mx1 - margin;
-                    }
-
-                    /* Clamp vertically, within the resolved monitor */
-                    if (new_y + (int32_t) ch < my0 + margin) {
-                        new_y = my0 + margin - (int32_t) ch;
-                    }
-                    if (new_y > my1 - margin) {
-                        new_y = my1 - margin;
-                    }
-
-                    if (new_x != cx || new_y != cy) {
-                        uint32_t vals[2];
-                        vals[0] = (uint32_t) new_x;
-                        vals[1] = (uint32_t) new_y;
-
-                        xcb_configure_window(surface->connection,
-                                target,
-                                XCB_CONFIG_WINDOW_X |
-                                XCB_CONFIG_WINDOW_Y,
-                                vals);
-
-                        client->layout.geometry.cur.pos.x = new_x;
-                        client->layout.geometry.cur.pos.y = new_y;
-                        client->is_outdated = true;
-                        desktop->is_outdated = true;
-                    }
-                }
-            }
-
-            cnode = cdlist_next(cnode);
-        } while (cnode != NULL && cnode != cinitial);
+        reflow_ctx.surface = surface;
+        reflow_ctx.desktop = desktop;
+        stacking_walk(desktop, s_client_reflow_visit, &reflow_ctx);
 
         dnode = cdlist_next(dnode);
     } while (dnode != NULL && dnode != dinitial);

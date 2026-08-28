@@ -35,6 +35,7 @@
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
@@ -133,6 +134,63 @@ static enum s_shrink_result_e s_free_rect_shrink_against(
 
 
 /**
+ * @brief What @a s_free_rect_shrink_visit carries across the windows
+ *        it meets
+ */
+struct s_shrink_ctx_s {
+    /** Client left out of the search */
+    const client_td *skip_client;
+    int32_t x0;             /**< Candidate's own left edge */
+    int32_t y0;             /**< Its top edge */
+    int32_t *right;         /**< Its right edge, shrunk in place */
+    int32_t *bottom;        /**< Its bottom edge, shrunk in place */
+    bool has_shrunk;        /**< Whether anything shrank */
+    bool has_collapsed;     /**< Whether nothing is left of it */
+};
+
+
+/**
+ * @brief Shrink the candidate rectangle away from one window
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_shrink_ctx_s this walk carries
+ *
+ * @note Once collapsed, later windows are passed over: there is
+ *       nothing left to shrink away from them
+ * @note Complexity: @e O(1)
+ */
+static void s_free_rect_shrink_visit(client_td *client, void *data)
+{
+    struct s_shrink_ctx_s *const shrink_ctx = data;
+    int32_t other_x1;
+    int32_t other_y1;
+    enum s_shrink_result_e result;
+
+    if (client == NULL || shrink_ctx == NULL ||
+            shrink_ctx->has_collapsed ||
+            client == shrink_ctx->skip_client ||
+            (client->properties.flags & CLIENT_FLAG_HIDDEN) ||
+            client_is_locked(client) || client_is_iconified(client)) {
+        return;
+    }
+
+    other_x1 = client->layout.geometry.cur.pos.x;
+    other_y1 = client->layout.geometry.cur.pos.y;
+    result = s_free_rect_shrink_against(shrink_ctx->x0, shrink_ctx->y0,
+            shrink_ctx->right, shrink_ctx->bottom,
+            other_x1, other_y1,
+            other_x1 + (int32_t) client->layout.geometry.cur.dim.w,
+            other_y1 + (int32_t) client->layout.geometry.cur.dim.h);
+
+    if (result == S_SHRINK_COLLAPSED) {
+        shrink_ctx->has_collapsed = true;
+    } else if (result == S_SHRINK_DONE) {
+        shrink_ctx->has_shrunk = true;
+    }
+}
+
+
+/**
  * @brief Grow the largest obstacle-free rectangle whose top-left
  *        corner sits at a given point, extending right and down
  *
@@ -187,58 +245,33 @@ void placement_free_rect_grow(const desktop_td *desktop,
         return;
     }
 
-    guard_max = (desktop->stacking != NULL)
-        ? (uint32_t) cdlist_size(desktop->stacking) + 1u : 1u;
+    guard_max = stacking_count(desktop) + 1u;
     if (tray_rect != NULL) {
         guard_max += 1u;
     }
 
     for (guard = 0u; guard < guard_max; ++guard) {
-        cdlist_item_td *node;
-        bool shrunk = false;
+        struct s_shrink_ctx_s shrink_ctx;
+        bool shrunk;
 
-        if (desktop->stacking != NULL &&
-                cdlist_size(desktop->stacking) != 0u) {
-            const cdlist_item_td *initial;
+        shrink_ctx.skip_client = skip_client;
+        shrink_ctx.x0 = x0;
+        shrink_ctx.y0 = y0;
+        shrink_ctx.right = &right;
+        shrink_ctx.bottom = &bottom;
+        shrink_ctx.has_shrunk = false;
+        shrink_ctx.has_collapsed = false;
+        stacking_walk(desktop, s_free_rect_shrink_visit, &shrink_ctx);
 
-            node = cdlist_head(desktop->stacking);
-            initial = node;
-            if (node != NULL) {
-                do {
-                    const client_td *other =
-                        (const client_td *) cdlist_data(node);
-
-                    if (other != NULL && other != skip_client &&
-                            !(other->properties.flags &
-                                CLIENT_FLAG_HIDDEN) &&
-                            !client_is_locked(other) &&
-                            !client_is_iconified(other)) {
-                        const int32_t ox1 =
-                            other->layout.geometry.cur.pos.x;
-                        const int32_t oy1 =
-                            other->layout.geometry.cur.pos.y;
-                        const int32_t ox2 = ox1 +
-                            (int32_t) other->layout.geometry.cur.dim.w;
-                        const int32_t oy2 = oy1 +
-                            (int32_t) other->layout.geometry.cur.dim.h;
-                        const enum s_shrink_result_e r =
-                            s_free_rect_shrink_against(x0, y0,
-                                    &right, &bottom,
-                                    ox1, oy1, ox2, oy2);
-
-                        if (r == S_SHRINK_COLLAPSED) {
-                            *out_w = 0u;
-                            *out_h = 0u;
-                            return;
-                        }
-                        if (r == S_SHRINK_DONE) {
-                            shrunk = true;
-                        }
-                    }
-                    node = cdlist_next(node);
-                } while (node != NULL && node != initial);
-            }
+        /* Reported through the context rather than returned from the
+         * middle of the walk, which cannot be ended early: a collapsed
+         * rectangle leaves nothing to go on searching for. */
+        if (shrink_ctx.has_collapsed) {
+            *out_w = 0u;
+            *out_h = 0u;
+            return;
         }
+        shrunk = shrink_ctx.has_shrunk;
 
         if (tray_rect != NULL) {
             const enum s_shrink_result_e r = s_free_rect_shrink_against(

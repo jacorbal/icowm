@@ -50,6 +50,7 @@
 #include <wm.h>
 
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <config.h>
 
 /* Local includes */
@@ -728,6 +729,51 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
 
 
 /**
+ * @brief What @a s_desktop_render_client_visit needs beyond the client
+ */
+struct s_desktop_render_ctx_s {
+    desktop_td *desktop;    /**< Desktop being rendered */
+    bool is_current;        /**< Whether it is the visible one */
+    int client_count;       /**< How many have been rendered */
+};
+
+
+/**
+ * @brief Render one client, or its icon when it is iconified
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to this walk's own render context
+ *
+ * @note A plainly hidden client is drawn neither way: it is unmapped
+ *       and has no icon standing in for it
+ * @note Complexity: @e O(1)
+ */
+static void s_desktop_render_client_visit(client_td *client, void *data)
+{
+    struct s_desktop_render_ctx_s *const render_ctx = data;
+
+    if (client == NULL || render_ctx == NULL) {
+        return;
+    }
+
+    render_ctx->client_count++;
+
+    /* Keep icon windows visible only for iconified clients.  Plain
+     * hidden windows must stay fully unmapped. */
+    if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
+        if (client_is_iconified(client)) {
+            ri_render_client_icon(client, render_ctx->is_current,
+                    false);
+        }
+        return;
+    }
+
+    desktop_render_one_client(render_ctx->desktop, client,
+            render_ctx->is_current);
+}
+
+
+/**
  * @brief Draw all clients on a desktop
  *
  * Iterates through all clients in the desktop's stacking list and
@@ -752,9 +798,7 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
  */
 static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
 {
-    cdlist_item_td *stacking_node;
-    const cdlist_item_td *stacking_initial;
-    client_td *client;
+    struct s_desktop_render_ctx_s render_ctx;
     int client_count = 0;
     size_t stacking_size;
 
@@ -763,12 +807,7 @@ static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
         return 1;
     }
 
-    if (desktop->stacking == NULL) {
-        LOGGER_ERROR("Desktop stacking list is null", L_NARG);
-        return 1;
-    }
-
-    stacking_size = cdlist_size(desktop->stacking);
+    stacking_size = (size_t) stacking_count(desktop);
     LOGGER_DEBUG("Rendering %zu client(s) from stacking list" \
             " on desktop %u ('%s')",
             stacking_size, desktop->id, desktop->name);
@@ -780,43 +819,11 @@ static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
         return 0;
     }
 
-    stacking_node = cdlist_head(desktop->stacking);
-    if (stacking_node == NULL) {
-        LOGGER_ERROR("Stacking list head is null despite size > 0",
-                L_NARG);
-        return 1;
-    }
-
-    stacking_initial = stacking_node;
-
-    /* Iterate through stacking list (back to front) */
-    do {
-        client = (client_td *) cdlist_data(stacking_node);
-
-        if (client == NULL) {
-            LOGGER_ERROR("Null client found in stacking list at" \
-                    " position %d", client_count);
-            stacking_node = cdlist_next(stacking_node);
-            continue;
-        }
-        client_count++;
-
-        /* Keep icon windows visible only for iconified clients.
-         * Plain hidden windows must stay fully unmapped. */
-        if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-            if (client_is_iconified(client)) {
-                ri_render_client_icon(client, is_current, false);
-            }
-            stacking_node = cdlist_next(stacking_node);
-            continue;
-        }
-
-        desktop_render_one_client(desktop, client, is_current);
-
-        stacking_node = cdlist_next(stacking_node);
-    } while (stacking_node != NULL &&
-             stacking_node != stacking_initial &&
-             client_count < (int)stacking_size);
+    render_ctx.desktop = desktop;
+    render_ctx.is_current = is_current;
+    render_ctx.client_count = 0;
+    stacking_walk(desktop, s_desktop_render_client_visit, &render_ctx);
+    client_count = render_ctx.client_count;
 
     LOGGER_DEBUG("Successfully rendered %d clients" \
             " on desktop %u ('%s')",

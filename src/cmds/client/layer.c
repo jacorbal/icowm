@@ -21,6 +21,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <logger.h>
 #include <systray.h>
 #include <wm.h>
@@ -241,6 +242,41 @@ static void s_enforce_layer_place_family(client_td *top,
 }
 
 
+/**
+ * @brief What @a s_enforce_layer_visit carries across one layer's pass
+ */
+struct s_enforce_layer_ctx_s {
+    desktop_td *desktop;        /**< Desktop being restacked */
+    uint16_t layer;             /**< Layer this pass is placing */
+    xcb_window_t *prev_target;  /**< Window placed just below */
+};
+
+
+/**
+ * @brief Place one client, if it belongs to the layer being done
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to this walk's own layer context
+ *
+ * @note Complexity: @e O(f), where @e f is the size of the client's
+ *       own transient family
+ */
+static void s_enforce_layer_visit(client_td *client, void *data)
+{
+    struct s_enforce_layer_ctx_s *const enforce_ctx = data;
+
+    if (client == NULL || enforce_ctx == NULL ||
+            client->properties.layer != enforce_ctx->layer ||
+            !s_enforce_layer_is_top_level(client, enforce_ctx->desktop,
+                enforce_ctx->layer)) {
+        return;
+    }
+
+    s_enforce_layer_place_family(client, enforce_ctx->desktop,
+            enforce_ctx->layer, enforce_ctx->prev_target, 0);
+}
+
+
 /* Raise the client to the top of the stacking order */
 void ccmd_client_raise(client_td *client)
 {
@@ -372,42 +408,27 @@ void ccmd_client_cycle_layer(client_td *client)
 /* Enforce layer stacking order for all clients in a desktop */
 void ccmd_desktop_enforce_layers(desktop_td *desktop)
 {
-    cdlist_item_td *node;
-    client_td *c;
     enum client_layer_e layer_order[] = {
         CLIENT_LAYER_BELOW,
         CLIENT_LAYER_NORMAL,
         CLIENT_LAYER_ABOVE
     };
     xcb_window_t prev_target;
+    struct s_enforce_layer_ctx_s enforce_ctx;
 
-    if (desktop == NULL || desktop->stacking == NULL ||
-            cdlist_size(desktop->stacking) == 0) {
+    if (desktop == NULL || stacking_count(desktop) == 0u) {
         return;
     }
 
     prev_target = XCB_WINDOW_NONE;
+    enforce_ctx.desktop = desktop;
+    enforce_ctx.prev_target = &prev_target;
+
     for (size_t li = 0;
             li < sizeof(layer_order) / sizeof(layer_order[0]);
             ++li) {
-        const cdlist_item_td *initial;
-        const uint16_t layer = (uint16_t) layer_order[li];
-
-        node = cdlist_head(desktop->stacking);
-        initial = node;
-        if (node == NULL) {
-            continue;
-        }
-
-        do {
-            c = (client_td *) cdlist_data(node);
-            if (c != NULL && c->properties.layer == layer &&
-                    s_enforce_layer_is_top_level(c, desktop, layer)) {
-                s_enforce_layer_place_family(c, desktop, layer,
-                        &prev_target, 0);
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+        enforce_ctx.layer = (uint16_t) layer_order[li];
+        stacking_walk(desktop, s_enforce_layer_visit, &enforce_ctx);
     }
 
     /* A fullscreen client that currently holds focus always sits

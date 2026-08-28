@@ -28,6 +28,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <logger.h>
 
 /* Local includes */
@@ -96,6 +97,144 @@ static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
         int32_t start_b, int32_t end_b, int32_t snap)
 {
     return !(end_a < start_b - snap || end_b < start_a - snap);
+}
+
+
+/**
+ * @brief What a snap walk carries across the windows it considers
+ *
+ * The best delta found so far on each axis, which is why a snap cannot
+ * be worked out one window at a time and thrown away.
+ */
+struct s_drag_snap_ctx_s {
+    int32_t left;           /**< Dragged window's own left edge */
+    int32_t top;            /**< Its top edge */
+    int32_t right;          /**< Its right edge */
+    int32_t bottom;         /**< Its bottom edge */
+    int32_t snap_window;    /**< Snap distance in force */
+    int32_t delta_x;        /**< Best horizontal delta so far */
+    int32_t delta_y;        /**< Best vertical delta so far */
+};
+
+
+/**
+ * @brief Consider one window as something to snap a move against
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_drag_snap_ctx_s this walk carries
+ *
+ * @note The dragged window itself, and anything hidden or iconified,
+ *       is passed over: none of them is an edge the person can see
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_snap_move_visit(client_td *client, void *data)
+{
+    struct s_drag_snap_ctx_s *const snap_ctx = data;
+    int32_t other_left;
+    int32_t other_top;
+    int32_t other_right;
+    int32_t other_bottom;
+
+    if (client == NULL || snap_ctx == NULL || client == s_drag.client ||
+            client_is_hidden(client) || client_is_iconified(client)) {
+        return;
+    }
+
+    other_left = client->layout.geometry.cur.pos.x;
+    other_top = client->layout.geometry.cur.pos.y;
+    other_right = other_left +
+        (int32_t) client->layout.geometry.cur.dim.w;
+    other_bottom = other_top +
+        (int32_t) client->layout.geometry.cur.dim.h;
+
+    if (s_drag_ranges_close(snap_ctx->top, snap_ctx->bottom,
+                other_top, other_bottom, snap_ctx->snap_window)) {
+        snap_ctx->delta_x = s_drag_closer_delta(snap_ctx->delta_x,
+                other_right - snap_ctx->left);
+        snap_ctx->delta_x = s_drag_closer_delta(snap_ctx->delta_x,
+                other_right - snap_ctx->right);
+        snap_ctx->delta_x = s_drag_closer_delta(snap_ctx->delta_x,
+                other_left - snap_ctx->right);
+        snap_ctx->delta_x = s_drag_closer_delta(snap_ctx->delta_x,
+                other_left - snap_ctx->left);
+    }
+
+    if (s_drag_ranges_close(snap_ctx->left, snap_ctx->right,
+                other_left, other_right, snap_ctx->snap_window)) {
+        snap_ctx->delta_y = s_drag_closer_delta(snap_ctx->delta_y,
+                other_bottom - snap_ctx->top);
+        snap_ctx->delta_y = s_drag_closer_delta(snap_ctx->delta_y,
+                other_bottom - snap_ctx->bottom);
+        snap_ctx->delta_y = s_drag_closer_delta(snap_ctx->delta_y,
+                other_top - snap_ctx->bottom);
+        snap_ctx->delta_y = s_drag_closer_delta(snap_ctx->delta_y,
+                other_top - snap_ctx->top);
+    }
+}
+
+
+/**
+ * @brief Consider one window as something to snap a resize against
+ *
+ * The same walk as @a s_drag_snap_move_visit, except that a resize
+ * moves only the edge being dragged: which one that is decides whether
+ * a candidate's own edges are compared against this window's near side
+ * or its far one.
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_drag_snap_ctx_s this walk carries
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_drag_snap_resize_visit(client_td *client, void *data)
+{
+    struct s_drag_snap_ctx_s *const snap_ctx = data;
+    int32_t other_left;
+    int32_t other_top;
+    int32_t other_right;
+    int32_t other_bottom;
+
+    if (client == NULL || snap_ctx == NULL || client == s_drag.client ||
+            client_is_hidden(client) || client_is_iconified(client)) {
+        return;
+    }
+
+    other_left = client->layout.geometry.cur.pos.x;
+    other_top = client->layout.geometry.cur.pos.y;
+    other_right = other_left +
+        (int32_t) client->layout.geometry.cur.dim.w;
+    other_bottom = other_top +
+        (int32_t) client->layout.geometry.cur.dim.h;
+
+    if (s_drag_ranges_close(snap_ctx->top, snap_ctx->bottom,
+                other_top, other_bottom, snap_ctx->snap_window)) {
+        if (s_drag.is_anchor_right) {
+            snap_ctx->delta_x = s_drag_closer_delta(snap_ctx->delta_x,
+                    other_right - snap_ctx->left);
+            snap_ctx->delta_x = s_drag_closer_delta(snap_ctx->delta_x,
+                    other_left - snap_ctx->left);
+        } else {
+            snap_ctx->delta_x = s_drag_closer_delta(snap_ctx->delta_x,
+                    other_right - snap_ctx->right);
+            snap_ctx->delta_x = s_drag_closer_delta(snap_ctx->delta_x,
+                    other_left - snap_ctx->right);
+        }
+    }
+
+    if (s_drag_ranges_close(snap_ctx->left, snap_ctx->right,
+                other_left, other_right, snap_ctx->snap_window)) {
+        if (s_drag.is_anchor_bottom) {
+            snap_ctx->delta_y = s_drag_closer_delta(snap_ctx->delta_y,
+                    other_bottom - snap_ctx->top);
+            snap_ctx->delta_y = s_drag_closer_delta(snap_ctx->delta_y,
+                    other_top - snap_ctx->top);
+        } else {
+            snap_ctx->delta_y = s_drag_closer_delta(snap_ctx->delta_y,
+                    other_bottom - snap_ctx->bottom);
+            snap_ctx->delta_y = s_drag_closer_delta(snap_ctx->delta_y,
+                    other_top - snap_ctx->bottom);
+        }
+    }
 }
 
 
@@ -209,10 +348,8 @@ void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
     bottom = *y + (int32_t) height;
 
     if (snap_window > 0 && s_drag.desktop != NULL &&
-            s_drag.desktop->stacking != NULL &&
-            cdlist_size(s_drag.desktop->stacking) > 0) {
-        cdlist_item_td *node;
-        const cdlist_item_td *initial;
+            stacking_count(s_drag.desktop) > 0u) {
+        struct s_drag_snap_ctx_s snap_ctx;
         /* One past 'snap_window' itself, not 'snap_window' itself:
          * 'abs(delta) <= snap_window' below is what decides whether
          * a candidate actually applies, so starting exactly at
@@ -223,42 +360,17 @@ void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
         int32_t dx = snap_window + 1;
         int32_t dy = dx;
 
-        node = cdlist_head(s_drag.desktop->stacking);
-        initial = node;
-        if (node != NULL) {
-            do {
-                const client_td *other =
-                    (const client_td *) cdlist_data(node);
-
-                if (other != NULL && other != s_drag.client &&
-                        !client_is_hidden(other) &&
-                        !client_is_iconified(other)) {
-                    int32_t ox = other->layout.geometry.cur.pos.x;
-                    int32_t oy = other->layout.geometry.cur.pos.y;
-                    int32_t oright = ox +
-                        (int32_t) other->layout.geometry.cur.dim.w;
-                    int32_t obottom = oy +
-                        (int32_t) other->layout.geometry.cur.dim.h;
-
-                    if (s_drag_ranges_close(*y, bottom, oy,
-                                obottom, snap_window)) {
-                        dx = s_drag_closer_delta(dx, oright - *x);
-                        dx = s_drag_closer_delta(dx, oright - right);
-                        dx = s_drag_closer_delta(dx, ox - right);
-                        dx = s_drag_closer_delta(dx, ox - *x);
-                    }
-
-                    if (s_drag_ranges_close(*x, right, ox,
-                                oright, snap_window)) {
-                        dy = s_drag_closer_delta(dy, obottom - *y);
-                        dy = s_drag_closer_delta(dy, obottom - bottom);
-                        dy = s_drag_closer_delta(dy, oy - bottom);
-                        dy = s_drag_closer_delta(dy, oy - *y);
-                    }
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        }
+        snap_ctx.left = *x;
+        snap_ctx.top = *y;
+        snap_ctx.right = right;
+        snap_ctx.bottom = bottom;
+        snap_ctx.snap_window = snap_window;
+        snap_ctx.delta_x = dx;
+        snap_ctx.delta_y = dy;
+        stacking_walk(s_drag.desktop, s_drag_snap_move_visit,
+                &snap_ctx);
+        dx = snap_ctx.delta_x;
+        dy = snap_ctx.delta_y;
 
         LOGGER_TRACE("Move snap candidates (x=%d, y=%d, right=%d," \
                 " bottom=%d, dx=%d, dy=%d, snap-window=%d)",
@@ -328,65 +440,24 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
      * always assume it is the right/bottom edge the way a
      * left-edge-fixed resize would. */
     if (snap_window > 0 && s_drag.desktop != NULL &&
-            s_drag.desktop->stacking != NULL &&
-            cdlist_size(s_drag.desktop->stacking) > 0) {
-        cdlist_item_td *node;
-        const cdlist_item_td *initial;
+            stacking_count(s_drag.desktop) > 0u) {
+        struct s_drag_snap_ctx_s snap_ctx;
         /* See the matching comment in 'drag_snap_move' for why this
          * is 'snap_window + 1', not 'snap_window' itself. */
         int32_t d_horiz = snap_window + 1;
         int32_t d_vert = d_horiz;
 
-        node = cdlist_head(s_drag.desktop->stacking);
-        initial = node;
-        if (node != NULL) {
-            do {
-                const client_td *other =
-                    (const client_td *) cdlist_data(node);
-
-                if (other != NULL && other != s_drag.client &&
-                        !client_is_hidden(other) &&
-                        !client_is_iconified(other)) {
-                    int32_t ox = other->layout.geometry.cur.pos.x;
-                    int32_t oy = other->layout.geometry.cur.pos.y;
-                    int32_t oright = ox +
-                        (int32_t) other->layout.geometry.cur.dim.w;
-                    int32_t obottom = oy +
-                        (int32_t) other->layout.geometry.cur.dim.h;
-
-                    if (s_drag_ranges_close(*y, bottom, oy,
-                                obottom, snap_window)) {
-                        if (s_drag.is_anchor_right) {
-                            d_horiz = s_drag_closer_delta(d_horiz,
-                                    oright - *x);
-                            d_horiz = s_drag_closer_delta(d_horiz,
-                                    ox - *x);
-                        } else {
-                            d_horiz = s_drag_closer_delta(d_horiz,
-                                    oright - right);
-                            d_horiz = s_drag_closer_delta(d_horiz,
-                                    ox - right);
-                        }
-                    }
-
-                    if (s_drag_ranges_close(*x, right, ox,
-                                oright, snap_window)) {
-                        if (s_drag.is_anchor_bottom) {
-                            d_vert = s_drag_closer_delta(d_vert,
-                                    obottom - *y);
-                            d_vert = s_drag_closer_delta(d_vert,
-                                    oy - *y);
-                        } else {
-                            d_vert = s_drag_closer_delta(d_vert,
-                                    obottom - bottom);
-                            d_vert = s_drag_closer_delta(d_vert,
-                                    oy - bottom);
-                        }
-                    }
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        }
+        snap_ctx.left = *x;
+        snap_ctx.top = *y;
+        snap_ctx.right = right;
+        snap_ctx.bottom = bottom;
+        snap_ctx.snap_window = snap_window;
+        snap_ctx.delta_x = d_horiz;
+        snap_ctx.delta_y = d_vert;
+        stacking_walk(s_drag.desktop, s_drag_snap_resize_visit,
+                &snap_ctx);
+        d_horiz = snap_ctx.delta_x;
+        d_vert = snap_ctx.delta_y;
 
         LOGGER_TRACE("Resize snap candidates (x=%d, y=%d, right=%d," \
                 " bottom=%d, anchor-right=%d, anchor-bottom=%d," \

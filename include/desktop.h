@@ -8,8 +8,9 @@
  * It includes a unique identifier, the window associated with the last
  * recorded event, the currently focused window, and additional metadata
  * such as the workspace name, workspace dimensions, and the available
- * area for clients.  It also contains references to hash tables and
- * lists that manage the stacking of clients within that workspace.
+ * area for clients.  It also holds the table of the clients that
+ * belong to it; how those are stacked is not a desktop's own business
+ * and lives in @c policy/stacking.h.
  *
  * @defgroup desktop Virtual desktop management
  * @ingroup surface
@@ -130,7 +131,6 @@ struct desktop_s {
 
     ohtbl_td *clients;                      /**< Clients hash table */
 
-    cdlist_td *stacking;                    /**< Stacking list */
 
 
     /**
@@ -290,7 +290,7 @@ void desktop_destroy(desktop_td *desktop);
  * @param desktop Desktop, and every one of its own clients, to mark
  *                outdated
  *
- * @note No-op if @p desktop or its own stacking list is @c NULL
+ * @note No-op if @p desktop is @c NULL
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */

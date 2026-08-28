@@ -55,6 +55,7 @@
 
 /* Local includes */
 #include <desktop.h>
+#include <policy/stacking.h>
 
 /**
  * @brief Move a client to the front or back of the desktop's window
@@ -79,7 +80,7 @@
 static int s_desktop_client_send_to_end(desktop_td *desktop,
         client_td *client, bool to_front)
 {
-    cdlist_item_td *node;
+    int status;
 
     if (desktop == NULL || client == NULL) {
         LOGGER_ERROR("Invalid desktop or client pointer", L_NARG);
@@ -91,41 +92,23 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
             client->id, client->info.name,
             (to_front) ? "front" : "back", desktop->id, desktop->name);
 
-    /* Find the client in the stacking list */
-    node = cdlist_head(desktop->stacking);
-    if (node != NULL) {
-        cdlist_item_td *const initial = node;
-        do {
-            if (cdlist_data(node) == (void *) client) {
-                /* Found it, move to tail (front/top) or head
-                 * (back/bottom) of the stack */
-                if (cdlist_rem_next(desktop->stacking,
-                            cdlist_prev(node), NULL) != 0) {
-                    LOGGER_ERROR("Failed to remove client from stacking",
-                            L_NARG);
-                    return -1;
-                }
+    status = (to_front)
+        ? stacking_raise(desktop, client)
+        : stacking_lower(desktop, client);
 
-                if (cdlist_ins_next(desktop->stacking,
-                            (to_front)
-                                ? cdlist_tail(desktop->stacking)
-                                : NULL /* cdlist_head(desktop->stacking) */,
-                            (void *) client) != 0) {
-                    LOGGER_ERROR("Failed to insert client to stacking",
-                            L_NARG);
-                    return -1;
-                }
-
-                ccmd_desktop_enforce_layers(desktop);
-                desktop->is_outdated = true;
-                return 0;
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+    if (status == 1) {
+        LOGGER_ERROR("Client not found in desktop stacking", L_NARG);
+        return -1;
+    }
+    if (status != 0) {
+        LOGGER_ERROR("Failed to move client within stacking", L_NARG);
+        return -1;
     }
 
-    LOGGER_ERROR("Client not found in desktop stacking", L_NARG);
-    return -1;
+    ccmd_desktop_enforce_layers(desktop);
+    desktop->is_outdated = true;
+
+    return 0;
 }
 
 
@@ -295,9 +278,7 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
     }
 
     /* Add to stacking list for rendering order */
-    if (cdlist_ins_next(desktop->stacking,
-                cdlist_tail(desktop->stacking),
-                (void *) client) != 0) {
+    if (stacking_add(desktop, client) != 0) {
         LOGGER_ERROR("Failed to add client to stacking list", L_NARG);
         /* Remove from hash table on failure */
         removed_client = (void *) client;
@@ -317,7 +298,6 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
 /* Remove a client from the desktop */
 int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 {
-    cdlist_item_td *node;
     void *removed_client;
 
     if (desktop == NULL || client == NULL) {
@@ -335,24 +315,13 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
         return -1;
     }
 
-    /* Remove from the stacking list, found by iterating */
-    node = cdlist_head(desktop->stacking);
-    if (node != NULL) {
-        const cdlist_item_td *initial = node;
-        do {
-            if (cdlist_data(node) == (void *) client) {
-                /* Found it, remove it */
-                if (cdlist_rem_next(desktop->stacking,
-                            cdlist_prev(node), NULL) != 0) {
-                    LOGGER_ERROR("Failed to remove client from" \
-                            " stacking list", L_NARG);
-                    return -1;
-                }
-                break;
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
-    }
+    /* Deliberately left in the stacking order.  That order spans every
+     * managed client whichever desktop shows it, and this function
+     * runs for a desktop change as much as for a client going away: a
+     * pinned window passes through here on every switch, and dropping
+     * it would lose the height that holding one order exists to keep.
+     * 'client_destroy' is what forgets a client there, once it is
+     * gone for good. */
 
     LOGGER_TRACE("Removed client 0x%08x from desktop %u",
             client->id, desktop->id);
@@ -398,35 +367,6 @@ int desktop_action_client_move(desktop_td *from, desktop_td *to,
     client->desktop_id = to->id;
 
     return 0;
-}
-
-
-/* Find the client on a desktop matching a given client ID */
-client_td *desktop_find_client_by_id(const desktop_td *desktop,
-        uint32_t id)
-{
-    cdlist_item_td *node;
-    const cdlist_item_td *initial;
-
-    if (desktop == NULL || desktop->stacking == NULL) {
-        return NULL;
-    }
-
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return NULL;
-    }
-
-    initial = node;
-    do {
-        client_td *const c = (client_td *) cdlist_data(node);
-        if (c != NULL && c->id == id) {
-            return c;
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-
-    return NULL;
 }
 
 

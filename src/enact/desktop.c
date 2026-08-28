@@ -30,6 +30,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <logger.h>
 #include <surface.h>
 #include <wm.h>
@@ -253,6 +254,56 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
 }
 
 
+/**
+ * @brief What @a s_desktop_rearrange_visit carries across the desktop
+ */
+struct s_rearrange_ctx_s {
+    /** Window manager, needed to find a transient's own parent */
+    const wm_td *wm;
+    surface_td *surface;    /**< Surface being rearranged */
+    bool is_single_spot;    /**< Whether the policy has one spot only */
+    bool is_first;          /**< Whether this is the first client */
+};
+
+
+/**
+ * @brief Place one client afresh while rearranging a desktop
+ *
+ * Every client goes through the same general-purpose placement engine
+ * a newly mapped window does, not a rearrange-only routine, so a
+ * transient dialog among them is re-centered over its own parent per
+ * ICCCM §4.1.2.6 rather than moved by the configured policy.  That
+ * parent can live on another surface, which is why this needs the
+ * whole @c wm_td rather than a desktop.
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_rearrange_ctx_s this walk carries
+ *
+ * @note The "centered" and "under-mouse" policies resolve to a single
+ *       spot, so only the first client uses the configured policy and
+ *       the rest cascade; otherwise they would all land on each other
+ * @note Complexity: @e O(n), the placement engine's own cost
+ */
+static void s_desktop_rearrange_visit(client_td *client, void *data)
+{
+    struct s_rearrange_ctx_s *const rearrange_ctx = data;
+
+    if (client == NULL || rearrange_ctx == NULL ||
+            client_is_locked(client)) {
+        return;
+    }
+
+    if (rearrange_ctx->is_single_spot && !rearrange_ctx->is_first) {
+        place_window_apply_cascade(rearrange_ctx->wm,
+                rearrange_ctx->surface, client);
+    } else {
+        place_window_apply(rearrange_ctx->wm, rearrange_ctx->surface,
+                client);
+    }
+    rearrange_ctx->is_first = false;
+}
+
+
 /* 'action_desktop_e' */
 
 void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
@@ -401,10 +452,9 @@ void enact_desktop_client_send_back(desktop_td *desktop,
 void enact_desktop_clients_rearrange(const wm_td *wm,
         surface_td *surface, desktop_td *desktop)
 {
-    cdlist_item_td *node;
+    struct s_rearrange_ctx_s rearrange_ctx;
     enum config_placement_policy_e policy;
     bool single_spot_policy;
-    bool is_first;
     config_td *config = wm_config(wm);
 
     if (wm == NULL || config == NULL || surface == NULL ||
@@ -416,66 +466,12 @@ void enact_desktop_clients_rearrange(const wm_td *wm,
     single_spot_policy =
         (policy == CONFIG_PLACEMENT_POLICY_CENTERED) ||
         (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE);
-    is_first = true;
 
-    node = cdlist_head(desktop->stacking);
-    if (node != NULL) {
-        /* 'desktop->stacking' is circular (see 'cdlist_next''s comment
-         * in 'adt/cdlist.h').  Its own tail wraps back to its own head
-         * rather than ever handing back a null, so a caller has to
-         * remember where it started and stop once it gets back there,
-         * the same 'initial' pattern already used to walk this same
-         * list elsewhere (e.g., 'desktop_action_client_rem' in
-         * 'desktop/dclient.c').
-         *
-         * A plain 'for (...; node != NULL; ...)' loop over it, as this
-         * one used to be, never terminates for a non-empty desktop: it
-         * silently spins inside this one call forever, which blocks the
-         * whole event loop (this function's own caller runs
-         * synchronously from it) from ever processing another key
-         * press, mouse click, or menu, until the process is killed from
-         * outside. */
-        const cdlist_item_td *initial = node;
-
-        do {
-            client_td *const client = (client_td *) cdlist_data(node);
-
-            if (client != NULL && !client_is_locked(client)) {
-                /* Every client on the desktop goes through
-                 * 'place_window_apply'/'place_window_apply_cascade',
-                 * the same general-purpose placement engine a newly
-                 * mapped window is run through, not a simplified
-                 * rearrange-only positioning routine.  That means
-                 * a transient dialog among them (a client with its own
-                 * 'transient_for' set) is not repositioned by the
-                 * configured placement policy below at all.
-                 *
-                 * 'place_window_apply' re-centers it over its own
-                 * parent per ICCCM §4.1.2.6 instead, the same as it
-                 * would have been placed there in the first place.
-                 * Finding that parent is why this function needs the
-                 * full 'wm_td' rather than just 'desktop' or 'config'.
-                 * The parent can live on a different surface entirely,
-                 * so locating it means searching 'wm->surfaces' as
-                 * a whole (see 's_place_window_transient_centered' in
-                 * 'policy/placement/window.c'). */
-
-                /* 'centered'/'under-mouse' always resolve to the exact
-                 * same single spot, so every client after the first
-                 * would land stacked on top of one another; only the
-                 * first client uses the real configured policy, the
-                 * rest fall back to cascade so the desktop ends up
-                 * spread out instead of piled up */
-                if (single_spot_policy && !is_first) {
-                    place_window_apply_cascade(wm, surface, client);
-                } else {
-                    place_window_apply(wm, surface, client);
-                }
-                is_first = false;
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
-    }
+    rearrange_ctx.wm = wm;
+    rearrange_ctx.surface = surface;
+    rearrange_ctx.is_single_spot = single_spot_policy;
+    rearrange_ctx.is_first = true;
+    stacking_walk(desktop, s_desktop_rearrange_visit, &rearrange_ctx);
 
     xcb_flush(surface->connection);
 }

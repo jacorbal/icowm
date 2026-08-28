@@ -54,6 +54,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
+#include <policy/stacking.h>
 #include <policy/focus.h>
 #include <loop.h>
 #include <memguard.h>
@@ -178,6 +179,22 @@ static void s_client_unmanage(client_td *client)
 
 
 /**
+ * @brief Release one client back to the X server
+ *
+ * @param client Client reached by the walk
+ * @param data   Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_unmanage_visit(client_td *client, void *data)
+{
+    (void) data;
+
+    s_client_unmanage(client);
+}
+
+
+/**
  * @brief Release every client, on every desktop of every managed
  *        surface, back to bare X before this whole instance's own
  *        teardown destroys the window manager's own resources
@@ -215,18 +232,7 @@ static void s_wm_all_clients_unmanage(void)
         do {
             desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
 
-            if (desktop != NULL && desktop->stacking != NULL) {
-                cdlist_item_td *cnode = cdlist_head(desktop->stacking);
-                const cdlist_item_td *cinitial = cnode;
-
-                if (cnode != NULL) {
-                    do {
-                        s_client_unmanage(
-                                (client_td *) cdlist_data(cnode));
-                        cnode = cdlist_next(cnode);
-                    } while (cnode != NULL && cnode != cinitial);
-                }
-            }
+            stacking_walk(desktop, s_client_unmanage_visit, NULL);
             dnode = cdlist_next(dnode);
         } while (dnode != NULL && dnode != dinitial);
     } /* ! for (snode) */

@@ -58,6 +58,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <handler/internal.h>
 #include <logger.h>
 #include <lookup.h>
@@ -430,6 +431,81 @@ static void s_hi_handle_net_wm_desktop_one(const wm_td *wm,
 }
 
 
+/**
+ * @brief Note whether any client on the desktop is visible
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c bool being set
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_any_visible_visit(client_td *client, void *data)
+{
+    bool *const is_any_visible = data;
+
+    if (client == NULL || is_any_visible == NULL ||
+            client_is_locked(client) ||
+            (client->properties.flags & CLIENT_FLAG_HIDDEN) ||
+            client_is_iconified(client)) {
+        return;
+    }
+
+    *is_any_visible = true;
+}
+
+
+/**
+ * @brief Bring one client back from the shown desktop
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c bool recording that something moved
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_unhide_visit(client_td *client, void *data)
+{
+    bool *const has_changed = data;
+
+    if (client == NULL || has_changed == NULL ||
+            client_is_locked(client) ||
+            !(client->properties.flags & CLIENT_FLAG_HIDDEN) ||
+            client_is_iconified(client)) {
+        return;
+    }
+
+    client_unhide(client);
+    *has_changed = true;
+    ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
+    ccmd_client_sync_states(client);
+}
+
+
+/**
+ * @brief Put one client away to show the desktop
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c bool recording that something moved
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_hide_visit(client_td *client, void *data)
+{
+    bool *const has_changed = data;
+
+    if (client == NULL || has_changed == NULL ||
+            client_is_locked(client) ||
+            (client->properties.flags & CLIENT_FLAG_HIDDEN) ||
+            client_is_iconified(client)) {
+        return;
+    }
+
+    client_hide(client);
+    *has_changed = true;
+    ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
+    ccmd_client_sync_states(client);
+}
+
+
 /* Handle a '_NET_WM_STATE' client message */
 void hi_handle_net_wm_state(client_td *client,
         xcb_client_message_event_t *event,
@@ -663,9 +739,6 @@ void hi_handle_net_moveresize_window(const wm_td *wm,
 void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 {
     desktop_td *desktop;
-    cdlist_item_td *stacking_head;
-    cdlist_item_td *node;
-    const cdlist_item_td *initial;
     bool any_visible;
     bool changed_hidden_state;
 
@@ -680,81 +753,33 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 
     any_visible = false;
     changed_hidden_state = false;
-    /* 'desktop->stacking' is only ever iterated below, never modified,
-     * so its head is stable across the whole function; computed once
-     * here rather than re-deriving the same conditional expression
-     * every time a fresh pass over the list is about to start. */
-    stacking_head = (desktop->stacking != NULL)
-        ? cdlist_head(desktop->stacking)
-        : NULL;
-    node = stacking_head;
-    if (node != NULL) {
-        initial = node;
-        do {
-            const client_td *client = (client_td *) cdlist_data(node);
-            if (client != NULL && !client_is_locked(client) &&
-                    !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    !client_is_iconified(client)) {
-                any_visible = true;
-                break;
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+    /* An empty desktop leaves nothing to show or hide, and the state
+     * below is not reached: what the three passes each checked for
+     * themselves before walking. */
+    if (stacking_count(desktop) == 0u) {
+        return;
     }
 
+    stacking_walk(desktop, s_any_visible_visit, &any_visible);
+
     if (show && !surface->is_showing_desktop) {
-        node = stacking_head;
-        if (node == NULL || !any_visible) {
+        if (!any_visible) {
             show = false;
         }
     }
 
     if (!show && surface->is_showing_desktop) {
-        node = stacking_head;
-        if (node == NULL) {
-            return;
-        }
-
-        initial = node;
-        do {
-            client_td *client = (client_td *) cdlist_data(node);
-            if (client != NULL && !client_is_locked(client) &&
-                    (client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    !client_is_iconified(client)) {
-                client_unhide(client);
-                changed_hidden_state = true;
-                ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL,
-                        XCB_NONE);
-                ccmd_client_sync_states(client);
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+        stacking_walk(desktop, s_client_unhide_visit,
+                &changed_hidden_state);
         surface_clients_show(surface, surface->desktop_cur);
     } else {
-        node = stacking_head;
-        if (node == NULL) {
-            return;
-        }
-
         /* Unmap the windows first, then mark them hidden.
          * 'surface_clients_hide' skips clients that already have
          * 'CLIENT_FLAG_HIDDEN' set, so the flag must be applied only
          * after the unmap call. */
         surface_clients_hide(surface, surface->desktop_cur);
-        initial = node;
-        do {
-            client_td *client = (client_td *) cdlist_data(node);
-            if (client != NULL && !client_is_locked(client) &&
-                    !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                    !client_is_iconified(client)) {
-                client_hide(client);
-                changed_hidden_state = true;
-                ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC,
-                        XCB_NONE);
-                ccmd_client_sync_states(client);
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+        stacking_walk(desktop, s_client_hide_visit,
+                &changed_hidden_state);
 
         xcb_set_input_focus(surface->connection,
                 XCB_INPUT_FOCUS_POINTER_ROOT,

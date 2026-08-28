@@ -30,6 +30,7 @@
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <logger.h>
 #include <memguard.h>
 #include <surface.h>
@@ -203,6 +204,46 @@ static void s_surface_layout_shrink_after(surface_td *surface,
 
 
 /**
+ * @brief How many clients one desktop can be emptied of at a time
+ *
+ * A desktop holding more than this keeps the remainder, which is a
+ * bounded, visible outcome rather than an unbounded stack array.
+ */
+#define SWITCH_EVACUATE_MAX_CLIENTS (256)
+
+
+/**
+ * @brief What @a s_client_evacuate_visit is gathering into
+ */
+struct s_evacuate_ctx_s {
+    client_td **out;    /**< Array the clients are put in */
+    int capacity;       /**< How many it holds */
+    int count;          /**< How many have been put in so far */
+};
+
+
+/**
+ * @brief Gather one client, up to the array's own capacity
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_evacuate_ctx_s being filled
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_evacuate_visit(client_td *client, void *data)
+{
+    struct s_evacuate_ctx_s *const evacuate_ctx = data;
+
+    if (client == NULL || evacuate_ctx == NULL ||
+            evacuate_ctx->count >= evacuate_ctx->capacity) {
+        return;
+    }
+
+    evacuate_ctx->out[evacuate_ctx->count++] = client;
+}
+
+
+/**
  * @brief Move every client still on @p from_desktop to
  *        @p to_desktop, updating EWMH @c _NET_WM_DESKTOP along
  *        the way
@@ -228,36 +269,36 @@ static void s_surface_layout_shrink_after(surface_td *surface,
 static void s_surface_desktop_evacuate(desktop_td *from_desktop,
         desktop_td *to_desktop)
 {
-    size_t remaining;
+    client_td *clients[SWITCH_EVACUATE_MAX_CLIENTS];
+    struct s_evacuate_ctx_s evacuate_ctx;
+    int index;
 
-    if (from_desktop == NULL || to_desktop == NULL ||
-            from_desktop->stacking == NULL) {
+    if (from_desktop == NULL || to_desktop == NULL) {
         return;
     }
 
-    /* Bounded by the list's own starting size, read once here, rather
-     * than by 'cdlist_size(from_desktop->stacking) > 0' checked fresh
-     * every iteration: the latter assumes 'desktop_action_client_rem'
-     * below always succeeds at shrinking the list by exactly one each
-     * time, which is true in the ordinary case this function exists
-     * for, but is not guaranteed if a client somehow already sits in
-     * this stacking list without a matching hash table entry to
-     * remove (a state this function has no way to detect on its own).
-     * Without this bound, that single inconsistency turns every
-     * further iteration into 'cdlist_head' handing back the exact
-     * same, never-shrinking client forever, an unconditional infinite
-     * loop with no I/O and nothing to wait on, pegging a CPU core
-     * indefinitely. */
-    remaining = cdlist_size(from_desktop->stacking);
+    /* Gathered before any of them is moved, rather than repeatedly
+     * taking whichever client the desktop holds first.  Moving one
+     * takes it off 'from_desktop', so a walk that moved as it went
+     * would be reading a set it was itself changing.
+     *
+     * That is also what the loop this replaces was guarding against
+     * with a starting count: a client that somehow failed to move
+     * would be handed back forever, and the count was the only thing
+     * standing between that and an unconditional infinite loop.  With
+     * the set fixed up front there is nothing to guard. */
+    evacuate_ctx.out = clients;
+    evacuate_ctx.capacity =
+        (int) (sizeof(clients) / sizeof(clients[0]));
+    evacuate_ctx.count = 0;
+    stacking_walk(from_desktop, s_client_evacuate_visit,
+            &evacuate_ctx);
 
-    while (remaining > 0u && cdlist_size(from_desktop->stacking) > 0u) {
-        cdlist_item_td *const head = cdlist_head(from_desktop->stacking);
-        client_td *const client = (client_td *) cdlist_data(head);
-
-        --remaining;
+    for (index = 0; index < evacuate_ctx.count; ++index) {
+        client_td *const client = clients[index];
 
         if (client == NULL) {
-            break;
+            continue;
         }
 
         (void) desktop_action_client_move(from_desktop, to_desktop,
@@ -286,6 +327,24 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
                     client->ewmh->_NET_WM_DESKTOP, XCB_ATOM_CARDINAL,
                     32, 1, &to_desktop->id);
         }
+    }
+}
+
+
+/**
+ * @brief Re-apply one client's own maximized geometry
+ *
+ * @param client Client reached by the walk
+ * @param data   Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_refill_visit(client_td *client, void *data)
+{
+    (void) data;
+
+    if (client != NULL) {
+        ccmd_client_refill_maximized(client);
     }
 }
 
@@ -328,21 +387,7 @@ static void s_surface_refill_maximized_clients(surface_td *surface)
     do {
         desktop_td *const d = (desktop_td *) cdlist_data(dnode);
 
-        if (d != NULL && d->stacking != NULL) {
-            cdlist_item_td *cnode = cdlist_head(d->stacking);
-            const cdlist_item_td *cinitial = cnode;
-
-            if (cnode != NULL) {
-                do {
-                    client_td *const c = (client_td *) cdlist_data(cnode);
-
-                    if (c != NULL) {
-                        ccmd_client_refill_maximized(c);
-                    }
-                    cnode = cdlist_next(cnode);
-                } while (cnode != NULL && cnode != cinitial);
-            }
-        }
+        stacking_walk(d, s_client_refill_visit, NULL);
         dnode = cdlist_next(dnode);
     } while (dnode != NULL && dnode != dinitial);
 }

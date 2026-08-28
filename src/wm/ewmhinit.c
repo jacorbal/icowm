@@ -39,6 +39,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
@@ -46,6 +47,38 @@
 /* Local includes */
 #include <wm.h>
 #include <wm/internal.h>
+
+
+/**
+ * @brief What @a s_window_list_visit is gathering into
+ */
+struct s_window_list_ctx_s {
+    xcb_window_t *out;      /**< Array of window IDs being built */
+    size_t capacity;        /**< How many it holds */
+    size_t *count;          /**< How many have been put in so far */
+};
+
+
+/**
+ * @brief Note one client's own window ID, bottom of the stack first
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_window_list_ctx_s being filled
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_window_list_visit(client_td *client, void *data)
+{
+    struct s_window_list_ctx_s *const list_ctx = data;
+
+    if (client == NULL || list_ctx == NULL ||
+            client->window == XCB_NONE ||
+            *list_ctx->count >= list_ctx->capacity) {
+        return;
+    }
+
+    list_ctx->out[(*list_ctx->count)++] = client->window;
+}
 
 
 /**
@@ -224,28 +257,12 @@ static void s_wm_sync_client_lists(surface_td *surface)
     idx = 0u;
     cdlist_foreach(surface->desktops, dnode) {
         desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-        cdlist_item_td *node;
-        const cdlist_item_td *initial;
+        struct s_window_list_ctx_s list_ctx;
 
-        if (desktop == NULL || desktop->stacking == NULL ||
-                cdlist_size(desktop->stacking) == 0) {
-            continue;
-        }
-
-        node = cdlist_head(desktop->stacking);
-        initial = node;
-        if (node == NULL) {
-            continue;
-        }
-
-        do {
-            const client_td *client = (client_td *) cdlist_data(node);
-            if (client != NULL && client->window != XCB_NONE &&
-                    idx < total_clients) {
-                stacking_list[idx++] = client->window;
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+        list_ctx.out = stacking_list;
+        list_ctx.capacity = total_clients;
+        list_ctx.count = &idx;
+        stacking_walk(desktop, s_window_list_visit, &list_ctx);
     }
 
     xcb_ewmh_set_client_list_stacking(surface->ewmh,

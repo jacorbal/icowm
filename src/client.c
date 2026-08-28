@@ -56,6 +56,7 @@
 #include <logger.h>
 #include <render/wmicon.h>
 #include <policy/focus.h>
+#include <policy/stacking.h>
 #include <scratchpad.h>
 #include <wm.h>
 
@@ -922,10 +923,12 @@ void client_destroy(client_td *client)
         return;
     }
 
-    /* Out of the focus order before anything else: a client left in
-     * it once gone would be handed real input focus by the next
-     * fallback that walked far enough to reach it */
+    /* Out of both orders before anything else: one left in the focus
+     * order would be handed real input focus by the next fallback that
+     * walked far enough to reach it, and one left in the stacking
+     * order would be restacked as a dangling pointer */
     focus_order_remove(client);
+    (void) stacking_remove(client);
 
     /* Removes 'client' from its own parent's 'transients' list (true
      * O(1), see 'transient_node''s comment, client.h) and

@@ -35,6 +35,7 @@
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
@@ -167,6 +168,65 @@ static void s_place_window_smart_test_candidate(
 
 
 /**
+ * @brief What @a s_place_window_edge_visit needs beyond the client
+ */
+struct s_edge_ctx_s {
+    /** The placement in progress, whose candidates this adds to */
+    struct s_place_window_smart_ctx_s *place_ctx;
+    /** Window being placed, which is not a candidate for itself */
+    const client_td *skip_client;
+};
+
+
+/**
+ * @brief Try the four spots flush against one window's own edges
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_edge_ctx_s this walk carries
+ *
+ * @note Complexity: @e O(n), the cost of scoring four candidates
+ */
+static void s_place_window_edge_visit(client_td *client, void *data)
+{
+    struct s_edge_ctx_s *const edge_ctx = data;
+    int32_t other_x;
+    int32_t other_y;
+    int32_t other_w;
+    int32_t other_h;
+    int index;
+
+    if (client == NULL || edge_ctx == NULL ||
+            client == edge_ctx->skip_client ||
+            (client->properties.flags & CLIENT_FLAG_HIDDEN) ||
+            client_is_locked(client) || client_is_iconified(client)) {
+        return;
+    }
+
+    other_x = client->layout.geometry.cur.pos.x;
+    other_y = client->layout.geometry.cur.pos.y;
+    other_w = (int32_t) client->layout.geometry.cur.dim.w;
+    other_h = (int32_t) client->layout.geometry.cur.dim.h;
+
+    {
+        const int32_t edge_x[4] = {
+            other_x + other_w,
+            other_x - (int32_t) edge_ctx->place_ctx->fw,
+            other_x, other_x
+        };
+        const int32_t edge_y[4] = {
+            other_y, other_y, other_y + other_h,
+            other_y - (int32_t) edge_ctx->place_ctx->fh
+        };
+
+        for (index = 0; index < 4; ++index) {
+            s_place_window_smart_test_candidate(edge_ctx->place_ctx,
+                    edge_x[index], edge_y[index]);
+        }
+    }
+}
+
+
+/**
  * @brief Find a non-overlapping smart position for a newly mapped
  *        client, centered inside the largest genuinely free area
  *        found on the current desktop
@@ -228,6 +288,7 @@ bool place_window_smart(const wm_td *wm,
     struct dimensions_s mon_sz;
     struct geometry_s tray_geom;
     struct s_place_window_smart_ctx_s ctx;
+    struct s_edge_ctx_s edge_ctx;
     const xcb_connection_t *connection = wm_connection(wm);
     const config_td *config = wm_config(wm);
 
@@ -347,41 +408,9 @@ bool place_window_smart(const wm_td *wm,
         } /* ! for (ei) */
     }
 
-    if (desktop->stacking != NULL && cdlist_size(desktop->stacking) != 0u) {
-        cdlist_item_td *node = cdlist_head(desktop->stacking);
-        const cdlist_item_td *initial = node;
-
-        if (node != NULL) {
-            do {
-                const client_td *other =
-                    (const client_td *) cdlist_data(node);
-
-                if (other != NULL && other != client &&
-                        !(other->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                        !client_is_locked(other) &&
-                        !client_is_iconified(other)) {
-                    const int32_t ox = other->layout.geometry.cur.pos.x;
-                    const int32_t oy = other->layout.geometry.cur.pos.y;
-                    const int32_t ow =
-                        (int32_t) other->layout.geometry.cur.dim.w;
-                    const int32_t oh =
-                        (int32_t) other->layout.geometry.cur.dim.h;
-                    const int32_t edge_x[4] = {
-                        ox + ow, ox - (int32_t) ctx.fw, ox, ox
-                    };
-                    const int32_t edge_y[4] = {
-                        oy, oy, oy + oh, oy - (int32_t) ctx.fh
-                    };
-
-                    for (int ei = 0; ei < 4; ++ei) {
-                        s_place_window_smart_test_candidate(&ctx,
-                                edge_x[ei], edge_y[ei]);
-                    } /* ! for (ei) */
-                } /* ! if (!other) */
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        } /* ! if (!node) */
-    }
+    edge_ctx.place_ctx = &ctx;
+    edge_ctx.skip_client = client;
+    stacking_walk(desktop, s_place_window_edge_visit, &edge_ctx);
 
     LOGGER_DEBUG("Smart-placed window (pos=%+d%+d, size=%ux%u," \
             " free-rect=%s, free-area=%llu, tray=%s, wa-pos=%+d%+d," \

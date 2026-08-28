@@ -62,6 +62,7 @@
 #include <cmds/client/maximize.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/state.h>
+#include <cmds/client/flags.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
 
@@ -285,6 +286,28 @@ void handler_map_request(const wm_td *wm,
      * to walk real pointers instead of scanning every client on every
      * desktop. */
     client_link_transient(client);
+
+    /* A window opened by a pinned one is pinned with it.  Pinning in
+     * this window manager is a family-wide operation: 'ccmd_client_pin'
+     * redirects to the family's top-most ancestor and cascades from
+     * there, so every member is pinned together.  A member that only
+     * appears afterwards, a dialog its parent opens later, was the one
+     * case left out, and it stayed behind on the desktop it was born
+     * on while its parent travelled: a modal one left that parent
+     * unresponsive for a reason not visible anywhere.
+     *
+     * Asked of the top parent rather than the immediate one, since
+     * that is what pinning itself acts on, and only when it really is
+     * pinned: an ordinary window's dialogs stay with it on its own
+     * desktop exactly as before. */
+    if (!client_is_pinned(client)) {
+        const client_td *const top =
+            ccmd_client_transient_top_parent(client);
+
+        if (top != NULL && top != client && client_is_pinned(top)) {
+            ccmd_client_pin(client);
+        }
+    }
 
     scratchpad_position(client, desktop, surface);
 

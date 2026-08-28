@@ -27,10 +27,70 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 
 /* Local includes */
 #include <defs/placement.h>
 #include <policy/placement/score.h>
+
+
+/**
+ * @brief What @a s_score_window_visit sums up across the windows it
+ *        meets
+ */
+struct s_score_ctx_s {
+    struct geometry_s candidate;    /**< Rectangle being scored */
+    const client_td *skip_client;   /**< Client left out of the sum */
+    uint64_t win_pixel_cost;    /**< Cost per covered window pixel */
+    uint64_t icon_pixel_cost;   /**< Cost per covered icon pixel */
+    uint64_t cost;                  /**< Running total */
+};
+
+
+/**
+ * @brief Add what one window would cost the candidate rectangle
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_score_ctx_s this walk carries
+ *
+ * @note An iconified client costs by its icon rather than its window,
+ *       that being all of it the person can see
+ * @note Complexity: @e O(1)
+ */
+static void s_score_window_visit(client_td *client, void *data)
+{
+    struct s_score_ctx_s *const score_ctx = data;
+    uint32_t area;
+
+    if (client == NULL || score_ctx == NULL ||
+            client == score_ctx->skip_client ||
+            (client->properties.flags & CLIENT_FLAG_HIDDEN) ||
+            client_is_locked(client)) {
+        return;
+    }
+
+    if (!client_is_iconified(client)) {
+        /* Visible window */
+        area = geom_intersection_area(
+                score_ctx->candidate.pos.x, score_ctx->candidate.pos.y,
+                score_ctx->candidate.dim.w, score_ctx->candidate.dim.h,
+                client->layout.geometry.cur.pos.x,
+                client->layout.geometry.cur.pos.y,
+                client->layout.geometry.cur.dim.w,
+                client->layout.geometry.cur.dim.h);
+        score_ctx->cost += score_ctx->win_pixel_cost * (uint64_t) area;
+    } else if (client->icon_window != 0u && client->is_icon_mapped &&
+            client->icon_pos.x >= 0 && client->icon_pos.y >= 0) {
+        /* Visible icon */
+        area = geom_intersection_area(
+                score_ctx->candidate.pos.x, score_ctx->candidate.pos.y,
+                score_ctx->candidate.dim.w, score_ctx->candidate.dim.h,
+                client->icon_pos.x, client->icon_pos.y,
+                (uint32_t) PLACE_SMART_WIN_ICON_SIZE,
+                (uint32_t) PLACE_SMART_WIN_ICON_SIZE);
+        score_ctx->cost += score_ctx->icon_pixel_cost * (uint64_t) area;
+    }
+}
 
 
 /* Accumulate overlap-penalty cost for a candidate rectangle against
@@ -39,51 +99,14 @@ uint64_t place_overlap_score(const desktop_td *desktop,
         const client_td *skip_client, struct geometry_s candidate,
         uint64_t win_pixel_cost, uint64_t icon_pixel_cost)
 {
-    cdlist_item_td *node;
-    uint64_t cost = 0u;
+    struct s_score_ctx_s score_ctx;
 
-    if (desktop != NULL && desktop->stacking != NULL &&
-            cdlist_size(desktop->stacking) != 0u) {
-        node = cdlist_head(desktop->stacking);
-        if (node != NULL) {
-            const cdlist_item_td *initial = node;
+    score_ctx.candidate = candidate;
+    score_ctx.skip_client = skip_client;
+    score_ctx.win_pixel_cost = win_pixel_cost;
+    score_ctx.icon_pixel_cost = icon_pixel_cost;
+    score_ctx.cost = 0u;
+    stacking_walk(desktop, s_score_window_visit, &score_ctx);
 
-            do {
-                const client_td *other =
-                    (const client_td *) cdlist_data(node);
-
-                if (other != NULL && other != skip_client &&
-                        !(other->properties.flags & CLIENT_FLAG_HIDDEN) &&
-                        !client_is_locked(other)) {
-                    if (!client_is_iconified(other)) {
-                        /* Visible window */
-                        uint32_t area = geom_intersection_area(
-                                candidate.pos.x, candidate.pos.y,
-                                candidate.dim.w, candidate.dim.h,
-                                other->layout.geometry.cur.pos.x,
-                                other->layout.geometry.cur.pos.y,
-                                other->layout.geometry.cur.dim.w,
-                                other->layout.geometry.cur.dim.h);
-                        cost += win_pixel_cost * (uint64_t) area;
-                    } else if (other->icon_window != 0u &&
-                            other->is_icon_mapped &&
-                            other->icon_pos.x >= 0 &&
-                            other->icon_pos.y >= 0) {
-                        /* Visible icon */
-                        uint32_t area = geom_intersection_area(
-                                candidate.pos.x, candidate.pos.y,
-                                candidate.dim.w, candidate.dim.h,
-                                other->icon_pos.x,
-                                other->icon_pos.y,
-                                (uint32_t) PLACE_SMART_WIN_ICON_SIZE,
-                                (uint32_t) PLACE_SMART_WIN_ICON_SIZE);
-                        cost += icon_pixel_cost * (uint64_t) area;
-                    }
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        }
-    }
-
-    return cost;
+    return score_ctx.cost;
 }

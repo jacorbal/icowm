@@ -38,6 +38,7 @@
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <enact.h>
 #include <i18n.h>
 #include <lookup.h>
@@ -241,6 +242,33 @@ static void s_search_build_hints(const client_td *client, char *out,
 
 
 /**
+ * @brief Note one client as a search candidate
+ *
+ * @param client Client reached by the walk
+ * @param data   The desktop it is on, as a @c desktop_td pointer
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_search_candidate_visit(client_td *client, void *data)
+{
+    desktop_td *const desktop = data;
+    int index;
+
+    if (client == NULL || desktop == NULL ||
+            !client_is_focusable(client) ||
+            (client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) ||
+            s_search.candidate_count >= WM_SEARCH_MAX_ENTRIES) {
+        return;
+    }
+
+    index = s_search.candidate_count;
+    s_search.candidates[index] = client;
+    s_search.candidate_desktops[index] = desktop;
+    s_search.candidate_count++;
+}
+
+
+/**
  * @brief Collect every focusable, non-skip-taskbar client across
  *        every desktop of @c s_search.surface into @c s_search.
  *        candidates
@@ -263,36 +291,13 @@ static void s_search_collect_candidates(void)
 
     cdlist_foreach(s_search.surface->desktops, dnode) {
         desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-        cdlist_item_td *node;
-        const cdlist_item_td *initial;
 
         if (s_search.candidate_count >= WM_SEARCH_MAX_ENTRIES) {
             break;
         }
-        if (desktop == NULL || desktop->stacking == NULL) {
-            continue;
-        }
-
-        node = cdlist_tail(desktop->stacking);
-        initial = node;
-        if (node == NULL) {
-            continue;
-        }
-
-        do {
-            client_td *const c = (client_td *) cdlist_data(node);
-
-            if (c != NULL && client_is_focusable(c) &&
-                    !(c->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) &&
-                    s_search.candidate_count < WM_SEARCH_MAX_ENTRIES) {
-                int idx = s_search.candidate_count;
-
-                s_search.candidates[idx] = c;
-                s_search.candidate_desktops[idx] = desktop;
-                s_search.candidate_count++;
-            }
-            node = cdlist_prev(node);
-        } while (node != NULL && node != initial);
+        /* Walked from the top of the stack down, so the windows most
+         * likely to be wanted are offered first */
+        stacking_walk_down(desktop, s_search_candidate_visit, desktop);
     }
 }
 

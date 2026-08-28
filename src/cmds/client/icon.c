@@ -44,6 +44,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <ipc.h>
 #include <lookup.h>
 #include <render/outdate.h>
@@ -56,6 +57,49 @@
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/visibility.h>
+
+
+/**
+ * @brief What @a s_icon_overlap_visit is testing, and what it found
+ */
+struct s_icon_overlap_ctx_s {
+    const client_td *self;          /**< Client whose spot is tested */
+    struct dimensions_s icon_dim;   /**< Size one icon occupies */
+    bool is_taken;                  /**< Whether something sits there */
+};
+
+
+/**
+ * @brief Note whether one client's own icon already sits on the spot
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_icon_overlap_ctx_s being filled
+ *
+ * @note Once one overlap is found the rest are passed over: the answer
+ *       cannot change, and the walk cannot be ended early
+ * @note Complexity: @e O(1)
+ */
+static void s_icon_overlap_visit(client_td *client, void *data)
+{
+    struct s_icon_overlap_ctx_s *const overlap_ctx = data;
+
+    if (client == NULL || overlap_ctx == NULL ||
+            overlap_ctx->is_taken || client == overlap_ctx->self ||
+            client->icon_window == 0u ||
+            !client_is_iconified(client)) {
+        return;
+    }
+
+    if (geom_intersection_area(
+                overlap_ctx->self->icon_pos.x,
+                overlap_ctx->self->icon_pos.y,
+                overlap_ctx->icon_dim.w, overlap_ctx->icon_dim.h,
+                client->icon_pos.x, client->icon_pos.y,
+                overlap_ctx->icon_dim.w,
+                overlap_ctx->icon_dim.h) > 0u) {
+        overlap_ctx->is_taken = true;
+    }
+}
 
 
 /**
@@ -91,8 +135,7 @@ static bool s_icon_slot_is_taken(const client_td *client,
         struct dimensions_s icon_dim)
 {
     desktop_td *desktop;
-    cdlist_item_td *node;
-    const cdlist_item_td *initial;
+    struct s_icon_overlap_ctx_s overlap_ctx;
 
     if (client == NULL || client->icon_pos.x < 0 ||
             client->icon_pos.y < 0) {
@@ -100,32 +143,16 @@ static bool s_icon_slot_is_taken(const client_td *client,
     }
 
     desktop = wm_get_client_desktop(client);
-    if (desktop == NULL || desktop->stacking == NULL) {
+    if (desktop == NULL) {
         return false;
     }
 
-    node = cdlist_head(desktop->stacking);
-    initial = node;
-    if (node == NULL) {
-        return false;
-    }
+    overlap_ctx.self = client;
+    overlap_ctx.icon_dim = icon_dim;
+    overlap_ctx.is_taken = false;
+    stacking_walk(desktop, s_icon_overlap_visit, &overlap_ctx);
 
-    do {
-        const client_td *other = (const client_td *) cdlist_data(node);
-
-        if (other != NULL && other != client &&
-                other->icon_window != 0u && client_is_iconified(other) &&
-                geom_intersection_area(
-                    client->icon_pos.x, client->icon_pos.y,
-                    icon_dim.w, icon_dim.h,
-                    other->icon_pos.x, other->icon_pos.y,
-                    icon_dim.w, icon_dim.h) > 0u) {
-            return true;
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
-
-    return false;
+    return overlap_ctx.is_taken;
 }
 
 

@@ -267,6 +267,8 @@ $(O_DIR)/tests/client/test_state: \
 
 $(O_DIR)/tests/policy/test_placement: $(TESTS_DIR)/policy/test_placement.c \
 		$(S_DIR)/policy/placement/window.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/policy/placement/monitor.c \
 		$(S_DIR)/policy/placement/rect.c \
 		$(S_DIR)/policy/placement/smart.c \
@@ -281,6 +283,8 @@ $(O_DIR)/tests/policy/test_placement: $(TESTS_DIR)/policy/test_placement.c \
 
 $(O_DIR)/tests/policy/test_tiling: $(TESTS_DIR)/policy/test_tiling.c \
 		$(S_DIR)/policy/placement/icon.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/policy/placement/score.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/logger.c \
@@ -320,6 +324,8 @@ $(O_DIR)/tests/surface/test_monitor_direction: \
 $(O_DIR)/tests/surface/test_desktop_add_remove: \
 		$(TESTS_DIR)/surface/test_desktop_add_remove.c \
 		$(S_DIR)/surface/switch.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/surface/desktops.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/logger.c \
@@ -341,6 +347,8 @@ $(O_DIR)/tests/surface/test_desktop_add_remove: \
 $(O_DIR)/tests/enact/test_send_to_desktop: \
 		$(TESTS_DIR)/enact/test_send_to_desktop.c \
 		$(S_DIR)/enact/desktop.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/logger.c \
 		$(S_DIR)/utils/safe/safestr.c
@@ -350,6 +358,8 @@ $(O_DIR)/tests/enact/test_send_to_desktop: \
 $(O_DIR)/tests/desktop/test_workarea: \
 		$(TESTS_DIR)/desktop/test_workarea.c \
 		$(S_DIR)/desktop.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/utils/hash/murmurhash.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c \

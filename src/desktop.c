@@ -47,6 +47,7 @@
 
 /* Local includes */
 #include <desktop.h>
+#include <policy/stacking.h>
 
 
 /**
@@ -161,6 +162,48 @@ static void s_fold_strut(const struct strut_partial_s *strut,
 
 
 /**
+ * @brief What @a s_strut_fold_visit needs beyond the client itself
+ *
+ * Handed through @a stacking_walk's own opaque pointer, that walk
+ * taking a visitor of one client and nothing else.
+ */
+struct s_strut_fold_ctx_s {
+    int32_t region_min_x;       /**< Region's own left edge */
+    int32_t region_max_x;       /**< Region's own right edge */
+    int32_t region_min_y;       /**< Region's own top edge */
+    int32_t region_max_y;       /**< Region's own bottom edge */
+    int32_t *left;              /**< Running maximum on the left */
+    int32_t *right;             /**< Running maximum on the right */
+    int32_t *top;               /**< Running maximum on the top */
+    int32_t *bottom;            /**< Running maximum on the bottom */
+};
+
+
+/**
+ * @brief Fold one client's own strut into the running maxima
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_strut_fold_ctx_s being filled
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_strut_fold_visit(client_td *client, void *data)
+{
+    const struct s_strut_fold_ctx_s *const fold_ctx = data;
+
+    if (client == NULL || fold_ctx == NULL) {
+        return;
+    }
+
+    s_fold_strut(&client->layout.strut_partial,
+            fold_ctx->region_min_x, fold_ctx->region_max_x,
+            fold_ctx->region_min_y, fold_ctx->region_max_y,
+            fold_ctx->left, fold_ctx->right,
+            fold_ctx->top, fold_ctx->bottom);
+}
+
+
+/**
  * @brief Primary stable hash function for client entries
  *
  * Computes a reproducible 32-bit MurmurHash3 value using the client's
@@ -266,6 +309,24 @@ static bool s_client_match(const void *key1, const void *key2)
 
 
 /**
+ * @brief Mark one client as needing a redraw
+ *
+ * @param client Client reached by the walk
+ * @param data   Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_mark_client_outdated_visit(client_td *client, void *data)
+{
+    (void) data;
+
+    if (client != NULL) {
+        client->is_outdated = true;
+    }
+}
+
+
+/**
  * @brief Compute one work area, struts and margins folded in, scoped
  *        to a single rectangular region
  *
@@ -327,26 +388,20 @@ static struct geometry_s s_desktop_compute_workarea(
     int32_t region_max_y = (region_h == 0u)
         ? region_y - 1 : region_y + (int32_t) (region_h - 1u);
 
-    if (!ignore_struts && desktop->stacking != NULL &&
-            cdlist_size(desktop->stacking) > 0) {
-        cdlist_item_td *initial;
-        cdlist_item_td *node;
+    /* Aggregate maximum strut on each edge across all stacked
+     * clients */
+    if (!ignore_struts) {
+        struct s_strut_fold_ctx_s fold_ctx;
 
-        /* Aggregate maximum strut on each edge across all stacked
-         * clients */
-        initial = cdlist_head(desktop->stacking);
-        node = initial;
-        do {
-            client_td *c = (client_td *) cdlist_data(node);
-
-            if (c != NULL) {
-                s_fold_strut(&c->layout.strut_partial,
-                        region_x, region_max_x,
-                        region_y, region_max_y,
-                        &left, &right, &top, &bottom);
-            }
-            node = cdlist_next(node);
-        } while (node != NULL && node != initial);
+        fold_ctx.region_min_x = region_x;
+        fold_ctx.region_max_x = region_max_x;
+        fold_ctx.region_min_y = region_y;
+        fold_ctx.region_max_y = region_max_y;
+        fold_ctx.left = &left;
+        fold_ctx.right = &right;
+        fold_ctx.top = &top;
+        fold_ctx.bottom = &bottom;
+        stacking_walk(desktop, s_strut_fold_visit, &fold_ctx);
     }
 
     /* The window manager's own built-in systray is not a managed
@@ -505,10 +560,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
             " desktop %u ('%s') on screen %u",
             desktop_id, desktop->name, screen_id);
 
-    /* Initialize circular list for rendering in stacking order.
-     * Ownership of client memory is managed by 'desktop->clients' */
-    desktop->stacking = cdlist_init(NULL);
-    if (desktop->stacking == NULL) {
+    if (stacking_create(desktop) != 0) {
         LOGGER_ERROR("Failed to allocate memory for stacking list" \
                 " on desktop %u ('%s') on screen %u",
                 desktop_id, desktop->name, screen_id);
@@ -529,7 +581,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     if (iter.rem == 0 || iter.data == NULL) {
         LOGGER_ERROR("Invalid screen ID %u, could not retrieve" \
                 " screen information", screen_id);
-        cdlist_destroy(desktop->stacking);
+        stacking_destroy(desktop);
         ohtbl_destroy(desktop->clients);
         free(desktop);
         return NULL;
@@ -631,10 +683,7 @@ void desktop_destroy(desktop_td *desktop)
     /* Destroy the stacking list itself, not the clients on it */
     LOGGER_TRACE("Deallocating stacking list on desktop %u ('%s')",
             desktop->id, desktop->name);
-    if (desktop->stacking != NULL) {
-        cdlist_destroy(desktop->stacking);
-        desktop->stacking = NULL;
-    }
+    stacking_destroy(desktop);
 
 
     /* Destroy hash table (also destroys all clients via client_destroy
@@ -664,31 +713,10 @@ void desktop_destroy(desktop_td *desktop)
 /* Mark a desktop and every one of its own clients as outdated */
 void desktop_mark_outdated(desktop_td *desktop)
 {
-    cdlist_item_td *node;
-    const cdlist_item_td *initial;
-
     if (desktop == NULL) {
         return;
     }
 
     desktop->is_outdated = true;
-
-    if (desktop->stacking == NULL) {
-        return;
-    }
-
-    node = cdlist_head(desktop->stacking);
-    if (node == NULL) {
-        return;
-    }
-
-    initial = node;
-    do {
-        client_td *const client = (client_td *) cdlist_data(node);
-
-        if (client != NULL) {
-            client->is_outdated = true;
-        }
-        node = cdlist_next(node);
-    } while (node != NULL && node != initial);
+    stacking_walk(desktop, s_mark_client_outdated_visit, NULL);
 }

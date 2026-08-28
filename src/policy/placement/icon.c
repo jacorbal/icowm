@@ -52,6 +52,7 @@
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <logger.h>
 
 /* Local includes */
@@ -110,6 +111,61 @@ static bool s_place_icon_rect_overlaps_any(int32_t ix, int32_t iy,
         }
     }
     return false;
+}
+
+
+/**
+ * @brief What @a s_icon_occupied_visit is gathering into
+ */
+struct s_icon_occupied_ctx_s {
+    const client_td *skip_client;   /**< Client being placed */
+    int32_t *xs;                    /**< Occupied icon x positions */
+    int32_t *ys;                    /**< Occupied icon y positions */
+    uint16_t capacity;              /**< How many the arrays hold */
+    uint16_t count;                 /**< How many have been noted */
+    bool has_warned;                /**< Whether the cap was reported */
+    uint32_t desktop_id;            /**< Desktop, for that one report */
+};
+
+
+/**
+ * @brief Note where one iconified client's own icon already sits
+ *
+ * @param client Client reached by the walk
+ * @param data   Pointer to the @c s_icon_occupied_ctx_s being filled
+ *
+ * @note Past the arrays' own capacity further icons are left out of
+ *       the overlap check rather than the arrays grown without bound,
+ *       and that is reported once so an unexpectedly icon-heavy
+ *       desktop is at least visible in the log
+ * @note Complexity: @e O(1)
+ */
+static void s_icon_occupied_visit(client_td *client, void *data)
+{
+    struct s_icon_occupied_ctx_s *const occupied_ctx = data;
+
+    if (client == NULL || occupied_ctx == NULL ||
+            client == occupied_ctx->skip_client ||
+            client->icon_window == 0u ||
+            !client_is_iconified(client)) {
+        return;
+    }
+
+    if (occupied_ctx->count >= occupied_ctx->capacity) {
+        if (!occupied_ctx->has_warned) {
+            LOGGER_WARNING("More than %u iconified clients on" \
+                    " desktop %u; overlap checking stops counting" \
+                    " past this many",
+                    (unsigned int) occupied_ctx->capacity,
+                    (unsigned int) occupied_ctx->desktop_id);
+            occupied_ctx->has_warned = true;
+        }
+        return;
+    }
+
+    occupied_ctx->xs[occupied_ctx->count] = client->icon_pos.x;
+    occupied_ctx->ys[occupied_ctx->count] = client->icon_pos.y;
+    occupied_ctx->count++;
 }
 
 
@@ -210,6 +266,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
     int32_t occ_x[256];
     int32_t occ_y[256];
     uint16_t occ_count;
+    struct s_icon_occupied_ctx_s occupied_ctx;
     uint16_t chosen;
     int32_t ix;
     int32_t iy;
@@ -237,40 +294,15 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
      * this one, or a stale position momentarily left behind by a config
      * or theme change since it was last placed). */
     occ_count = 0u;
-    if (desktop != NULL && desktop->stacking != NULL) {
-        cdlist_item_td *node = cdlist_head(desktop->stacking);
-        const cdlist_item_td *initial = node;
-        if (node != NULL) {
-            do {
-                const client_td *other =
-                    (const client_td *) cdlist_data(node);
-                if (other != NULL && other != client &&
-                        other->icon_window != 0u &&
-                        client_is_iconified(other)) {
-                    if (occ_count < 256u) {
-                        occ_x[occ_count] = other->icon_pos.x;
-                        occ_y[occ_count] = other->icon_pos.y;
-                        ++occ_count;
-                    } else {
-                        /* Past this many simultaneously iconified
-                         * clients on one desktop, any further one is
-                         * simply left out of the overlap check below
-                         * rather than grown without bound: logged
-                         * once here so an unexpectedly icon-heavy
-                         * desktop is at least visible in the log, not
-                         * just silently risking a rare overlapping
-                         * placement. */
-                        LOGGER_WARNING("More than 256 iconified" \
-                                " clients on desktop %u; overlap" \
-                                " checking stops counting past this" \
-                                " many", desktop->id);
-                        break;
-                    }
-                }
-                node = cdlist_next(node);
-            } while (node != NULL && node != initial);
-        }
-    }
+    occupied_ctx.skip_client = client;
+    occupied_ctx.xs = occ_x;
+    occupied_ctx.ys = occ_y;
+    occupied_ctx.capacity = 256u;
+    occupied_ctx.count = 0u;
+    occupied_ctx.has_warned = false;
+    occupied_ctx.desktop_id = (desktop != NULL) ? desktop->id : 0u;
+    stacking_walk(desktop, s_icon_occupied_visit, &occupied_ctx);
+    occ_count = occupied_ctx.count;
 
     /* SMART uses BOTTOM layout for slot indexing: slots are numbered
      * from the bottom-left corner, growing right then up.  Score every
