@@ -19,6 +19,11 @@ Verified directly against the source (`src/wm/ewmhinit.c`'s
 `_NET_SUPPORTED` array, and every handler that reads or writes each
 property) rather than assumed from either spec alone.
 
+Four hints carry [`*`] for one shared reason, as they are implemented,
+but `_NET_SUPPORTED` does not name them.  A tool is meant to consult
+that list to learn what a window manager does, so a hint absent from it
+is one nothing else will look for, however well it works.  Each entry
+says so on its own line below.
 
 EWMH Compliance
 ---------------
@@ -89,12 +94,18 @@ EWMH Compliance
         than left set to a stale or redundant value
         (`client_sync_visible_name`, `src/client.c`, called from
         `src/render/desktop.c`).
+
+        Not named in `_NET_SUPPORTED`, however, so a pager consulting
+        that list to learn whether the property is worth reading will
+        conclude it is not, and fall back to `_NET_WM_NAME` even though
+        the truncated form is there.
 - [`+`] `_NET_WM_ICON_NAME` (1.3)
 - [`+`] `_NET_WM_VISIBLE_ICON_NAME` (1.3)
         Same mechanism as `_NET_WM_VISIBLE_NAME` above, for a client's
         on-screen icon caption instead of its titlebar
         (`client_sync_visible_name`, `src/client.c`, called from
-        `src/render/icon.c`).
+        `src/render/icon.c`), and missing from `_NET_SUPPORTED` for the
+        same reason.
 - [`+`] `_NET_WM_DESKTOP` (1.3)
 - [`+`] `_NET_WM_WINDOW_TYPE` (1.3)
         ` _DESKTOP`, ` _DOCK`, ` _TOOLBAR`, ` _MENU`, ` _UTILITY`,
@@ -156,6 +167,11 @@ EWMH Compliance
         Read to associate a managed window with its owning process
         (used, among other things, to match a scratchpad's launched
         process to the window it eventually creates).
+
+        Not named in `_NET_SUPPORTED`.  That matters less here than for
+        the visible-name pair above, this being a property a client sets
+        and the window manager reads rather than one anything else waits
+        on, but the list is what the spec has a client consult.
 - [`-`] `_NET_WM_HANDLED_ICONS` (1.3)
         Only ever read (cmds/client/visibility.c checks whether a pager
         has set this on the root window, and defers to it if so); IcoWM
@@ -169,6 +185,9 @@ EWMH Compliance
         often-unmapped window instead, specifically so that every tool
         interested in the toplevel's other properties is not woken up on
         every keypress.
+
+        Not named in `_NET_SUPPORTED`, as with `_NET_WM_PID` above and
+        for the same reason: it is read rather than published.
 - [`+`] `_NET_FRAME_EXTENTS` (1.3)
 - [`-`] `_NET_WM_OPAQUE_REGION` (1.5)
 - [`-`] `_NET_WM_BYPASS_COMPOSITOR` (1.5)
