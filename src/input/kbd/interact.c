@@ -1,12 +1,12 @@
 /**
  * @file input/kbd/interact.c
  *
- * @brief Direct keyboard interaction with the focused client, that
- *        is, the program launch, move and resize bindings
+ * @brief Direct keyboard interaction with the focused client, that is,
+ *        the program launch, move and resize bindings
  *
  * One of the files @c input/kbd/ is made of.  Launching a program and
- * moving or resizing the active client are immediate reactions to a
- * single keypress, independent from the cycle menu, the dialogs, the
+ * moving or resizing the active client are immediate reactions to
+ * a single keypress, independent from the cycle menu, the dialogs, the
  * open-menu key handling and the generic client action dispatch.
  * @a ik_get_active_client is the one piece of state lookup genuinely
  * shared between the two files.
@@ -22,6 +22,7 @@
  */
 
 #define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+
 
 /* System includes */
 #include <stdbool.h>
@@ -72,11 +73,11 @@
  *        launch, or the zero value from static initialization before
  *        the first one
  *
- * Shared across every @c KEYBIND_LAUNCH_* binding rather than kept
- * per binding: the goal is bounding how fast this window manager
- * itself hands off new processes overall, not tracking each binding
- * on its own, and a single held key is by far the common case this
- * exists for regardless.
+ * Shared across every @c KEYBIND_LAUNCH_* binding rather than kept per
+ * binding.  The goal is bounding how fast this window manager itself
+ * hands off new processes overall, not tracking each binding on its
+ * own, and a single held key is by far the common case this exists for
+ * regardless.
  */
 static struct timespec s_last_launch;
 
@@ -239,7 +240,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
  * @param client Pointer to the client to resize
  * @param geom   New frame position and dimensions (screen-relative)
  *
- * @note This function flushes the XCB connection before returning.
+ * @note This function flushes the XCB connection before returning
  */
 static void s_kbd_resize_apply(client_td *client,
         struct geometry_s geom)
@@ -321,8 +322,8 @@ static void s_kbd_resize_apply(client_td *client,
 
 /**
  * @brief Whether at least @c KBD_LAUNCH_MIN_INTERVAL_MS has passed
- *        since @a s_last_launch, updating @a s_last_launch to now
- *        when it has
+ *        since @a s_last_launch, updating @a s_last_launch to now when
+ *        it has
  *
  * @return @c true if this launch may proceed
  *
@@ -430,11 +431,11 @@ void ik_handle_move(enum ik_move_e direction,
     }
 
     /* A fully maximized or fullscreen client cannot be moved at all,
-     * consistent with 'MOUSEBIND_MOVE' (input/mouse/event/press.c)
-     * and the window context menu's own 'can_move'
-     * (menu/context/wincmenu.c);
-     * a client maximized on just one axis is still free to move,
-     * since only one axis is pinned to the workarea edge. */
+     * consistent with 'MOUSEBIND_MOVE' (input/mouse/event/press.c) and
+     * the window context menu's own 'can_move' (see
+     * 'menu/context/wincmenu.c').  A client maximized on just one axis
+     * is still free to move, since only one axis is pinned to the
+     * workarea edge. */
     if (client_is_maximized(client) || client_is_fullscreen(client) ||
             client_is_locked(client)) {
         return;
@@ -447,22 +448,22 @@ void ik_handle_move(enum ik_move_e direction,
 
     /* The corner destinations below need the workarea of whichever
      * monitor 'client' actually sits on, not the whole surface's own
-     * raw dimensions: on a multi-monitor surface, the latter would
-     * send "top-right" to the far edge of the last monitor rather
-     * than the current one's, and either one alone would still tuck
-     * the client under a panel or the tray reserving space at that
-     * same edge.  Falls back to the whole-surface computation this
-     * function already used, unchanged, whenever a monitor or
-     * desktop cannot be resolved for 'client' at all. */
+     * raw dimensions: on a multi-monitor surface, the latter would send
+     * "top-right" to the far edge of the last monitor rather than the
+     * current one's, and either one alone would still tuck the client
+     * under a panel or the tray reserving space at that same edge.
+     * Falls back to the whole-surface computation this function already
+     * used, unchanged, whenever a monitor or desktop cannot be resolved
+     * for 'client' at all. */
     have_workarea = ccmd_client_resolve_workarea(client,
             &wa_x, &wa_y, &wa_w, &wa_h);
 
     /* The border counts against the space available.  A window's
-     * recorded width and height cover the frame alone, while the X
-     * window it sits in occupies that plus a border on each side, so
+     * recorded width and height cover the frame alone, while the
+     * X window it sits in occupies that plus a border on each side, so
      * a right or bottom edge worked out from the width by itself sat
-     * one border past where it was meant to and pushed that much of
-     * the window off the work area.
+     * one border past where it was meant to and pushed that much of the
+     * window off the work area.
      *
      * Only the far edges are affected: the left and top ones are the
      * window's own position, which the border grows away from rather
@@ -539,10 +540,10 @@ void ik_handle_resize(enum ik_resize_e edge,
         return;
     }
 
-    /* Refuse to resize clients in a fixed-size state entirely;
-     * a client maximized on just one axis still allows resizing its
-     * free axis below (see the per-direction axis-lock checks further
-     * down), the same way a mouse border drag does (see
+    /* Refuse to resize clients in a fixed-size state entirely; a client
+     * maximized on just one axis still allows resizing its free axis
+     * below (see the per-direction axis-lock checks further down), the
+     * same way a mouse border drag does (see
      * 'drag_start_resize_axis_locked' in 'input/mouse/drag.c'). */
     if (client_is_fullscreen(client) || client_is_maximized(client)) {
         return;
@@ -550,8 +551,8 @@ void ik_handle_resize(enum ik_resize_e edge,
 
     /* The maximized axis of a horizontal-only or vertical-only
      * maximized client is snapped exactly to its workarea edge, so it
-     * has nothing left to grow or shrink by keyboard either.  Only the
-     * still-free axis, the other pair of edges, keeps working
+     * has nothing left to grow or shrink by keyboard either.
+     * Only the still-free axis, the other pair of edges, keeps working
      * normally. */
     if ((edge == IK_RESIZE_LEFT || edge == IK_RESIZE_RIGHT) &&
             client_is_maximized_horz(client)) {

@@ -131,7 +131,10 @@ void keyboard_handle_press(wm_td *wm, xcb_key_symbols_t *keysyms,
 
     surface = s_lookup_surface_fallback(surfaces, event->root);
 
-    if (ik_intercept_keypress(keysym, state, surface, surfaces,
+    if (ik_intercept_keypress(keysym,
+                keyboard_keysym_for_state(keysyms, event->detail,
+                        event->state),
+                state, surface, surfaces,
                 config)) {
         return;
     }

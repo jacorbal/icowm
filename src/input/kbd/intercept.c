@@ -222,7 +222,8 @@ static bool s_dispatch_open_menu_key(xcb_keysym_t keysym,
 
 
 /* Let whatever currently owns the keyboard consume the key */
-bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
+bool ik_intercept_keypress(xcb_keysym_t keysym,
+        xcb_keysym_t typed_keysym, uint16_t state,
         surface_td *surface, list_td *surfaces,
         const config_td *config)
 {
@@ -244,7 +245,7 @@ bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
     if (search_is_open()) {
         search_handle_keypress(
                 (surface != NULL) ? xcb_connection_get() : NULL,
-                surfaces, keysym, state, config);
+                surfaces, typed_keysym, state, config);
         return true;
     }
 
@@ -252,7 +253,7 @@ bool ik_intercept_keypress(xcb_keysym_t keysym, uint16_t state,
     if (run_is_open()) {
         run_handle_keypress(
                 (surface != NULL) ? xcb_connection_get() : NULL,
-                surface, keysym, config);
+                surface, typed_keysym, config);
         return true;
     }
 

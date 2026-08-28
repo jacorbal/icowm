@@ -863,3 +863,46 @@ enum wm_keybind_type_e keyboard_binding_at(int idx,
 
     return s_keybindings[idx].type;
 }
+
+
+/* The symbol a key actually produces, modifiers included */
+xcb_keysym_t keyboard_keysym_for_state(xcb_key_symbols_t *keysyms,
+        xcb_keycode_t keycode, uint16_t state)
+{
+    const bool has_shift =
+        (state & (uint16_t) XCB_MOD_MASK_SHIFT) != 0u;
+    const bool has_lock = (state & (uint16_t) XCB_MOD_MASK_LOCK) != 0u;
+    const bool has_altgr = (state & (uint16_t) XCB_MOD_MASK_5) != 0u;
+    xcb_keysym_t plain;
+    xcb_keysym_t shifted;
+    int column;
+
+    if (keysyms == NULL) {
+        return XCB_NO_SYMBOL;
+    }
+
+    /* The group AltGr selects, then Shift within it: X lays the four
+     * out as plain, shifted, alternate and shifted alternate */
+    column = (has_altgr ? 2 : 0) + (has_shift ? 1 : 0);
+
+    /* Caps Lock uppercases letters and leaves everything else alone,
+     * so it cannot simply be treated as another Shift: on a Spanish
+     * layout that would turn 7 into a slash for as long as the lock
+     * was on.  Whether this key is a letter is asked of the key
+     * itself, by seeing whether its two columns differ only in case. */
+    if (has_lock) {
+        plain = xcb_key_symbols_get_keysym(keysyms, keycode,
+                has_altgr ? 2 : 0);
+        shifted = xcb_key_symbols_get_keysym(keysyms, keycode,
+                has_altgr ? 3 : 1);
+        if (plain >= (xcb_keysym_t) 'a' &&
+                plain <= (xcb_keysym_t) 'z' &&
+                shifted == plain - 0x20u) {
+            /* The lock inverts the case rather than forcing it, so
+             * holding Shift with it typed lowercase again */
+            column = (has_altgr ? 2 : 0) + (has_shift ? 0 : 1);
+        }
+    }
+
+    return xcb_key_symbols_get_keysym(keysyms, keycode, column);
+}

@@ -25,6 +25,7 @@
 #ifndef INPUT_KBD_BIND_H
 #define INPUT_KBD_BIND_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -252,6 +253,35 @@ bool keyboard_find(enum wm_keybind_type_e type,
  * @note Complexity: @e O(1)
  */
 bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask);
+
+/**
+ * @brief The symbol a key actually produces, modifiers included
+ *
+ * A keycode names a physical key, and what that key produces depends
+ * on which modifiers are held: the same key gives @c 7 on its own and
+ * @c slash with Shift on a Spanish layout, and @c 4, @c dollar or
+ * @c asciitilde depending on Shift and AltGr.  X arranges those in
+ * columns of the keyboard mapping, and asking for column @c 0 alone,
+ * as the binding lookup does, always answers with the unmodified key.
+ *
+ * That is right for bindings, which are defined against the key rather
+ * than against what it types, and wrong for anything reading text: a
+ * dialog asking for a command could not be given an uppercase letter,
+ * a slash, an asterisk, a dollar sign or a tilde at all.
+ *
+ * @param keysyms Keyboard mapping to consult; may be @c NULL
+ * @param keycode Physical key that was pressed
+ * @param state   Modifier state the press carried
+ *
+ * @return The symbol that key and those modifiers produce, or
+ *         @c XCB_NO_SYMBOL when it produces none
+ *
+ * @note Caps Lock counts as Shift for letters only, which is what X
+ *       itself defines: it uppercases @c a, and leaves @c 7 alone
+ * @note Complexity: @e O(1)
+ */
+xcb_keysym_t keyboard_keysym_for_state(xcb_key_symbols_t *keysyms,
+        xcb_keycode_t keycode, uint16_t state);
 
 /**
  * @brief Test whether a keysym is any modifier key at all

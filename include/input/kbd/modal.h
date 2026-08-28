@@ -16,6 +16,7 @@
 #ifndef INPUT_KBD_MODAL_H
 #define INPUT_KBD_MODAL_H
 
+
 /* System includes */
 #include <stdbool.h>
 
