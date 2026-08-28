@@ -14,6 +14,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdio.h>      /* snprintf, NULL */
 #include <stdlib.h>     /* strtol, free */
 
@@ -57,8 +58,8 @@ enum s_text_backend_e {
  *
  * The X core-font backend fills @p font and @p gc; the glyph backend
  * fills neither, since @c render/glyph.c holds those resources.
- * @p key is the name exactly as the caller gave it, which is what a
- * lookup matches on, since the XLFD pattern is derived from it and
+ * @p key is the name exactly as the caller gave it, which is what
+ * a lookup matches on, since the XLFD pattern is derived from it and
  * fontconfig wants that original syntax anyway.
  */
 typedef struct {
@@ -80,8 +81,8 @@ typedef struct {
  * @p cache holds every font opened so far and @p current indexes
  * whichever one drawing goes through, or equals
  * @c WM_TEXT_FONT_CACHE_MAX when none is selected.  @p clock only
- * counts up, and the entry carrying the lowest @p last_used is the
- * one evicted when room is needed.
+ * counts up, and the entry carrying the lowest @p last_used is the one
+ * evicted when room is needed.
  */
 static struct {
     s_text_font_td cache[WM_TEXT_FONT_CACHE_MAX];
@@ -98,6 +99,126 @@ static struct {
     .is_initialized = false,
     .is_glyph_backend_disabled = false
 };
+
+
+/**
+ * @brief A codepoint no single-byte font can show, and what to put in
+ *        its place
+ */
+struct s_ascii_fallback_s {
+    const char *replacement;    /**< What "fixed" can show instead */
+    uint32_t codepoint;         /**< What the text actually says */
+};
+
+
+/**
+ * @brief Punctuation worth spelling out rather than dropping
+ *
+ * Only marks a window title is likely to carry and that have an obvious
+ * ASCII reading.  A browser, an editor or a mail client puts these in
+ * titles constantly, and every one of them reaches a single-byte font
+ * as a question mark otherwise, which is where a title stops being
+ * readable rather than merely imperfect.
+ *
+ * Deliberately short.  A replacement is worth making only where one is
+ * evident: Greek, Cyrillic, CJK or mathematics have no ASCII reading at
+ * all, and a question mark says as much about them as anything else
+ * would.
+ *
+ * An empty replacement drops the codepoint, which is what the
+ * zero-width marks want: they are invisible where they came from, and
+ * a space in their place would be a change to the text rather than
+ * a rendering of it.
+ */
+static const struct s_ascii_fallback_s s_ascii_fallbacks[] = {
+    /* Dashes and hyphens */
+    { "-",   0x2010u },     /* hyphen */
+    { "-",   0x2011u },     /* non-breaking hyphen */
+    { "-",   0x2012u },     /* figure dash */
+    { "-",   0x2013u },     /* en dash */
+    { "--",  0x2014u },     /* em dash */
+    { "--",  0x2015u },     /* horizontal bar */
+    { "-",   0x2212u },     /* minus sign */
+
+    /* Quotation marks, the apostrophe among them the commonest of
+     * every mark here: any English title with a genitive carries it */
+    { "'",   0x2018u },     /* left single quote */
+    { "'",   0x2019u },     /* right single quote, and apostrophe */
+    { "'",   0x201Au },     /* single low quote */
+    { "'",   0x201Bu },     /* single high reversed quote */
+    { "\"",  0x201Cu },     /* left double quote */
+    { "\"",  0x201Du },     /* right double quote */
+    { "\"",  0x201Eu },     /* double low quote */
+    { "\"",  0x201Fu },     /* double high reversed quote */
+    { "'",   0x2032u },     /* prime */
+    { "\"",  0x2033u },     /* double prime */
+    { "<",   0x2039u },     /* single left angle quote */
+    { ">",   0x203Au },     /* single right angle quote */
+
+    /* Marks a path or a breadcrumb trail is built from */
+    { "*",   0x2022u },     /* bullet */
+    { "...", 0x2026u },     /* ellipsis */
+    { "/",   0x2044u },     /* fraction slash */
+    { "/",   0x2215u },     /* division slash */
+    { "<-",  0x2190u },     /* leftwards arrow */
+    { "->",  0x2192u },     /* rightwards arrow */
+
+    /* Comparisons and the arithmetic signs that keep them company.
+     * A title carrying "x \u2265 3" is as unreadable with a question
+     * mark in it as any other, and these have an unambiguous reading
+     * that every programmer already writes by hand. */
+    { "<=",  0x2264u },     /* less-than or equal to */
+    { ">=",  0x2265u },     /* greater-than or equal to */
+    { "!=",  0x2260u },     /* not equal to */
+    { "~=",  0x2248u },     /* almost equal to */
+    { "==",  0x2261u },     /* identical to */
+    { "inf", 0x221Eu },     /* infinity */
+
+    /* Spaces that are a space and nothing more.  U+00A0 is in the
+     * Latin-1 range and would convert without complaint, but "fixed"
+     * draws it as a blank box rather than a gap. */
+    { " ",   0x00A0u },     /* no-break space */
+    { " ",   0x2002u },     /* en space */
+    { " ",   0x2003u },     /* em space */
+    { " ",   0x2007u },     /* figure space */
+    { " ",   0x2009u },     /* thin space */
+    { " ",   0x202Fu },     /* narrow no-break space */
+    { " ",   0x2028u },     /* line separator */
+    { " ",   0x2029u },     /* paragraph separator */
+
+    /* Invisible where they came from, and invisible here */
+    { "",   0x00ADu },      /* soft hyphen */
+    { "",   0x200Bu },      /* zero-width space */
+    { "",   0x200Cu },      /* zero-width non-joiner */
+    { "",   0x200Du },      /* zero-width joiner */
+    { "",   0xFEFFu }       /* zero-width no-break space */
+};
+
+
+/**
+ * @brief What to draw in place of a codepoint a single-byte font
+ *        cannot show
+ *
+ * @param codepoint Codepoint to look up
+ *
+ * @return Its ASCII reading, or @c NULL when it has none
+ *
+ * @note Complexity: @e O(n), where @e n is the size of the table
+ *       above, which is a fixed handful
+ */
+static const char *s_ascii_fallback_for(uint32_t codepoint)
+{
+    const size_t count =
+        sizeof(s_ascii_fallbacks) / sizeof(s_ascii_fallbacks[0]);
+
+    for (size_t i = 0u; i < count; ++i) {
+        if (s_ascii_fallbacks[i].codepoint == codepoint) {
+            return s_ascii_fallbacks[i].replacement;
+        }
+    }
+
+    return NULL;
+}
 
 
 /**
@@ -500,18 +621,25 @@ static void s_font_config_to_xlfd(const char *restrict input,
  * own ISO 8859-1/8859-15 encoding, and covers every accented letter
  * Spanish, Galician, Catalan, French, Italian, German, and Portuguese
  * actually use) becomes the one byte that same numeric value already is
- * in that encoding.  Anything further out (Cyrillic, CJK, most
- * everything else) becomes a literal '?', since a bitmap X core font
- * like "fixed" has no glyph for it regardless of how faithfully the
- * input text were decoded.
+ * in that encoding.
+ *
+ * Past that range, a codepoint with an obvious ASCII reading is
+ * spelled out with it (see @a s_ascii_fallbacks): a title saying
+ * "Report -- draft" can still be read, where one saying "Report ?
+ * draft" cannot.  Everything else (Cyrillic, CJK, most everything
+ * else) becomes a literal '?', since a bitmap X core font like "fixed"
+ * has no glyph for it regardless of how faithfully the input text were
+ * decoded.
  *
  * @param text     Null-terminated UTF-8 string
  * @param out      Destination buffer
  * @param out_size Size of @p out, in bytes
  *
- * @return Length of the converted string in @p out, in bytes (always at
- *         most one byte per decoded codepoint, so never longer than
- *         @p text's own UTF-8 byte length)
+ * @return Length of the converted string in @p out, in bytes.  A
+ *         spelled-out replacement can be longer than the one byte its
+ *         codepoint would have taken, but never longer than the UTF-8
+ *         sequence it came from, so the result still fits wherever the
+ *         original text did
  *
  * @note Complexity: @e O(n), where @e n is the length of @p text
  */
@@ -523,12 +651,29 @@ static size_t s_utf8_to_latin1(const char *restrict text,
 
     while (out_len < out_size - 1u) {
         uint32_t codepoint = glyph_utf8_next(text, &byte_index);
+        const char *replacement;
+        size_t replacement_len;
 
         if (codepoint == 0u) {
             break;
         }
-        out[out_len] = (codepoint <= 0xFFu) ? (char) codepoint : '?';
-        out_len += 1u;
+
+        replacement = s_ascii_fallback_for(codepoint);
+        if (replacement == NULL) {
+            out[out_len] = (codepoint <= 0xFFu)
+                ? (char) codepoint : '?';
+            out_len += 1u;
+            continue;
+        }
+
+        /* Written whole or not at all: half of "--" reads as a hyphen
+         * the text never had, which is worse than stopping here */
+        replacement_len = strlen(replacement);
+        if (out_len + replacement_len > out_size - 1u) {
+            break;
+        }
+        memcpy(&out[out_len], replacement, replacement_len);
+        out_len += replacement_len;
     }
     out[out_len] = '\0';
 
@@ -927,7 +1072,8 @@ void text_draw_string(xcb_connection_t *connection,
         return;
     }
 
-    if (s_text_current() == NULL || xcb_connection_get() != connection) {
+    if (s_text_current() == NULL ||
+            xcb_connection_get() != connection) {
         if (text_renderer_use_font(connection, "fixed") != 0) {
             return;
         }
