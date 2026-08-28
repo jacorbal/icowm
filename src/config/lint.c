@@ -48,9 +48,9 @@ typedef struct {
                                    differ from the file's bare name on
                                    disk (see 'themes/' entries, headed
                                    by 'themes/<name>.json') */
-    bool header_printed;
     int unknown_count;
     int duplicate_count;
+    bool header_printed;
 } config_lint_report_td;
 
 

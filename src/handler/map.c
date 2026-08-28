@@ -110,8 +110,6 @@ static void s_map_refresh_initial_state(xcb_connection_t *connection,
     xcb_atom_t atom_fullscreen;
     xcb_atom_t atom_max_horz;
     xcb_atom_t atom_max_vert;
-    const xcb_atom_t *atoms;
-    uint32_t natoms;
 
     if (connection == NULL || ewmh == NULL || client == NULL) {
         return;
@@ -131,6 +129,8 @@ static void s_map_refresh_initial_state(xcb_connection_t *connection,
     }
 
     if (reply->type == XCB_ATOM_ATOM && reply->format == 32) {
+        const xcb_atom_t *atoms;
+        uint32_t natoms;
         atoms = (const xcb_atom_t *) xcb_get_property_value(reply);
         natoms = (uint32_t) xcb_get_property_value_length(reply) /
             (uint32_t) sizeof(xcb_atom_t);

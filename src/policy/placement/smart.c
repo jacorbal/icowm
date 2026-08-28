@@ -97,8 +97,8 @@ struct s_place_window_smart_ctx_s {
  *                 untouched otherwise
  *
  * @return @p out_geom, or @c NULL when @c systray.avoid-overlap does
- *         not apply (see its doc comment, config.h), or the
- *         systray has no on-screen rectangle to report right now
+ *         not apply (see its doc comment, config.h), or the systray has
+ *         no on-screen rectangle to report right now
  *
  * @note Complexity: @e O(1)
  */
@@ -154,7 +154,8 @@ static void s_place_window_smart_test_candidate(
             ctx->has_free_rect = true;
         }
     }
-    cost = placement_score_window_pos(ctx->desktop, ctx->skip_client, x, y,
+    cost = placement_score_window_pos(ctx->desktop, ctx->skip_client,
+            x, y,
             ctx->fw, ctx->fh, ctx->tray_rect,
             ctx->center_x, ctx->center_y);
     if (cost < ctx->best_cost) {
@@ -189,11 +190,8 @@ struct s_edge_ctx_s {
 static void s_place_window_edge_visit(client_td *client, void *data)
 {
     struct s_edge_ctx_s *const edge_ctx = data;
-    int32_t other_x;
-    int32_t other_y;
-    int32_t other_w;
-    int32_t other_h;
-    int index;
+    int32_t edge_x[4];
+    int32_t edge_y[4];
 
     if (client == NULL || edge_ctx == NULL ||
             client == edge_ctx->skip_client ||
@@ -202,46 +200,42 @@ static void s_place_window_edge_visit(client_td *client, void *data)
         return;
     }
 
-    other_x = client->layout.geometry.cur.pos.x;
-    other_y = client->layout.geometry.cur.pos.y;
-    other_w = (int32_t) client->layout.geometry.cur.dim.w;
-    other_h = (int32_t) client->layout.geometry.cur.dim.h;
+    edge_x[0] = client->layout.geometry.cur.pos.x +
+        (int32_t) client->layout.geometry.cur.dim.w;
+    edge_x[1] = client->layout.geometry.cur.pos.x -
+        (int32_t) edge_ctx->place_ctx->fw;
+    edge_x[2] = client->layout.geometry.cur.pos.x;
+    edge_x[3] = client->layout.geometry.cur.pos.x;
 
-    {
-        const int32_t edge_x[4] = {
-            other_x + other_w,
-            other_x - (int32_t) edge_ctx->place_ctx->fw,
-            other_x, other_x
-        };
-        const int32_t edge_y[4] = {
-            other_y, other_y, other_y + other_h,
-            other_y - (int32_t) edge_ctx->place_ctx->fh
-        };
+    edge_y[0] = client->layout.geometry.cur.pos.y;
+    edge_y[1] = client->layout.geometry.cur.pos.y;
+    edge_y[2] = client->layout.geometry.cur.pos.y +
+        (int32_t) client->layout.geometry.cur.dim.h;
+    edge_y[3] = client->layout.geometry.cur.pos.y -
+        (int32_t) edge_ctx->place_ctx->fh;
 
-        for (index = 0; index < 4; ++index) {
-            s_place_window_smart_test_candidate(edge_ctx->place_ctx,
-                    edge_x[index], edge_y[index]);
-        }
+    for (int index = 0; index < 4; ++index) {
+        s_place_window_smart_test_candidate(edge_ctx->place_ctx,
+                edge_x[index], edge_y[index]);
     }
 }
 
 
 /**
  * @brief Find a non-overlapping smart position for a newly mapped
- *        client, centered inside the largest genuinely free area
- *        found on the current desktop
+ *        client, centered inside the largest genuinely free area found
+ *        on the current desktop
  *
  * Tests a bounded set of candidate top-left corners (the workarea
- * center, its four corners, every edge of every visible client
- * already on the desktop, and, when @c systray.avoid-overlap applies
- * (see below), every edge of the tray too), grows the real free
- * rectangle anchored at each one with
- * @a placement_free_rect_grow, and keeps the
+ * center, its four corners, every edge of every visible client already
+ * on the desktop, and, when @c systray.avoid-overlap applies (see
+ * below), every edge of the tray too), grows the real free rectangle
+ * anchored at each one with @a placement_free_rect_grow, and keeps the
  * largest.  The client lands centered inside that free rectangle: the
  * breathing room around it comes from how much real free space exists
  * there, not from any fixed margin.  Falls back to whichever candidate
- * has the least overlap when the desktop is too full for any
- * candidate to fit the client at all.
+ * has the least overlap when the desktop is too full for any candidate
+ * to fit the client at all.
  *
  * The systray, not a real client, is treated as one more obstacle
  * alongside every visible client above, and its edges are tested as
@@ -261,10 +255,9 @@ static void s_place_window_edge_visit(client_td *client, void *data)
  * Fetched fresh from @a systray_get_geometry for this one placement
  * decision, then passed to every @a placement_free_rect_grow /
  * @a placement_score_window_pos call the same way @p desktop's own
- * clients already
- * are.  Affects placement scoring only, nothing about the tray becoming
- * movable, iconifiable, or otherwise actable on the way a real window
- * is.
+ * clients already are.  Affects placement scoring only, nothing about
+ * the tray becoming movable, iconifiable, or otherwise actable on the
+ * way a real window is.
  *
  * @param wm      Pointer to the window manager singleton
  * @param surface Pointer to the surface where the client will appear
@@ -309,10 +302,10 @@ bool place_window_smart(const wm_td *wm,
      * made of more than one (the common case of several monitors
      * sharing one combined X screen): a new window should land within
      * one monitor, not be scored against the whole combined area, which
-     * could place it straddling the seam between two of them.
-     * 'wa' (unclipped) is only needed because 'placement_workarea'
-     * requires somewhere to write it; every candidate below is tested
-     * against 'mon_wa' instead. */
+     * could place it straddling the seam between two of them.  'wa'
+     * (unclipped) is only needed because 'placement_workarea' requires
+     * somewhere to write it; every candidate below is tested against
+     * 'mon_wa' instead. */
     placement_workarea(wm, surface, client, &wa, &mon_wa, &mon_sz);
 
     ctx.desktop = desktop;
@@ -325,9 +318,8 @@ bool place_window_smart(const wm_td *wm,
     /* Candidate range keeps the top-left corner inside the workarea;
      * 'bound_right'/'bound_bottom' are the workarea's physical edges
      * instead, used by 'placement_free_rect_grow' to grow a free
-     * rectangle as
-     * far as it genuinely goes, not just as far as a top-left corner
-     * could still sit. */
+     * rectangle as far as it genuinely goes, not just as far as
+     * a top-left corner could still sit. */
     ctx.min_x = mon_wa.pos.x;
     ctx.min_y = mon_wa.pos.y;
     ctx.max_x = (mon_wa.dim.w > ctx.fw)
@@ -384,12 +376,12 @@ bool place_window_smart(const wm_td *wm,
     /* The tray, not iterated per client since it is a single fixed
      * obstacle for this whole placement decision (unlike every client
      * edge below, tested once per visible client): without this, the
-     * corner candidate that would otherwise land exactly on the
-     * tray's corner collapses to zero free area (that same check
-     * inside 's_free_rect_shrink_against' above), and no replacement
-     * candidate anchored at the tray's edge ever gets tried in its
-     * place, so real free space sitting right next to the tray goes
-     * completely untested. */
+     * corner candidate that would otherwise land exactly on the tray's
+     * corner collapses to zero free area (that same check inside
+     * 's_free_rect_shrink_against' above), and no replacement candidate
+     * anchored at the tray's edge ever gets tried in its place, so real
+     * free space sitting right next to the tray goes completely
+     * untested. */
     if (ctx.tray_rect != NULL) {
         const int32_t tx = ctx.tray_rect->pos.x;
         const int32_t ty = ctx.tray_rect->pos.y;

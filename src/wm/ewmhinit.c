@@ -256,7 +256,8 @@ static void s_wm_sync_client_lists(surface_td *surface)
 
     idx = 0u;
     cdlist_foreach(surface->desktops, dnode) {
-        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
+        const desktop_td *const desktop =
+            (desktop_td *) cdlist_data(dnode);
         struct s_window_list_ctx_s list_ctx;
 
         list_ctx.out = stacking_list;

@@ -140,10 +140,10 @@ static enum s_shrink_result_e s_free_rect_shrink_against(
 struct s_shrink_ctx_s {
     /** Client left out of the search */
     const client_td *skip_client;
-    int32_t x0;             /**< Candidate's own left edge */
-    int32_t y0;             /**< Its top edge */
     int32_t *right;         /**< Its right edge, shrunk in place */
     int32_t *bottom;        /**< Its bottom edge, shrunk in place */
+    int32_t x0;             /**< Candidate's own left edge */
+    int32_t y0;             /**< Its top edge */
     bool has_shrunk;        /**< Whether anything shrank */
     bool has_collapsed;     /**< Whether nothing is left of it */
 };

@@ -51,10 +51,10 @@ struct surface_randr_snapshot_s {
                                          off (driving nothing) before;
                                          reverting restores that, not
                                          any particular prior mode */
+    xcb_randr_output_t output_id;
     int16_t prior_x;
     int16_t prior_y;
     uint16_t prior_rotation;
-    xcb_randr_output_t output_id;
 };
 
 /** Every CRTC @a surface_action_apply_randr_profiles actually changed

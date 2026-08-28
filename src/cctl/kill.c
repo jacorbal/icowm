@@ -36,9 +36,9 @@
 
 /** One process still being watched for kill escalation */
 struct kill_pending_s {
-    bool in_use;
-    pid_t pid;
     struct timespec deadline;   /* 'CLOCK_MONOTONIC' */
+    pid_t pid;
+    bool in_use;
 };
 
 /** Every process currently being watched for kill escalation */

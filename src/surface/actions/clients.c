@@ -384,15 +384,15 @@ static void s_client_reflow_visit(client_td *client, void *data)
                 client->is_outdated = true;
                 desktop->is_outdated = true;
             }
-        }
-    }
+        } /* ! if (!still_on_a_monitor) */
+    } /* ! if (!client) */
 }
 
 
 /* Unmap all non-sticky clients on the specified desktop */
 void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 {
-    desktop_td *desktop;
+    const desktop_td *desktop;
 
     if (surface == NULL) {
         return;

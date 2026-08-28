@@ -134,7 +134,7 @@ static void s_icon_overlap_visit(client_td *client, void *data)
 static bool s_icon_slot_is_taken(const client_td *client,
         struct dimensions_s icon_dim)
 {
-    desktop_td *desktop;
+    const desktop_td *desktop;
     struct s_icon_overlap_ctx_s overlap_ctx;
 
     if (client == NULL || client->icon_pos.x < 0 ||

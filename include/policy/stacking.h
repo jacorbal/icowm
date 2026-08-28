@@ -77,7 +77,7 @@ typedef void (*stacking_visitor_fn)(client_td *client, void *data);
  *       it never destroys a client
  * @note Complexity: @e O(1)
  */
-int stacking_create(desktop_td *desktop);
+int stacking_create(const desktop_td *desktop);
 
 /**
  * @brief Forget a desktop's clients, and the order once it is empty
@@ -94,7 +94,7 @@ int stacking_create(desktop_td *desktop);
  *       number of managed clients: each is found and detached in
  *       turn, since detaching frees the node a walk would stand on
  */
-void stacking_destroy(desktop_td *desktop);
+void stacking_destroy(const desktop_td *desktop);
 
 /**
  * @brief Place a client at the top of the stack
@@ -113,7 +113,7 @@ void stacking_destroy(desktop_td *desktop);
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
-int stacking_add(desktop_td *desktop, client_td *client);
+int stacking_add(const desktop_td *desktop, client_td *client);
 
 /**
  * @brief Forget a client that is no longer managed
@@ -136,7 +136,7 @@ int stacking_add(desktop_td *desktop, client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients
  */
-int stacking_remove(client_td *client);
+int stacking_remove(const client_td *client);
 
 /**
  * @brief Move a client to the top of the stack
@@ -152,7 +152,7 @@ int stacking_remove(client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
-int stacking_raise(desktop_td *desktop, client_td *client);
+int stacking_raise(const desktop_td *desktop, client_td *client);
 
 /**
  * @brief Move a client to the bottom of the stack
@@ -168,7 +168,7 @@ int stacking_raise(desktop_td *desktop, client_td *client);
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
-int stacking_lower(desktop_td *desktop, client_td *client);
+int stacking_lower(const desktop_td *desktop, client_td *client);
 
 /**
  * @brief How many clients a desktop's stacking order holds

@@ -61,8 +61,8 @@ enum wm_mousebind_type_e {
  */
 typedef struct {
     xcb_button_index_t button;
-    uint16_t modmask;
     enum wm_mousebind_type_e type;
+    uint16_t modmask;
 } wm_mousebinding_td;
 
 

@@ -385,7 +385,7 @@ static void s_surface_refill_maximized_clients(surface_td *surface)
 
     dinitial = dnode;
     do {
-        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
+        const desktop_td *const d = (desktop_td *) cdlist_data(dnode);
 
         stacking_walk(d, s_client_refill_visit, NULL);
         dnode = cdlist_next(dnode);

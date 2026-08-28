@@ -54,13 +54,15 @@
  */
 #define ATOM_CACHE_CAPACITY (64)
 
+
 /**
  * @brief One cached @a atom_intern result
  */
 struct s_atom_cache_entry_s {
     char name[ATOM_CACHE_NAME_MAX_LENGTH];  /**< Interned atom's name */
-    bool only_if_exists;   /**< @a atom_intern's own request flavor */
-    xcb_atom_t atom;        /**< The resolved atom */
+    xcb_atom_t atom;                        /**< The resolved atom */
+    bool only_if_exists;                    /**< @a atom_intern's own
+                                                 request flavor */
 };
 
 /* Every atom looked up so far, in first-seen order; only entries

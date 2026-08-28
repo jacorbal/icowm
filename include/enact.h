@@ -650,7 +650,7 @@ void enact_desktop_client_send_back(desktop_td *desktop,
  * @see @a place_window_apply
  */
 void enact_desktop_clients_rearrange(const wm_td *wm,
-        surface_td *surface, desktop_td *desktop);
+        surface_td *surface, const desktop_td *desktop);
 
 /**
  * @brief Iconify every client on the desktop

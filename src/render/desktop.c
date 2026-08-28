@@ -733,8 +733,8 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
  */
 struct s_desktop_render_ctx_s {
     desktop_td *desktop;    /**< Desktop being rendered */
-    bool is_current;        /**< Whether it is the visible one */
     int client_count;       /**< How many have been rendered */
+    bool is_current;        /**< Whether it is the visible one */
 };
 
 

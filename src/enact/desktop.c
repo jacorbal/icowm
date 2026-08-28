@@ -450,7 +450,7 @@ void enact_desktop_client_send_back(desktop_td *desktop,
 /* Re-apply the configured placement policy to every client on the
  * desktop */
 void enact_desktop_clients_rearrange(const wm_td *wm,
-        surface_td *surface, desktop_td *desktop)
+        surface_td *surface, const desktop_td *desktop)
 {
     struct s_rearrange_ctx_s rearrange_ctx;
     enum config_placement_policy_e policy;

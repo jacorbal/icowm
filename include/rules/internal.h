@@ -101,6 +101,39 @@ struct rules_match_s {
  * unchanged for that one action.
  */
 struct rules_apply_s {
+    /**
+     * @brief Index into the client's own surface's monitor list
+     *
+     * Named @p monitor, not @p screen': this project's own @p screen_id
+     * / @p (screens[]) terminology refers to a whole X screen, and this
+     * codebase has no notion of moving a client between X screens at
+     * all, desktop reassignment above included, so a rule field with
+     * that name would misleadingly suggest a capability that does not
+     * exist.  Scoped to one physical monitor within the client's
+     * current surface only.
+     */
+    uint32_t monitor;
+    uint32_t desktop;
+
+    int32_t x;
+    int32_t y;
+    uint32_t w;
+    uint32_t h;
+
+    uint16_t layer;
+
+    /**
+     * @brief Percentage, 0 to 100, overriding the theme's own 'window
+     *
+     * Applies to @p active.opacity / @p window.inactive.opacity for
+     * this one client.
+     *
+     * @see @a config_theme_opacity_to_raw in @c config.h for how this
+     *      reaches @c _NET_WM_WINDOW_OPACITY
+     */
+    uint8_t opacity_active;
+    uint8_t opacity_inactive;
+
     bool has_desktop;
     bool has_monitor;       /**< Target monitor within the client's
                                  own surface; see 'monitor' below */
@@ -121,41 +154,9 @@ struct rules_apply_s {
     bool has_opacity_active;
     bool has_opacity_inactive;
 
-    uint32_t desktop;
-
-    /**
-     * @brief Index into the client's own surface's monitor list
-     *
-     * Named @p monitor, not @p screen': this project's own @p screen_id
-     * / @p (screens[]) terminology refers to a whole X screen, and this
-     * codebase has no notion of moving a client between X screens at
-     * all, desktop reassignment above included, so a rule field with
-     * that name would misleadingly suggest a capability that does not
-     * exist.  Scoped to one physical monitor within the client's
-     * current surface only.
-     */
-    uint32_t monitor;
-
-    uint16_t layer;
     bool is_focused;
-    int32_t x;
-    int32_t y;
-    uint32_t w;
-    uint32_t h;
     bool is_pinned;
     bool is_decorated;
-
-    /**
-     * @brief Percentage, 0 to 100, overriding the theme's own 'window
-     *
-     * Applies to @p active.opacity / @p window.inactive.opacity for
-     * this one client.
-     *
-     * @see @a config_theme_opacity_to_raw in @c config.h for how this
-     *      reaches @c _NET_WM_WINDOW_OPACITY
-     */
-    uint8_t opacity_active;
-    uint8_t opacity_inactive;
 };
 
 /**

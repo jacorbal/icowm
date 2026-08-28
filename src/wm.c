@@ -230,7 +230,8 @@ static void s_wm_all_clients_unmanage(void)
 
         dinitial = dnode;
         do {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
+            const desktop_td *const desktop =
+                (desktop_td *) cdlist_data(dnode);
 
             stacking_walk(desktop, s_client_unmanage_visit, NULL);
             dnode = cdlist_next(dnode);

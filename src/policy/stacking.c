@@ -136,7 +136,7 @@ static cdlist_item_td *s_stacking_node_find(const client_td *client,
  */
 static void s_stacking_detach(const client_td *client)
 {
-    cdlist_item_td *node;
+    const cdlist_item_td *node;
     cdlist_item_td *prev = NULL;
     void *removed = NULL;
 
@@ -188,7 +188,7 @@ static client_td *s_stacking_first_of(const desktop_td *desktop)
 
 
 /* Make sure the stacking order is ready for a desktop's clients */
-int stacking_create(desktop_td *desktop)
+int stacking_create(const desktop_td *desktop)
 {
     if (desktop == NULL) {
         return -1;
@@ -204,9 +204,9 @@ int stacking_create(desktop_td *desktop)
 
 
 /* Forget a desktop's clients, and the order itself once it is empty */
-void stacking_destroy(desktop_td *desktop)
+void stacking_destroy(const desktop_td *desktop)
 {
-    client_td *client;
+    const client_td *client;
 
     if (desktop == NULL || s_stacking == NULL) {
         return;
@@ -234,7 +234,7 @@ void stacking_destroy(desktop_td *desktop)
 
 
 /* Place a client at the top of the stack */
-int stacking_add(desktop_td *desktop, client_td *client)
+int stacking_add(const desktop_td *desktop, client_td *client)
 {
     if (desktop == NULL || client == NULL || !s_stacking_ensure()) {
         return -1;
@@ -252,7 +252,7 @@ int stacking_add(desktop_td *desktop, client_td *client)
 
 
 /* Forget a client that is no longer managed */
-int stacking_remove(client_td *client)
+int stacking_remove(const client_td *client)
 {
     if (client == NULL) {
         return -1;
@@ -265,7 +265,7 @@ int stacking_remove(client_td *client)
 
 
 /* Move a client to the top of the stack */
-int stacking_raise(desktop_td *desktop, client_td *client)
+int stacking_raise(const desktop_td *desktop, client_td *client)
 {
     if (desktop == NULL || client == NULL || s_stacking == NULL) {
         return -1;
@@ -283,7 +283,7 @@ int stacking_raise(desktop_td *desktop, client_td *client)
 
 
 /* Move a client to the bottom of the stack */
-int stacking_lower(desktop_td *desktop, client_td *client)
+int stacking_lower(const desktop_td *desktop, client_td *client)
 {
     if (desktop == NULL || client == NULL || s_stacking == NULL) {
         return -1;

@@ -193,9 +193,8 @@ enum wm_keybind_type_e {
  */
 typedef struct {
     xcb_keysym_t keysym;            /**< X keysym for this binding */
+    enum wm_keybind_type_e type;    /** Action this binding triggers */
     uint16_t modmask;               /**< Required modifier mask */
-    /** Action this binding triggers */
-    enum wm_keybind_type_e type;
 } wm_keybinding_td;
 
 

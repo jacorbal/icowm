@@ -121,10 +121,10 @@ struct s_icon_occupied_ctx_s {
     const client_td *skip_client;   /**< Client being placed */
     int32_t *xs;                    /**< Occupied icon x positions */
     int32_t *ys;                    /**< Occupied icon y positions */
+    uint32_t desktop_id;            /**< Desktop, for that one report */
     uint16_t capacity;              /**< How many the arrays hold */
     uint16_t count;                 /**< How many have been noted */
     bool has_warned;                /**< Whether the cap was reported */
-    uint32_t desktop_id;            /**< Desktop, for that one report */
 };
 
 

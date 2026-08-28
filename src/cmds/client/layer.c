@@ -247,8 +247,8 @@ static void s_enforce_layer_place_family(client_td *top,
  */
 struct s_enforce_layer_ctx_s {
     desktop_td *desktop;        /**< Desktop being restacked */
-    uint16_t layer;             /**< Layer this pass is placing */
     xcb_window_t *prev_target;  /**< Window placed just below */
+    uint16_t layer;             /**< Layer this pass is placing */
 };
 
 

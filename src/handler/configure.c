@@ -579,7 +579,6 @@ void handler_configure_request(xcb_connection_t *connection,
     surface_td *surface;
     desktop_td *desktop;
     uint16_t mask;
-    uint16_t target_mask;
     struct s_configure_ctx_s ctx = {0};
     bool geom_changed;
 
@@ -632,6 +631,7 @@ void handler_configure_request(xcb_connection_t *connection,
         bool on_inner = (event->window == client->window);
         bool send_synth = false;
         xcb_window_t target = event->window;
+        uint16_t target_mask;
         uint32_t req_w = client->layout.geometry.cur.dim.w;
         uint32_t req_h = client->layout.geometry.cur.dim.h;
         uint32_t old_w = client->layout.geometry.cur.dim.w;

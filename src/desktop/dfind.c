@@ -35,7 +35,7 @@
 client_td *desktop_find_client_by_id(const desktop_td *desktop,
         uint32_t id)
 {
-    void *element;
+    void *elem;
 
     if (desktop == NULL || desktop->clients == NULL) {
         return NULL;
@@ -48,8 +48,8 @@ client_td *desktop_find_client_by_id(const desktop_td *desktop,
      * asked here.  Keeping this off the stacking order also leaves it
      * free to be asked in the other direction, by a walk wanting to
      * know whether a client it reached is on a given desktop. */
-    ohtbl_foreach(desktop->clients, element) {
-        client_td *const client = (client_td *) element;
+    ohtbl_foreach(desktop->clients, elem) {
+        client_td *const client = (client_td *) elem;
 
         if (client != NULL && client->id == id) {
             return client;

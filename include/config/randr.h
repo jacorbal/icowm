@@ -107,6 +107,9 @@ struct config_randr_output_s {
  *       the matching profile applies to both identically.
  */
 struct config_randr_s {
+    struct config_randr_output_s outputs[CONFIG_RANDR_MAX_OUTPUTS];
+    uint32_t output_count;  /**< Number of populated output profiles */
+
     /**
      * @brief Master switch for the whole per-output profile system
      *
@@ -117,8 +120,6 @@ struct config_randr_s {
      */
     bool is_enabled;
 
-    uint32_t output_count;  /**< Number of populated output profiles */
-    struct config_randr_output_s outputs[CONFIG_RANDR_MAX_OUTPUTS];
 };
 
 

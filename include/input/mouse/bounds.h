@@ -66,9 +66,9 @@ typedef struct {
     int32_t margin_top;
     int32_t margin_right;
     int32_t margin_bottom;
-    bool has_titlebar_row;
     int32_t titlebar_row_top;
     int32_t titlebar_row_bottom;
+    bool has_titlebar_row;
 } im_resize_bounds_td;
 
 

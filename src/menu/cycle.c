@@ -92,9 +92,9 @@ struct cycle_menu_state_s g_cycle_menu = {
  * @brief What @a s_cycle_collect needs that the client itself is not
  */
 struct s_cycle_collect_ctx_s {
-    bool is_icon;               /**< Collecting icons, not windows */
     xcb_window_t active_id;     /**< Desktop's own active client */
     int active_idx;             /**< Index it landed at, or -1 */
+    bool is_icon;               /**< Collecting icons, not windows */
 };
 
 
