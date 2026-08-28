@@ -222,10 +222,11 @@ file except themes, in its entirety, field by field; and in
 Dependencies
 ------------
 
-The construction of IcoWM requires, at the outset, a C99 compiler, GNU
-Make, and `pkg-config` (this last being employed to locate the libraries
-enumerated below; should it be wanting, the build reverts, without
-complaint, to a fixed link line naming that self-same set of libraries).
+The construction of IcoWM requires, at the outset, a C99 compiler,
+either GNU Make or BSD make, and `pkg-config` (this last being employed
+to locate the libraries enumerated below; should it be wanting, the
+build reverts, without complaint, to a fixed link line naming that
+self-same set of libraries).
 
   - **libxcb**, together with the following extension libraries:
     `xcb-keysyms`, `xcb-util`, `xcb-icccm`, `xcb-ewmh`, `xcb-randr`,
