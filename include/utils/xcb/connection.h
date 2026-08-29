@@ -84,4 +84,4 @@ void xcb_ewmh_connection_set(xcb_ewmh_connection_t *ewmh);
 xcb_ewmh_connection_t *xcb_ewmh_connection_get(void);
 
 
-#endif /* !UTILS_XCB_CONNECTION_H */
+#endif /* ! UTILS_XCB_CONNECTION_H */

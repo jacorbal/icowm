@@ -164,23 +164,35 @@ static const struct s_ascii_fallback_s s_ascii_fallbacks[] = {
     /* Arrows */
     { "<-",  0x2190u },     /* leftwards arrow */
     { "->",  0x2192u },     /* rightwards arrow */
-    { "|<-", 0x21E4u },     /* leftwards arrow to bar */
-    { "->|", 0x21E5u },     /* rightwards arrow to bar */
+    { "<<-", 0x219Eu },     /* leftwards two haeaded arrow */
     { "<->", 0x2194u },     /* left right arrow */
+    { "->>", 0x21A0u },     /* rightwards two headed arrow */
+    { "<-<", 0x21A2u },     /* leftwards arrow with tail */
+    { ">->", 0x21A3u },     /* rightwards arrow with tail */
+    { "<-|", 0x21A4u },     /* leftwards arrow from bar */
+    { "|->", 0x21A6u },     /* rightwards arrow from bar */
     { "<=",  0x21D0u },     /* leftwards double arrow */
     { "=>",  0x21D2u },     /* rightwards double arrow */
     { "<=>", 0x21D4u },     /* left right double arrow */
+    { "|<-", 0x21E4u },     /* leftwards arrow to bar */
+    { "->|", 0x21E5u },     /* rightwards arrow to bar */
 
     /* Comparisons and the arithmetic signs that keep them company.
      * A title carrying "x \u2265 3" is as unreadable with a question
      * mark in it as any other, and these have an unambiguous reading
      * that every programmer already writes by hand. */
+    { "inf", 0x221Eu },     /* infinity */
+    { "~=",  0x2248u },     /* almost equal to */
+    { "!=",  0x2260u },     /* not equal to */
+    { "==",  0x2261u },     /* identical to */
     { "<=",  0x2264u },     /* less-than or equal to */
     { ">=",  0x2265u },     /* greater-than or equal to */
-    { "!=",  0x2260u },     /* not equal to */
-    { "~=",  0x2248u },     /* almost equal to */
-    { "==",  0x2261u },     /* identical to */
-    { "inf", 0x221Eu },     /* infinity */
+    { "<=",  0x2266u },     /* less-than over equal to */
+    { ">=",  0x2267u },     /* greater-than over equal to */
+    { "<<",  0x226Au },     /* much less-than */
+    { ">>",  0x226Bu },     /* much greater-than */
+    { "<<<", 0x22D8u },     /* very much less-than */
+    { ">>>", 0x22D9u },     /* very much greater-than */
 
     /* Spaces that are a space and nothing more.  U+00A0 is in the
      * Latin-1 range and would convert without complaint, but "fixed"
@@ -903,7 +915,7 @@ void text_renderer_disable_glyph_backend(void)
 
 
 /* Initialize the text renderer */
-int text_renderer_init(xcb_connection_t *connection)
+int text_renderer_init(const xcb_connection_t *connection)
 {
     if (connection == NULL) {
         return -1;
@@ -954,8 +966,8 @@ int text_renderer_use_font(xcb_connection_t *connection,
          * a selection of its own, so a hit here has to point that
          * selection at this font too.  Without it, drawing would go
          * through whichever font the glyph backend happened to have
-         * selected last, which is another one entirely as soon as a
-         * theme names more than one. */
+         * selected last, which is another one entirely as soon as
+         * a theme names more than one. */
         if (s_text.cache[index].backend == S_BACKEND_GLYPH &&
                 glyph_renderer_init(connection, raw) != 0) {
             s_text_cache_release(&s_text.cache[index]);
@@ -1171,8 +1183,8 @@ uint16_t text_string_measure(const char *text)
 }
 
 
-/* Copy text into a buffer, shortening it a character at a time from
- * the end until it measures no wider than a given limit */
+/* Copy text into a buffer, shortening it a character at a time from the
+ * end until it measures no wider than a given limit */
 void text_truncate_to_width(char *buf, size_t buf_size,
         const char *text, uint16_t max_width)
 {

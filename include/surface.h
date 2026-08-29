@@ -36,6 +36,7 @@
 #ifndef SURFACE_H
 #define SURFACE_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -87,13 +88,13 @@ struct surface_properties_s {
 /**
  * @brief Opaque-from-outside surface handle
  *
- * Declared here as a plain forward alias, guarded so a header that
- * only ever needs @c surface_td through a pointer (@c desktop.h,
- * already included above so a surface can own its own desktops) can
- * declare the exact same alias on its own too, without this file's
- * own full definition further down colliding with it as a duplicate
- * @c typedef of the same name, illegal under strict C99 (unlike
- * C11) even when, as here, both name the exact same underlying type.
+ * Declared here as a plain forward alias, guarded so a header that only
+ * ever needs @c surface_td through a pointer (@c desktop.h, already
+ * included above so a surface can own its own desktops) can declare the
+ * exact same alias on its own too, without this file's own full
+ * definition further down colliding with it as a duplicate @c typedef
+ * of the same name, illegal under strict C99 even when, as here, both
+ * name the exact same underlying type.
  */
 typedef struct surface_s surface_td;
 #endif
@@ -225,8 +226,8 @@ void surface_resize(surface_td *surface,
  *
  * @param surface Pointer to the surface whose monitor list to refresh
  *
- * @note Complexity: @e O(n), where @e n is the number of monitors
- *       RandR reports
+ * @note Complexity: @e O(n), where @e n is the number of monitors RandR
+ *       reports
  */
 void surface_refresh_monitors(surface_td *surface);
 
@@ -266,35 +267,36 @@ monitor_td surface_primary_monitor(const surface_td *surface);
  *        from another one
  *
  * Unlike a desktop, a monitor already has a real, physical position
- * (@p current's own @c x/@c y/@c w/@c h, as RandR reported it), so
- * no configured layout is needed to answer "which one is to the
- * north" at all: among every one of @p surface's own monitors whose
- * center genuinely lies in @p direction from @p current's own
- * center, whichever one is nearest by that same measure is the
- * answer, matching what a person looking at the arrangement would
- * call it even when the monitors involved differ in size or are not
- * perfectly aligned to one another.  Deliberately never wraps around
- * to the farthest monitor the opposite way when none lies in
- * @p direction at all, unlike a desktop's own equivalent, which
- * optionally does when @c desktops.wrap-at-bounds is enabled:
- * wrapping a definite, ordered list (a desktop's own circular one)
- * has one obviously correct meaning, but wrapping a genuinely 2-D
- * physical arrangement does not (does "east, wrapped" mean the
- * westmost monitor overall, or only the westmost one still on the
- * same row?), so no attempt is made to invent one here; a monitor
- * has no equivalent of @c wrap-at-bounds to make that choice
- * configurable in the first place, for the same reason.
+ * (@p current's own @c x / @c y / @c w / @c h, as RandR reported it),
+ * so no configured layout is needed to answer "which one is to the
+ * north" at all.  Among every one of @p surface's own monitors whose
+ * center genuinely lies in @p direction from @p current's own center,
+ * whichever one is nearest by that same measure is the answer, matching
+ * what a person looking at the arrangement would call it even when the
+ * monitors involved differ in size or are not perfectly aligned to one
+ * another.
+ *
+ * Deliberately never wraps around to the farthest monitor the opposite
+ * way when none lies in @p direction at all, unlike a desktop's own
+ * equivalent, which optionally does when @c desktops.wrap-at-bounds is
+ * enabled: wrapping a definite, ordered list (a desktop's own circular
+ * one) has one obviously correct meaning, but wrapping a genuinely 2-D
+ * physical arrangement does not (does "east, wrapped" mean the westmost
+ * monitor overall, or only the westmost one still on the same row?), so
+ * no attempt is made to invent one here; a monitor has no equivalent of
+ * @c wrap-at-bounds to make that choice configurable in the first
+ * place, for the same reason.
  *
  * @param surface   Pointer to the surface structure
- * @param current   The monitor to search from; need not itself be
- *                  one of @p surface's own current monitors (an
- *                  already-stale caller-held copy is fine, since
- *                  only its own @c x/@c y/@c w/@c h are read)
+ * @param current   The monitor to search from; need not itself be one
+ *                  of @p surface's own current monitors (an
+ *                  already-stale caller-held copy is fine, since only
+ *                  its own @c x / @c y / @c w / @c h are read)
  * @param direction Compass direction to search in
  *
- * @return The neighboring monitor, or @p current itself, unchanged,
- *         if @p surface is @c NULL or no monitor lies in
- *         @p direction at all
+ * @return The neighboring monitor, or @p current itself, unchanged, if
+ *         @p surface is @c NULL or no monitor lies in @p direction at
+ *         all
  *
  * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
  */
@@ -347,15 +349,13 @@ desktop_td *surface_desktop_get(surface_td *surface,
  *        configured layout
  *
  * Always the same reading order the flat desktop list itself already
- * had before layout existed at all when no @c topology.screens.
- * desktops layout is configured (the common case, still the
- * default): @c row @c 0, @c col @c desktop_id.  With one configured,
- * the position @p desktop_id's own @c orientation/@c corner
- * combination actually places it at, which is not simply @c row
- * @c 0, @c col @c desktop_id once @c corner is anything other than
- * top-left, nor once @c orientation is vertical.  See
- * @a s_layout_row_col in @c surface/desktops.c for the fuller
- * reasoning.
+ * had before layout existed at all when no @c topology.screens.desktops
+ * layout is configured (the common case, still the default): @c row
+ * @c 0, @c col @c desktop_id.  With one configured, the position
+ * @p desktop_id's own @c orientation/@c corner combination actually
+ * places it at, which is not simply @c row @c 0, @c col @c desktop_id
+ * once @c corner is anything other than top-left, nor once @c
+ * orientation is vertical.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the desktop to locate
@@ -368,6 +368,8 @@ desktop_td *surface_desktop_get(surface_td *surface,
  *         output pointer is unavailable
  *
  * @note Complexity: @e O(1)
+ *
+ * @see @a s_layout_row_col in @c surface/desktops.c
  */
 bool surface_desktop_row_col(const surface_td *surface,
         uint32_t desktop_id, uint32_t *row_out, uint32_t *col_out);
@@ -379,12 +381,12 @@ bool surface_desktop_row_col(const surface_td *surface,
  * that everything showing one says it the same way.  Three cases, and
  * each leaves out what would not help:
  *
- *  - a client pinned across every desktop names none of them;
- *  - a layout of more than one row gives the desktop's own ID and its
- *    row and column, the grid being what makes a coordinate mean
- *    something;
- *  - anything else gives the ID alone, a single row's coordinate
- *    saying no more than the ID already does.
+ * - a client pinned across every desktop names none of them;
+ * - a layout of more than one row gives the desktop's own ID and its
+ *   row and column, the grid being what makes a coordinate mean
+ *   something;
+ * - anything else gives the ID alone, a single row's coordinate saying
+ *   no more than the ID already does.
  *
  * A session with only one desktop is not a case here: the caller that
  * can meet one, the search menu, leaves the label out entirely rather
@@ -414,14 +416,13 @@ void surface_desktop_label(const surface_td *surface,
  * @brief Get the desktop toward the north in the configured layout,
  *        optionally cycling
  *
- * A no-op search (always @c NULL, cycling or not) on a surface with
- * no @c topology.screens.desktops layout configured, the same as on
- * any single-row layout: there is no "north" to find at all when
- * every desktop already sits in the one and only row.  Skips past
- * any desktop-less gap cell a configured layout's own @c rows @c *
- * @c columns may legitimately exceed the real desktop count with
- * (see @c ci_config_load_screens's comment, config/base/
- * desktops.c), rather than landing on one.
+ * A no-op search (always @c NULL, cycling or not) on a surface with no
+ * @c topology.screens.desktops layout configured, the same as on any
+ * single-row layout: there is no "north" to find at all when every
+ * desktop already sits in the one and only row.  Skips past any
+ * desktop-less gap cell a configured layout's own @c rows @c *
+ * @c columns may legitimately exceed the real desktop count with,
+ * rather than landing on one.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the current desktop
@@ -430,6 +431,8 @@ void surface_desktop_label(const surface_td *surface,
  *
  * @return Pointer to the desktop toward the north, or @c NULL if
  *         none exists in that direction
+ *
+ * @see @c ci_config_load_screens's comment, @c config/base/desktops.c
  */
 desktop_td *surface_desktop_north(surface_td *surface,
         uint32_t desktop_id, bool cycle);
@@ -438,20 +441,19 @@ desktop_td *surface_desktop_north(surface_td *surface,
  * @brief Get the desktop toward the south in the configured layout,
  *        optionally cycling
  *
- * A no-op search (always @c NULL, cycling or not) on a surface with
- * no @c topology.screens.desktops layout configured, the same as on
- * any single-row layout: there is no "south" to find at all when
- * every desktop already sits in the one and only row.  Skips past
- * any desktop-less gap cell the same way @a surface_desktop_north
- * does.
+ * A no-op search (always @c NULL, cycling or not) on a surface with no
+ * @c topology.screens.desktops layout configured, the same as on any
+ * single-row layout: there is no "south" to find at all when every
+ * desktop already sits in the one and only row.  Skips past any
+ * desktop-less gap cell the same way @a surface_desktop_north does.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the current desktop
- * @param cycle      If @c true, wraps to the top row of the same
- *                   column when already at the bottom
+ * @param cycle      If @c true, wraps to the top row of the same column
+ *                   when already at the bottom
  *
- * @return Pointer to the desktop toward the south, or @c NULL if
- *         none exists in that direction
+ * @return Pointer to the desktop toward the south, or @c NULL if none
+ *         exists in that direction
  */
 desktop_td *surface_desktop_south(surface_td *surface,
         uint32_t desktop_id, bool cycle);
@@ -460,19 +462,18 @@ desktop_td *surface_desktop_south(surface_td *surface,
  * @brief Get the desktop toward the west in the configured layout,
  *        optionally cycling
  *
- * Searches for the desktop with the given ID and returns the one
- * toward the west of it: list-previous on a surface with no
+ * Searches for the desktop with the given ID and returns the one toward
+ * the west of it: list-previous on a surface with no
  * @c topology.screens.desktops layout configured (the common case,
- * still the default), the desktop one cell west along the
- * configured grid otherwise, whatever @c desktop_id that cell's own
- * @c orientation/@c corner combination happens to hold (never simply
+ * still the default), the desktop one cell west along the configured
+ * grid otherwise, whatever @c desktop_id that cell's own @c
+ * orientation/@c corner combination happens to hold (never simply
  * "@c desktop_id @c - @c 1": once @c corner is anything other than
- * top-left, a lower ID can sit visually east of a higher one, not
- * west; see @a s_layout_row_col's comment, surface/
- * desktops.c, for the full reasoning), skipping past any desktop-
- * less gap cell along the way.  If the current desktop is the
- * westmost in its own row, and cycling is enabled, wraps to the
- * eastmost desktop in that same row.
+ * top-left, a lower ID can sit visually east of a higher one, not west;
+ * see @a s_layout_row_col's comment, @c surface/desktops.c, for the
+ * full reasoning), skipping past any desktop-less gap cell along the
+ * way.  If the current desktop is the westmost in its own row, and
+ * cycling is enabled, wraps to the eastmost desktop in that same row.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the current desktop
@@ -489,16 +490,15 @@ desktop_td *surface_desktop_west(surface_td *surface,
  * @brief Get the desktop toward the east in the configured layout,
  *        optionally cycling
  *
- * Searches for the desktop with the given ID and returns the one
- * toward the east of it: list-next on a surface with no
+ * Searches for the desktop with the given ID and returns the one toward
+ * the east of it: list-next on a surface with no
  * @c topology.screens.desktops layout configured (the common case,
- * still the default), the desktop one cell east along the
- * configured grid otherwise (see @a surface_desktop_west's own doc
- * comment for the fuller reasoning on why this is not simply
- * "@c desktop_id @c + @c 1"), skipping past any desktop-less gap
- * cell along the way.  If the current desktop is the eastmost in its
- * own row, and cycling is enabled, wraps to the westmost desktop in
- * that same row.
+ * still the default), the desktop one cell east along the configured
+ * grid otherwise (see @a surface_desktop_west's own doc comment for the
+ * fuller reasoning on why this is not simply "@c desktop_id @c +
+ * @c 1"), skipping past any desktop-less gap cell along the way.  If
+ * the current desktop is the eastmost in its own row, and cycling is
+ * enabled, wraps to the westmost desktop in that same row.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the current desktop
@@ -515,12 +515,12 @@ desktop_td *surface_desktop_east(surface_td *surface,
  * @brief Select the desktop toward the north, optionally cycling
  *
  * Attempts to select the desktop toward the north of the current one
- * (see @a surface_desktop_north's comment).  Updates
- * @p desktop_cur only on success.
+ * (see @a surface_desktop_north's comment).  Updates @p desktop_cur
+ * only on success.
  *
  * @param surface Pointer to the surface structure
- * @param cycle   If @c true, wraps to the bottom row of the same
- *                column when already at the top
+ * @param cycle   If @c true, wraps to the bottom row of the same column
+ *                when already at the top
  *
  * @return Status of the selection
  * @retval  0 Success
@@ -533,12 +533,12 @@ int surface_desktop_select_north(surface_td *surface, bool cycle);
  * @brief Select the desktop toward the south, optionally cycling
  *
  * Attempts to select the desktop toward the south of the current one
- * (see @a surface_desktop_south's comment).  Updates
- * @p desktop_cur only on success.
+ * (see @a surface_desktop_south's comment).  Updates @p desktop_cur
+ * only on success.
  *
  * @param surface Pointer to the surface structure
- * @param cycle   If @c true, wraps to the top row of the same
- *                column when already at the bottom
+ * @param cycle   If @c true, wraps to the top row of the same column
+ *                when already at the bottom
  *
  * @return Status of the selection
  * @retval  0 Success
@@ -548,14 +548,14 @@ int surface_desktop_select_north(surface_td *surface, bool cycle);
 int surface_desktop_select_south(surface_td *surface, bool cycle);
 
 /**
- * @brief Select the desktop toward the west (list-previous),
- *        optionally cycling
+ * @brief Select the desktop toward the west (list-previous), optionally
+ *        cycling
  *
  * Attempts to select the desktop toward the west of the current one
- * (see @a surface_desktop_west's comment for what "west"
- * means with and without a configured layout).  If the current
- * desktop is the first and cycle mode is enabled, it will select the
- * last desktop, updating @p desktop_cur.
+ * (see @a surface_desktop_west's comment for what "west" means with and
+ * without a configured layout).  If the current desktop is the first
+ * and cycle mode is enabled, it will select the last desktop, updating
+ * @p desktop_cur.
  *
  * @param surface Pointer to the surface structure
  * @param cycle   If @c true, will cycle to the last desktop if the
@@ -573,10 +573,10 @@ int surface_desktop_select_west(surface_td *surface, bool cycle);
  *        cycling
  *
  * Attempts to select the desktop toward the east of the current one
- * (see @a surface_desktop_east's comment for what "east"
- * means with and without a configured layout).  If the current
- * desktop is the last and cycle mode is enabled, it will select the
- * first desktop, updating @p desktop_cur.
+ * (see @a surface_desktop_east's comment for what "east" means with and
+ * without a configured layout).  If the current desktop is the last and
+ * cycle mode is enabled, it will select the first desktop, updating
+ * @p desktop_cur.
  *
  * @param surface Pointer to the surface structure
  * @param cycle   If @c true, will cycle to the first desktop if the
@@ -610,35 +610,34 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id);
 /**
  * @brief Add a new desktop associated with the surface
  *
- * Grows @p surface's own configured @c topology.screens.desktops
- * layout by one row or column first, whichever @c orientation
- * treats as the non-primary axis, when there is not already a
- * desktop-less gap cell in it for the new desktop to land on (see
- * @a s_surface_layout_grow_for's comment, surface/switch.c,
- * for the fuller reasoning on why that one axis specifically).
- * Purely a "create it" action either way: @p surface's own current
- * view never switches to the new desktop, whether growing a new
- * row or column happened or not, and regardless of which desktop,
- * if any, currently has the view.
+ * Grows @p surface's own configured @c topology.screens.desktops layout
+ * by one row or column first, whichever @c orientation treats as the
+ * non-primary axis, when there is not already a desktop-less gap cell
+ * in it for the new desktop to land on (see
+ * @a s_surface_layout_grow_for's comment, in @c surface/switch.c, for
+ * the fuller reasoning on why that one axis specifically).  Purely
+ * a "create it" action either way: @p surface's own current view never
+ * switches to the new desktop, whether growing a new row or column
+ * happened or not, and regardless of which desktop, if any, currently
+ * has the view.
  *
- * Refused outright once @p surface's own desktop count already
- * reaches @c CONFIG_MAX_DESKTOPS: @c config_base's own
- * @c screens[screen_id].desktops array (@c config.h) is a
- * fixed-size array of exactly that many slots, indexed by the new
- * desktop's own ID, so adding one more past that point would index
- * past the end of it.  Also refused outright, regardless of the
- * current count, while restricted-memory mode is active
- * (@a memguard_max_clients), which is deliberately locked to a
- * single desktop always (see
+ * Refused outright once @p surface's own desktop count already reaches
+ * @c CONFIG_MAX_DESKTOPS: @c config_base's own
+ * @c screens[screen_id].desktops array (@c config.h) is a fixed-size
+ * array of exactly that many slots, indexed by the new desktop's own
+ * ID, so adding one more past that point would index past the end of
+ * it.  Also refused outright, regardless of the current count, while
+ * restricted-memory mode is active (@a memguard_max_clients), which is
+ * deliberately locked to a single desktop always (see
  * @a config_set_default_values_memguard).
  *
  * @param surface Pointer to the surface to receive the action
  *
  * @return Status of the operation
  * @retval  0 Success
- * @retval  1 Failed to perform the action, including already being
- *            at @c CONFIG_MAX_DESKTOPS, or restricted-memory mode
- *            being active
+ * @retval  1 Failed to perform the action, including already being at
+ *            @c CONFIG_MAX_DESKTOPS, or restricted-memory mode being
+ *            active
  *
  * @note Complexity: @e O(1)
  */
@@ -650,20 +649,20 @@ int surface_action_desktop_add(surface_td *surface);
  *
  * Refuses outright when only one desktop remains (@c surface's own
  * desktop count must stay at least @c 1).  Restricted-memory mode
- * always has exactly one desktop and no way to reach a second one
- * (see @a surface_action_desktop_add's comment), so that
- * same guard alone already refuses this call every time it runs
- * under that mode too, with no separate check of its own needed
- * here.  Every client still on the
- * desktop being removed, pinned or not, is moved onto what becomes
- * the new last desktop before the old one is destroyed: destroying a
- * desktop that still holds clients would otherwise destroy those
+ * always has exactly one desktop and no way to reach a second one (see
+ * @a surface_action_desktop_add's comment), so that same guard alone
+ * already refuses this call every time it runs under that mode too,
+ * with no separate check of its own needed here.  Every client still on
+ * the desktop being removed, pinned or not, is moved onto what becomes
+ * the new last desktop before the old one is destroyed: destroying
+ * a desktop that still holds clients would otherwise destroy those
  * clients' own @c client_td structures right along with it (see
- * @a desktop_destroy, desktop.c), losing real, live application
- * windows rather than just the virtual desktop container.  A moved
- * client's own EWMH @c _NET_WM_DESKTOP is brought in line with its
- * new desktop, except for a pinned one, whose property already holds
- * the EWMH "all desktops" sentinel and is left alone.  If the
+ * @a desktop_destroy, @c desktop.c), losing real, live application
+ * windows rather than just the virtual desktop container.
+ *
+ * A moved client's own EWMH @c _NET_WM_DESKTOP is brought in line with
+ * its new desktop, except for a pinned one, whose property already
+ * holds the EWMH "all desktops" sentinel and is left alone.  If the
  * desktop being removed is the current one, the view switches to the
  * new last desktop first.
  *
@@ -671,28 +670,28 @@ int surface_action_desktop_add(surface_td *surface);
  *
  * @return Status of the operation
  * @retval  0 Success
- * @retval  1 Refused (only one desktop left, no desktop to remove
- *            from, no fallback desktop available, or the underlying
- *            removal itself failed)
+ * @retval  1 Refused (only one desktop left, no desktop to remove from,
+ *            no fallback desktop available, or the underlying removal
+ *            itself failed)
  * @retval -1 @p surface is @c NULL
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop being removed
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop being removed
  */
 int surface_action_desktop_remove(surface_td *surface);
 
 /**
- * @brief Toggle whether panel/tray struts are set aside when
- *        computing this surface's own desktops' work areas
+ * @brief Toggle whether panel/tray struts are set aside when computing
+ *        this surface's own desktops' work areas
  *
  * Strutless maximization: while on, @a desktop_update_workarea
- * (desktop.h) folds in only @c desktops.margins from configuration,
+ * (@c desktop.h) folds in only @c desktops.margins from configuration,
  * never a panel's own @c _NET_WM_STRUT_PARTIAL nor the systray's own
- * reservation, so a maximized or smart-placed window can use the
- * full screen underneath wherever a panel would otherwise have
- * reserved space.  Every desktop's own work area is recomputed
- * immediately (@a surface_refresh_workareas), not left for whatever
- * unrelated event happens to trigger that next.
+ * reservation, so a maximized or smart-placed window can use the full
+ * screen underneath wherever a panel would otherwise have reserved
+ * space.  Every desktop's own work area is recomputed immediately
+ * (@a surface_refresh_workareas), not left for whatever unrelated event
+ * happens to trigger that next.
  *
  * @param surface Pointer to the surface to receive the action
  *
@@ -736,8 +735,8 @@ int surface_action_toggle_strutless_maximize(surface_td *surface);
  *
  * @param surface       Surface whose outputs to apply configured
  *                      profiles to
- * @param take_snapshot Whether to save each changed CRTC's prior
- *                      state first, so a subsequent
+ * @param take_snapshot Whether to save each changed CRTC's prior state
+ *                      first, so a subsequent
  *                      @a surface_action_revert_randr_profiles call can
  *                      put it back; pass @c false for a startup or
  *                      hotplug call, where there is nothing to revert
@@ -758,9 +757,9 @@ int surface_action_toggle_strutless_maximize(surface_td *surface);
  * @note @p config->randr.outputs is not scoped per screen
  * @note Complexity: @e O(p * (n + c)), where @e p is the number of
  *       configured profiles, @e n the number of outputs the screen
- *       currently reports, and @e c the number of CRTCs compatible
- *       with whichever output a profile matches (only when it has
- *       none active yet)
+ *       currently reports, and @e c the number of CRTCs compatible with
+ *       whichever output a profile matches (only when it has none
+ *       active yet)
  *
  * @see @a wm_action_config_reload, and @p config_randr_s, loaded from
  *      @c randr.json
@@ -805,9 +804,8 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id);
  *
  * Iterates the stacking list of the specified desktop and calls
  * @a xcb_map_window for each client that is neither hidden
- * (@c CLIENT_FLAG_HIDDEN) nor iconified
- * (@c CLIENT_STATE_ICONIFIED).  Used when switching to a desktop to
- * reveal its windows.
+ * (@c CLIENT_FLAG_HIDDEN) nor iconified (@c CLIENT_STATE_ICONIFIED).
+ * Used when switching to a desktop to reveal its windows.
  *
  * @param surface    Pointer to the surface that owns the desktop
  * @param desktop_id ID of the desktop whose clients should be shown

@@ -81,7 +81,7 @@ void text_renderer_disable_glyph_backend(void);
  * @note Complexity: @e O(n), where @e n is the number of cached fonts
  *       closed
  */
-int text_renderer_init(xcb_connection_t *connection);
+int text_renderer_init(const xcb_connection_t *connection);
 
 /**
  * @brief Make a font the one every later drawing call uses

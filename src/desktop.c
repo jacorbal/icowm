@@ -108,19 +108,19 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
  * @a config_desktop_s's @p margins, a deliberately different, additive
  * case).
  *
- * @param strut         Strut to fold in; a no-op when null
- * @param region_min_x  Region's own minimum X coordinate, for the
- *                       top/bottom range overlap check; @c 0 for the
- *                       whole surface, a monitor's own @c x otherwise
- * @param region_max_x  Region's own maximum X coordinate, same axis
- * @param region_min_y  Region's own minimum Y coordinate, for the
- *                       left/right range overlap check; @c 0 for the
- *                       whole surface, a monitor's own @c y otherwise
- * @param region_max_y  Region's own maximum Y coordinate, same axis
- * @param left          Running left reservation, updated in place
- * @param right         Running right reservation, updated in place
- * @param top           Running top reservation, updated in place
- * @param bottom        Running bottom reservation, updated in place
+ * @param strut        Strut to fold in; a no-op when null
+ * @param region_min_x Region's own minimum X coordinate, for the
+ *                     top/bottom range overlap check; @c 0 for the
+ *                     whole surface, a monitor's own @c x otherwise
+ * @param region_max_x Region's own maximum X coordinate, same axis
+ * @param region_min_y Region's own minimum Y coordinate, for the
+ *                     left/right range overlap check; @c 0 for the
+ *                     whole surface, a monitor's own @c y otherwise
+ * @param region_max_y Region's own maximum Y coordinate, same axis
+ * @param left         Running left reservation, updated in place
+ * @param right        Running right reservation, updated in place
+ * @param top          Running top reservation, updated in place
+ * @param bottom       Running bottom reservation, updated in place
  *
  * @note Complexity: @e O(1)
  *
@@ -337,30 +337,30 @@ static void s_mark_client_outdated_visit(client_td *client, void *data)
  * only the region it is scoped to differing: the whole surface for
  * the former, one monitor's own physical extent for the latter.
  *
- * @param desktop              Desktop whose stacking list to scan
- *                             for client struts
- * @param region_x             Region's own left edge, in surface
- *                             coordinates
- * @param region_y             Region's own top edge, in surface
- *                             coordinates
- * @param region_w             Region's own width
- * @param region_h             Region's own height
- * @param apply_margin_left    Whether this region's own left edge
- *                             coincides with a side of the surface
- *                             @p config_desktop's own @p margins
- *                             should actually reserve on
- * @param apply_margin_right   Same, for the right edge
- * @param apply_margin_top     Same, for the top edge
- * @param apply_margin_bottom  Same, for the bottom edge
- * @param config_desktop       Active desktop-behavior configuration,
- *                             for its own @p margins; a @c NULL
- *                             treats every margin as @c 0
- * @param systray_strut        The systray's own current reservation;
- *                             a @c NULL value folds in nothing
- * @param ignore_struts        When @c true, neither @p systray_strut
- *                             nor any client's own strut is folded
- *                             in, only whichever margins
- *                             @p apply_margin_* select
+ * @param desktop             Desktop whose stacking list to scan
+ *                            for client struts
+ * @param region_x            Region's own left edge, in surface
+ *                            coordinates
+ * @param region_y            Region's own top edge, in surface
+ *                            coordinates
+ * @param region_w            Region's own width
+ * @param region_h            Region's own height
+ * @param apply_margin_left   Whether this region's own left edge
+ *                            coincides with a side of the surface
+ *                            @p config_desktop's own @p margins
+ *                            should actually reserve on
+ * @param apply_margin_right  Same, for the right edge
+ * @param apply_margin_top    Same, for the top edge
+ * @param apply_margin_bottom Same, for the bottom edge
+ * @param config_desktop      Active desktop-behavior configuration,
+ *                            for its own @p margins; a @c NULL
+ *                            treats every margin as @c 0
+ * @param systray_strut       The systray's own current reservation;
+ *                            a @c NULL value folds in nothing
+ * @param ignore_struts       When @c true, neither @p systray_strut
+ *                            nor any client's own strut is folded
+ *                            in, only whichever margins
+ *                            @p apply_margin_* select
  *
  * @return The resulting work area, in surface coordinates
  *
@@ -385,12 +385,19 @@ static struct geometry_s s_desktop_compute_workarea(
     int32_t new_w;
     int32_t new_h;
     int32_t region_max_x = (region_w == 0u)
-        ? region_x - 1 : region_x + (int32_t) (region_w - 1u);
+        ? region_x - 1
+        : region_x + (int32_t) (region_w - 1u);
     int32_t region_max_y = (region_h == 0u)
-        ? region_y - 1 : region_y + (int32_t) (region_h - 1u);
+        ? region_y - 1
+        : region_y + (int32_t) (region_h - 1u);
 
-    /* Aggregate maximum strut on each edge across all stacked
-     * clients */
+    /* Aggregate maximum strut on each edge across all stacked clients,
+     * then fold in the window manager's own built-in systray: its dock
+     * window is override-redirect (see
+     * 'systray_protocol_window_ensure'), so it is not a managed client
+     * and never appears in the stacking order above, but it is a strut
+     * source like any other from here.  Both skipped together when
+     * 'ignore_struts' asks for the full region. */
     if (!ignore_struts) {
         struct s_strut_fold_ctx_s fold_ctx;
 
@@ -403,17 +410,7 @@ static struct geometry_s s_desktop_compute_workarea(
         fold_ctx.top = &top;
         fold_ctx.bottom = &bottom;
         stacking_walk(desktop, s_strut_fold_visit, &fold_ctx);
-    }
 
-    /* The window manager's own built-in systray is not a managed
-     * client (its dock window is override-redirect; see
-     * 'systray_protocol_window_ensure'), so it never appears in
-     * 'desktop->stacking' above and needs folding in separately
-     * here; aggregated the exact same way, since it is a strut
-     * source like any other from this function's own point of
-     * view.  Skipped, like every other strut above, when
-     * 'ignore_struts' asks for the full region. */
-    if (!ignore_struts) {
         s_fold_strut(systray_strut, region_x, region_max_x,
                 region_y, region_max_y,
                 &left, &right, &top, &bottom);
@@ -525,11 +522,11 @@ desktop_td *desktop_init(xcb_connection_t *connection,
             " desktop %u ('%s') on screen %u",
             desktop_id, desktop->name, screen_id);
 
-    /* Initialize hash table for quick client lookup.
-     * In restricted-memory mode, sized to what 'memguard_max_clients'
-     * actually expects this desktop to ever hold instead of the usual,
-     * much larger 'WM_DESKTOP_INITIAL_CAPACITY'.  That default is meant
-     * for an ordinary session where the number of windows someone might
+    /* Initialize hash table for quick client lookup.  In the mode of
+     * restricted-memory, sized to what 'memguard_max_clients' actually
+     * expects this desktop to ever hold instead of the usual, much
+     * larger 'WM_DESKTOP_INITIAL_CAPACITY'.  That default is meant for
+     * an ordinary session where the number of windows someone might
      * open is not meaningfully bounded, which defeats the whole point
      * of a mode meant to keep memory use predictable.  Doubled rather
      * than sized to the cap exactly, since 'ohtbl_insert' resizes once
@@ -637,7 +634,7 @@ void desktop_update_workarea(desktop_td *desktop,
             true, true, true, true,
             config_desktop, systray_strut, ignore_struts);
 
-    LOGGER_TRACE("Desktop %u workarea: %ux%u+%+d%+d",
+    LOGGER_TRACE("Desktop %u workarea: %ux%u%+d%+d",
             desktop->id,
             desktop->workarea.dim.w, desktop->workarea.dim.h,
             desktop->workarea.pos.x, desktop->workarea.pos.y);
@@ -658,7 +655,7 @@ void desktop_update_workarea(desktop_td *desktop,
                 config_desktop, systray_strut, ignore_struts);
 
         LOGGER_TRACE("Desktop %u monitor %u workarea:" \
-                " %ux%u+%+d%+d",
+                " %ux%u%+d%+d",
                 desktop->id, m,
                 desktop->monitor_workareas[m].dim.w,
                 desktop->monitor_workareas[m].dim.h,
@@ -682,7 +679,6 @@ void desktop_destroy(desktop_td *desktop)
     LOGGER_TRACE("Deallocating stacking list on desktop %u ('%s')",
             desktop->id, desktop->name);
     stacking_destroy(desktop);
-
 
     /* Destroy hash table (also destroys all clients via client_destroy
      * callback) */

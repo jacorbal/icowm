@@ -390,20 +390,10 @@ static void s_ccmd_client_unhide_one(client_td *client)
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
     ccmd_client_sync_states(client);
 
-    /* Raise the unhidden client to the top of the desktop stacking
-     * order and give it real input focus, matching the deiconify
-     * behavior, so that clicking a hidden window in the window menu
-     * immediately activates it for keyboard input */
-    if (client_is_focusable(client)) {
-        desktop_td *const desktop = wm_get_client_desktop(client);
-        if (desktop != NULL) {
-            desktop->client_active_id = client->id;
-            desktop->is_focus_dirty = true;
-            (void) desktop_action_client_send_front(desktop, client);
-            desktop->is_outdated = true;
-        }
-        ccmd_client_focus(client);
-    }
+    /* An unhidden window becomes the one in use, matching the deiconify
+     * behavior, so that picking a hidden window from the window menu
+     * activates it for keyboard input straight away */
+    ccmd_client_make_active(client);
     wm_request_client_redraw(client);
 }
 

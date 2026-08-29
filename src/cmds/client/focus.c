@@ -264,22 +264,11 @@ static void s_ccmd_client_restore_one(client_td *client)
         ccmd_client_fullscreen(client);
     }
 
-    /* When restoring from an icon, raise the client to the top of the
-     * desktop stacking order and give it real input focus so that
-     * keyboard shortcuts and other window manager operations target
-     * this window immediately, rather than whichever window was
-     * previously active */
-    if (client_is_focusable(client)) {
-        desktop_td *const desktop = wm_get_client_desktop(client);
-
-        if (desktop != NULL) {
-            desktop->client_active_id = client->id;
-            desktop->is_focus_dirty = true;
-            (void) desktop_action_client_send_front(desktop, client);
-            desktop->is_outdated = true;
-        }
-        ccmd_client_focus(client);
-    }
+    /* A window arriving back from an icon becomes the one in use, so
+     * that keyboard shortcuts and other window manager operations
+     * target it immediately rather than whichever window was active
+     * while it was away */
+    ccmd_client_make_active(client);
 
     wm_request_client_redraw(client);
 }
@@ -782,4 +771,42 @@ void ccmd_client_unfocus(client_td *client)
                 (int) client->screen_id,
                 XCB_NONE);
     }
+}
+
+
+/* Make a client the active one of its own desktop */
+void ccmd_client_make_active(client_td *client)
+{
+    desktop_td *desktop;
+
+    if (client == NULL || !client_is_focusable(client)) {
+        return;
+    }
+
+    desktop = wm_get_client_desktop(client);
+    if (desktop == NULL) {
+        ccmd_client_focus(client);
+        return;
+    }
+
+    /* The outgoing client is unfocused before the slot is overwritten,
+     * not after: once the ID is gone, nothing can find which client
+     * used to hold it, and it keeps its active border for as long as
+     * nothing else happens to repaint it */
+    if (desktop->client_active_id != 0u &&
+            desktop->client_active_id != client->id) {
+        client_td *const previous = lookup_find_client(
+                wm_get_surfaces(), desktop->client_active_id,
+                NULL, NULL);
+
+        if (previous != NULL) {
+            ccmd_client_unfocus(previous);
+        }
+    }
+
+    desktop->client_active_id = client->id;
+    desktop->is_focus_dirty = true;
+    (void) desktop_action_client_send_front(desktop, client);
+    desktop->is_outdated = true;
+    ccmd_client_focus(client);
 }

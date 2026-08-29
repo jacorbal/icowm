@@ -70,6 +70,32 @@ void ccmd_client_restore(client_td *client);
 void ccmd_client_focus(client_td *client);
 
 /**
+ * @brief Make a client the active one of its own desktop
+ *
+ * The whole of what "this window is now the one in use" means: the
+ * client previously active gives up its focus decoration, this one
+ * takes the desktop's active slot, rises to the top of the stacking
+ * order and receives real input focus.
+ *
+ * Held in one place because a window arriving back on screen does all
+ * four wherever it arrives from, and doing three of them is what left
+ * a window still wearing the active border after another had taken
+ * the focus from it.  An undecorated window is where that shows: its
+ * border is an attribute written only when focus changes, whereas a
+ * decorated one is repainted from its own focus state on the next
+ * pass and quietly corrects itself.
+ *
+ * @param client Client to make active; may be @c NULL
+ *
+ * @note A client that cannot take focus is left alone entirely,
+ *       stacking order included: it was never going to hold the
+ *       desktop's active slot
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       clients, from finding the previously active one
+ */
+void ccmd_client_make_active(client_td *client);
+
+/**
  * @brief Transfer input focus away from a client that is leaving the
  *        current visible focus chain (closed, iconified, hidden, or
  *        no longer the desktop's own remembered active client), to
