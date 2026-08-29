@@ -393,7 +393,7 @@ struct config_theme_s {
          * in the same column regardless of which rows happen to have
          * one.
          *
-         * @see @c menu/context/winlist.c, @c menu/cycledraw.c,
+         * @see @c menu/context/winlist.c, @c menu/cycle/draw.c,
          *      @c defs/ctxmenu.h and @a wmicon_draw_at
          */
         bool show_pixmaps;

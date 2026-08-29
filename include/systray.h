@@ -354,11 +354,11 @@ void systray_layout_reflow(void);
  * to wake the loop up.
  *
  * @return Milliseconds until next redraw
- * @retval        -1 when the clock is disabled or the tray does not
- *                   currently own the systray selection (nothing to
- *                   redraw)
- * @retval         0 when a redraw is due right now
- * @retval otherwise a small positive number of milliseconds
+ * @retval  0 when a redraw is due right now
+ * @retval -1 when the clock is disabled or the tray does not currently
+ *            own the systray selection (nothing to redraw)
+ * @retval  n with @c (n > 0), a small positive number of milliseconds
+ *            until next redraw
  *
  * @note Complexity: @e O(1)
  */

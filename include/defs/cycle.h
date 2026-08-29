@@ -30,7 +30,7 @@
  *
  * Caps how far one very long window title can stretch the whole menu;
  * a label wider than this truncates instead (see @a s_cycle_draw_row in
- * @c menu/cycledraw.c), the same reasoning @c WM_SEARCH_NAME_MAX_WIDTH
+ * @c menu/cycle/draw.c), the same reasoning @c WM_SEARCH_NAME_MAX_WIDTH
  * truncates a search result's own name (@c defs/search.h).
  */
 #define WM_CYCLE_MENU_LABEL_MAX_WIDTH (280)

@@ -3,9 +3,9 @@
  *
  * @brief Client state, type, layer and gravity enumerations
  *
- * The value sets behind every field of @c client_properties_s, plus
- * the geometry helper that translates a gravity into the frame
- * displacement it implies.
+ * The value sets behind every field of @c client_properties_s, plus the
+ * geometry helper that translates a gravity into the frame displacement
+ * it implies.
  *
  * @ingroup client
  */
@@ -27,29 +27,31 @@
 /* Utils includes */
 #include <utils/safe/safeflg.h>
 
+
 /**
  * @brief States a client can be in, as independent bits
  *
  * A bitmask rather than an enumeration of alternatives, because EWMH
  * treats @c _NET_WM_STATE_MAXIMIZED_HORZ,
  * @c _NET_WM_STATE_MAXIMIZED_VERT and @c _NET_WM_STATE_FULLSCREEN as
- * independent of one another: a
- * client may hold any combination of them, and asks for each to be
+ * independent of one another.
+ *
+ * A client may hold any combination of them, and asks for each to be
  * added, removed or toggled on its own.  There is no
- * @c _NET_WM_STATE_MAXIMIZED atom at all in the specification; a
- * window maximized in both directions simply holds both bits, which
- * is what @a client_is_maximized tests for.
+ * @c _NET_WM_STATE_MAXIMIZED atom at all in the specification; a window
+ * maximized in both directions simply holds both bits, which is what
+ * @a client_is_maximized tests for.
  *
  * What is drawn follows a precedence rather than the bits being
- * exclusive: full screen covers a maximized window, which covers a
- * normal one.  Holding the bits separately is what lets a client that
- * was maximized before going full screen still be maximized on
- * leaving it, having never asked for that to be forgotten.
+ * exclusive: full screen covers a maximized window, which covers
+ * a normal one.  Holding the bits separately is what lets a client that
+ * was maximized before going full screen still be maximized on leaving
+ * it, having never asked for that to be forgotten.
  *
  * @note Iconified is a bit here too, but of a different kind: EWMH
- *       spells that @c _NET_WM_STATE_HIDDEN, and it says nothing
- *       about whether the window is also maximized underneath, which
- *       it may well be
+ *       spells that @c _NET_WM_STATE_HIDDEN, and it says nothing about
+ *       whether the window is also maximized underneath, which it may
+ *       well be
  */
 enum client_state_e {
     CLIENT_STATE_NORMAL = 0u,           /**< No state bit at all */
@@ -165,19 +167,21 @@ enum window_flags_e {
      * @brief This client currently holds real X11 input focus
      *
      * Set by @a ccmd_client_focus itself (@c cmds/client/focus.c),
-     * cleared by @a ccmd_client_unfocus, right alongside the real
-     * focus grant/revocation each one performs, rather than derived
-     * on demand from @c desktop->client_active_id: unlike every other
-     * flag in this @c enum, "is this the desktop's own active client"
-     * needs an external lookup (which desktop, and whether that
-     * desktop's own bookkeeping has actually been updated yet by
-     * whichever caller is in the middle of granting focus right now)
-     * that the other, genuinely self-contained flags never do, and
-     * that external dependency is exactly the kind of fragility
+     * cleared by @a ccmd_client_unfocus, right alongside the real focus
+     * grant/revocation each one performs, rather than derived on demand
+     * from @c desktop->client_active_id: unlike every other flag in
+     * this @c enum, "is this the desktop's own active client" needs an
+     * external lookup (which desktop, and whether that desktop's own
+     * bookkeeping has actually been updated yet by whichever caller is
+     * in the middle of granting focus right now) that the other,
+     * genuinely self-contained flags never do, and that external
+     * dependency is exactly the kind of fragility
      * @a ccmd_client_sync_states (@c cmds/client/ewmh.c) is built to
-     * avoid: every @c _NET_WM_STATE atom it publishes reads directly
-     * off @p client's own fields, this one included, with nothing
-     * else to go stale or disagree with it.
+     * avoid.
+     *
+     * Every @c _NET_WM_STATE atom it publishes reads directly off
+     * @p client's own fields, this one included, with nothing else to
+     * go stale or disagree with it.
      *
      * @see @a client_is_focused below
      */
@@ -215,8 +219,8 @@ enum client_layer_e {
  *
  * @note ICCCM: "Window Managers MUST honor the @p win_gravity field of
  *       @c WM_NORMAL_HINTS for both @c MapRequest @e and
- *       @c ConfigureRequest events (ICCCM Version 2.0, §4.1.2.3 and
- *       §4.1.5)"
+ *       @c ConfigureRequest events
+ *       (ICCCM Version 2.0, §4.1.2.3 and §4.1.5)"
  */
 enum client_gravity_e {         /* Reference point fixed on resize: */
     CLIENT_GRAVITY_NORTH_WEST = 1,  /**<  1: top-left corner of frame */
@@ -232,6 +236,7 @@ enum client_gravity_e {         /* Reference point fixed on resize: */
     CLIENT_GRAVITY_STATIC     = 10,
 };
 
+
 /**
  * @brief Adjust a frame position to keep a gravity anchor fixed
  *        across a size change
@@ -239,8 +244,6 @@ enum client_gravity_e {         /* Reference point fixed on resize: */
  * Computes the displacement that preserves the anchor point defined by
  * @p gravity after the frame changes from (@p old_w x @p old_h) to
  * (@p new_w x @p new_h) and adds it to @p *out_x and @p *out_y.
- * No-op for @c CLIENT_GRAVITY_NORTH_WEST and @c CLIENT_GRAVITY_STATIC.
- * See ICCCM §§4.1.2.3 and 4.1.5.
  *
  * @param out_x   Frame x to adjust in place
  * @param out_y   Frame y to adjust in place
@@ -250,6 +253,8 @@ enum client_gravity_e {         /* Reference point fixed on resize: */
  * @param new_h   Frame height after the size change
  * @param gravity Client @a win_gravity value
  *
+ * @note No-op for @c CLIENT_GRAVITY_NORTH_WEST and
+ *       @c CLIENT_GRAVITY_STATIC.
  * @note Complexity: @e O(1)
  */
 void client_gravity_adjust_pos(int32_t *restrict out_x,

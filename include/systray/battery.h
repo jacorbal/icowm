@@ -69,7 +69,7 @@
  * whether AC power is connected and how the battery's charge compares
  * to @p threshold_charged / @p threshold_low / @p threshold_critical:
  *
- * @verbatim
+ * @code{.md}
  * | State                                                | Text       |
  * |------------------------------------------------------|------------|
  * | On battery, above 'low'                              | "X%"       |
@@ -79,7 +79,7 @@
  * | Fully charged, on battery                            | "Full"     |
  * | Fully charged, on AC                                 | "Full, AC" |
  * | No battery found for 'backend_type'/'backend_number' | "N/A"      |
- * @endverbatim
+ * @endcode
  *
  * @c "X%" here is itself translatable (@c STR_BATTERY_PERCENT, in
  * @c uistr.h).  Whether the '%' sign sits flush against the number or

@@ -34,6 +34,7 @@
 #ifndef MENU_CONTEXT_ROOTMENU_H
 #define MENU_CONTEXT_ROOTMENU_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>

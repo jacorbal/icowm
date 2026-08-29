@@ -5,7 +5,7 @@
  *
  * Defines the @c cycle_menu_state_s struct and declares the helper
  * functions shared between @c menu/cycle.c (state and input handling)
- * and @c menu/cycledraw.c (visual rendering).
+ * and @c menu/cycle/draw.c (visual rendering).
  *
  * @note This header is private to the menu subsystem and must not be
  *       included outside of @c src/menu/
@@ -42,7 +42,7 @@
  *
  * Owns the window, client list, labels, selection, geometry, and key
  * bindings for the current cycle-menu session.  Shared between
- * @c menu/cycle.c (state management) and @c menu/cycledraw.c
+ * @c menu/cycle.c (state management) and @c menu/cycle/draw.c
  * (rendering).
  */
 struct cycle_menu_state_s {
@@ -111,7 +111,7 @@ extern struct cycle_menu_state_s g_cycle_menu;
  *
  * @return Target window ID, or @c XCB_WINDOW_NONE if unavailable
  *
- * @note Implemented in @c menu/cycledraw.c
+ * @note Implemented in @c menu/cycle/draw.c
  * @note Complexity: @e O(1)
  */
 xcb_window_t mi_cycle_preview_target(const client_td *client,
@@ -126,7 +126,7 @@ xcb_window_t mi_cycle_preview_target(const client_td *client,
  * @param connection XCB connection
  * @param cfg        Active configuration (theme data)
  *
- * @note Implemented in @c menu/cycledraw.c
+ * @note Implemented in @c menu/cycle/draw.c
  * @note Complexity: @e O(1)
  */
 void mi_cycle_preview_apply(xcb_connection_t *connection,
@@ -142,7 +142,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
  * @param is_icon_menu   Whether the cycle menu shows icons
  * @param border_color   Border color to apply
  *
- * @note Implemented in @c menu/cycledraw.c
+ * @note Implemented in @c menu/cycle/draw.c
  * @note Complexity: @e O(1)
  */
 void mi_cycle_preview_style_target(xcb_connection_t *connection,

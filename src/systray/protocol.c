@@ -47,7 +47,6 @@
 #include <utils/xcb/window.h>
 
 
-
 /**
  * @brief Best-effort sort key for an icon window: its @c WM_CLASS
  *        instance name
@@ -195,13 +194,12 @@ void systray_protocol_dock(xcb_window_t icon)
     /* A dock request for a window already tracked is refused outright
      * rather than adding a second entry for it:
      * 'systray_handle_destroy' below only ever removes the first
-     * matching entry it
-     * finds and returns immediately, so a second one for the same
-     * window would be left dangling, still referencing the window
-     * once it is actually destroyed, and 'systray_layout_reflow'
-     * would keep trying to configure a window ID that either errors
-     * out harmlessly or, worse, has since been reused by the X server
-     * for something else entirely. */
+     * matching entry it finds and returns immediately, so a second one
+     * for the same window would be left dangling, still referencing the
+     * window once it is actually destroyed, and 'systray_layout_reflow'
+     * would keep trying to configure a window ID that either errors out
+     * harmlessly or, worse, has since been reused by the X server for
+     * something else entirely. */
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         if (s_tray.icons[i].window == icon) {
             LOGGER_NOTICE("Window 0x%x is already docked in the" \
@@ -233,8 +231,8 @@ void systray_protocol_dock(xcb_window_t icon)
 
     xcb_window_show(icon);
 
-    /* The XEMBED handshake tells the icon it is now embedded, and
-     * by whom */
+    /* The XEMBED handshake tells the icon it is now embedded, and by
+     * whom */
     memset(&ev, 0, sizeof(ev));
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.format = 32;
@@ -245,8 +243,8 @@ void systray_protocol_dock(xcb_window_t icon)
     ev.data.data32[2] = 0u;
     ev.data.data32[3] = s_tray.window;
     ev.data.data32[4] = 0u;
-    xcb_send_event(xcb_connection_get(), 0, icon, XCB_EVENT_MASK_NO_EVENT,
-            (const char *) &ev);
+    xcb_send_event(xcb_connection_get(), 0, icon,
+            XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
 
     s_systray_icon_sort_key_fetch(icon, sort_key, sizeof(sort_key));
     insert_at = s_systray_insert_index(sort_key);
@@ -268,7 +266,7 @@ void systray_protocol_dock(xcb_window_t icon)
 
 /* Re-apply the theme's background color, border color, and border width
  * to the already-existing tray window */
- void systray_protocol_apply_theme_style(void)
+void systray_protocol_apply_theme_style(void)
 {
     if (!s_tray.is_window_ready || s_tray.theme == NULL) {
         return;
@@ -282,15 +280,18 @@ void systray_protocol_dock(xcb_window_t icon)
             });
     xcb_configure_window(xcb_connection_get(), s_tray.window,
             XCB_CONFIG_WINDOW_BORDER_WIDTH,
-            (const uint32_t[]) { s_tray.theme->systray.style.border.width });
+            (const uint32_t[]) {
+                s_tray.theme->systray.style.border.width
+            });
 }
 
 
 /* Create the tray window and intern its atoms, once
  *
- * Idempotent: does nothing (beyond returning success) if
- * 's_tray.is_window_ready' is already 'true'.  Does not acquire the
- * selection; see 'systray_protocol_selection_acquire'. */
+ * - Idempotent: does nothing (beyond returning success) if
+ * 's_tray.is_window_ready' is already 'true'.
+ * - Does not acquire the selection; see
+ * 'systray_protocol_selection_acquire'. */
 bool systray_protocol_window_ensure(const wm_td *wm)
 {
     surface_td *surface;
@@ -356,10 +357,10 @@ bool systray_protocol_window_ensure(const wm_td *wm)
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
         /* Without this, the server never generates an 'Expose' event
          * for this window at all, regardless of how correct
-         * 'handler_expose''s own systray check is: a region covered
-         * and then uncovered stays blank until 'systray_clock_tick'
-         * happens to redraw it anyway on its own next per-second
-         * update, rather than right away. */
+         * 'handler_expose''s own systray check is: a region covered and
+         * then uncovered stays blank until 'systray_clock_tick' happens
+         * to redraw it anyway on its own next per-second update, rather
+         * than right away. */
         XCB_EVENT_MASK_EXPOSURE;
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT,

@@ -278,9 +278,9 @@ static void s_cycle_scroll_to_selection(void)
  * @note Complexity: @e O(1)
  *
  * @see @a ri_render_client_icon's own comment in @c render/icon.h
- * @ see @a mi_cycle_preview_apply in @c menu/cycledraw.c, which already
- *       applies the very same "selected" render this function itself
- *       calls below.
+ * @ see @a mi_cycle_preview_apply in @c menu/cycle/draw.c, which
+ *       already applies the very same "selected" render this function
+ *       itself calls below.
  */
 static void s_cycle_repaint_icon(client_td *client)
 {
@@ -429,7 +429,7 @@ void cycle_init(xcb_connection_t *connection,
      * measurement is capped at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' so one
      * very long window title cannot stretch the whole menu; such
      * a label is truncated when actually drawn instead (see
-     * 's_cycle_draw_row' in menu/cycledraw.c). */
+     * 's_cycle_draw_row' in menu/cycle/draw.c). */
     (void) text_renderer_use_font(connection,
             cfg->theme.menu.unselected.font);
     for (int i = 0; i < g_cycle_menu.count; ++i) {
@@ -548,7 +548,7 @@ void cycle_init(xcb_connection_t *connection,
     /* Already applies the same "selected" icon render (active colors,
      * caption and hints, no pixmap) that every later navigation call
      * gets via 's_cycle_repaint_icon' (see 'mi_cycle_preview_apply''s
-     * implementation in 'menu/cycledraw.c', which forces that render
+     * implementation in 'menu/cycle/draw.c', which forces that render
      * directly for exactly this
      * reason) so the cycle's own initial preselection needs no separate
      * call here to match it. */

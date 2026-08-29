@@ -237,29 +237,3 @@ bool ctxmenu_is_open(const ctxmenu_state_td *state)
 {
     return state != NULL && state->window != XCB_WINDOW_NONE;
 }
-
-
-/* Dead code, kept commented out rather than removed: no caller
- * anywhere in the project (verified by searching all of src/), since
- * every concrete menu (rootmenu.c, wincmenu.c, winlist.c) already
- * knows its own root state directly and calls 'ctxmenu_close' on it
- * without needing this to walk up to find it.  Left here, commented,
- * exactly as it stood, pending a decision on whether to remove it
- * outright.
- *
-void ctxmenu_close_on_outside_click(ctxmenu_state_td *state)
-{
-    ctxmenu_state_td *root;
-
-    if (state == NULL) {
-        return;
-    }
-
-    root = state;
-    while (root->parent != NULL) {
-        root = root->parent;
-    }
-
-    ctxmenu_close(root);
-}
- */

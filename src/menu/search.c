@@ -62,7 +62,7 @@
  * @brief Pixel Y where the first result row starts: the top padding,
  *        the query bar, and a second padding strip reserved for the
  *        up-scroll indicator, the same reasoning
- *        @c WM_CYCLE_MENU_PAD_Y reserves around @c cycledraw.c's
+ *        @c WM_CYCLE_MENU_PAD_Y reserves around @c cycle/draw.c's
  *        own menu
  */
 #define S_SEARCH_ROWS_TOP \
@@ -986,7 +986,7 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
     }
 
     /* Scroll-indicator arrows, same reasoning as 'cycle_draw''s own
-     * (menu/cycledraw.c): the up arrow lives in the padding strip
+     * (menu/cycle/draw.c): the up arrow lives in the padding strip
      * right below the query bar, the down arrow in the padding strip
      * right above the window's bottom edge, each only drawn when
      * entries exist beyond the visible viewport on that side */

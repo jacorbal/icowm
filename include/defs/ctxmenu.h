@@ -51,7 +51,7 @@
  *        and the top/bottom edges of that row
  *
  * Shared with the @c Alt+Tab style cycle menu (see @c defs/cycle.h and
- * @c menu/cycledraw.c), not just this file's own context menu.  Both
+ * @c menu/cycle/draw.c), not just this file's own context menu.  Both
  * size their per-row application icon (see @p theme.menu.show-pixmaps
  * in @c config.h) as @c (row_height @c - @c WM_MENU_ICON_INSET) square,
  * so the icon never quite touches the row's own top and bottom edges.

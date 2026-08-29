@@ -1,8 +1,7 @@
 /**
  * @file menu/context/ctxmenu.h
  *
- * @brief Generic context menu library: shared types and window
- *        lifecycle
+ * @brief Generic context menu library: shared types & window lifecycle
  *
  * Provides a reusable popup context menu that can be used by the window
  * context menu, the root desktop menu, and the window list menu.  Each
@@ -22,13 +21,10 @@
  *
  * Split by competency into @c ctxmenu/layout.h (row geometry and
  * hit-testing), @c ctxmenu/redraw.h (painting), @c ctxmenu/select.h
- * (selection and activation), @c ctxmenu/handle.h (raw event
- * handling for a single window, private to this subsystem), and
- * @c ctxmenu/tree.h (dispatch across a submenu window tree, the
- * public entry point every concrete menu actually uses).  This
- * header keeps only the shared types every one of those needs, plus
- * the window lifecycle (@a ctxmenu_show, @a ctxmenu_close) and
- * @a ctxmenu_is_open, which belong to no single one of them.
+ * (selection and activation), @c ctxmenu/handle.h (raw event handling
+ * for a single window, private to this subsystem), and
+ * @c ctxmenu/tree.h (dispatch across a submenu window tree, the public
+ * entry point every concrete menu actually uses).
  *
  * @defgroup menu_context Context menus
  * @ingroup menu
@@ -43,6 +39,7 @@
 
 #ifndef MENU_CONTEXT_CTXMENU_H
 #define MENU_CONTEXT_CTXMENU_H
+
 
 /* System includes */
 #include <stdbool.h>
@@ -116,8 +113,8 @@ typedef enum {
 typedef struct ctxmenu_entry_s {
     /**
      * @brief Shell command, and an optional @c WM_CLASS override to
-     *        raise instead of relaunching if a matching window
-     *        already exists, both heap-allocated (@c NULL when unset)
+     *        raise instead of relaunching if a matching window already
+     *        exists, both heap-allocated (@c NULL when unset)
      *
      * Only ever set for a @c CTXMENU_COMMAND entry built from
      * @c menu.json (@c menu/context/menujson.c); every other entry
@@ -136,7 +133,9 @@ typedef struct ctxmenu_entry_s {
 
     char *class_name;
 
-    /** Optional callback invoked when the entry is activated */
+    /**
+     * @brief Optional callback invoked when the entry is activated
+     */
     void (*on_activate)(xcb_connection_t *, void *userdata);
 
     void *userdata;     /**< User data passed to @p on_activate */
@@ -233,10 +232,10 @@ typedef struct ctxmenu_state_s {
 /**
  * @brief Create and show a context menu window
  *
- * Creates an XCB override-redirect popup window at @p pos,
- * clamped so the menu never extends beyond the work area of @p surface.
- * The menu grabs the pointer.  Any previously open context menu at the
- * same nesting level is closed first.
+ * Creates an XCB override-redirect popup window at @p pos, clamped so
+ * the menu never extends beyond the work area of @p surface.  The menu
+ * grabs the pointer.  Any previously open context menu at the same
+ * nesting level is closed first.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to display the menu
@@ -265,8 +264,7 @@ void ctxmenu_show(xcb_connection_t *connection,
 void ctxmenu_close(ctxmenu_state_td *state);
 
 /**
- * @brief Query whether the context menu (or any child) is currently
- *        open
+ * @brief Query whether context menu (or any child) is currently open
  *
  * @param state Menu state to inspect
  *
