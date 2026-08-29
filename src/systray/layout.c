@@ -370,7 +370,14 @@ void systray_layout_restack(void)
     }
 
     if (s_tray.layer == CONFIG_SYSTRAY_LAYER_BELOW) {
+        if (s_tray.is_stacking_known &&
+                s_tray.stacked_layer == s_tray.layer) {
+            return;
+        }
         xcb_window_lower(s_tray.window);
+        s_tray.stacked_against = XCB_WINDOW_NONE;
+        s_tray.stacked_layer = s_tray.layer;
+        s_tray.is_stacking_known = true;
         s_systray_icons_push_below();
         return;
     }
@@ -385,11 +392,25 @@ void systray_layout_restack(void)
      * stacked above the fullscreen content between the two requests,
      * visible as a flash on every restack (every reflow, and every
      * fullscreen toggle) rather than only when actually needed. */
+    /* Skipped when the tray already sits where this would put it: the
+     * server answers a restack by exposing whatever the move
+     * uncovered, those exposures reach the tray, and the tray reflows
+     * and restacks again.  Asking only when the answer would differ
+     * is what stops that from feeding itself. */
+    if (s_tray.is_stacking_known &&
+            s_tray.stacked_layer == s_tray.layer &&
+            s_tray.stacked_against == fullscreen_target) {
+        return;
+    }
+
     if (fullscreen_target != XCB_WINDOW_NONE) {
         xcb_window_stack_below(s_tray.window, fullscreen_target);
     } else {
         xcb_window_raise(s_tray.window);
     }
+    s_tray.stacked_against = fullscreen_target;
+    s_tray.stacked_layer = s_tray.layer;
+    s_tray.is_stacking_known = true;
 
 }
 

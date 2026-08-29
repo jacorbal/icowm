@@ -153,6 +153,26 @@ struct systray_state_s {
     uint16_t text_gap;
     uint16_t icon_count;
 
+    /**
+     * @brief What the tray was last stacked against
+     *
+     * Restacking is a request the server answers by exposing whatever
+     * the move uncovered, and those exposures reach the tray, which
+     * reflows, which restacks: a loop that runs as fast as the server
+     * replies.  Remembering what was asked for lets an unchanged
+     * answer be skipped, which is what breaks it.
+     *
+     * @c XCB_WINDOW_NONE means "raised to the top"; any other window
+     * means "stacked directly below that one".
+     */
+    xcb_window_t stacked_against;
+
+    /** Which layer @c stacked_against was settled for */
+    enum config_systray_layer_e stacked_layer;
+
+    /** Whether @c stacked_against holds an answer yet */
+    bool is_stacking_known;
+
     bool is_window_ready;           /**< Window created, atoms interned;
                                          persists across is-enabled
                                          toggles so docked icons are
