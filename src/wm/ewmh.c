@@ -638,6 +638,15 @@ int wm_ewmh_init(const wm_td *wm)
     supported_atoms[n_supported++] = net_wm_win_type_notif;
     supported_atoms[n_supported++] = net_wm_icon_geometry;
 
+    /* Implemented all along but never announced: a pager consulting
+     * this list to learn whether the visible-name pair is worth
+     * reading concluded it was not, and fell back to the untruncated
+     * title even though the truncated form was there. */
+    supported_atoms[n_supported++] = ewmh->_NET_WM_VISIBLE_NAME;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_VISIBLE_ICON_NAME;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_PID;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_USER_TIME_WINDOW;
+
     for (list_item_td *snode = list_head(surfaces);
             snode != NULL;
             snode = list_next(snode)) {

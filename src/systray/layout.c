@@ -23,7 +23,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>     /* memset, NULL */
+#include <string.h>     /* memcmp, memset, NULL */
 
 /* ADT includes */
 #include <adt/cdlist.h>
@@ -205,9 +205,10 @@ static void s_systray_icons_push_below(void)
  *
  * @note Complexity: @e O(1)
  */
-static void s_systray_strut_update(struct geometry_s geom,
+static bool s_systray_strut_update(struct geometry_s geom,
         int32_t border2)
 {
+    const struct strut_partial_s previous = s_tray.reserved_strut;
     xcb_ewmh_wm_strut_partial_t partial;
 
     memset(&partial, 0, sizeof(partial));
@@ -283,6 +284,9 @@ static void s_systray_strut_update(struct geometry_s geom,
     s_tray.reserved_strut.end.right = (int32_t) partial.right_end_y;
     s_tray.reserved_strut.end.top = (int32_t) partial.top_end_x;
     s_tray.reserved_strut.end.bottom = (int32_t) partial.bottom_end_x;
+
+    return memcmp(&previous, &s_tray.reserved_strut,
+            sizeof(previous)) != 0;
 }
 
 
@@ -403,6 +407,7 @@ void systray_layout_restack(void)
  * policy). */
 void systray_layout_reflow(void)
 {
+    bool is_strut_changed;
     uint16_t w;
     uint16_t h;
     uint16_t text_w;
@@ -421,7 +426,7 @@ void systray_layout_reflow(void)
             (s_tray.icon_count == 0u && !s_tray.clock_enabled &&
                 !s_tray.battery_enabled)) {
         xcb_window_hide(s_tray.window);
-        s_systray_strut_update((struct geometry_s) {
+        (void) s_systray_strut_update((struct geometry_s) {
                     { 0, 0 }, { 0u, 0u } }, 0);
         return;
     }
@@ -431,7 +436,7 @@ void systray_layout_reflow(void)
     w = s_systray_content_width();
     if (w == 0u) {
         xcb_window_hide(s_tray.window);
-        s_systray_strut_update((struct geometry_s) {
+        (void) s_systray_strut_update((struct geometry_s) {
                     { 0, 0 }, { 0u, 0u } }, 0);
         return;
     }
@@ -475,7 +480,7 @@ void systray_layout_reflow(void)
     }
 
     xcb_window_place(s_tray.window, x, y, w, h);
-    s_systray_strut_update((struct geometry_s) {
+    is_strut_changed = s_systray_strut_update((struct geometry_s) {
                 { x, y }, { w, h } }, border2);
 
     /* Icons sit after the text block when it is on the left, or right
@@ -571,11 +576,19 @@ void systray_layout_reflow(void)
 
     systray_layout_restack();
 
-    /* The strut just published (or cleared) above changes what every
-     * desktop on this same surface considers its own available
-     * 'workarea'.  Recomputed here rather than left for whatever
-     * unrelated trigger happens to call this next, the same reasoning
-     * 'wm_action_config_reload' already applies to a changed
+    /* Only when the strut actually changed does what every desktop on
+     * this same surface considers its own available 'workarea' change
+     * with it.  A reflow that republished the same strut, as every
+     * repaint of the tray does, has nothing to recompute: an icon
+     * dragged across the tray exposes it hundreds of times a second,
+     * and each of those was walking every client of every desktop to
+     * arrive back at the numbers already there.
+     *
+     * When it did change, it is recomputed here rather than left for
+     * whatever unrelated trigger happens to call this next, the same
+     * reasoning 'wm_action_config_reload' already applies to a changed
      * 'desktops.margins' (see its comment in wm/actions.c). */
-    surface_refresh_workareas(s_tray.surface);
+    if (is_strut_changed) {
+        surface_refresh_workareas(s_tray.surface);
+    }
 }
