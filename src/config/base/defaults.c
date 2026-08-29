@@ -169,7 +169,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
     config_base->windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
     config_base->windows.monitor_policy = CONFIG_PLACEMENT_MONITOR_POINTER;
-    config_base->windows.group_related = true;
+    config_base->windows.group_related = false;
     config_base->windows.focus.focus_new = true;
     config_base->windows.focus.raise = false;
     config_base->icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;

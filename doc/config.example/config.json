@@ -65,7 +65,7 @@
             "policy": "click"
         },
         "placement": {
-            "group-related": true,
+            "group-related": false,
             "monitor": "pointer",
             "policy": "smart"
         }
