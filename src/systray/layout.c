@@ -61,9 +61,11 @@
  */
 static uint16_t s_systray_content_width(void)
 {
-    uint16_t icons_w = (s_tray.icon_count == 0u) ? 0u
+    uint16_t icons_w = (s_tray.icon_count == 0u)
+        ? 0u
         : (uint16_t) (s_tray.pixmap_pad +
-            s_tray.icon_count * (s_tray.pixmap_size + s_tray.pixmap_pad));
+                s_tray.icon_count * (s_tray.pixmap_size +
+                    s_tray.pixmap_pad));
 
     return (uint16_t) (icons_w + systray_text_width());
 }
@@ -73,18 +75,17 @@ static uint16_t s_systray_content_width(void)
  * @brief Find the currently fullscreen client the tray's own layer
  *        should duck behind, if any
  *
- * Scoped to @p s_tray.surface's own currently displayed desktop
- * only, the one surface the tray itself actually belongs to and the
- * only desktop whose content can actually be on screen at the same
- * time as the tray: a client fullscreen on some other surface
- * (a different physical monitor's own root window) or on a desktop
- * of @p s_tray.surface that is not the one currently shown is not
- * visible right now, so it has no bearing on where this one tray
- * should stack.
+ * Scoped to @p s_tray.surface's own currently displayed desktop only,
+ * the one surface the tray itself actually belongs to and the only
+ * desktop whose content can actually be on screen at the same time as
+ * the tray.  A client fullscreen on some other surface (a different
+ * physical monitor's own root window) or on a desktop of
+ * @p s_tray.surface that is not the one currently shown is not visible
+ * right now, so it has no bearing on where this one tray should stack.
  *
  * @return The fullscreen client's own frame (or plain window, if
- *         undecorated), or @c XCB_WINDOW_NONE if none is fullscreen
- *         on @p s_tray.surface's own current desktop
+ *         undecorated), or @c XCB_WINDOW_NONE if none is fullscreen on
+ *         @p s_tray.surface's own current desktop
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p s_tray.surface's own current desktop
@@ -108,7 +109,9 @@ static xcb_window_t s_systray_fullscreen_target_find(void)
         client_td *const client = (client_td *) elem;
 
         if (client_is_fullscreen(client)) {
-            return (client->frame != 0) ? client->frame : client->window;
+            return (client->frame != 0)
+                ? client->frame
+                : client->window;
         }
     }
 
@@ -122,7 +125,9 @@ static xcb_window_t s_systray_fullscreen_target_find(void)
  * Called right after the tray restacks itself into the 'below' layer,
  * so icons stay "stuck to the desktop" (lower than the tray, even
  * though both are nominally in the same 'below' layer) regardless of
- * restack ordering: the tray's own move to the bottom (an unqualified
+ * restack ordering.
+ *
+ * The tray's own move to the bottom (an unqualified
  * @c XCB_STACK_MODE_BELOW, since the tray does not otherwise know of
  * any one icon to stack itself relative to) would otherwise claim the
  * absolute bottom of the sibling stack out from under any icon that was
@@ -130,8 +135,8 @@ static xcb_window_t s_systray_fullscreen_target_find(void)
  * problem @a ccmd_client_iconify's own explicit stack-below handles for
  * the opposite ordering.
  *
- * @note Complexity: @e O(n), where @e n is the total number of
- *       managed clients across every desktop and surface
+ * @note Complexity: @e O(n), where @e n is the total number of managed
+ *       clients across every desktop and surface
  *
  * @see @a systray_below_window
  */
@@ -159,7 +164,8 @@ static void s_systray_icons_push_below(void)
         }
         dinitial = dnode;
         do {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
+            desktop_td *const desktop =
+                (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->clients != NULL) {
                 void *elem;
@@ -172,10 +178,10 @@ static void s_systray_icons_push_below(void)
                                 s_tray.window);
                     }
                 }
-            }
+            } /* ! if (!desktop) */
             dnode = cdlist_next(dnode);
         } while (dnode != NULL && dnode != dinitial);
-    }
+    } /* ! for (snode) */
 }
 
 
@@ -199,14 +205,14 @@ static void s_systray_icons_push_below(void)
  * rather windows stayed free to maximize over or under the tray.
  *
  * @param geom    Tray's own current rectangle (root coordinates); a
- *                zero dimension clears the strut (the tray itself
- *                is unmapped)
- * @param border2 Total border thickness, both sides combined
+ *                zero dimension clears the strut (the tray itself is
+ *                unmapped)
+ * @param bborder Total border thickness, both sides combined
  *
  * @note Complexity: @e O(1)
  */
 static bool s_systray_strut_update(struct geometry_s geom,
-        int32_t border2)
+        int32_t bborder)
 {
     const struct strut_partial_s previous = s_tray.reserved_strut;
     xcb_ewmh_wm_strut_partial_t partial;
@@ -227,10 +233,10 @@ static bool s_systray_strut_update(struct geometry_s geom,
             case CONFIG_SYSTRAY_POSITION_TOP_LEFT:
             case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
                 partial.top = (uint32_t) (geom.pos.y +
-                        (int32_t) geom.dim.h + border2);
+                        (int32_t) geom.dim.h + bborder);
                 partial.top_start_x = (uint32_t) geom.pos.x;
                 partial.top_end_x = (uint32_t) (geom.pos.x +
-                        (int32_t) geom.dim.w + border2);
+                        (int32_t) geom.dim.w + bborder);
                 break;
 
             case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
@@ -242,7 +248,7 @@ static bool s_systray_strut_update(struct geometry_s geom,
                     ? screen_h - y_u : 0u;
                 partial.bottom_start_x = (uint32_t) geom.pos.x;
                 partial.bottom_end_x = (uint32_t) (geom.pos.x +
-                        (int32_t) geom.dim.w + border2);
+                        (int32_t) geom.dim.w + bborder);
                 break;
             }
         }
@@ -263,12 +269,14 @@ static bool s_systray_strut_update(struct geometry_s geom,
         partial.left += s_tray.strut_margins.left;
     }
 
-    if (xcb_ewmh_connection_get() != NULL && s_tray.window != XCB_WINDOW_NONE) {
-        (void) xcb_ewmh_set_wm_strut_partial(xcb_ewmh_connection_get(), s_tray.window,
-                partial);
-        (void) xcb_ewmh_set_wm_strut(xcb_ewmh_connection_get(), s_tray.window,
-                partial.left, partial.right, partial.top,
-                partial.bottom);
+    if (xcb_ewmh_connection_get() != NULL &&
+            s_tray.window != XCB_WINDOW_NONE) {
+        (void) xcb_ewmh_set_wm_strut_partial(xcb_ewmh_connection_get(), 
+                s_tray.window, partial);
+        (void) xcb_ewmh_set_wm_strut(xcb_ewmh_connection_get(),
+                s_tray.window,
+                partial.left, partial.right,
+                partial.top, partial.bottom);
     }
 
     s_tray.reserved_strut.sides.left = (int32_t) partial.left;
@@ -356,11 +364,11 @@ static monitor_td s_systray_anchor_rect(void)
  * - 'CONFIG_SYSTRAY_LAYER_OVERLAY': stacks it at the top and leaves it
  *   there unconditionally, even over fullscreen windows.
  *
- * Safe to call whenever the tray's stacking might need reconsidering:
- * after every reflow, and whenever any client enters or exits
+ * Safe to call whenever the tray's stacking might need reconsidering.
+ * After every reflow, and whenever any client enters or exits
  * fullscreen (see 'ccmd_client_fullscreen' and
  * 'ccmd_client_unfullscreen', which call the public 'systray_restack'
- * wrapper in systray.c). */
+ * wrapper in 'systray.c'). */
 void systray_layout_restack(void)
 {
     xcb_window_t fullscreen_target;
@@ -391,12 +399,13 @@ void systray_layout_restack(void)
      * separate request: that two-step sequence briefly left the tray
      * stacked above the fullscreen content between the two requests,
      * visible as a flash on every restack (every reflow, and every
-     * fullscreen toggle) rather than only when actually needed. */
-    /* Skipped when the tray already sits where this would put it: the
-     * server answers a restack by exposing whatever the move
-     * uncovered, those exposures reach the tray, and the tray reflows
-     * and restacks again.  Asking only when the answer would differ
-     * is what stops that from feeding itself. */
+     * fullscreen toggle) rather than only when actually needed.
+     *
+     * Skipped when the tray already sits where this would put it.  The
+     * server answers a restack by exposing whatever the move uncovered,
+     * those exposures reach the tray, and the tray reflows and restacks
+     * again.  Asking only when the answer would differ is what stops
+     * that from feeding itself. */
     if (s_tray.is_stacking_known &&
             s_tray.stacked_layer == s_tray.layer &&
             s_tray.stacked_against == fullscreen_target) {
@@ -436,7 +445,7 @@ void systray_layout_reflow(void)
     uint16_t icon_y;
     int16_t x = 0;
     int16_t y = 0;
-    int32_t border2;
+    int32_t bborder;
     monitor_td anchor;
 
     if (!s_tray.is_window_ready || s_tray.surface == NULL) {
@@ -469,7 +478,7 @@ void systray_layout_reflow(void)
      * just 'w' by 'h'.  Right/bottom-anchored positions have to
      * subtract that extra span or the tray pokes out past the screen
      * edge by exactly that amount. */
-    border2 = (s_tray.theme != NULL)
+    bborder = (s_tray.theme != NULL)
         ? (int32_t) (2u * s_tray.theme->systray.style.border.width) : 0;
 
     anchor = s_systray_anchor_rect();
@@ -483,26 +492,26 @@ void systray_layout_reflow(void)
         case CONFIG_SYSTRAY_POSITION_BOTTOM_LEFT:
             x = (int16_t) anchor.x;
             y = (int16_t) (anchor.y + (int32_t) anchor.h -
-                    (int32_t) h - border2);
+                    (int32_t) h - bborder);
             break;
 
         case CONFIG_SYSTRAY_POSITION_BOTTOM_RIGHT:
             x = (int16_t) (anchor.x + (int32_t) anchor.w -
-                    (int32_t) w - border2);
+                    (int32_t) w - bborder);
             y = (int16_t) (anchor.y + (int32_t) anchor.h -
-                    (int32_t) h - border2);
+                    (int32_t) h - bborder);
             break;
 
         case CONFIG_SYSTRAY_POSITION_TOP_RIGHT:
             x = (int16_t) (anchor.x + (int32_t) anchor.w -
-                    (int32_t) w - border2);
+                    (int32_t) w - bborder);
             y = (int16_t) anchor.y;
             break;
     }
 
     xcb_window_place(s_tray.window, x, y, w, h);
     is_strut_changed = s_systray_strut_update((struct geometry_s) {
-                { x, y }, { w, h } }, border2);
+                { x, y }, { w, h } }, bborder);
 
     /* Icons sit after the text block when it is on the left, or right
      * at the tray's own left edge otherwise (text block on the right,
@@ -535,8 +544,9 @@ void systray_layout_reflow(void)
 
     if (text_w > 0u && s_tray.theme != NULL) {
         uint16_t icons_w = (uint16_t) (w - text_w);
-        int16_t block_x = (s_tray.text_position == CONFIG_SYSTRAY_TEXT_LEFT)
-            ? 0 : (int16_t) icons_w;
+        int16_t block_x =
+            (s_tray.text_position == CONFIG_SYSTRAY_TEXT_LEFT)
+                ? 0 : (int16_t) icons_w;
         int16_t ascent;
         int16_t descent;
         int16_t item_h;
@@ -561,7 +571,8 @@ void systray_layout_reflow(void)
 
         switch (s_tray.text_valign) {
             case CONFIG_SYSTRAY_TEXT_VALIGN_TOP:
-                item_y = (int16_t) ((int32_t) s_tray.pixmap_pad + ascent);
+                item_y = (int16_t) ((int32_t) s_tray.pixmap_pad +
+                        ascent);
                 break;
 
             case CONFIG_SYSTRAY_TEXT_VALIGN_BOTTOM:
@@ -571,7 +582,8 @@ void systray_layout_reflow(void)
 
             case CONFIG_SYSTRAY_TEXT_VALIGN_CENTER:
                 item_y = (int16_t) (((h > (uint16_t) item_h)
-                        ? (int32_t) (h - (uint16_t) item_h) / 2 : 0) +
+                            ? (int32_t) (h - (uint16_t) item_h) / 2
+                            : 0) +
                         ascent);
                 break;
         }
@@ -586,7 +598,8 @@ void systray_layout_reflow(void)
                 continue;
             }
 
-            text_draw_string(xcb_connection_get(), s_tray.window, XCB_NONE,
+            text_draw_string(xcb_connection_get(),
+                    s_tray.window, XCB_NONE,
                     (struct position_s) { pen_x, item_y }, text);
             pen_x = (int16_t) (pen_x +
                     (int16_t) text_string_measure(text) +
@@ -600,7 +613,7 @@ void systray_layout_reflow(void)
     /* Only when the strut actually changed does what every desktop on
      * this same surface considers its own available 'workarea' change
      * with it.  A reflow that republished the same strut, as every
-     * repaint of the tray does, has nothing to recompute: an icon
+     * repaint of the tray does, has nothing to recompute.  An icon
      * dragged across the tray exposes it hundreds of times a second,
      * and each of those was walking every client of every desktop to
      * arrive back at the numbers already there.
@@ -608,7 +621,7 @@ void systray_layout_reflow(void)
      * When it did change, it is recomputed here rather than left for
      * whatever unrelated trigger happens to call this next, the same
      * reasoning 'wm_action_config_reload' already applies to a changed
-     * 'desktops.margins' (see its comment in wm/actions.c). */
+     * 'desktops.margins' (see its comment in 'wm/actions.c'). */
     if (is_strut_changed) {
         surface_refresh_workareas(s_tray.surface);
     }
