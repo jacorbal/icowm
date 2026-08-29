@@ -746,6 +746,139 @@ static int s_count_appgroups_needed(surface_td *surface, int desktop_count)
 
 
 /**
+ * @brief What @a s_desktop_submenu_visit is building
+ */
+struct s_submenu_ctx_s {
+    surface_td *surface;    /**< Surface whose desktops are listed */
+    int desktop_count;      /**< How many to list at most */
+    uint32_t cur_did;       /**< Desktop showing right now */
+    int entry_count;        /**< Root entries written so far */
+    uint32_t index;         /**< Desktop index reached */
+};
+
+
+/**
+ * @brief Build one desktop's own submenu of the windows it holds
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_submenu_ctx_s being built
+ *
+ * @note Stops building once the menu holds every desktop asked for,
+ *       the whole walk still running: a visitor has no way to end one
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
+{
+    struct s_submenu_ctx_s *const ctx = data;
+    char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
+    char desk_label[WM_DESKTOP_MAX_LENGTH_NAME + 64];
+    winlist_entry_data_td *entry_data;
+    uint32_t did;
+    int desktop_n;
+    bool is_cur;
+    int n;
+
+    if (ctx == NULL || (int) ctx->index >= ctx->desktop_count) {
+        return;
+    }
+
+    did = ctx->index;
+    n = ctx->entry_count;
+    ctx->index++;
+
+    desktop_n = 0;
+    s_build_desktop_entries(ctx->surface, did, s_desktop_entries[did],
+            &desktop_n, NULL);
+
+    is_cur = did == ctx->cur_did;
+
+    /* Always add a "Go there..." entry at the top of the desktop's
+     * own submenu, same as before, so picking the desktop itself
+     * (with no particular window) still works.  Followed by a
+     * separator before the real client entries below it, but
+     * only when this desktop actually has any: with none,
+     * "Go there..." would otherwise be followed by a bare
+     * separator leading nowhere. */
+    if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
+        /* Compared against the room left rather than
+         * against the count plus one: a signed sum tested
+         * against a constant lets the optimizer assume the
+         * sum never overflows */
+        int shift_count = (desktop_n > 0 &&
+                desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP - 1)
+            ? 2 : 1;
+
+        entry_data = s_alloc_entry_data();
+        if (entry_data != NULL) {
+            /* Shift existing entries down to make room at the
+             * front for "Go there..." (and the separator, if
+             * one fits); desktop_n is always small enough for
+             * this to be cheap */
+            for (int i = desktop_n + shift_count - 1;
+                    i >= shift_count; --i) {
+                s_desktop_entries[did][i] =
+                    s_desktop_entries[did][i - shift_count];
+            }
+            s_desktop_entries[did][0].type = CTXMENU_COMMAND;
+            safe_strncpy(s_desktop_entries[did][0].label,
+                    _(STR_WINLIST_GO_THERE),
+                    sizeof(s_desktop_entries[did][0].label) - 1u);
+            s_desktop_entries[did][0].is_disabled = is_cur;
+            s_desktop_entries[did][0].on_activate = NULL;
+            s_desktop_entries[did][0].userdata = NULL;
+            /* Never inherited from whichever real client entry
+             * used to occupy this same slot before the shift
+             * above: without this, "Go there..." would show
+             * that client's own icon. */
+            s_desktop_entries[did][0].icon_window = XCB_WINDOW_NONE;
+            s_desktop_entries[did][0].icon_cache = NULL;
+            if (!is_cur) {
+                entry_data->surface = ctx->surface;
+                entry_data->client = NULL;
+                entry_data->desktop_id = did;
+                s_desktop_entries[did][0].on_activate =
+                    s_cb_goto_desktop;
+                s_desktop_entries[did][0].userdata = entry_data;
+            }
+
+            if (shift_count == 2) {
+                s_desktop_entries[did][1].type = CTXMENU_SEPARATOR;
+                s_desktop_entries[did][1].icon_window =
+                    XCB_WINDOW_NONE;
+                s_desktop_entries[did][1].icon_cache = NULL;
+            }
+
+            desktop_n += shift_count;
+        }
+    }
+
+    if (desktop_n == 0) {
+        return;
+    }
+
+    memset(&s_desktop_state[did], 0, sizeof(s_desktop_state[did]));
+    s_desktop_state[did].window = XCB_WINDOW_NONE;
+    s_desktop_state[did].entries = s_desktop_entries[did];
+    s_desktop_state[did].entry_count = desktop_n;
+
+    surface_desktop_label(ctx->surface, did, desktop->name, false,
+            true, desk_label, sizeof(desk_label));
+    (void) snprintf(label_buf, sizeof(label_buf), "%s%s%s",
+            MENU_CONTEXT_CTXMENU_LABEL_PREFIX, desk_label,
+            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+
+    s_root_entries[n].type = CTXMENU_SUBMENU;
+    safe_strncpy(s_root_entries[n].label, label_buf,
+            sizeof(s_root_entries[n].label) - 1u);
+    s_root_entries[n].items = s_desktop_entries[did];
+    s_root_entries[n].item_count = desktop_n;
+    s_root_entries[n].userdata = &s_desktop_state[did];
+    ctx->entry_count++;
+}
+
+
+/**
  * @brief Build one root entry per desktop, each a submenu of its own
  *
  * Only for a surface with more than one desktop; a single one is
@@ -765,166 +898,16 @@ static void s_winlist_build_desktop_submenus(surface_td *surface,
     const uint32_t cur_did = surface->desktop_cur;
     int n = *n_out;
 
-    cdlist_item_td *dnode;
-    char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
-    uint32_t did = 0u;
+    struct s_submenu_ctx_s submenu_ctx;
 
-    cdlist_foreach(surface->desktops, dnode) {
-        const desktop_td *desktop;
-        winlist_entry_data_td *data;
-        int desktop_n;
-        bool is_cur;
-        uint32_t row = 0u;
-        uint32_t col = 0u;
-        bool has_row_col;
-        bool show_row_col;
-
-        if ((int) did >= desktop_count) {
-            break;
-        }
-        desktop = (desktop_td *) cdlist_data(dnode);
-        if (desktop == NULL) {
-            ++did;
-            continue;
-        }
-
-        desktop_n = 0;
-        s_build_desktop_entries(surface, did, s_desktop_entries[did],
-                &desktop_n, NULL);
-
-        is_cur = did == cur_did;
-
-        /* Always add a "Go there..." entry at the top of the desktop's
-         * own submenu, same as before, so picking the desktop itself
-         * (with no particular window) still works.  Followed by a
-         * separator before the real client entries below it, but
-         * only when this desktop actually has any: with none,
-         * "Go there..." would otherwise be followed by a bare
-         * separator leading nowhere. */
-        if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
-            /* Compared against the room left rather than
-             * against the count plus one: a signed sum tested
-             * against a constant lets the optimizer assume the
-             * sum never overflows */
-            int shift_count = (desktop_n > 0 &&
-                    desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP - 1)
-                ? 2 : 1;
-
-            data = s_alloc_entry_data();
-            if (data != NULL) {
-                /* Shift existing entries down to make room at the
-                 * front for "Go there..." (and the separator, if
-                 * one fits); desktop_n is always small enough for
-                 * this to be cheap */
-                for (int i = desktop_n + shift_count - 1;
-                        i >= shift_count; --i) {
-                    s_desktop_entries[did][i] =
-                        s_desktop_entries[did][i - shift_count];
-                }
-                s_desktop_entries[did][0].type = CTXMENU_COMMAND;
-                safe_strncpy(s_desktop_entries[did][0].label,
-                        _(STR_WINLIST_GO_THERE),
-                        sizeof(s_desktop_entries[did][0].label) - 1u);
-                s_desktop_entries[did][0].is_disabled = is_cur;
-                s_desktop_entries[did][0].on_activate = NULL;
-                s_desktop_entries[did][0].userdata = NULL;
-                /* Never inherited from whichever real client entry
-                 * used to occupy this same slot before the shift
-                 * above: without this, "Go there..." would show
-                 * that client's own icon. */
-                s_desktop_entries[did][0].icon_window =
-                    XCB_WINDOW_NONE;
-                s_desktop_entries[did][0].icon_cache = NULL;
-                if (!is_cur) {
-                    data->surface = surface;
-                    data->client = NULL;
-                    data->desktop_id = did;
-                    s_desktop_entries[did][0].on_activate =
-                        s_cb_goto_desktop;
-                    s_desktop_entries[did][0].userdata = data;
-                }
-
-                if (shift_count == 2) {
-                    s_desktop_entries[did][1].type = CTXMENU_SEPARATOR;
-                    s_desktop_entries[did][1].icon_window =
-                        XCB_WINDOW_NONE;
-                    s_desktop_entries[did][1].icon_cache = NULL;
-                }
-
-                desktop_n += shift_count;
-            }
-        }
-
-        if (desktop_n == 0) {
-            ++did;
-            continue;
-        }
-
-        memset(&s_desktop_state[did], 0, sizeof(s_desktop_state[did]));
-        s_desktop_state[did].window = XCB_WINDOW_NONE;
-        s_desktop_state[did].entries = s_desktop_entries[did];
-        s_desktop_state[did].entry_count = desktop_n;
-
-        row = 0u;
-        col = 0u;
-        has_row_col = surface_desktop_row_col(surface,
-                did, &row, &col);
-        /* Only worth showing once the grid is genuinely more
-         * than the one row a desktop's own ID already fully
-         * describes on its own; see 'surface_desktop_row_col'
-         * itself (surface.h) for what "row 0" always means on
-         * a linear (or unconfigured) layout, the exact case
-         * this excludes here. */
-        show_row_col = has_row_col &&
-            surface->config != NULL &&
-            surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
-            surface->config->base.screens[surface->id]
-                .desktop_layout.rows > 1u;
-
-        /* The format is written out at each call rather than picked
-         * into a variable first: a variable is not a string literal,
-         * so the compiler stops checking that the arguments match
-         * it, which is exactly the check worth keeping here.  The
-         * branches were already there either way. */
-        if (desktop->name[0] != '\0') {
-            if (show_row_col) {
-                (void) snprintf(label_buf, sizeof(label_buf),
-                        "%s[%u (%u, %u)] -- %s%s",
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        did, row, col, desktop->name,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-            } else {
-                (void) snprintf(label_buf, sizeof(label_buf),
-                        "%s[%u] -- %s%s",
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        did, desktop->name,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-            }
-        } else {
-            if (show_row_col) {
-                (void) snprintf(label_buf, sizeof(label_buf),
-                        "%s[%u (%u, %u)]%s",
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        did, row, col,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-            } else {
-                (void) snprintf(label_buf, sizeof(label_buf),
-                        "%s[%u]%s",
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        did,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-            }
-        }
-
-        s_root_entries[n].type = CTXMENU_SUBMENU;
-        safe_strncpy(s_root_entries[n].label, label_buf,
-                sizeof(s_root_entries[n].label) - 1u);
-        s_root_entries[n].items = s_desktop_entries[did];
-        s_root_entries[n].item_count = desktop_n;
-        s_root_entries[n].userdata = &s_desktop_state[did];
-        ++n;
-        ++did;
-    }
+    submenu_ctx.surface = surface;
+    submenu_ctx.desktop_count = desktop_count;
+    submenu_ctx.cur_did = cur_did;
+    submenu_ctx.entry_count = n;
+    submenu_ctx.index = 0u;
+    surface_desktops_walk(surface, s_desktop_submenu_visit,
+            &submenu_ctx);
+    n = submenu_ctx.entry_count;
 
     *n_out = n;
 }
