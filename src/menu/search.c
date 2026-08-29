@@ -56,6 +56,7 @@
 /* Local includes */
 #include <menu/search.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -816,7 +817,7 @@ void search_destroy(xcb_connection_t *connection)
     }
 
     xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
-    xcb_destroy_window(connection, s_search.window);
+    xcb_window_destroy(s_search.window);
 
     if (s_search.prev_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,

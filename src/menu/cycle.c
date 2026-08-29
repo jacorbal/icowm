@@ -58,6 +58,7 @@
 #include <menu/cycle.h>
 #include <menu/internal.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /** Private cycle menu state */
@@ -572,7 +573,7 @@ void cycle_destroy(xcb_connection_t *connection)
     s_cycle_preview_restore(connection);
     render_outline_hide(connection, g_cycle_menu.outline_windows);
 
-    xcb_destroy_window(connection, g_cycle_menu.window);
+    xcb_window_destroy(g_cycle_menu.window);
     g_cycle_menu.window = XCB_WINDOW_NONE;
     g_cycle_menu.count = 0;
     g_cycle_menu.selected = 0;

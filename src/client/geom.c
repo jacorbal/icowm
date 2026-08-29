@@ -42,6 +42,7 @@
 /* Local includes */
 #include <client/internal.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /* Allocate and zero all heap string buffers for a client */
@@ -708,8 +709,7 @@ int ci_create_decorations(client_td *client)
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    xcb_reparent_window(xcb_connection_get(),
-            client->window,
+    xcb_window_reparent(client->window,
             client->frame,
             (int16_t) left, (int16_t) top);
 

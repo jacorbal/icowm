@@ -67,6 +67,7 @@
 #include <client/internal.h>
 #include <client/props.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -945,7 +946,7 @@ void client_destroy(client_td *client)
     /* Destroy the XCB window representation and flush the output buffer
      * to ensure the request is processed */
     if (xcb_connection_get() != NULL && client->window != 0) {
-        xcb_destroy_window(xcb_connection_get(), client->window);
+        xcb_window_destroy(client->window);
     }
 
     /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is
@@ -961,10 +962,10 @@ void client_destroy(client_td *client)
 
     /* Destroy decorations if any */
     if (xcb_connection_get() != NULL && client->titlebar != 0) {
-        xcb_destroy_window(xcb_connection_get(), client->titlebar);
+        xcb_window_destroy(client->titlebar);
     }
     if (xcb_connection_get() != NULL && client->icon_window != 0) {
-        xcb_destroy_window(xcb_connection_get(), client->icon_window);
+        xcb_window_destroy(client->icon_window);
     }
     /* Frees the cached '_NET_WM_ICON' Picture built by 'wmicon_draw'
      * (see render/wmicon.h), if any; a no-op if nothing was ever
@@ -972,7 +973,7 @@ void client_destroy(client_td *client)
      * draw anything for it in the first place */
     wmicon_invalidate(xcb_connection_get(), &client->icon_pixmap_cache);
     if (xcb_connection_get() != NULL && client->frame != 0) {
-        xcb_destroy_window(xcb_connection_get(), client->frame);
+        xcb_window_destroy(client->frame);
     }
 
     /* Free all allocated string buffers */

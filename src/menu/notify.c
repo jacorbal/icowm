@@ -35,6 +35,7 @@
 /* Local includes */
 #include <menu/draw.h>
 #include <menu/notify.h>
+#include <utils/xcb/window.h>
 
 
 /* Close the notification popup and reset its state */
@@ -46,7 +47,7 @@ void notify_popup_close(xcb_connection_t *connection,
         return;
     }
 
-    xcb_destroy_window(connection, state->window);
+    xcb_window_destroy(state->window);
     state->window = XCB_WINDOW_NONE;
     state->open_time.tv_sec = 0;
     state->open_time.tv_nsec = 0;

@@ -40,6 +40,7 @@
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/layout.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /* Create and show a context menu window */
@@ -205,7 +206,7 @@ void ctxmenu_close(ctxmenu_state_td *state)
     }
 
     if (xcb_connection_get() != NULL && state->window != XCB_WINDOW_NONE) {
-        xcb_destroy_window(xcb_connection_get(), state->window);
+        xcb_window_destroy(state->window);
     }
 
     /* Always release keyboard and pointer grabs when the root menu

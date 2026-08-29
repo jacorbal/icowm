@@ -171,3 +171,27 @@ void xcb_window_hide(xcb_window_t window)
 
     xcb_unmap_window(xcb_connection_get(), window);
 }
+
+
+/* Destroy a window */
+void xcb_window_destroy(xcb_window_t window)
+{
+    if (!s_window_is_addressable(window)) {
+        return;
+    }
+
+    xcb_destroy_window(xcb_connection_get(), window);
+}
+
+
+/* Give a window a new parent */
+void xcb_window_reparent(xcb_window_t window, xcb_window_t parent,
+        int16_t x, int16_t y)
+{
+    if (!s_window_is_addressable(window) ||
+            parent == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    xcb_reparent_window(xcb_connection_get(), window, parent, x, y);
+}

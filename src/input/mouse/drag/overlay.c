@@ -35,6 +35,7 @@
 /* Local includes */
 #include <input/mouse/drag/internal.h>
 #include <input/mouse/drag/overlay.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -83,7 +84,7 @@ static void s_drag_overlay_rect(struct geometry_s target,
 void drag_overlay_hide(xcb_connection_t *connection)
 {
     if (connection != NULL && s_drag.overlay_window != XCB_WINDOW_NONE) {
-        xcb_destroy_window(connection, s_drag.overlay_window);
+        xcb_window_destroy(s_drag.overlay_window);
     }
 
     s_drag.overlay_window = XCB_WINDOW_NONE;

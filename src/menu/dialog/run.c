@@ -44,6 +44,7 @@
 
 /* Local includes */
 #include <menu/dialog/run.h>
+#include <utils/xcb/window.h>
 
 
 /** All state for the currently open run-box; a single global instance,
@@ -74,7 +75,7 @@ static void s_run_destroy(xcb_connection_t *connection)
     }
 
     xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
-    xcb_destroy_window(connection, s_run.window);
+    xcb_window_destroy(s_run.window);
 
     if (s_run.prev_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,

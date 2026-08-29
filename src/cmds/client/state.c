@@ -177,8 +177,7 @@ static void s_client_enable_decoration(client_td *client,
     client->ignore.unmap += 2u;
     client->ignore.focus_unmap++;
 
-    xcb_reparent_window(xcb_connection_get(),
-            client->window,
+    xcb_window_reparent(client->window,
             client->frame,
             (int16_t) bw, (int16_t) (bw + th));
 
@@ -289,7 +288,7 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
         inner.dim.h = (uint32_t) inner_h;
 
         if (client->titlebar != 0) {
-            xcb_destroy_window(xcb_connection_get(), client->titlebar);
+            xcb_window_destroy(client->titlebar);
             client->titlebar = 0;
         }
 
@@ -299,8 +298,7 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
          * steal focus from the window. */
         client->ignore.unmap += 2u;
         client->ignore.focus_unmap++;
-        xcb_reparent_window(xcb_connection_get(),
-                client->window,
+        xcb_window_reparent(client->window,
                 client->parent_id,
                 (int16_t) inner.pos.x, (int16_t) inner.pos.y);
 
@@ -313,7 +311,7 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
                 inner.pos.x, inner.pos.y,
                 inner.dim.w, inner.dim.h, (uint32_t) bw);
 
-        xcb_destroy_window(xcb_connection_get(), client->frame);
+        xcb_window_destroy(client->frame);
         client->frame = 0;
 
         client->layout.geometry.cur.pos.x = inner.pos.x;

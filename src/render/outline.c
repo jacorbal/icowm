@@ -174,7 +174,7 @@ void render_outline_hide(xcb_connection_t *connection,
     }
 
     for (int i = 0; i < 4; ++i) {
-        xcb_destroy_window(connection, windows[i]);
+        xcb_window_destroy(windows[i]);
         windows[i] = XCB_WINDOW_NONE;
     }
 }

@@ -44,6 +44,7 @@
 #include <menu/dialog/defer.h>
 #include <menu/dialog/message.h>
 #include <menu/draw.h>
+#include <utils/xcb/window.h>
 
 
 /* Message dialog state and layout */
@@ -782,7 +783,7 @@ void menu_message_dialog_close(xcb_connection_t *connection)
     }
 
     xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
-    xcb_destroy_window(connection, s_message_window);
+    xcb_window_destroy(s_message_window);
     s_message_window = XCB_WINDOW_NONE;
 
     /* Restore whichever real X11 focus this dialog displaced when it

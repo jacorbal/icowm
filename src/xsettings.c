@@ -38,6 +38,7 @@
 /* Local includes */
 #include <xsettings.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -66,6 +67,7 @@ static struct {
     char icon_theme_name[CONFIG_MAX_LENGTH_NAME];
     char cursor_theme_name[CONFIG_MAX_LENGTH_NAME];
 } s_xs;
+
 
 
 /**
@@ -510,7 +512,7 @@ void xsettings_shutdown(wm_td *wm)
 
     if (s_xs.is_window_ready && xcb_connection_get() != NULL &&
             s_xs.window != XCB_WINDOW_NONE) {
-        xcb_destroy_window(xcb_connection_get(), s_xs.window);
+        xcb_window_destroy(s_xs.window);
         xcb_flush(xcb_connection_get());
     }
 

@@ -48,6 +48,7 @@
 #include <menu/dialog/confirm.h>
 #include <menu/dialog/defer.h>
 #include <menu/draw.h>
+#include <utils/xcb/window.h>
 
 
 /* Confirm dialog state and layout */
@@ -454,7 +455,7 @@ static void s_menu_confirm_dialog_close(xcb_connection_t *connection)
     }
 
     xcb_ungrab_keyboard(connection, XCB_CURRENT_TIME);
-    xcb_destroy_window(connection, s_confirm_window);
+    xcb_window_destroy(s_confirm_window);
 
     s_confirm_window = XCB_WINDOW_NONE;
     s_confirm_selected = 0;

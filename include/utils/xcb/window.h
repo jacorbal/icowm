@@ -16,6 +16,13 @@
  * their own mask and value array, so any change to how the manager
  * talks to the server meant touching all of them.
  *
+ * Creating a window and changing its attributes are deliberately not
+ * here.  Both carry a mask and a value array whose contents differ at
+ * every call, so an operation covering them would have to take that
+ * mask too: the same interface under another name, with the caller
+ * still building it and still knowing about X.  What is here is what
+ * has a name of its own.
+ *
  * None of these flushes.  A request sits in XCB's own output buffer
  * until something sends it, and the caller is what knows whether more
  * are coming: flushing inside each operation would send half-finished
@@ -170,6 +177,30 @@ void xcb_window_show(xcb_window_t window);
  * @note Complexity: @e O(1)
  */
 void xcb_window_hide(xcb_window_t window);
+
+/**
+ * @brief Destroy a window
+ *
+ * @param window Window to destroy
+ *
+ * @note No-op for @c XCB_WINDOW_NONE
+ * @note Complexity: @e O(1)
+ */
+void xcb_window_destroy(xcb_window_t window);
+
+/**
+ * @brief Give a window a new parent
+ *
+ * @param window Window to reparent
+ * @param parent Window it becomes a child of
+ * @param x      Where its left edge goes within @p parent
+ * @param y      Where its top edge goes within @p parent
+ *
+ * @note No-op when either window is @c XCB_WINDOW_NONE
+ * @note Complexity: @e O(1)
+ */
+void xcb_window_reparent(xcb_window_t window, xcb_window_t parent,
+        int16_t x, int16_t y);
 
 
 #endif /* !UTILS_XCB_WINDOW_H */

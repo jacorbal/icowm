@@ -200,7 +200,7 @@ static void s_ccmd_client_restore_one(client_td *client)
     client_geometry_restore(client);
 
     if (client->icon_window != 0) {
-        xcb_destroy_window(xcb_connection_get(), client->icon_window);
+        xcb_window_destroy(client->icon_window);
         client->icon_window = 0;
         client->is_icon_mapped = false;
     }
@@ -407,7 +407,7 @@ void ccmd_client_close(client_td *client)
     } else {
         /* The client does not support 'WM_DELETE_WINDOW', so
          * destroy it directly */
-        xcb_destroy_window(xcb_connection_get(), client->window);
+        xcb_window_destroy(client->window);
     }
 }
 

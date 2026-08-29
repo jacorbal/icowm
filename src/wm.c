@@ -72,6 +72,7 @@
 #include <wm.h>
 #include <wm/internal.h>
 #include <wm/shutdown.h>
+#include <utils/xcb/window.h>
 
 
 /* Though variable static dost often lurk near,
@@ -203,7 +204,7 @@ static void s_wm_cleanup(void)
 
     if (wm->connection != NULL) {
         if (wm->ewmh_support_win != XCB_NONE) {
-            xcb_destroy_window(wm->connection, wm->ewmh_support_win);
+            xcb_window_destroy(wm->ewmh_support_win);
             wm->ewmh_support_win = XCB_NONE;
         }
 

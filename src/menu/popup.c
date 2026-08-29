@@ -42,6 +42,7 @@
 /* Local includes */
 #include <menu/draw.h>
 #include <menu/popup.h>
+#include <utils/xcb/window.h>
 
 
 /** XCB window of the currently visible info popup */
@@ -215,7 +216,7 @@ void popup_close(xcb_connection_t *connection)
         return;
     }
 
-    xcb_destroy_window(connection, s_popup_window);
+    xcb_window_destroy(s_popup_window);
     s_popup_window = XCB_WINDOW_NONE;
     s_popup_modifier = 0;
     s_popup_keycode = 0;

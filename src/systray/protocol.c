@@ -221,7 +221,7 @@ void systray_protocol_dock(xcb_window_t icon)
     xcb_change_window_attributes(xcb_connection_get(), icon,
             XCB_CW_EVENT_MASK, attr_values);
 
-    xcb_reparent_window(xcb_connection_get(), icon, s_tray.window, 0, 0);
+    xcb_window_reparent(icon, s_tray.window, 0, 0);
 
     size_values[0] = s_tray.pixmap_size;
     size_values[1] = s_tray.pixmap_size;

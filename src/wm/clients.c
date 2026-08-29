@@ -107,7 +107,7 @@ static void s_client_unmanage(client_td *client)
         int16_t abs_y = (int16_t) (client->layout.geometry.cur.pos.y +
                 (int32_t) client->layout.frame_extents.top);
 
-        xcb_reparent_window(xcb_connection_get(), client->window,
+        xcb_window_reparent(client->window,
                 client->parent_id, abs_x, abs_y);
     }
 

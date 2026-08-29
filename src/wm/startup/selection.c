@@ -51,6 +51,7 @@
 
 /* Local includes */
 #include <wm/startup/selection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -256,7 +257,7 @@ int wm_startup_acquire_selection(wm_td *wm, bool replace_requested)
 
         if (s_acquire_one_screen(connection, support, surface,
                     replace_requested, manager_atom) != 0) {
-            xcb_destroy_window(connection, support);
+            xcb_window_destroy(support);
             xcb_flush(connection);
             return -1;
         }

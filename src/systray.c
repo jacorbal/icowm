@@ -221,7 +221,7 @@ void systray_shutdown(wm_td *wm)
          * toggling 'is-enabled' off goes through 'systray_reload',
          * which keeps the window and icons alive via
          * 'systray_protocol_selection_release' instead. */
-        xcb_destroy_window(xcb_connection_get(), s_tray.window);
+        xcb_window_destroy(s_tray.window);
         xcb_flush(xcb_connection_get());
     }
 

@@ -630,7 +630,7 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
          * client_destroy from issuing redundant destroy calls. */
         if (connection != NULL && client->frame != 0) {
             client->ignore.unmap++;
-            xcb_destroy_window(connection, client->frame);
+            xcb_window_destroy(client->frame);
         }
         client->frame = 0;
         client->titlebar = 0;
