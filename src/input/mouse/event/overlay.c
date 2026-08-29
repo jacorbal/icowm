@@ -125,8 +125,11 @@ bool im_press_close_overlays(xcb_connection_t *connection,
                 event->root);
 
         popup_close(connection);
+        /* Marked rather than painted: the click below may well
+         * change something else on this same turn, and one repaint
+         * covers both */
         if (surface != NULL) {
-            surface_render_current_desktop_repaint(surface);
+            surface->is_outdated = true;
         }
         /* Do NOT consume: allow the click to proceed to the client */
         return false;

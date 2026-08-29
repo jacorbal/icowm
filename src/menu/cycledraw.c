@@ -253,8 +253,8 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
      * An undecorated one has no frame at all: the geometry is the
      * client window's own core rectangle, and its border is an X11
      * native border, which the server draws entirely outside that
-     * rectangle rather than inside it (see 'client_border_apply' in
-     * client.c, which has to compensate the position for exactly the
+     * rectangle rather than inside it (see the render pass, which
+     * has to compensate the position for exactly the
      * same reason whenever that width changes).  Outlining the core
      * rectangle alone therefore falls short by one border width on
      * every side.

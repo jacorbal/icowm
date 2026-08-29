@@ -599,9 +599,11 @@ void cycle_destroy(xcb_connection_t *connection)
                     : (uint32_t) XCB_CURRENT_TIME);
     }
 
+    /* Marked rather than painted here: the menu closing has no
+     * deadline of its own, so the repaint goes out with everything
+     * else this turn settles, once */
     if (surface != NULL) {
-        surface_render_current_desktop_repaint(surface);
-    } else {
+        surface->is_outdated = true;
     }
 }
 

@@ -101,7 +101,7 @@ void ccmd_client_set_opacity_inactive(client_td *client,
  * about re-applying the
  * border to the actual window right away, which stays each caller's
  * own concern (a caller wanting that immediately, rather than
- * waiting for the next natural @c client_border_apply call a focus
+ * waiting for the next natural render pass a focus
  * change already triggers, still has to make that call itself).
  *
  * @param client Window whose border to override

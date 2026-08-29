@@ -140,6 +140,7 @@ static void s_client_init_common(client_td *client,
      * once, regardless of what that value turns out to be
      * (vid. 'ri_render_client' in 'render/desktop.c') */
     client->last_border_width = UINT32_MAX;
+    client->last_border_color = UINT32_MAX;
     ci_set_decoration_defaults(client);
 }
 
@@ -1045,90 +1046,6 @@ void client_sync_visible_name(client_td *client, char *cached,
 }
 
 
-/* Apply a client's own themed border color and width to its own
- * window, honoring 'border_override' when set */
-void client_border_apply(client_td *client, bool use_active_style)
-{
-    uint32_t color;
-    uint32_t width;
-    uint8_t opacity_percent;
-
-    if (client == NULL || xcb_connection_get() == NULL ||
-            client->config == NULL || client_is_fullscreen(client) ||
-            (client_is_decorated(client) && client->frame != 0)) {
-        return;
-    }
-
-    if (client->border_override.is_set) {
-        color = client->border_override.color;
-        width = client->border_override.width;
-    } else if (use_active_style) {
-        color = client->config->theme.window.active.border.color;
-        width = client->config->theme.window.active.border.width;
-    } else {
-        color = client->config->theme.window.inactive.border.color;
-        width = client->config->theme.window.inactive.border.width;
-    }
-
-    if (use_active_style) {
-        opacity_percent = (client->opacity_override.is_set_active)
-            ? client->opacity_override.active
-            : client->config->theme.window.active.opacity;
-    } else {
-        opacity_percent = (client->opacity_override.is_set_inactive)
-            ? client->opacity_override.inactive
-            : client->config->theme.window.inactive.opacity;
-    }
-
-    /* Accessibility: never let the focus indicator go thinner than
-     * 'a11y.focus-indicator.min-border-width', regardless of
-     * what the theme itself specifies */
-    if (width < client->config->a11y.focus_indicator.min_border_width) {
-        width = client->config->a11y.focus_indicator.min_border_width;
-    }
-
-    xcb_change_window_attributes(xcb_connection_get(), client->window,
-            XCB_CW_BORDER_PIXEL, &color);
-
-    /* X11's native border is drawn OUTSIDE a window's own core
-     * rectangle, not inside it, so a naive width-only change here
-     * would visibly shift the window's own outer edge by however
-     * much 'width' just grew or shrank between the active/inactive
-     * styles switching (e.g., an active/inactive pair configured
-     * with two different widths), which is every ordinary focus
-     * change on an undecorated client, not just a rare special
-     * case.
-     * Compensating 'x'/'y' by the exact delta keeps the window's own
-     * visible top-left corner exactly where it already was.  Skipped
-     * entirely the first time this ever runs for a client
-     * ('last_border_width' still 'UINT32_MAX', its own initial
-     * sentinel from 'client_init'), since there is no prior width
-     * yet to have shifted away from. */
-    if (client->last_border_width != UINT32_MAX) {
-        int32_t delta =
-            (int32_t) width - (int32_t) client->last_border_width;
-        int32_t new_x = client->layout.geometry.cur.pos.x + delta;
-        int32_t new_y = client->layout.geometry.cur.pos.y + delta;
-
-        ccmd_client_apply_geometry(client, client->window,
-                (uint16_t) XCB_CONFIG_WINDOW_X |
-                    (uint16_t) XCB_CONFIG_WINDOW_Y |
-                    (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                new_x, new_y, 0u, 0u, width);
-        client->layout.geometry.cur.pos.x = new_x;
-        client->layout.geometry.cur.pos.y = new_y;
-    } else {
-        ccmd_client_apply_geometry(client, client->window,
-                (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
-                0, 0, 0u, 0u, width);
-    }
-    client->last_border_width = width;
-
-    atom_set_window_opacity(xcb_connection_get(), client->window,
-            config_theme_opacity_to_raw(opacity_percent));
-}
-
-
 /* Adjust a frame position to keep a gravity anchor fixed across a
  * size change */
 void client_gravity_adjust_pos(int32_t *restrict out_x,
@@ -1439,4 +1356,48 @@ client_td *client_init(xcb_connection_t *connection,
             window, client->info.name);
 
     return client;
+}
+
+
+/* Send this client's border color and opacity for the focus state */
+void client_border_color_apply(client_td *client, bool is_focused)
+{
+    uint32_t color;
+    uint8_t opacity_percent;
+
+    if (client == NULL || xcb_connection_get() == NULL ||
+            client->config == NULL || client_is_fullscreen(client) ||
+            (client_is_decorated(client) && client->frame != 0)) {
+        return;
+    }
+
+    if (client->border_override.is_set) {
+        color = client->border_override.color;
+    } else if (is_focused) {
+        color = client->config->theme.window.active.border.color;
+    } else {
+        color = client->config->theme.window.inactive.border.color;
+    }
+
+    if (is_focused) {
+        opacity_percent = (client->opacity_override.is_set_active)
+            ? client->opacity_override.active
+            : client->config->theme.window.active.opacity;
+    } else {
+        opacity_percent = (client->opacity_override.is_set_inactive)
+            ? client->opacity_override.inactive
+            : client->config->theme.window.inactive.opacity;
+    }
+
+    /* Sent only when it would actually change, the render pass
+     * reaching every client on the desktop on every turn */
+    if (color == client->last_border_color) {
+        return;
+    }
+    client->last_border_color = color;
+
+    xcb_change_window_attributes(xcb_connection_get(), client->window,
+            XCB_CW_BORDER_PIXEL, &color);
+    atom_set_window_opacity(xcb_connection_get(), client->window,
+            config_theme_opacity_to_raw(opacity_percent));
 }

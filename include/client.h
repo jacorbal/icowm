@@ -201,6 +201,19 @@ struct client_s {
      */
     uint32_t last_border_width;
 
+    /**
+     * @brief Border color most recently sent to the X server for this
+     *        client's own window
+     *
+     * The undecorated counterpart of @p last_border_width above: a
+     * decorated client shows its focus through the frame the render
+     * pass repaints anyway, and one without a frame has only this
+     * border to show it with.  Skipped in the same way when the color
+     * would not change, and set by @a client_init to @c UINT32_MAX so
+     * the first render always applies the real one.
+     */
+    uint32_t last_border_color;
+
     /** Desktop index, @c 0xFFFFFFFF meaning every desktop */
     uint32_t desktop_id;
     uint32_t screen_id;         /**< Screen index */
@@ -239,8 +252,8 @@ struct client_s {
      * Overrides @c theme.window.active.border and
      * @c theme.window.inactive.border.  Deliberately generic, not
      * tied to any one feature.  Unset by default, in which case
-     * @a client_border_apply falls back to the theme default that a
-     * plain client gets on every focus change.  A caller that sets
+     * @a client_border_color_apply falls back to the theme default
+     * a plain client gets on every focus change.  A caller that sets
      * this needs no further involvement from @a ccmd_client_focus or
      * @a ccmd_client_unfocus beyond this one field.  The scratchpad
      * in @c scratchpad.c is the only caller that sets it today.
@@ -681,30 +694,28 @@ void client_note_user_time(uint32_t time);
 uint32_t client_last_user_time(void);
 
 /**
- * @brief Apply a client's own themed border color and width to its own
- *        window, honoring @p border_override when set
+ * @brief Send this client's border color and opacity for a focus state
  *
- * A no-op for a decorated client @p (client->frame != 0) or
- * a fullscreen one, regardless of decoration: a decorated client's own
- * border lives on its frame instead, repainted by
- * @a desktop_repaint_frame_decoration (@c render/desktop.c), not on
- * @p client->window itself; a fullscreen client, decorated or not, is
- * never meant to show any border at all.  For every other (undecorated,
- * non-fullscreen) client, applies @p client->border_override's own
- * color and width when @p is_set, or
- * @p theme->window.active/inactive.border otherwise
- * (@p use_active_style selects which), the same border a plain client
- * already gets restored to on every focus change.
+ * What an undecorated client shows its focus with, a decorated one
+ * showing it through the frame the render pass repaints anyway.  Both
+ * therefore follow from the same @p is_focused in the same pass, and a
+ * path that changes the focus no longer has to remember to repaint
+ * anything: forgetting to left a window still wearing the active
+ * border after another had taken the focus from it.
  *
- * @param client            Client to apply the border to
- * @param use_active_style  Ignored when @p border_override.is_set;
- *                          otherwise @c true for
- *                          @p theme->window.active.border, @c false
- *                          for @p .inactive
+ * The border's width is not touched here.  X draws it outside the
+ * window's own rectangle, so changing it would shift the window's
+ * outer edge; the render pass sends the width itself, where the
+ * geometry is being settled anyway.
  *
+ * @param client     Client to send the color for; may be @c NULL
+ * @param is_focused Whether it currently holds the focus
+ *
+ * @note A no-op for a decorated client with a frame, for a fullscreen
+ *       one, and whenever the color would not change
  * @note Complexity: @e O(1)
  */
-void client_border_apply(client_td *client, bool use_active_style);
+void client_border_color_apply(client_td *client, bool is_focused);
 
 /**
  * @brief The border width @p client currently themes its own window
@@ -714,7 +725,7 @@ void client_border_apply(client_td *client, bool use_active_style);
  * @c scratchpad.c, is the only client that sets one as for today, and
  * never varies it with focus), or
  * @p theme->window.active/inactive.border.width otherwise (@p is_active
- * selects which); the same width @a client_border_apply applies for the
+ * selects which); the same width the render pass applies for the
  * exact same client and focus state.  Meant for any caller that has to
  * reserve room for a border ahead of actually drawing on, e.g., sizing
  * a client to fill an area without its own border ever spilling past
@@ -754,7 +765,7 @@ static inline uint32_t client_border_width(const client_td *client,
      * own content is drawn as background color inset within the frame's
      * own declared width/height ('layout.frame_extents'), already fully
      * accounted for there, not as an X11 border layered on top of it
-     * the way 'client_border_apply' (above) draws one directly on an
+     * the way 'client_border_color_apply' (above) draws one on an
      * undecorated client's own window.  A caller reserving room for
      * a client's own border has nothing to reserve here, so this
      * returns 0 for a decorated client ('frame != 0') even though
@@ -783,7 +794,7 @@ static inline uint32_t client_border_width(const client_td *client,
     /* Accessibility: never let a caller reserve less room than
      * 'a11y.focus-indicator.min-border-width' actually needs,
      * regardless of what the theme or 'border_override' specify; the
-     * same floor 'client_border_apply' (above) already applies when it
+     * same floor the render pass already applies when it
      * actually draws the border this reserves room for */
     return (client->config->a11y.focus_indicator.min_border_width >
                 base_width)

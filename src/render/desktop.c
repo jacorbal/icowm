@@ -915,6 +915,18 @@ void desktop_render_one_client(desktop_td *desktop,
         client->last_border_width = border_width;
     }
 
+    /* An undecorated client shows its focus through this border and
+     * nothing else, a decorated one through the frame repainted just
+     * above, so both now follow from 'is_focused' in the same pass.
+     * The color used to be written by whoever changed the focus
+     * instead, which meant a path that forgot to left a window still
+     * wearing the active border after another had taken the focus
+     * from it, where a decorated window would have corrected itself
+     * on the next pass.  Skipped when unchanged, as the width is. */
+    if (!client_is_decorated(client) || client->frame == 0) {
+        client_border_color_apply(client, is_focused);
+    }
+
     /* Map the window to make it visible.
      * Only do this when 'desktop' is the surface's currently
      * displayed desktop.

@@ -675,8 +675,8 @@ void ccmd_client_focus(client_td *client)
     if (!client_is_shaded(client)) {
         xcb_window_show(client->window);
     }
-    /* 'client_border_apply' ('client.h') preserves this same condition
-     * (undecorated-or-frameless, never fullscreen) internally, and
+    /* 'client_border_color_apply' ('client.h') preserves this same
+     * condition (undecorated-or-frameless, never fullscreen), and
      * additionally honors 'border_override' for a client that themes
      * its own border independently of 'theme->window.active/inactive'
      * (the scratchpad, 'scratchpad.c', is the only one that does so
@@ -695,10 +695,11 @@ void ccmd_client_focus(client_td *client)
      * branch's own 'hide_decoration' equivalent everywhere else in the
      * project never even applies to it), so this call is the only place
      * actually restoring its border on focus. */
-    if ((!client_is_decorated(client) || client->frame == 0) &&
-            client->config != NULL && !client_is_fullscreen(client)) {
-        client_border_apply(client, true);
-    } else {
+    /* An undecorated client's border is no longer painted from here:
+     * the render pass writes it from 'is_focused', the same state the
+     * frame of a decorated one is repainted from, so a focus change is
+     * something to record rather than something to draw. */
+    if (client_is_decorated(client) && client->frame != 0) {
         client_theme_layout_resync(client, true);
     }
 
@@ -753,16 +754,10 @@ void ccmd_client_unfocus(client_td *client)
                 relinquish_time);
     }
 
-    if ((!client_is_decorated(client) || client->frame == 0) &&
-            client->config != NULL && !client_is_fullscreen(client)) {
-        /* Same reasoning as the matching block in 'ccmd_client_focus'
-         * just above: skipped for a fullscreen client so a losing-
-         * focus repaint cannot put a real border back on an
-         * undecorated fullscreen client's own window either;
-         * 'client_border_apply' (client.h) additionally honors
-         * 'border_override' the same way that one does. */
-        client_border_apply(client, false);
-    } else {
+    /* Same as the matching block in 'ccmd_client_focus' just above: an
+     * undecorated client's border follows from the render pass now, so
+     * only a framed one has anything to resync here. */
+    if (client_is_decorated(client) && client->frame != 0) {
         client_theme_layout_resync(client, false);
     }
 

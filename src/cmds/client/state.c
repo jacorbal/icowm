@@ -322,7 +322,7 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
         client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
         client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
 
-        /* Keeps 'client_border_apply' (client.c) from seeing
+        /* Keeps 'client_border_color_apply' (client.c) from seeing
          * a stale 'last_border_width' the moment focus is
          * reapplied a few lines below (via 'ccmd_client_focus'):
          * without this, that call would compare its own freshly
