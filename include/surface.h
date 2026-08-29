@@ -889,11 +889,45 @@ void surface_clients_reflow(surface_td *surface);
 #define surface_height(s) ((s) ? (s)->properties.dim.h : 0)
 
 /**
- * @brief Macro that evaluates to the desktop count of the surface
+ * @brief Called once per desktop by @a surface_desktops_walk
+ *
+ * @param desktop Desktop reached by the walk; never @c NULL
+ * @param data    Whatever the caller handed the walk
+ */
+typedef void (*surface_desktop_visitor_fn)(desktop_td *desktop,
+        void *data);
+
+/**
+ * @brief Visit every desktop a surface holds, in order
+ *
+ * What a caller wanting all of them asks for, rather than walking the
+ * list itself: how a surface keeps its desktops is its own business,
+ * and a caller that only wanted to count them or read their names had
+ * to know it was a circular list to find out.
+ *
+ * @param surface Surface whose desktops to visit; may be @c NULL
+ * @param visit   Called once per desktop; may be @c NULL
+ * @param data    Handed to @p visit untouched
+ *
+ * @note The whole list is visited: no visitor can end the walk early,
+ *       which is why one that stops on a condition records that in its
+ *       own @p data and ignores what follows
+ * @note Complexity: @e O(n), where @e n is the number of desktops on
+ *       @p surface
+ */
+void surface_desktops_walk(const surface_td *surface,
+        surface_desktop_visitor_fn visit, void *data);
+
+/**
+ * @brief How many desktops a surface holds
+ *
+ * @param surface Surface to ask; may be @c NULL
+ *
+ * @return That count, or @c 0
  *
  * @note Complexity: @e O(1)
  */
-#define surface_desktop_count(s) ((s) ? (s)->desktops->size : 0)
+uint32_t surface_desktop_count(const surface_td *surface);
 
 
 #endif  /* ! SURFACE_H */

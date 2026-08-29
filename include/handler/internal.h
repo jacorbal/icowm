@@ -47,7 +47,7 @@
  * @param surface Surface owning the client
  * @param desktop Desktop where the client lives
  *
- * @note Implemented in @c handler/ewmhmsg.c
+ * @note Implemented in @c handler/ewmh.c
  * @note Complexity: @e O(1)
  */
 void hi_handle_net_wm_state(client_td *client,
@@ -65,7 +65,7 @@ void hi_handle_net_wm_state(client_td *client,
  * @param wm    Window manager context
  * @param event Received @c CLIENT_MESSAGE event
  *
- * @note Implemented in @c handler/ewmhmsg.c
+ * @note Implemented in @c handler/ewmh.c
  * @note Complexity: @e O(1)
  */
 void hi_handle_net_current_desktop(const wm_td *wm,
@@ -84,7 +84,7 @@ void hi_handle_net_current_desktop(const wm_td *wm,
  * @param surface     Surface owning the client
  * @param src_desktop Client's current desktop
  *
- * @note Implemented in @c handler/ewmhmsg.c
+ * @note Implemented in @c handler/ewmh.c
  * @note Complexity: @e O(1)
  */
 void hi_handle_net_wm_desktop(const wm_td *wm,
@@ -141,7 +141,7 @@ void hi_handle_net_moveresize_window(const wm_td *wm,
  * @param surface Surface to update
  * @param show    @c true to enter showing-desktop mode
  *
- * @note Implemented in @c handler/ewmhmsg.c
+ * @note Implemented in @c handler/ewmh.c
  * @note Complexity: @e O(n)
  */
 void hi_handle_net_showing_desktop(surface_td *surface, bool show);
@@ -158,7 +158,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show);
  * @param surface Surface containing the client
  * @param desktop Desktop containing the client
  *
- * @note Implemented in @c handler/ewmhmsg.c
+ * @note Implemented in @c handler/ewmh.c
  * @note Complexity: @e O(1)
  */
 void hi_handle_net_restack_window(const wm_td *wm,
@@ -178,7 +178,7 @@ void hi_handle_net_restack_window(const wm_td *wm,
  * @param surface Surface containing the client
  * @param desktop Desktop containing the client
  *
- * @note Implemented in @c handler/ewmhmsg.c
+ * @note Implemented in @c handler/ewmh.c
  * @note Complexity: @e O(1)
  */
 void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
@@ -190,7 +190,7 @@ void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
  * @brief Handle a @c _NET_WM_MOVERESIZE client message
  *
  * Starts (or cancels) an icowm-managed interactive move or resize on
- * behalf of a Client that draws its own titlebar or resize grips,
+ * behalf of a client that draws its own titlebar or resize grips,
  * matching whichever operation and anchor the message's direction
  * requests.
  *
@@ -201,7 +201,7 @@ void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
  * @param surface Surface containing the client
  * @param desktop Desktop containing the client
  *
- * @note Implemented in @c handler/ewmhmsg.c
+ * @note Implemented in @c handler/ewmh.c
  * @note Complexity: @e O(1)
  */
 void hi_handle_net_wm_moveresize(const wm_td *wm,

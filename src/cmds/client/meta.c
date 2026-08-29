@@ -30,7 +30,6 @@
 
 /* Local includes */
 #include <cmds/client/meta.h>
-#include <cmds/client/internal.h>
 #include <utils/xcb/connection.h>
 
 

@@ -125,7 +125,7 @@ void config_resolve_dir(const char *restrict config_dir_prefix,
 /* Settle a theme's own final display name, once it is known whether
  * a theme file was actually loaded and whether that file itself set
  * its own "name" */
-void ci_config_resolve_theme_name(struct config_theme_s *theme,
+void config_resolve_theme_name(struct config_theme_s *theme,
         const char *theme_file_name, bool theme_loaded)
 {
     char combined[sizeof(theme->name)];
@@ -311,7 +311,7 @@ int config_load(config_td *config, const char *config_prefix)
     if (safe_strlen(config->base.theme) == 0) {
         LOGGER_NOTICE("No theme specified in base configuration;" \
                 " default will be used", L_NARG);
-        ci_config_resolve_theme_name(&config->theme, config->base.theme,
+        config_resolve_theme_name(&config->theme, config->base.theme,
                 false);
     } else {
         /* Snapshot the syntax-error count before attempting the load,
@@ -339,7 +339,7 @@ int config_load(config_td *config, const char *config_prefix)
                         sizeof(s_missing_theme_file));
             }
         }
-        ci_config_resolve_theme_name(&config->theme, config->base.theme,
+        config_resolve_theme_name(&config->theme, config->base.theme,
                 theme_loaded);
         if (theme_loaded) {
             LOGGER_DEBUG("Loaded theme '%s' (\"%s\") from '%s'",

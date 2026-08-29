@@ -41,8 +41,13 @@
  * @return Status of the operation
  * @retval  0 on success or when XRandR is unavailable
  * @retval -1 on fatal input
+ *
+ * @note No matching teardown: the replies this asks the server for are
+ *       freed here, and what it keeps is a version number and whether
+ *       the extension is there at all.  The extension data itself
+ *       belongs to the connection and goes with @a xcb_disconnect.
  */
-int wm_startup_init_randr(wm_td *wm);
+int wm_startup_randr_init(wm_td *wm);
 
 /**
  * @brief Probe XSync extension support and cache metadata in @p wm
@@ -58,8 +63,12 @@ int wm_startup_init_randr(wm_td *wm);
  * @return Status of the operation
  * @retval  0 on success or when XSync is unavailable
  * @retval -1 on fatal input
+ *
+ * @note No matching teardown, for the same reason as
+ *       @a wm_startup_randr_init above: its one reply is freed here,
+ *       and the extension data belongs to the connection.
  */
-int wm_startup_init_sync(wm_td *wm);
+int wm_startup_sync_init(wm_td *wm);
 
 
 #endif  /* ! WM_STARTUP_H */

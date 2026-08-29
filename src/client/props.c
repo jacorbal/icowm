@@ -32,6 +32,7 @@
 /* Local includes */
 #include <client.h>
 #include <client/internal.h>
+#include <client/props.h>
 #include <utils/xcb/connection.h>
 
 
@@ -92,7 +93,7 @@ static void s_client_read_legacy_name_prop(client_td *client,
 
 
 /* Retrieve the 'WM_NAME' property of a window */
-size_t ci_get_wm_name(xcb_connection_t *connection,
+size_t client_props_get_wm_name(xcb_connection_t *connection,
         xcb_window_t window, char *buffer, size_t buffer_sz)
 {
     xcb_get_property_cookie_t cookie;
@@ -125,7 +126,7 @@ size_t ci_get_wm_name(xcb_connection_t *connection,
 
 
 /* Retrieve the '_NET_WM_NAME' property of a window (UTF-8) */
-size_t ci_get_net_wm_name(xcb_ewmh_connection_t *ewmh,
+size_t client_props_get_net_wm_name(xcb_ewmh_connection_t *ewmh,
         xcb_window_t window, char *buffer, size_t buffer_sz)
 {
     xcb_ewmh_get_utf8_strings_reply_t reply;
@@ -153,7 +154,7 @@ size_t ci_get_net_wm_name(xcb_ewmh_connection_t *ewmh,
 
 
 /* Retrieve the 'WM_CLASS' property of a window */
-int ci_get_wm_class(xcb_connection_t *connection,
+int client_props_get_wm_class(xcb_connection_t *connection,
         xcb_window_t window,
         char *restrict class_buf, size_t class_sz,
         char *restrict inst_buf, size_t inst_sz)

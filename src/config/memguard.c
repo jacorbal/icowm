@@ -103,7 +103,7 @@ int config_load_memguard(config_td *config, const char *config_prefix)
     if (safe_strlen(config->base.theme) == 0u) {
         LOGGER_NOTICE("No theme specified in restricted-memory mode" \
                 " configuration; default will be used", L_NARG);
-        ci_config_resolve_theme_name(&config->theme, config->base.theme,
+        config_resolve_theme_name(&config->theme, config->base.theme,
                 false);
     } else {
         bool theme_loaded;
@@ -116,7 +116,7 @@ int config_load_memguard(config_td *config, const char *config_prefix)
             LOGGER_WARNING("Failed to load theme from: '%s';" \
                     " default theme will be used", config_theme_file);
         }
-        ci_config_resolve_theme_name(&config->theme, config->base.theme,
+        config_resolve_theme_name(&config->theme, config->base.theme,
                 theme_loaded);
         if (theme_loaded) {
             LOGGER_DEBUG("Loaded theme '%s' (\"%s\") from '%s'",

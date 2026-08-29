@@ -50,7 +50,7 @@
  * @return @c true on success, @c false if any part of the lookup
  *         fails (surface not found, desktop not found, no workarea
  *         known yet, or the clipped area is empty); callers fall
- *         back to @c ccmd_screen_dim's raw screen size in that case
+ *         back to @a ccmd_screen_dim's raw screen size in that case
  *
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */

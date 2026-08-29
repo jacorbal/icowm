@@ -1,5 +1,5 @@
 /**
- * @file handler/ewmhmsg.c
+ * @file handler/ewmh.c
  *
  * @brief EWMH client-message sub-handlers
  *
@@ -559,19 +559,19 @@ void hi_handle_net_current_desktop(const wm_td *wm,
  * @brief Handle a @c _NET_WM_DESKTOP client message, taking the
  *        requested client's whole transient family along with it
  *
- * The EWMH counterpart to @a ccmd_client_iconify's own transient-
- * family cascade (see its comment, cmds/client/visibility.c,
- * for the full reasoning): redirects to the family's top-most
- * ancestor first, moving it exactly as this handler always has, then
- * moves every other member of that same family too, so a "save
- * changes?" prompt (or any other transient dialog) never ends up
- * left behind on the old desktop when a pager or taskbar asks to
- * move its parent, stranded apart from the window it belongs to.
+ * The EWMH counterpart to @a ccmd_client_iconify's transient-family
+ * cascade (see its comment in @c cmds/client/visibility.c, for the
+ * full reasoning).  Redirects to the family's top-most ancestor
+ * first, moving it exactly as this handler always has, then moves
+ * every other member of that same family too, so a "save changes?"
+ * prompt (or any other transient dialog) never ends up left behind on
+ * the old desktop when a pager or taskbar asks to move its parent,
+ * stranded apart from the window it belongs to.
  *
- * @param wm      Window manager instance
- * @param event   The @c _NET_WM_DESKTOP client message event
- * @param client  Client the message named
- * @param surface Client's own surface
+ * @param wm          Window manager instance
+ * @param event       The @c _NET_WM_DESKTOP client message event
+ * @param client      Client the message named
+ * @param surface     Client's own surface
  * @param src_desktop Client's own current desktop
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on

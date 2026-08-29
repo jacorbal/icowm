@@ -605,3 +605,34 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id)
     /* Desktop ID not found */
     return 1;
 }
+
+
+/* Visit every desktop a surface holds, in order */
+void surface_desktops_walk(const surface_td *surface,
+        surface_desktop_visitor_fn visit, void *data)
+{
+    cdlist_item_td *node;
+
+    if (surface == NULL || surface->desktops == NULL || visit == NULL) {
+        return;
+    }
+
+    cdlist_foreach(surface->desktops, node) {
+        desktop_td *const desktop = (desktop_td *) cdlist_data(node);
+
+        if (desktop != NULL) {
+            visit(desktop, data);
+        }
+    }
+}
+
+
+/* How many desktops a surface holds */
+uint32_t surface_desktop_count(const surface_td *surface)
+{
+    if (surface == NULL || surface->desktops == NULL) {
+        return 0u;
+    }
+
+    return (uint32_t) cdlist_size(surface->desktops);
+}

@@ -36,7 +36,6 @@
 #include <wm.h>
 
 /* Local includes */
-#include <cmds/client/internal.h>
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/workarea.h>
@@ -148,8 +147,9 @@ static void s_move_to_monitor_toward(client_td *client,
  *       @c XCB_WINDOW_NONE is a silent no-op
  * @note Complexity: @e O(1)
  */
-void ccmd_client_apply_geometry(client_td *client, xcb_window_t target,
-        uint16_t mask, int32_t x, int32_t y, uint32_t w, uint32_t h,
+void ccmd_client_apply_geometry(const client_td *client,
+        xcb_window_t target, uint16_t mask,
+        int32_t x, int32_t y, uint32_t w, uint32_t h,
         uint32_t border_width)
 {
     uint32_t values[5];
@@ -347,10 +347,3 @@ void ccmd_client_move_to_monitor_west(client_td *client)
 {
     s_move_to_monitor_toward(client, COMPASS_WEST);
 }
-
-
-
-
-
-
-

@@ -26,8 +26,9 @@
 /* Project includes */
 #include <cctl/adopt.h>
 #include <logger.h>
-#include <wm/startup/install.h>
 #include <wm.h>
+#include <wm/ewmh.h>
+#include <wm/startup/install.h>
 
 /* Local includes */
 #include <loop.h>
@@ -82,7 +83,7 @@ void loop_run(wm_td *wm)
     /* Synchronize EWMH root properties after the initial scan so that
      * taskbars reading '_NET_CLIENT_LIST' see the windows that were
      * adopted by 'cctl_adopt_scan'.  The earlier 'wm_ewmh_sync' call in
-     * 'wm_init' ran before any clients were managed, leaving the list
+     * 'wm_start' ran before any clients were managed, leaving the list
      * empty; 'loop_refresh_full' then cleared 'is_outdated', so the
      * first main-loop iteration would never trigger a sync on its
      * own. */

@@ -37,5 +37,17 @@
  */
 void ccmd_client_grab_buttons(client_td *client);
 
+/**
+ * @brief Remove passive button grabs from an undecorated client
+ *
+ * Releases the passive grab installed by @c ccmd_client_grab_buttons so
+ * mouse input flows directly to the client again.
+ *
+ * @param client Pointer to the client
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_ungrab_buttons(client_td *client);
+
 
 #endif  /* ! CMDS_CCMD_GRAB_H */

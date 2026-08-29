@@ -57,54 +57,6 @@
 
 
 /**
- * @brief Recompute and apply the resize-border cursor for a client
- *        window at a given pointer position
- *
- * Shared by @a mouse_handle_motion_hover and @a mouse_hover_poll_tick
- * (in @c hover.c) and @a mouse_handle_enter (in @c event/enter.c),
- * since any one kind of event or poll can be the only signal a given
- * transition actually produces
- *
- * @param connection XCB connection
- * @param surfaces   Every managed surface, to look up the client
- *                   @p window belongs to
- * @param window     Window the crossing, motion, or poll was
- *                   evaluated for
- * @param root_pos   Pointer position in root-window coordinates
- *
- * @return The resolved client @p window belongs to, or @c NULL if it
- *         does not belong to a resizable client
- *
- * @note Complexity: @e O(1)
- */
-client_td *im_update_resize_cursor(xcb_connection_t *connection,
-        list_td *surfaces, xcb_window_t window,
-        struct position_s root_pos);
-
-/**
- * @brief Start (or clear) hover-poll tracking of a window's resize
- *        cursor
- *
- * Called from @a mouse_handle_enter (in @c event/enter.c) whenever
- * the
- * pointer crosses into a window: an undecorated client has no separate
- * frame to fall back on, so moving from its border to its interior
- * happens entirely within one window, with no further @c EnterNotify
- * for that transition to catch; periodic polling is the only way to
- * still re-evaluate the cursor there.
- *
- * @param window Window to track, or @c XCB_WINDOW_NONE to stop
- *               tracking (the common case: most entered windows do
- *               not need this fallback at all)
- *
- * @note Complexity: @e O(1)
- *
- * @see @a mouse_hover_poll_tick in @c hover.c
- */
-void im_hover_track(xcb_window_t window);
-
-
-/**
  * @brief Acknowledge a button press and flush
  *
  * Every path that decides a press needs no further handling ends

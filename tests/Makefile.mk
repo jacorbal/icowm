@@ -178,11 +178,20 @@ $(O_DIR)/tests/ipc/test_commands: $(TESTS_DIR)/ipc/test_commands.c \
 $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
 		$(S_DIR)/wm/clients.c \
 		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/cmds/client/ewmh.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/desktop/dfind.c \
+		$(S_DIR)/utils/xcb/connection.c \
+		$(S_DIR)/utils/xcb/window.c \
+		$(S_DIR)/utils/xcb/atom.c \
+		$(S_DIR)/utils/xcb/reply.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c
 	@mkdir -p $(@D)
-	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
 
 $(O_DIR)/tests/policy/test_urgency: $(TESTS_DIR)/policy/test_urgency.c \
 		$(S_DIR)/utils/xcb/connection.c \

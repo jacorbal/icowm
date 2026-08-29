@@ -244,7 +244,7 @@ int desktop_action_clients_deiconify_all(desktop_td *desktop)
 
 
 /** Link-only stand-in for hi_handle_net_showing_desktop
- *  (handler/ewmhmsg.c) */
+ *  (handler/ewmh.c) */
 void hi_handle_net_showing_desktop(surface_td *surface, bool show)
 {
     (void) surface;

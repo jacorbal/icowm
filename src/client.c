@@ -65,6 +65,7 @@
 
 /* Local includes */
 #include <client/internal.h>
+#include <client/props.h>
 #include <utils/xcb/connection.h>
 
 
@@ -113,7 +114,7 @@ static void s_client_heap_fields_release(client_td *client)
  * @param client        Client structure to initialize
  * @param config        Shared base/theme/a11y configuration
  */
-static void s_client_init_common(client_td *client,
+static void s_client_common_init(client_td *client,
         const config_td *config)
 {
     if (client == NULL) {
@@ -189,7 +190,7 @@ static void s_client_display_name_set(client_td *client,
  * after the window type because it overrides the defaults that type
  * chose, and that orders the processing alone.
  */
-struct s_client_init_cookies_s {
+struct s_client_cookies_init_s {
     xcb_get_geometry_cookie_t geometry;      /**< @c GetGeometry */
     xcb_get_property_cookie_t wm_protocols;  /**< @c WM_PROTOCOLS */
     xcb_get_property_cookie_t wm_hints;      /**< @c WM_HINTS */
@@ -234,7 +235,7 @@ struct s_client_init_cookies_s {
 static void s_client_read_wm_protocols(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
         client_td *client,
-        const struct s_client_init_cookies_s *ck)
+        const struct s_client_cookies_init_s *ck)
 {
     xcb_atom_t wm_delete_atom;
     xcb_atom_t wm_take_focus_atom;
@@ -375,7 +376,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
-        client_td *client, const struct s_client_init_cookies_s *ck)
+        client_td *client, const struct s_client_cookies_init_s *ck)
 {
     xcb_atom_t client_leader_atom;
     xcb_icccm_wm_hints_t wm_hints;
@@ -464,7 +465,7 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
  */
 static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
         xcb_window_t window, client_td *client,
-        const struct s_client_init_cookies_s *ck)
+        const struct s_client_cookies_init_s *ck)
 {
     xcb_ewmh_get_extents_reply_t strut;
     xcb_ewmh_wm_strut_partial_t partial;
@@ -544,7 +545,7 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
  */
 static void s_client_read_window_type(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, client_td *client,
-        const struct s_client_init_cookies_s *ck)
+        const struct s_client_cookies_init_s *ck)
 {
     xcb_ewmh_get_atoms_reply_t type_reply;
 
@@ -660,7 +661,7 @@ static void s_client_read_window_type(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 static void s_client_read_motif_hints(xcb_connection_t *connection,
-        client_td *client, const struct s_client_init_cookies_s *ck)
+        client_td *client, const struct s_client_cookies_init_s *ck)
 {
     xcb_atom_t motif_hints_atom;
 
@@ -729,9 +730,9 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  *       '_NET_WM_STATE' lists
  */
 static void s_client_read_pre_existing_state(xcb_connection_t *connection,
-        xcb_ewmh_connection_t *ewmh, xcb_window_t window,
+        const xcb_ewmh_connection_t *ewmh, xcb_window_t window,
         client_td *client,
-        const struct s_client_init_cookies_s *ck)
+        const struct s_client_cookies_init_s *ck)
 {
     if (ewmh != NULL) {
         xcb_atom_t atom_above;
@@ -1078,7 +1079,7 @@ client_td *client_init(xcb_connection_t *connection,
     uint32_t ewmh_pid;
     uint32_t utime;
     xcb_window_t user_time_window;
-    struct s_client_init_cookies_s ck;
+    struct s_client_cookies_init_s ck;
     xcb_atom_t client_leader_atom;
     xcb_atom_t motif_hints_atom;
     uint32_t user_time_window_raw;
@@ -1105,7 +1106,7 @@ client_td *client_init(xcb_connection_t *connection,
         return NULL;
     }
 
-    s_client_init_common(client, config);
+    s_client_common_init(client, config);
 
     /* Use the X window ID as both window handle and hash/lookup key */
     client->window = window;
@@ -1115,7 +1116,7 @@ client_td *client_init(xcb_connection_t *connection,
     /* Every independent request goes out here, before a single reply
      * is awaited, so that the whole set costs one round trip to the
      * server rather than one apiece.  See
-     * 'struct s_client_init_cookies_s' for what is deliberately left
+     * 'struct s_client_cookies_init_s' for what is deliberately left
      * out of the batch and why.
      *
      * The two atoms are interned first because a request needs them,
@@ -1174,12 +1175,12 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Read '_NET_WM_NAME', which is UTF-8, and fall back to
      * 'WM_NAME', which is Latin-1 */
-    ci_get_net_wm_name(ewmh, window, net_wm_name, sizeof(net_wm_name));
+    client_props_get_net_wm_name(ewmh, window, net_wm_name, sizeof(net_wm_name));
     if (net_wm_name[0] != '\0') {
         s_client_display_name_set(client, net_wm_name);
     } else {
         char wm_name[256];
-        ci_get_wm_name(connection, window, wm_name, sizeof(wm_name));
+        client_props_get_wm_name(connection, window, wm_name, sizeof(wm_name));
         s_client_display_name_set(client, wm_name);
     }
 
@@ -1187,7 +1188,7 @@ client_td *client_init(xcb_connection_t *connection,
     client_props_refresh_icon_name(client);
 
     /* Read 'WM_CLASS' */
-    ci_get_wm_class(connection, window,
+    client_props_get_wm_class(connection, window,
             wm_class, sizeof(wm_class),
             wm_instance, sizeof(wm_instance));
     if (wm_class[0] != '\0') {

@@ -24,6 +24,10 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Type includes */
+#include <types/handles.h>
+#include <types/pair.h>
+
 
 /* Public interface */
 /**
@@ -123,6 +127,30 @@ xcb_cursor_t mouse_cursor_move(void);
  */
 xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
         bool anchor_right, bool anchor_bottom);
+
+/**
+ * @brief Recompute and apply the resize-border cursor for a client
+ *        window at a given pointer position
+ *
+ * Shared by @a mouse_handle_motion_hover and @a mouse_hover_poll_tick
+ * and @a mouse_handle_enter, since any one kind of event or poll can
+ * be the only signal a given transition actually produces.
+ *
+ * @param connection XCB connection
+ * @param surfaces   Every managed surface, to look up the client
+ *                   @p window belongs to
+ * @param window     Window the crossing, motion, or poll was
+ *                   evaluated for
+ * @param root_pos   Pointer position in root-window coordinates
+ *
+ * @return The resolved client @p window belongs to, or @c NULL if it
+ *         does not belong to a resizable client
+ *
+ * @note Complexity: @e O(1)
+ */
+client_td *mouse_resize_cursor_update(xcb_connection_t *connection,
+        list_td *surfaces, xcb_window_t window,
+        struct position_s root_pos);
 
 
 #endif  /* ! INPUT_MOUSE_CURSOR_H */

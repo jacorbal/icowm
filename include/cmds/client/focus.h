@@ -165,5 +165,25 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
  */
 void ccmd_client_unfocus(client_td *client);
 
+/**
+ * @brief Transfer focus away from a client that is losing it
+ *
+ * Thin wrapper resolving @p client's own surface and desktop before
+ * deferring to @a client_focus_fallback itself; a no-op unless
+ * @p client is genuinely that desktop's own current active client,
+ * since some other, already-unfocused client being hidden or
+ * iconified has no focus of its own to hand off in the first place.
+ *
+ * Note that the desktop resolved is the one @p client lives on and
+ * not whichever is showing, the two being different whenever a client
+ * loses focus while the person is looking elsewhere.
+ *
+ * @param client Client that is being hidden or iconified
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       that desktop
+ */
+void ccmd_client_focus_fallback(const client_td *client);
+
 
 #endif  /* ! CMDS_CCMD_FOCUS_H */

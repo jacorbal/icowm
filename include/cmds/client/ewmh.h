@@ -48,7 +48,7 @@
  * @param icon_window Icon window associated with @p state, or
  *                    @c XCB_NONE
  *
- * @note Implemented in @c cmds/client/ewmh.c
+ * @note Not EWMH: @c WM_STATE is ICCCM's own, and predates it
  * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
  */
 void ccmd_set_wm_state(client_td *client,
@@ -62,7 +62,7 @@ void ccmd_set_wm_state(client_td *client,
  *
  * @param client Pointer to the client
  *
- * @note Implemented in @c cmds/client/ewmh.c
+ * @note Not EWMH: @c WM_STATE is ICCCM's own, and predates it
  * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
  */
 void ccmd_clear_wm_state(client_td *client);
@@ -85,10 +85,43 @@ void ccmd_clear_wm_state(client_td *client);
  *
  * @note A null @p client or one with no @c ewmh connection is a
  *       silent no-op
- * @note Implemented in @c cmds/client/ewmh.c
  * @note Complexity: @e O(1)
  */
 void ccmd_client_sync_states(client_td *client);
+
+/**
+ * @brief Intern an atom name in the X11 system
+ *
+ * @param connection Pointer to the X11 connection
+ * @param name       Name of the atom
+ *
+ * @return Interned atom ID, or @c XCB_ATOM_NONE on failure
+ *
+ * @note Not EWMH-specific: interning a name is core X, and any
+ *       protocol's atoms come through here
+ * @note Complexity: @e O(n), where @e n is the length of @p name
+ */
+xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
+        const char *name);
+
+/**
+ * @brief Publish @c _NET_FRAME_EXTENTS on the client window
+ *
+ * Writes the EWMH @c _NET_FRAME_EXTENTS cardinal property so that
+ * taskbars and other clients know the exact size of the decoration
+ * added around the content window.  No-op when @p client or its
+ * @c ewmh connection is null.
+ *
+ * @param client Pointer to the client
+ * @param left   Left frame extent in pixels
+ * @param right  Right frame extent in pixels
+ * @param top    Top frame extent in pixels (includes titlebar height)
+ * @param bottom Bottom frame extent in pixels
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_publish_frame_extents(client_td *client,
+        uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
 
 
 #endif  /* ! CMDS_CCMD_EWMH_H */

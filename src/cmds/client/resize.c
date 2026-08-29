@@ -33,7 +33,6 @@
 #include <wm.h>
 
 /* Local includes */
-#include <cmds/client/internal.h>
 #include <cmds/client/move.h>
 #include <cmds/client/resize.h>
 #include <cmds/client/screen.h>

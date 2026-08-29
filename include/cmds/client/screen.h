@@ -67,5 +67,21 @@ xcb_window_t ccmd_target_win(client_td *client);
 bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
         monitor_td *out_monitor);
 
+/**
+ * @brief Retrieve the pixel dimensions of the client's current screen
+ *
+ * Either @p out_w or @p out_h may be null but not both.
+ *
+ * @param client Pointer to the client whose screen is queried
+ * @param out_w  Destination for the screen width in pixels, or null
+ * @param out_h  Destination for the screen height in pixels, or null
+ *
+ * @return @c true on success, @c false on failure
+ *
+ * @note Complexity: @e O(n), where @e n is the screen index
+ */
+bool ccmd_screen_dim(const client_td *client,
+        uint16_t *restrict out_w, uint16_t *restrict out_h);
+
 
 #endif  /* ! CMDS_CCMD_SCREEN_H */

@@ -23,7 +23,6 @@
 
 /* Local includes */
 #include <cmds/client/grab.h>
-#include <cmds/client/internal.h>
 #include <utils/xcb/connection.h>
 
 

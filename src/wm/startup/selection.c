@@ -5,10 +5,10 @@
  *        screen
  *
  * The window this creates is later reused by @a wm_ewmh_init
- * (@c wm/ewmhinit.c) as the @c _NET_SUPPORTING_WM_CHECK window,
- * rather than that function creating one of its own: a single window
- * owning both roles is valid per ICCCM §2.8, and avoids this running
- * twice, once here and once there.
+ * (@c wm/ewmh.c) as the @c _NET_SUPPORTING_WM_CHECK window, rather than
+ * that function creating one of its own: a single window owning both
+ * roles is valid per ICCCM §2.8, and avoids this running twice, once
+ * here and once there.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

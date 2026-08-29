@@ -843,7 +843,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
 {
     LOGGER_TRACE("Setting default theme", L_NARG);
     /* Left empty here on purpose, rather than a name like "Default
-     * theme" outright: 'ci_config_resolve_theme_name' (config.c)
+     * theme" outright: 'config_resolve_theme_name' (config.c)
      * settles on the final name afterward, once it knows whether a
      * theme file was actually loaded and whether that file set its
      * own "name" (empty here means it did not), and this field

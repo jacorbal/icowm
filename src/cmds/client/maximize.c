@@ -32,7 +32,6 @@
 /* Local includes */
 #include <cmds/client/ewmh.h>
 #include <cmds/client/focus.h>
-#include <cmds/client/internal.h>
 #include <cmds/client/maximize.h>
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>

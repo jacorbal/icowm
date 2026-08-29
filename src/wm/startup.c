@@ -42,7 +42,7 @@
 
 
 /* Probe XRandR support and cache extension metadata in 'wm' */
-int wm_startup_init_randr(wm_td *wm)
+int wm_startup_randr_init(wm_td *wm)
 {
     const xcb_query_extension_reply_t *ext;
     xcb_randr_query_version_reply_t *ver_reply;
@@ -167,7 +167,7 @@ int wm_startup_init_randr(wm_td *wm)
 
 
 /* Probe XSync extension support and cache metadata in 'wm' */
-int wm_startup_init_sync(wm_td *wm)
+int wm_startup_sync_init(wm_td *wm)
 {
     const xcb_query_extension_reply_t *ext;
     xcb_sync_initialize_reply_t *ver_reply;

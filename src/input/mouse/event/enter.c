@@ -43,7 +43,9 @@
 #include <surface.h>
 
 /* Local includes */
+#include <input/mouse/cursor.h>
 #include <input/mouse/event.h>
+#include <input/mouse/hover.h>
 #include <input/mouse/internal.h>
 
 
@@ -92,7 +94,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
      * directly on this client's own window (see 'client.c'), giving the
      * resize-cursor logic a second, independent chance to catch what
      * motion alone might have missed. */
-    entered = im_update_resize_cursor(connection, surfaces,
+    entered = mouse_resize_cursor_update(connection, surfaces,
             event->event,
             (struct position_s) { event->root_x, event->root_y });
 
@@ -103,7 +105,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
      * 'PointerMotion' may be just as intercepted as any other client's;
      * only a periodic poll (see 'mouse_hover_poll_tick') can still
      * catch that transition, so track it for one here. */
-    im_hover_track((entered != NULL && entered->frame == 0)
+    mouse_hover_track((entered != NULL && entered->frame == 0)
             ? event->event : XCB_WINDOW_NONE);
 
     if (event->detail == XCB_NOTIFY_DETAIL_INFERIOR) {

@@ -36,7 +36,6 @@
 
 /* Local includes */
 #include <cmds/client/focus.h>
-#include <cmds/client/internal.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
 
@@ -554,10 +553,10 @@ void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
  * (desktop membership, stacking list, @c desktop_id): unlike an
  * explicit desktop send (@a enact_desktop_client_send, @c enact/
  * desktop.c) or an EWMH one (@a hi_handle_net_wm_desktop,
- * @c handler/ewmhmsg.c), nothing here is visibly dragged across the
- * screen or needs its own unmap/remap dance for that part, since a
- * family member not already mapped on the desktop being looked at
- * was, by definition, not visible there to begin with.
+ * @c handler/ewmh.c), nothing here is visibly dragged across the screen
+ * or needs its own unmap/remap dance for that part, since a family
+ * member not already mapped on the desktop being looked at was, by
+ * definition, not visible there to begin with.
  *
  * @param client Client whose transient family to bring together;
  *               redirected to its own top-most ancestor first, the

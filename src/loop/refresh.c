@@ -32,6 +32,7 @@
 #include <logger.h>
 #include <surface.h>
 #include <wm.h>
+#include <wm/ewmh.h>
 
 /* Local includes */
 #include <loop/refresh.h>

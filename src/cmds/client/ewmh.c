@@ -28,7 +28,6 @@
 
 /* Local includes */
 #include <cmds/client/ewmh.h>
-#include <cmds/client/internal.h>
 #include <cmds/client/visibility.h>
 #include <utils/xcb/connection.h>
 

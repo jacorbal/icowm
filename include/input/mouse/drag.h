@@ -71,7 +71,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
  *        @a drag_start would infer from @p root_pos
  *
  * For @c _NET_WM_MOVERESIZE (see @a hi_handle_net_wm_moveresize in
- * @c handler/ewmhmsg.c).  The requesting client names which edge or
+ * @c handler/ewmh.c).  The requesting client names which edge or
  * corner it wants resized directly, rather than icowm inferring one
  * from where the pointer happens to be, since that position (wherever
  * the client's own custom resize grip was clicked) has no fixed

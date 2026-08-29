@@ -54,7 +54,6 @@
 #include <cmds/client/flags.h>
 #include <cmds/client/focus.h>
 #include <cmds/client/grab.h>
-#include <cmds/client/internal.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/maximize.h>
 #include <cmds/client/move.h>

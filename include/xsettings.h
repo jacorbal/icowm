@@ -29,18 +29,21 @@
 #include <types/handles.h>
 
 
-/** XSETTINGS setting-value type codes, per the specification */
-#define XS_TYPE_INTEGER (0u)
-#define XS_TYPE_STRING (1u)
+/* XSETTINGS setting-value type codes, per the specification */
+#define XS_TYPE_INTEGER (0u)    /**< XSETTINGS integer value code */
+#define XS_TYPE_STRING (1u)     /**< XSETTINGS string vaue code */
 
 /**
- * Byte-order code for a little-endian-encoded property (used
- * unconditionally in xsettings.c, since every byte there is written
- * explicitly least-significant-first, regardless of host endianness)
+ * @brief Byte-order code for a little-endian-encoded property
+ *
+ * Used unconditionally in @c xsettings.c, since every byte there is
+ * written explicitly least-significant-first, regardless of host
+ * endianness.
  */
 #define XS_BYTE_ORDER_LSB (0u)
 
 
+/* Public interface */
 /**
  * @brief Acquire the XSETTINGS selection and publish the settings
  *
@@ -76,6 +79,7 @@ void xsettings_shutdown(wm_td *wm);
  *
  * Reconciles the live manager with the just-reloaded
  * @c wm->config->theme.xsettings settings:
+ *
  * - Was enabled, now disabled: releases the selection right away,
  *   keeping the window itself (nothing to preserve on it besides the
  *   property, which simply becomes stale and unread once no client

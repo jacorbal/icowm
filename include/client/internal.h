@@ -33,51 +33,6 @@
 
 
 /**
- * @brief Retrieve the @c WM_NAME property of a window
- *
- * @param connection Pointer to the XCB connection
- * @param window     Window ID to query
- * @param buffer     Destination buffer
- * @param buffer_sz  Size of destination buffer
- *
- * @return Length of name on success, 0 otherwise
- */
-size_t ci_get_wm_name(xcb_connection_t *connection,
-        xcb_window_t window, char *buffer, size_t buffer_sz);
-
-/**
- * @brief Retrieve the @c _NET_WM_NAME property of a window (UTF-8)
- *
- * @param ewmh      Pointer to the EWMH connection
- * @param window    Window ID to query
- * @param buffer    Destination buffer
- * @param buffer_sz Size of destination buffer
- *
- * @return Length of name on success, 0 otherwise
- */
-size_t ci_get_net_wm_name(xcb_ewmh_connection_t *ewmh,
-        xcb_window_t window, char *buffer, size_t buffer_sz);
-
-/**
- * @brief Retrieve the @c WM_CLASS property of a window
- *
- * @param connection Pointer to the XCB connection
- * @param window     Window ID to query
- * @param class_buf  Buffer for the class name
- * @param class_sz   Size of @p class_buf
- * @param inst_buf   Buffer for the instance name (may be null)
- * @param inst_sz    Size of @p inst_buf (ignored when null)
- *
- * @return Status of the operation
- * @retval  0 on success
- * @retval -1 on failure
- */
-int ci_get_wm_class(xcb_connection_t *connection,
-        xcb_window_t window,
-        char *restrict class_buf, size_t class_sz,
-        char *restrict inst_buf, size_t inst_sz);
-
-/**
  * @brief Allocate and zero all heap string buffers for a client
  *
  * @param client Client to populate

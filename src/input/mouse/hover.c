@@ -12,7 +12,7 @@
  * its interior.  This periodic poll of one tracked window is the
  * fallback for both cases.
  *
- * @see @a im_hover_track's own comment for when it starts and stops
+ * @see @a mouse_hover_track's own comment for when it starts and stops
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -43,8 +43,9 @@
 #include <utils/time/clock.h>
 
 /* Local includes */
-#include <input/mouse/internal.h>
+#include <input/mouse/cursor.h>
 #include <input/mouse/hover.h>
+#include <input/mouse/internal.h>
 
 
 /**
@@ -52,9 +53,9 @@
  *       @a mouse_hover_poll_tick should keep re-evaluating, or
  *       @c XCB_WINDOW_NONE for none
  *
- * Set by @a im_hover_track, cleared by @a mouse_hover_poll_clear
+ * Set by @a mouse_hover_track, cleared by @a mouse_hover_poll_clear
  * (called from the @c LeaveNotify handler in @c loop.c) or the next
- * @a im_hover_track call for a window that does not itself warrant
+ * @a mouse_hover_track call for a window that does not itself warrant
  * tracking.  Tracked by window id rather than a @c client_td pointer
  * kept live across calls, so a client destroyed while still hovered
  * simply stops resolving in @a lookup_find_client on the next poll
@@ -121,7 +122,7 @@ void mouse_hover_poll_tick(xcb_connection_t *connection,
             xcb_query_pointer(connection, s_hover_window), NULL);
     if (reply != NULL) {
         if (reply->same_screen) {
-            (void) im_update_resize_cursor(connection, surfaces,
+            (void) mouse_resize_cursor_update(connection, surfaces,
                     s_hover_window,
                     (struct position_s) { reply->root_x,
                         reply->root_y });
@@ -141,14 +142,14 @@ void mouse_handle_motion_hover(xcb_connection_t *connection,
         return;
     }
 
-    (void) im_update_resize_cursor(connection, surfaces,
+    (void) mouse_resize_cursor_update(connection, surfaces,
             event->event,
             (struct position_s) { event->root_x, event->root_y });
 }
 
 
 /* Start (or clear) hover-poll tracking of a window's resize cursor */
-void im_hover_track(xcb_window_t window)
+void mouse_hover_track(xcb_window_t window)
 {
     s_hover_window = window;
     if (s_hover_window != XCB_WINDOW_NONE) {

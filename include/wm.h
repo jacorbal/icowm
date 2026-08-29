@@ -522,7 +522,7 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id);
  * resize on that client's acknowledgement.
  *
  * @return Status of the query
- * @retval  true when @a wm_startup_init_sync found XSync present and
+ * @retval  true when @a wm_startup_sync_init found XSync present and
  *               queryable
  * @retval false otherwise (including when the window manager is not
  *               initialized)
@@ -632,34 +632,6 @@ void wm_request_client_redraw(client_td *client);
  *       and @e m is the number of desktops per surface
  */
 void wm_request_full_redraw(void);
-
-/**
- * @brief Recompute and publish EWMH root properties
- *
- * Synchronizes core EWMH metadata for each managed screen, including
- * desktop counts, current desktop, workarea, client lists, and active
- * window.
- *
- * @param wm Window manager instance
- *
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       clients across all desktops
- */
-void wm_ewmh_sync(wm_td *wm);
-
-/**
- * @brief Initialize EWMH root support metadata
- *
- * Creates the supporting window and publishes @c _NET_SUPPORTED and
- * @c _NET_SUPPORTING_WM_CHECK properties.
- *
- * @param wm Window manager instance
- *
- * @return 0 on success, or non-zero on failure
- *
- * @note Complexity: @e O(1)
- */
-int wm_ewmh_init(const wm_td *wm);
 
 /**
  * @brief Set the emergency exit flag to @c true

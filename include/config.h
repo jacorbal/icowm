@@ -403,5 +403,45 @@ int config_load_randr(const char *filename,
 int config_load_a11y(const char *filename,
         struct config_a11y_s *config_a11y);
 
+/**
+ * @brief Settle a theme's own final display name
+ *
+ * Called once, right after attempting to load a theme file (whether
+ * that attempt succeeded, failed, or was never even made because no
+ * theme was named at all), so the answer to "was a theme actually
+ * loaded, and did it set its own name" is already known by the time
+ * this runs.
+ *
+ * Three cases, per own naming rule:
+ *
+ * - No theme file loaded at all (@p theme_file_name empty, or
+ *   @p theme_loaded @c false): @p theme's own @c name becomes literally
+ *   "Default (built-in)".
+ * - A theme file loaded, but it set no @c name of its own (@p theme's
+ *   own @c name field, as passed in, is still empty): @p theme's own
+ *   @c name becomes @p theme_file_name verbatim.
+ * - A theme file loaded and did set its own
+ *   @c ("name": "<theme_name>")'s own @c name becomes
+ *   "<that name> (<theme_file_name>)".
+ *
+ * @param theme           Theme structure whose own @c name this
+ *                        settles; its @c name field, as passed in, must
+ *                        already reflect whichever of the above it
+ *                        actually is (empty for the first two cases,
+ *                        whatever the file itself set for the third)
+ * @param theme_file_name The short name a theme was loaded under (e.g.,
+ *                        "default", the same string
+ *                        @c ("theme": "<this>") names in
+ *                        @c memguard.json/config.json, not a path or
+ *                        the @c .json extension), or null/empty if none
+ *                        was ever named at all
+ * @param theme_loaded    Whether @a config_load_theme actually
+ *                        succeeded for @p theme_file_name
+ *
+ * @note Complexity: @e O(1)
+ */
+void config_resolve_theme_name(struct config_theme_s *theme,
+        const char *theme_file_name, bool theme_loaded);
+
 
 #endif  /* ! CONFIG_H */

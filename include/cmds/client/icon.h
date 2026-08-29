@@ -19,7 +19,10 @@
 #define CMDS_CCMD_ICON_H
 
 
-/* Project includes */
+/* System includes */
+#include <stdint.h>
+
+/* Type includes */
 #include <types/handles.h>
 
 
@@ -55,6 +58,27 @@
  *       iconified clients on @p client's own current desktop
  */
 void ccmd_client_relocate_icon_if_taken(client_td *client);
+
+/**
+ * @brief Create the client's icon window if it does not exist yet, or
+ *        reposition the existing one at its saved coordinates
+ *
+ * A new window is placed either at the client's own remembered
+ * @c icon_x/icon_y (if any, and not since claimed by another icon) or
+ * via @c place_icon_apply otherwise, then created with the theme's
+ * inactive icon colors.  An already-existing icon window is simply
+ * re-configured to its saved position, which may have changed since
+ * if the user dragged it.
+ *
+ * @param client     Client whose icon window to create or reposition
+ * @param icon_h_out Icon window height, including the caption band if
+ *                   the theme captions icons
+ *
+ * @note Complexity: @e O(n), where @e n is the number of already-
+ *       iconified clients on the same desktop
+ */
+void ccmd_client_ensure_icon_window(client_td *client,
+        uint16_t icon_h_out);
 
 
 #endif  /* ! CMDS_CCMD_ICON_H */

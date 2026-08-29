@@ -119,5 +119,25 @@ void mouse_hover_poll_tick(xcb_connection_t *connection, list_td *surfaces);
 void mouse_handle_motion_hover(xcb_connection_t *connection,
         list_td *surfaces, xcb_motion_notify_event_t *event);
 
+/**
+ * @brief Start (or clear) hover-poll tracking of a window's resize
+ *        cursor
+ *
+ * Called from @a mouse_handle_enter whenever the pointer crosses into
+ * a window: an undecorated client has no separate frame to fall back
+ * on, so moving from its border to its interior happens entirely
+ * within one window, with no further @c EnterNotify for that
+ * transition to catch; periodic polling is the only way to still
+ * re-evaluate the cursor there.
+ *
+ * @param window Window to track, or @c XCB_WINDOW_NONE to stop
+ *               tracking (the common case: most entered windows do
+ *               not need this fallback at all)
+ *
+ * @see @a mouse_hover_poll_tick
+ * @note Complexity: @e O(1)
+ */
+void mouse_hover_track(xcb_window_t window);
+
 
 #endif  /* ! INPUT_MOUSE_HOVER_H */

@@ -27,7 +27,6 @@
 #include <wm.h>
 
 /* Local includes */
-#include <cmds/client/internal.h>
 #include <cmds/client/screen.h>
 #include <utils/xcb/connection.h>
 
@@ -46,7 +45,7 @@ xcb_window_t ccmd_target_win(client_td *client)
 
 
 /* Retrieve the pixel dimensions of the client's current screen */
-bool ccmd_screen_dim(client_td *client, uint16_t *restrict out_w,
+bool ccmd_screen_dim(const client_td *client, uint16_t *restrict out_w,
         uint16_t *restrict out_h)
 {
     xcb_screen_iterator_t iter;

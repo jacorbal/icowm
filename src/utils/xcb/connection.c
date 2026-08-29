@@ -25,7 +25,7 @@
 /**
  * @brief The connection this session talks to the server over
  *
- * One per session, opened by @a wm_init and closed by @a wm_destroy.
+ * One per session, opened by @a wm_start and closed by @a wm_stop.
  * Owned by neither this module nor anything that reads it here: this
  * only remembers where it is.
  */
@@ -36,7 +36,7 @@ static xcb_connection_t *s_connection = NULL;
  * @brief The EWMH connection built over the one above
  *
  * Set up once the atoms EWMH needs have been interned, and owned by
- * @a wm_init, which allocates and frees it.
+ * @a wm_start, which allocates and frees it.
  */
 static xcb_ewmh_connection_t *s_ewmh = NULL;
 

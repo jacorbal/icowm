@@ -35,9 +35,9 @@
  * an owner:
  *
  * - If it does not, the window this function creates for the purpose
- *   (shared across every screen, later reused by @a wm_ewmh_init,
- *   @c wm/ewmhinit.c, as the @c _NET_SUPPORTING_WM_CHECK window) is
- *   made the new owner directly.
+ *   (shared across every screen, later reused by
+ *   @a wm_startup_ewmh_init, @c wm/ewmhinit.c, as the
+ *   @c _NET_SUPPORTING_WM_CHECK window) is made the new owner directly.
  * - If it does, and @p replace_requested is @c false, this fails
  *   outright: two window managers are not meant to coexist on the
  *   same screen.

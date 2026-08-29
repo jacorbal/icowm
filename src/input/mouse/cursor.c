@@ -40,8 +40,8 @@
 
 /* Local includes */
 #include <input/mouse/bounds.h>
-#include <input/mouse/internal.h>
 #include <input/mouse/cursor.h>
+#include <input/mouse/internal.h>
 
 
 /**
@@ -275,7 +275,7 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  *
  * @note Complexity: @e O(1)
  */
-client_td *im_update_resize_cursor(xcb_connection_t *connection,
+client_td *mouse_resize_cursor_update(xcb_connection_t *connection,
         list_td *surfaces, xcb_window_t window,
         struct position_s root_pos)
 {

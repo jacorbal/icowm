@@ -19,7 +19,7 @@
  * which decides its signature for reasons that have nothing to do with
  * what it does.
  *
- * The connection is set once, by @a wm_init, and read from anywhere
+ * The connection is set once, by @a wm_start, and read from anywhere
  * after that.
  *
  * @defgroup xcbconn X server connection
@@ -45,10 +45,10 @@
 /**
  * @brief Record the connection this session talks to the server over
  *
- * @param connection Connection just opened; may be @c NULL to forget
- *                   the one held, which the shutdown path does
+ * @param connection Connection just opened; may be null to forget the
+ *                   one held, which the shutdown path does
  *
- * @note Called once, from @a wm_init, before anything else needs it
+ * @note Called once, from @a wm_start, before anything else needs it
  * @note Complexity: @e O(1)
  */
 void xcb_connection_set(xcb_connection_t *connection);
@@ -65,10 +65,10 @@ xcb_connection_t *xcb_connection_get(void);
 /**
  * @brief Record the EWMH connection built over the session's own
  *
- * @param ewmh EWMH connection just set up; may be @c NULL to forget
- *             the one held, which the shutdown path does
+ * @param ewmh EWMH connection just set up; may be null to forget the
+ *             one held, which the shutdown path does
  *
- * @note Called once, from @a wm_init, once its atoms have been
+ * @note Called once, from @a wm_start, once its atoms have been
  *       interned
  * @note Complexity: @e O(1)
  */

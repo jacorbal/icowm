@@ -5,8 +5,7 @@
  *
  * Defines the real @c wm_td structure (opaque everywhere else; see
  * @c wm.h's own accessor functions), and declares helpers shared by
- * more than one of @c wm/shutdown.c, @c wm/ewmhinit.c, and
- * @c wm/action.c.
+ * more than one of @c wm/shutdown.c, @c wm/ewmh.c, and @c wm/action.c.
  *
  * @note This header is private to the @c wm subsystem and must not be
  *       included outside of @c src/wm.c and @c src/wm/, for it is NOT
@@ -120,9 +119,9 @@ struct wm_s {
  * @brief Visit every currently managed client across every surface and
  *        desktop, optionally applying an action to each
  *
- * Shared by @c wm/shutdown.c and @c wm/ewmhinit.c, so both walk the
- * exact same enumeration instead of each keeping its own separate copy
- * of this traversal.
+ * Shared by @c wm/shutdown.c and @c wm/ewmh.c, so both walk the exact
+ * same enumeration instead of each keeping its own separate copy of
+ * this traversal.
  *
  * @param wm       Window manager instance
  * @param action   Called once per client found, with @p userdata passed
@@ -139,6 +138,18 @@ struct wm_s {
 uint32_t wm_for_each_client(const wm_td *wm,
         void (*action)(client_td *client,
             void *userdata), void *userdata);
+
+/**
+ * @brief Release every client, on every desktop of every managed
+ *        surface, back to bare X before this whole instance's own
+ *        teardown destroys the window manager's own resources
+ *
+ * @param wm Window manager instance
+ *
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       clients across every desktop of every managed surface
+ */
+void wm_all_clients_unmanage(const wm_td *wm);
 
 
 #endif  /* ! WM_INTERNAL_H */

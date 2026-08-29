@@ -68,7 +68,6 @@ static struct {
 } s_xs;
 
 
-
 /**
  * @brief Padded length of an XSETTINGS name/value byte string
  *

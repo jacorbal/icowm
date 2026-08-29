@@ -1,5 +1,5 @@
 /**
- * @file wm/ewmhinit.c
+ * @file wm/ewmh.c
  *
  * @brief Window manager EWMH initialization and synchronization
  */
@@ -22,32 +22,30 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
-/* ADT includes */
-#include <adt/cdlist.h>
-#include <adt/list.h>
-#include <adt/ohtbl.h>
-
 /* Utils includes */
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 
 /* Default initial values */
 #include <defs/ewmh.h>
 #include <defs/desktop.h>
 #include <defs/icon.h>
 
+/* Policy includes */
+#include <policy/stacking.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <policy/stacking.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
 
 /* Local includes */
 #include <wm.h>
+#include <wm/ewmh.h>
 #include <wm/internal.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -83,6 +81,246 @@ static void s_window_list_visit(client_td *client, void *data)
 
 
 /**
+ * @brief What @a s_desktop_name_measure_visit is adding up
+ */
+struct s_name_measure_ctx_s {
+    size_t *total;      /**< Running byte count, terminators included */
+    uint32_t index;     /**< Which desktop this is, for a fallback */
+};
+
+
+/**
+ * @brief Add the room one desktop's own name needs
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_name_measure_ctx_s being added to
+ *
+ * @note A desktop with no name of its own is counted as the fallback
+ *       that will be published for it, so the two walks agree
+ * @note Complexity: @e O(n), where @e n is the length of the name
+ */
+static void s_desktop_name_measure_visit(desktop_td *desktop, void *data)
+{
+    struct s_name_measure_ctx_s *const ctx = data;
+    const uint32_t this_index = (ctx != NULL) ? ctx->index : 0u;
+
+    if (ctx == NULL) {
+        return;
+    }
+
+    ctx->index++;
+    if (desktop->name[0] != '\0') {
+        *ctx->total += safe_strlen(desktop->name) + 1u;
+    } else {
+        char fallback_name[32];
+        const int written = snprintf(fallback_name,
+                sizeof(fallback_name), "Desktop %u", this_index + 1u);
+
+        if (written > 0) {
+            *ctx->total += (size_t) written + 1u;
+        }
+    }
+}
+
+
+/**
+ * @brief What @a s_desktop_name_write_visit is filling in
+ */
+struct s_name_write_ctx_s {
+    char *out;          /**< Null-separated buffer being written */
+    size_t capacity;    /**< Its size, in bytes */
+    size_t *offset;     /**< How much of it is written so far */
+    uint32_t index;     /**< Which desktop this is, for a fallback */
+};
+
+
+/**
+ * @brief Write one desktop's own name into the list
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_name_write_ctx_s being filled
+ *
+ * @note A name that would not fit is left out rather than truncated,
+ *       and so is every one after it
+ * @note Complexity: @e O(n), where @e n is the length of the name
+ */
+static void s_desktop_name_write_visit(desktop_td *desktop, void *data)
+{
+    struct s_name_write_ctx_s *const ctx = data;
+    const uint32_t this_index = (ctx != NULL) ? ctx->index : 0u;
+    char fallback_name[32];
+    const char *name;
+    size_t name_len;
+
+    if (ctx == NULL) {
+        return;
+    }
+
+    ctx->index++;
+    if (desktop->name[0] != '\0') {
+        name = desktop->name;
+    } else {
+        const int written = snprintf(fallback_name,
+                sizeof(fallback_name), "Desktop %u", this_index + 1u);
+
+        if (written <= 0) {
+            return;
+        }
+        fallback_name[sizeof(fallback_name) - 1u] = '\0';
+        name = fallback_name;
+    }
+
+    name_len = safe_strlen(name);
+    if (*ctx->offset + name_len + 1u > ctx->capacity) {
+        return;
+    }
+
+    memcpy(ctx->out + *ctx->offset, name, name_len + 1u);
+    *ctx->offset += name_len + 1u;
+}
+
+
+/**
+ * @brief Note one desktop's clients in stacking order
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_window_list_ctx_s being filled
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_stacking_collect_visit(desktop_td *desktop, void *data)
+{
+    stacking_walk(desktop, s_window_list_visit, data);
+}
+
+
+/** Published for a client that is on every desktop */
+static const uint32_t s_desktop_id_all = WM_DESKTOP_ID_ALL;
+
+
+/**
+ * @brief What @a s_workarea_collect_visit is filling in
+ */
+struct s_workarea_ctx_s {
+    xcb_ewmh_geometry_t *out;   /**< Array being filled, one each */
+    uint32_t count;             /**< How many are written so far */
+};
+
+
+/**
+ * @brief Note one desktop's own workarea
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_workarea_ctx_s being filled
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_workarea_collect_visit(desktop_td *desktop, void *data)
+{
+    struct s_workarea_ctx_s *const ctx = data;
+
+    if (ctx == NULL) {
+        return;
+    }
+
+    ctx->out[ctx->count].x = (desktop->workarea.pos.x > 0)
+        ? (uint32_t) desktop->workarea.pos.x
+        : 0u;
+    ctx->out[ctx->count].y = (desktop->workarea.pos.y > 0)
+        ? (uint32_t) desktop->workarea.pos.y
+        : 0u;
+    ctx->out[ctx->count].width = desktop->workarea.dim.w;
+    ctx->out[ctx->count].height = desktop->workarea.dim.h;
+    ctx->count++;
+}
+
+
+/**
+ * @brief Add one desktop's client count to a running total
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    Pointer to the @c uint32_t total
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_count_visit(desktop_td *desktop, void *data)
+{
+    size_t *const total = data;
+
+    if (total == NULL) {
+        return;
+    }
+
+    *total += stacking_count(desktop);
+}
+
+
+/**
+ * @brief What @a s_client_list_visit is filling in
+ */
+struct s_client_list_ctx_s {
+    xcb_window_t *out;      /**< Array of window IDs being built */
+    size_t capacity;        /**< How many it holds */
+    size_t count;           /**< How many have been put in so far */
+    uint32_t desktop_id;    /**< Desktop the walk is now on */
+};
+
+
+/**
+ * @brief Note one client, and tell it which desktop it is on
+ *
+ * @param client Client reached by the walk
+ * @param data   The @c s_client_list_ctx_s being filled
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_list_one_visit(client_td *client, void *data)
+{
+    struct s_client_list_ctx_s *const ctx = data;
+
+    if (ctx == NULL || client->window == XCB_NONE ||
+            ctx->count >= ctx->capacity) {
+        return;
+    }
+
+    ctx->out[ctx->count] = client->window;
+    ctx->count++;
+
+    /* Published here so taskbars and pagers can associate each window
+     * with the desktop it is actually on */
+    xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
+            client->window,
+            xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
+            XCB_ATOM_CARDINAL, 32, 1,
+            (client->properties.flags & CLIENT_FLAG_PIN)
+                ? &s_desktop_id_all : &ctx->desktop_id);
+}
+
+
+/**
+ * @brief Note one desktop's own clients, and tell each which it is on
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_client_list_ctx_s being filled
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_client_list_visit(desktop_td *desktop, void *data)
+{
+    struct s_client_list_ctx_s *const ctx = data;
+
+    if (ctx == NULL) {
+        return;
+    }
+
+    ctx->desktop_id = desktop->id;
+    stacking_walk(desktop, s_client_list_one_visit, ctx);
+}
+
+
+/**
  * @brief Compute and publish @c _NET_WORKAREA for one managed surface
  *
  * Builds an array of workarea rectangles, one per desktop on the given
@@ -96,9 +334,8 @@ static void s_window_list_visit(client_td *client, void *data)
  */
 static void s_wm_sync_workarea(surface_td *surface)
 {
+    struct s_workarea_ctx_s workarea_ctx;
     xcb_ewmh_geometry_t *workareas;
-    cdlist_item_td *dnode;
-    uint32_t did = 0u;
 
     if (surface == NULL || xcb_ewmh_connection_get() == NULL ||
             surface->desktop_count == 0) {
@@ -111,28 +348,10 @@ static void s_wm_sync_workarea(surface_td *surface)
         return;
     }
 
-    cdlist_foreach(surface->desktops, dnode) {
-        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-        const uint32_t this_did = did;
-
-        ++did;
-        if (desktop == NULL) {
-            workareas[this_did].x = 0u;
-            workareas[this_did].y = 0u;
-            workareas[this_did].width = surface->properties.dim.w;
-            workareas[this_did].height = surface->properties.dim.h;
-            continue;
-        }
-
-        workareas[this_did].x = (desktop->workarea.pos.x > 0)
-            ? (uint32_t) desktop->workarea.pos.x
-            : 0u;
-        workareas[this_did].y = (desktop->workarea.pos.y > 0)
-            ? (uint32_t) desktop->workarea.pos.y
-            : 0u;
-        workareas[this_did].width = desktop->workarea.dim.w;
-        workareas[this_did].height = desktop->workarea.dim.h;
-    }
+    workarea_ctx.out = workareas;
+    workarea_ctx.count = 0u;
+    surface_desktops_walk(surface, s_workarea_collect_visit,
+            &workarea_ctx);
 
     xcb_ewmh_set_workarea(xcb_ewmh_connection_get(), (int) surface->id,
             (uint32_t) surface->desktop_count, workareas);
@@ -190,27 +409,23 @@ static void s_wm_sync_desktop_layout(surface_td *surface)
  */
 static void s_wm_sync_client_lists(surface_td *surface)
 {
+    struct s_client_list_ctx_s client_ctx;
+    struct s_window_list_ctx_s stack_ctx;
     size_t total_clients = 0u;
     size_t idx = 0u;
     xcb_window_t *client_list;
     xcb_window_t *stacking_list;
-    cdlist_item_td *dnode;
 
     if (surface == NULL || xcb_ewmh_connection_get() == NULL) {
         return;
     }
 
-    cdlist_foreach(surface->desktops, dnode) {
-        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-
-        if (desktop != NULL && desktop->clients != NULL) {
-            total_clients += ohtbl_size(desktop->clients);
-        }
-    }
+    surface_desktops_walk(surface, s_client_count_visit,
+            &total_clients);
 
     if (total_clients == 0u) {
-        xcb_ewmh_set_client_list(xcb_ewmh_connection_get(), (int) surface->id,
-                0u, NULL);
+        xcb_ewmh_set_client_list(xcb_ewmh_connection_get(),
+                (int) surface->id, 0u, NULL);
         xcb_ewmh_set_client_list_stacking(xcb_ewmh_connection_get(),
                 (int) surface->id, 0u, NULL);
         return;
@@ -224,48 +439,21 @@ static void s_wm_sync_client_lists(surface_td *surface)
         return;
     }
 
-    cdlist_foreach(surface->desktops, dnode) {
-        void *elem;
-        uint32_t did_prop;
-        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
+    client_ctx.out = client_list;
+    client_ctx.capacity = total_clients;
+    client_ctx.count = 0u;
+    surface_desktops_walk(surface, s_client_list_visit, &client_ctx);
+    idx = client_ctx.count;
 
-        if (desktop == NULL || desktop->clients == NULL) {
-            continue;
-        }
-
-        ohtbl_foreach(desktop->clients, elem) {
-            client_td *client = (client_td *) elem;
-
-            if (client->window != XCB_NONE && idx < total_clients) {
-                client_list[idx++] = client->window;
-
-                /* Publish '_NET_WM_DESKTOP' so taskbars and pagers can
-                 * associate each window with the correct desktop */
-                did_prop = (client->properties.flags & CLIENT_FLAG_PIN)
-                    ? WM_DESKTOP_ID_ALL : desktop->id;
-                xcb_change_property(xcb_connection_get(),
-                        XCB_PROP_MODE_REPLACE,
-                        client->window,
-                        xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
-                        XCB_ATOM_CARDINAL, 32, 1, &did_prop);
-            }
-        } /* ! ohtbl_foreach */
-    }
-
-    xcb_ewmh_set_client_list(xcb_ewmh_connection_get(), (int) surface->id,
+    xcb_ewmh_set_client_list(xcb_ewmh_connection_get(),
+            (int) surface->id,
             (uint32_t) idx, client_list);
 
     idx = 0u;
-    cdlist_foreach(surface->desktops, dnode) {
-        const desktop_td *const desktop =
-            (desktop_td *) cdlist_data(dnode);
-        struct s_window_list_ctx_s list_ctx;
-
-        list_ctx.out = stacking_list;
-        list_ctx.capacity = total_clients;
-        list_ctx.count = &idx;
-        stacking_walk(desktop, s_window_list_visit, &list_ctx);
-    }
+    stack_ctx.out = stacking_list;
+    stack_ctx.capacity = total_clients;
+    stack_ctx.count = &idx;
+    surface_desktops_walk(surface, s_stacking_collect_visit, &stack_ctx);
 
     xcb_ewmh_set_client_list_stacking(xcb_ewmh_connection_get(),
             (int) surface->id, (uint32_t) idx, stacking_list);
@@ -286,10 +474,10 @@ static void s_wm_sync_client_lists(surface_td *surface)
 static void s_wm_sync_desktop_names(surface_td *surface)
 {
     size_t names_len;
+    struct s_name_measure_ctx_s measure_ctx;
+    struct s_name_write_ctx_s write_ctx;
     size_t offset;
     char *names;
-    cdlist_item_td *dnode;
-    uint32_t did;
 
     if (surface == NULL || xcb_ewmh_connection_get() == NULL ||
             surface->desktop_count == 0u) {
@@ -297,25 +485,10 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     }
 
     names_len = 0u;
-    did = 0u;
-    cdlist_foreach(surface->desktops, dnode) {
-        const desktop_td *const desktop =
-            (const desktop_td *) cdlist_data(dnode);
-        const uint32_t this_did = did;
-
-        ++did;
-        if (desktop != NULL && desktop->name[0] != '\0') {
-            names_len += safe_strlen(desktop->name) + 1u;
-        } else {
-            char fallback_name[32];
-            int written = snprintf(fallback_name, sizeof(fallback_name),
-                    "Desktop %u", this_did + 1u);
-            if (written <= 0) {
-                continue;
-            }
-            names_len += (size_t) written + 1u;
-        }
-    }
+    measure_ctx.total = &names_len;
+    measure_ctx.index = 0u;
+    surface_desktops_walk(surface, s_desktop_name_measure_visit,
+            &measure_ctx);
 
     if (names_len == 0u || names_len > UINT32_MAX) {
         return;
@@ -327,39 +500,16 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     }
 
     offset = 0u;
-    did = 0u;
-    cdlist_foreach(surface->desktops, dnode) {
-        const char *name;
-        size_t name_len;
-        desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-        char fallback_name[32];
-        const uint32_t this_did = did;
-
-        ++did;
-        if (desktop != NULL && desktop->name[0] != '\0') {
-            name = desktop->name;
-        } else {
-            int written = snprintf(fallback_name, sizeof(fallback_name),
-                    "Desktop %u", this_did + 1u);
-            if (written <= 0) {
-                continue;
-            }
-            fallback_name[sizeof(fallback_name) - 1u] = '\0';
-            name = fallback_name;
-        }
-
-        name_len = safe_strlen(name);
-        if (offset + name_len + 1u > names_len) {
-            break;
-        }
-
-        memcpy(names + offset, name, name_len + 1u);
-        offset += name_len + 1u;
-    }
+    write_ctx.out = names;
+    write_ctx.capacity = names_len;
+    write_ctx.offset = &offset;
+    write_ctx.index = 0u;
+    surface_desktops_walk(surface, s_desktop_name_write_visit,
+            &write_ctx);
 
     if (offset > 0u) {
-        xcb_ewmh_set_desktop_names(xcb_ewmh_connection_get(), (int) surface->id,
-                (uint32_t) offset, names);
+        xcb_ewmh_set_desktop_names(xcb_ewmh_connection_get(),
+                (int) surface->id, (uint32_t) offset, names);
     }
     free(names);
 }
@@ -543,7 +693,8 @@ void wm_ewmh_sync(wm_td *wm)
                 (int) surface->id, surface->desktop_count);
         xcb_ewmh_set_current_desktop(xcb_ewmh_connection_get(),
                 (int) surface->id, surface->desktop_cur);
-        xcb_ewmh_set_desktop_geometry(xcb_ewmh_connection_get(), (int) surface->id,
+        xcb_ewmh_set_desktop_geometry(xcb_ewmh_connection_get(),
+                (int) surface->id,
                 surface->properties.dim.w, surface->properties.dim.h);
         viewport = calloc(surface->desktop_count,
                 sizeof(xcb_ewmh_coordinates_t));
@@ -564,9 +715,10 @@ void wm_ewmh_sync(wm_td *wm)
             }
         }
 
-        xcb_ewmh_set_active_window(xcb_ewmh_connection_get(), (int) surface->id,
-                active);
-        xcb_ewmh_set_showing_desktop(xcb_ewmh_connection_get(), (int) surface->id,
+        xcb_ewmh_set_active_window(xcb_ewmh_connection_get(),
+                (int) surface->id, active);
+        xcb_ewmh_set_showing_desktop(xcb_ewmh_connection_get(),
+                (int) surface->id,
                 (surface->is_showing_desktop) ? 1u : 0u);
         s_wm_sync_desktop_names(surface);
         s_wm_sync_desktop_layout(surface);

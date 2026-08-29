@@ -175,7 +175,7 @@ static void s_warp_move_family(desktop_td *old_desktop,
      * (a "save changes?" prompt still open on it, say, or the parent
      * window it belongs to) moves along with it here too, the same
      * way 'enact_desktop_client_send' and 'hi_handle_net_wm_desktop'
-     * (enact/desktop.c, handler/ewmhmsg.c) already keep a family
+     * ('enact/desktop.c', 'handler/ewmh.c') already keep a family
      * together across an explicit desktop send; a warp is just
      * another way for a client to end up on a different desktop, and
      * should not strand the rest of its family behind on the old one.
