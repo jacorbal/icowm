@@ -514,6 +514,58 @@ static void s_entry_command(ctxmenu_entry_td *e, const char *label,
 
 
 /**
+ * @brief What @a s_desktop_entry_visit is building
+ */
+struct s_desk_entry_ctx_s {
+    client_td *client;              /**< Client the entries send */
+    desktop_td *current;            /**< Desktop it is on already */
+    const surface_td *surface;      /**< Surface being offered */
+    uint32_t count;                 /**< Entries built so far */
+    uint32_t index;                 /**< Desktop index reached */
+};
+
+
+/**
+ * @brief Build one desktop's own "send there" entry
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_desk_entry_ctx_s being built
+ *
+ * @note Stops building once the menu is full, the whole walk still
+ *       running: a visitor has no way to end one
+ * @note Complexity: @e O(1)
+ */
+static void s_desktop_entry_visit(desktop_td *desktop, void *data)
+{
+    struct s_desk_entry_ctx_s *const ctx = data;
+    char label[WM_DESKTOP_MAX_LENGTH_NAME + 64];
+    uint32_t n;
+
+    if (ctx == NULL || ctx->count >= WINCMENU_MAX_DESKTOPS) {
+        return;
+    }
+
+    n = ctx->count;
+    surface_desktop_label(ctx->surface, ctx->index, desktop->name,
+            false, true, label, sizeof(label));
+    (void) snprintf(s_desk_entries[n].label,
+            sizeof(s_desk_entries[n].label), "%s%s%s",
+            MENU_CONTEXT_CTXMENU_LABEL_PREFIX, label,
+            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+
+    s_desk_entries[n].type = CTXMENU_COMMAND;
+    s_desk_entries[n].is_disabled = (desktop->id == ctx->current->id);
+    s_send_data[n].client = ctx->client;
+    s_send_data[n].src = ctx->current;
+    s_send_data[n].dst = desktop;
+    s_desk_entries[n].on_activate = s_cb_send_to_desktop;
+    s_desk_entries[n].userdata = &s_send_data[n];
+    ctx->count++;
+    ctx->index++;
+}
+
+
+/**
  * @brief Build the "Send to desktop" submenu entries
  *
  * @param surface Surface that owns the desktops
@@ -529,82 +581,19 @@ static void s_entry_command(ctxmenu_entry_td *e, const char *label,
 static int s_build_desk_entries(surface_td *surface,
         desktop_td *desktop, client_td *client)
 {
-    int n = 0;
-    uint32_t d_idx = 0;
-    cdlist_item_td *dnode;
-    bool is_cur;
+    struct s_desk_entry_ctx_s desk_ctx;
+    int n;
     bool is_sticky;
-    uint32_t row;
-    uint32_t col;
-    bool has_row_col;
-    bool show_row_col;
 
     is_sticky = (client->properties.flags & CLIENT_FLAG_PIN) != 0u;
-    show_row_col = surface->config != NULL &&
-        surface->id < (uint32_t) CONFIG_MAX_SCREENS &&
-        surface->config->base.screens[surface->id]
-            .desktop_layout.rows > 1u;
 
-    cdlist_foreach(surface->desktops, dnode) {
-        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
-
-        if (n >= WINCMENU_MAX_DESKTOPS) {
-            break;
-        }
-        if (d == NULL) {
-            ++d_idx;
-            continue;
-        }
-        is_cur = (d->id == desktop->id);
-        row = 0u;
-        col = 0u;
-        has_row_col = show_row_col &&
-            surface_desktop_row_col(surface, d_idx, &row, &col);
-
-        if (d->name[0] != '\0') {
-            if (has_row_col) {
-                (void) snprintf(s_desk_entries[n].label,
-                        sizeof(s_desk_entries[n].label),
-                        "%s[%u (%u, %u)] -- %s%s",
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        d_idx, row, col, d->name,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-            } else {
-                (void) snprintf(s_desk_entries[n].label,
-                        sizeof(s_desk_entries[n].label),
-                        "%s[%u] -- %s%s",
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        d_idx, d->name,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-            }
-        } else {
-            if (has_row_col) {
-                (void) snprintf(s_desk_entries[n].label,
-                        sizeof(s_desk_entries[n].label),
-                        "%s[%u (%u, %u)]%s",
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        d_idx, row, col,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-            } else {
-                (void) snprintf(s_desk_entries[n].label,
-                        sizeof(s_desk_entries[n].label),
-                        "%s[%u]%s",
-                        MENU_CONTEXT_CTXMENU_LABEL_PREFIX,
-                        d_idx,
-                        MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-            }
-        }
-
-        s_desk_entries[n].type = CTXMENU_COMMAND;
-        s_desk_entries[n].is_disabled = is_cur;
-        s_send_data[n].client = client;
-        s_send_data[n].src = desktop;
-        s_send_data[n].dst = d;
-        s_desk_entries[n].on_activate = s_cb_send_to_desktop;
-        s_desk_entries[n].userdata = &s_send_data[n];
-        ++n;
-        ++d_idx;
-    }
+    desk_ctx.client = client;
+    desk_ctx.current = desktop;
+    desk_ctx.surface = surface;
+    desk_ctx.count = 0u;
+    desk_ctx.index = 0u;
+    surface_desktops_walk(surface, s_desktop_entry_visit, &desk_ctx);
+    n = (int) desk_ctx.count;
 
     /* Separates the numbered-desktop entries above from the pin/unpin
      * one below, only when there actually are any: with none (an

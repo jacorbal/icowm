@@ -52,6 +52,39 @@
 #include <policy/urgency.h>
 
 
+/**
+ * @brief Link-only stand-in for @a surface_desktops_walk
+ *
+ * Walks the surface's own list here rather than linking
+ * @c surface/desktops.c, which would bring a desktop's whole teardown
+ * along with it and clash with this file's own stand-ins.
+ *
+ * @param surface Surface whose desktops to visit
+ * @param visit   Called once per desktop
+ * @param data    Handed to @p visit untouched
+ *
+ * @note Complexity: @e O(n), where @e n is the number of desktops on
+ *       @p surface
+ */
+void surface_desktops_walk(const surface_td *surface,
+        surface_desktop_visitor_fn visit, void *data)
+{
+    cdlist_item_td *node;
+
+    if (surface == NULL || surface->desktops == NULL || visit == NULL) {
+        return;
+    }
+
+    cdlist_foreach(surface->desktops, node) {
+        desktop_td *const desktop = (desktop_td *) cdlist_data(node);
+
+        if (desktop != NULL) {
+            visit(desktop, data);
+        }
+    }
+}
+
+
 static desktop_td *s_desktops_by_id[4];
 
 desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)

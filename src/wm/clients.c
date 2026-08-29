@@ -139,49 +139,74 @@ static void s_client_unmanage_visit(client_td *client, void *data)
 }
 
 
+/**
+ * @brief What @a s_client_action_visit is counting and calling
+ */
+struct s_client_action_ctx_s {
+    void (*action)(client_td *client, void *userdata);
+                            /**< Called per client; may be @c NULL */
+    void *userdata;         /**< Handed to @p action untouched */
+    uint32_t count;         /**< How many clients have been reached */
+};
+
+
+/**
+ * @brief Reach every client one desktop shows
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_client_action_ctx_s being carried
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_client_action_visit(desktop_td *desktop, void *data)
+{
+    struct s_client_action_ctx_s *const ctx = data;
+    void *elem;
+
+    if (ctx == NULL || desktop->clients == NULL) {
+        return;
+    }
+
+    ohtbl_foreach(desktop->clients, elem) {
+        client_td *const client = (client_td *) elem;
+
+        if (client != NULL) {
+            ctx->count++;
+            if (ctx->action != NULL) {
+                ctx->action(client, ctx->userdata);
+            }
+        }
+    }
+}
+
+
 /* Visit every managed client, on every surface and desktop */
 uint32_t wm_for_each_client(const wm_td *wm,
         void (*action)(client_td *client,
             void *userdata), void *userdata)
 {
-    uint32_t count = 0u;
-    list_td *surfaces = wm_surfaces(wm);
+    struct s_client_action_ctx_s ctx;
+    list_td *const surfaces = wm_surfaces(wm);
 
     if (surfaces == NULL) {
         return 0u;
     }
 
+    ctx.action = action;
+    ctx.userdata = userdata;
+    ctx.count = 0u;
+
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
         const surface_td *const surface = (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
 
-        if (surface == NULL) {
-            continue;
-        }
-
-        cdlist_foreach(surface->desktops, dnode) {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-            void *elem;
-
-            if (desktop == NULL || desktop->clients == NULL) {
-                continue;
-            }
-
-            ohtbl_foreach(desktop->clients, elem) {
-                client_td *const client = (client_td *) elem;
-
-                if (client != NULL) {
-                    ++count;
-                    if (action != NULL) {
-                        action(client, userdata);
-                    }
-                }
-            }
+        if (surface != NULL) {
+            surface_desktops_walk(surface, s_client_action_visit, &ctx);
         }
     }
 
-    return count;
+    return ctx.count;
 }
 
 

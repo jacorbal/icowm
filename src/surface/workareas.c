@@ -35,27 +35,40 @@
 #include <surface.h>
 
 
-/* Recompute the work area for every desktop on a surface */
-void surface_refresh_workareas(surface_td *surface)
+/**
+ * @brief Recompute one desktop's own work area
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The surface it belongs to
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients
+ *       reserving space on @p desktop
+ */
+static void s_workarea_update_visit(desktop_td *desktop, void *data)
 {
-    cdlist_item_td *dnode;
+    const surface_td *const surface = data;
 
     if (surface == NULL) {
         return;
     }
 
-    cdlist_foreach(surface->desktops, dnode) {
-        desktop_td *const d = (desktop_td *) cdlist_data(dnode);
+    desktop_update_workarea(desktop, surface,
+            (surface->config != NULL)
+                ? &surface->config->desktops : NULL,
+            systray_get_reserved_strut(surface),
+            surface->strutless_maximize);
+}
 
-        if (d != NULL) {
-            desktop_update_workarea(d,
-                    surface,
-                    (surface->config != NULL)
-                        ? &((surface->config)->desktops) : NULL,
-                    systray_get_reserved_strut(surface),
-                    surface->strutless_maximize);
-        }
+
+/* Recompute the work area for every desktop on a surface */
+void surface_refresh_workareas(surface_td *surface)
+{
+
+    if (surface == NULL) {
+        return;
     }
+
+    surface_desktops_walk(surface, s_workarea_update_visit, surface);
 
     /* Every path that recomputes a surface's own work areas (an
      * XRandR resolution change, a dock or panel appearing or

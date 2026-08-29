@@ -34,6 +34,23 @@
 #include <wm/internal.h>
 
 
+/**
+ * @brief Link-only stand-in for @a desktop_destroy
+ *
+ * Reached only through @c surface/desktops.c's own teardown, which
+ * nothing here calls: linking the real one would pull in the whole of
+ * a desktop's own machinery for a walk over a list.
+ *
+ * @param desktop Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+void desktop_destroy(desktop_td *desktop)
+{
+    (void) desktop;
+}
+
+
 /** This file owns the one real wm_td instance, passed explicitly to
  *  every wm_for_each_client call below */
 wm_td *wm = NULL;

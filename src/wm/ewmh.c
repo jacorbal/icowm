@@ -25,19 +25,16 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
-#include <utils/xcb/connection.h>
 
 /* Default initial values */
 #include <defs/ewmh.h>
 #include <defs/desktop.h>
 #include <defs/icon.h>
 
-/* Policy includes */
-#include <policy/stacking.h>
-
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <policy/stacking.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
@@ -45,7 +42,9 @@
 /* Local includes */
 #include <wm.h>
 #include <wm/ewmh.h>
+#include <wm/ewmh.h>
 #include <wm/internal.h>
+#include <utils/xcb/connection.h>
 
 
 /**
@@ -56,6 +55,10 @@ struct s_window_list_ctx_s {
     size_t capacity;        /**< How many it holds */
     size_t *count;          /**< How many have been put in so far */
 };
+
+
+/** Published for a client that is on every desktop */
+static const uint32_t s_desktop_id_all = WM_DESKTOP_ID_ALL;
 
 
 /**
@@ -193,10 +196,6 @@ static void s_stacking_collect_visit(desktop_td *desktop, void *data)
 {
     stacking_walk(desktop, s_window_list_visit, data);
 }
-
-
-/** Published for a client that is on every desktop */
-static const uint32_t s_desktop_id_all = WM_DESKTOP_ID_ALL;
 
 
 /**

@@ -82,6 +82,49 @@ wm_td *wm = NULL;   /**< Singleton window manager instance */
 
 
 /**
+ * @brief What @a s_desktop_match_visit is looking for
+ */
+struct s_desktop_match_ctx_s {
+    const desktop_td *wanted;   /**< Desktop being looked for */
+    bool is_found;              /**< Whether this surface holds it */
+};
+
+
+/**
+ * @brief Note whether this is the desktop being looked for
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_desktop_match_ctx_s being answered
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_desktop_match_visit(desktop_td *desktop, void *data)
+{
+    struct s_desktop_match_ctx_s *const ctx = data;
+
+    if (ctx != NULL && desktop == ctx->wanted) {
+        ctx->is_found = true;
+    }
+}
+
+
+/**
+ * @brief Mark one desktop as needing a redraw
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_desktop_outdate_visit(desktop_td *desktop, void *data)
+{
+    (void) data;
+
+    desktop_mark_outdated(desktop);
+}
+
+
+/**
  * @brief Release every initialized window-manager subsystem
  *
  * Frees only the members that were successfully initialized so it can
@@ -783,6 +826,7 @@ list_td *wm_get_surfaces(void)
 /* Find which managed surface a given desktop belongs to */
 surface_td *wm_get_desktop_surface(const desktop_td *desktop)
 {
+    struct s_desktop_match_ctx_s found_ctx;
     if (desktop == NULL || wm == NULL || wm->surfaces == NULL) {
         return NULL;
     }
@@ -790,15 +834,16 @@ surface_td *wm_get_desktop_surface(const desktop_td *desktop)
     for (list_item_td *snode = list_head(wm->surfaces); snode != NULL;
             snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
         }
-        cdlist_foreach(surface->desktops, dnode) {
-            if ((const desktop_td *) cdlist_data(dnode) == desktop) {
-                return surface;
-            }
+        found_ctx.wanted = desktop;
+        found_ctx.is_found = false;
+        surface_desktops_walk(surface, s_desktop_match_visit,
+                &found_ctx);
+        if (found_ctx.is_found) {
+            return surface;
         }
     }
 
@@ -866,7 +911,6 @@ void wm_request_full_redraw(void)
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
@@ -874,9 +918,7 @@ void wm_request_full_redraw(void)
 
         surface->is_outdated = true;
 
-        cdlist_foreach(surface->desktops, dnode) {
-            desktop_mark_outdated((desktop_td *) cdlist_data(dnode));
-        }
+        surface_desktops_walk(surface, s_desktop_outdate_visit, NULL);
     } /* ! for (snode) */
 }
 

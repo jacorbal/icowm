@@ -60,13 +60,87 @@ static int32_t s_client_colormap_window_index(const client_td *client,
 }
 
 
+/**
+ * @brief What @a s_colormap_update_visit is looking for and doing
+ */
+struct s_colormap_ctx_s {
+    const xcb_colormap_notify_event_t *event;
+                            /**< Notification being acted on */
+    xcb_connection_t *connection;   /**< Connection to install over */
+    bool is_done;           /**< Whether the owning client was found */
+};
+
+
+/**
+ * @brief Update the client on this desktop that owns the named window
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_colormap_ctx_s being carried
+ *
+ * @note Stops acting once the owner is found, the whole walk still
+ *       running: a visitor has no way to end one
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_colormap_update_visit(desktop_td *desktop, void *data)
+{
+    struct s_colormap_ctx_s *const ctx = data;
+    void *elem;
+
+    if (ctx == NULL || ctx->is_done || desktop->clients == NULL) {
+        return;
+    }
+
+    ohtbl_foreach(desktop->clients, elem) {
+        client_td *const client = (client_td *) elem;
+        int32_t idx;
+        xcb_colormap_t new_id;
+
+        if (client == NULL) {
+            continue;
+        }
+
+        idx = s_client_colormap_window_index(client,
+                ctx->event->window);
+        if (idx < 0) {
+            continue;
+        }
+
+        new_id = (ctx->event->state == XCB_COLORMAP_STATE_INSTALLED)
+            ? ctx->event->colormap : (xcb_colormap_t) XCB_NONE;
+        client->colormap_windows.colormap_ids[idx] = new_id;
+
+        /* Only the currently focused client's own colormaps are
+         * actually installed anywhere ('ccmd_client_focus',
+         * cmds/client/focus.c); for any other client this cached
+         * update is all there is to do until it is focused again.
+         * Installs the single updated one directly here rather than
+         * calling that function again, which would also re-send
+         * 'WM_TAKE_FOCUS' and clear urgency, neither warranted by a
+         * colormap attribute change alone. */
+        if (client_is_focused(client) &&
+                new_id != (xcb_colormap_t) XCB_NONE) {
+            xcb_install_colormap(ctx->connection, new_id);
+        }
+        ctx->is_done = true;
+        return;
+    }
+}
+
+
 /* Handle a 'COLORMAP_NOTIFY' event */
 void handler_colormap_notify(xcb_connection_t *connection,
         list_td *surfaces, const xcb_colormap_notify_event_t *event)
 {
+    struct s_colormap_ctx_s ctx;
+
     if (event == NULL || surfaces == NULL) {
         return;
     }
+
+    ctx.event = event;
+    ctx.connection = connection;
+    ctx.is_done = false;
 
     LOGGER_TRACE("Colormap notify event (window=0x%x, colormap=0x%x,"
             " new=%u, state=%u)", event->window,
@@ -82,54 +156,14 @@ void handler_colormap_notify(xcb_connection_t *connection,
             snode = list_next(snode)) {
         const surface_td *const surface =
             (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
         }
 
-        cdlist_foreach(surface->desktops, dnode) {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
-            void *elem;
-
-            if (desktop == NULL || desktop->clients == NULL) {
-                continue;
-            }
-
-            ohtbl_foreach(desktop->clients, elem) {
-                client_td *const client = (client_td *) elem;
-                int32_t idx;
-                xcb_colormap_t new_id;
-
-                if (client == NULL) {
-                    continue;
-                }
-
-                idx = s_client_colormap_window_index(client,
-                        event->window);
-                if (idx < 0) {
-                    continue;
-                }
-
-                new_id = (event->state == XCB_COLORMAP_STATE_INSTALLED)
-                    ? event->colormap : (xcb_colormap_t) XCB_NONE;
-                client->colormap_windows.colormap_ids[idx] = new_id;
-
-                /* Only the currently focused client's own colormaps
-                 * are actually installed anywhere ('ccmd_client_focus',
-                 * cmds/client/focus.c); for any other client this
-                 * cached update is all there is to do until it is
-                 * focused again.  Installs the single updated one
-                 * directly here rather than calling that function
-                 * again, which would also re-send 'WM_TAKE_FOCUS' and
-                 * clear urgency, neither warranted by a colormap
-                 * attribute change alone. */
-                if (client_is_focused(client) &&
-                        new_id != (xcb_colormap_t) XCB_NONE) {
-                    xcb_install_colormap(connection, new_id);
-                }
-                return;
-            }
+        surface_desktops_walk(surface, s_colormap_update_visit, &ctx);
+        if (ctx.is_done) {
+            return;
         }
     }
 }

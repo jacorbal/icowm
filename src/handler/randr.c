@@ -37,10 +37,25 @@
 #include <input/kbd/bind.h>
 
 
+/**
+ * @brief Mark one desktop as needing a redraw
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_desktop_outdate_visit(desktop_td *desktop, void *data)
+{
+    (void) data;
+
+    wm_outdate_desktop(desktop);
+}
+
+
 /* Mark every desktop in a surface as outdated and refresh workareas */
 static void s_handler_randr_refresh_surface(surface_td *surface)
 {
-    cdlist_item_td *dnode;
 
     if (surface == NULL) {
         return;
@@ -50,9 +65,7 @@ static void s_handler_randr_refresh_surface(surface_td *surface)
     surface_refresh_workareas(surface);
     surface_clients_reflow(surface);
     wm_outdate_surface(surface);
-    cdlist_foreach(surface->desktops, dnode) {
-        wm_outdate_desktop((desktop_td *) cdlist_data(dnode));
-    }
+    surface_desktops_walk(surface, s_desktop_outdate_visit, NULL);
 }
 
 

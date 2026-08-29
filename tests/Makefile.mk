@@ -176,6 +176,7 @@ $(O_DIR)/tests/ipc/test_commands: $(TESTS_DIR)/ipc/test_commands.c \
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
 
 $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
+		$(S_DIR)/surface/desktops.c \
 		$(S_DIR)/wm/clients.c \
 		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/cmds/client/ewmh.c \

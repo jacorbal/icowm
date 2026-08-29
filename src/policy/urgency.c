@@ -63,6 +63,36 @@ static bool s_has_urgent = false;
 
 
 /**
+ * @brief Note whether any client on a desktop is asking for attention
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    Pointer to the @c bool being set
+ *
+ * @note The whole walk runs even once one is found, a visitor having
+ *       no way to end it; the caller stops on the flag instead
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_urgent_search_visit(desktop_td *desktop, void *data)
+{
+    bool *const is_any_urgent = data;
+    void *elem;
+
+    if (is_any_urgent == NULL || desktop->clients == NULL) {
+        return;
+    }
+
+    ohtbl_foreach(desktop->clients, elem) {
+        const client_td *const client = (const client_td *) elem;
+
+        if (client != NULL && client_is_urgent(client)) {
+            *is_any_urgent = true;
+        }
+    }
+}
+
+
+/**
  * @brief Milliseconds elapsed since @p since, per @c CLOCK_MONOTONIC
  *
  * @param since Earlier timestamp to measure from
@@ -120,29 +150,17 @@ static bool s_any_client_urgent(list_td *surfaces)
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
         const surface_td *const surface = (surface_td *) list_data(snode);
-        cdlist_item_td *dnode;
+        bool is_any_urgent = false;
 
         if (surface == NULL) {
             continue;
         }
 
-        cdlist_foreach(surface->desktops, dnode) {
-            desktop_td *const desktop =
-                (desktop_td *) cdlist_data(dnode);
-            void *elem;
-
-            if (desktop == NULL || desktop->clients == NULL) {
-                continue;
-            }
-
-            ohtbl_foreach(desktop->clients, elem) {
-                const client_td *c = (client_td *) elem;
-
-                if (c != NULL && client_is_urgent(c)) {
-                    return true;
-                }
-            }
-        } /* ! for (di) */
+        surface_desktops_walk(surface, s_urgent_search_visit,
+                &is_any_urgent);
+        if (is_any_urgent) {
+            return true;
+        }
     } /* ! for (snode) */
 
     return false;

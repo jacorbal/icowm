@@ -78,6 +78,76 @@ static void s_append_client_summary(cJSON *array, const client_td *client,
 }
 
 
+/**
+ * @brief What the two summary visitors below are filling in
+ */
+struct s_query_ctx_s {
+    cJSON *array;                   /**< Array being appended to */
+    const surface_td *surface;      /**< Surface the walk is on */
+};
+
+
+/**
+ * @brief Append one desktop's own summary
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_query_ctx_s being filled
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_desktop_summary_visit(desktop_td *desktop, void *data)
+{
+    const struct s_query_ctx_s *const ctx = data;
+    cJSON *entry;
+
+    if (ctx == NULL) {
+        return;
+    }
+
+    entry = cJSON_CreateObject();
+    if (entry == NULL) {
+        return;
+    }
+
+    cJSON_AddNumberToObject(entry, "id", (double) desktop->id);
+    cJSON_AddStringToObject(entry, "name", desktop->name);
+    cJSON_AddNumberToObject(entry, "surface_id",
+            (double) ctx->surface->id);
+    cJSON_AddBoolToObject(entry, "current",
+            (ctx->surface->desktop_cur == desktop->id) ? 1 : 0);
+    cJSON_AddItemToArray(ctx->array, entry);
+}
+
+
+/**
+ * @brief Append a summary of every client one desktop shows
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_query_ctx_s being filled
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_client_summary_visit(desktop_td *desktop, void *data)
+{
+    const struct s_query_ctx_s *const ctx = data;
+    void *elem;
+
+    if (ctx == NULL || desktop->clients == NULL) {
+        return;
+    }
+
+    ohtbl_foreach(desktop->clients, elem) {
+        const client_td *const client = (const client_td *) elem;
+
+        if (client != NULL && !client_is_locked(client)) {
+            s_append_client_summary(ctx->array, client, desktop,
+                    ctx->surface);
+        }
+    }
+}
+
+
 /* "get_version": report the wire protocol version, not a program
  * version this project does not otherwise track */
 cJSON *ipc_action_get_version(const wm_td *wm, const cJSON *args)
@@ -99,6 +169,7 @@ cJSON *ipc_action_get_version(const wm_td *wm, const cJSON *args)
 /* "list_desktops": every desktop on every managed surface */
 cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args)
 {
+    struct s_query_ctx_s desktop_ctx;
     cJSON *resp;
     cJSON *array;
 
@@ -112,31 +183,14 @@ cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args)
     for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
             node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);
-        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
         }
-        cdlist_foreach(surface->desktops, dnode) {
-            desktop_td *const desktop =
-                (desktop_td *) cdlist_data(dnode);
-            cJSON *entry;
-
-            if (desktop == NULL) {
-                continue;
-            }
-            entry = cJSON_CreateObject();
-            if (entry == NULL) {
-                continue;
-            }
-            cJSON_AddNumberToObject(entry, "id", (double) desktop->id);
-            cJSON_AddStringToObject(entry, "name", desktop->name);
-            cJSON_AddNumberToObject(entry, "surface_id",
-                    (double) surface->id);
-            cJSON_AddBoolToObject(entry, "current",
-                    (surface->desktop_cur == desktop->id) ? 1 : 0);
-            cJSON_AddItemToArray(array, entry);
-        }
+        desktop_ctx.array = array;
+        desktop_ctx.surface = surface;
+        surface_desktops_walk(surface, s_desktop_summary_visit,
+                &desktop_ctx);
     }
 
     return resp;
@@ -147,6 +201,7 @@ cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args)
  * of every managed surface */
 cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args)
 {
+    struct s_query_ctx_s client_ctx;
     cJSON *resp;
     cJSON *array;
 
@@ -160,27 +215,14 @@ cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args)
     for (list_item_td *node = list_head(wm_surfaces(wm)); node != NULL;
             node = list_next(node)) {
         const surface_td *const surface = (surface_td *) list_data(node);
-        cdlist_item_td *dnode;
 
         if (surface == NULL) {
             continue;
         }
-        cdlist_foreach(surface->desktops, dnode) {
-            desktop_td *const desktop =
-                (desktop_td *) cdlist_data(dnode);
-            void *elem;
-
-            if (desktop == NULL || desktop->clients == NULL) {
-                continue;
-            }
-            ohtbl_foreach(desktop->clients, elem) {
-                const client_td *const c = (client_td *) elem;
-
-                if (c != NULL && !client_is_locked(c)) {
-                    s_append_client_summary(array, c, desktop, surface);
-                }
-            }
-        }
+        client_ctx.array = array;
+        client_ctx.surface = surface;
+        surface_desktops_walk(surface, s_client_summary_visit,
+                &client_ctx);
     }
 
     return resp;

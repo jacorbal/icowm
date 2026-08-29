@@ -68,6 +68,149 @@
 
 
 /**
+ * @brief What @a s_desktop_reload_visit is applying
+ */
+struct s_reload_ctx_s {
+    const wm_td *wm;                /**< Window manager instance */
+    const struct config_base_s *config_base;
+                                    /**< Configuration just reloaded */
+    surface_td *surface;            /**< Surface being reloaded */
+    const struct geometry_s *tray;  /**< Tray rectangle on it */
+    bool is_tray_visible;           /**< Whether the tray is showing */
+    uint32_t index;                 /**< Desktop index reached */
+};
+
+
+/**
+ * @brief Apply the reloaded configuration to one desktop
+ *
+ * @param desktop Desktop reached by the walk
+ * @param data    The @c s_reload_ctx_s being applied
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_desktop_reload_visit(desktop_td *desktop, void *data)
+{
+    struct s_reload_ctx_s *const ctx = data;
+    const uint32_t this_index = (ctx != NULL) ? ctx->index : 0u;
+
+    if (ctx == NULL) {
+        return;
+    }
+
+    ctx->index++;
+    if (this_index >=
+            ctx->config_base->screens[ctx->surface->id].desktop_count) {
+        return;
+    }
+
+        /* A desktop that set its own 'background-color' in the
+         * just-reloaded 'config.json' keeps it; one that did not
+         * (still holding 'WM_DESKTOP_BG_COLOR_UNSET', the same
+         * sentinel every entry starts with) falls back to the
+         * just-reloaded theme's own 'desktop.color.background'
+         * instead, mirroring 'desktop_init''s own fallback
+         * exactly.  Assigning the sentinel value itself as though
+         * it were a real color (as this block used to, before this
+         * check existed) renders as black, since its low 24 bits
+         * are all zero: only the top byte, some other flag, is
+         * actually set. */
+        if (!desktop->background.is_image &&
+                !desktop->background.use_root_pixmap) {
+            uint32_t new_color = ctx->config_base->screens[ctx->surface->id].desktops[this_index]
+                .settings.background.color;
+
+            desktop->background.bg.color =
+                (new_color == WM_DESKTOP_BG_COLOR_UNSET)
+                ? wm_get_config()->theme.desktop.color.background
+                : new_color;
+        }
+
+        /* Resize every already-decorated client's frame to match
+         * whatever 'window.titlebar.height' and border width the
+         * just-reloaded theme now specifies.  'client->config' is
+         * a shared pointer into 'wm_config(wm)' that 'config_load'
+         * above already updated in place, so colors, fonts, and
+         * button lists all take effect on their own the next time
+         * each client repaints; only the cached
+         * 'title_height'/'frame_extents' (and the frame size that
+         * has to match them) need this explicit resync, since
+         * nothing else re-derives those from the theme on its own
+         * once a client is already mapped. */
+        if (desktop->clients != NULL) {
+            void *elem;
+
+            ohtbl_foreach(desktop->clients, elem) {
+                client_td *const c = (client_td *) elem;
+
+                if (c != NULL) {
+                    client_theme_layout_resync(c,
+                            desktop->client_active_id == c->id);
+                    /* 'client_theme_layout_resync' above only marks
+                     * 'c' outdated (which is what actually makes
+                     * the render pass repaint its border and
+                     * titlebar, see 'desktop_render_clients') when
+                     * the border width or titlebar height
+                     * numerically changed; a reload that only
+                     * changed a color or font, with every dimension
+                     * unchanged, would otherwise never repaint
+                     * anything already on screen even though
+                     * 'client->config->theme' itself already points
+                     * at the freshly reloaded values. */
+                    wm_request_client_redraw(c);
+
+                    /* An icon left sitting exactly where the tray
+                     * used to be, before this same reload just
+                     * moved it there, is never otherwise revisited
+                     * on its own: nothing else here (or anywhere
+                     * else) re-checks an already-placed icon's own
+                     * position against the tray's, only a fresh
+                     * 'place_icon_apply' call or a drag ever does
+                     * (see 'place_icon_avoid_systray_overlap''s
+                     * comment). */
+                    if (ctx->is_tray_visible && c->is_icon_mapped &&
+                            c->icon_window != 0u) {
+                        int16_t icon_x = c->icon_pos.x;
+                        int16_t icon_y = c->icon_pos.y;
+                        uint16_t icon_h = (uint16_t)
+                            WM_ICON_SQUARE_SIZE;
+
+                        if (c->config != NULL &&
+                                c->config->theme.icon.is_captioned) {
+                            icon_h = (uint16_t) (icon_h +
+                                    (uint16_t)
+                                    WM_ICON_CAPTION_HEIGHT);
+                        }
+
+                        if (place_icon_avoid_systray_overlap(
+                                    &icon_x, &icon_y,
+                                    (struct dimensions_s) {
+                                        WM_ICON_SQUARE_SIZE, icon_h },
+                                    *ctx->tray,
+                                    &desktop->workarea)) {
+                            uint32_t vals[2];
+
+                            /* c->icon_pos.x = icon_x; is a no-op */
+                            c->icon_pos.y = icon_y;
+                            vals[0] = (uint32_t) icon_x;
+                            vals[1] = (uint32_t) icon_y;
+                            xcb_configure_window(wm_connection(ctx->wm),
+                                    c->icon_window,
+                                    XCB_CONFIG_WINDOW_X |
+                                    XCB_CONFIG_WINDOW_Y,
+                                    vals);
+                        }
+                    }
+                }
+            }
+        }
+
+        desktop->is_outdated = true;
+}
+
+
+/**
  * @brief Resynchronize every already-managed surface, desktop, and
  *        client after a configuration reload
  *
@@ -86,15 +229,14 @@
  */
 static void s_resync_after_reload(const wm_td *wm)
 {
-    config_td *config = wm_config(wm);
+    struct s_reload_ctx_s reload_ctx;
+    config_td *const config = wm_config(wm);
 
     for (list_item_td *snode = list_head(wm_surfaces(wm));
             snode != NULL; snode = list_next(snode)) {
         surface_td *const s = (surface_td *) list_data(snode);
         struct config_base_s *const cb = &(config->base);
         struct geometry_s tray;
-        cdlist_item_td *dnode;
-        uint32_t i = 0u;
         /* Queried once per surface here, ahead of the desktop/client
          * loop below, rather than once per icon inside it.  This is
          * a synchronous round trip to the X server, as
@@ -107,118 +249,14 @@ static void s_resync_after_reload(const wm_td *wm)
             continue;
         }
 
-        cdlist_foreach(s->desktops, dnode) {
-            desktop_td *const d = (desktop_td *) cdlist_data(dnode);
-            const uint32_t this_i = i;
-
-            ++i;
-            if (d == NULL || this_i >= cb->screens[s->id].desktop_count) {
-                continue;
-            }
-
-            /* A desktop that set its own 'background-color' in the
-             * just-reloaded 'config.json' keeps it; one that did not
-             * (still holding 'WM_DESKTOP_BG_COLOR_UNSET', the same
-             * sentinel every entry starts with) falls back to the
-             * just-reloaded theme's own 'desktop.color.background'
-             * instead, mirroring 'desktop_init''s own fallback
-             * exactly.  Assigning the sentinel value itself as though
-             * it were a real color (as this block used to, before this
-             * check existed) renders as black, since its low 24 bits
-             * are all zero: only the top byte, some other flag, is
-             * actually set. */
-            if (!d->background.is_image &&
-                    !d->background.use_root_pixmap) {
-                uint32_t new_color = cb->screens[s->id].desktops[this_i]
-                    .settings.background.color;
-
-                d->background.bg.color =
-                    (new_color == WM_DESKTOP_BG_COLOR_UNSET)
-                    ? config->theme.desktop.color.background
-                    : new_color;
-            }
-
-            /* Resize every already-decorated client's frame to match
-             * whatever 'window.titlebar.height' and border width the
-             * just-reloaded theme now specifies.  'client->config' is
-             * a shared pointer into 'wm_config(wm)' that 'config_load'
-             * above already updated in place, so colors, fonts, and
-             * button lists all take effect on their own the next time
-             * each client repaints; only the cached
-             * 'title_height'/'frame_extents' (and the frame size that
-             * has to match them) need this explicit resync, since
-             * nothing else re-derives those from the theme on its own
-             * once a client is already mapped. */
-            if (d->clients != NULL) {
-                void *elem;
-
-                ohtbl_foreach(d->clients, elem) {
-                    client_td *const c = (client_td *) elem;
-
-                    if (c != NULL) {
-                        client_theme_layout_resync(c,
-                                d->client_active_id == c->id);
-                        /* 'client_theme_layout_resync' above only marks
-                         * 'c' outdated (which is what actually makes
-                         * the render pass repaint its border and
-                         * titlebar, see 'desktop_render_clients') when
-                         * the border width or titlebar height
-                         * numerically changed; a reload that only
-                         * changed a color or font, with every dimension
-                         * unchanged, would otherwise never repaint
-                         * anything already on screen even though
-                         * 'client->config->theme' itself already points
-                         * at the freshly reloaded values. */
-                        wm_request_client_redraw(c);
-
-                        /* An icon left sitting exactly where the tray
-                         * used to be, before this same reload just
-                         * moved it there, is never otherwise revisited
-                         * on its own: nothing else here (or anywhere
-                         * else) re-checks an already-placed icon's own
-                         * position against the tray's, only a fresh
-                         * 'place_icon_apply' call or a drag ever does
-                         * (see 'place_icon_avoid_systray_overlap''s
-                         * comment). */
-                        if (tray_visible && c->is_icon_mapped &&
-                                c->icon_window != 0u) {
-                            int16_t icon_x = c->icon_pos.x;
-                            int16_t icon_y = c->icon_pos.y;
-                            uint16_t icon_h = (uint16_t)
-                                WM_ICON_SQUARE_SIZE;
-
-                            if (c->config != NULL &&
-                                    c->config->theme.icon.is_captioned) {
-                                icon_h = (uint16_t) (icon_h +
-                                        (uint16_t)
-                                        WM_ICON_CAPTION_HEIGHT);
-                            }
-
-                            if (place_icon_avoid_systray_overlap(
-                                        &icon_x, &icon_y,
-                                        (struct dimensions_s) {
-                                            WM_ICON_SQUARE_SIZE, icon_h },
-                                        tray,
-                                        &d->workarea)) {
-                                uint32_t vals[2];
-
-                                /* c->icon_pos.x = icon_x; is a no-op */
-                                c->icon_pos.y = icon_y;
-                                vals[0] = (uint32_t) icon_x;
-                                vals[1] = (uint32_t) icon_y;
-                                xcb_configure_window(wm_connection(wm),
-                                        c->icon_window,
-                                        XCB_CONFIG_WINDOW_X |
-                                        XCB_CONFIG_WINDOW_Y,
-                                        vals);
-                            }
-                        }
-                    }
-                }
-            }
-
-            d->is_outdated = true;
-        }
+        reload_ctx.wm = wm;
+        reload_ctx.config_base = cb;
+        reload_ctx.surface = s;
+        reload_ctx.tray = &tray;
+        reload_ctx.is_tray_visible = tray_visible;
+        reload_ctx.index = 0u;
+        surface_desktops_walk(s, s_desktop_reload_visit,
+                &reload_ctx);
 
         s->is_outdated = true;
 
