@@ -82,6 +82,78 @@ struct s_reload_ctx_s {
 
 
 /**
+ * @brief Apply the reloaded configuration to one client
+ *
+ * @param ctx     What the reload is carrying
+ * @param desktop Desktop the client is on
+ * @param client  Client to apply it to
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_reload_apply(const struct s_reload_ctx_s *ctx,
+        const desktop_td *desktop, client_td *client)
+{
+        client_theme_layout_resync(client,
+                desktop->client_active_id == client->id);
+        /* 'client_theme_layout_resync' above only marks
+         * 'c' outdated (which is what actually makes
+         * the render pass repaint its border and
+         * titlebar, see 'desktop_render_clients') when
+         * the border width or titlebar height
+         * numerically changed; a reload that only
+         * changed a color or font, with every dimension
+         * unchanged, would otherwise never repaint
+         * anything already on screen even though
+         * 'client->config->theme' itself already points
+         * at the freshly reloaded values. */
+        wm_request_client_redraw(client);
+
+        /* An icon left sitting exactly where the tray
+         * used to be, before this same reload just
+         * moved it there, is never otherwise revisited
+         * on its own: nothing else here (or anywhere
+         * else) re-checks an already-placed icon's own
+         * position against the tray's, only a fresh
+         * 'place_icon_apply' call or a drag ever does
+         * (see 'place_icon_avoid_systray_overlap''s
+         * comment). */
+        if (ctx->is_tray_visible && client->is_icon_mapped &&
+                client->icon_window != 0u) {
+            int16_t icon_x = client->icon_pos.x;
+            int16_t icon_y = client->icon_pos.y;
+            uint16_t icon_h = (uint16_t)
+                WM_ICON_SQUARE_SIZE;
+
+            if (client->config != NULL &&
+                    client->config->theme.icon.is_captioned) {
+                icon_h = (uint16_t) (icon_h +
+                        (uint16_t)
+                        WM_ICON_CAPTION_HEIGHT);
+            }
+
+            if (place_icon_avoid_systray_overlap(
+                        &icon_x, &icon_y,
+                        (struct dimensions_s) {
+                            WM_ICON_SQUARE_SIZE, icon_h },
+                        *ctx->tray,
+                        &desktop->workarea)) {
+                uint32_t vals[2];
+
+                /* client->icon_pos.x = icon_x; is a no-op */
+                client->icon_pos.y = icon_y;
+                vals[0] = (uint32_t) icon_x;
+                vals[1] = (uint32_t) icon_y;
+                xcb_configure_window(wm_connection(ctx->wm),
+                        client->icon_window,
+                        XCB_CONFIG_WINDOW_X |
+                        XCB_CONFIG_WINDOW_Y,
+                        vals);
+            }
+        }
+}
+
+
+/**
  * @brief Apply the reloaded configuration to one desktop
  *
  * @param desktop Desktop reached by the walk
@@ -142,66 +214,10 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
             void *elem;
 
             ohtbl_foreach(desktop->clients, elem) {
-                client_td *const c = (client_td *) elem;
+                client_td *const client = (client_td *) elem;
 
-                if (c != NULL) {
-                    client_theme_layout_resync(c,
-                            desktop->client_active_id == c->id);
-                    /* 'client_theme_layout_resync' above only marks
-                     * 'c' outdated (which is what actually makes
-                     * the render pass repaint its border and
-                     * titlebar, see 'desktop_render_clients') when
-                     * the border width or titlebar height
-                     * numerically changed; a reload that only
-                     * changed a color or font, with every dimension
-                     * unchanged, would otherwise never repaint
-                     * anything already on screen even though
-                     * 'client->config->theme' itself already points
-                     * at the freshly reloaded values. */
-                    wm_request_client_redraw(c);
-
-                    /* An icon left sitting exactly where the tray
-                     * used to be, before this same reload just
-                     * moved it there, is never otherwise revisited
-                     * on its own: nothing else here (or anywhere
-                     * else) re-checks an already-placed icon's own
-                     * position against the tray's, only a fresh
-                     * 'place_icon_apply' call or a drag ever does
-                     * (see 'place_icon_avoid_systray_overlap''s
-                     * comment). */
-                    if (ctx->is_tray_visible && c->is_icon_mapped &&
-                            c->icon_window != 0u) {
-                        int16_t icon_x = c->icon_pos.x;
-                        int16_t icon_y = c->icon_pos.y;
-                        uint16_t icon_h = (uint16_t)
-                            WM_ICON_SQUARE_SIZE;
-
-                        if (c->config != NULL &&
-                                c->config->theme.icon.is_captioned) {
-                            icon_h = (uint16_t) (icon_h +
-                                    (uint16_t)
-                                    WM_ICON_CAPTION_HEIGHT);
-                        }
-
-                        if (place_icon_avoid_systray_overlap(
-                                    &icon_x, &icon_y,
-                                    (struct dimensions_s) {
-                                        WM_ICON_SQUARE_SIZE, icon_h },
-                                    *ctx->tray,
-                                    &desktop->workarea)) {
-                            uint32_t vals[2];
-
-                            /* c->icon_pos.x = icon_x; is a no-op */
-                            c->icon_pos.y = icon_y;
-                            vals[0] = (uint32_t) icon_x;
-                            vals[1] = (uint32_t) icon_y;
-                            xcb_configure_window(wm_connection(ctx->wm),
-                                    c->icon_window,
-                                    XCB_CONFIG_WINDOW_X |
-                                    XCB_CONFIG_WINDOW_Y,
-                                    vals);
-                        }
-                    }
+                if (client != NULL) {
+                    s_client_reload_apply(ctx, desktop, client);
                 }
             }
         }

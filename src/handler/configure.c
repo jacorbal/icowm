@@ -200,6 +200,93 @@ static void s_handler_configure_forward(xcb_connection_t *connection,
 
 
 /**
+ * @brief Settle a configure request's own X coordinate
+ *
+ * @param ctx What the request is being built into
+ *
+ * @note A position fixed by a rule is kept, the request
+ *       answered with a synthetic notify rather than obeyed
+ * @note Complexity: @e O(1)
+ */
+static void s_configure_build_x(struct s_configure_ctx_s *ctx)
+{
+if (ctx->mask & XCB_CONFIG_WINDOW_X) {
+    int32_t req_x;
+
+    if (ctx->client->has_rule_position_locked) {
+        /* Position was fixed by a rule; reject the client's
+         * attempt to move the window and keep the locked X */
+        ctx->send_synth = ctx->is_reparented;
+    } else {
+        if (ctx->is_reparented && ctx->on_inner) {
+            req_x = (int32_t) ((uint32_t) (int32_t) ctx->event->x -
+                    (uint32_t) ctx->left);
+        } else {
+            req_x = ctx->event->x;
+        }
+        if ((uint32_t) req_x !=
+                (uint32_t) ctx->client->layout.geometry.cur.pos.x) {
+            ctx->geom_changed = true;
+        }
+
+        ctx->values[ctx->count++] = (uint32_t) req_x;
+        ctx->target_mask |= XCB_CONFIG_WINDOW_X;
+        ctx->client->layout.geometry.cur.pos.x = req_x;
+        ctx->send_synth = ctx->is_reparented;
+    }
+}
+}
+
+
+/**
+ * @brief Settle a configure request's own Y coordinate
+ *
+ * @param ctx What the request is being built into
+ *
+ * @note A position fixed by a rule is kept, the request
+ *       answered with a synthetic notify rather than obeyed
+ * @note Complexity: @e O(1)
+ */
+static void s_configure_build_y(struct s_configure_ctx_s *ctx)
+{
+if (ctx->mask & XCB_CONFIG_WINDOW_Y) {
+    int32_t req_y;
+
+    if (ctx->client->has_rule_position_locked) {
+        /* Position was fixed by a rule; reject the client's
+         * attempt to move the window and keep the locked Y */
+        ctx->send_synth = ctx->is_reparented;
+    } else {
+        if (ctx->is_reparented && ctx->on_inner) {
+            /* Clamp before subtracting to keep req_y >= 0 and
+             * avoid the "X - C < 0 => X < C" strict-overflow
+             * transformation */
+            req_y = ((int32_t) ctx->event->y > (int32_t) ctx->top)
+                ? (int32_t) ((uint32_t) (int32_t) ctx->event->y -
+                        (uint32_t) ctx->top)
+                : 0;
+        } else {
+            req_y = (int32_t) ctx->event->y;
+            if (req_y < 0) {
+                req_y = 0;
+            }
+        }
+
+        if ((uint32_t) req_y !=
+                (uint32_t) ctx->client->layout.geometry.cur.pos.y) {
+            ctx->geom_changed = true;
+        }
+
+        ctx->values[ctx->count++] = (uint32_t) req_y;
+        ctx->target_mask |= XCB_CONFIG_WINDOW_Y;
+        ctx->client->layout.geometry.cur.pos.y = req_y;
+        ctx->send_synth = ctx->is_reparented;
+    }
+}
+}
+
+
+/**
  * @brief Turn each requested field into a value for the reply
  *
  * Walks the mask in ascending bit order, which is the order X expects
@@ -212,66 +299,8 @@ static void s_handler_configure_forward(xcb_connection_t *connection,
  */
 static void s_handler_configure_build(struct s_configure_ctx_s *ctx)
 {
-    if (ctx->mask & XCB_CONFIG_WINDOW_X) {
-        int32_t req_x;
-
-        if (ctx->client->has_rule_position_locked) {
-            /* Position was fixed by a rule; reject the client's
-             * attempt to move the window and keep the locked X */
-            ctx->send_synth = ctx->is_reparented;
-        } else {
-            if (ctx->is_reparented && ctx->on_inner) {
-                req_x = (int32_t) ((uint32_t) (int32_t) ctx->event->x -
-                        (uint32_t) ctx->left);
-            } else {
-                req_x = ctx->event->x;
-            }
-            if ((uint32_t) req_x !=
-                    (uint32_t) ctx->client->layout.geometry.cur.pos.x) {
-                ctx->geom_changed = true;
-            }
-
-            ctx->values[ctx->count++] = (uint32_t) req_x;
-            ctx->target_mask |= XCB_CONFIG_WINDOW_X;
-            ctx->client->layout.geometry.cur.pos.x = req_x;
-            ctx->send_synth = ctx->is_reparented;
-        }
-    }
-
-    if (ctx->mask & XCB_CONFIG_WINDOW_Y) {
-        int32_t req_y;
-
-        if (ctx->client->has_rule_position_locked) {
-            /* Position was fixed by a rule; reject the client's
-             * attempt to move the window and keep the locked Y */
-            ctx->send_synth = ctx->is_reparented;
-        } else {
-            if (ctx->is_reparented && ctx->on_inner) {
-                /* Clamp before subtracting to keep req_y >= 0 and
-                 * avoid the "X - C < 0 => X < C" strict-overflow
-                 * transformation */
-                req_y = ((int32_t) ctx->event->y > (int32_t) ctx->top)
-                    ? (int32_t) ((uint32_t) (int32_t) ctx->event->y -
-                            (uint32_t) ctx->top)
-                    : 0;
-            } else {
-                req_y = (int32_t) ctx->event->y;
-                if (req_y < 0) {
-                    req_y = 0;
-                }
-            }
-
-            if ((uint32_t) req_y !=
-                    (uint32_t) ctx->client->layout.geometry.cur.pos.y) {
-                ctx->geom_changed = true;
-            }
-
-            ctx->values[ctx->count++] = (uint32_t) req_y;
-            ctx->target_mask |= XCB_CONFIG_WINDOW_Y;
-            ctx->client->layout.geometry.cur.pos.y = req_y;
-            ctx->send_synth = ctx->is_reparented;
-        }
-    }
+    s_configure_build_x(ctx);
+    s_configure_build_y(ctx);
 
     if (ctx->mask & XCB_CONFIG_WINDOW_WIDTH) {
         if (ctx->is_reparented && ctx->on_inner) {

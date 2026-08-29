@@ -135,6 +135,87 @@ static bool s_ccmd_maximize_precheck(client_td *client)
 
 
 /**
+ * @brief Undo maximization on whichever axes the request names
+ *
+ * @param client    Client to demote
+ * @param dir       Which axes: 0 both, 1 horizontal, 2 vertical
+ * @param target    Window the geometry is applied to
+ * @param horz_now  Whether it is maximized horizontally already
+ * @param vert_now  Whether it is maximized vertically already
+ *
+ * @return @c true when the request was a demotion and is now done
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_ccmd_maximize_demote(client_td *client, int dir,
+        xcb_window_t target, bool horz_now, bool vert_now)
+{
+    if (dir == 0 && horz_now && vert_now) {
+        client_geometry_restore(client);
+        ccmd_client_apply_geometry(client, target,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                    (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                    (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
+                client->layout.geometry.cur.pos.x,
+                client->layout.geometry.cur.pos.y,
+                client->layout.geometry.cur.dim.w,
+                client->layout.geometry.cur.dim.h, 0u);
+        client->properties.state &= (uint16_t) ~CLIENT_STATE_MAXIMIZED;
+        if (client->frame != 0) {
+            client_decoration_layout_sync(client);
+        }
+        ccmd_client_sync_states(client);
+        wm_request_client_redraw(client);
+        return true;
+    }
+
+    /* Demote this single axis alone, restoring it from the saved
+     * pre-maximize geometry and leaving the other axis exactly as it
+     * currently is: fully maximized demotes to the other axis alone,
+     * and this axis alone demotes to normal. Only reachable for a
+     * single-axis 'dir'; 'dir == 0' either already returned above
+     * (both axes maximized) or falls through to maximizing both
+     * below regardless of any single axis's own current state. */
+    if (dir != 0 && ((dir == 1 && horz_now) || (dir == 2 && vert_now))) {
+        if (dir == 1) {
+            client->layout.geometry.cur.pos.x =
+                client->layout.geometry.old.pos.x;
+            client->layout.geometry.cur.dim.w =
+                client->layout.geometry.old.dim.w;
+            ccmd_client_apply_geometry(client, target,
+                    (uint16_t) XCB_CONFIG_WINDOW_X |
+                        (uint16_t) XCB_CONFIG_WINDOW_WIDTH,
+                    client->layout.geometry.cur.pos.x, 0,
+                    client->layout.geometry.cur.dim.w, 0u, 0u);
+            client->properties.state &=
+                (uint16_t) ~CLIENT_STATE_MAXIMIZED_HORZ;
+        } else {
+            client->layout.geometry.cur.pos.y =
+                client->layout.geometry.old.pos.y;
+            client->layout.geometry.cur.dim.h =
+                client->layout.geometry.old.dim.h;
+            ccmd_client_apply_geometry(client, target,
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                        (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
+                    0, client->layout.geometry.cur.pos.y,
+                    0u, client->layout.geometry.cur.dim.h, 0u);
+            client->properties.state &=
+                (uint16_t) ~CLIENT_STATE_MAXIMIZED_VERT;
+        }
+        if (client->frame != 0) {
+            client_decoration_layout_sync(client);
+        }
+        ccmd_client_sync_states(client);
+        wm_request_client_redraw(client);
+        return true;
+    }
+
+    return false;
+}
+
+
+/**
  * @brief Maximize a client on one axis or both, or restore/demote/
  *        complete depending on its current maximize state
  *
@@ -195,64 +276,8 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
      * any other current state (normal, or maximized on just one
      * axis) falls through to maximizing both below instead,
      * overriding whatever partial state was there. */
-    if (dir == 0 && horz_now && vert_now) {
-        client_geometry_restore(client);
-        ccmd_client_apply_geometry(client, target,
-                (uint16_t) XCB_CONFIG_WINDOW_X |
-                    (uint16_t) XCB_CONFIG_WINDOW_Y |
-                    (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
-                    (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
-                client->layout.geometry.cur.pos.x,
-                client->layout.geometry.cur.pos.y,
-                client->layout.geometry.cur.dim.w,
-                client->layout.geometry.cur.dim.h, 0u);
-        client->properties.state &= (uint16_t) ~CLIENT_STATE_MAXIMIZED;
-        if (client->frame != 0) {
-            client_decoration_layout_sync(client);
-        }
-        ccmd_client_sync_states(client);
-        wm_request_client_redraw(client);
-        return;
-    }
-
-    /* Demote this single axis alone, restoring it from the saved
-     * pre-maximize geometry and leaving the other axis exactly as it
-     * currently is: fully maximized demotes to the other axis alone,
-     * and this axis alone demotes to normal. Only reachable for a
-     * single-axis 'dir'; 'dir == 0' either already returned above
-     * (both axes maximized) or falls through to maximizing both
-     * below regardless of any single axis's own current state. */
-    if (dir != 0 && ((dir == 1 && horz_now) || (dir == 2 && vert_now))) {
-        if (dir == 1) {
-            client->layout.geometry.cur.pos.x =
-                client->layout.geometry.old.pos.x;
-            client->layout.geometry.cur.dim.w =
-                client->layout.geometry.old.dim.w;
-            ccmd_client_apply_geometry(client, target,
-                    (uint16_t) XCB_CONFIG_WINDOW_X |
-                        (uint16_t) XCB_CONFIG_WINDOW_WIDTH,
-                    client->layout.geometry.cur.pos.x, 0,
-                    client->layout.geometry.cur.dim.w, 0u, 0u);
-            client->properties.state &=
-                (uint16_t) ~CLIENT_STATE_MAXIMIZED_HORZ;
-        } else {
-            client->layout.geometry.cur.pos.y =
-                client->layout.geometry.old.pos.y;
-            client->layout.geometry.cur.dim.h =
-                client->layout.geometry.old.dim.h;
-            ccmd_client_apply_geometry(client, target,
-                    (uint16_t) XCB_CONFIG_WINDOW_Y |
-                        (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
-                    0, client->layout.geometry.cur.pos.y,
-                    0u, client->layout.geometry.cur.dim.h, 0u);
-            client->properties.state &=
-                (uint16_t) ~CLIENT_STATE_MAXIMIZED_VERT;
-        }
-        if (client->frame != 0) {
-            client_decoration_layout_sync(client);
-        }
-        ccmd_client_sync_states(client);
-        wm_request_client_redraw(client);
+    if (s_ccmd_maximize_demote(client, dir, target, horz_now,
+                vert_now)) {
         return;
     }
 

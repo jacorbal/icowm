@@ -34,70 +34,19 @@
 #include <config/internal.h>
 
 
-/* Load memguard.json's own configurable fields into config */
-int ci_memguard_load_json(const char *filename, config_td *config)
+/**
+ * @brief Read the restricted-memory file's own "windows" object
+ *
+ * @param json   The whole parsed file
+ * @param config Configuration to fill in
+ *
+ * @note An absent object leaves every window setting at whatever the
+ *       defaults already put there
+ * @note Complexity: @e O(1)
+ */
+static void s_memguard_load_windows(cJSON *json, config_td *config)
 {
-    cJSON *json;
-    cJSON *theme_item;
-    cJSON *programs;
-    cJSON *prompt;
-    cJSON *desktops_item;
     cJSON *windows_item;
-    cJSON *icons_item;
-    cJSON *systray_item;
-    cJSON *shutdown_item;
-
-    if (json_load_config(filename, &json) != 0) {
-        return 1;
-    }
-
-    theme_item = json_get_item(json, "theme");
-    if (theme_item != NULL && cJSON_IsString(theme_item)) {
-        safe_strncpy(config->base.theme, theme_item->valuestring,
-                CONFIG_MAX_LENGTH_NAME);
-    }
-
-    programs = cJSON_GetObjectItem(json, "programs");
-    if (programs != NULL) {
-        json_load_string(programs, "editor",
-                config->base.programs.editor,
-                sizeof(config->base.programs.editor));
-        json_load_string(programs, "file-manager",
-                config->base.programs.file_manager,
-                sizeof(config->base.programs.file_manager));
-        json_load_string(programs, "launcher",
-                config->base.programs.launcher,
-                sizeof(config->base.programs.launcher));
-        json_load_string(programs, "terminal",
-                config->base.programs.terminal,
-                sizeof(config->base.programs.terminal));
-        json_load_string(programs, "web-browser",
-                config->base.programs.web_browser,
-                sizeof(config->base.programs.web_browser));
-    }
-
-    prompt = cJSON_GetObjectItem(json, "prompt");
-    if (prompt != NULL) {
-        json_load_bool(prompt, "is-enabled",
-                &config->base.prompt.is_enabled);
-    }
-
-    desktops_item = cJSON_GetObjectItem(json, "desktops");
-    if (desktops_item != NULL) {
-        cJSON *const margins =
-            cJSON_GetObjectItem(desktops_item, "margins");
-
-        if (margins != NULL) {
-            json_load_uint(margins, "top",
-                    &config->desktops.margins.top);
-            json_load_uint(margins, "right",
-                    &config->desktops.margins.right);
-            json_load_uint(margins, "bottom",
-                    &config->desktops.margins.bottom);
-            json_load_uint(margins, "left",
-                    &config->desktops.margins.left);
-        }
-    }
 
     windows_item = cJSON_GetObjectItem(json, "windows");
     if (windows_item != NULL) {
@@ -169,6 +118,74 @@ int ci_memguard_load_json(const char *filename, config_td *config)
                     &config->base.windows.group_related);
         }
     }
+}
+
+
+/* Load memguard.json's own configurable fields into config */
+int ci_memguard_load_json(const char *filename, config_td *config)
+{
+    cJSON *json;
+    cJSON *theme_item;
+    cJSON *programs;
+    cJSON *prompt;
+    cJSON *desktops_item;
+    cJSON *icons_item;
+    cJSON *systray_item;
+    cJSON *shutdown_item;
+
+    if (json_load_config(filename, &json) != 0) {
+        return 1;
+    }
+
+    theme_item = json_get_item(json, "theme");
+    if (theme_item != NULL && cJSON_IsString(theme_item)) {
+        safe_strncpy(config->base.theme, theme_item->valuestring,
+                CONFIG_MAX_LENGTH_NAME);
+    }
+
+    programs = cJSON_GetObjectItem(json, "programs");
+    if (programs != NULL) {
+        json_load_string(programs, "editor",
+                config->base.programs.editor,
+                sizeof(config->base.programs.editor));
+        json_load_string(programs, "file-manager",
+                config->base.programs.file_manager,
+                sizeof(config->base.programs.file_manager));
+        json_load_string(programs, "launcher",
+                config->base.programs.launcher,
+                sizeof(config->base.programs.launcher));
+        json_load_string(programs, "terminal",
+                config->base.programs.terminal,
+                sizeof(config->base.programs.terminal));
+        json_load_string(programs, "web-browser",
+                config->base.programs.web_browser,
+                sizeof(config->base.programs.web_browser));
+    }
+
+    prompt = cJSON_GetObjectItem(json, "prompt");
+    if (prompt != NULL) {
+        json_load_bool(prompt, "is-enabled",
+                &config->base.prompt.is_enabled);
+    }
+
+    desktops_item = cJSON_GetObjectItem(json, "desktops");
+    if (desktops_item != NULL) {
+        cJSON *const margins =
+            cJSON_GetObjectItem(desktops_item, "margins");
+
+        if (margins != NULL) {
+            json_load_uint(margins, "top",
+                    &config->desktops.margins.top);
+            json_load_uint(margins, "right",
+                    &config->desktops.margins.right);
+            json_load_uint(margins, "bottom",
+                    &config->desktops.margins.bottom);
+            json_load_uint(margins, "left",
+                    &config->desktops.margins.left);
+        }
+    }
+
+    s_memguard_load_windows(json, config);
 
     icons_item = cJSON_GetObjectItem(json, "icons");
     if (icons_item != NULL) {

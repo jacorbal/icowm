@@ -119,6 +119,126 @@ static uint8_t s_clamp_opacity_percent(int raw)
 }
 
 
+/**
+ * @brief Read a rule's own "apply" object into the rule
+ *
+ * Every field is optional and each is read the same way: ask for it,
+ * check its type, and note both the value and that it was given at
+ * all, a rule saying nothing about a field leaving it alone.
+ *
+ * @param apply_json The rule's own @c apply object
+ * @param rule       Rule to fill in
+ *
+ * @note Complexity: @e O(n), where @e n is the number of fields the
+ *       object holds
+ */
+static void s_rules_load_apply(cJSON *apply_json,
+        struct rules_rule_s *rule)
+{
+    cJSON *item;
+    cJSON *x;
+    cJSON *y;
+    cJSON *w;
+    cJSON *h;
+    cJSON *opacity_active;
+    cJSON *opacity_inactive;
+
+    item = json_get_item(apply_json, "desktop");
+    if (cJSON_IsNumber(item) && item->valueint >= 0) {
+        rule->apply.has_desktop = true;
+        rule->apply.desktop = (uint32_t) item->valueint;
+    }
+
+    item = json_get_item(apply_json, "monitor");
+    if (cJSON_IsNumber(item) && item->valueint >= 0) {
+        rule->apply.has_monitor = true;
+        rule->apply.monitor = (uint32_t) item->valueint;
+    }
+
+    item = json_get_item(apply_json, "layer");
+    if (cJSON_IsString(item) && item->valuestring != NULL) {
+        rule->apply.has_layer = true;
+        rule->apply.layer = ri_parse_layer(item->valuestring);
+    }
+
+    item = json_get_item(apply_json, "focus");
+    if (cJSON_IsBool(item)) {
+        rule->apply.has_focus = true;
+        rule->apply.is_focused = cJSON_IsTrue(item);
+    }
+
+    item = json_get_item(apply_json, "pinned");
+    if (cJSON_IsBool(item)) {
+        rule->apply.has_sticky = true;
+        rule->apply.is_pinned = cJSON_IsTrue(item);
+    }
+
+    item = json_get_item(apply_json, "decorated");
+    if (cJSON_IsBool(item)) {
+        rule->apply.has_decoration = true;
+        rule->apply.is_decorated = cJSON_IsTrue(item);
+    }
+
+    /* Either a single value applying to both states, or an
+     * object naming one, the other, or both separately; each
+     * half stays independently unset (falling back to the
+     * theme's own 'window.active.opacity'/'window.inactive.
+     * opacity' at apply time) if that half is not given here */
+    item = json_get_item(apply_json, "opacity");
+    if (cJSON_IsNumber(item)) {
+        rule->apply.has_opacity_active = true;
+        rule->apply.has_opacity_inactive = true;
+        rule->apply.opacity_active =
+            s_clamp_opacity_percent(item->valueint);
+        rule->apply.opacity_inactive = rule->apply.opacity_active;
+    } else if (cJSON_IsObject(item)) {
+        opacity_active = json_get_item(item, "active");
+        opacity_inactive = json_get_item(item, "inactive");
+
+        if (cJSON_IsNumber(opacity_active)) {
+            rule->apply.has_opacity_active = true;
+            rule->apply.opacity_active =
+                s_clamp_opacity_percent(opacity_active->valueint);
+        }
+        if (cJSON_IsNumber(opacity_inactive)) {
+            rule->apply.has_opacity_inactive = true;
+            rule->apply.opacity_inactive =
+                s_clamp_opacity_percent(opacity_inactive->valueint);
+        }
+    }
+
+    item = json_get_item(apply_json, "position");
+    if (cJSON_IsObject(item)) {
+        x = json_get_item(item, "x");
+        y = json_get_item(item, "y");
+
+        if (cJSON_IsNumber(x) && cJSON_IsNumber(y)) {
+            rule->apply.has_position = true;
+            rule->apply.is_position_centered = false;
+            rule->apply.x = x->valueint;
+            rule->apply.y = y->valueint;
+        }
+    } else if (cJSON_IsString(item) && item->valuestring != NULL &&
+            safe_strcmp(item->valuestring, "center") == 0) {
+        rule->apply.has_position = true;
+        rule->apply.is_position_centered = true;
+    }
+
+    item = json_get_item(apply_json, "size");
+    if (cJSON_IsObject(item)) {
+        w = json_get_item(item, "width");
+        h = json_get_item(item, "height");
+
+        if (cJSON_IsNumber(w) && cJSON_IsNumber(h) &&
+                w->valueint > 0 && h->valueint > 0) {
+            rule->apply.has_size = true;
+            rule->apply.w = (uint32_t) w->valueint;
+            rule->apply.h = (uint32_t) h->valueint;
+        }
+    }
+}
+
+
 /* Allocate and zero-initialize a new rules table */
 rules_td *rules_init(void)
 {
@@ -146,12 +266,6 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
     cJSON *match_json;
     cJSON *apply_json;
     cJSON *item;
-    cJSON *x;
-    cJSON *y;
-    cJSON *w;
-    cJSON *h;
-    cJSON *opacity_active;
-    cJSON *opacity_inactive;
     struct rules_rule_s *rule;
     uint32_t loaded = 0u;
 
@@ -225,99 +339,7 @@ int rules_load(rules_td *rules, const char *config_dir_prefix)
             continue;
         }
 
-        item = json_get_item(apply_json, "desktop");
-        if (cJSON_IsNumber(item) && item->valueint >= 0) {
-            rule->apply.has_desktop = true;
-            rule->apply.desktop = (uint32_t) item->valueint;
-        }
-
-        item = json_get_item(apply_json, "monitor");
-        if (cJSON_IsNumber(item) && item->valueint >= 0) {
-            rule->apply.has_monitor = true;
-            rule->apply.monitor = (uint32_t) item->valueint;
-        }
-
-        item = json_get_item(apply_json, "layer");
-        if (cJSON_IsString(item) && item->valuestring != NULL) {
-            rule->apply.has_layer = true;
-            rule->apply.layer = ri_parse_layer(item->valuestring);
-        }
-
-        item = json_get_item(apply_json, "focus");
-        if (cJSON_IsBool(item)) {
-            rule->apply.has_focus = true;
-            rule->apply.is_focused = cJSON_IsTrue(item);
-        }
-
-        item = json_get_item(apply_json, "pinned");
-        if (cJSON_IsBool(item)) {
-            rule->apply.has_sticky = true;
-            rule->apply.is_pinned = cJSON_IsTrue(item);
-        }
-
-        item = json_get_item(apply_json, "decorated");
-        if (cJSON_IsBool(item)) {
-            rule->apply.has_decoration = true;
-            rule->apply.is_decorated = cJSON_IsTrue(item);
-        }
-
-        /* Either a single value applying to both states, or an
-         * object naming one, the other, or both separately; each
-         * half stays independently unset (falling back to the
-         * theme's own 'window.active.opacity'/'window.inactive.
-         * opacity' at apply time) if that half is not given here */
-        item = json_get_item(apply_json, "opacity");
-        if (cJSON_IsNumber(item)) {
-            rule->apply.has_opacity_active = true;
-            rule->apply.has_opacity_inactive = true;
-            rule->apply.opacity_active =
-                s_clamp_opacity_percent(item->valueint);
-            rule->apply.opacity_inactive = rule->apply.opacity_active;
-        } else if (cJSON_IsObject(item)) {
-            opacity_active = json_get_item(item, "active");
-            opacity_inactive = json_get_item(item, "inactive");
-
-            if (cJSON_IsNumber(opacity_active)) {
-                rule->apply.has_opacity_active = true;
-                rule->apply.opacity_active =
-                    s_clamp_opacity_percent(opacity_active->valueint);
-            }
-            if (cJSON_IsNumber(opacity_inactive)) {
-                rule->apply.has_opacity_inactive = true;
-                rule->apply.opacity_inactive =
-                    s_clamp_opacity_percent(opacity_inactive->valueint);
-            }
-        }
-
-        item = json_get_item(apply_json, "position");
-        if (cJSON_IsObject(item)) {
-            x = json_get_item(item, "x");
-            y = json_get_item(item, "y");
-
-            if (cJSON_IsNumber(x) && cJSON_IsNumber(y)) {
-                rule->apply.has_position = true;
-                rule->apply.is_position_centered = false;
-                rule->apply.x = x->valueint;
-                rule->apply.y = y->valueint;
-            }
-        } else if (cJSON_IsString(item) && item->valuestring != NULL &&
-                safe_strcmp(item->valuestring, "center") == 0) {
-            rule->apply.has_position = true;
-            rule->apply.is_position_centered = true;
-        }
-
-        item = json_get_item(apply_json, "size");
-        if (cJSON_IsObject(item)) {
-            w = json_get_item(item, "width");
-            h = json_get_item(item, "height");
-
-            if (cJSON_IsNumber(w) && cJSON_IsNumber(h) &&
-                    w->valueint > 0 && h->valueint > 0) {
-                rule->apply.has_size = true;
-                rule->apply.w = (uint32_t) w->valueint;
-                rule->apply.h = (uint32_t) h->valueint;
-            }
-        }
+        s_rules_load_apply(apply_json, rule);
 
         loaded++;
     }
