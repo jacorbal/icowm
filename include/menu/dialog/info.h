@@ -12,7 +12,7 @@
  * layout and rendering logic lives there.
  *
  * Example usage:
- * @code
+ * @code{.c}
  * dialog_info_show(connection, surface, config,
  *         "Cannot launch 'xterm': command not found",
  *         MENU_MSG_LEVEL_WARNING);

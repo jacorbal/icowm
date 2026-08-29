@@ -8,7 +8,7 @@
  * that can be passed directly to @a ctxmenu_show.
  *
  * The JSON schema mirrors the example in the project documentation:
- * @code
+ * @code{.json}
  * {
  *   "menu": [
  *     { "type": "command", "name": "Terminal", "command": "xterm" },

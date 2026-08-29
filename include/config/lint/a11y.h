@@ -18,6 +18,7 @@
 #ifndef CONFIG_LINT_A11Y_H
 #define CONFIG_LINT_A11Y_H
 
+
 /* Local includes */
 #include <config/lint/internal.h>
 
@@ -26,5 +27,6 @@
 
 extern const config_lint_key_td
     s_schema_a11y[CONFIG_LINT_A11Y_KEYS];
+
 
 #endif  /* ! CONFIG_LINT_A11Y_H */

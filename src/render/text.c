@@ -538,7 +538,7 @@ static void s_font_config_build_xlfd_pattern(
  *
  * IcoWM uses a simple font description syntax in its theme files:
  *
- * @code
+ * @code{.unparsed}
  *   [family] [bold] [italic|oblique] [size] [registry-encoding]
  * @endcode
  *
@@ -548,7 +548,7 @@ static void s_font_config_build_xlfd_pattern(
  * @p charset_registry and @p charset_encoding fields.
  *
  * Examples:
- * @code
+ * @code{.unparsed}
  * "fixed"
  *     "fixed"
  * "fixed 13"
@@ -613,9 +613,9 @@ static void s_font_config_to_xlfd(const char *restrict input,
     s_font_config_extract_charset(tokens, &ntok, registry,
             sizeof(registry), encoding, sizeof(encoding));
     /* Cast written out because C99 does not convert a pointer to an
-     * array of 'char' into one to an array of 'const char' on its
-     * own, unlike a plain object pointer; C23 does, this project
-     * does not target it */
+     * array of 'char' into one to an array of 'const char' on its own,
+     * unlike a plain object pointer; C23 does, this project does not
+     * target it */
     size = s_font_config_extract_size(
             (const char (*)[WM_TEXT_FONT_TOKEN_LENGTH]) tokens, &ntok);
     s_font_config_scan_style(tokens, ntok, &is_bold, &is_italic,
@@ -643,20 +643,21 @@ static void s_font_config_to_xlfd(const char *restrict input,
  * actually use) becomes the one byte that same numeric value already is
  * in that encoding.
  *
- * Past that range, a codepoint with an obvious ASCII reading is
- * spelled out with it (see @a s_ascii_fallbacks): a title saying
- * "Report -- draft" can still be read, where one saying "Report ?
- * draft" cannot.  Everything else (Cyrillic, CJK, most everything
- * else) becomes a literal '?', since a bitmap X core font like "fixed"
- * has no glyph for it regardless of how faithfully the input text were
- * decoded.
+ * Past that range, a codepoint with an obvious ASCII reading is spelled
+ * out with it (see @a s_ascii_fallbacks).  For example, a title
+ * carrying an em-dash reads as "Page title -- Mozilla Firefox" rather
+ * than "Page title ? Mozilla Firefox", which is where a title stops
+ * being readable rather than merely imperfect.  Everything else
+ * (Cyrillic, CJK, most everything else) becomes a literal '?', since
+ * a bitmap X core font like "fixed" has no glyph for it regardless of
+ * how faithfully the input text were decoded.
  *
  * @param text     Null-terminated UTF-8 string
  * @param out      Destination buffer
  * @param out_size Size of @p out, in bytes
  *
- * @return Length of the converted string in @p out, in bytes.  A
- *         spelled-out replacement can be longer than the one byte its
+ * @return Length of the converted string in @p out, in bytes.
+ *         A spelled-out replacement can be longer than the one byte its
  *         codepoint would have taken, but never longer than the UTF-8
  *         sequence it came from, so the result still fits wherever the
  *         original text did
@@ -890,8 +891,8 @@ static uint32_t s_text_cache_claim(enum s_text_backend_e backend)
 /**
  * @brief The entry drawing currently goes through
  *
- * @return Pointer to the active entry, or @c NULL when no font has
- *         been selected yet
+ * @return Pointer to the active entry, or @c NULL when no font has been
+ *         selected yet
  *
  * @note Complexity: @e O(1)
  */
@@ -995,12 +996,12 @@ int text_renderer_use_font(xcb_connection_t *connection,
         return 0;
     }
 
-    /* 'xlfd' did not resolve to any X core font (e.g.,
-     * a TrueType/OpenType family name most systems have via fontconfig
-     * but whose bitmap X font set does not include).  Fall back to
-     * rendering it through xcb-render/FreeType2/fontconfig instead,
-     * handing fontconfig the caller's original string rather than the
-     * XLFD pattern just built for X11, since fontconfig has its own,
+    /* 'xlfd' did not resolve to any X core font (e.g., a TrueType or
+     * OpenType family name most systems have via fontconfig but whose
+     * bitmap X font set does not include).  Fall back to rendering it
+     * through xcb-render/FreeType2/fontconfig instead, handing
+     * fontconfig the caller's original string rather than the XLFD
+     * pattern just built for X11, since fontconfig has its own,
      * different pattern syntax.
      *
      * Never even attempted at all once
@@ -1043,7 +1044,7 @@ void text_renderer_destroy(void)
 
     /* Releasing each cached font one by one closes its face and its
      * glyph set, but not what the glyph backend shares across all of
-     * them: the FreeType library and its solid-fill picture */
+     * them.  The FreeType library and its solid-fill picture */
     glyph_renderer_destroy();
 
     s_text.clock = 0u;

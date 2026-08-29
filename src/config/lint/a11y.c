@@ -46,7 +46,5 @@ const config_lint_key_td s_schema_a11y[] = {
 /* A key added to 's_schema_a11y' without its count in the header
  * following makes this declaration negative, and so the build fail
  * here rather than the linter read past the end of the table */
-typedef char config_lint_a11y_size_check
-    [(sizeof(s_schema_a11y) /
-      sizeof(s_schema_a11y[0]) == CONFIG_LINT_A11Y_KEYS)
-     ? 1 : -1];
+typedef char config_lint_a11y_size_check[(sizeof(s_schema_a11y) /
+        sizeof(s_schema_a11y[0]) == CONFIG_LINT_A11Y_KEYS) ? 1 : -1];

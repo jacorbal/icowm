@@ -5,7 +5,7 @@
  *        implementation
  *
  * Parses a JSON file of the form:
- * @code
+ * @code{.json}
  * {
  *     "is-enabled": true,
  *     "outputs": [

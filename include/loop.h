@@ -3,8 +3,36 @@
  *
  * @brief Main event loop, partial update, and full update
  *
- * Declares the three functions that run the window manager's main event
- * loop and maintain surface rendering state.
+ * Declares the functions that run the window manager's main event loop
+ * and maintain surface rendering state.
+ *
+ * IcoWM's own operation flow, one turn of the event loop:
+ *
+ * @code{.unparsed}
+ *
+ *   +-----------+     +-------------+     +----------------+
+ *   |  loop/    | --> |  handler/   | --> |  policy/       |
+ *   |  dispatch |     |  input/     |     |  what to do    |
+ *   +-----------+     +-------------+     +----------------+
+ *                                                 |
+ *                                                 v
+ *   +----------------+    +-------------+    +--------------+
+ *   |  is_outdated   | <- |  enact/     | <- |  cmds/       |
+ *   |  is_focus_dirty|    |  and notify |    |  do it       |
+ *   +----------------+    +-------------+    +--------------+
+ *           |
+ *           v
+ *   +----------------+    +-------------+    +--------------+
+ *   |  loop/refresh  | -> |  render/    | -> |  one flush   |
+ *   |  end of turn   |    |  reads state|    |  loop.c      |
+ *   +----------------+    +-------------+    +--------------+
+ *
+ * @endcode
+ *
+ * Nothing paints outside that pass, save one exception: an @c Expose
+ * names the window and region the server wants back, so
+ * @c handler/expose.c repaints it at once rather than marking the whole
+ * desktop and waiting.
  *
  * @defgroup loop Main event loop and startup
  * @ingroup wm

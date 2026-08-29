@@ -7,7 +7,7 @@
  * (empty desktop).  The menu entries come from @c menu.json in the
  * configuration directory, followed by a fixed footer:
  *
- * @code{.txt}
+ * @code{.unparsed}
  * ----------------------
  * Strutless maximization
  * Rearrange windows

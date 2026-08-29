@@ -4,7 +4,7 @@
  * @brief Accessibility (a11y) settings loader implementation
  *
  * Parses a JSON file of the form:
- * @code
+ * @code{.json}
  * {
  *     "is-enabled": true,
  *     "interaction": {
@@ -20,14 +20,16 @@
  * }
  * @endcode
  *
- * Entirely optional, the same as @c randr.json: a missing file, or
- * one that omits an object or a field within it, leaves whatever the
- * caller already held (its compiled-in default, see
- * @c config_set_default_a11y_values, config.c) untouched for that
- * field.  @c is-enabled (default @c false) gates every other field
- * at once, mirroring @c randr.json's own @c is-enabled: a file that
- * exists but never turns this on is parsed without error, same as
- * ever, but has no effect at all, the same as if it were absent.
+ * Entirely optional, the same as @c randr.json: a missing file, or one
+ * that omits an object or a field within it, leaves whatever the caller
+ * already held (its compiled-in default, see
+ * @c config_set_default_a11y_values, @c config.c) untouched for that
+ * field.
+ *
+ * @c is-enabled (default @c false) gates every other field at once,
+ * mirroring @c randr.json's own @c is-enabled: a file that exists but
+ * never turns this on is parsed without error, same as ever, but has no
+ * effect at all, the same as if it were absent.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -65,16 +67,15 @@ void config_set_default_a11y_values(struct config_a11y_s *a11y)
         return;
     }
 
-    /* Default 'false', the same opt-in-only posture as
-     * 'config_randr_s' own 'is_enabled': a person keeps an
-     * 'a11y.json' around without it taking effect until they
-     * explicitly turn this on. */
+    /* Default 'false', the same opt-in-only posture as 'config_randr_s'
+     * own 'is_enabled': a person keeps an 'a11y.json' around without it
+     * taking effect until they explicitly turn this on. */
     a11y->is_enabled = false;
 
     /* The exact same values already in effect before 'a11y.json'
      * existed at all (see 'WM_DOUBLE_CLICK_MS'/
-     * 'WM_URGENCY_BLINK_INTERVAL_MS'), so nobody who never enables
-     * this file sees any behavior change. */
+     * 'WM_URGENCY_BLINK_INTERVAL_MS'), so nobody who never enables this
+     * file sees any behavior change. */
     a11y->interaction.double_click_ms = WM_DOUBLE_CLICK_MS;
     a11y->focus_indicator.min_border_width = 0u;
     a11y->urgency.sound_bell = false;
@@ -95,11 +96,11 @@ int config_load_a11y(const char *filename,
         return 1;
     }
 
-    /* Reset to the same known-good defaults before every attempt,
-     * not just the first: a reload whose file just turned
-     * 'is-enabled' to false, dropped it entirely, or dropped a field
-     * it used to specify, must fall back cleanly rather than keep
-     * whatever an earlier, still-enabled load happened to leave here
+    /* Reset to the same known-good defaults before every attempt, not
+     * just the first: a reload whose file just turned 'is-enabled' to
+     * false, dropped it entirely, or dropped a field it used to
+     * specify, must fall back cleanly rather than keep whatever an
+     * earlier, still-enabled load happened to leave here
      * ('config_set_default_a11y_values' has a comment in 'config.h'
      * explaining it). */
     config_set_default_a11y_values(config_a11y);

@@ -12,7 +12,7 @@
  *
  * Functions:
  *
- * @code
+ * @code{.c}
  * size_t safe_strnlen(const char *str, size_t maxlen);
  * size_t safe_strlen(const char *str);
  * char *safe_strncpy(char *restrict dst, const char *restrict src,
