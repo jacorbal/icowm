@@ -33,7 +33,6 @@
 /* Default initial values */
 #include <defs/client.h>
 
-
 /**
  * @brief Window layout, position, dimensions and strut
  */
@@ -41,10 +40,9 @@ struct client_layout_s {
     /**
      * @brief Position and dimensions of the client
      *
-     * @note The @p old one is to save the position when the @p cur one
-     *       is needed to be recovered later; as in saving the current
-     *       geometry before maximizing, and restoring it with the
-     *       @p old position and dimensions.
+     * @note @p old holds what @p cur is to be restored to later, as
+     *       when the geometry is put aside before maximizing and
+     *       given back on unmaximizing
      */
     struct {
         struct geometry_s cur;
@@ -59,23 +57,25 @@ struct client_layout_s {
      *        when @p .start and @p .end are zero
      */
     struct strut_partial_s strut_partial;
+
     /**
      * @brief Window gravity
      *
-     * Set once, at 'client_init' ('client.c'), from this client's own
-     * 'WM_NORMAL_HINTS' if it already declares 'win_gravity' there, or
-     * from 'windows.gravity' in 'config.json' otherwise ('config.md'
-     * §2.4): that config field is only ever a fallback for a client
-     * that never states its own gravity, at any point in its life, not
-     * a way to override one that does.  A later 'WM_NORMAL_HINTS'
-     * update, in 'client_props_refresh_normal_hints'
-     * ('client/props.c'), keeps this field in sync with whatever
-     * 'win_gravity' that update
-     * itself carries, per ICCCM's own "MUST honor" mandate; several
-     * common toolkits (xterm's Xt shell, LibreOffice's VCL) only send
-     * their real hints a moment after their first map, once fonts and
-     * chrome are ready, which is when most real clients' own gravity
-     * actually takes hold over the config default. */
+     * Set once, at @a client_init (@c client.c), from this client's
+     * @c WM_NORMAL_HINTS if it already declares @c win_gravity there,
+     * or from @c windows.gravity in @c config.json otherwise (see
+     * @c config.md §2.4).  That config field is only ever a fallback
+     * for a client that never states its gravity, at any point in its
+     * life, not a way to override one that does.
+     *
+     * A later @c WM_NORMAL_HINTS update, in
+     * @a client_props_refresh_normal_hints (@c client/props.c), keeps
+     * this field in sync with whatever @c win_gravity that update
+     * itself carries, per ICCCM's "MUST honor" mandate; several common
+     * toolkits (XTerm's Xt shell, LibreOffice's VCL) only send their
+     * real hints a moment after their first map, once fonts and chrome
+     * are ready, which is when most real clients' gravity actually
+     * takes hold over the config default. */
     uint16_t gravity;
     struct sides_s frame_extents;   /**< [left, top, right, bottom] */
 };

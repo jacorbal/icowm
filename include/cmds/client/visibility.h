@@ -66,11 +66,11 @@ void ccmd_client_unhide(client_td *client);
  * @a handler_unmap_notify (@c handler/map.c) correctly recognizes
  * this as a window-manager-initiated unmap rather than the client
  * withdrawing itself.  Two events always arrive for @p target itself
- * (its own @c StructureNotify plus its parent's own
+ * (its @c StructureNotify plus its parent's
  * @c SubstructureNotify); one further event arrives for the
- * titlebar, if present, via the frame's own @c SubstructureNotify.
+ * titlebar, if present, via the frame's @c SubstructureNotify.
  *
- * A caller whose own @p target can differ from @p client->window
+ * A caller whose @p target can differ from @p client->window
  * (the frame, when decorated, rather than the bare content window)
  * and that also needs the content window itself unmapped separately
  * (@a ccmd_client_iconify and @a ccmd_client_hide, cmds/client/
@@ -81,7 +81,7 @@ void ccmd_client_unhide(client_td *client);
  * this function only knows about the one @p target it was actually
  * given.
  *
- * @param client     Client being unmapped; its own @c ignore.unmap is
+ * @param client     Client being unmapped; its @c ignore.unmap is
  *                    incremented here
  * @param target     Window to unmap: the frame when decorated, the
  *                   bare content window otherwise, as

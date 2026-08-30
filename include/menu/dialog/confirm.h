@@ -132,8 +132,8 @@ bool menu_confirm_dialog_handle_click(xcb_connection_t *connection,
  *
  * Folds together three independent timers this dialog can have running
  * at once: a pending click-triggered close/accept, the once-a-second
- * countdown repaint while a timeout is running, and the timeout's own
- * final expiry.  For the main loop to fold into its own @p poll timeout
+ * countdown repaint while a timeout is running, and the timeout's
+ * final expiry.  For the main loop to fold into its @p poll timeout
  * computation, the same way @a popup_ms_remaining and similar already
  * are.
  *

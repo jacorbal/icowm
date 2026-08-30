@@ -41,13 +41,13 @@
  * @param desktop    Desktop @p client currently sits on; needed for
  *                   @p desktops.warp_on_edge_drag (see
  *                   @a drag_warp_tick, @c drag/warp.h), the same as
- *                   @a drag_start's own @p desktop parameter
+ *                   @a drag_start's @p desktop parameter
  * @param icon_pos   Current icon window position (screen-relative)
  * @param event_time Timestamp from the triggering button-press event
  * @param root_pos   Root-relative position of the pointer at press
  *                   time
  * @param screen_dim Surface dimensions, for edge snapping and
- *                   @p desktops.warp's own edge detection
+ *                   @p desktops.warp's edge detection
  *
  * @note Complexity: @e O(1)
  */

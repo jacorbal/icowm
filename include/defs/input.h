@@ -36,7 +36,7 @@
 
 /**
  * @brief Minimum, in pixels, that a resize-grab margin is guaranteed to
- *        be along any one edge, regardless of how thin that edge's own
+ *        be along any one edge, regardless of how thin that edge's
  *        visible border is
  *
  * A border already at least this wide needs no help: the border itself
@@ -60,7 +60,7 @@
 
 /**
  * @brief Thickness, in pixels, of each of the 4 strip windows an
- *        outline-mode drag draws as its own stand-in rectangle (see
+ *        outline-mode drag draws as its stand-in rectangle (see
  *        @c windows.solid-drag, config.md)
  */
 #define WM_DRAG_OUTLINE_BORDER_WIDTH (4u)
@@ -73,7 +73,7 @@
  *
  * A window moved here stays fully mapped throughout (unlike unmapping
  * it, which the X server itself would answer by reverting input focus
- * away from it, per the protocol's own rules for a window no longer
+ * away from it, per the protocol's rules for a window no longer
  * viewable, breaking real input focus, sloppy focus tracking, and
  * active-window rendering all at once), so none of that ever happens;
  * it is simply nowhere visible for anyone to see until the drag itself

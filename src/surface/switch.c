@@ -43,31 +43,31 @@
 
 
 /**
- * @brief Mark every one of a surface's own desktops, and every
+ * @brief Mark every one of a surface's desktops, and every
  *        client on each of them, as outdated
  *
  * @c desktop_repaint_titlebar_content (render/desktop.c) recomputes
- * whether the pin button belongs on a client's own titlebar
- * (@c hide_pin) fresh every time it runs, from @p surface's own
+ * whether the pin button belongs on a client's titlebar
+ * (@c hide_pin) fresh every time it runs, from @p surface's
  * current @c desktop_count, but reaching it takes clearing two
  * separate gates, not one: @a desktop_render_full only actually
- * renders a desktop whose own @c is_outdated is set
+ * renders a desktop whose @c is_outdated is set
  * (@a surface_render_current_desktop, render/surface.c), and, once
- * inside, @a desktop_render_one_client only repaints a client's own
- * titlebar content when that client's own @c is_outdated is
+ * inside, @a desktop_render_one_client only repaints a client's
+ * titlebar content when that client's @c is_outdated is
  * @e also set (render/desktop.c).  @a surface_action_desktop_add /
  * @c _remove used to mark only @p surface itself, leaving every
- * existing client's own pin button stale (present or missing) until
+ * existing client's pin button stale (present or missing) until
  * some unrelated event (a focus change, in practice, which marks
  * both the one desktop involved and its one client) happened to
  * clear both gates for it on its own.
  *
- * @param surface Surface whose own desktops and clients should all
+ * @param surface Surface whose desktops and clients should all
  *                be marked outdated
  *
- * @note No-op if @p surface or its own desktop list is @c NULL
+ * @note No-op if @p surface or its desktop list is @c NULL
  * @note Complexity: @e O(n), where @e n is the total number of
- *       clients across every one of @p surface's own desktops
+ *       clients across every one of @p surface's desktops
  */
 static void s_surface_mark_all_desktops_outdated(surface_td *surface)
 {
@@ -92,34 +92,34 @@ static void s_surface_mark_all_desktops_outdated(surface_td *surface)
 
 
 /**
- * @brief Grow this surface's own configured desktop-grid layout by
+ * @brief Grow this surface's configured desktop-grid layout by
  *        exactly one row or column, whichever @c orientation treats
  *        as the non-primary axis, so it can hold one more desktop
- *        than its own @c rows @c * @c columns currently can
+ *        than its @c rows @c * @c columns currently can
  *
  * Growing the non-primary axis, never the primary one @c orientation
  * itself fills first (@c columns for @c horizontal, @c rows for
  * @c vertical), is what keeps every desktop already placed in the
  * grid exactly where it already was: that primary axis is the
  * divisor @a s_layout_row_col (surface/desktops.c) itself uses to
- * translate a flat index into its own row/column, so changing it
+ * translate a flat index into its row/column, so changing it
  * reflows every index past the first row (or column) into a whole
  * new position, while growing the other axis instead only ever
  * opens up an entirely new, previously nonexistent row (or column)
- * beyond the last one, leaving every existing index's own division
- * and remainder, and so its own translated position, completely
+ * beyond the last one, leaving every existing index's division
+ * and remainder, and so its translated position, completely
  * unaffected.  A no-op when there is already enough spare capacity
  * (@c rows @c * @c columns already exceeds the desktop count about
  * to exist) to just fill a desktop-less gap cell instead, the
  * common case once a screen has been through more than one add and
- * remove cycle.  Never switches the surface's own currently viewed
+ * remove cycle.  Never switches the surface's currently viewed
  * desktop, whether it grows anything or not, and whichever row or
  * column that view happens to already be on: adding a desktop is
  * purely a "create it" action here, the exact same as it was before
  * a grid layout existed at all, regardless of which one, if any,
  * the person doing the adding happens to be looking at right now.
  *
- * @param surface     Surface whose own layout to grow
+ * @param surface     Surface whose layout to grow
  * @param new_count   The desktop count this surface is about to have
  *                    once the desktop currently being added actually
  *                    exists
@@ -152,10 +152,10 @@ static void s_surface_layout_grow_for(surface_td *surface,
 
 
 /**
- * @brief Shrink this surface's own configured desktop-grid layout by
+ * @brief Shrink this surface's configured desktop-grid layout by
  *        exactly one row or column, whichever @c orientation treats
  *        as the non-primary axis, if the desktop just removed was
- *        that axis' own last remaining member
+ *        that axis' last remaining member
  *
  * The exact inverse of @a s_surface_layout_grow_for: since @c remove
  * only ever takes the highest-numbered desktop, and fill order
@@ -168,10 +168,10 @@ static void s_surface_layout_grow_for(surface_td *surface,
  * otherwise (that row or
  * column still has another real desktop left in it), and a no-op
  * once the non-primary axis is already down to a single row or
- * column, so this never shrinks a surface's own layout below @c 1
+ * column, so this never shrinks a surface's layout below @c 1
  * on either axis.
  *
- * @param surface   Surface whose own layout to shrink
+ * @param surface   Surface whose layout to shrink
  * @param new_count The desktop count this surface now has, after the
  *                  desktop just removed no longer exists
  *
@@ -224,7 +224,7 @@ struct s_evacuate_ctx_s {
 
 
 /**
- * @brief Gather one client, up to the array's own capacity
+ * @brief Gather one client, up to the array's capacity
  *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_evacuate_ctx_s being filled
@@ -250,13 +250,13 @@ static void s_client_evacuate_visit(client_td *client, void *data)
  *        the way
  *
  * Reads @c cdlist_head repeatedly rather than snapshotting the list
- * first: each iteration's own @a desktop_action_client_rem ordinarily
- * shrinks @p from_desktop's own stacking list by one, so the next
+ * first: each iteration's @a desktop_action_client_rem ordinarily
+ * shrinks @p from_desktop's stacking list by one, so the next
  * head is normally always the next client still needing to move.
- * Bounded by the list's own starting size regardless, in case some
+ * Bounded by the list's starting size regardless, in case some
  * client already sits in this stacking list without a matching hash
  * table entry to remove, a state this function has no way to detect
- * on its own; see the loop's own comment for what happens without
+ * on its own; see the loop's comment for what happens without
  * that bound.
  *
  * @param from_desktop Desktop being emptied
@@ -309,14 +309,14 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
          * on 'from_desktop'; that exact spot is only a coincidence on
          * 'to_desktop', which may already have an icon of its own
          * sitting right there.  Relocated to a free spot, the same
-         * way a client repositions its own icon (or gets a fresh
+         * way a client repositions its icon (or gets a fresh
          * one) whenever a saved position turns out already claimed;
          * see 'ccmd_client_relocate_icon_if_taken' (cmds/client/
          * basic.h) for the exact same 'unless claimed' logic applied
          * to a freshly (re-)iconified client. */
         ccmd_client_relocate_icon_if_taken(client);
 
-        /* A pinned client's own '_NET_WM_DESKTOP' is already the
+        /* A pinned client's '_NET_WM_DESKTOP' is already the
          * EWMH 'all desktops' sentinel, set once by 'ccmd_client_pin'
          * and never meant to track a specific desktop again; only a
          * genuinely single-desktop client needs this property
@@ -333,7 +333,7 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
 
 
 /**
- * @brief Re-apply one client's own maximized geometry
+ * @brief Re-apply one client's maximized geometry
  *
  * @param client Client reached by the walk
  * @param data   Unused
@@ -351,24 +351,24 @@ static void s_client_refill_visit(client_td *client, void *data)
 
 
 /**
- * @brief Re-fill every already-maximized client's own geometry
- *        across every one of a surface's own desktops
+ * @brief Re-fill every already-maximized client's geometry
+ *        across every one of a surface's desktops
  *
  * @a ccmd_client_refill_maximized (cmds/client/geom.c) resolves and
- * applies one client's own workarea fresh; run here for every client
- * on every desktop @p surface owns, right after its own workarea
+ * applies one client's workarea fresh; run here for every client
+ * on every desktop @p surface owns, right after its workarea
  * actually changed (@a surface_action_toggle_strutless_maximize), so an
  * already-maximized window visibly grows or shrinks into the panel-
  * reserved space that mode just set aside or folded back in, rather
  * than silently staying at whatever size it already was until the
  * person happens to un-maximize and re-maximize it by hand.
  *
- * @param surface Surface whose own maximized clients should be
+ * @param surface Surface whose maximized clients should be
  *                re-filled
  *
- * @note No-op if @p surface or its own desktop list is @c NULL
+ * @note No-op if @p surface or its desktop list is @c NULL
  * @note Complexity: @e O(n), where @e n is the total number of
- *       clients across every one of @p surface's own desktops
+ *       clients across every one of @p surface's desktops
  */
 static void s_surface_refill_maximized_clients(surface_td *surface)
 {
@@ -407,10 +407,10 @@ int surface_action_desktop_add(surface_td *surface)
     /* Restricted-memory mode is deliberately locked to exactly one
      * desktop, always; see 'config_set_default_values_memguard'
      * (config/memguard/defaults.c), which never lets 'memguard.json'
-     * override 'desktop_count' away from its own hardcoded '1u'.
+     * override 'desktop_count' away from its hardcoded '1u'.
      * Refused here too, not just left to whichever caller happens to
      * check first, so every path that could reach this function
-     * (the window list's own "Add new desktop" entry, its keyboard
+     * (the window list's "Add new desktop" entry, its keyboard
      * shortcut, and any future one) is covered by the same single
      * guard. */
     if (memguard_max_clients() > 0u) {
@@ -421,11 +421,11 @@ int surface_action_desktop_add(surface_td *surface)
     }
 
     /* 'config_base->screens[screen_id].desktops[desktop_id]'
-     * (desktop.c, 's_desktop_read_config_settings' and its own
+     * (desktop.c, 's_desktop_read_config_settings' and its
      * caller) is a fixed-size 'CONFIG_MAX_DESKTOPS' array indexed by
-     * this new desktop's own ID, itself always 'desktop_count'
+     * this new desktop's ID, itself always 'desktop_count'
      * before the increment below; refused outright once that would
-     * reach or exceed the array's own real capacity, rather than
+     * reach or exceed the array's real capacity, rather than
      * indexing past its end. */
     if (surface->desktop_count >= (uint32_t) CONFIG_MAX_DESKTOPS) {
         LOGGER_NOTICE("Cannot add another desktop to surface %u:" \
@@ -498,7 +498,7 @@ int surface_action_desktop_remove(surface_td *surface)
     /* The desktop immediately before the tail becomes both the new
      * tail once this one is gone, and the fallback home for any
      * client still on it: 'desktop_destroy' (via
-     * 'surface_desktop_rem' below) frees its own 'clients' hash
+     * 'surface_desktop_rem' below) frees its 'clients' hash
      * table through a 'client_destroy' callback on every entry left
      * in it, which would otherwise silently destroy every real,
      * live application window still on this desktop instead of just
@@ -536,14 +536,14 @@ int surface_action_desktop_remove(surface_td *surface)
         surface->desktop_cur = fallback->id;
         surface_clients_show(surface, surface->desktop_cur);
     } else if (fallback->id == surface->desktop_cur) {
-        /* The removed desktop was not the one on screen, but its own
+        /* The removed desktop was not the one on screen, but its
          * fallback already was, so neither branch above ever ran a
          * 'show' cycle for it: without this, every client (and every
-         * iconified client's own icon window) that
+         * iconified client's icon window) that
          * 's_surface_desktop_evacuate' just moved onto it stays
          * exactly as mapped or
          * unmapped as it was on the desktop just destroyed, which for
-         * anything that was not the surface's own current desktop
+         * anything that was not the surface's current desktop
          * before this whole operation started means unmapped, i.e.,
          * invisible, with nothing else left to ever map it: no further
          * desktop switch is coming (fallback is already current), and
@@ -581,9 +581,9 @@ int surface_action_toggle_strutless_maximize(surface_td *surface)
 
     surface->strutless_maximize = !surface->strutless_maximize;
 
-    /* Recompute every desktop's own work area right away: struts are
+    /* Recompute every desktop's work area right away: struts are
      * now folded in, or set aside, differently than a moment ago (see
-     * 'desktop_update_workarea''s own 'ignore_struts' parameter,
+     * 'desktop_update_workarea''s 'ignore_struts' parameter,
      * desktop.h), and nothing else is guaranteed to trigger that
      * recomputation on its own until some unrelated event (a client
      * mapping, an RandR change, and so on) happens to call
@@ -595,12 +595,12 @@ int surface_action_toggle_strutless_maximize(surface_td *surface)
      * otherwise have no visible effect at all on a window that was
      * already maximized before it ran, since maximize geometry is
      * only ever computed once, at the moment a client is actually
-     * maximized, not continuously re-derived from the desktop's own
+     * maximized, not continuously re-derived from the desktop's
      * workarea afterward. */
     s_surface_refill_maximized_clients(surface);
 
-    /* Every desktop needs its own redraw, not just 'surface' itself:
-     * see 's_surface_mark_all_desktops_outdated''s own comment above
+    /* Every desktop needs its redraw, not just 'surface' itself:
+     * see 's_surface_mark_all_desktops_outdated''s comment above
      * for the identical reasoning already applied to desktop add and
      * remove. */
     s_surface_mark_all_desktops_outdated(surface);

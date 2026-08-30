@@ -3,10 +3,10 @@
  *
  * @brief Shared IPC response-building helpers
  *
- * The two shapes of response every command's own handler ends with
+ * The two shapes of response every command's handler ends with
  * either a bare success, or a failure carrying a human-readable reason.
  * Neither builder does anything else (no logging, no side effects), so
- * every handler stays free to add its own result fields to the object
+ * every handler stays free to add its result fields to the object
  * it gets back before returning it.
  *
  * @defgroup ipc_response IPC response building
@@ -33,7 +33,7 @@
  * @brief Build a bare success response
  *
  * @return A newly allocated @c ({"ok": true}) object, ready for the
- *         caller to add its own result fields to, or @c NULL on
+ *         caller to add its result fields to, or @c NULL on
  *         allocation failure
  *
  * @note Complexity: @e O(1)
@@ -43,7 +43,7 @@ cJSON *ipc_response_ok(void);
 /**
  * @brief Build a standard failure response
  *
- * @param message Human-readable reason, copied into the response's own
+ * @param message Human-readable reason, copied into the response's
  *                @c error field
  *
  * @return A newly allocated @c ({"ok": false, "error": message})

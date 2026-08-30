@@ -129,7 +129,7 @@ static void s_cb_redraw(xcb_connection_t *connection, void *userdata)
  * rather than in the window context menu ('Alt+Space'), where it
  * used to sit.
  *
- * @param connection Unused, matches @c ctxmenu_on_activate_fn's own
+ * @param connection Unused, matches @c ctxmenu_on_activate_fn's
  *                   signature
  * @param userdata   Unused
  */
@@ -164,7 +164,7 @@ static void s_cb_exit(xcb_connection_t *connection, void *userdata)
 }
 
 
-/* Load (or reload) 'menu.json''s own entries; see this function's
+/* Load (or reload) 'menu.json''s entries; see this function's
  * comment in 'menu/context/rootmenu.h' */
 void rootmenu_menu_json_load(const char *config_dir)
 {
@@ -199,9 +199,9 @@ void rootmenu_menu_json_load(const char *config_dir)
     }
 
     /* Failure is non-fatal: an absent or unparsable 'menu.json' just
-     * leaves the root menu showing its own fixed footer with no JSON
+     * leaves the root menu showing its fixed footer with no JSON
      * entries above it.  Not followed by 'wm_json_syntax_errors_warn'
-     * here: both of this function's own callers (startup, in wm.c;
+     * here: both of this function's callers (startup, in wm.c;
      * reload, in wm/actions.c) already call it themselves once
      * everything for that pass has finished loading, so calling it
      * here too would just show the same warning dialog for the same
@@ -263,10 +263,10 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
     }
 
     /* Copy the already-loaded JSON entries.  'command'/'class_name'
-     * are deliberately deep-copied here via their own fresh
-     * 'safe_strndup', not shared with 's_json_entries' own strings:
+     * are deliberately deep-copied here via their fresh
+     * 'safe_strndup', not shared with 's_json_entries' strings:
      * 'reload_config' (also reachable through the IPC command of the
-     * same name, not just the keybind this menu's own keyboard grab
+     * same name, not just the keybind this menu's keyboard grab
      * would otherwise block while open) can free and replace
      * 's_json_entries' at any moment, including while this exact
      * 's_entries' copy is still the one 'ctxmenu_show' is actively
@@ -349,8 +349,8 @@ void rootmenu_close(void)
      * 'rootmenu_menu_json_free' (read their comments for a change) */
     if (s_entries != NULL) {
         /* 'command'/'class_name' alone, of everything in each entry,
-         * are 's_entries' own independent copies rather than shared
-         * with 's_json_entries'; see 'rootmenu_show''s own comment on
+         * are 's_entries' independent copies rather than shared
+         * with 's_json_entries'; see 'rootmenu_show''s comment on
          * why, right where they are copied. */
         for (int i = 0; i < s_entry_count; ++i) {
             free(s_entries[i].command);

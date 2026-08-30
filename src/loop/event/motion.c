@@ -59,12 +59,12 @@ enum s_loop_event_motion_target_e {
  * The X server can queue many of these faster than one round of
  * window-move (or resize) plus @c xcb_flush can be processed,
  * especially for a large or decorated window whose move is more
- * expensive per event (the frame itself repaints, and
- * reparented-child bookkeeping adds further server-side cost on top
- * of a plain top-level window's move); reacting to every stale
- * intermediate position instead of jumping straight to the newest one
- * is what makes a drag visibly lag behind the pointer, worse the more
- * expensive that per-event work is.
+ * expensive per event (the frame itself repaints, and reparented-child
+ * bookkeeping adds further server-side cost on top of a plain top-level
+ * window's move).  Reacting to every stale intermediate position
+ * instead of jumping straight to the newest one is what makes a drag
+ * visibly lag behind the pointer, worse the more expensive that
+ * per-event work is.
  *
  * @param ctx   Main loop context, whose lookahead slot receives the
  *              first non-motion event found, if any
@@ -73,8 +73,8 @@ enum s_loop_event_motion_target_e {
  *
  * @note The non-motion event that ends the run is kept rather than
  *       dropped, so it is still handled on the very next pass
- * @note Complexity: @e O(q), where @e q is the number of queued
- *       motion events collapsed
+ * @note Complexity: @e O(q), where @e q is the number of queued motion
+ *       events collapsed
  */
 static void s_loop_event_motion_collapse(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
@@ -104,8 +104,8 @@ static enum s_loop_event_motion_target_e s_loop_event_motion_target(
         const xcb_motion_notify_event_t *me)
 {
     /* Asked before every menu below, not after: a window that opens
-     * while one of them happens to be up takes the pointer away from
-     * it outright, so the menu is no longer the one being pointed at
+     * while one of them happens to be up takes the pointer away from it
+     * outright, so the menu is no longer the one being pointed at
      * whatever it still believes about itself. */
     if (place_manual_is_active()) {
         return S_MOTION_TARGET_MANUAL;
@@ -145,8 +145,8 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
     s_loop_event_motion_collapse(ctx, event);
     me = (xcb_motion_notify_event_t *) *event;
 
-    /* Fed the newest position unconditionally, before deciding who
-     * else gets it: an inactive drag ignores it anyway */
+    /* Fed the newest position unconditionally, before deciding who else
+     * gets it: an inactive drag ignores it anyway */
     drag_update(xcb_connection_get(),
             (struct position_s) { me->root_x, me->root_y });
 
@@ -178,9 +178,8 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
             break;
 
         case S_MOTION_TARGET_NONE:
-            /* A running drag already got the position above, and
-             * wants nothing else looking at the pointer while it
-             * lasts */
+            /* A running drag already got the position above, and wants
+             * nothing else looking at the pointer while it lasts */
             break;
     }
 }

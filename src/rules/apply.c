@@ -50,13 +50,13 @@
 
 
 /**
- * @brief Broadcast an IPC event carrying one client's own identifying
+ * @brief Broadcast an IPC event carrying one client's identifying
  *        fields
  *
- * Mirrors @a enact_broadcast_client_event's own field shape
+ * Mirrors @a enact_broadcast_client_event's field shape
  * (@c enact/internal.h), which this file cannot reach directly: that
- * header is deliberately private to @c enact/ itself (see its own
- * doc comment for why), so this is its own small, local copy of the
+ * header is deliberately private to @c enact/ itself (see its
+ * doc comment for why), so this is its small, local copy of the
  * same fields instead.
  *
  * @param client Client the event is about
@@ -111,7 +111,7 @@ static void s_rules_broadcast_client_event(client_td *client,
  *                   @p apply->has_desktop is @c true
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's own top parent's own desktop, as
+ *       the client's top parent's desktop, as
  *       @a enact_desktop_client_send's comment describes
  */
 static void s_rules_apply_desktop(client_td *client,
@@ -186,7 +186,7 @@ static void s_rules_apply_layer(client_td *client,
  * The single, combined @c XCB_CONFIG_WINDOW_* call itself funnels
  * through @a ccmd_client_apply_geometry, the same shared primitive
  * every other geometry-changing operation in this project already
- * uses, rather than building its own values array by hand; flushed
+ * uses, rather than building its values array by hand; flushed
  * and broadcast afterward (@c IPC_EVENT_WINDOW_MOVED and/or
  * @c _RESIZED, matching whichever of position/size actually changed),
  * the same as @a enact_client_move/@c _resize do for every other
@@ -198,9 +198,9 @@ static void s_rules_apply_layer(client_td *client,
  * been placed at.
  *
  * When @p apply->has_monitor is set, @p apply->monitor selects
- * a monitor within @p surface's own monitor list (out of range falls
+ * a monitor within @p surface's monitor list (out of range falls
  * back to 0th-monitor, logging a warning), and every position below
- * becomes relative to that monitor's own top-left corner instead of the
+ * becomes relative to that monitor's top-left corner instead of the
  * whole surface's, as explicit @c x / @c y are offset by it, and
  * centering targets that monitor instead of the whole surface.  A rule
  * that sets @c monitor without an explicit @c position centers on that
@@ -214,7 +214,7 @@ static void s_rules_apply_layer(client_td *client,
  * @param apply      Action descriptor
  *
  * @note The function is a no-op when none of @p apply->has_position,
- *       @p apply->has_size, or @p apply->has_monitor is @c true.
+ *       @p apply->has_size, or @p apply->has_monitor is @c true
  * @note Negative Y values in @p apply are clamped to zero
  * @note Complexity: @e O(1)
  */
@@ -236,16 +236,16 @@ static void s_rules_apply_geometry(const surface_td *surface,
         return;
     }
 
-    /* Fullscreen is a WM-forced override of the client's own preferred
+    /* Fullscreen is a WM-forced override of the client's preferred
      * geometry (see 'ccmd_client_fullscreen''s comment,
      * cmds/client/state.c), and every source that might otherwise
      * change position/size while it holds respects that already
      * ('handler_configure_request', handler/configure.c, for the
-     * client's own attempts).  A rule is no different: 'rules_apply'
-     * itself re-runs on any property change this client's own window
+     * client's attempts).  A rule is no different: 'rules_apply'
+     * itself re-runs on any property change this client's window
      * happens to generate while fullscreen (not just its initial map),
      * via the generic fallback at the end of 'handler_property_notify'
-     * (handler/focus.c), so without this a rule with its own
+     * (handler/focus.c), so without this a rule with its
      * 'apply.size'/'apply.position' would silently undo fullscreen the
      * next time that client touched some unrelated property of its
      * own.  Every other rule effect (desktop, layer, flags) still
@@ -258,17 +258,17 @@ static void s_rules_apply_geometry(const surface_td *surface,
     height = client->layout.geometry.cur.dim.h;
 
     if (apply->has_size) {
-        /* 'apply->w'/'apply->h' (rules.json's own 'apply.size.width'/
-         * 'apply.size.height') name the decorated frame's own total,
+        /* 'apply->w'/'apply->h' (rules.json's 'apply.size.width'/
+         * 'apply.size.height') name the decorated frame's total,
          * border and titlebar included, the same as
          * 'client->layout.geometry.cur.dim' itself already does.
          *
          * But the ICCCM size hints 'client_size_constrain' enforces are
-         * always about a client's own content alone, regardless of
+         * always about a client's content alone, regardless of
          * decoration, so convert to content space first, apply them
          * there, then convert back, the same round trip
          * 'input/mouse/drag.c' and 's_kb_resize_axis_target'
-         * (in 'input/kbd/interact.c') already make for their own resize
+         * (in 'input/kbd/interact.c') already make for their resize
          * paths. */
         uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
             (uint32_t) client->layout.frame_extents.right;
@@ -438,7 +438,7 @@ static void s_rules_apply_visibility(client_td *client,
          * reaching it with 'ignore_unmap' still zero is read as
          * the client withdrawing itself rather than the window
          * manager hiding it for a desktop reassignment.  The
-         * frame's own separate 'UnmapNotify' never carries
+         * frame's separate 'UnmapNotify' never carries
          * 'event->window == client->window', so it needs no
          * token of its own. */
         client->ignore.unmap += 2u;
@@ -495,8 +495,8 @@ static void s_rules_apply_focus(const wm_td *wm, client_td *client,
  * object) changes nothing and is not broadcast.
  *
  * @param client  Client the rule was applied to
- * @param desktop Client's own desktop after every other apply step
- * @param surface Client's own surface
+ * @param desktop Client's desktop after every other apply step
+ * @param surface Client's surface
  * @param apply   Action descriptor
  *
  * @return @c true when at least one field in @p apply was set,

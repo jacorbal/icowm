@@ -45,15 +45,12 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed)
     k = 0;
 
     switch ((len > 0) ? (len & 3) : 0) {
-        case 3:
-            k ^= (unsigned int) tail[2] << 16;  /* SLL16 */
+        case 3: k ^= (unsigned int) tail[2] << 16;  /* SLL16 */
             /* FALLTHROUGH */
-        case 2:
-            k ^= (unsigned int) tail[1] << 8;   /* SLL8 */
+        case 2: k ^= (unsigned int) tail[1] << 8;   /* SLL8 */
             /* FALLTHROUGH */
-        case 1:
-            k ^= (unsigned int) tail[0];
-            h ^= k;
+        case 1: k ^= (unsigned int) tail[0];
+                h ^= k;
     }
 
     /* Finalize hash */
@@ -101,15 +98,12 @@ uint32_t murmurhash2_32(const void *key, int len, uint32_t seed)
     k = 0;
 
     switch ((len > 0) ? (len & 3) : 0) {
-        case 3:
-            k ^= (unsigned int) tail[2] << 16;
+        case 3: k ^= (unsigned int) tail[2] << 16;
             /* FALLTHROUGH */
-        case 2:
-            k ^= (unsigned int) tail[1] << 8;
+        case 2: k ^= (unsigned int) tail[1] << 8;
             /* FALLTHROUGH */
-        case 1:
-            k ^= (unsigned int) tail[0];
-            h ^= k;
+        case 1: k ^= (unsigned int) tail[0];
+                h ^= k;
     }
 
     /* Finalize hash */

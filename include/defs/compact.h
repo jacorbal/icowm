@@ -18,8 +18,8 @@
  *   a compile-time array capacity rather than a value read from
  *   configuration or computed at startup, since C sizes those once, at
  *   compile time, regardless of what any run-time flag later asks for;
- *   @c config_base_s's own @p (screens[CONFIG_MAX_SCREENS]) of
- *   @p (desktops[CONFIG_MAX_DESKTOPS]) each, @c surface_td's own
+ *   @c config_base_s's @p (screens[CONFIG_MAX_SCREENS]) of
+ *   @p (desktops[CONFIG_MAX_DESKTOPS]) each, @c surface_td's
  *   @p (monitors[WM_SURFACE_MAX_MONITORS]), and the message dialog's
  *   own @p (lines[DIALOG_MSG_MAX_LINES]) are three examples.
  * - @c COMPACT is a compile-time choice.  Defining it,
@@ -46,15 +46,14 @@
  * Restricted-memory mode alone, in an ordinary build, remains
  * perfectly usable for a target that only needs the run-time half.
  *
- * @note Nothing is declared here.  Each affected constant's own file
- *       defines both its ordinary and its compact value, conditioned on
- *       whether this macro is defined, right where the constant already
- *       lived before this option existed, rather than centralizing the
- *       compact values somewhere separate from the ordinary ones they
- *       are each a variant of.  This file exists purely so the
- *       mechanism as a whole has one place documenting what it is,
- *       since no single constant's own file is the right place for
- *       that.
+ * @note Nothing is declared here: each affected constant defines both
+ *       its ordinary and its compact value where it already lived
+ *       before this option existed, conditioned on whether this macro
+ *       is defined, rather than the compact values being gathered
+ *       apart from the ordinary ones they are variants of
+ * @note This file exists so that the mechanism as a whole has one
+ *       place describing it, no single constant's file being the
+ *       right one for that
  *
  * @ingroup defs
  */

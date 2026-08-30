@@ -37,7 +37,7 @@
  * @brief Every event a client can @c subscribe to over the socket
  *
  * Plain @c #define constants of type @c uint32_t rather than a regular
- * C @c enum: @c IPC_EVENT_STACKING_CHANGED's own value
+ * C @c enum: @c IPC_EVENT_STACKING_CHANGED's value
  * (@c 1u @c << @c 31, i.e., 2147483648) exceeds @c INT_MAX, and ISO C
  * requires every enumerator's value to be representable as an @c int,
  * i.e., an @c enum simply cannot host it under strict @c -std=c99
@@ -191,7 +191,7 @@ int ipc_init(void);
 /**
  * @brief Destroy the IPC control socket
  *
- * Closes the listening descriptor and removes the socket's own file
+ * Closes the listening descriptor and removes the socket's file
  * from disk.
  *
  * @note A no-op if the socket is not currently up
@@ -204,8 +204,8 @@ void ipc_destroy(void);
  *        wants polled
  *
  * Includes the listening socket itself and every currently connected
- * client, so a caller only ever needs to add this one call's own output
- * to its own @p poll set; it never needs to know the difference between
+ * client, so a caller only ever needs to add this one call's output
+ * to its @p poll set; it never needs to know the difference between
  * the listening socket and an already-connected client itself, since
  * @a ipc_handle_readable below handles that distinction internally.
  *
@@ -226,10 +226,10 @@ int ipc_poll_fds(int *out_fds, int max);
  * When @p fd is the listening socket, accepts one pending connection
  * (logging and dropping it immediately if @c IPC_MAX_CLIENTS is already
  * reached).  When @p fd is an already-connected client, reads whatever
- * is currently available into that client's own buffer, and for every
+ * is currently available into that client's buffer, and for every
  * complete newline-terminated line found, dispatches it via
  * @a ipc_commands_dispatch and writes the response straight back,
- * newline-terminated in turn.  A client's own connection is closed, and
+ * newline-terminated in turn.  A client's connection is closed, and
  * its slot freed, when it disconnects, sends more than
  * @c IPC_MSG_MAX_LENGTH bytes without a newline, or its descriptor
  * otherwise errors.
@@ -252,12 +252,12 @@ void ipc_handle_readable(wm_td *wm, int fd);
  * @brief Subscribe one connection to one or more events
  *
  * Called from @a ipc_commands_dispatch itself as a special case, ahead
- * of the ordinary command table.  This is the one command whose own
+ * of the ordinary command table.  This is the one command whose
  * effect belongs to the connection that sent it, not to the window
  * manager, so it needs to know which client sent it in a way none of
  * the other 55 handlers ever do.
  *
- * @param client_idx Index into this file's own connected-client table,
+ * @param client_idx Index into this file's connected-client table,
  *                    naming the connection to subscribe
  * @param args        The request object; must have a non-empty
  *                    array @p events of recognized event names,
@@ -265,7 +265,7 @@ void ipc_handle_readable(wm_td *wm, int fd);
  *
  * @return The standard success or failure response
  *
- * @note Complexity: @e O(n), where @e n is the length of @p args's own
+ * @note Complexity: @e O(n), where @e n is the length of @p args's
  *       @p events array
  *
  * @see @a ipc_commands_dispatch in @c ipc/commands.c; and 
@@ -276,7 +276,7 @@ cJSON *ipc_client_subscribe(int client_idx, const cJSON *args);
 /**
  * @brief Unsubscribe one connection from one or more events
  *
- * @param client_idx Index into this file's own connected-client table,
+ * @param client_idx Index into this file's connected-client table,
  *                   naming the connection to unsubscribe
  * @param args       The request object; an @p events array unsubscribes
  *                   from only those (an unrecognized or
@@ -287,7 +287,7 @@ cJSON *ipc_client_subscribe(int client_idx, const cJSON *args);
  *
  * @return The standard success response (always succeeds)
  *
- * @note Complexity: @e O(n), where @e n is the length of @p args's own
+ * @note Complexity: @e O(n), where @e n is the length of @p args's
  *       @p events array, or @e O(1) when left out entirely
  */
 cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args);
@@ -305,7 +305,7 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args);
  *
  * @param type   Which event this is; only clients subscribed to
  *               this exact bit are sent anything at all
- * @param fields The event's own fields beyond its shared @p event name
+ * @param fields The event's fields beyond its shared @p event name
  *               field, or @c NULL for one with none.  However this call
  *               ends, whether any client was actually subscribed or
  *               not, @p fields is always freed before it returns: the

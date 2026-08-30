@@ -123,8 +123,8 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
 
     /* A bare modifier key-press (e.g., tapping Shift on its own while
      * Alt is still held, to switch cycling direction before the next
-     * cycle-next/prev key comes back down) generates its own KeyPress
-     * for that modifier's own keysym, which matches none of the cases
+     * cycle-next/prev key comes back down) generates its KeyPress
+     * for that modifier's keysym, which matches none of the cases
      * above; without this, it would fall through to the catch-all
      * below and close the menu the instant a modifier is pressed,
      * before the person ever gets a chance to press the direction key

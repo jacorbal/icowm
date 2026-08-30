@@ -49,7 +49,7 @@
  *
  * Everything a window mapped after this window manager started would
  * already have gone through, done here for one that was open before
- * it: the client is created, put on the surface's own current desktop,
+ * it: the client is created, put on the surface's current desktop,
  * told which desktop that is, and run past the rules.
  *
  * @param wm      Window manager instance
@@ -57,7 +57,7 @@
  * @param window  Window to adopt
  *
  * @note The nested checks are early returns here rather than one
- *       deeper level each, which is the whole reason this is its own
+ *       deeper level each, which is the whole reason this is its
  *       function
  * @note Complexity: @e O(n), where @e n is the number of rules
  */
@@ -103,7 +103,7 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
      * without this, a rule assigning a desktop, geometry, layer, or
      * flag to some client only ever took effect for one launched
      * fresh, silently skipping any window still open from before this
-     * window manager's own restart, e.g., surviving a crash or an
+     * window manager's restart, e.g., surviving a crash or an
      * intentional reload via 'exec'. */
     if (rules_apply(wm, client, &surface, &desktop,
                 RULES_TRIGGER_MAP)) {

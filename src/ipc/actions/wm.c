@@ -1,7 +1,7 @@
 /**
  * @file ipc/actions/wm.c
  *
- * @brief IPC commands mirroring enact.h's own whole-window-manager
+ * @brief IPC commands mirroring enact.h's whole-window-manager
  *        actions implementation
  */
 /*

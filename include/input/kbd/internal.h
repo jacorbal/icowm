@@ -7,7 +7,7 @@
  * Splitting @c src/input/kbd/event.c into the main dispatch (cycle
  * menu, dialog, open-menu, and generic client-action key handling) and
  * the direct client-interaction handlers (program launch, keyboard
- * move, keyboard resize) still leaves one function the latter's own
+ * move, keyboard resize) still leaves one function the latter's
  * file exposes for the former to call, and vice versa: both need the
  * currently focused client, which is genuinely shared lookup logic, not
  * duplicated per file.
@@ -155,11 +155,16 @@ void ik_handle_resize(enum ik_resize_e edge,
 /**
  * @brief Let whatever currently owns the keyboard consume the key
  *
- * A modal move or resize, an open cycle menu, the search widget, the
- * run box, a confirm or message dialog, and any open context menu all
- * take every key while they last, in that order of priority.  Asked
- * before the binding table is consulted at all, so that a shortcut
- * cannot fire while one of them is up.
+ * A window being placed by hand, a modal move or resize, an open cycle
+ * menu, the search widget, the run box, a confirm or message dialog,
+ * and any open context menu all take every key while they last, in
+ * that order of priority.  Asked before the binding table is consulted
+ * at all, so that a shortcut cannot fire while one of them is up.
+ *
+ * The window being placed comes first of them because it holds the
+ * keyboard outright: it can open at any moment, a window mapping being
+ * all it takes, including one where something further down still
+ * believes the keyboard is its.
  *
  * @param keysym       Key symbol of the press as the bindings define
  *                     it: the key itself, with no modifier applied
@@ -192,7 +197,7 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
  * @param keysym      Key symbol to match
  * @param state       Modifier mask to match, as reported by the X
  *                    server; its lock bits are ignored
- * @param out_modmask Receives the matched binding's own raw modifier
+ * @param out_modmask Receives the matched binding's raw modifier
  *                    mask, which some actions need; may be null
  *
  * @return The action bound to the combination, or @c KEYBIND_NONE

@@ -1,12 +1,12 @@
 /**
  * @file config/memguard/theme.c
  *
- * @brief Restricted-memory mode's own theme restrictions
+ * @brief Restricted-memory mode's theme restrictions
  *        implementation
  *
  * Kept apart from @c config/memguard.c so that file stays focused on
- * orchestrating restricted-memory mode's own config loading, not on
- * any one loaded file's own contents.
+ * orchestrating restricted-memory mode's config loading, not on
+ * any one loaded file's contents.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -36,7 +36,7 @@
  * @brief Whether @p font already names some variant of the @c "fixed"
  *        X core font family
  *
- * Recognizes both forms a theme's own font field can hold: a simple
+ * Recognizes both forms a theme's font field can hold: a simple
  * alias, where the family is the leading word up to the first space
  * or hyphen (e.g., @c "fixed", @c "fixed bold", @c "fixed-14"), and a
  * full XLFD pattern, where the family is the second @c '-'-delimited
@@ -49,16 +49,16 @@
  * @param font Font field to check, e.g.,
  *             @c config->theme.window.active.font
  *
- * @return @c true if @p font's own family is exactly the lowercase
+ * @return @c true if @p font's family is exactly the lowercase
  *         @c "fixed", case-sensitive
  *
- * @note Deliberately case-sensitive, not case-insensitive: a real
- *       Xft-only family can be named e.g., @c "Fixed Bold", capitalized
- *       and visually similar but a different, heavier font entirely,
- *       distinct from the plain lowercase @c "fixed bold" this
- *       restriction is actually meant to leave alone.  A case-
- *       insensitive match would wrongly let that Xft family through
- *       untouched instead of substituting it.
+ * @note Deliberately case-sensitive: a genuine Xft-only family may be
+ *       named @c "Fixed Bold", capitalized and visually similar but
+ *       a different, heavier font entirely, distinct from the plain
+ *       lowercase @c "fixed bold" this restriction is meant to leave
+ *       alone
+ * @note A case-insensitive match would wrongly let that Xft family
+ *       through untouched instead of substituting it
  * @note Complexity: @e O(n), where @e n is the length of @p font
  */
 static bool s_memguard_is_fixed_variant(const char *font)
@@ -95,7 +95,7 @@ static bool s_memguard_is_fixed_variant(const char *font)
 }
 
 
-/* Apply restricted-memory mode's own theme restrictions on top of
+/* Apply restricted-memory mode's theme restrictions on top of
  * whatever config->theme was just loaded from */
 void ci_memguard_restrict_theme(config_td *config)
 {

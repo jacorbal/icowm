@@ -6,17 +6,16 @@
  * Implements @c place_icon_apply, which computes the screen position
  * for a newly iconified client window, and
  * @c place_icon_avoid_systray_overlap, which pushes an already-
- * proposed icon position away from the systray's own current
+ * proposed icon position away from the systray's current
  * rectangle.  Kept apart from @c policy/placement/window.c so that
  * file stays focused on floating/smart window placement.
  *
- * @note "Tiling" here is the classic 1980s/90s window-manager sense
- *       (TWM, FVWM, and similar), i.e., arranging iconified windows'
- *       own icon markers into a non-overlapping grid on the desktop, as
- *       @a place_icon_apply does.  Therefore, it is unrelated to the
- *       modern "tiling window manager" sense of tiling the application
- *       windows themselves, for IcoWM gently places those as floating
- *       windows.
+ * @note "Tiling" here carries its classic window-manager sense, the one
+ *       TWM and FVWM gave it: arranging the icons of iconified windows
+ *       into a grid that does not overlap
+ * @note That is unrelated to the modern sense of a tiling window
+ *       manager, which tiles the application windows themselves;
+ *       IcoWM places those as floating windows
  *
  * @see @c policy/placement/window.c
  */
@@ -67,12 +66,12 @@
  *
  * Used by @a place_icon_apply to reject a candidate slot the moment
  * it shares any area at all with an existing icon, rather than only
- * rejecting the exact grid cell that icon's own position happens to
+ * rejecting the exact grid cell that icon's position happens to
  * fall into.
  *
- * An icon's saved @c icon_x / @c icon_y is not guaranteed to be
+ * An icon's saved @c icon_pos is not guaranteed to be
  * grid-aligned relative to whichever monitor a new icon is being placed
- * on (each monitor's own margin/step grid starts fresh from its own
+ * on (each monitor's margin/step grid starts fresh from its
  * origin), so comparing grid-cell indices instead of real pixel overlap
  * can miss a genuine, if partial, overlap.
  *
@@ -82,7 +81,7 @@
  * @param icon_h       Icon height, in pixels
  * @param border_twice Icon border width, doubled (both sides); added to
  *                     @p icon_w / @p icon_h the same way the
- *                     candidate's own on-screen footprint is grown by
+ *                     candidate's on-screen footprint is grown by
  *                     it elsewhere in this file
  * @param occ_x        Occupied rectangles' left edges
  * @param occ_y        Occupied rectangles' top edges
@@ -129,12 +128,12 @@ struct s_icon_occupied_ctx_s {
 
 
 /**
- * @brief Note where one iconified client's own icon already sits
+ * @brief Note where one iconified client's icon already sits
  *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_icon_occupied_ctx_s being filled
  *
- * @note Past the arrays' own capacity further icons are left out of
+ * @note Past the arrays' capacity further icons are left out of
  *       the overlap check rather than the arrays grown without bound,
  *       and that is reported once so an unexpectedly icon-heavy
  *       desktop is at least visible in the log
@@ -173,7 +172,7 @@ static void s_icon_occupied_visit(client_td *client, void *data)
  * @brief Convert a slot index to its top-left pixel position for one of
  *        the non-SMART edge-anchored placement policies
  *
- * Shared by @c place_icon_apply's own slot search (which needs every
+ * Shared by @c place_icon_apply's slot search (which needs every
  * candidate slot's pixel position to test for overlap) and its final
  * conversion of whichever slot search ends up choosing, so the two can
  * never disagree about what a given slot index actually means on
@@ -189,7 +188,7 @@ static void s_icon_occupied_visit(client_td *client, void *data)
  * @param icon_dim     Icon width/height, in pixels
  * @param screen_dim   Screen (or monitor) width/height
  * @param border_twice Icon border width, doubled (both sides)
- * @param out_pos      Receives the slot's own top-left corner
+ * @param out_pos      Receives the slot's top-left corner
  *
  * @note Complexity: @e O(1)
  *
@@ -292,14 +291,14 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
     border_twice = (border_twice_u64 > (uint64_t) INT32_MAX)
         ? INT32_MAX : (int32_t) border_twice_u64;
 
-    /* Collect every already-mapped icon's own position once, shared by
+    /* Collect every already-mapped icon's position once, shared by
      * both the SMART and non-SMART branches below: each candidate slot
      * is tested against these via 's_place_icon_rect_overlaps_any'
      * (real pixel overlap) rather than against a precomputed grid-index
      * table, so a candidate only a few pixels into an existing icon's
-     * footprint is correctly rejected even when that icon's own saved
+     * footprint is correctly rejected even when that icon's saved
      * position is not itself grid-aligned (e.g., it sits on a monitor
-     * whose own origin does not fall on a 'step_x'/'step_y' multiple of
+     * whose origin does not fall on a 'step_x'/'step_y' multiple of
      * this one, or a stale position momentarily left behind by a config
      * or theme change since it was last placed). */
     occ_count = 0u;
@@ -518,7 +517,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
         max_primary = 1u;
     }
 
-    /* Find the first slot whose own pixel footprint does not overlap
+    /* Find the first slot whose pixel footprint does not overlap
      * any already-mapped icon's, testing real overlap via
      * 's_place_icon_rect_overlaps_any' rather than a precomputed
      * grid-index table for the same reason the SMART branch above does;
@@ -544,7 +543,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
         chosen = 0u;
     }
 
-    /* Convert the chosen slot to pixel coordinates the same way its own
+    /* Convert the chosen slot to pixel coordinates the same way its
      * candidacy was tested above, so the two can never disagree */
     s_place_icon_slot_to_pixel(policy, chosen, max_primary, margin,
             step_x, step_y, icon_dim, screen_dim,
@@ -559,7 +558,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
 }
 
 
-/* Push an icon's own proposed position away from the systray's current
+/* Push an icon's proposed position away from the systray's current
  * rectangle, if the two would overlap there */
 bool place_icon_avoid_systray_overlap(const int16_t *restrict io_x,
         int16_t *restrict io_y,

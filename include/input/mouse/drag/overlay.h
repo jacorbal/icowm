@@ -86,7 +86,7 @@ bool drag_is_overlay_window(xcb_window_t window);
  * @brief Repaint the active drag overlay window
  *
  * Redraws the current geometry text into the overlay window created for
- * interactive move/resize feedback.  Called both when the overlay's own
+ * interactive move/resize feedback.  Called both when the overlay's
  * content changes mid-drag, and from @c handler_expose
  * (@c handler/expose.c) when the overlay window itself receives an
  * @c Expose event (e.g., after another window that had been covering

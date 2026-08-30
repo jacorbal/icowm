@@ -73,7 +73,7 @@ uint16_t ctxmenu_layout_build(ctxmenu_state_td *state);
  *
  * Iterates over all entries and measures each label, adding space for
  * the left padding, the submenu indicator, and, for an entry with an
- * associated @c icon_window, its own application icon.
+ * associated @c icon_window, its application icon.
  *
  * @param connection  XCB connection
  * @param entries     Array of menu entries

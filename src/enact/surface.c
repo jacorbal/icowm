@@ -56,14 +56,14 @@ static void s_broadcast_desktop_switched(const surface_td *surface)
 
 
 /**
- * @brief Refresh keyboard grabs after any surface's own desktop count
+ * @brief Refresh keyboard grabs after any surface's desktop count
  *        changes
  *
  * @c keyboard_load (@c input/kbd/bind.c) only grabs the desktop-cycle
  * and go-to-desktop-@e N keys when at least one managed surface
  * currently has more than one desktop, decided fresh every time it
  * runs.  Nothing else re-runs it after @a surface_action_desktop_add
- * or @a surface_action_desktop_remove change a surface's own desktop
+ * or @a surface_action_desktop_remove change a surface's desktop
  * count, so without this, those grabs could silently drift out of
  * sync with the desktop count they were meant to reflect: stuck in
  * whichever state happened to be true the last time some unrelated
@@ -76,7 +76,7 @@ static void s_broadcast_desktop_switched(const surface_td *surface)
  *
  * @note No-op if @a wm_get_keysyms (@c wm.h) has nothing to return
  *       yet, the same guard @a wm_action_config_reload (wm/actions.c)
- *       already applies to its own @c keyboard_load call
+ *       already applies to its @c keyboard_load call
  * @note Complexity: same as @a keyboard_load itself
  */
 static void s_refresh_keyboard_grabs(void)
@@ -133,7 +133,7 @@ void enact_surface_desktop_switch_west(surface_td *surface)
 }
 
 
-/* Add a new, empty desktop to the end of the surface's own list */
+/* Add a new, empty desktop to the end of the surface's list */
 void enact_surface_desktop_add(surface_td *surface)
 {
     if (surface_action_desktop_add(surface) == 0) {
@@ -143,7 +143,7 @@ void enact_surface_desktop_add(surface_td *surface)
 }
 
 
-/* Remove the surface's own last desktop */
+/* Remove the surface's last desktop */
 void enact_surface_desktop_remove(surface_td *surface)
 {
     if (surface_action_desktop_remove(surface) == 0) {

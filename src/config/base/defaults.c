@@ -8,7 +8,7 @@
  * @c config_set_default_base_values is used both as the initial
  * process-wide default and, before applying @c config.json (or
  * @c memguard.json) found, as the known-good starting point that
- * file's own fields then overlay.
+ * file's fields then overlay.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -40,7 +40,7 @@
 /* Populate default values for the base and desktop-navigation
  * configuration structures, used both as the initial process-wide
  * default and, before applying config.json (or 'memguard.json') found,
- * as the known-good starting point that file's own fields then
+ * as the known-good starting point that file's fields then
  * overlay */
 void config_set_default_base_values(struct config_base_s *config_base,
         struct config_desktop_s *config_desktop)
@@ -72,7 +72,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
      * a slot it does not itself set a color for would otherwise still
      * be sitting at zero from this whole structure's initial 'calloc'
      * rather than at the sentinel, which reads as an opaque black
-     * background instead of falling back to the theme's own color the
+     * background instead of falling back to the theme's color the
      * way an genuinely unset one should. */
     LOGGER_TRACE("Setting background-color sentinel for every" \
             " possible screen and desktop slot", L_NARG);
@@ -105,7 +105,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
          * direction to read in.  A 'config.json' that specifies its
          * own 'topology.screens.desktops[].layout' always overrides
          * this default the same way 'desktop_count' above does (see
-         * that field's own comment); this is purely the starting
+         * that field's comment); this is purely the starting
          * baseline before any JSON is read. */
         config_base->screens[i].desktop_layout.orientation =
             CONFIG_DESKTOP_ORIENTATION_HORIZONTAL;
@@ -160,7 +160,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.resize_step = 20;
     config_base->windows.edges.snap.window = 6;
     config_base->windows.edges.snap.screen = 6;
-    /* Matches Openbox's own default for 'config_resist_edge'
+    /* Matches Openbox's default for 'config_resist_edge'
      * (config.c), reused there for the identical purpose */
     config_base->windows.edges.resistance = 20;
     config_base->windows.show_geom = true;

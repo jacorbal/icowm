@@ -42,20 +42,20 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
 
 /**
  * @brief Republish every @c _NET_WM_STATE atom a client currently
- *        holds, read straight off its own fields, in one single XCB
+ *        holds, read straight off its fields, in one single XCB
  *        write
  *
- * Openbox's own real answer to keeping @c _NET_WM_STATE in sync
+ * Openbox's real answer to keeping @c _NET_WM_STATE in sync
  * (confirmed directly against its source, @c client_change_state in
  * @c client.c): rebuild the whole list from scratch every time, from
- * whichever of the client's own boolean fields are true right now,
+ * whichever of the client's boolean fields are true right now,
  * rather than reading the property back first to add or remove one
  * specific atom from whatever was already there.  @a ccmd_add_states
  * and @a ccmd_rem_states did the opposite: a read (one XCB round
  * trip) followed by a merge and a write, on every single call, at
  * every one of the dozens of call sites across this project that
- * change some piece of a client's own state.  This function needs
- * only the write: every state below already has its own single
+ * change some piece of a client's state.  This function needs
+ * only the write: every state below already has its single
  * source of truth living directly on @p client itself
  * (@c properties.state, @c properties.layer, or a
  * @c CLIENT_FLAG_* bit),
@@ -67,7 +67,7 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  * @a ccmd_add_states or @a ccmd_rem_states directly;
  * @a ccmd_add_states and
  * @a ccmd_rem_states themselves no longer exist; every one of their
- * old call sites now sets its own underlying field first (most
+ * old call sites now sets its underlying field first (most
  * already did, right alongside the old add/rem call, since the
  * property was only ever meant to mirror that field to begin with)
  * and calls this instead.
@@ -77,7 +77,7 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  * one of @c CLIENT_STATE_MAXIMIZED (both axes), @c _MAXIMIZED_HORZ,
  * or @c _MAXIMIZED_VERT (one axis) as three distinct, mutually
  * exclusive values, so each of the two atoms is published whenever
- * @c properties.state matches either the combined value or its own
+ * @c properties.state matches either the combined value or its
  * single-axis one.  @c _NET_WM_STATE_HIDDEN similarly covers two
  * separate concepts this project tracks apart from each other
  * internally (@c properties.state @c == @c CLIENT_STATE_ICONIFIED,
@@ -92,7 +92,7 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  * the rest), so it is the one atom here still resolved through
  * @a ccmd_intern_atom rather than read directly off the EWMH
  * connection;
- * @a atom_intern's own internal cache (@c utils/xcb/atom.c) already
+ * @a atom_intern's internal cache (@c utils/xcb/atom.c) already
  * makes every call after the very first one a plain lookup, no XCB
  * round trip, so this costs nothing extra on every later sync.
  *

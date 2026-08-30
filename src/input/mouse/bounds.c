@@ -27,10 +27,10 @@
 
 
 /**
- * @brief The adaptive grab margin for one edge's own actual border
+ * @brief The adaptive grab margin for one edge's actual border
  *        width
  *
- * @param border_width That edge's own actual border width, in pixels;
+ * @param border_width That edge's actual border width, in pixels;
  *                      negative treated as 0
  *
  * @return @p border_width itself if already at least

@@ -33,16 +33,29 @@
 /**
  * @brief Apply the configured placement policy to a newly mapped client
  *
- * Selects and applies the placement algorithm configured in @p wm:
- * @c smart, @c cascade, @c centered, or @c under-mouse.
+ * Four questions are settled before the configured policy is consulted
+ * at all, in this order: whether the window is a splash screen, whether
+ * it asked for a position itself, whether it is a transient to be
+ * centered over its parent, and whether another window of the same
+ * application is already on screen for it to join.  Any one of them
+ * answering settles the matter, the earlier taking precedence over the
+ * later.
  *
- * @param wm      Pointer to the window manager singleton
- * @param surface Pointer to the surface that will host the client
- * @param client  Pointer to the client to place
+ * Only a window none of them claimed reaches the policy itself, one of
+ * @c smart, @c cascade, @c centered, @c under-mouse or @c manual.  One
+ * that finds nowhere to put it falls back on the cascade, and a policy
+ * this file does not recognize leaves the window where the X server
+ * put it.
  *
- * @note Complexity: @e O(g * n) in the smart case, @e O(1) otherwise,
- *       where @e g is the number of grid positions tested and @e n is
- *       the number of clients on the desktop
+ * @param wm      Window manager instance
+ * @param surface Surface that will host the client
+ * @param client  Client to place
+ *
+ * @note Complexity: @e O(g * n) under @c smart and @c manual, and
+ *       @e O(n) otherwise, where @e g is the number of grid positions
+ *       tested and @e n is the number of clients on the desktop, the
+ *       latter being what the search for an application sibling costs
+ *       whichever policy follows it
  */
 void place_window_apply(const wm_td *wm,
         surface_td *surface, client_td *client);
@@ -50,12 +63,12 @@ void place_window_apply(const wm_td *wm,
 /**
  * @brief Place the client following the cascade policy, unconditionally
  *
- * Ignores @p windows.placement.policy entirely and always steps the
- * client to the next cascade slot, regardless of which policy is
- * actually configured.  Meant for callers that need a predictable,
+ * Ignores @c windows.placement.policy entirely and steps the client one
+ * pace on from wherever this policy last placed one, whichever policy
+ * is actually configured.  Meant for callers wanting a predictable,
  * non-overlapping spread across several clients in a row (see
- * @a enact_desktop_clients_rearrange), not for placing a single newly
- * mapped client, which should call @a place_window_apply instead
+ * @a enact_desktop_clients_rearrange), and not for placing a single
+ * newly mapped client, which @a place_window_apply is for.
  *
  * @param wm      Window manager instance
  * @param surface Surface the client lives on
@@ -65,5 +78,6 @@ void place_window_apply(const wm_td *wm,
  */
 void place_window_apply_cascade(const wm_td *wm,
         surface_td *surface, client_td *client);
+
 
 #endif  /* ! POLICY_PLACEMENT_WINDOW_H */

@@ -6,7 +6,7 @@
  *
  * @c policy/placement/score.c (the shared overlap-scoring core both
  * draw from) and @c policy/placement/window.c and
- * @c policy/placement/icon.c themselves each pass their own weights to
+ * @c policy/placement/icon.c themselves each pass their weights to
  * @a place_overlap_score rather than reading them directly.
  *
  * @ingroup defs

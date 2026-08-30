@@ -1,7 +1,7 @@
 /**
  * @file ipc/actions/surface.h
  *
- * @brief IPC commands mirroring @c enact.h's own
+ * @brief IPC commands mirroring @c enact.h's
  *        @a enact_surface_desktop_switch family,
  *        @a enact_surface_desktop_add and
  *        @a enact_surface_desktop_remove actions

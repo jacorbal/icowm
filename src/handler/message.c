@@ -142,7 +142,7 @@ void handler_client_message(wm_td *wm,
             event->window, event->type);
 
     /* Startup-notification messages are broadcast on a root window by
-     * whichever application is signaling its own launch progress, not
+     * whichever application is signaling its launch progress, not
      * tied to any window this window manager itself owns or manages,
      * so this is checked unconditionally rather than gated behind an
      * ownership check the way the systray dispatch below is; the
@@ -198,27 +198,27 @@ void handler_client_message(wm_td *wm,
             const desktop_td *const active_desktop =
                 lookup_current_desktop(surface);
 
-            /* EWMH's own focus-stealing prevention: a client asking
+            /* EWMH's focus-stealing prevention: a client asking
              * for '_NET_ACTIVE_WINDOW' does not automatically deserve
-             * real keyboard focus just because it asked.  Its own
+             * real keyboard focus just because it asked.  Its
              * claim is weighed against whichever client already
              * holds focus on the desktop the person is actually
-             * looking at right now, comparing each side's own
+             * looking at right now, comparing each side's
              * 'user_time', kept genuinely current by
              * 'client_update_user_time' (client.c) every time a real,
              * non-synthetic 'KeyPress'/'ButtonPress' actually reaches
              * it, not the one-time '_NET_WM_USER_TIME' snapshot read
              * back when it first mapped.
              *
-             * A requesting client whose own most recent genuine
+             * A requesting client whose most recent genuine
              * interaction is not newer than the one already focused
              * has a weaker claim on the user's attention at this
              * exact moment, e.g., an application that finished some
              * background task and is trying to jump to the front on
-             * its own, unprompted, minutes after the person last
+             * its, unprompted, minutes after the person last
              * touched it: it is marked urgent instead of stealing
              * focus outright, the same non-intrusive path already
-             * used for a client's own pre-existing
+             * used for a client's pre-existing
              * '_NET_WM_STATE_DEMANDS_ATTENTION' announcement (see
              * 's_client_read_pre_existing_state', client.c), and the
              * request is not honored any further; whatever already
@@ -248,8 +248,8 @@ void handler_client_message(wm_td *wm,
 
                 /* The timestamp that decides this is the one inside
                  * the message, which EWMH §3 defines as the
-                 * requesting client's own last user activity at the
-                 * moment it asked, and not this window's own tracked
+                 * requesting client's last user activity at the
+                 * moment it asked, and not this window's tracked
                  * 'user_time'.  They are different things, and the
                  * difference is the whole mechanism: a notification
                  * daemon passing on a click has just been interacted
@@ -258,7 +258,7 @@ void handler_client_message(wm_td *wm,
                  * one it has carried since the person last touched
                  * it.
                  *
-                 * Weighing this window's own instead, as this did,
+                 * Weighing this window's instead, as this did,
                  * asked the wrong question.  An iconified window has
                  * by definition not been touched lately, so it lost
                  * every comparison it was ever put through and could
@@ -267,20 +267,20 @@ void handler_client_message(wm_td *wm,
                  * sitting as an icon, merely marked urgent.
                  *
                  * A zero means a client too old to fill the field in,
-                 * which §3 says to ignore, so this window's own is
+                 * which §3 says to ignore, so this window's is
                  * used then as before. */
                 const uint32_t asked_at = event->data.data32[1];
                 const xcb_window_t asker_active =
                     (xcb_window_t) event->data.data32[2];
                 bool hands_over_from_active;
 
-                /* The third field is the requesting client's own
+                /* The third field is the requesting client's
                  * currently active toplevel, and EWMH §3 says the
                  * window manager may be likelier to obey when
                  * honoring the request would mean handing focus from
                  * one active window to another.  It is read for
                  * exactly that: an asker naming an active window of
-                 * its own is a program the person is already working
+                 * its is a program the person is already working
                  * in, asking to bring a second window of its own
                  * forward, which is what the field exists to mark out
                  * from a background program trying to jump the queue.

@@ -57,12 +57,12 @@ void ccmd_client_unpin(client_td *client);
 void ccmd_client_toggle_pin(client_td *client);
 
 /**
- * @brief Override the client's own active-state opacity
+ * @brief Override the client's active-state opacity
  *
  * Sets @c opacity_override.is_set_active/@c .active, so this one
- * client's own active-state opacity stops following the theme's own
+ * client's active-state opacity stops following the theme's
  * @p window.active.opacity until unset (there is currently no way
- * to unset it once a rule has set it; see @c rules_apply_s's own
+ * to unset it once a rule has set it; see @c rules_apply_s's
  * doc comment, rules/internal.h).
  *
  * @param client  Window whose active-state opacity to override
@@ -74,7 +74,7 @@ void ccmd_client_toggle_pin(client_td *client);
 void ccmd_client_set_opacity_active(client_td *client, uint8_t percent);
 
 /**
- * @brief Override the client's own inactive-state opacity
+ * @brief Override the client's inactive-state opacity
  *
  * Sets @c opacity_override.is_set_inactive/@c .inactive, the
  * inactive-state counterpart to @a ccmd_client_set_opacity_active.
@@ -89,10 +89,10 @@ void ccmd_client_set_opacity_inactive(client_td *client,
         uint8_t percent);
 
 /**
- * @brief Override the client's own border color and width
+ * @brief Override the client's border color and width
  *
  * Sets @c border_override.is_set/@c .color/@c .width together, so
- * this one client's own border stops following the theme's own
+ * this one client's border stops following the theme's
  * @p window.active/@p .inactive.border until unset (there is
  * currently no way to unset it once set; see
  * @a scratchpad_notice_client_created in @c scratchpad.c for the

@@ -5,7 +5,7 @@
  *        and launching a command directly, with no search, no
  *        listing, and no cache
  *
- * An alternative to @c KEYBIND_LAUNCH_LAUNCHER's own default of
+ * An alternative to @c KEYBIND_LAUNCH_LAUNCHER's default of
  * spawning @p config_base_s.programs.launcher (an external program
  * such as 'dmenu'/'gmrun'), consulted only when
  * @p config_base_s.programs.use_builtin_launcher is set; see
@@ -20,9 +20,9 @@
  *
  * Visually distinguished from the fuzzy window-search widget
  * (@c menu/search.h), which this shares its general shape with (a
- * single centered text field, the same theme colors), by its own
- * "Run:" prompt and its own, narrower fixed width; see
- * @c defs/run.h for both this and the widget's own dimensions.
+ * single centered text field, the same theme colors), by its
+ * "Run:" prompt and its, narrower fixed width; see
+ * @c defs/run.h for both this and the widget's dimensions.
  *
  * @note Only one instance may be visible at a time
  *
@@ -56,7 +56,7 @@
  *
  * Any previously open run-box is replaced.  Grabs the keyboard for
  * as long as the box stays open, the same way the fuzzy window-search
- * widget's own @a search_init already does.
+ * widget's @a search_init already does.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to center the box
@@ -78,7 +78,7 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
 bool run_is_open(void);
 
 /**
- * @brief Query whether @p win is the run-box's own window
+ * @brief Query whether @p win is the run-box's window
  *
  * @param win Window to test
  *

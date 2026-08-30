@@ -348,7 +348,7 @@ bool systray_protocol_window_ensure(const wm_td *wm)
     values[1] = config->theme.systray.style.border.color;
     values[2] = 1;   /* override_redirect: never managed as a client */
     values[3] = XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-        /* Without this, a docked icon's own resize attempt on itself
+        /* Without this, a docked icon's resize attempt on itself
          * (many apps resize their tray icon for DPI or content reasons)
          * is applied by the server directly with no 'ConfigureRequest'
          * ever generated, silently undoing the configured
@@ -357,7 +357,7 @@ bool systray_protocol_window_ensure(const wm_td *wm)
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
         /* Without this, the server never generates an 'Expose' event
          * for this window at all, regardless of how correct
-         * 'handler_expose''s own systray check is: a region covered and
+         * 'handler_expose''s systray check is: a region covered and
          * then uncovered stays blank until 'systray_clock_tick' happens
          * to redraw it anyway on its own next per-second update, rather
          * than right away. */
@@ -428,7 +428,7 @@ void systray_protocol_selection_release(void)
             s_tray.selection_atom, XCB_CURRENT_TIME);
     s_tray.is_selection_owned = false;
     /* Actually unmaps only if 'is_active' is also already false by now:
-     * systray_reload's own 'disabled' path always sets that first,
+     * systray_reload's 'disabled' path always sets that first,
      * right before calling this.  Still safe to call from
      * systray_shutdown instead, where 'is_active' may still be true
      * here, since that caller destroys the window outright right after

@@ -50,14 +50,14 @@
 #define WM_DESKTOP_ID_ALL (0xFFFFFFFFu)
 
 /**
- * @brief Sentinel meaning a desktop's own @c background-color
+ * @brief Sentinel meaning a desktop's @c background-color
  *        (@c config.json) was never explicitly set
  *
- * Distinguishes "this desktop's entry did not set its own color" from
+ * Distinguishes "this desktop's entry did not set its color" from
  * "this desktop's entry explicitly set this exact color", so a desktop
  * with no override of its own correctly falls back to
  * @p theme.desktop.color.background (in @c theme.json) instead.  Any
- * real, explicitly configured 24-bit color always has its own top byte
+ * real, explicitly configured 24-bit color always has its top byte
  * zero, so this reserved value (top byte @c 0xFF) can never collide
  * with one.
  *

@@ -67,7 +67,7 @@ struct config_s {
  * @brief Initialize a new structure for the configuration
  *
  * Allocates memory for a new @c config_td structure and initializes
- * its fields to an ordinary session's own default values.
+ * its fields to an ordinary session's default values.
  *
  * @return Pointer to the initialized configuration structure, or
  *         @c NULL on failure
@@ -78,7 +78,7 @@ struct config_s {
  * @note Complexity: @e O(1), as it only involves memory allocation
  *       and initialization
  *
- * @see @a config_memguard_init in @c config/memguard.h for its own
+ * @see @a config_memguard_init in @c config/memguard.h for its
  *      completely separate path, which this function knows nothing
  *      about
  */
@@ -103,7 +103,7 @@ void config_destroy(config_td *config);
  * Used both as the compiled-in fallback theme (via
  * @a config_set_default_values & @a config_set_default_values_memguard
  * in @c config/memguard.h) and, before applying any theme file found,
- * as the known-good starting point that file's own fields then overlay.
+ * as the known-good starting point that file's fields then overlay.
  *
  * @a config_load_theme only ever overwrites whichever fields a theme
  * file specifies, never resets the rest on its own, so a caller that
@@ -144,7 +144,7 @@ void config_set_default_theme_values(struct config_theme_s *theme);
 void config_set_default_a11y_values(struct config_a11y_s *a11y);
 
 /**
- * @brief Load all of an ordinary session's own configuration
+ * @brief Load all of an ordinary session's configuration
  *
  * Loads configuration settings into the provided @c config_td structure
  * from predefined sources (@c config.json, @c bindings.json, the named
@@ -165,7 +165,7 @@ void config_set_default_a11y_values(struct config_a11y_s *a11y);
  * @note Complexity: @e O(n), where @e n is the number of parameters
  *       loaded because it involves reading from the configuration file
  *
- * @see @a config_load_memguard in @c config/memguard.h for its own
+ * @see @a config_load_memguard in @c config/memguard.h for its
  *      completely separate path (@c memguard.json instead of
  *      @c config.json, @c randr.json never read at all), which this
  *      function knows nothing about
@@ -198,7 +198,7 @@ void config_missing_theme_reset(void);
  * (that case is already covered by @a json_syntax_errors_get, since
  * @a config_load_theme goes through @a json_load_config the same as any
  * other configuration file); this is specifically for @c config.json
- * parsing successfully, naming a theme, and that theme's own file
+ * parsing successfully, naming a theme, and that theme's file
  * simply not existing.
  *
  * @return The path, or @c NULL if no theme is currently missing
@@ -232,7 +232,7 @@ void config_resolve_dir(const char *restrict config_dir_prefix,
  *
  * Used both as the initial process-wide default and, before applying
  * any @c config.json (or @c memguard.json) found, as the known-good
- * starting point that file's own fields then overlay.
+ * starting point that file's fields then overlay.
  *
  * @param config_base    Base configuration structure to populate
  * @param config_desktop Desktop-behavior structure to populate
@@ -275,7 +275,7 @@ int config_load_base(const char *filename,
  *
  * Used both as the initial process-wide default and, before applying
  * any @c bindings.json found, as the known-good starting point that
- * file's own fields then overlay.
+ * file's fields then overlay.
  *
  * @param config_bindings Bindings configuration structure to populate
  *
@@ -310,7 +310,7 @@ int config_load_bindings(const char *filename,
  * Loads theme settings into the provided @p config_theme_s structure
  * from the specified file.
  *
- * @param filename     The path to the theme configuration file.
+ * @param filename     Path to the theme configuration file
  * @param config_theme Pointer to the theme configuration structure to
  *                     populate
  *
@@ -325,13 +325,13 @@ int config_load_theme(const char *filename,
         struct config_theme_s *config_theme);
 
 /**
- * @brief Convert a theme's own 0 to 100 opacity percentage to the
+ * @brief Convert a theme's 0 to 100 opacity percentage to the
  *        32-bit value @c _NET_WM_WINDOW_OPACITY itself expects
  *
- * The property's own valid range is @c 0 (fully transparent) to
+ * The property's valid range is @c 0 (fully transparent) to
  * @c 0xffffffff (fully opaque); this scales @p percent linearly onto
  * that range, matching the same formula every compositing manager
- * already assumes for its own atom.
+ * already assumes for its atom.
  *
  * @param percent Opacity percentage, 0 to 100
  *
@@ -404,27 +404,27 @@ int config_load_a11y(const char *filename,
         struct config_a11y_s *config_a11y);
 
 /**
- * @brief Settle a theme's own final display name
+ * @brief Settle a theme's final display name
  *
  * Called once, right after attempting to load a theme file (whether
  * that attempt succeeded, failed, or was never even made because no
  * theme was named at all), so the answer to "was a theme actually
- * loaded, and did it set its own name" is already known by the time
+ * loaded, and did it set its name" is already known by the time
  * this runs.
  *
  * Three cases, per own naming rule:
  *
  * - No theme file loaded at all (@p theme_file_name empty, or
- *   @p theme_loaded @c false): @p theme's own @c name becomes literally
+ *   @p theme_loaded @c false): @p theme's @c name becomes literally
  *   "Default (built-in)".
  * - A theme file loaded, but it set no @c name of its own (@p theme's
- *   own @c name field, as passed in, is still empty): @p theme's own
+ *   own @c name field, as passed in, is still empty): @p theme's
  *   @c name becomes @p theme_file_name verbatim.
- * - A theme file loaded and did set its own
+ * - A theme file loaded and did set its
  *   @c ("name": "<theme_name>")'s own @c name becomes
  *   "<that name> (<theme_file_name>)".
  *
- * @param theme           Theme structure whose own @c name this
+ * @param theme           Theme structure whose @c name this
  *                        settles; its @c name field, as passed in, must
  *                        already reflect whichever of the above it
  *                        actually is (empty for the first two cases,

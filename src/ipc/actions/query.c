@@ -38,13 +38,13 @@
 
 
 /**
- * @brief Append one client's own summary object to a "clients" array
+ * @brief Append one client's summary object to a "clients" array
  *
  * @param array   Destination JSON array
  * @param client  Client to describe
- * @param desktop Desktop it belongs to (for the response's own
+ * @param desktop Desktop it belongs to (for the response's
  *                @c "desktop_id" field)
- * @param surface Surface it belongs to (for the response's own
+ * @param surface Surface it belongs to (for the response's
  *                @c "surface_id" field)
  *
  * @note Complexity: @e O(1)
@@ -88,7 +88,7 @@ struct s_query_ctx_s {
 
 
 /**
- * @brief Append one desktop's own summary
+ * @brief Append one desktop's summary
  *
  * @param desktop Desktop reached by the walk
  * @param data    The @c s_query_ctx_s being filled

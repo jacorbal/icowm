@@ -1,7 +1,7 @@
 /**
  * @file utils/xcb/wait.h
  *
- * @brief Bounded wait for an XCB connection's own file descriptor to
+ * @brief Bounded wait for an XCB connection's file descriptor to
  *        become readable
  *
  * A blocking XCB reply call (any @c xcb_..._reply function) waits for
@@ -11,8 +11,8 @@
  * forever, and this window manager's whole event loop along with it.
  * @a xcb_wait_readable checks, with an explicit timeout, whether the
  * connection has anything to read at all before the caller ever makes
- * that blocking call, using the same @c poll on the connection's own
- * file descriptor this project's own main event loop ('loop.c') already
+ * that blocking call, using the same @c poll on the connection's
+ * file descriptor this project's main event loop ('loop.c') already
  * relies on, so a caller can choose to skip the blocking call entirely
  * instead of risking it.
  *
@@ -43,9 +43,9 @@
  *        something to read
  *
  * Never reads or consumes anything itself: only observes whether the
- * connection's own file descriptor is ready, exactly like @c poll
- * already does for this project's own main event loop.  A caller that
- * receives @c true back is free to make its own blocking XCB call right
+ * connection's file descriptor is ready, exactly like @c poll
+ * already does for this project's main event loop.  A caller that
+ * receives @c true back is free to make its blocking XCB call right
  * afterward in the ordinary way, since data is already known to be
  * waiting for it; on @c false the caller decides for itself what to do
  * instead of blocking indefinitely, e.g., treating this the same way it

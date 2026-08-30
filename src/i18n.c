@@ -19,7 +19,7 @@
 #include <i18n.h>
 
 
-/* Set up GUI text translation for the rest of this process's own
+/* Set up GUI text translation for the rest of this process's
  * lifetime */
 void i18n_init(void)
 {

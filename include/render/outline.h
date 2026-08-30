@@ -3,11 +3,11 @@
  *
  * @brief Outline stand-in windows, shared by any caller needing to
  *        show a rectangle around a target without touching the
- *        target's own geometry
+ *        target's geometry
  *
  * The strip-window mechanism itself, with no drag-specific state of
- * its own.  A
- * caller owns its own 4-element @c xcb_window_t array (initialized to
+ * its.  A
+ * caller owns its 4-element @c xcb_window_t array (initialized to
  * @c XCB_WINDOW_NONE before first use) and passes it to every call
  * below; this file itself keeps none of that state.
  */
@@ -36,9 +36,9 @@
 /**
  * @brief Create and map the 4 strip windows outlining a rectangle
  *
- * Each strip sits just inside @p geom's own edge (top, bottom, left,
+ * Each strip sits just inside @p geom's edge (top, bottom, left,
  * right, in that fixed order), so the outline never extends beyond
- * @p geom itself, and never touches any real client's own geometry:
+ * @p geom itself, and never touches any real client's geometry:
  * these are entirely separate, @c override_redirect windows layered
  * on top.
  *
@@ -90,7 +90,7 @@ void render_outline_move(xcb_connection_t *connection,
  * @param windows    The same 4-element array @a render_outline_show
  *                   filled in
  *
- * @note No-op if @p connection is null, or @p windows' own first
+ * @note No-op if @p connection is null, or @p windows' first
  *       entry is already @c XCB_WINDOW_NONE
  * @note Complexity: @e O(1)
  */

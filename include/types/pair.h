@@ -4,7 +4,7 @@
  * @brief Common shared structures for pair types (2D)
  *
  * @note Some of them are repeated but with different name, for clarity
- *       of the code when trying not to use @c typedef.
+ *       of the code when trying not to use @c typedef
  *
  * @defgroup types Generic reusable types
  */
@@ -62,7 +62,7 @@ struct sides_s {
  *       represented the same way, with @c start and @c end both left
  *       at zero on every side, whatever reads this treats 0..0 as
  *       unbounded for exactly that reason (e.g., @c s_ranges_overlap
- *       in @c desktop.c).
+ *       in @c desktop.c)
  *
  * @see @c _NET_WM_STRUT_PARTIAL
  */
@@ -112,7 +112,7 @@ struct geometry_s {
  * @brief A ratio expressed as a numerator and denominator
  *
  * @note May be negative per the ICCCM @c WM_NORMAL_HINTS wire format
- *       (@c xcb_size_hints_t's own aspect fields are signed), even
+ *       (@c xcb_size_hints_t's aspect fields are signed), even
  *       though no well-behaved client ever sends one; kept signed so
  *       a defensive @c > @c 0 check against a malformed value still
  *       rejects it correctly instead of it wrapping to a huge unsigned

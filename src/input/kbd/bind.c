@@ -70,7 +70,7 @@ typedef struct {
 /**
  * @brief Lock modifiers a grab is installed under as well as bare
  *
- * Caps Lock and Num Lock are reported in a key press's own state, so
+ * Caps Lock and Num Lock are reported in a key press's state, so
  * a grab that named neither would simply not fire while either is
  * on.  Installing every combination is what makes a binding work
  * regardless.
@@ -237,7 +237,7 @@ static bool s_parse_binding(const config_td *config,
  * setup" check below (multiple monitors, multiple desktops, and any
  * future one of the same shape): each only differs in which single
  * field of a surface it looks at, so that one field comparison is the
- * only part that actually needs its own function; the list traversal
+ * only part that actually needs its function; the list traversal
  * and null-surface skip around it do not.
  *
  * @param surfaces  List of surfaces to check
@@ -464,7 +464,7 @@ static size_t s_keyboard_binding_defs(const config_td *config,
          * this opens the context menu of one specific window. */
         { "Mod1+space", KEYBIND_CLIENT_WINDOW_MENU },
         /* Fortune easter egg (grabbed only if enabled); default
-         * mirrors emergency exit's own combination below but with
+         * mirrors emergency exit's combination below but with
          * 'Mod4' in place of 'Mod1', keeping the two visually and
          * mnemonically distinct while both stay clear of
          * 'Ctrl+Mod1+F10', which is commonly reserved by the system

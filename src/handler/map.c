@@ -88,7 +88,7 @@
  * client that sets the property around that same moment can be sampled
  * before it gets there.  Nothing reads the property a second time
  * afterwards, so the state was lost for good: the window came up at
- * its own size while every later check still believed it fullscreen,
+ * its size while every later check still believed it fullscreen,
  * leaving something that could not be moved or resized and was not
  * fullscreen either.
  *
@@ -232,12 +232,12 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
         xcb_clear_area(xcb_connection_get(), 1, client->window,
                 0, 0, 0, 0);
 
-        /* EWMH's own correct way for a client to request fullscreen
-         * from the outset (see 'hints_ewmh.initial_state''s own doc
+        /* EWMH's correct way for a client to request fullscreen
+         * from the outset (see 'hints_ewmh.initial_state''s doc
          * comment, client.h) rather than waiting for a 'ClientMessage'
          * after mapping.  Deliberately last in this whole block, after
          * the synthetic 'ConfigureNotify' just above:
-         * 'ccmd_client_fullscreen' sends its own with the true
+         * 'ccmd_client_fullscreen' sends its with the true
          * fullscreen geometry, and sending the ordinary one afterward
          * would tell the client its old, pre-fullscreen position and
          * size right after telling it the correct one. */
@@ -246,7 +246,7 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
          * that sets '_NET_WM_STATE' around that moment could be
          * sampled before it got there: the state was then lost for
          * good, since nothing reads the property again, and the
-         * window came up at its own small size while every later
+         * window came up at its small size while every later
          * check still believed it was fullscreen.  Asking again here,
          * with the window about to be shown, makes the outcome the
          * same whichever order the two happened in. */
@@ -262,7 +262,7 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
              * 'is_maximized_horz'/'_vert' (client.h) instead; a
              * client requesting both at once is maximized on both
              * axes together, one call, rather than two in sequence
-             * each sending its own synthetic 'ConfigureNotify' for an
+             * each sending its synthetic 'ConfigureNotify' for an
              * intermediate, single-axis geometry the client never
              * actually asked for. */
             ccmd_client_maximize(client);
@@ -416,9 +416,9 @@ void handler_map_request(const wm_td *wm,
         return;
     }
 
-    /* Links 'client' into its own parent's transient tree, if
+    /* Links 'client' into its parent's transient tree, if
      * 'transient_for' names an already-managed client, right after
-     * 'client' itself is a genuine managed client (added to its own
+     * 'client' itself is a genuine managed client (added to its
      * desktop just above): every other family-wide function in this
      * project (top-parent walks, focus redirection, iconify/restore/
      * pin/etc. cascades) relies on this link already being in place
@@ -548,7 +548,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * receive focus in its place (see 'ccmd_client_focus_target'
          * 's comment, cmds/client/internal.h), and that
          * redirect walk excludes a 'CLIENT_FLAG_HIDDEN' candidate
-         * specifically so a fallback landing back on 'client''s own
+         * specifically so a fallback landing back on 'client''s
          * parent does not find this same withdrawing 'client' here
          * and send real input focus right back onto it. */
         client_hide(client);
@@ -572,7 +572,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
         /* 'properties.state' itself, not just the published EWMH
          * property, must also stop claiming fullscreen here: a
          * fullscreen client that withdraws itself this way previously
-         * had only its own '_NET_WM_STATE_FULLSCREEN' atom stripped
+         * had only its '_NET_WM_STATE_FULLSCREEN' atom stripped
          * from the property below, with nothing here ever touching
          * 'properties.state' itself, silently leaving the two
          * disagreeing with each other from then on.  Reset to plain
@@ -627,7 +627,7 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
     /* Before the managed-client lookup below, and unconditionally: a
      * docked systray icon is never a managed client at all, so the
      * early return that lookup takes for an unmanaged window would
-     * otherwise leave the destroyed icon in the tray's own array
+     * otherwise leave the destroyed icon in the tray's array
      * forever */
     systray_handle_destroy(wm, event->window);
 
@@ -781,7 +781,7 @@ void handler_map_notify(xcb_connection_t *connection,
 
             /* Re-assert the plain-pointer cursor 'client_init'
              * already set once on this same window (see client.c).
-             * Many GTK/GDK applications explicitly set their own
+             * Many GTK/GDK applications explicitly set their
              * top-level window's cursor as part of their own
              * realization, which can run after (and so silently
              * overwrite) that first assignment; MapNotify, confirming

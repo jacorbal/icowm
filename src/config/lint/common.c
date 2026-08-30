@@ -31,7 +31,7 @@ const config_lint_key_td s_schema_programs[] = {
     {"editor", NULL, 0u}
 };
 
-/* Accepted at config.json's own top level (built-in run-box) and
+/* Accepted at config.json's top level (built-in run-box) and
  * reused verbatim by memguard.json, same reasoning as 'programs' and
  * 'shutdown' above having one shared schema each */
 const config_lint_key_td s_schema_prompt[] = {

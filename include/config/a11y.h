@@ -32,20 +32,20 @@
  * @brief Accessibility (a11y) oriented adjustments to timing and visual
  *        feedback
  *
- * Loaded from its own @c a11y.json file, entirely optional: a missing
+ * Loaded from its @c a11y.json file, entirely optional: a missing
  * file, or any field it does not specify, keeps every value here at the
  * same built-in default the window manager already used before this
  * file existed, so nobody who never creates one sees any behavior
  * change at all.  Every field here does take effect on a configuration
  * reload, the same as @p config_desktop_s above.
  *
- * @p is_enabled (default @c false, mirroring @p config_randr_s's own)
+ * @p is_enabled (default @c false, mirroring @p config_randr_s's)
  * gates every other field here at once: @c false leaves all of them at
- * their own built-in defaults regardless of what @c a11y.json otherwise
+ * their built-in defaults regardless of what @c a11y.json otherwise
  * specifies, the same way @a config_load_a11y behaves when the file is
  * absent entirely.  A user keeps an @c a11y.json around (to reference,
  * or to have it ready) without it taking effect until they flip this
- * on, the same opt-in @c randr.json's own @p is-enabled already
+ * on, the same opt-in @c randr.json's @p is-enabled already
  * provides for XRandR output profiles.
  */
 struct config_a11y_s {
@@ -94,7 +94,7 @@ struct config_a11y_s {
 
         /**
          * @brief Milliseconds between one blink phase and the next for
-         *        an urgent client's own visual indicator
+         *        an urgent client's visual indicator
 
          * @see @c WM_URGENCY_BLINK_INTERVAL_MS (@c defs/urgency.h) for
          *      the built-in default this overrides */

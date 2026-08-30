@@ -4,7 +4,7 @@
  * @brief IPC command dispatch table interface
  *
  * Declares the single entry point that turns one parsed request line
- * into a response line, routing by its own @c cmd field through a table
+ * into a response line, routing by its @c cmd field through a table
  * of named handlers.  Every handler is a thin wrapper around an action
  * IcoWM already exposes to the keyboard and mouse.  The IPC socket is
  * a third way to reach that same catalog of actions, not a separate one
@@ -37,10 +37,10 @@
  *
  * @p request is expected to be a single JSON object with at least
  * a string @c cmd field, e.g., @c ({"cmd": "list_desktops"}); any other
- * fields are that command's own arguments.
+ * fields are that command's arguments.
  *
  * The response is always a JSON object with at least a boolean @c ok
- * field: @c true with the command's own result fields alongside it on
+ * field: @c true with the command's result fields alongside it on
  * success, @c false with a string @c error field describing what went
  * wrong (an unknown command, a missing or malformed argument, a client
  * or desktop ID that does not currently exist) on failure.
@@ -49,11 +49,11 @@
  * itself reported the same way, never left unanswered.  @c subscribe
  * and @c unsubscribe are handled ahead of the ordinary table (see
  * @c ipc_client_subscribe / @c ipc_client_unsubscribe in @c ipc.h), the
- * only two commands whose own effect belongs to @p client_idx's own
+ * only two commands whose effect belongs to @p client_idx's
  * connection rather than to @p wm.
  *
  * @param wm         Window manager instance
- * @param request    Null-terminated request line, without its own
+ * @param request    Null-terminated request line, without its
  *                   trailing newline
  * @param client_idx Index of the connection @p request arrived on,
  *                   passed through to @c ipc_client_subscribe /
@@ -63,7 +63,7 @@
  * @return A newly allocated, null-terminated JSON response line
  *         (without a trailing newline; the caller adds one if needed),
  *         which the caller must free.  Only @c NULL on outright memory
- *         allocation failure.
+ *         allocation failure
  *
  * @note Complexity: @e O(n), where @e n is the number of clients or
  *       desktops a listing command has to walk; @e O(1) for every other

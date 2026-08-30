@@ -5,12 +5,12 @@
  *
  * One of the files @c input/mouse/event/ is made of;
  * everything here feeds @c mouse_handle_press specifically.  Each
- * non-trivial responsibility inside it has been extracted into its own
+ * non-trivial responsibility inside it has been extracted into its
  * static function so the public entry point reads as a straightforward
  * sequence of checks rather than a monolith.  Button release lives in
- * @c input/mouse/event/release.c and enter-notify (including its own,
+ * @c input/mouse/event/release.c and enter-notify (including its,
  * unrelated hover-focus state) lives in @c input/mouse/event/enter.c
- * instead, neither of which this file's own static helpers are ever
+ * instead, neither of which this file's static helpers are ever
  * called from.
  */
 /*
@@ -234,11 +234,11 @@ static bool s_mouse_can_resize_client(const client_td *client,
 
 
 /**
- * @brief Show the window context menu at a right-click's own root
+ * @brief Show the window context menu at a right-click's root
  *        position, then finish handling the button-press event
  *
  * Shared by @c mouse_handle_press's two right-click-opens-the-menu
- * cases (a decorated frame's border, and an undecorated window's own
+ * cases (a decorated frame's border, and an undecorated window's
  * near-edge margin): both resolve the same way once the click itself
  * is confirmed to be the right one, differing only in how that
  * confirmation is reached.
@@ -385,11 +385,11 @@ static void s_mouse_handle_root_press(wm_td *wm,
  * @brief Resolve the managed client under a button event, preferring
  *        its reparented child window over the frame it was grabbed on
  *
- * A button event's own @p child field names the deepest window under
- * the pointer (usually the client's own reparented content window)
+ * A button event's @p child field names the deepest window under
+ * the pointer (usually the client's reparented content window)
  * while @p event names whichever window the grab was actually
  * established on, usually the frame.  Tried in that order so a click
- * landing on the client's own content still resolves correctly even in
+ * landing on the client's content still resolves correctly even in
  * cases (an icon window, which has no frame of its own) where the
  * frame's window ID alone would not have matched anything.
  *
@@ -438,7 +438,7 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
  * one (visible on every desktop; see @a client_is_pinned) is expected
  * to keep showing as the active window no matter which desktop the user
  * switches to next.  Without this,
- * @a surface_clients_sticky_transfer_all's own "was this sticky client
+ * @a surface_clients_sticky_transfer_all's "was this sticky client
  * active on the desktop being switched away from" check (see
  * surface/actions.c) would only see the single desktop @a focus_apply
  * touched, silently dropping the active-window highlight the next time

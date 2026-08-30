@@ -25,12 +25,12 @@
  *
  * Deeply dynamic or polymorphic parts of the schema (the several
  * accepted shapes of @c screens.settings.desktops, being the main
- * one) are treated as opaque once their own key is recognized: this
+ * one) are treated as opaque once their key is recognized: this
  * checker does not attempt to validate what is inside them, since
  * doing so risks false positives on a legitimate but less common
  * shape rather than catching a real typo.
  *
- * Findings are grouped by file, each one headed by its own name
+ * Findings are grouped by file, each one headed by its name
  * (printed once, only if that file actually has something to report)
  * with every finding for it listed underneath, rather than a flat
  * list with the file repeated on every line: with as many files as

@@ -72,7 +72,7 @@ typedef struct wm_s wm_td;
 
 
 /* Field accessors ('wm/instance.c'); every wm/ sub-module and every
- * external caller reaches wm_td's own fields only through these,
+ * external caller reaches wm_td's fields only through these,
  * never through direct member access */
 /**
  * @brief XCB connection handle
@@ -240,7 +240,7 @@ uint32_t wm_restricted_memory_mib(const wm_td *wm);
  *
  * Also the same window @a wm_startup_acquire_selection
  * (@c wm/startup/selection.c) makes the owner of every managed
- * screen's own @c WM_Sn manager selection; see that function's own
+ * screen's @c WM_Sn manager selection; see that function's
  * comment for why the two share one window.
  *
  * @param wm Window manager instance
@@ -356,16 +356,16 @@ void wm_set_sync(wm_td *wm, bool available, uint8_t base_event);
  *              control within a reasonable time
  * @retval   -1 Singleton was already initialized; no action taken
  *
- * @note If @p display_name is @c NULL, the initialization attempts to
- *       get the "DISPLAY" environment variable, if set.
- * @note This function uses a singleton pattern
+ * @note A @c NULL @p display_name sends the initialization to the
+ *       @c DISPLAY environment variable instead, where that is set
+ * @note This function follows a singleton pattern
  * @note Complexity: @e O(n * m), where @e n is the number of surfaces
- *       to initialize, and @e m the number of desktops per window, as
- *       for the initialization requires iterate over a list of lists
+ *       to initialize and @e m the number of desktops per window, the
+ *       initialization walking a list of lists
  *
  * @see @c main.c for the @c -M and @c -r options
- * @see @a config_load's own @p restricted_memory_mib parameter for the
- *      precise details.
+ * @see @a config_load's @p restricted_memory_mib parameter for the
+ *      particulars
  */
 int wm_start(const char *restrict display_name,
         const char *restrict config_dir_prefix,
@@ -458,18 +458,18 @@ void wm_request_graceful_stop(void);
  * @retval  0 Success
  * @retval  1 Failed to perform the operation
  *
- * @note Complexity: @e O(n), where @e n is the number of parameters
- *       saved because it involves reading from the configuration file
  * @note Reloads @p config->randr from @c randr.json but does not call
  *       @a surface_action_apply_randr_profiles; an edited profile
  *       takes effect at the next call to that function (startup, or
  *       the matching output's next @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE),
  *       not from this reload alone
+ * @note Complexity: @e O(n), where @e n is the number of parameters
+ *       read back from the configuration file
  */
 int wm_action_config_reload(const wm_td *wm);
 
 /**
- * @brief Rearrange every visible window on the given surface's own
+ * @brief Rearrange every visible window on the given surface's
  *        current desktop
  *
  * A thin wrapper around @a enact_desktop_clients_rearrange.
@@ -551,13 +551,13 @@ list_td *wm_get_surfaces(void);
 /**
  * @brief Find which managed surface a given desktop belongs to
  *
- * @c desktop_td itself keeps no back-pointer to its own owning
- * @c surface_td (each surface's own @p desktops list points one way
+ * @c desktop_td itself keeps no back-pointer to its owning
+ * @c surface_td (each surface's @p desktops list points one way
  * only, surface to desktop); this is the reverse lookup, used by
  * @a desktop_action_recompute_urgent (@c desktop/dclient.c) to find the
- * surface a desktop's own cross-desktop urgency notification popup
+ * surface a desktop's cross-desktop urgency notification popup
  * needs to center on and compare @p desktop_cur against, without that
- * function's own signature having to grow a @c surface_td parameter
+ * function's signature having to grow a @c surface_td parameter
  * every one of its own several unrelated callers would then also have
  * to obtain and pass through.
  *
@@ -599,7 +599,7 @@ config_td *wm_get_config(void);
  * For a module needing @c xcb_key_symbols_t to resolve or re-resolve
  * a key binding (@a keyboard_load, @c input/kbd/bind.c, is the first
  * such caller outside @c wm.c itself) without already holding one of
- * its own, the same reasoning @a wm_get_config already documents for
+ * its, the same reasoning @a wm_get_config already documents for
  * itself above.
  *
  * @return The active key symbols table, or @c NULL when the window

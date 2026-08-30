@@ -101,10 +101,10 @@ void handler_expose(xcb_connection_t *connection,
     }
 
     /* Systray repaint: redraws whatever text/icons are already
-     * cached (see 'systray_layout_reflow''s own body), never
+     * cached (see 'systray_layout_reflow''s body), never
      * recomputing the clock or re-polling the battery, so a region
      * revealed after being covered reappears right away instead of
-     * staying blank until 'systray_clock_tick''s own next per-second
+     * staying blank until 'systray_clock_tick''s next per-second
      * update happens to redraw it anyway. */
     if (systray_owns_window(event->window)) {
         systray_layout_reflow();
@@ -190,7 +190,7 @@ void handler_expose(xcb_connection_t *connection,
         cycle_client = cycle_get_selected_client();
         is_icon_dragging = drag_is_active() && drag_is_icon_drag() &&
             drag_client() == client;
-        /* The icon's own drag ('drag_icon_start' in
+        /* The icon's drag ('drag_icon_start' in
          * 'input/mouse/drag/icon.c') sets the active styling once,
          * at the start of the drag, and nothing re-applies it
          * afterward; an
@@ -228,7 +228,7 @@ void handler_expose(xcb_connection_t *connection,
          * already folded into 'is_active_visual' above.
          *
          * Without this check, an 'Expose' from passing behind another
-         * window (or the cycle menu's own floating window happening to
+         * window (or the cycle menu's floating window happening to
          * overlap it) mid-drag or mid-selection would redraw the pixmap
          * this same repaint just cleared, bringing it back despite
          * neither one ever wanting it shown in the first place. */
@@ -284,13 +284,13 @@ void handler_expose(xcb_connection_t *connection,
 
     /* Frame-only expose: repaint border and background */
     if (client->frame != 0 && client->frame == event->window) {
-        /* A fullscreen client's own frame can still receive an
+        /* A fullscreen client's frame can still receive an
          * Expose (e.g., a click landing on it while it happens to
          * still exist as an X window underneath, even though it is
          * never shown decorated), and this path used to repaint the
          * theme's regular border onto it unconditionally regardless.
          * Same condition 's_desktop_render_one_client'
-         * ('render/desktop.c') already uses for its own
+         * ('render/desktop.c') already uses for its
          * 'hide_decoration'. */
         if (!(client_is_fullscreen(client) &&
                     client->was_decorated_fullscreen)) {

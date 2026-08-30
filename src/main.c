@@ -282,7 +282,7 @@ static inline void s_show_farewell(FILE *fp)
  * @param s3 Third buffer pointer (may be null)
  *
  * @note Each pointer is passed by address to @a safe_free and is
- *       expected to be set to @c NULL after deallocation.
+ *       expected to be set to @c NULL after deallocation
  * @note Complexity: @e O(1)
  */
 static inline void s_deallocate_buffers(char **s1, char **s2, char **s3)

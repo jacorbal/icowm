@@ -31,12 +31,12 @@
 
 
 /**
- * @brief Look up one GUI string's own translation for the current
+ * @brief Look up one GUI string's translation for the current
  *        locale
  *
  * Wrapper around @a gettext itself, named the short, conventional way
  * every @a gettext project names it, so a translated string reads as
- * a normal argument at its own call site (@a _(STR_FOO)) rather than
+ * a normal argument at its call site (@a _(STR_FOO)) rather than
  * a visibly separate lookup step.
  *
  * @param string Original, untranslated string (in practice, always one
@@ -47,7 +47,7 @@
 
 /* Public interface */
 /**
- * @brief Set up GUI text translation for the rest of this process's own
+ * @brief Set up GUI text translation for the rest of this process's
  *        lifetime
  *
  * Reads the locale the environment already names (@a setlocale with an
@@ -67,7 +67,7 @@
  *       installed on the system at all, is never a startup failure
  *       because @a gettext itself already falls back to the original
  *       text when it cannot find or load a translation, silently and
- *       correctly, so this has nothing further to check or report.
+ *       correctly, so this has nothing further to check or report
  *
  * @note Complexity: @e O(1)
  */

@@ -39,7 +39,7 @@
  * not, so a single list cannot answer both questions.
  *
  * One list for the session rather than one per desktop, which is how
- * Openbox holds its own @c focus_order.  A client keeps its place
+ * Openbox holds its @c focus_order.  A client keeps its place
  * while moving from desktop to desktop, and a desktop's focus is
  * worked out by filtering this order rather than remembered
  * separately, where it would go stale the moment the window it named
@@ -83,7 +83,7 @@ void focus_order_remove(const client_td *client);
  * the window loses focus because it is now last, not because something
  * separately took focus off it.
  *
- * Behind that desktop's own clients and no further.  The order spans
+ * Behind that desktop's clients and no further.  The order spans
  * every managed client, so its far end is behind the windows of every
  * other desktop too, and being demoted on one desktop says nothing
  * about where this client stands among another's.
@@ -171,11 +171,11 @@ bool focus_is_sloppy(const config_td *cfg);
  * Updates the active client for the desktop, sends focus and unfocus
  * events as needed, optionally raises the client, marks affected
  * surface and desktop as outdated, and triggers an immediate repaint.
- * Also, regardless of @p raise or @p cfg's own raise-on-focus policy,
+ * Also, regardless of @p raise or @p cfg's raise-on-focus policy,
  * re-enforces @p desktop's layer stacking whenever @p client or the
  * client just losing focus is fullscreen, so a focused fullscreen
  * client stays above everything else and one that just lost focus
- * falls back into its own real layer immediately either way (see
+ * falls back into its real layer immediately either way (see
  * @a ccmd_desktop_enforce_layers's comment).
  *
  * @param surfaces All managed surfaces (needed for unfocus lookup)
@@ -185,24 +185,22 @@ bool focus_is_sloppy(const config_td *cfg);
  * @param raise    Whether the client should be raised immediately
  * @param cfg      Active configuration (for raise-on-focus policy)
  *
- * @note Complexity: @e O(1) for focus bookkeeping; up to @e O(n * m)
- *       when immediate surface redraw is triggered after raising, or
- *       @e O(n) when only the fullscreen-related re-enforcement above
- *       runs
- *
- * @note Passing @c NULL for @p surfaces suppresses the unfocus-previous
- *       step; this is safe when the caller has already handled it.
- *
- * @note No-op, leaving whichever client already holds real keyboard
- *       focus untouched, when @a client_accepts_input_focus
- *       (@c client.h) is false for @p client: unfocusing whatever
- *       currently has focus in favor of a client that can never
- *       actually receive it under its own declared ICCCM input
- *       model would leave keyboard input directed nowhere.  Most
- *       callers already gate on @a client_is_focusable before
- *       reaching here, but that macro is about window @e type, not
- *       the ICCCM input model this note is about; see both macros'
- *       own comments in @c client.h for the distinction.
+ * @note A @c NULL @p surfaces suppresses the unfocus-previous step,
+ *       which is safe where the caller has already attended to it
+ * @note A no-op, leaving whichever client already holds real keyboard
+ *       focus untouched, where @a client_accepts_input_focus
+ *       (@c client.h) answers false for @p client: taking focus from
+ *       a window that has it, in favor of one that can never receive
+ *       it under its declared ICCCM input model, would leave keyboard
+ *       input directed nowhere
+ * @note Most callers gate on @a client_is_focusable before reaching
+ *       here, but that macro concerns window @e type rather than the
+ *       ICCCM input model, the two being distinct (see the comments
+ *       on both macros in @c client.h)
+ * @note Complexity: @e O(1) for focus bookkeeping, rising to
+ *       @e O(n * m) where raising triggers an immediate surface
+ *       redraw, and @e O(n) where only the fullscreen re-enforcement
+ *       above runs
  */
 void focus_apply(list_td *surfaces, surface_td *surface,
         desktop_td *desktop, client_td *client,

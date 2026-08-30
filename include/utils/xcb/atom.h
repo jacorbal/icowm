@@ -67,7 +67,7 @@ xcb_atom_t atom_intern(xcb_connection_t *connection, const char *name,
  *
  * The inverse of @a atom_intern, i.e, given an atom, recovers the
  * null-terminated string it was interned from (e.g., an
- * @c xcb_randr_monitor_info_t's own @p name field, an X atom rather
+ * @c xcb_randr_monitor_info_t's @p name field, an X atom rather
  * than a plain string, to match a RandR output's real name such as
  * "HDMI-1" against a configured profile).
  *
@@ -104,7 +104,7 @@ bool atom_name(xcb_connection_t *connection, xcb_atom_t atom,
  * @note Complexity: @e O(1)
  *
  * @see @a config_theme_opacity_to_raw in @c config.h, for converting
- *      a theme's own 0 to 100 percentage into this
+ *      a theme's 0 to 100 percentage into this
  */
 void atom_set_window_opacity(xcb_connection_t *connection,
         xcb_window_t window, uint32_t raw);

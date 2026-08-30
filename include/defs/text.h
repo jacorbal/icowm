@@ -3,11 +3,12 @@
  *
  * @brief Buffer sizes and capacity limits for text rendering
  *
- * Groups the constants shared by the two halves of the text renderer:
- * the font-description parser that turns a configuration string into
+ * Groups the constants shared by the two halves of the text renderer.
+ * The font-description parser that turns a configuration string into
  * an XLFD pattern (see @c render/text.c), and the FreeType glyph
- * backend that rasterizes and caches what gets drawn (see
- * @c render/glyph.c).
+ * backend that rasterizes and caches what gets drawn.
+ *
+ * @see @c render/glyph.c
  *
  * @ingroup defs
  */
@@ -30,7 +31,7 @@
  *
  * A description names a family, an optional pixel size, up to three
  * style keywords, and an optional charset spec, so anything past this
- * is a malformed entry rather than a longer legitimate one
+ * is a malformed entry rather than a longer legitimate one.
  */
 #define WM_TEXT_FONT_MAX_TOKENS (8u)
 
@@ -73,7 +74,7 @@
  *
  * Both the registry ('iso8859') and the encoding ('1') halves of a
  * trailing charset token are cut from a single token, so neither can
- * be longer than one
+ * be longer than one.
  */
 #define WM_TEXT_FONT_CHARSET_LENGTH (WM_TEXT_FONT_TOKEN_LENGTH)
 
@@ -83,9 +84,9 @@
  * @brief Maximum distinct codepoints the glyph renderer will cache
  *        and upload for one font
  *
- * A window manager's own text uses a small, stable alphabet, so a
+ * A window manager's text uses a small, stable alphabet, so a
  * flat array with linear search is simpler than a hash table and fast
- * enough at this size
+ * enough at this size.
  */
 #define WM_TEXT_GLYPH_CACHE_MAX (512u)
 
@@ -96,7 +97,7 @@
  * @brief Maximum codepoints drawn or measured in a single call
  *
  * Long enough for any label this window manager itself draws (window
- * titles, menu entries, dialog text)
+ * titles, menu entries, dialog text).
  */
 #define WM_TEXT_GLYPH_MAX_STRING_LENGTH (512u)
 

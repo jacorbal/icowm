@@ -4,7 +4,7 @@
  * @brief Private state and helpers shared across @c wm sub-modules
  *
  * Defines the real @c wm_td structure (opaque everywhere else; see
- * @c wm.h's own accessor functions), and declares helpers shared by
+ * @c wm.h's accessor functions), and declares helpers shared by
  * more than one of @c wm/shutdown.c, @c wm/ewmh.c, and @c wm/action.c.
  *
  * @note This header is private to the @c wm subsystem and must not be
@@ -54,7 +54,7 @@
  * from @a loop_run instead, not tracked as a field here.
  *
  * Reached from outside @c wm.c and @c wm/instance.c only through
- * @c wm.h's own accessor functions, never through direct member
+ * @c wm.h's accessor functions, never through direct member
  * access.
  *
  * @see @c loop.h
@@ -73,7 +73,7 @@ struct wm_s {
      * @a keyboard_load with the current bindings after every reload
      * trigger (@c SIGHUP, the reload keybinding, and the root menu's
      * "Reload configuration" entry) without each of those three call
-     * sites needing its own copy of this pointer. */
+     * sites needing its copy of this pointer. */
     xcb_key_symbols_t *keysyms;
 
     config_td *config;              /**< Window manager configuration */
@@ -120,7 +120,7 @@ struct wm_s {
  *        desktop, optionally applying an action to each
  *
  * Shared by @c wm/shutdown.c and @c wm/ewmh.c, so both walk the exact
- * same enumeration instead of each keeping its own separate copy of
+ * same enumeration instead of each keeping its separate copy of
  * this traversal.
  *
  * @param wm       Window manager instance
@@ -141,8 +141,8 @@ uint32_t wm_for_each_client(const wm_td *wm,
 
 /**
  * @brief Release every client, on every desktop of every managed
- *        surface, back to bare X before this whole instance's own
- *        teardown destroys the window manager's own resources
+ *        surface, back to bare X before this whole instance's
+ *        teardown destroys the window manager's resources
  *
  * @param wm Window manager instance
  *

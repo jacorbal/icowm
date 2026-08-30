@@ -48,12 +48,12 @@ struct systray_state_s s_tray;
 
 
 /**
- * @brief Copy every systray setting from @p wm's own configuration
+ * @brief Copy every systray setting from @p wm's configuration
  *        into @p s_tray,
  *        and refresh the clock/battery text for the values just copied
  *
  * The part @a systray_init and @a systray_reload both need identically
- * (every field @c config.json's own @p systray object can set, plus
+ * (every field @c config.json's @p systray object can set, plus
  * re-rendering the clock and battery text so a changed format or
  * threshold takes effect immediately rather than waiting for the next
  * scheduled tick).  What differs between the two callers is only what
@@ -78,7 +78,7 @@ static void s_systray_config_apply(const wm_td *wm)
     s_tray.monitor.index = config->base.systray.monitor.index;
 
     /* A configured '0' (or anything absurdly small) would otherwise
-     * make every docked icon invisible, or divide the icon row's own
+     * make every docked icon invisible, or divide the icon row's
      * layout math by a near-zero step; clamped to '1' at the very
      * least, the same defensive floor 'height' below already applied
      * against the old fixed 'WM_SYSTRAY_ICON_SIZE' constant. */
@@ -125,7 +125,7 @@ static void s_systray_config_apply(const wm_td *wm)
  * @brief Force every already-docked icon back to the tray's current
  *        @p pixmap.size
  *
- * A docked icon's own size is otherwise only ever set once, at dock
+ * A docked icon's size is otherwise only ever set once, at dock
  * time (see @a systray_protocol_dock in @c systray/protocol.c).
  * Reparent, resize, only then map, the icon is never actually visible
  * at its old size in the first place, so it never needs to redraw
@@ -135,7 +135,7 @@ static void s_systray_config_apply(const wm_td *wm)
  * different @p pixmap.size.
  *
  * @a systray_layout_reflow, called separately, does reposition every
- * icon using the newly reloaded size and padding for its own spacing
+ * icon using the newly reloaded size and padding for its spacing
  * math, but repositioning is not resizing.
  *
  * Unmapping first, then resizing, then remapping mirrors that same
@@ -214,7 +214,7 @@ void systray_shutdown(wm_td *wm)
     if (s_tray.is_window_ready && xcb_connection_get() != NULL &&
             s_tray.window != XCB_WINDOW_NONE) {
         /* Destroying the tray window implicitly reparents any
-         * still-docked icons back to the root window; each icon's own
+         * still-docked icons back to the root window; each icon's
          * application is responsible for re-docking if a tray reappears
          * later, exactly as with every other systray.  This full
          * teardown is only for the window manager itself exiting;
@@ -269,7 +269,7 @@ const struct strut_partial_s *systray_get_reserved_strut(
 }
 
 
-/* Return the tray's own current on-screen rectangle on 'surface', or
+/* Return the tray's current on-screen rectangle on 'surface', or
  * 'false' when it is not currently showing there at all */
 bool systray_get_geometry(const surface_td *surface,
         struct geometry_s *restrict out_tray)
@@ -289,10 +289,10 @@ bool systray_get_geometry(const surface_td *surface,
         return false;
     }
 
-    /* 'reply->x'/'reply->y' are relative to the tray window's own
+    /* 'reply->x'/'reply->y' are relative to the tray window's
      * parent, the same root every other top-level window this project
      * creates (icon windows included) shares, so directly comparable
-     * against an icon's own root-relative position with no extra
+     * against an icon's root-relative position with no extra
      * translation needed */
     out_tray->pos.x = (int32_t) reply->x;
     out_tray->pos.y = (int32_t) reply->y;
@@ -424,7 +424,7 @@ void systray_reload(const wm_td *wm)
 
     /* Unconditional, before the enabled/disabled branches below: an
      * icon already docked before this reload keeps whatever size it was
-     * forced to at dock time otherwise (see this function's own doc
+     * forced to at dock time otherwise (see this function's doc
      * comment), regardless of whether the tray ends up enabled,
      * disabled, or unchanged by this same reload, so a size picked up
      * while momentarily disabled is still correct the next time the
@@ -459,7 +459,7 @@ void systray_reload(const wm_td *wm)
 
         /* Selection acquisition only even attempted, let alone required
          * for success here, when embedding is actually allowed; with it
-         * disabled the window alone (already showing its own
+         * disabled the window alone (already showing its
          * clock/battery text via 's_systray_config_apply' above) is
          * enough on its own */
         if (ready && config->base.systray.is_embedding_enabled) {

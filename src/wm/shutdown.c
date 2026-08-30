@@ -52,7 +52,7 @@ static struct timespec s_shutdown_deadline;
 
 
 /**
- * @brief Adapts @c ccmd_client_close to @c wm_for_each_client's own
+ * @brief Adapts @c ccmd_client_close to @c wm_for_each_client's
  *        action signature
  *
  * @param client   Client to close
@@ -68,7 +68,7 @@ static void s_shutdown_close_client(client_td *client, void *userdata)
 
 
 /**
- * @brief Adapts @c ccmd_client_kill to @c wm_for_each_client's own
+ * @brief Adapts @c ccmd_client_kill to @c wm_for_each_client's
  *        action signature
  *
  * @param client   Client to kill

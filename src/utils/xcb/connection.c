@@ -1,7 +1,7 @@
 /**
  * @file utils/xcb/connection.c
  *
- * @brief The session's own connections to the X server, implementation
+ * @brief The session's connections to the X server, implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -55,14 +55,14 @@ xcb_connection_t *xcb_connection_get(void)
 }
 
 
-/* Record the EWMH connection built over the session's own */
+/* Record the EWMH connection built over the session's */
 void xcb_ewmh_connection_set(xcb_ewmh_connection_t *ewmh)
 {
     s_ewmh = ewmh;
 }
 
 
-/* The EWMH connection built over the session's own */
+/* The EWMH connection built over the session's */
 xcb_ewmh_connection_t *xcb_ewmh_connection_get(void)
 {
     return s_ewmh;

@@ -112,7 +112,7 @@ static void s_client_reload_apply(const struct s_reload_ctx_s *ctx,
          * used to be, before this same reload just
          * moved it there, is never otherwise revisited
          * on its own: nothing else here (or anywhere
-         * else) re-checks an already-placed icon's own
+         * else) re-checks an already-placed icon's
          * position against the tray's, only a fresh
          * 'place_icon_apply' call or a drag ever does
          * (see 'place_icon_avoid_systray_overlap''s
@@ -177,12 +177,12 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
         return;
     }
 
-        /* A desktop that set its own 'background-color' in the
+        /* A desktop that set its 'background-color' in the
          * just-reloaded 'config.json' keeps it; one that did not
          * (still holding 'WM_DESKTOP_BG_COLOR_UNSET', the same
          * sentinel every entry starts with) falls back to the
-         * just-reloaded theme's own 'desktop.color.background'
-         * instead, mirroring 'desktop_init''s own fallback
+         * just-reloaded theme's 'desktop.color.background'
+         * instead, mirroring 'desktop_init''s fallback
          * exactly.  Assigning the sentinel value itself as though
          * it were a real color (as this block used to, before this
          * check existed) renders as black, since its low 24 bits
@@ -230,11 +230,11 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
  * @brief Resynchronize every already-managed surface, desktop, and
  *        client after a configuration reload
  *
- * A configuration reload updates @p wm's own configuration in place,
+ * A configuration reload updates @p wm's configuration in place,
  * but anything already derived from it before the reload (a desktop's
  * resolved background color, a client's cached frame dimensions) has
  * to be explicitly recomputed or repainted; nothing else does that on
- * its own just because the underlying configuration changed
+ * its just because the underlying configuration changed
  * underneath it.
  *
  * @param wm Window manager instance
@@ -353,7 +353,7 @@ int wm_action_config_reload(const wm_td *wm)
      * load, offering a chance to revert it (see 'dialog_rrsafe_ show')
      * before 's_resync_after_reload' below, so any surface or client
      * resync there already reflects the new screen geometry if RandR
-     * itself just changed it.  Every surface still gets its own
+     * itself just changed it.  Every surface still gets its
      * profiles applied even when more than one changes, but only the
      * first one to actually change is snapshotted and offered the
      * confirm dialog: 'menu_confirm_dialog' allows only one instance
@@ -378,7 +378,7 @@ int wm_action_config_reload(const wm_td *wm)
     }
 
     /* Re-establish keyboard/mouse binding grabs from the just-reloaded
-     * configuration's own bindings: 'config_load' above already
+     * configuration's bindings: 'config_load' above already
      * refreshed that in-memory data (it loads 'bindings.json' too, not
      * just 'config.json'), but the X server grabs 'keyboard_load' and
      * 'mouse_load' set up at startup are a separate, one-time action

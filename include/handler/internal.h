@@ -98,14 +98,14 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
  * Lets a @c Client (typically a pager or session-restore tool, rather
  * than the client owning the window itself) request a direct,
  * one-shot geometry change, the same request @c ccmd_client_move and
- * @c ccmd_client_resize apply for icowm's own internal callers, but
+ * @c ccmd_client_resize apply for icowm's internal callers, but
  * driven by an external @c ClientMessage instead.
  *
- * @c event's own @c data32[0] carries a bitmask of which of
+ * @c event's @c data32[0] carries a bitmask of which of
  * @c data32[1..4] (@c x, @c y, @c width, @c height, in that order)
- * are actually present in this particular request; an axis whose own
+ * are actually present in this particular request; an axis whose
  * flag bit is unset is left exactly as it already was.  @p width and
- * @p height, per the EWMH specification, describe the client's own
+ * @p height, per the EWMH specification, describe the client's
  * content size, so each is padded out by the matching pair of frame
  * extents before being applied to @p client's frame, when decorated.
  * @p y is floored at @c 0 and @p width/@p height at
@@ -114,7 +114,7 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
  *
  * An iconified @p client is left iconified: unlike
  * @c ccmd_client_shade, @c ccmd_client_fullscreen, and
- * @c ccmd_client_maximize (whose own request is itself a visible
+ * @c ccmd_client_maximize (whose request is itself a visible
  * state change the person is asking for), silently un-iconifying a
  * window a person deliberately minimized just because an external
  * pager sent it a geometry hint would be a surprising side effect of
@@ -190,7 +190,7 @@ void hi_handle_net_wm_fullscreen_monitors(const wm_td *wm,
  * @brief Handle a @c _NET_WM_MOVERESIZE client message
  *
  * Starts (or cancels) an icowm-managed interactive move or resize on
- * behalf of a client that draws its own titlebar or resize grips,
+ * behalf of a client that draws its titlebar or resize grips,
  * matching whichever operation and anchor the message's direction
  * requests.
  *

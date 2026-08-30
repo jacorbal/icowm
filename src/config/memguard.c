@@ -1,14 +1,14 @@
 /**
  * @file config/memguard.c
  *
- * @brief Restricted-memory mode's own configuration profile
+ * @brief Restricted-memory mode's configuration profile
  *        (@c memguard.json) implementation
  *
  * Owns only the top-level orchestration: allocating the structure and
- * driving @c memguard.json's own load sequence in order.  The fixed
+ * driving @c memguard.json's load sequence in order.  The fixed
  * default profile lives in @c config/memguard/defaults.c, parsing
  * @c memguard.json itself in @c config/memguard/load.c, and applying
- * this mode's own theme restrictions in @c config/memguard/theme.c.
+ * this mode's theme restrictions in @c config/memguard/theme.c.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -56,8 +56,8 @@ config_td *config_memguard_init(void)
 }
 
 
-/* Load restricted-memory mode's own configuration, entirely
- * independent of config_load's own config.json path */
+/* Load restricted-memory mode's configuration, entirely
+ * independent of config_load's config.json path */
 int config_load_memguard(config_td *config, const char *config_prefix)
 {
     char config_dir[CONFIG_MAX_LENGTH_PATH_BASE];
@@ -127,7 +127,7 @@ int config_load_memguard(config_td *config, const char *config_prefix)
 
     ci_memguard_restrict_theme(config);
 
-    /* Accessibility (a11y): loaded as its own independent file, the
+    /* Accessibility (a11y): loaded as its independent file, the
      * same way 'bindings.json' and the active theme file already are
      * above, rather than folded into 'memguard.json' itself; wanting
      * to save memory is never a reason to also give up basic

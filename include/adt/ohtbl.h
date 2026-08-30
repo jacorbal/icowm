@@ -37,7 +37,7 @@
  *   element is added, which can lead to inefficient performance.
  * - If the value is greater than @c 1, the hash table will permit an
  *   excessive number of elements, leading to a significant decrease in
- *   search and insertion efficiency due to increased collisions
+ *   search and insertion efficiency due to increased collisions.
  *
  * @note This value must be in the domain [0.0f, 1.0f]
  * @note A suggested value is 0.75f

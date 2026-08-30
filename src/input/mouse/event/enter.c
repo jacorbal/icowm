@@ -4,9 +4,9 @@
  * @brief Mouse enter-notify handling and hover-triggered focus state
  *
  * One of the files @c input/mouse/event/ is made of;
- * carries its own @c s_enter_focus_active state, used by nothing
+ * carries its @c s_enter_focus_active state, used by nothing
  * outside this file and @c handler_focus_in (@c handler/focus.c), which
- * clears it.  See @c input/mouse/event/press.c's own comment for the
+ * clears it.  See @c input/mouse/event/press.c's comment for the
  * reasoning behind the three-way split.
  */
 /*
@@ -84,14 +84,14 @@ void mouse_handle_enter(xcb_connection_t *connection,
     }
 
     /* Independent of focus-follows-mouse below: a resizable client that
-     * selects 'PointerMotion' for its own purposes (common in GTK/Qt
-     * applications tracking hover for their own UI) intercepts motion
+     * selects 'PointerMotion' for its purposes (common in GTK/Qt
+     * applications tracking hover for their UI) intercepts motion
      * events at the X11 propagation level before they ever reach
      * 'mouse_handle_motion_hover', so the cursor set while hovering
-     * this client's own border never gets re-evaluated once the pointer
+     * this client's border never gets re-evaluated once the pointer
      * moves on into that client's content area; this 'EnterNotify',
      * unlike motion, still fires reliably since it was selected
-     * directly on this client's own window (see 'client.c'), giving the
+     * directly on this client's window (see 'client.c'), giving the
      * resize-cursor logic a second, independent chance to catch what
      * motion alone might have missed. */
     entered = mouse_resize_cursor_update(connection, surfaces,
@@ -101,7 +101,7 @@ void mouse_handle_enter(xcb_connection_t *connection,
     /* An undecorated client has no separate frame window to fall back
      * on at all: moving from its border to its interior (or back)
      * happens entirely within this one same window, with no crossing
-     * whatsoever for any further 'EnterNotify' to catch, and its own
+     * whatsoever for any further 'EnterNotify' to catch, and its
      * 'PointerMotion' may be just as intercepted as any other client's;
      * only a periodic poll (see 'mouse_hover_poll_tick') can still
      * catch that transition, so track it for one here. */

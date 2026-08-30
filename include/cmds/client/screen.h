@@ -2,7 +2,7 @@
  * @file cmds/client/screen.h
  *
  * @brief Functions resolving a client's decoration target window and
- *        its own current monitor
+ *        its current monitor
  *
  * @defgroup cmds Client, desktop, and surface commands
  * @ingroup enact
@@ -48,7 +48,7 @@ xcb_window_t ccmd_target_win(client_td *client);
  * @brief Find which monitor a client is currently on
  *
  * Resolves @p client's surface from the global @c wm singleton, then
- * finds whichever of that surface's monitors @p client's own center
+ * finds whichever of that surface's monitors @p client's center
  * point currently falls on.
  *
  * @param client      Client to resolve a monitor for

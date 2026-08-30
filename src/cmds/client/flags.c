@@ -193,20 +193,20 @@ static void s_ccmd_client_unpin_visit(client_td *member, void *ctx)
  * already covered (iconify, restore, desktop moves), treated as one
  * single unit that can never be split across desktops; pin state is
  * no different, since a "save changes?" prompt left behind on one
- * desktop while its own pinned parent now follows the person to
+ * desktop while its pinned parent now follows the person to
  * every other one would be exactly that kind of split.  Pinning any
- * single member of a transient family here pins the family's own
+ * single member of a transient family here pins the family's
  * top-most ancestor (@a ccmd_client_transient_top_parent) first, then
  * every other member of that same family not already pinned, so the
  * whole group stays together on every desktop from then on.  A
- * client with no transient relatives at all is unaffected: its own
+ * client with no transient relatives at all is unaffected: its
  * top parent is itself, and no sibling scan finds anything else to
  * cascade to.
  *
  * @param client Client to pin
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's own desktop
+ *       the top parent's desktop
  */
 void ccmd_client_pin(client_td *client)
 {
@@ -230,10 +230,10 @@ void ccmd_client_pin(client_td *client)
 
 
 /**
- * @brief Unpin the client from every desktop but its own, taking its
+ * @brief Unpin the client from every desktop but its, taking its
  *        whole transient family along with it
  *
- * The matching half of @a ccmd_client_pin's own transient-family
+ * The matching half of @a ccmd_client_pin's transient-family
  * cascade (see its comment for the full reasoning): redirects
  * to the family's top-most ancestor first, unpinning it exactly as
  * this function always has, then unpins every other family member
@@ -243,7 +243,7 @@ void ccmd_client_pin(client_td *client)
  * @param client Client to unpin
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's own desktop
+ *       the top parent's desktop
  */
 void ccmd_client_unpin(client_td *client)
 {
@@ -296,7 +296,7 @@ void ccmd_client_toggle_pin(client_td *client)
 }
 
 
-/* Override the client's own active-state opacity */
+/* Override the client's active-state opacity */
 void ccmd_client_set_opacity_active(client_td *client, uint8_t percent)
 {
     if (client == NULL) {
@@ -309,7 +309,7 @@ void ccmd_client_set_opacity_active(client_td *client, uint8_t percent)
 }
 
 
-/* Override the client's own inactive-state opacity */
+/* Override the client's inactive-state opacity */
 void ccmd_client_set_opacity_inactive(client_td *client,
         uint8_t percent)
 {
@@ -323,7 +323,7 @@ void ccmd_client_set_opacity_inactive(client_td *client,
 }
 
 
-/* Override the client's own border color and width */
+/* Override the client's border color and width */
 void ccmd_client_set_border_override(client_td *client,
         uint32_t color, uint32_t width)
 {
@@ -432,9 +432,9 @@ void ccmd_client_update_allowed_actions(client_td *client)
     /* Not folded into the 'client_is_resizable' block above, unlike
      * maximize: fullscreen is a WM-forced override of the client's
      * own preferred geometry, not a user-convenience resize the
-     * client's own fixed size hints have any say over; see
-     * 'ccmd_client_fullscreen''s own comment for the full reasoning.
-     * A DOS-emulation or retro-game window that fixes its own size is
+     * client's fixed size hints have any say over; see
+     * 'ccmd_client_fullscreen''s comment for the full reasoning.
+     * A DOS-emulation or retro-game window that fixes its size is
      * exactly the case this matters for: some such clients check this
      * very property before ever attempting '_NET_WM_STATE_FULLSCREEN'
      * at all, so advertising it as disallowed here would have kept

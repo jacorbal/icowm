@@ -66,7 +66,7 @@
  * @a desktop_action_client_send_back below, which only differ in
  * which end of
  * the stacking list the client is reinserted at and the wording of
- * their own log message.
+ * their log message.
  *
  * @param desktop  Desktop whose stacking order is changed
  * @param client   Client to move
@@ -116,7 +116,7 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
 /**
  * @brief Raise every transient descendant of a client along with it
  *
- * Walks @p client's own @c transients tree directly (see its own doc
+ * Walks @p client's @c transients tree directly (see its doc
  * comment, client.h), depth-first, rather than scanning @p desktop's
  * own entire stacking order comparing raw @c transient_for window
  * IDs the way this function used to: a chain of dialogs (a dialog's
@@ -133,22 +133,22 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
  * stacking.
  *
  * Scoped to @p desktop, the same as before: a descendant registered
- * under some other desktop (a pinned parent's own un-pinned dialog,
+ * under some other desktop (a pinned parent's un-pinned dialog,
  * say, still on whichever desktop it was originally created on; see
  * @a ccmd_client_bring_family's comment, cmds/client/
  * transient.c, for the fuller reasoning) is left untouched here,
  * since @a s_desktop_client_send_to_end itself only ever reorders
- * @p desktop's own stacking list.
+ * @p desktop's stacking list.
  *
  * @param desktop Desktop whose stacking order is searched and updated
  * @param client  Client whose transient descendants get raised too
- * @param depth   Current recursion depth; the caller's own first
+ * @param depth   Current recursion depth; the caller's first
  *                call always passes @c 0
  *
  * @note A null @p client, or exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH,
  *       is a silent no-op
  * @note Complexity: @e O(f + n), where @e f is the number of
- *       @p client's own transient descendants, at every depth combined,
+ *       @p client's transient descendants, at every depth combined,
  *       sharing @p desktop with it, and @e n is the number of clients
  *       on @p desktop (for the group-transient search)
  */
@@ -217,15 +217,15 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
 
     /* If this key is already occupied, find out whether the window
      * it belongs to still genuinely exists before ever attempting the
-     * real insert below.  A window whose own 'MapRequest' sat queued
+     * real insert below.  A window whose 'MapRequest' sat queued
      * long enough that it was already gone by the time this window
      * manager got to it (see the 'ghost window' reasoning throughout
-     * this project's own history) can leave exactly this kind of
+     * this project's history) can leave exactly this kind of
      * entry behind: nothing destroyed it from within this window
      * manager, since nothing here ever considered it alive to begin
      * with, so nothing here ever cleaned it up either, and it goes on
      * occupying this exact key forever, blocking every later window
-     * whose own ID happens to be reused for it.  A single, ordinary
+     * whose ID happens to be reused for it.  A single, ordinary
      * blocking XCB call (the exact same one 'client_init' itself
      * already relies on elsewhere, no timeout wrapped around it) is
      * enough to tell a window that no longer exists (a NULL reply,
@@ -352,7 +352,7 @@ int desktop_action_client_move(desktop_td *from, desktop_td *to,
 
     if (desktop_action_client_add(to, client) != 0) {
         /* Put it back where it came from: a client that belongs to
-         * no desktop's own table is reachable through nothing, yet
+         * no desktop's table is reachable through nothing, yet
          * stays mapped on screen, which is worse than a move that
          * simply did not happen */
         LOGGER_ERROR("Failed to move client 0x%08x to desktop %u;" \
@@ -371,7 +371,7 @@ int desktop_action_client_move(desktop_td *from, desktop_td *to,
 }
 
 
-/* Recompute whether any client on the desktop currently has its own
+/* Recompute whether any client on the desktop currently has its
  * urgency hint set */
 void desktop_action_recompute_urgent(desktop_td *desktop)
 {
@@ -398,7 +398,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
 
     /* Only on the actual false-to-true transition, and only when this
      * is not the desktop currently visible on its own surface: that
-     * case already gets its own titlebar blink (policy/urgency.c),
+     * case already gets its titlebar blink (policy/urgency.c),
      * so a dialog here would only duplicate what is already on
      * screen. */
     if (!was_urgent && found) {
@@ -551,7 +551,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
     /* Begin startup notification before forking, so the child can be
      * handed the resulting ID as 'DESKTOP_STARTUP_ID' below; a
      * startup-notification-aware application reads that variable and
-     * broadcasts its own completion once its main window is ready.
+     * broadcasts its completion once its main window is ready.
      * Skipped entirely when 'startup_notification.is_enabled' is
      * false: 'have_startup_id' then stays false too, so the option
      * handed to 'spawn_command' below simply stays null. */

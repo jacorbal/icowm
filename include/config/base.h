@@ -4,7 +4,7 @@
  * @brief Screen and desktop topology, and the policies that apply
  *        to them
  *
- * Everything @c config.json's own top-level objects describe: how many
+ * Everything @c config.json's top-level objects describe: how many
  * screens and desktops exist and what each is called, plus the focus,
  * placement, snapping, scratchpad and systray policies that apply
  * across them.
@@ -67,19 +67,19 @@ enum config_desktop_corner_e {
 };
 
 /**
- * @brief One screen's own desktop-grid layout
+ * @brief One screen's desktop-grid layout
  *
  * Purely an interpretation over the same flat, zero-based desktop
  * list @c desktops[] itself already is: north/south/east/west
  * navigation (@a surface_desktop_north and its three siblings,
- * surface/desktops.c) reads this to translate a desktop's own flat
+ * surface/desktops.c) reads this to translate a desktop's flat
  * index to and from a row/column position, but nothing about
- * @c desktops[] itself, or a desktop's own settings within it, changes
+ * @c desktops[] itself, or a desktop's settings within it, changes
  * depending on whether one is configured at all.
  *
  * Always populated with a valid value, whether @c topology.screens.
  * desktops[].layout was present in config.json or not: @c rows @c 1,
- * @c columns the screen's own @c desktop_count, @c orientation
+ * @c columns the screen's @c desktop_count, @c orientation
  * horizontal, @c corner top-left describes the exact same reading
  * order the desktop list itself already had before this existed, so
  * a config that never mentions layout at all behaves identically to
@@ -148,7 +148,7 @@ struct config_base_s {
          * an oversight: this shortcut exists specifically as a last
          * resort for situations where the window manager itself may be
          * unresponsive or in some broken state, so it is kept to the
-         * smallest, most direct possible action, a signal to its own
+         * smallest, most direct possible action, a signal to its
          * process, with nothing else in between that could itself get
          * stuck, hang, or otherwise fail to complete, e.g., a dialog
          * that depends on the very rendering or event loop that might
@@ -178,7 +178,7 @@ struct config_base_s {
          * When quit is confirmed, every managed client is first asked
          * to close (ICCCM @c WM_DELETE_WINDOW where supported, so an
          * application with unsaved changes gets the same chance to warn
-         * the user it already gets when its own window is closed
+         * the user it already gets when its window is closed
          * individually), rather than the window manager simply exiting
          * out from under them.  @p timeout_seconds bounds how long this
          * wait lasts before whichever clients are still open get forced
@@ -198,12 +198,12 @@ struct config_base_s {
 
     /**
      * @brief Whether launching a program begins a startup-notification
-     *        sequence at all, and that sequence's own timeout
+     *        sequence at all, and that sequence's timeout
      *
      * @see @a cctl_sn_begin, whose only call site checks
      *      @p is_enabled first, and @a cctl_sn_set_timeout_seconds
      *      and @c SN_TIMEOUT_SECONDS in @c sn.h for what
-     *      @p timeout_seconds controls and its built-in default.
+     *      @p timeout_seconds controls and what it defaults to
      */
     struct {
         bool is_enabled;
@@ -274,7 +274,7 @@ struct config_base_s {
         } monitor_policy;
 
         /**
-         * @brief Behavior of a window's own edges against nearby
+         * @brief Behavior of a window's edges against nearby
          *        screen edges and other windows while being
          *        interactively moved or resized
          */
@@ -285,17 +285,17 @@ struct config_base_s {
              *        one specifically
              */
             struct config_edges_snap_s {
-                uint32_t window; /**< Toward another window's own
+                uint32_t window; /**< Toward another window's
                                       edge */
-                uint32_t screen; /**< Toward the screen's own edge */
+                uint32_t screen; /**< Toward the screen's edge */
             } snap;
 
             /**
              * @brief How many pixels of deliberate extra drag it
              *        takes for a horizontally or vertically
-             *        maximized client's own locked axis to actually
+             *        maximized client's locked axis to actually
              *        start changing while being interactively
-             *        resized, matching Openbox's own reuse of its
+             *        resized, matching Openbox's reuse of its
              *        @c config_resist_edge (@c moveresize.c) for the
              *        identical purpose
              *
@@ -334,13 +334,13 @@ struct config_base_s {
     /**
      * @brief Configuration for the scratchpad: a single dedicated
      *        client, launched on demand from @p command, toggled
-     *        visible/hidden by its own keybind or IPC command instead
+     *        visible/hidden by its keybind or IPC command instead
      *        of iconified/restored
      *
      * @p is_enabled just gates whether the toggle action does anything
      * at all; @p width and @p height are always applied regardless of
      * whatever geometry the client itself requests, against whichever
-     * edge @p edge names, centered along that edge's own other axis.
+     * edge @p edge names, centered along that edge's other axis.
      *
      * @see @c scratchpad.c
      */
@@ -360,7 +360,7 @@ struct config_base_s {
          *
          * @p pixels is only meaningful when @p mode is
          * @c CONFIG_SCRATCHPAD_SIZE_FIXED; under
-         * @c CONFIG_SCRATCHPAD_SIZE_MAX the scratchpad's own placement
+         * @c CONFIG_SCRATCHPAD_SIZE_MAX the scratchpad's placement
          * code computes it fresh every time instead, against
          * @p desktop->workarea (or the full monitor extent, when
          * @p ignore_margins is @c true), the same as a numeric value
@@ -379,8 +379,8 @@ struct config_base_s {
         bool is_enabled;    /**< Enable the scratchpad toggle action */
 
         /**
-         * @brief Whether the scratchpad's own placement skips
-         *       @p desktops.margins and the systray's own reserved
+         * @brief Whether the scratchpad's placement skips
+         *       @p desktops.margins and the systray's reserved
          *       space
          *
          * @c false (the default) places it the same way an ordinary
@@ -425,9 +425,9 @@ struct config_base_s {
          * as if there were only one monitor; @p primary anchors it to
          * the monitor RandR reports as primary; @p index anchors it to
          * @p monitor.index specifically, a zero-based index into that
-         * surface's own monitor list (falls back to monitor 0 if it
+         * surface's monitor list (falls back to monitor 0 if it
          * does not exist, logging a warning, the same as
-         * @c rules.json's own @c apply.monitor).
+         * @c rules.json's @c apply.monitor).
          *
          * Only one tray dock ever exists at a time regardless of this
          * setting: the @c _NET_SYSTEM_TRAY_Sn specification permits
@@ -466,14 +466,14 @@ struct config_base_s {
          *        third-party applications dock an icon in it
          *
          * Never loaded from any configuration file: an ordinary
-         * session's own @a config_set_default_values always sets this
-         * @c true, and restricted-memory mode's own
+         * session's @a config_set_default_values always sets this
+         * @c true, and restricted-memory mode's
          * @a config_set_default_values_memguard (@c config/memguard.h)
-         * always sets it @c false, as a fixed part of that mode's own
+         * always sets it @c false, as a fixed part of that mode's
          * profile rather than something @c memguard.json itself is
          * allowed to configure.  With this @c false, the tray still
-         * shows its own clock and battery text when @p is_enabled is
-         * also @c true; only docking a third party's own icon is ever
+         * shows its clock and battery text when @p is_enabled is
+         * also @c true; only docking a third party's icon is ever
          * affected.
          *
          * @see @a systray_init and @a systray_reload
@@ -483,8 +483,8 @@ struct config_base_s {
         /**
          * @brief Whether the tray publishes an
          *        @c _NET_WM_STRUT_PARTIAL / @c _NET_WM_STRUT, reserving
-         *        an on-screen area so maximized windows and
-         *        placement leave it alone.
+         *        an on-screen area that maximized windows and
+         *        placement leave alone
          *
          * @c false by default, so nothing is reserved and an
          * explicit {0, 0, 0, 0} strut is published, the same as if
@@ -693,7 +693,7 @@ struct config_base_s {
      * @brief Whether 'KEYBIND_LAUNCH_LAUNCHER' opens the built-in
      *        run-box instead of spawning @p programs.launcher
      *
-     * Its own top-level section, rather than nested under @p programs
+     * Its top-level section, rather than nested under @p programs
      * itself, specifically to avoid the confusion a second, differently
      * typed "launcher" key nested right next to @p programs.launcher
      * (a plain command string) would invite; see @c menu/dialog/run.h
@@ -702,7 +702,7 @@ struct config_base_s {
      * @p is_enabled defaults to @c false in normal mode; defaults to
      * @c true in restricted-memory mode, where avoiding the extra
      * process @p programs.launcher itself would otherwise spawn (even
-     * a minimal one, e.g., 'gmrun', this mode's own default for it)
+     * a minimal one, e.g., 'gmrun', this mode's default for it)
      * fits that mode's whole reason for existing.
      *
      * @see @a ik_handle_launch (input/kbd/interact.c) for where this
@@ -713,7 +713,7 @@ struct config_base_s {
     } prompt;
 
     /**
-     * @brief The @c fortune easter egg, whether its own keyboard
+     * @brief The @c fortune easter egg, whether its keyboard
      *        shortcut is active at all, and which command it runs
      *
      * @p command is run through a shell (@a popen), so it may be any

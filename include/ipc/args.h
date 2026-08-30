@@ -1,9 +1,9 @@
 /**
  * @file ipc/args.h
  *
- * @brief Typed extraction of a request's own arguments
+ * @brief Typed extraction of a request's arguments
  *
- * Every command's own arguments live as extra fields alongside its
+ * Every command's arguments live as extra fields alongside its
  * @p cmd field, in the same request object; these read one field at
  * a time by name, each failing cleanly (returning @c false, leaving
  * @p out untouched) when the field is missing or not of the expected
@@ -75,7 +75,7 @@ bool ipc_args_get_int(const cJSON *args, const char *field,
  *
  * @param args  The request object
  * @param field Field name to read
- * @param out   Receives a pointer into @p args's own storage on
+ * @param out   Receives a pointer into @p args's storage on
  *              success (valid only as long as @p args is), untouched on
  *              failure
  *

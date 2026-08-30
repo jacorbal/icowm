@@ -60,14 +60,14 @@
 #include <utils/xcb/window.h>
 
 
-/* Per-screen (not per-desktop) cache of the root window's own last
+/* Per-screen (not per-desktop) cache of the root window's last
  * solid-color fill, indexed by 'screen_id'.  Every virtual desktop on
  * a given screen shares that one same root window as an X resource, so
- * whether it still shows a particular desktop's own configured color
+ * whether it still shows a particular desktop's configured color
  * has to be tracked per screen too, not per desktop.
  *
  * A field on 'desktop_td' itself (as this used to be) instead lets each
- * desktop believe its own color remains applied purely because it was
+ * desktop believe its color remains applied purely because it was
  * the last one THAT desktop painted, even after some other desktop
  * sharing the same root window repainted over it with a different one;
  * and, since a config reload does not reset any of this, leaves that
@@ -105,7 +105,7 @@ static const char *const s_bg_prop_names[3] = {
  * lazily by @a s_resolve_bg_atoms on first use, retried on any later
  * call for whichever of the three are still unresolved.
  *
- * @see @a s_resolve_bg_atoms's own comment for why a resolution
+ * @see @a s_resolve_bg_atoms's comment for why a resolution
  *       failure, unlike a success, is not permanent here
  */
 static xcb_atom_t s_bg_atoms[3] = {
@@ -155,7 +155,7 @@ static void s_resolve_bg_atoms(xcb_connection_t *connection)
      * exists, is permanent for the life of the connection) that failure
      * is not itself permanent.
      *
-     * A wallpaper tool run for the first time after this module's own
+     * A wallpaper tool run for the first time after this module's
      * first lookup, before any of these three names had ever been
      * interned by anyone, would otherwise be watched for forever using
      * an atom id that was cached as none before it ever existed. */
@@ -189,12 +189,15 @@ static void s_resolve_bg_atoms(xcb_connection_t *connection)
  *
  * A cache hit costs nothing beyond returning the cached value, in
  * contrast to a miss, which pays for up to three property fetches, each
- * its own round trip to the X server
+ * its round trip to the X server.
  *
  * @param connection XCB connection to the X server
  * @param root       Root window to query for background pixmap
+ * @param screen_id  Screen the cache entry belongs to, one entry per
+ *                   managed screen
  *
- * @return Root background pixmap, or @c XCB_NONE if not available
+ * @return Root background pixmap, or @c XCB_NONE where none is
+ *         available
  *
  * @note Resolved once and cached from then on
  * @note Complexity: @e O(1) on a cache hit; @e O(n) in the number of
@@ -267,10 +270,10 @@ static xcb_pixmap_t
 /**
  * @brief Color a single titlebar button should be drawn in
  *
- * Pin and layer buttons reflect their own state (sticky or non-normal
- * layer) with the active accent color regardless of window focus; every
- * other button reflects window focus instead, the same way the titlebar
- * text itself does.  Maximize and fullscreen fall back to the
+ * Pin and layer buttons reflect their state (sticky or non-normal
+ * layer) with the active accent color regardless of window focus.
+ * Every other button reflects window focus instead, the same way the
+ * titlebar text itself does.  Maximize and fullscreen fall back to the
  * background color, which makes them effectively invisible, when the
  * client cannot be resized,
  * instead of drawing a button that would do nothing if clicked.
@@ -310,8 +313,8 @@ static uint32_t s_titlebar_button_color(
  * computed layout.  The fill color for most buttons is taken from
  * @p theme: @c window.active.color.foreground when @p is_focused is
  * @c true, @c window.inactive.color.foreground otherwise; the pin and
- * layer buttons instead reflect their own state (sticky/non-normal
- * layer) regardless of focus; maximize and fullscreen fall back to the
+ * layer buttons instead reflect their state (sticky/non-normal layer)
+ * regardless of focus; maximize and fullscreen fall back to the
  * background color when @p can_maximize is @c false.
  *
  * @param connection   Active XCB connection
@@ -344,7 +347,7 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
     xcb_rectangle_t rect;
     uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
 
-    /* Button colors have their own dedicated theme entry, independent
+    /* Button colors have their dedicated theme entry, independent
      * of the titlebar text foreground, so a theme can style one
      * without the other changing to match: see
      * 'window.titlebar.buttons.color'. */
@@ -445,13 +448,13 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
 
 
 /**
- * @brief Repaint a client's own frame decoration, unless it is
+ * @brief Repaint a client's frame decoration, unless it is
  *        currently forced hidden
  *
- * Shared by @c desktop_render_one_client's own full-repaint and
+ * Shared by @c desktop_render_one_client's full-repaint and
  * focus-only-repaint branches, which otherwise each repeat the exact
  * same @c hide_decoration guard around the same call (see that
- * function's own @c hide_decoration for what forces this: currently
+ * function's @c hide_decoration for what forces this: currently
  * only a fullscreen client that was decorated before going
  * fullscreen).
  *
@@ -555,7 +558,7 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
          * 'frame_extents' happened to hold, showing the frame's
          * own background (set to the theme's border color by
          * 'desktop_repaint_frame_decoration') through the gap left
-         * along the content window's own top and left edges.
+         * along the content window's top and left edges.
          * Visually indistinguishable from a real border, though
          * neither an X11 border nor that repaint function was
          * ever actually involved. */
@@ -580,7 +583,7 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
                     top - bottom)
             : 1;
 
-        /* A shaded client's own content window is deliberately
+        /* A shaded client's content window is deliberately
          * left unmapped, at whatever geometry it already had
          * (see 'ccmd_client_shade', cmds/client/state.c): none
          * of the three calls below (repositioning it, telling it
@@ -672,10 +675,10 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
     /* The client geometry has not changed; only refresh the
      * focus-sensitive decoration colors (border and titlebar
      * background/text) when the active client actually changed,
-     * or when this specific client is urgent (its own attention
+     * or when this specific client is urgent (its attention
      * blink alternates these same colors on every phase change,
      * the same reasoning 'ri_render_client_icon', render/icon.c,
-     * already applies via its own '!client_is_urgent' skip-check
+     * already applies via its '!client_is_urgent' skip-check
      * condition, just expressed the other way around here).
      * Skipping this repaint otherwise avoids spurious
      * 'xcb_clear_area + text-draw' calls on every render pass
@@ -725,7 +728,7 @@ struct s_desktop_render_ctx_s {
  * @brief Render one client, or its icon when it is iconified
  *
  * @param client Client reached by the walk
- * @param data   Pointer to this walk's own render context
+ * @param data   Pointer to this walk's render context
  *
  * @note A plainly hidden client is drawn neither way: it is unmapped
  *       and has no icon standing in for it
@@ -820,13 +823,13 @@ static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
  * @brief Render, position, and decorate a single already-non-hidden
  *        client during a stacking-order render pass
  *
- * Applies the client's own border width (only when it actually
+ * Applies the client's border width (only when it actually
  * changed, to avoid needless server round trips), maps or unmaps its
  * frame/titlebar/content window as appropriate for whether @p desktop
  * is the surface's currently displayed one, and either reconfigures
  * its full geometry and decoration (when @c is_outdated) or, more
  * cheaply, only refreshes focus-sensitive decoration colors (when
- * only @p desktop's own @c is_focus_dirty changed).  See the caller's
+ * only @p desktop's @c is_focus_dirty changed).  See the caller's
  * own stacking-order iteration for how this fits into a full render
  * pass.
  *
@@ -834,7 +837,7 @@ static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
  * specific urgent client directly on its own blink-phase change,
  * without forcing a full-desktop @c desktop_render_full pass (and
  * every other client on it repainting along with it) just to update
- * one client's own titlebar colors.
+ * one client's titlebar colors.
  *
  * @param desktop    Desktop the client belongs to
  * @param client     Client to render; assumed non-@c NULL and not
@@ -934,7 +937,7 @@ void desktop_render_one_client(desktop_td *desktop,
      * Its also invoked as part of a general
      * 'surface_render_all_desktops' refresh pass whenever ANY
      * desktop's 'is_outdated' flag is set (e.g., after moving or
-     * resizing a client, which marks its own desktop outdated).
+     * resizing a client, which marks its desktop outdated).
      *
      * If that pass unconditionally mapped clients on a desktop that
      * is not currently shown, it could race with (and undo) an
@@ -1050,14 +1053,14 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
     client_titlebar_layout(theme, inner_w, title_h, hide_pin, left,
             &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
-    /* Vertically centered against the titlebar's own font ascent and
+    /* Vertically centered against the titlebar's font ascent and
      * descent, the same way 'client_titlebar_layout' above already
      * centers 'btn_y' against the button size, rather than a fixed
      * pixel offset from the bottom: a fixed offset only happens to
      * look centered for whichever font it was tuned against, and
      * drifts visibly off-center for any other (a restricted-memory
-     * session's own plain X core font included, since that swap
-     * changes the font's own ascent/descent without this titlebar's
+     * session's plain X core font included, since that swap
+     * changes the font's ascent/descent without this titlebar's
      * own height changing to match). */
     text_y = (int16_t) (((int16_t) title_h -
                 (int16_t) (text_font_ascent() + text_font_descent())) / 2 +
@@ -1128,7 +1131,7 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
  * screen: cheap and always correct, even though only one screen's
  * own property actually changed, since which one that was is not
  * known at this call site (handler/focus.c, a generic PropertyNotify
- * handler not otherwise concerned with which screen a client's own
+ * handler not otherwise concerned with which screen a client's
  * root belongs to) and this only ever runs on the comparatively rare
  * event of an external wallpaper tool actually changing something,
  * not on every render pass. */
@@ -1217,7 +1220,7 @@ int desktop_render_background(desktop_td *desktop)
          * equal whatever it last applied before this external pixmap
          * appeared.  Otherwise this screen's shared root window would
          * be left showing the stale external wallpaper under the
-         * mistaken belief that the WM's own color was already correctly
+         * mistaken belief that the WM's color was already correctly
          * in place. */
         s_root_bg_applied_once[desktop->screen_id] = false;
         LOGGER_TRACE("External root pixmap 0x%x detected for" \
@@ -1241,7 +1244,7 @@ int desktop_render_background(desktop_td *desktop)
      * to make it visible.  Only actually do so when the color changed
      * since the last time this ran, or on the very first pass: this
      * function runs on every 'is_current' full-desktop render (every
-     * client gaining focus marks its own desktop 'is_outdated', not
+     * client gaining focus marks its desktop 'is_outdated', not
      * just an actual background change), so without this check every
      * such render would repeat the same full-screen
      * 'xcb_change_window_attributes' + 'xcb_clear_area' for a color
@@ -1250,7 +1253,7 @@ int desktop_render_background(desktop_td *desktop)
      * desktop sharing this screen's one root window can otherwise
      * repaint over whichever color another one on the same screen
      * applied, without either ever detecting that the color actually
-     * showing has changed since its own last render. */
+     * showing has changed since its last render. */
     if (s_root_bg_applied_once[desktop->screen_id] &&
             s_root_bg_color_applied[desktop->screen_id] ==
                 desktop->background.bg.color) {
@@ -1286,9 +1289,9 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
             desktop->id, desktop->name);
 
     /* Draw background, but only for the desktop currently shown on
-     * screen: a non-current desktop's own background is never
+     * screen: a non-current desktop's background is never
      * actually visible (the surface-level repaint that calls this,
-     * in render/surface.c, re-applies the current desktop's own
+     * in render/surface.c, re-applies the current desktop's
      * background again right after every desktop in the list has
      * been rendered, specifically because earlier ones painting
      * theirs would otherwise overwrite it on the one shared root
@@ -1310,7 +1313,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
     desktop->is_outdated = false;
 
     /* Every client just had its chance, in the loop above, to compare
-     * itself against 'is_focus_dirty' and refresh its own decoration
+     * itself against 'is_focus_dirty' and refresh its decoration
      * colors if the active client changed since the last full render.
      * Clearing it here consumes that signal so the next pass (e.g., a
      * later resize of one otherwise-unrelated client, with focus

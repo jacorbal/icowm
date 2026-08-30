@@ -90,7 +90,7 @@ int menu_dialog_defer_ms_remaining(void)
 }
 
 
-/* Run the pending deferred action once its own deadline has arrived */
+/* Run the pending deferred action once its deadline has arrived */
 void menu_dialog_defer_tick(xcb_connection_t *connection)
 {
     menu_dialog_defer_callback_td callback;

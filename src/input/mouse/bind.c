@@ -235,7 +235,7 @@ void mouse_load(list_td *surfaces, const config_td *config)
          * becomes a no-op and the event cannot be forwarded to the
          * application under the pointer.  These bindings are still
          * registered in the binding table so that scroll events
-         * arriving on the root via the root's own event-mask
+         * arriving on the root via the root's event-mask
          * subscription ('XSelectInput') are still dispatched to the
          * desktop-cycle handler.  Events over managed client windows
          * are caught by the per-frame sync grab (ANY button, ANY

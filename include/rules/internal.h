@@ -92,19 +92,19 @@ struct rules_match_s {
 /**
  * @brief Actions to apply to a client when a rule entry matches
  *
- * Each field pairs with its own @p has_* flag: @p has_focus,
+ * Each field pairs with its @p has_* flag: @p has_focus,
  * @p has_position, @p has_sticky, and so on say whether the rule
  * specifies a value for that action at all; the paired field itself
  * (@p is_focused, @p is_position_centered, @p is_pinned, and so on) is
- * the value to apply, meaningful only when its own @p has_* flag is
+ * the value to apply, meaningful only when its @p has_* flag is
  * @c true.  A rule that omits a field entirely leaves the client
  * unchanged for that one action.
  */
 struct rules_apply_s {
     /**
-     * @brief Index into the client's own surface's monitor list
+     * @brief Index into the client's surface's monitor list
      *
-     * Named @p monitor, not @p screen': this project's own @p screen_id
+     * Named @p monitor, not @p screen': this project's @p screen_id
      * / @p (screens[]) terminology refers to a whole X screen, and this
      * codebase has no notion of moving a client between X screens at
      * all, desktop reassignment above included, so a rule field with
@@ -123,7 +123,7 @@ struct rules_apply_s {
     uint16_t layer;
 
     /**
-     * @brief Percentage, 0 to 100, overriding the theme's own 'window
+     * @brief Percentage, 0 to 100, overriding the theme's 'window
      *
      * Applies to @p active.opacity / @p window.inactive.opacity for
      * this one client.

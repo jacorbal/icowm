@@ -58,7 +58,7 @@ void systray_text_refresh_clock(void)
     /* The format comes from the configuration, so it cannot be a
      * string literal here and the compiler cannot check it.  That is
      * deliberate: the whole point of the setting is that a person
-     * writes their own.  'strftime' takes no variadic arguments, so
+     * writes their.  'strftime' takes no variadic arguments, so
      * a wrong format produces wrong text, never a wrong read; and a
      * result of zero, which the guard below catches, is how a format
      * that did not fit reports itself. */
@@ -169,7 +169,7 @@ int systray_clock_ms_remaining(void)
     /* Neither is due yet.  A flat, small poll timeout is used instead
      * of computing the exact remaining fraction of a second: good
      * enough for a display that only needs second-level precision for
-     * the clock (the battery's own interval is far coarser still), and
+     * the clock (the battery's interval is far coarser still), and
      * simpler than reasoning about clock skew between 'time(NULL)'
      * calls. */
     return WM_SYSTRAY_CLOCK_POLL_MS;

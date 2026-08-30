@@ -89,7 +89,7 @@ bool sysmem_available_mib(uint32_t *out_mib)
 }
 
 
-/* Read the calling process's own current resident memory usage */
+/* Read the calling process's current resident memory usage */
 bool sysmem_self_rss_mib(uint32_t *out_mib)
 {
     if (out_mib == NULL) {

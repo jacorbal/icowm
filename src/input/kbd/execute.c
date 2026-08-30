@@ -273,7 +273,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
 
         case KEYBIND_CLIENT_FULLSCREEN:
             /* Blocks entering, the same as maximize above, but not
-             * exiting: a client already fullscreen through its own
+             * exiting: a client already fullscreen through its
              * EWMH request stays exitable here regardless of its own
              * resizable flag, the one case 'ccmd_client_fullscreen'
              * itself (cmds/client/state.c) still leaves ungated on
@@ -299,14 +299,14 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_CYCLE_LAYER:
-            /* A fullscreen client's own stacking is always forced
+            /* A fullscreen client's stacking is always forced
              * above everything else while it holds focus, regardless
              * of its own real layer, as
              * 'ccmd_desktop_enforce_layers''s comment describes;
              * cycling its layer here
              * would silently do nothing visible until it later
              * leaves fullscreen, the same reasoning the window
-             * context menu's own 'Layer' submenu is disabled for
+             * context menu's 'Layer' submenu is disabled for
              * already. */
             if (!client_is_fullscreen(client)) {
                 enact_client_cycle_layer(client);
@@ -533,7 +533,7 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
                 /* Same "under the cursor instead of a fixed point"
                  * behavior as the root menu (see
                  * 'KEYBIND_WM_ROOT_MENU' above), just governed by
-                 * its own 'menus.windows.position' setting */
+                 * its 'menus.windows.position' setting */
                 s_menu_position_resolve(surface,
                         config != NULL &&
                             config->base.menus.windows.position ==
@@ -554,7 +554,7 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
 
         case KEYBIND_CLIENT_WINDOW_MENU: {
             /* Hardcoded 'Alt+Space': opens the context menu of the
-             * currently active client, anchored at its own position
+             * currently active client, anchored at its position
              * (unrelated to 'KEYBIND_WM_WINDOWS_MENU') */
             client_td *const client = ik_get_active_client(surface,
                     surfaces, NULL, NULL);

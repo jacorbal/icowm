@@ -158,7 +158,7 @@ int wm_startup_randr_init(wm_td *wm)
         /* Apply any configured RandR output profile ('randr.json')
          * matching an output already connected at startup; a profile
          * for one that connects later is instead applied when
-         * 'handler_randr_event' sees its own 'OUTPUT_CHANGE' */
+         * 'handler_randr_event' sees its 'OUTPUT_CHANGE' */
         (void) surface_action_apply_randr_profiles(surface, false);
     }
 

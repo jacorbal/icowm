@@ -1,7 +1,7 @@
 /**
  * @file ipc/resolve.c
  *
- * @brief Turning a request's own numeric IDs into real pointers
+ * @brief Turning a request's numeric IDs into real pointers
  *        implementation
  */
 /*

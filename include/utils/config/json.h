@@ -213,7 +213,7 @@ int json_load_config(const char *filename, cJSON **json_out);
  *
  * Comfortably above the actual number of JSON files IcoWM ever reads in
  * a single run (@c config.json, @c bindings.json, a theme file,
- * @c randr.json, @c rules.json, @c session.json, @c menu.json)
+ * @c randr.json, @c rules.json, @c session.json, @c menu.json).
  */
 #define JSON_SYNTAX_ERROR_MAX_FILES (8)
 

@@ -83,7 +83,7 @@ static xcb_cursor_t s_move_cursor;
  * a resize can actually start, including the same titlebar-row
  * exclusion for the left/right margins (see @a im_resize_bounds_td's
  * comment).  A titlebar button such as close, typically placed near the
- * frame's own right edge, would otherwise still register as near that
+ * frame's right edge, would otherwise still register as near that
  * edge, showing a resize cursor over it even though clicking it still
  * correctly closes the window rather than starting a resize (titlebar
  * buttons take priority over a border drag in the button-press handler
@@ -219,7 +219,7 @@ xcb_cursor_t mouse_cursor_move(void)
 }
 
 
-/* The border-resize cursor matching a given resize drag's own
+/* The border-resize cursor matching a given resize drag's
  * axis/anchor combination; see this function's comment in 'mouse.h' for
  * what each parameter means */
 xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
@@ -252,12 +252,12 @@ xcb_cursor_t mouse_resize_cursor_for_axes(bool resize_w, bool resize_h,
  * window), and @c mouse_hover_poll_tick (a periodic fallback poll;
  * see its comment for why one is needed at all), since any one kind of
  * event or poll can be the only signal a given transition actually
- * produces: a client that selects @c PointerMotion for its own purposes
- * (common in GTK/Qt applications tracking hover for their own UI)
+ * produces: a client that selects @c PointerMotion for its purposes
+ * (common in GTK/Qt applications tracking hover for their UI)
  * intercepts motion events before they propagate to whichever window
  * this logic is watching, leaving @c EnterNotify as the only remaining
- * signal for a decorated client (where hovering the frame's own border
- * and then crossing into the client's own child window is what needs
+ * signal for a decorated client (where hovering the frame's border
+ * and then crossing into the client's child window is what needs
  * catching); an undecorated client has no separate frame to fall back
  * on at all, so moving from its border to its interior happens within
  * one single window with no crossing whatsoever, leaving periodic

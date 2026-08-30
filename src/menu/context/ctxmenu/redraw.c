@@ -1,7 +1,7 @@
 /**
  * @file menu/context/ctxmenu/redraw.c
  *
- * @brief Painting a context menu's own rows
+ * @brief Painting a context menu's rows
  *
  * One of the files
  * @c menu/context/ctxmenu/ is made of.
@@ -111,11 +111,11 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
     menu_draw_row_bg(conn, state->window, bg,
             (int16_t) top_y, (uint16_t) row_h, state->width);
 
-    /* Every style's own 'border' is drawn if 'border.width' is
+    /* Every style's 'border' is drawn if 'border.width' is
      * greater than 0; the built-in default theme sets it to a subtle
      * 1px for 'unselected'/'selected' and to 0 for 'label', so
      * heading rows stay plain by default.  This is separate from
-     * 'menu.border', the menu window's own outer frame, entries
+     * 'menu.border', the menu window's outer frame, entries
      * aside; see that field's comment in 'config.h'. */
     if (e->type != CTXMENU_SEPARATOR && border_width > 0u) {
         xcb_gcontext_t border_gc = xcb_generate_id(conn);
@@ -216,8 +216,8 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
  * @brief Repaint only the given one or two entry indices, not the
  *        whole menu
  *
- * @c s_draw_entry already paints its own row's full background before
- * its label (see its own body), so redrawing just the row(s) that
+ * @c s_draw_entry already paints its row's full background before
+ * its label (see its body), so redrawing just the row(s) that
  * actually changed selection is self-contained: no separate clear
  * step is needed first, and nothing else in the menu window is
  * touched.  A single deselect (e.g., the pointer leaving every entry)

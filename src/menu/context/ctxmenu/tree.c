@@ -1,7 +1,7 @@
 /**
  * @file menu/context/ctxmenu/tree.c
  *
- * @brief Dispatch across a context menu's own submenu window tree
+ * @brief Dispatch across a context menu's submenu window tree
  *
  * One of the files
  * @c menu/context/ctxmenu/ is made of.

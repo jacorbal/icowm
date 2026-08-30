@@ -4,8 +4,8 @@
  * @brief Window context menu implementation
  *
  * Builds and manages the right-click context menu for client windows.
- * Actions are dispatched by calling the matching 'enact' function
- * directly, taking effect immediately
+ * Actions are dispatched by calling the matching @c enact function
+ * directly, taking effect at once
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -374,10 +374,10 @@ static void s_cb_resize(xcb_connection_t *connection,
  * Shared by every entry below whose activation is nothing more than
  * "send this one @c action_client_e to the target client": iconify,
  * hide, maximize, fullscreen, shade, and close.  The action itself
- * travels through @p userdata (see @c s_entry_command's own callers
+ * travels through @p userdata (see @c s_entry_command's callers
  * for each, cast through @c intptr_t the same way any small integer
  * value is conventionally threaded through a @c void* callback
- * parameter), rather than each action needing its own near-identical
+ * parameter), rather than each action needing its near-identical
  * one-line wrapper.  @c s_cb_decorate stays separate below since it
  * has an extra unshade step first, not just a different action
  * constant.
@@ -526,7 +526,7 @@ struct s_desk_entry_ctx_s {
 
 
 /**
- * @brief Build one desktop's own "send there" entry
+ * @brief Build one desktop's "send there" entry
  *
  * @param desktop Desktop reached by the walk
  * @param data    The @c s_desk_entry_ctx_s being built
@@ -575,7 +575,7 @@ static void s_desktop_entry_visit(desktop_td *desktop, void *data)
  * @return Number of entries filled in @a s_desk_entries
  *
  * @note Complexity: @e O(n), where @e n is the number of desktops
- *       (a single walk of the surface's own circular desktop list,
+ *       (a single walk of the surface's circular desktop list,
  *       not one lookup per index)
  */
 static int s_build_desk_entries(surface_td *surface,
@@ -830,7 +830,7 @@ void wincmenu_show(xcb_connection_t *connection,
     }
 
     /* Layer (submenu): disabled while fullscreen, since a focused
-     * fullscreen client's own stacking is always forced above
+     * fullscreen client's stacking is always forced above
      * everything else regardless of its own real layer (see
      * 'ccmd_desktop_enforce_layers''s comment); choosing a
      * layer here would silently do nothing visible until the client
@@ -880,20 +880,20 @@ void wincmenu_show(xcb_connection_t *connection,
     ++n;
 
     /* Disabled under the exact same condition as maximize above,
-     * unlike a client's own EWMH request to enter fullscreen itself
-     * (see 'ccmd_client_fullscreen''s own comment, cmds/client/
+     * unlike a client's EWMH request to enter fullscreen itself
+     * (see 'ccmd_client_fullscreen''s comment, cmds/client/
      * state.c, for why that path stays unconditional: a fixed-size
-     * DOS-emulation or retro-game window legitimately requests its
-     * own fullscreen via alt+enter regardless of its own resizable
+     * DOS-emulation or retro-game window legitimately requests
+     * fullscreen via alt+enter regardless of its own resizable
      * flag).  This is a different question: whether the window
-     * manager's own user-facing fullscreen offer, this very menu
+     * manager's user-facing fullscreen offer, this very menu
      * entry, matched by every keybinding and decoration button that
      * also call 'ccmd_client_fullscreen' directly, makes any sense
      * to present at all for a client with no legitimate reason to
      * ever cover the whole screen, a fixed-size confirmation dialog
      * ("Are you sure you want to delete this file?") foremost among
      * them: nothing about entering fullscreen from here overrides
-     * 'client_is_resizable' the way the client's own EWMH request
+     * 'client_is_resizable' the way the client's EWMH request
      * does, so a client that can never resize itself gains nothing
      * from it either way. */
     s_entry_command(&s_entries[n],

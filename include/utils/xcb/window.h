@@ -13,7 +13,7 @@
  * That is what this is for.  A command decides what should happen to a
  * window; how the server is told belongs here.  Fifty-odd
  * @c ConfigureWindow calls spread over twenty-six files each built
- * their own mask and value array, so any change to how the manager
+ * their mask and value array, so any change to how the manager
  * talks to the server meant touching all of them.
  *
  * Creating a window and changing its attributes are deliberately not
@@ -23,7 +23,7 @@
  * still building it and still knowing about X.  What is here is what
  * has a name of its own.
  *
- * None of these flushes.  A request sits in XCB's own output buffer
+ * None of these flushes.  A request sits in XCB's output buffer
  * until something sends it, and the caller is what knows whether more
  * are coming: flushing inside each operation would send half-finished
  * work down the socket one piece at a time.
@@ -82,7 +82,7 @@ void xcb_window_resize(xcb_window_t window, uint32_t width,
  *
  * One request rather than two, which matters for more than the round
  * trip saved: a window moved and then resized is briefly at a size and
- * position it was never meant to hold, and a client watching its own
+ * position it was never meant to hold, and a client watching its
  * @c ConfigureNotify sees that intermediate state and may act on it.
  *
  * @param window Window to place
@@ -99,7 +99,7 @@ void xcb_window_place(xcb_window_t window, int32_t x, int32_t y,
         uint32_t width, uint32_t height);
 
 /**
- * @brief Set the width of a window's own border
+ * @brief Set the width of a window's border
  *
  * @param window Window to give a border to
  * @param width  Border width, in pixels; @c 0 removes it

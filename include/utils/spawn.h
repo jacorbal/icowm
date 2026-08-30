@@ -39,15 +39,15 @@
  */
 typedef struct spawn_opts_s {
     /**
-     * @brief Value for the child's own @c DESKTOP_STARTUP_ID
+     * @brief Value for the child's @c DESKTOP_STARTUP_ID
      *
      * A startup-notification aware application reads this and
-     * broadcasts its own completion once its main window is ready.
+     * broadcasts its completion once its main window is ready.
      */
     const char *startup_id;
 
     /**
-     * @brief Value for the child's own @c RESOURCE_NAME and
+     * @brief Value for the child's @c RESOURCE_NAME and
      *        @c RESOURCE_CLASS
      *
      * How a launcher asks for a @c WM_CLASS other than whatever the
@@ -79,12 +79,12 @@ typedef struct spawn_opts_s {
  *            reason is logged by this function
  * @retval  1 The pipe or the fork itself failed
  *
- * @note The expansion runs in the parent on purpose.  Between @c fork
- *       and @c exec a child may only call what is async-signal-safe,
- *       and @c wordexp allocates; harmless while the process is
- *       single-threaded, but a deadlock waiting to happen the day one
- *       thread holds the allocator lock at the moment another one
- *       forks
+ * @note The expansion runs in the parent deliberately: between
+ *       @c fork and @c exec a child may call only what is
+ *       async-signal-safe, and @c wordexp allocates
+ * @note Harmless while the process is single-threaded, but a deadlock
+ *       waiting to happen the day one thread holds the allocator lock
+ *       at the moment another forks
  * @note Complexity: @e O(n), where @e n is the number of words
  *       @p command expands to
  */

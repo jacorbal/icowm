@@ -4,8 +4,8 @@
  * @brief Client show/hide, sticky transfer, and reflow for a surface
  *
  * One of the files @c surface/actions/ is made of;
- * everything here operates on a desktop's own clients directly (as
- * opposed to @c surface/actions/randr.c's own RandR output/CRTC/mode
+ * everything here operates on a desktop's clients directly (as
+ * opposed to @c surface/actions/randr.c's RandR output/CRTC/mode
  * concerns, which never touch client visibility directly).
  */
 /*
@@ -44,7 +44,7 @@
 #include <utils/xcb/window.h>
 
 /**
- * @brief Unmap one client as its own desktop stops being shown
+ * @brief Unmap one client as its desktop stops being shown
  *
  * @param client Client reached by the walk
  * @param data   The surface, as a @c surface_td pointer
@@ -81,7 +81,7 @@ static void s_client_hide_visit(client_td *client, void *data)
             /* Two 'UnmapNotify' events arrive for the unmapped
              * target: one via the parent's 'SubstructureNotify'
              * (event=parent, window=target) and one via the
-             * target's own 'StructureNotify' (event=target,
+             * target's 'StructureNotify' (event=target,
              * window=target).  An additional event arrives for the
              * titlebar via the frame's 'SubstructureNotify'.
              * Desktop switches must not toggle
@@ -100,7 +100,7 @@ static void s_client_hide_visit(client_td *client, void *data)
 
 
 /**
- * @brief Map one client as its own desktop starts being shown
+ * @brief Map one client as its desktop starts being shown
  *
  * @param client Client reached by the walk
  * @param data   The surface, as a @c surface_td pointer
@@ -126,20 +126,20 @@ static void s_client_show_visit(client_td *client, void *data)
             xcb_window_show(client->titlebar);
         }
         xcb_window_show(target);
-        /* A shaded client's own content window must stay
+        /* A shaded client's content window must stay
          * unmapped until an explicit unshade: mapping it
          * here regardless (as this used to) puts it back
          * on screen, sized to whatever tiny remnant its
          * shaded frame currently allows, while every
          * other part of this project still believes it
-         * is shaded, and while its own real input focus
+         * is shaded, and while its real input focus
          * target (revert-to Parent) is still whatever
          * ccmd_client_shade last left it at.  This state
          * split (mapped at the X server, still shaded to
          * the WM) is a genuine bug on its own regardless
          * of the exact downstream consequence; it also
          * lines up, in practice, with switching away
-         * from and back to a shaded client's own desktop
+         * from and back to a shaded client's desktop
          * leaving keyboard input dead until that client
          * is refocused or closed. */
         if (target != client->window &&
@@ -157,7 +157,7 @@ static void s_client_show_visit(client_td *client, void *data)
          * see 'ccmd_client_iconify' for the fuller
          * explanation of why an unqualified 'below' with
          * no sibling is not enough to guarantee that on
-         * its own. */
+         * its. */
         tray_below = systray_below_window();
         if (tray_below != XCB_WINDOW_NONE) {
             xcb_window_stack_below(client->icon_window, tray_below);
@@ -173,7 +173,7 @@ static void s_client_show_visit(client_td *client, void *data)
  * @brief What @a s_client_restack_visit carries between clients
  *
  * The window stacked just below this one, since each is placed
- * relative to its own lower neighbour rather than to the top of
+ * relative to its lower neighbour rather than to the top of
  * everything.
  */
 struct s_restack_ctx_s {
@@ -228,7 +228,7 @@ struct s_sticky_ctx_s {
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_sticky_ctx_s being filled
  *
- * @note Clients past the array's own capacity are left where they are,
+ * @note Clients past the array's capacity are left where they are,
  *       which is bounded and visible rather than an unbounded array
  * @note Complexity: @e O(1)
  */
@@ -399,7 +399,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     /* An empty desktop has nothing to map, but must still fall
      * through to the focus-restoration tail below rather than
      * returning here: leaving early skipped that unconditionally,
-     * including its own 'PointerRoot' fallback for a desktop with
+     * including its 'PointerRoot' fallback for a desktop with
      * nothing to inherit focus from, so real input focus was left
      * wherever hiding the previous desktop's clients had already
      * put it, unreverted, for as long as this one stayed empty.

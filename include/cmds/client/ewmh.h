@@ -48,7 +48,7 @@
  * @param icon_window Icon window associated with @p state, or
  *                    @c XCB_NONE
  *
- * @note Not EWMH: @c WM_STATE is ICCCM's own, and predates it
+ * @note Not EWMH: @c WM_STATE is ICCCM's, and predates it
  * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
  */
 void ccmd_set_wm_state(client_td *client,
@@ -62,24 +62,24 @@ void ccmd_set_wm_state(client_td *client,
  *
  * @param client Pointer to the client
  *
- * @note Not EWMH: @c WM_STATE is ICCCM's own, and predates it
+ * @note Not EWMH: @c WM_STATE is ICCCM's, and predates it
  * @note Complexity: @e O(n), where @e n is the length of @c WM_STATE
  */
 void ccmd_clear_wm_state(client_td *client);
 
 /**
  * @brief Republish every @c _NET_WM_STATE atom a client currently
- *        holds, read straight off its own fields, in one single XCB
+ *        holds, read straight off its fields, in one single XCB
  *        write
  *
- * Openbox's own real answer to keeping @c _NET_WM_STATE in sync
+ * Openbox's real answer to keeping @c _NET_WM_STATE in sync
  * (confirmed directly against its source, @c client_change_state in
  * @c client.c): rebuild the whole list from scratch every time, from
- * whichever of the client's own boolean fields are true right now,
+ * whichever of the client's boolean fields are true right now,
  * rather than reading the property back first to add or remove one
  * specific atom.  See the full reasoning in @c cmds/client/ewmh.c,
  * right above the implementation, for exactly how each atom maps to
- * @p client's own fields.
+ * @p client's fields.
  *
  * @param client Client whose current state to republish
  *

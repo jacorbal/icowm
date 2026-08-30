@@ -1,7 +1,7 @@
 /**
  * @file utils/xcb/wait.c
  *
- * @brief Bounded wait for an XCB connection's own file descriptor to
+ * @brief Bounded wait for an XCB connection's file descriptor to
  *        become readable
  */
 /*

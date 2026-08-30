@@ -4,7 +4,7 @@
  * @brief 'memguard.json' schema
  *
  * One of the files @c config/lint/ is made of, each holding the
- * schema tables for one configuration file.  The linter's own
+ * schema tables for one configuration file.  The linter's
  * traversal lives in @c config/lint.c.
  */
 /*

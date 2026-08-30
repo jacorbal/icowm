@@ -30,7 +30,6 @@
 /* Local includes */
 #include <client/state.h>
 
-
 /**
  * @brief Macro that evaluates to the client iconify state
  *
@@ -96,7 +95,7 @@
  * @note Complexity: @e O(1)
  *
  * @see @a ccmd_client_maximize, @a ccmd_client_maximize_horz,
- *      @a ccmd_client_maximize_vert, and @a ccmd_client_iconify.
+ *      @a ccmd_client_maximize_vert, and @a ccmd_client_iconify
  */
 #define client_is_maximized_any(w) \
     (((w)->properties.state & (uint16_t) CLIENT_STATE_MAXIMIZED) != 0u)
@@ -120,13 +119,13 @@
 /**
  * @brief Macro that evaluates to the client focusable flag
  *
- * @c CLIENT_FLAG_FOCUSABLE is cleared for a window whose own
+ * @c CLIENT_FLAG_FOCUSABLE is cleared for a window whose
  * @c _NET_WM_WINDOW_TYPE marks it as a kind that should never take
  * real keyboard focus (a dock or a notification; see @c client.c).
  * This is a distinct concept from @a client_accepts_input_focus:
- * this one is about the window's own @e type, that one is about its
+ * this one is about the window's @e type, that one is about its
  * ICCCM input model.  A plain @c CLIENT_TYPE_NORMAL window is always
- * focusable by this macro's own measure, regardless of what its
+ * focusable by this macro's measure, regardless of what its
  * @c WM_HINTS may say about whether it actually accepts input.
  *
  * @note Complexity: @e O(1)
@@ -139,7 +138,7 @@
  *
  * This is the same condition @a ccmd_client_update_allowed_actions uses
  * to decide whether to advertise @c _NET_WM_ACTION_MINIMIZE in the
- * client's own @c _NET_WM_ALLOWED_ACTIONS, and it exists so that both
+ * client's @c _NET_WM_ALLOWED_ACTIONS, and it exists so that both
  * sides say the same thing: a window manager that publishes an action
  * as disallowed and then performs it anyway is telling every client
  * on the display something untrue.
@@ -156,7 +155,7 @@
 
 /**
  * @brief Macro that evaluates to whether a client can receive real
- *        keyboard focus under its own declared ICCCM input model
+ *        keyboard focus under its declared ICCCM input model
  *
  * ICCCM §4.1.7 defines three ways a client may end up receiving
  * keyboard focus: a @e Passive client (@c WM_HINTS input field
@@ -166,12 +165,12 @@
  * protocol message; a @e No @e Input client (input @c false, no
  * @c WM_TAKE_FOCUS) never takes real keyboard focus at all, by its
  * own explicit declaration.  This macro evaluates true for the
- * first two and false for the third, mirroring Openbox's own
+ * first two and false for the third, mirroring Openbox's
  * @c can_focus @c || @c focus_notify check in @c focus_valid_target
  * (@c focus.c).
  *
  * This is a distinct concept from @a client_is_focusable: that one
- * is about the window's own @e type (a dock or notification never
+ * is about the window's @e type (a dock or notification never
  * wants focus, whatever its input model says); this one is about
  * the ICCCM input model any window, dock or not, may declare.  A
  * caller that skips this check before routing a client into
@@ -199,7 +198,7 @@
  *        real X11 input focus
  *
  * @see @c CLIENT_FLAG_FOCUSED's comment above for why this is
- *      its own tracked flag rather than derived from @c desktop->
+ *      its tracked flag rather than derived from @c desktop->
  *      client_active_id on demand
  *
  * @note Complexity: @e O(1)
@@ -227,10 +226,10 @@
 /**
  * @brief Macro that evaluates to the client decoration flag
  *
- * Normalized to @c 0 or @c 1, unlike leaving the raw flag bit's own
+ * Normalized to @c 0 or @c 1, unlike leaving the raw flag bit's
  * numeric value (@c CLIENT_FLAG_DECORATED, not necessarily @c 1)
  * exposed: a caller comparing this against a proper @c bool with
- * @c != or @c ==, as @a ccmd_client_toggle_decorate's own callers in
+ * @c != or @c ==, as @a ccmd_client_toggle_decorate's callers in
  * @c rules/apply.c and @c handler/focus.c both do, would otherwise
  * mismatch and toggle decoration off by mistake, every single time,
  * whenever the client already happened to be decorated (the common
@@ -263,7 +262,7 @@
  * numerically small again, so it would wrongly look older than any
  * timestamp from just before the wraparound.  Subtracting first and
  * reinterpreting the result as signed sidesteps this entirely, the
- * same idiom X11 itself already relies on for its own timestamps,
+ * same idiom X11 itself already relies on for its timestamps,
  * as long as the two values being compared are never more than
  * roughly half the 32-bit range (about 24.8 days) apart, which two
  * genuine user-interaction timestamps meaningfully compared against
@@ -378,7 +377,7 @@
             CLIENT_FLAG_FOCUSED, (1 << CLIENT_FLAG_MAX))
 
 /**
- * @brief Macro that clears a client's own currently-focused flag
+ * @brief Macro that clears a client's currently-focused flag
  *
  * @note Complexity: @e O(1)
  */
@@ -395,7 +394,7 @@
     ((w)->properties.flags & CLIENT_FLAG_LOCKED)
 
 /**
- * @brief Macro that sets a client's own no-focus-fallback flag
+ * @brief Macro that sets a client's no-focus-fallback flag
  *
  * @note Complexity: @e O(1)
  */
@@ -404,7 +403,7 @@
             CLIENT_FLAG_NO_FOCUS_FALLBACK, (1 << CLIENT_FLAG_MAX))
 
 /**
- * @brief Macro that evaluates to a client's own no-focus-fallback flag
+ * @brief Macro that evaluates to a client's no-focus-fallback flag
  *
  * @note Complexity: @e O(1)
  */

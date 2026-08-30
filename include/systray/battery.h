@@ -53,10 +53,10 @@
  *
  * Sized generously above the worst case a compiler's static
  * truncation analysis can prove for @c ("<base>/<d_name>/<suffix>")
- * (the base directory's own length, plus a full directory entry name
+ * (the base directory's length, plus a full directory entry name
  * with size @c NAME_MAX, plus the longest suffix used, @c /online, plus
  * the terminating null), so building such a path can never be flagged
- * as a possible truncation regardless of what the C library's own
+ * as a possible truncation regardless of what the C library's
  * @p d_name field declares itself capable of holding.
  */
 #define BATTERY_PATH_MAX_LEN (320)

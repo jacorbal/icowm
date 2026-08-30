@@ -17,11 +17,11 @@
 
 
 /* The { font, color: {background, foreground}, border: {color,
- * width} } shape shared by every themeable surface's own row or
+ * width} } shape shared by every themeable surface's row or
  * button style (menu.unselected/selected/label, dialog.button.
- * unselected/selected): never has its own 'opacity', since
+ * unselected/selected): never has its 'opacity', since
  * '_NET_WM_WINDOW_OPACITY' is a per-window property that cannot vary
- * row by row or button by button; see 's_load_theme_colors''s own
+ * row by row or button by button; see 's_load_theme_colors''s
  * doc comment, config/theme.c, for the full rationale. */
 static const config_lint_key_td s_schema_theme_color[] = {
     {"background", NULL, 0u},

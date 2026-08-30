@@ -47,7 +47,7 @@ void drag_outline_start(xcb_connection_t *connection,
         struct geometry_s geom);
 
 /**
- * @brief Move the outline stand-in's own 4 strip windows to a new
+ * @brief Move the outline stand-in's 4 strip windows to a new
  *        rectangle
  *
  * @param connection X connection

@@ -106,13 +106,14 @@ static struct timespec s_last_launch;
  * @param grow       @c true to grow (increase) the size, @c false to
  *                   shrink (decrease) it
  *
- * @return The target outer frame size for the selected axis after
- *         applying keyboard resize semantics and clamping via
- *         @a geom_dim_clamp.
+ * @return The target outer frame size for the selected axis, after
+ *         the keyboard resize semantics have been applied and
+ *         @a geom_dim_clamp has clamped the result
  *
- * @note With this, it's honored @c WM_NORMAL_HINTS increments when
- *       available, ensuring that keyboard resizing respects the
- *       client's preferred resize granularity.
+ * @note Honors the @c WM_NORMAL_HINTS increments where a client
+ *       declares them, so that keyboard resizing respects the
+ *       granularity that client asked for
+ * @note Complexity: @e O(1)
  */
 static uint32_t s_kb_resize_axis_target(const client_td *client,
         uint32_t step, bool horizontal, uint32_t cur_frame, bool grow)
@@ -150,7 +151,7 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
             ? (int32_t) cur_frame + resize_step
             : (int32_t) cur_frame - resize_step;
         clamped = geom_dim_clamp(target);
-        /* A decorated client's own frame extents ('ext_a'/'ext_b', the
+        /* A decorated client's frame extents ('ext_a'/'ext_b', the
          * border plus, on the vertical axis, the titlebar) are fixed
          * regardless of how small its content shrinks: floored here so
          * the titlebar in particular can never itself shrink away or
@@ -178,13 +179,13 @@ static uint32_t s_kb_resize_axis_target(const client_td *client,
          * grid */
         uint32_t base = (base_i > 0) ? base_i : ((min_i > 0) ? min_i : 0u);
         uint32_t inc = inc_i;
-        /* The client's own true floor, in units of 'inc' above 'base':
-         * its own 'min_w'/'min_h' if it provides one larger than the
+        /* The client's true floor, in units of 'inc' above 'base':
+         * its 'min_w'/'min_h' if it provides one larger than the
          * one-unit default (a client is free to demand more than one
          * row/column at all times), or 'WM_MIN_WINDOW_DIMENSION_UNITS'
          * (defs/client.h) otherwise.  Never all the way down to 'base'
          * itself, which without an explicit 'min_w'/'min_h' of the
-         * client's own leaves no floor at all ('cur_inner' below would
+         * client's leaves no floor at all ('cur_inner' below would
          * allow shrinking to exactly 'base', 0 units). */
         uint32_t floor_inner = base +
             WM_MIN_WINDOW_DIMENSION_UNITS * inc;
@@ -432,7 +433,7 @@ void ik_handle_move(enum ik_move_e direction,
 
     /* A fully maximized or fullscreen client cannot be moved at all,
      * consistent with 'MOUSEBIND_MOVE' (input/mouse/event/press.c) and
-     * the window context menu's own 'can_move' (see
+     * the window context menu's 'can_move' (see
      * 'menu/context/wincmenu.c').  A client maximized on just one axis
      * is still free to move, since only one axis is pinned to the
      * workarea edge. */
@@ -447,7 +448,7 @@ void ik_handle_move(enum ik_move_e direction,
     new_y = client->layout.geometry.cur.pos.y;
 
     /* The corner destinations below need the workarea of whichever
-     * monitor 'client' actually sits on, not the whole surface's own
+     * monitor 'client' actually sits on, not the whole surface's
      * raw dimensions: on a multi-monitor surface, the latter would send
      * "top-right" to the far edge of the last monitor rather than the
      * current one's, and either one alone would still tuck the client
@@ -466,7 +467,7 @@ void ik_handle_move(enum ik_move_e direction,
      * window off the work area.
      *
      * Only the far edges are affected: the left and top ones are the
-     * window's own position, which the border grows away from rather
+     * window's position, which the border grows away from rather
      * than into. */
     border = 2 * (int32_t) client_border_width(client, true, false);
 

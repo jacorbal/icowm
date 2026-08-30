@@ -21,11 +21,12 @@
  * startup-notification aware, so the timeout is what keeps
  * a non-conforming one from leaving the busy cursor on indefinitely.
  *
- * @note Only the launcher side is implemented here.  Window association
- *       (matching a newly mapped window back to the startup sequence
- *       that produced it, e.g., for placement or focus decisions) is
- *       not, since ending the busy cursor is the only user-visible
- *       behavior that currently depends on it.
+ * @note Only the launcher side is implemented here, and not window
+ *       association, which is the matching of a newly mapped window
+ *       back to the startup sequence that produced it, for placement
+ *       or focus decisions
+ * @note Ending the busy cursor is the only user-visible behavior that
+ *       currently depends on that association
  *
  * @ingroup wm
  */

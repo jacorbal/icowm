@@ -186,7 +186,7 @@ void wm_startup_handle_crash(int signum)
      * 'fflush', neither async-signal-safe, so without this the
      * messages leading up to a crash die with the process: the ones
      * most worth having.  'logger_emergency_flush' writes them with
-     * 'write' and takes no lock; see its own note on why that is
+     * 'write' and takes no lock; see its note on why that is
      * sound here and nowhere else. */
     logger_emergency_flush();
 

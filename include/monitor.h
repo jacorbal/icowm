@@ -3,7 +3,7 @@
  *
  * @brief Physical monitor rectangle type
  *
- * @p monitor_td is deliberately its own type, not a @c typedef or reuse
+ * @p monitor_td is deliberately its type, not a @c typedef or reuse
  * of @p (struct geometry_s) (in @c types/pair.h).  The two happen to
  * hold the same four numbers, but a monitor and an arbitrary rectangle
  * (a window's geometry, a work area, a clipped intersection) are not
@@ -17,7 +17,7 @@
  * @note The duplication of @p ({ x, y, w, h }) this creates is
  *       intentional
  *
- * @see @c types/pair.h's own file comment for the project's established
+ * @see @c types/pair.h's file comment for the project's established
  *      stance on repeating a small struct shape for clarity instead of
  *      typedef'ing one shared one
  *
@@ -44,8 +44,8 @@
  * @brief One physical monitor's rectangle within its surface
  *
  * Always in the same coordinate space as the surface it belongs to:
- * @p x / @p y are the monitor's own top-left corner relative to that
- * surface's own top-left corner, not relative to the monitor itself.
+ * @p x / @p y are the monitor's top-left corner relative to that
+ * surface's top-left corner, not relative to the monitor itself.
  */
 typedef struct {
     int32_t x;

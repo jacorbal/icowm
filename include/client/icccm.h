@@ -49,19 +49,19 @@ struct client_hints_icccm_s {
                                   (@c USPosition or @c PPosition)
                                   rather than leaving it to this
                                   window manager's own policy */
-        struct position_s req_pos;  /**< Client-requested position,
-                                         valid only when
-                                         @p has_position is true */
+        struct position_s req_pos; /**< Client-requested position,
+                                        valid only when
+                                        @p has_position is true */
         /** Minimum size, (0, 0) meaning unset */
         struct dimensions_s min;
         /** Maximum size, (0, 0) meaning unset */
         struct dimensions_s max;
-        struct dimensions_s base;       /**< Base size for increment
-                                             arithmetic */
-        struct dimensions_s inc;        /**< Size increment
-                                             (0 or 1 = no grid) */
-        struct aspect_range_s aspect;   /**< Minimum/maximum w/h
-                                             ratio (0,0 = unset) */
+        struct dimensions_s base;  /**< Base size for increment
+                                        arithmetic */
+        struct dimensions_s inc;   /**< Size increment (0 or 1
+                                        = no grid) */
+        struct aspect_range_s aspect; /**< Minimum/maximum w/h
+                                           ratio (0,0 = unset) */
     } size;
 
     /**
@@ -86,7 +86,7 @@ struct client_hints_icccm_s {
           * @brief Value of the @c input field of @c WM_HINTS
           *
           * True when the client asks the window manager to set
-          * the input focus to its own toplevel for it, which
+          * the input focus to its toplevel for it, which
           * ICCCM §4.1.7 calls the Passive and Locally Active
           * models; false when it would rather do that itself on
           * receiving @c WM_TAKE_FOCUS, the No Input and Globally

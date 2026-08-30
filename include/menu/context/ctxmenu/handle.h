@@ -7,7 +7,7 @@
  * @note This header is private to @c menu/context/ctxmenu/ and must
  *       not be included outside of it; every concrete menu (root
  *       menu, window menu, window list) reaches these only through
- *       @c menu/context/ctxmenu/tree.h's own tree-wide dispatch
+ *       @c menu/context/ctxmenu/tree.h's tree-wide dispatch
  *       instead
  *
  * @ingroup menu_context

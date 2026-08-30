@@ -45,7 +45,7 @@
  * @brief Fixed width of the search widget, in pixels
  *
  * Wide enough for the tabular name/desktop/hints layout without
- * measuring every result up front
+ * measuring every result up front.
  */
 #define WM_SEARCH_WIDTH (480)
 
@@ -68,10 +68,10 @@
  *        regardless of whether that row has any
  *
  * Wide enough for the longest possible combination (an exclusive state
- * letter plus every independent flag, e.g., "[f,s,p,!]"), so the name
- * and desktop-name columns always truncate against the same boundary
- * whether or not the hints they are making room for turn out to be
- * empty this row.
+ * letter plus every independent flag, e.g., @c "[f,s,p,!]"), so the
+ * name and desktop-name columns always truncate against the same
+ * boundary whether or not the hints they are making room for turn out
+ * to be empty this row.
  */
 #define WM_SEARCH_HINTS_RESERVED_WIDTH (60)
 
@@ -80,7 +80,7 @@
  *
  * Leaves room for the desktop-name column beside it even for a very
  * long window title, the same reasoning @a s_titlebar_draw_title
- * (@c render/desktop.c) truncates a titlebar's own text against the
+ * (@c render/desktop.c) truncates a titlebar's text against the
  * space its buttons leave rather than letting it run underneath them.
  */
 #define WM_SEARCH_NAME_MAX_WIDTH (240)

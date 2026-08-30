@@ -53,7 +53,7 @@ static int s_row_height(ctxmenu_entry_type_e type)
  * @param max_w       Current running maximum, carried in so the two
  *                    passes contribute to one shared result
  *
- * @return The greater of @p max_w and every measured entry's own width
+ * @return The greater of @p max_w and every measured entry's width
  *
  * @note Complexity: @e O(n), where @e n is @p entry_count
  */
@@ -156,7 +156,7 @@ uint16_t ctxmenu_layout_build(ctxmenu_state_td *state)
  *
  * Iterates over all entries and measures each label, adding space for
  * the left padding, the submenu indicator, and, for an entry with an
- * associated @c icon_window, its own application icon.
+ * associated @c icon_window, its application icon.
  *
  * @param connection  XCB connection
  * @param entries     Array of menu entries
@@ -175,8 +175,8 @@ uint16_t ctxmenu_width_compute(xcb_connection_t *connection,
     uint16_t pad2 = (uint16_t) (config->theme.menu.padding.horizontal * 2u);
     uint16_t icon_offset = 0u;
 
-    /* Space reserved for an entry's own icon plus one more gap (the
-     * same width as the menu's own left padding) before its label;
+    /* Space reserved for an entry's icon plus one more gap (the
+     * same width as the menu's left padding) before its label;
      * see 'theme.menu.show-pixmaps''s comment in 'config.h' */
     if (config->theme.menu.show_pixmaps) {
         /* '#if', not a runtime ternary: both operands are fixed
@@ -198,7 +198,7 @@ uint16_t ctxmenu_width_compute(xcb_connection_t *connection,
      * between 'unselected.font' and 'selected.font' on every regular
      * entry as a single combined pass would: since
      * max(max(a, b)) == max(max(a), max(b)), computing each font's
-     * contribution to the overall maximum in its own pass gives the
+     * contribution to the overall maximum in its pass gives the
      * identical result while asking 'text_renderer_use_font' for
      * each font once instead of alternating between the two on every
      * single entry. */

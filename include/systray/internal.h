@@ -133,7 +133,7 @@ struct systray_state_s {
      * @brief Space this tray currently reserves for itself via
      *        @c _NET_WM_STRUT_PARTIAL / @c _NET_WM_STRUT, kept here so
      *        @a desktop_update_workarea can fold it in the same way it
-     *        already folds a real client's own published strut, via
+     *        already folds a real client's published strut, via
      *        @a systray_get_reserved_strut
      *
      * Every side left at zero (the same all-zero shape @c memset leaves
@@ -194,7 +194,7 @@ struct systray_state_s {
     /**
      * @brief Currently owns the @c _NET_SYSTEM_TRAY_Sn selection
      *
-     * Gates accepting new dock requests only, not the window's own
+     * Gates accepting new dock requests only, not the window's
      * visibility.
      *
      * @note Never even attempted at all when
@@ -251,7 +251,7 @@ uint16_t systray_text_width(void);
  * @param item        Which item to look up
  * @param out_enabled Receives whether that item is currently enabled
  *
- * @return Pointer to that item's own null-terminated text buffer
+ * @return Pointer to that item's null-terminated text buffer
  *
  * @note Complexity: @e O(1)
  */

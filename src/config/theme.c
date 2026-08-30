@@ -250,7 +250,7 @@ static void s_load_theme_colors(cJSON *json_obj,
  * @c menu.selected, @c menu.label, @c dialog.button.unselected,
  * @c dialog.button.selected):
  * '_NET_WM_WINDOW_OPACITY' is a per-window property, so it cannot
- * vary per row or per button the way those share one window's own
+ * vary per row or per button the way those share one window's
  * background/border colors can.  Called individually, only at the
  * sites where it is actually meaningful, rather than folded into the
  * shared loader every one of those sites already calls.
@@ -320,10 +320,10 @@ static void s_config_theme_load_window(cJSON *json,
                         &config_theme->window.titlebar.padding.vertical);
             }
 
-            /* A titlebar shorter than its own buttons plus their
+            /* A titlebar shorter than its buttons plus their
              * vertical padding would draw those buttons overflowing
-             * its own bounds instead of centered within them (see
-             * 'client_titlebar_layout''s own fallback branch,
+             * its bounds instead of centered within them (see
+             * 'client_titlebar_layout''s fallback branch,
              * client/geom.c, taken once 'title_h' falls below this
              * exact threshold); floored here to that same threshold,
              * unless 'height' is 0, which disables the titlebar
@@ -823,7 +823,7 @@ static void s_config_theme_load_cycle(cJSON *json,
 }
 
 
-/* Convert a 0-100 opacity percentage to _NET_WM_WINDOW_OPACITY's own
+/* Convert a 0-100 opacity percentage to _NET_WM_WINDOW_OPACITY's
  * 32-bit range */
 uint32_t config_theme_opacity_to_raw(uint8_t percent)
 {
@@ -837,7 +837,7 @@ uint32_t config_theme_opacity_to_raw(uint8_t percent)
 
 /* Populate default values for one theme structure, used both as the
  * compiled-in fallback theme and, before applying any theme file
- * found, as the known-good starting point that file's own fields
+ * found, as the known-good starting point that file's fields
  * then overlay */
 void config_set_default_theme_values(struct config_theme_s *theme)
 {
@@ -893,10 +893,10 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->scratchpad.border.color = json_hex2uint32("22272F");
     theme->scratchpad.border.width = 2u;
 
-    /* Deliberately outside 'window.active'/'inactive''s own cool
+    /* Deliberately outside 'window.active'/'inactive''s cool
      * blue-gray family (see 'theme.cycle''s comment,
      * config.h): a warm, muted amber, chosen specifically to still
-     * read as distinct against this project's own default active/
+     * read as distinct against this project's default active/
      * inactive colors, not just a different shade of the same hue */
     theme->cycle.border.color = json_hex2uint32("E3C76E");
     theme->cycle.border.width = 4u;
@@ -958,7 +958,7 @@ void config_set_default_theme_values(struct config_theme_s *theme)
      * placed on top of it more contrast to stand out against than a
      * light background would.  Landed on this specific value (rather
      * than an even darker one first tried) so it does not sit almost
-     * as dark as the theme's own text/border colors, which left it
+     * as dark as the theme's text/border colors, which left it
      * feeling heavier than a full-screen area calls for. */
     theme->desktop.color.background = json_hex2uint32("5F7187");
 

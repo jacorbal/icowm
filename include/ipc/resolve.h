@@ -1,12 +1,12 @@
 /**
  * @file ipc/resolve.h
  *
- * @brief Turning a request's own numeric IDs into real pointers
+ * @brief Turning a request's numeric IDs into real pointers
  *
- * Every command's own arguments name a client, desktop, or surface by
+ * Every command's arguments name a client, desktop, or surface by
  * the same numeric ID @c list_clients / @c list_desktops /
- * @c get_focused already report it by: a client's own X window ID,
- * a desktop's own index on its surface, a surface's own screen index.
+ * @c get_focused already report it by: a client's X window ID,
+ * a desktop's index on its surface, a surface's screen index.
  * These turn one of those IDs back into the real pointer it names, or
  * build the appropriate error response when it does not currently name
  * anything, so every action handler shares one place that does this
@@ -41,7 +41,7 @@
  * @brief Resolve which surface a request refers to
  *
  * Reads an optional numeric @c surface_id field from @p args; when
- * absent, falls back to the first surface in @p wm's own list, the only
+ * absent, falls back to the first surface in @p wm's list, the only
  * reasonable default on a single-monitor setup and still a usable one
  * on a multi-monitor one.
  *
@@ -65,7 +65,7 @@ surface_td *ipc_resolve_surface(const wm_td *wm, const cJSON *args);
  * @param desktop_id_required When @c true, a missing or invalid
  *                            @c desktop_id is itself a failure;
  *                            when @c false, a missing one falls back
- *                            to the resolved surface's own current
+ *                            to the resolved surface's current
  *                            desktop instead (an out-of-range one
  *                            that was actually given is always a
  *                            failure either way)
@@ -91,9 +91,9 @@ desktop_td *ipc_resolve_desktop(const wm_td *wm, const cJSON *args,
  * @param wm          Window manager instance
  * @param args        The request object; must carry a numeric
  *                    @c client_id
- * @param out_surface Receives the client's own surface on success;
+ * @param out_surface Receives the client's surface on success;
  *                    untouched on failure
- * @param out_desktop Receives the client's own desktop on success;
+ * @param out_desktop Receives the client's desktop on success;
  *                    untouched on failure
  * @param out_error   Receives a newly allocated error response on
  *                    failure (possibly null itself, on an allocation

@@ -10,12 +10,12 @@
  * those three domains).  @a enact_broadcast_client_event is the only
  * helper any of those files need from one another: primarily a
  * client-domain concern, implemented in @c enact/client.c, but also
- * needed by @c enact/desktop.c's own @a enact_desktop_client_send,
+ * needed by @c enact/desktop.c's @a enact_desktop_client_send,
  * @a _send_front, and @a _send_back, each of which broadcasts a
  * client-level IPC event about the one client they each act on.
  *
  * @note This header is private to @c enact/ and must not be included
- *       outside of it.
+ *       outside of it
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -37,7 +37,7 @@
 
 
 /**
- * @brief Broadcast an IPC event carrying one client's own identifying
+ * @brief Broadcast an IPC event carrying one client's identifying
  *        fields
  *
  * @param client Client the event is about

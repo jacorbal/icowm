@@ -7,7 +7,7 @@
  * The startup-time half of restricted-memory mode (refusing to start at
  * all when system memory is already too tight) lives directly in
  * @a wm_start; this module is the part that keeps watching this
- * process's own memory usage once running, computes how many clients
+ * process's memory usage once running, computes how many clients
  * a given @c -M ceiling can actually afford, and warns through message
  * dialogs when either limit is reached.
  *
@@ -58,14 +58,14 @@ void memguard_init(uint32_t ceiling_mib);
  *        @a memguard_init call
  *
  * Computed once, when @a memguard_init sets the ceiling, from
- * @c defs/memguard.h's own @c MEMGUARD_BASELINE_MIB,
+ * @c defs/memguard.h's @c MEMGUARD_BASELINE_MIB,
  * @c MEMGUARD_KIB_PER_CLIENT, @c MEMGUARD_MIN_CLIENTS, and
  * @c MEMGUARD_ABSOLUTE_MAX_ CLIENTS, not read live off any actual
  * measurement.  Restricted-memory mode has no way to measure any one
- * client's own real memory cost, so this is an estimate, deliberately
+ * client's real memory cost, so this is an estimate, deliberately
  * a conservative (generous) one.
  *
- * Used both to size a desktop's own client hash table up front (see
+ * Used both to size a desktop's client hash table up front (see
  * @a desktop_init) and to decide when @c handler/map.c should refuse to
  * manage another client.
  *
@@ -79,7 +79,7 @@ void memguard_init(uint32_t ceiling_mib);
 uint32_t memguard_max_clients(void);
 
 /**
- * @brief Periodically check this process's own memory usage against
+ * @brief Periodically check this process's memory usage against
  *        the configured ceiling, warning through a message dialog
  *        once it is reached
  *
@@ -89,7 +89,7 @@ uint32_t memguard_max_clients(void);
  * showing (the message dialog only allows ONE instance at a time).
  *
  * @param connection XCB connection, for the warning dialog and to
- *                   read this process's own memory usage
+ *                   read this process's memory usage
  * @param surface    Surface to center the warning dialog on
  * @param config     Active configuration, for the warning dialog
  *
@@ -108,7 +108,7 @@ void memguard_tick(xcb_connection_t *connection,
  * client count against @a memguard_max_clients and decides whether to
  * manage a newly requested window at all (leaving it unmapped entirely
  * when it declines, rather than leaving it broken and unmanaged; see
- * the caller's own comment for why).  This only shows the explanation
+ * the caller's comment for why).  This only shows the explanation
  * once that decision has already been made.
  *
  * @note A no-op if a message dialog is already showing for any other

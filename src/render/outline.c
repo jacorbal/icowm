@@ -3,10 +3,10 @@
  *
  * @brief Outline stand-in windows, shared by any caller needing to
  *        show a rectangle around a target without touching the
- *        target's own geometry
+ *        target's geometry
  *
  * The strip-window mechanism itself, with no drag-specific state of
- * its own.
+ * its.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -36,7 +36,7 @@
  * @brief Create or reconfigure the 4 outline strip windows around
  *        a rectangle
  *
- * Computes each strip's own position and size (top, bottom, left,
+ * Computes each strip's position and size (top, bottom, left,
  * right, in that fixed order) from the target rectangle, then either
  * creates and maps all 4 (@p create true) or reconfigures the
  * already-existing ones (@p create false) to match.
@@ -66,11 +66,11 @@ static void s_render_outline_place(xcb_connection_t *connection,
         xcb_window_t windows[4])
 {
     uint32_t bw = border_width;
-    /* Each strip's own (x, y, w, h), in 'windows''s own fixed
+    /* Each strip's (x, y, w, h), in 'windows''s fixed
      * top/bottom/left/right order; width/height floored at 1, since
      * 'xcb_create_window'/'xcb_configure_window' both reject a
      * genuinely zero-sized window outright, which a resize shrinking
-     * past the border's own thickness would otherwise hand them. */
+     * past the border's thickness would otherwise hand them. */
     uint32_t strip_x[4];
     uint32_t strip_y[4];
     uint32_t strip_w[4];
@@ -134,7 +134,7 @@ static void s_render_outline_place(xcb_connection_t *connection,
         /* Re-asserted on every create and every move, not just once
          * at creation: a strip window is otherwise free to end up
          * above whatever 'stack_below' names the moment anything
-         * else on screen gets raised in between, this call's own
+         * else on screen gets raised in between, this call's
          * only guarantee being where the strip sits relative to that
          * one window, not that it never moves again afterward. */
         if (windows[i] != XCB_WINDOW_NONE &&

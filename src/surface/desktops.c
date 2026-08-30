@@ -7,7 +7,7 @@
  * @c surface.c's comment for why.  @c _prev/@c _next are now
  * @c _west and @c _east, joined by @c _north and @c _south:
  * a flat desktop list has no genuine "previous" or "next" of
- * its own, only a configured @c topology.screens.desktops layout's
+ * its, only a configured @c topology.screens.desktops layout's
  * own reading order does, and that same order runs one of two ways
  * depending on @c orientation, so a name tied to whichever axis a
  * one-row (or one-column) surface happens to default to would mean
@@ -52,21 +52,21 @@
 
 
 /**
- * @brief Convert a flat desktop index into its own row/column
+ * @brief Convert a flat desktop index into its row/column
  *        position within a configured layout
  *
  * The @c orientation and @c corner math is not evaluated as eight
- * separate cases, one per combination, the way Openbox's own
+ * separate cases, one per combination, the way Openbox's
  * equivalent (@c get_row_col, screen.c) does: every corner reduces to
  * the same top-left computation for whichever axis @c orientation
  * treats as primary, then a single, independent flip per axis
  * (mirroring @c row within @c rows, @c col within @c columns) for
  * whichever half of @c corner names that side, confirmed against
- * Openbox's own eight-case version, index by index, across every
+ * Openbox's eight-case version, index by index, across every
  * shape/orientation/corner combination before this replaced it.
  *
  * @param index    Flat desktop index; assumed to already fall within
- *                 @p layout's own @c rows @c * @c columns extent
+ *                 @p layout's @c rows @c * @c columns extent
  * @param layout   Layout to interpret @p index against
  * @param row_out  Resulting row, updated in place
  * @param col_out  Resulting column, updated in place
@@ -104,7 +104,7 @@ static void s_layout_row_col(uint32_t index,
 
 
 /**
- * @brief Convert a row/column position back into its own flat
+ * @brief Convert a row/column position back into its flat
  *        desktop index within a configured layout
  *
  * The exact inverse of @a s_layout_row_col: the same per-axis corner
@@ -116,18 +116,18 @@ static void s_layout_row_col(uint32_t index,
  * @a s_surface_desktop_direction below, can pass a tentative,
  * possibly negative
  * one-past-the-edge position straight through without checking for
- * unsigned underflow itself first; this function's own bounds check
+ * unsigned underflow itself first; this function's bounds check
  * catches that either way.
  *
  * @param row      Row to convert; a null result if negative or
- *                 @c >= @p layout's own @c rows
+ *                 @c >= @p layout's @c rows
  * @param col      Column to convert; a null result if negative or
- *                 @c >= @p layout's own @c columns
+ *                 @c >= @p layout's @c columns
  * @param layout   Layout to interpret @p row/@p col against
  * @param index_out Resulting flat index, updated in place only on a
  *                 @c true return
  *
- * @return @c false if @p row/@p col falls outside @p layout's own
+ * @return @c false if @p row/@p col falls outside @p layout's
  *         @c rows/@c columns extent at all
  *
  * @note Complexity: @e O(1)
@@ -183,35 +183,35 @@ enum s_grid_direction_e {
 
 
 /**
- * @brief Step from one desktop to its own grid neighbor in a given
+ * @brief Step from one desktop to its grid neighbor in a given
  *        compass direction, skipping past any desktop-less gap cell
- *        a configured layout's own @c rows @c * @c columns may
+ *        a configured layout's @c rows @c * @c columns may
  *        legitimately exceed the real desktop count with (see
  *        @c ci_config_load_screens's comment, config/base/
  *        desktops.c, for why a gap like that is accepted rather
  *        than rejected outright)
  *
- * Unlike Openbox's own equivalent (@c screen_find_desktop, screen.c),
- * whose own single, crude nudge forward on landing in a gap cell does
+ * Unlike Openbox's equivalent (@c screen_find_desktop, screen.c),
+ * whose single, crude nudge forward on landing in a gap cell does
  * not reliably clear more than one gap cell in a row, this steps
  * again, in the same direction, for as long as landing in a gap cell
- * keeps happening, up to the grid's own full cell count before
+ * keeps happening, up to the grid's full cell count before
  * giving up: a genuinely bounded search, not a fixed one-step
  * allowance.
  *
- * @param surface    Surface whose own configured layout to navigate
- * @param desktop_id Starting desktop's own flat index
+ * @param surface    Surface whose configured layout to navigate
+ * @param desktop_id Starting desktop's flat index
  * @param direction  Compass direction to step in
- * @param cycle      Whether stepping past the grid's own edge wraps
+ * @param cycle      Whether stepping past the grid's edge wraps
  *                   around to the opposite edge on that same axis,
  *                   rather than stopping
  *
- * @return The neighboring desktop, or @c NULL if @p surface/its own
+ * @return The neighboring desktop, or @c NULL if @p surface/its
  *         configuration is unavailable, or if no desktop exists in
- *         @p direction at all (either the grid's own edge, not
+ *         @p direction at all (either the grid's edge, not
  *         cycling, or every remaining cell that way is a gap)
  *
- * @note Complexity: @e O(m), where @e m is @p layout's own @c rows
+ * @note Complexity: @e O(m), where @e m is @p layout's @c rows
  *       @c * @c columns
  */
 static desktop_td *s_surface_desktop_direction(surface_td *surface,
@@ -263,7 +263,7 @@ static desktop_td *s_surface_desktop_direction(surface_td *surface,
             if (!cycle) {
                 return NULL;
             }
-            /* '((x % n) + n) % n', not a plain 'x % n': C's own '%'
+            /* '((x % n) + n) % n', not a plain 'x % n': C's '%'
              * can return a negative result for a negative left-hand
              * side (e.g., '-1 % 2' is '-1', not '1'), which a raw
              * cast back to 'uint32_t' would turn into a huge,
@@ -288,7 +288,7 @@ static desktop_td *s_surface_desktop_direction(surface_td *surface,
 }
 
 
-/* Get a desktop's own row/column position in its surface's
+/* Get a desktop's row/column position in its surface's
  * configured layout */
 bool surface_desktop_row_col(const surface_td *surface,
         uint32_t desktop_id, uint32_t *row_out, uint32_t *col_out)
@@ -335,7 +335,7 @@ void surface_desktop_label(const surface_td *surface,
     }
 
     /* Only worth showing the coordinate once the grid is genuinely
-     * more than the one row a desktop's own ID already fully describes
+     * more than the one row a desktop's ID already fully describes
      * on its own; see 'surface_desktop_row_col' above for what "row 0"
      * always means on a linear (or unconfigured) layout, the exact
      * case this excludes. */

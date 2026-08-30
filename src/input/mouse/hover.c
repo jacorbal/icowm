@@ -4,15 +4,15 @@
  * @brief Periodic fallback re-evaluation of the resize-border cursor
  *        for a single tracked window
  *
- * A client that selects @c PointerMotion for its own purposes (common
- * in GTK/Qt applications tracking hover for their own UI) intercepts
+ * A client that selects @c PointerMotion for its purposes (common
+ * in GTK/Qt applications tracking hover for their UI) intercepts
  * motion events before they reach @a mouse_handle_motion_hover, and an
  * undecorated client has no separate frame window for a further
  * @c EnterNotify to catch when the pointer moves from its border into
  * its interior.  This periodic poll of one tracked window is the
  * fallback for both cases.
  *
- * @see @a mouse_hover_track's own comment for when it starts and stops
+ * @see @a mouse_hover_track's comment for when it starts and stops
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

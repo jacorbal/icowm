@@ -1,7 +1,7 @@
 /**
  * @file ipc/actions/scratchpad.c
  *
- * @brief IPC command mirroring scratchpad.h's own toggle action
+ * @brief IPC command mirroring scratchpad.h's toggle action
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

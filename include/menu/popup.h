@@ -39,7 +39,7 @@
  * @brief Show a popup near the client window with focused-client
  *        information
  *
- * Creates a popup window at the client's own screen coordinates and
+ * Creates a popup window at the client's screen coordinates and
  * displays name, class, instance, window identifiers, geometry, and
  * state flags for @p client.  Any previously visible popup is closed
  * first.  The @p modifier is the modifier mask of the key binding that

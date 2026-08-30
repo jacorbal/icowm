@@ -1,12 +1,12 @@
 /**
  * @file config/memguard/defaults.c
  *
- * @brief Restricted-memory mode's own fixed default configuration
+ * @brief Restricted-memory mode's fixed default configuration
  *        profile implementation
  *
  * Kept apart from @c config/memguard.c so that file stays focused on
- * orchestrating restricted-memory mode's own config loading, not on
- * the profile's own long, mechanical list of fixed field values.
+ * orchestrating restricted-memory mode's config loading, not on
+ * the profile's long, mechanical list of fixed field values.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -73,7 +73,7 @@ void config_set_default_values_memguard(config_td *config)
         WM_DESKTOP_BG_COLOR_UNSET;
 
     /* Launched-program defaults, in case memguard.json does not
-     * specify its own; identical to 'config_set_default_values''s own
+     * specify its; identical to 'config_set_default_values''s
      * defaults, since restricted-memory mode has no particular reason
      * to prefer different programs. */
     safe_strncpy(config->base.programs.terminal, "xterm",
@@ -88,9 +88,9 @@ void config_set_default_values_memguard(config_td *config)
             sizeof(config->base.programs.web_browser));
 
     /* Unlike every program name just above, this one genuinely does
-     * differ from the normal-mode default (see base.c's own): the
+     * differ from the normal-mode default (see base.c's): the
      * built-in run-box avoids spawning 'launcher' itself as a whole
-     * extra process, even a minimal one such as this very mode's own
+     * extra process, even a minimal one such as this very mode's
      * default for it above, fitting this mode's whole reason for
      * existing the same way every other choice in this file already
      * does. */
@@ -111,7 +111,7 @@ void config_set_default_values_memguard(config_td *config)
     config->base.windows.focus.focus_new = true;
     config->base.windows.focus.raise = false;
 
-    /* SMART's own cost is bounded (256 candidate slots, each checked
+    /* SMART's cost is bounded (256 candidate slots, each checked
      * against every already-docked icon, so O(256*n) at worst) and runs
      * once per icon placed, not on any hot path, so it costs nothing
      * meaningful to leave on by default here; overridable in
@@ -127,7 +127,7 @@ void config_set_default_values_memguard(config_td *config)
             sizeof(config->base.fortune.command));
 
     /* Accessibility (a11y): the exact same built-in defaults as an
-     * ordinary session's own (see 'config_set_default_a11y_values' in
+     * ordinary session's (see 'config_set_default_a11y_values' in
      * 'config.c'), including the same 'is_enabled=false' opt-in
      * posture; restricted-memory mode never has a reason to change
      * these, saving memory is never a reason to also give up basic
@@ -141,8 +141,8 @@ void config_set_default_values_memguard(config_td *config)
     config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
     config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
 
-    /* Systray defaults, in case memguard.json does not specify its own.
-     * A lower 'battery.poll_seconds' than an ordinary session's own
+    /* Systray defaults, in case memguard.json does not specify its.
+     * A lower 'battery.poll_seconds' than an ordinary session's
      * default is the one deliberate difference here, both to check less
      * often and since a stale battery reading for a few extra seconds
      * matters little either way. */
@@ -184,13 +184,13 @@ void config_set_default_values_memguard(config_td *config)
     config->randr.is_enabled = false;
     config->randr.output_count = 0u;
 
-    /* Same reasoning as 'config_load''s own equivalent call.  Without
+    /* Same reasoning as 'config_load''s equivalent call.  Without
      * this, a session with no theme named in 'memguard.json' at all
      * would leave 'config->theme' entirely zeroed (every color black,
      * every font an empty string) rather than falling back to
      * a sensible compiled-in theme, and a reload that switched away
      * from a theme specifying some field to one that does not would
-     * leave that field stuck at the old theme's own value instead of
+     * leave that field stuck at the old theme's value instead of
      * this default. */
     config_set_default_theme_values(&config->theme);
 }

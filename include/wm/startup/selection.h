@@ -27,7 +27,7 @@
 
 /**
  * @brief Acquire the @c WM_Sn manager selection on every managed
- *        screen, taking over an already-running window manager's own
+ *        screen, taking over an already-running window manager's
  *        ownership when asked to
  *
  * Per ICCCM §2.8, this checks, for each screen in turn, whether its
@@ -42,11 +42,11 @@
  *   outright: two window managers are not meant to coexist on the
  *   same screen.
  * - If it does, and @p replace_requested is @c true, this selects
- *   @c StructureNotify on the previous owner's own window, takes
+ *   @c StructureNotify on the previous owner's window, takes
  *   ownership itself, and then waits, bounded by
  *   @c WM_SN_REPLACE_TIMEOUT_MS (@c defs/ewmh.h), for a
  *   @c DestroyNotify on that previous owner's window: per the same
- *   ICCCM section, a manager losing its own selection must release
+ *   ICCCM section, a manager losing its selection must release
  *   every resource it managed and then destroy the window that owned
  *   it, in that order, so seeing it destroyed is how this knows the
  *   previous manager is genuinely done and it is now safe to proceed
@@ -57,11 +57,11 @@
  *
  * @param wm                Window manager state
  * @param replace_requested Whether to take over an already-running
- *                          window manager's own ownership instead of
+ *                          window manager's ownership instead of
  *                          refusing to start against it (@c -r)
  *
  * @return 0 on success, -1 if @p wm or its members are null, another
- *         window manager already owns a screen's own selection and
+ *         window manager already owns a screen's selection and
  *         @p replace_requested is @c false, or the previous owner did
  *         not relinquish it within @c WM_SN_REPLACE_TIMEOUT_MS
  *

@@ -86,17 +86,17 @@ void ccmd_client_cycle_layer(client_td *client);
  * any stacking operation performed by a client or by the window manager
  * itself.
  *
- * Afterward, if @p desktop's own currently focused client
+ * Afterward, if @p desktop's currently focused client
  * (@c client_active_id) is fullscreen, it is raised once more, above
  * every other client on @p desktop including every other
  * @c CLIENT_LAYER_ABOVE one, the same way a fullscreen application
  * covers a taskbar or panel in most desktop environments.  This is
  * deliberately a stacking-order effect only, never a change to the
- * client's own @c properties.layer: losing focus to something else
+ * client's @c properties.layer: losing focus to something else
  * needs no separate "restore" step of its own, since the very next
  * call to this same function (from wherever focus changed) simply
  * finds it no longer named by @c client_active_id, and it settles
- * back into its own real layer group through the ordinary pass above.
+ * back into its real layer group through the ordinary pass above.
  *
  * @param desktop Desktop whose clients are to be restacked
  *

@@ -200,7 +200,7 @@ static void s_handler_configure_forward(xcb_connection_t *connection,
 
 
 /**
- * @brief Settle a configure request's own X coordinate
+ * @brief Settle a configure request's X coordinate
  *
  * @param ctx What the request is being built into
  *
@@ -239,7 +239,7 @@ if (ctx->mask & XCB_CONFIG_WINDOW_X) {
 
 
 /**
- * @brief Settle a configure request's own Y coordinate
+ * @brief Settle a configure request's Y coordinate
  *
  * @param ctx What the request is being built into
  *
@@ -393,7 +393,7 @@ static void s_handler_configure_gravity(
              * one lets the optimizer assume its arithmetic never
              * overflows, which is what '-Wstrict-overflow' reports
              * on from level three up, with no source location of
-             * its own to point at.
+             * its to point at.
              *
              * The highest index written here is 'count' plus one,
              * and 'count' can be at most 5, since this block only
@@ -439,9 +439,9 @@ static void s_handler_configure_gravity(
  *                      window of its own
  * @param on_inner      Whether @p event targets the content window
  *                      directly rather than the frame
- * @param extents       This client's own current frame extents
+ * @param extents       This client's current frame extents
  *
- * @return @p mask, with WIDTH and/or HEIGHT cleared wherever its own
+ * @return @p mask, with WIDTH and/or HEIGHT cleared wherever its
  *         requested value already matches what is currently set
  *
  * @note Complexity: @e O(1)
@@ -482,7 +482,7 @@ static uint16_t s_handler_configure_wh_matches_current(
  *        when @p transition_time is still within @p cooldown_ms of
  *        now
  *
- * Shared by both of @a handler_configure_request's own post-transition
+ * Shared by both of @a handler_configure_request's post-transition
  * checks (shade/unshade, and entering/leaving fullscreen): a client
  * that reacts to the @c ConfigureNotify sequence a window-manager-
  * forced transition just sent it with a delayed @c ConfigureRequest
@@ -492,9 +492,9 @@ static uint16_t s_handler_configure_wh_matches_current(
  * genuinely wants honored now.
  *
  * WIDTH and HEIGHT specifically are only ever stripped here when the
- * request's own value, once adjusted the same way
+ * request's value, once adjusted the same way
  * @a s_handler_configure_wh_matches_current already is, also matches
- * @p old_dim (the client's own dimensions right before this
+ * @p old_dim (the client's dimensions right before this
  * transition): a request for some other, genuinely different size
  * arriving within the same cooldown window is let through rather
  * than blanket-suppressed, since only a value already known to be
@@ -511,7 +511,7 @@ static uint16_t s_handler_configure_wh_matches_current(
  * @param event           The 'ConfigureRequest' event itself, for the
  *                        same WIDTH/HEIGHT comparison
  * @param mask            Value mask bits still under consideration
- * @param transition_mask Bits this particular transition's own
+ * @param transition_mask Bits this particular transition's
  *                        cooldown should strip, if still active
  * @param old_dim         Width/height the client itself had right
  *                        before this transition
@@ -519,7 +519,7 @@ static uint16_t s_handler_configure_wh_matches_current(
  *                        window of its own
  * @param on_inner        Whether @p event targets the content window
  *                        directly rather than the frame
- * @param extents         This client's own current frame extents
+ * @param extents         This client's current frame extents
  * @param transition_time Monotonic time the transition itself last
  *                        happened at
  * @param cooldown_ms     How long after @p transition_time a request
@@ -529,7 +529,7 @@ static uint16_t s_handler_configure_wh_matches_current(
  *                        ("shade" or "fullscreen"), for the same log
  *                        line
  *
- * @return @p mask, with @p transition_mask's own bits cleared as
+ * @return @p mask, with @p transition_mask's bits cleared as
  *         described above if the cooldown is still active; @p mask
  *         unchanged otherwise, including when @p mask does not
  *         overlap @p transition_mask to begin with
@@ -680,11 +680,11 @@ void handler_configure_request(xcb_connection_t *connection,
          * whatever geometry it would rather have, not something to
          * honor, since the WM (not the client) owns this window's
          * geometry for as long as either holds.  Without this,
-         * a client that fixes its own size in WM_NORMAL_HINTS (e.g.,
+         * a client that fixes its size in WM_NORMAL_HINTS (e.g.,
          * min_width == max_width) and reacts to being forced into
-         * fullscreen by re-requesting its own preferred size right
+         * fullscreen by re-requesting its preferred size right
          * back would immediately shrink back down, undoing
-         * 'ccmd_client_fullscreen''s own deliberate choice (see its
+         * 'ccmd_client_fullscreen''s deliberate choice (see its
          * comment in cmds/client/state.c) to bypass every one
          * of the client's size hints while fullscreen. */
         wm_owns_geometry =
@@ -716,7 +716,7 @@ void handler_configure_request(xcb_connection_t *connection,
         /* Ignore a geometry request that lands shortly after the
          * window manager itself just shaded or unshaded this client:
          * see 'WM_SHADE_CONFIGURE_COOLDOWN_MS' for why such a request
-         * is far more likely to be the client's own delayed, stale
+         * is far more likely to be the client's delayed, stale
          * reaction to that transition than an independent resize it
          * actually wants. */
         mask = s_handler_configure_cooldown_mask(event, mask, geom_mask,
@@ -735,7 +735,7 @@ void handler_configure_request(xcb_connection_t *connection,
          * after entering or leaving fullscreen instead of a shade or
          * unshade; also covers 'XCB_CONFIG_WINDOW_BORDER_WIDTH', not
          * just 'geom_mask', since 'ccmd_client_unfullscreen' restores
-         * the client's own border width as part of the same
+         * the client's border width as part of the same
          * transition this guards, and a stale echo touching only
          * that field would otherwise slip through 'geom_mask' alone
          * and silently undo it, well after the point in this
@@ -861,7 +861,7 @@ void handler_configure_notify(xcb_connection_t *connection,
             bool is_focused = (desktop != NULL) &&
                 (desktop->client_active_id == client->id);
 
-            /* For undecorated clients the window is its own frame and
+            /* For undecorated clients the window is its frame and
              * lives as a direct root child.  The X server delivers
              * 'ConfigureNotify' events via two routes:
              *

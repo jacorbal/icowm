@@ -36,7 +36,7 @@ int wm_startup_subscribe_randr_events(const wm_td *wm);
  * @brief Subscribe to root window events on all managed surfaces
  *
  * Also sets a default left-pointer cursor on every root window; see
- * the implementation's own comment for why that lives here.
+ * the implementation's comment for why that lives here.
  *
  * @param wm Window manager state
  *

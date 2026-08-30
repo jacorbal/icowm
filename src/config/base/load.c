@@ -5,7 +5,7 @@
  *
  * One of the files @c config/base/ is made of;
  * @c config_load_base is the top-level orchestrator, calling into
- * @c config/base/parse.c's own enumeration parsers directly,
+ * @c config/base/parse.c's enumeration parsers directly,
  * @c desktops.c's @c ci_config_load_screens and
  * @c ci_config_load_desktop_behavior, and @c systray.c's
  * @c ci_config_load_systray (all declared in @c config/internal.h),

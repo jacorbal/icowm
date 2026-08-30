@@ -62,7 +62,7 @@ static const uint32_t s_desktop_id_all = WM_DESKTOP_ID_ALL;
 
 
 /**
- * @brief Note one client's own window ID, bottom of the stack first
+ * @brief Note one client's window ID, bottom of the stack first
  *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_window_list_ctx_s being filled
@@ -93,7 +93,7 @@ struct s_name_measure_ctx_s {
 
 
 /**
- * @brief Add the room one desktop's own name needs
+ * @brief Add the room one desktop's name needs
  *
  * @param desktop Desktop reached by the walk
  * @param data    The @c s_name_measure_ctx_s being added to
@@ -138,7 +138,7 @@ struct s_name_write_ctx_s {
 
 
 /**
- * @brief Write one desktop's own name into the list
+ * @brief Write one desktop's name into the list
  *
  * @param desktop Desktop reached by the walk
  * @param data    The @c s_name_write_ctx_s being filled
@@ -208,7 +208,7 @@ struct s_workarea_ctx_s {
 
 
 /**
- * @brief Note one desktop's own workarea
+ * @brief Note one desktop's workarea
  *
  * @param desktop Desktop reached by the walk
  * @param data    The @c s_workarea_ctx_s being filled
@@ -298,7 +298,7 @@ static void s_client_list_one_visit(client_td *client, void *data)
 
 
 /**
- * @brief Note one desktop's own clients, and tell each which it is on
+ * @brief Note one desktop's clients, and tell each which it is on
  *
  * @param desktop Desktop reached by the walk
  * @param data    The @c s_client_list_ctx_s being filled

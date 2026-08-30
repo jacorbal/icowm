@@ -77,28 +77,28 @@
 #define STR_WINLIST_NO_WINDOWS "(no windows)"
 
 /* Quit-confirmation dialog ('src/menu/dialog/quit.c'); the prompt is
- * a format string taking the window manager's own display name (see
+ * a format string taking the window manager's display name (see
  * 'WM_EWMH_NAME' in 'defs/ewmh.h') */
 #define STR_DIALOG_QUIT_PROMPT_FMT "Are you sure you want to exit %s?"
 #define STR_DIALOG_QUIT_CANCEL "[ Cancel ]"
 #define STR_DIALOG_QUIT_EXIT "[ Exit ]"
 
-/* Generic confirm dialog's own optional countdown line
+/* Generic confirm dialog's optional countdown line
  * ('src/menu/dialog/confirm.c'), shown under the prompt whenever
  * a timeout was given to 'menu_confirm_dialog_show'.  Names the cancel
- * button's own label specifically (never assumed to literally read
+ * button's label specifically (never assumed to literally read
  * "Cancel"; see, e.g., 'STR_DIALOG_RANDR_CONFIRM_CANCEL' below), since
  * the countdown always takes that path once it elapses regardless of
  * which button a person may have tabbed the visible selection to in the
  * meantime (a safety timeout has to fall back to the one path that
  * needs no working display to have been chosen deliberately).  A format
- * string taking the cancel button's own label, then the whole seconds
+ * string taking the cancel button's label, then the whole seconds
  * remaining, updated once a second as it counts down.  The '%s'
  * precision is capped at 255 ((DIALOG_TEXT_MAX_LEN - 1), the most
  * a label can ever actually hold) explicitly, in the format string
- * itself rather than left to be inferred from the caller's own buffer:
- * GCC's own '-Wformat-truncation' cannot prove that a label reached
- * through a struct pointer is null-terminated within its own declared
+ * itself rather than left to be inferred from the caller's buffer:
+ * GCC's '-Wformat-truncation' cannot prove that a label reached
+ * through a struct pointer is null-terminated within its declared
  * array bound rather than somewhere later in the struct, so without
  * this it assumes the width of every field after it too. */
 #define STR_DIALOG_CONFIRM_TIMEOUT_FMT \
@@ -116,10 +116,10 @@
 
 /* Keyboard-shortcuts list dialog ('src/menu/dialog/shortcuts.c'): one
  * section header, and one label per action, each paired at runtime with
- * that action's own configured key combo.  Deliberately the bare
+ * that action's configured key combo.  Deliberately the bare
  * section name alone, without the surrounding brackets that appear
  * around it in the dialog itself: those are fixed, structural
- * formatting the code itself applies (see 's_append_line''s own
+ * formatting the code itself applies (see 's_append_line''s
  * "[%s]" format string, menu/dialog/shortcuts.c), not part of the
  * translatable content, so a locale only ever needs to translate the
  * word itself, never remember to also carry the brackets along with
@@ -190,13 +190,13 @@
  * 'Left', 'Up', 'Down', 'Center', 'TopLeft', 'TopRight', 'BotLeft',
  * 'BotRight', 'prev', and 'next' each sit directly beside the literal,
  * never-translated key combo they name (e.g., 'Right=mod1+ Right'), so
- * they stay as plain literals at their own call site in 'shortcuts.c'
+ * they stay as plain literals at their call site in 'shortcuts.c'
  * instead of living here; translating only one half of that pairing
  * would read as more inconsistent than helpful. */
 
 /* TRANSLATION: '%.*s' and '<0-9>' together spell out a shared key combo
  * prefix followed by a literal digit placeholder; '%u' and the second
- * '%s' are a desktop's own index and its own combo.  Keep every
+ * '%s' are a desktop's index and its combo.  Keep every
  * placeholder, in this exact order, in translation. */
 #define STR_SHORTCUTS_GOTO_DESKTOP_RANGE_FMT \
     "Go to desktop 0-9: %.*s<0-9>"
@@ -209,18 +209,18 @@
  * visible on its own surface (see 'desktops.notify-activity' in
  * config.json).
  *
- * TRANSLATION: keep every '%u' (a desktop's own index, or, only in
- * the surface-suffix variant, a surface's own index) */
+ * TRANSLATION: keep every '%u' (a desktop's index, or, only in
+ * the surface-suffix variant, a surface's index) */
 #define STR_DESKTOP_ACTIVITY_UNNAMED_FMT \
     "Detected activity on desktop [%u]"
 
 /* Appended right after the message above, only when the desktop that
- * had activity actually has a name of its own set; kept as its own
+ * had activity actually has a name of its own set; kept as its
  * separate, tiny translatable string instead of a second, almost
  * entirely duplicate whole-sentence one, the same reasoning already
  * applied to the surface-suffix variant right below it.
  *
- * TRANSLATION: keep the '%s' (a desktop's own name) */
+ * TRANSLATION: keep the '%s' (a desktop's name) */
 #define STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT \
     " -- %s"
 
@@ -239,7 +239,7 @@
 
 /* The percentage itself, formatted on its own before being embedded
  * into any of the longer strings below (e.g., before 'STR_BATTERY_AC'
- * to form "34% AC"): kept as its own translatable format string,
+ * to form "34% AC"): kept as its translatable format string,
  * separate from where it gets used, since whether the '%' sign sits
  * flush against the number or has a space before it is a per-language
  * typographic convention, not something a single hardcoded "%u%%" can
@@ -285,10 +285,10 @@
     "  Additionally, the theme file '%s' named by 'config.json' was " \
     "not found; using the built-in default theme instead."
 
-/* Restricted-memory mode's own two warning dialogs ('src/memguard.c').
+/* Restricted-memory mode's two warning dialogs ('src/memguard.c').
  *
  * TRANSLATION: keep every '%u' (a MiB count, or a window count) and the
- * literal '-M' (the command-line option's own name, unchanged in every
+ * literal '-M' (the command-line option's name, unchanged in every
  * language) */
 #define STR_MEMGUARD_CEILING_REACHED_FMT \
     "IcoWM has reached its configured memory ceiling: using %u " \
@@ -307,7 +307,7 @@
     "There are no open windows in this session at the moment."
 
 /* Fuzzy window-search widget: the desktop label shown for a pinned
- * result instead of any one specific desktop's own name or number,
+ * result instead of any one specific desktop's name or number,
  * since a pinned client is not really on any one of them in
  * particular.  Deliberately distinct from the desktop label being
  * left blank entirely, the way it already is whenever a session has

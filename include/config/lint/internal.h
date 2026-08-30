@@ -1,7 +1,7 @@
 /**
  * @file config/lint/internal.h
  *
- * @brief Types the linter's own schema tables are built from
+ * @brief Types the linter's schema tables are built from
  *
  * Shared by every file under @c config/lint/, each of which holds the
  * schema for one configuration file.  Nothing outside the linter

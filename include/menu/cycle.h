@@ -39,7 +39,7 @@
  * active client.  The modifier that keeps the menu open, and whose
  * release auto-confirms the selection, is derived internally from
  * whatever the configured cycle-next and cycle-prev bindings have in
- * common (see @a cycle_init's own implementation, @c menu/cycle.c),
+ * common (see @a cycle_init's implementation, @c menu/cycle.c),
  * not from @p modifier.
  *
  * @param connection XCB connection
@@ -72,7 +72,7 @@ void cycle_init(xcb_connection_t *connection,
 void cycle_destroy(xcb_connection_t *connection);
 
 /**
- * @brief Repaint whatever changed in the menu since its own last call
+ * @brief Repaint whatever changed in the menu since its last call
  *
  * Renders every row when the viewport itself shifted (scrolling) or
  * this is the first call since @a cycle_init; otherwise only the row
@@ -95,9 +95,9 @@ void cycle_draw(xcb_connection_t *connection, const config_td *cfg);
  *        viewport, not just whatever selection change it can tell
  *        happened on its own
  *
- * For any redraw need @a cycle_draw cannot infer from its own
+ * For any redraw need @a cycle_draw cannot infer from its
  * @p selected / @p scroll_offset bookkeeping alone, in particular an
- * @c Expose event.  The window's own prior content may be gone
+ * @c Expose event.  The window's prior content may be gone
  * regardless of whether either of those changed.
  *
  * @note A no-op the menu itself already accounts for on every other

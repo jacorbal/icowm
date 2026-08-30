@@ -4,7 +4,7 @@
  * @brief Desktop navigation and reserved-space configuration
  *
  * How navigation between the desktops @c config/base.h defines
- * behaves, and how much of each desktop's own area stays reserved
+ * behaves, and how much of each desktop's area stays reserved
  * regardless of what any client publishes.
  *
  * @ingroup config
@@ -33,13 +33,13 @@
  * @brief Global desktop-navigation and reserved-space behavior
  *
  * Unlike @p config_base_s (screen and desktop topology: how many
- * screens and desktops exist, and their own names/colors), none of
+ * screens and desktops exist, and their names/colors), none of
  * this describes topology at all, only how navigation between
  * whatever desktops @p config_base_s already defines behaves, and how
- * much of each desktop's own area stays reserved regardless of what any
+ * much of each desktop's area stays reserved regardless of what any
  * client itself publishes via @c _NET_WM_STRUT_PARTIAL.
  *
- * Loaded from @c config.json's own top-level @c desktops object,
+ * Loaded from @c config.json's top-level @c desktops object,
  * a sibling of @c topology, not nested inside it: unlike topology,
  * every field here does take effect on a configuration reload.
  *
@@ -47,7 +47,7 @@
  */
 struct config_desktop_s {
     /**
-     * @brief Whether the current desktop's own name briefly overlays
+     * @brief Whether the current desktop's name briefly overlays
      *        the screen after switching to it
      */
     bool show_overlay;
@@ -81,7 +81,7 @@ struct config_desktop_s {
     bool wrap_at_bounds;
 
     /**
-     * @brief Extra space reserved on each edge of every desktop's own
+     * @brief Extra space reserved on each edge of every desktop's
      *        workarea, on top of whatever @c _NET_WM_STRUT_PARTIAL
      *        clients already reserve there
      *

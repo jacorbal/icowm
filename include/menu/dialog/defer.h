@@ -4,7 +4,7 @@
  * @brief Deferred click-triggered close/accept, shared by every modal
  *        dialog that closes itself in response to a button click
  *
- * A mouse click on a dialog's own button changes which one is selected,
+ * A mouse click on a dialog's button changes which one is selected,
  * and that needs to actually be visible on screen for a moment before
  * the dialog goes away, or the click reads as though it did not
  * register at the right spot even though it did.  Closing on the very
@@ -16,13 +16,13 @@
  *
  * This module holds exactly one pending deferred action at a time,
  * appropriate since only one modal dialog is ever open at once in this
- * window manager.  A caller repaints its own dialog with the freshly
+ * window manager.  A caller repaints its dialog with the freshly
  * changed selection, then schedules the actual close/accept here
  * (@a menu_dialog_defer_schedule).  The main loop calls
  * @a menu_dialog_defer_tick every iteration (folding
- * @a menu_dialog_defer_ms_remaining into its own poll timeout first,
+ * @a menu_dialog_defer_ms_remaining into its poll timeout first,
  * the same way every other timer-driven subsystem in @c loop.c already
- * does), which runs the callback once its own deadline arrives.
+ * does), which runs the callback once its deadline arrives.
  *
  * @ingroup menu_dialog
  */
@@ -47,7 +47,7 @@
 
 /* Public interface */
 /**
- * @brief Signature a deferred action's own callback must match
+ * @brief Signature a deferred action's callback must match
  *
  * @param connection XCB connection, passed through from whichever call
  *                   to @c menu_dialog_defer_tick actually runs the
@@ -82,7 +82,7 @@ void menu_dialog_defer_schedule(xcb_connection_t *connection,
  *        running it
  *
  * Meant for a dialog closing through some other path (e.g., @c Escape,
- * or its own countdown elapsing) before a click-triggered close it had
+ * or its countdown elapsing) before a click-triggered close it had
  * already scheduled became due on its own.
  *
  * @note A no-op when nothing is pending
@@ -94,9 +94,9 @@ void menu_dialog_defer_cancel(void);
  * @brief Milliseconds remaining until the pending deferred action
  *        becomes due
  *
- * Meant to be folded into the main loop's own poll timeout (see
- * @c loop.c's own @c s_loop_tighten_poll_timeout), the same way every
- * other timer-driven subsystem already reports its own next wake-up
+ * Meant to be folded into the main loop's poll timeout (see
+ * @c loop.c's @c s_loop_tighten_poll_timeout), the same way every
+ * other timer-driven subsystem already reports its next wake-up
  * time.
  *
  * @return Milliseconds remaining (never negative), or @c -1 if nothing
@@ -107,11 +107,11 @@ void menu_dialog_defer_cancel(void);
 int menu_dialog_defer_ms_remaining(void);
 
 /**
- * @brief Run the pending deferred action once its own deadline has
+ * @brief Run the pending deferred action once its deadline has
  *        arrived
  *
  * Meant to be called every main-loop iteration, unconditionally, the
- * same way every other timer-driven subsystem's own tick function
+ * same way every other timer-driven subsystem's tick function
  * already is.
  *
  * @param connection XCB connection, passed through to whichever

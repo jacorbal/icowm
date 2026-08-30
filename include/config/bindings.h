@@ -90,7 +90,7 @@ struct config_bindings_s {
             char fortune[CONFIG_MAX_LENGTH_BINDING];
 
             /**
-             * @brief Toggles the scratchpad's own visibility
+             * @brief Toggles the scratchpad's visibility
              *
              * @see @p scratchpad_toggle in @c scratchpad.h
              */
@@ -104,8 +104,8 @@ struct config_bindings_s {
              * Empty by default, unlike every other binding in this
              * struct: no key combination is bound to it out of the
              * box, only IPC (@c toggle_strutless_maximize) and the
-             * root menu's own entry reach it until a person opts in
-             * with their own binding here.
+             * root menu's entry reach it until a person opts in
+             * with their binding here.
              *
              * @see @a surface_action_toggle_strutless_maximize
              *      (surface.h)
@@ -117,18 +117,18 @@ struct config_bindings_s {
          * @brief Desktop-level actions: switching, adding/removing,
          *        and the show-desktop toggle
          *
-         * Its own top-level section, a sibling of @p window rather
+         * Its top-level section, a sibling of @p window rather
          * than nested under @p wm the way it used to be: none of
          * these act on any one particular client the way everything
-         * under @p window does, but they are just as much their own
+         * under @p window does, but they are just as much their
          * coherent, frequently reached-for group as that one is, not
-         * really a good fit for @p wm's own remaining, much more
+         * really a good fit for @p wm's remaining, much more
          * disparate set of window-manager-lifecycle actions (@p quit,
          * @p reload, @p redraw, and the like) either.
          */
         struct {
             /**
-             * @brief Adds or removes the surface's own last desktop
+             * @brief Adds or removes the surface's last desktop
              *
              * @see @a enact_surface_desktop_add,
              *      @a enact_surface_desktop_remove (enact.h)

@@ -63,57 +63,55 @@
 /** Singleton root menu state, one @c CTXMENU_SUBMENU per desktop */
 static ctxmenu_state_td s_root;
 
-/** Entries for the top-level (per-desktop) menu */
-/** Entries for the top-level (per-desktop) menu: one @c CTXMENU_SUBMENU
- *  slot per desktop, plus room for the "(no windows)" fallback and the
- *  trailing "Add new desktop"/"Remove last desktop" pair (and the
- *  separator ahead of them); see 'winlist_show''s own tail-append
- *  below */
+/** Entries for the top-level (per-desktop) menu: one
+ *  @c CTXMENU_SUBMENU slot per desktop, plus room for the
+ *  "(no windows)" fallback and for the trailing "Add new desktop" and
+ *  "Remove last desktop" pair with the separator ahead of them (see
+ *  the tail append in @a winlist_show) */
 static ctxmenu_entry_td s_root_entries[WINLIST_MAX_DESKTOPS + 4];
 
 /** State for each desktop's submenu */
 static ctxmenu_state_td s_desktop_state[WINLIST_MAX_DESKTOPS];
 
-/** Entries for each desktop's submenu; allocated fresh, sized to the
- *  real 'surface->desktop_count' (clamped to WINLIST_MAX_DESKTOPS),
- *  each time 'winlist_show' opens the menu, and freed by
- *  'winlist_close'.  See the comment where it is allocated in
- *  'winlist_show' for why a plain free-and-reallocate on every open
- *  needs no 'realloc' of its own to track 'desktop_count' changing
- *  over the window manager's own lifetime.  A single 'free' on this
- *  alone (never a per-row loop, unlike 's_entries' in rootmenu.c) is
- *  always enough to release it: no entry this file ever builds sets
- *  its own 'command'/'class_name', only 'on_activate'/'userdata', so
- *  there is never anything of its own for any individual entry to
- *  free. */
+/** Entries for each desktop's submenu, allocated afresh on every
+ *  @a winlist_show and sized to the real @c surface->desktop_count
+ *  clamped to @c WINLIST_MAX_DESKTOPS, then released by
+ *  @a winlist_close.  Freeing and allocating anew on each open is why
+ *  no @c realloc is wanted to follow a changing desktop count; the
+ *  comment at the allocation gives the reasoning.  One @c free on the
+ *  array releases the whole of it, unlike @c s_entries in
+ *  @c menu/context/rootmenu.c, which needs a loop: no entry built
+ *  here sets @c command or @c class_name, only @c on_activate and
+ *  @c userdata, so no individual entry holds anything to release */
 static ctxmenu_entry_td (*s_desktop_entries)[WINLIST_MAX_ENTRIES_PER_DESKTOP]
     = NULL;
 
-/** State for each application-group submenu; allocated fresh, sized
- *  to 's_count_appgroups_needed''s own result for this exact
- *  'winlist_show' call, and freed by 'winlist_close'; see
- *  's_desktop_entries''s own comment (above) for why this needs no
- *  'realloc' of its own either */
+/** State for each application-group submenu, allocated afresh and
+ *  sized to what @a s_count_appgroups_needed answered for this exact
+ *  @a winlist_show call, then released by @a winlist_close; the
+ *  reasoning against a @c realloc is the one given for
+ *  @c s_desktop_entries above */
 static ctxmenu_state_td *s_appgroup_state = NULL;
 
-/** Entries for each application-group submenu; sized, allocated, and
- *  freed alongside 's_appgroup_state' above, for the same reason */
+/** Entries for each application-group submenu, sized, allocated and
+ *  released alongside @c s_appgroup_state above and for the same
+ *  reasons */
 static ctxmenu_entry_td (*s_appgroup_entries)[WINLIST_MAX_APPGROUP_SIZE]
     = NULL;
 
-/** Application-group slots claimed during this 'winlist_show' */
+/** Application-group slots claimed during this @a winlist_show */
 static int s_appgroup_used = 0;
 
-/** How many application-group slots 's_appgroup_state' and
- *  's_appgroup_entries' were actually allocated for by this exact
- *  'winlist_show' call, and so how many of them may be written; zero
- *  whenever neither is allocated at all.  Checked against rather than
- *  'WINLIST_MAX_APPGROUPS', which is only the ceiling those two are
- *  ever sized up to and not the size either one actually has: the two
- *  agree when the counting pass and the building pass agree, and a
- *  build that ever outran its own count wrote straight past the end
- *  of both instead of falling back to listing the group's windows
- *  one by one, which is what the cap exists to do. */
+/** How many application-group slots @c s_appgroup_state and
+ *  @c s_appgroup_entries were allocated for by this exact
+ *  @a winlist_show call, and therefore how many of them may be
+ *  written; zero while neither is allocated.  Checked against in
+ *  preference to @c WINLIST_MAX_APPGROUPS, which is the ceiling those
+ *  two are ever sized up to rather than the size either one holds:
+ *  the counting pass and the building pass agree, and a build that
+ *  outran its count once wrote past the end of both instead of
+ *  falling back to listing the group's windows one at a time, which
+ *  is what the cap is there to do */
 static int s_appgroup_capacity = 0;
 
 
@@ -140,7 +138,7 @@ static int s_entry_data_used = 0;
  *
  * Shared by @c s_cb_goto_desktop and @c s_cb_focus_client below, both
  * of which switch @p surface to a target desktop by ID before doing
- * anything else specific to their own entry type.
+ * anything else specific to their entry type.
  *
  * @param surface    Surface to switch
  * @param desktop_id Target desktop ID
@@ -184,7 +182,7 @@ static void s_cb_goto_desktop(xcb_connection_t *connection,
 /**
  * @brief Add a new, empty desktop to the surface
  *
- * Callback invoked from the window list's own trailing "Add new
+ * Callback invoked from the window list's trailing "Add new
  * desktop" entry.  Not about any particular desktop, unlike
  * @a s_cb_goto_desktop just above: only @p data->surface is read,
  * @p data->desktop_id is left unused.
@@ -210,12 +208,12 @@ static void s_cb_add_desktop(xcb_connection_t *connection,
 
 
 /**
- * @brief Remove the surface's own last desktop
+ * @brief Remove the surface's last desktop
  *
- * Callback invoked from the window list's own trailing "Remove last
+ * Callback invoked from the window list's trailing "Remove last
  * desktop" entry.  A no-op, silently, when only one desktop remains;
  * see @a surface_action_desktop_remove (surface.h) for the exact
- * refusal conditions, and this same entry's own @c is_disabled below
+ * refusal conditions, and this same entry's @c is_disabled below
  * (@a winlist_show) for how that state reaches the person before
  * they even try.
  *
@@ -250,7 +248,7 @@ static void s_cb_remove_desktop(xcb_connection_t *connection,
  * @c focus_apply; the same path every other "focus this client" action
  * in the window manager goes through, instead of only sending a raw
  * focus event that would leave the window receiving keystrokes without
- * ever becoming the window manager's own notion of the active window
+ * ever becoming the window manager's notion of the active window
  * (e.g., its titlebar not highlighting as active).
  *
  * @param connection XCB connection (unused)
@@ -274,18 +272,18 @@ static void s_cb_focus_client(xcb_connection_t *connection,
     /* Always the desktop this entry was actually listed under (see
      * 's_client_entry_append''s comment for 'did'), never
      * 'data->client->desktop_id'.  For a plain client the two agree
-     * anyway, since it can only ever be listed under its own desktop,
-     * but for a sticky one they routinely do not, for a sticky client's
-     * own 'desktop_id' is nominal at best (see the "sticky clients live
+     * anyway, since it can only ever be listed under its desktop,
+     * but for a sticky one they routinely do not, a sticky client's
+     * 'desktop_id' being nominal at best (see the "sticky clients live
      * wherever the desktop switch last put them" comment in
      * 's_build_desktop_entries') and does not track which of the (six
-     * shown as its own submenu here) desktops this particular entry
+     * shown as its submenu here) desktops this particular entry
      * actually came from.  Using it instead of 'data->desktop_id' meant
      * activating a sticky client's entry under a desktop other than the
      * current one silently did nothing: since a sticky client already
      * stays visible wherever the desktop switch last left it,
      * 'target_did' would resolve to that same already-current desktop
-     * regardless of which desktop's own submenu the entry was actually
+     * regardless of which desktop's submenu the entry was actually
      * picked from. */
     target_did = data->desktop_id;
 
@@ -404,8 +402,8 @@ static void s_client_entry_append(client_td *client, uint32_t did,
      * the same per-desktop cap this function enforces just above
      * stays identical between that pass and a real one, but every
      * bit of work an entry that will never actually be shown has no
-     * use for is skipped, including claiming one of 's_entry_data''s
-     * own limited slots for it. */
+     * use for is skipped, including claiming one of the limited slots
+     * of 's_entry_data' for it. */
     if (out_entries == NULL) {
         *out_count = n + 1;
         return;
@@ -437,8 +435,8 @@ static void s_client_entry_append(client_td *client, uint32_t did,
 /**
  * @brief Best-effort display name for an application group
  *
- * Prefers the group leader's own @c WM_CLASS class name (more stable
- * across an application's windows than each window's own title); falls
+ * Prefers the group leader's @c WM_CLASS class name (more stable
+ * across an application's windows than each window's title); falls
  * back to the first member's window title when unavailable.
  *
  * @param members  Array of the group's client pointers
@@ -478,8 +476,8 @@ static void s_appgroup_label(client_td * const *members, int member_n,
  * @brief Append a client to the collected-for-this-desktop array, if
  *        there is room
  *
- * Shared by @c s_build_desktop_entries' own two collection passes
- * below (this desktop's own clients, and sticky clients physically
+ * Shared by @c s_build_desktop_entries' two collection passes
+ * below (this desktop's clients, and sticky clients physically
  * stored on other desktops), which otherwise repeated the same
  * bounds-checked append.
  *
@@ -574,7 +572,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
         return;
     }
 
-    /* Collect: every client physically stored in this desktop's own
+    /* Collect: every client physically stored in this desktop's
      * table (sticky ones stored here because it is the current desktop
      * included), plus sticky clients physically stored in other
      * desktops (sticky clients live wherever the desktop switch last
@@ -679,7 +677,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
              * 's_appgroup_used' slot in a real pass, so count it as
              * such; advance 'out_count' by exactly one too, the same
              * as the single submenu-marker entry a real pass would
-             * append to the parent desktop's own list for it, and
+             * append to the parent desktop's list for it, and
              * move on without touching any of the real, shared
              * appgroup state below, which does not exist yet at this
              * point. */
@@ -727,7 +725,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
  *        @c winlist_show call will actually go on to create, across
  *        every desktop
  *
- * Runs @a s_build_desktop_entries once per desktop in its own
+ * Runs @a s_build_desktop_entries once per desktop in its
  * counting-only mode (see that function's comment),
  * accumulating the total so @c s_appgroup_entries and
  * @c s_appgroup_state can be sized to it before either actually
@@ -780,7 +778,7 @@ struct s_submenu_ctx_s {
 
 
 /**
- * @brief Build one desktop's own submenu of the windows it holds
+ * @brief Build one desktop's submenu of the windows it holds
  *
  * @param desktop Desktop reached by the walk
  * @param data    The @c s_submenu_ctx_s being built
@@ -816,7 +814,7 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
     is_cur = did == ctx->cur_did;
 
     /* Always add a "Go there..." entry at the top of the desktop's
-     * own submenu, same as before, so picking the desktop itself
+     * submenu, same as before, so picking the desktop itself
      * (with no particular window) still works.  Followed by a
      * separator before the real client entries below it, but
      * only when this desktop actually has any: with none,
@@ -852,7 +850,7 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
             /* Never inherited from whichever real client entry
              * used to occupy this same slot before the shift
              * above: without this, "Go there..." would show
-             * that client's own icon. */
+             * that client's icon. */
             s_desktop_entries[did][0].icon_window = XCB_WINDOW_NONE;
             s_desktop_entries[did][0].icon_cache = NULL;
             if (!is_cur) {
@@ -961,7 +959,7 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
 
     /* "Add new desktop" / "Remove last desktop", always appended at
      * the very end after a separator, in both display modes: a
-     * surface-wide action, not tied to any particular desktop's own
+     * surface-wide action, not tied to any particular desktop's
      * window list, so it belongs outside the per-desktop submenu
      * layer above rather than duplicated into every one of them.
      * Guarded against whichever buffer 'root_target' actually points
@@ -975,7 +973,7 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
      * exactly one desktop always (see
      * 'surface_action_desktop_add''s comment): a person
      * running that mode has no use for either action ever
-     * succeeding, unlike an ordinary session's own "only one desktop
+     * succeeding, unlike an ordinary session's "only one desktop
      * remains for now" case just below, where adding a second one
      * back remains a real possibility worth surfacing. */
     if (memguard_max_clients() == 0u &&
@@ -1010,7 +1008,7 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
          * per-desktop submenu layer elsewhere in this function, a
          * person opening this menu specifically to manage desktops
          * still benefits from seeing this entry exists, just not
-         * currently available, the same way "Send to desktop"'s own
+         * currently available, the same way "Send to desktop"'s
          * "All desktops (pin)" entry (wincmenu.c) stays visible
          * rather than disappearing. */
         remove_data = s_alloc_entry_data();
@@ -1076,7 +1074,7 @@ void winlist_show(xcb_connection_t *connection,
      * no longer pays for the full, far larger worst case every
      * single time this menu opens.  No 'realloc' of any kind is
      * needed to track 'desktop_count' changing over the window
-     * manager's own lifetime, since this whole array is already
+     * manager's lifetime, since this whole array is already
      * rebuilt from a blank slate on every single 'winlist_show' call
      * regardless (matching every entry it holds, which are always
      * rebuilt fresh too, never carried over from the last time this
@@ -1085,7 +1083,7 @@ void winlist_show(xcb_connection_t *connection,
      * 'winlist_close' followed even before this was dynamic, keeps
      * naturally matching whatever 'desktop_count' happens to be each
      * time with no extra bookkeeping between one open and the next.
-     * At least one row always, matching a session's own standing
+     * At least one row always, matching a session's standing
      * invariant of never actually reaching zero desktops, but kept
      * as an explicit floor here regardless, defensively, the same
      * way 'desktop_count' itself already gets clamped above rather
@@ -1132,7 +1130,7 @@ void winlist_show(xcb_connection_t *connection,
      * 'else' branch does, and 's_root' is pointed at it directly near
      * the end of this function instead of at 's_root_entries'
      * (correctly sized for one entry per desktop, not for a whole
-     * desktop's own window list, so it must never be the target
+     * desktop's window list, so it must never be the target
      * 's_build_desktop_entries' writes into).
      * The same general behavior (keyed off the real desktop count,
      * not specific to restricted-memory mode) already used elsewhere
@@ -1182,7 +1180,7 @@ void winlist_close(void)
 {
     ctxmenu_close(&s_root);
 
-    /* See 's_desktop_entries' own comment (its declaration, above)
+    /* See 's_desktop_entries' comment (its declaration, above)
      * for why a single 'free' here, with no per-row loop of its own,
      * is always enough; the same reasoning applies to
      * 's_appgroup_entries' and 's_appgroup_state' right below it. */

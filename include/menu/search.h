@@ -76,7 +76,7 @@ void search_destroy(xcb_connection_t *connection);
 bool search_is_open(void);
 
 /**
- * @brief Return the window-search widget's own X window identifier
+ * @brief Return the window-search widget's X window identifier
  *
  * @return The widget's @c xcb_window_t, or @c XCB_WINDOW_NONE
  *

@@ -13,14 +13,14 @@
  * text onto the target drawable.
  *
  * This is not a general-purpose public API, as every drawing/measuring
- * entry point below exists purely as @c render/text.c's own fallback
+ * entry point below exists purely as @c render/text.c's fallback
  * path for a font name that does not resolve to an X core font, and is
  * not meant to be called directly from anywhere else in the project.
  * @c glyph_utf8_next is, maybe, the one exception: a plain UTF-8
  * decoder with nothing glyph-rendering-specific about it, reused by
- * @c render/text.c's own X core font path too, so a Latin-1-range
+ * @c render/text.c's X core font path too, so a Latin-1-range
  * codepoint can be drawn correctly through @c xcb_image_text_8 (which,
- * unlike this file's own path, has no multi-byte text support of its
+ * unlike this file's path, has no multi-byte text support of its
  * own at all).  It seems to work...
  *
  * @ingroup render
@@ -53,15 +53,15 @@
  * @brief Decode the next UTF-8 codepoint from @p text
  *
  * A plain UTF-8-to-codepoint decoder, with nothing about it specific to
- * glyph rendering; lives here only because @c render/text.c's own
+ * glyph rendering; lives here only because @c render/text.c's
  * X core font path (@c xcb_image_text_8, single-byte only) needs the
- * exact same decoding this file's own glyph path already had, to turn
+ * exact same decoding this file's glyph path already had, to turn
  * a Latin-1-range codepoint back into the one byte that font encoding
- * actually expects, rather than passing UTF-8's own multi-byte encoding
+ * actually expects, rather than passing UTF-8's multi-byte encoding
  * straight through.
  *
  * Malformed sequences are treated permissively: an invalid leading byte
- * is returned as its own Latin-1 codepoint rather than rejecting the
+ * is returned as its Latin-1 codepoint rather than rejecting the
  * whole string, since this reads UI text, not untrusted input, and
  * a best-effort result reads better than nothing at all.
  *
@@ -79,7 +79,7 @@ uint32_t glyph_utf8_next(const char *text, size_t *index);
  * @brief Try to initialize the glyph renderer for the given font
  *        description
  *
- * Resolves @p font_name through fontconfig (its own native pattern
+ * Resolves @p font_name through fontconfig (its native pattern
  * syntax, e.g., "DejaVu Sans:bold:size=10", or a plain family name) and
  * loads the matched font file with FreeType2.
  *
@@ -156,7 +156,7 @@ void glyph_draw_string(xcb_connection_t *connection,
 /**
  * @brief Measure the rendered width of a UTF-8 string
  *
- * Sums each codepoint's advance width from the current font's own
+ * Sums each codepoint's advance width from the current font's
  * metrics, unlike the X core font path this is a fallback for, which
  * only approximates width from a single fixed character width;
  * a proportional TrueType/OpenType font needs the real per-glyph value.

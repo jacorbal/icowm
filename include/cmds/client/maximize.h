@@ -23,12 +23,12 @@
 
 /* Public interface */
 /**
- * @brief Re-fill an already-maximized client's own geometry against
+ * @brief Re-fill an already-maximized client's geometry against
  *        its current workarea
  *
- * A maximized client's own geometry, grown or shrunk in place, is only
+ * A maximized client's geometry, grown or shrunk in place, is only
  * ever right immediately after actually maximizing it: anything that
- * later changes what its own workarea resolves to (a panel mapped or
+ * later changes what its workarea resolves to (a panel mapped or
  * unmapped, @c desktops.margins reloaded, or the surface's
  * strutless-maximization mode toggled through
  * @a surface_action_toggle_strutless_maximize in @c surface.h)
@@ -40,7 +40,7 @@
  * exactly refilling the workarea as it now stands, the same as if it
  * had only just been maximized.
  *
- * Only the axis (or axes) @p client's own @c properties.state actually
+ * Only the axis (or axes) @p client's @c properties.state actually
  * names gets touched: a client maximized on one axis alone keeps its
  * own other axis exactly as it already was, rather than growing it to
  * fill the workarea too and silently turning a horizontal- or
@@ -82,13 +82,13 @@ void ccmd_client_maximize_vert(client_td *client);
  * geometry itself (a mouse-drag resize crossing the resistance
  * threshold on a maximized axis, live, on the very same motion
  * event; see @c drag_update, input/mouse/drag.c), unlike
- * @c ccmd_client_maximize_horz/@c _vert's own demote branch, which
+ * @c ccmd_client_maximize_horz/@c _vert's demote branch, which
  * always restores geometry from @c layout.geometry.old itself as
  * part of the same call.
  *
  * @param client Client whose axis just stopped being maximized
  * @param dir    @c 1 for horizontal, @c 2 for vertical; matches
- *               @c ccmd_client_maximize_horz/@c _vert's own axis
+ *               @c ccmd_client_maximize_horz/@c _vert's axis
  *               numbering
  *
  * @note Complexity: @e O(1)
@@ -101,7 +101,7 @@ void ccmd_client_demote_axis_state(client_td *client, int dir);
  *        inverse of @c ccmd_client_demote_axis_state, without
  *        touching geometry at all
  *
- * For a caller whose own drag has already re-frozen that axis back
+ * For a caller whose drag has already re-frozen that axis back
  * at its maximized geometry itself (a mouse-drag resize dragged back
  * under the resistance threshold before release, live, on the very
  * same motion event; see @c drag_update, input/mouse/drag.c): the
@@ -113,7 +113,7 @@ void ccmd_client_demote_axis_state(client_td *client, int dir);
  *
  * @param client Client whose axis just became maximized again
  * @param dir    @c 1 for horizontal, @c 2 for vertical; matches
- *               @c ccmd_client_maximize_horz/@c _vert's own axis
+ *               @c ccmd_client_maximize_horz/@c _vert's axis
  *               numbering
  *
  * @note Complexity: @e O(1)

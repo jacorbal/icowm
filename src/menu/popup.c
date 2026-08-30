@@ -102,7 +102,7 @@ void popup_show(xcb_connection_t *connection,
     instance_name = (client->info.class_name[0] != NULL)
         ? client->info.class_name[0] : "";
 
-    /* Resolve which physical monitor the client's own center point
+    /* Resolve which physical monitor the client's center point
      * currently falls on, the same way
      * 'ccmd_client_move_to_next_monitor' in 'cmds/client/geom.c'
      * does, to display alongside its
@@ -119,7 +119,7 @@ void popup_show(xcb_connection_t *connection,
         }
     }
 
-    /* Build every line, and size the window to its own widest one,
+    /* Build every line, and size the window to its widest one,
      * before creating anything: sizing the window first and fitting
      * the text into whatever that left (the previous approach, a
      * fixed guess wide enough for the longest line this popup could
@@ -144,7 +144,7 @@ void popup_show(xcb_connection_t *connection,
             client->properties.flags, client->properties.state);
 
     /* 'text_string_measure' needs the renderer already set up for
-     * this popup's own font; safe and cheap to call here even though
+     * this popup's font; safe and cheap to call here even though
      * 'popup_repaint' calls it again later; it is a same-connection,
      * same-font no-op the second time (see its not-so-long comment). */
     (void) text_renderer_use_font(connection, cfg->theme.overlay.font);
@@ -162,7 +162,7 @@ void popup_show(xcb_connection_t *connection,
 
     popup_close(connection);
 
-    /* Position at the client window's own coordinates, clamped to
+    /* Position at the client window's coordinates, clamped to
      * screen */
     x = (int16_t) client->layout.geometry.cur.pos.x;
     y = (int16_t) client->layout.geometry.cur.pos.y;

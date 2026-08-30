@@ -119,7 +119,7 @@ enum window_flags_e {
     CLIENT_FLAG_UNRESPONSIVE = 1 << 11, /**< No ping reply received */
 
     /**
-     * @brief Every aspect of this client's own presentation and extent
+     * @brief Every aspect of this client's presentation and extent
      *        is entirely policy-controlled, never subject to any
      *        mutation initiated by a user or script
      *
@@ -134,12 +134,12 @@ enum window_flags_e {
      * A caller with feature-specific behavior beyond "refuse this
      * mutation entirely" (the scratchpad hiding itself on losing focus,
      * say, rather than merely refusing to be unfocused) still calls
-     * into the owning feature's own module directly for that, the same
+     * into the owning feature's module directly for that, the same
      * as before; this flag only ever centralizes the "refuse" half
      * shared by every such feature, not anything specific to one of
      * them.
      *
-     * @see @a client_is_locked's own callers
+     * @see @a client_is_locked's callers
      */
     CLIENT_FLAG_LOCKED = 1 << 12,
 
@@ -153,8 +153,8 @@ enum window_flags_e {
      * @c scratchpad.c, is the only one that does so now), then checked
      * by every "who should get focus next?" search on the current
      * desktop, neither of which needs to know what feature actually set
-     * this, or why, only that this client's own visibility is managed
-     * by something else entirely (its own toggle, in the scratchpad's
+     * this, or why, only that this client's visibility is managed
+     * by something else entirely (its toggle, in the scratchpad's
      * case) and should never be picked as an incidental side effect of
      * another client merely losing focus.
      *
@@ -170,8 +170,8 @@ enum window_flags_e {
      * cleared by @a ccmd_client_unfocus, right alongside the real focus
      * grant/revocation each one performs, rather than derived on demand
      * from @c desktop->client_active_id: unlike every other flag in
-     * this @c enum, "is this the desktop's own active client" needs an
-     * external lookup (which desktop, and whether that desktop's own
+     * this @c enum, "is this the desktop's active client" needs an
+     * external lookup (which desktop, and whether that desktop's
      * bookkeeping has actually been updated yet by whichever caller is
      * in the middle of granting focus right now) that the other,
      * genuinely self-contained flags never do, and that external
@@ -180,7 +180,7 @@ enum window_flags_e {
      * avoid.
      *
      * Every @c _NET_WM_STATE atom it publishes reads directly off
-     * @p client's own fields, this one included, with nothing else to
+     * @p client's fields, this one included, with nothing else to
      * go stale or disagree with it.
      *
      * @see @a client_is_focused below
@@ -253,8 +253,8 @@ enum client_gravity_e {         /* Reference point fixed on resize: */
  * @param new_h   Frame height after the size change
  * @param gravity Client @a win_gravity value
  *
- * @note No-op for @c CLIENT_GRAVITY_NORTH_WEST and
- *       @c CLIENT_GRAVITY_STATIC.
+ * @note A no-op for @c CLIENT_GRAVITY_NORTH_WEST and
+ *       @c CLIENT_GRAVITY_STATIC
  * @note Complexity: @e O(1)
  */
 void client_gravity_adjust_pos(int32_t *restrict out_x,

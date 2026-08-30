@@ -82,7 +82,7 @@ void ccmd_client_focus(client_td *client);
  * a window still wearing the active border after another had taken
  * the focus from it.  An undecorated window is where that shows: its
  * border is an attribute written only when focus changes, whereas a
- * decorated one is repainted from its own focus state on the next
+ * decorated one is repainted from its focus state on the next
  * pass and quietly corrects itself.
  *
  * @param client Client to make active; may be @c NULL
@@ -98,11 +98,11 @@ void ccmd_client_make_active(client_td *client);
 /**
  * @brief Transfer input focus away from a client that is leaving the
  *        current visible focus chain (closed, iconified, hidden, or
- *        no longer the desktop's own remembered active client), to
+ *        no longer the desktop's remembered active client), to
  *        the most recently used other visible, focusable client on
  *        the same desktop
  *
- * Searches @p desktop's own stacking order from the top down for the
+ * Searches @p desktop's stacking order from the top down for the
  * first client that is not @p exclude, not hidden, not shaded, not
  * iconified, focusable, not flagged @c CLIENT_FLAG_NO_FOCUS_FALLBACK
  * (the scratchpad; see @a client_set_no_focus_fallback), and not
@@ -113,11 +113,11 @@ void ccmd_client_make_active(client_td *client);
  * elsewhere for the identical reasoning).
  *
  * Run twice, not once: a first pass over that same search restricted
- * to clients sharing @p exclude's own @c WM_CLIENT_LEADER (ICCCM
+ * to clients sharing @p exclude's @c WM_CLIENT_LEADER (ICCCM
  * §4.1.2.5) takes precedence over an equally-recent but unrelated
  * window, the same group-awareness @a place_window_apply
  * (policy/placement/window.c) already applies when placing a new
- * sibling window, and the same reasoning Openbox's own
+ * sibling window, and the same reasoning Openbox's
  * @c focus_valid_target (focus.c) weighs group membership for.
  * A second, plain pass with no group restriction runs only when the
  * first finds nothing, so a client with no group-mates left visible
@@ -139,7 +139,7 @@ void ccmd_client_make_active(client_td *client);
  * got focused on: callers that only want a fallback under that
  * narrower condition already gate the call on their own desktop's
  * remembered active client having been genuinely set (see
- * @c surface_clients_show's own two-block split,
+ * @c surface_clients_show's two-block split,
  * surface/actions/clients.c, for exactly this distinction).
  *
  * @param desktop Desktop whose stacking order is searched, and
@@ -168,9 +168,9 @@ void ccmd_client_unfocus(client_td *client);
 /**
  * @brief Transfer focus away from a client that is losing it
  *
- * Thin wrapper resolving @p client's own surface and desktop before
+ * Thin wrapper resolving @p client's surface and desktop before
  * deferring to @a client_focus_fallback itself; a no-op unless
- * @p client is genuinely that desktop's own current active client,
+ * @p client is genuinely that desktop's current active client,
  * since some other, already-unfocused client being hidden or
  * iconified has no focus of its own to hand off in the first place.
  *

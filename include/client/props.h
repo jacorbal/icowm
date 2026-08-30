@@ -7,7 +7,7 @@
  * The state, layer, flags, type, operation and focusing words a
  * client carries, all of them read through the predicates in
  * @c client/predicates.h rather than directly.  Those six are this
- * window manager's own, not properties of any X window.
+ * window manager's, not properties of any X window.
  *
  * Alongside them, the three readers that fetch what a window calls
  * itself: @c WM_NAME, @c _NET_WM_NAME and @c WM_CLASS.  Kept together
@@ -41,7 +41,6 @@
 
 /* Local includes */
 #include <client/state.h>
-
 
 /**
  * @brief Window properties

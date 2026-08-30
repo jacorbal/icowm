@@ -73,8 +73,8 @@ static void s_grab_release(void)
 /**
  * @brief Restore client geometry to its saved values
  *
- * Used on ESC cancel.  The restore is applied through the same
- * function as normal geometry changes
+ * Used on @c Escape cancel.  The restore is applied through the same
+ * function as normal geometry changes.
  */
 static void s_geometry_restore(void)
 {

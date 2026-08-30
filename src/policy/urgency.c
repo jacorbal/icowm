@@ -68,8 +68,8 @@ static bool s_has_urgent = false;
  * @param desktop Desktop reached by the walk
  * @param data    Pointer to the @c bool being set
  *
- * @note The whole walk runs even once one is found, a visitor having
- *       no way to end it; the caller stops on the flag instead
+ * @note The whole walk runs even once one is found, a visitor having no
+ *       way to end it; the caller stops on the flag instead
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
@@ -121,21 +121,21 @@ static long s_ms_since(const struct timespec *since)
  * @brief Whether at least one managed client, anywhere, currently has
  *        its urgency hint set
  *
- * A pure scan with no side effects at all, safe to call on every
- * single @a urgency_blink_tick (i.e., every main-loop iteration, not
- * just at the actual @c WM_URGENCY_BLINK_INTERVAL_MS cadence).
+ * A pure scan with no side effects at all, safe to call on every single
+ * @a urgency_blink_tick (i.e., every main-loop iteration, not just at
+ * the actual @c WM_URGENCY_BLINK_INTERVAL_MS cadence).
  *
  * The blink phase itself must keep advancing consistently regardless of
  * which desktop the urgent client happens to sit on, or how often this
  * is called, so this deliberately still looks at every desktop of every
- * surface, not only each surface's own currently visible one.
+ * surface, not only each surface's currently visible one.
  *
  * @param surfaces All managed surfaces
  *
  * @return @c true when at least one urgent client was found
  *
- * @note Complexity: @e O(n), where @e n is the total number of
- *       managed clients
+ * @note Complexity: @e O(n), where @e n is the total number of managed
+ *       clients
  *
  * @see @a s_repaint_urgent_clients for that narrower scope, which is
  *      where the actual, comparatively expensive repainting happens
@@ -149,7 +149,8 @@ static bool s_any_client_urgent(list_td *surfaces)
 
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
-        const surface_td *const surface = (surface_td *) list_data(snode);
+        const surface_td *const surface =
+            (surface_td *) list_data(snode);
         bool is_any_urgent = false;
 
         if (surface == NULL) {
@@ -180,8 +181,8 @@ static bool s_any_client_urgent(list_td *surfaces)
  * blink cadence, that full-desktop repaint fired far more often than
  * the blink itself ever changed, visibly flickering every window and
  * icon on the desktop, not just the urgent one, and stomping over other
- * clients' own independent, transient render state along the
- * way (e.g., an icon's cycle-selection highlight mid-drag).
+ * clients' independent, transient render state along the way (e.g., an
+ * icon's cycle-selection highlight mid-drag).
  *
  * Only ever called from the actual blink-phase-toggle branch of
  * @a urgency_blink_tick now, this instead calls
@@ -189,15 +190,15 @@ static bool s_any_client_urgent(list_td *surfaces)
  * at a time, for only the specific client(s) that are both urgent and
  * on a desktop currently visible on some surface (an urgent client
  * sitting on a desktop nobody is looking at right now has nothing to
- * visibly repaint at all.  Its own clients are not even mapped, leaving
+ * visibly repaint at all.  Its clients are not even mapped, leaving
  * every other client on that same desktop untouched).
  *
  * @param surfaces All managed surfaces
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       each surface's own currently visible desktop
+ *       each surface's currently visible desktop
  *
- * @see @a desktop_render_clients's own comment
+ * @see @a desktop_render_clients's comment
  */
 static void s_repaint_urgent_clients(list_td *surfaces)
 {

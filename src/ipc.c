@@ -49,13 +49,13 @@
 #include <ipc/commands.h>
 
 
-/** One connected client's own read state */
+/** One connected client's read state */
 struct s_ipc_client_s {
     size_t buf_len;                    /**< Bytes currently buffered,
                                             not yet a complete line */
     int fd;                            /**< -1 when this slot is free */
     /** Bitmask of 'enum ipc_event_type_e'; 0 means none, which is
-     *  correctly the same as this static array's own
+     *  correctly the same as this static array's
      *  zero-initialized default */
     uint32_t subscribed_events;
     char buf[IPC_MSG_MAX_LENGTH];
@@ -64,7 +64,7 @@ struct s_ipc_client_s {
 /** Every currently connected client, indexed by slot */
 static struct s_ipc_client_s s_clients[IPC_MAX_CLIENTS];
 
-/** Whether 's_clients' has had every slot's own 'fd' set to -1 yet.
+/** Whether 's_clients' has had every slot's 'fd' set to -1 yet.
  *  Needed because static storage only zero-initializes it by
  *  default, and 0 is itself a valid, real file descriptor (stdin);
  *  every "is this slot free" check in this file relies on -1
@@ -81,7 +81,7 @@ static int s_ipc_fd = -1;
  *  unlink; empty when not up */
 static char s_ipc_socket_path[CONFIG_MAX_LENGTH_PATH_BASE] = { 0 };
 
-/** One event type's own name and bit, shared by both directions of
+/** One event type's name and bit, shared by both directions of
  *  the name-to-bit mapping below (subscribing reads a name off the
  *  wire and needs its bit; broadcasting has a bit and needs to write
  *  its name back out), so the two stay in step by construction
@@ -192,7 +192,7 @@ static int s_runtime_dir_ensure(const char *dir)
 
 
 /**
- * @brief Close one connected client's own descriptor and free its
+ * @brief Close one connected client's descriptor and free its
  *        slot
  *
  * @param idx Index into 's_clients'
@@ -216,7 +216,7 @@ static void s_client_close(int idx)
 
 
 /**
- * @brief Look up one event type's own name
+ * @brief Look up one event type's name
  *
  * @param name Event name, as given on the wire
  *
@@ -238,11 +238,11 @@ static uint32_t s_event_name_to_bit(const char *name)
 
 
 /**
- * @brief Look up one event type's own bit
+ * @brief Look up one event type's bit
  *
  * @param type The event type
  *
- * @return Its own name, or @c NULL when @p type does not match any
+ * @return Its name, or @c NULL when @p type does not match any
  *         known single event bit
  *
  * @note Complexity: @e O(1) (a handful of entries, checked linearly)
@@ -267,7 +267,7 @@ static const char *s_event_bit_to_name(uint32_t type)
  * name, unconditionally, is the traditional portable idiom for that
  * reason.  On glibc/Linux they are defined to the exact same number,
  * which turns that same traditional check into a comparison against
- * itself twice, something GCC's own '-Wlogical-op' rightly flags.
+ * itself twice, something GCC's '-Wlogical-op' rightly flags.
  * The '#if' below only compares against 'EWOULDBLOCK' separately
  * when it is actually a distinct value in the first place, so this
  * stays the fully portable check on every POSIX system, while never
@@ -314,11 +314,11 @@ static void s_new_client_accept(void)
         return;
     }
 
-    /* 'accept' does not inherit the listening socket's own
+    /* 'accept' does not inherit the listening socket's
      * 'SOCK_NONBLOCK' flag onto the connection it hands back, so
      * every accepted client is made non-blocking here, the POSIX
      * way ('fcntl'/'F_SETFL'/'O_NONBLOCK'), rather than the Linux-
-     * only 'accept4' shortcut this project's own POSIX version
+     * only 'accept4' shortcut this project's POSIX version
      * target does not cover. */
     flags = fcntl(fd, F_GETFL, 0);
     if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
@@ -363,7 +363,7 @@ static void s_handle_client_data(wm_td *wm, int idx)
     struct s_ipc_client_s *const c = &s_clients[idx];
     ssize_t n;
 
-    /* Room for at least one more byte plus the buffer's own null
+    /* Room for at least one more byte plus the buffer's null
      * terminator is always kept free, so a line that exactly fills
      * the rest of 'buf' is still safe to null-terminate below. */
     n = read(c->fd, c->buf + c->buf_len,
@@ -414,7 +414,7 @@ static void s_handle_client_data(wm_td *wm, int idx)
             if (written < 0 || (size_t) written != resp_len ||
                     nl_written != 1) {
                 /* A short or failed write here means the client
-                 * either is not reading its own responses or has
+                 * either is not reading its responses or has
                  * gone away; either way, the connection is no
                  * longer usable and the simplest correct response
                  * is to drop it rather than track a partial-write
@@ -422,7 +422,7 @@ static void s_handle_client_data(wm_td *wm, int idx)
                  * control socket, not a general-purpose one.  This
                  * also covers the response writing fully but the
                  * trailing newline not: a client that only ever
-                 * sees a line without its own terminator can never
+                 * sees a line without its terminator can never
                  * tell the response actually ended there. */
                 LOGGER_WARNING("Short write to an IPC client;" \
                         " dropping its connection", L_NARG);
@@ -491,7 +491,7 @@ int ipc_init(void)
      * 'snprintf' does, but neither is a 'printf'-family call, so
      * neither one gives GCC's '-Wformat-truncation' anything to
      * reason about in the first place.  That checker judges a '%s'
-     * argument by its source array's own declared capacity, not by
+     * argument by its source array's declared capacity, not by
      * what a function like 'xdg_resolve_dir' actually promises to
      * leave in it, so composing same-sized path buffers through it
      * always reads as a possible overflow to the compiler even when

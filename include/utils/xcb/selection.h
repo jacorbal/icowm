@@ -38,7 +38,7 @@
  * @param selection_atom Manager-selection atom to acquire (e.g.,
  *                       @c _NET_SYSTEM_TRAY_S0)
  * @param manager_atom   Interned @c MANAGER atom, used as the broadcast
- *                       client message's own type
+ *                       client message's type
  * @param root           Root window the @c MANAGER message is sent on
  *
  * @return Status of the operation

@@ -64,14 +64,14 @@ static void s_spawn_child(char **argv, const spawn_opts_td *opts,
 
     (void) close(err_pipe[0]);
 
-    /* The child has no business holding the window manager's own
+    /* The child has no business holding the window manager's
      * socket to the X server open once it becomes another program */
     if (xcb_connection_get() != NULL) {
         (void) close(xcb_get_file_descriptor(xcb_connection_get()));
     }
 
     /* Set here, in the child, and not in the parent after 'fork':
-     * 'setenv' only ever affects the calling process's own
+     * 'setenv' only ever affects the calling process's
      * environment, and the child has had an independent copy of it
      * from the moment 'fork' returned */
     if (opts->startup_id != NULL && opts->startup_id[0] != '\0') {
@@ -88,7 +88,7 @@ static void s_spawn_child(char **argv, const spawn_opts_td *opts,
      * result itself is deliberately unchecked, since the child is
      * about to '_exit' either way and has nothing it could do
      * differently; captured in a real variable rather than cast to
-     * 'void' on the call, since GCC's own 'warn_unused_result' on
+     * 'void' on the call, since GCC's 'warn_unused_result' on
      * 'write' does not treat a bare '(void)' cast as acknowledging
      * it. */
     child_errno = errno;
@@ -125,7 +125,7 @@ int spawn_command(const char *command, const spawn_opts_td *opts,
     wordexp_flags |= WRDE_NOENV;
 #endif
 
-    /* Expanded before forking: see this function's own note in
+    /* Expanded before forking: see this function's note in
      * utils/spawn.h for why the child cannot do this itself */
     if (wordexp(command, &words, wordexp_flags) != 0 ||
             words.we_wordc == 0u) {

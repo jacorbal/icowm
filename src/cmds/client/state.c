@@ -130,7 +130,7 @@ static void s_client_enable_decoration(client_td *client,
     values[0] = border_color;
     values[1] = border_color;
     /* 'XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT' is required so the
-     * client's own future resize/move attempts on itself are delivered
+     * client's future resize/move attempts on itself are delivered
      * to the window manager as 'ConfigureRequest's instead of being
      * applied directly by the server with no notification at all */
     values[2] = XCB_EVENT_MASK_EXPOSURE             |
@@ -170,7 +170,7 @@ static void s_client_enable_decoration(client_td *client,
      * non-viewable, which emits two synthetic 'UnmapNotify' events:
      *
      *  1. From root's SubstructureNotify (event=root, window=content)
-     *  2. From the content window's own StructureNotify (event=window,
+     *  2. From the content window's StructureNotify (event=window,
      *     window=content)
      *
      * Absorb both so focus is not stolen from the active window. */
@@ -268,15 +268,15 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
             inner_h = (int32_t) WM_MIN_WINDOW_DIMENSION;
         }
 
-        /* Above, 'inner.pos' keeps the content's own top-left
+        /* Above, 'inner.pos' keeps the content's top-left
          * corner fixed on screen, correct outright for
          * 'CLIENT_GRAVITY_NORTH_WEST' (the ICCCM default) and
          * 'CLIENT_GRAVITY_STATIC', for which this call is a
-         * no-op; for any other gravity a client's own
+         * no-op; for any other gravity a client's
          * 'WM_NORMAL_HINTS' actually requested, this adds
-         * whatever further displacement keeps that gravity's own
+         * whatever further displacement keeps that gravity's
          * anchor fixed instead, given the frame shrinking from
-         * its decorated outer size down to this content's own,
+         * its decorated outer size down to this content's,
          * now-undecorated one. */
         client_gravity_adjust_pos(&inner.pos.x, &inner.pos.y,
                 client->layout.geometry.cur.dim.w,
@@ -322,9 +322,9 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
         /* Keeps 'client_border_color_apply' (client.c) from seeing
          * a stale 'last_border_width' the moment focus is
          * reapplied a few lines below (via 'ccmd_client_focus'):
-         * without this, that call would compare its own freshly
+         * without this, that call would compare its freshly
          * computed width against whatever this field happened to
-         * hold from this same client's own last undecorated
+         * hold from this same client's last undecorated
          * period (or 'UINT32_MAX' if there never was one), and
          * shift the position it just correctly set above by
          * whatever spurious delta that comparison produces, on
@@ -384,9 +384,9 @@ static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
          * mirrored: the baseline 'frame.pos' keeps the content's
          * own top-left corner fixed, correct outright for
          * 'CLIENT_GRAVITY_NORTH_WEST'/'STATIC'; any other gravity
-         * gets whatever further displacement keeps its own
+         * gets whatever further displacement keeps its
          * anchor fixed instead, now going from this content's
-         * own undecorated size up to the restored frame's own,
+         * own undecorated size up to the restored frame's,
          * larger one. */
         client_gravity_adjust_pos(&frame.pos.x, &frame.pos.y,
                 client->layout.geometry.cur.dim.w,
@@ -459,14 +459,14 @@ static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
  */
 static void s_ccmd_decorate_remaximize(client_td *client)
 {
-    /* A maximized client's own geometry, computed just above, only ever
+    /* A maximized client's geometry, computed just above, only ever
      * grows or shrinks its existing frame in place around whatever
      * position/size that already was (exactly right for an ordinary
      * client, but not for one that was filling the workarea a moment
-     * ago).  Decoration changes how much of that area its own frame
+     * ago).  Decoration changes how much of that area its frame
      * extents eat into, so what it should still fill afterward is the
      * workarea itself, not "whatever it already had, offset by however
-     * much bigger or smaller its own frame extents just became".
+     * much bigger or smaller its frame extents just became".
      * Recomputed here instead, against 'ccmd_client_resolve_workarea'
      * (the same resolution 'ccmd_client_maximize' itself already uses),
      * so the client ends up exactly refilling the workarea under its
@@ -475,7 +475,7 @@ static void s_ccmd_decorate_remaximize(client_td *client)
      *
      * Only the axis (or axes) 'client->properties.state' itself
      * actually names gets touched: a client maximized on one axis alone
-     * leaves its own other axis exactly as the base decorate/
+     * leaves its other axis exactly as the base decorate/
      * undecorate logic above already placed it, rather than growing it
      * to fill the workarea too and silently turning a horizontal- or
      * vertical-only maximize into a full one. */
@@ -497,7 +497,7 @@ static void s_ccmd_decorate_remaximize(client_td *client)
              * undecorate branch above has already settled, so
              * 'client->frame' now correctly reflects whether one
              * exists; for a now-decorated client this correctly stays
-             * 0, since the frame's own size (not an additional
+             * 0, since the frame's size (not an additional
              * border atop it) already fills the workarea, matching
              * 'target' being the frame itself just below. */
             uint32_t border = 2u * client_border_width(client, true,
@@ -547,13 +547,13 @@ void ccmd_client_shade(client_td *client)
         return;
     }
 
-    /* An iconified client's own target window is unmapped and its
+    /* An iconified client's target window is unmapped and its
      * icon window stands in for it; shading it in place here, same
      * as 'ccmd_client_fullscreen' and 'ccmd_client_maximize' (via
      * 's_ccmd_maximize_precheck') already do for the same reason,
      * would map the frame back while the icon window is still up,
      * showing both at once.  Restoring first keeps this consistent
-     * with the project's own established convention of resolving a
+     * with the project's established convention of resolving a
      * conflicting prior state automatically rather than refusing
      * the request outright (the same convention 'ccmd_client_iconify'
      * itself follows for shade and fullscreen on the way in). */
@@ -605,7 +605,7 @@ void ccmd_client_shade(client_td *client)
 
     /* Absorb both 'UnmapNotify' events generated by the content window
      * unmap: the frame's 'SubstructureNotify' ('event=frame,
-     * window=content') and the content window's own 'StructureNotify'
+     * window=content') and the content window's 'StructureNotify'
      * ('event=content, window=content').  Both carry 'event->window ==
      * client->window', so both reach the fall-through branch of
      * 'handler_unmap_notify'; only one 'ignore_unmap' token would leave
@@ -694,7 +694,7 @@ void ccmd_client_unshade(client_td *client)
     /* The content window's real on-screen size was never actually
      * touched while shaded (see 'client_decoration_layout_sync',
      * client/geom.c, which now deliberately skips resizing it for a
-     * shaded client, matching Openbox's own 'frame_adjust_area',
+     * shaded client, matching Openbox's 'frame_adjust_area',
      * frame.c): it already holds its true, correct size, restored
      * with nothing further needed for the common case.  Called here
      * anyway, now that 'client_unshade' just above has genuinely
@@ -767,7 +767,7 @@ void ccmd_client_fullscreen(client_td *client)
     }
 
     /* Restore first if iconified, the same reasoning as
-     * 'ccmd_client_shade''s own identical guard just above: an
+     * 'ccmd_client_shade''s identical guard just above: an
      * iconified client's target window is unmapped, and entering
      * fullscreen here would map it back while the icon window is
      * still up. */
@@ -776,10 +776,10 @@ void ccmd_client_fullscreen(client_td *client)
     }
 
     /* Deliberately no 'client_is_resizable' gate here, unlike maximize:
-     * fullscreen is a WM-forced override of the client's own preferred
-     * geometry, not a user-convenience resize the client's own fixed
+     * fullscreen is a WM-forced override of the client's preferred
+     * geometry, not a user-convenience resize the client's fixed
      * size hints have any say over.  A DOS-emulation or retro-game
-     * window that fixes its own size (min == max in WM_NORMAL_HINTS,
+     * window that fixes its size (min == max in WM_NORMAL_HINTS,
      * clearing CLIENT_FLAG_RESIZABLE; see client/props.c) still needs
      * to enter fullscreen correctly when it requests
      * '_NET_WM_STATE_FULLSCREEN' on its own alt+enter handling, which
@@ -828,25 +828,25 @@ void ccmd_client_fullscreen(client_td *client)
      * (when there is a separate one, i.e., 'target' is the frame):
      * reversing this order used to leave a real, if brief, window
      * between the two separate 'ConfigureWindow' requests where the
-     * content window already had its own fullscreen size while its
+     * content window already had its fullscreen size while its
      * parent frame still had its old, smaller one, which X11 clips
      * a child window to regardless of what size the child itself was
      * just given.  A fast-redrawing client (e.g., 'xterm') never showed
-     * it, redrawing its own content well before a human could perceive
+     * it, redrawing its content well before a human could perceive
      * the gap.
      *
-     * A client buffering its own rendering (e.g., a GL/Vulkan video
+     * A client buffering its rendering (e.g., a GL/Vulkan video
      * player like 'mpv', already special-cased below for exactly this
      * kind of timing sensitivity) could catch that intermediate
-     * geometry and paint a frame reflecting it, leaving the frame's own
+     * geometry and paint a frame reflecting it, leaving the frame's
      * background (set to the theme's border color by
      * 'desktop_repaint_frame_decoration', 'render/desktop.c') visible
-     * through the gap along the content's own top and left edges until
+     * through the gap along the content's top and left edges until
      * its next redraw happened to catch up (visually indistinguishable
      * from a real border, though neither an X11 border nor that repaint
      * function was ever actually involved).  Configuring the parent
      * first removes the gap outright: the child is never given a size
-     * its own parent does not already accommodate, however briefly. */
+     * its parent does not already accommodate, however briefly. */
     ccmd_client_apply_geometry(client, target,
             (uint16_t) XCB_CONFIG_WINDOW_X |
                 (uint16_t) XCB_CONFIG_WINDOW_Y |
@@ -882,13 +882,13 @@ void ccmd_client_fullscreen(client_td *client)
      * resizing their rendering surface/viewport, and it must carry the
      * true screen-relative geometry.  The real 'ConfigureNotify' the
      * X server sends for the frame/window configure above already
-     * carries that geometry (including the monitor's own origin, not
+     * carries that geometry (including the monitor's origin, not
      * necessarily (0,0), on a surface made of more than one monitor),
      * so this was not strictly required for the client's OWN
      * 'ConfigureNotify'; but the frame reparenting above still delivers
      * one relative to the *frame*, and without an explicit synthetic
      * one afterward some clients only apply the next size they are told
-     * about relative to their own last known good state, which can
+     * about relative to their last known good state, which can
      * otherwise show as a blank frame until an unrelated event forces
      * a fresh redraw. */
     client_send_synthetic_configure_notify(xcb_connection_get(), client);
@@ -954,13 +954,13 @@ void ccmd_client_unfullscreen(client_td *client)
      * or recreated), but 'layout.frame_extents' does not yet reflect
      * that: it was zeroed out by 'ccmd_client_fullscreen' on entry
      * and is exactly what the block below is about to (re)establish.
-     * Without this, 'client_border_width''s own 'frame != 0' guard
+     * Without this, 'client_border_width''s 'frame != 0' guard
      * (correct for every other caller, where the frame already does
      * account for it) returns 0 here unconditionally, collapsing
-     * 'inner_w'/'inner_h' below to the frame's own full size and
+     * 'inner_w'/'inner_h' below to the frame's full size and
      * 'frame_extents.left'/'.right' to 0 right along with it: the
      * border theme color never disappears, there is simply no frame
-     * pixel width left for it to occupy, the client's own content
+     * pixel width left for it to occupy, the client's content
      * drawn flush against the frame's outer edge instead. */
     border_width = client_border_width(client, true, true);
 
@@ -969,7 +969,7 @@ void ccmd_client_unfullscreen(client_td *client)
      * own outer target before the inner content window: reversing
      * this order used to leave a real, if brief, window between two
      * separate 'ConfigureWindow' requests where the frame already had
-     * its own smaller, restored size while the content window still
+     * its smaller, restored size while the content window still
      * had its old, larger fullscreen one, which X11 clips a child
      * window to regardless of what size the child itself still
      * claims.  A smaller child always fits within a still-larger
@@ -1001,10 +1001,10 @@ void ccmd_client_unfullscreen(client_td *client)
             (int32_t) (border_width + title_height);
         client->layout.frame_extents.bottom = (int32_t) border_width;
 
-        /* The frame's own X11-native border width must stay 0, always,
+        /* The frame's X11-native border width must stay 0, always,
          * for a decorated client (see the main render pass in
          * render/desktop.c, which enforces exactly that): the visible
-         * border comes from the frame's own size and background color
+         * border comes from the frame's size and background color
          * (see frame_extents above), not from an X11-native border.  A
          * non-zero value here would add an extra, unwanted border on
          * top of that until the next full repaint reset it back. */
@@ -1034,7 +1034,7 @@ void ccmd_client_unfullscreen(client_td *client)
 
     /* 'BORDER_WIDTH' is included here too, not just inside the
      * 'was_decorated_fullscreen' block above: for an undecorated
-     * client, 'target' is its own window and this is the only place
+     * client, 'target' is its window and this is the only place
      * its border gets restored at all, since there is no separate
      * frame for an earlier step to already have set it on. */
     ccmd_client_apply_geometry(client, target,
@@ -1088,7 +1088,7 @@ void ccmd_client_unfullscreen(client_td *client)
     /* No longer fullscreen, so the forced-above stacking
      * 'ccmd_desktop_enforce_layers' gives a focused fullscreen client
      * no longer applies to it either way; re-run it now so it settles
-     * straight back into its own real layer group rather than waiting
+     * straight back into its real layer group rather than waiting
      * on whatever future stacking-order pass happens to run next. */
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
@@ -1111,7 +1111,7 @@ void ccmd_client_toggle_fullscreen(client_td *client)
         return;
     }
 
-    /* No 'client_is_resizable' gate; see 'ccmd_client_fullscreen''s own
+    /* No 'client_is_resizable' gate; see 'ccmd_client_fullscreen''s
      * comment for why fullscreen is deliberately exempt. */
     if (client_is_fullscreen(client)) {
         ccmd_client_unfullscreen(client);
@@ -1143,10 +1143,10 @@ void ccmd_client_toggle_decorate(client_td *client)
      * would otherwise keep polling and re-applying a cursor to
      * whichever one it was tracking before this toggle, oblivious to
      * decoration having just changed underneath it: if it was
-     * tracking the client's own window because it was undecorated
+     * tracking the client's window because it was undecorated
      * when hover-polling started, and this toggle adds a frame, the
      * two would fight over the client window's cursor from then on,
-     * one correctly following the new frame's own border and the
+     * one correctly following the new frame's border and the
      * other still polling the client window directly on a stale
      * assumption. */
     mouse_hover_poll_clear(client->window);
@@ -1154,12 +1154,12 @@ void ccmd_client_toggle_decorate(client_td *client)
         mouse_hover_poll_clear(client->frame);
     }
 
-    /* 'ignore_frame=true': computed once here, before this toggle's own
+    /* 'ignore_frame=true': computed once here, before this toggle's
      * direction (remove or restore) is even decided below, and used by
      * both; whichever one runs, this represents the border width the
      * client/frame is being configured to, not one its current framing
      * state (about to change either way) already accounts for.  Same
-     * reasoning as 'ccmd_client_unfullscreen''s own identical call. */
+     * reasoning as 'ccmd_client_unfullscreen''s identical call. */
     bw = (int32_t) client_border_width(client, true, true);
     th = (int32_t) client->title_height;
     desktop = wm_get_client_desktop(client);
@@ -1189,9 +1189,9 @@ void ccmd_client_toggle_decorate(client_td *client)
 
     /* Toggling decoration changes whether resize/move/decoration
      * actions actually make sense (an undecorated client's border
-     * cannot be dragged to resize it, for one), so the client's own
+     * cannot be dragged to resize it, for one), so the client's
      * '_NET_WM_ALLOWED_ACTIONS' needs republishing here, the same as
-     * every other place this project's own capabilities genuinely
+     * every other place this project's capabilities genuinely
      * change out from under a client. */
     ccmd_client_update_allowed_actions(client);
 

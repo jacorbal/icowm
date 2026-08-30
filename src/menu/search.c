@@ -60,19 +60,21 @@
 
 
 /**
- * @brief Pixel Y where the first result row starts: the top padding,
- *        the query bar, and a second padding strip reserved for the
- *        up-scroll indicator, the same reasoning
- *        @c WM_CYCLE_MENU_PAD_Y reserves around @c cycle/draw.c's
- *        own menu
+ * @brief Pixel Y where the first result row starts
+ *
+ * The top padding, the query bar, and a second padding strip reserved
+ * for the up-scroll indicator, the same reasoning
+ * @c WM_CYCLE_MENU_PAD_Y reserves around @c cycle/draw.c's own menu
  */
 #define S_SEARCH_ROWS_TOP \
     (WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT + WM_SEARCH_PAD_Y)
 
 
 /**
- * @brief One matched entry ready to be drawn: its client, the
- *        desktop it lives on, and its pre-rendered name/hints text
+ * @brief One matched entry ready to be drawn
+ *
+ * Its client, the desktop it lives on, and its pre-rendered name/hints
+ * text
  */
 typedef struct {
     client_td *client;
@@ -89,8 +91,11 @@ static struct {
     size_t query_len;
     const config_td *config;
 
-    /** Every focusable candidate collected at open time, alongside
-     *  the desktop it lives on, before any query has filtered it */
+    /**
+     * @brief Every focusable candidate collected at open time,
+     *        alongside the desktop it lives on, before any query has
+     *        filtered it
+     */
     client_td *candidates[WM_SEARCH_MAX_ENTRIES];
 
     desktop_td *candidate_desktops[WM_SEARCH_MAX_ENTRIES];
@@ -121,7 +126,7 @@ static struct {
  * @param text  Candidate string to test
  *
  * @return A non-negative score when every character of @p query was
- *         found in order, or -1 when @p text does not match at all
+ *         found in order, or @c -1 when @p text does not match at all
  *
  * @note Complexity: @e O(n), where @e n is the length of @p text
  */
@@ -172,13 +177,12 @@ static int s_search_fuzzy_score(const char *restrict query,
  *
  * A client may hold several geometry states at once, full screen over
  * a maximized window being the ordinary case, so the chain below
- * reports the outermost one alone, the same one the window is
- * actually drawn as.  Everything after it is independent, of that
- * letter and of the others: iconified, shaded, hidden, sticky and
- * urgent each report on their own, so a maximized window sitting as
- * an icon says so twice over.  The result is one comma-separated
- * list such as @c "[p,m,!]", and nothing at all when no hint
- * applies.
+ * reports the outermost one alone, the same one the window is actually
+ * drawn as.  Everything after it is independent, of that letter and of
+ * the others: iconified, shaded, hidden, sticky and urgent each report
+ * on their own, so a maximized window sitting as an icon says so twice
+ * over.  The result is one comma-separated list such as @c "[p,m,!]",
+ * and nothing at all when no hint applies.
  *
  * @param client Client to inspect
  * @param out    Destination buffer
@@ -272,18 +276,17 @@ static void s_search_candidate_visit(client_td *client, void *data)
 
 /**
  * @brief Collect every focusable, non-skip-taskbar client across
- *        every desktop of @c s_search.surface into @c s_search.
- *        candidates
+ *        every desktop of @c s_search.surface into
+ *        @c s_search.candidates
  *
  * Same eligibility filter @a cycle_init uses for its own window list;
  * unrelated to the currently active desktop, so a client on a desktop
  * other than the one showing right now is still collected.
  *
- * @note Complexity: @e O(n), where @e n is the total number of
- *       clients across every desktop of @c s_search.surface (a
- *       single walk of the surface's own circular desktop list,
- *       not one lookup per index, plus one walk of each desktop's
- *       own stacking list)
+ * @note Complexity: @e O(n), where @e n is the total number of clients
+ *       across every desktop of @c s_search.surface (a single walk of
+ *       the surface's own circular desktop list, not one lookup per
+ *       index, plus one walk of each desktop's own stacking list)
  */
 static void s_search_collect_candidates(void)
 {
@@ -305,15 +308,15 @@ static void s_search_collect_candidates(void)
 
 
 /**
- * @brief Re-filter and re-rank @c s_search.results from @c s_search.
- *        candidates against the current @c s_search.query
+ * @brief Re-filter and re-rank @c s_search.results from
+ *        @c s_searchcandidates against the current @c s_search.query
  *
  * An empty query matches every candidate, in collection order (most
  * recently focused first, since candidates were collected tail to
  * head).  Resets the selection and scroll position to the top.
  *
- * @note Complexity: @e O(n log n), where @e n is @c s_search.
- *       candidate_count
+ * @note Complexity: @e O(n log n), where @e n is
+ *       @c s_search.candidate_count
  */
 static void s_search_refilter(void)
 {
@@ -348,10 +351,10 @@ static void s_search_refilter(void)
     /* Small insertion sort by descending score; the candidate count
      * this widget deals with (open windows) never justifies anything
      * fancier */
-    /* Indexed without a sign, so that the descending walk stops at
-     * zero rather than at minus one: a signed index there lets the
-     * optimizer assume its own arithmetic never overflows, which is
-     * what '-Wstrict-overflow' reports on */
+    /* Indexed without a sign, so that the descending walk stops at zero
+     * rather than at minus one: a signed index there lets the optimizer
+     * assume its own arithmetic never overflows, which is what
+     * '-Wstrict-overflow' reports on */
     for (unsigned int i = 1u; i < (unsigned int) s_search.result_count;
             ++i) {
         s_search_result_td key = s_search.results[i];
@@ -374,8 +377,8 @@ static void s_search_refilter(void)
  *        count from the current result count
  *
  * Caps visible height at @c WM_SEARCH_MAX_HEIGHT_PERCENT of the
- * surface's own height, the same reasoning @a cycle_init uses for
- * its own menu.
+ * surface's own height, the same reasoning @a cycle_init uses for its
+ * own menu.
  *
  * @note Complexity: @e O(1)
  */
@@ -423,12 +426,12 @@ static void s_search_scroll_to_selection(void)
 
 
 /**
- * @brief Return the result index at a given pixel Y inside the
- *        widget, or -1 if @p y falls outside every visible row
+ * @brief Return the result index at a given pixel Y inside the widget,
+ *        or @c -1 if @p y falls outside every visible row
  *
  * @param y Pixel Y relative to the widget window
  *
- * @return Absolute result index (not viewport-relative), or -1
+ * @return Absolute result index (not viewport-relative), or @c -1
  *
  * @note Complexity: @e O(1)
  */
@@ -441,10 +444,10 @@ static int s_search_row_at_y(int16_t y)
         return -1;
     }
 
-    /* Counted without a sign once @p y is known to sit at or below
-     * the first row: the subtraction cannot go negative from here,
-     * and a signed one would let the optimizer assume as much on its
-     * own, which is what '-Wstrict-overflow' reports on */
+    /* Counted without a sign once @p y is known to sit at or below the
+     * first row: the subtraction cannot go negative from here, and
+     * a signed one would let the optimizer assume as much on its own,
+     * which is what '-Wstrict-overflow' reports on */
     rel_row = ((unsigned int) y - (unsigned int) S_SEARCH_ROWS_TOP) /
         (unsigned int) WM_SEARCH_ROW_HEIGHT;
     if (s_search.viewport_rows < 0 ||
@@ -461,8 +464,8 @@ static int s_search_row_at_y(int16_t y)
 
 
 /**
- * @brief Confirm the currently selected result: switch to its
- *        desktop, restore it if needed, and focus and raise it
+ * @brief Confirm the currently selected result: switch to its desktop,
+ *        restore it if needed, and focus and raise it
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces, passed through to
@@ -495,20 +498,20 @@ static void s_search_confirm(xcb_connection_t *connection,
 
     if (client_is_iconified(client)) {
         /* Takes priority over the plain-hidden branch below: its own
-         * restore path (see 's_ccmd_client_restore_one', cmds/
-         * client/focus.c) already clears 'CLIENT_FLAG_HIDDEN' too
-         * along the way, in the unlikely case both ever happened to
+         * restore path (see 's_ccmd_client_restore_one', in
+         * 'cmds/client/focus.c') already clears 'CLIENT_FLAG_HIDDEN'
+         * too along the way, in the unlikely case both ever happened to
          * be set on the very same client at once. */
         enact_client_restore(client);
     } else if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
         /* Deliberately 'unhide', not 'restore': a plain hide never
          * touches 'layout.geometry.old' the way iconifying does (see
-         * 'client_geometry_save''s own call sites), so restoring
-         * from it here would apply whatever that field last held for
-         * an entirely different reason (stale, or never set at all)
-         * instead of leaving this client's own current geometry
-         * alone, the correct behavior 'ccmd_client_unhide' itself
-         * already provides. */
+         * 'client_geometry_save''s own call sites), so restoring from
+         * it here would apply whatever that field last held for an
+         * entirely different reason (stale, or never set at all)
+         * instead of leaving this client's own current geometry alone,
+         * the correct behavior 'ccmd_client_unhide' itself already
+         * provides. */
         enact_client_unhide(client);
     }
     if (client_is_shaded(client)) {
@@ -517,19 +520,19 @@ static void s_search_confirm(xcb_connection_t *connection,
     if (client_is_pinned(client)) {
         /* A pinned client is already visible on whichever desktop is
          * currently shown: pinning never actually moves a client
-         * between desktops, it stays registered under whichever one
-         * it was originally on forever; see
-         * 'ccmd_client_bring_family''s comment in
-         * 'cmds/client/transient.c' for
-         * the fuller reasoning; so there is nothing to switch to
-         * here.  Using its own recorded 'desktop' below instead
-         * (wherever it still happens to be registered) would switch
-         * away from right where the user already is, to bring up a
-         * window already sitting in front of them; 'focus_apply'
-         * itself already correctly brings any of its own un-pinned
-         * transient descendants onto this same current desktop via
-         * its own 'ccmd_client_bring_family' call, using 'surface->
-         * desktop_cur' exactly as this does. */
+         * between desktops, it stays registered under whichever one it
+         * was originally on forever; see 'ccmd_client_bring_family''s
+         * comment in 'cmds/client/transient.c' for the fuller
+         * reasoning; so there is nothing to switch to here.
+         *
+         * Using its own recorded 'desktop' below instead (wherever it
+         * still happens to be registered) would switch away from right
+         * where the user already is, to bring up a window already
+         * sitting in front of them; 'focus_apply' itself already
+         * correctly brings any of its own un-pinned transient
+         * descendants onto this same current desktop via its own
+         * 'ccmd_client_bring_family' call, using 'surface->desktop_cur'
+         * exactly as this does. */
         desktop = surface_desktop_get(surface, surface->desktop_cur);
         if (desktop == NULL) {
             return;
@@ -544,8 +547,8 @@ static void s_search_confirm(xcb_connection_t *connection,
 
 
 /**
- * @brief Paint one result row: background, optional icon, name,
- *        desktop name, and bracketed hints
+ * @brief Paint one result row: background, optional icon, name, desktop
+ *        name, and bracketed hints
  *
  * @param connection XCB connection
  * @param cfg        Active configuration
@@ -656,8 +659,8 @@ static void s_search_draw_row(xcb_connection_t *connection,
 
 
 /**
- * @brief Draw the query bar at the top of the widget, including a
- *        trailing block cursor
+ * @brief Draw the query bar at the top of the widget, including
+ *        a trailing block cursor
  *
  * @param connection XCB connection
  * @param cfg        Active configuration
@@ -681,8 +684,10 @@ static void s_search_draw_bar(xcb_connection_t *connection,
     text_renderer_set_color(cfg->theme.search.input.color.foreground,
             cfg->theme.search.input.color.background);
     menu_draw_label(connection, s_search.window,
-            (struct position_s) { WM_SEARCH_PAD_X,
-                WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT - 7 },
+            (struct position_s) {
+                WM_SEARCH_PAD_X,
+                WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT - 7
+            },
             shown);
 }
 
@@ -741,13 +746,12 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
     s_search_collect_candidates();
 
     if (s_search.candidate_count == 0) {
-        /* Nothing to search for at all: showing the widget empty,
-         * with no way to ever produce a result no matter what is
-         * typed, would only look broken rather than actually
-         * informative.  's_search.window' is still 'XCB_WINDOW_NONE'
-         * here (set right after the 'memset' above), so
-         * 'search_is_open' already correctly reports the widget as
-         * never having opened. */
+        /* Nothing to search for at all: showing the widget empty, with
+         * no way to ever produce a result no matter what is typed,
+         * would only look broken rather than actually informative.
+         * 's_search.window' is still 'XCB_WINDOW_NONE' here (set right
+         * after the 'memset' above), so 'search_is_open' already
+         * correctly reports the widget as never having opened. */
         dialog_info_show(connection, surface, cfg,
                 _(STR_SEARCH_NO_WINDOWS), MENU_MSG_LEVEL_INFO);
         return;
@@ -959,17 +963,16 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
     }
 
     /* Kept in sync with 's_search.height' here, the one place every
-     * caller that might have just changed it (a new query result
-     * count changing how many rows there are to show, via
+     * caller that might have just changed it (a new query result count
+     * changing how many rows there are to show, via
      * 's_search_compute_geometry') already converges on before ever
      * repainting, rather than needing each of them to remember their
-     * own 'xcb_configure_window' too: left undone, the physical
-     * window kept whatever taller height an earlier, larger result
-     * set had already sized it to, so a repaint after the count
-     * shrank only ever painted over its own new, shorter area,
-     * leaving the previous (now stale) rows still visible below it,
-     * looking like the new list runs into leftover entries from the
-     * old one. */
+     * own 'xcb_configure_window' too: left undone, the physical window
+     * kept whatever taller height an earlier, larger result set had
+     * already sized it to, so a repaint after the count shrank only
+     * ever painted over its own new, shorter area, leaving the previous
+     * (now stale) rows still visible below it, looking like the new
+     * list runs into leftover entries from the old one. */
     xcb_configure_window(connection, s_search.window,
             XCB_CONFIG_WINDOW_HEIGHT,
             (const uint32_t[]) { s_search.height });
@@ -986,8 +989,8 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
         s_search_draw_row(connection, cfg, i);
     }
 
-    /* Scroll-indicator arrows, same reasoning as 'cycle_draw''s own
-     * (menu/cycle/draw.c): the up arrow lives in the padding strip
+    /* Scroll-indicator arrows, same reasoning as 'cycle_draw''s
+     * ('menu/cycle/draw.c'): the up arrow lives in the padding strip
      * right below the query bar, the down arrow in the padding strip
      * right above the window's bottom edge, each only drawn when
      * entries exist beyond the visible viewport on that side */
@@ -1020,5 +1023,4 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
                     WM_SEARCH_MENU_SCROLL_DOWN_INDICATOR);
         }
     }
-
 }

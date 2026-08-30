@@ -38,7 +38,7 @@
  * @brief Shared state threaded through one file's recursive schema
  *        check
  *
- * Lets every finding for a file be grouped under that file's own name,
+ * Lets every finding for a file be grouped under that file's name,
  * printed once as a header right before the first finding rather than
  * repeated on every line, which matters once more than one file has
  * something to report.
@@ -62,16 +62,16 @@ typedef struct {
 
 /* `theme.json` schema: validated to the same full depth as every other
  *      fixed-shape file ('config.json', 'bindings.json', 'a11y.json').
- *      Unlike 'randr.json''s own "outputs" or 'rules.json''s own
+ *      Unlike 'randr.json''s "outputs" or 'rules.json''s
  *      "rules", nothing under theme.json is genuinely polymorphic (see
  *      the opaque-subtree rule in 'config/lint.h' for what that means
- *      and why it does not apply here): every field's own shape is
+ *      and why it does not apply here): every field's shape is
  *      fixed and known ahead of time, so there is no risk of a false
  *      positive on a legitimate but less common shape the way there
  *      would be for those. */
 
 
-/* memguard.json schema: a stricter subset of config.json's own,
+/* memguard.json schema: a stricter subset of config.json's,
  *      since restricted-memory mode accepts fewer fields per section
  *      than an ordinary session does (see 'config.md' §10.1) */
 
@@ -215,7 +215,7 @@ static void s_lint_object(const cJSON *obj,
 {
     const cJSON *item;
 
-    /* The cast is cJSON's own doing, not this file's: its predicates
+    /* The cast is cJSON's doing, not this file's: its predicates
      * take a non-const pointer even though they only ever read, so
      * asking one of them a question about a 'const cJSON *' cannot be
      * done without dropping the qualifier here. */
@@ -290,6 +290,8 @@ static void s_lint_object(const cJSON *obj,
  *                      bare name alone
  * @param unknown_count Running count of unknown keys found; advanced
  *                      by this call
+ * @param duplicate_count Running count of duplicated keys found;
+ *                      advanced by this call
  *
  * @note Complexity: @e O(n), where @e n is the number of keys in the
  *       file
@@ -339,10 +341,12 @@ static void s_lint_file(const char *restrict config_dir,
  *                    subdirectory lives under
  * @param unknown_count Running count of unknown keys found; advanced
  *                      by this call
+ * @param duplicate_count Running count of duplicated keys found;
+ *                      advanced by this call
  *
  * @note A missing @c themes subdirectory is not reported: unlike
- *       @c config.json, having no themes of one's own (using only
- *       whichever theme name @c config.json's own @c theme field
+ *       @c config.json, having no themes of one's (using only
+ *       whichever theme name @c config.json's @c theme field
  *       names, which may resolve to a built-in default elsewhere) is
  *       an entirely ordinary setup, not an oversight
  * @note Complexity: @e O(n), where @e n is the total number of keys

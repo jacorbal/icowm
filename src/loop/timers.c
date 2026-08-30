@@ -61,7 +61,7 @@
  *
  * @param poll_timeout_ms Current timeout, in milliseconds; lowered in
  *                        place when @p candidate_ms is sooner
- * @param candidate_ms    A countdown's own remaining time, or a
+ * @param candidate_ms    A countdown's remaining time, or a
  *                        negative value when that countdown is not
  *                        currently active at all
  *
@@ -128,7 +128,7 @@ int loop_timers_timeout(const loop_ctx_td *ctx)
 
     /* Shorter still while a window drag is holding the pointer
      * against a warp-eligible screen edge (see 'drag_warp_tick' in
-     * input/mouse/drag.h), so it still switches desktops once its own
+     * input/mouse/drag.h), so it still switches desktops once its
      * countdown elapses even with no further 'MotionNotify' arriving
      * to drive it. */
     s_loop_timers_tighten(&poll_timeout_ms, drag_warp_ms_remaining());

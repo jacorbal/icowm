@@ -3,8 +3,8 @@
  *
  * @brief Icon placement policy declarations
  *
- * Computes an iconified client's own icon-window position, and pushes
- * an already-proposed icon position away from the systray's own
+ * Computes an iconified client's icon-window position, and pushes
+ * an already-proposed icon position away from the systray's
  * current rectangle, if the two would overlap there.
  *
  * @ingroup policy
@@ -38,7 +38,9 @@
  *
  * Chooses an X/Y coordinate for @p client's icon window according to
  * @p policy, the current screen dimensions, and the positions of
- * already-placed icon windows on @p desktop.
+ * already-placed icon windows on @p desktop.  Five of the six policies
+ * count slots from a screen edge; the sixth counts outward from
+ * @p anchor, the corner the window itself occupied.
  *
  * Every coordinate here, in and out, is relative to (0, 0) and bounded
  * by @p screen_dim.  It is the caller that knows which monitor within
@@ -52,20 +54,21 @@
  * @param desktop    Desktop to inspect for existing icon positions;
  *                   may be null (treated as empty desktop)
  * @param policy     Icon placement policy from configuration
- * @param icon_dim   Icon window's own width/height, in pixels
+ * @param icon_dim   Icon window's width/height, in pixels
  * @param screen_dim Screen dimensions, in pixels
- * @param anchor     Point a policy that places relative to the window
- *                   itself starts from, in the same space as
- *                   @p out_pos; null when the caller has none to
- *                   offer, which leaves such a policy to fall back on
- *                   whatever it would do without one
+ * @param anchor     Corner the window itself occupied, which
+ *                   @c CONFIG_ICON_PLACEMENT_IN_PLACE places over, in
+ *                   the same space as @p out_pos; null when the caller
+ *                   has none to offer, which sends that policy to the
+ *                   smart search instead
  * @param out_pos    Output X/Y coordinate
  *
- * @note No policy reads @p anchor yet; the parameter is here so the
- *       coordinate conversion it needs lives with the caller that can
- *       do it, rather than being guessed at later
+ * @note Read by @c CONFIG_ICON_PLACEMENT_IN_PLACE alone; the five
+ *       edge-anchored policies have no use for where the window was
  * @note Complexity: @e O(n), where @e n is the number of iconified
- *       clients already placed on @p desktop
+ *       clients already placed on @p desktop, and @e O(r * n) under
+ *       @c CONFIG_ICON_PLACEMENT_IN_PLACE, where @e r is the number
+ *       of spots tried outward from @p anchor
  */
 void place_icon_apply(const client_td *client, desktop_td *desktop,
         enum config_icon_placement_e policy,
@@ -76,45 +79,45 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
 
 
 /**
- * @brief Push an icon's own proposed position away from the systray's
+ * @brief Push an icon's proposed position away from the systray's
  *        current rectangle, if the two would overlap there
  *
  * Direction-aware, unlike always pushing toward one fixed edge: pushes
- * below the tray's own bottom edge when the tray sits in the upper half
- * of @p workarea, or above its own top edge when the tray sits in the
+ * below the tray's bottom edge when the tray sits in the upper half
+ * of @p workarea, or above its top edge when the tray sits in the
  * lower half, so the icon is never pushed toward whichever edge the
  * tray already occupies (which, near a screen edge, could otherwise
  * push the icon straight off the visible workarea entirely, pushing
- * "further down" would leave the icon below the workarea's own bottom
+ * "further down" would leave the icon below the workarea's bottom
  * edge, off-screen or inside a reserved margin, rather than clear of
  * the tray at all).
  *
  * A small fixed gap (@c WM_ICON_SYSTRAY_GAP, @c defs/icon.h) is left
  * between the two either way, so the icon does not end up sitting flush
- * against the tray's own edge.  The result is then clamped to stay
- * fully within @p workarea's own vertical bounds regardless, in case
- * the tray's own height leaves less room than the icon and its gap
+ * against the tray's edge.  The result is then clamped to stay
+ * fully within @p workarea's vertical bounds regardless, in case
+ * the tray's height leaves less room than the icon and its gap
  * together need.
  *
  * @param io_x     Icon's proposed X position; read but never adjusted
- *                 by this function (the tray's own width is not
+ *                 by this function (the tray's width is not
  *                 currently used to also push horizontally).  Kept as
- *                 its own separate, @c const-qualified parameter
+ *                 its separate, @c const-qualified parameter
  *                 rather than folded into a @c struct position_s
  *                 alongside @p io_y, so this read-only guarantee stays
  *                 compiler-enforced rather than merely documented
  * @param io_y     Icon's proposed Y position; read, and overwritten
  *                 with the adjusted position if pushed
- * @param icon_dim Icon's own width/height, in pixels
- * @param tray     Tray's own current rectangle
- * @param workarea Desktop's own current work area; a @c NULL skips the
+ * @param icon_dim Icon's width/height, in pixels
+ * @param tray     Tray's current rectangle
+ * @param workarea Desktop's current work area; a @c NULL skips the
  *                 final clamp and assumes the tray sits in the upper
  *                 half, same as an unknown workarea would in practice
  *                 always place it
  *
  * @return Status of the operation
  * @retval  true if @p io_y was adjusted (the icon did overlap the
- *               tray's own rectangle at its proposed position)
+ *               tray's rectangle at its proposed position)
  * @retval false if left untouched
  *
  * @note Complexity: @e O(1)

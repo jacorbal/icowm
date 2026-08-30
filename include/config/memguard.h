@@ -1,7 +1,7 @@
 /**
  * @file config/memguard.h
  *
- * @brief Public API for restricted-memory mode's own configuration
+ * @brief Public API for restricted-memory mode's configuration
  *        profile (@c memguard.json)
  */
 /*
@@ -24,9 +24,9 @@
  * @brief Allocate a new configuration structure, without populating it
  *
  * A thin counterpart to @c config_init in config.h, for restricted-
- * memory mode's own separate path: allocation only, deliberately not
+ * memory mode's separate path: allocation only, deliberately not
  * followed by @a config_set_default_values_memguard here, since
- * @a config_load_memguard already calls that itself as its own first
+ * @a config_load_memguard already calls that itself as its first
  * step.  Calling it here too would just mean setting every field twice
  * for no reason.
  *
@@ -41,11 +41,11 @@
 config_td *config_memguard_init(void);
 
 /**
- * @brief Populate @p config with restricted-memory mode's own fixed
+ * @brief Populate @p config with restricted-memory mode's fixed
  *        profile, the starting point @a config_load_memguard applies
  *        @c memguard.json on top of
  *
- * A completely separate profile from @a config_set_default_values's own
+ * A completely separate profile from @a config_set_default_values's
  * ordinary defaults, not a variant of it: restricted-memory mode is
  * meant to restrict a fixed, deliberately chosen set of behavior (no
  * aesthetic extras, one screen, one desktop, and so on) regardless of
@@ -57,8 +57,8 @@ config_td *config_memguard_init(void);
  * itself) is set here unconditionally; every field @c memguard.json is
  * still allowed to configure (the active theme's name, launched
  * programs, desktop margins, the systray block, and the emergency
- * shortcut) is set here too, as that field's own fallback, and
- * @a config_load_memguard's own @c memguard.json parsing pass may still
+ * shortcut) is set here too, as that field's fallback, and
+ * @a config_load_memguard's @c memguard.json parsing pass may still
  * overwrite it afterward.
  *
  * @param config Configuration structure to populate; a null @p config
@@ -69,10 +69,10 @@ config_td *config_memguard_init(void);
 void config_set_default_values_memguard(config_td *config);
 
 /**
- * @brief Load restricted-memory mode's own configuration, entirely
- *        independent of @a config_load's own @c config.json path
+ * @brief Load restricted-memory mode's configuration, entirely
+ *        independent of @a config_load's @c config.json path
  *
- * Populates @p config with @a config_set_default_values_memguard's own
+ * Populates @p config with @a config_set_default_values_memguard's
  * fixed profile first, then layers exactly four things on top of it, in
  * order: @c memguard.json (the only file restricted-memory mode lets
  * a person configure at all, covering the active theme's name, launched
@@ -80,14 +80,14 @@ void config_set_default_values_memguard(config_td *config);
  * shortcut), @c bindings.json (key and mouse bindings, loaded the same
  * way an ordinary session loads them), the theme file @c memguard.json
  * named (colors and decoration load normally, but see below), and
- * finally this mode's own restrictions on top of whatever that theme
+ * finally this mode's restrictions on top of whatever that theme
  * specified.
  *
  * @c config.json and @c randr.json are never read at all in this mode,
  * not even as a fallback.  RandR output-profile management stays
  * disabled outright, and every setting @c config.json would otherwise
- * carry either has no counterpart in @c memguard.json's own smaller
- * schema or is one of @a config_set_default_values_memguard's own fixed
+ * carry either has no counterpart in @c memguard.json's smaller
+ * schema or is one of @a config_set_default_values_memguard's fixed
  * values instead.
  *
  * The theme restrictions applied after loading: any font not already

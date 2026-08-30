@@ -21,7 +21,7 @@
  *  terminator */
 #define WM_RUN_COMMAND_MAX_LENGTH (256)
 
-/** Height of the run-box's own single text-entry bar, in pixels */
+/** Height of the run-box's single text-entry bar, in pixels */
 #define WM_RUN_BAR_HEIGHT (26)
 
 /** Horizontal padding inside the run-box window */

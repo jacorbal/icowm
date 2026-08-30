@@ -84,7 +84,7 @@ void xcb_window_place(xcb_window_t window, int32_t x, int32_t y,
 }
 
 
-/* Set the width of a window's own border */
+/* Set the width of a window's border */
 void xcb_window_set_border(xcb_window_t window, uint32_t width)
 {
     if (!s_window_is_addressable(window)) {

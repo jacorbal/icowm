@@ -50,7 +50,7 @@
 #include <input/mouse/internal.h>
 
 /**
- * @brief Scroll north on a client's own titlebar: maximize it,
+ * @brief Scroll north on a client's titlebar: maximize it,
  *        only when not already fully maximized
  *
  * Never moves focus: the client stays exactly as interactable, and
@@ -79,7 +79,7 @@ static void s_scroll_titlebar_maximize(client_td *client,
 
 
 /**
- * @brief Scroll south on a client's own titlebar: restore it from
+ * @brief Scroll south on a client's titlebar: restore it from
  *        fully maximized, only when it currently is
  *
  * Calls the exact same toggle @a s_scroll_titlebar_maximize does,
@@ -110,7 +110,7 @@ static void s_scroll_titlebar_restore(client_td *client,
 
 
 /**
- * @brief Scroll west on a client's own titlebar (the exact same
+ * @brief Scroll west on a client's titlebar (the exact same
  *        gesture @c DESKTOP_PREV always was): shade it
  *
  * Sends the client to the end of both orders the desktop keeps, the
@@ -175,7 +175,7 @@ static void s_scroll_titlebar_shade(client_td *client,
 
 
 /**
- * @brief Scroll east on a client's own titlebar (the exact same
+ * @brief Scroll east on a client's titlebar (the exact same
  *        gesture @c DESKTOP_NEXT always was): unshade it
  *
  * Regains focus only when @p client was the one actually holding it
@@ -221,17 +221,17 @@ static void s_scroll_titlebar_unshade(client_td *client,
 
 
 /**
- * @brief Whether a scroll event's own root coordinates land on
- *        @p client's own titlebar
+ * @brief Whether a scroll event's root coordinates land on
+ *        @p client's titlebar
  *
  * Checks both the child-window identity and a Y-range, to handle
- * frame sync-grab events where @p event's own child may be the
+ * frame sync-grab events where @p event's child may be the
  * content window rather than the titlebar itself.
  *
  * @param client Client to check against
  * @param event  Incoming button-press event
  *
- * @return @c true if the scroll landed on @p client's own titlebar
+ * @return @c true if the scroll landed on @p client's titlebar
  *
  * @note Complexity: @e O(1)
  */
@@ -353,7 +353,7 @@ void im_press_scroll_binding(xcb_connection_t *connection,
         case MOUSEBIND_LOWER:
             /* Never actually reached: this whole function is only
              * ever called for one of the four desktop-scroll types
-             * above, gated by its own caller (see 'type ==
+             * above, gated by its caller (see 'type ==
              * MOUSEBIND_DESKTOP_NORTH || ...' just before the call
              * to 'im_press_scroll_binding').  Listed here
              * anyway, one per value rather than a catch-all

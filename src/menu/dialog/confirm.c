@@ -231,7 +231,7 @@ static void s_confirm_compute_layout(xcb_connection_t *connection,
     layout->timeout_y = (int16_t) (DIALOG_PROMPT_BASELINE_Y +
             DIALOG_CONFIRM_TIMEOUT_LINE_GAP + (uint16_t) timeout_ascent);
 
-    /* Each button label's own X/Y depends on which font actually ends
+    /* Each button label's X/Y depends on which font actually ends
      * up drawing it (unselected or selected), which can change every
      * repaint as the user tabs between buttons; see 's_confirm_draw',
      * which computes both freshly right before drawing instead of
@@ -284,9 +284,9 @@ static void s_confirm_draw(xcb_connection_t *connection,
      * 'cancel_label' (itself up to that size) is only one part of what
      * this formats (see 'STR_DIALOG_CONFIRM_TIMEOUT_FMT'), plus the
      * fixed wording around it and the seconds count, so matching that
-     * size exactly leaves GCC's own static bound analysis unable to
+     * size exactly leaves GCC's static bound analysis unable to
      * rule out '-Wformat-truncation', as this headroom, together with
-     * that format string's own explicit '%.255s' precision (capping the
+     * that format string's explicit '%.255s' precision (capping the
      * part GCC cannot otherwise prove is bounded to the cancel label's
      * own declared array size, rather than the rest of the struct after
      * it), is what lets it actually prove 'snprintf' below can never
@@ -341,7 +341,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
     xcb_poly_fill_rectangle(connection, s_confirm_window, gc, 1, &rect);
     xcb_free_gc(connection, gc);
 
-    /* Border around each button, from its own theme style */
+    /* Border around each button, from its theme style */
     dlgutil_button_border_draw(connection, s_confirm_window,
             (s_confirm_selected == 0)
                 ? config->theme.dialog.button.selected.border.color
@@ -370,7 +370,7 @@ static void s_confirm_draw(xcb_connection_t *connection,
             lo->prompt);
 
     /* Countdown line, only while a timeout is actually running; same
-     * font as the prompt, sharing its own horizontal centering
+     * font as the prompt, sharing its horizontal centering
      * (recomputed here since the text itself changes every second,
      * unlike the prompt's fixed 'prompt_x'). */
     if (s_confirm_timeout_active) {
@@ -466,7 +466,7 @@ static void s_menu_confirm_dialog_close(xcb_connection_t *connection)
      * opened; without this, focus reverts to 'PointerRoot' instead
      * (per the revert_to mode 'menu_confirm_dialog_show' set it up
      * with), which may land on a different client than the one the
-     * window manager's own bookkeeping still shows as active, or on
+     * window manager's bookkeeping still shows as active, or on
      * nothing at all. */
     if (s_confirm_prev_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
@@ -662,7 +662,7 @@ int menu_confirm_dialog_ms_remaining(void)
     int timeout_ms = s_confirm_timeout_ms_remaining();
 
     if (timeout_ms >= 0) {
-        /* Wake at the countdown's own final expiry, or sooner still
+        /* Wake at the countdown's final expiry, or sooner still
          * at whenever the whole seconds shown next decreases by one
          * (so the visible number counts down instead of only
          * changing once, from its starting value straight to

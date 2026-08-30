@@ -35,10 +35,10 @@
 
 
 /**
- * @brief Find whether @p window is one of a client's own tracked
+ * @brief Find whether @p window is one of a client's tracked
  *        @c WM_COLORMAP_WINDOWS entries
  *
- * @param client Client whose own @c colormap_windows list is searched
+ * @param client Client whose @c colormap_windows list is searched
  * @param window Window ID to search for
  *
  * @return Index into @p client->colormap_windows.windows on a match,
@@ -110,7 +110,7 @@ static void s_colormap_update_visit(desktop_td *desktop, void *data)
             ? ctx->event->colormap : (xcb_colormap_t) XCB_NONE;
         client->colormap_windows.colormap_ids[idx] = new_id;
 
-        /* Only the currently focused client's own colormaps are
+        /* Only the currently focused client's colormaps are
          * actually installed anywhere ('ccmd_client_focus',
          * cmds/client/focus.c); for any other client this cached
          * update is all there is to do until it is focused again.
@@ -147,7 +147,7 @@ void handler_colormap_notify(xcb_connection_t *connection,
             (unsigned int) event->colormap, (unsigned int) event->_new,
             (unsigned int) event->state);
 
-    /* Not this project's own root/support windows, and rare enough
+    /* Not this project's root/support windows, and rare enough
      * (see 'client_props_refresh_colormap_windows', client/props.c,
      * for why) that a plain walk over every managed client, rather
      * than a dedicated lookup table keyed on colormap-list windows

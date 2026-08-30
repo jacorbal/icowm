@@ -35,12 +35,12 @@
 
 
 /**
- * @brief One client action's own function pointer shape
+ * @brief One client action's function pointer shape
  *
  * @param wm      Window manager instance
  * @param client  The resolved client to act on
- * @param surface The client's own surface
- * @param desktop The client's own desktop
+ * @param surface The client's surface
+ * @param desktop The client's desktop
  *
  * @note Only a handful of actions, e.g., @c focus, actually need more
  *       than @p client itself; every other one ignores the rest of
@@ -51,7 +51,7 @@ typedef void (*ipc_client_action_fn)(const wm_td *wm, client_td *client,
 
 
 /**
- * @brief Resolve a request's own @c client_id, run one action on it,
+ * @brief Resolve a request's @c client_id, run one action on it,
  *        and report the outcome
  *
  * @param wm     Window manager instance

@@ -9,16 +9,16 @@
  * release/enter dispatch, itself further split into
  * @c input/mouse/event/press.c, @c event/release.c, and
  * @c event/enter.c) still leaves the two functions declared below,
- * each one topic's own file exposes for the other (and for
+ * each one topic's file exposes for the other (and for
  * @c event/enter.c) to call directly, since the underlying resize-
  * cursor and hover state is genuinely shared, not duplicated per file
  * the way, say, @c menu/dialog/confirm.c and @c menu/dialog/
- * fortune.c each own their own separate state.
+ * fortune.c each own their separate state.
  *
  * The drag subsystem used to share this same header, before it grew
- * its own dedicated one per drag/ file (@c drag/overlay.h,
+ * its dedicated one per drag/ file (@c drag/overlay.h,
  * @c drag/snap.h, @c drag/outline.h, @c drag/warp.h) plus
- * @c drag/internal.h for its own singleton state alone: nothing under
+ * @c drag/internal.h for its singleton state alone: nothing under
  * @c input/mouse/event/, @c cursor.c, or @c hover.c ever actually
  * called into any of it, so keeping it here served no purpose beyond
  * a second, silently drifting copy of declarations @c drag/
@@ -75,7 +75,7 @@ void im_allow_and_flush(xcb_connection_t *connection, uint8_t mode,
         xcb_timestamp_t time);
 
 /**
- * @brief Keep a sticky client's own active state in step across
+ * @brief Keep a sticky client's active state in step across
  *        desktops
  *
  * @param surface Surface the client belongs to
@@ -133,7 +133,7 @@ void im_press_scroll_binding(xcb_connection_t *connection,
         enum wm_mousebind_type_e type, const config_td *config);
 
 /**
- * @brief Handle a press that landed on a client's own titlebar
+ * @brief Handle a press that landed on a client's titlebar
  *
  * Decides between a titlebar button, a double click, and the start of
  * a move drag.

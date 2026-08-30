@@ -72,23 +72,23 @@
 
 
 /**
- * @brief Load (or reload) @c menu.json's own entries
+ * @brief Load (or reload) @c menu.json's entries
  *
  * Parses @c menu.json (located in the active configuration directory)
  * once into a persistent buffer that every subsequent @c rootmenu_show
  * reuses as-is, rather than re-parsing the file from disk on every
- * single menu open the way every other one of this window manager's own
+ * single menu open the way every other one of this window manager's
  * JSON configuration files is not.
  *
  * @param config_dir Path to the configuration directory (used to locate
  *                   @c menu.json)
  *
  * @note A no-op, not a failure, if @c menu.json does not exist or fails
- *       to parse; the root menu simply shows its own fixed footer with
+ *       to parse; the root menu simply shows its fixed footer with
  *       no JSON entries above it
  * @note Call once at startup and again on every configuration reload,
  *       never from @a rootmenu_show itself
- * @note Safe to call again later; a previous call's own entries, if
+ * @note Safe to call again later; a previous call's entries, if
  *       any, are freed first
  * @note Complexity: @e O(n), where @e n is the total number of menu
  *       entries in @c menu.json
@@ -112,8 +112,8 @@ void rootmenu_menu_json_free(void);
  * previously open root menu is closed first.
  *
  * @param wm         Window manager instance, cached for the
- *                    "Rearrange" and "Reload configuration" entries'
- *                    own callbacks
+ *                    callbacks of the "Rearrange" and "Reload
+ *                    configuration" entries
  * @param connection XCB connection
  * @param surface    Surface on which to display the menu
  * @param pos        Requested origin (root coordinates)

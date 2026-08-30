@@ -103,7 +103,7 @@ static bool s_surface_output_is_used(const config_td *config,
 }
 
 
-/* Refresh the surface's own list of physical monitors */
+/* Refresh the surface's list of physical monitors */
 void surface_refresh_monitors(surface_td *surface)
 {
     xcb_randr_get_monitors_cookie_t cookie;
@@ -236,7 +236,7 @@ monitor_td surface_primary_monitor(const surface_td *surface)
 }
 
 
-/* Find the surface's own monitor in a given compass direction from
+/* Find the surface's monitor in a given compass direction from
  * another one */
 monitor_td surface_monitor_direction(const surface_td *surface,
         monitor_td current, enum compass_direction_e direction)
@@ -266,7 +266,7 @@ monitor_td surface_monitor_direction(const surface_td *surface,
              * (see 'ccmd_client_move_to_monitor_north', cmds/client/
              * geom.c, for the same identify-by-coordinate approach,
              * since a 'monitor_td' carries no ID or index of its own
-             * to compare against instead); never its own candidate
+             * to compare against instead); never its candidate
              * neighbor. */
             continue;
         }
@@ -293,7 +293,7 @@ monitor_td surface_monitor_direction(const surface_td *surface,
 
         /* Center-to-center squared distance, the same "closest wins"
          * principle 'surface_monitor_for_point' above already uses
-         * for its own off-monitor fallback: among every monitor that
+         * for its off-monitor fallback: among every monitor that
          * genuinely lies in the requested direction at all (the
          * switch above), whichever one is nearest by that measure is
          * the one a person would call "the monitor to the north"

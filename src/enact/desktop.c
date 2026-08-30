@@ -103,10 +103,10 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
  * @a enact_desktop_client_send so that function can redirect to, and
  * cascade across, a transient family (see its comment) while
  * still sharing this single client's worth of desktop-move plumbing
- * with the top-level, family-unaware call it makes on the family's own
+ * with the top-level, family-unaware call it makes on the family's
  * top parent and on every other member in turn.
  *
- * @param desktop Client's own current desktop; must be non-null
+ * @param desktop Client's current desktop; must be non-null
  * @param client  Client to move; must be non-null
  * @param target  Desktop to move it to; must be non-null
  *
@@ -185,7 +185,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
     }
     client->desktop_id = target->id;
 
-    /* Remembered here as 'target''s own active client, the same
+    /* Remembered here as 'target''s active client, the same
      * memory 'surface_clients_show' (surface/actions/clients.c)
      * reads back whenever this desktop next becomes visible, so a
      * client just sent here is what greets a person arriving later,
@@ -194,7 +194,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * for.  Left unset for a genuinely unfocusable client (the same
      * gate 'surface_clients_show' itself re-checks on the read side
      * regardless, gracefully falling through to
-     * 'client_focus_fallback''s own guess if this one somehow no
+     * 'client_focus_fallback''s guess if this one somehow no
      * longer qualifies
      * by the time it is actually read), so it never becomes the
      * remembered target only to be silently skipped over later.
@@ -203,7 +203,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * client someone just deliberately placed here is a reasonable
      * thing to consider more relevant on arrival than whatever was
      * last active before it showed up, matching how a freshly opened
-     * window already becomes a desktop's own new active client. */
+     * window already becomes a desktop's new active client. */
     if (client_is_focusable(client)) {
         target->client_active_id = client->id;
         target->is_focus_dirty = true;
@@ -211,7 +211,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
 
     /* Published here, once, for every caller of this whole desktop-
      * move mechanism alike (the "Send to desktop" menu, the move-to-
-     * desktop keybind, and any rule with its own 'apply.desktop'),
+     * desktop keybind, and any rule with its 'apply.desktop'),
      * rather than each duplicating this same publish on its own:
      * an EWMH-aware external tool (a taskbar or pager) watching
      * '_NET_WM_DESKTOP' needs to learn about the reassignment
@@ -220,7 +220,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * instead of any one real index, unaffected by which desktop it
      * is actually registered under (see 'ccmd_client_bring_family's
      * comment, cmds/client/transient.c, for the fuller
-     * reasoning on why a pinned client's own registration and its
+     * reasoning on why a pinned client's registration and its
      * own published desktop can differ like this). */
     if (xcb_ewmh_connection_get() != NULL) {
         uint32_t did = (client->properties.flags & CLIENT_FLAG_PIN)
@@ -231,14 +231,14 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
                 XCB_ATOM_CARDINAL, 32, 1, &did);
     }
 
-    /* If 'client' was the source desktop's own active client, hand
+    /* If 'client' was the source desktop's active client, hand
      * focus there off to whatever else on that desktop qualifies,
      * the same way closing, hiding, or iconifying the active client
      * already does everywhere else in this project (see
      * 's_client_focus_fallback''s comment); without this,
      * the source desktop's 'client_active_id' was left pointing at a
-     * client no longer even in its own list, and because the client
-     * is unmapped above when it was visible, the X server's own real
+     * client no longer even in its list, and because the client
+     * is unmapped above when it was visible, the X server's real
      * keyboard focus was left on a now-unmapped window instead of
      * transferring to another visible one, rather than silently
      * doing nothing as an already-inactive client being sent away
@@ -255,7 +255,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
  * @brief What @a s_desktop_rearrange_visit carries across the desktop
  */
 struct s_rearrange_ctx_s {
-    /** Window manager, needed to find a transient's own parent */
+    /** Window manager, needed to find a transient's parent */
     const wm_td *wm;
     surface_td *surface;    /**< Surface being rearranged */
     bool is_single_spot;    /**< Whether the policy has one spot only */
@@ -268,7 +268,7 @@ struct s_rearrange_ctx_s {
  *
  * Every client goes through the same general-purpose placement engine
  * a newly mapped window does, not a rearrange-only routine, so a
- * transient dialog among them is re-centered over its own parent per
+ * transient dialog among them is re-centered over its parent per
  * ICCCM §4.1.2.6 rather than moved by the configured policy.  That
  * parent can live on another surface, which is why this needs the
  * whole @c wm_td rather than a desktop.
@@ -279,7 +279,7 @@ struct s_rearrange_ctx_s {
  * @note The "centered" and "under-mouse" policies resolve to a single
  *       spot, so only the first client uses the configured policy and
  *       the rest cascade; otherwise they would all land on each other
- * @note Complexity: @e O(n), the placement engine's own cost
+ * @note Complexity: @e O(n), the placement engine's cost
  */
 static void s_desktop_rearrange_visit(client_td *client, void *data)
 {
@@ -322,7 +322,7 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
     desktop->is_outdated = true;
     /* Marking only 'desktop->is_outdated' is not enough on its own:
      * 'loop_refresh' only calls 'surface_render_all_desktops' at all
-     * when this desktop's own surface is itself outdated (see
+     * when this desktop's surface is itself outdated (see
      * 'enact_desktop_show', right below, for the same pattern).
      * Without this, the new color never actually repaints until
      * something else marks the surface outdated for an unrelated
@@ -333,7 +333,7 @@ void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
 }
 
 
-/* Toggle whether the desktop's own surface shows the desktop */
+/* Toggle whether the desktop's surface shows the desktop */
 void enact_desktop_show(desktop_td *desktop, bool show)
 {
     surface_td *surface;
@@ -357,7 +357,7 @@ void enact_desktop_show(desktop_td *desktop, bool show)
  * @brief Send the client to another desktop, taking its whole
  *        transient family with it
  *
- * The desktop-move counterpart to @a ccmd_client_iconify's own
+ * The desktop-move counterpart to @a ccmd_client_iconify's
  * transient-family cascade (see its comment, cmds/client/
  * visibility.c, for the full reasoning): redirects to the family's
  * top-most ancestor first, moving it exactly as this function always
@@ -365,16 +365,16 @@ void enact_desktop_show(desktop_td *desktop, bool show)
  * "save changes?" prompt (or any other transient dialog) never ends
  * up left behind on the old desktop, stranded apart from the parent
  * window it belongs to and cannot meaningfully be used without.  A
- * client with no transient relatives at all is unaffected: its own
+ * client with no transient relatives at all is unaffected: its
  * top parent is itself, and no sibling scan finds anything else to
  * move alongside it.
  *
- * @param desktop Client's own current desktop
+ * @param desktop Client's current desktop
  * @param client  Window to move
  * @param target  Desktop to move it to
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's own desktop
+ *       the top parent's desktop
  */
 void enact_desktop_client_send(const desktop_td *desktop,
         client_td *client, desktop_td *target)

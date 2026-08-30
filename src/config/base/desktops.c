@@ -9,7 +9,7 @@
  * the flat or nested on-disk shape) and @c desktops (desktop-navigation
  * and reserved-space behavior) from parsed @c config.json.
  * @c ci_config_load_screens and @c ci_config_load_desktop_behavior are
- * the only two entry points @c config/base/load.c's own
+ * the only two entry points @c config/base/load.c's
  * @c config_load_base calls from here; everything else stays static to
  * this file.
  */
@@ -69,11 +69,11 @@ static void s_config_load_desktop_entry(cJSON *desktop_json,
     /* Reset to the sentinel before every attempt, not just the very
      * first one: a reload whose 'config.json' no longer names a
      * 'background-color' for this desktop must fall back to the
-     * theme's own 'desktop.color.background' (see 'desktop_init',
-     * desktop.c, and its own reload-time counterpart in wm/actions.c)
+     * theme's 'desktop.color.background' (see 'desktop_init',
+     * desktop.c, and its reload-time counterpart in wm/actions.c)
      * the same way a desktop that never had one does, rather than
      * keeping whatever color an earlier load happened to leave here.
-     * 'json_load_color' below already logs its own DEBUG line when
+     * 'json_load_color' below already logs its DEBUG line when
      * the field is absent, so nothing further is logged here for
      * that, entirely ordinary, case. */
     settings_out->background.color = WM_DESKTOP_BG_COLOR_UNSET;
@@ -116,7 +116,7 @@ static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
 
 
 /**
- * @brief Fall back one screen's own @p desktop_layout to a single
+ * @brief Fall back one screen's @p desktop_layout to a single
  *        row, one column per desktop
  *
  * The exact same reading order the flat desktop list itself already
@@ -144,7 +144,7 @@ static void s_config_desktop_layout_fallback(
 
 
 /**
- * @brief Load and validate one screen's own @p layout object within the
+ * @brief Load and validate one screen's @p layout object within the
  *        per-screen (nested) @c topology.screens.desktops shape
  *
  * Falls back to a single row, one column per desktop whenever @c layout
@@ -153,7 +153,7 @@ static void s_config_desktop_layout_fallback(
  * either is ever used as a divisor or in an addition below, so
  * neither computing the other, nor the final @c rows x @c columns
  * check, can ever overflow), or @c rows x @c columns ultimately falls
- * short of this screen's own, already-finalized @p desktop_count.
+ * short of this screen's, already-finalized @p desktop_count.
  *
  * @c orientation defaults to @c horizontal and @c corner to @c top-left
  * whenever @c layout is present but either key is itself missing, the
@@ -263,7 +263,7 @@ static void s_config_load_desktop_layout(cJSON *desktop_item,
  *
  * The flat, single-screen shape has plain desktop entries
  * (name/background color and the like).  The per-screen shape instead
- * has each entry carrying its own @p settings / @p count / @p inaugural
+ * has each entry carrying its @p settings / @p count / @p inaugural
  * fields describing a whole screen.
  *
  * @param desktops_array The @c topology.screens.desktops array itself
@@ -326,11 +326,11 @@ static void s_config_load_screens_flat(cJSON *desktops_array,
 
 
 /**
- * @brief Load one screen's own entry within the per-screen (nested)
+ * @brief Load one screen's entry within the per-screen (nested)
  *        @c topology.screens.desktops shape
  *
  * Reads that one screen's @c count / @c inaugural, clamping the
- * inaugural desktop back to 0 if it names one past the screen's own
+ * inaugural desktop back to 0 if it names one past the screen's
  * desktop count, then loads every desktop named in its @c settings
  * array.
  *
@@ -342,7 +342,7 @@ static void s_config_load_screens_flat(cJSON *desktops_array,
  *                     only
  *
  * @note Complexity: @e O(d), where @e d is the number of entries in
- *       this screen's own 'settings' array
+ *       this screen's 'settings' array
  */
 static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
         uint32_t screen_idx, struct config_base_s *config_base,
@@ -359,9 +359,9 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
 
     /* 'config_base->screens[screen_idx].desktops' (config.h) is a
      * fixed-size 'CONFIG_MAX_DESKTOPS' array; unlike the flat shape
-     * (@a s_config_load_screens_flat, whose own 'desktop_count'
-     * parameter already arrives pre-clamped from its own caller),
-     * this one reads "count" fresh from this one screen's own JSON
+     * (@a s_config_load_screens_flat, whose 'desktop_count'
+     * parameter already arrives pre-clamped from its caller),
+     * this one reads "count" fresh from this one screen's JSON
      * entry, with nothing else clamping it before every later
      * consumer (starting with 'surface_init' at startup, wm.c) takes
      * it as a trusted upper bound for iterating or indexing that same
@@ -377,9 +377,9 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
             (uint32_t) CONFIG_MAX_DESKTOPS;
     }
 
-    /* This screen's own 'desktop_count' is fully finalized as of
+    /* This screen's 'desktop_count' is fully finalized as of
      * right here, the exact precondition
-     * 's_config_load_desktop_layout' itself depends on for its own
+     * 's_config_load_desktop_layout' itself depends on for its
      * 'rows * columns'
      * validation just below. */
     s_config_load_desktop_layout(desktop_item, screen_idx, config_base,
@@ -421,7 +421,7 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
  * @brief Load the per-screen (nested) @c topology.screens.desktops
  *        shape
  *
- * Every array entry describes one whole screen
+ * Every array entry describes one whole screen.
  *
  * @param desktops_array The @c topology.screens.desktops array itself
  * @param desktop_count  Number of entries in @p desktops_array,
@@ -482,7 +482,7 @@ void ci_config_load_screens(cJSON *json,
             "topology.screens.count", filename);
 
     /* 'desktops' sits directly under 'topology.screens'; no intervening
-     * 'settings' object (unlike each individual screen entry's own
+     * 'settings' object (unlike each individual screen entry's
      * per-desktop 'settings[]' array below, which is a different,
      * unrelated thing this schema keeps as it already was) */
     desktops_array = cJSON_GetObjectItem(screen_settings, "desktops");

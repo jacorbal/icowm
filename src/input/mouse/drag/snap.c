@@ -107,7 +107,7 @@ static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
  * be worked out one window at a time and thrown away.
  */
 struct s_drag_snap_ctx_s {
-    int32_t left;           /**< Dragged window's own left edge */
+    int32_t left;           /**< Dragged window's left edge */
     int32_t top;            /**< Its top edge */
     int32_t right;          /**< Its right edge */
     int32_t bottom;         /**< Its bottom edge */
@@ -178,7 +178,7 @@ static void s_drag_snap_move_visit(client_td *client, void *data)
  *
  * The same walk as @a s_drag_snap_move_visit, except that a resize
  * moves only the edge being dragged: which one that is decides whether
- * a candidate's own edges are compared against this window's near side
+ * a candidate's edges are compared against this window's near side
  * or its far one.
  *
  * @param client Client reached by the walk

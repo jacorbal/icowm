@@ -18,7 +18,7 @@
 
 
 /**
- * @brief File name of the listening socket inside its own runtime
+ * @brief File name of the listening socket inside its runtime
  *        directory
  *
  * @see @a xdg_resolve_dir with @c XDG_DIR_RUNTIME
@@ -30,10 +30,11 @@
  *        lives in
  *
  * Owner-only, matching what the XDG Base Directory Specification itself
- * requires of @c ($XDG_RUNTIME_DIR).  No other user can even list, let
+ * requires of @c XDG_RUNTIME_DIR.  No other user can even list, let
  * alone connect to, anything inside it, regardless of the socket file's
  * own permissions (which the kernel does not consistently enforce for
- * @c AF_UNIX the same way it does for a regular file's read/write bits)
+ * @c AF_UNIX the same way it does for a regular file's read/write
+ * bits).
  */
 #define IPC_RUNTIME_DIR_MODE (0700)
 
@@ -45,7 +46,7 @@
 #define IPC_LISTEN_BACKLOG (4)
 
 /**
- * @brief Directory @c /tmp fallback used when @c ($XDG_RUNTIME_DIR) is
+ * @brief Directory @c /tmp fallback used when @c XDG_RUNTIME_DIR is
  *        unset
  *
  * The numeric user ID is appended by whoever builds this path, since
@@ -59,7 +60,7 @@
  * @brief Maximum number of simultaneously connected IPC clients
  *
  * A small local control socket, not a network-facing server, so this is
- * generous already
+ * generous already.
  */
 #define IPC_MAX_CLIENTS (8)
 
@@ -68,21 +69,23 @@
  *        response) the IPC transport will hold per client at once
  *
  * A request or response line longer than this is rejected rather than
- * silently growing the buffer without bound
+ * silently growing the buffer without bound.
  */
 #define IPC_MSG_MAX_LENGTH (4096)
 
 /**
  * @brief Version of the line-JSON IPC wire protocol itself
  *
- * Not this program's own version: a client only needs to know whether
+ * Not this program's version: a client only needs to know whether
  * the shape of the messages it is about to send matches what this
  * running instance understands, not which release of IcoWM it is
- * talking to.  Bumped only when the wire protocol itself changes in
- * a way an existing client could not already handle (a command's own
- * argument or response shape changing, for instance).  A new command
- * being added does not require a bump, since an unaware client simply
- * never sends it.
+ * talking to.
+ *
+ * Bumped only when the wire protocol itself changes in a way an
+ * existing client could not already handle (a command's argument or
+ * response shape changing, for instance).  A new command being added
+ * does not require a bump, since an unaware client simply never sends
+ * it.
  */
 #define IPC_PROTOCOL_VERSION (1)
 

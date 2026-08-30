@@ -1,7 +1,7 @@
 /**
  * @file render/icon.h
  *
- * @brief Rendering an iconified client's own icon window, and the
+ * @brief Rendering an iconified client's icon window, and the
  *        state-hint indicators drawn on it
  *
  * @a ri_icon_hints_draw is called from both @c render/icon.c (the
@@ -48,7 +48,7 @@
  * Applies icon window attributes (background, border color and width,
  * stacking) and optionally draws a caption label.  Called from
  * @a desktop_render_clients for clients with @c CLIENT_FLAG_HIDDEN set,
- * and from @c menu/cycle.c whenever the cycle menu's own selection
+ * and from @c menu/cycle.c whenever the cycle menu's selection
  * moves on to or off of @p client, so its real desktop icon (border
  * color, and the hint indicators @a ri_icon_hints_draw below draws)
  * reflects that immediately rather than staying stuck at whichever it
@@ -68,7 +68,7 @@
  * hold a client and nothing else.
  *
  * @param client     The iconified client to render
- * @param is_current @c true when the client's own desktop is the one
+ * @param is_current @c true when the client's desktop is the one
  *                   currently visible
  * @param force      Render even when nothing about the icon changed
  *                   since its last one, for a caller that needs the
@@ -82,7 +82,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
         bool force);
 
 /**
- * @brief Draw the state-hint indicators in an iconified client's own
+ * @brief Draw the state-hint indicators in an iconified client's
  *        top corners
  *
  * A filled square in the top-left corner when @p client is
@@ -93,7 +93,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
  * shaped rather than lettered, and reads as one of them rather than
  * as a piece of titlebar borrowed onto the icon.  Sized from
  * @c WM_ICON_SQUARE_SIZE and @c WM_ICON_PIXMAP_SCALE_PERCENT rather
- * than reusing the titlebar's own @c WM_DECOR_BTN_SIZE, too large
+ * than reusing the titlebar's @c WM_DECOR_BTN_SIZE, too large
  * here relative to a 48px icon.
  *
  * A single letter in the top-right corner for whichever maximize or
@@ -106,7 +106,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
  * - @c CLIENT_STATE_MAXIMIZED_VERT draws 'v',
  *
  * all in the same foreground/background colors already used for the
- * icon's own caption text below it, so both pieces of text read as one
+ * icon's caption text below it, so both pieces of text read as one
  * consistent style.
  *
  * @param connection   Active XCB connection
@@ -119,7 +119,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
  *
  * @see @c client_properties_s.state in @c client.h, for the state
  *      bits each letter comes from
- * @see This function's own implementation comment in @c render/icon.c,
+ * @see This function's implementation comment in @c render/icon.c,
  *      for the derivation of the pin square's size
  *
  * @note No-op when @p client has no icon window, @p theme is @c NULL,

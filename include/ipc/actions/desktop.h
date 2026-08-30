@@ -1,15 +1,15 @@
 /**
  * @file ipc/actions/desktop.h
  *
- * @brief IPC commands mirroring @c enact.h's own @c enact_desktop_* and
+ * @brief IPC commands mirroring @c enact.h's @c enact_desktop_* and
  *        @s enact_client_*-on-a-desktop actions
  *
  * @a enact_desktop_client_add and @a enact_desktop_client_remove are
  * deliberately not exposed here since they are internal bookkeeping
- * (adding or removing a client from a desktop's own tracking) used
+ * (adding or removing a client from a desktop's tracking) used
  * while mapping or unmapping a window, not a user-facing action on
- * their own; calling either directly over IPC, detached from the window
- * (re)parenting it is normally paired with, could leave IcoWM's own
+ * their; calling either directly over IPC, detached from the window
+ * (re)parenting it is normally paired with, could leave IcoWM's
  * internal state inconsistent with what is actually on screen.
  * @a enact_desktop_cycle_clients_active/_prev/_icons_next/_icons_prev
  * are not exposed either, for each opens the interactive cycle menu,
@@ -49,7 +49,7 @@ cJSON *ipc_action_set_desktop_background(const wm_td *wm, const cJSON *args);
 cJSON *ipc_action_show_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c send_client_to_desktop: arguments @c client_id,
- *  @c target_desktop_id (on the client's own current surface) */
+ *  @c target_desktop_id (on the client's current surface) */
 cJSON *ipc_action_send_client_to_desktop(const wm_td *wm, const cJSON *args);
 
 /** @c send_client_to_front: raise the client to the front of its own
@@ -61,7 +61,7 @@ cJSON *ipc_action_send_client_to_front(const wm_td *wm, const cJSON *args);
 cJSON *ipc_action_send_client_to_back(const wm_td *wm, const cJSON *args);
 
 /** @c iconify_all: arguments @c desktop_id, optional and defaulting
- *  to the resolved surface's own current desktop, and
+ *  to the resolved surface's current desktop, and
  *  @c surface_id, optional */
 cJSON *ipc_action_iconify_all(const wm_td *wm, const cJSON *args);
 
@@ -69,7 +69,7 @@ cJSON *ipc_action_iconify_all(const wm_td *wm, const cJSON *args);
 cJSON *ipc_action_deiconify_all(const wm_td *wm, const cJSON *args);
 
 /** @c rearrange_desktop: arguments @c desktop_id (optional; the
- * resolved surface's own current desktop otherwise), @c surface_id
+ * resolved surface's current desktop otherwise), @c surface_id
  * (optional) */
 cJSON *ipc_action_rearrange(const wm_td *wm, const cJSON *args);
 

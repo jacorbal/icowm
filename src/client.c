@@ -79,7 +79,7 @@
  * after a window closed, a desktop switch, an activation request.
  *
  * File scope, and updated by the event loop from every real key or
- * button press, which is how Openbox keeps its own @c event_curtime
+ * button press, which is how Openbox keeps its @c event_curtime
  * for the same purpose.
  */
 static uint32_t s_last_user_time = 0u;
@@ -225,7 +225,7 @@ struct s_client_cookies_init_s {
  *                   '_NET_WM_SYNC_REQUEST_COUNTER'
  * @param window     Window being adopted
  * @param ck         Requests already issued by @a client_init; this
- *                   reader awaits its own rather than making one
+ *                   reader awaits its rather than making one
  * @param client     Client being initialized; its protocol-support
  *                   flags, 'sync_counter', and 'sync_alarm' fields
  *                   are set here
@@ -370,7 +370,7 @@ static void s_client_read_wm_protocols(xcb_connection_t *connection,
  *
  * @param connection XCB connection
  * @param ck         Requests already issued by @a client_init; this
- *                   reader awaits its own rather than making one
+ *                   reader awaits its rather than making one
  * @param client     Client being initialized; every field these three
  *                   properties feed is set here
  *
@@ -458,7 +458,7 @@ static void s_client_read_wm_hints_and_leader(xcb_connection_t *connection,
  * @param ewmh   EWMH connection
  * @param window Window being adopted
  * @param ck     Requests already issued by @a client_init; this reader
- *               awaits its own rather than making one
+ *               awaits its rather than making one
  * @param client Client being initialized; its
  *               @c layout.strut_partial fields are set here
  *
@@ -536,7 +536,7 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
  *                   @c _NET_WM_WINDOW_TYPE_NOTIFICATION
  * @param ewmh       EWMH connection
  * @param ck         Requests already issued by @a client_init; this
- *                   reader awaits its own rather than making one
+ *                   reader awaits its rather than making one
  * @param client     Client being initialized; its type, decoration,
  *                   frame extents, and several property flags are
  *                   set here
@@ -630,7 +630,7 @@ static void s_client_read_window_type(xcb_connection_t *connection,
 
 
 /**
- * @brief Read '_MOTIF_WM_HINTS' to honor a client's own decoration
+ * @brief Read '_MOTIF_WM_HINTS' to honor a client's decoration
  *        request
  *
  * The long-standing de-facto convention several toolkits and
@@ -652,7 +652,7 @@ static void s_client_read_window_type(xcb_connection_t *connection,
  *
  * @param connection XCB connection
  * @param ck         Requests already issued by @a client_init; this
- *                   reader awaits its own rather than making one
+ *                   reader awaits its rather than making one
  * @param client     Client being initialized; its decoration flag,
  *                   frame extents, and own @c config (checked for
  *                   @c window.is_decorated before honoring a request
@@ -714,7 +714,7 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  * @c _NET_WM_STATE_BELOW (e.g., tint2) get the BELOW layer, and
  * applications that set @c _NET_WM_STATE_SKIP_TASKBAR /
  * @c _NET_WM_STATE_SKIP_PAGER' (e.g., xpad's "hide from taskbar"
- * option, enabled from its own startup) are excluded from the cycle
+ * option, enabled from its startup) are excluded from the cycle
  * menu and window list immediately rather than only after the user
  * re-toggles the same preference in that application once the window
  * manager is already running.
@@ -723,7 +723,7 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  * @param ewmh       EWMH connection; a no-op if @c NULL
  * @param window     Window being adopted
  * @param ck         Requests already issued by @a client_init; this
- *                   reader awaits its own rather than making one
+ *                   reader awaits its rather than making one
  * @param client     Client being initialized; its layer and
  *                   skip-taskbar/skip-pager flags may be set here
  *
@@ -827,7 +827,7 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
  * @brief Subscribe to events on the adopted window, apply its border
  *        width, and set its default cursor
  *
- * For dock and notification windows, preserves the application's own
+ * For dock and notification windows, preserves the application's
  * event mask (which includes 'ButtonPress'/'ButtonRelease' needed for
  * systray interaction) and ORs in only the window manager's required
  * events; replacing the mask wholesale would strip 'ButtonPress',
@@ -846,21 +846,21 @@ static void s_client_read_pre_existing_state(xcb_connection_t *connection,
  * border width.
  *
  * The explicit plain-pointer cursor set here, once, is what makes the
- * resize cursor set while hovering the frame's own border reliably
+ * resize cursor set while hovering the frame's border reliably
  * give way to a plain pointer the instant the pointer crosses into
- * this client's own content: X11 always prefers the nearest explicit
+ * this client's content: X11 always prefers the nearest explicit
  * cursor over an inherited one, resolved by the server itself on
  * every crossing, with no window-manager-side event handling
  * required.  A purely event-driven reset (motion, or even
  * enter-notify) can be preempted by a client that intercepts pointer
- * motion for its own purposes (e.g., GTK/Qt applications tracking
- * hover for their own UI), which stops those events from ever
+ * motion for its purposes (e.g., GTK/Qt applications tracking
+ * hover for their UI), which stops those events from ever
  * reaching this window manager at all; this static default has no
  * such dependency.
  *
  * @param connection XCB connection
  * @param window     Window being adopted
- * @param client     Client being initialized; its own @c config
+ * @param client     Client being initialized; its @c config
  *                   (checked for the active theme's border width; a
  *                   @c NULL config or a dock window gets a zero-width
  *                   border) and @c properties.type are read here
@@ -928,7 +928,7 @@ void client_destroy(client_td *client)
     focus_order_remove(client);
     (void) stacking_remove(client);
 
-    /* Removes 'client' from its own parent's 'transients' list (true
+    /* Removes 'client' from its parent's 'transients' list (true
      * O(1), see 'transient_node''s comment, client.h) and
      * orphans every one of its own children, before anything below
      * frees so much as a single field: every other function walking
@@ -950,7 +950,7 @@ void client_destroy(client_td *client)
     }
 
     /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is
-     * a server-side resource owned by the window manager's own
+     * a server-side resource owned by the window manager's
      * connection (unlike the counter it watches, which belongs to the
      * client and is not ours to destroy), so it is not freed
      * automatically when the client window above is destroyed */
@@ -984,7 +984,7 @@ void client_destroy(client_td *client)
 }
 
 
-/* Refresh a client's own user-time from a genuine input event that
+/* Refresh a client's user-time from a genuine input event that
  * just reached it */
 /* Record the timestamp of a genuine user input event */
 void client_note_user_time(uint32_t time)
@@ -1015,7 +1015,7 @@ void client_update_user_time(client_td *client, uint32_t time)
 
 
 /* Keep a cached visible name and its matching EWMH property in sync
- * with whether the caller's own just-rendered text was truncated */
+ * with whether the caller's just-rendered text was truncated */
 void client_sync_visible_name(client_td *client, char *cached,
         const char *full_name, const char *rendered,
         xcb_void_cookie_t (*set_fn)(xcb_ewmh_connection_t *,
@@ -1048,7 +1048,7 @@ void client_sync_visible_name(client_td *client, char *cached,
 }
 
 
-/* Subscribe 'ColormapChangeMask' on every window in a client's own
+/* Subscribe 'ColormapChangeMask' on every window in a client's
  * 'WM_COLORMAP_WINDOWS' list */
 void client_subscribe_colormap_windows(
         xcb_connection_t *connection, const client_td *client)
@@ -1121,7 +1121,7 @@ client_td *client_init(xcb_connection_t *connection,
      * out of the batch and why.
      *
      * The two atoms are interned first because a request needs them,
-     * and 'atom_intern' answers from its own cache after the first
+     * and 'atom_intern' answers from its cache after the first
      * window, so they cost no round trip of their own here. */
     client_leader_atom = atom_intern(connection, "WM_CLIENT_LEADER",
             true);
@@ -1253,8 +1253,8 @@ client_td *client_init(xcb_connection_t *connection,
      * Checked on '_NET_WM_USER_TIME_WINDOW' first: some toolkits
      * (GTK among them) set the frequently-changing
      * '_NET_WM_USER_TIME' on a dedicated, often-unmapped window
-     * instead of the client's own toplevel, specifically so that
-     * every tool interested in any of the toplevel's own other
+     * instead of the client's toplevel, specifically so that
+     * every tool interested in any of the toplevel's other
      * properties is not woken up on every keypress (EWMH §5.16); a
      * client relying on that indirection would otherwise never have
      * its genuine value seen here at all, always reading as the
@@ -1286,7 +1286,7 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Only grab buttons on client windows that the window manager
      * decorates or that could receive focus.  Dock and notification
-     * windows manage their own pointer events; grabbing buttons on them
+     * windows manage their pointer events; grabbing buttons on them
      * intercepts systray icon clicks and breaks context-menu
      * interaction. */
     if (client->frame == 0 &&

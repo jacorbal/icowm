@@ -48,7 +48,7 @@
 
 
 /** All state for the currently open run-box; a single global instance,
- *  the same way the fuzzy window-search widget's own @c s_search is */
+ *  the same way the fuzzy window-search widget's @c s_search is */
 static struct {
     xcb_window_t window;
     surface_td *surface;
@@ -95,7 +95,7 @@ static void s_run_destroy(xcb_connection_t *connection)
  *
  * A no-op if the command is empty.  Always closes the run-box itself
  * first, whether the attempt succeeds or not, the same way
- * @a search_init already shows its own "nothing to search for"
+ * @a search_init already shows its "nothing to search for"
  * dialog with the search widget itself never open behind it.
  *
  * @param connection XCB connection
@@ -140,9 +140,9 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
  *
  * The same drawing this shares with @a menu_draw_row_bg
  * (menu/draw.c), just with @p x configurable: that shared helper
- * always starts at the window's own left edge, which is exactly
+ * always starts at the window's left edge, which is exactly
  * right for every one of its other callers (a whole-width row
- * background) but not for painting @p label's and @p input's own
+ * background) but not for painting @p label's and @p input's
  * independently colored halves of the run-box side by side.
  *
  * @param connection XCB connection
@@ -214,7 +214,7 @@ void run_init(xcb_connection_t *connection, surface_td *surface,
     height = (uint16_t) (WM_RUN_BAR_HEIGHT + 2 * WM_RUN_PAD_Y);
 
     /* Centered fully (both axes), unlike the fuzzy window-search
-     * widget's own one-third-from-the-top position: one more visual
+     * widget's one-third-from-the-top position: one more visual
      * cue, alongside the "Run:" prompt itself, that the two are not
      * the same widget. */
     widget_x = (int16_t) (((int32_t) surface->properties.dim.w -
@@ -270,7 +270,7 @@ bool run_is_open(void)
 }
 
 
-/* Query whether 'win' is the run-box's own window */
+/* Query whether 'win' is the run-box's window */
 bool run_owns_window(xcb_window_t win)
 {
     return run_is_open() && win == s_run.window;
@@ -336,7 +336,7 @@ void run_draw(xcb_connection_t *connection, const config_td *cfg)
     height = (uint16_t) (WM_RUN_BAR_HEIGHT + 2 * WM_RUN_PAD_Y);
     prompt = _(STR_RUN_PROMPT);
 
-    /* Measured against 'label''s own font, which is also the one it
+    /* Measured against 'label''s font, which is also the one it
      * gets drawn in just below, since 'text_string_measure' reports
      * against whichever font 'text_renderer_use_font' selected
      * last. */

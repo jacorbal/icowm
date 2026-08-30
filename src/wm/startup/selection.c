@@ -110,18 +110,18 @@ static bool s_wait_for_relinquish(xcb_connection_t *connection,
 
 
 /**
- * @brief Acquire @p surface's own @c WM_S<n> selection with
+ * @brief Acquire @p surface's @c WM_S<n> selection with
  *        @p support, replacing a previous owner if asked to
  *
  * @param connection        XCB connection
  * @param support           Window to make the new selection owner
- * @param surface            Surface whose own selection is acquired
+ * @param surface            Surface whose selection is acquired
  * @param replace_requested Whether to wait out and replace a previous
  *                          owner instead of refusing outright
  * @param manager_atom      Interned @c MANAGER atom, or
  *                          @c XCB_ATOM_NONE if interning it failed
  *                          (the announcement is then skipped, this
- *                          function's own success is unaffected)
+ *                          function's success is unaffected)
  *
  * @return 0 on success, -1 if @p surface has no owned selection to
  *         acquire, is already owned and @p replace_requested is
@@ -219,7 +219,7 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
 
 
 /* Acquire the 'WM_Sn' manager selection on every managed screen,
- * taking over an already-running window manager's own ownership when
+ * taking over an already-running window manager's ownership when
  * asked to */
 int wm_startup_acquire_selection(wm_td *wm, bool replace_requested)
 {

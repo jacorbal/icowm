@@ -98,10 +98,10 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     if (keysym == KS_LEFT) {
         if (state->parent != NULL) {
             /* No explicit repaint needed here: submenus open clear of
-             * the parent's own area (see 'sub_x' above), and on the
+             * the parent's area (see 'sub_x' above), and on the
              * rare occasion one gets clamped close enough to overlap
              * it anyway, destroying it (just below) already makes the
-             * X server generate its own 'Expose' for whatever area of
+             * X server generate its 'Expose' for whatever area of
              * the parent that uncovers, which
              * 'ctxmenu_tree_redraw_window' already handles. */
             ctxmenu_close(state);
@@ -230,7 +230,7 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
         /* Mark this entry selected (a click may land here with no
          * prior hover over this exact row, e.g., the pointer already
          * resting here when the menu first mapped) so it stays
-         * visibly highlighted for as long as its own submenu is
+         * visibly highlighted for as long as its submenu is
          * open, the same as the keyboard path already shows via
          * whatever row 'state->selected' was left on by prior
          * up/down navigation. */

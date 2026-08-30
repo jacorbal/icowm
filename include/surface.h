@@ -9,16 +9,16 @@
  * currently active.
  *
  * Named "surface" rather than "screen" specifically to avoid
- * a conceptual collision with @c xcb_screen_t, XCB's own raw protocol
+ * a conceptual collision with @c xcb_screen_t, XCB's raw protocol
  * struct for a screen, the type @c surface_td is a wrapper around one
- * (see its own @p screen field) that adds everything the window manager
+ * (see its @p screen field) that adds everything the window manager
  * itself tracks about it (desktops, monitors, RandR state, and
  * a reference to the active configuration) so the two names stay
  * distinct even though, conceptually, one @c surface_td corresponds to
- * exactly one X screen.  @c config.json's own @c screens section refers
+ * exactly one X screen.  @c config.json's @c screens section refers
  * to this same thing under its more X11-familiar name instead,
  * deliberately, as that name is for whoever writes @c config.json, not
- * for this header's own internal implementation detail.
+ * for this header's internal implementation detail.
  *
  * @see @p config_base_s, in @c config.h
  *
@@ -90,8 +90,8 @@ struct surface_properties_s {
  *
  * Declared here as a plain forward alias, guarded so a header that only
  * ever needs @c surface_td through a pointer (@c desktop.h, already
- * included above so a surface can own its own desktops) can declare the
- * exact same alias on its own too, without this file's own full
+ * included above so a surface can own its desktops) can declare the
+ * exact same alias on its own too, without this file's full
  * definition further down colliding with it as a duplicate @c typedef
  * of the same name, illegal under strict C99 even when, as here, both
  * name the exact same underlying type.
@@ -158,10 +158,10 @@ struct surface_s {
 
     /**
      * @brief Whether panel/tray struts are set aside when computing
-     *        every desktop's own work area on this surface
+     *        every desktop's work area on this surface
      *
      * @see @a surface_action_toggle_strutless_maximize (surface.h)
-     * @see @a desktop_update_workarea's own @p ignore_struts
+     * @see @a desktop_update_workarea's @p ignore_struts
      *      (desktop.h), which this flag feeds directly
      */
     bool strutless_maximize;
@@ -178,7 +178,7 @@ struct surface_s {
  * @param connection    Pointer to XCB connection
  * @param surface_id    Surface identifier
  * @param desktop_count Number of desktops on this surface
- * @param config        Configuration this surface reads its own theme
+ * @param config        Configuration this surface reads its theme
  *                      and window settings from
  *
  * @return Pointer to new surface, or @c NULL otherwise
@@ -214,7 +214,7 @@ void surface_resize(surface_td *surface,
         uint32_t width, uint32_t height);
 
 /**
- * @brief Refresh the surface's own list of physical monitors
+ * @brief Refresh the surface's list of physical monitors
  *
  * Queries the RandR 1.5 monitor list (@a xcb_randr_get_monitors) for
  * @p surface's root window and rebuilds @p surface->monitors from the
@@ -235,13 +235,13 @@ void surface_refresh_monitors(surface_td *surface);
  * @brief Find which of the surface's monitors contains a point
  *
  * @param surface Pointer to the surface to search
- * @param pos     Coordinate, in the surface's own space
+ * @param pos     Coordinate, in the surface's space
  *
  * @return The containing monitor, or, if the point falls outside every
  *         known monitor (e.g., a stale coordinate after a monitor was
  *         unplugged), the closest one by center-point distance.  Spans
  *         the whole surface if @p surface has no monitors of its own or
- *         @p surface is @c NULL.
+ *         @p surface is @c NULL
  *
  * @note Complexity: @e O(n), where @e n is @p surface->monitor_count
  */
@@ -256,30 +256,30 @@ monitor_td surface_monitor_for_point(const surface_td *surface,
  * @return The monitor RandR reports as primary.  Falls back to
  *         @p (surface->monitors[0]) if none was flagged as primary, and
  *         to a monitor spanning the whole surface if @p surface has no
- *         monitors of its own or @p surface is @c NULL.
+ *         monitors of its own or @p surface is @c NULL
  *
  * @note Complexity: @e O(1)
  */
 monitor_td surface_primary_monitor(const surface_td *surface);
 
 /**
- * @brief Get the surface's own monitor in a given compass direction
+ * @brief Get the surface's monitor in a given compass direction
  *        from another one
  *
  * Unlike a desktop, a monitor already has a real, physical position
- * (@p current's own @c x / @c y / @c w / @c h, as RandR reported it),
+ * (@p current's @c x / @c y / @c w / @c h, as RandR reported it),
  * so no configured layout is needed to answer "which one is to the
- * north" at all.  Among every one of @p surface's own monitors whose
- * center genuinely lies in @p direction from @p current's own center,
+ * north" at all.  Among every one of @p surface's monitors whose
+ * center genuinely lies in @p direction from @p current's center,
  * whichever one is nearest by that same measure is the answer, matching
  * what a person looking at the arrangement would call it even when the
  * monitors involved differ in size or are not perfectly aligned to one
  * another.
  *
  * Deliberately never wraps around to the farthest monitor the opposite
- * way when none lies in @p direction at all, unlike a desktop's own
+ * way when none lies in @p direction at all, unlike a desktop's
  * equivalent, which optionally does when @c desktops.wrap-at-bounds is
- * enabled: wrapping a definite, ordered list (a desktop's own circular
+ * enabled: wrapping a definite, ordered list (a desktop's circular
  * one) has one obviously correct meaning, but wrapping a genuinely 2-D
  * physical arrangement does not (does "east, wrapped" mean the westmost
  * monitor overall, or only the westmost one still on the same row?), so
@@ -289,9 +289,9 @@ monitor_td surface_primary_monitor(const surface_td *surface);
  *
  * @param surface   Pointer to the surface structure
  * @param current   The monitor to search from; need not itself be one
- *                  of @p surface's own current monitors (an
+ *                  of @p surface's current monitors (an
  *                  already-stale caller-held copy is fine, since only
- *                  its own @c x / @c y / @c w / @c h are read)
+ *                  its @c x / @c y / @c w / @c h are read)
  * @param direction Compass direction to search in
  *
  * @return The neighboring monitor, or @p current itself, unchanged, if
@@ -319,7 +319,7 @@ int surface_desktop_add(surface_td *surface, desktop_td *desktop);
 /**
  * @brief Remove a desktop from the list by its ID
  *
- * @param surface    Pointer to the surface structure.
+ * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the desktop to be removed
  *
  * @return Status of the removal operation
@@ -345,14 +345,14 @@ desktop_td *surface_desktop_get(surface_td *surface,
         uint32_t desktop_id);
 
 /**
- * @brief Get a desktop's own row/column position in its surface's
+ * @brief Get a desktop's row/column position in its surface's
  *        configured layout
  *
  * Always the same reading order the flat desktop list itself already
  * had before layout existed at all when no @c topology.screens.desktops
  * layout is configured (the common case, still the default): @c row
  * @c 0, @c col @c desktop_id.  With one configured, the position
- * @p desktop_id's own @c orientation/@c corner combination actually
+ * @p desktop_id's @c orientation/@c corner combination actually
  * places it at, which is not simply @c row @c 0, @c col @c desktop_id
  * once @c corner is anything other than top-left, nor once
  * @c orientation is vertical.
@@ -364,7 +364,7 @@ desktop_td *surface_desktop_get(surface_td *surface,
  * @param col_out    Resulting column, updated in place only on a
  *                   @c true return
  *
- * @return @c false if @p surface, its own configuration, or either
+ * @return @c false if @p surface, its configuration, or either
  *         output pointer is unavailable
  *
  * @note Complexity: @e O(1)
@@ -382,7 +382,7 @@ bool surface_desktop_row_col(const surface_td *surface,
  * each leaves out what would not help:
  *
  * - a client pinned across every desktop names none of them;
- * - a layout of more than one row gives the desktop's own ID and its
+ * - a layout of more than one row gives the desktop's ID and its
  *   row and column, the grid being what makes a coordinate mean
  *   something;
  * - anything else gives the ID alone, a single row's coordinate saying
@@ -394,11 +394,11 @@ bool surface_desktop_row_col(const surface_td *surface,
  *
  * @param surface      Surface the desktop belongs to
  * @param desktop_id   Desktop to name
- * @param desktop_name Its own name, or @c NULL when it has none
+ * @param desktop_name Its name, or @c NULL when it has none
  * @param is_pinned    Whether the client is on every desktop
  * @param shows_name   Whether to append @p desktop_name, which the
  *                     overlay wants and a list of windows does not:
- *                     there the window's own title identifies the
+ *                     there the window's title identifies the
  *                     entry, and the name would take width from it
  * @param out_label    Receives the label; emptied when it cannot be
  *                     made
@@ -420,7 +420,7 @@ void surface_desktop_label(const surface_td *surface,
  * @c topology.screens.desktops layout configured, the same as on any
  * single-row layout: there is no "north" to find at all when every
  * desktop already sits in the one and only row.  Skips past any
- * desktop-less gap cell a configured layout's own @c rows @c *
+ * desktop-less gap cell a configured layout's @c rows @c *
  * @c columns may legitimately exceed the real desktop count with,
  * rather than landing on one.
  *
@@ -472,7 +472,7 @@ desktop_td *surface_desktop_south(surface_td *surface,
  * top-left, a lower ID can sit visually east of a higher one, not west;
  * see @a s_layout_row_col's comment, @c surface/desktops.c, for the
  * full reasoning), skipping past any desktop-less gap cell along the
- * way.  If the current desktop is the westmost in its own row, and
+ * way.  If the current desktop is the westmost in its row, and
  * cycling is enabled, wraps to the eastmost desktop in that same row.
  *
  * @param surface    Pointer to the surface structure
@@ -494,10 +494,10 @@ desktop_td *surface_desktop_west(surface_td *surface,
  * the east of it: list-next on a surface with no
  * @c topology.screens.desktops layout configured (the common case,
  * still the default), the desktop one cell east along the configured
- * grid otherwise (see @a surface_desktop_west's own doc comment for the
+ * grid otherwise (see @a surface_desktop_west's doc comment for the
  * fuller reasoning on why this is not simply "@c desktop_id @c +
  * @c 1"), skipping past any desktop-less gap cell along the way.  If
- * the current desktop is the eastmost in its own row, and cycling is
+ * the current desktop is the eastmost in its row, and cycling is
  * enabled, wraps to the westmost desktop in that same row.
  *
  * @param surface    Pointer to the surface structure
@@ -610,21 +610,21 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id);
 /**
  * @brief Add a new desktop associated with the surface
  *
- * Grows @p surface's own configured @c topology.screens.desktops layout
+ * Grows @p surface's configured @c topology.screens.desktops layout
  * by one row or column first, whichever @c orientation treats as the
  * non-primary axis, when there is not already a desktop-less gap cell
  * in it for the new desktop to land on (see
  * @a s_surface_layout_grow_for's comment, in @c surface/switch.c, for
  * the fuller reasoning on why that one axis specifically).  Purely
- * a "create it" action either way: @p surface's own current view never
+ * a "create it" action either way: @p surface's current view never
  * switches to the new desktop, whether growing a new row or column
  * happened or not, and regardless of which desktop, if any, currently
  * has the view.
  *
- * Refused outright once @p surface's own desktop count already reaches
- * @c CONFIG_MAX_DESKTOPS: @c config_base's own
+ * Refused outright once @p surface's desktop count already reaches
+ * @c CONFIG_MAX_DESKTOPS: @c config_base's
  * @c screens[screen_id].desktops array (@c config.h) is a fixed-size
- * array of exactly that many slots, indexed by the new desktop's own
+ * array of exactly that many slots, indexed by the new desktop's
  * ID, so adding one more past that point would index past the end of
  * it.  Also refused outright, regardless of the current count, while
  * restricted-memory mode is active (@a memguard_max_clients), which is
@@ -647,7 +647,7 @@ int surface_action_desktop_add(surface_td *surface);
  * @brief Remove the last desktop from the surface, moving any client
  *        still on it to the desktop immediately before it first
  *
- * Refuses outright when only one desktop remains (@c surface's own
+ * Refuses outright when only one desktop remains (@c surface's
  * desktop count must stay at least @c 1).  Restricted-memory mode
  * always has exactly one desktop and no way to reach a second one (see
  * @a surface_action_desktop_add's comment), so that same guard alone
@@ -656,11 +656,11 @@ int surface_action_desktop_add(surface_td *surface);
  * the desktop being removed, pinned or not, is moved onto what becomes
  * the new last desktop before the old one is destroyed: destroying
  * a desktop that still holds clients would otherwise destroy those
- * clients' own @c client_td structures right along with it (see
+ * clients' @c client_td structures right along with it (see
  * @a desktop_destroy, @c desktop.c), losing real, live application
  * windows rather than just the virtual desktop container.
  *
- * A moved client's own EWMH @c _NET_WM_DESKTOP is brought in line with
+ * A moved client's EWMH @c _NET_WM_DESKTOP is brought in line with
  * its new desktop, except for a pinned one, whose property already
  * holds the EWMH "all desktops" sentinel and is left alone.  If the
  * desktop being removed is the current one, the view switches to the
@@ -682,14 +682,14 @@ int surface_action_desktop_remove(surface_td *surface);
 
 /**
  * @brief Toggle whether panel/tray struts are set aside when computing
- *        this surface's own desktops' work areas
+ *        this surface's desktops' work areas
  *
  * Strutless maximization: while on, @a desktop_update_workarea
  * (@c desktop.h) folds in only @c desktops.margins from configuration,
- * never a panel's own @c _NET_WM_STRUT_PARTIAL nor the systray's own
+ * never a panel's @c _NET_WM_STRUT_PARTIAL nor the systray's
  * reservation, so a maximized or smart-placed window can use the full
  * screen underneath wherever a panel would otherwise have reserved
- * space.  Every desktop's own work area is recomputed immediately
+ * space.  Every desktop's work area is recomputed immediately
  * (@a surface_refresh_workareas), not left for whatever unrelated event
  * happens to trigger that next.
  *
@@ -710,9 +710,9 @@ int surface_action_toggle_strutless_maximize(surface_td *surface);
  *
  * For each configured profile whose name matches a currently-connected
  * output.  An enabled profile's desired resolution (falling back to
- * whatever mode is already active, or the output's own preferred mode,
+ * whatever mode is already active, or the output's preferred mode,
  * when none is configured or none of the screen's modes matches it),
- * position, and rotation are compared against that output's own CRTC's
+ * position, and rotation are compared against that output's CRTC's
  * actual current state first, and @a xcb_randr_set_crtc_config is
  * issued only when at least one of them actually differs (claiming
  * a free compatible CRTC first if the output had none, which always
@@ -720,7 +720,7 @@ int surface_action_toggle_strutless_maximize(surface_td *surface);
  * @p is_primary is compared and, if needed, applied the same way as
  * a separate, independent step afterward.
  *
- * A disabled profile instead turns the output's own CRTC off, but only
+ * A disabled profile instead turns the output's CRTC off, but only
  * if it is not already off.  A configured profile whose name matches no
  * currently-connected output is skipped, logged at debug level only,
  * not as a warning.  This comparison is what keeps an unchanged
@@ -854,14 +854,14 @@ void surface_refresh_workareas(surface_td *surface);
  *
  * Iterates all desktops and their stacking lists.  A client whose frame
  * (or client window when undecorated) still overlaps at least one of
- * @p surface's own monitors (see @p surface->monitors) is left
+ * @p surface's monitors (see @p surface->monitors) is left
  * untouched, even if it is not fully contained within a single one.
  * A window legitimately spanning two adjacent monitors must not be
  * "corrected" just for straddling their seam.  Only a client with no
  * overlap against any current monitor at all (typically because the one
  * it used to be on was disconnected, or a RandR layout change left it
  * in a gap) is moved, clamped into whichever monitor
- * @a surface_monitor_for_point resolves for its own center point so
+ * @a surface_monitor_for_point resolves for its center point so
  * that at least a minimum strip of the window remains visible there.
  * Both the X server geometry and the cached
  * @p client->layout.geometry.cur are updated.
@@ -901,7 +901,7 @@ typedef void (*surface_desktop_visitor_fn)(desktop_td *desktop,
  * @brief Visit every desktop a surface holds, in order
  *
  * What a caller wanting all of them asks for, rather than walking the
- * list itself: how a surface keeps its desktops is its own business,
+ * list itself: how a surface keeps its desktops is its business,
  * and a caller that only wanted to count them or read their names had
  * to know it was a circular list to find out.
  *

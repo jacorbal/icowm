@@ -57,7 +57,7 @@
  *        it landed on that menu, or close it otherwise
  *
  * Shared by @a im_press_close_overlays' three near-identical
- * context-menu cases below, which only differ in which module's own
+ * context-menu cases below, which only differ in which module's
  * @a owns_window/handle_click/close functions to call; each of those
  * three menu types exposes the exact same signature for all three, so
  * passing them in directly loses no type safety over writing each case
@@ -67,9 +67,9 @@
  * @param surfaces     Surface list (for root lookup)
  * @param event        Incoming button-press event
  * @param config       Active configuration
- * @param owns_window  The menu type's own @c X_owns_window
- * @param handle_click The menu type's own @c X_handle_click
- * @param close        The menu type's own @c X_close
+ * @param owns_window  The menu type's @c X_owns_window
+ * @param handle_click The menu type's @c X_handle_click
+ * @param close        The menu type's @c X_close
  *
  * @note Complexity: @e O(1)
  */

@@ -4,7 +4,7 @@
  * @brief Functions on a client's transient family: the top-most
  *        ancestor, group-transient anchor resolution, cross-desktop
  *        bring-together, family-wide snapshots, and the transient
- *        tree's own link/unlink lifecycle
+ *        tree's link/unlink lifecycle
  *
  * @defgroup cmds Client, desktop, and surface commands
  * @ingroup enact
@@ -105,36 +105,36 @@ client_td *client_group_transient_anchor(const client_td *client);
  *        desktop is actually being looked at right now, wherever
  *        they currently are
  *
- * Openbox's own real answer to a transient family split across
+ * Openbox's real answer to a transient family split across
  * desktops (confirmed directly against its source): a pinned parent
- * followed to a new desktop leaves its own modal dialog behind, but
+ * followed to a new desktop leaves its modal dialog behind, but
  * the moment someone tries to focus that parent again, the dialog is
  * moved onto the desktop the parent is being interacted with on
  * right then, so it is right there to actually receive the
  * redirected focus.  Called from @a focus_apply (@c policy/focus.c)
- * only, immediately before its own redirect to
+ * only, immediately before its redirect to
  * @a ccmd_client_focus_target, not from @a ccmd_client_focus itself
  * (@c cmds/client/
  * focus.c): that function is also reached from purely automatic
  * focus restoration having nothing to do with someone actually
- * interacting with a client right now (@a surface_clients_show's own
+ * interacting with a client right now (@a surface_clients_show's
  * "restore whichever client was last active" step on every desktop
  * switch foremost among them), and calling this there too dragged a
  * transient family across onto whatever desktop merely happened to
  * be switched to, chasing every desktop its pinned parent had ever
  * been focused on despite never being pinned itself.  Deliberately
- * the desktop currently viewed on the top parent's own surface, not
- * that top parent's own literal "home" desktop, since pinning a
+ * the desktop currently viewed on the top parent's surface, not
+ * that top parent's literal "home" desktop, since pinning a
  * client never actually moves it between desktops (see
  * @a ccmd_client_bring_family's comment in @c cmds/client/
  * transient.c, for why that distinction matters here specifically).
  *
  * @param client Client whose transient family to bring together;
- *               redirected to its own top-most ancestor first, the
+ *               redirected to its top-most ancestor first, the
  *               same way every other family-wide action in this
  *               project already does
  *
- * @note A null @p client, one whose top parent's own surface cannot
+ * @note A null @p client, one whose top parent's surface cannot
  *       be resolved, or one with no transient family at all is a
  *       silent no-op
  * @note Implemented in @c cmds/client/transient.c
@@ -155,9 +155,9 @@ void ccmd_client_bring_family(client_td *client);
  * on one sibling (an iconify, a pin, a desktop move) can itself add,
  * remove, or otherwise touch entries in that same tree.  Factored
  * out once here instead of repeated at every call site; the caller
- * supplies its own loop over the result to actually act on each one,
+ * supplies its loop over the result to actually act on each one,
  * since what to do with a family member is the one part every call
- * site still needs its own way.
+ * site still needs its way.
  *
  * @param desktop   Desktop to restrict the result to
  * @param top       Family's top-most ancestor; excluded from the
@@ -168,7 +168,7 @@ void ccmd_client_bring_family(client_td *client);
  *                  failure
  *
  * @return Newly allocated array of @c *count_out client pointers,
- *         the caller's own to @c free; @c NULL if @p desktop, @p top,
+ *         the caller's to @c free; @c NULL if @p desktop, @p top,
  *         or @p count_out is @c NULL, no match was found on
  *         @p desktop, or the allocation itself failed
  *
@@ -190,10 +190,10 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  * collecting into a snapshot at all): every family-wide action that
  * is not itself about desktops (iconify, restore, hide, unhide, pin,
  * unpin) must find every family member regardless of which desktop
- * each one happens to be registered under, not just @p top's own;
+ * each one happens to be registered under, not just @p top's;
  * those two can genuinely differ when @p top is pinned, since
  * pinning a client never actually moves it between desktops.
- * Scoping the search to @p top's own desktop alone, as the desktop-
+ * Scoping the search to @p top's desktop alone, as the desktop-
  * move actions genuinely need to (@a enact_desktop_client_send,
  * @a hi_handle_net_wm_desktop, @a drag_warp_tick and
  * @a ccmd_client_bring_family itself, which each still use
@@ -214,7 +214,7 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  *                  @c 0 on any early return
  *
  * @return Newly allocated array of @c *count_out client pointers,
- *         the caller's own to @c free; @c NULL if @p top or
+ *         the caller's to @c free; @c NULL if @p top or
  *         @p count_out is @c NULL, no family member was found anywhere,
  *         or the allocation itself failed
  *
@@ -245,7 +245,7 @@ typedef void (*ccmd_family_fn)(client_td *member, void *ctx);
  * separates this from
  * @a ccmd_client_transient_family_snapshot_anywhere: that one walks
  * twice and allocates an array, and is what
- * a caller needs when its own action moves clients between desktops
+ * a caller needs when its action moves clients between desktops
  * and so cannot walk and mutate at the same time.
  *
  * @param top Top-most ancestor of the family; may be @c NULL
@@ -267,7 +267,7 @@ void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
  * @brief Link a newly managed client into its parent's transient
  *        tree, if @c transient_for names an already-managed client
  *
- * Called once, right after a newly mapped client is added to its own
+ * Called once, right after a newly mapped client is added to its
  * desktop, so every other transient-family function in this project
  * can walk real @c client_td* pointers (@c transient_parent going
  * up, @c transients going down) instead of re-discovering "who is
@@ -288,9 +288,9 @@ void client_link_transient(client_td *client);
  * @brief Unlink a client from the transient tree before it stops
  *        being managed
  *
- * Removes @p client from its own parent's @c transients list in true
- * @e O(1), and orphans every one of @p client's own children by
- * clearing their own @c transient_parent/@c transient_node back to
+ * Removes @p client from its parent's @c transients list in true
+ * @e O(1), and orphans every one of @p client's children by
+ * clearing their @c transient_parent/@c transient_node back to
  * @c NULL, since the parent they were transient for is going away.
  * Must be called before @p client itself is actually freed, from
  * whichever code path is unmanaging it.
@@ -309,13 +309,13 @@ void client_unlink_transient(client_td *client);
  *        descendant should actually receive focus in its place
  *
  * ICCCM §4.1.2.6 dialogs exist to demand a specific answer before
- * their own parent is usable again in any meaningful sense.  Called
+ * their parent is usable again in any meaningful sense.  Called
  * both from @a ccmd_client_focus itself (@c cmds/client/focus.c) and
- * from @a focus_apply (@c policy/focus.c): the latter needs its own
+ * from @a focus_apply (@c policy/focus.c): the latter needs its
  * copy of the redirected client, resolved before it does any of its
  * own "currently active client" bookkeeping (@c desktop->
  * client_active_id and the stacking-order raise), since a callee
- * reassigning its own local copy of a pointer parameter (inside
+ * reassigning its local copy of a pointer parameter (inside
  * @a ccmd_client_focus) can never be observed by its caller.  Without
  * this, a caller of @a focus_apply targeting the parent (a plain
  * click, sloppy focus, restoring the group, and the like) leaves

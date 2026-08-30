@@ -38,7 +38,7 @@ static const config_lint_key_td s_schema_memguard_windows[] = {
     {"gravity", NULL, 0u},
     /* Both 'focus' and 'placement' are now identical to config.json's
      * own identically-named objects (policy included in both:
-     * memguard.json's own parser reads every field either accepts),
+     * memguard.json's parser reads every field either accepts),
      * so shared verbatim rather than duplicated, same as 'programs'
      * and 'shutdown' above. */
     {"focus", s_schema_windows_focus,
@@ -61,8 +61,8 @@ static const config_lint_key_td s_schema_memguard_icons[] = {
 };
 
 static const config_lint_key_td s_schema_memguard_desktops[] = {
-    /* Reuses 'desktops.margins''s own schema array; see
-     * 's_schema_systray''s own identical comment above for why. */
+    /* Reuses 'desktops.margins''s schema array; see
+     * 's_schema_systray''s identical comment above for why. */
     {"margins", s_schema_desktops_margins,
         sizeof(s_schema_desktops_margins) /
             sizeof(s_schema_desktops_margins[0])}
@@ -71,7 +71,7 @@ static const config_lint_key_td s_schema_memguard_desktops[] = {
 const config_lint_key_td s_schema_memguard[] = {
     {"theme", NULL, 0u},
     /* 'programs', 'prompt', and 'shutdown' accept the exact same
-     * fields as config.json's own identically-named sections, so
+     * fields as config.json's identically-named sections, so
      * their schemas are shared verbatim rather than duplicated. */
     {"programs", s_schema_programs,
         sizeof(s_schema_programs) / sizeof(s_schema_programs[0])},
@@ -90,7 +90,7 @@ const config_lint_key_td s_schema_memguard[] = {
      * config.json itself uses, so every field it accepts there is
      * accepted here too, even the two ('text.position' and 'order')
      * that end up with no visible effect in this mode; see that
-     * function's own call site in memguard.c for why. */
+     * function's call site in memguard.c for why. */
     {"systray", s_schema_systray,
         sizeof(s_schema_systray) / sizeof(s_schema_systray[0])},
     {"shutdown", s_schema_shutdown,

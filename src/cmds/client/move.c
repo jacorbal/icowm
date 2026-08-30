@@ -57,7 +57,7 @@
  * @param direction Which way to look for a neighboring monitor
  *
  * @note Complexity: @e O(n), where @e n is the number of monitors on
- *       the client's own surface, scanned to turn the neighbor's
+ *       the client's surface, scanned to turn the neighbor's
  *       coordinates back into the index @a ccmd_client_move_to_monitor
  *       takes
  */
@@ -99,21 +99,21 @@ static void s_move_to_monitor_toward(client_td *client,
  * @brief Apply a client's geometry to its target window in a single
  *        XCB call
  *
- * Openbox's own real answer to configuring a window's geometry
+ * Openbox's real answer to configuring a window's geometry
  * (confirmed directly against its source, @c client_configure in
  * @c client.c): one shared function every geometry-changing operation
- * funnels through, rather than each one building its own
+ * funnels through, rather than each one building its
  * @c xcb_configure_window values array by hand.  @c XCB_CONFIG_WINDOW_*
- * bit values themselves fix the order @c xcb_configure_window's own
+ * bit values themselves fix the order @c xcb_configure_window's
  * values array must list whichever fields @p mask selects in (@c X
  * @c <@c Y @c <@c WIDTH @c <@c HEIGHT @c <@c BORDER_WIDTH, confirmed
  * directly against @c xproto.h), the exact ordering every one of this
- * function's own former call sites had to get right by hand, on its
+ * function's former call sites had to get right by hand, on its
  * own, every single time; this function gets it right once.
  *
  * Deliberately narrow in scope: only the single
  * @c xcb_configure_window call itself, nothing about updating
- * @p client's own tracked
+ * @p client's tracked
  * @c layout.geometry.cur fields to match, which stays each caller's
  * own concern, since which fields to track, and anything else a
  * caller needs alongside such as clearing
@@ -122,12 +122,12 @@ static void s_move_to_monitor_toward(client_td *client,
  * single shared function covering both would only obscure.
  *
  * @param client       Client whose target window to configure
- * @param target       Window to configure; @a ccmd_target_win's own
+ * @param target       Window to configure; @a ccmd_target_win's
  *                      result, the frame for a decorated client or
  *                      the bare content window otherwise
  * @param mask         Bitwise OR of whichever @c XCB_CONFIG_WINDOW_X/
  *                      @c _Y/@c _WIDTH/@c _HEIGHT/@c _BORDER_WIDTH
- *                      bits are actually changing; a field whose own
+ *                      bits are actually changing; a field whose
  *                      bit is not set here is never read at all,
  *                      whatever @p x/@p y/@p w/@p h/@p border_width
  *                      themselves happen to hold

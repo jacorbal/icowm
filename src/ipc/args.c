@@ -1,7 +1,7 @@
 /**
  * @file ipc/args.c
  *
- * @brief Typed extraction of a request's own arguments implementation
+ * @brief Typed extraction of a request's arguments implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -5,7 +5,7 @@
  *
  * Nearly every X event the loop receives is forwarded straight to
  * @c handler.h or to the input modules.  The five declared here are
- * the exceptions: those whose handling is bound to the loop's own
+ * the exceptions: those whose handling is bound to the loop's
  * machinery, either because they update the user-time bookkeeping
  * that focus-stealing prevention reads, or because they consume
  * further events from the connection before deciding what to do.

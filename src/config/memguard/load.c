@@ -1,12 +1,12 @@
 /**
  * @file config/memguard/load.c
  *
- * @brief Loading @c memguard.json's own configurable fields
+ * @brief Loading @c memguard.json's configurable fields
  *        implementation
  *
  * Kept apart from @c config/memguard.c so that file stays focused on
- * orchestrating restricted-memory mode's own config loading, not on any
- * one loaded file's own contents.
+ * orchestrating restricted-memory mode's config loading, not on any
+ * one loaded file's contents.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -35,7 +35,7 @@
 
 
 /**
- * @brief Read the restricted-memory file's own "windows" object
+ * @brief Read the restricted-memory file's "windows" object
  *
  * @param json   The whole parsed file
  * @param config Configuration to fill in
@@ -121,7 +121,7 @@ static void s_memguard_load_windows(cJSON *json, config_td *config)
 }
 
 
-/* Load memguard.json's own configurable fields into config */
+/* Load memguard.json's configurable fields into config */
 int ci_memguard_load_json(const char *filename, config_td *config)
 {
     cJSON *json;
@@ -210,14 +210,14 @@ int ci_memguard_load_json(const char *filename, config_td *config)
 
     /* 'text.position' and 'order' deliberately not something
      * memguard.json is allowed to configure, unlike an ordinary
-     * session's own config.json: both only ever affect docked pixmap
+     * session's config.json: both only ever affect docked pixmap
      * icons (where the text block sits relative to them, and the order
      * newly docked ones are placed in), and this mode never docks any
      * (embedding is always off; see is_embedding_enabled's comment in
      * 'config.h'), so neither has any visible effect here at all.
      * 'ci_config_load_systray' just above still loads both (shared
-     * verbatim with config.json's own identical "systray" object), so
-     * this puts each back to its own fixed default afterward rather
+     * verbatim with config.json's identical "systray" object), so
+     * this puts each back to its fixed default afterward rather
      * than duplicating that whole function just to omit two fields. */
     systray_item = cJSON_GetObjectItem(json, "systray");
     if (systray_item != NULL) {

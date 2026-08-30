@@ -141,8 +141,8 @@ void ctxmenu_show(xcb_connection_t *connection,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    /* The whole menu window's own opacity, distinct from any one
-     * row's own font/color/border, since '_NET_WM_WINDOW_OPACITY' is
+    /* The whole menu window's opacity, distinct from any one
+     * row's font/color/border, since '_NET_WM_WINDOW_OPACITY' is
      * a per-window property, not a per-row one; see the doc comment
      * on 'config_theme_s.menu.opacity' (config.h) */
     atom_set_window_opacity(connection, state->window,

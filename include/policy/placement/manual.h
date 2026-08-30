@@ -18,6 +18,9 @@
  *
  * A window whose turn has not come yet is held unmapped, with the wait
  * for it starting only when it becomes the one being asked about.
+ * That wait measures silence rather than the age of the question:
+ * every answer that does not settle the window starts it over, so
+ * aiming slowly is never mistaken for ignoring it.
  *
  * @defgroup placementmanual Manual placement
  * @ingroup policy
@@ -197,6 +200,9 @@ void place_manual_handle_keypress(xcb_connection_t *connection,
  * @return Milliseconds remaining (never negative), or @c -1 when no
  *         window is currently being pointed at
  *
+ * @note Counted from the last answer rather than from when the
+ *       question opened, so this rises again whenever the outline is
+ *       moved by either device
  * @note Complexity: @e O(1)
  */
 int place_manual_ms_remaining(void);

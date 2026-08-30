@@ -13,7 +13,7 @@
  *   @c MAPPING_NOTIFY
  * - @c handler/expose.c: @c EXPOSE
  * - @c handler/message.c: @c CLIENT_MESSAGE dispatcher (dispatches EWMH
- *   and ICCCM protocol messages to @c handler/ewmh.c's own
+ *   and ICCCM protocol messages to @c handler/ewmh.c's
  *   per-atom sub-handlers)
  * - @c handler/randr.c: RandR extension screen/output change events
  * - @c handler/sync.c: XSync extension @c _NET_WM_SYNC_REQUEST alarms

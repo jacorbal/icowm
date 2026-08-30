@@ -1,7 +1,7 @@
 /**
  * @file defs/surface.h
  *
- * @brief Capacity limits for a surface's own RandR monitor list
+ * @brief Capacity limits for a surface's RandR monitor list
  *
  * @ingroup defs
  */

@@ -23,7 +23,7 @@
  * A plain fixed array is enough for a systray and keeps this module
  * allocation-free.
  *
- * @note Unlike a docked icon's own pixel size and padding, this stays
+ * @note Unlike a docked icon's pixel size and padding, this stays
  *       a compile-time constant on purpose
  */
 #define WM_SYSTRAY_MAX_ICONS (32u)

@@ -111,7 +111,7 @@ void menu_message_dialog_repaint(xcb_connection_t *connection,
  * Selects the "OK" button and repaints when the pointer lands inside
  * it, then defers the actual close for shortly after.  So that newly
  * selected state is visible for a moment first, the same reasoning
- * @a menu_confirm_dialog_handle_click already applies to its own two
+ * @a menu_confirm_dialog_handle_click already applies to its two
  * buttons.  Clicks outside the button are not handled.
  *
  * @param connection XCB connection
@@ -130,7 +130,7 @@ void menu_message_dialog_handle_click(xcb_connection_t *connection,
  * @brief Milliseconds remaining until a pending click-triggered close
  *        becomes due
  *
- * For the main loop to fold into its own @c poll timeout computation,
+ * For the main loop to fold into its @c poll timeout computation,
  * the same way @a popup_ms_remaining and similar already are.
  *
  * @return Milliseconds remaining (never negative), or @c -1 if none is
@@ -142,7 +142,7 @@ int menu_message_dialog_ms_remaining(void);
 
 /**
  * @brief Close the message dialog if a click-triggered close is pending
- *        and its own deadline has arrived
+ *        and its deadline has arrived
  *
  * @param connection XCB connection
  *
@@ -200,7 +200,7 @@ void menu_message_dialog_select_ok(xcb_connection_t *connection,
  * @param connection XCB connection
  * @param config     Active configuration, for the repaint
  * @param delta      Lines to scroll by; negative scrolls up (toward the
- *                   start), positive scrolls down (toward the end).
+ *                   start), positive scrolls down (toward the end)
  *
  * @note Repaints immediately when there's motion
  * @note Parameter @p delta is lamped to the valid range, so passing an

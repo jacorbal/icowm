@@ -81,15 +81,15 @@
 #define WINLIST_MAX_COLLECTED (128)
 
 /**
- * @brief Maximum pixel width a client entry's own label may claim
+ * @brief Maximum pixel width a client entry's label may claim
  *        towards the windows-menu's width
  *
  * Caps how far one very long window title can stretch the whole menu;
  * a label wider than this truncates instead, the same reasoning
  * @c WM_CYCLE_MENU_LABEL_MAX_WIDTH truncates a cycle-menu entry
  * (@c defs/cycle.h).  Application-group and desktop submenu labels are
- * short, fixed phrases the user themselves configures (a desktop's own
- * name, an application's own class name) rather than an arbitrary
+ * short, fixed phrases the user themselves configures (a desktop's
+ * name, an application's class name) rather than an arbitrary
  * window title, so this only applies to the per-client entries.
  *
  * @see @a s_client_label_format in @c menu/context/winlist.c
@@ -118,10 +118,10 @@
  * command entry per client.  Any previously open window list menu is
  * closed first.  Runs a first, counting-only pass over every client
  * before actually building anything (see @a s_count_appgroups_needed
- * and @a s_build_desktop_entries's comments), so its own
+ * and @a s_build_desktop_entries's comments), so its
  * dynamically-allocated per-desktop and per-application-group entry
  * storage can be sized to what this exact call actually needs instead
- * of a fixed worst case held throughout the window manager's own
+ * of a fixed worst case held throughout the window manager's
  * whole lifetime regardless of how many desktops or applications a
  * given session actually has.
  *
@@ -132,7 +132,7 @@
  *
  * @note Complexity: @e O(n), where @e n is the total number of clients
  *       across all desktops; visited twice, once to count and once to
- *       build, rather than the single pass this used before its own
+ *       build, rather than the single pass this used before its
  *       storage became dynamically sized
  */
 void winlist_show(xcb_connection_t *connection,
@@ -142,14 +142,13 @@ void winlist_show(xcb_connection_t *connection,
 /**
  * @brief Close the window list menu
  *
- * Also frees 's_desktop_entries', winlist.c's own dynamically-
- * allocated array of per-desktop submenu entries (sized fresh, to
- * the real desktop count, on every 'winlist_show' instead of a
- * fixed worst-case allocation held for the whole session); safe to
- * call even when the menu was never open to begin with, or was
- * already closed, since freeing a null pointer is itself already a
- * no-op.
+ * Frees all three of the arrays @a winlist_show allocates, one of
+ * per-desktop submenu entries and two of per-application-group ones,
+ * each sized fresh on every call to what that call needs rather than
+ * to a worst case held for the whole session.
  *
+ * @note Safe to call where the menu was never open, or was closed
+ *       already, freeing a null pointer being a no-op in itself
  * @note Complexity: @e O(1)
  */
 void winlist_close(void);

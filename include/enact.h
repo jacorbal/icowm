@@ -8,7 +8,7 @@
  * project where its corresponding action actually happens.  A caller
  * anywhere else (a keybinding handler, a menu callback, an EWMH message
  * handler, a rule) calls the matching @a enact_* function directly,
- * with its own typed parameters, instead of reaching into one of the
+ * with its typed parameters, instead of reaching into one of the
  * @c cmds/client/ headers or @c cmds/surface.h itself.  Searching for
  * an action's enum name always leads back to exactly one function here.
  *
@@ -197,13 +197,13 @@ void enact_client_move_monitor_west(client_td *client);
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
  *                 so this client, not whichever one the target
- *                 desktop's own switch just restored on its own,
+ *                 desktop's switch just restored on its own,
  *                 ends up genuinely focused there
  * @param config   Active configuration, passed through to
  *                 @c focus_apply
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's own top parent's own desktop
+ *       the client's top parent's desktop
  */
 void enact_client_send_to_desktop_north(client_td *client,
         list_td *surfaces, const config_td *config);
@@ -222,13 +222,13 @@ void enact_client_send_to_desktop_north(client_td *client,
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
  *                 so this client, not whichever one the target
- *                 desktop's own switch just restored on its own,
+ *                 desktop's switch just restored on its own,
  *                 ends up genuinely focused there
  * @param config   Active configuration, passed through to
  *                 @c focus_apply
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's own top parent's own desktop
+ *       the client's top parent's desktop
  */
 void enact_client_send_to_desktop_south(client_td *client,
         list_td *surfaces, const config_td *config);
@@ -239,7 +239,7 @@ void enact_client_send_to_desktop_south(client_td *client,
  *
  * A silent no-op when there is no different desktop to move to at
  * all (only one exists, or wrapping is disabled and this is already
- * the eastmost one in its own row).  See
+ * the eastmost one in its row).  See
  * @a s_enact_client_send_to_desktop in @c enact/client.c for the
  * fuller
  * reasoning.
@@ -247,13 +247,13 @@ void enact_client_send_to_desktop_south(client_td *client,
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
  *                 so this client, not whichever one the target
- *                 desktop's own switch just restored on its own,
+ *                 desktop's switch just restored on its own,
  *                 ends up genuinely focused there
  * @param config   Active configuration, passed through to
  *                 @c focus_apply
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's own top parent's own desktop
+ *       the client's top parent's desktop
  */
 void enact_client_send_to_desktop_east(client_td *client,
         list_td *surfaces, const config_td *config);
@@ -264,7 +264,7 @@ void enact_client_send_to_desktop_east(client_td *client,
  *
  * A silent no-op when there is no different desktop to move to at
  * all (only one exists, or wrapping is disabled and this is already
- * the westmost one in its own row).  See
+ * the westmost one in its row).  See
  * @a s_enact_client_send_to_desktop in @c enact/client.c for the
  * fuller
  * reasoning.
@@ -272,13 +272,13 @@ void enact_client_send_to_desktop_east(client_td *client,
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
  *                 so this client, not whichever one the target
- *                 desktop's own switch just restored on its own,
+ *                 desktop's switch just restored on its own,
  *                 ends up genuinely focused there
  * @param config   Active configuration, passed through to
  *                 @c focus_apply
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's own top parent's own desktop
+ *       the client's top parent's desktop
  */
 void enact_client_send_to_desktop_west(client_td *client,
         list_td *surfaces, const config_td *config);
@@ -566,10 +566,10 @@ void enact_client_toggle_decorate(client_td *client);
 void enact_desktop_set_background(desktop_td *desktop, uint32_t color);
 
 /**
- * @brief Toggle whether the desktop's own surface shows the desktop
+ * @brief Toggle whether the desktop's surface shows the desktop
  *
  * Hides every mapped client on the surface so the desktop background
- * becomes visible, or restores them, mirroring @c _NET_SHOWING_DESKTOP
+ * becomes visible, or restores them, mirroring @c _NET_SHOWING_DESKTOP.
  *
  * @param desktop Desktop whose surface is toggled
  * @param show    @c true to hide clients and show the desktop,
@@ -583,16 +583,17 @@ void enact_desktop_show(desktop_td *desktop, bool show);
 /**
  * @brief Send a client from one desktop to another
  *
- * Never switches the surface's own currently viewed desktop, nor
+ * Never switches the surface's currently viewed desktop, nor
  * forces real keyboard focus onto @p client immediately: a menu- or
  * keybind-driven "send to desktop" that does not also follow is a
  * "file this away" gesture, not "take me there", matching Openbox's
- * own equivalent (@c client_set_desktop, client.c).  @p client does
- * become @p target's own remembered active client when focusable,
- * though (see @a s_enact_desktop_client_send_one's comment,
- * enact/desktop.c, for the fuller reasoning), so it is what greets
- * whoever visits @p target next, rather than requiring @p target to
- * have already had some other active client remembered on it before
+ * own equivalent (@c client_set_desktop, client.c).
+ *
+ * @p client does become @p target's remembered active client when
+ * focusable, though (see @a s_enact_desktop_client_send_one's comment
+ * in @c enact/desktop.c, for the fuller reasoning), so it is what
+ * greets whoever visits @p target next, rather than requiring @p target
+ * to have already had some other active client remembered on it before
  * this arrived, or for this to somehow already be the one currently
  * viewed, to be found there.
  *
@@ -632,7 +633,7 @@ void enact_desktop_client_send_back(desktop_td *desktop,
  *        the desktop
  *
  * A transient dialog among them is the one exception.  It is
- * re-centered over its own parent per ICCCM §4.1.2.6 instead of being
+ * re-centered over its parent per ICCCM §4.1.2.6 instead of being
  * run through the configured policy, since every client goes through
  * @a place_window_apply itself, the same general placement engine
  * a window is run through when first mapped, not a simplified
@@ -675,7 +676,7 @@ void enact_desktop_clients_deiconify_all(desktop_td *desktop);
 /**
  * @brief Cycle input focus to the next non-iconified client
  *
- * Opens the cycle menu preselecting the next entry, and repaints it
+ * Opens the cycle menu preselecting the next entry, and repaints it.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to center the menu
@@ -693,7 +694,8 @@ void enact_desktop_cycle_clients_active(xcb_connection_t *connection,
 /**
  * @brief Cycle input focus to the previous non-iconified client
  *
- * Opens the cycle menu preselecting the previous entry, and repaints it
+ * Opens the cycle menu preselecting the previous entry, and repaints
+ * it.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to center the menu
@@ -712,7 +714,7 @@ void enact_desktop_cycle_clients_prev(xcb_connection_t *connection,
  * @brief Cycle input focus to the next iconified client
  *
  * Opens the cycle menu listing icons and preselecting the next entry,
- * and repaints it
+ * and repaints it.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to center the menu
@@ -731,7 +733,7 @@ void enact_desktop_cycle_clients_icons_next(xcb_connection_t *connection,
  * @brief Cycle input focus to the previous iconified client
  *
  * Opens the cycle menu listing icons and preselecting the previous
- * entry, and repaints it
+ * entry, and repaints it.
  *
  * @param connection XCB connection
  * @param surface    Surface on which to center the menu
@@ -805,7 +807,7 @@ void enact_surface_desktop_switch_east(surface_td *surface);
 void enact_surface_desktop_switch_west(surface_td *surface);
 
 /**
- * @brief Add a new, empty desktop to the end of the surface's own
+ * @brief Add a new, empty desktop to the end of the surface's
  *        desktop list
  *
  * @param surface Surface to add a desktop to
@@ -815,12 +817,12 @@ void enact_surface_desktop_switch_west(surface_td *surface);
 void enact_surface_desktop_add(surface_td *surface);
 
 /**
- * @brief Remove the surface's own last desktop, moving any client
+ * @brief Remove the surface's last desktop, moving any client
  *        still on it to the new last desktop first
  *
  * A no-op, silently, when only one desktop remains: see
- * @a surface_action_desktop_remove (surface.h) for the exact refusal
- * conditions.
+ * @a surface_action_desktop_remove (in @c surface.h) for the exact
+ * refusal conditions.
  *
  * @param surface Surface to remove the last desktop from
  *
@@ -830,8 +832,8 @@ void enact_surface_desktop_add(surface_td *surface);
 void enact_surface_desktop_remove(surface_td *surface);
 
 /**
- * @brief Toggle whether panel/tray struts are set aside when
- *        computing this surface's own desktops' work areas
+ * @brief Toggle whether panel/tray struts are set aside when computing
+ *        this surface's desktops' work areas
  *
  * @param surface Surface to toggle strutless-maximization mode on
  *

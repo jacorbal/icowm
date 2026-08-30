@@ -94,7 +94,7 @@ struct cycle_menu_state_s g_cycle_menu = {
  * @brief What @a s_cycle_collect needs that the client itself is not
  */
 struct s_cycle_collect_ctx_s {
-    xcb_window_t active_id;     /**< Desktop's own active client */
+    xcb_window_t active_id;     /**< Desktop's active client */
     int active_idx;             /**< Index it landed at, or -1 */
     bool is_icon;               /**< Collecting icons, not windows */
 };
@@ -243,12 +243,12 @@ static void s_cycle_scroll_to_selection(void)
 
 
 /**
- * @brief Repaint a client's real desktop icon (not the cycle menu's own
+ * @brief Repaint a client's real desktop icon (not the cycle menu's
  *        preview), so it reflects a just-changed cycle-selection state
  *        right away
  *
  * @a cycle_navigate_to / @a cycle_navigate_to_next /
- * @a cycle_navigate_prev only ever touch the floating cycle menu's own
+ * @a cycle_navigate_prev only ever touch the floating cycle menu's
  * selection state; nothing about the real icon window sitting on the
  * desktop underneath it is otherwise told to repaint when that
  * selection moves on, so a client that was highlighted and then passed
@@ -262,11 +262,11 @@ static void s_cycle_scroll_to_selection(void)
  *
  * Which of the two a client is does not need saying here, and that is
  * why this takes no flag for it: @a ri_render_client_icon works out on
- * its own whether the client it is handed is the one the cycle has
+ * its whether the client it is handed is the one the cycle has
  * picked.  The newly selected one comes out in active colors, its
  * active font and no pixmap; the one just passed over, back in its
  * ordinary inactive appearance with its pixmap.  The render is forced,
- * since either may look to that function's own skip check the same as
+ * since either may look to that function's skip check the same as
  * it did a moment earlier.
  *
  * @param client Client whose real desktop icon to repaint
@@ -274,14 +274,14 @@ static void s_cycle_scroll_to_selection(void)
  * @note A no-op for a client that is not actually an iconified icon (or
  *       @c NULL, or with no cycle menu open at all); the render
  *       function already guards that safely on its own
- * @note The cycle's own initial preselection at @a cycle_init time
+ * @note The cycle's initial preselection at @a cycle_init time
  *       needs no separate call here
  * @note Complexity: @e O(1)
  *
- * @see @a ri_render_client_icon's own comment in @c render/icon.h
+ * @see @a ri_render_client_icon's comment in @c render/icon.h
  * @ see @a mi_cycle_preview_apply in @c menu/cycle/draw.c, which
  *       already applies the very same "selected" render this function
- *       itself calls below.
+ *       itself calls below
  */
 static void s_cycle_repaint_icon(client_td *client)
 {
@@ -390,7 +390,7 @@ void cycle_init(xcb_connection_t *connection,
      * what has to stay held.  Using the full modmask of whichever
      * specific binding was pressed to get here, as this used to, would
      * include that differing bit, closing the menu the moment it alone
-     * is released instead of only on 'Alt''s own release. */
+     * is released instead of only on 'Alt''s release. */
     g_cycle_menu.modifier =
         (uint16_t) ((unsigned int) g_cycle_menu.next_modmask &
                 (unsigned int) g_cycle_menu.prev_modmask);
@@ -453,7 +453,7 @@ void cycle_init(xcb_connection_t *connection,
     menu_w = (uint16_t) (max_w +
             (uint16_t) (cfg->theme.menu.padding.horizontal * 2u));
 
-    /* Widen for a row's own client icon, the same reservation
+    /* Widen for a row's client icon, the same reservation
      * 'cycle_draw' makes per row; see 'theme.menu.show-pixmaps''s
      * comment in 'config.h'. */
     if (cfg->theme.menu.show_pixmaps) {
@@ -528,7 +528,7 @@ void cycle_init(xcb_connection_t *connection,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    /* Same window-level opacity 'ctxmenu.c''s own window publishes,
+    /* Same window-level opacity 'ctxmenu.c''s window publishes,
      * shared with it via 'config_theme_s.menu.opacity' ('config.h') */
     atom_set_window_opacity(connection, g_cycle_menu.window,
             config_theme_opacity_to_raw(cfg->theme.menu.opacity));
@@ -551,7 +551,7 @@ void cycle_init(xcb_connection_t *connection,
      * gets via 's_cycle_repaint_icon' (see 'mi_cycle_preview_apply''s
      * implementation in 'menu/cycle/draw.c', which forces that render
      * directly for exactly this
-     * reason) so the cycle's own initial preselection needs no separate
+     * reason) so the cycle's initial preselection needs no separate
      * call here to match it. */
     mi_cycle_preview_apply(connection, cfg);
 
@@ -690,7 +690,7 @@ void cycle_navigate_to(unsigned int idx)
 
 
 /* Force the next 'cycle_draw' call to repaint the whole viewport
- * (see this function's own comment in 'menu/cycle.h') */
+ * (see this function's comment in 'menu/cycle.h') */
 void cycle_force_full_repaint(void)
 {
     g_cycle_menu.has_drawn_once = false;

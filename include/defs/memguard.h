@@ -24,7 +24,7 @@
 
 /**
  * @brief How often the runtime watchdog actually re-reads this
- *        process's own memory usage, in seconds
+ *        process's memory usage, in seconds
  *
  * Checking on every single main-loop iteration would mean a file read
  * many times a second for no benefit, since usage cannot realistically
@@ -38,29 +38,29 @@
  *        of it before a renewed climb can warn again
  *
  * Without this hysteresis, usage hovering right at the ceiling would
- * show the same dialog repeatedly every check interval
+ * show the same dialog repeatedly every check interval.
  */
 #define MEMGUARD_HYSTERESIS_PERCENT (90u)
 
 /**
- * @brief Mebibytes of the @c -M ceiling reserved for this process's own
+ * @brief Mebibytes of the @c -M ceiling reserved for this process's
  *        baseline overhead, before any of it is divided up among
  *        managed clients
  *
  * A ceiling entirely divided up among clients with nothing held back
  * would let @c memguard_max_clients compute a number that leaves no
- * headroom at all for IcoWM's own connection, surface and desktop
- * state, and every other piece of it that exists regardless of how many
+ * headroom at all for IcoWM's connection, surface and desktop state,
+ * and every other piece of it that exists regardless of how many
  * windows are open.
  *
  * @note Set from an actual measurement (a fresh restricted-memory
- *       session's own @c VmRSS, sampled with no client windows open)
- *       rather than a guess, the highest reading seen across several
- *       runs, including some under heavy window/desktop churn, was
- *       a little under 7 MiB, so this sits one MiB above that, both to
- *       round to a whole number and to leave a little slack for
- *       a system with somewhat heavier XCB, font, or @c libc overhead
- *       than whichever one that measurement was taken on
+ *       session's @c VmRSS, sampled with no client windows open) rather
+ *       than a guess, the highest reading seen across several runs,
+ *       including some under heavy window/desktop churn, was a little
+ *       under 8 MiB, so this sits one MiB above that, both to round to
+ *       a whole number and to leave a little slack for a system with
+ *       somewhat heavier XCB, font, or @c libc overhead than whichever
+ *       one that measurement was taken on
  *
  * @see @c memguard_max_clients
  */
@@ -91,7 +91,7 @@
  *
  * The font "fixed" is an X core bitmap font alias present on
  * effectively every X server, so redirecting to it reliably keeps text
- * rendering on @c render/text.c's own, lighter X-core-font path rather
+ * rendering on @c render/text.c's, lighter X-core-font path rather
  * than falling back to the @c xcb-render/FreeType2/fontconfig backend
  * a TrueType/OpenType family name (what most themes actually specify)
  * would otherwise select.
@@ -110,7 +110,7 @@
  * iconified, and entries in a desktop's client hash table and stacking
  * list.
  *
- * This does not attempt to include the application's own memory
+ * This does not attempt to include the application's memory
  * footprint.  @a sysmem_self_rss_mib in @c utils/sysmem.c, which is
  * what the runtime watchdog compares with the ceiling, reads only this
  * process's @c VmRSS.  It never includes memory belonging to a separate
@@ -150,7 +150,7 @@
  * @brief Upper bound @a memguard_max_clients will ever return
  *
  * A generous @c -M ceiling should still not compute an arbitrarily
- * large client cap.  Past some point the mode's own point (bounding
+ * large client cap.  Past some point the mode's point (bounding
  * resource usage predictably) is better served by a fixed, sane ceiling
  * than by an ever-growing one.
  *

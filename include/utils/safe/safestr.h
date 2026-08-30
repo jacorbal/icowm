@@ -8,7 +8,7 @@
  *
  * @note Prefer sized variants (@c safe_strncpy and @c safe_strncat).
  *       Unsized variants (@c safe_strcpy and @c safe_strcat) are kept
- *       for compatibility and should not be used in new code.
+ *       for compatibility and should not be used in new code
  *
  * Functions:
  *
@@ -138,7 +138,7 @@ char *safe_strncpy(char *restrict dst, const char *restrict src,
  * @warning This function does not receive destination size and cannot
  *          enforce bounds on @p dst
  *
- * @note Use @a safe_strncpy in new code.
+ * @note Use @a safe_strncpy in new code
  * @note This could have been done by referencing @a safe_strncpy with
  *       @c "return safe_strncpy(dst, src, safe_strlen(src) + 1);", but
  *       it was done otherwise to reduce coupling
@@ -196,14 +196,14 @@ char *safe_strdup(const char *s);
  *            @p dst
  * @param sz  Maximum number of characters to append from @p src
  *
- * @return A pointer to the resulting string @p dst.
+ * @return A pointer to the resulting string @p dst
  *
  * @warning This function does not receive destination size and cannot
  *          enforce bounds on @p dst
  *
  * @note If @p sz is greater than the length of @p src, the entire
  *       @p src string will be appended
- * @note Use @a safe_strncat in new code.
+ * @note Use @a safe_strncat in new code
  * @note It is the caller's responsibility to ensure that @p dst has
  *       enough space to accommodate the concatenated result, including
  *       the null terminator
@@ -227,7 +227,7 @@ char *safe_strncat(char *restrict dst, const char *restrict src,
  * @param src Pointer to the source string that will be appended to
  *            @p dst
  *
- * @return A pointer to the resulting string @p dst.
+ * @return A pointer to the resulting string @p dst
  *
  * @note It is the caller's responsibility to ensure that @p dst has
  *       enough space to accommodate the concatenated result, including

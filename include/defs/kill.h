@@ -19,7 +19,7 @@
 
 
 /**
- * @brief Milliseconds to wait, after @a ccmd_client_kill's own
+ * @brief Milliseconds to wait, after @a ccmd_client_kill's
  *        @a xcb_kill_client, before checking whether the owning process
  *        is still alive and escalating to @c SIGKILL if so
  *
@@ -36,9 +36,9 @@
  *        at once
  *
  * A person forcing several unresponsive clients closed in quick
- * succession, before the first one's own timeout has even elapsed, is
+ * succession, before the first one's timeout has even elapsed, is
  * unusual but not implausible.  Further kills past this many pending at
- * once simply skip escalation, leaving their own @a xcb_kill_client as
+ * once simply skip escalation, leaving their @a xcb_kill_client as
  * the only attempt made for them.
  */
 #define WM_KILL_ESCALATE_MAX_PENDING (8u)

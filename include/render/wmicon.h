@@ -4,23 +4,23 @@
  * @brief Client-supplied icon rendering: @c _NET_WM_ICON (EWMH), with
  *        an ICCCM @c WM_HINTS fallback
  *
- * A single entry point, @c wmicon_draw, that fetches a client's own
+ * A single entry point, @c wmicon_draw, that fetches a client's
  * @c _NET_WM_ICON (the EWMH property most applications publish so
- * a taskbar, pager, or window manager can show the application's own
+ * a taskbar, pager, or window manager can show the application's
  * icon rather than a generic placeholder), picks whichever available
  * size is closest to the target it will be drawn at, and composites it
  * there via the X RENDER extension, so translucent edges in the source
  * icon blend correctly instead of leaving a hard square artifact.
  *
  * A client that never published @c _NET_WM_ICON at all (some still
- * don't; @c xterm is the canonical example, offering only its own
+ * don't; @c xterm is the canonical example, offering only its
  * @c iconHint resource) falls back to whatever @c WM_HINTS icon hint it
  * did set instead of drawing nothing.
  *
  * Scaled to a consistent size regardless of whatever size the source
  * image happened to be (cfr. @c WM_ICON_PIXMAP_SCALE_PERCENT in
  * @c defs/icon.h), since applications publish wildly differing icon
- * sizes and drawing each one at its own natural size would leave icons
+ * sizes and drawing each one at its natural size would leave icons
  * looking inconsistent next to one another.
  *
  * The built @c Picture is cached by the caller across calls, since the
@@ -110,7 +110,7 @@ typedef struct {
 
 /* Public interface */
 /**
- * @brief Fetch and draw a client's own icon, centered in and clipped to
+ * @brief Fetch and draw a client's icon, centered in and clipped to
  *        a square area of the given drawable
  *
  a Prefers the EWMH @c _NET_WM_ICON property (an array of ARGB32 images
@@ -118,10 +118,10 @@ typedef struct {
  *
  * When a client has not published that, falls back to the older ICCCM
  * @c WM_HINTS icon hint instead, since a number of still-common
- * applications (@c xterm among them, via its own @c iconHint resource)
+ * applications (@c xterm among them, via its @c iconHint resource)
  * only ever set the latter.  That fallback supports both forms ICCCM
  * allows, a 1-bit-deep @p icon_pixmap rendered as a solid-color stencil
- * (ICCCM's own literal specification), and a full-depth one (what
+ * (ICCCM's literal specification), and a full-depth one (what
  * @c xterm itself actually publishes, despite ICCCM specifying depth 1)
  * rendered as a plain color image.  Either is clipped to @p icon_mask's
  * own shape when the client also set one.  When neither property is set
@@ -132,14 +132,14 @@ typedef struct {
  *
  * A thin wrapper over @c wmicon_draw_at with its offset fixed at
  * @c (0, 0); the drawable this draws into is assumed to belong to this
- * one icon alone (e.g., an iconified client's own icon window), as
- * opposed to @c wmicon_draw_at's own use case of one icon among several
+ * one icon alone (e.g., an iconified client's icon window), as
+ * opposed to @c wmicon_draw_at's use case of one icon among several
  * sharing a single larger drawable.
  *
  * @param connection  XCB connection
  * @param ewmh        EWMH connection, for the typed @c _NET_WM_ICON
  *                    property getter
- * @param window      Client's own window, whose @c _NET_WM_ICON and
+ * @param window      Client's window, whose @c _NET_WM_ICON and
  *                    @c WM_HINTS properties are read (not the icon
  *                    window itself)
  * @param drawable    Icon window (or other drawable) to composite onto
@@ -168,19 +168,19 @@ void wmicon_draw(xcb_connection_t *connection,
 
 /**
  * @brief Like @a wmicon_draw, but composites at an explicit offset
- *        within @p drawable instead of always at its own origin
+ *        within @p drawable instead of always at its origin
  *
  * For a caller that draws several icons into one shared window at
  * different positions (e.g., one per row of a menu listing), rather
- * than each icon owning its own dedicated drawable the way an
- * iconified client's own icon window does.  Everything else, the
+ * than each icon owning its dedicated drawable the way an
+ * iconified client's icon window does.  Everything else, the
  * EWMH/ICCCM fallback, the cache, the centering and clipping within the
  * @p area_size square, behaves exactly as in @a wmicon_draw.
- * @p x and @p y are simply where that square's own top-left corner
+ * @p x and @p y are simply where that square's top-left corner
  * sits within @p drawable instead of always @c (0, 0).
  *
  * When @p window has no usable @c _NET_WM_ICON or @c WM_HINTS icon of
- * its own, draws a small default icon instead of leaving the square
+ * its, draws a small default icon instead of leaving the square
  * blank.  It represents a generic window, an outer frame in
  * @p frame_color, with a titlebar-like strip along its top edge in that
  * same color, and a body in @p bg_color between the two.  It is drawn
@@ -191,7 +191,7 @@ void wmicon_draw(xcb_connection_t *connection,
  *
  * @p frame_color and @p bg_color are deliberately taken from the caller
  * rather than from a theme pointer resolved here.  Which colors count
- * as active versus inactive (or a menu row's own selected/unselected
+ * as active versus inactive (or a menu row's selected/unselected
  * pair, not even the same @c config_theme_style_s shape) is already
  * worked out at every call site, and duplicating that logic in a module
  * with no theme access of its own would only risk drifting out of sync
@@ -200,7 +200,7 @@ void wmicon_draw(xcb_connection_t *connection,
  * @param connection  XCB connection
  * @param ewmh        EWMH connection, for the typed @c _NET_WM_ICON
  *                    property getter
- * @param window      Client's own window, whose @c _NET_WM_ICON and
+ * @param window      Client's window, whose @c _NET_WM_ICON and
  *                    @c WM_HINTS properties are read (not the icon
  *                    window itself)
  * @param drawable    Drawable to composite onto

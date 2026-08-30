@@ -1,7 +1,7 @@
 /**
  * @file ipc/actions/desktop.c
  *
- * @brief IPC commands mirroring enact.h's own desktop-scoped actions
+ * @brief IPC commands mirroring enact.h's desktop-scoped actions
  *        implementation
  */
 /*

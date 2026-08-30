@@ -54,7 +54,7 @@ int desktop_render_background(desktop_td *desktop);
  * @brief Invalidate the cached root window background pixmap
  *
  * Call this whenever one of the (several, mutually exclusive)
- * conventions a wallpaper-setting tool might use to publish its own
+ * conventions a wallpaper-setting tool might use to publish its
  * background pixmap on the root window changes, so the next
  * @a desktop_render_background call re-resolves it instead of
  * continuing to draw whatever was cached from before the change.
@@ -96,18 +96,18 @@ bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
  * @brief Render, position, and decorate a single already-non-hidden
  *        client during a stacking-order render pass
  *
- * Applies the client's own border width (only when it actually changed,
+ * Applies the client's border width (only when it actually changed,
  * to avoid needless server round trips), maps or unmaps its
  * frame/titlebar/content window as appropriate for whether @p desktop
  * is the surface's currently displayed one, and either reconfigures its
  * full geometry and decoration (when @c is_outdated) or, more cheaply,
  * only refreshes focus-sensitive decoration colors (when
- * only @p desktop's own @c is_focus_dirty changed).
+ * only @p desktop's @c is_focus_dirty changed).
  *
  * Meant to be called directly for one specific client outside of an
  * ordinary full @a desktop_render_clients pass, e.g., by
  * @c policy/urgency.c to repaint just the urgent client(s) on an urgent
- * client's own blink-phase change, without forcing every other client
+ * client's blink-phase change, without forcing every other client
  * on the same desktop to repaint along with it.
  *
  * @param desktop    Desktop the client belongs to

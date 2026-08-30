@@ -38,8 +38,13 @@
  * client focus clicks, titlebar decoration buttons, desktop cycling,
  * and drag-start for configured move/resize/lower bindings.
  *
+ * A window being placed by hand takes the press ahead of all of them
+ * and settles where it goes: the pointer is already held by it, so the
+ * press is that question's answer and never a click on anything the
+ * rest would go on to resolve.
+ *
  * @param wm         Window manager instance, needed only for the
- *                    root-window right-click's own root menu
+ *                    root-window right-click's root menu
  * @param connection XCB connection
  * @param surfaces   All managed surfaces (for lookup and focus)
  * @param event      Button-press event
@@ -76,20 +81,20 @@ void mouse_handle_release(xcb_connection_t *connection,
  * The cursor re-evaluation runs unconditionally as long as the event is
  * a normal one (gated only by @p event->mode below, not by whether
  * focus-follows-mouse is even enabled).  A resizable client that
- * selects @c PointerMotion for its own purposes (common in GTK/Qt
- * applications tracking hover for their own UI) intercepts motion
+ * selects @c PointerMotion for its purposes (common in GTK/Qt
+ * applications tracking hover for their UI) intercepts motion
  * events at the X11 propagation level before
  * @a mouse_handle_motion_hover ever sees them, which otherwise leaves
  * whichever resize-border cursor was last set stuck for as long as the
- * pointer stays over that client's own content.  This enter-notify
+ * pointer stays over that client's content.  This enter-notify
  * still fires reliably even then, since it is selected directly on the
- * client's own window (cfr. @c client.c), giving the cursor logic
+ * client's window (cfr. @c client.c), giving the cursor logic
  * a second, independent chance motion alone might have missed.
  *
  * Focus itself is then applied to the client under the pointer only
  * when the configured focus policy is @c sloppy.  Normal events on
  * managed client frames raise no stacking change; an inferior
- * transition (entering this same client's own content area from its
+ * transition (entering this same client's content area from its
  * frame) skips focus re-evaluation, since the client was already
  * focused to get there, but still gets the cursor re-evaluation above.
  *

@@ -23,8 +23,7 @@
  *      Each passing hour doth remind me of the ill-advised choices of
  *      yore; verily, I remain a prisoner of mine own flawed creations.
  *
- * Regarding my rambling selves of yesteryear, on Sat Feb 14 11:36
- * CET 2026:
+ * Regarding my rambling selves of yesteryear (Sat Feb 14 11:36 CET 2026):
  *      Pish!  Let it matter not, ye idle knaves!  I shall alter naught!
  *
  * Regarding the self now undone by toil (Sun Aug 09 04:38 CET 2026):
@@ -71,9 +70,9 @@ static char s_missing_theme_file[CONFIG_MAX_LENGTH_PATH_THEME] = "";
 
 /**
  * @brief Populate the configuration structure with an ordinary
- *        session's own default values
+ *        session's default values
  *
- * A thin dispatcher that delegates to each module's own
+ * A thin dispatcher that delegates to each module's
  * @a config_set_default_*_values (@c config/base/defaults.c,
  * @c config/randr.c, @c config/bindings.c, @c config/a11y.c,
  * @c config/theme.c), rather than setting any field directly itself.
@@ -88,8 +87,8 @@ static char s_missing_theme_file[CONFIG_MAX_LENGTH_PATH_THEME] = "";
  *       need to be set, across every module this delegates to
  *
  * @see @a config_set_default_values_memguard in @c config/memguard.h
- *      for its own completely separate profile, which this function
- *      knows nothing about.
+ *      for its completely separate profile, which this function
+ *      knows nothing about
  */
 static void s_config_set_default_values(config_td *config)
 {
@@ -122,9 +121,9 @@ void config_resolve_dir(const char *restrict config_dir_prefix,
 }
 
 
-/* Settle a theme's own final display name, once it is known whether
+/* Settle a theme's final display name, once it is known whether
  * a theme file was actually loaded and whether that file itself set
- * its own "name" */
+ * its "name" */
 void config_resolve_theme_name(struct config_theme_s *theme,
         const char *theme_file_name, bool theme_loaded)
 {
@@ -148,7 +147,7 @@ void config_resolve_theme_name(struct config_theme_s *theme,
 
     if (theme->name[0] == '\0') {
         /* The loaded file set no "name" of its own: falls back to the
-         * file's own short name (the same string "theme": "<this>" in
+         * file's short name (the same string "theme": "<this>" in
          * memguard.json/config.json names, not a path or the ".json"
          * extension), same as if that had been its "name" all along. */
         safe_strncpy(theme->name, theme_file_name, sizeof(theme->name));
@@ -157,8 +156,8 @@ void config_resolve_theme_name(struct config_theme_s *theme,
 
     /* Built with explicit, provably bounded 'memcpy' calls rather than
      * 'snprintf' with two '%s' arguments of a priori unknown length:
-     * GCC's own '-Wformat-truncation' analysis cannot trace that the
-     * combined length here can never exceed 'combined''s own size
+     * GCC's '-Wformat-truncation' analysis cannot trace that the
+     * combined length here can never exceed 'combined''s size
      * through reasoning this indirect, and warns as if the call could
      * write past it even though it provably cannot, the very same
      * issue, and the same fix, already applied in 's_message_wrap_text'
@@ -298,12 +297,12 @@ int config_load(config_td *config, const char *config_prefix)
             "%s/%s/%s.json", config_dir, CONFIG_DIR_THEMES,
             config->base.theme);
 
-    /* Reset every field back to its own known default first, on every
+    /* Reset every field back to its known default first, on every
      * call here, not just the first: 'config_load_theme' below only
      * ever overwrites whichever fields the theme file itself specifies,
      * so without this a reload that switched to a theme missing some
      * field the previous one did specify would leave that field stuck
-     * at the old theme's own value instead of falling back to this
+     * at the old theme's value instead of falling back to this
      * default. */
     config_set_default_theme_values(&config->theme);
 
@@ -320,7 +319,7 @@ int config_load(config_td *config, const char *config_prefix)
          * there itself: a theme file that exists but fails to parse is
          * a syntax error like any other JSON file's, and already
          * covered that way; a theme file that simply is not there at
-         * all is a different, narrower case, worth its own note (see
+         * all is a different, narrower case, worth its note (see
          * 'config_missing_theme_get') precisely because that one,
          * unlike a syntax error, is otherwise silent by design. */
         uint32_t syntax_errors_before = json_syntax_errors_count();

@@ -231,11 +231,11 @@ int logger_start(const char *filename,
  * normal flush like any other shutdown.  Only a genuine crash gets
  * here.
  *
- * @note Takes no lock, and so reads the buffer unsynchronised.  A
+ * @note Takes no lock, and so reads the buffer unsynchronized: a
  *       handler blocking on a mutex the interrupted code already held
- *       would hang the process rather than let it die.  This is safe
- *       only because the program runs a single thread; see the
- *       function's own comment
+ *       would hang the process rather than let it die
+ * @note Safe only because the program runs a single thread, as the
+ *       comment on the function itself sets out
  * @note Frees nothing and resets nothing: the process re-raises the
  *       signal immediately afterwards, and the allocator is not
  *       async-signal-safe either
@@ -283,7 +283,7 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 /**
  * @brief Logger helper macro for various severity levels
  *
- * Macro that calls the @a LOGGER_* macros with the appropriate level
+ * Macro that calls the @a LOGGER_* macros with the appropriate level.
  *
  * @param level Message level
  * @param msg   Message format string, or @c NULL if no additional

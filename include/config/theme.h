@@ -80,10 +80,11 @@ struct config_theme_style_s {
      * @brief Desired opacity, 0 to 100, published through
      *        @c _NET_WM_WINDOW_OPACITY
      *
-     * @note IcoWM never composites anything itself, it only publishes
-     *       the atom on the relevant window, converted to the 32-bit
-     *       range that atom expects.  Without a compositing manager,
-     *       e.g., @c picom, running, this has no visible effect at all.
+     * @note IcoWM composites nothing itself and only publishes the
+     *       atom on the window concerned, converted to the 32-bit
+     *       range that atom expects
+     * @note Without a compositing manager running, @c picom among
+     *       them, this has no visible effect whatever
      *
      * @see @a config_theme_opacity_to_raw in @c config.h
      */
@@ -129,7 +130,7 @@ struct config_theme_s {
             struct {
                 /**
                  * @brief Button glyph colors, independent of the
-                 *        titlebar's own text foreground
+                 *        titlebar's text foreground
                  *
                  * - @p on for a button whose state is currently engaged
                  *   (pinned, a non-normal layer, or simply the
@@ -164,11 +165,11 @@ struct config_theme_s {
         bool is_captioned;
 
         /**
-         * @brief Draw the client's own @c _NET_WM_ICON image
+         * @brief Draw the client's @c _NET_WM_ICON image
          *
          * The image is centered in the icon window's square
          * icon-graphic area, above the caption text; the two never
-         * overlap, since the caption has its own separate strip below
+         * overlap, since the caption has its separate strip below
          * that square.
          *
          * @see @p is_captioned
@@ -178,7 +179,7 @@ struct config_theme_s {
         bool show_pixmaps;
 
         /**
-         * @brief Draw the small state-hint indicators in the icon's own
+         * @brief Draw the small state-hint indicators in the icon's
          *        top corners
          *
          * A filled square in the top-left when the client is pinned,
@@ -210,7 +211,7 @@ struct config_theme_s {
                                  clipped */
 
         /**
-         * @brief Sizing for each docked icon's own embed window
+         * @brief Sizing for each docked icon's embed window
          *
          * Every docked icon is forced to exactly @p size by @p size
          * pixels regardless of whatever size it originally requested,
@@ -240,7 +241,7 @@ struct config_theme_s {
              *
              * Gap in between the battery status and the clock when more
              * than one is shown.  Has no effect on the inset between
-             * the text block as a whole and the tray's own edges, which
+             * the text block as a whole and the tray's edges, which
              * is fixed.
              *
              * @see @p pixmap.padding' above
@@ -259,13 +260,13 @@ struct config_theme_s {
     /**
      * @brief Default desktop background color
      *
-     * Used only as the fallback for a desktop whose own entry in
+     * Used only as the fallback for a desktop whose entry in
      * @p screens.settings.desktops (@c config.json) does not set its
      * own @p background-color; a desktop that does set one always keeps
      * it regardless of this.
      *
      * Also only ever used when no external tool (@c xsetbg, @c feh,
-     * @c nitrogen, &c.) has painted the root window with its own
+     * @c nitrogen, &c.) has painted the root window with its
      * wallpaper pixmap, exactly like an explicit per-desktop color.
      * Named @p color.background, matching every other themed section
      * (@p systray.color.background and so on), rather than
@@ -285,7 +286,7 @@ struct config_theme_s {
      *
      * Applies to every context menu (root menu, per-window menu, the
      * all-desktops window list, and their submenus) and to the
-     * @c Alt+Tab style cycle menu's own window chrome.  The cycle
+     * @c Alt+Tab style cycle menu's window chrome.  The cycle
      * menu's individual icon cells keep using @p icon.active /
      * @p icon.inactive above instead of this, since that is what
      * already themes "the icon currently selected while cycling"
@@ -296,7 +297,7 @@ struct config_theme_s {
          * @brief Text color for an entry that cannot currently be
          *        activated
          *
-         * For example @c maximize on a client that cannot be resized
+         * For example @c maximize on a client that cannot be resized.
          */
         uint32_t disabled_foreground;
 
@@ -304,17 +305,17 @@ struct config_theme_s {
         uint32_t separator_color;
 
         /**
-         * @brief The menu window's own outer frame, entries aside
+         * @brief The menu window's outer frame, entries aside
          *
-         * Distinct from any entry's own @p border (see @p unselected,
+         * Distinct from any entry's @p border (see @p unselected,
          * @p selected, @p label above): those draw a rectangle around
          * one row; this is the single window border XCB itself draws
          * around the whole menu.
          *
          * The @c Alt+Tab style cycle menu shares this same field for
-         * its own window frame, so a context menu and the cycle menu
+         * its window frame, so a context menu and the cycle menu
          * always present the same outer border regardless of whatever
-         * an entry's own border happens to be set to (including entries
+         * an entry's border happens to be set to (including entries
          * having none at all).
          */
         struct {
@@ -323,7 +324,7 @@ struct config_theme_s {
         } border;
 
         /**
-         * @brief Inset, in pixels, between the menu window's own edges
+         * @brief Inset, in pixels, between the menu window's edges
          *        and every row's text, and, for a submenu, its arrow
          *        indicator
          *
@@ -352,7 +353,7 @@ struct config_theme_s {
          *
          * Never highlighted or activated, so it never borrows
          * @p unselected or @p selected even though it can look similar
-         * by default
+         * by default.
          */
         struct config_theme_style_s label;
 
@@ -363,9 +364,9 @@ struct config_theme_s {
          * The same window-versus-row distinction as @p border above:
          * @c _NET_WM_WINDOW_OPACITY is a per-window property, so it
          * cannot vary row by row the way @p unselected / @p selected /
-         * @p label's own colors do, and lives here, a sibling of
+         * @p label's colors do, and lives here, a sibling of
          * @p border, rather than inside any one of those.  The cycle
-         * menu's own window shares this same field, the same way it
+         * menu's window shares this same field, the same way it
          * already shares @p border.
          *
          * @note IcoWM never composites anything itself, so this has no
@@ -376,7 +377,7 @@ struct config_theme_s {
         uint8_t opacity;
 
         /**
-         * @brief Draw the application's own icon to the left of the
+         * @brief Draw the application's icon to the left of the
          *        name, for whichever rows represent an actual client
          *        window
          *
@@ -389,7 +390,7 @@ struct config_theme_s {
          * The icon is sized to fit within the row, minus
          * @c WM_MENU_ICON_INSET on top and bottom.  A row whose client
          * has no icon of its own to draw still reserves that same
-         * square of blank space, so every row's own text stays aligned
+         * square of blank space, so every row's text stays aligned
          * in the same column regardless of which rows happen to have
          * one.
          *
@@ -402,7 +403,7 @@ struct config_theme_s {
     /**
      * @brief Fuzzy window-search widget theme (@c menu/search.h)
      *
-     * Its own dedicated section rather than reusing @p menu above: the
+     * Its dedicated section rather than reusing @p menu above: the
      * two happened to share identical values when the widget was
      * first built, but nothing ties them together architecturally, and
      * a person may want the widget to stand out from ordinary context
@@ -419,8 +420,8 @@ struct config_theme_s {
         /** Style for the hovered or keyboard-navigated result row */
         struct config_theme_style_s selected;
 
-        /** The widget window's own outer frame, the same
-         *  window-versus-row distinction @p menu.border's own doc
+        /** The widget window's outer frame, the same
+         *  window-versus-row distinction @p menu.border's doc
          *  comment gives */
         struct {
             uint32_t color;
@@ -438,7 +439,7 @@ struct config_theme_s {
         /** Style for the typed command */
         struct config_theme_style_s input;
 
-        /** The box's own outer frame */
+        /** The box's outer frame */
         struct {
             uint32_t color;
             uint32_t width;
@@ -497,10 +498,10 @@ struct config_theme_s {
         } label;
 
         /**
-         * @brief The dialog's own buttons ("Cancel", "Exit", &c.),
+         * @brief The dialog's buttons ("Cancel", "Exit", &c.),
          *        styled the same way as a menu entry
          *
-         * @note Not selected, or the keyboard-navigated choice.
+         * @note Not selected, or the keyboard-navigated choice
          */
         struct {
             struct config_theme_style_s unselected;
@@ -510,7 +511,7 @@ struct config_theme_s {
             uint32_t gap;
 
             /**
-             * @brief Inset, in pixels, between a button's own edges and
+             * @brief Inset, in pixels, between a button's edges and
              *        its label
              *
              * Shared by @p unselected and @p selected on purpose, since
@@ -543,7 +544,7 @@ struct config_theme_s {
      * @c _XSETTINGS_SETTINGS property) so that GTK/Qt applications
      * requesting to "use theme colors"/"system settings" pick up a real
      * theme, icon theme, cursor theme, and DPI instead of falling back
-     * to their own built-in defaults.
+     * to their built-in defaults.
      *
      * This is purely a theme concern, not a behavior one, hence living
      * here rather than in @p config_base_s: whether the manager runs at
@@ -570,7 +571,7 @@ struct config_theme_s {
     } xsettings;
 
     /**
-     * @brief Scratchpad's own border, since it never has any other
+     * @brief Scratchpad's border, since it never has any other
      *        decoration to theme
      *
      * Always undecorated.  @p width of @c 0 disables the border
@@ -591,7 +592,7 @@ struct config_theme_s {
      *        currently selected while cycling (@c Alt+Tab and its
      *        icon-menu counterpart)
      *
-     * Deliberately its own field, not a reuse of @p window.active's
+     * Deliberately its field, not a reuse of @p window.active's
      * own border: the two answer different questions ("is this
      * client focused" vs. "is this the one the cycle is pointing at
      * right now"), and a client already focused before cycling
@@ -599,17 +600,17 @@ struct config_theme_s {
      * color as the one currently selected, the only difference
      * being a few pixels of width, easy to miss at a glance.
      * Applied through @a render_outline_show/_move/_hide
-     * (render/outline.h), never through the target's own native
+     * (render/outline.h), never through the target's native
      * border width, so cycling never shifts the target by however
      * many pixels @p width itself happens to be, regardless of
-     * @p window.active/inactive's own configured width.
+     * @p window.active/inactive's configured width.
      *
      * @note A theme changing @p window.active/inactive away from
-     *       this project's own default color family should
+     *       this project's default color family should
      *       reconsider this field too, for the same reason a theme
      *       changing @p active without also changing @p inactive
      *       risks leaving the two indistinguishable from one
-     *       another.
+     *       another
      */
     struct {
         struct {

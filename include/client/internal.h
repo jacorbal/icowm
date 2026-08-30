@@ -46,7 +46,7 @@ int ci_alloc_strings(client_td *client);
 /**
  * @brief Apply decoration defaults from the loaded theme
  *
- * Reads @p client->config's own theme and a11y settings; a no-op if
+ * Reads @p client->config's theme and a11y settings; a no-op if
  * @p client is @c NULL, and falls back to @c WM_TITLEBAR_DEFAULT_HEIGHT
  * undecorated when @p client->config is @c NULL.
  *

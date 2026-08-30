@@ -32,13 +32,13 @@
 
 
 /**
- * @brief Refresh the client behind a genuine input event's own
+ * @brief Refresh the client behind a genuine input event's
  *        @c user_time, for @c _NET_ACTIVE_WINDOW focus-stealing
  *        prevention to compare against later
  *
- * @param ctx Main loop context, for its own surface list
+ * @param ctx Main loop context, for its surface list
  * @param window Window a real @c KeyPress or @c ButtonPress named as
- *               its own @c event field, i.e., the one that actually
+ *               its @c event field, i.e., the one that actually
  *               received it
  * @param response_type The raw, unmasked @c response_type off the
  *                       event itself, top bit included

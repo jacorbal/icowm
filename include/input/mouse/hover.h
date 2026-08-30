@@ -31,7 +31,7 @@
  *        matches @p window
  *
  * Call from the @c LeaveNotify handler for every window a client owns
- * (its own window at minimum), so a client the pointer has actually
+ * (its window at minimum), so a client the pointer has actually
  * left stops being polled; a stale poll target left set after the
  * pointer leaves would keep re-querying and re-applying a cursor to
  * a window the pointer is no longer over.
@@ -47,7 +47,7 @@ void mouse_hover_poll_clear(xcb_window_t window);
  * @brief Milliseconds until the tracked resize-cursor poll target
  *        should next be re-evaluated
  *
- * For the main loop to fold into its own @c poll timeout computation,
+ * For the main loop to fold into its @c poll timeout computation,
  * the same way @a popup_ms_remaining and similar already are, so the
  * loop wakes up promptly enough for @a mouse_hover_poll_tick to feel
  * responsive without polling on every single iteration regardless of
@@ -68,10 +68,10 @@ int mouse_hover_poll_ms_remaining(void);
  * @a mouse_handle_motion_hover or @a mouse_handle_enter to fall back
  * on.  Moving from its border to its interior (or back) happens
  * entirely within that one same window, with no window crossing
- * whatsoever for an @c EnterNotify to catch, and its own
- * @c PointerMotion may be just as intercepted by the client's own event
+ * whatsoever for an @c EnterNotify to catch, and its
+ * @c PointerMotion may be just as intercepted by the client's event
  * selection as any other client's (common in GTK/Qt applications
- * tracking hover for their own UI).  Periodically polling the actual
+ * tracking hover for their UI).  Periodically polling the actual
  * pointer position via @a xcb_query_pointer, which does not depend on
  * any event ever being delivered at all, is the only mechanism left
  * that still catches that transition; see @a mouse_handle_enter for

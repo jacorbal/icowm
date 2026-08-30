@@ -37,7 +37,7 @@
 /**
  * @brief How many entries the dispatch table holds
  *
- * An X event's own type occupies the low seven bits of its response
+ * An X event's type occupies the low seven bits of its response
  * type, the eighth being the synthetic marker, so this covers every
  * value one can carry.
  */
@@ -52,7 +52,7 @@ typedef void (*s_loop_dispatch_fn)(loop_ctx_td *ctx,
 /**
  * @brief Handle an event that is deliberately ignored
  *
- * Reparenting is the window manager's own doing, and its spurious
+ * Reparenting is the window manager's doing, and its spurious
  * @c UnmapNotify is already absorbed through @c ignore_unmap; a
  * created window, in turn, is adopted on @c MAP_REQUEST rather than
  * on creation, since one may well never be mapped at all.  Both are
@@ -392,7 +392,7 @@ static void s_loop_dispatch_circulate_request(loop_ctx_td *ctx,
 
 
 /**
- * @brief Route an extension event to its own handler, if it is one
+ * @brief Route an extension event to its handler, if it is one
  *
  * Neither XRandR nor XSync has a response type known at compile time:
  * the server assigns each extension a base at connection time and its

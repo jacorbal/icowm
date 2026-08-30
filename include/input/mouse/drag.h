@@ -6,7 +6,7 @@
  * Only the generic lifecycle every kind of drag shares (start, update,
  * end, cancel, and the small set of queries that apply regardless of
  * what is being dragged).  Icon-specific concerns live in
- * @c drag/icon.h, the feedback overlay window's own concerns in
+ * @c drag/icon.h, the feedback overlay window's concerns in
  * @c drag/overlay.h, and edge-triggered desktop warping in
  * @c drag/warp.h.
  *
@@ -74,7 +74,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
  * @c handler/ewmh.c).  The requesting client names which edge or
  * corner it wants resized directly, rather than icowm inferring one
  * from where the pointer happens to be, since that position (wherever
- * the client's own custom resize grip was clicked) has no fixed
+ * the client's custom resize grip was clicked) has no fixed
  * relationship to the client's actual border the way a normal
  * border-drag's position does.
  *
@@ -119,7 +119,7 @@ void drag_start_directed(xcb_connection_t *connection,
  * maximized or fullscreen client cannot be resized at all.  The other,
  * still-free axis keeps working exactly as a normal border drag would.
  * Calls @c drag_start for everything else (state recording, the pointer
- * grab, and its own normal per-axis inference from @p root_pos), then
+ * grab, and its normal per-axis inference from @p root_pos), then
  * clears whichever axis flag(s) @p axis_w_locked / @p axis_h_locked ask
  * for; if that leaves neither axis resizable at all (the grab point was
  * only ever near the locked edge), the drag is canceled outright via
@@ -139,8 +139,8 @@ void drag_start_directed(xcb_connection_t *connection,
  * @param axis_h_locked @c true to force the height axis unresizable
  *                      regardless of where @p root_pos fell
  *
- * @note Cfr.  Karp, O'Reilly, & Mott, 2005, 'Windows XP in a
- *       Nutshell', 2nd ed., ch. 2: "Maximized windows can't be moved
+ * @note Karp, O'Reilly, & Mott, 2005, 'Windows XP in a Nutshell',
+ *       2nd ed., ch. 2, put it as "Maximized windows can't be moved
  *       or resized"
  * @note Complexity: @e O(1)
  *

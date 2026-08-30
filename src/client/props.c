@@ -331,10 +331,10 @@ void client_props_refresh_normal_hints(client_td *client)
 
     /* ICCCM 4.1.2.3: a client that sets 'USPosition' or 'PPosition'
      * is making a specific, deliberate request for where it wants to
-     * appear, not leaving the decision to this window manager's own
+     * appear, not leaving the decision to this window manager's
      * placement policy; both flags are honored the same way, since
-     * ICCCM itself does not require distinguishing a user's own
-     * explicit choice (US) from a program's own default (P) here. */
+     * ICCCM itself does not require distinguishing a user's
+     * explicit choice (US) from a program's default (P) here. */
     if (hints.flags & (XCB_ICCCM_SIZE_HINT_US_POSITION |
                 XCB_ICCCM_SIZE_HINT_P_POSITION)) {
         client->hints_icccm.size.has_position = true;
@@ -365,7 +365,7 @@ void client_props_refresh_normal_hints(client_td *client)
     /* A client whose declared minimum and maximum are the same size
      * cannot be resized at all, and saying otherwise in
      * '_NET_WM_ALLOWED_ACTIONS' advertises a move, a resize and a
-     * maximize that its own 'WM_NORMAL_HINTS' forbids.  The flag is
+     * maximize that its 'WM_NORMAL_HINTS' forbids.  The flag is
      * kept in step with the hints on every update, in both
      * directions: a client is free to drop its maximum later and
      * become resizable again.
@@ -386,8 +386,8 @@ void client_props_refresh_normal_hints(client_td *client)
 
     /* Always wins over 'windows.gravity' in 'config.json' ('client.h',
      * 'layout.gravity' itself), including on a later hint update like
-     * this one, per ICCCM's own "MUST honor" mandate; that config field
-     * is a fallback for a client that never states its own gravity, not
+     * this one, per ICCCM's "MUST honor" mandate; that config field
+     * is a fallback for a client that never states its gravity, not
      * an override for one that does. */
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) {
         client->layout.gravity = (uint16_t) hints.win_gravity;
@@ -422,7 +422,7 @@ void client_props_refresh_normal_hints(client_td *client)
 }
 
 
-/* Refresh a client's own 'WM_COLORMAP_WINDOWS' list */
+/* Refresh a client's 'WM_COLORMAP_WINDOWS' list */
 void client_props_refresh_colormap_windows(client_td *client)
 {
     xcb_atom_t colormap_windows_atom;
@@ -450,8 +450,8 @@ void client_props_refresh_colormap_windows(client_td *client)
         return;
     }
 
-    /* ICCCM §4.1.8: the list is in the client's own priority order;
-     * entries past 'WM_COLORMAP_WINDOWS_MAX' are already its own
+    /* ICCCM §4.1.8: the list is in the client's priority order;
+     * entries past 'WM_COLORMAP_WINDOWS_MAX' are already its
      * lowest-priority ones, so simply not tracking them is the
      * correct degradation, not an arbitrary truncation. */
     n = (reply.windows_len < WM_COLORMAP_WINDOWS_MAX)

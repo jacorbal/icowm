@@ -1,7 +1,7 @@
 /**
  * @file menu/context/ctxmenu/select.c
  *
- * @brief Selection and activation of a context menu's own entries
+ * @brief Selection and activation of a context menu's entries
  *
  * One of the files
  * @c menu/context/ctxmenu/ is made of.
@@ -35,7 +35,7 @@
  *        triggered by the keyboard (@c Return / @c KP_Enter or a
  *        printable-character shortcut) or by a mouse click
  *
- * Set by @c ctxmenu_entry_activate itself from its own @p by_keyboard
+ * Set by @c ctxmenu_entry_activate itself from its @p by_keyboard
  * parameter, so that an entry's @c on_activate callback can query
  * @c ctxmenu_last_activation_was_keyboard to decide between a
  * keyboard-driven and a pointer-driven interaction (e.g., window move
@@ -76,7 +76,7 @@ bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
     surf = root->surface;
 
     /* Close first so keyboard and pointer grabs are released before the
-     * callback runs; this lets callbacks establish their own grabs */
+     * callback runs; this lets callbacks establish their grabs */
     ctxmenu_close(root);
 
     if (e.on_activate != NULL) {

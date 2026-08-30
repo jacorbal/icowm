@@ -66,9 +66,9 @@
 /**
  * @brief One window being placed by hand, or waiting its turn to be
  *
- * Every field is what the map this window is in the middle of will
- * need once its position is settled, kept here because the answer
- * arrives long after the map request that started it has returned.
+ * Every field is what the map this window is in the middle of will need
+ * once its position is settled, kept here because the answer arrives
+ * long after the map request that started it has returned.
  *
  * @note Every pointer comes first and the one 32-bit field last, so
  *       the layout carries no hole between fields
@@ -121,18 +121,18 @@ static struct timespec s_place_manual_due;
  *
  * The raw position, before the workarea clamp @a s_place_manual_geom
  * applies, so a pointer sitting still above the workarea top is
- * recognized as not having moved rather than compared against a
- * clamped value it can never equal.
+ * recognized as not having moved rather than compared against a clamped
+ * value it can never equal.
  */
 static struct position_s s_place_manual_pointer = { 0, 0 };
 
 /**
  * @brief Workarea the outline is kept inside, resolved once per window
  *
- * Surface-wide rather than clipped to one monitor: on a surface made
- * of several, the person points at whichever one they mean, and a
- * clamp against the monitor resolved when the question opened would
- * fight them for the whole of it.
+ * Surface-wide rather than clipped to one monitor: on a surface made of
+ * several, the person points at whichever one they mean, and a clamp
+ * against the monitor resolved when the question opened would fight
+ * them for the whole of it.
  */
 static struct geometry_s s_place_manual_wa = { { 0, 0 }, { 0u, 0u } };
 
@@ -148,13 +148,13 @@ static xcb_window_t s_place_manual_outline[4] = {
  * @brief The one window @a place_manual_enqueue may accept next, or
  *        @c NULL
  *
- * Set by @a place_window_manual, which the placement dispatcher
- * reaches only for a window this policy really does apply to, and read
- * once by @a place_manual_enqueue, which the map handler calls right
+ * Set by @a place_window_manual, which the placement dispatcher reaches
+ * only for a window this policy really does apply to, and read once by
+ * @a place_manual_enqueue, which the map handler calls right
  * afterwards.  Comparing identity rather than trusting the mark alone
- * is what keeps a rearrange pass, which places clients through the
- * same dispatcher and never enqueues any of them, from leaving a mark
- * behind that the next unrelated window would answer to.
+ * is what keeps a rearrange pass, which places clients through the same
+ * dispatcher and never enqueues any of them, from leaving a mark behind
+ * that the next unrelated window would answer to.
  */
 static client_td *s_place_manual_candidate = NULL;
 
@@ -172,9 +172,9 @@ static client_td *s_place_manual_candidate = NULL;
  *
  * @return Rectangle the outline occupies, in root coordinates
  *
- * @note Only the top and left edges are clamped, never the right or
- *       the bottom, so a window can still be put deliberately partway
- *       off those
+ * @note Only the top and left edges are clamped, never the right or the
+ *       bottom, so a window can still be put deliberately partway off
+ *       those
  * @note Complexity: @e O(1)
  */
 static struct geometry_s s_place_manual_geom(const client_td *client,
@@ -202,8 +202,8 @@ static struct geometry_s s_place_manual_geom(const client_td *client,
  * Called when the question opens and again on every answer that does
  * not settle it, so the wait measures silence rather than the age of
  * the question: someone moving the outline, by either device, is
- * plainly answering, and taking the window away from them mid-aim
- * would be the opposite of what the wait is for.
+ * plainly answering, and taking the window away from them mid-aim would
+ * be the opposite of what the wait is for.
  *
  * @note Leaves the previous deadline standing if the clock cannot be
  *       read, which at worst ends the question early rather than
@@ -473,7 +473,7 @@ static void s_place_manual_pop(void)
  *       queue, so anything it does in turn sees a queue that no longer
  *       mentions a window already settled
  * @note Complexity: @e O(q + n), where @e q is the number of windows
- *       waiting their turn and @e n the number of clients on the
+ *       waiting their turn and @e n is the number of clients on the
  *       desktop, from the map this hands on to
  */
 static void s_place_manual_settle(xcb_connection_t *connection,
@@ -497,8 +497,8 @@ static void s_place_manual_settle(xcb_connection_t *connection,
      * pointed at directly, so a window declaring center gravity would
      * have half its width taken off again and land left of where the
      * outline stood.  The same reasoning a splash screen's
-     * placement already follows ('place_window_apply', policy/
-     * placement/window.c). */
+     * placement already follows ('place_window_apply', in
+     * 'policy/placement/window.c'). */
     if (is_confirmed) {
         xcb_window_t target =
             (client_is_decorated(entry.client) &&
@@ -547,8 +547,8 @@ bool place_manual_enqueue(xcb_connection_t *connection, const wm_td *wm,
 
     /* Cleared on every call, accepted or not, so a mark left behind by
      * a placement pass that never enqueues anything (a desktop
-     * rearrange, which places every client through the same
-     * dispatcher) is never answered to by some later window */
+     * rearrange, which places every client through the same dispatcher)
+     * is never answered to by some later window */
     s_place_manual_candidate = NULL;
 
     if (connection == NULL || wm == NULL || surface == NULL ||
@@ -597,9 +597,9 @@ void place_manual_handle_motion(xcb_connection_t *connection,
 
     /* The X server can deliver a 'MotionNotify' reporting the position
      * the pointer is already resting at right after a grab starts, the
-     * same repeat a drag already skips ('drag_update', input/mouse/
-     * drag.c); acting on it would reconfigure 4 windows and flush for
-     * a rectangle that has not moved */
+     * same repeat a drag already skips ('drag_update', in
+     * 'input/mouse/drag.c'); acting on it would reconfigure 4 windows
+     * and flush for a rectangle that has not moved */
     if (root_pos.x == s_place_manual_pointer.x &&
             root_pos.y == s_place_manual_pointer.y) {
         return;

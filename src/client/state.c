@@ -1,9 +1,9 @@
 /**
  * @file client/state.c
  *
- * @brief What a client's own state means for its geometry
+ * @brief What a client's state means for its geometry
  *
- * Kept beside its own declarations in @c client/state.h rather than
+ * Kept beside its declarations in @c client/state.h rather than
  * among the rest of @c client.c.
  */
 /*

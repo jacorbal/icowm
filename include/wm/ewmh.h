@@ -9,7 +9,7 @@
  * the window manager happens to do, and because everything on the
  * other side of it belongs to somebody else's program.
  *
- * Only the root window's own properties are here.  What a client
+ * Only the root window's properties are here.  What a client
  * publishes about itself goes through @c cmds/client/ewmh.h, and what
  * a client asks of the window manager arrives at @c handler/ewmh.h.
  *
@@ -43,11 +43,11 @@
  *
  * @return @c 0 on success, or non-zero on failure
  *
- * @note No matching teardown: ths allocates nothing.  It publishes
- *       properties on the root window, and a property is not freed;
- *       it ceases to exist with the window that carries it.  The EWMH
- *       connection those properties are written through is another
- *       matter, and that one is freed by @a wm_stop.
+ * @note No matching teardown, this allocating nothing: it publishes
+ *       properties on the root window, and a property is not freed
+ *       but ceases to exist with the window carrying it
+ * @note The EWMH connection those properties are written through is
+ *       another matter, and is freed by @a wm_stop
  * @note Complexity: @e O(1)
  */
 int wm_ewmh_init(const wm_td *wm);

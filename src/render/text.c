@@ -44,7 +44,7 @@
  * @c render/glyph.c instead, the xcb-render/FreeType2/fontconfig
  * fallback used for a font name that does not resolve to an X core font
  * (e.g., a TrueType/OpenType family name most cursor and icon themes
- * install but the X server's own bitmap font set does not).
+ * install but the X server's bitmap font set does not).
  */
 enum s_text_backend_e {
     S_BACKEND_NONE = 0,
@@ -282,11 +282,11 @@ static size_t s_font_config_tokenize(const char *restrict input,
 
 /**
  * @brief Split off the trailing charset-spec token, if present, into
- *        its own registry and encoding parts
+ *        its registry and encoding parts
  *
  * The last token is a charset spec when it contains a hyphen and is
  * not one of the style keywords ('bold'/'italic'/'oblique'); it is
- * then removed from @p tokens (via @p ntok) and split at its own
+ * then removed from @p tokens (via @p ntok) and split at its
  * last hyphen into @p registry and @p encoding.
  *
  * @param tokens         Tokens produced by @a s_font_config_tokenize
@@ -1001,7 +1001,7 @@ int text_renderer_use_font(xcb_connection_t *connection,
      * bitmap X font set does not include).  Fall back to rendering it
      * through xcb-render/FreeType2/fontconfig instead, handing
      * fontconfig the caller's original string rather than the XLFD
-     * pattern just built for X11, since fontconfig has its own,
+     * pattern just built for X11, since fontconfig has its,
      * different pattern syntax.
      *
      * Never even attempted at all once
@@ -1166,7 +1166,7 @@ uint16_t text_string_measure(const char *text)
         return 0u;
     }
 
-    /* Counting decoded codepoints, not 'safe_strlen's own UTF-8 byte
+    /* Counting decoded codepoints, not 'safe_strlen's UTF-8 byte
      * count: 's_utf8_to_latin1' always draws exactly one glyph per
      * codepoint (the Latin-1 byte itself, or a '?' substitute for
      * anything further out), so a multi-byte accented character

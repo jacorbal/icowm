@@ -9,7 +9,7 @@
  * recorded event, the currently focused window, and additional metadata
  * such as the workspace name, workspace dimensions, and the available
  * area for clients.  It also holds the table of the clients that
- * belong to it; how those are stacked is not a desktop's own business
+ * belong to it; how those are stacked is not a desktop's business
  * and lives in @c policy/stacking.h.
  *
  * @defgroup desktop Virtual desktop management
@@ -52,7 +52,7 @@
  * @brief Stable primary seed used by desktop client hash tables
  *
  * The 32-bit golden ratio constant, @c floor(2^32 / phi), a classic
- * multiplicative hashing seed whose own bit pattern is already close to
+ * multiplicative hashing seed whose bit pattern is already close to
  * maximally irregular, making it a reliable fixed seed without needing
  * any further tuning of its own.
  *
@@ -64,9 +64,9 @@
  * @brief Stable secondary seed used by desktop client hash tables
  *
  * Not an arbitrary "different" value, since it is one of the two
- * mixing constants (@a murmurhash3_32's own @e fmix32 step,
+ * mixing constants (@a murmurhash3_32's @e fmix32 step,
  * @c utils/hash/murmurhash.c) MurmurHash3 itself already uses to
- * scramble its own output into a well-avalanched final hash.
+ * scramble its output into a well-avalanched final hash.
  *
  * Reusing it here as a seed, rather than picking a second unrelated
  * number, implies that both seeds are already independently well-vetted
@@ -77,15 +77,15 @@
 
 
 /**
- * @brief Forward declaration only: a surface owns its own desktops
+ * @brief Forward declaration only: a surface owns its desktops
  *        (@c surface.h includes this header, never the other way
  *        around), so this header can only ever reference
  *        @c surface_td through a pointer, never the full definition.
- *        Guarded (see @c surface.h's own matching guard) since
+ *        Guarded (see @c surface.h's matching guard) since
  *        whichever of the two headers a translation unit includes
  *        first sets it, so a later include of the other one skips
  *        redeclaring the exact same alias, illegal under strict C99
- *        (unlike C11) even for two textually identical typedefs.
+ *        (unlike C11) even for two textually identical typedefs
  */
 #ifndef SURFACE_TD_DECLARED
 #define SURFACE_TD_DECLARED
@@ -104,7 +104,7 @@ typedef struct desktop_s desktop_td;
  *
  * Each desktop can be customized with unique backgrounds and themes,
  * where the background can either be a solid color or a pixmap image.
- * The structure tracks its own active client, facilitating the
+ * The structure tracks its active client, facilitating the
  * management of user interactions within that desktop space.
  *
  * The @p is_outdated flag serves to identify when the desktop's
@@ -115,12 +115,12 @@ typedef struct desktop_s desktop_td;
 struct desktop_s {
 
     /**
-     * @brief Resolved pointer to this desktop's own XCB screen
+     * @brief Resolved pointer to this desktop's XCB screen
      *
      * Resolved once, in @a desktop_init, from the same
      * @a xcb_setup_roots_iterator walk already needed there to read
-     * this screen's own pixel dimensions; kept here afterward so every
-     * later caller that needs this desktop's own screen (e.g.,
+     * this screen's pixel dimensions; kept here afterward so every
+     * later caller that needs this desktop's screen (e.g.,
      * @a desktop_render_background, @c render/desktop.c) reads this
      * field directly instead of repeating that same @e O(n) walk again
      * from scratch, an @e O(1) lookup either way.
@@ -132,9 +132,9 @@ struct desktop_s {
 
 
     /**
-     * @brief This desktop's own surface's shared configuration
+     * @brief This desktop's surface's shared configuration
      *
-     * Always @c &surface->config (see @a desktop_init's own two
+     * Always @c &surface->config (see @a desktop_init's two
      * callers, surface.c and surface/switch.c), never a config from
      * any other source: every desktop on the same surface points at
      * the exact same @c config_td, so @p base and @p theme (what
@@ -176,19 +176,19 @@ struct desktop_s {
      *        itself folds in but scoped to each individual monitor
      *        instead of the whole surface at once
      *
-     * A strut whose own along-edge span (@c _NET_WM_STRUT_PARTIAL's
+     * A strut whose along-edge span (@c _NET_WM_STRUT_PARTIAL's
      * @c start/@c end) only covers part of the combined surface, a
      * panel docked to just one monitor in a multi-monitor setup being
      * the common case, still reduces @p workarea across the @e whole
-     * surface: EWMH's own strut model has no native notion of "which
+     * surface: EWMH's strut model has no native notion of "which
      * monitor" at all, a reservation from one of the four @e screen
-     * edges either way.  This array is this project's own answer,
-     * folding the exact same struts against each monitor's own
+     * edges either way.  This array is this project's answer,
+     * folding the exact same struts against each monitor's
      * along-edge span in turn instead of the whole surface's, so a
      * monitor with no panel of its own keeps its full physical area
      * here even while @p workarea, surface-wide, already reflects a
-     * neighboring monitor's own panel.  A monitor with no panel
-     * reservation touching it at all simply equals its own physical
+     * neighboring monitor's panel.  A monitor with no panel
+     * reservation touching it at all simply equals its physical
      * @c surface->monitors entry.
      *
      * Indices line up with @c surface->monitors, as
@@ -211,11 +211,11 @@ struct desktop_s {
 
     /**
      * @brief Whether at least one client on this desktop currently has
-     *        its own urgency hint set
+     *        its urgency hint set
      *
      * Kept correct by @a desktop_action_recompute_urgent
      * (@c desktop/dclient.c), called from every site that could change
-     * the answer.  A client's own urgency being set or cleared
+     * the answer.  A client's urgency being set or cleared
      * (@a ccmd_client_urge and @a ccmd_client_unurge, in
      * @c cmds/client/flags.c) while already on this desktop, and
      * a client entering or leaving it altogether
@@ -223,15 +223,15 @@ struct desktop_s {
      * this same file), which already covers a client created already
      * urgent, one destroyed while still urgent, and one sent to
      * a different desktop while still urgent.  Every one of those
-     * changes who this desktop's own set of clients is, not a client
-     * already on it changing its own urgency, the other case those two
+     * changes who this desktop's set of clients is, not a client
+     * already on it changing its urgency, the other case those two
      * functions exist to handle instead.
      *
-     * @note Not consulted by anything yet.  A hook for a future feature
-     *       (e.g., drawing this desktop's own entry differently while
-     *       the surface is showing a different one), included now so
-     *       a client's own urgency is never missed regardless of which
-     *       desktop it lands on.
+     * @note Consulted by nothing yet, being a hook for a later feature
+     *       such as drawing this desktop's entry differently while the
+     *       surface shows another
+     * @note Recorded now all the same, so that a client's urgency is
+     *       never missed whichever desktop it lands on
      */
     bool is_urgent;
 
@@ -246,7 +246,7 @@ struct desktop_s {
  * @param connection Pointer to the XCB connection
  * @param screen_id  Screen identifier where this desktop belongs
  * @param desktop_id Desktop identifier
- * @param config     This desktop's own surface's shared configuration
+ * @param config     This desktop's surface's shared configuration
  *
  * @return Pointer to new desktop or @c NULL otherwise
  *
@@ -273,8 +273,8 @@ void desktop_destroy(desktop_td *desktop);
  * @brief Mark a desktop and every one of its own clients as outdated
  *
  * @c desktop_render_one_client and @c ri_render_client_icon (both
- * render/desktop.c and render/icon.c) each gate their own repaint on
- * the specific client's own @c is_outdated, not just its desktop's:
+ * render/desktop.c and render/icon.c) each gate their repaint on
+ * the specific client's @c is_outdated, not just its desktop's:
  * marking only @p desktop itself, the mistake this function exists
  * to stop repeating, correctly triggers a render pass for @p desktop
  * but that pass then skips every one of its own clients, since none
@@ -326,7 +326,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client);
  * Removes @p client from @p from, adds it to @p to, and records the
  * new desktop on the client itself, all as one step: a removal that
  * is followed by a failed insertion would otherwise leave the client
- * in no desktop's own table at all, still mapped on screen, reachable
+ * in no desktop's table at all, still mapped on screen, reachable
  * through nothing.  On such a failure the client is put back where it
  * came from and @p client keeps naming its original desktop.
  *
@@ -348,7 +348,7 @@ int desktop_action_client_move(desktop_td *from, desktop_td *to,
 /**
  * @brief Find the client on a desktop matching a given client ID
  *
- * @param desktop Desktop whose own clients are searched
+ * @param desktop Desktop whose clients are searched
  * @param id Client ID to search for
  *
  * @return Pointer to the matching client, or @c NULL if @p desktop is
@@ -364,7 +364,7 @@ client_td *desktop_find_client_by_id(const desktop_td *desktop,
  * @brief Recompute @p desktop->is_urgent from scratch, against every
  *        client currently on it
  *
- * @param desktop Desktop to recompute; a no-op if @c NULL or its own
+ * @param desktop Desktop to recompute; a no-op if @c NULL or its
  *                @p clients table is
  *
  * @note Complexity: @e O(n), where @e n is the number of clients
@@ -463,7 +463,7 @@ int desktop_action_process_launch(desktop_td *desktop,
 /**
  * @brief Launch a new process, overriding its @c WM_CLASS
  *
- * The override only takes effect if the launched application's own
+ * The override only takes effect if the launched application's
  * toolkit honors the standard @c RESOURCE_NAME/RESOURCE_CLASS
  * environment variables this sets in the child before @c execvp; not
  * every toolkit does, so a caller matching the eventually-created
@@ -472,7 +472,7 @@ int desktop_action_process_launch(desktop_td *desktop,
  *
  * @param desktop         Pointer to the desktop to receive the action
  * @param executable_path Path to the binary file
- * @param class_name      @c WM_CLASS to request via the child's own
+ * @param class_name      @c WM_CLASS to request via the child's
  *                        environment; @c NULL or empty leaves it alone
  * @param out_pid         If non-@c NULL, receives the launched
  *                        process's PID on success; left untouched on
@@ -493,15 +493,15 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
 
 /**
  * @brief Recompute the desktop work area from active client struts,
- *        the systray's own reservation, and configured margins
+ *        the systray's reservation, and configured margins
  *
  * Scans all clients in the stacking list for non-zero @c _NET_WM_STRUT
  * / @c _NET_WM_STRUT_PARTIAL values, folds in @p systray_strut (the
- * window manager's own built-in systray reservation, aggregated exactly
- * like a client's strut since the systray's own dock window is never
+ * window manager's built-in systray reservation, aggregated exactly
+ * like a client's strut since the systray's dock window is never
  * itself a managed client).
  *
- * The same way, adds @p config_desktop's own @p margins on top of that
+ * The same way, adds @p config_desktop's @p margins on top of that
  * and subtracts the combined maximum reservation on each edge from the
  * full screen dimensions.  For partial struts, the corresponding
  * start/end range is honored so reservations that do not overlap the
@@ -512,23 +512,23 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
  *
  * Repeats the same reservation math once more per individual monitor
  * on @p surface, storing the result in
- * @c desktop->monitor_workareas, whose own comment in this same
+ * @c desktop->monitor_workareas, whose comment in this same
  * file says why: each
- * monitor's own along-edge span, rather than the whole surface's, is
- * what a strut's own start/end range is checked against there, so a
+ * monitor's along-edge span, rather than the whole surface's, is
+ * what a strut's start/end range is checked against there, so a
  * monitor with no panel of its own keeps its full area even while a
- * neighboring monitor's own panel already reduces @p workarea,
+ * neighboring monitor's panel already reduces @p workarea,
  * surface-wide.  A configured margin, having no start/end of its own
- * to scope it the way a strut's own does, only ever reduces a given
- * monitor's own entry on whichever of its four sides actually
- * coincides with that same side of the whole surface (its own left
+ * to scope it the way a strut's does, only ever reduces a given
+ * monitor's entry on whichever of its four sides actually
+ * coincides with that same side of the whole surface (its left
  * edge sits at surface @c x=0, say); elsewhere, an internal boundary
  * between two monitors is not "the screen edge" a margin is meant to
  * carve out in the first place.
  *
  * Call this after a panel (strut client) is mapped or unmapped, after
- * the systray's own reservation changes (reposition, resize, or being
- * shown/hidden), after @p surface's own monitor list itself changes
+ * the systray's reservation changes (reposition, resize, or being
+ * shown/hidden), after @p surface's monitor list itself changes
  * (a RandR hotplug), and after a configuration reload that may have
  * changed @p margins, so that maximize and smart-placement work on
  * the correct available area.
@@ -541,14 +541,14 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
  * @param config_desktop Active desktop-behavior configuration, for
  *                       its @p margins; a @c NULL treats every margin
  *                       as @c 0, same as if none were configured
- * @param systray_strut  The systray's own current reservation on
+ * @param systray_strut  The systray's current reservation on
  *                       @p desktop's surface; a @c NULL value folds in
  *                       nothing, same as if the systray reserved no
  *                       space
  * @param ignore_struts  When @c true, neither @p systray_strut nor any
- *                       client's own @c _NET_WM_STRUT_PARTIAL is
- *                       folded in, only @p config_desktop's own
- *                       @p margins (the surface's own "full surface"
+ *                       client's @c _NET_WM_STRUT_PARTIAL is
+ *                       folded in, only @p config_desktop's
+ *                       @p margins (the surface's "full surface"
  *                       distraction-free toggle; see
  *                       @a surface_action_toggle_strutless_maximize,
  *                       surface.h): a deliberate, static reservation

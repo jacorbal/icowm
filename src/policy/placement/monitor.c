@@ -51,15 +51,14 @@
 /**
  * @brief Resolve the monitor a placement decision should target
  *
- * Under @c CONFIG_PLACEMENT_MONITOR_PRIMARY, always returns
- * @p surface's primary monitor.
- * Under @c CONFIG_PLACEMENT_MONITOR_POINTER (the default), queries the
- * pointer and returns whichever monitor it is currently over, or
- * a degenerate (zero-area) geometry if the query fails; passing that on
- * to @a placement_clip_to_monitor is safe, since its intersection
- * against
- * a zero-area rectangle is always empty, which is exactly what makes it
- * leave its inputs unclipped.
+ * - Under @c CONFIG_PLACEMENT_MONITOR_PRIMARY, always returns
+ *   @p surface's primary monitor.
+ * - Under @c CONFIG_PLACEMENT_MONITOR_POINTER (the default), queries
+ *   the pointer and returns whichever monitor it is currently over, or
+ *   a degenerate (zero-area) geometry if the query fails; passing that
+ *   on to @a placement_clip_to_monitor is safe, since its intersection
+ *   against a zero-area rectangle is always empty, which is exactly
+ *   what makes it leave its inputs unclipped.
  *
  * @param wm             Window manager state, for the pointer query
  * @param surface        Surface to resolve a monitor on
@@ -149,13 +148,14 @@ void placement_clip_to_monitor(const surface_td *surface,
  * A dialog should appear next to the window it belongs with, and
  * a fresh window from an application already running elsewhere should
  * appear next to that application, not wherever the pointer or the
- * primary monitor happens to be instead: checked in order, a specific
- * transient parent first (or, for a client transient for the whole
- * group per ICCCM §4.1.2.6, the resolved anchor, then any
- * currently-mapped sibling sharing the same group leader on this same
- * desktop.  Falls through to @a s_reference_monitor unchanged whenever
- * neither search finds a candidate, or the candidate found resolves to
- * a degenerate (zero-area) monitor.
+ * primary monitor happens to be instead.
+ *
+ * Checked in order, a specific transient parent first (or, for a client
+ * transient for the whole group per ICCCM §4.1.2.6, the resolved
+ * anchor, then any currently-mapped sibling sharing the same group
+ * leader on this same desktop.  Falls through to @a s_reference_monitor
+ * unchanged whenever neither search finds a candidate, or the candidate
+ * found resolves to a degenerate (zero-area) monitor.
  *
  * @param wm             Window manager state, for the pointer query
  *                       @a s_reference_monitor falls back to

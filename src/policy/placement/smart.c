@@ -180,7 +180,7 @@ struct s_edge_ctx_s {
 
 
 /**
- * @brief Try the four spots flush against one window's own edges
+ * @brief Try the four spots flush against one window's edges
  *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_edge_ctx_s this walk carries
@@ -254,7 +254,7 @@ static void s_place_window_edge_visit(client_td *client, void *data)
  * a candidate anchored at the tray's edge instead, until this).
  * Fetched fresh from @a systray_get_geometry for this one placement
  * decision, then passed to every @a placement_free_rect_grow /
- * @a placement_score_window_pos call the same way @p desktop's own
+ * @a placement_score_window_pos call the same way @p desktop's
  * clients already are.  Affects placement scoring only, nothing about
  * the tray becoming movable, iconifiable, or otherwise actable on the
  * way a real window is.

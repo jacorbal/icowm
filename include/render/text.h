@@ -48,7 +48,7 @@
  * a case-sensitive match but not under one that ignores case (e.g.,
  * a hipothetical Xft family literally named "Fixed Bold", capitalized,
  * distinct from the plain lowercase "fixed bold" restricted-memory
- * mode's own font substitution rule intentionally treats as the X core
+ * mode's font substitution rule intentionally treats as the X core
  * family instead) without relying on that font-name matching to be
  * perfect.
  *
@@ -200,7 +200,7 @@ void text_truncate_to_width(char *buf, size_t buf_size,
  *
  * Together with @a text_font_descent, lets a caller vertically center
  * or top/bottom-align a line of text against a known pixel height
- * without needing its own hardcoded assumption about font metrics: the
+ * without needing its hardcoded assumption about font metrics: the
  * Y coordinate @a text_draw_string expects is the baseline, so placing
  * text @p top pixels from the top of a box of height @p box_h means
  * passing @c top @c + @a text_font_ascent() as that Y coordinate.

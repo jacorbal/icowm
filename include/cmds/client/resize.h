@@ -37,14 +37,14 @@ void ccmd_client_resize(client_td *client, struct geometry_s geom);
  * @brief Resize the client to new dimensions immediately, bypassing
  *        any in-flight @c _NET_WM_SYNC_REQUEST throttling
  *
- * @c ccmd_client_resize's own queue-behind-the-outstanding-
+ * @c ccmd_client_resize's queue-behind-the-outstanding-
  * acknowledgment behavior exists to avoid piling up unacknowledged
  * configures during a live sequence of rapid resize calls (an
  * ordinary interactive drag).  It is the wrong behavior for a single,
  * already-final geometry with no further calls to follow, since a
  * client that happens to still be mid-exchange from an earlier,
  * unrelated resize would otherwise have this one silently queued
- * behind that exchange's own @c AlarmNotify, with nothing left to
+ * behind that exchange's @c AlarmNotify, with nothing left to
  * ever flush it once no further resize call arrives to retry it.
  * Callers with exactly that shape (one call, known to be the last)
  * should call this instead of @a ccmd_client_resize.

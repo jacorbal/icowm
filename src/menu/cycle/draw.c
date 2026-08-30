@@ -85,8 +85,8 @@ static void s_cycle_row_style(const config_td *config,
     style->icon_offset = 0;
     style->icon_size = 0u;
 
-    /* Space reserved for a row's own client icon plus one more gap (the
-     * same width as the menu's own left padding) before its label; see
+    /* Space reserved for a row's client icon plus one more gap (the
+     * same width as the menu's left padding) before its label; see
      * 'theme.menu.show-pixmaps''s comment in 'config.h' and
      * 'WM_MENU_ICON_INSET' in 'defs/ctxmenu.h' */
     if (config->theme.menu.show_pixmaps) {
@@ -117,12 +117,12 @@ static void s_cycle_row_style(const config_td *config,
  * @param i          Absolute entry index to draw, not one relative
  *                   to the viewport; must fall within the current
  *                   viewport
- * @param pad_y      Vertical padding, for this row's own Y offset
+ * @param pad_y      Vertical padding, for this row's Y offset
  * @param style      Drawing constants from @a s_cycle_row_style
  *
  * @note Complexity: @e O(1)
  *
- * @see @a cycle_draw's own comment for when repainting happens
+ * @see @a cycle_draw's comment for when repainting happens
  */
 static void s_cycle_draw_row(xcb_connection_t *connection, int i,
         int16_t pad_y, const struct s_cycle_row_style_s *style)
@@ -169,7 +169,7 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
         text_x = (int16_t) (style->pad_x + style->icon_offset);
     }
 
-    /* Truncate against the menu's own width rather than the label's
+    /* Truncate against the menu's width rather than the label's
      * own measured width, so a title long enough to have already
      * capped 'menu_w' at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' when the
      * menu opened (see 'cycle_init' in menu/cycle.c) is cut to match
@@ -191,21 +191,21 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
  * @brief Resolve the on-screen rectangle a cycle-selection outline
  *        should surround for a given target
  *
- * For a decorated window target, @p client's own tracked frame
+ * For a decorated window target, @p client's tracked frame
  * geometry already reflects everything drawn on screen.  An
- * undecorated one is grown by its own native border width, for the
+ * undecorated one is grown by its native border width, for the
  * reason given at that branch below.  For an icon target,
  * that geometry is not tracked anywhere on @p client itself, so it is
  * recomputed here the same way @c ccmd_client_ensure_icon_window
  * (cmds/client/icon.c) originally sized the icon window:
  * @c WM_ICON_SQUARE_SIZE alone when @p theme.icon.is-captioned is off,
  * plus @c WM_ICON_CAPTION_HEIGHT when it is on, since the icon
- * window's own real height already includes room for that caption
+ * window's real height already includes room for that caption
  * text underneath the pixmap, not just the square icon area above
- * it.  Also grown by twice the icon's own native border width, X11
+ * it.  Also grown by twice the icon's native border width, X11
  * drawing that border outside a window's core rectangle rather than
  * inside it: without this the outline would sit just inside the
- * icon's own visible border rather than around the whole of it.  The
+ * icon's visible border rather than around the whole of it.  The
  * position is left alone, for the reason given at the window branch
  * below.
  *
@@ -247,12 +247,12 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
         return geom;
     }
 
-    /* A decorated client's own 'layout.geometry.cur' is its frame
+    /* A decorated client's 'layout.geometry.cur' is its frame
      * rectangle, which already covers everything drawn for it, so it
      * is outlined as it stands.
      *
      * An undecorated one has no frame at all: the geometry is the
-     * client window's own core rectangle, and its border is an X11
+     * client window's core rectangle, and its border is an X11
      * native border, which the server draws entirely outside that
      * rectangle rather than inside it (see the render pass, which
      * has to compensate the position for exactly the
@@ -260,7 +260,7 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
      * rectangle alone therefore falls short by one border width on
      * every side.
      *
-     * Only the size is adjusted, never the position: a window's own
+     * Only the size is adjusted, never the position: a window's
      * x and y are already the upper-left corner of its outer
      * rectangle, border included, so the border grows a window
      * rightward and downward alone (X Consortium, 1994, "X Window
@@ -269,7 +269,7 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
      * border width above and to the left of the window. */
     if (!client_is_decorated(client) || client->frame == 0) {
         /* Asked with 'ignore_frame' set, since what is wanted is the
-         * width actually drawn on this client's own window, and with
+         * width actually drawn on this client's window, and with
          * the active style, which is what a client being cycled to is
          * wearing by the time the outline goes around it. */
         const uint32_t bw = client_border_width(client, true, true);
@@ -314,8 +314,8 @@ static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
     } else if (client != NULL &&
             ((client_is_decorated(client) && client->frame != 0) ||
              client_is_fullscreen(client))) {
-        /* No border for a decorated client's own frame (it already
-         * has its own themed border painted elsewhere), and none for
+        /* No border for a decorated client's frame (it already
+         * has its themed border painted elsewhere), and none for
          * a fullscreen client either: applying the normal window
          * border width here would paint a real, visible border over
          * fullscreen content (e.g., mpv, undecorated from the start),
@@ -503,7 +503,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
          * icon needs it already uses (see 's_cycle_repaint_icon' in
          * menu/cycle.c): active colors, caption, and hint indicators
          * all included, deliberately just the pixmap left out,
-         * rather than this function's own separate, previously
+         * rather than this function's separate, previously
          * duplicated implementation, which (unlike that shared one)
          * never learned to omit the pixmap here at all. */
         ri_render_client_icon(selected, true, true);
@@ -512,11 +512,11 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     xcb_window_stack_below(selected_target, g_cycle_menu.window);
 
     /* The cycle-selection outline itself: a separate overlay (see
-     * render/outline.h), never the target's own native border width,
+     * render/outline.h), never the target's native border width,
      * so switching selection never shifts the target by however many
      * pixels 'theme.cycle.border.width' happens to be.  Created once,
      * the first time a selection is applied after 'cycle_init', then
-     * simply moved to each new selection's own rectangle afterward;
+     * simply moved to each new selection's rectangle afterward;
      * 'cycle_destroy' is the one place these 4 windows are ever
      * destroyed.  Deliberately placed here, after 'selected_target'
      * has already been stacked below the menu just above: 'stack
@@ -524,7 +524,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
      * whatever was already immediately below it one step further
      * away, so whichever of these two calls runs last ends up on
      * top of the other.  Outlining a target only to have that same
-     * target's own stacking request immediately bury the outline
+     * target's stacking request immediately bury the outline
      * behind it again defeats the whole point of drawing one. */
     if (g_cycle_menu.outline_windows[0] == XCB_WINDOW_NONE) {
         render_outline_show(connection,
@@ -610,7 +610,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
      *
      * 'menu_draw_label' positions text by its baseline, and the
      * top/bottom padding strips are each only 'pad_y' pixels tall (the
-     * default theme's 4px is smaller than most fonts' own ascent), so
+     * default theme's 4px is smaller than most fonts' ascent), so
      * a naive baseline offset clips the glyph against whichever window
      * edge is closer: the top indicator's baseline sits at the font's
      * own ascent from Y=0 (see 'text_font_ascent'), keeping it below

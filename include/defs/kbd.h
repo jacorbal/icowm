@@ -4,7 +4,7 @@
  * @brief X11 keysym and modifier-mask constants, and other fixed
  *        tunables, used across the keyboard input subsystem
  *
- * Every fixed X11 keysym value (as defined by the X11 protocol's own
+ * Every fixed X11 keysym value (as defined by the X11 protocol's
  * @c keysymdef.h, never configurable) and modifier-mask alias this
  * window manager compares a pressed key or held modifier against lives
  * here, so a given key is always named the same way regardless of which
@@ -37,9 +37,9 @@
  *        pressed key against
  *
  * Named the same as the corresponding @c XK_* macro in the X11
- * protocol's own @c keysymdef.h, minus the @c XK_ prefix, so any of
+ * protocol's @c keysymdef.h, minus the @c XK_ prefix, so any of
  * these can be looked up there directly by name if ever in doubt.
- * @c KS_FKEY_BASE is the one exception, for not a keysym in its own
+ * @c KS_FKEY_BASE is the one exception, for not a keysym in its
  * right, but the arithmetic base @c (KS_FKEY_BASE + n) resolves to
  * @c F1 through @c F12 for @c n in 1-12.
  *
@@ -111,9 +111,9 @@
  *        between two program launches it actually dispatches
  *
  * Holding a @c KEYBIND_LAUNCH_* binding down repeats the same launch
- * on every one of X11's own key-repeat events for as long as it stays
+ * on every one of X11's key-repeat events for as long as it stays
  * held, exactly like a plain, unmodified key would in any text field;
- * nothing about this window manager's own key handling distinguishes
+ * nothing about this window manager's key handling distinguishes
  * a genuine fresh press from a repeat.  Left unthrottled, this can
  * launch new processes faster than this window manager, the X server,
  * and the newly launched applications themselves can cleanly keep up

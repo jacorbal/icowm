@@ -56,12 +56,12 @@
  * @param surfaces List of available surfaces to search in, or @c NULL
  * @param root     X11 root window identifier used as lookup key
  *
- * @return Pointer to the matching @c surface_td, or the first surface
- *         in the list if no match is found; returns @c NULL if
- *         @p surfaces is null or empty.
+ * @return The matching @c surface_td, or the first surface in the
+ *         list where none matches, or @c NULL where @p surfaces is
+ *         null or empty
  *
- * @note Intended for use when a specific root surface may not exist
- *       yet, providing a reasonable default for callers.
+ * @note Meant for the moments when a particular root surface may not
+ *       exist yet, giving the caller a sensible default
  */
 static surface_td *s_lookup_surface_fallback(list_td *surfaces,
         xcb_window_t root)

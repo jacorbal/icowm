@@ -9,7 +9,7 @@
  * goes through this one helper, so the whole project draws cursors from
  * the user's actual cursor theme (the same one published via
  * @p xsettings.cursor-theme-name) via @c libxcb-cursor, rather than the
- * fixed, low-resolution glyphs built into the X server's own "cursor"
+ * fixed, low-resolution glyphs built into the X server's "cursor"
  * font.  The X core font is used only as an automatic fallback, for
  * a cursor name the active theme happens not to provide.
  *
@@ -37,7 +37,7 @@
  * Wraps a @c libxcb-cursor theme lookup handle, plus (opened lazily,
  * only if ever actually needed) the X core "cursor" font used for the
  * fallback path.  Reusing one context to load several cursors avoids
- * repeating the theme lookup's own setup cost for each one.
+ * repeating the theme lookup's setup cost for each one.
  */
 typedef struct util_cursor_ctx_s util_cursor_ctx_td;
 

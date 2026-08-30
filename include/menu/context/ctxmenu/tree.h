@@ -1,7 +1,7 @@
 /**
  * @file menu/context/ctxmenu/tree.h
  *
- * @brief Dispatch across a context menu's own submenu window tree
+ * @brief Dispatch across a context menu's submenu window tree
  *
  * Shared by every concrete menu (root menu, window menu, window
  * list): each one only differs in which root state it passes, so
@@ -52,7 +52,7 @@ ctxmenu_state_td *ctxmenu_tree_state_find_for_window(
 /**
  * @brief Repaint whichever submenu under @p root currently owns @p win
  *
- * @param root Top-level state of the concrete menu's own submenu tree
+ * @param root Top-level state of the concrete menu's submenu tree
  * @param win  Window the repaint request arrived for
  *
  * @note No-op if @p win does not belong to any submenu under @p root
@@ -64,10 +64,10 @@ void ctxmenu_tree_redraw_window(ctxmenu_state_td *root, xcb_window_t win);
  * @brief Forward a pointer-motion event to whichever submenu under
  *        @p root currently owns @p win
  *
- * @param root Top-level state of the concrete menu's own submenu tree
+ * @param root Top-level state of the concrete menu's submenu tree
  * @param win  Window the motion event arrived for
- * @param x    Pointer X position, in @p win's own coordinates
- * @param y    Pointer Y position, in @p win's own coordinates
+ * @param x    Pointer X position, in @p win's coordinates
+ * @param y    Pointer Y position, in @p win's coordinates
  *
  * @note No-op if @p win does not belong to any submenu under @p root
  * @note Complexity: @e O(d), where @e d is the submenu nesting depth
@@ -81,10 +81,10 @@ void ctxmenu_tree_handle_motion_window(ctxmenu_state_td *root,
  *
  * @param connection XCB connection
  * @param surface    Surface the click occurred on
- * @param root       Top-level state of the concrete menu's own
+ * @param root       Top-level state of the concrete menu's
  *                   submenu tree
  * @param win        Window the click event arrived for
- * @param y          Pointer Y position, in @p win's own coordinates
+ * @param y          Pointer Y position, in @p win's coordinates
  * @param config     Active configuration
  *
  * @return @c true if @p win belonged to a submenu under @p root and
@@ -109,7 +109,7 @@ bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
  *
  * @param connection XCB connection
  * @param surface    Surface the key press occurred on
- * @param root       Top-level state of the concrete menu's own
+ * @param root       Top-level state of the concrete menu's
  *                   submenu tree
  * @param keysym     Keysym of the pressed key
  * @param config     Active configuration

@@ -5,7 +5,7 @@
  *
  * Implements @a desktop_init, @a desktop_destroy,
  * @a desktop_update_workarea and @a desktop_mark_outdated.  Renaming,
- * backgrounds and everything a desktop does with its own clients live
+ * backgrounds and everything a desktop does with its clients live
  * under @c desktop/ instead.
  */
 /*
@@ -100,23 +100,23 @@ static bool s_ranges_overlap(int32_t a_start, int32_t a_end,
  *        of the four edges of one region
  *
  * Shared by @c desktop_update_workarea for both a stacked client's
- * @c layout.strut_partial and the systray's own reservation, and for
- * both the whole surface's own work area and each individual
- * monitor's own.  The two strut sources are folded identically
+ * @c layout.strut_partial and the systray's reservation, and for
+ * both the whole surface's work area and each individual
+ * monitor's.  The two strut sources are folded identically
  * either way; each edge keeps whichever single source reserves the
  * most there, the struts are not summed together (unlike
  * @a config_desktop_s's @p margins, a deliberately different, additive
  * case).
  *
  * @param strut        Strut to fold in; a no-op when null
- * @param region_min_x Region's own minimum X coordinate, for the
+ * @param region_min_x Region's minimum X coordinate, for the
  *                     top/bottom range overlap check; @c 0 for the
- *                     whole surface, a monitor's own @c x otherwise
- * @param region_max_x Region's own maximum X coordinate, same axis
- * @param region_min_y Region's own minimum Y coordinate, for the
+ *                     whole surface, a monitor's @c x otherwise
+ * @param region_max_x Region's maximum X coordinate, same axis
+ * @param region_min_y Region's minimum Y coordinate, for the
  *                     left/right range overlap check; @c 0 for the
- *                     whole surface, a monitor's own @c y otherwise
- * @param region_max_y Region's own maximum Y coordinate, same axis
+ *                     whole surface, a monitor's @c y otherwise
+ * @param region_max_y Region's maximum Y coordinate, same axis
  * @param left         Running left reservation, updated in place
  * @param right        Running right reservation, updated in place
  * @param top          Running top reservation, updated in place
@@ -165,14 +165,14 @@ static void s_fold_strut(const struct strut_partial_s *strut,
 /**
  * @brief What @a s_strut_fold_visit needs beyond the client itself
  *
- * Handed through @a stacking_walk's own opaque pointer, that walk
+ * Handed through @a stacking_walk's opaque pointer, that walk
  * taking a visitor of one client and nothing else.
  */
 struct s_strut_fold_ctx_s {
-    int32_t region_min_x;       /**< Region's own left edge */
-    int32_t region_max_x;       /**< Region's own right edge */
-    int32_t region_min_y;       /**< Region's own top edge */
-    int32_t region_max_y;       /**< Region's own bottom edge */
+    int32_t region_min_x;       /**< Region's left edge */
+    int32_t region_max_x;       /**< Region's right edge */
+    int32_t region_min_y;       /**< Region's top edge */
+    int32_t region_max_y;       /**< Region's bottom edge */
     int32_t *left;              /**< Running maximum on the left */
     int32_t *right;             /**< Running maximum on the right */
     int32_t *top;               /**< Running maximum on the top */
@@ -181,7 +181,7 @@ struct s_strut_fold_ctx_s {
 
 
 /**
- * @brief Fold one client's own strut into the running maxima
+ * @brief Fold one client's strut into the running maxima
  *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_strut_fold_ctx_s being filled
@@ -332,33 +332,33 @@ static void s_mark_client_outdated_visit(client_td *client, void *data)
  *        to a single rectangular region
  *
  * Shared by @a desktop_update_workarea for both the whole surface's
- * own @c workarea and each individual monitor's own entry in
+ * own @c workarea and each individual monitor's entry in
  * @c monitor_workareas, the exact same reservation math either way,
  * only the region it is scoped to differing: the whole surface for
- * the former, one monitor's own physical extent for the latter.
+ * the former, one monitor's physical extent for the latter.
  *
  * @param desktop             Desktop whose stacking list to scan
  *                            for client struts
- * @param region_x            Region's own left edge, in surface
+ * @param region_x            Region's left edge, in surface
  *                            coordinates
- * @param region_y            Region's own top edge, in surface
+ * @param region_y            Region's top edge, in surface
  *                            coordinates
- * @param region_w            Region's own width
- * @param region_h            Region's own height
- * @param apply_margin_left   Whether this region's own left edge
+ * @param region_w            Region's width
+ * @param region_h            Region's height
+ * @param apply_margin_left   Whether this region's left edge
  *                            coincides with a side of the surface
- *                            @p config_desktop's own @p margins
+ *                            @p config_desktop's @p margins
  *                            should actually reserve on
  * @param apply_margin_right  Same, for the right edge
  * @param apply_margin_top    Same, for the top edge
  * @param apply_margin_bottom Same, for the bottom edge
  * @param config_desktop      Active desktop-behavior configuration,
- *                            for its own @p margins; a @c NULL
+ *                            for its @p margins; a @c NULL
  *                            treats every margin as @c 0
- * @param systray_strut       The systray's own current reservation;
+ * @param systray_strut       The systray's current reservation;
  *                            a @c NULL value folds in nothing
  * @param ignore_struts       When @c true, neither @p systray_strut
- *                            nor any client's own strut is folded
+ *                            nor any client's strut is folded
  *                            in, only whichever margins
  *                            @p apply_margin_* select
  *
@@ -392,7 +392,7 @@ static struct geometry_s s_desktop_compute_workarea(
         : region_y + (int32_t) (region_h - 1u);
 
     /* Aggregate maximum strut on each edge across all stacked clients,
-     * then fold in the window manager's own built-in systray: its dock
+     * then fold in the window manager's built-in systray: its dock
      * window is override-redirect (see
      * 'systray_protocol_window_ensure'), so it is not a managed client
      * and never appears in the stacking order above, but it is a strut
@@ -503,7 +503,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
                 WM_DESKTOP_MAX_LENGTH_NAME);
     }
 
-    /* Set background color: a desktop entry that set its own
+    /* Set background color: a desktop entry that set its
      * 'background-color' (vid. 'config.json') always keeps it; one that
      * did not (still holding 'WM_DESKTOP_BG_COLOR_UNSET', the sentinel
      * every entry starts with) falls back to
@@ -584,7 +584,7 @@ desktop_td *desktop_init(xcb_connection_t *connection,
 
     screen = iter.data;
 
-    /* Kept for every later 'O(1)' lookup of this desktop's own screen.
+    /* Kept for every later 'O(1)' lookup of this desktop's screen.
      * This same walk already had to resolve it just above to read its
      * dimensions. */
     desktop->screen = screen;

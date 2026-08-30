@@ -44,7 +44,7 @@ struct config_randr_output_s {
     /**
      * @brief Preferred resolution
      *
-     * Matched against the screen's own mode list, falling back to
+     * Matched against the screen's mode list, falling back to
      * whatever mode the output's CRTC already has (or its first
      * preferred mode, if none) when left at @c 0 or when no mode
      * matches exactly.
@@ -67,9 +67,9 @@ struct config_randr_output_s {
      * @brief Whether this output is used at all
      *
      * - @c true applies @p preferred_res, @p position, and @p rotation
-     *   below to the output's own CRTC, and also lets IcoWM manage
+     *   below to the output's CRTC, and also lets IcoWM manage
      *   windows on it;
-     * - @c false instead turns the output's own CRTC off if it has one,
+     * - @c false instead turns the output's CRTC off if it has one,
      *   blanking it, and excludes it from window management entirely,
      *   as if physically disconnected, which is useful for
      *   a permanently-connected output (a projector for mirroring, say)
@@ -84,7 +84,7 @@ struct config_randr_output_s {
      * @brief Mark this output as RandR's primary one, applied as
      *        a separate request right after the rest of this profile
      *
-     * @note Only meaningful when @p is_enabled is @c true.
+     * @note Meaningful only where @p is_enabled is @c true
      */
     bool is_primary;
 
@@ -102,9 +102,9 @@ struct config_randr_output_s {
  *       screen (@c surface_td), not scoped per-screen: matching in
  *       @a surface_action_apply_randr_profiles is by
  *       @a config_randr_output_s.name alone, queried independently
- *       against each screen's own RandR resources.  On a multi-GPU
- *       setup with two X screens exposing an output of the same name,
- *       the matching profile applies to both identically.
+ *       against the RandR resources of each screen
+ * @note On a multi-GPU setup with two X screens exposing an output of
+ *       the same name, the matching profile applies to both alike
  */
 struct config_randr_s {
     struct config_randr_output_s outputs[CONFIG_RANDR_MAX_OUTPUTS];

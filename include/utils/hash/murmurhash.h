@@ -98,7 +98,7 @@
  * MurmurHash1 algorithm, which, while less popular than its successors,
  * is still an efficient and straightforward hashing technique.
  *
- * @param key  Pointer to the input data.
+ * @param key  Pointer to the input data
  * @param len  Length of the input data in bytes
  * @param seed The seed value mixed into the hash, allowing different
  *             hash results for the same data
@@ -123,7 +123,7 @@ uint32_t murmurhash1_32(const void *key, int len, uint32_t seed);
  * statistical properties, making it suitable for hash tables and
  * similar structures.
  *
- * @param key  Pointer to the input data.
+ * @param key  Pointer to the input data
  * @param len  Length of the input data in bytes
  * @param seed The seed value that is mixed into the hash, allowing for
  *             different hash outputs for the same input data

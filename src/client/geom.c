@@ -175,14 +175,14 @@ void client_theme_layout_resync(client_td *client, bool is_active)
         return;
     }
 
-    /* Recover the content window's own true on-screen position and size
+    /* Recover the content window's true on-screen position and size
      * (the one invariant across any border/titlebar change) from the
      * OLD frame extents still in effect, before either of them is
      * touched below.  Every field this function sets is then rebuilt
      * from this recovered pair alone, never incrementally from the
      * previous frame geometry the way an applied "delta" would (the
      * frame growing or shrinking "by" some difference).  Anchoring each
-     * call to the content's own fixed truth instead of the prior call's
+     * call to the content's fixed truth instead of the prior call's
      * own output leaves no way for any small per-call error to compound
      * across repeated toggles. */
     inner_x = client->layout.geometry.cur.pos.x +
@@ -374,18 +374,18 @@ void client_decoration_layout_sync(client_td *client)
         ? (uint16_t) (client->layout.geometry.cur.dim.h - top - bottom)
         : WM_MIN_WINDOW_DIMENSION;
 
-    /* While shaded, 'geometry.cur.dim.h' is only the frame's own
+    /* While shaded, 'geometry.cur.dim.h' is only the frame's
      * collapsed titlebar height (see 'ccmd_client_shade',
      * cmds/client/state.c), never the client's real content height,
      * so 'inner_h' above is meaningless for it and must never reach
-     * the content window itself.  Matches Openbox's own
+     * the content window itself.  Matches Openbox's
      * 'frame_adjust_area' (frame.c): it repositions the client
      * window (a plain 'XMoveWindow') but never resizes it while
-     * shaded, leaving the client's own real on-screen geometry
+     * shaded, leaving the client's real on-screen geometry
      * untouched the whole time it sits unmapped.  Applying 'inner_h'
      * here instead would send the client a real 'ConfigureNotify'
      * reporting a tiny height; many toolkits (GTK among them) cache
-     * that as the window's own last known size and persist it on
+     * that as the window's last known size and persist it on
      * exit, so an application closed while shaded would reopen
      * collapsed to a sliver next time, unable to be worked with
      * until manually resized again. */
@@ -421,7 +421,7 @@ void client_decoration_layout_sync(client_td *client)
 }
 
 
-/* Clamp a width/height pair into a client's own aspect-ratio bounds */
+/* Clamp a width/height pair into a client's aspect-ratio bounds */
 void client_aspect_ratio_clamp(const client_td *client,
         uint32_t width, uint32_t *height)
 {
@@ -479,7 +479,7 @@ void client_size_constrain(const client_td *client,
     req_h = *height;
 
     /* The absolute floor every resize is guaranteed never to fall
-     * below, applied first so the client's own explicit 'min_w'/
+     * below, applied first so the client's explicit 'min_w'/
      * 'min_h' just below (when it specifies one) can still only ever
      * raise this, never lower it: 1 resize-increment unit for a
      * client that measures itself in one (a terminal counting
@@ -663,11 +663,11 @@ int ci_create_decorations(client_td *client)
     values[0] = client->config->theme.window.inactive.border.color;
     values[1] = client->config->theme.window.inactive.border.color;
     /* 'XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT' is essential here, not
-     * optional: once the client's own top-level window is reparented
+     * optional: once the client's top-level window is reparented
      * into this frame, its *parent* for X11 purposes becomes the frame
      * instead of the root.
      *
-     * A client's own attempt to reconfigure itself is delivered as
+     * A client's attempt to reconfigure itself is delivered as
      * a 'ConfigureRequest' to whichever client selected
      * substructure-redirect on its *parent*; if that is only ever
      * selected on the root window (needed for top-level 'MapRequest's)
@@ -730,7 +730,7 @@ int ci_create_decorations(client_td *client)
      * Scroll-wheel buttons 4 and 5 are intentionally excluded.  A sync
      * passive grab on those buttons intercepts scroll events before the
      * application can receive them; even though 'ReplayPointer' is
-     * issued, some applications (e.g., Chromium, pcmanfm) use their own
+     * issued, some applications (e.g., Chromium, pcmanfm) use their
      * grabs internally and the event is not re-delivered correctly.
      * Leaving 4 and 5 ungrabbed here allows the X server to deliver
      * scroll events directly to the focused application window. */

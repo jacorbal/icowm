@@ -130,7 +130,7 @@ int surface_render_all_desktops(surface_td *surface)
         /* Checking is cheap and happens for every desktop regardless
          * of outcome, so this logs unconditionally; only the work
          * inside the 'is_outdated' branch below is actually expensive,
-         * and 'desktop_render_full' logs its own specifics once that
+         * and 'desktop_render_full' logs its specifics once that
          * runs. */
         LOGGER_DEBUG("Assessing whether desktop %u ('%s') needs" \
                 " rendering", rendered_count,

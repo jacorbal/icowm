@@ -130,7 +130,7 @@ static void s_config_bindings_load_keyboard_desktop(cJSON *keyboard,
 {
     cJSON *const desktop = cJSON_GetObjectItem(keyboard, "desktop");
     /* Desktop-level actions: switching, adding/removing, and the
-     * show-desktop toggle; its own top-level sibling of 'wm'
+     * show-desktop toggle; its top-level sibling of 'wm'
      * above, not nested under it, matching 'struct keyboard_s'
      * itself (config.h). */
     if (desktop) {
@@ -532,7 +532,7 @@ static void s_config_bindings_load_mouse(cJSON *json,
 /* Populate default values for the keyboard and mouse bindings
  * configuration structure, used both as the initial process-wide
  * default and, before applying any bindings.json found, as the
- * known-good starting point that file's own fields then overlay */
+ * known-good starting point that file's fields then overlay */
 void config_set_default_bindings_values(
         struct config_bindings_s *config_bindings)
 {

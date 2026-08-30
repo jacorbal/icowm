@@ -78,7 +78,7 @@ typedef struct {
  * @param surfaces All managed surfaces
  * @param config   Active configuration
  *
- * @note Replaces any * previously loaded bindings.
+ * @note Replaces whatever bindings were loaded before
  * @note Complexity: @e O(s * b * L), where @e s is the number of
  *       surfaces, @e b the number of configured bindings, and @e L is
  *       the number of lock-modifier variants (4)

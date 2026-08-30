@@ -1,7 +1,7 @@
 /**
  * @file utils/xcb/connection.h
  *
- * @brief The session's own connections to the X server
+ * @brief The session's connections to the X server
  *
  * One connection is opened at start-up and used until the window
  * manager exits, alongside the EWMH connection built over it.  Both
@@ -63,7 +63,7 @@ void xcb_connection_set(xcb_connection_t *connection);
 xcb_connection_t *xcb_connection_get(void);
 
 /**
- * @brief Record the EWMH connection built over the session's own
+ * @brief Record the EWMH connection built over the session's
  *
  * @param ewmh EWMH connection just set up; may be null to forget the
  *             one held, which the shutdown path does
@@ -75,7 +75,7 @@ xcb_connection_t *xcb_connection_get(void);
 void xcb_ewmh_connection_set(xcb_ewmh_connection_t *ewmh);
 
 /**
- * @brief The EWMH connection built over the session's own
+ * @brief The EWMH connection built over the session's
  *
  * @return That connection, or @c NULL before one has been set up
  *

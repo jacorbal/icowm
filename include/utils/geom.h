@@ -161,7 +161,7 @@ static inline struct geometry_s geom_intersect_rect(
  * Rectangles that only touch at an edge or corner have an intersection
  * area of zero.  A thin wrapper over @a geom_intersect_rect, which
  * already computes the same intersection bounds this needs; both stay
- * in agreement by construction, since neither repeats the other's own
+ * in agreement by construction, since neither repeats the other's
  * arithmetic independently.
  *
  * @param ax Left coordinate of the first rectangle

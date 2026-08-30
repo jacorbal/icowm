@@ -41,7 +41,7 @@ client_td *desktop_find_client_by_id(const desktop_td *desktop,
         return NULL;
     }
 
-    /* Walked over the desktop's own client table rather than its
+    /* Walked over the desktop's client table rather than its
      * stacking order.  Both hold the same clients, so the answer is
      * the same either way, but the table is what actually records
      * which desktop a client belongs to, which is the question being

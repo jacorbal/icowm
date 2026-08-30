@@ -27,8 +27,8 @@
  *        the next
  *
  * See @a place_icon_apply (policy/placement/icon.h): added to
- * @c WM_ICON_SQUARE_SIZE (and an icon's own caption height, when
- * captioned) to get the grid's own step between one candidate slot
+ * @c WM_ICON_SQUARE_SIZE (and an icon's caption height, when
+ * captioned) to get the grid's step between one candidate slot
  * and the next, and used on its own as the offset from the screen
  * edge the very first slot starts at.  A single value serves both
  * roles, rather than two separate ones, since nothing in this project
@@ -38,13 +38,13 @@
 #define WM_ICON_GRID_MARGIN (8u)
 
 /**
- * @brief Percentage of @c WM_ICON_SQUARE_SIZE a client's own
+ * @brief Percentage of @c WM_ICON_SQUARE_SIZE a client's
  *        @c _NET_WM_ICON image is scaled to fill
  *
  * Applies uniformly regardless of whichever size the client actually
  * published (see @a wmicon_draw in render/wmicon.h), so every icon ends
  * up the same visual size on screen instead of each one being however
- * large or small its own source image happened to be.  Kept below
+ * large or small its source image happened to be.  Kept below
  * @c 100 so the image sits with a small margin inside the square rather
  * than touching its edges.  An integer percentage rather than a
  * @c 0.0-1.0 scale factor: every consumer only ever needs
@@ -58,10 +58,10 @@
 
 /**
  * @brief Vertical gap, in pixels, kept between an icon and the
- *        systray's own rectangle when the two would otherwise overlap
+ *        systray's rectangle when the two would otherwise overlap
  *
  * Applied on whichever side the icon actually gets pushed toward, so it
- * never ends up sitting flush against the tray's own edge.  Kept equal
+ * never ends up sitting flush against the tray's edge.  Kept equal
  * to @c WM_ICON_GRID_MARGIN on purpose, the same spacing an icon
  * already keeps from a screen edge or another icon, rather than some
  * other value picked independently.
@@ -87,14 +87,14 @@
 
 /**
  * @brief Single-letter state-hint characters drawn in an iconified
- *        client's own top-right corner and in the fuzzy window-search
+ *        client's top-right corner and in the fuzzy window-search
  *
  * One is drawn for the outermost state bit an iconified client still
  * holds, which is the state it will come back to; a client holding
  * none draws no indicator at all.  The same indicators, together with
  * @c WM_ICON_HINT_HIDDEN, are also drawn beside the matching client's
  * row in the fuzzy window-search widget.  Hidden has an indicator of
- * its own because it is a flag apart from the state bits rather than
+ * its because it is a flag apart from the state bits rather than
  * one of them.
  *
  * @see @a ri_icon_hints_draw in @c render/icon.c, and

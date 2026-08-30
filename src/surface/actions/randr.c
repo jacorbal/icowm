@@ -7,7 +7,7 @@
  * One of the files @c surface/actions/ is made of;
  * everything here revolves around the RandR extension itself (output
  * lookup, CRTC allocation, mode matching, profile snapshot/apply/
- * revert), as opposed to @c surface/actions/clients.c's own client
+ * revert), as opposed to @c surface/actions/clients.c's client
  * show/hide/reflow concerns, which never touch RandR directly.
  */
 /*
@@ -41,7 +41,7 @@
 #include <utils/xcb/connection.h>
 
 /**
- * @brief One CRTC's own state, as it was immediately before
+ * @brief One CRTC's state, as it was immediately before
  *        @a surface_action_apply_randr_profiles changed it, so
  *        @a surface_action_revert_randr_profiles can restore exactly
  *        that afterward
@@ -84,7 +84,7 @@ static surface_td *s_randr_snapshot_surface = NULL;
 
 
 /**
- * @brief Find the RandR output whose own name matches a configured
+ * @brief Find the RandR output whose name matches a configured
  *        profile's, among those the screen currently reports
  *
  * Unlike the RandR 1.5 monitor list (@a surface_refresh_monitors
@@ -98,7 +98,7 @@ static surface_td *s_randr_snapshot_surface = NULL;
  * @param out_output_id Receives the matching output, only when one is
  *                      found
  *
- * @return That output's own info (caller's to free), or @c NULL if none
+ * @return That output's info (caller's to free), or @c NULL if none
  *         of the screen's outputs currently has this name
  *
  * @note No atom resolution needed
@@ -115,9 +115,9 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
     /* Declared once here, outside the loop, rather than once per
      * iteration inside it: '-fanalyzer' traced two separate
      * iterations reaching a loop-scoped declaration of this same
-     * array (see this function's own history for the two prior,
+     * array (see this function's history for the two prior,
      * differently-structured attempts at silencing it, both zeroing
-     * the array at its own declaration point, that made no
+     * the array at its declaration point, that made no
      * difference at all) before reporting a "use of uninitialized
      * value" with no source location at all for the read itself,
      * which is a strong sign of a known class of '-fanalyzer' false
@@ -157,7 +157,7 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
         }
         /* Re-zeroed on every iteration reusing this same array, so a
          * shorter name this time around can never leave a longer
-         * previous iteration's own trailing bytes still in place past
+         * previous iteration's trailing bytes still in place past
          * 'name_len'. */
         memset(output_name, 0, sizeof(output_name));
         if (name_len > 0) {
@@ -184,7 +184,7 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
  * currently driving no output at all.
  *
  * @param connection XCB connection
- * @param info       That output's own info, already fetched
+ * @param info       That output's info, already fetched
  * @param timestamp  Config timestamp from the same screen-resources
  *                   query @p info itself came from
  *
@@ -232,7 +232,7 @@ static xcb_randr_crtc_t s_surface_randr_find_free_crtc(
  * @brief Find a RandR mode matching a given resolution
  *
  * Same lookup @a surface_action_set_resolution does against the
- * screen's own mode list, extracted here so applying a per-output
+ * screen's mode list, extracted here so applying a per-output
  * profile can reuse the exact same technique.
  *
  * @param res_reply  Already-fetched current screen resources
@@ -273,7 +273,7 @@ static xcb_randr_mode_t s_surface_randr_find_mode(
 
 
 /**
- * @brief Save a CRTC's own current state into the next free
+ * @brief Save a CRTC's current state into the next free
  *        @a s_randr_snapshot slot, if there is room
  *
  * At most one snapshot per configured profile, itself already bounded
@@ -320,7 +320,7 @@ static void s_surface_randr_snapshot_save(bool take_snapshot,
 
 
 /**
- * @brief Turn an output's own CRTC off, blanking it
+ * @brief Turn an output's CRTC off, blanking it
  *
  * The disabled-profile half of @a s_surface_randr_apply_profile.
  * A plain @a xcb_randr_set_crtc_config with no mode and no outputs
@@ -331,7 +331,7 @@ static void s_surface_randr_snapshot_save(bool take_snapshot,
  * @param surface       Surface the output belongs to, for its
  *                      connection and for logging
  * @param res_reply     Already-fetched current screen resources
- * @param crtc          The output's own currently-assigned CRTC
+ * @param crtc          The output's currently-assigned CRTC
  * @param output_id     Output @p crtc drives, for the snapshot only
  * @param name          Output name, for logging only
  * @param take_snapshot Whether to save this CRTC's state first,
@@ -430,7 +430,7 @@ static int16_t s_surface_randr_clamp_position(int32_t value,
  * a free compatible one otherwise (see
  * 's_surface_randr_find_free_crtc').  Resolution is taken from the
  * profile if configured and a matching mode exists; otherwise the
- * CRTC's own already-active mode is kept, falling back to the
+ * CRTC's already-active mode is kept, falling back to the
  * output's first preferred mode if it had none (a freshly-claimed
  * CRTC on an output with no prior mode of its own).  Position and
  * rotation always come straight from the profile.  'is_primary' is
@@ -442,8 +442,14 @@ static int16_t s_surface_randr_clamp_position(int32_t value,
  * @param res_reply Already-fetched current screen resources, shared
  *                  across every profile one call batch applies
  * @param output_id Output this profile matched by name
- * @param info      That output's own info, already fetched
+ * @param info      That output's info, already fetched
  * @param profile   Configured profile to apply
+ * @param current_primary Output the X server currently calls primary,
+ *                  so that a profile asking to be primary only issues
+ *                  the request where it is not already
+ * @param take_snapshot Whether to save the CRTC's prior state first,
+ *                  so @a surface_action_revert_randr_profiles can put
+ *                  it back exactly as it was
  *
  * @note Complexity: @e O(c), where @e c is the number of CRTCs
  *       compatible with this output, only when it has none active yet
@@ -508,7 +514,7 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
     mode_was_configured = mode != (xcb_randr_mode_t) XCB_NONE;
     if (!mode_was_configured) {
         /* No resolution configured, or none of the screen's modes
-         * matches it exactly: keep the CRTC's own already-active
+         * matches it exactly: keep the CRTC's already-active
          * mode instead of forcing a guess */
         mode = (ci_reply != NULL)
             ? ci_reply->mode : (xcb_randr_mode_t) XCB_NONE;
@@ -755,7 +761,7 @@ void surface_action_revert_randr_profiles(void)
      * requires (its second time argument) has to be one the server
      * actually issued, not 'XCB_CURRENT_TIME': the same reasoning
      * 's_surface_randr_apply_profile' and 's_surface_randr_blank_crtc'
-     * already follow, both using a screen-resources reply's own
+     * already follow, both using a screen-resources reply's
      * 'config_timestamp' rather than that constant. */
     res_cookie = xcb_randr_get_screen_resources_current(
             xcb_connection_get(), surface->screen->root);

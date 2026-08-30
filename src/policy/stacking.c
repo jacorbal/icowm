@@ -28,10 +28,11 @@
 /**
  * @brief Every managed client, lowest in the stack first
  *
- * One list for the whole session rather than one per desktop.  See
- * @c policy/stacking.h for why.  The clients belong to their desktops'
- * own tables, so this is created without a destructor: it refers to
- * them and owns none of them.
+ * One list for the whole session rather than one per desktop.  The
+ * clients belong to the tables of their desktops, so this is created
+ * without a destructor: it refers to them and owns none of them.
+ *
+ * @see @c policy/stacking.h
  */
 static cdlist_td *s_stacking = NULL;
 
@@ -61,7 +62,7 @@ static bool s_stacking_ensure(void)
  *
  * @return @c true when @p desktop holds @p client
  *
- * @note Asked of the desktop's own client table, which is what records
+ * @note Asked of the desktop's client table, which is what records
  *       where a client belongs; the order itself says nothing about it
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
@@ -108,7 +109,7 @@ static cdlist_item_td *s_stacking_node_find(const client_td *client,
         return NULL;
     }
 
-    /* The list is circular: its own tail wraps back to its head rather
+    /* The list is circular: its tail wraps back to its head rather
      * than handing back a null, so where the walk began is what says
      * it is over */
     do {
@@ -197,8 +198,8 @@ int stacking_create(const desktop_td *desktop)
     /* Nothing is created per desktop: there is one order for the whole
      * session, brought into being by whichever desktop is made first.
      * The call is kept so that a desktop still declares its need for
-     * one, and so that failing to allocate it is reported where a
-     * desktop can still be abandoned. */
+     * one, and so that failing to allocate it is reported where
+     * a desktop can still be abandoned. */
     return (s_stacking_ensure()) ? 0 : 1;
 }
 
@@ -212,13 +213,13 @@ void stacking_destroy(const desktop_td *desktop)
         return;
     }
 
-    /* Only this desktop's own clients go, the order being shared: a
-     * desktop going away must not take another's windows with it.
+    /* Only this desktop's clients go, the order being shared: a desktop
+     * going away must not take another's windows with it.
      *
      * One is found and detached at a time, rather than detaching while
      * walking: detaching frees the very node a walk would be standing
-     * on, and the desktop's own clients are not contiguous in an order
-     * that spans them all. */
+     * on, and the desktop's clients are not contiguous in an order that
+     * spans them all. */
     client = s_stacking_first_of(desktop);
     while (client != NULL) {
         s_stacking_detach(client);
@@ -240,8 +241,8 @@ int stacking_add(const desktop_td *desktop, client_td *client)
         return -1;
     }
 
-    /* A client already there keeps the height it has: adding is for a
-     * window arriving, and one that is already stacked has not */
+    /* A client already there keeps the height it has: adding is for
+     * a window arriving, and one that is already stacked has not */
     if (s_stacking_node_find(client, NULL) != NULL) {
         return 0;
     }

@@ -62,22 +62,22 @@ static void s_client_layer_finish(client_td *client, desktop_td *desktop)
 
 
 /**
- * @brief Whether a client should be treated as its own top-level
+ * @brief Whether a client should be treated as its top-level
  *        entry point for @a s_enforce_layer_place_family, rather
- *        than placed as part of some ancestor's own family cluster
+ *        than placed as part of some ancestor's family cluster
  *
  * @c false exactly when @p client has a @c transient_parent (or, for
  * one transient for its whole group, ICCCM §4.1.2.6, a resolved
  * @a client_group_transient_anchor, @c cmds/client/transient.c) that
  * is itself on the same desktop and in the same layer as @p client:
- * that parent's own call to @a s_enforce_layer_place_family already
+ * that parent's call to @a s_enforce_layer_place_family already
  * recurses into @p client (see that function's comment), so
  * treating it as a second, independent entry point here would place
  * it twice, the second time breaking the family clustering the first
  * placement already established.  @c true whenever the parent is
  * missing, on a different desktop, or in a different layer: none of
- * those get a recursive visit from that parent's own placement, so
- * @p client only ever gets placed at all by being its own entry
+ * those get a recursive visit from that parent's placement, so
+ * @p client only ever gets placed at all by being its entry
  * point.
  *
  * @param client Client to classify
@@ -103,22 +103,22 @@ static bool s_enforce_layer_is_top_level(const client_td *client,
 
 
 /**
- * @brief Place one client, then recursively place its own transient
+ * @brief Place one client, then recursively place its transient
  *        descendants immediately above it, within one layer pass of
  *        @a ccmd_desktop_enforce_layers
  *
- * Openbox's own real answer to keeping a transient family together
+ * Openbox's real answer to keeping a transient family together
  * during restacking (confirmed directly against its source,
  * @c restack_windows in @c stacking.c): a dialog belongs directly
  * above the window it is transient for, not wherever it happens to
- * fall in whatever order the rest of the desktop's own clients are
- * otherwise sorted in.  Recurses depth-first through @p top's own
+ * fall in whatever order the rest of the desktop's clients are
+ * otherwise sorted in.  Recurses depth-first through @p top's
  * @c transients (see its comment, client.h), each child
- * placed immediately after its own parent and before the parent's
+ * placed immediately after its parent and before the parent's
  * next sibling, so a whole family clusters together as one
  * contiguous block within its shared layer; a child in a different
- * layer than @p top is left for that other layer's own pass instead
- * (see @a s_enforce_layer_is_top_level), matching Openbox's own
+ * layer than @p top is left for that other layer's pass instead
+ * (see @a s_enforce_layer_is_top_level), matching Openbox's
  * identical @c ch->layer @c == @c selected->layer condition.
  *
  * @param top          Client to place, then recurse from
@@ -134,13 +134,13 @@ static bool s_enforce_layer_is_top_level(const client_td *client,
  * @param layer        Layer this pass is placing; only a descendant
  *                      sharing this exact layer with @p top is
  *                      placed by this same call
- * @param prev_target   The previous client's own target window
+ * @param prev_target   The previous client's target window
  *                      placed so far across the whole layer pass, or
  *                      @c XCB_WINDOW_NONE for the very first;
  *                      updated in place as each client here is
- *                      placed, so the caller's own next sibling
+ *                      placed, so the caller's next sibling
  *                      stacks above whatever this call last placed
- * @param depth        Current recursion depth; the caller's own
+ * @param depth        Current recursion depth; the caller's
  *                      first call always passes @c 0
  *
  * @note A null @p top, or exceeding @c WM_TRANSIENT_CHAIN_MAX_DEPTH,
@@ -242,7 +242,7 @@ struct s_enforce_layer_ctx_s {
  * @brief Place one client, if it belongs to the layer being done
  *
  * @param client Client reached by the walk
- * @param data   Pointer to this walk's own layer context
+ * @param data   Pointer to this walk's layer context
  *
  * @note Complexity: @e O(f), where @e f is the size of the client's
  *       own transient family
@@ -419,7 +419,7 @@ void ccmd_desktop_enforce_layers(desktop_td *desktop)
      * covers a taskbar or panel in most desktop environments.
      * Deliberately a stacking-order effect only, applied here fresh
      * on every call rather than by ever writing 'properties.layer'
-     * itself: the client's own real layer stays exactly what it was
+     * itself: the client's real layer stays exactly what it was
      * chosen to be the whole time, so losing focus to something else
      * needs no separate "restore" step of its own, just correctly
      * falling out of this check and settling back into that real

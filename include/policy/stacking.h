@@ -4,7 +4,7 @@
  * @brief Stacking order over every managed client
  *
  * Which window is drawn over which.  One order for the whole session
- * rather than one per desktop, which is how Openbox holds its own
+ * rather than one per desktop, which is how Openbox holds its
  * @c stacking_list, and for the same reason: a client's height is a
  * fact about the client, not about the desktop it happens to be shown
  * on.
@@ -18,11 +18,11 @@
  *
  * The order runs from the bottom of the stack to the top, matching what
  * @c _NET_CLIENT_LIST_STACKING publishes and the direction the X
- * server's own restacking wants.
+ * server's restacking wants.
  *
  * No caller sees which container holds it.  That was not true before:
  * the list was a public member of @c desktop_td and some eighty places
- * walked it with the container's own primitives, so any change to how
+ * walked it with the container's primitives, so any change to how
  * it is held meant touching every one of them.  Walking it is done
  * through @a stacking_walk and @a stacking_walk_down instead, which
  * take a visitor called once per client.
@@ -88,7 +88,7 @@ int stacking_create(const desktop_td *desktop);
  *
  * @param desktop Desktop whose clients to forget; may be @c NULL
  *
- * @note Leaves the clients themselves alone, the desktop's own client
+ * @note Leaves the clients themselves alone, the desktop's client
  *       table being what owns them
  * @note Complexity: @e O(n * n) in the worst case, @e n being the
  *       number of managed clients: each is found and detached in
@@ -147,7 +147,7 @@ int stacking_remove(const client_td *client);
  * @return Status of the operation
  * @retval  0 Success
  * @retval -1 Invalid @p desktop or @p client
- * @retval  1 The client is not in this desktop's own order
+ * @retval  1 The client is not in this desktop's order
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
@@ -163,7 +163,7 @@ int stacking_raise(const desktop_td *desktop, client_td *client);
  * @return Status of the operation
  * @retval  0 Success
  * @retval -1 Invalid @p desktop or @p client
- * @retval  1 The client is not in this desktop's own order
+ * @retval  1 The client is not in this desktop's order
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
@@ -196,8 +196,8 @@ uint32_t stacking_count(const desktop_td *desktop);
  * @param data    Handed to @p visit untouched
  *
  * @note The whole order is visited: no visitor can end the walk early,
- *       which is why one that stops on a condition records that in its
- *       own @p data and ignores what follows
+ *       which is why one that stops on a condition records that in
+ *       its @p data and ignores what follows
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       clients
  */

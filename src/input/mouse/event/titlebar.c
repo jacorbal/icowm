@@ -1,7 +1,7 @@
 /**
  * @file input/mouse/event/titlebar.c
  *
- * @brief Button presses landing on a client's own titlebar
+ * @brief Button presses landing on a client's titlebar
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -60,14 +60,14 @@ static xcb_window_t s_last_titlebar_press_win = XCB_NONE;
 
 
 /**
- * @brief Mark a client, its own desktop, and its own surface as
+ * @brief Mark a client, its desktop, and its surface as
  *        outdated together
  *
  * Shared by every titlebar-click and scroll case in
  * @c s_mouse_hit_titlebar_buttons that changes the client's state and
  * needs the next render pass to pick it up.
  *
- * @param client  Client whose own visual state just changed, or
+ * @param client  Client whose visual state just changed, or
  *                @c NULL to skip
  * @param desktop Desktop to mark outdated, or @c NULL to skip
  * @param surface Surface to mark outdated, or @c NULL to skip
@@ -84,7 +84,7 @@ static void s_mark_outdated(client_td *client, desktop_td *desktop,
 
 
 /**
- * @brief Look up which titlebar button, if any, a client's own button
+ * @brief Look up which titlebar button, if any, a client's button
  *        list has at a given frame-relative X position
  */
 static bool s_titlebar_button_at(
@@ -92,7 +92,7 @@ static bool s_titlebar_button_at(
         int16_t x, enum config_titlebar_button_e *out)
 {
     for (uint8_t i = 0u; i < count; ++i) {
-        /* Measured as a distance from the button's own left edge:
+        /* Measured as a distance from the button's left edge:
          * comparing against a sum lets the optimizer assume that sum
          * never overflows */
         if (x >= entries[i].x &&
@@ -232,8 +232,8 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
      * landed in), regardless of which one the click hit.
      *
      * Every button position 'client_titlebar_layout' computes below is
-     * relative to the titlebar's own origin instead, the same origin
-     * the titlebar's own physical window is created and kept synced at,
+     * relative to the titlebar's origin instead, the same origin
+     * the titlebar's physical window is created and kept synced at,
      * '(left, title_y)', within the frame, both times
      * ('ci_create_decorations' and 'client_decoration_layout_sync',
      * both client/geom.c). Left unconverted, comparing a frame-relative

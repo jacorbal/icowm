@@ -115,7 +115,7 @@ void loop_run(wm_td *wm)
         loop_refresh(&ctx);
 
         /* Everything this turn asked of the server goes out here, in
-         * one write, rather than each place sending its own the moment
+         * one write, rather than each place sending its the moment
          * it had something to say.  A request waits in XCB's output
          * buffer until something sends it, and nothing that ran above
          * could know whether more were coming after it: flushing where

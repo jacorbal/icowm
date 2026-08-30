@@ -137,7 +137,7 @@ static s_glyph_font_td *s_glyph_current(void)
  *
  * @return @c true if a font was matched and a file path recovered
  *
- * @note Complexity: @e O(1), aside from fontconfig's own internal
+ * @note Complexity: @e O(1), aside from fontconfig's internal
  *       matching cost
  */
 static bool s_resolve_font(const char *restrict font_name,
@@ -327,11 +327,11 @@ static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
         return false;
     }
 
-    /* FreeType's own 'bitmap->pitch', not 'bitmap->width', is the real
+    /* FreeType's 'bitmap->pitch', not 'bitmap->width', is the real
      * byte stride between rows in 'bitmap->buffer': the rasterizer is
-     * free to pad each row for its own alignment reasons, and a
+     * free to pad each row for its alignment reasons, and a
      * negative pitch means the bitmap is stored bottom-up rather than
-     * top-down (FreeType's own documented convention for either case).
+     * top-down (FreeType's documented convention for either case).
      * Copying at a fixed 'width'-sized stride regardless would read
      * every row but the first from the wrong offset whenever the two
      * differ, and in the wrong order entirely for a bottom-up bitmap;
@@ -494,7 +494,7 @@ static bool s_glyph_shared_ready(xcb_connection_t *connection)
  * @brief Decode the next UTF-8 codepoint from @p text
  *
  * Malformed sequences are treated permissively: an invalid leading
- * byte is returned as its own Latin-1 codepoint rather than rejecting
+ * byte is returned as its Latin-1 codepoint rather than rejecting
  * the whole string, since this draws UI text, not untrusted input,
  * and a best-effort result reads better than nothing at all.
  *

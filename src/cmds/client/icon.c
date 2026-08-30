@@ -70,7 +70,7 @@ struct s_icon_overlap_ctx_s {
 
 
 /**
- * @brief Note whether one client's own icon already sits on the spot
+ * @brief Note whether one client's icon already sits on the spot
  *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_icon_overlap_ctx_s being filled
@@ -105,22 +105,22 @@ static void s_icon_overlap_visit(client_td *client, void *data)
 /**
  * @brief Whether a remembered icon position is already occupied
  *
- * Checks @p client's saved @p icon_x / @p icon_y against every other
+ * Checks @p client's saved @c icon_pos against every other
  * iconified client on the same desktop, so @c ccmd_client_iconify can
  * tell a genuinely free remembered spot from one that another window's
  * icon has since claimed (e.g., because that other window was iconified
  * while @p client was still restored, and happened to land where
- * @p client's own icon last was).
+ * @p client's icon last was).
  *
  * Checked against @a client_is_iconified rather than @c is_icon_mapped.
- * The latter only reflects whether a desktop's own icons are currently
+ * The latter only reflects whether a desktop's icons are currently
  * mapped on screen right now (@c false for every client on a desktop
  * that is not the one currently shown, @a surface_clients_hide, in
  * @c surface/actions.c, clears it precisely for that reason), so
  * relying on it here would report every slot on a non-current desktop
  * as free regardless of how many icons already actually occupy it.
  *
- * @param client   Client about to be iconified; its own @p icon_window
+ * @param client   Client about to be iconified; its @p icon_window
  *                 may still be non-zero from a previous iconify, in
  *                 which case it is skipped so it never collides with
  *                 itself
@@ -182,7 +182,7 @@ static bool s_icon_slot_is_taken(const client_td *client,
  * @note Answers @c false only for a client with no configuration
  *       attached, which has no placement policy to apply
  * @note The result is not clamped to @c int16_t here; both callers
- *       store it into @c client_td's own 16-bit @p icon_pos, which is
+ *       store it into @c client_td's 16-bit @p icon_pos, which is
  *       what the X protocol takes for a window position anyway
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the desktop, from the overlap search this hands on to
@@ -355,7 +355,7 @@ static void s_icon_tray_avoid(client_td *client,
 }
 
 
-/* Relocate an already-iconified client's own icon if its current spot
+/* Relocate an already-iconified client's icon if its current spot
  * is now occupied by another one */
 void ccmd_client_relocate_icon_if_taken(client_td *client)
 {

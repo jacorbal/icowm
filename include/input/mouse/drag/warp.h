@@ -73,8 +73,8 @@ int drag_warp_ms_remaining(void);
  *
  * Moves the dragged client to the adjacent desktop without unmapping it
  * at any point (it must stay visible throughout), switches the
- * surface's own current desktop to match, and repositions the pointer
- * to the opposite edge.  Adjusting the drag's own internal state so
+ * surface's current desktop to match, and repositions the pointer
+ * to the opposite edge.  Adjusting the drag's internal state so
  * that jump does not make the dragged window visually snap on the next
  * @c MotionNotify.
  *

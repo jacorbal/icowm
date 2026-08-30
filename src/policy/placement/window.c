@@ -96,18 +96,18 @@ enum s_place_result_e {
  *       the layout carries no hole between fields
  */
 struct s_place_ctx_s {
-    const wm_td *wm;                /**< Window manager instance */
-    surface_td *surface;            /**< Surface being placed on */
-    client_td *client;              /**< Window being placed */
-    config_td *config;              /**< Configuration in force */
+    const wm_td *wm;            /**< Window manager instance */
+    surface_td *surface;        /**< Surface being placed on */
+    client_td *client;          /**< Window being placed */
+    config_td *config;          /**< Configuration in force */
     xcb_connection_t *connection;   /**< XCB connection */
-    desktop_td *desktop;            /**< Current desktop, or null */
-    struct geometry_s wa;           /**< Workarea, whole surface */
-    struct geometry_s mon_wa;       /**< Workarea, reference monitor */
-    struct dimensions_s screen;     /**< Screen size, whole surface */
-    struct dimensions_s mon_sz;     /**< Screen size, ref. monitor */
-    struct dimensions_s frame;      /**< Size the window occupies */
-    xcb_window_t leader;            /**< Its application group, or nil */
+    desktop_td *desktop;        /**< Current desktop, or null */
+    struct geometry_s wa;       /**< Workarea, whole surface */
+    struct geometry_s mon_wa;   /**< Workarea, reference monitor */
+    struct dimensions_s screen; /**< Screen size, whole surface */
+    struct dimensions_s mon_sz; /**< Screen size, reference monitor */
+    struct dimensions_s frame;  /**< Size the window occupies */
+    xcb_window_t leader;        /**< Its application group, or none */
 };
 
 
@@ -225,20 +225,20 @@ static void s_place_window_apply_gravity(const surface_td *surface,
  * updates its stored geometry) and returns @c true, so
  * @a place_window_apply has nothing further to do.
  *
+ * @param wm      Window manager instance
  * @param surface Surface @p client is on
  * @param client  Client being placed
- * @param wa      Surface-wide workarea, for the fallback monitor
- *                clip below
+ * @param wa      Surface-wide workarea, for the fallback monitor clip
+ *                below
  *
  * @return @c true if @p client was transient and got placed here
  *
+ * @note A no-op answering @c false when @p client is transient for
+ *       nothing, or when its declared parent's geometry could be
+ *       resolved neither from an already-managed client entry nor from
+ *       a raw @a xcb_get_geometry reply
  * @note Complexity: @e O(n), where @e n is the number of managed
- *       clients (see @c lookup_find_client)
- *
- * @see A no-op, returning @c false, when @p client is not transient for
- *      anything, or its declared parent's geometry could not be
- *      resolved at all (neither an already-managed client entry nor
- *      a raw @a xcb_get_geometry reply
+ *       clients (see @a lookup_find_client)
  */
 static bool s_place_window_transient_centered(const wm_td *wm,
         surface_td *surface, client_td *client,
@@ -267,11 +267,12 @@ static bool s_place_window_transient_centered(const wm_td *wm,
     /* ICCCM: 'WM_TRANSIENT_FOR' set to the root window means this
      * dialog is transient for its whole application group, not one
      * specific window ("Window Managers should decide" how to handle
-     * this, per the spec's wording); prefer centering over whichever
-     * currently-mapped sibling shares the same group leader as this
-     * client, falling through to the ordinary geometry-based fallback
-     * further below (which, for the root window specifically, ends up
-     * centering on screen) when no such sibling is currently mapped. */
+     * this, per the spec's wording); prefer
+     * centering over whichever currently-mapped sibling shares the
+     * same group leader as this client, falling through to the
+     * ordinary geometry-based fallback further below (which, for the
+     * root window specifically, ends up centering on screen) when no
+     * such sibling is currently mapped. */
     if (client->transient_for == surface->screen->root) {
         xcb_window_t leader = client_group_leader(client);
 
@@ -296,12 +297,13 @@ static bool s_place_window_transient_centered(const wm_td *wm,
         } /* ! if (leader) */
     }
 
-    /* Prefer the WM's stored frame geometry over 'xcb_get_geometry':
-     * after reparenting the parent's inner window lives inside the
-     * frame, so 'xcb_get_geometry' would return its position relative
-     * to the frame (left, top); not the frame's root-relative screen
-     * position.  Using the stored geometry correctly centers the dialog
-     * wherever the parent window is on screen. */
+    /* Prefer the WM's stored frame geometry over
+     * 'xcb_get_geometry': after reparenting the parent's inner
+     * window lives inside the frame, so 'xcb_get_geometry' would
+     * return its position relative to the frame (left, top); not
+     * the frame's root-relative screen position.  Using the stored
+     * geometry correctly centers the dialog wherever the parent
+     * window is on screen. */
     if (parent == NULL) {
         parent = lookup_find_client(wm_surfaces(wm),
                 client->transient_for, NULL, NULL);
@@ -337,17 +339,17 @@ static bool s_place_window_transient_centered(const wm_td *wm,
         return false;
     }
 
-    /* Resolved from the dialog's proposed center, not the pointer: it
-     * is meant to sit with its parent, wherever that is, regardless of
-     * where the pointer happens to be right now. */
+    /* Resolved from the dialog's proposed center, not the
+     * pointer: it is meant to sit with its parent, wherever
+     * that is, regardless of where the pointer happens to be
+     * right now. */
     screen.w = surface->properties.dim.w;
     screen.h = surface->properties.dim.h;
     placement_clip_to_monitor(surface, &wa, &screen,
             surface_monitor_for_point(surface,
                     (struct position_s) {
                         new_x + (int32_t) (fw / 2u),
-                        new_y + (int32_t) (fh / 2u)
-                    }),
+                        new_y + (int32_t) (fh / 2u) }),
             &t_wa, &t_sz);
 
     if (new_x < t_wa.pos.x) { new_x = t_wa.pos.x; }
@@ -375,6 +377,7 @@ static bool s_place_window_transient_centered(const wm_td *wm,
  * Shared final step of every placement policy: adjusts for window
  * gravity, clamps so the title bar never ends up above the workarea or
  * the physical screen edge, then issues the actual @c ConfigureWindow
+ * that moves the window and records the position it was moved to.
  *
  * @param surface Surface the client lives on
  * @param client  Client being placed
@@ -451,10 +454,8 @@ void place_window_apply_cascade(const wm_td *wm,
     /* Offset from the workarea origin, not from (0, 0), so the title
      * bar is never hidden behind a panel or dock */
     s_place_window_finalize(surface, client, wa.pos,
-            (struct position_s) {
-                mon_wa.pos.x + off.x,
-                mon_wa.pos.y + off.y
-            });
+            (struct position_s) { mon_wa.pos.x + off.x,
+                mon_wa.pos.y + off.y });
 }
 
 
@@ -512,10 +513,8 @@ static enum s_place_result_e s_place_step_splash(
             (client_is_decorated(ctx->client) && ctx->client->frame != 0)
                 ? ctx->client->frame : ctx->client->window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
-            (const uint32_t[]) {
-                (uint32_t) centered.x,
-                (uint32_t) centered.y
-            });
+            (const uint32_t[]) { (uint32_t) centered.x,
+                (uint32_t) centered.y });
     ctx->client->layout.geometry.cur.pos = centered;
 
     return S_PLACE_RESULT_DONE;
@@ -669,8 +668,7 @@ static enum s_place_result_e s_place_step_sibling(
             surface_monitor_for_point(ctx->surface,
                     (struct position_s) {
                         out_pos->x + (int32_t) (ctx->frame.w / 2u),
-                        out_pos->y + (int32_t) (ctx->frame.h / 2u)
-                    }),
+                        out_pos->y + (int32_t) (ctx->frame.h / 2u) }),
             &sibling_wa, &sibling_sz);
 
     /* Clamped the same way the cascade policy is, so a sibling near
@@ -706,7 +704,8 @@ static enum s_place_result_e s_place_step_sibling(
  *         @c S_PLACE_RESULT_DECLINED when nothing is free
  *
  * @note Complexity: @e O(g * n), where @e g is the number of grid
- *       positions tested and @e n the number of clients on the desktop
+ *       positions tested and @e n is the number of clients on
+ *       the desktop
  */
 static enum s_place_result_e s_place_step_smart(
         const struct s_place_ctx_s *ctx,
@@ -791,7 +790,8 @@ static enum s_place_result_e s_place_step_centered(
  *       so the question is put either way and only the position it
  *       starts from differs
  * @note Complexity: @e O(g * n), where @e g is the number of grid
- *       positions tested and @e n the number of clients on the desktop
+ *       positions tested and @e n is the number of clients on
+ *       the desktop
  */
 static enum s_place_result_e s_place_step_manual(
         const struct s_place_ctx_s *ctx,
@@ -945,8 +945,8 @@ void place_window_apply(const wm_td *wm,
     ctx.frame = client->layout.geometry.cur.dim;
     ctx.leader = client_group_leader(client);
 
-    /* The usable workarea, which respects panel struts, falling back to
-     * the whole screen when no workarea is set */
+    /* The usable workarea, which respects panel struts, falling back
+     * to the whole screen when no workarea is set */
     ctx.desktop = surface_desktop_get(surface, surface->desktop_cur);
     if (ctx.desktop != NULL && ctx.desktop->workarea.dim.w > 0u &&
             ctx.desktop->workarea.dim.h > 0u) {
@@ -990,8 +990,8 @@ void place_window_apply(const wm_td *wm,
             &ctx.mon_wa, &ctx.mon_sz);
 
     /* Ahead of the configured policy rather than one of it: a window
-     * joining a group it belongs to is a stronger statement about where
-     * it goes than any of them */
+     * joining a group it belongs to is a stronger statement about
+     * where it goes than any of them */
     result = s_place_step_sibling(&ctx, &chosen);
 
     if (result == S_PLACE_RESULT_DECLINED) {

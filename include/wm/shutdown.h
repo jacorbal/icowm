@@ -48,7 +48,7 @@
  * job once every client has actually closed or the configured timeout
  * elapses, whichever comes first.
  *
- * Requests the window manager's own stop directly instead, with no wait
+ * Requests the window manager's stop directly instead, with no wait
  * at all, when there is nothing to wait for, e.g., no managed clients.
  * Calling this while a shutdown is already in progress has no further
  * effect.
@@ -66,8 +66,8 @@ void wm_shutdown_begin(const wm_td *wm);
  * @brief Milliseconds remaining before the shutdown timeout forces the
  *        remaining clients closed
  *
- * Meant to be folded into the main loop's own poll timeout the same way
- * every other timed subsystem's own @p *_ms_remaining already is.
+ * Meant to be folded into the main loop's poll timeout the same way
+ * every other timed subsystem's @p *_ms_remaining already is.
  *
  * @return Milliseconds remaining, or a negative value when no shutdown
  *         is currently in progress
@@ -82,10 +82,10 @@ int wm_shutdown_ms_remaining(void);
  * @brief Advance the shutdown state machine
  *
  * Counts how many managed clients remain open and, once none are left,
- * requests the window manager's own stop directly.  Once the configured
+ * requests the window manager's stop directly.  Once the configured
  * timeout elapses with clients still open, force-closes every one of
  * them and requests the stop regardless.  Meant to be called once per
- * main loop iteration the same way every other timed subsystem's own
+ * main loop iteration the same way every other timed subsystem's
  * @c *_tick already is.
  *
  * @param wm Window manager instance

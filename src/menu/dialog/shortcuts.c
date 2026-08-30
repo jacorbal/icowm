@@ -128,11 +128,11 @@ static void s_append_binding(char *restrict buf, size_t buf_size,
 
 /**
  * @brief Append the ten go-to-desktop bindings as one line when they
- *        all share a common prefix followed by their own digit, or
+ *        all share a common prefix followed by their digit, or
  *        as ten individual lines otherwise
  *
  * The default configuration follows the shared-prefix pattern (e.g.,
- * every one of them is @c "modc+mod1+" followed by its own digit), so
+ * every one of them is @c "modc+mod1+" followed by its digit), so
  * this is what keeps the common case to a single line instead of ten;
  * a person who rebound them to unrelated combinations still gets a
  * complete, correct listing, just a longer one.

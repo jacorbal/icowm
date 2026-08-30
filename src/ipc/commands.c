@@ -52,16 +52,16 @@
 
 
 /**
- * @brief One named command's own handler
+ * @brief One named command's handler
  *
  * @param wm   Window manager instance
  * @param args The request object itself (its other fields besides
- *             @c "cmd" are this command's own arguments); never
+ *             @c "cmd" are this command's arguments); never
  *             @c NULL, though it may have no fields of its own for
  *             a command that takes none
  *
  * @return A newly allocated JSON object to use as the full response
- *         (including its own @c "ok" field), or @c NULL to have the
+ *         (including its @c "ok" field), or @c NULL to have the
  *         caller (see @c ipc_commands_dispatch) fall back to a
  *         generic failure response, when the handler could not build
  *         one of its own (allocation failure)
@@ -69,7 +69,7 @@
 typedef cJSON *(*s_ipc_cmd_fn)(const wm_td *wm, const cJSON *args);
 
 
-/** One dispatch table entry: a command's own name and handler */
+/** One dispatch table entry: a command's name and handler */
 struct s_ipc_cmd_def_s {
     const char *name;
     s_ipc_cmd_fn handler;
@@ -79,11 +79,13 @@ struct s_ipc_cmd_def_s {
 /** The dispatch table itself, grouped by the same categories as
  *  ipc/actions/ itself
  *
- * @note @c tools/icowm-msg.c keeps its own hand-maintained snapshot of
- *       every command name here, @a s_known_commands, used only for its
- *       own offline @c -L listing (see that array's comment for why it
- *       is not simply queried live instead).  Adding or removing an
- *       entry here means updating that array to match. */
+ * @note @c tools/icowm-msg.c keeps a hand-maintained snapshot of every
+ *       command name here, @a s_known_commands, used for its offline
+ *       @c -L listing alone (see that array's comment for why it is
+ *       not queried live instead)
+ * @note Adding or removing an entry here means updating that array to
+ *       match
+ */
 static const struct s_ipc_cmd_def_s s_commands[] = {
     /* Queries: ipc/actions/query.h */
     { "get_version",              ipc_action_get_version },
@@ -212,9 +214,9 @@ char *ipc_commands_dispatch(wm_td *wm, const char *request, int client_idx)
     }
 
     /* 'subscribe'/'unsubscribe' ahead of the ordinary table: the
-     * only two commands whose own effect belongs to this specific
+     * only two commands whose effect belongs to this specific
      * connection (see 'ipc.h''s comment on each) rather than to 'wm',
-     * so neither one fits the table's own handler shape at all */
+     * so neither one fits the table's handler shape at all */
     if (safe_strcmp(cmd_item->valuestring, "subscribe") == 0) {
         found = true;
         resp = ipc_client_subscribe(client_idx, parsed);
@@ -234,10 +236,10 @@ char *ipc_commands_dispatch(wm_td *wm, const char *request, int client_idx)
 
     if (!found) {
         /* No entry in 's_commands' matched 'cmd' at all, as opposed
-         * to matching one whose own handler returned null from an
+         * to matching one whose handler returned null from an
          * allocation failure (the 'resp == NULL' case just below).
          * That second case keeps a more specific message, since a
-         * handler whose own request DID match a real command is a
+         * handler whose request DID match a real command is a
          * different failure than the request never matching one at
          * all. */
         resp = ipc_response_error("unknown command");

@@ -34,7 +34,7 @@
  *        overridable via @p systray.battery.poll-seconds in
  *        @c config.json
  *
- * Far coarser than the clock's own per-second redraw, a percentage does
+ * Far coarser than the clock's per-second redraw, a percentage does
  * not need per-second freshness, and every poll costs a handful of file
  * reads that a plain wall-clock display has no reason to pay for that
  * often.

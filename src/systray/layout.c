@@ -72,23 +72,23 @@ static uint16_t s_systray_content_width(void)
 
 
 /**
- * @brief Find the currently fullscreen client the tray's own layer
+ * @brief Find the currently fullscreen client the tray's layer
  *        should duck behind, if any
  *
- * Scoped to @p s_tray.surface's own currently displayed desktop only,
+ * Scoped to @p s_tray.surface's currently displayed desktop only,
  * the one surface the tray itself actually belongs to and the only
  * desktop whose content can actually be on screen at the same time as
  * the tray.  A client fullscreen on some other surface (a different
- * physical monitor's own root window) or on a desktop of
+ * physical monitor's root window) or on a desktop of
  * @p s_tray.surface that is not the one currently shown is not visible
  * right now, so it has no bearing on where this one tray should stack.
  *
- * @return The fullscreen client's own frame (or plain window, if
+ * @return The fullscreen client's frame (or plain window, if
  *         undecorated), or @c XCB_WINDOW_NONE if none is fullscreen on
- *         @p s_tray.surface's own current desktop
+ *         @p s_tray.surface's current desktop
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p s_tray.surface's own current desktop
+ *       @p s_tray.surface's current desktop
  */
 static xcb_window_t s_systray_fullscreen_target_find(void)
 {
@@ -127,12 +127,12 @@ static xcb_window_t s_systray_fullscreen_target_find(void)
  * though both are nominally in the same 'below' layer) regardless of
  * restack ordering.
  *
- * The tray's own move to the bottom (an unqualified
+ * The tray's move to the bottom (an unqualified
  * @c XCB_STACK_MODE_BELOW, since the tray does not otherwise know of
  * any one icon to stack itself relative to) would otherwise claim the
  * absolute bottom of the sibling stack out from under any icon that was
  * already there, the same "whichever restacked most recently wins"
- * problem @a ccmd_client_iconify's own explicit stack-below handles for
+ * problem @a ccmd_client_iconify's explicit stack-below handles for
  * the opposite ordering.
  *
  * @note Complexity: @e O(n), where @e n is the total number of managed
@@ -186,16 +186,16 @@ static void s_systray_icons_push_below(void)
 
 
 /**
- * @brief Publish (or clear) the tray's own reserved-space strut on its
+ * @brief Publish (or clear) the tray's reserved-space strut on its
  *        dock window, and mirror the same values into
  *        @a s_tray.reserved_strut for @a systray_get_reserved_strut
  *
- * Per the specification's own recommendation for a docking area,
+ * Per the specification's recommendation for a docking area,
  * a taskbar, or a panel, the tray publishes @c _NET_WM_STRUT_PARTIAL
  * (and, for compatibility with anything that only understands the
  * legacy property, plain @c _NET_WM_STRUT alongside it) covering the
- * exact strip of screen its own configured corner and current size
- * occupy, so a maximized window (and this window manager's own
+ * exact strip of screen its configured corner and current size
+ * occupy, so a maximized window (and this window manager's
  * placement logic, via @a desktop_update_workarea) both leave that
  * strip alone the same way they already do for an external panel or
  * dock, plus @p config.systray.margins added on top of that strip.
@@ -204,7 +204,7 @@ static void s_systray_icons_push_below(void)
  * @p config.systray.reserve-space is @c false, for anyone who would
  * rather windows stayed free to maximize over or under the tray.
  *
- * @param geom    Tray's own current rectangle (root coordinates); a
+ * @param geom    Tray's current rectangle (root coordinates); a
  *                zero dimension clears the strut (the tray itself is
  *                unmapped)
  * @param bborder Total border thickness, both sides combined
@@ -254,14 +254,14 @@ static bool s_systray_strut_update(struct geometry_s geom,
         }
 
         /* 'config.systray.margins': added on top of whatever the switch
-         * above just computed from the tray's own actual geometry, the
-         * same way 'config_desktop_s''s own 'margins' adds on top of
+         * above just computed from the tray's actual geometry, the
+         * same way 'config_desktop_s''s 'margins' adds on top of
          * a client's published strut in 'desktop_update_workarea'; not
          * restricted to the edge the tray currently docks at
          * (left/right add to a screen side the tray itself never
          * reserves on its own), left with no start/end range of their
          * own to honor (0..0), so they apply along the whole edge
-         * unconditionally, exactly like 'config_desktop_s''s own
+         * unconditionally, exactly like 'config_desktop_s''s
          * margins do. */
         partial.top += s_tray.strut_margins.top;
         partial.right += s_tray.strut_margins.right;
@@ -302,7 +302,7 @@ static bool s_systray_strut_update(struct geometry_s geom,
  * @brief Resolve the rectangle the tray dock's corner is anchored to
  *
  * - Under @c CONFIG_SYSTRAY_MONITOR_SURFACE (the default), returns
- *   @p s_tray.surface's own combined dimensions, exactly the previous,
+ *   @p s_tray.surface's combined dimensions, exactly the previous,
  *   always-whole-surface behavior, treated as one virtual monitor
  *   spanning it (the same fallback @a s_surface_monitors_fallback uses
  *   when RandR itself cannot supply a real monitor list).
@@ -471,7 +471,7 @@ void systray_layout_reflow(void)
         return;
     }
 
-    /* An X11 border is drawn entirely outside a window's own width and
+    /* An X11 border is drawn entirely outside a window's width and
      * height (the X/Y a window is configured at mark the outer corner,
      * before the border), so the tray's true on-screen footprint is
      * 'w + 2 * border_width' wide and 'h + 2 * border_width' tall, not
@@ -514,7 +514,7 @@ void systray_layout_reflow(void)
                 { x, y }, { w, h } }, bborder);
 
     /* Icons sit after the text block when it is on the left, or right
-     * at the tray's own left edge otherwise (text block on the right,
+     * at the tray's left edge otherwise (text block on the right,
      * or nothing enabled). */
     icons_base_x = (text_w > 0u &&
             s_tray.text_position == CONFIG_SYSTRAY_TEXT_LEFT)
@@ -561,7 +561,7 @@ void systray_layout_reflow(void)
                 s_tray.theme->systray.style.color.background);
 
         /* 'text_draw_string' takes the baseline, not the top of the
-         * text, so each alignment has to add the font's own ascent (see
+         * text, so each alignment has to add the font's ascent (see
          * 'text_font_ascent') to whatever pixel the top of the text
          * should land on.  Every item in 'text_order' shares one font,
          * so this is computed once and reused for each. */
@@ -611,7 +611,7 @@ void systray_layout_reflow(void)
     systray_layout_restack();
 
     /* Only when the strut actually changed does what every desktop on
-     * this same surface considers its own available 'workarea' change
+     * this same surface considers its available 'workarea' change
      * with it.  A reflow that republished the same strut, as every
      * repaint of the tray does, has nothing to recompute.  An icon
      * dragged across the tray exposes it hundreds of times a second,

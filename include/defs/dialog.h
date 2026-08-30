@@ -26,14 +26,14 @@
  * a display limit: unlike before scrolling existed, text past this many
  * lines is not simply cut off from view, it never enters @p lines at
  * all, so scrolling could not reach it regardless of how generous the
- * dialog's own monitor-height cap is (see @c menu/dialog/message.c's
+ * dialog's monitor-height cap is (see @c menu/dialog/message.c's
  * @c s_message_compute_layout for that separate, on-screen limit).
  *
  * Kept comfortably above what the keyboard-shortcuts list (see
  * @c menu/dialog/shortcuts.h) actually produces, plus headroom for it
  * growing over time, rather than tuned tightly to today's exact line
  * count.  Smaller under @c COMPACT (see @c defs/compact.h), though not
- * as small as restricted-memory mode's own shorter shortcuts list alone
+ * as small as restricted-memory mode's shorter shortcuts list alone
  * would allow.
  *
  * This build flag and @c -M are meant to be combined but are not
@@ -106,7 +106,7 @@
  *        selected before a mouse click actually closes/accepts the
  *        dialog it belongs to
  *
- * Shared by every dialog that defers its own click-triggered close this
+ * Shared by every dialog that defers its click-triggered close this
  * way.  Closing on the very same repaint that shows the new selection
  * would not give a person any real chance to perceive it, since screen
  * updates and human perception both take a moment neither the repaint

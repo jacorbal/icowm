@@ -76,11 +76,11 @@ static void s_loop_refresh_outdated(const loop_ctx_td *ctx)
  * Shared by the timed auto-close of the info popup and of the
  * desktop-switch notification: both close a dialog that, unlike a
  * per-client one, is not tied to any one particular surface, so any
- * surface's own current-desktop repaint is enough to clear its
+ * surface's current-desktop repaint is enough to clear its
  * remnants from the screen.
  *
  * @param ctx      Main loop context
- * @param close_fn The dialog's own @c X_close function
+ * @param close_fn The dialog's @c X_close function
  *
  * @note Complexity: @e O(1), since only the first surface is needed
  */

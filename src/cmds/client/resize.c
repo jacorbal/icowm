@@ -5,7 +5,7 @@
  *
  * One of the files @c cmds/client/ is made of.  Covers resizing a
  * client, including the @c _NET_WM_SYNC_REQUEST throttling pipeline
- * that paces an ongoing interactive resize against the client's own
+ * that paces an ongoing interactive resize against the client's
  * redraw acknowledgements.
  */
 /*
@@ -182,8 +182,8 @@ static void s_ccmd_resize_dispatch_synced(client_td *client,
  * fullscreen.  A client maximized on just one axis, that is,
  * @c CLIENT_STATE_MAXIMIZED_HORZ or @c CLIENT_STATE_MAXIMIZED_VERT,
  * is deliberately let through
- * here: its own free axis stays genuinely resizable, matching every
- * one of this project's own interactive resize entry points (mouse
+ * here: its free axis stays genuinely resizable, matching every
+ * one of this project's interactive resize entry points (mouse
  * border drag via @a drag_start_resize_axis_locked, its matching
  * mouse-bound keybinding, and keyboard resize in @c input/kbd/
  * interact.c), each of which already freezes the maximized axis's
@@ -191,10 +191,10 @@ static void s_ccmd_resize_dispatch_synced(client_td *client,
  * this function; refusing the whole call here regardless, the way
  * this check used to, silently dropped every live resize update a
  * solid drag sent along the way, and stranded a non-solid (outline)
- * drag's own final call off screen for good (see @c drag_end's own
+ * drag's final call off screen for good (see @c drag_end's
  * comment on @c enact_client_resize_force, @c input/mouse/drag.c),
  * since that call exists specifically to bring the real window back
- * from where a non-solid drag parks it for the drag's own duration,
+ * from where a non-solid drag parks it for the drag's duration,
  * and this same refusal silently swallowed that too.  A shaded
  * client is first restored so the requested size applies to the
  * normal window geometry instead of the rolled-up titlebar.
@@ -266,7 +266,7 @@ void ccmd_client_resize_force(client_td *client, struct geometry_s geom)
     }
 
     /* Discard any geometry left queued by an earlier, still-
-     * unacknowledged exchange: applying this call's own geometry
+     * unacknowledged exchange: applying this call's geometry
      * below already supersedes it, and leaving it set would let a
      * late 'AlarmNotify' for that older exchange silently revert
      * this one the next time 'ccmd_client_resize_flush_pending' runs */
@@ -276,7 +276,7 @@ void ccmd_client_resize_force(client_td *client, struct geometry_s geom)
         /* Still tells a sync-aware client about the new size (so its
          * own internal counter stays in step), but this call itself
          * never waits on or queues behind that acknowledgment the
-         * way 'ccmd_client_resize' does; see the header's own doc
+         * way 'ccmd_client_resize' does; see the header's doc
          * comment for when this is the right call to make instead */
         s_ccmd_resize_dispatch_synced(client, geom);
     } else {

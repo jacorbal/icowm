@@ -6,7 +6,7 @@
  * Declares the functions that run the window manager's main event loop
  * and maintain surface rendering state.
  *
- * IcoWM's own operation flow, one turn of the event loop:
+ * IcoWM's operation flow, one turn of the event loop:
  *
  * @code{.unparsed}
  *

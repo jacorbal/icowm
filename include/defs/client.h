@@ -20,7 +20,7 @@
 
 
 /**
- * @brief Absolute minimum a client's own content area (its window, not
+ * @brief Absolute minimum a client's content area (its window, not
  *        counting decoration) can ever be resized down to, in pixels,
  *        when it has no own resize-increment hint of its own
  *        (@c WM_NORMAL_HINTS's @c width_inc / @c height_inc, ICCCM
@@ -28,7 +28,7 @@
  *
  * The one true floor every resize path is guaranteed to respect,
  * interactive (mouse or keyboard) or not, regardless of whether that
- * particular path also happens to know about a client's own size hints:
+ * particular path also happens to know about a client's size hints:
  * @a geom_dim_clamp (@c utils/geom.h), the lowest-level generic clamp
  * several of them share, floors to exactly this value on its own, with
  * no client or hints in scope to reason about a floor any more specific
@@ -40,18 +40,18 @@
 #define WM_MIN_WINDOW_DIMENSION (4u)
 
 /**
- * @brief Absolute minimum a client's own content area can be resized
- *        down to, in resize-increment units, for a client that provides
- *        one (@c WM_NORMAL_HINTS's @c width_inc/height_inc, ICCCM
- *        §4.1.2.3).  A terminal counting in character columns and
- *        rows, say, rather than raw pixels.
+ * @brief Absolute minimum a content area may be resized down to, in
+ *        resize-increment units, for a client declaring one
+ *        (@c WM_NORMAL_HINTS's @c width_inc/height_inc, ICCCM
+ *        §4.1.2.3), such as a terminal counting in character columns
+ *        and rows rather than in pixels
  *
  * Applied only by @a client_size_constrain (@c client/geom.c), the one
- * path that actually resolves a client's own hints, as the floor such
- * a client's own @c min_w / @c min_h defaults to when it does not
+ * path that actually resolves a client's hints, as the floor such
+ * a client's @c min_w / @c min_h defaults to when it does not
  * specify one itself; a real @c min_w / @c min_h the client does
  * specify always still wins if larger.  Left unscaled by the client's
- * own @c width_inc / @c height_inc on purpose (1 unit's own true pixel
+ * own @c width_inc / @c height_inc on purpose (1 unit's true pixel
  * size, whatever that happens to be, already exceeds
  * @c WM_MIN_WINDOW_DIMENSION above for every increment size any real
  * client is ever likely to use, so that floor is never actually the
@@ -96,9 +96,8 @@
  *       never acknowledges at all (including one whose @c AlarmNotify
  *       never arrives due to some as-yet-undiscovered XSync protocol
  *       mismatch on the window manager's side), and a resize should
- *       still feel reasonably responsive even in that worst case rather
- *       than visibly stalling for several steps before each catch-up
- *       jump.
+ *       stay reasonably responsive even in that worst case rather than
+ *       visibly stalling for several steps before each catch-up jump
  */
 #define WM_SYNC_MAX_WAIT_TICKS (2u)
 
@@ -115,7 +114,7 @@
 #define WM_TRANSIENT_CHAIN_MAX_DEPTH (64u)
 
 /**
- * @brief Maximum number of windows tracked from a client's own
+ * @brief Maximum number of windows tracked from a client's
  *        @c WM_COLORMAP_WINDOWS (ICCCM §4.1.8)
  *
  * Generous for what a real client ever puts there in practice (one to
@@ -123,17 +122,17 @@
  * the top-level window's), while keeping the list a fixed size within
  * @c client_td rather than a separate allocation.  Any entries past
  * this many are simply not tracked; per ICCCM, priority is by list
- * order, so the ones dropped are already the client's own
+ * order, so the ones dropped are already the client's
  * lowest-priority windows.
  */
 #define WM_COLORMAP_WINDOWS_MAX (8u)
 
 /**
  * @brief Grace period in milliseconds after a shade or unshade during
- *        which a client's own geometry @c ConfigureRequest is ignored
+ *        which a client's geometry @c ConfigureRequest is ignored
  *
  * A shade/unshade transition briefly (and drastically) resizes the
- * client's own content window, which some clients react to with
+ * client's content window, which some clients react to with
  * a delayed @c ConfigureRequest of their own once they catch up
  * processing the resulting @c ConfigureNotify sequence; if that request
  * lands after the window manager has already restored the client's true
@@ -146,17 +145,17 @@
 
 /**
  * @brief Grace period in milliseconds after entering or leaving
- *        fullscreen during which a client's own geometry and border
+ *        fullscreen during which a client's geometry and border
  *        width @c ConfigureRequest is ignored
  *
  * The same reasoning as @c WM_SHADE_CONFIGURE_COOLDOWN_MS, for the
  * same underlying reason: a fullscreen transition also briefly (and
- * drastically) resizes the client's own content window, and its own
+ * drastically) resizes the client's content window, and its
  * delayed @c ConfigureRequest reacting to that, once it catches up
  * processing the resulting @c ConfigureNotify sequence, is far more
  * likely to be a stale echo of whatever geometry or border width it
  * had a moment before than an independent request it actually wants
- * honored now.  Left as its own separate constant and its own
+ * honored now.  Left as its separate constant and its
  * separate client field, rather than reusing the shade one outright,
  * since the two transitions are conceptually distinct even though
  * the mechanism guarding against a stale echo of either is the same

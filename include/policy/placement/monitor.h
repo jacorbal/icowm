@@ -43,8 +43,8 @@
  * @param wa         Workarea of the whole surface
  * @param screen     Dimensions of the whole surface
  * @param monitor    Monitor to narrow to
- * @param out_wa     Receives the monitor's own workarea
- * @param out_screen Receives the monitor's own dimensions
+ * @param out_wa     Receives the monitor's workarea
+ * @param out_screen Receives the monitor's dimensions
  *
  * @note Complexity: @e O(1)
  */
@@ -78,8 +78,8 @@ monitor_td placement_reference_monitor(const wm_td *wm,
  * @param surface     Surface the client belongs to
  * @param client      Client being placed
  * @param out_wa      Receives the workarea to place within
- * @param out_mon_wa  Receives the chosen monitor's own workarea
- * @param out_mon_sz  Receives the chosen monitor's own dimensions
+ * @param out_mon_wa  Receives the chosen monitor's workarea
+ * @param out_mon_sz  Receives the chosen monitor's dimensions
  *
  * @note Complexity: @e O(n), where @e n is the number of monitors
  */

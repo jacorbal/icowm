@@ -5,7 +5,7 @@
  *
  * One of the files @c cmds/client/ is made of.  Covers the per-axis
  * maximize state machine (horizontal, vertical, or both), and
- * re-filling an already-maximized client's own geometry against a
+ * re-filling an already-maximized client's geometry against a
  * workarea that has since changed.
  */
 /*
@@ -45,7 +45,7 @@
  * @c max_width and @c max_height, and nothing in EWMH exempts
  * maximization from that: a client stating a maximum expects it to
  * hold here too, which is why a dialog or a fixed-size utility being
- * maximized should stop at its own limit rather than stretch past it.
+ * maximized should stop at its limit rather than stretch past it.
  *
  * Only the maximum is applied, deliberately.  The minimum cannot bind,
  * the workarea being larger than it in any sane case, and the resize
@@ -54,7 +54,7 @@
  * this one and would change the size of every maximized terminal on
  * the desktop.
  *
- * The hints describe the client's own content, so the frame the
+ * The hints describe the client's content, so the frame the
  * decoration adds is taken off before comparing and put back after.
  *
  * @param client Client whose hints apply
@@ -117,7 +117,7 @@ static bool s_ccmd_maximize_precheck(client_td *client)
         return false;
     }
 
-    /* An iconified client's own target window is unmapped and its
+    /* An iconified client's target window is unmapped and its
      * icon window stands in for it; maximizing it in place here
      * would map the frame back while the icon window is still up,
      * the same reasoning as the identical guard in
@@ -176,7 +176,7 @@ static bool s_ccmd_maximize_demote(client_td *client, int dir,
      * and this axis alone demotes to normal. Only reachable for a
      * single-axis 'dir'; 'dir == 0' either already returned above
      * (both axes maximized) or falls through to maximizing both
-     * below regardless of any single axis's own current state. */
+     * below regardless of any single axis's current state. */
     if (dir != 0 && ((dir == 1 && horz_now) || (dir == 2 && vert_now))) {
         if (dir == 1) {
             client->layout.geometry.cur.pos.x =
@@ -222,7 +222,7 @@ static bool s_ccmd_maximize_demote(client_td *client, int dir,
  * The shared implementation behind @a ccmd_client_maximize,
  * @a ccmd_client_maximize_horz and @a ccmd_client_maximize_vert,
  * each now a
- * thin wrapper passing its own fixed @p dir; matches Openbox's own
+ * thin wrapper passing its fixed @p dir; matches Openbox's
  * @c client_maximize (@c client.c), which takes the identical @p dir
  * convention for the identical reason: one function, one place the
  * demote/complete/fresh-maximize decision is made, rather than the
@@ -232,7 +232,7 @@ static bool s_ccmd_maximize_demote(client_td *client, int dir,
  * holds them, so "is the horizontal axis maximized" is one bit test,
  * which @a client_is_maximized_horz makes.
  *
- * @p dir @c == @c 0, both axes, has the two cases Openbox's own
+ * @p dir @c == @c 0, both axes, has the two cases Openbox's
  * top-level toggle does: already maximized in both directions, so
  * restore; anything else, so maximize both.  @p dir @c == @c 1 or
  * @c 2, one axis, has three: demote this axis alone if it is
@@ -295,7 +295,7 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
      * decorated client, so this only ever actually shrinks the
      * target for an undecorated one; kept within the workarea/
      * monitor rect 'sw'/'sh' just resolved above, rather than
-     * spilling its own border past its own right/bottom edge. */
+     * spilling its border past its right/bottom edge. */
     own_desktop = wm_get_client_desktop(client);
     is_active = own_desktop != NULL &&
         own_desktop->client_active_id == client->id;
@@ -397,12 +397,12 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
 
 
 /**
- * @brief Re-fill an already-maximized client's own geometry against
+ * @brief Re-fill an already-maximized client's geometry against
  *        its current workarea
  *
- * A maximized client's own geometry, grown or shrunk in place, is
+ * A maximized client's geometry, grown or shrunk in place, is
  * only ever right immediately after actually maximizing it: anything
- * that later changes what its own workarea resolves to (a panel
+ * that later changes what its workarea resolves to (a panel
  * mapped or unmapped, @c desktops.margins reloaded, or the surface's
  * own strutless-maximization mode,
  * @a surface_action_toggle_strutless_maximize,
@@ -414,9 +414,9 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
  * exactly refilling the workarea as it now stands, the same as if it
  * had only just been maximized.
  *
- * Only the axis (or axes) @p client's own @c properties.state
+ * Only the axis (or axes) @p client's @c properties.state
  * actually names gets touched: a client maximized on one axis alone
- * keeps its own other axis exactly as it already was, rather than
+ * keeps its other axis exactly as it already was, rather than
  * growing it to fill the workarea too and silently turning a
  * horizontal- or vertical-only maximize into a full one.
  *

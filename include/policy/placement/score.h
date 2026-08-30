@@ -4,14 +4,14 @@
  * @brief Shared overlap-scoring core for SMART placement declarations
  *
  * The overlap-penalty loop @c place_window_apply and
- * @c place_icon_apply's own @c CONFIG_ICON_PLACEMENT_SMART search each
- * run against @p desktop's own stacking list is identical in shape
+ * @c place_icon_apply's @c CONFIG_ICON_PLACEMENT_SMART search each
+ * run against @p desktop's stacking list is identical in shape
  * (skip self/hidden/locked, weigh intersection area against every other
  * visible client's window and, optionally, its icon).  Only the
  * tie-breaker each applies afterward genuinely differs (real distance
  * to the workarea center for a window, grid overflow-row compactness
  * for an icon), so only the shared loop lives here; each caller still
- * computes and adds its own tie-breaker on top of what this returns.
+ * computes and adds its tie-breaker on top of what this returns.
  *
  * @ingroup policy
  */
@@ -41,16 +41,16 @@
  *
  * Shared core of the @c CONFIG_PLACEMENT_POLICY_SMART window search
  * (@c place_window_apply) and the @c CONFIG_ICON_PLACEMENT_SMART icon
- * search (@c place_icon_apply): iterates @p desktop's own stacking list
- * once, weighing @p candidate's own overlap against every other
+ * search (@c place_icon_apply): iterates @p desktop's stacking list
+ * once, weighing @p candidate's overlap against every other
  * client's current window rectangle (by @p win_pixel_cost) and,
  * whenever that other client is currently a mapped, visible icon
- * itself, its own icon rectangle too (by @p icon_pixel_cost).
+ * itself, its icon rectangle too (by @p icon_pixel_cost).
  *
  * A locked client (@a client_is_locked, @c client.h; the scratchpad is
  * the only one today) never counts as an obstacle here, exposed or not:
  * it already sits above every other client (@c CLIENT_LAYER_ABOVE) and
- * is positioned by its own dedicated policy, so avoiding its current
+ * is positioned by its dedicated policy, so avoiding its current
  * rectangle would only ever avoid a window it can never actually be
  * occluded by, while still fragmenting the layout around a window that
  * may not even be there the next time this same desktop is scored.
@@ -59,9 +59,9 @@
  * @param skip_client     Client to ignore (the one being placed)
  * @param candidate       Candidate rectangle to score
  * @param win_pixel_cost  Cost weight per pixel of overlap with another
- *                        client's own current window rectangle
+ *                        client's current window rectangle
  * @param icon_pixel_cost Cost weight per pixel of overlap with
- *                        another client's own currently visible icon
+ *                        another client's currently visible icon
  *                        rectangle (fixed @c PLACE_SMART_WIN_ICON_SIZE
  *                        square); pass @c 0 to skip icon-overlap
  *                        scoring entirely, e.g., for an icon-placement

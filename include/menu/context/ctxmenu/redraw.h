@@ -1,7 +1,7 @@
 /**
  * @file menu/context/ctxmenu/redraw.h
  *
- * @brief Painting a context menu's own rows
+ * @brief Painting a context menu's rows
  *
  * @ingroup menu_context
  */

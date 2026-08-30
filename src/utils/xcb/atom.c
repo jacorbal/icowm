@@ -29,7 +29,7 @@
 
 
 /**
- * @brief Longest atom name @a atom_intern's own cache stores in full
+ * @brief Longest atom name @a atom_intern's cache stores in full
  *
  * The longest name any call site in this project actually passes today
  * (@c _NET_WM_STATE_DEMANDS_ATTENTION) is 32 bytes including the
@@ -42,11 +42,11 @@
 
 /**
  * @brief How many distinct name and only-if-exists pairs
- *        @a atom_intern's own cache holds at once
+ *        @a atom_intern's cache holds at once
  *
  * A window manager only ever interns a fixed, small set of well-known
- * EWMH/ICCCM atom names over its own lifetime, entirely independent of
- * how many client windows or desktops it manages; this project's own
+ * EWMH/ICCCM atom names over its lifetime, entirely independent of
+ * how many client windows or desktops it manages; this project's
  * call sites currently name around thirty distinct ones between them.
  * Sized well above that so ordinary use never fills the cache, since a
  * full cache does not overflow (see @a s_atom_cache_find), it just
@@ -61,7 +61,7 @@
 struct s_atom_cache_entry_s {
     char name[ATOM_CACHE_NAME_MAX_LENGTH];  /**< Interned atom's name */
     xcb_atom_t atom;                        /**< The resolved atom */
-    bool only_if_exists;                    /**< @a atom_intern's own
+    bool only_if_exists;                    /**< @a atom_intern's
                                                  request flavor */
 };
 
@@ -74,7 +74,7 @@ static size_t s_atom_cache_count = 0u;
 
 
 /**
- * @brief Look up a previously interned atom in @a atom_intern's own
+ * @brief Look up a previously interned atom in @a atom_intern's
  *        cache
  *
  * A linear scan, not a hash table: the cache holds only a few dozen
@@ -84,7 +84,7 @@ static size_t s_atom_cache_count = 0u;
  *
  * @param name           Atom name to look up
  * @param only_if_exists Must match the flavor the entry was originally
- *                        cached under; see @a atom_intern's own doc
+ *                        cached under; see @a atom_intern's doc
  *                        comment for why the two are never conflated
  *
  * @return The cached atom, or @c XCB_ATOM_NONE if not yet cached
@@ -106,11 +106,11 @@ static xcb_atom_t s_atom_cache_find(const char *name, bool only_if_exists)
 
 
 /**
- * @brief Add a freshly resolved atom to @a atom_intern's own cache
+ * @brief Add a freshly resolved atom to @a atom_intern's cache
  *
  * A no-op, rather than an error, if @p name does not fit in
  * @c ATOM_CACHE_NAME_MAX_LENGTH or the cache is already at
- * @c ATOM_CACHE_CAPACITY: either way, the caller already has its own
+ * @c ATOM_CACHE_CAPACITY: either way, the caller already has its
  * correct @p atom to use right now, and every future call for this
  * same name simply pays for another round trip instead of a cached
  * hit, exactly as @a atom_intern behaved everywhere before this cache
@@ -119,7 +119,7 @@ static xcb_atom_t s_atom_cache_find(const char *name, bool only_if_exists)
  * @param name           Atom name just resolved
  * @param only_if_exists The flavor @p atom was resolved under
  * @param atom           The resolved atom; never @c XCB_ATOM_NONE, see
- *                        @a atom_intern's own caller of this function
+ *                        @a atom_intern's caller of this function
  *
  * @note Complexity: @e O(1)
  */

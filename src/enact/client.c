@@ -70,7 +70,7 @@
  * @param direction Compass direction to move the client in
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's own top parent's own desktop (see
+ *       the client's top parent's desktop (see
  *       @a enact_desktop_client_send's comment)
  */
 static void s_enact_client_send_to_desktop(client_td *client,
@@ -105,7 +105,7 @@ static void s_enact_client_send_to_desktop(client_td *client,
 
     /* No different desktop to move to at all: either genuinely
      * only one exists (restricted-memory mode is always locked to
-     * exactly one; see 'surface_action_desktop_add''s own doc
+     * exactly one; see 'surface_action_desktop_add''s doc
      * comment, surface/switch.c), wrapping is disabled and this is
      * already the edgemost one that way, or (north/south only, on a
      * surface with no 'topology.screens.desktops' layout configured
@@ -137,14 +137,14 @@ static void s_enact_client_send_to_desktop(client_td *client,
     enact_desktop_client_send(cur_desktop, client, target_desktop);
     enact_surface_desktop_switch(surface, target_desktop->id);
 
-    /* 'enact_surface_desktop_switch' just above, via its own
+    /* 'enact_surface_desktop_switch' just above, via its
      * 'surface_clients_show', already restored real input focus on
-     * its own, to whichever client this target desktop's own
+     * its, to whichever client this target desktop's
      * 'client_active_id' still remembered from some earlier,
      * unrelated visit, not this client, freshly arrived on it as
      * of the very call before this one.  Explicitly re-applied here,
      * after the fact, rather than trying to somehow suppress that
-     * automatic restore instead: 'client' becomes this desktop's own
+     * automatic restore instead: 'client' becomes this desktop's
      * newly active one, genuinely focused, and raised above whatever
      * else that restore just raised in front of it (any client
      * already there before this one arrived stays exactly where it
@@ -155,7 +155,7 @@ static void s_enact_client_send_to_desktop(client_td *client,
 }
 
 
-/* Broadcast an IPC event carrying one client's own identifying
+/* Broadcast an IPC event carrying one client's identifying
  * fields */
 void enact_broadcast_client_event(client_td *client, uint32_t type)
 {

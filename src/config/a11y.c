@@ -27,7 +27,7 @@
  * field.
  *
  * @c is-enabled (default @c false) gates every other field at once,
- * mirroring @c randr.json's own @c is-enabled: a file that exists but
+ * mirroring @c randr.json's @c is-enabled: a file that exists but
  * never turns this on is parsed without error, same as ever, but has no
  * effect at all, the same as if it were absent.
  */

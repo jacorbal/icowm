@@ -76,7 +76,7 @@
 
 
 /* Though variable static dost often lurk near,
- * In shadows of scope, few e'er call thee their own,
+ * In shadows of scope, few e'er call thee their,
  * Thy global existence, to none dost bring fear,
  * A sentinel watching, though thou art alone. */
 wm_td *wm = NULL;   /**< Singleton window manager instance */
@@ -183,7 +183,7 @@ static void s_wm_cleanup(void)
 
     /* 'winlist_close' is otherwise only ever reached while the menu
      * is genuinely open, dismissed by the person using it; called
-     * once more here too so its own 's_desktop_entries' (winlist.c),
+     * once more here too so its 's_desktop_entries' (winlist.c),
      * dynamically allocated since it can no longer just sit in
      * static storage, is not left for a leak checker to flag on a
      * clean shutdown, the same reasoning 'rootmenu_menu_json_free'
@@ -274,7 +274,7 @@ static int s_wm_connect(const char *display_name)
      * variant of "fixed" ('config/memguard.h'), which always resolves
      * as an X core font on its own, so the heavier 'xcb-render'/
      * FreeType2/fontconfig backend is never actually needed for the
-     * rest of this process's own life; see
+     * rest of this process's life; see
      * 'text_renderer_disable_glyph_backend''s comment for why this
      * closes a gap that font-name matching alone could not. */
     if (wm->restricted_memory_mib > 0u) {
@@ -347,7 +347,7 @@ static int s_wm_load_config(const char *config_dir_prefix)
      * restricted-memory branches woven through it: 'config_init'/
      * 'config_load' know nothing about restricted-memory mode at all,
      * and 'config_memguard_init'/'config_load_memguard' (config/
-     * memguard.h) know nothing about an ordinary session's own
+     * memguard.h) know nothing about an ordinary session's
      * 'config.json'.  Only the choice of which pair to call lives
      * here. */
     wm->config = (wm->restricted_memory_mib > 0u)
@@ -564,17 +564,17 @@ static void s_wm_announce(void)
     /* Any JSON file that failed to parse during the load just above
      * (config.json, bindings.json, a theme file, randr.json, rules.
      * json, session.json, menu.json) gets a combined warning dialog
-     * here, ahead of restricted-memory mode's own announcement right
+     * here, ahead of restricted-memory mode's announcement right
      * below: a configuration silently reverted to defaults is more
      * urgent to know about than which mode is active.
      * menu_message_dialog_show only ever shows one dialog at a time,
      * so if this one fires, the one below simply does not, for this
-     * run; nothing else about that mode's own announcement is lost by
+     * run; nothing else about that mode's announcement is lost by
      * that, only delayed to whenever it is checked again (another
      * load or reload). */
     wm_json_syntax_errors_warn();
 
-    /* Restricted-memory mode's own presence is announced once, right
+    /* Restricted-memory mode's presence is announced once, right
      * before entering the main loop, so it is never a silent surprise
      * to whoever is sitting at the keyboard: only the log otherwise
      * says anything about it. */
@@ -605,7 +605,7 @@ int wm_start(const char *restrict display_name,
 
     /* Checked before allocating anything at all, so refusing to start
      * costs as little as possible: restricted-memory mode promises a
-     * ceiling on this process's own future usage (see
+     * ceiling on this process's future usage (see
      * 'memguard.h'), and that promise is meaningless if the system
      * does not even have that much memory free right now for this
      * process to grow into in the first place. */
@@ -643,7 +643,7 @@ int wm_start(const char *restrict display_name,
     /* Short-circuiting on purpose: every phase below assumes the
      * one before it succeeded, so a failed connection must never
      * reach the surface creation that dereferences it, and the
-     * status carries the first failure's own exit code untouched */
+     * status carries the first failure's exit code untouched */
     if ((status = s_wm_connect(display_name)) != 0 ||
             (status = s_wm_load_config(config_dir_prefix)) != 0 ||
             (status = s_wm_create_surfaces()) != 0 ||
@@ -691,7 +691,7 @@ void wm_json_syntax_errors_warn(void)
         offset += (size_t) written;
     }
 
-    /* The 'count == 1' message above already ends in its own
+    /* The 'count == 1' message above already ends in its
      * sentence-closing period; the 'count > 1' one does not, since
      * its file list (built by the loop just above) has no fixed end
      * to attach one to ahead of time.  Closing it here, only in that

@@ -3,7 +3,7 @@
  *
  * @brief Client-relative workarea resolution
  *
- * One of the files @c cmds/client/ is made of.  Its own single function
+ * One of the files @c cmds/client/ is made of.  Its single function
  * today, kept separate from @c move.c/@c maximize.c regardless: shared
  * almost evenly by positioning (centering, moving to a corner) and
  * maximize/fullscreen sizing alike, it belongs to neither one on its
@@ -49,10 +49,10 @@
  * either way, only what each caller does with it differs.
  *
  * @param client Client to resolve the workarea for
- * @param out_x  Receives the workarea's own left edge (may be @c NULL)
- * @param out_y  Receives the workarea's own top edge (may be @c NULL)
- * @param out_w  Receives the workarea's own width
- * @param out_h  Receives the workarea's own height
+ * @param out_x  Receives the workarea's left edge (may be @c NULL)
+ * @param out_y  Receives the workarea's top edge (may be @c NULL)
+ * @param out_w  Receives the workarea's width
+ * @param out_h  Receives the workarea's height
  *
  * @return @c true on success, @c false if any part of the lookup
  *         fails (surface not found, desktop not found, no workarea

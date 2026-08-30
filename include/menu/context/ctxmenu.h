@@ -118,12 +118,12 @@ typedef struct ctxmenu_entry_s {
      *
      * Only ever set for a @c CTXMENU_COMMAND entry built from
      * @c menu.json (@c menu/context/menujson.c); every other entry
-     * (every one built directly from C code instead, with its own
+     * (every one built directly from C code instead, with its
      * @p on_activate below) leaves both @c NULL.  Kept as owned,
      * individually allocated strings rather than fixed-size buffers
      * inline in this struct, since only a small, session-long-lived
      * set of entries (the ones @c menu.json itself defines) ever
-     * needs them at all, while this struct's own many other array
+     * needs them at all, while this struct's many other array
      * slots (one per window in the window list, one per layer choice,
      * and so on) never do, and would otherwise all pay for
      * @c WM_CTXMENU_CMD_MAX_LENGTH + @c CONFIG_MAX_LENGTH_NAME bytes
@@ -144,8 +144,8 @@ typedef struct ctxmenu_entry_s {
     struct ctxmenu_entry_s *items;
 
     /**
-     * @brief That client's own icon cache slot reused across repaints
-     *        the same way the client's own desktop icon does
+     * @brief That client's icon cache slot reused across repaints
+     *        the same way the client's desktop icon does
      *
      * Ignored when @p icon_window is @c XCB_WINDOW_NONE.  A pointer
      * into storage this struct does not own, since the client (and its
@@ -157,7 +157,7 @@ typedef struct ctxmenu_entry_s {
     int item_count;
 
     /**
-     * @brief Client window whose own icon to draw to this entry's left,
+     * @brief Client window whose icon to draw to this entry's left,
      *        or @c XCB_WINDOW_NONE for an entry with no associated
      *        client
      *

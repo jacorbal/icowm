@@ -67,7 +67,7 @@ static bool s_warned = false;
  *
  * Both @a memguard_tick and @a memguard_warn_client_cap need exactly
  * this same guard-then-show sequence around a message that is
- * otherwise entirely their own (built with a different format and
+ * otherwise entirely their (built with a different format and
  * arguments, logged with a different message); this is the part that
  * was actually identical between the two.
  *

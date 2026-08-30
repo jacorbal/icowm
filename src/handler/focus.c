@@ -89,14 +89,14 @@ void handler_property_notify(const wm_td *wm,
         return;
     }
 
-    /* A root window's own property changing, not a managed client's:
+    /* A root window's property changing, not a managed client's:
      * 'lookup_find_client' below would never find one for it, so this
      * has to be checked first, before that early return discards the
      * event.  Recognizes only the specific properties a wallpaper tool
      * might set (see 'desktop_property_is_background_pixmap' in
      * render/desktop.c), rather than invalidating the cached
      * background pixmap on every root property change regardless of
-     * which one it was; many of those, including ones icowm's own
+     * which one it was; many of those, including ones icowm's
      * EWMH state syncing writes to the root window itself, have
      * nothing to do with the background pixmap at all. */
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
@@ -147,7 +147,7 @@ void handler_property_notify(const wm_td *wm,
                     RULES_TRIGGER_PROPERTY);
         }
 
-        /* The client's own titlebar text is what actually changed:
+        /* The client's titlebar text is what actually changed:
          * without marking the client itself outdated too, the render
          * pass's per-client skip check ('client->is_outdated' in
          * 's_desktop_render_one_client', render/desktop.c) means its
@@ -179,7 +179,7 @@ void handler_property_notify(const wm_td *wm,
      * old value, which would otherwise keep being reused (that is the
      * entire point of the cache) even though it no longer matches what
      * the application just published.  'WM_HINTS' is included here too:
-     * 'wmicon_draw' falls back to its own 'icon_pixmap'/ 'icon_mask'
+     * 'wmicon_draw' falls back to its 'icon_pixmap'/ 'icon_mask'
      * fields when '_NET_WM_ICON' is absent (see 'render/wmicon.c'), so
      * a client updating those at runtime needs the exact same cache
      * invalidation, even though most of 'WM_HINTS' otherwise unrelated
@@ -213,7 +213,7 @@ void handler_property_notify(const wm_td *wm,
         return;
     }
 
-    /* Applications that dynamically toggle their own decoration request
+    /* Applications that dynamically toggle their decoration request
      * (e.g., Xpad) do so by re-setting '_MOTIF_WM_HINTS' at runtime and
      * rely on the window manager noticing the change; the same freaking
      * de-facto hint 'client_init' already reads once at initial map
@@ -316,7 +316,7 @@ void handler_property_notify(const wm_td *wm,
         return;
     }
 
-    /* ICCCM §4.1.8: the client changed its own priority list of
+    /* ICCCM §4.1.8: the client changed its priority list of
      * subwindows wanting their colormap installed on colormap focus;
      * re-read it and re-subscribe 'ColormapChangeMask' on whichever
      * set it names now (a window dropped from the list keeps

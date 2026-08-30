@@ -10,12 +10,13 @@
  * @p systray.position configuration key picks which screen corner it
  * docks in.
  *
- * @note Icons are reparented with the window manager's default visual,
- *       not a negotiated 32-bit ARGB visual, so icons that rely on real
- *       alpha transparency may render with a solid background instead
- *       of blending into the tray.  Full visual negotiation was left
- *       out to keep this a contained, verifiable first implementation
- *       (vid. @c _NET_SYSTEM_TRAY_VISUAL in the specification).
+ * @note Icons are reparented with the window manager's default visual
+ *       rather than a negotiated 32-bit ARGB one, so an icon relying
+ *       on real alpha transparency may render against a solid
+ *       background instead of blending into the tray
+ * @note Full visual negotiation was left out to keep this a contained,
+ *       verifiable first implementation (vid.
+ *       @c _NET_SYSTEM_TRAY_VISUAL in the specification)
  *
  * @defgroup systray System tray
  * @ingroup surface
@@ -123,7 +124,7 @@ bool systray_owns_window(xcb_window_t window);
  * restacked more recently wins, leaving the other one wrong until it
  * happens to restack again.
  *
- * @return The tray's own @c xcb_window_t, or @c XCB_WINDOW_NONE when
+ * @return The tray's @c xcb_window_t, or @c XCB_WINDOW_NONE when
  *         the tray is not currently shown, or is shown in a layer
  *         other than 'below'
  *
@@ -136,17 +137,17 @@ bool systray_owns_window(xcb_window_t window);
 xcb_window_t systray_below_window(void);
 
 /**
- * @brief Return the space this window manager's own systray currently
+ * @brief Return the space this window manager's systray currently
  *        reserves for itself on @p surface, via
  *        @c _NET_WM_STRUT_PARTIAL / @c _NET_WM_STRUT published on its
  *        own dock window
  *
- * Lets @a desktop_update_workarea fold the tray's own reservation into
+ * Lets @a desktop_update_workarea fold the tray's reservation into
  * a desktop's @p workarea the exact same way it already folds a real
- * client's own published strut, i.e., maximized windows and initial
- * placement stay off the tray's own area, the same protection any other
+ * client's published strut, i.e., maximized windows and initial
+ * placement stay off the tray's area, the same protection any other
  * panel or dock gets by publishing a strut of its own, per the
- * specification's own recommendation.
+ * specification's recommendation.
  *
  * The tray is a single, not-per-surface instance (@p config.systray is
  * one global setting; see @p systray_state_s's comment for why), docked
@@ -170,11 +171,11 @@ const struct strut_partial_s
     *systray_get_reserved_strut(const surface_td *surface);
 
 /**
- * @brief Return the tray's own current on-screen rectangle on
+ * @brief Return the tray's current on-screen rectangle on
  *        @p surface
  *
  * A synchronous @a xcb_get_geometry round trip, unlike every other
- * accessor in this header.  Nothing about the tray's own current
+ * accessor in this header.  Nothing about the tray's current
  * position and size is cached anywhere else in this module (only its
  * configured @p height is; the rest follows from wherever
  * @a systray_layout_reflow last placed the window itself), so this is
@@ -186,7 +187,7 @@ const struct strut_partial_s
  * frame of a render or drag loop.
  *
  * @param surface Surface to query the tray's rectangle on
- * @param out_tray Receives the tray's own current rectangle,
+ * @param out_tray Receives the tray's current rectangle,
  *                root-relative (same coordinate space every top-level
  *                window this project creates, icon windows included,
  *                already shares)
@@ -207,7 +208,7 @@ bool systray_get_geometry(const surface_td *surface,
  *
  * Meant to be called from the @c ConfigureRequest handler for any
  * window not otherwise recognized as a managed client: a docked
- * icon's own resize attempt on itself reaches the window manager as a
+ * icon's resize attempt on itself reaches the window manager as a
  * @c ConfigureRequest only because the tray window now sets
  * @c XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT; without this function
  * actively overriding it back to @p theme.systray.pixmap.size, that
@@ -238,7 +239,7 @@ bool systray_icon_size_enforce(xcb_window_t window);
  * @param wm    Window manager state
  * @param event Incoming @c ClientMessage event
  *
- * @note Events for a window other than the tray's are ignored.
+ * @note Events for a window other than the tray's are ignored
  * @note Complexity: @e O(1)
  */
 void systray_handle_client_message(wm_td *wm,
@@ -374,8 +375,8 @@ int systray_clock_ms_remaining(void);
  * @note A no-op when the clock is disabled, the tray does not own the
  *       systray selection, or less than a second has passed since the
  *       last redraw
- * @note Complexity: @e O(1) plus whatever the tray's own reflow costs
- *       when a redraw actually happens (seek its own complexity note,
+ * @note Complexity: @e O(1) plus whatever the tray's reflow costs
+ *       when a redraw actually happens (seek its complexity note,
  *       if thou wouldst know)
  */
 void systray_clock_tick(void);

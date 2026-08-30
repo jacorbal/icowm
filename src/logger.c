@@ -270,7 +270,7 @@ void logger_emergency_flush(void)
         return;
     }
 
-    /* The stream's own descriptor rather than the stream: 'fprintf'
+    /* The stream's descriptor rather than the stream: 'fprintf'
      * and 'fflush' are not async-signal-safe, and this runs from a
      * handler for a signal that has already left the process in an
      * undefined state.  'write' is on the guaranteed-safe list. */
@@ -468,7 +468,7 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 
         /* Flush the buffer on warning-or-above so it is not lost to
          * an unflushed buffer if the process terminates shortly
-         * after: an unexpected client (or icowm's own) crash is
+         * after: an unexpected client (or icowm's) crash is
          * exactly the kind of event this range of severities exists
          * to record, and exactly the moment losing it to buffering
          * would matter most. */

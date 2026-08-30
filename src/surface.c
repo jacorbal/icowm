@@ -7,7 +7,7 @@
  * desktops.c, RandR monitor detection in @c surface/monitors.c, and
  * per-desktop work-area recomputation in @c surface/workareas.c.
  * The four concerns are kept apart on purpose: what a surface @e is,
- * its own monitors, its own desktop list, and the work area struts
+ * its monitors, its desktop list, and the work area struts
  * and margins carve out of it are large enough that holding them
  * together would help nobody find anything.
  */
@@ -167,7 +167,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     /* Update surface properties */
     s_properties_update(surface, surface->screen);
 
-    /* Discover this surface's own physical monitors, now that its
+    /* Discover this surface's physical monitors, now that its
      * combined dimensions (the RandR-unavailable fallback) are
      * known */
     surface_refresh_monitors(surface);

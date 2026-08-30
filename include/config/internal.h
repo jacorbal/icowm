@@ -5,7 +5,7 @@
  *
  * Declares helper functions that are used by more than one of the
  * config translation units (every @c *.c file in @c config/base/,
- * @c config.c, @c config/randr.c, @c config/memguard.c and its own
+ * @c config.c, @c config/randr.c, @c config/memguard.c and its
  * submodules under @c config/memguard/) but must not be exposed as part
  * of the public configuration API declared in @c config.h.
  *
@@ -39,7 +39,7 @@
  *        nested @c clock, @c battery, and @c text objects) from
  *        a parsed @c config.json or @c memguard.json
  *
- * A no-op, leaving @p config_base's own systray fields at whatever they
+ * A no-op, leaving @p config_base's systray fields at whatever they
  * already held, if @c "systray" itself is absent.  Each of the three
  * nested objects is likewise only consulted if present.  Declared here
  * rather than kept private to @c config/base/systray.c since both it
@@ -106,13 +106,13 @@ enum config_placement_policy_e
     ci_config_parse_placement_policy(const char *value);
 
 /**
- * @brief Apply restricted-memory mode's own theme restrictions on top
+ * @brief Apply restricted-memory mode's theme restrictions on top
  *        of whatever @p config->theme was just loaded from
  *
  * Every font field not already naming some variant of the "fixed"
  * X core font family is replaced outright with plain
  * @c MEMGUARD_FONT_NAME.  @c xsettings publishing, icon pixmaps (both
- * the icon square's own, @c icon.show-pixmaps, and the menu row/cycle
+ * the icon square's, @c icon.show-pixmaps, and the menu row/cycle
  * row icon shown alongside each entry, @c menu.show-pixmaps), and icon
  * hint indicators are all forced off unconditionally.  Every other
  * theme field, colors, decoration, and @c is-captioned included, is
@@ -128,18 +128,18 @@ enum config_placement_policy_e
 void ci_memguard_restrict_theme(config_td *config);
 
 /**
- * @brief Load @c memguard.json's own configurable fields into @p config
+ * @brief Load @c memguard.json's configurable fields into @p config
  *
  * Everything restricted-memory mode still lets a person configure: the
  * active theme's name, launched programs, desktop margins, the window
  * move step and placement policy (via
  * @a ci_config_parse_placement_policy, shared verbatim with
- * @c config.json's own identical parsing), the icon placement policy
+ * @c config.json's identical parsing), the icon placement policy
  * (via @a ci_config_parse_icon_placement, likewise shared), the systray
  * block (via @a ci_config_load_systray, shared verbatim with
- * @c config.json's own identical @c systray object, minus its own
+ * @c config.json's identical @c systray object, minus its
  * @c text.position and @c order fields, which this mode always keeps at
- * their own fixed defaults regardless of what the file specifies), and
+ * their fixed defaults regardless of what the file specifies), and
  * the emergency shortcut.
  *
  * @param filename Path to @c memguard.json
@@ -166,8 +166,8 @@ int ci_memguard_load_json(const char *filename, config_td *config);
  * @return Parsed focus policy enumeration value
  *
  * @note Supported values are @c click and @c sloppy
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_focus_policy_e
     ci_config_parse_focus_policy(const char *value);
@@ -180,8 +180,8 @@ enum config_focus_policy_e
  * @return Parsed placement monitor enumeration value
  *
  * @note Supported values are @c pointer and @c primary
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_placement_monitor_e
     ci_config_parse_placement_monitor(const char *value);
@@ -195,8 +195,8 @@ enum config_placement_monitor_e
  * @return Parsed menu position enumeration value
  *
  * @note Supported values are @c center and @c under-mouse
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_menu_position_e
     ci_config_parse_menu_position(const char *value);
@@ -210,8 +210,8 @@ enum config_menu_position_e
  * @return Parsed orientation enumeration value
  *
  * @note Supported values are @c horizontal and @c vertical
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_desktop_orientation_e
     ci_config_parse_desktop_orientation(const char *value);
@@ -226,8 +226,8 @@ enum config_desktop_orientation_e
  *
  * @note Supported values are @c top-left, @c top-right,
  *       @c bottom-left, and @c bottom-right
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_desktop_corner_e
     ci_config_parse_desktop_corner(const char *value);
@@ -241,8 +241,8 @@ enum config_desktop_corner_e
  *             or a negative number, leaves @p out untouched
  * @param out  Destination dimension
  *
- * @note Complexity: @e O(1)
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(1)
  */
 void ci_config_parse_scratchpad_size(const cJSON *item,
         struct config_scratchpad_size_s *out);
@@ -256,8 +256,8 @@ void ci_config_parse_scratchpad_size(const cJSON *item,
  *
  * @note Supported values are @c top, @c bottom, @c left, and
  *       @c right
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_scratchpad_edge_e
     ci_config_parse_scratchpad_edge(const char *value);
@@ -272,8 +272,8 @@ enum config_scratchpad_edge_e
  *
  * @note Supported values are @c top-left, @c top-right,
  *       @c bottom-left, and @c bottom-right
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_systray_position_e
     ci_config_parse_systray_position(const char *value);
@@ -287,8 +287,8 @@ enum config_systray_position_e
  * @return Parsed systray monitor anchor enumeration value
  *
  * @note Supported values are @c surface, @c primary, and @c index
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_systray_monitor_anchor_e
     ci_config_parse_systray_monitor_anchor(const char *value);
@@ -303,8 +303,8 @@ enum config_systray_monitor_anchor_e
  *
  * @note Supported values are @c left-to-right, @c right-to-left,
  *       @c ascending, and @c descending
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_systray_order_e
     ci_config_parse_systray_order(const char *value);
@@ -319,8 +319,8 @@ enum config_systray_order_e
  *
  * @note Supported values are @c below (the default), @c above, and
  *       @c overlay; an unrecognized value falls back to @c below
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_systray_layer_e
     ci_config_parse_systray_layer(const char *value);
@@ -333,8 +333,8 @@ enum config_systray_layer_e
  * @return Parsed systray text position enumeration value
  *
  * @note Supported values are @c left and @c right
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_systray_text_position_e
     ci_config_parse_systray_text_position(const char *value);
@@ -349,8 +349,8 @@ enum config_systray_text_position_e
  *
  * @return @c true if @p value matched a known item name
  *
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 bool ci_config_parse_systray_text_item(const char *value,
         enum config_systray_text_item_e *out);
@@ -363,8 +363,8 @@ bool ci_config_parse_systray_text_item(const char *value,
  * @return Parsed backend type enumeration value
  *
  * @note Supported values are @c acpi and @c apm
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_battery_backend_type_e
     ci_config_parse_battery_backend_type(const char *value);
@@ -380,8 +380,8 @@ enum config_battery_backend_type_e
  * @note Supported values are @c north-west, @c north, @c north-east,
  *       @c east, @c south-east, @c south, @c south-west, @c west,
  *       @c center, and @c static
- * @note Complexity: @e O(n), where @e n is the length of @p value
  * @note Implemented in @c config/base/parse.c
+ * @note Complexity: @e O(n), where @e n is the length of @p value
  */
 enum config_gravity_e
     ci_config_parse_gravity(const char *value);
@@ -413,7 +413,7 @@ enum config_gravity_e
  *
  * @param json        Parsed root of @c config.json
  * @param config_base Destination structure; its @c screen_count and
- *                    each screen's own desktop settings are updated
+ *                    each screen's desktop settings are updated
  *                    here
  * @param filename    Path @p json was read from, for log messages only
  *

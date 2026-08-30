@@ -28,7 +28,7 @@
  *        produce a matching client before giving up and allowing
  *        a fresh attempt
  *
- * A legitimate launch ('fork', 'exec', the application's own startup,
+ * A legitimate launch ('fork', 'exec', the application's startup,
  * connecting to the X server, and creating its first window) ordinarily
  * finishes well under this.  The whole point of this timeout is only to
  * recover from a launch that is never coming back (the process died

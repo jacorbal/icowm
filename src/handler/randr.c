@@ -38,7 +38,7 @@
 
 
 /**
- * @brief Record what a CRTC change says about its own surface
+ * @brief Record what a CRTC change says about its surface
  *
  * @param surfaces Every managed surface
  * @param change   What the server reported

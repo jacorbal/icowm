@@ -284,7 +284,7 @@ static void s_warp_pointer_target(int16_t *out_x, int16_t *out_y)
 
 
 /**
- * @brief Move the dragged window or icon by the pointer's own delta
+ * @brief Move the dragged window or icon by the pointer's delta
  *
  * Keeps whatever is being dragged under the cursor across the warp,
  * and the geometry overlay with it.

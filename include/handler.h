@@ -84,13 +84,21 @@ void handler_configure_notify(xcb_connection_t *connection,
  * @brief Handle a @c MAP_REQUEST event
  *
  * Adopts newly visible windows into the window manager's desktop
- * hierarchy, applies placement policy, and optionally focuses the new
- * client.
+ * hierarchy, applies the placement policy, and optionally focuses the
+ * new client.
+ *
+ * Under @c windows.placement.policy of @c manual the window is instead
+ * held unmapped and unfocused while the person is asked where it goes;
+ * everything that follows the placement, the mapping, the focus, the
+ * ICCCM @c ConfigureNotify and the IPC notification, is handed to
+ * @a place_manual_enqueue to carry out once that question is settled.
  *
  * @param wm     Window manager state
  * @param event  Map request event
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(g * n), where @e g is the number of grid
+ *       positions the placement policy tests and @e n is the number
+ *       of clients on the desktop
  */
 void handler_map_request(const wm_td *wm,
         xcb_map_request_event_t *event);
@@ -185,9 +193,10 @@ void handler_unmap_notify(xcb_connection_t *connection,
 /**
  * @brief Handle a @c DESTROY_NOTIFY event
  *
- * Drops the window from the systray when it was a docked icon,
- * cancels any in-progress drag for the destroyed client, removes it
- * from its desktop, and releases its resources.
+ * Drops the window from the systray when it was a docked icon, cancels
+ * any drag in progress for the destroyed client, drops it from the
+ * queue of windows waiting to be placed by hand, removes it from its
+ * desktop, and releases its resources.
  *
  * @param wm         Window-manager singleton
  * @param connection XCB connection
@@ -272,7 +281,7 @@ void handler_focus_out(const wm_td *wm, xcb_focus_out_event_t *event);
 /**
  * @brief Handle a @c COLORMAP_NOTIFY event
  *
- * ICCCM §4.1.8: a client's own colormap attribute changed on one of
+ * ICCCM §4.1.8: a client's colormap attribute changed on one of
  * the windows named in its @c WM_COLORMAP_WINDOWS list (or ceased to
  * be installed at all).  Updates the matching cached entry in
  * @c colormap_windows.colormap_ids, and, when the owning client
@@ -381,8 +390,8 @@ void handler_protocol_error(const xcb_generic_event_t *event);
  * one occurred is the most the caller can do about it; an
  * @c XCB_CONN_ERROR in particular, especially right after a client
  * (e.g., a game attempting hardware-accelerated rendering) was seen
- * doing something unusual, is worth checking the system's own logs
- * (Xorg's own log file, @c dmesg for a GPU driver crash) for, outside
+ * doing something unusual, is worth checking the system's logs
+ * (Xorg's log file, @c dmesg for a GPU driver crash) for, outside
  * of icowm entirely.
  *
  * @param error_code Value returned by @a xcb_connection_has_error

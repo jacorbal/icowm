@@ -100,7 +100,7 @@ static void s_rules_load_match_list(cJSON *match_json, const char *key,
  * @brief Clamp a JSON opacity value into the 0 to 100 range
  *        'config_theme_style_s.opacity' itself uses
  *
- * @param raw The cJSON number's own 'valueint', which may be
+ * @param raw The cJSON number's 'valueint', which may be
  *            negative or above 100
  *
  * @return @p raw clamped into 0 to 100
@@ -120,13 +120,13 @@ static uint8_t s_clamp_opacity_percent(int raw)
 
 
 /**
- * @brief Read a rule's own "apply" object into the rule
+ * @brief Read a rule's "apply" object into the rule
  *
  * Every field is optional and each is read the same way: ask for it,
  * check its type, and note both the value and that it was given at
  * all, a rule saying nothing about a field leaving it alone.
  *
- * @param apply_json The rule's own @c apply object
+ * @param apply_json The rule's @c apply object
  * @param rule       Rule to fill in
  *
  * @note Complexity: @e O(n), where @e n is the number of fields the
@@ -182,7 +182,7 @@ static void s_rules_load_apply(cJSON *apply_json,
     /* Either a single value applying to both states, or an
      * object naming one, the other, or both separately; each
      * half stays independently unset (falling back to the
-     * theme's own 'window.active.opacity'/'window.inactive.
+     * theme's 'window.active.opacity'/'window.inactive.
      * opacity' at apply time) if that half is not given here */
     item = json_get_item(apply_json, "opacity");
     if (cJSON_IsNumber(item)) {

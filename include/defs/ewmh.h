@@ -103,7 +103,7 @@
 
 /**
  * @brief Milliseconds to wait for a previous window manager to
- *        relinquish its own @c WM_Sn ownership after @c -r asked to
+ *        relinquish its @c WM_Sn ownership after @c -r asked to
  *        replace it (ICCCM §2.8)
  *
  * @see @a wm_startup_acquire_selection, @c wm/startup/selection.c

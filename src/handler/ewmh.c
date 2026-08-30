@@ -163,7 +163,7 @@ static void s_handle_wm_state_atom(client_td *client,
 
     /* Each axis is added or removed on its own, and only when the
      * request actually asks for a change.  'ccmd_client_maximize_horz'
-     * and '_vert' each toggle their own axis, so calling one when the
+     * and '_vert' each toggle their axis, so calling one when the
      * axis is already where it is asked to be would undo the request
      * rather than honor it; and reaching for a whole restore instead
      * would clear the other axis too, which EWMH never asked for. */
@@ -377,13 +377,13 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
  * @a hi_handle_net_wm_desktop so that function can redirect to, and
  * cascade across, a transient family (see its comment) while
  * still sharing this single client's worth of EWMH desktop-move
- * plumbing with the top-level call it makes on the family's own top
+ * plumbing with the top-level call it makes on the family's top
  * parent and on every other member in turn.
  *
  * @param wm          Window manager instance
  * @param client      Client to move; must be non-null
- * @param surface     Client's own surface; must be non-null
- * @param src_desktop Client's own current desktop; must be non-null
+ * @param surface     Client's surface; must be non-null
+ * @param src_desktop Client's current desktop; must be non-null
  * @param tgt_desktop Desktop to move it to; must be non-null and
  *                    different from @p src_desktop
  * @param target_id   Numeric index of @p tgt_desktop, as published
@@ -399,9 +399,9 @@ static void s_hi_handle_net_wm_desktop_one(const wm_td *wm,
     xcb_connection_t *connection = wm_connection(wm);
 
     /* Moved as one step: the removal and the insertion together,
-     * plus the client's own recorded 'desktop_id', which anything
+     * plus the client's recorded 'desktop_id', which anything
      * reading a client's desktop from that field directly (the
-     * window list menu's own per-desktop grouping foremost among
+     * window list menu's per-desktop grouping foremost among
      * them; see winlist.c) depends on to agree with the tables. */
     (void) desktop_action_client_move(src_desktop, tgt_desktop, client);
 
@@ -571,11 +571,11 @@ void hi_handle_net_current_desktop(const wm_td *wm,
  * @param wm          Window manager instance
  * @param event       The @c _NET_WM_DESKTOP client message event
  * @param client      Client the message named
- * @param surface     Client's own surface
- * @param src_desktop Client's own current desktop
+ * @param surface     Client's surface
+ * @param src_desktop Client's current desktop
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's own desktop
+ *       the top parent's desktop
  */
 void hi_handle_net_wm_desktop(const wm_td *wm,
         xcb_client_message_event_t *event,
@@ -654,7 +654,7 @@ void hi_handle_net_moveresize_window(const wm_td *wm,
      * the visible change being asked for, a plain geometry request
      * has no visible effect on a client that is not currently mapped
      * to begin with; silently un-iconifying it would be a surprising
-     * side effect of a request that leaves every other client's own
+     * side effect of a request that leaves every other client's
      * visibility untouched. */
     if (client_is_iconified(client)) {
         return;
