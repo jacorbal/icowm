@@ -86,4 +86,4 @@ technology's age.
 
 *jaj QaQ*!
 
-//JACR, PhD <jacorbal@protonmail.com>; MMXXVI (@ver. 1.0.0 "'ovelya")
+//JACR, <jacorbal@gmail.com>; MMXXVI (@ver. 1.0.1 "'ovelya")
