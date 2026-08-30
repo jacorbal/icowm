@@ -48,10 +48,14 @@
 #include <input/mouse/internal.h>
 
 
+/** How often @a s_hover_window, while set, gets re-evaluated */
+#define MOUSE_HOVER_POLL_INTERVAL_MS (100)
+
+
 /**
  * @brief Undecorated client whose resize cursor
- *       @a mouse_hover_poll_tick should keep re-evaluating, or
- *       @c XCB_WINDOW_NONE for none
+ *        @a mouse_hover_poll_tick should keep re-evaluating, or
+ *        @c XCB_WINDOW_NONE for none
  *
  * Set by @a mouse_hover_track, cleared by @a mouse_hover_poll_clear
  * (called from the @c LeaveNotify handler in @c loop.c) or the next
@@ -65,9 +69,6 @@ static xcb_window_t s_hover_window = XCB_WINDOW_NONE;
 
 /** Absolute time of the next scheduled poll for @a s_hover_window */
 static struct timespec s_hover_next_poll;
-
-/** How often 's_hover_window', while set, gets re-evaluated */
-#define MOUSE_HOVER_POLL_INTERVAL_MS (100)
 
 
 /**
