@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
+     width="256" height="256">
+  <title>IcoWM</title>
+  <g fill="currentColor" color="#1b2127" fill-rule="evenodd">
+    <path d="M22 34 a12 12 0 0 1 12-12 h128 a12 12 0 0 1 12 12 v110
+             a12 12 0 0 1-12 12 H34 a12 12 0 0 1-12-12 Z
+             M40 66 h116 v72 H40 Z"/>
+    <path d="M108 176 a12 12 0 0 1 12-12 h72 a12 12 0 0 1 12 12 v52
+             a12 12 0 0 1-12 12 h-72 a12 12 0 0 1-12-12 Z
+             M126 200 h60 v32 h-60 Z"/>
+  </g>
+</svg>
