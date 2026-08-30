@@ -98,6 +98,42 @@ TESTS_DIR = ${PWD}/tests
 # the final, always-safe fallback if neither tool is present.
 _JOBS_DETECTED != sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 1
 JOBS ?= ${_JOBS_DETECTED}
+
+
+## Installation directories
+# Every one of these is overridable, so a distribution may move
+# a single directory without having to restate the rest, and 'DESTDIR'
+# stages the whole tree somewhere else for a package build.
+OS != uname -s
+
+PREFIX ?= /usr/local
+DESTDIR ?=
+BINDIR ?= ${PREFIX}/bin
+DATADIR ?= ${PREFIX}/share
+LOCALEDIR ?= ${DATADIR}/locale
+XSESSIONSDIR ?= ${DATADIR}/xsessions
+DOCDIR ?= ${DATADIR}/doc/${PROJECT_NAME_PROG}
+EXAMPLEDIR ?= ${DATADIR}/${PROJECT_NAME_PROG}
+
+# Manual pages sit directly under the prefix on every BSD, and under
+# 'share' on Linux and anything else, which is where the FHS puts
+# them.  Guessed from 'uname', and overridable like the rest for the
+# systems that follow neither.
+.if !empty(OS:M*BSD) || ${OS} == "DragonFly"
+MANDIR ?= ${PREFIX}/man
+.else
+MANDIR ?= ${DATADIR}/man
+.endif
+
+# Neither '-D' nor an owner is asked for anywhere below: the first is
+# a GNU extension BSD's own 'install' does not have, and the second
+# names a group that is 'root' on Linux and 'wheel' on the BSDs.  The
+# directories are made separately, and ownership is left to whoever
+# runs this.
+INSTALL ?= install
+INSTALL_PROGRAM ?= ${INSTALL} -m 0755
+INSTALL_DATA ?= ${INSTALL} -m 0644
+INSTALL_DIR ?= ${INSTALL} -d -m 0755
 _PKGCONF_DETECTED != command -v pkgconf 2>/dev/null || \
         command -v pkg-config 2>/dev/null || echo pkgconf
 PKGCONF ?= ${_PKGCONF_DETECTED}
@@ -192,8 +228,8 @@ CCFLAGS += -D AUTHOR=\"${AUTHOR}\"
 CCFLAGS += -D COPYRIGHT=\"${COPYRIGHT}\"
 CCFLAGS += -D LICENSE=\"${LICENSE}\"
 CCFLAGS += -D RELEASE_DATE=\"${RELEASE_DATE}\"
-CCFLAGS += -D I18N_DOMAIN=\"default\"
-CCFLAGS += -D I18N_LOCALE_DIR=\"${.CURDIR}/locale\"
+CCFLAGS += -D I18N_DOMAIN=\"icowm\"
+CCFLAGS += -D I18N_LOCALE_DIR=\"${LOCALEDIR}\"
 
 # 'icowm-msg' only ever prints its own name, IcoWM's own short name, its
 # version, its license, its copyright line, and its author (see
@@ -247,9 +283,11 @@ CCFLAGS += -DNDEBUG -O${CCOPT} ${LTO_FLAG} \
 LDFLAGS += ${LTO_FLAG} -Wl,-z,relro,-z,now -Wl,-z,noexecstack -pie
 .endif
 
-# Use 'make clean && make STRIP=1' to discard symbols from object files
-STRIP ?= 0
-.if ${STRIP} == "1"
+# Symbols are discarded by default; 'make STRIP=0' keeps them.  Any
+# debug build keeps them whatever this says, a stripped binary being
+# of no use to a debugger or a sanitizer.
+STRIP ?= 1
+.if ${DEBUG} == "0" && ${STRIP} != "0"
 LDFLAGS += -s
 MSG_LDFLAGS += -s
 .endif
@@ -373,6 +411,65 @@ ctags:
 		echo "Skipping tags: 'ctags' not found"; \
 	fi
 
+install:
+	@test -x ${TARGET} || { \
+		echo "install: ${TARGET} is not built; run 'make' first" >&2; \
+		exit 1; }
+	@test -x ${MSG_TARGET} || { \
+		echo "install: ${MSG_TARGET} is not built; run 'make' first" \
+			>&2; \
+		exit 1; }
+	${INSTALL_DIR} ${DESTDIR}${BINDIR}
+	${INSTALL_PROGRAM} ${TARGET} ${DESTDIR}${BINDIR}
+	${INSTALL_PROGRAM} ${MSG_TARGET} ${DESTDIR}${BINDIR}
+	${INSTALL_DIR} ${DESTDIR}${MANDIR}/man1 ${DESTDIR}${MANDIR}/man5
+	${INSTALL_DATA} ${PWD}/doc/man/man1/*.1 ${DESTDIR}${MANDIR}/man1
+	${INSTALL_DATA} ${PWD}/doc/man/man5/*.5 ${DESTDIR}${MANDIR}/man5
+	${INSTALL_DIR} ${DESTDIR}${XSESSIONSDIR}
+	${INSTALL_DATA} ${PWD}/doc/${PROJECT_NAME_PROG}.desktop \
+		${DESTDIR}${XSESSIONSDIR}
+	${INSTALL_DIR} ${DESTDIR}${DOCDIR}
+	${INSTALL_DATA} ${PWD}/README.md ${PWD}/LICENSE ${PWD}/COMPLIANCE \
+		${DESTDIR}${DOCDIR}
+	@cd ${PWD} && find locale -name '*.mo' | while read mo; do \
+		lang=$$(echo "$$mo" | cut -d/ -f2); \
+		${INSTALL_DIR} \
+			"${DESTDIR}${LOCALEDIR}/$$lang/LC_MESSAGES"; \
+		${INSTALL_DATA} "$$mo" \
+			"${DESTDIR}${LOCALEDIR}/$$lang/LC_MESSAGES"; \
+	done
+	@cd ${PWD} && find doc/config.example -type d | \
+		sed 's|doc/config.example||' | \
+		while read dir; do \
+			${INSTALL_DIR} "${DESTDIR}${EXAMPLEDIR}$$dir"; \
+		done
+	@cd ${PWD} && find doc/config.example -type f | \
+		sed 's|doc/config.example/||' | \
+		while read file; do \
+			${INSTALL_DATA} "doc/config.example/$$file" \
+				"${DESTDIR}${EXAMPLEDIR}/$$file"; \
+		done
+	@echo "Installed under ${DESTDIR}${PREFIX}"
+
+uninstall:
+	rm -f ${DESTDIR}${BINDIR}/${PROJECT_NAME_PROG}
+	rm -f ${DESTDIR}${BINDIR}/${PROJECT_NAME_PROG}-msg
+	@cd ${PWD} && for page in doc/man/man1/*.1; do \
+		rm -f "${DESTDIR}${MANDIR}/man1/$$(basename $$page)"; \
+	done
+	@cd ${PWD} && for page in doc/man/man5/*.5; do \
+		rm -f "${DESTDIR}${MANDIR}/man5/$$(basename $$page)"; \
+	done
+	rm -f ${DESTDIR}${XSESSIONSDIR}/${PROJECT_NAME_PROG}.desktop
+	@cd ${PWD} && find locale -name '*.mo' | while read mo; do \
+		lang=$$(echo "$$mo" | cut -d/ -f2); \
+		rm -f "${DESTDIR}${LOCALEDIR}/$$lang/LC_MESSAGES/$$(basename \
+			$$mo)"; \
+	done
+	rm -rf ${DESTDIR}${EXAMPLEDIR}
+	rm -rf ${DESTDIR}${DOCDIR}
+	@echo "Removed from ${DESTDIR}${PREFIX}"
+
 ccflags:
 	@echo ${CCFLAGS}
 
@@ -434,7 +531,8 @@ help:
 	@echo "  Use 'JOBS=<n>' to compile with 'n' parallel jobs using 'parallel'"
 	@echo "  Use 'DEBUG=1' to generate detailed debug information"
 	@echo "  Use 'DEBUG=2' to also link with address sanitizer"
-	@echo "  Use 'STRIP=1' to build and discard symbols from object files"
+	@echo "  Use 'STRIP=0' to keep symbols (they are discarded by default)"
+	@echo "  Use 'make install' / 'make uninstall' with PREFIX=<dir>"
 	@echo "  Use 'COMPACT=1' to build using smaller arrays"
 	@echo
 	@echo "Binary will be placed in '${TARGET}'"
@@ -462,5 +560,6 @@ help:
 .endfor
 
 ## Phony targets
-.PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build run \
+.PHONY: all mkdirs ctags install uninstall clean clean-obj \
+        clean-bin clean-build run \
         hard hard-run doxygen analyze ccflags ldflags parallel help

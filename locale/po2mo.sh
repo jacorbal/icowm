@@ -4,7 +4,7 @@
 #             its own '*.mo', right beside it, one language directory at
 #             a time.
 #
-# Run from inside 'locale/' itself (the same directory 'default.pot'
+# Run from inside 'locale/' itself (the same directory 'icowm.pot'
 # lives in):
 #
 #   cd locale/
