@@ -72,6 +72,20 @@
 #define WM_ICON_SYSTRAY_GAP (8u)
 
 /**
+ * @brief How many candidate spots the in-place policy tries before
+ *        giving up and letting the smart policy answer instead
+ *
+ * Spots are tried outward from the window's corner, nearest first, so
+ * the count is only ever reached on a desktop crowded enough that
+ * nothing anywhere near that corner is free.  Somewhere far away is no
+ * better an answer than the one the smart search gives, and it costs
+ * a search over the whole grid to arrive at, hence the ceiling.
+ *
+ * @see @a place_icon_apply in @c policy/placement/icon.h
+ */
+#define WM_ICON_IN_PLACE_MAX_TRIES (256u)
+
+/**
  * @brief Single-letter state-hint characters drawn in an iconified
  *        client's own top-right corner and in the fuzzy window-search
  *

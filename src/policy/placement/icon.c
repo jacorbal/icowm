@@ -241,6 +241,14 @@ static void s_place_icon_slot_to_pixel(enum config_icon_placement_e policy,
 
         case CONFIG_ICON_PLACEMENT_TOP:
         case CONFIG_ICON_PLACEMENT_SMART:
+        /* Never actually reached with this one: the in-place search
+         * works out its candidates from the window's corner and never
+         * asks for a slot index, and with no anchor to work from it
+         * hands over to the smart branch, which passes
+         * 'CONFIG_ICON_PLACEMENT_BOTTOM' here rather than its policy.
+         * Named all the same, so '-Wswitch' keeps watching this switch
+         * for a member added without a case */
+        case CONFIG_ICON_PLACEMENT_IN_PLACE:
             out_pos->x = (int32_t) margin +
                 (int32_t) pri * (int32_t) step_x;
             out_pos->y = (int32_t) margin +
@@ -271,14 +279,6 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
     uint16_t chosen;
     int32_t ix;
     int32_t iy;
-
-    /* Every policy below anchors on a screen edge, so none of them has
-     * anything to do with where the window itself was.  Accepted and
-     * ignored on purpose: the conversion into this function's own
-     * coordinate space can only be done by the caller, so the
-     * parameter belongs on the interface from the start rather than
-     * being bolted on once a policy wants it. */
-    (void) anchor;
 
     if (client == NULL || client->config == NULL || out_pos == NULL) {
         return;
@@ -313,12 +313,101 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
     stacking_walk(desktop, s_icon_occupied_visit, &occupied_ctx);
     occ_count = occupied_ctx.count;
 
+    /* IN_PLACE puts the icon where the window was, so that iconifying
+     * looks like the window turning into its icon rather than the
+     * icon appearing somewhere else entirely.  Spots are tried outward
+     * from that corner a grid step at a time, nearest first, so an
+     * occupied corner costs the icon as little distance from its
+     * window as the desktop allows.
+     *
+     * Candidates are not snapped to the edge grids the other policies
+     * count in: those grids start from a screen edge, this one starts
+     * from wherever the window happened to be.  That is precisely why
+     * 's_place_icon_rect_overlaps_any' compares real pixel footprints
+     * rather than grid-cell indices; see its comment. */
+    if (policy == CONFIG_ICON_PLACEMENT_IN_PLACE && anchor != NULL) {
+        const int32_t limit_x = (int32_t) screen_dim.w -
+            (int32_t) icon_dim.w - border_twice - (int32_t) margin;
+        const int32_t limit_y = (int32_t) screen_dim.h -
+            (int32_t) icon_dim.h - border_twice - (int32_t) margin;
+        int32_t base_x = anchor->x;
+        int32_t base_y = anchor->y;
+        const uint32_t max_tries =
+            (uint32_t) WM_ICON_IN_PLACE_MAX_TRIES;
+        int32_t rings;
+        uint32_t tries = 0u;
+
+        if (base_x < (int32_t) margin) {
+            base_x = (int32_t) margin;
+        }
+        if (base_y < (int32_t) margin) {
+            base_y = (int32_t) margin;
+        }
+        if (base_x > limit_x) {
+            base_x = (limit_x > (int32_t) margin)
+                ? limit_x : (int32_t) margin;
+        }
+        if (base_y > limit_y) {
+            base_y = (limit_y > (int32_t) margin)
+                ? limit_y : (int32_t) margin;
+        }
+
+        /* Enough rings to reach every corner of the screen from the
+         * window, whichever corner it sits in.  A ring is a square, so
+         * the distance to cover is the larger of the two axes and not
+         * their sum. */
+        rings = ((screen_dim.w / step_x) > (screen_dim.h / step_y))
+            ? (int32_t) (screen_dim.w / step_x)
+            : (int32_t) (screen_dim.h / step_y);
+
+        for (int32_t r = 0; r <= rings && tries < max_tries; ++r) {
+            for (int32_t dy = -r; dy <= r && tries < max_tries; ++dy) {
+                for (int32_t dx = -r;
+                        dx <= r && tries < max_tries; ++dx) {
+                    int32_t cx;
+                    int32_t cy;
+
+                    /* Only the perimeter: everything inside belongs to
+                     * a ring already tried, and nearer than this one */
+                    if (dx > -r && dx < r && dy > -r && dy < r) {
+                        continue;
+                    }
+
+                    cx = base_x + dx * (int32_t) step_x;
+                    cy = base_y + dy * (int32_t) step_y;
+                    if (cx < (int32_t) margin || cx > limit_x ||
+                            cy < (int32_t) margin || cy > limit_y) {
+                        continue;
+                    }
+
+                    tries++;
+                    if (!s_place_icon_rect_overlaps_any(cx, cy,
+                                (uint16_t) icon_dim.w,
+                                (uint16_t) icon_dim.h, border_twice,
+                                occ_x, occ_y, occ_count)) {
+                        out_pos->x = cx;
+                        out_pos->y = cy;
+                        LOGGER_DEBUG("In-place icon (ring=%d," \
+                                " pos=%+d%+d)",
+                                (int) r, (int) cx, (int) cy);
+                        return;
+                    }
+                }
+            }
+        }
+
+        /* Nothing free anywhere worth walking to, so the smart search
+         * below answers instead */
+    }
+
     /* SMART uses BOTTOM layout for slot indexing: slots are numbered
      * from the bottom-left corner, growing right then up.  Score every
      * free slot by its overlap with visible windows and pick the one
      * with the lowest cost instead of blindly taking the first
-     * available slot. */
-    if (policy == CONFIG_ICON_PLACEMENT_SMART) {
+     * available slot.  IN_PLACE lands here too when it was given no
+     * anchor to start from, or found nowhere free near it. */
+    if (policy == CONFIG_ICON_PLACEMENT_SMART ||
+            policy == CONFIG_ICON_PLACEMENT_IN_PLACE) {
         uint64_t best_cost = UINT64_MAX;
         uint64_t cost;
         uint16_t s;

@@ -423,6 +423,9 @@ enum config_icon_placement_e ci_config_parse_icon_placement(
     if (safe_strcmp(value_norm, "bottom") == 0) {
         return CONFIG_ICON_PLACEMENT_BOTTOM;
     }
+    if (safe_strcmp(value_norm, "in-place") == 0) {
+        return CONFIG_ICON_PLACEMENT_IN_PLACE;
+    }
 
     return CONFIG_ICON_PLACEMENT_SMART;
 }

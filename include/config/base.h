@@ -116,7 +116,10 @@ struct config_base_s {
             CONFIG_ICON_PLACEMENT_RIGHT,
             /** First free slot, falling back to the bottom row when
              *  none is available */
-            CONFIG_ICON_PLACEMENT_SMART
+            CONFIG_ICON_PLACEMENT_SMART,
+            /** Over the window's top-left corner, or the nearest free
+             *  spot to it when something already sits there */
+            CONFIG_ICON_PLACEMENT_IN_PLACE
         } placement_policy;
     } icons;
 

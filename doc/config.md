@@ -672,9 +672,9 @@ Accepted placement policy values:
 
 Under `"manual"` a newly mapped window is held back rather than shown:
 an outline of it follows the pointer, and the window appears where that
-outline stands the moment a button is pressed.  Windows opening together
-are asked about one at a time, in the order they opened, each held back
-until the one before it is settled.
+outline stands the moment a button is pressed.  Windows opening
+together are asked about one at a time, in the order they opened, each
+held back until the one before it is settled.
 
 The keyboard answers too, with the same keys that move a window already
 on screen: the arrow keys move the outline by `windows.move_step` and
@@ -688,8 +688,8 @@ and the keyboard for good.  The five seconds are counted from the last
 answer rather than from when the question opened, so aiming slowly, by
 either device, is never mistaken for ignoring it.
 
-The pointer and the keyboard are both held while the question stands, so
-nothing else answers to either until it is settled.  A window that
+The pointer and the keyboard are both held while the question stands,
+so nothing else answers to either until it is settled.  A window that
 requests a position itself, a dialog centered over its parent, a dock,
 a scratchpad window, and a window asking to start iconified are all
 placed the way they always are and never asked about.
@@ -756,13 +756,26 @@ Controls how iconified windows are laid out on the desktop.
 
 Accepted icon placement values:
 
-| Value      | Behavior                                                    |
-|------------|-------------------------------------------------------------|
-| `"bottom"` | Icons fill the bottom row of the screen from left to right. |
-| `"top"`    | Icons fill the top row from left to right.                  |
-| `"left"`   | Icons fill the left column from top to bottom.              |
-| `"right"`  | Icons fill the right column from top to bottom.             |
-| `"smart"`  | Icons are placed in the first available free slot.          |
+| Value        | Behavior                                                    |
+|--------------|-------------------------------------------------------------|
+| `"bottom"`   | Icons fill the bottom row of the screen from left to right. |
+| `"top"`      | Icons fill the top row from left to right.                  |
+| `"left"`     | Icons fill the left column from top to bottom.              |
+| `"right"`    | Icons fill the right column from top to bottom.             |
+| `"smart"`    | Icons are placed in the first available free slot.          |
+| `"in-place"` | Each icon appears over its window's top-left corner.        |
+
+Under `"in-place"` an icon takes the spot the window itself occupied, so
+iconifying looks like the window turning into its icon rather than the
+icon appearing somewhere else.  When another icon already sits there,
+spots are tried outward from that corner a grid step at a time, nearest
+first, so a taken corner costs the icon as little distance from its
+window as the desktop allows.  On a desktop crowded enough that nothing
+near the corner is free, `"smart"` answers instead.
+
+The four edge policies count their slots from a screen edge; this one
+counts from wherever the window happened to be, so its icons do not line
+up with theirs.
 
 ```json
 "icons": {

@@ -285,6 +285,84 @@ static void s_test_icon_smart_empty_desktop(void)
 }
 
 
+/* CONFIG_ICON_PLACEMENT_IN_PLACE puts the icon on the anchor it is
+ * handed, which is where the window itself was, rather than on any of
+ * the edge grids the other policies count from */
+static void s_test_icon_in_place_uses_anchor(void)
+{
+    client_td client;
+    config_td config;
+    struct position_s anchor = { 300, 220 };
+    struct position_s out_pos = { 0, 0 };
+
+    memset(&client, 0, sizeof(client));
+    memset(&config, 0, sizeof(config));
+    client.config = &config;
+
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_IN_PLACE,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &anchor, &out_pos);
+
+    TAP_EQ_INT(out_pos.x, 300,
+            "IN_PLACE takes the anchor's x when nothing sits there");
+    TAP_EQ_INT(out_pos.y, 220,
+            "IN_PLACE takes the anchor's y when nothing sits there");
+}
+
+
+/* CONFIG_ICON_PLACEMENT_IN_PLACE keeps the icon wholly on screen: an
+ * anchor past the right or bottom edge is pulled back rather than
+ * placing the icon where it cannot be seen */
+static void s_test_icon_in_place_clamps_anchor(void)
+{
+    client_td client;
+    config_td config;
+    struct position_s anchor = { 5000, 5000 };
+    struct position_s out_pos = { 0, 0 };
+
+    memset(&client, 0, sizeof(client));
+    memset(&config, 0, sizeof(config));
+    client.config = &config;
+
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_IN_PLACE,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, &anchor, &out_pos);
+
+    TAP_OK(out_pos.x >= 8 && out_pos.x <= 800 - 32 - 8,
+            "IN_PLACE pulls an off-screen anchor's x back on screen");
+    TAP_OK(out_pos.y >= 8 && out_pos.y <= 600 - 32 - 8,
+            "IN_PLACE pulls an off-screen anchor's y back on screen");
+}
+
+
+/* CONFIG_ICON_PLACEMENT_IN_PLACE with no anchor to work from behaves
+ * exactly as CONFIG_ICON_PLACEMENT_SMART, which is what it falls back
+ * on */
+static void s_test_icon_in_place_without_anchor_is_smart(void)
+{
+    client_td client;
+    config_td config;
+    struct position_s smart_pos = { 0, 0 };
+    struct position_s in_place_pos = { 0, 0 };
+
+    memset(&client, 0, sizeof(client));
+    memset(&config, 0, sizeof(config));
+    client.config = &config;
+
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_SMART,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, NULL, &smart_pos);
+    place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_IN_PLACE,
+            (struct dimensions_s) { 32u, 32u },
+            (struct dimensions_s) { 800u, 600u }, NULL, &in_place_pos);
+
+    TAP_EQ_INT(in_place_pos.x, smart_pos.x,
+            "IN_PLACE without an anchor falls back on SMART's x");
+    TAP_EQ_INT(in_place_pos.y, smart_pos.y,
+            "IN_PLACE without an anchor falls back on SMART's y");
+}
+
+
 /* CONFIG_ICON_PLACEMENT_SMART steers away from a visible window
  * sitting exactly on top of slot 0, picking a different, cheaper
  * slot instead */
@@ -437,7 +515,7 @@ static void s_test_avoid_systray_clamps_to_workarea(void)
 
 int main(void)
 {
-    TAP_PLAN(25);
+    TAP_PLAN(31);
 
     s_test_icon_guards();
     s_test_icon_bottom_first_slot();
@@ -446,6 +524,9 @@ int main(void)
     s_test_icon_border_width_shifts_position();
     s_test_icon_avoids_occupied_slot();
     s_test_icon_smart_empty_desktop();
+    s_test_icon_in_place_uses_anchor();
+    s_test_icon_in_place_clamps_anchor();
+    s_test_icon_in_place_without_anchor_is_smart();
     s_test_icon_smart_avoids_visible_window();
     s_test_avoid_systray_null_guards();
     s_test_avoid_systray_no_overlap();

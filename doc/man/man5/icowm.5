@@ -239,7 +239,31 @@ How an iconified window is represented on the desktop.
 .It Ic icons.show-geom Pq boolean, default Ql false
 Whether an overlay reports the position while an icon is dragged.
 .It Ic icons.placement.policy Pq string, default Ql \&"smart\&"
-Where a new icon is put, the same policies windows have.
+Where a new icon is put:
+.Ql bottom ,
+.Ql top ,
+.Ql left
+and
+.Ql right
+fill the named edge in order,
+.Ql smart
+takes the first free slot, and
+.Ql in-place
+puts each icon over the top-left corner of the window it came from.
+.Pp
+Under
+.Ql in-place
+iconifying looks like the window turning into its icon rather than the
+icon appearing somewhere else.
+When another icon already sits on that corner, spots are tried outward
+from it a grid step at a time, nearest first, so a taken corner costs
+the icon as little distance from its window as the desktop allows.
+On a desktop crowded enough that nothing near the corner is free,
+.Ql smart
+answers instead.
+The four edge policies count their slots from a screen edge while this
+one counts from wherever the window was, so their icons do not line up
+with each other.
 .El
 .Ss shutdown and fortune
 .Bl -tag -width Ds
