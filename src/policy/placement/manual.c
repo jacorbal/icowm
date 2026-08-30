@@ -11,7 +11,9 @@
  * Nothing in this file ever waits in place.  The pointer and the
  * keyboard are grabbed and the function returns, so the answer arrives
  * as ordinary events through the main loop, exactly as a window drag's
- * does.
+ * does.  Either device can give that answer: the pointer by moving and
+ * clicking, the keyboard by the same arrow keys, @c Return and
+ * @c Escape that move an already-placed window.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -105,7 +107,13 @@ static uint32_t s_place_manual_queued = 0u;
  */
 static bool s_place_manual_active = false;
 
-/** When the wait for an answer about the head window runs out */
+/**
+ * @brief When the wait for an answer about the head window runs out
+ *
+ * Measured from the last sign of anyone answering, not from when the
+ * question opened, so aiming slowly is never mistaken for ignoring it
+ * (@a s_place_manual_reschedule).
+ */
 static struct timespec s_place_manual_due;
 
 /**
@@ -185,6 +193,97 @@ static struct geometry_s s_place_manual_geom(const client_td *client,
     }
 
     return geom;
+}
+
+
+/**
+ * @brief Start the wait for an answer over again, from now
+ *
+ * Called when the question opens and again on every answer that does
+ * not settle it, so the wait measures silence rather than the age of
+ * the question: someone moving the outline, by either device, is
+ * plainly answering, and taking the window away from them mid-aim
+ * would be the opposite of what the wait is for.
+ *
+ * @note Leaves the previous deadline standing if the clock cannot be
+ *       read, which at worst ends the question early rather than
+ *       leaving it open with no deadline at all
+ * @note Complexity: @e O(1)
+ */
+static void s_place_manual_reschedule(void)
+{
+    if (clock_gettime(CLOCK_MONOTONIC, &s_place_manual_due) != 0) {
+        return;
+    }
+
+    clock_add_ms(&s_place_manual_due, WM_PLACE_MANUAL_TIMEOUT_MS);
+}
+
+
+/**
+ * @brief How far one arrow key moves the outline, in pixels
+ *
+ * The same @c windows.move_step every other keyboard move in this
+ * window manager uses, so a window being placed answers the arrow keys
+ * exactly as one already placed does.
+ *
+ * @return Step in pixels, never below one
+ *
+ * @note Complexity: @e O(1)
+ */
+static int32_t s_place_manual_step(void)
+{
+    const client_td *const client = s_place_manual_queue[0].client;
+
+    if (client->config != NULL &&
+            client->config->base.windows.move_step > 0u) {
+        return (int32_t) client->config->base.windows.move_step;
+    }
+
+    return 1;
+}
+
+
+/**
+ * @brief Move the outline one keyboard step, taking the pointer along
+ *
+ * @param connection XCB connection
+ * @param dx         Horizontal step, in pixels
+ * @param dy         Vertical step, in pixels
+ *
+ * @note The pointer is warped to wherever the outline lands, the way
+ *       FVWM does it, since leaving it behind would make the next real
+ *       mouse movement jump the window back to where the pointer had
+ *       been sitting all along
+ * @note The warp generates a @c MotionNotify, which
+ *       @a place_manual_handle_motion recognizes as reporting the
+ *       position it already holds and ignores
+ * @note Complexity: @e O(1)
+ */
+static void s_place_manual_nudge(xcb_connection_t *connection,
+        int32_t dx, int32_t dy)
+{
+    struct geometry_s geom;
+
+    s_place_manual_pointer.x += dx;
+    s_place_manual_pointer.y += dy;
+
+    /* Settled back onto the clamped position rather than left wherever
+     * the step alone reached: a run of keys held against the workarea
+     * edge would otherwise build up an offset the outline never shows,
+     * and the first arrow key back would spend it doing nothing. */
+    geom = s_place_manual_geom(s_place_manual_queue[0].client,
+            s_place_manual_pointer);
+    s_place_manual_pointer = geom.pos;
+
+    s_place_manual_reschedule();
+    render_outline_move(connection, geom,
+            (uint32_t) WM_DRAG_OUTLINE_BORDER_WIDTH,
+            XCB_WINDOW_NONE, s_place_manual_outline);
+    xcb_warp_pointer(connection, XCB_NONE, s_place_manual_root,
+            0, 0, 0u, 0u,
+            (int16_t) geom.pos.x, (int16_t) geom.pos.y);
+    xcb_flush(connection);
 }
 
 
@@ -303,9 +402,7 @@ static void s_place_manual_head_start(xcb_connection_t *connection)
             XCB_GRAB_MODE_ASYNC,
             XCB_GRAB_MODE_ASYNC);
 
-    if (clock_gettime(CLOCK_MONOTONIC, &s_place_manual_due) == 0) {
-        clock_add_ms(&s_place_manual_due, WM_PLACE_MANUAL_TIMEOUT_MS);
-    }
+    s_place_manual_reschedule();
 
     s_place_manual_active = true;
     xcb_flush(connection);
@@ -508,6 +605,7 @@ void place_manual_handle_motion(xcb_connection_t *connection,
         return;
     }
     s_place_manual_pointer = root_pos;
+    s_place_manual_reschedule();
 
     render_outline_move(connection,
             s_place_manual_geom(s_place_manual_queue[0].client,
@@ -529,12 +627,33 @@ void place_manual_handle_press(xcb_connection_t *connection)
 void place_manual_handle_keypress(xcb_connection_t *connection,
         xcb_keysym_t keysym)
 {
-    if (!s_place_manual_active) {
+    int32_t step;
+
+    if (connection == NULL || !s_place_manual_active ||
+            s_place_manual_queued == 0u) {
         return;
     }
 
     if (keysym == KS_ESCAPE) {
         s_place_manual_settle(connection, false);
+        return;
+    }
+
+    if (keysym == KS_RETURN || keysym == KS_KP_ENTER) {
+        s_place_manual_settle(connection, true);
+        return;
+    }
+
+    step = s_place_manual_step();
+
+    if (keysym == KS_LEFT) {
+        s_place_manual_nudge(connection, -step, 0);
+    } else if (keysym == KS_RIGHT) {
+        s_place_manual_nudge(connection, step, 0);
+    } else if (keysym == KS_UP) {
+        s_place_manual_nudge(connection, 0, -step);
+    } else if (keysym == KS_DOWN) {
+        s_place_manual_nudge(connection, 0, step);
     }
 }
 

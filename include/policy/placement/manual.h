@@ -8,7 +8,8 @@
  * is shown an outline and puts the window where they want it.
  *
  * Nothing here ever waits in place.  Asking holds the pointer and the
- * keyboard, draws an outline where the window would go, and returns,
+ * keyboard, either of which can answer, draws an outline where the
+ * window would go, and returns,
  * so every event still arrives through the main loop as usual and
  * every other client keeps running while the question is open.  The
  * caller that asked hands over what finishes the map, to be called
@@ -160,17 +161,26 @@ void place_manual_handle_press(xcb_connection_t *connection);
 /**
  * @brief Let the window being placed answer a key press
  *
- * @c Escape gives up, leaving the window where the smart policy had
- * already put it.  Every other key is swallowed: the keyboard is held
- * for as long as the question is open, and a key meant for whatever
- * had it before would have nowhere to go.
+ * The arrow keys move the outline by @c windows.move_step and take the
+ * pointer with them, @c Return and @c KP_Enter settle the window where
+ * it stands, and @c Escape gives up and leaves it where the smart
+ * policy had already put it.  These are the same four answers an
+ * already-placed window gives to a keyboard move, so there is one set
+ * of keys to learn rather than two.
+ *
+ * Every other key is swallowed: the keyboard is held for as long as
+ * the question is open, and a key meant for whatever had it before
+ * would have nowhere to go.
  *
  * @param connection XCB connection
  * @param keysym     Keysym of the pressed key
  *
  * @note A no-op when no window is currently being pointed at
+ * @note TWM, which this policy otherwise follows, took no keys at all
+ *       while placing: its loop asked only for @c ButtonPressMask and
+ *       @c PointerMotionMask
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop, from the map an @c Escape hands on to
+ *       the desktop, from the map a settling key hands on to
  */
 void place_manual_handle_keypress(xcb_connection_t *connection,
         xcb_keysym_t keysym);

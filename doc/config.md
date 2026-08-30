@@ -670,15 +670,23 @@ Accepted placement policy values:
 | `"smart"`       | Finds the position that minimizes overlap with existing windows. |
 | `"manual"`      | Shows an outline following the pointer and waits for a click to say where the window goes. |
 
-Under `"manual"` a newly mapped window is held back rather than shown.
-An outline of it follows the pointer, and the window appears where that
-outline stands the moment a button is pressed.  Pressing `Escape` gives
-up and leaves the window where `"smart"` had already chosen, and so does
-letting five seconds pass without answering, so a window opened by
-something running in the background never holds the pointer and the
-keyboard for good.  Windows opening together are asked about one at
-a time, in the order they opened, each held back until the one before it
-is settled.
+Under `"manual"` a newly mapped window is held back rather than shown:
+an outline of it follows the pointer, and the window appears where that
+outline stands the moment a button is pressed.  Windows opening together
+are asked about one at a time, in the order they opened, each held back
+until the one before it is settled.
+
+The keyboard answers too, with the same keys that move a window already
+on screen: the arrow keys move the outline by `windows.move_step` and
+carry the pointer along with it, `Return` settles the window where it
+stands, and `Escape` gives up and leaves it where `"smart"` had already
+chosen.  Every other key does nothing while the question is open.
+
+Five seconds of silence do the same thing as `Escape`, so a window
+opened by something running in the background never holds the pointer
+and the keyboard for good.  The five seconds are counted from the last
+answer rather than from when the question opened, so aiming slowly, by
+either device, is never mistaken for ignoring it.
 
 The pointer and the keyboard are both held while the question stands, so
 nothing else answers to either until it is settled.  A window that

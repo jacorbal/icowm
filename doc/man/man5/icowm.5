@@ -198,14 +198,27 @@ A transient or dialog window is centered on its parent regardless.
 Under
 .Ql manual
 the window is held back rather than shown until it is placed.
+Windows opening together are asked about one at a time, in the order
+they opened.
+.Pp
+The keyboard answers as well as the pointer, with the same keys that
+move a window already on screen: the arrow keys move the outline by
+.Ic windows.move-step
+and carry the pointer along with it,
+.Ql Return
+settles the window where it stands, and
 .Ql Escape
 gives up and leaves it where
 .Ql smart
-had already chosen, and so does letting five seconds pass without
-answering, so a window opened by something running in the background
-never holds the pointer and the keyboard for good.
-Windows opening together are asked about one at a time, in the order
-they opened.
+had already chosen.
+Every other key does nothing while the question is open.
+.Pp
+Five seconds of silence do the same thing as
+.Ql Escape ,
+so a window opened by something running in the background never holds
+the pointer and the keyboard for good.
+They are counted from the last answer rather than from when the
+question opened, so aiming slowly is never mistaken for ignoring it.
 The pointer and the keyboard are both held while the question stands.
 A window that requests a position itself, a dialog centered on its
 parent, a dock, a scratchpad window, and one asking to start
