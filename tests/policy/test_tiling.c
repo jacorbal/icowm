@@ -104,18 +104,18 @@ static void s_test_icon_guards(void)
 
     place_icon_apply(NULL, NULL, CONFIG_ICON_PLACEMENT_BOTTOM,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, &out_pos);
+            (struct dimensions_s) { 800u, 600u }, NULL, &out_pos);
     TAP_EQ_INT(out_pos.x, 999, "a NULL client leaves out_pos untouched");
 
     place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_BOTTOM,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, NULL);
+            (struct dimensions_s) { 800u, 600u }, NULL, NULL);
     TAP_OK(true, "a NULL out_pos is a safe no-op, no crash");
 
     client.config = NULL;
     place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_BOTTOM,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, &out_pos);
+            (struct dimensions_s) { 800u, 600u }, NULL, &out_pos);
     TAP_EQ_INT(out_pos.x, 999, "a NULL config leaves out_pos untouched");
 }
 
@@ -134,7 +134,7 @@ static void s_test_icon_bottom_first_slot(void)
 
     place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_BOTTOM,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, &out_pos);
+            (struct dimensions_s) { 800u, 600u }, NULL, &out_pos);
 
     /* ix = margin(8) + pri(0)*step_x = 8
      * iy = screen_h(600) - margin(8) - icon_h(32) - border(0) - 0 = 560 */
@@ -159,7 +159,7 @@ static void s_test_icon_top_first_slot(void)
 
     place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_TOP,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, &out_pos);
+            (struct dimensions_s) { 800u, 600u }, NULL, &out_pos);
 
     TAP_EQ_INT(out_pos.x, 8,
             "TOP policy: first slot's own x is at the margin");
@@ -182,7 +182,7 @@ static void s_test_icon_right_first_slot(void)
 
     place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_RIGHT,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, &out_pos);
+            (struct dimensions_s) { 800u, 600u }, NULL, &out_pos);
 
     /* ix = screen_w(800) - icon_w(32) - margin(8) - border(0) - 0 = 760 */
     TAP_EQ_INT(out_pos.x, 760,
@@ -208,7 +208,7 @@ static void s_test_icon_border_width_shifts_position(void)
 
     place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_RIGHT,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, &out_pos);
+            (struct dimensions_s) { 800u, 600u }, NULL, &out_pos);
 
     /* border_twice = 3*2 = 6; ix = 800 - 32 - 8 - 6 - 0 = 754 */
     TAP_EQ_INT(out_pos.x, 754,
@@ -251,7 +251,7 @@ static void s_test_icon_avoids_occupied_slot(void)
 
     place_icon_apply(&client, &desktop, CONFIG_ICON_PLACEMENT_BOTTOM,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, &out_pos);
+            (struct dimensions_s) { 800u, 600u }, NULL, &out_pos);
 
     TAP_OK(!(out_pos.x == 8 && out_pos.y == 560),
             "the occupied first slot is skipped for the next free one");
@@ -276,7 +276,7 @@ static void s_test_icon_smart_empty_desktop(void)
 
     place_icon_apply(&client, NULL, CONFIG_ICON_PLACEMENT_SMART,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, &out_pos);
+            (struct dimensions_s) { 800u, 600u }, NULL, &out_pos);
 
     TAP_EQ_INT(out_pos.x, 8,
             "SMART on an empty desktop still picks slot 0's x");
@@ -317,7 +317,7 @@ static void s_test_icon_smart_avoids_visible_window(void)
 
     place_icon_apply(&client, &desktop, CONFIG_ICON_PLACEMENT_SMART,
             (struct dimensions_s) { 32u, 32u },
-            (struct dimensions_s) { 800u, 600u }, &out_pos);
+            (struct dimensions_s) { 800u, 600u }, NULL, &out_pos);
 
     TAP_OK(!(out_pos.x == 8 && out_pos.y == 560),
             "a visible window covering slot 0 pushes SMART to a" \

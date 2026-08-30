@@ -255,6 +255,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
         enum config_icon_placement_e policy,
         struct dimensions_s icon_dim,
         struct dimensions_s screen_dim,
+        const struct position_s *anchor,
         struct position_s *restrict out_pos)
 {
     const uint16_t margin = (uint16_t) WM_ICON_GRID_MARGIN;
@@ -270,6 +271,14 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
     uint16_t chosen;
     int32_t ix;
     int32_t iy;
+
+    /* Every policy below anchors on a screen edge, so none of them has
+     * anything to do with where the window itself was.  Accepted and
+     * ignored on purpose: the conversion into this function's own
+     * coordinate space can only be done by the caller, so the
+     * parameter belongs on the interface from the start rather than
+     * being bolted on once a policy wants it. */
+    (void) anchor;
 
     if (client == NULL || client->config == NULL || out_pos == NULL) {
         return;

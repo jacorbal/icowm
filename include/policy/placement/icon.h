@@ -40,6 +40,13 @@
  * @p policy, the current screen dimensions, and the positions of
  * already-placed icon windows on @p desktop.
  *
+ * Every coordinate here, in and out, is relative to (0, 0) and bounded
+ * by @p screen_dim.  It is the caller that knows which monitor within
+ * a wider surface that space belongs to, and the caller that shifts
+ * the answer onto it; nothing in this file resolves a monitor or reads
+ * a root coordinate.  @p anchor has to arrive already converted into
+ * that same space for the same reason.
+ *
  * @param client     Pointer to the client being iconified (must not be
  *                   null)
  * @param desktop    Desktop to inspect for existing icon positions;
@@ -47,8 +54,16 @@
  * @param policy     Icon placement policy from configuration
  * @param icon_dim   Icon window's own width/height, in pixels
  * @param screen_dim Screen dimensions, in pixels
+ * @param anchor     Point a policy that places relative to the window
+ *                   itself starts from, in the same space as
+ *                   @p out_pos; null when the caller has none to
+ *                   offer, which leaves such a policy to fall back on
+ *                   whatever it would do without one
  * @param out_pos    Output X/Y coordinate
  *
+ * @note No policy reads @p anchor yet; the parameter is here so the
+ *       coordinate conversion it needs lives with the caller that can
+ *       do it, rather than being guessed at later
  * @note Complexity: @e O(n), where @e n is the number of iconified
  *       clients already placed on @p desktop
  */
@@ -56,6 +71,7 @@ void place_icon_apply(const client_td *client, desktop_td *desktop,
         enum config_icon_placement_e policy,
         struct dimensions_s icon_dim,
         struct dimensions_s screen_dim,
+        const struct position_s *anchor,
         struct position_s *restrict out_pos);
 
 

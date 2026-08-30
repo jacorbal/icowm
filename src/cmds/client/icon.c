@@ -200,6 +200,7 @@ static bool s_icon_position_choose(client_td *client,
     desktop_td *desktop;
     enum config_icon_placement_e policy;
     struct dimensions_s screen_dim;
+    struct position_s anchor;
     struct position_s icon_pos;
     int16_t ix;
     int16_t iy;
@@ -269,10 +270,20 @@ static bool s_icon_position_choose(client_td *client,
             ? (uint16_t) ((uint32_t) screen_h - vert) : 0u;
     }
 
+    /* Where the window itself sits, moved out of root coordinates and
+     * into the (0, 0)-relative space 'place_icon_apply' works in, by
+     * taking off the same 'mx'/'my' its answer is shifted back by just
+     * below.  Taken after the margins have been folded into 'mx'/'my'
+     * rather than before: an anchor measured from the raw monitor
+     * origin would sit one margin further right and down than the
+     * window it is supposed to name. */
+    anchor.x = client->layout.geometry.cur.pos.x - mx;
+    anchor.y = client->layout.geometry.cur.pos.y - my;
+
     screen_dim.w = screen_w;
     screen_dim.h = screen_h;
     place_icon_apply(client, desktop, policy, icon_dim, screen_dim,
-            &icon_pos);
+            &anchor, &icon_pos);
 
     /* 'place_icon_apply' works in a (0,0)-relative coordinate space
      * bounded by 'screen_w'/'screen_h' alone; offset by 'mx'/'my', the
