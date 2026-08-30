@@ -48,12 +48,57 @@
 
 
 /**
+ * @brief What @a s_workarea_collect_visit is filling in
+ */
+struct s_workarea_ctx_s {
+    xcb_ewmh_geometry_t *out;   /**< Array being filled, one each */
+    uint32_t count;             /**< How many are written so far */
+    uint32_t capacity;          /**< How many it has room for */
+};
+
+
+/**
  * @brief What @a s_window_list_visit is gathering into
  */
 struct s_window_list_ctx_s {
+    xcb_window_t *out;          /**< Array of window IDs being built */
+    size_t *count;              /**< How many have been put in so far */
+    size_t capacity;            /**< How many it holds */
+};
+
+
+/**
+ * @brief What @a s_desktop_name_measure_visit is adding up
+ */
+struct s_name_measure_ctx_s {
+    size_t *total;              /**< Running byte count, terminators
+                                     included */
+    uint32_t index;             /**< Which desktop this is, for
+                                     a fallback */
+};
+
+
+/**
+ * @brief What @a s_desktop_name_write_visit is filling in
+ */
+struct s_name_write_ctx_s {
+    char *out;                  /**< Null-separated buffer being
+                                     written */
+    size_t *offset;             /**< How much of it is written so far */
+    size_t capacity;            /**< Its size, in bytes */
+    uint32_t index;             /**< Which desktop this is, for
+                                     a fallback */
+};
+
+
+/**
+ * @brief What @a s_client_list_visit is filling in
+ */
+struct s_client_list_ctx_s {
     xcb_window_t *out;      /**< Array of window IDs being built */
     size_t capacity;        /**< How many it holds */
-    size_t *count;          /**< How many have been put in so far */
+    size_t count;           /**< How many have been put in so far */
+    uint32_t desktop_id;    /**< Desktop the walk is now on */
 };
 
 
@@ -81,15 +126,6 @@ static void s_window_list_visit(client_td *client, void *data)
 
     list_ctx->out[(*list_ctx->count)++] = client->window;
 }
-
-
-/**
- * @brief What @a s_desktop_name_measure_visit is adding up
- */
-struct s_name_measure_ctx_s {
-    size_t *total;      /**< Running byte count, terminators included */
-    uint32_t index;     /**< Which desktop this is, for a fallback */
-};
 
 
 /**
@@ -124,17 +160,6 @@ static void s_desktop_name_measure_visit(desktop_td *desktop, void *data)
         }
     }
 }
-
-
-/**
- * @brief What @a s_desktop_name_write_visit is filling in
- */
-struct s_name_write_ctx_s {
-    char *out;          /**< Null-separated buffer being written */
-    size_t capacity;    /**< Its size, in bytes */
-    size_t *offset;     /**< How much of it is written so far */
-    uint32_t index;     /**< Which desktop this is, for a fallback */
-};
 
 
 /**
@@ -199,27 +224,22 @@ static void s_stacking_collect_visit(desktop_td *desktop, void *data)
 
 
 /**
- * @brief What @a s_workarea_collect_visit is filling in
- */
-struct s_workarea_ctx_s {
-    xcb_ewmh_geometry_t *out;   /**< Array being filled, one each */
-    uint32_t count;             /**< How many are written so far */
-};
-
-
-/**
  * @brief Note one desktop's workarea
  *
  * @param desktop Desktop reached by the walk
  * @param data    The @c s_workarea_ctx_s being filled
  *
+ * @note Never writes past @p data's capacity, the array being sized
+ *       from @c surface->desktop_count while the walk that reaches
+ *       here iterates the desktop list itself, which is a separate
+ *       count that nothing here can prove equal
  * @note Complexity: @e O(1)
  */
 static void s_workarea_collect_visit(desktop_td *desktop, void *data)
 {
     struct s_workarea_ctx_s *const ctx = data;
 
-    if (ctx == NULL) {
+    if (ctx == NULL || ctx->count >= ctx->capacity) {
         return;
     }
 
@@ -253,17 +273,6 @@ static void s_client_count_visit(desktop_td *desktop, void *data)
 
     *total += stacking_count(desktop);
 }
-
-
-/**
- * @brief What @a s_client_list_visit is filling in
- */
-struct s_client_list_ctx_s {
-    xcb_window_t *out;      /**< Array of window IDs being built */
-    size_t capacity;        /**< How many it holds */
-    size_t count;           /**< How many have been put in so far */
-    uint32_t desktop_id;    /**< Desktop the walk is now on */
-};
 
 
 /**
@@ -341,19 +350,29 @@ static void s_wm_sync_workarea(surface_td *surface)
         return;
     }
 
-    workareas = malloc(sizeof(xcb_ewmh_geometry_t) *
-            surface->desktop_count);
+    /* Zeroed rather than merely allocated, so that a desktop the walk
+     * never reaches leaves a defined rectangle behind instead of
+     * whatever the heap held */
+    workareas = calloc(surface->desktop_count,
+            sizeof(xcb_ewmh_geometry_t));
     if (workareas == NULL) {
         return;
     }
 
     workarea_ctx.out = workareas;
+    workarea_ctx.capacity = surface->desktop_count;
     workarea_ctx.count = 0u;
     surface_desktops_walk(surface, s_workarea_collect_visit,
             &workarea_ctx);
 
+    /* One geometry per desktop, as many as '_NET_NUMBER_OF_DESKTOPS'
+     * says there are and not merely as many as the walk reached: a
+     * pager reads this array up to that count, so publishing fewer
+     * would send it off the end of what it was given.  The 'calloc'
+     * above is what makes that safe, a desktop the walk misses being
+     * a zeroed rectangle rather than whatever the heap held. */
     xcb_ewmh_set_workarea(xcb_ewmh_connection_get(), (int) surface->id,
-            (uint32_t) surface->desktop_count, workareas);
+            surface->desktop_count, workareas);
     free(workareas);
 }
 
@@ -374,7 +393,8 @@ static void s_wm_sync_desktop_layout(surface_td *surface)
     uint32_t layout[4];
 
     if (surface == NULL || xcb_connection_get() == NULL ||
-            surface->screen == NULL || xcb_ewmh_connection_get() == NULL) {
+            surface->screen == NULL ||
+            xcb_ewmh_connection_get() == NULL) {
         return;
     }
 
@@ -386,7 +406,8 @@ static void s_wm_sync_desktop_layout(surface_td *surface)
     layout[3] = 0u;
 
     xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
-            surface->screen->root, xcb_ewmh_connection_get()->_NET_DESKTOP_LAYOUT,
+            surface->screen->root,
+            xcb_ewmh_connection_get()->_NET_DESKTOP_LAYOUT,
             XCB_ATOM_CARDINAL, 32, 4, layout);
 }
 
@@ -452,7 +473,8 @@ static void s_wm_sync_client_lists(surface_td *surface)
     stack_ctx.out = stacking_list;
     stack_ctx.capacity = total_clients;
     stack_ctx.count = &idx;
-    surface_desktops_walk(surface, s_stacking_collect_visit, &stack_ctx);
+    surface_desktops_walk(surface,
+            s_stacking_collect_visit, &stack_ctx);
 
     xcb_ewmh_set_client_list_stacking(xcb_ewmh_connection_get(),
             (int) surface->id, (uint32_t) idx, stacking_list);
