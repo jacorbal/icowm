@@ -5,9 +5,12 @@
  *        that shrinks several fixed-size array capacities throughout
  *        the codebase
  *
- * @c COMPACT and restricted-memory mode (@c (icowm -M <mib>) are two
- * entirely independent mechanisms that happen to be designed to
- * complement each other, not one triggering the other:
+ * @c COMPACT and restricted-memory mode (@c (icowm -M <mib>)) are two
+ * separate mechanisms, one compile-time and one run-time, that shrink
+ * different kinds of thing.  A @c COMPACT build does turn the other
+ * one on, at the lowest ceiling, but that is the only tie between
+ * them: neither is the other, and what one shrinks the other
+ * cannot.
  *
  * - Restricted-memory mode is a run-time choice.  The same binary
  *   behaves differently depending on the @c (-M <mib>) flag it happens
@@ -21,26 +24,27 @@
  *   own @p (lines[DIALOG_MSG_MAX_LINES]) are three examples.
  * - @c COMPACT is a compile-time choice.  Defining it,
  *   @c (make COMPACT=1), which the top-level @c Makefile turns into
- *   @c (-D COMPACT) shrinks exactly those compile-time capacities
- *   instead, in a separate binary that has to be rebuilt to change.
- *   It does nothing else.  It does not turn restricted-memory mode on
- *   by itself, and it does not supply any default for @c (-M <mib>)
- *   when that flag is left off.  A @c COMPACT binary launched without
- *   @c (-M <mib>) at all runs an entirely ordinary, unrestricted
- *   session, just one whose compiled-in ceilings on screens, desktops,
- *   monitors, and so on happen to be smaller; restricted- memory mode's
- *   own behaviors (see @c memguard.h: refusing to start without enough
- *   free memory, warning once running memory or the managed-window
- *   count reaches @c (-M <mib>)'s own ceiling, forcing icon pixmaps and
- *   modern font rendering off) only ever happen when @c (-M <mib>) is
- *   actually given, in either kind of build.
+ *   @c (-D COMPACT), shrinks exactly those compile-time capacities, in
+ *   a separate binary that has to be rebuilt to change.  It also
+ *   starts restricted-memory mode at @c MEMGUARD_MIN_CEILING_MIB
+ *   without being asked, which @c (-M <mib>) can then raise but not
+ *   turn off (see @a main, @c main.c).  So a @c COMPACT binary
+ *   launched with no flags at all is already a restricted session, and
+ *   everything that mode does, refusing to start without enough free
+ *   memory, warning once memory or the managed-window count reaches
+ *   the ceiling, forcing icon pixmaps and modern font rendering off,
+ *   and overriding the window and icon placement policies with
+ *   @c smart (see @c config/memguard/defaults.c), applies to it.  A
+ *   build without @c COMPACT stays unrestricted until @c (-M <mib>)
+ *   asks for it.
  *
  * A person who knows they are always going to run on a severely
- * memory-constrained target can combine the two, for a build genuinely
- * sized for that target from the ground up rather than one that merely
- * behaves more conservatively at run time while still carrying the
- * full, ordinary capacity of everything it never uses; but each works
- * perfectly well without the other too.
+ * memory-constrained target gets both at once from @c COMPACT alone:
+ * a build genuinely sized for that target from the ground up, rather
+ * than one that merely behaves more conservatively at run time while
+ * still carrying the full capacity of everything it never uses.
+ * Restricted-memory mode alone, in an ordinary build, remains
+ * perfectly usable for a target that only needs the run-time half.
  *
  * @note Nothing is declared here.  Each affected constant's own file
  *       defines both its ordinary and its compact value, conditioned on
