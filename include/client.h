@@ -55,6 +55,8 @@
 /* Local includes */
 #include <client/layout.h>
 #include <client/predicates.h>
+#include <client/ewmh.h>
+#include <client/icccm.h>
 #include <client/props.h>
 #include <client/state.h>
 
@@ -64,6 +66,7 @@
 /** Handle to a @c client_s; the definition follows below */
 typedef struct client_s client_td;
 #endif
+
 
 /**
  * @brief Structure for a client in an XCB environment
@@ -284,98 +287,10 @@ struct client_s {
     /**
      * @brief EWMH-sourced hints: pre-existing @c _NET_WM_STATE,
      *        @c _NET_WM_PING, @c _NET_WM_SYNC_REQUEST
+     *
+     * @see @c client/ewmh.h
      */
-    struct {
-        /**
-         * @brief Whether the client's own pre-existing @c _NET_WM_STATE
-         *        (read before this window was ever mapped) already
-         *        included the matching state bit
-         *
-         * EWMH's own correct way for a client to request one of these
-         * states from the outset, distinct from
-         * @p hints_icccm.hints.is_initial_iconic (ICCCM @c WM_HINTS,
-         * not EWMH) though serving the exact same role:
-         * @a handler_map_request consults this once the newly mapped
-         * client's own frame/decoration already exist, the same way it
-         * already consults @p hints_icccm.hints.is_initial_iconic for
-         * @c IconicState.  A client requesting both maximized axes at
-         * once is maximized on both, rather than one call each.
-         *
-         * @see @a s_client_read_pre_existing_state (client.c)
-         */
-        struct {
-            bool is_fullscreen;
-            bool is_maximized_horz;
-            bool is_maximized_vert;
-        } initial_state;
-
-        /**
-         * @brief EWMH @c _NET_WM_PING state
-         */
-        struct {
-            bool is_supported;        /**< Supports @c _NET_WM_PING
-                                           protocol */
-            uint32_t last_sent;       /**< X timestamp of last ping
-                                           sent */
-            uint32_t last_reply;      /**< X timestamp of last ping
-                                           reply */
-        } ping;
-
-        /**
-         * @brief EWMH @c _NET_WM_SYNC_REQUEST state
-         *
-         * @p counter and @p alarm hold plain XCB XIDs (an
-         * @c xcb_sync_counter_t / @c xcb_sync_alarm_t are both a
-         * @c uint32_t under the hood) rather than the XSync-typed
-         * values, so this header does not need to pull in
-         * @c xcb/sync.h.  Call sites that actually issue XSync
-         * requests cast as needed.
-         *
-         * @see @a ccmd_client_resize (throttling) and
-         *      @a handler_sync_event (acknowledgement) for how these
-         *      fields are driven
-         */
-        struct {
-            /**
-             * @brief XSync counter XID the client created and
-             *        advertised through its
-             *        @c _NET_WM_SYNC_REQUEST_COUNTER property
-             *
-             * Read by @a client_init, never created by it.  Left at
-             * 0 when unset.
-             */
-            uint32_t counter;
-            uint32_t alarm;       /**< WM-owned alarm XID watching
-                                       @p counter for positive
-                                       transitions, or 0 */
-            uint32_t value;       /**< Local shadow of the last
-                                       counter value sent to the
-                                       client (low 32 bits; a single
-                                       resize session never comes
-                                       close to wrapping) */
-            struct geometry_s pending_geom; /**< Geometry to apply once
-                                                 the pending request is
-                                                 acknowledged or times
-                                                 out */
-            /** Supports @c _NET_WM_SYNC_REQUEST */
-            bool is_supported;
-            bool is_waiting;      /**< @c true between sending a sync
-                                       request and receiving the
-                                       matching @c AlarmNotify (or
-                                       giving up after @p wait_ticks) */
-            uint8_t wait_ticks;   /**< Consecutive resize attempts
-                                       spent waiting for the current
-                                       request; past
-                                       @c WM_SYNC_MAX_WAIT_TICKS the
-                                       pending geometry is
-                                       force-applied so an
-                                       unresponsive client can never
-                                       freeze interactive resize */
-            bool has_pending;     /**< @c true when a newer geometry
-                                       arrived while @p is_waiting
-                                       and still needs to be applied */
-        } sync;
-    } hints_ewmh;
+    struct client_hints_ewmh_s hints_ewmh;
 
     /**
      * @brief ICCCM @c WM_COLORMAP_WINDOWS (§4.1.8): windows whose
@@ -416,85 +331,12 @@ struct client_s {
     } colormap_windows;
 
     /**
-     * @brief ICCCM-sourced hints: @c WM_NORMAL_HINTS, @c WM_PROTOCOLS,
-     *        @c WM_HINTS
+     * @brief ICCCM-sourced hints: @c WM_NORMAL_HINTS,
+     *        @c WM_PROTOCOLS, @c WM_HINTS
+     *
+     * @see @c client/icccm.h
      */
-    struct {
-        /**
-         * @brief ICCCM @c WM_NORMAL_HINTS size constraints
-         */
-        struct {
-            bool is_valid;       /**< True when hints were read from
-                                      server */
-            bool has_position;   /**< True when the client itself
-                                      requested a position
-                                      (@c USPosition or @c PPosition)
-                                      rather than leaving it to this
-                                      window manager's own policy */
-            struct position_s req_pos; /**< Client-requested position,
-                                            valid only when
-                                            @p has_position is true */
-            /** Minimum size, (0, 0) meaning unset */
-            struct dimensions_s min;
-            /** Maximum size, (0, 0) meaning unset */
-            struct dimensions_s max;
-            struct dimensions_s base;  /**< Base size for increment
-                                            arithmetic */
-            struct dimensions_s inc;   /**< Size increment (0 or 1
-                                            = no grid) */
-            struct aspect_range_s aspect; /**< Minimum/maximum w/h
-                                               ratio (0,0 = unset) */
-        } size;
-
-        /**
-         * @brief ICCCM @c WM_PROTOCOLS state
-         */
-        struct {
-            xcb_atom_t delete_atom;     /**< Cached @c WM_DELETE_WINDOW
-                                             atom */
-            xcb_atom_t take_focus_atom; /**< Cached @c WM_TAKE_FOCUS
-                                             atom */
-            /** Supports @c WM_DELETE_WINDOW */
-            bool has_delete;
-            /** Supports @c WM_TAKE_FOCUS */
-            bool has_take_focus;
-        } protocols;
-
-        /**
-         * @brief ICCCM @c WM_HINTS fields
-         */
-        struct {
-            /**
-              * @brief Value of the @c input field of @c WM_HINTS
-              *
-              * True when the client asks the window manager to set
-              * the input focus to its own toplevel for it, which
-              * ICCCM §4.1.7 calls the Passive and Locally Active
-              * models; false when it would rather do that itself on
-              * receiving @c WM_TAKE_FOCUS, the No Input and Globally
-              * Active models.  Defaults to true, as ICCCM says an
-              * absent field does.
-              *
-              * Named for what it holds and not for whether the hint
-              * was present: reading it as presence and testing the
-              * flag instead would invert the very thing ICCCM asks
-              * about here.
-              */
-            bool accepts_input;
-            bool is_initial_iconic;   /**< Map iconic for @c WM_HINTS
-                                           initial state */
-            xcb_window_t group_leader; /**< Window group leader, or
-                                            @c XCB_NONE */
-            xcb_window_t client_leader; /**< ICCCM @c WM_CLIENT_LEADER
-                                             window, or @c XCB_NONE if
-                                             unset.  Used together with
-                                             @p group_leader (see
-                                             @a client_group_leader) to
-                                             cluster windows belonging
-                                             to the same application
-                                             for placement */
-        } hints;
-    } hints_icccm;
+    struct client_hints_icccm_s hints_icccm;
 
     struct client_layout_s layout;
 

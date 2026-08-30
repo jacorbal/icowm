@@ -30,6 +30,7 @@
 /* Local includes */
 #include <client/state.h>
 
+
 /**
  * @brief Macro that evaluates to the client iconify state
  *

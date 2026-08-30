@@ -33,6 +33,7 @@
 /* Default initial values */
 #include <defs/client.h>
 
+
 /**
  * @brief Window layout, position, dimensions and strut
  */

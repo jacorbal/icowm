@@ -70,6 +70,21 @@ static bool s_cascade_has_last = false;
 
 
 /**
+ * @brief What one placement step did about the window
+ */
+enum s_place_result_e {
+    /** Nothing was decided; the next step, or the fallback, answers */
+    S_PLACE_RESULT_DECLINED = 0,
+    /** A position was written, still to go through gravity and the
+     *  final clamp */
+    S_PLACE_RESULT_POSITION,
+    /** The window is already where it belongs, and nothing further
+     *  is to be done to it */
+    S_PLACE_RESULT_DONE
+};
+
+
+/**
  * @brief Everything a placement step is allowed to look at
  *
  * Gathered once by @a place_window_apply and handed to each step in
@@ -93,21 +108,6 @@ struct s_place_ctx_s {
     struct dimensions_s mon_sz; /**< Screen size, reference monitor */
     struct dimensions_s frame;  /**< Size the window occupies */
     xcb_window_t leader;        /**< Its application group, or none */
-};
-
-
-/**
- * @brief What one placement step did about the window
- */
-enum s_place_result_e {
-    /** Nothing was decided; the next step, or the fallback, answers */
-    S_PLACE_RESULT_DECLINED = 0,
-    /** A position was written, still to go through gravity and the
-     *  final clamp */
-    S_PLACE_RESULT_POSITION,
-    /** The window is already where it belongs, and nothing further
-     *  is to be done to it */
-    S_PLACE_RESULT_DONE
 };
 
 
@@ -905,8 +905,8 @@ void place_window_apply(const wm_td *wm,
 {
     /* Tried in this order, and the order is the precedence: what used
      * to be several paragraphs explaining why a splash has to be
-     * settled before an honored position, and that before the transient
-     * centering, is now the order they are written in */
+     * settled before an honored position, and that before the
+     * transient centering, is now the order they are written in */
     const s_place_step_fn overrides[] = {
         s_place_step_splash,
         s_place_step_requested,
@@ -925,7 +925,6 @@ void place_window_apply(const wm_td *wm,
     };
     struct s_place_ctx_s ctx;
     struct position_s chosen = { 0, 0 };
-    enum config_placement_policy_e policy;
     enum s_place_result_e result;
     config_td *config = wm_config(wm);
 
@@ -943,8 +942,8 @@ void place_window_apply(const wm_td *wm,
     ctx.frame = client->layout.geometry.cur.dim;
     ctx.leader = client_group_leader(client);
 
-    /* The usable workarea, which respects panel struts, falling back to
-     * the whole screen when no workarea is set */
+    /* The usable workarea, which respects panel struts, falling back
+     * to the whole screen when no workarea is set */
     ctx.desktop = surface_desktop_get(surface, surface->desktop_cur);
     if (ctx.desktop != NULL && ctx.desktop->workarea.dim.w > 0u &&
             ctx.desktop->workarea.dim.h > 0u) {
@@ -988,15 +987,16 @@ void place_window_apply(const wm_td *wm,
             &ctx.mon_wa, &ctx.mon_sz);
 
     /* Ahead of the configured policy rather than one of it: a window
-     * joining a group it belongs to is a stronger statement about where
-     * it goes than any of them */
+     * joining a group it belongs to is a stronger statement about
+     * where it goes than any of them */
     result = s_place_step_sibling(&ctx, &chosen);
 
     if (result == S_PLACE_RESULT_DECLINED) {
-        s_place_step_fn step;
-        policy = config->base.windows.placement_policy;
-        step = ((unsigned int) policy <
-                    sizeof(policies) / sizeof(policies[0]))
+        const enum config_placement_policy_e policy =
+            config->base.windows.placement_policy;
+        const s_place_step_fn step =
+            ((unsigned int) policy <
+                sizeof(policies) / sizeof(policies[0]))
             ? policies[policy] : NULL;
 
         /* A policy this file does not know leaves the window where the

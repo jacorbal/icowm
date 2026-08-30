@@ -1,11 +1,21 @@
 /**
  * @file client/props.h
  *
- * @brief Client property block
+ * @brief Client property block, and the readers for a window's
+ *        identity strings
  *
  * The state, layer, flags, type, operation and focusing words a
  * client carries, all of them read through the predicates in
- * @c client/predicates.h rather than directly.
+ * @c client/predicates.h rather than directly.  Those six are this
+ * window manager's own, not properties of any X window.
+ *
+ * Alongside them, the three readers that fetch what a window calls
+ * itself: @c WM_NAME, @c _NET_WM_NAME and @c WM_CLASS.  Kept together
+ * although two are ICCCM and one is EWMH, since they are one job
+ * rather than two: @a client_init calls all three in turn to fill in
+ * a client's name, class and instance.  The hints each specification
+ * defines, which really are stored per protocol, live in
+ * @c client/icccm.h and @c client/ewmh.h instead.
  *
  * @ingroup client
  */
@@ -31,6 +41,7 @@
 
 /* Local includes */
 #include <client/state.h>
+
 
 /**
  * @brief Window properties
