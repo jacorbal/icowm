@@ -33,6 +33,7 @@
 
 /* Policy includes */
 #include <policy/focus.h>
+#include <policy/placement/manual.h>
 #include <policy/placement/window.h>
 
 /* Input includes */
@@ -475,6 +476,36 @@ void handler_map_request(const wm_td *wm,
     if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK &&
             !client->has_rule_position_locked) {
         place_window_apply(wm, surface, client);
+
+        /* 'place_window_apply' just above marked this client if the
+         * manual policy really did apply to it, so nothing here has to
+         * work out again whether it did: a window that asked for a
+         * position itself, a dialog centered over its parent, or one
+         * clustered next to a sibling never reached that policy at all
+         * and is not marked.  Taking the client leaves it unmapped and
+         * hands 's_map_finish' over to be called once someone points
+         * at where it goes, so this function must stop here rather
+         * than finish the map itself.
+         *
+         * Never asked about a window that is going to come up as an
+         * icon anyway: 's_map_finish' iconifies it instead of showing
+         * it, so pointing at a position for it would settle nothing
+         * anyone can see. */
+        if (!client->hints_icccm.hints.is_initial_iconic &&
+                place_manual_enqueue(connection, wm, surface, desktop,
+                        client, mouse_cursor_move(), s_map_finish)) {
+            /* Not mapping it here is not enough to keep it off the
+             * screen: a client sits in its desktop's list from the
+             * moment it is adopted, and the render pass shows every
+             * one of them that is not marked hidden, so the very next
+             * pass (the one another window's 's_map_finish' triggers,
+             * among others) would put this one on screen
+             * while it is still being asked about.  Paired with the
+             * 'client_unhide' 's_map_finish' already does above, which
+             * is what takes the mark off again once it is settled. */
+            client_hide(client);
+            return;
+        }
     }
     s_map_finish(wm, surface, desktop, client);
 }
@@ -614,6 +645,13 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
     if (drag_is_active() && drag_client() == client) {
         drag_cancel(connection, client);
     }
+
+    /* Drop it from the manual-placement queue too, for the same
+     * reason: a window destroyed while it was being pointed at, or
+     * while it waited its turn to be, still holds a place in that
+     * queue and, if it was the one being asked about, the pointer and
+     * the keyboard along with it. */
+    place_manual_cancel_client(connection, client);
 
     if (desktop != NULL) {
         desktop_action_client_rem(desktop, client);
