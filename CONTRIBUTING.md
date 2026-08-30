@@ -19,7 +19,6 @@ The whole of it must build clean and pass its tests:
 make                    # gcc, no warnings, no errors
 make CC=clang           # clang, likewise
 make analyze            # the static analysis pass
-make test               # 49 suites
 ```
 
 Every warning is an error, under a deliberately unforgiving set of
@@ -76,7 +75,7 @@ so that it cannot be mistaken for a nested block:
             &anchor, &icon_pos);
 ```
 
-Code lines stop at 75-78 columns.  Comment lines stop at 72 if possible.
+Code lines stop at 75-78 columns.  Comment lines stop at 72 if possible, and following the Vim format `:set tw=72 cpo+=J fo+=rj1np1`.  Rare exceptions are used, for example if it prevents new line by just one character, or in a line that cannot be broken.
 
 One space in a declaration or an assignment, never several to line
 something up.  A ternary has its condition in parentheses even when that
@@ -95,13 +94,18 @@ A loop counter used nowhere outside its loop is declared inside it:
     for (int i = 0; i < n; ++i) {
 ```
 
-No bare `{ ... }` block opened purely to hold a declaration partway
-through a function.  The only place such a block is admitted is inside
-a `case`, and only where it cannot be avoided.
+About compound blocks, no bare `{ ... }` block opened purely to hold a
+declaration partway through a function.  The only place such a block is
+admitted is inside a `case`, and only where it cannot be avoided.
 
-No forward declarations.  A static function is defined before the first
-function that calls it, which means a file reads bottom-up, from its
-smallest pieces to its public ones.
+No forward declarations unless there's no other way.  A static function is
+defined before the first function that calls it, which means a file reads
+bottom-up, from its smallest pieces to its public ones.
+
+A `.c` file is ordered: its includes, then any type it declares for
+itself, then its file-scope variables, then its static functions, then
+the public ones it implements.  A type or a variable never sits partway
+down among the functions, however near the one place using it.
 
 Every parameter is examined for whether it should be `const`, and
 carries it wherever the function does not write through it.
@@ -151,6 +155,9 @@ complexity note.
  *       attached, which has no placement policy to apply
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       desktop
+ *
+ * @see Client type @c client_td and its lifecycle with @a client_init
+ *      and @a client_destroy
  */
 ```
 
@@ -191,25 +198,50 @@ Naming
 
 **Files** are one lowercase word, with no separator of any kind and no
 capital letter: `map.c`, `winlist.c`, `outline.h`, `visibility.c`.  Not
-one of the 431 files in the tree departs from this.  Where a single word
-will not do, the directory carries the rest of the meaning, which is why
-there is `policy/placement/window.c` rather than `placement_window.c`,
-and four different files named `ewmh.h` in four different directories,
-each with a distinct remit.  Names run to eight characters or fewer nine
-times out of ten; that brevity is deliberate, and in the same spirit as
-the rest of the project.
+one of the files in the tree should depart from this.  Where a single
+word will not do, the directory carries the rest of the meaning, which
+is why there is `policy/placement/window.c` rather than
+`placement_window.c`, and four different files named `ewmh.h` in four
+different directories, each with a distinct remit.  Names run to eight
+o nine characters if possible; that brevity is deliberate, and in the
+same spirit as the rest of the project.
 
-**Functions** are anchored on the module they belong to, and the anchor
-is taken from the path: `place_window_apply`, `drag_outline_ start`,
-`ccmd_client_iconify`, `wm_startup_randr_init`.  A static function
-carries the same anchor behind an `s_` prefix:
-`s_place_window_finalize`.
+**Functions** read anchor, then object, then action:
 
-Where the right anchor for something new is not obvious, ask before
-writing it rather than after.
+    place_manual_enqueue      place  + manual  + enqueue
+    ccmd_client_iconify       ccmd   + client  + iconify
+    ctxmenu_tree_handle_click ctxmenu + tree   + handle_click
+    wm_startup_randr_init     wm_startup + randr + init
+
+The anchor comes from the path, but contracted to whatever identifies
+the module rather than joined together mechanically.  `cmds/client/`
+gives `ccmd_client_`, not `cmds_client_`; `input/mouse/drag/` gives
+`drag_`, not `input_mouse_drag_`; `policy/placement/manual.h` gives
+`place_manual_`.  Read the anchor already in use in the directory being
+worked in and follow it, and where the right one for something new is
+not obvious, ask before writing it rather than after.
 
 `_init` is a suffix and only ever a suffix.  It is
-`wm_startup_randr_init`, never `wm_startup_init_randr`.
+`wm_startup_randr_init`, never `wm_startup_init_randr`.  The same goes
+for `_destroy`.
+
+**Everything file-local takes an `s_` prefix**, not functions alone:
+a static function, a static variable, and a type declared in a `.c` file
+and used nowhere else.  Two hundred and fourteen of the tree's two
+hundred and sixteen file-scope variables do, and the two that do not are
+older than the convention.
+
+    static void s_place_window_finalize(...)
+    static struct position_s s_cascade_last = { 0, 0 };
+    struct s_place_ctx_s { ... };
+    enum s_place_result_e { ... };
+
+**Types carry a suffix saying what they are**: `_s` on a struct tag,
+`_e` on an enumeration tag, `_td` on a typedef, and `_fn` on a function
+pointer type.
+
+    struct client_layout_s      enum config_gravity_e
+    client_td                   place_manual_done_fn
 
 Identifiers are descriptive and anchored.  A boolean reads as
 a predicate and begins with a verb: `is_iconified`, `has_pending`,
@@ -221,7 +253,7 @@ per domain, not scattered as literals through the code.
 Header files
 ------------
 
-Every header compiles alone.  All 216 of them do, and a patch is
+Every header compiles alone.  All of them do (or should), and a patch is
 expected to keep it so:
 
 ```sh
