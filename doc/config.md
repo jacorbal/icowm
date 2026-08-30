@@ -668,7 +668,23 @@ Accepted placement policy values:
 | `"centered"`    | Centers the window on the screen. |
 | `"under-mouse"` | Places the window under the current pointer position. |
 | `"smart"`       | Finds the position that minimizes overlap with existing windows. |
-| `"manual"`      | Reserved for asking where the window goes; behaves as `"smart"` until that is written. |
+| `"manual"`      | Shows an outline following the pointer and waits for a click to say where the window goes. |
+
+Under `"manual"` a newly mapped window is held back rather than shown.
+An outline of it follows the pointer, and the window appears where that
+outline stands the moment a button is pressed.  Pressing `Escape` gives
+up and leaves the window where `"smart"` had already chosen, and so does
+letting five seconds pass without answering, so a window opened by
+something running in the background never holds the pointer and the
+keyboard for good.  Windows opening together are asked about one at
+a time, in the order they opened, each held back until the one before it
+is settled.
+
+The pointer and the keyboard are both held while the question stands, so
+nothing else answers to either until it is settled.  A window that
+requests a position itself, a dialog centered over its parent, a dock,
+a scratchpad window, and a window asking to start iconified are all
+placed the way they always are and never asked about.
 
 Accepted placement monitor values (only meaningful on a surface made up
 of more than one physical monitor sharing the same combined X screen;

@@ -187,14 +187,29 @@ looks for the position overlapping least of what is already on screen,
 .Ql cascade
 steps each new window down and to the right of the last,
 .Ql centered
-centers it on the workarea, and
+centers it on the workarea,
 .Ql under-mouse
 puts it where the pointer is, and
 .Ql manual
-is reserved for asking where the window goes, which behaves as
-.Ql smart
-until that is written.
+shows an outline following the pointer and waits for a click to say
+where the window goes.
 A transient or dialog window is centered on its parent regardless.
+.Pp
+Under
+.Ql manual
+the window is held back rather than shown until it is placed.
+.Ql Escape
+gives up and leaves it where
+.Ql smart
+had already chosen, and so does letting five seconds pass without
+answering, so a window opened by something running in the background
+never holds the pointer and the keyboard for good.
+Windows opening together are asked about one at a time, in the order
+they opened.
+The pointer and the keyboard are both held while the question stands.
+A window that requests a position itself, a dialog centered on its
+parent, a dock, a scratchpad window, and one asking to start
+iconified are placed the way they always are and never asked about.
 .It Ic windows.placement.monitor Pq string, default Ql \&"pointer\&"
 Which monitor a new window lands on:
 .Ql pointer ,
