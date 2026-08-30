@@ -7,8 +7,8 @@ for inactive windows, placing a significant emphasis on the utilization
 of iconification (iconization) in a manner reminiscent of traditional
 TWM aesthetics, but with a modern touch.
 
-![Screenshot 1: IcoWM 1.0.1 ("'ovelya")](doc/scrot/icowm_1.0.1-rc.1_a.png)
-![Screenshot 2: IcoWM 1.0.1 ("'ovelya")](doc/scrot/icowm_1.0.1-rc.1_b.png)
+[![Screenshot 1: IcoWM 1.0.1](doc/scrot/icowm_1.0.1-rc.1_a-800.png)](doc/scrot/icowm_1.0.1-rc.1_a.png)
+[![Screenshot 2: IcoWM 1.0.1](doc/scrot/icowm_1.0.1-rc.1_b-800.png)](doc/scrot/icowm_1.0.1-rc.1_b.png)
 
 Basic features are:
 
