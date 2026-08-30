@@ -267,6 +267,12 @@ packages, together with a `cjson`/`libcjson` development package; one's
 distribution's package search ought to be consulted for the precise
 names in use.
 
+Installing
+----------
+
+See [`INSTALL.md`](INSTALL.md) for building, installing, the build
+options, and the notes for packagers and for the BSDs.
+
 Bugs
 ----
 
