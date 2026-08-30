@@ -22,6 +22,7 @@
 #include <adt/list.h>
 
 /* Policy includes */
+#include <policy/placement/manual.h>
 #include <policy/urgency.h>
 
 /* Input includes */
@@ -144,6 +145,14 @@ int loop_timers_timeout(const loop_ctx_td *ctx)
      * reason. */
     s_loop_timers_tighten(&poll_timeout_ms, cctl_kill_ms_remaining());
 
+    /* Shorter still while a window is waiting for someone to point at
+     * where it goes (see 'place_manual_tick' in policy/placement/
+     * manual.h): a question nobody answers has to stop being asked on
+     * time, since the pointer and the keyboard are both held for as
+     * long as it stands open. */
+    s_loop_timers_tighten(&poll_timeout_ms,
+            place_manual_ms_remaining());
+
     return poll_timeout_ms;
 }
 
@@ -164,6 +173,7 @@ void loop_timers_tick(const loop_ctx_td *ctx)
     drag_warp_tick(xcb_connection_get());
     wm_shutdown_tick(ctx->wm);
     cctl_kill_tick();
+    place_manual_tick(xcb_connection_get());
 
     /* The memory guard runs against one surface only, and only when
      * the window manager was started with a cap at all */

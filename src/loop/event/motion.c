@@ -27,6 +27,9 @@
 #include <input/mouse/event.h>
 #include <input/mouse/hover.h>
 
+/* Policy includes */
+#include <policy/placement/manual.h>
+
 /* Menu includes */
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
@@ -40,6 +43,7 @@
 
 /** Whoever owns the pointer at the moment a motion event arrives */
 enum s_loop_event_motion_target_e {
+    S_MOTION_TARGET_MANUAL,     /**< A window is being placed */
     S_MOTION_TARGET_WINCMENU,   /**< Window context menu is open */
     S_MOTION_TARGET_ROOTMENU,   /**< Root menu is open */
     S_MOTION_TARGET_WINLIST,    /**< Window list is open */
@@ -99,6 +103,14 @@ static void s_loop_event_motion_collapse(loop_ctx_td *ctx,
 static enum s_loop_event_motion_target_e s_loop_event_motion_target(
         const xcb_motion_notify_event_t *me)
 {
+    /* Asked before every menu below, not after: a window that opens
+     * while one of them happens to be up takes the pointer away from
+     * it outright, so the menu is no longer the one being pointed at
+     * whatever it still believes about itself. */
+    if (place_manual_is_active()) {
+        return S_MOTION_TARGET_MANUAL;
+    }
+
     if (wincmenu_is_open()) {
         return S_MOTION_TARGET_WINCMENU;
     }
@@ -139,6 +151,11 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
             (struct position_s) { me->root_x, me->root_y });
 
     switch (s_loop_event_motion_target(me)) {
+        case S_MOTION_TARGET_MANUAL:
+            place_manual_handle_motion(xcb_connection_get(),
+                    (struct position_s) { me->root_x, me->root_y });
+            break;
+
         case S_MOTION_TARGET_WINCMENU:
             wincmenu_handle_motion(me->event, me->event_x, me->event_y);
             break;
