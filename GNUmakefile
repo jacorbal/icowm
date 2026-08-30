@@ -389,8 +389,7 @@ install:
 		echo "install: $(TARGET) is not built; run 'make' first" >&2; \
 		exit 1; }
 	@test -x $(MSG_TARGET) || { \
-		echo "install: $(MSG_TARGET) is not built; run 'make' first" \
-			>&2; \
+		echo "install: $(MSG_TARGET) is not built; run 'make' first" >&2; \
 		exit 1; }
 	$(INSTALL_DIR) $(DESTDIR)$(BINDIR)
 	$(INSTALL_PROGRAM) $(TARGET) $(DESTDIR)$(BINDIR)
@@ -485,18 +484,20 @@ endif
 
 help:
 	@echo "Command:"
-	@echo "  make all               Build project"
-	@echo "  make parallel          Build with parallel jobs"
-	@echo "  make clean-obj         Clean object files"
-	@echo "  make clean             Clean binary and object files"
-	@echo "  make ctags             Generate tag files for source"
-	@echo "  make doxygen           Create Doxygen documentation"
-	@echo "  make analyze           Run a static-analysis pass (if 'gcc')"
-	@echo "  make hard              Clean and build"
-	@echo "  make run               Run binary (if exists)"
-	@echo "  make run ARGS=<args>   Run with arguments (if binary exists)"
-	@echo "  make hard-run          Clean, build and run (if binary exists)"
-	@echo "  make test              Build and run every tests/*/test_*.c"
+	@echo "  make all              Build project"
+	@echo "  make parallel         Build with parallel jobs"
+	@echo "  make clean-obj        Clean object files"
+	@echo "  make clean            Clean binary and object files"
+	@echo "  make ctags            Generate tag files for source"
+	@echo "  make doxygen          Create Doxygen documentation"
+	@echo "  make analyze          Run a static-analysis pass (if 'gcc')"
+	@echo "  make hard             Clean and build"
+	@echo "  make run              Run binary (if exists)"
+	@echo "  make run ARGS=<args>  Run with arguments (if binary exists)"
+	@echo "  make hard-run         Clean, build and run (if binary exists)"
+	@echo "  make test             Build and run every tests/*/test_*.c"
+	@echo "  make install          Install under PREFIX (default '/usr/local')"
+	@echo "  make uninstall        Remove what 'install' put there"
 	@echo
 	@echo "Options:"
 	@echo "  Use 'CC=<compiler>' to select a compiler ('gcc' or 'clang')"
@@ -504,7 +505,8 @@ help:
 	@echo "  Use 'DEBUG=1' to generate detailed debug information"
 	@echo "  Use 'DEBUG=2' to also link with address sanitizer"
 	@echo "  Use 'STRIP=0' to keep symbols (they are discarded by default)"
-	@echo "  Use 'make install' / 'make uninstall' with PREFIX=<dir>"
+	@echo "  Use 'PREFIX=<dir>' to install somewhere other than '/usr/local'"
+	@echo "  Use 'DESTDIR=<dir>' to stage an install for packaging"
 	@echo "  Use 'COMPACT=1' to build using smaller arrays"
 	@echo
 	@echo "Binary will be placed in '$(TARGET)'"
@@ -516,6 +518,6 @@ help:
 -include $(MSG_DEPS)
 
 ## Phony targets
-.PHONY: all mkdirs ctags install uninstall clean clean-obj \
-	clean-bin clean-build run \
-        hard hard-run doxygen analyze ccflags ldflags parallel help
+.PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build \
+    run hard hard-run install uninstall \
+    doxygen analyze ccflags ldflags parallel help
