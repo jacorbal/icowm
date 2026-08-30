@@ -1,0 +1,111 @@
+# Continuous integration for IcoWM
+#
+# Three jobs, each answering a question the project already answers
+# locally and that a contributor cannot see from a pull request:
+#
+#   build    Does it still compile clean under both compilers, with
+#            '-Werror' and the whole warning set, and do the 49 test
+#            suites still pass?
+#   bmake    Does 'BSDmakefile' still work?  It is the file that keeps
+#            a BSD port possible, and it is the easiest one to break
+#            without noticing, since nothing else exercises it.
+#   install  Does 'make install' still put every file where it says,
+#            and does 'make uninstall' take every one of them away
+#            again?  Staged under a directory of its own, so nothing
+#            here needs to be root.
+#
+# The matrix deliberately runs 'gcc' and 'clang' both: each carries
+# warnings the other has not got, which is why the makefiles keep
+# a separate warning list for each.
+
+name: build
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DEPS: >-
+    build-essential pkg-config gettext
+    libxcb1-dev libxcb-keysyms1-dev libxcb-util-dev
+    libxcb-icccm4-dev libxcb-ewmh-dev libxcb-randr0-dev
+    libxcb-sync-dev libxcb-cursor-dev libxcb-render0-dev
+    libxcb-render-util0-dev libfreetype-dev libfontconfig-dev
+    libcjson-dev
+
+jobs:
+  build:
+    name: ${{ matrix.cc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ env.DEPS }} ${{ matrix.cc }}
+
+      - name: Build
+        run: make CC=${{ matrix.cc }} -j"$(nproc)" all
+
+      - name: Test
+        run: make CC=${{ matrix.cc }} test
+
+      - name: Build with COMPACT
+        run: |
+          make clean
+          make CC=${{ matrix.cc }} COMPACT=1 -j"$(nproc)" all
+
+  bmake:
+    name: bmake
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ env.DEPS }} bmake clang
+
+      - name: Build
+        run: bmake -f BSDmakefile -j"$(nproc)" all
+
+  install:
+    name: install and uninstall
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ env.DEPS }}
+
+      - name: Build
+        run: make -j"$(nproc)" all
+
+      - name: Install into a staging directory
+        run: |
+          make DESTDIR="$PWD/stage" PREFIX=/usr install
+          test -x stage/usr/bin/icowm
+          test -x stage/usr/bin/icowm-msg
+          test -f stage/usr/share/man/man1/icowm.1
+          test -f stage/usr/share/man/man5/icowm.5
+          test -f stage/usr/share/xsessions/icowm.desktop
+          test -f stage/usr/share/locale/es/LC_MESSAGES/icowm.mo
+          find stage -type f | sort
+
+      - name: Uninstall leaves nothing behind
+        run: |
+          make DESTDIR="$PWD/stage" PREFIX=/usr uninstall
+          left=$(find stage -type f | wc -l)
+          test "$left" -eq 0 || { find stage -type f; exit 1; }
