@@ -22,7 +22,7 @@
  * every answer that does not settle the window starts it over, so
  * aiming slowly is never mistaken for ignoring it.
  *
- * @defgroup placementmanual Manual placement
+ * @defgroup placement_manual Manual placement
  * @ingroup policy
  */
 /*

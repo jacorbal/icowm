@@ -21,12 +21,12 @@
 #ifndef IPC_ACTIONS_CLIENT_STATE_H
 #define IPC_ACTIONS_CLIENT_STATE_H
 
+
 /* Type includes */
 #include <types/handles.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
-
 
 
 /**

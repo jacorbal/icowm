@@ -22,12 +22,12 @@
 #ifndef IPC_ACTIONS_CLIENT_META_H
 #define IPC_ACTIONS_CLIENT_META_H
 
+
 /* Type includes */
 #include <types/handles.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
-
 
 
 /**

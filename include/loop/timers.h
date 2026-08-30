@@ -4,12 +4,12 @@
  * @brief Countdown aggregation for the main event loop
  *
  * Every feature that has to act at a moment of its own rather than on
- * an incoming X event (an auto-closing popup, a blinking urgency
- * hint, a startup-notification cursor, a pending kill escalation)
- * exposes the same pair: how long is left before it needs attention,
- * and what to do when the loop next comes around.  These two
- * functions gather both halves, so that the loop itself neither knows
- * nor has to be told which features happen to keep a countdown.
+ * an incoming X event (an auto-closing popup, a blinking urgency hint,
+ * a startup-notification cursor, a pending kill escalation) exposes the
+ * same pair.  How long is left before it needs attention, and what to
+ * do when the loop next comes around.  These two functions gather both
+ * halves, so that the loop itself neither knows nor has to be told
+ * which features happen to keep a countdown.
  *
  * @ingroup loop
  */

@@ -14,12 +14,12 @@
 #ifndef IPC_ACTIONS_SCRATCHPAD_H
 #define IPC_ACTIONS_SCRATCHPAD_H
 
+
 /* Type includes */
 #include <types/handles.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
-
 
 
 /** @c toggle_scratchpad: arguments @c desktop_id, optional and

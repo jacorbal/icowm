@@ -3,12 +3,12 @@
  *
  * @brief Descriptor set the main event loop waits on
  *
- * The loop blocks on two kinds of descriptor at once.  The X
- * connection, whose readiness is then drained through XCB rather than
- * read directly, and however many IPC descriptors are currently open,
- * the listening socket included.  Building that set, waiting on it,
- * and handing the ready IPC descriptors to their handler all
- * happen here.
+ * The loop blocks on two kinds of descriptor at once.
+ * The X connection, whose readiness is then drained through XCB rather
+ * than read directly, and however many IPC descriptors are currently
+ * open, the listening socket included.  Building that set, waiting on
+ * it, and handing the ready IPC descriptors to their handler all happen
+ * here.
  *
  * @ingroup loop
  */

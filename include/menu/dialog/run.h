@@ -5,24 +5,24 @@
  *        and launching a command directly, with no search, no
  *        listing, and no cache
  *
- * An alternative to @c KEYBIND_LAUNCH_LAUNCHER's default of
- * spawning @p config_base_s.programs.launcher (an external program
- * such as 'dmenu'/'gmrun'), consulted only when
- * @p config_base_s.programs.use_builtin_launcher is set; see
- * @a ik_handle_launch (input/kbd/interact.c) for where that choice is
- * made.  Deliberately does none of what a real launcher like those
- * does (no fuzzy matching over installed programs, no history, no
- * cache of any kind): typing @c Return attempts to run whatever was
- * typed exactly as given, showing an informational dialog (never a
- * blocking warning or error, so a mistyped command never derails
- * the user any further than necessary) if it could not be found,
- * or closing the box on success.
+ * An alternative to @c KEYBIND_LAUNCH_LAUNCHER's default of spawning
+ * @p config_base_s.programs.launcher (an external program such as
+ * @c dmenu / @c gmrun / &c.), consulted only when
+ * @p config_base_s.programs.use_builtin_launcher is set; see @a
+ * ik_handle_launch (@c input/kbd/interact.c) for where that choice is
+ * made.  Deliberately does none of what a real launcher like those does
+ * (no fuzzy matching over installed programs, no history, no cache of
+ * any kind).  Typing @c Return attempts to run whatever was typed
+ * exactly as given, showing an informational dialog (never a blocking
+ * warning or error, so a mistyped command never derails the user any
+ * further than necessary) if it could not be found, or closing the box
+ * on success.
  *
- * Visually distinguished from the fuzzy window-search widget
- * (@c menu/search.h), which this shares its general shape with (a
- * single centered text field, the same theme colors), by its
- * "Run:" prompt and its, narrower fixed width; see
- * @c defs/run.h for both this and the widget's dimensions.
+ * Visually distinguished from the fuzzy window-search widget (in file
+ * @c menu/search.h), which this shares its general shape with (a single
+ * centered text field, the same theme colors), by its "Run:" prompt and
+ * its, narrower fixed width; see @c defs/run.h for both this and the
+ * widget's dimensions.
  *
  * @note Only one instance may be visible at a time
  *
@@ -54,8 +54,8 @@
 /**
  * @brief Open the run-box, centered on @p surface
  *
- * Any previously open run-box is replaced.  Grabs the keyboard for
- * as long as the box stays open, the same way the fuzzy window-search
+ * Any previously open run-box is replaced.  Grabs the keyboard for as
+ * long as the box stays open, the same way the fuzzy window-search
  * widget's @a search_init already does.
  *
  * @param connection XCB connection

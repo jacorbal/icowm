@@ -16,6 +16,7 @@
 #ifndef MENU_FORTUNE_H
 #define MENU_FORTUNE_H
 
+
 /* XCB includes */
 #include <xcb/xcb.h>
 
@@ -24,7 +25,6 @@
 
 /* Default initial values */
 #include <defs/dialog.h>
-
 
 
 /**

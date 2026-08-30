@@ -26,6 +26,7 @@
 #ifndef MENU_DIALOG_QUIT_H
 #define MENU_DIALOG_QUIT_H
 
+
 /* XCB includes */
 #include <xcb/xcb.h>
 
@@ -35,7 +36,6 @@
 /* Default initial values */
 #include <defs/dialog.h>
 #include <defs/uistr.h>
-
 
 
 /**

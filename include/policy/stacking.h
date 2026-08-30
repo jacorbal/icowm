@@ -41,6 +41,7 @@
 #ifndef POLICY_STACKING_H
 #define POLICY_STACKING_H
 
+
 /* System includes */
 #include <stdint.h>
 
@@ -91,7 +92,7 @@ int stacking_create(const desktop_td *desktop);
  * @note Leaves the clients themselves alone, the desktop's client
  *       table being what owns them
  * @note Complexity: @e O(n * n) in the worst case, @e n being the
- *       number of managed clients: each is found and detached in
+ *       number of managed clients; each is found and detached in
  *       turn, since detaching frees the node a walk would stand on
  */
 void stacking_destroy(const desktop_td *desktop);
@@ -219,5 +220,6 @@ void stacking_walk(const desktop_td *desktop,
  */
 void stacking_walk_down(const desktop_td *desktop,
         stacking_visitor_fn visit, void *data);
+
 
 #endif /* !POLICY_STACKING_H */

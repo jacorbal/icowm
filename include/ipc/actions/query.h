@@ -21,12 +21,12 @@
 #ifndef IPC_ACTIONS_QUERY_H
 #define IPC_ACTIONS_QUERY_H
 
+
 /* Type includes */
 #include <types/handles.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
-
 
 
 /** @c get_version: no arguments */

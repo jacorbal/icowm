@@ -31,6 +31,7 @@
 #ifndef MENU_DIALOG_INFO_H
 #define MENU_DIALOG_INFO_H
 
+
 /* System includes */
 #include <stdbool.h>
 

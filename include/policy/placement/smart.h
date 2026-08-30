@@ -8,6 +8,9 @@
  * 'smart' means here.  The arithmetic it walks with lives in
  * @c policy/placement/rect.h, and the area it walks over comes from
  * @c policy/placement/monitor.h.
+ *
+ * @defgroup placement_smart Smart placement
+ * @ingroup policy
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

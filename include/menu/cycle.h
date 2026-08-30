@@ -20,6 +20,7 @@
 #ifndef MENU_CYCLE_H
 #define MENU_CYCLE_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>

@@ -3,11 +3,11 @@
  *
  * @brief Shared IPC response-building helpers
  *
- * The two shapes of response every command's handler ends with
- * either a bare success, or a failure carrying a human-readable reason.
+ * The two shapes of response every command's handler ends with either
+ * a bare success, or a failure carrying a human-readable reason.
  * Neither builder does anything else (no logging, no side effects), so
- * every handler stays free to add its result fields to the object
- * it gets back before returning it.
+ * every handler stays free to add its result fields to the object it
+ * gets back before returning it.
  *
  * @defgroup ipc_response IPC response building
  * @ingroup ipc

@@ -20,6 +20,7 @@
 #ifndef POLICY_PLACEMENT_ICON_H
 #define POLICY_PLACEMENT_ICON_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>

@@ -3,10 +3,10 @@
  *
  * @brief Event dispatch for the main loop
  *
- * Routes one X event to whoever handles it, through a table indexed
- * by the event's response type rather than a chain of
- * comparisons, so the cost of dispatching does not depend on how far
- * down a list the event happens to sit.
+ * Routes one X event to whoever handles it, through a table indexed by
+ * the event's response type rather than a chain of comparisons, so the
+ * cost of dispatching does not depend on how far down a list the event
+ * happens to sit.
  *
  * @ingroup loop
  */

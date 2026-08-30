@@ -21,6 +21,7 @@
 #ifndef MENU_INTERNAL_H
 #define MENU_INTERNAL_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -34,7 +35,6 @@
 
 /* Default initial values */
 #include <defs/cycle.h>
-
 
 
 /**
@@ -60,24 +60,24 @@ struct cycle_menu_state_s {
     int scroll_offset;
     int viewport_rows;
 
-    int last_drawn_selected;     /**< @p selected as of @a cycle_draw's
-                                      own most recent call, so it can
-                                      redraw only the rows that actually
-                                      changed selection instead of the
-                                      whole viewport when
-                                      @p scroll_offset did not also
-                                      change; meaningless until
-                                      @p has_drawn_once */
+    int last_drawn_selected;        /**< @p selected as of @a cycle_draw's
+                                         own most recent call, so it can
+                                         redraw only the rows that
+                                         actually changed selection
+                                         instead of the whole viewport
+                                         when @p scroll_offset did not
+                                         also change; meaningless until
+                                         @p has_drawn_once */
 
-    int last_drawn_scroll_offset; /**< See @p last_drawn_selected */
+    int last_drawn_scroll_offset;   /**< See @p last_drawn_selected */
 
-    xcb_window_t outline_windows[4]; /**< The 4 strip windows (see
-                                          render/outline.h) outlining
-                                          whichever client is
-                                          currently selected;
-                                          @c XCB_WINDOW_NONE in all
-                                          4 slots until the first
-                                          selection is applied */
+    xcb_window_t outline_windows[4];/**< The 4 strip windows (see
+                                         render/outline.h) outlining
+                                         whichever client is
+                                         currently selected;
+                                         @c XCB_WINDOW_NONE in all
+                                         4 slots until the first
+                                         selection is applied */
 
     uint16_t width;
     uint16_t modifier;
@@ -85,12 +85,13 @@ struct cycle_menu_state_s {
     uint16_t prev_modmask;
     bool is_icon_menu;
 
-    bool has_drawn_once;          /**< Whether @p last_drawn_selected /
-                                       @p last_drawn_scroll_offset hold
-                                       a real prior draw yet; false
-                                       right after @a cycle_init so its
-                                       first @a cycle_draw always paints
-                                       the whole viewport regardless */
+    bool has_drawn_once;            /**< Whether @p last_drawn_selected /
+                                         @p last_drawn_scroll_offset
+                                         hold a real prior draw yet;
+                                         false right after @a cycle_init
+                                         so its first @a cycle_draw
+                                         always paints the whole
+                                         viewport regardless */
 
     char labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LENGTH];
 };
@@ -135,12 +136,12 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
 /**
  * @brief Apply preview border color and width to a target window
  *
- * @param connection     Active XCB connection
- * @param target         Target window
- * @param client         Client associated with @p target
- * @param cfg            Active configuration
- * @param is_icon_menu   Whether the cycle menu shows icons
- * @param border_color   Border color to apply
+ * @param connection   Active XCB connection
+ * @param target       Target window
+ * @param client       Client associated with @p target
+ * @param cfg          Active configuration
+ * @param is_icon_menu Whether the cycle menu shows icons
+ * @param border_color Border color to apply
  *
  * @note Implemented in @c menu/cycle/draw.c
  * @note Complexity: @e O(1)

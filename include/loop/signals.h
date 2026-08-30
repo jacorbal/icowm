@@ -6,8 +6,8 @@
  * The installed signal handlers do nothing but raise a flag (see
  * @c wm/startup/handle.h), since almost nothing a window manager does
  * is safe to do from a handler.  Acting on those flags happens here,
- * once per loop iteration, with the whole process back in a state
- * where reloading a configuration or reaping a child is safe.
+ * once per loop iteration, with the whole process back in a state where
+ * reloading a configuration or reaping a child is safe.
  *
  * @ingroup loop
  */
@@ -46,8 +46,8 @@
  *         to stop, @c true when the loop should keep running
  *
  * @note Complexity: @e O(n * b), where @e n is the number of managed
- *       surfaces and @e b the number of configured bindings, paid
- *       only on a @c SIGCONT that re-grabs input
+ *       surfaces and @e b the number of configured bindings, paid only
+ *       on a @c SIGCONT that re-grabs input
  */
 bool loop_signals_process(const loop_ctx_td *ctx);
 

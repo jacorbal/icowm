@@ -4,10 +4,10 @@
  * @brief End-of-iteration repaint and property sync for the main loop
  *
  * Whatever an iteration did, handling events or letting a countdown
- * elapse, ends up recorded as an outdated flag on a surface rather
- * than painted on the spot.  This is where those flags are turned
- * into actual redraws, and where the root window's EWMH properties
- * are brought back in line with what changed.
+ * elapse, ends up recorded as an outdated flag on a surface rather than
+ * painted on the spot.  This is where those flags are turned into
+ * actual redraws, and where the root window's EWMH properties are
+ * brought back in line with what changed.
  *
  * @ingroup loop
  */
@@ -33,9 +33,8 @@
  *
  * Runs once at the end of every loop iteration.  Closes the two
  * single-instance overlays whose display timeout has just elapsed,
- * re-renders the surfaces marked outdated, and writes the root
- * window's EWMH properties again only if something actually was
- * outdated.
+ * re-renders the surfaces marked outdated, and writes the root window's
+ * EWMH properties again only if something actually was outdated.
  *
  * @param ctx Main loop context
  *

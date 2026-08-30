@@ -3,14 +3,14 @@
  *
  * @brief Turning a request's numeric IDs into real pointers
  *
- * Every command's arguments name a client, desktop, or surface by
- * the same numeric ID @c list_clients / @c list_desktops /
- * @c get_focused already report it by: a client's X window ID,
- * a desktop's index on its surface, a surface's screen index.
- * These turn one of those IDs back into the real pointer it names, or
- * build the appropriate error response when it does not currently name
- * anything, so every action handler shares one place that does this
- * instead of repeating the same lookup and error wording on its own.
+ * Every command's arguments name a client, desktop, or surface by the
+ * same numeric ID @c list_clients / @c list_desktops / @c get_focused
+ * already report it by: a client's X window ID, a desktop's index on
+ * its surface, a surface's screen index.  These turn one of those IDs
+ * back into the real pointer it names, or build the appropriate error
+ * response when it does not currently name anything, so every action
+ * handler shares one place that does this instead of repeating the same
+ * lookup and error wording on its own.
  *
  * @defgroup ipc_resolve IPC ID resolution
  * @ingroup ipc
@@ -26,6 +26,7 @@
 #ifndef IPC_RESOLVE_H
 #define IPC_RESOLVE_H
 
+
 /* System includes */
 #include <stdbool.h>
 
@@ -34,7 +35,6 @@
 
 /* JSON includes */
 #include <cjson/cJSON.h>
-
 
 
 /**

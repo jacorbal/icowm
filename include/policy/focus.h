@@ -21,6 +21,7 @@
 #ifndef POLICY_FOCUS_H
 #define POLICY_FOCUS_H
 
+
 /* System includes */
 #include <stdbool.h>
 

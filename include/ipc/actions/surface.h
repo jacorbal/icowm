@@ -20,12 +20,12 @@
 #ifndef IPC_ACTIONS_SURFACE_H
 #define IPC_ACTIONS_SURFACE_H
 
+
 /* Type includes */
 #include <types/handles.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
-
 
 
 /** @c goto_desktop: arguments @c desktop_id (required), @c surface_id
