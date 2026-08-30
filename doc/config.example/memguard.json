@@ -34,7 +34,7 @@
             "policy": "click"
         },
         "placement": {
-            "group-related": false,
+            "group-related": true,
             "monitor": "pointer",
             "policy": "smart"
         }
@@ -50,6 +50,9 @@
     "systray": {
         "is-enabled": true,
         "layer": "below",
+        "avoid-overlap": true,
+        "reserve-space": false,
+        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
         "battery": {
             "is-enabled": false,
             "poll-seconds": 30,
@@ -65,9 +68,7 @@
         "position": "top-right",
         "text": {
             "order": [ "clock", "battery" ]
-        },
-        "reserve-space": false,
-        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
+        }
     },
 
     "shutdown": {

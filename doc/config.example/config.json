@@ -1,21 +1,21 @@
 {
-    "theme": "default",
+    "theme": "okabe_ito/light",
 
     "topology": {
         "screens": {
             "count": 1,
             "desktops": [
             {
-                "count": 6,
+                "count": 4,
                 "inaugural": 0,
                 "layout": {
                     "orientation": "horizontal",
                     "corner": "top-left",
-                    "rows": 3,
-                    "columns": 3
+                    "rows": 2,
+                    "columns": 2
                 },
                 "settings": [
-                    { "background-color": "#5f7187", "name": "Desktop 0" },
+                    { "-background-color": "#5f7187", "name": "Desktop 0" },
                     { "background-color": "#85648d", "name": "Desktop 1" },
                     { "background-color": "#4d767d", "name": "Desktop 2" },
                     { "background-color": "#936459", "name": "Desktop 3" },
@@ -36,7 +36,7 @@
     },
 
     "prompt": {
-        "is-enabled": false
+        "is-enabled": true
     },
 
     "desktops": {
@@ -91,6 +91,9 @@
         "is-enabled": true,
         "layer": "below",
         "order": "left-to-right",
+        "avoid-overlap": true,
+        "reserve-space": false,
+        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
         "battery": {
             "is-enabled": false,
             "poll-seconds": 30,
@@ -112,9 +115,7 @@
         "text": {
             "order": [ "clock", "battery" ],
             "position": "left"
-        },
-        "reserve-space": false,
-        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
+        }
     },
 
     "scratchpad": {

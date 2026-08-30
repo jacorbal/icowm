@@ -2,33 +2,12 @@
     "rules": [
     {
         "when": "map",
-        "match": {
-            "type": "splash"
-        },
-        "apply": {
-            "layer": "above",
-            "position": "center"
-        }
-    },
-    {
-        "when": "map",
-        "match": {
-            "title": [ "*Sonata", "\\[Sonata\\]" ],
-            "type": "normal"
-        },
-        "apply": {
-            "decorated": false,
-            "pinned": true,
-            "layer": "below",
-            "opacity": {
-                "active": 100,
-                "inactive": 75
+            "match": {
+                "title": [ "About *" ]
             },
-            "position": {
-                "x": 1455,
-                "y": 10
+            "apply": {
+                "position": "center"
             }
-        }
     },
     {
         "when": "map",

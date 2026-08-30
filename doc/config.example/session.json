@@ -1,8 +1,6 @@
 {
     "on-start": [
         "nm-applet",
-        "redshift-gtk",
-        "xbindkeys -f ~/.xbindkeys",
         "xidle -nw -program /usr/bin/xsecurelock -timeout 300",
         "unclutter -idle 3"
     ],
