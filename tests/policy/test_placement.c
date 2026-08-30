@@ -279,10 +279,12 @@ static wm_td *s_make_wm(wm_td *wm, config_td *config)
  * centering, avoiding occupied/iconified positions, respecting the
  * workarea and monitor bounds, and the no-current-desktop failure
  * case) is not covered here: it is static to window.c
- * (s_place_window_smart), unreachable from this file.  place_window_
- * apply below covers CENTERED, CASCADE, and UNDER_MOUSE, but none of
- * its own test cases configure CONFIG_PLACEMENT_POLICY_SMART, so
- * that path is not indirectly exercised here either. */
+ * (s_place_window_smart), unreachable from this file.  What
+ * place_window_apply below does reach is exercised: each of the four
+ * decisions taken ahead of the policy (splash, an honored requested
+ * position, the junk transient origin that one declines, and the
+ * sibling grouping) and each policy that resolves a position of its
+ * own (CENTERED, CASCADE, UNDER_MOUSE, SMART, MANUAL and none). */
 
 
 
@@ -537,6 +539,212 @@ static void s_test_apply_centered(void)
     /* (1000-200)/2 = 400; (800-100)/2 = 350 */
     TAP_EQ_INT(s_configured_x, 400, "centered horizontally on the workarea");
     TAP_EQ_INT(s_configured_y, 350, "centered vertically on the workarea");
+}
+
+
+/* A splash screen is centered on the workarea ahead of every policy
+ * and ahead of the honored-position branch, and without gravity being
+ * applied to the result: the middle worked out here is already where
+ * the window goes */
+static void s_test_apply_splash_centers_on_workarea(void)
+{
+    wm_td wm;
+    config_td config;
+    surface_td surface;
+    desktop_td desktop;
+    client_td client;
+
+    s_reset_stubs();
+    s_make_wm(&wm, &config);
+    config.base.windows.placement_policy =
+        CONFIG_PLACEMENT_POLICY_CASCADE;
+    s_make_surface(&surface, &desktop, 1000u, 800u);
+    memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
+    client.layout.geometry.cur.dim.w = 200u;
+    client.layout.geometry.cur.dim.h = 100u;
+    client.layout.gravity = (uint16_t) CLIENT_GRAVITY_CENTER;
+    client.properties.type = (uint16_t) CLIENT_TYPE_SPLASH;
+    /* Asking for a corner as well, which a splash routinely does:
+     * the splash branch has to win over the honored-position one */
+    client.hints_icccm.size.has_position = true;
+    client.hints_icccm.size.req_pos.x = 700;
+    client.hints_icccm.size.req_pos.y = 600;
+
+    place_window_apply(&wm, &surface, &client);
+
+    /* (1000-200)/2 = 400; (800-100)/2 = 350, with center gravity
+     * deliberately not taking half the width off again */
+    TAP_EQ_INT(s_configured_x, 400,
+            "a splash is centered horizontally whatever it asked for");
+    TAP_EQ_INT(s_configured_y, 350,
+            "a splash is centered vertically whatever it asked for");
+}
+
+
+/* A client-requested position (ICCCM 4.1.2.3) takes priority over the
+ * configured policy */
+static void s_test_apply_honors_requested_position(void)
+{
+    wm_td wm;
+    config_td config;
+    surface_td surface;
+    desktop_td desktop;
+    client_td client;
+
+    s_reset_stubs();
+    s_make_wm(&wm, &config);
+    config.base.windows.placement_policy =
+        CONFIG_PLACEMENT_POLICY_CENTERED;
+    s_make_surface(&surface, &desktop, 1000u, 800u);
+    memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
+    client.layout.geometry.cur.dim.w = 200u;
+    client.layout.geometry.cur.dim.h = 100u;
+    client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
+    client.hints_icccm.size.has_position = true;
+    client.hints_icccm.size.req_pos.x = 123;
+    client.hints_icccm.size.req_pos.y = 77;
+
+    place_window_apply(&wm, &surface, &client);
+
+    TAP_EQ_INT(s_configured_x, 123,
+            "a requested x wins over the centered policy");
+    TAP_EQ_INT(s_configured_y, 77,
+            "a requested y wins over the centered policy");
+}
+
+
+/* A transient asking for exactly (0, 0) is toolkit boilerplate rather
+ * than a deliberate choice, so that one request is not honored */
+static void s_test_apply_ignores_junk_transient_origin(void)
+{
+    wm_td wm;
+    config_td config;
+    surface_td surface;
+    desktop_td desktop;
+    client_td client;
+
+    s_reset_stubs();
+    s_make_wm(&wm, &config);
+    config.base.windows.placement_policy =
+        CONFIG_PLACEMENT_POLICY_CENTERED;
+    s_make_surface(&surface, &desktop, 1000u, 800u);
+    memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
+    client.layout.geometry.cur.dim.w = 200u;
+    client.layout.geometry.cur.dim.h = 100u;
+    client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
+    client.transient_for = 99u;
+    client.hints_icccm.size.has_position = true;
+    client.hints_icccm.size.req_pos.x = 0;
+    client.hints_icccm.size.req_pos.y = 0;
+
+    place_window_apply(&wm, &surface, &client);
+
+    /* No parent is findable here (both stand-ins answer nothing), so
+     * the transient centering below declines too and the configured
+     * policy has the last word.  What matters is only that (0, 0) was
+     * not taken at its word. */
+    TAP_OK(s_configured_x != 0 || s_configured_y != 0,
+            "a transient asking for (0, 0) is not pinned to the" \
+            " screen corner");
+}
+
+
+/* CONFIG_PLACEMENT_POLICY_SMART reaches the smart search and lands
+ * somewhere wholly inside the workarea */
+static void s_test_apply_smart_stays_inside_workarea(void)
+{
+    wm_td wm;
+    config_td config;
+    surface_td surface;
+    desktop_td desktop;
+    client_td client;
+
+    s_reset_stubs();
+    s_make_wm(&wm, &config);
+    config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
+    s_make_surface(&surface, &desktop, 1000u, 800u);
+    memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
+    client.layout.geometry.cur.dim.w = 200u;
+    client.layout.geometry.cur.dim.h = 100u;
+    client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
+
+    place_window_apply(&wm, &surface, &client);
+
+    TAP_EQ_INT(s_configure_calls, 1,
+            "the smart policy places the window exactly once");
+    TAP_OK(s_configured_x >= 0 && s_configured_y >= 0 &&
+            s_configured_x + 200 <= 1000 &&
+            s_configured_y + 100 <= 800,
+            "the smart policy lands wholly inside the workarea");
+}
+
+
+/* CONFIG_PLACEMENT_POLICY_MANUAL settles the window where the smart
+ * policy would have put it, that being both where the outline starts
+ * and where the window stays if nobody answers */
+static void s_test_apply_manual_matches_smart(void)
+{
+    wm_td wm;
+    config_td config;
+    surface_td surface;
+    desktop_td desktop;
+    client_td client;
+    int32_t smart_x;
+    int32_t smart_y;
+
+    s_reset_stubs();
+    s_make_wm(&wm, &config);
+    s_make_surface(&surface, &desktop, 1000u, 800u);
+    memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
+    client.layout.geometry.cur.dim.w = 200u;
+    client.layout.geometry.cur.dim.h = 100u;
+    client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
+
+    config.base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
+    place_window_apply(&wm, &surface, &client);
+    smart_x = s_configured_x;
+    smart_y = s_configured_y;
+
+    /* The surface is rebuilt as well as the stubs: 's_reset_stubs'
+     * clears the desktop registry 'surface_desktop_get' answers from,
+     * and a placement running without a desktop falls back on
+     * different workarea bounds, which would compare two different
+     * questions rather than two policies */
+    s_reset_stubs();
+    s_make_surface(&surface, &desktop, 1000u, 800u);
+    memset(&client, 0, sizeof(client));
+    client.window = 1u;
+    client.layout.geometry.cur.dim.w = 200u;
+    client.layout.geometry.cur.dim.h = 100u;
+    client.layout.gravity = (uint16_t) CLIENT_GRAVITY_NORTH_WEST;
+    config.base.windows.placement_policy =
+        CONFIG_PLACEMENT_POLICY_MANUAL;
+    place_window_apply(&wm, &surface, &client);
+
+    TAP_EQ_INT(s_configured_x, smart_x,
+            "the manual policy starts from the smart position in x");
+    TAP_EQ_INT(s_configured_y, smart_y,
+            "the manual policy starts from the smart position in y");
 }
 
 
@@ -829,7 +1037,7 @@ int main(void)
      * never dereferenced, only checked for being there. */
     xcb_connection_set((xcb_connection_t *) &s_placement_conn);
 
-    TAP_PLAN(21);
+    TAP_PLAN(30);
 
     s_test_cascade_advances_by_one_step();
     s_test_cascade_stays_inside_workarea();
@@ -837,6 +1045,11 @@ int main(void)
     s_test_cascade_guards();
     s_test_apply_guards();
     s_test_apply_centered();
+    s_test_apply_splash_centers_on_workarea();
+    s_test_apply_honors_requested_position();
+    s_test_apply_ignores_junk_transient_origin();
+    s_test_apply_smart_stays_inside_workarea();
+    s_test_apply_manual_matches_smart();
     s_test_apply_none_leaves_valid_position();
     s_test_apply_none_clamps_offscreen_position();
     s_test_apply_transient_centers_over_parent();
