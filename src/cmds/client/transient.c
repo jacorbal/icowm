@@ -2,7 +2,7 @@
  * @file cmds/client/transient.c
  *
  * @brief Transient-family resolution and snapshot collection, shared
- *        by every family-wide action across the project: iconify,
+ *        by every family-wide action across the project.  Iconify,
  *        restore, focus, pin/unpin, and desktop moves
  */
 /*
@@ -103,7 +103,7 @@ static client_td *s_client_mapped_transient_child(client_td *client)
      * here separately instead, by group membership rather than a
      * resolved anchor (unlike 's_enforce_layer_place_family' and
      * 's_desktop_transients_raise', client.c and desktop/dclient.c,
-     * this has no "only ever trigger once" constraint to protect: any
+     * this has no "only ever trigger once" constraint to protect.  Any
      * group member redirecting focus to the same open dialog is the
      * whole point, not a bug to guard against). */
     leader = client_group_leader(client);
@@ -369,7 +369,7 @@ client_td *client_group_transient_anchor(const client_td *client)
     ohtbl_foreach(desktop->clients, elem) {
         client_td *const sibling = (client_td *) elem;
 
-        /* Excludes another client also transient for the group: an
+        /* Excludes another client also transient for the group.  An
          * anchor is meant to be an actual application window of the
          * group, never another such dialog.  Without this, two
          * group-transient dialogs sharing the same group could
@@ -396,7 +396,7 @@ client_td *client_group_transient_anchor(const client_td *client)
  *        one specific desktop into a newly allocated snapshot array
  *
  * Every family-wide action in this project (iconify, restore, pin,
- * unpin, desktop sends, and the like) needs the same thing: every
+ * unpin, desktop sends, and the like) needs the same thing.  Every
  * matching sibling collected into an array first, rather than acted
  * on directly while still walking the family tree, since an action
  * on one sibling (an iconify, a pin, a desktop move) can itself add,
@@ -447,7 +447,7 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  *        array
  *
  * The all-desktops counterpart to
- * @a ccmd_client_transient_family_snapshot just above: every
+ * @a ccmd_client_transient_family_snapshot just above.  Every
  * family-wide action that is not itself
  * about desktops (iconify, restore, hide, unhide, pin, unpin) must
  * find every family member regardless of which desktop each one
@@ -464,7 +464,7 @@ client_td **ccmd_client_transient_family_snapshot(const desktop_td *desktop,
  * @a drag_warp_tick and @a ccmd_client_bring_family itself, which
  * each still use @a ccmd_client_transient_family_snapshot directly
  * for exactly that reason),
- * silently fails to find a transient living elsewhere: hiding or
+ * silently fails to find a transient living elsewhere.  Hiding or
  * iconifying a pinned parent this way leaves its dialog neither
  * hidden nor found again on restore, stranding it invisible with no
  * way back.  A thin wrapper over @a s_family_snapshot with its
@@ -510,21 +510,21 @@ void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
  * Openbox's real answer to a transient family split across
  * desktops or visibility states (confirmed directly against its
  * source, @a client_bring_modal_windows and
- * @a client_bring_windows_recursive in @c client.c): a pinned
+ * @a client_bring_windows_recursive in @c client.c).  A pinned
  * parent followed to a new
  * desktop leaves its modal dialog behind, exactly as it started
  * out, but the moment someone tries to focus that parent again, the
  * dialog is moved onto the desktop the parent is being interacted
  * with on right then, not before, so it is right there to actually
  * receive the redirected focus (see @a ccmd_client_focus_target's
- * comment) instead of popping the person back to wherever it
+ * comment) instead of popping the user back to wherever it
  * happened to be left.  Openbox's version does not stop at the
  * desktop mismatch either: @c client_bring_windows_recursive checks
  * @e both @c !screen_compare_desktops(self->desktop, desktop) (wrong
  * desktop) @e and @c (iconic && self->iconic) (still iconic), taking
  * whichever action applies: @c client_iconify(self, FALSE, ...) to
  * un-iconify, or @c client_set_desktop(self, desktop, ...) to
- * relocate.  This mirrors both halves: a family member left
+ * relocate.  This mirrors both halves.  A family member left
  * iconified or hidden (this project's two separate visibility
  * states, where Openbox has only the one) is revealed through
  * @a ccmd_client_restore or @a ccmd_client_unhide, not just
@@ -550,7 +550,7 @@ void ccmd_client_family_apply(client_td *top, ccmd_family_fn fn,
  * clients.c, for how pin visibility is really achieved).
  *
  * The relocation step itself is deliberately only the data move
- * (desktop membership, stacking list, @c desktop_id): unlike an
+ * (desktop membership, stacking list, @c desktop_id).  Unlike an
  * explicit desktop send (@a enact_desktop_client_send, @c enact/
  * desktop.c) or an EWMH one (@a hi_handle_net_wm_desktop,
  * @c handler/ewmh.c), nothing here is visibly dragged across the screen
@@ -588,7 +588,7 @@ void ccmd_client_bring_family(client_td *client)
     }
 
     /* The desktop actually being looked at right now, not
-     * necessarily 'top''s literal "home" desktop: a pinned
+     * necessarily 'top''s literal "home" desktop.  A pinned
      * client stays registered under whichever desktop it was
      * originally created on forever (pin is achieved purely by
      * exempting it from the hide/show cycle 'surface_clients_hide'/
@@ -706,7 +706,7 @@ client_td *ccmd_client_focus_target(client_td *client)
  *        tree, if @c transient_for names an already-managed client
  *
  * This is what makes every other function in this file @e O(1) per
- * step instead of a scan of every client on every desktop: rather
+ * step instead of a scan of every client on every desktop.  Rather
  * than re-discovering "who is transient for whom" from scratch on
  * every walk, by comparing @c transient_for window IDs across the
  * whole managed set, the relationship is captured once, right here,
@@ -777,9 +777,9 @@ void client_link_transient(client_td *client)
  *        being managed
  *
  * Removes @p client from its parent's @c transients list in true
- * @e O(1) (see @c transient_node's comment, client.h: with
- * that node cached, @c cdlist_rem_next on its own @c prev needs no
- * search at all), and orphans every one of @p client's children
+ * @e O(1) (see @c transient_node's comment in @c client.h; with that
+ * node cached, @c cdlist_rem_next on its @c prev needs no search at
+ * all), and orphans every one of @p client's children
  * by clearing their @c transient_parent/@c transient_node back
  * to @c NULL: the parent they were transient for is going away, so
  * there is nothing left for them to be transient for anymore, the

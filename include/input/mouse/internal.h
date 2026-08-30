@@ -15,10 +15,10 @@
  * the way, say, @c menu/dialog/confirm.c and @c menu/dialog/
  * fortune.c each own their separate state.
  *
- * The drag subsystem used to share this same header, before it grew
- * its dedicated one per drag/ file (@c drag/overlay.h,
+ * The drag subsystem keeps headers of its own, one per drag/ file
+ * (@c drag/overlay.h,
  * @c drag/snap.h, @c drag/outline.h, @c drag/warp.h) plus
- * @c drag/internal.h for its singleton state alone: nothing under
+ * @c drag/internal.h for its singleton state alone.  Nothing under
  * @c input/mouse/event/, @c cursor.c, or @c hover.c ever actually
  * called into any of it, so keeping it here served no purpose beyond
  * a second, silently drifting copy of declarations @c drag/

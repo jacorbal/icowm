@@ -46,7 +46,7 @@ config_td *config_memguard_init(void);
  *        @c memguard.json on top of
  *
  * A completely separate profile from @a config_set_default_values's
- * ordinary defaults, not a variant of it: restricted-memory mode is
+ * ordinary defaults, not a variant of it.  Restricted-memory mode is
  * meant to restrict a fixed, deliberately chosen set of behavior (no
  * aesthetic extras, one screen, one desktop, and so on) regardless of
  * what an ordinary session would otherwise default to, so the two are
@@ -75,7 +75,7 @@ void config_set_default_values_memguard(config_td *config);
  * Populates @p config with @a config_set_default_values_memguard's
  * fixed profile first, then layers exactly four things on top of it, in
  * order: @c memguard.json (the only file restricted-memory mode lets
- * a person configure at all, covering the active theme's name, launched
+ * a user configure at all, covering the active theme's name, launched
  * programs, desktop margins, the systray block, and the emergency
  * shortcut), @c bindings.json (key and mouse bindings, loaded the same
  * way an ordinary session loads them), the theme file @c memguard.json
@@ -90,7 +90,7 @@ void config_set_default_values_memguard(config_td *config);
  * schema or is one of @a config_set_default_values_memguard's fixed
  * values instead.
  *
- * The theme restrictions applied after loading: any font not already
+ * The theme restrictions applied after loading.  Any font not already
  * naming some variant of the "fixed" X core font family (allowing
  * a caller to still pick its size or encoding, e.g., @c fixed-14 or
  * a full XLFD string) is replaced outright with plain @c fixed,

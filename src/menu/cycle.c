@@ -384,12 +384,12 @@ void cycle_init(xcb_connection_t *connection,
      * is only the bits shared by BOTH the cycle-next and cycle-prev
      * bindings, e.g., just 'Alt' when "next" is 'Alt+Tab' and "prev" is
      * 'Alt+Shift+Tab'.  The bit that differs between the two (Shift, in
-     * that example) is what lets a person switch direction while the
+     * that example) is what lets a user switch direction while the
      * menu stays open, by pressing the direction key again with that
      * bit now toggled, so it must never itself be treated as part of
      * what has to stay held.  Using the full modmask of whichever
-     * specific binding was pressed to get here, as this used to, would
-     * include that differing bit, closing the menu the moment it alone
+     * specific binding was pressed to get here would include that
+     * differing bit, closing the menu the moment it alone
      * is released instead of only on 'Alt''s release. */
     g_cycle_menu.modifier =
         (uint16_t) ((unsigned int) g_cycle_menu.next_modmask &
@@ -457,11 +457,8 @@ void cycle_init(xcb_connection_t *connection,
      * 'cycle_draw' makes per row; see 'theme.menu.show-pixmaps''s
      * comment in 'config.h'. */
     if (cfg->theme.menu.show_pixmaps) {
-        /* '#if', not a runtime ternary: both operands are fixed
-         * compile-time constants, so a ternary here left one branch
-         * provably unreachable to the compiler ('-Wunreachable-code').
-         * Still guards the arithmetic against a future edit to either
-         * constant that would otherwise underflow silently. */
+        /* '#if' and not a ternary; see 'WM_MENU_ICON_INSET' in
+          * 'defs/ctxmenu.h' for why */
 #if WM_CYCLE_MENU_ROW_HEIGHT > WM_MENU_ICON_INSET
         uint16_t icon_size = (uint16_t)
             (WM_CYCLE_MENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
@@ -639,9 +636,9 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
      * replaces with the current server time and records as the last
      * focus change.  Every later 'SetInputFocus' carrying the
      * timestamp of the key press that started all this is then older
-     * than that, and the server ignores it: the window came forward
+     * than that, and the server ignores it.  The window came forward
      * and its titlebar lit, while the keyboard stayed with the window
-     * the person had just cycled away from. */
+     * the user had just cycled away from. */
     g_cycle_menu.prev_focus = XCB_WINDOW_NONE;
 
     cycle_destroy(connection);

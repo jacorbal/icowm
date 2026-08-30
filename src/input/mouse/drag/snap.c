@@ -124,7 +124,7 @@ struct s_drag_snap_ctx_s {
  * @param data   Pointer to the @c s_drag_snap_ctx_s this walk carries
  *
  * @note The dragged window itself, and anything hidden or iconified,
- *       is passed over: none of them is an edge the person can see
+ *       is passed over: none of them is an edge the user can see
  * @note Complexity: @e O(1)
  */
 static void s_drag_snap_move_visit(client_td *client, void *data)

@@ -32,7 +32,7 @@
 /**
  * @brief Global desktop-navigation and reserved-space behavior
  *
- * Unlike @p config_base_s (screen and desktop topology: how many
+ * Unlike @p config_base_s (screen and desktop topology.  How many
  * screens and desktops exist, and their names/colors), none of
  * this describes topology at all, only how navigation between
  * whatever desktops @p config_base_s already defines behaves, and how
@@ -40,7 +40,7 @@
  * client itself publishes via @c _NET_WM_STRUT_PARTIAL.
  *
  * Loaded from @c config.json's top-level @c desktops object,
- * a sibling of @c topology, not nested inside it: unlike topology,
+ * a sibling of @c topology, not nested inside it.  Unlike topology,
  * every field here does take effect on a configuration reload.
  *
  * @see @a desktop_update_workarea
@@ -55,7 +55,7 @@ struct config_desktop_s {
     /**
      * @brief Whether a client becoming urgent on a desktop other than
      *        the one currently visible on its own surface shows an
-     *        informational popup naming that desktop, so the person is
+     *        informational popup naming that desktop, so the user is
      *        not left unaware that something needs attention off-screen
      *
      * A client urgent on the currently visible desktop already gets its

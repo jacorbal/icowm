@@ -120,7 +120,7 @@ void focus_order_add(client_td *client)
     }
 
     /* Left where it is when already recorded, so that a path running
-     * twice cannot demote a client the person did use recently */
+     * twice cannot demote a client the user did use recently */
     if (s_focus_order_find(client, NULL) != NULL) {
         return;
     }
@@ -346,14 +346,14 @@ void focus_apply(list_td *surfaces, surface_td *surface,
      * active-client bookkeeping past it) ever sees the original,
      * un-redirected 'client'.  Doing this only inside
      * 'ccmd_client_focus' itself, in 'cmds/client/focus.c', is not
-     * enough on its own: that would still correctly steer the raw X11
-     * input focus to the dialog, but this function's
-     * 'desktop->client_active_id' assignment below, and the
-     * stacking-order raise further down, would still track the original
-     * client, since a callee reassigning its local copy of a pointer
-     * parameter can never be observed by its caller.  See
-     * 'ccmd_client_focus_target''s doc comment
-     * ('cmds/client/transient.h') for the full reasoning. */
+     * enough on its own:
+     * that would still correctly steer the raw X11 input focus to the
+     * dialog, but this function's 'desktop->client_active_id'
+     * assignment below, and the stacking-order raise further down,
+     * would still track the original client, since a callee
+     * reassigning its local copy of a pointer parameter can never
+     * be observed by its caller.  See 'ccmd_client_focus_target''s
+     * doc comment (cmds/client/transient.h) for the full reasoning. */
     client = ccmd_client_focus_target(client);
     if (client == NULL) {
         return;
@@ -369,17 +369,20 @@ void focus_apply(list_td *surfaces, surface_td *surface,
      * 'WM_TAKE_FOCUS' from such a client already, but everything
      * else this function does (unfocusing whichever client actually
      * had focus, marking this one active, publishing
-     * '_NET_WM_STATE_FOCUSED') would still run unless refused here. */
+     * '_NET_WM_STATE_FOCUSED') would still run unless refused here.
+     * Openbox's 'focus_valid_target' (focus.c) gates on exactly
+     * this same 'can_focus || focus_notify' condition before
+     * considering a client at all. */
     if (!client_accepts_input_focus(client)) {
         return;
     }
 
     /* Unfocus the previous active client, and focus this one,
      * synchronously and in that exact order, rather than through the
-     * queued 'client_send_event_unfocus'/'client_send_event_focus' pair
-     * this used to use: 'ccmd_client_unfocus' redirects the X server's
-     * real input focus to 'XCB_INPUT_FOCUS_POINTER_ROOT' (see its doc
-     * comment in 'cmds/client/focus.c'), on the assumption that
+     * queued 'client_send_event_unfocus'/'client_send_event_focus'
+     * pair.  'ccmd_client_unfocus' redirects the X server's
+     * real input focus to 'XCB_INPUT_FOCUS_POINTER_ROOT' (see its
+     * doc comment in 'cmds/client/focus.c'), on the assumption that
      * a caller unfocusing a client to immediately focus another
      * "harmlessly overrides this a moment later".  That assumption only
      * holds if the override actually runs before anything else can
@@ -420,11 +423,11 @@ void focus_apply(list_td *surfaces, surface_td *surface,
     /* Recorded in the focus order, which is what the cycle menu and
      * focus recovery read, and never in the stacking list, which is
      * where the window sits on screen.  Moving it there instead, as
-     * this once did, raised the window on the next desktop switch: that
-     * switch replays the stacking list onto the X server, so a window
-     * merely focused came back on top although 'windows.focus.raise'
-     * had said not to raise it.
-     * See 'policy/focus.h'. */
+     * this once did, raised the window on the next desktop switch:
+     * that switch replays the stacking list onto the X server, so a
+     * window merely focused came back on top although
+     * 'windows.focus.raise' had said not to raise it.  See
+     * 'policy/focus.h'. */
     focus_order_to_top(client);
 
     should_raise = (raise ||
@@ -434,15 +437,15 @@ void focus_apply(list_td *surfaces, surface_td *surface,
         enact_client_raise(client);
     } else if (client_is_fullscreen(client) ||
             (previous != NULL && client_is_fullscreen(previous))) {
-        /* 'enact_client_raise' above already re-enforces layer stacking
-         * as a side effect of raising, which is what actually forces
-         * a focused fullscreen client above everything else (see
-         * 'ccmd_desktop_enforce_layers''s comment) and lets one that
-         * just lost focus fall back into its real layer.  Without
-         * 'should_raise', neither of those would otherwise happen at
-         * all for this focus change, and that guarantee has to hold
-         * regardless of whether raise-on-focus itself is configured
-         * on. */
+        /* 'enact_client_raise' above already re-enforces layer
+         * stacking as a side effect of raising, which is what
+         * actually forces a focused fullscreen client above
+         * everything else (see 'ccmd_desktop_enforce_layers''s
+         * doc comment) and lets one that just lost focus fall back
+         * into its real layer.  Without 'should_raise', neither
+         * of those would otherwise happen at all for this focus
+         * change, and that guarantee has to hold regardless of
+         * whether raise-on-focus itself is configured on. */
         ccmd_desktop_enforce_layers(desktop);
     }
 

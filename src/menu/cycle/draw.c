@@ -90,11 +90,8 @@ static void s_cycle_row_style(const config_td *config,
      * 'theme.menu.show-pixmaps''s comment in 'config.h' and
      * 'WM_MENU_ICON_INSET' in 'defs/ctxmenu.h' */
     if (config->theme.menu.show_pixmaps) {
-        /* '#if', not a runtime ternary: both operands are fixed
-         * compile-time constants, so a ternary here left one branch
-         * provably unreachable to the compiler (-Wunreachable-code).
-         * Still guards the arithmetic against a future edit to either
-         * constant that would otherwise underflow silently. */
+        /* '#if' and not a ternary; see 'WM_MENU_ICON_INSET' in
+         * 'defs/ctxmenu.h' for why */
 #if WM_CYCLE_MENU_ROW_HEIGHT > WM_MENU_ICON_INSET
         style->icon_size = (uint16_t)
             (WM_CYCLE_MENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
@@ -251,7 +248,7 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
      * rectangle, which already covers everything drawn for it, so it
      * is outlined as it stands.
      *
-     * An undecorated one has no frame at all: the geometry is the
+     * An undecorated one has no frame at all.  The geometry is the
      * client window's core rectangle, and its border is an X11
      * native border, which the server draws entirely outside that
      * rectangle rather than inside it (see the render pass, which
@@ -260,7 +257,7 @@ static struct geometry_s s_mi_cycle_preview_outline_geom(
      * rectangle alone therefore falls short by one border width on
      * every side.
      *
-     * Only the size is adjusted, never the position: a window's
+     * Only the size is adjusted, never the position.  A window's
      * x and y are already the upper-left corner of its outer
      * rectangle, border included, so the border grows a window
      * rightward and downward alone (X Consortium, 1994, "X Window
@@ -442,7 +439,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     /* Selection unchanged since this same client was last previewed
      * (e.g., re-called for an 'Expose' on the menu window itself, or
      * navigating with only one client in the cycle, which always
-     * "changes" the index back to the same single entry): nothing
+     * "changes" the index back to the same single entry).  Nothing
      * about the preview differs from what is already applied, so
      * skip repeating every border/background/stacking request below
      * for no visible change. */
@@ -604,7 +601,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
 
     /* Draw scroll-indicator arrows in the top/bottom padding areas when
      * there are hidden entries above or below the viewport.  Only
-     * meaningful as part of a full repaint: their content depends
+     * meaningful as part of a full repaint.  Their content depends
      * solely on 'scroll_offset' and 'count', neither of which changes
      * on a same-viewport selection move.
      *

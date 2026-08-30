@@ -159,11 +159,8 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
      * with no icon of its own to draw still leaves every row's text
      * aligned in the same column. */
     if (draw_icon) {
-        /* '#if', not a runtime ternary: both operands are fixed
-         * compile-time constants, so a ternary here left one branch
-         * provably unreachable to the compiler (-Wunreachable-code).
-         * Still guards the arithmetic against a future edit to either
-         * constant that would otherwise underflow silently. */
+        /* '#if' and not a ternary; see 'WM_MENU_ICON_INSET' in
+         * 'defs/ctxmenu.h' for why */
 #if WM_CTXMENU_ROW_HEIGHT > WM_MENU_ICON_INSET
         uint16_t icon_size = (uint16_t)
             (WM_CTXMENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
@@ -218,7 +215,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
  *
  * @c s_draw_entry already paints its row's full background before
  * its label (see its body), so redrawing just the row(s) that
- * actually changed selection is self-contained: no separate clear
+ * actually changed selection is self-contained.  No separate clear
  * step is needed first, and nothing else in the menu window is
  * touched.  A single deselect (e.g., the pointer leaving every entry)
  * passes @c -1 for @p idx_b.

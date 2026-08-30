@@ -42,7 +42,7 @@
  * Meant for a client whose desktop changed out from under it without
  * anyone having moved its icon (@a surface_action_desktop_remove,
  * @c surface.h, evacuating every client still on a desktop being
- * removed, foremost among the ways that happens): the ordinary
+ * removed, foremost among the ways that happens).  The ordinary
  * "reuse the saved position unless claimed" reasoning
  * @a ccmd_client_iconify applies to a freshly iconified client has no
  * counterpart for one arriving on a desktop it was never iconified

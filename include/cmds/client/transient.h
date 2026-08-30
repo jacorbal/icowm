@@ -1,7 +1,7 @@
 /**
  * @file cmds/client/transient.h
  *
- * @brief Functions on a client's transient family: the top-most
+ * @brief Functions on a client's transient family.  The top-most
  *        ancestor, group-transient anchor resolution, cross-desktop
  *        bring-together, family-wide snapshots, and the transient
  *        tree's link/unlink lifecycle
@@ -46,7 +46,7 @@
  * @a enact_desktop_client_send in @c enact/desktop.c, to redirect an
  * iconify, restore,
  * or desktop change requested on any single member of a transient
- * family to the family as a whole, the same way a person would
+ * family to the family as a whole, the same way a user would
  * expect minimizing (or sending to another desktop) a "save changes?"
  * prompt to take its parent editor window down with it, not leave
  * the two stranded apart.
@@ -72,7 +72,7 @@ client_td *ccmd_client_transient_top_parent(client_td *client);
  *
  * Close kin to @c s_place_window_transient_centered's search
  * (@c policy/placement/window.c), used there for this same client's
- * initial centering, with one deliberate difference: this one
+ * initial centering, with one deliberate difference.  This one
  * excludes another client also transient for its group, so an anchor
  * is always an actual application window of the group, never another
  * such dialog (see this function's implementation comment,
@@ -106,7 +106,7 @@ client_td *client_group_transient_anchor(const client_td *client);
  *        they currently are
  *
  * Openbox's real answer to a transient family split across
- * desktops (confirmed directly against its source): a pinned parent
+ * desktops (confirmed directly against its source).  A pinned parent
  * followed to a new desktop leaves its modal dialog behind, but
  * the moment someone tries to focus that parent again, the dialog is
  * moved onto the desktop the parent is being interacted with on
@@ -149,7 +149,7 @@ void ccmd_client_bring_family(client_td *client);
  *        one specific desktop into a newly allocated snapshot array
  *
  * Every family-wide action in this project (iconify, restore, pin,
- * unpin, desktop sends, and the like) needs the same thing: every
+ * unpin, desktop sends, and the like) needs the same thing.  Every
  * matching sibling collected into an array first, rather than acted
  * on directly while still walking the family tree, since an action
  * on one sibling (an iconify, a pin, a desktop move) can itself add,
@@ -243,7 +243,7 @@ typedef void (*ccmd_family_fn)(client_td *member, void *ctx);
  *
  * Nothing is allocated and the tree is walked once, which is what
  * separates this from
- * @a ccmd_client_transient_family_snapshot_anywhere: that one walks
+ * @a ccmd_client_transient_family_snapshot_anywhere.  That one walks
  * twice and allocates an array, and is what
  * a caller needs when its action moves clients between desktops
  * and so cannot walk and mutate at the same time.
@@ -311,7 +311,7 @@ void client_unlink_transient(client_td *client);
  * ICCCM §4.1.2.6 dialogs exist to demand a specific answer before
  * their parent is usable again in any meaningful sense.  Called
  * both from @a ccmd_client_focus itself (@c cmds/client/focus.c) and
- * from @a focus_apply (@c policy/focus.c): the latter needs its
+ * from @a focus_apply (@c policy/focus.c).  The latter needs its
  * copy of the redirected client, resolved before it does any of its
  * own "currently active client" bookkeeping (@c desktop->
  * client_active_id and the stacking-order raise), since a callee

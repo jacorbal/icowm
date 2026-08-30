@@ -1,9 +1,9 @@
 /**
  * @file policy/placement/manual.c
  *
- * @brief Manual placement: the position the person picks themselves
+ * @brief Manual placement: the position the user picks themselves
  *
- * The whole state of the question this policy asks lives here: which
+ * The whole state of the question this policy asks lives here.  Which
  * window is being pointed at, which ones are waiting their turn behind
  * it, where the outline currently stands, and when the wait for an
  * answer runs out.  No other module keeps any of it.
@@ -11,7 +11,7 @@
  * Nothing in this file ever waits in place.  The pointer and the
  * keyboard are grabbed and the function returns, so the answer arrives
  * as ordinary events through the main loop, exactly as a window drag's
- * does.  Either device can give that answer: the pointer by moving and
+ * does.  Either device can give that answer.  The pointer by moving and
  * clicking, the keyboard by the same arrow keys, @c Return and
  * @c Escape that move an already-placed window.
  */
@@ -66,9 +66,9 @@
 /**
  * @brief One window being placed by hand, or waiting its turn to be
  *
- * Every field is what the map this window is in the middle of will need
- * once its position is settled, kept here because the answer arrives
- * long after the map request that started it has returned.
+ * Every field is what the map this window is in the middle of will
+ * need once its position is settled, kept here because the answer
+ * arrives long after the map request that started it has returned.
  *
  * @note Every pointer comes first and the one 32-bit field last, so
  *       the layout carries no hole between fields
@@ -89,7 +89,7 @@ struct s_place_manual_entry_s {
  *
  * Kept in arrival order, the one being asked about always at index 0,
  * so a session opening several windows at once is asked about them in
- * the order they opened rather than an order chosen here.
+ * the order they opened.
  */
 static struct s_place_manual_entry_s
         s_place_manual_queue[WM_PLACE_MANUAL_QUEUE_MAX];
@@ -121,16 +121,16 @@ static struct timespec s_place_manual_due;
  *
  * The raw position, before the workarea clamp @a s_place_manual_geom
  * applies, so a pointer sitting still above the workarea top is
- * recognized as not having moved rather than compared against a clamped
- * value it can never equal.
+ * recognized as not having moved rather than compared against a
+ * clamped value it can never equal.
  */
 static struct position_s s_place_manual_pointer = { 0, 0 };
 
 /**
  * @brief Workarea the outline is kept inside, resolved once per window
  *
- * Surface-wide rather than clipped to one monitor: on a surface made of
- * several, the person points at whichever one they mean, and a clamp
+ * Surface-wide rather than clipped to one monitor.  On a surface made
+ * of several the user points at whichever one they mean, and a clamp
  * against the monitor resolved when the question opened would fight
  * them for the whole of it.
  */
@@ -148,13 +148,13 @@ static xcb_window_t s_place_manual_outline[4] = {
  * @brief The one window @a place_manual_enqueue may accept next, or
  *        @c NULL
  *
- * Set by @a place_window_manual, which the placement dispatcher reaches
- * only for a window this policy really does apply to, and read once by
- * @a place_manual_enqueue, which the map handler calls right
+ * Set by @a place_window_manual, which the placement dispatcher
+ * reaches only for a window this policy really does apply to, and read
+ * once by @a place_manual_enqueue, which the map handler calls right
  * afterwards.  Comparing identity rather than trusting the mark alone
- * is what keeps a rearrange pass, which places clients through the same
- * dispatcher and never enqueues any of them, from leaving a mark behind
- * that the next unrelated window would answer to.
+ * is what keeps a rearrange pass, which places clients through the
+ * same dispatcher and never enqueues any of them, from leaving a mark
+ * behind that the next unrelated window would answer to.
  */
 static client_td *s_place_manual_candidate = NULL;
 
@@ -172,9 +172,9 @@ static client_td *s_place_manual_candidate = NULL;
  *
  * @return Rectangle the outline occupies, in root coordinates
  *
- * @note Only the top and left edges are clamped, never the right or the
- *       bottom, so a window can still be put deliberately partway off
- *       those
+ * @note Only the top and left edges are clamped, never the right or
+ *       the bottom, so a window can still be put deliberately partway
+ *       off those
  * @note Complexity: @e O(1)
  */
 static struct geometry_s s_place_manual_geom(const client_td *client,
@@ -201,9 +201,8 @@ static struct geometry_s s_place_manual_geom(const client_td *client,
  *
  * Called when the question opens and again on every answer that does
  * not settle it, so the wait measures silence rather than the age of
- * the question: someone moving the outline, by either device, is
- * plainly answering, and taking the window away from them mid-aim would
- * be the opposite of what the wait is for.
+ * the question.  Someone moving the outline is plainly answering, and
+ * the window should not be taken from them mid-aim.
  *
  * @note Leaves the previous deadline standing if the clock cannot be
  *       read, which at worst ends the question early rather than
@@ -268,8 +267,8 @@ static void s_place_manual_nudge(xcb_connection_t *connection,
     s_place_manual_pointer.x += dx;
     s_place_manual_pointer.y += dy;
 
-    /* Settled back onto the clamped position rather than left wherever
-     * the step alone reached: a run of keys held against the workarea
+    /* Settled back onto the clamped position rather than left where
+     * the step alone reached.  A run of keys held against the workarea
      * edge would otherwise build up an offset the outline never shows,
      * and the first arrow key back would spend it doing nothing. */
     geom = s_place_manual_geom(s_place_manual_queue[0].client,
@@ -334,9 +333,9 @@ static bool s_place_manual_pointer_read(xcb_connection_t *connection,
  * @note A no-op when the queue is empty, or when a window is already
  *       being asked about
  * @note Both grabs are asked for without checking their replies, the
- *       same way a drag's pointer grab is: a refused grab leaves the
- *       wait running, which places the window unaided a moment later
- *       rather than leaving it stuck unmapped
+ *       same way a drag's pointer grab is, since a refused grab leaves
+ *       the wait running and the window is placed unaided a moment
+ *       later rather than left stuck unmapped
  * @note Complexity: @e O(m), where @e m is the number of monitors, from
  *       resolving the workarea
  */
@@ -363,9 +362,9 @@ static void s_place_manual_head_start(xcb_connection_t *connection)
     placement_workarea(entry->wm, entry->surface, entry->client,
             &s_place_manual_wa, &mon_wa, &mon_sz);
 
-    /* Wherever the smart policy already put it, for a pointer that
-     * cannot be read: the outline then starts on the very position
-     * giving up would settle on, so the question still opens somewhere
+    /* Wherever the smart policy already put it, when the pointer
+     * cannot be read.  The outline then starts on the very position
+     * giving up would settle on, so the question opens somewhere
      * meaningful rather than at the screen corner */
     if (!s_place_manual_pointer_read(connection,
                 &s_place_manual_pointer)) {
@@ -391,7 +390,7 @@ static void s_place_manual_head_start(xcb_connection_t *connection)
             entry->cursor,
             XCB_CURRENT_TIME);
 
-    /* The keyboard too, unlike a drag, which needs none: the window
+    /* The keyboard too, unlike a drag, which needs none.  The window
      * being placed is not mapped and cannot hold focus, so an 'Escape'
      * meant for this question would otherwise go to whatever client
      * held focus before it and never arrive here at all */
@@ -491,14 +490,14 @@ static void s_place_manual_settle(xcb_connection_t *connection,
     s_place_manual_head_stop(connection);
     s_place_manual_pop();
 
-    /* Moved without going through the placement dispatcher's
-     * gravity step: that step states a position the client itself
-     * asked for in terms of its declared gravity, and this one was
-     * pointed at directly, so a window declaring center gravity would
-     * have half its width taken off again and land left of where the
+    /* Moved without going through the placement dispatcher's gravity
+     * step.  That step restates a position the client asked for in
+     * terms of its declared gravity, and this one was pointed at
+     * directly, so a window declaring center gravity would have half
+     * its width taken off again and land left of where the
      * outline stood.  The same reasoning a splash screen's
-     * placement already follows ('place_window_apply', in
-     * 'policy/placement/window.c'). */
+     * placement already follows ('place_window_apply', policy/
+     * placement/window.c). */
     if (is_confirmed) {
         xcb_window_t target =
             (client_is_decorated(entry.client) &&
@@ -516,7 +515,7 @@ static void s_place_manual_settle(xcb_connection_t *connection,
 }
 
 
-/* Pick where a window goes, asking the person to point at it */
+/* Pick where a window goes, asking the user to point at it */
 bool place_window_manual(const wm_td *wm, surface_td *surface,
         client_td *client,
         int32_t *restrict out_x, int32_t *restrict out_y)
@@ -526,11 +525,11 @@ bool place_window_manual(const wm_td *wm, surface_td *surface,
         return false;
     }
 
-    /* Marked before the search below, not after, and left marked
-     * whatever that search answers: a window the smart scan finds no
-     * free spot for falls back to the cascade in the dispatcher, which
-     * returns without ever coming back here, and it deserves to be
-     * asked about just as much as one that did find a spot. */
+    /* Marked before the search below, and left marked whatever that
+     * search answers.  A window the smart scan finds no free spot for
+     * falls back to the cascade in the dispatcher, which never returns
+     * here, and it deserves asking about as much as one that did find
+     * a spot. */
     s_place_manual_candidate = client;
 
     return place_window_smart(wm, surface, client, out_x, out_y);
@@ -547,8 +546,8 @@ bool place_manual_enqueue(xcb_connection_t *connection, const wm_td *wm,
 
     /* Cleared on every call, accepted or not, so a mark left behind by
      * a placement pass that never enqueues anything (a desktop
-     * rearrange, which places every client through the same dispatcher)
-     * is never answered to by some later window */
+     * rearrange, which places every client through the same
+     * dispatcher) is never answered to by some later window */
     s_place_manual_candidate = NULL;
 
     if (connection == NULL || wm == NULL || surface == NULL ||
@@ -597,9 +596,9 @@ void place_manual_handle_motion(xcb_connection_t *connection,
 
     /* The X server can deliver a 'MotionNotify' reporting the position
      * the pointer is already resting at right after a grab starts, the
-     * same repeat a drag already skips ('drag_update', in
-     * 'input/mouse/drag.c'); acting on it would reconfigure 4 windows
-     * and flush for a rectangle that has not moved */
+     * same repeat a drag already skips ('drag_update', input/mouse/
+     * drag.c); acting on it would reconfigure 4 windows and flush for
+     * a rectangle that has not moved */
     if (root_pos.x == s_place_manual_pointer.x &&
             root_pos.y == s_place_manual_pointer.y) {
         return;

@@ -16,7 +16,7 @@
  * entry point below exists purely as @c render/text.c's fallback
  * path for a font name that does not resolve to an X core font, and is
  * not meant to be called directly from anywhere else in the project.
- * @c glyph_utf8_next is, maybe, the one exception: a plain UTF-8
+ * @c glyph_utf8_next is, maybe, the one exception.  A plain UTF-8
  * decoder with nothing glyph-rendering-specific about it, reused by
  * @c render/text.c's X core font path too, so a Latin-1-range
  * codepoint can be drawn correctly through @c xcb_image_text_8 (which,
@@ -60,8 +60,8 @@
  * actually expects, rather than passing UTF-8's multi-byte encoding
  * straight through.
  *
- * Malformed sequences are treated permissively: an invalid leading byte
- * is returned as its Latin-1 codepoint rather than rejecting the
+ * Malformed sequences are treated permissively.  An invalid leading
+ * byte is returned as its Latin-1 codepoint rather than rejecting the
  * whole string, since this reads UI text, not untrusted input, and
  * a best-effort result reads better than nothing at all.
  *

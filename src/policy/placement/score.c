@@ -54,7 +54,7 @@ struct s_score_ctx_s {
  * @param data   Pointer to the @c s_score_ctx_s this walk carries
  *
  * @note An iconified client costs by its icon rather than its window,
- *       that being all of it the person can see
+ *       that being all of it the user can see
  * @note Complexity: @e O(1)
  */
 static void s_score_window_visit(client_td *client, void *data)

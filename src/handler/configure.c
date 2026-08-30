@@ -365,7 +365,7 @@ static void s_handler_configure_build(struct s_configure_ctx_s *ctx)
 static void s_handler_configure_gravity(
         struct s_configure_ctx_s *ctx)
 {
-    /* Honor win_gravity (ICCCM §§4.1.2.3 and 4.1.5): when only the
+    /* Honor 'win_gravity' (ICCCM §§4.1.2.3 and 4.1.5).  When only the
      * size changes without an explicit new position, keep the
      * gravity anchor point fixed by adjusting the frame position.
      * X/Y have lower ctx->mask bits than W/H, so the values array must
@@ -389,7 +389,7 @@ static void s_handler_configure_gravity(
                 != (uint32_t) ctx->client->layout.geometry.cur.pos.x ||
                 (uint32_t) adj_y
                 != (uint32_t) ctx->client->layout.geometry.cur.pos.y) {
-            /* Counted in an unsigned index on purpose: a signed
+            /* Counted in an unsigned index on purpose.  A signed
              * one lets the optimizer assume its arithmetic never
              * overflows, which is what '-Wstrict-overflow' reports
              * on from level three up, with no source location of
@@ -483,7 +483,7 @@ static uint16_t s_handler_configure_wh_matches_current(
  *        now
  *
  * Shared by both of @a handler_configure_request's post-transition
- * checks (shade/unshade, and entering/leaving fullscreen): a client
+ * checks (shade/unshade, and entering/leaving fullscreen).  A client
  * that reacts to the @c ConfigureNotify sequence a window-manager-
  * forced transition just sent it with a delayed @c ConfigureRequest
  * of its own, once it catches up processing that sequence, is far
@@ -675,13 +675,13 @@ void handler_configure_request(xcb_connection_t *connection,
 
         /* Ignored the same way, and for the same reason, whether the
          * WM itself is actively moving/resizing this client right
-         * now, or the client is in fullscreen: either way, ITS OWN
+         * now, or the client is in fullscreen.  Either way, ITS OWN
          * request for a different position/size is a stale echo of
          * whatever geometry it would rather have, not something to
          * honor, since the WM (not the client) owns this window's
          * geometry for as long as either holds.  Without this,
          * a client that fixes its size in WM_NORMAL_HINTS (e.g.,
-         * min_width == max_width) and reacts to being forced into
+         * 'min_width' == 'max_width') and reacts to being forced into
          * fullscreen by re-requesting its preferred size right
          * back would immediately shrink back down, undoing
          * 'ccmd_client_fullscreen''s deliberate choice (see its
@@ -872,9 +872,9 @@ void handler_configure_notify(xcb_connection_t *connection,
              *    window'): also generated for every 'ConfigureWindow'
              *    the window manager issued on the client, including the
              *    border-width adjustment that happens before placement
-             *    in client_init.  That pre-placement event carries
+             *    in 'client_init'.  That pre-placement event carries
              *    the application's initial position, often (0,0), which
-             *    can arrive late (after place_window_apply already
+             *    can arrive late (after 'place_window_apply' already
              *    stored the centered coordinates) and corrupt the
              *    stored position.  When the subsequent render uses the
              *    corrupted coordinates the window is moved to the
@@ -888,8 +888,8 @@ void handler_configure_notify(xcb_connection_t *connection,
              * alike): the 'StructureNotify' copy (same data, always
              * correct) handles all legitimate updates.  For decorated
              * clients this also prevents stale 'SubStructureNotify'
-             * events from placement (place_window_apply) from
-             * overwriting the position set by rules_apply: when the
+             * events from placement ('place_window_apply') from
+             * overwriting the position set by 'rules_apply'.  When the
              * event loop sees the stale placement 'SubStructureNotify'
              * it would update the stored position and trigger
              * a re-render, which then re-configures the frame to the
@@ -977,8 +977,9 @@ void handler_configure_notify(xcb_connection_t *connection,
              *
              *   1. overwrite the stored geometry with the pre-snap
              *      value;
-             *   2. call client_decoration_layout_sync again, generating
-             *      another 'ConfigureNotify' with the old size;
+             *   2. call 'client_decoration_layout_sync' again,
+             *      generating another 'ConfigureNotify' with the old
+             *      size;
              *   3. create a feedback loop visible as
              *      size-hint-constrained applications flickering and
              *      collapsing during mouse resize, or losing one

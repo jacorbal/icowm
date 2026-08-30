@@ -385,7 +385,7 @@ static void s_handle_client_data(wm_td *wm, int idx)
     c->buf[c->buf_len] = '\0';
 
     /* Every complete ('\n'-terminated) line currently buffered is
-     * dispatched in this same call, not just the first one: a fast
+     * dispatched in this same call, not just the first one.  A fast
      * client (or one that simply queued several requests before
      * this descriptor was next polled) can have more than one ready
      * at once, and leaving the rest for a future 'poll' wakeup would
@@ -486,7 +486,7 @@ int ipc_init(void)
     }
 
     /* Built with 'safe_strncpy'/'safe_strncat' rather than
-     * 'snprintf("%s/%s", ...)' on purpose: both take the full
+     * 'snprintf("%s/%s", ...)' on purpose.  Both take the full
      * destination size and truncate safely against it, exactly like
      * 'snprintf' does, but neither is a 'printf'-family call, so
      * neither one gives GCC's '-Wformat-truncation' anything to

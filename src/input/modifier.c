@@ -7,9 +7,8 @@
  * @c modc/mods/modl and @c mod1-mod5 alias resolution, and the
  * mapping from a resolved modifier name to its XCB modifier mask, do
  * not depend on whether the binding being parsed is a key or a mouse
- * button, so this one implementation replaces what used to be an
- * identical pair of functions copied into @c input/kbd/bind.c and
- * @c input/mouse/bind.c.
+ * button, so this one implementation serves both, in place of an
+ * identical pair in @c input/kbd/bind.c and @c input/mouse/bind.c.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -119,9 +119,9 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
  * Walks @p client's @c transients tree directly (see its doc
  * comment, client.h), depth-first, rather than scanning @p desktop's
  * own entire stacking order comparing raw @c transient_for window
- * IDs the way this function used to: a chain of dialogs (a dialog's
- * own dialog, and so on) rises together the same as before, just by
- * following real pointers now instead of rediscovering the
+ * IDs.  A chain of dialogs (a dialog's own dialog, and so on) rises
+ * together all the same, by following real pointers instead of
+ * rediscovering the
  * relationship from scratch on every call.  A client transient for
  * its whole group (ICCCM §4.1.2.6) has no @c transient_parent to
  * appear in that tree; raised alongside @p client too, right after
@@ -132,7 +132,7 @@ static int s_desktop_client_send_to_end(desktop_td *desktop,
  * layer.c's @c s_enforce_layer_place_family already makes for
  * stacking.
  *
- * Scoped to @p desktop, the same as before: a descendant registered
+ * Scoped to @p desktop, the same as before.  A descendant registered
  * under some other desktop (a pinned parent's un-pinned dialog,
  * say, still on whichever desktop it was originally created on; see
  * @a ccmd_client_bring_family's comment, cmds/client/
@@ -318,7 +318,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 
     /* Deliberately left in the stacking order.  That order spans every
      * managed client whichever desktop shows it, and this function
-     * runs for a desktop change as much as for a client going away: a
+     * runs for a desktop change as much as for a client going away.  A
      * pinned window passes through here on every switch, and dropping
      * it would lose the height that holding one order exists to keep.
      * 'client_destroy' is what forgets a client there, once it is
@@ -397,7 +397,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
     desktop->is_urgent = found;
 
     /* Only on the actual false-to-true transition, and only when this
-     * is not the desktop currently visible on its own surface: that
+     * is not the desktop currently visible on its own surface.  That
      * case already gets its titlebar blink (policy/urgency.c),
      * so a dialog here would only duplicate what is already on
      * screen. */

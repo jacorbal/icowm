@@ -66,7 +66,7 @@
  * @brief Pin exactly this one client, ignoring any transient family
  *        it may belong to
  *
- * Carries what used to sit inside @a ccmd_client_pin so
+ * Holds the single-client half of @a ccmd_client_pin, so
  * that function can redirect to, and cascade across, a transient
  * family (see its comment).
  *
@@ -113,7 +113,7 @@ static void s_ccmd_client_pin_visit(client_td *member, void *ctx)
  * @brief Unpin exactly this one client, ignoring any transient family
  *        it may belong to
  *
- * Carries what used to sit inside @a ccmd_client_unpin so
+ * Holds the single-client half of @a ccmd_client_unpin, so
  * that function can redirect to, and cascade across, a transient
  * family (see its comment).
  *
@@ -193,13 +193,13 @@ static void s_ccmd_client_unpin_visit(client_td *member, void *ctx)
  * already covered (iconify, restore, desktop moves), treated as one
  * single unit that can never be split across desktops; pin state is
  * no different, since a "save changes?" prompt left behind on one
- * desktop while its pinned parent now follows the person to
+ * desktop while its pinned parent now follows the user to
  * every other one would be exactly that kind of split.  Pinning any
  * single member of a transient family here pins the family's
  * top-most ancestor (@a ccmd_client_transient_top_parent) first, then
  * every other member of that same family not already pinned, so the
  * whole group stays together on every desktop from then on.  A
- * client with no transient relatives at all is unaffected: its
+ * client with no transient relatives at all is unaffected.  Its
  * top parent is itself, and no sibling scan finds anything else to
  * cascade to.
  *
@@ -234,7 +234,7 @@ void ccmd_client_pin(client_td *client)
  *        whole transient family along with it
  *
  * The matching half of @a ccmd_client_pin's transient-family
- * cascade (see its comment for the full reasoning): redirects
+ * cascade (see its comment for the full reasoning).  Redirects
  * to the family's top-most ancestor first, unpinning it exactly as
  * this function always has, then unpins every other family member
  * still pinned too, so a family pinned together stays together when
@@ -438,7 +438,7 @@ void ccmd_client_update_allowed_actions(client_td *client)
      * exactly the case this matters for: some such clients check this
      * very property before ever attempting '_NET_WM_STATE_FULLSCREEN'
      * at all, so advertising it as disallowed here would have kept
-     * the fix in ccmd_client_fullscreen itself from ever being
+     * the fix in 'ccmd_client_fullscreen' itself from ever being
      * reached. */
     actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_FULLSCREEN;
 

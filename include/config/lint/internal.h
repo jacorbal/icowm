@@ -42,4 +42,21 @@ typedef struct {
     bool required;
 } config_lint_file_spec_td;
 
+
+/**
+ * @brief The size check every schema table in @c config/lint/ carries
+ *
+ * Each schema table has a key count declared beside it in a header, and
+ * the two have to agree.  A key added to the table and not to the count
+ * would leave the linter reading past the end of it.
+ *
+ * The declaration below is negative in that case, so the build fails at
+ * the table rather than the linter running off it.  Every schema table
+ * repeats this idiom under a name of its own; one line at each site
+ * points back here rather than restating the reasoning sixteen times.
+ *
+ * @note C99 has no @c static_assert, which is what this stands in for
+ */
+
+
 #endif  /* ! CONFIG_LINT_INTERNAL_H */

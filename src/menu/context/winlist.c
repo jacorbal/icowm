@@ -63,7 +63,7 @@
 /** Singleton root menu state, one @c CTXMENU_SUBMENU per desktop */
 static ctxmenu_state_td s_root;
 
-/** Entries for the top-level (per-desktop) menu: one
+/** Entries for the top-level (per-desktop) menu.  One
  *  @c CTXMENU_SUBMENU slot per desktop, plus room for the
  *  "(no windows)" fallback and for the trailing "Add new desktop" and
  *  "Remove last desktop" pair with the separator ahead of them (see
@@ -80,7 +80,7 @@ static ctxmenu_state_td s_desktop_state[WINLIST_MAX_DESKTOPS];
  *  no @c realloc is wanted to follow a changing desktop count; the
  *  comment at the allocation gives the reasoning.  One @c free on the
  *  array releases the whole of it, unlike @c s_entries in
- *  @c menu/context/rootmenu.c, which needs a loop: no entry built
+ *  @c menu/context/rootmenu.c, which needs a loop.  No entry built
  *  here sets @c command or @c class_name, only @c on_activate and
  *  @c userdata, so no individual entry holds anything to release */
 static ctxmenu_entry_td (*s_desktop_entries)[WINLIST_MAX_ENTRIES_PER_DESKTOP]
@@ -103,15 +103,13 @@ static ctxmenu_entry_td (*s_appgroup_entries)[WINLIST_MAX_APPGROUP_SIZE]
 static int s_appgroup_used = 0;
 
 /** How many application-group slots @c s_appgroup_state and
- *  @c s_appgroup_entries were allocated for by this exact
- *  @a winlist_show call, and therefore how many of them may be
- *  written; zero while neither is allocated.  Checked against in
- *  preference to @c WINLIST_MAX_APPGROUPS, which is the ceiling those
- *  two are ever sized up to rather than the size either one holds:
- *  the counting pass and the building pass agree, and a build that
- *  outran its count once wrote past the end of both instead of
- *  falling back to listing the group's windows one at a time, which
- *  is what the cap is there to do */
+ *  @c s_appgroup_entries hold for this @a winlist_show call, and so
+ *  how many may be written; zero while neither is allocated.  This is
+ *  what a build checks itself against, and not
+ *  @c WINLIST_MAX_APPGROUPS, which is only the ceiling the two are
+ *  sized up to.  A build outrunning its count then falls back to
+ *  listing the group's windows one at a time rather than writing past
+ *  the end of either */
 static int s_appgroup_capacity = 0;
 
 
@@ -214,7 +212,7 @@ static void s_cb_add_desktop(xcb_connection_t *connection,
  * desktop" entry.  A no-op, silently, when only one desktop remains;
  * see @a surface_action_desktop_remove (surface.h) for the exact
  * refusal conditions, and this same entry's @c is_disabled below
- * (@a winlist_show) for how that state reaches the person before
+ * (@a winlist_show) for how that state reaches the user before
  * they even try.
  *
  * @param connection XCB connection (unused)
@@ -553,7 +551,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
     int n;
 
-    /* 'out_entries' is deliberately NOT rejected here: a counting-only
+    /* 'out_entries' is deliberately NOT rejected here.  A counting-only
      * pass passes it null on purpose, and this whole function is
      * written to skip every real side effect in that case (see this
      * function's comment above, and 's_client_entry_append', which
@@ -817,7 +815,7 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
      * submenu, same as before, so picking the desktop itself
      * (with no particular window) still works.  Followed by a
      * separator before the real client entries below it, but
-     * only when this desktop actually has any: with none,
+     * only when this desktop actually has any.  With none,
      * "Go there..." would otherwise be followed by a bare
      * separator leading nowhere. */
     if (desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP) {
@@ -848,8 +846,8 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
             s_desktop_entries[did][0].on_activate = NULL;
             s_desktop_entries[did][0].userdata = NULL;
             /* Never inherited from whichever real client entry
-             * used to occupy this same slot before the shift
-             * above: without this, "Go there..." would show
+             * occupied this slot before the shift above.
+             * Without this, "Go there..." would show
              * that client's icon. */
             s_desktop_entries[did][0].icon_window = XCB_WINDOW_NONE;
             s_desktop_entries[did][0].icon_cache = NULL;
@@ -958,7 +956,7 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
     int n = *n_out;
 
     /* "Add new desktop" / "Remove last desktop", always appended at
-     * the very end after a separator, in both display modes: a
+     * the very end after a separator, in both display modes.  A
      * surface-wide action, not tied to any particular desktop's
      * window list, so it belongs outside the per-desktop submenu
      * layer above rather than duplicated into every one of them.
@@ -971,7 +969,7 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
      * outright, omitted rather than merely disabled, under
      * restricted-memory mode, which is deliberately locked to
      * exactly one desktop always (see
-     * 'surface_action_desktop_add''s comment): a person
+     * 'surface_action_desktop_add''s comment).  A user
      * running that mode has no use for either action ever
      * succeeding, unlike an ordinary session's "only one desktop
      * remains for now" case just below, where adding a second one
@@ -1006,7 +1004,7 @@ static void s_winlist_append_desktop_actions(surface_td *surface,
         /* Disabled, not omitted, when only one desktop remains:
          * unlike the desktop-count-driven omission of the whole
          * per-desktop submenu layer elsewhere in this function, a
-         * person opening this menu specifically to manage desktops
+         * user opening this menu specifically to manage desktops
          * still benefits from seeing this entry exists, just not
          * currently available, the same way "Send to desktop"'s
          * "All desktops (pin)" entry (wincmenu.c) stays visible

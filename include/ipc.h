@@ -42,9 +42,9 @@
  * requires every enumerator's value to be representable as an @c int,
  * i.e., an @c enum simply cannot host it under strict @c -std=c99
  * @c -pedantic compilation, regardless of the expression used to
- * compute it.  Every function that used to take an
- * @c (enum ipc_event_type_e) parameter now takes a plain @c uint32_t
- * instead, for the same reason.
+ * compute it.  Every function taking such a value takes a plain
+ * @c uint32_t rather than an @c (enum ipc_event_type_e), for the same
+ * reason.
  *
  * @see @a ipc_broadcast_event
  *
@@ -308,7 +308,7 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args);
  * @param fields The event's fields beyond its shared @p event name
  *               field, or @c NULL for one with none.  However this call
  *               ends, whether any client was actually subscribed or
- *               not, @p fields is always freed before it returns: the
+ *               not, @p fields is always freed before it returns.  The
  *               caller never needs an @a cJSON_Delete of its own after
  *               calling this
  *

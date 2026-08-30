@@ -33,7 +33,7 @@
  *
  * For each such axis, compares @p drag_dist_w/@p drag_dist_h against
  * @p resistance and updates @c s_drag.resize_w/@c s_drag.resize_h to
- * match, reversibly, on every single call along the drag: dragging past
+ * match, reversibly, on every call along the drag.  Dragging past
  * the threshold lets that axis start resizing, dragging back under it
  * before release re-freezes it at the maximized size again.
  *

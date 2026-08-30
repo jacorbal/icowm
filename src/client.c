@@ -75,7 +75,7 @@
  *
  * Kept for the focus-granting path, which ICCCM requires to carry a
  * real timestamp and forbids from carrying @c CurrentTime, but which
- * is reached from places that hold no event of their own: a fallback
+ * is reached from places that hold no event of their own.  A fallback
  * after a window closed, a desktop switch, an activation request.
  *
  * File scope, and updated by the event loop from every real key or
@@ -169,7 +169,7 @@ static void s_client_display_name_set(client_td *client,
 /**
  * @brief Every request @a client_init issues in one go, awaiting reply
  *
- * XCB splits a request from its reply: the request function returns a
+ * XCB splits a request from its reply.  The request function returns a
  * cookie without blocking, and only the reply function waits.  Issuing
  * every independent request first and collecting the replies
  * afterwards costs one round trip to the server rather than one per
@@ -605,7 +605,7 @@ static void s_client_read_window_type(xcb_connection_t *connection,
             if (type_reply.atoms[ti] == ewmh->_NET_WM_WINDOW_TYPE_SPLASH) {
                 client->properties.type = CLIENT_TYPE_SPLASH;
                 client_undecorate(client);
-                /* A start-up screen is not somewhere the person works:
+                /* A start-up screen is not somewhere the user works:
                  * it is not worth a taskbar entry it will outlive by
                  * seconds, and it must not take the keyboard away from
                  * whatever they were typing into while the application
@@ -921,7 +921,7 @@ void client_destroy(client_td *client)
         return;
     }
 
-    /* Out of both orders before anything else: one left in the focus
+    /* Out of both orders before anything else.  One left in the focus
      * order would be handed real input focus by the next fallback that
      * walked far enough to reach it, and one left in the stacking
      * order would be restacked as a dangling pointer */
@@ -949,7 +949,7 @@ void client_destroy(client_td *client)
         xcb_window_destroy(client->window);
     }
 
-    /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any: it is
+    /* Release the '_NET_WM_SYNC_REQUEST' alarm, if any.  It is
      * a server-side resource owned by the window manager's
      * connection (unlike the counter it watches, which belongs to the
      * client and is not ours to destroy), so it is not freed
@@ -1250,7 +1250,7 @@ client_td *client_init(xcb_connection_t *connection,
     }
 
     /* Read '_NET_WM_USER_TIME': used for initial focus policy.
-     * Checked on '_NET_WM_USER_TIME_WINDOW' first: some toolkits
+     * Checked on '_NET_WM_USER_TIME_WINDOW' first.  Some toolkits
      * (GTK among them) set the frequently-changing
      * '_NET_WM_USER_TIME' on a dedicated, often-unmapped window
      * instead of the client's toplevel, specifically so that
@@ -1315,7 +1315,7 @@ client_td *client_init(xcb_connection_t *connection,
      * correctly sized and positioned from the outset */
     client->is_outdated = true;
 
-    /* Into the focus order, at its far end: it exists, so a fallback
+    /* Into the focus order, at its far end.  It exists, so a fallback
      * must be able to reach it, but nobody has worked in it yet */
     focus_order_add(client);
 

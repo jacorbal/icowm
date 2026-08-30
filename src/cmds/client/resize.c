@@ -188,9 +188,9 @@ static void s_ccmd_resize_dispatch_synced(client_td *client,
  * mouse-bound keybinding, and keyboard resize in @c input/kbd/
  * interact.c), each of which already freezes the maximized axis's
  * own dimension at its current value before ever calling down to
- * this function; refusing the whole call here regardless, the way
- * this check used to, silently dropped every live resize update a
- * solid drag sent along the way, and stranded a non-solid (outline)
+ * this function.  Refusing the whole call here regardless silently
+ * drops every live resize update a solid drag sends along the way,
+ * and strands a non-solid (outline)
  * drag's final call off screen for good (see @c drag_end's
  * comment on @c enact_client_resize_force, @c input/mouse/drag.c),
  * since that call exists specifically to bring the real window back

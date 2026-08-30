@@ -55,6 +55,13 @@
  * size their per-row application icon (see @p theme.menu.show-pixmaps
  * in @c config.h) as @c (row_height @c - @c WM_MENU_ICON_INSET) square,
  * so the icon never quite touches the row's top and bottom edges.
+ *
+ * @note Every site computing that difference guards it with @c #if
+ *       rather than a ternary, both operands being fixed compile-time
+ *       constants that would leave one branch provably unreachable
+ *       (@c -Wunreachable-code)
+ * @note The guard still catches a later edit to either constant that
+ *       would otherwise underflow in silence
  */
 #define WM_MENU_ICON_INSET (4)
 

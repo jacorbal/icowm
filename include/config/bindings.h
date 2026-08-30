@@ -104,7 +104,7 @@ struct config_bindings_s {
              * Empty by default, unlike every other binding in this
              * struct: no key combination is bound to it out of the
              * box, only IPC (@c toggle_strutless_maximize) and the
-             * root menu's entry reach it until a person opts in
+             * root menu's entry reach it until a user opts in
              * with their binding here.
              *
              * @see @a surface_action_toggle_strutless_maximize
@@ -118,7 +118,7 @@ struct config_bindings_s {
          *        and the show-desktop toggle
          *
          * Its top-level section, a sibling of @p window rather
-         * than nested under @p wm the way it used to be: none of
+         * than nested under @p wm.  None of
          * these act on any one particular client the way everything
          * under @p window does, but they are just as much their
          * coherent, frequently reached-for group as that one is, not

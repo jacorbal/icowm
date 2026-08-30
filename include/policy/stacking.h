@@ -5,7 +5,7 @@
  *
  * Which window is drawn over which.  One order for the whole session
  * rather than one per desktop, which is how Openbox holds its
- * @c stacking_list, and for the same reason: a client's height is a
+ * @c stacking_list, and for the same reason.  A client's height is a
  * fact about the client, not about the desktop it happens to be shown
  * on.
  *
@@ -73,8 +73,8 @@ typedef void (*stacking_visitor_fn)(client_td *client, void *data);
  * @retval -1 Invalid @p desktop
  * @retval  1 The order itself could not be allocated
  *
- * @note The order refers to clients and owns none of them: destroying
- *       it never destroys a client
+ * @note The order refers to clients and owns none of them
+ * @note Destroying it never destroys a client
  * @note Complexity: @e O(1)
  */
 int stacking_create(const desktop_td *desktop);
@@ -82,7 +82,7 @@ int stacking_create(const desktop_td *desktop);
 /**
  * @brief Forget a desktop's clients, and the order once it is empty
  *
- * Only the clients @p desktop shows are forgotten: the order is shared,
+ * Only the clients @p desktop shows are forgotten.  Order is shared,
  * so a desktop going away must not take another's windows with it.  The
  * order itself is released by whichever desktop leaves it empty.
  *
@@ -99,7 +99,7 @@ void stacking_destroy(const desktop_td *desktop);
 /**
  * @brief Place a client at the top of the stack
  *
- * For a window the person is meant to see straight away, which is
+ * For a window the user is meant to see straight away, which is
  * every ordinary new one.
  *
  * @param desktop Desktop to place it on
@@ -185,7 +185,7 @@ uint32_t stacking_count(const desktop_td *desktop);
 /**
  * @brief Visit a desktop's clients from the bottom of the stack up
  *
- * The direction anything that draws or restacks wants: each client is
+ * The direction anything that draws or restacks wants.  Each client is
  * reached after whatever it covers.
  *
  * Clients of other desktops are passed over, so a caller sees exactly

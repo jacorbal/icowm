@@ -182,7 +182,7 @@ static void s_wm_cleanup(void)
     rootmenu_menu_json_free();
 
     /* 'winlist_close' is otherwise only ever reached while the menu
-     * is genuinely open, dismissed by the person using it; called
+     * is genuinely open, dismissed by the user using it; called
      * once more here too so its 's_desktop_entries' (winlist.c),
      * dynamically allocated since it can no longer just sit in
      * static storage, is not left for a leak checker to flag on a
@@ -213,7 +213,7 @@ static void s_wm_cleanup(void)
          * Everything 'wm_all_clients_unmanage' just did to hand the
          * clients back in a sane state is in that buffer, and one left
          * unmapped because its map never reached the server is a
-         * window the person cannot get back. */
+         * window the user cannot get back. */
         xcb_flush(wm->connection);
         xcb_disconnect(wm->connection);
         xcb_connection_set(NULL);
@@ -239,7 +239,7 @@ static void s_wm_cleanup(void)
  */
 static void s_wm_zero_fields(uint32_t restricted_memory_mib)
 {
-    /* Zero-initialize all pointer fields so s_wm_cleanup can check
+    /* Zero-initialize all pointer fields so 's_wm_cleanup' can check
      * each one safely during any subsequent error path */
     wm->connection = NULL;
     wm->ewmh = NULL;
@@ -322,7 +322,7 @@ static int s_wm_connect(const char *display_name)
         return 10;
     }
 
-    /* Recorded only once its atoms are interned: an EWMH connection
+    /* Recorded only once its atoms are interned.  An EWMH connection
      * whose replies never arrived is of no use to anything asking for
      * one, and this function is about to abandon it */
     xcb_ewmh_connection_set(wm->ewmh);
@@ -567,7 +567,7 @@ static void s_wm_announce(void)
      * here, ahead of restricted-memory mode's announcement right
      * below: a configuration silently reverted to defaults is more
      * urgent to know about than which mode is active.
-     * menu_message_dialog_show only ever shows one dialog at a time,
+     * 'menu_message_dialog_show' only ever shows one dialog at a time,
      * so if this one fires, the one below simply does not, for this
      * run; nothing else about that mode's announcement is lost by
      * that, only delayed to whenever it is checked again (another
@@ -576,7 +576,7 @@ static void s_wm_announce(void)
 
     /* Restricted-memory mode's presence is announced once, right
      * before entering the main loop, so it is never a silent surprise
-     * to whoever is sitting at the keyboard: only the log otherwise
+     * to whoever is sitting at the keyboard.  Only the log otherwise
      * says anything about it. */
     if (wm->restricted_memory_mib > 0u && wm->surfaces != NULL &&
             !list_is_empty(wm->surfaces)) {

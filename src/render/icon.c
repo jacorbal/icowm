@@ -91,11 +91,11 @@ void ri_render_client_icon(client_td *client, bool is_current,
 
     /* An icon draws in its selected colors while it is the one the
      * cycle menu has picked, and equally while it is the one being
-     * dragged: in both the person has hold of it and expects it to
+     * dragged: in both the user has hold of it and expects it to
      * look that way.
      *
      * Asked here rather than repainted from the drag itself, which is
-     * what once happened and did not hold: this render pass runs
+     * what once happened and did not hold.  This render pass runs
      * after a warp finishes, so anything the warp drew was painted
      * over a moment later by the ordinary path drawing the icon
      * unselected.  Deciding it here means every repaint agrees,
@@ -133,7 +133,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
     }
     client->was_icon_cycle_selected = is_cycle_sel;
 
-    /* What to actually display this frame: the icon's real
+    /* What to actually display this frame.  The icon's real
      * cycle-selection state, except during an urgent client's "on"
      * blink phase, which swaps it to the opposite of whatever it would
      * otherwise be; the same active/inactive swap
@@ -188,7 +188,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
         xcb_window_lower(client->icon_window);
     }
 
-    /* The pixmap is left out while this icon is the picked one: the
+    /* The pixmap is left out while this icon is the picked one.  The
      * caption and the hint letters read against the plain selected
      * background rather than over whatever image would otherwise sit
      * under them.
@@ -215,7 +215,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
 
         /* The picked-up icon takes the active font as well as the
          * active colors: drawn in the inactive one it read as a
-         * different icon from the one the person had hold of. */
+         * different icon from the one the user had hold of. */
         (void) text_renderer_use_font(xcb_connection_get(),
                 (is_cycle_sel)
                     ? client->config->theme.icon.active.font
@@ -299,7 +299,7 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
             (client->properties.flags & CLIENT_FLAG_PIN) != 0u) {
         xcb_gcontext_t gc = xcb_generate_id(connection);
         /* The same foreground the state letter in the opposite corner
-         * is drawn in, and for the same reason it uses that one: this
+         * is drawn in, and for the same reason it uses that one.  This
          * square is a state hint like 'f', 'm' or 'v', only shaped
          * rather than lettered, so it has to read as one of them
          * rather than as a stray piece of titlebar borrowed onto the

@@ -126,8 +126,7 @@ static void s_cb_redraw(xcb_connection_t *connection, void *userdata)
  *        the surface this menu was opened on
  *
  * A surface-wide setting, not a per-window one, so it lives here
- * rather than in the window context menu ('Alt+Space'), where it
- * used to sit.
+ * rather than in the window context menu ('Alt+Space').
  *
  * @param connection Unused, matches @c ctxmenu_on_activate_fn's
  *                   signature
@@ -272,13 +271,9 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
      * 's_entries' copy is still the one 'ctxmenu_show' is actively
      * displaying; sharing the pointer instead would leave 's_entries'
      * holding a dangling one the instant that happened. */
-    /* Bounded by what was actually allocated, not by how many entries
-     * the file holds.  The two are the same until 'menu.json' carries
-     * more than 'WM_CTXMENU_MAX_ENTRIES' of them, at which point the
-     * count above is clamped and this one, left unclamped, wrote every
-     * entry past that ceiling straight off the end of the array, and
-     * left 's_entry_count' claiming they were there for
-     * 'rootmenu_close' to walk and free afterwards. */
+    /* Clamped to the room the array has, since the footer below is
+     * written after these entries and needs the slots reserved for
+     * it.  'menu.json' may hold any number of them */
     copy_count = s_json_count;
     if (copy_count > n - ROOTMENU_FOOTER_COUNT) {
         copy_count = n - ROOTMENU_FOOTER_COUNT;

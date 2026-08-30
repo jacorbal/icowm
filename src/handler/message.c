@@ -66,7 +66,7 @@
  *
  * Shared by every @c _NET_* client-message case in
  * @a handler_client_message below whose handler takes the same
- * @p (wm, event, client, surface, desktop) shape: only the target
+ * @p (wm, event, client, surface, desktop) shape.  Only the target
  * atom and the handler function differ between them.
  *
  * @param wm      Window manager state
@@ -202,7 +202,7 @@ void handler_client_message(wm_td *wm,
              * for '_NET_ACTIVE_WINDOW' does not automatically deserve
              * real keyboard focus just because it asked.  Its
              * claim is weighed against whichever client already
-             * holds focus on the desktop the person is actually
+             * holds focus on the desktop the user is actually
              * looking at right now, comparing each side's
              * 'user_time', kept genuinely current by
              * 'client_update_user_time' (client.c) every time a real,
@@ -215,7 +215,7 @@ void handler_client_message(wm_td *wm,
              * has a weaker claim on the user's attention at this
              * exact moment, e.g., an application that finished some
              * background task and is trying to jump to the front on
-             * its, unprompted, minutes after the person last
+             * its, unprompted, minutes after the user last
              * touched it: it is marked urgent instead of stealing
              * focus outright, the same non-intrusive path already
              * used for a client's pre-existing
@@ -232,7 +232,7 @@ void handler_client_message(wm_td *wm,
              * one against.
              *
              * Skipped as well when the message declares itself to
-             * come from the person rather than from the program.
+             * come from the user rather than from the program.
              * EWMH §2.12 has the sender state a source indication,
              * and 'WM_SOURCE_USER' is a pager, a taskbar or a
              * notification passing on a click; weighing that against
@@ -255,7 +255,7 @@ void handler_client_message(wm_td *wm,
                  * daemon passing on a click has just been interacted
                  * with and sends a current timestamp, while an
                  * application raising itself unbidden sends the stale
-                 * one it has carried since the person last touched
+                 * one it has carried since the user last touched
                  * it.
                  *
                  * Weighing this window's instead, as this did,
@@ -280,14 +280,14 @@ void handler_client_message(wm_td *wm,
                  * honoring the request would mean handing focus from
                  * one active window to another.  It is read for
                  * exactly that: an asker naming an active window of
-                 * its is a program the person is already working
+                 * its is a program the user is already working
                  * in, asking to bring a second window of its own
                  * forward, which is what the field exists to mark out
                  * from a background program trying to jump the queue.
                  *
                  * Honored only when the window it names really is the
                  * one holding focus here.  Taken on trust, it would
-                 * be a way around the prevention altogether: any
+                 * be a way around the prevention altogether.  Any
                  * client could name the focused window and be let
                  * through. */
                 hands_over_from_active = (active != NULL &&
@@ -349,7 +349,7 @@ void handler_client_message(wm_td *wm,
                  * reason to move a window out from under the desktop
                  * it belongs to.  It once was brought here instead,
                  * which meant the same request did opposite things
-                 * depending on a state the person had not asked about.
+                 * depending on a state the user had not asked about.
                  *
                  * A pinned client needs none of this: it is on every
                  * desktop already, so it is on this one, and there is

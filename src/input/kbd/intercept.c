@@ -127,7 +127,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
      * for that modifier's keysym, which matches none of the cases
      * above; without this, it would fall through to the catch-all
      * below and close the menu the instant a modifier is pressed,
-     * before the person ever gets a chance to press the direction key
+     * before the user ever gets a chance to press the direction key
      * again with the now-changed modifier state. */
     if (keyboard_keysym_is_modifier(keysym)) {
         return;

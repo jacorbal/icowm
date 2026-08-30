@@ -99,8 +99,8 @@ struct config_randr_output_s {
  * Holds a list of per-output profiles and a global on/off switch.
  *
  * @note One instance per @c config_td, shared by every managed X
- *       screen (@c surface_td), not scoped per-screen: matching in
- *       @a surface_action_apply_randr_profiles is by
+ *       screen (@c surface_td), not scoped per-screen
+ * @note Matching in @a surface_action_apply_randr_profiles is by
  *       @a config_randr_output_s.name alone, queried independently
  *       against the RandR resources of each screen
  * @note On a multi-GPU setup with two X screens exposing an output of

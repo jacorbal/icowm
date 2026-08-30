@@ -75,8 +75,8 @@ struct s_icon_overlap_ctx_s {
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_icon_overlap_ctx_s being filled
  *
- * @note Once one overlap is found the rest are passed over: the answer
- *       cannot change, and the walk cannot be ended early
+ * @note Once one overlap is found the rest are passed over
+ * @note The answer cannot change, and the walk cannot be ended early
  * @note Complexity: @e O(1)
  */
 static void s_icon_overlap_visit(client_td *client, void *data)
@@ -159,19 +159,15 @@ static bool s_icon_slot_is_taken(const client_td *client,
 /**
  * @brief Choose where one client's icon goes, from scratch
  *
- * Everything a fresh icon position needs, in one place: the monitor
+ * Everything a fresh icon position needs, in one place.  The monitor
  * @p client sits on rather than the whole combined screen, that
- * monitor's origin, @c desktops.margins and the system tray's reserved
- * strut shifting the origin inward and shrinking the room, the
- * configured placement policy, and a last check against the tray's
- * actual rectangle.
+ * monitor's origin, @c desktops.margins and the tray's reserved strut
+ * shifting the origin inward and shrinking the room, and the
+ * configured placement policy.
  *
  * Shared by @a ccmd_client_ensure_icon_window and
- * @a ccmd_client_relocate_icon_if_taken so the two can never disagree
- * about where an icon belongs.  They used to compute it separately,
- * and the shorter of the two answered in whole-screen coordinates
- * with no origin, no margins and no strut, which put a relocated icon
- * inside a margin, under the tray, or on the wrong monitor entirely.
+ * @a ccmd_client_relocate_icon_if_taken, so that the two can never
+ * disagree about where an icon belongs.
  *
  * @param client   Client whose icon is being placed
  * @param icon_dim Icon width/height, in pixels
@@ -274,9 +270,9 @@ static bool s_icon_position_choose(client_td *client,
      * into the (0, 0)-relative space 'place_icon_apply' works in, by
      * taking off the same 'mx'/'my' its answer is shifted back by just
      * below.  Taken after the margins have been folded into 'mx'/'my'
-     * rather than before: an anchor measured from the raw monitor
+     * rather than before.  An anchor measured from the raw monitor
      * origin would sit one margin further right and down than the
-     * window it is supposed to name. */
+     * window it names. */
     anchor.x = client->layout.geometry.cur.pos.x - mx;
     anchor.y = client->layout.geometry.cur.pos.y - my;
 
@@ -306,7 +302,7 @@ static bool s_icon_position_choose(client_td *client,
  *        came from
  *
  * Applies to a freshly chosen position and to one remembered from an
- * earlier iconify alike: an icon dragged under the tray by hand, or
+ * earlier iconify alike.  An icon dragged under the tray by hand, or
  * left where a tray that has since grown now reaches, has to be pushed
  * clear just the same as one being placed for the first time.
  *

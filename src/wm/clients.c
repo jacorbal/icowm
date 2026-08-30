@@ -53,7 +53,7 @@
  * run on it moments later as this whole window manager instance
  * itself is torn down (@a s_wm_cleanup), not the client.  A window
  * manager exiting, being replaced, or reloading must never take a
- * person's running applications down with it.
+ * user's running applications down with it.
  *
  * Reparented back to @p client's root window, at its current
  * absolute on-screen position (recovered from the frame's
@@ -85,10 +85,10 @@ static void s_client_unmanage(client_td *client)
     /* Map the window back before letting go of it.  This window
      * manager unmaps routinely, every client on a desktop that is not
      * the current one and every iconified client among them, and a
-     * window left unmapped once nobody is managing it is lost: it is
+     * window left unmapped once nobody is managing it is lost.  It is
      * still there, its process still running, but no
      * 'MapRequest' will ever be sent for it again, so neither the
-     * person nor the next window manager has any way to bring it
+     * user nor the next window manager has any way to bring it
      * back.
      *
      * ICCCM asks for exactly this of a window manager giving up its

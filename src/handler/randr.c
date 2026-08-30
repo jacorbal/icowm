@@ -43,8 +43,9 @@
  * @param surfaces Every managed surface
  * @param change   What the server reported
  *
- * @note A change reporting no mode is ignored: an output going dark
- *       says nothing about the geometry to remember for it
+ * @note A change reporting no mode is ignored
+ * @note An output going dark says nothing about the geometry to
+ *       remember for it
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
 static void s_randr_crtc_change_note(list_td *surfaces,

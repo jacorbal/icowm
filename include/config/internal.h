@@ -116,7 +116,7 @@ enum config_placement_policy_e
  * row icon shown alongside each entry, @c menu.show-pixmaps), and icon
  * hint indicators are all forced off unconditionally.  Every other
  * theme field, colors, decoration, and @c is-captioned included, is
- * left exactly as the theme file specified: none of those carry the
+ * left exactly as the theme file specified.  None of those carry the
  * ongoing memory cost the font backend and pixmap compositing do.
  *
  * @param config Configuration structure whose already-loaded theme this
@@ -130,7 +130,7 @@ void ci_memguard_restrict_theme(config_td *config);
 /**
  * @brief Load @c memguard.json's configurable fields into @p config
  *
- * Everything restricted-memory mode still lets a person configure: the
+ * Everything restricted-memory mode still lets a user configure.  The
  * active theme's name, launched programs, desktop margins, the window
  * move step and placement policy (via
  * @a ci_config_parse_placement_policy, shared verbatim with

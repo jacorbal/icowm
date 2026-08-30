@@ -20,14 +20,14 @@
  * }
  * @endcode
  *
- * Entirely optional, the same as @c randr.json: a missing file, or one
+ * Entirely optional, the same as @c randr.json.  A missing file, or one
  * that omits an object or a field within it, leaves whatever the caller
  * already held (its compiled-in default, see
  * @c config_set_default_a11y_values, @c config.c) untouched for that
  * field.
  *
  * @c is-enabled (default @c false) gates every other field at once,
- * mirroring @c randr.json's @c is-enabled: a file that exists but
+ * mirroring @c randr.json's @c is-enabled.  A file that exists but
  * never turns this on is parsed without error, same as ever, but has no
  * effect at all, the same as if it were absent.
  */
@@ -68,7 +68,7 @@ void config_set_default_a11y_values(struct config_a11y_s *a11y)
     }
 
     /* Default 'false', the same opt-in-only posture as 'config_randr_s'
-     * own 'is_enabled': a person keeps an 'a11y.json' around without it
+     * own 'is_enabled': a user keeps an 'a11y.json' around without it
      * taking effect until they explicitly turn this on. */
     a11y->is_enabled = false;
 
@@ -97,9 +97,9 @@ int config_load_a11y(const char *filename,
     }
 
     /* Reset to the same known-good defaults before every attempt, not
-     * just the first: a reload whose file just turned 'is-enabled' to
-     * false, dropped it entirely, or dropped a field it used to
-     * specify, must fall back cleanly rather than keep whatever an
+     * just the first.  A reload whose file turns 'is-enabled' to
+     * false, drops it entirely, or drops a field it once specified,
+     * must fall back cleanly rather than keep whatever an
      * earlier, still-enabled load happened to leave here
      * ('config_set_default_a11y_values' has a comment in 'config.h'
      * explaining it). */

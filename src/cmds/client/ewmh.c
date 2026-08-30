@@ -51,7 +51,7 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  * whichever of the client's boolean fields are true right now,
  * rather than reading the property back first to add or remove one
  * specific atom from whatever was already there.  @a ccmd_add_states
- * and @a ccmd_rem_states did the opposite: a read (one XCB round
+ * and @a ccmd_rem_states did the opposite.  A read (one XCB round
  * trip) followed by a merge and a write, on every single call, at
  * every one of the dozens of call sites across this project that
  * change some piece of a client's state.  This function needs
@@ -63,7 +63,7 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
  * place.
  *
  * Called once, after whichever single field actually changed has
- * already been updated, by every caller that used to call
+ * already been updated, by every caller in place of
  * @a ccmd_add_states or @a ccmd_rem_states directly;
  * @a ccmd_add_states and
  * @a ccmd_rem_states themselves no longer exist; every one of their

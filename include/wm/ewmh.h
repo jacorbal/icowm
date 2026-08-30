@@ -43,9 +43,9 @@
  *
  * @return @c 0 on success, or non-zero on failure
  *
- * @note No matching teardown, this allocating nothing: it publishes
- *       properties on the root window, and a property is not freed
- *       but ceases to exist with the window carrying it
+ * @note No matching teardown, this allocating nothing
+ * @note It publishes properties on the root window, and a property is
+ *       not freed but ceases to exist with the window carrying it
  * @note The EWMH connection those properties are written through is
  *       another matter, and is freed by @a wm_stop
  * @note Complexity: @e O(1)

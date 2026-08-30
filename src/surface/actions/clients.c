@@ -128,13 +128,13 @@ static void s_client_show_visit(client_td *client, void *data)
         xcb_window_show(target);
         /* A shaded client's content window must stay
          * unmapped until an explicit unshade: mapping it
-         * here regardless (as this used to) puts it back
+         * here regardless would put it back
          * on screen, sized to whatever tiny remnant its
          * shaded frame currently allows, while every
          * other part of this project still believes it
          * is shaded, and while its real input focus
          * target (revert-to Parent) is still whatever
-         * ccmd_client_shade last left it at.  This state
+         * 'ccmd_client_shade' last left it at.  This state
          * split (mapped at the X server, still shaded to
          * the WM) is a genuine bug on its own regardless
          * of the exact downstream consequence; it also
@@ -414,7 +414,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
      * raising each window so the tail (topmost client) ends up at the
      * top of the X11 stacking order when all windows are shown.  Every
      * window after the first is raised relative to the one just placed
-     * (sibling + above), not to the absolute top of the whole stack: an
+     * (sibling + above), not to the absolute top of the stack.  An
      * unqualified 'above' claims the very top every time, so with more
      * than one window this would momentarily place each one over
      * literally everything else (including the icons and tray already
@@ -425,7 +425,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
     stacking_walk(desktop, s_client_restack_visit, &restack_ctx);
 
     /* The walk above puts the windows in the order they are stacked
-     * among themselves, which says nothing about layers: a client kept
+     * among themselves, which says nothing about layers.  A client kept
      * below or above its neighbours is a property of the client, not
      * of where it sits in that order.  Re-imposed here, so that
      * showing a desktop leaves its layers as they were.
@@ -492,7 +492,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
         from_desktop = (desktop_td *) cdlist_data(dnode);
         if (from_desktop != NULL && from_desktop != to_desktop &&
                 stacking_count(from_desktop) > 0u) {
-            /* Collected before any of them is moved: moving one takes
+            /* Collected before any of them is moved.  Moving one takes
              * it off this desktop, and a walk that moved as it went
              * would be reading a set it was itself changing. */
             struct s_sticky_ctx_s sticky_ctx;
@@ -526,7 +526,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
 
                 /* Arriving at the bottom unless it was the window
                  * being worked in.  'desktop_action_client_move' adds
-                 * to the top, which is right for a window the person
+                 * to the top, which is right for a window the user
                  * deliberately sent elsewhere but not for one that is
                  * merely following them: a pinned window nobody had
                  * touched climbed over whatever they did have open,

@@ -1,10 +1,10 @@
 /**
  * @file policy/placement/manual.h
  *
- * @brief Manual placement: the position the person picks themselves
+ * @brief Manual placement: the position the user picks themselves
  *
  * The oldest placement policy there is, and the one every other exists
- * to avoid: rather than the window manager choosing a spot, the person
+ * to avoid: rather than the window manager choosing a spot, the user
  * is shown an outline and puts the window where they want it.
  *
  * Nothing here ever waits in place.  Asking holds the pointer and the
@@ -63,12 +63,12 @@ typedef void (*place_manual_done_fn)(const wm_td *wm,
 
 /* Public interface */
 /**
- * @brief Pick where a window goes, asking the person to point at it
+ * @brief Pick where a window goes, asking the user to point at it
  *
  * Marks @p client as the one window @a place_manual_enqueue may accept
- * next, and answers with where it sits meanwhile: whatever the smart
+ * next, and answers with where it sits meanwhile.  Whatever the smart
  * policy would have chosen, which is both where the outline starts and
- * where the window stays if the person gives up or never answers.
+ * where the window stays if the user gives up or never answers.
  *
  * @param wm      Window manager instance
  * @param surface Surface the window will appear on
@@ -225,7 +225,7 @@ void place_manual_tick(xcb_connection_t *connection);
  * Releases the pointer and the keyboard and takes the outline down
  * when @p client is the one currently being pointed at, and simply
  * forgets it when it was still waiting its turn.  What would have
- * finished the map is deliberately never called: there is no longer a
+ * finished the map is deliberately never called.  There is no longer a
  * window to map.
  *
  * @param connection XCB connection

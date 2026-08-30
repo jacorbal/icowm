@@ -15,7 +15,7 @@
  * cache of any kind): typing @c Return attempts to run whatever was
  * typed exactly as given, showing an informational dialog (never a
  * blocking warning or error, so a mistyped command never derails
- * the person any further than necessary) if it could not be found,
+ * the user any further than necessary) if it could not be found,
  * or closing the box on success.
  *
  * Visually distinguished from the fuzzy window-search widget

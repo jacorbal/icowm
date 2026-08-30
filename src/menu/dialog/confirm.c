@@ -85,7 +85,7 @@ static int s_confirm_selected = 0;
 static void (*s_confirm_callback)(xcb_connection_t *) = NULL;
 
 /** Callback invoked when the cancel button is activated, by a
- *  person, by Escape, or by 's_confirm_timeout_active' elapsing */
+ *  user, by Escape, or by 's_confirm_timeout_active' elapsing */
 static void (*s_confirm_cancel_callback)(xcb_connection_t *) = NULL;
 
 /** Cached layout used for both creation and repaint */

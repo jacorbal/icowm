@@ -36,13 +36,13 @@
  * @brief Whether @p font already names some variant of the @c "fixed"
  *        X core font family
  *
- * Recognizes both forms a theme's font field can hold: a simple
+ * Recognizes both forms a theme's font field can hold.  A simple
  * alias, where the family is the leading word up to the first space
  * or hyphen (e.g., @c "fixed", @c "fixed bold", @c "fixed-14"), and a
  * full XLFD pattern, where the family is the second @c '-'-delimited
  * field, such as
  * @c "-misc-fixed-bold-r-normal--0-120-75-75-c-0-iso10646-1".
- * Either form lets a person still pick a specific size or encoding
+ * Either form lets a user still pick a specific size or encoding
  * while staying on the light X core rendering path, rather than the
  * plain literal strings @c "fixed" and @c "fixed bold" alone.
  *

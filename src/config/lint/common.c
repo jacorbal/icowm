@@ -96,7 +96,7 @@ const config_lint_key_td s_schema_systray[] = {
     {"is-enabled", NULL, 0u},
     {"reserve-space", NULL, 0u},
     {"avoid-overlap", NULL, 0u},
-    /* Reuses 'desktops.margins''s schema array: identical shape
+    /* Reuses 'desktops.margins''s schema array.  Identical shape
      * (top/right/bottom/left), so no separate one is needed just for
      * this section. */
     {"margins", s_schema_desktops_margins,
@@ -117,63 +117,49 @@ const config_lint_key_td s_schema_systray[] = {
 };
 
 
-/* A key added to 's_schema_desktops_margins' without its count in the
- * header following makes this declaration negative, and so the build
- * fail here rather than the linter read past the end of the table */
+/* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_desktops_margins_size_check
     [(sizeof(s_schema_desktops_margins) /
       sizeof(s_schema_desktops_margins[0]) == CONFIG_LINT_DESKTOPS_MARGINS_KEYS)
      ? 1 : -1];
 
 
-/* A key added to 's_schema_programs' without its count in the header
- * following makes this declaration negative, and so the build fail
- * here rather than the linter read past the end of the table */
+/* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_programs_size_check
     [(sizeof(s_schema_programs) /
       sizeof(s_schema_programs[0]) == CONFIG_LINT_PROGRAMS_KEYS)
      ? 1 : -1];
 
 
-/* A key added to 's_schema_prompt' without its count in the header
- * following makes this declaration negative, and so the build fail
- * here rather than the linter read past the end of the table */
+/* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_prompt_size_check
     [(sizeof(s_schema_prompt) /
       sizeof(s_schema_prompt[0]) == CONFIG_LINT_PROMPT_KEYS)
      ? 1 : -1];
 
 
-/* A key added to 's_schema_shutdown' without its count in the header
- * following makes this declaration negative, and so the build fail
- * here rather than the linter read past the end of the table */
+/* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_shutdown_size_check
     [(sizeof(s_schema_shutdown) /
       sizeof(s_schema_shutdown[0]) == CONFIG_LINT_SHUTDOWN_KEYS)
      ? 1 : -1];
 
 
-/* A key added to 's_schema_systray' without its count in the header
- * following makes this declaration negative, and so the build fail
- * here rather than the linter read past the end of the table */
+/* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_systray_size_check
     [(sizeof(s_schema_systray) /
       sizeof(s_schema_systray[0]) == CONFIG_LINT_SYSTRAY_KEYS)
      ? 1 : -1];
 
 
-/* A key added to 's_schema_windows_focus' without its count in the
- * header following makes this declaration negative, and so the build
- * fail here rather than the linter read past the end of the table */
+/* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_windows_focus_size_check
     [(sizeof(s_schema_windows_focus) /
       sizeof(s_schema_windows_focus[0]) == CONFIG_LINT_WINDOWS_FOCUS_KEYS)
      ? 1 : -1];
 
 
-/* A key added to 's_schema_windows_placement' without its count in the
- * header following makes this declaration negative, and so the build
- * fail here rather than the linter read past the end of the table */
+/* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_windows_placement_size_check
     [(sizeof(s_schema_windows_placement) /
       sizeof(s_schema_windows_placement[0]) == CONFIG_LINT_WINDOWS_PLACEMENT_KEYS)

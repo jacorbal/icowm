@@ -65,7 +65,7 @@ typedef struct {
  *      Unlike 'randr.json''s "outputs" or 'rules.json''s
  *      "rules", nothing under theme.json is genuinely polymorphic (see
  *      the opaque-subtree rule in 'config/lint.h' for what that means
- *      and why it does not apply here): every field's shape is
+ *      and why it does not apply here).  Every field's shape is
  *      fixed and known ahead of time, so there is no risk of a false
  *      positive on a legitimate but less common shape the way there
  *      would be for those. */
@@ -161,7 +161,7 @@ static int s_key_occurrences(const cJSON *obj, const cJSON *item,
 /**
  * @brief Find the schema entry matching @p key, if any
  *
- * Matches the same way the real loaders do: case-insensitively, with
+ * Matches the same way the real loaders do.  Case-insensitively, with
  * @c '-' and @c '_' treated as equivalent.
  *
  * @param key      Key name as it appears in the JSON file
@@ -215,7 +215,7 @@ static void s_lint_object(const cJSON *obj,
 {
     const cJSON *item;
 
-    /* The cast is cJSON's doing, not this file's: its predicates
+    /* The cast is cJSON's doing, not this file's.  Its predicates
      * take a non-const pointer even though they only ever read, so
      * asking one of them a question about a 'const cJSON *' cannot be
      * done without dropping the qualifier here. */
@@ -243,7 +243,7 @@ static void s_lint_object(const cJSON *obj,
         occurrences = s_key_occurrences(obj, item, &earlier);
         if (occurrences > 1) {
             /* Reported once per repeated key, on reaching its second
-             * occurrence, rather than once per repetition: a key
+             * occurrence, rather than once per repetition.  A key
              * given four times is one mistake to fix, not three. */
             if (earlier == 1) {
                 if (!report->header_printed) {
@@ -344,11 +344,11 @@ static void s_lint_file(const char *restrict config_dir,
  * @param duplicate_count Running count of duplicated keys found;
  *                      advanced by this call
  *
- * @note A missing @c themes subdirectory is not reported: unlike
- *       @c config.json, having no themes of one's (using only
- *       whichever theme name @c config.json's @c theme field
- *       names, which may resolve to a built-in default elsewhere) is
- *       an entirely ordinary setup, not an oversight
+ * @note A missing @c themes subdirectory is not reported
+ * @note Unlike @c config.json, having no themes of one's (using only
+ *       whichever theme name @c config.json's @c theme field names,
+ *       which may resolve to a built-in default elsewhere) is an
+ *       entirely ordinary setup, not an oversight
  * @note Complexity: @e O(n), where @e n is the total number of keys
  *       across every theme file found
  */
@@ -429,7 +429,7 @@ int config_lint_run(const char *config_dir)
                 (unknown_count == 1) ? "" : "s");
     }
 
-    /* Only reported when there are any, unlike the line above: a
+    /* Only reported when there are any, unlike the line above.  A
      * duplicate is rare enough that saying so every time would be
      * noise on an otherwise clean run */
     if (duplicate_count != 0) {
@@ -437,7 +437,7 @@ int config_lint_run(const char *config_dir)
                 (duplicate_count == 1) ? "" : "s");
     }
 
-    /* Both counted against the exit status: a duplicate key in a
+    /* Both counted against the exit status.  A duplicate key in a
      * hand-written file is a mistake every time, and catching such a
      * mistake is what this option is for */
     return unknown_count + duplicate_count;

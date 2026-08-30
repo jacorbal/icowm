@@ -108,9 +108,9 @@ static void s_client_reload_apply(const struct s_reload_ctx_s *ctx,
          * at the freshly reloaded values. */
         wm_request_client_redraw(client);
 
-        /* An icon left sitting exactly where the tray
-         * used to be, before this same reload just
-         * moved it there, is never otherwise revisited
+        /* An icon left sitting exactly where this same
+         * reload has just moved the tray is never
+         * otherwise revisited
          * on its own: nothing else here (or anywhere
          * else) re-checks an already-placed icon's
          * position against the tray's, only a fresh
@@ -139,7 +139,7 @@ static void s_client_reload_apply(const struct s_reload_ctx_s *ctx,
                         &desktop->workarea)) {
                 uint32_t vals[2];
 
-                /* client->icon_pos.x = icon_x; is a no-op */
+                /* 'client->icon_pos.x = icon_x' is a no-op */
                 client->icon_pos.y = icon_y;
                 vals[0] = (uint32_t) icon_x;
                 vals[1] = (uint32_t) icon_y;
@@ -184,8 +184,7 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
          * just-reloaded theme's 'desktop.color.background'
          * instead, mirroring 'desktop_init''s fallback
          * exactly.  Assigning the sentinel value itself as though
-         * it were a real color (as this block used to, before this
-         * check existed) renders as black, since its low 24 bits
+         * it were a real color renders as black, its low 24 bits
          * are all zero: only the top byte, some other flag, is
          * actually set. */
         if (!desktop->background.is_image &&
@@ -408,14 +407,11 @@ int wm_action_config_reload(const wm_td *wm)
     if (wm_session(wm) != NULL) {
         (void) session_load(wm_session(wm), config_dir_prefix);
     }
-    /* Closed before its entries are replaced, and not after.  A root
-     * menu on screen holds a shallow copy of every entry, sharing the
-     * 'items' array and the child menu state of each submenu with the
-     * entries 'rootmenu_menu_json_load' is about to free; without this,
-     * clicking a submenu row after a reload followed two pointers into
-     * freed memory.  Activating an entry closes the menu of its own
-     * accord before running anything, so the only way to arrive here
-     * with one still open is a reload asked for over IPC. */
+    /* A root menu on screen shares each submenu's 'items' array and
+     * child state with the entries 'rootmenu_menu_json_load' frees
+     * just below, so it has to go first.  Activating an entry closes
+     * the menu already, which leaves a reload over IPC as the one way
+     * to reach this with one still up */
     rootmenu_close();
     rootmenu_menu_json_load(config_dir_prefix);
 

@@ -122,7 +122,7 @@ void ccmd_client_move_to_monitor(client_td *client,
  * @c enact.h, already does not by default, without
  * @c desktops.wrap-at-bounds enabled: unlike wrapping a definite,
  * ordered list (a desktop's circular list, or the array order
- * this pair used to walk before it had any real spatial meaning),
+ * this pair walks where no spatial meaning is available),
  * wrapping a genuinely 2-D physical arrangement has no one obviously
  * correct meaning to begin with (does "east, wrapped" mean the
  * westmost monitor overall, or the westmost one still on the same

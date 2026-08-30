@@ -33,12 +33,12 @@
 #define DEFS_UISTR_H
 
 
-/* Message dialog ('src/menu/dialog/message.c'): its single dismiss
+/* Message dialog ('src/menu/dialog/message.c').  Its single dismiss
  * button, shared by every caller (an alert-level message, the
  * keyboard-shortcuts list, the fortune easter egg) */
 #define STR_DIALOG_MSG_LABEL_OK "[ OK ]"
 
-/* Root menu ('src/menu/context/rootmenu.c'): the fixed footer entries
+/* Root menu ('src/menu/context/rootmenu.c').  The fixed footer entries
  * every root menu gets, below whatever 'menus.json' configures */
 #define STR_ROOTMENU_STRUTLESS_MAXIMIZATION "Strutless maximization"
 #define STR_ROOTMENU_STRUTTED_MAXIMIZATION "Strutted maximization"
@@ -89,7 +89,7 @@
  * button's label specifically (never assumed to literally read
  * "Cancel"; see, e.g., 'STR_DIALOG_RANDR_CONFIRM_CANCEL' below), since
  * the countdown always takes that path once it elapses regardless of
- * which button a person may have tabbed the visible selection to in the
+ * which button a user may have tabbed the visible selection to in the
  * meantime (a safety timeout has to fall back to the one path that
  * needs no working display to have been chosen deliberately).  A format
  * string taking the cancel button's label, then the whole seconds
@@ -114,7 +114,7 @@
 #define STR_DIALOG_RANDR_CONFIRM_CANCEL "[ Revert ]"
 #define STR_DIALOG_RANDR_CONFIRM_OK "[ Keep ]"
 
-/* Keyboard-shortcuts list dialog ('src/menu/dialog/shortcuts.c'): one
+/* Keyboard-shortcuts list dialog ('src/menu/dialog/shortcuts.c').  One
  * section header, and one label per action, each paired at runtime with
  * that action's configured key combo.  Deliberately the bare
  * section name alone, without the surrounding brackets that appear
@@ -246,8 +246,8 @@
  * get right for every locale at once. */
 #define STR_BATTERY_PERCENT "%u%%"
 
-/* Standalone, appended after a percentage (e.g., "34% AC"): kept as its
- * own string, separate from 'STR_BATTERY_FULL_AC' above, since
+/* Standalone, appended after a percentage (e.g., "34% AC").  Kept as
+ * its own string, separate from 'STR_BATTERY_FULL_AC' above, since
  * a translation cannot derive one from the other by substring; some
  * languages place the qualifier before the percentage, or use an
  * entirely different word (or word order) for "on AC power" versus
@@ -301,7 +301,7 @@
     "more than %u window(s) at once (see the '-M' command-line " \
     "option).  Close a window before opening another."
 
-/* Fuzzy window-search widget ('src/menu/search.c'): shown instead of
+/* Fuzzy window-search widget ('src/menu/search.c').  Shown instead of
  * opening the widget itself when there is nothing to search for */
 #define STR_SEARCH_NO_WINDOWS \
     "There are no open windows in this session at the moment."
@@ -317,7 +317,7 @@
  * identical (a blank space) to someone reading the search results. */
 #define STR_SEARCH_ALL_DESKTOPS "On all desktops"
 
-/* Built-in run-box ('src/menu/dialog/run.c'): the prompt preceding its
+/* Built-in run-box ('src/menu/dialog/run.c').  The prompt preceding its
  * own text field.  Kept short and distinct from 'STR_SEARCH_NO_WINDOWS'
  * above so the two widgets, easy to confuse at a glance since both are
  * a single centered text field, never look alike. */
@@ -331,11 +331,11 @@
 #define STR_RUN_COMMAND_NOT_FOUND_FMT \
     "Command '%s' not found."
 
-/* 'cctl_launch_dispatch' (src/cctl/launch.c): shown as a blocking
+/* 'cctl_launch_dispatch' (src/cctl/launch.c).  Shown as a blocking
  * warning dialog, unlike 'STR_RUN_COMMAND_NOT_FOUND_FMT' above, when
  * a keybind-triggered program (e.g., 'programs.terminal') could not be
  * found or executed.  Unlike the run-box, where a bad command is a
- * one-off typo the person just made, this always means the very same
+ * one-off typo the user just made, this always means the very same
  * configured program will keep failing every single time that same
  * keybind is pressed again until 'config.json' itself is fixed, which
  * is worth calling more attention to.
@@ -344,7 +344,7 @@
 #define STR_LAUNCH_COMMAND_NOT_FOUND_FMT \
     "Failed to execute '%s': command not found."
 
-/* Fortune easter egg ('src/menu/dialog/fortune.c'): shown instead when
+/* Fortune easter egg ('src/menu/dialog/fortune.c').  Shown instead when
  * the configured 'fortune.command' is missing or produces no output;
  * deliberately overwrought and archaic, per its whole point being
  * a small joke rather than a plain error message */

@@ -108,15 +108,12 @@
  * @brief How many windows may be waiting their turn to be placed by
  *        hand at once
  *
- * Windows that open together are asked about one at a time, each held
+ * Windows opening together are asked about one at a time, each held
  * unmapped until the one before it is settled, so a session starting
- * several at once needs somewhere to keep the rest meanwhile.  A
- * window arriving with the queue already full is placed where the
- * smart policy chose and mapped straight away rather than refused: an
- * application opening more windows at once than anyone could
- * reasonably be asked to aim at one by one is not a person placing
- * windows, and holding all of them hostage behind that many clicks
- * would be worse than not asking at all.
+ * several at once needs somewhere to keep the rest meanwhile.  One
+ * arriving to a full queue is mapped where the smart policy put it
+ * instead of being refused, an application opening more windows than
+ * anyone would sit and aim at being no longer a user placing them.
  *
  * Smaller under @c COMPACT (see @c defs/compact.h).
  */

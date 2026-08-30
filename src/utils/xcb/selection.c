@@ -6,11 +6,11 @@
  *
  * Claiming a @c MANAGER-convention selection (@c _NET_SYSTEM_TRAY_Sn
  * for the systray, @c _XSETTINGS_Sn for the XSETTINGS manager, and any
- * future one) always follows the same three ICCCM steps: set ownership,
+ * future one) follows the same three ICCCM steps.  Set ownership,
  * verify the server actually granted it, and broadcast the standard
  * MANAGER client message on the root window so other tools notice.
- * This one implementation replaces what used to be an identical
- * sequence copied into @c systray/protocol.c and @c xsettings.c.
+ * This one implementation serves both @c systray/protocol.c and
+ * @c xsettings.c, in place of an identical sequence in each.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

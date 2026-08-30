@@ -4,7 +4,7 @@
  * @brief IPC commands mirroring @c cmds/client/flags.h's own actions
  *
  * Every one of these is a thin @a ipc_dispatch_client_action call
- * around the matching @a enact_client_* function: resolve @c client_id,
+ * around the matching @a enact_client_* function.  Resolve the id,
  * run the one action, report success or the reason it could not be
  * found.
  *

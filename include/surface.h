@@ -272,7 +272,7 @@ monitor_td surface_primary_monitor(const surface_td *surface);
  * north" at all.  Among every one of @p surface's monitors whose
  * center genuinely lies in @p direction from @p current's center,
  * whichever one is nearest by that same measure is the answer, matching
- * what a person looking at the arrangement would call it even when the
+ * what a user looking at the arrangement would call it even when the
  * monitors involved differ in size or are not perfectly aligned to one
  * another.
  *
@@ -377,7 +377,7 @@ bool surface_desktop_row_col(const surface_td *surface,
 /**
  * @brief Compose the label naming the desktop a client is on
  *
- * The one place that decides how a desktop is named to the person, so
+ * The one place that decides how a desktop is named to the user, so
  * that everything showing one says it the same way.  Three cases, and
  * each leaves out what would not help:
  *
@@ -388,7 +388,7 @@ bool surface_desktop_row_col(const surface_td *surface,
  * - anything else gives the ID alone, a single row's coordinate saying
  *   no more than the ID already does.
  *
- * A session with only one desktop is not a case here: the caller that
+ * A session with only one desktop is not a case here.  The caller that
  * can meet one, the search menu, leaves the label out entirely rather
  * than naming the only desktop there is.
  *
@@ -404,8 +404,9 @@ bool surface_desktop_row_col(const surface_td *surface,
  *                     made
  * @param length       Size of @p out_label, in bytes
  *
- * @note @p shows_name does not apply to a pinned client: there is no
- *       one desktop to name, so there is no name to append either
+ * @note @p shows_name does not apply to a pinned client
+ * @note There is no one desktop to name, so there is no name to append
+ *       either
  * @note Complexity: @e O(1)
  */
 void surface_desktop_label(const surface_td *surface,
@@ -654,7 +655,7 @@ int surface_action_desktop_add(surface_td *surface);
  * already refuses this call every time it runs under that mode too,
  * with no separate check of its own needed here.  Every client still on
  * the desktop being removed, pinned or not, is moved onto what becomes
- * the new last desktop before the old one is destroyed: destroying
+ * the new last desktop before the old one is destroyed.  Destroying
  * a desktop that still holds clients would otherwise destroy those
  * clients' @c client_td structures right along with it (see
  * @a desktop_destroy, @c desktop.c), losing real, live application
@@ -742,7 +743,7 @@ int surface_action_toggle_strutless_maximize(surface_td *surface);
  *                      hotplug call, where there is nothing to revert
  *                      to (the newly-applied state @e is the intended
  *                      one), and @c true only when the caller means to
- *                      offer a person a chance to undo this specific
+ *                      offer a user a chance to undo this specific
  *                      call
  *
  * @return Status of the operation

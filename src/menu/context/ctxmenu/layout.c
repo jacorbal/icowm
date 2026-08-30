@@ -126,8 +126,8 @@ int ctxmenu_entry_top_y(const ctxmenu_state_td *state, int idx)
  * @a ctxmenu_entry_top_y and @a ctxmenu_entry_at_y can look rows up
  * directly afterwards instead of re-walking the entry array on every
  * call.
- * Also returns the total height, replacing what used to be a separate
- * pass over the same entries.
+ * Also returns the total height, sparing a separate pass over the
+ * same entries.
  *
  * @param state Menu state; @p entries and @p entry_count must already
  *              be set
@@ -179,11 +179,8 @@ uint16_t ctxmenu_width_compute(xcb_connection_t *connection,
      * same width as the menu's left padding) before its label;
      * see 'theme.menu.show-pixmaps''s comment in 'config.h' */
     if (config->theme.menu.show_pixmaps) {
-        /* '#if', not a runtime ternary: both operands are fixed
-         * compile-time constants, so a ternary here left one branch
-         * provably unreachable to the compiler (-Wunreachable-code).
-         * Still guards the arithmetic against a future edit to either
-         * constant that would otherwise underflow silently */
+        /* '#if' and not a ternary; see 'WM_MENU_ICON_INSET' in
+         * 'defs/ctxmenu.h' for why */
 #if WM_CTXMENU_ROW_HEIGHT > WM_MENU_ICON_INSET
         uint16_t icon_size = (uint16_t)
             (WM_CTXMENU_ROW_HEIGHT - WM_MENU_ICON_INSET);
@@ -196,7 +193,7 @@ uint16_t ctxmenu_width_compute(xcb_connection_t *connection,
 
     /* Measured in three passes, one font each, rather than switching
      * between 'unselected.font' and 'selected.font' on every regular
-     * entry as a single combined pass would: since
+     * entry as a single combined pass would.  Since
      * max(max(a, b)) == max(max(a), max(b)), computing each font's
      * contribution to the overall maximum in its pass gives the
      * identical result while asking 'text_renderer_use_font' for

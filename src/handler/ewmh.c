@@ -373,8 +373,8 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
  *        a @c _NET_WM_DESKTOP request, ignoring any transient family it
  *        may belong to
  *
- * Carries what used to sit inside
- * @a hi_handle_net_wm_desktop so that function can redirect to, and
+ * Holds the single-client half of
+ * @a hi_handle_net_wm_desktop, so that function can redirect to, and
  * cascade across, a transient family (see its comment) while
  * still sharing this single client's worth of EWMH desktop-move
  * plumbing with the top-level call it makes on the family's top

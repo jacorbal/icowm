@@ -50,7 +50,7 @@
 #include <input/mouse/internal.h>
 
 /**
- * @brief Scroll north on a client's titlebar: maximize it,
+ * @brief Scroll north on a client's titlebar.  Maximize it,
  *        only when not already fully maximized
  *
  * Never moves focus: the client stays exactly as interactable, and
@@ -79,7 +79,7 @@ static void s_scroll_titlebar_maximize(client_td *client,
 
 
 /**
- * @brief Scroll south on a client's titlebar: restore it from
+ * @brief Scroll south on a client's titlebar.  Restore it from
  *        fully maximized, only when it currently is
  *
  * Calls the exact same toggle @a s_scroll_titlebar_maximize does,
@@ -111,7 +111,7 @@ static void s_scroll_titlebar_restore(client_td *client,
 
 /**
  * @brief Scroll west on a client's titlebar (the exact same
- *        gesture @c DESKTOP_PREV always was): shade it
+ *        gesture @c DESKTOP_PREV always was).  Shade it
  *
  * Sends the client to the end of both orders the desktop keeps, the
  * stacking one and the focus one, and lets losing focus follow from
@@ -147,10 +147,10 @@ static void s_scroll_titlebar_shade(client_td *client,
      * at, and last in the focus order.
      *
      * Losing focus then follows from being last rather than being
-     * arranged separately, which is what this did before: it picked
+     * arranged separately, which is what this did before.  It picked
      * the replacement out of the stacking list, and so handed focus to
      * whichever window happened to be drawn highest rather than to the
-     * one the person had been working in.
+     * one the user had been working in.
      *
      * Only the wheel does this.  Shading from a key binding or from an
      * EWMH request is a state change and nothing more, which is why
@@ -176,7 +176,7 @@ static void s_scroll_titlebar_shade(client_td *client,
 
 /**
  * @brief Scroll east on a client's titlebar (the exact same
- *        gesture @c DESKTOP_NEXT always was): unshade it
+ *        gesture @c DESKTOP_NEXT always was).  Unshade it
  *
  * Regains focus only when @p client was the one actually holding it
  * before being shaded; unshading an already-inactive client leaves

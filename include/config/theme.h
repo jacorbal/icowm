@@ -403,10 +403,10 @@ struct config_theme_s {
     /**
      * @brief Fuzzy window-search widget theme (@c menu/search.h)
      *
-     * Its dedicated section rather than reusing @p menu above: the
+     * Its dedicated section rather than reusing @p menu above.  The
      * two happened to share identical values when the widget was
      * first built, but nothing ties them together architecturally, and
-     * a person may want the widget to stand out from ordinary context
+     * a user may want the widget to stand out from ordinary context
      * menus.
      */
     struct {
@@ -463,7 +463,7 @@ struct config_theme_s {
          *        window itself through @c _NET_WM_WINDOW_OPACITY
          *
          * A sibling of @p background / @p border above, not of
-         * @p button.unselected / @p button.selected below: the dialog
+         * @p button.unselected / @p button.selected below.  The dialog
          * window is one single window regardless of which button (if
          * any) currently has the keyboard-navigated selection, and
          * @c _NET_WM_WINDOW_OPACITY is a per-window property, so it
@@ -547,7 +547,7 @@ struct config_theme_s {
      * to their built-in defaults.
      *
      * This is purely a theme concern, not a behavior one, hence living
-     * here rather than in @p config_base_s: whether the manager runs at
+     * here rather than in @p config_base_s.  Whether it runs at
      * all is still controlled by @p is_enabled below, but everything it
      * publishes is an appearance choice.
      */

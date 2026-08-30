@@ -114,10 +114,10 @@ static void s_surface_mark_all_desktops_outdated(surface_td *surface)
  * common case once a screen has been through more than one add and
  * remove cycle.  Never switches the surface's currently viewed
  * desktop, whether it grows anything or not, and whichever row or
- * column that view happens to already be on: adding a desktop is
+ * column that view happens to already be on.  Adding a desktop is
  * purely a "create it" action here, the exact same as it was before
  * a grid layout existed at all, regardless of which one, if any,
- * the person doing the adding happens to be looking at right now.
+ * the user doing the adding happens to be looking at right now.
  *
  * @param surface     Surface whose layout to grow
  * @param new_count   The desktop count this surface is about to have
@@ -157,7 +157,7 @@ static void s_surface_layout_grow_for(surface_td *surface,
  *        as the non-primary axis, if the desktop just removed was
  *        that axis' last remaining member
  *
- * The exact inverse of @a s_surface_layout_grow_for: since @c remove
+ * The exact inverse of @a s_surface_layout_grow_for.  Since @c remove
  * only ever takes the highest-numbered desktop, and fill order
  * always places that one in the last row (or column) that has any
  * member at all, removing it leaves that same row (or column)
@@ -361,7 +361,7 @@ static void s_client_refill_visit(client_td *client, void *data)
  * already-maximized window visibly grows or shrinks into the panel-
  * reserved space that mode just set aside or folded back in, rather
  * than silently staying at whatever size it already was until the
- * person happens to un-maximize and re-maximize it by hand.
+ * user happens to un-maximize and re-maximize it by hand.
  *
  * @param surface Surface whose maximized clients should be
  *                re-filled
@@ -545,7 +545,7 @@ int surface_action_desktop_remove(surface_td *surface)
          * unmapped as it was on the desktop just destroyed, which for
          * anything that was not the surface's current desktop
          * before this whole operation started means unmapped, i.e.,
-         * invisible, with nothing else left to ever map it: no further
+         * invisible, with nothing else left to ever map it.  No further
          * desktop switch is coming (fallback is already current), and
          * with only the two desktops involved existing at all, there
          * may be nowhere left to switch to and back from, even by
@@ -581,7 +581,7 @@ int surface_action_toggle_strutless_maximize(surface_td *surface)
 
     surface->strutless_maximize = !surface->strutless_maximize;
 
-    /* Recompute every desktop's work area right away: struts are
+    /* Recompute every desktop's work area right away.  Struts are
      * now folded in, or set aside, differently than a moment ago (see
      * 'desktop_update_workarea''s 'ignore_struts' parameter,
      * desktop.h), and nothing else is guaranteed to trigger that
@@ -591,7 +591,7 @@ int surface_action_toggle_strutless_maximize(surface_td *surface)
     surface_refresh_workareas(surface);
 
     /* Grow or shrink every already-maximized client into whichever
-     * workarea it now resolves to, immediately: the toggle would
+     * workarea it now resolves to, immediately.  The toggle would
      * otherwise have no visible effect at all on a window that was
      * already maximized before it ran, since maximize geometry is
      * only ever computed once, at the moment a client is actually

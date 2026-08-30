@@ -231,7 +231,7 @@ static void s_place_window_edge_visit(client_td *client, void *data)
  * on the desktop, and, when @c systray.avoid-overlap applies (see
  * below), every edge of the tray too), grows the real free rectangle
  * anchored at each one with @a placement_free_rect_grow, and keeps the
- * largest.  The client lands centered inside that free rectangle: the
+ * largest.  The client lands centered inside that free rectangle.  The
  * breathing room around it comes from how much real free space exists
  * there, not from any fixed margin.  Falls back to whichever candidate
  * has the least overlap when the desktop is too full for any candidate
@@ -241,15 +241,15 @@ static void s_place_window_edge_visit(client_td *client, void *data)
  * alongside every visible client above, and its edges are tested as
  * candidate anchors the same way every client's edges already are, when
  * @c systray.avoid-overlap is @c true and @c systray.reserve-space is
- * @c false (see either one's comment in @c config.h): both matter
+ * @c false (see either one's comment in @c config.h).  Both matter
  * equally, since testing the tray's edges as candidates without also
  * shrinking against the tray itself would let a candidate anchored
  * right at its corner overlap it outright, and shrinking against it
  * without testing its edges as candidates would leave real free space
  * sitting right next to the tray untested, unable to ever be found
- * (this second half is what actually went missing at first.  A corner
- * that used to be a genuinely productive candidate, workarea (0, 0)
- * with the tray docked there by default, collapses to zero free area
+ * (this second half is the easier one to overlook.  A corner that is
+ * otherwise a genuinely productive candidate, workarea (0, 0) with
+ * the tray docked there by default, collapses to zero free area
  * once the tray shrinks against it, and nothing replaced it as
  * a candidate anchored at the tray's edge instead, until this).
  * Fetched fresh from @a systray_get_geometry for this one placement
@@ -341,7 +341,7 @@ bool place_window_smart(const wm_td *wm,
     ctx.best_area = 0u;
     ctx.has_free_rect = false;
 
-    /* Try one candidate top-left corner at a time: the centered seed
+    /* Try one candidate top-left corner at a time.  The centered seed
      * first (so an empty desktop still lands the first window in the
      * middle of the screen), every corner of the workarea itself, the
      * systray's edges when 'systray.avoid-overlap' applies (see
@@ -375,7 +375,7 @@ bool place_window_smart(const wm_td *wm,
 
     /* The tray, not iterated per client since it is a single fixed
      * obstacle for this whole placement decision (unlike every client
-     * edge below, tested once per visible client): without this, the
+     * edge below, tested once per visible client).  Without this, the
      * corner candidate that would otherwise land exactly on the tray's
      * corner collapses to zero free area (that same check inside
      * 's_free_rect_shrink_against' above), and no replacement candidate

@@ -95,7 +95,7 @@ struct s_fallback_ctx_s {
  * content), able to take real focus by window type, not explicitly
  * opted out via @a client_has_no_focus_fallback, and not skipping
  * the taskbar unless it is modal, urgent, or a dialog (which need
- * the person's attention regardless of that flag).
+ * the user's attention regardless of that flag).
  *
  * @param candidate Client being considered as a fallback target
  * @param data      Pointer to the @c s_fallback_ctx_s this search
@@ -153,7 +153,7 @@ static bool s_focus_fallback_valid_same_group(const client_td *candidate,
  * @brief Restore exactly this one client to its normal state, ignoring
  *        any transient family it may belong to
  *
- * Carries what used to sit inside @a ccmd_client_restore so
+ * Holds the single-client half of @a ccmd_client_restore, so
  * that function can redirect to, and cascade across, a transient
  * family (see its comment) while still sharing this single
  * client's worth of state-restoration logic with the top-level,
@@ -287,7 +287,7 @@ void ccmd_client_focus_fallback(const client_td *client)
 
     /* Resolved to the desktop this client actually lives on, not to
      * whichever one happens to be showing.  A client can lose focus
-     * while the person is looking elsewhere, the scratchpad being
+     * while the user is looking elsewhere, the scratchpad being
      * hidden from another desktop is the ordinary case, and asking
      * the current desktop then compares this client's id against a
      * different desktop's active client, finds no match, and hands
@@ -357,7 +357,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
         desktop->is_focus_dirty = true;
         /* Recorded in the focus order, not moved in the stacking
          * list: this client is now the most recently focused one, and
-         * saying so must not also raise it over whatever the person
+         * saying so must not also raise it over whatever the user
          * had deliberately placed above it */
         focus_order_to_top(next_focus);
         ccmd_client_focus(next_focus);
@@ -443,7 +443,7 @@ void ccmd_client_kill(client_td *client)
  *        transient family back with it
  *
  * The matching half of @a ccmd_client_iconify's transient-family
- * cascade (see its comment for the full reasoning): redirects
+ * cascade (see its comment for the full reasoning).  Redirects
  * to the family's top-most ancestor first, restoring it exactly as
  * this function always has, then restores every other family member
  * that is currently iconified too, so a family iconized together as
@@ -474,7 +474,7 @@ void ccmd_client_restore(client_td *client)
     }
 
     /* Every other family member still iconified is restored before
-     * the top parent's restore below, not after: that restore's
+     * the top parent's restore below, not after.  That restore's
      * own focus-granting step (inside 's_ccmd_client_restore_one',
      * gated on 'client_is_focusable') redirects
      * through 'ccmd_client_focus_target' to whichever transient
@@ -557,7 +557,7 @@ void ccmd_client_focus(client_td *client)
     client = ccmd_client_focus_target(client);
 
     /* A client receiving real input focus has, by definition, gotten
-     * the user's attention it was asking for: clear any pending
+     * the user's attention it was asking for.  Clear any pending
      * urgency hint here, at the one place every real focus-granting
      * path (a plain click via 'focus_apply', restoring an iconified
      * client, focus recovery when the previously active client
@@ -587,7 +587,7 @@ void ccmd_client_focus(client_td *client)
      * it had been, which is what cycling with a key binding looked
      * like.
      *
-     * Target 'client->window' itself, except while shaded: content is
+     * Target 'client->window' itself, except while shaded.  Content is
      * unmapped then (that is the entire point of shading), and ICCCM
      * §4.1.7/X11 both require a 'SetInputFocus' target to be viewable,
      * so a shaded client's frame (still mapped, just visually
@@ -633,7 +633,7 @@ void ccmd_client_focus(client_td *client)
      * when the client answers with one of its own.
      *
      * The timestamp is the real one, never 'CurrentTime', which
-     * §4.1.7 forbids here in as many words: the client is to echo
+     * §4.1.7 forbids here in as many words.  The client is to echo
      * this value back in its 'SetInputFocus', and is itself
      * forbidden from using 'CurrentTime' there, so sending it one
      * leaves it with nothing valid to answer with.  A Locally or
@@ -658,7 +658,7 @@ void ccmd_client_focus(client_td *client)
     client_focus_mark(client);
     ccmd_client_sync_states(client);
 
-    /* Never re-map the content window for a shaded client: shading
+    /* Never re-map the content window for a shaded client.  Shading
      * explicitly unmapped it (see 'ccmd_client_shade',
      * cmds/client/state.c), and this function runs on every single
      * click via 'focus_apply' (policy/focus.c), including one that
@@ -681,8 +681,8 @@ void ccmd_client_focus(client_td *client)
      * (the scratchpad, 'scratchpad.c', is the only one that does so
      * today) unconditionally applying the theme's real border width
      * here on every single focus change (this function runs on every
-     * click, via 'focus_apply') used to undo the zero width
-     * 'ccmd_client_fullscreen' ('cmds/state.c') had already set,
+     * click, via 'focus_apply') would undo the zero width
+     * 'ccmd_client_fullscreen' ('cmds/state.c') has already set,
      * putting a real, visible border back on an undecorated fullscreen
      * client's window; confirmed directly from runtime diagnostics.
      *
@@ -753,7 +753,7 @@ void ccmd_client_unfocus(client_td *client)
                 relinquish_time);
     }
 
-    /* Same as the matching block in 'ccmd_client_focus' just above: an
+    /* Same as the matching block in 'ccmd_client_focus' just above.  An
      * undecorated client's border follows from the render pass now, so
      * only a framed one has anything to resync here. */
     if (client_is_decorated(client) && client->frame != 0) {

@@ -99,7 +99,7 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
     }
 
     /* Apply the same rules a client mapped after this window manager
-     * started would already get (handler_map_notify, handler/map.c):
+     * started would already get ('handler_map_notify', handler/map.c):
      * without this, a rule assigning a desktop, geometry, layer, or
      * flag to some client only ever took effect for one launched
      * fresh, silently skipping any window still open from before this
@@ -132,7 +132,7 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
  * Asks the root window for its children, then asks for all their
  * attributes before awaiting any answer, so the scan costs one round
  * trip rather than one per window: a session being adopted holds as
- * many windows as the person had open, and over a remote display that
+ * many windows as the user had open, and over a remote display that
  * difference is the whole of the startup delay.
  *
  * @param wm      Window manager instance
@@ -175,7 +175,7 @@ static void s_adopt_scan_surface(const wm_td *wm, surface_td *surface)
     /* Every child's attributes are asked for before any answer is
      * awaited, so that the whole scan costs one round trip to the
      * server rather than one per window already on the screen.
-     * A session being adopted holds as many windows as the person
+     * A session being adopted holds as many windows as the user
      * had open, and over a remote display that difference is the
      * whole of the startup delay.
      *

@@ -66,8 +66,8 @@
  * whether it still shows a particular desktop's configured color
  * has to be tracked per screen too, not per desktop.
  *
- * A field on 'desktop_td' itself (as this used to be) instead lets each
- * desktop believe its color remains applied purely because it was
+ * A field on 'desktop_td' itself would instead let each desktop
+ * believe its color remains applied purely because it was
  * the last one THAT desktop painted, even after some other desktop
  * sharing the same root window repainted over it with a different one;
  * and, since a config reload does not reset any of this, leaves that
@@ -271,9 +271,9 @@ static xcb_pixmap_t
  * @brief Color a single titlebar button should be drawn in
  *
  * Pin and layer buttons reflect their state (sticky or non-normal
- * layer) with the active accent color regardless of window focus.
- * Every other button reflects window focus instead, the same way the
- * titlebar text itself does.  Maximize and fullscreen fall back to the
+ * layer) with the active accent color regardless of window focus; every
+ * other button reflects window focus instead, the same way the titlebar
+ * text itself does.  Maximize and fullscreen fall back to the
  * background color, which makes them effectively invisible, when the
  * client cannot be resized,
  * instead of drawing a button that would do nothing if clicked.
@@ -313,8 +313,8 @@ static uint32_t s_titlebar_button_color(
  * computed layout.  The fill color for most buttons is taken from
  * @p theme: @c window.active.color.foreground when @p is_focused is
  * @c true, @c window.inactive.color.foreground otherwise; the pin and
- * layer buttons instead reflect their state (sticky/non-normal layer)
- * regardless of focus; maximize and fullscreen fall back to the
+ * layer buttons instead reflect their state (sticky/non-normal
+ * layer) regardless of focus; maximize and fullscreen fall back to the
  * background color when @p can_maximize is @c false.
  *
  * @param connection   Active XCB connection
@@ -349,7 +349,7 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
 
     /* Button colors have their dedicated theme entry, independent
      * of the titlebar text foreground, so a theme can style one
-     * without the other changing to match: see
+     * without the other changing to match.  See
      * 'window.titlebar.buttons.color'. */
     uint32_t color_active = (theme != NULL)
         ? theme->window.titlebar.buttons.color.on
@@ -454,7 +454,7 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
  * Shared by @c desktop_render_one_client's full-repaint and
  * focus-only-repaint branches, which otherwise each repeat the exact
  * same @c hide_decoration guard around the same call (see that
- * function's @c hide_decoration for what forces this: currently
+ * function's @c hide_decoration for what forces this.  Currently
  * only a fullscreen client that was decorated before going
  * fullscreen).
  *
@@ -552,9 +552,9 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
         uint16_t title_h;
 
         /* Forced to zero outright for a fullscreen client, rather
-         * than trusting 'frame_extents' to already be zero: this
+         * than trusting 'frame_extents' to already be zero.  This
          * is the exact geometry a click or a losing-focus repaint
-         * used to leave stuck at whatever non-zero theme padding
+         * would otherwise leave stuck at whatever theme padding
          * 'frame_extents' happened to hold, showing the frame's
          * own background (set to the theme's border color by
          * 'desktop_repaint_frame_decoration') through the gap left
@@ -585,7 +585,7 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
 
         /* A shaded client's content window is deliberately
          * left unmapped, at whatever geometry it already had
-         * (see 'ccmd_client_shade', cmds/client/state.c): none
+         * (see 'ccmd_client_shade', cmds/client/state.c).  None
          * of the three calls below (repositioning it, telling it
          * about that new position, and prompting it to redraw)
          * are meant for it while shaded, since it is never seen
@@ -597,7 +597,7 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
             xcb_window_place(client->window, left, top,
                     inner_w, inner_h);
 
-            /* ICCCM §4.2.3: the xcb_configure_window above
+            /* ICCCM §4.2.3: the 'xcb_configure_window' above
              * positions the inner window relative to the frame
              * (x=left, y=top), so the X server delivers a
              * 'ConfigureNotify' to the client with those
@@ -730,8 +730,8 @@ struct s_desktop_render_ctx_s {
  * @param client Client reached by the walk
  * @param data   Pointer to this walk's render context
  *
- * @note A plainly hidden client is drawn neither way: it is unmapped
- *       and has no icon standing in for it
+ * @note A plainly hidden client is drawn neither way, being unmapped
+ *       and having no icon standing in for it
  * @note Complexity: @e O(1)
  */
 static void s_desktop_render_client_visit(client_td *client, void *data)
@@ -921,9 +921,9 @@ void desktop_render_one_client(desktop_td *desktop,
     /* An undecorated client shows its focus through this border and
      * nothing else, a decorated one through the frame repainted just
      * above, so both now follow from 'is_focused' in the same pass.
-     * The color used to be written by whoever changed the focus
-     * instead, which meant a path that forgot to left a window still
-     * wearing the active border after another had taken the focus
+     * Leaving the color to whoever changes the focus instead means
+     * a path that forgets leaves a window still wearing the active
+     * border after another has taken the focus
      * from it, where a decorated window would have corrected itself
      * on the next pass.  Skipped when unchanged, as the width is. */
     if (!client_is_decorated(client) || client->frame == 0) {
@@ -959,7 +959,7 @@ void desktop_render_one_client(desktop_td *desktop,
         }
         xcb_window_show(target);
 
-        /* Do not re-map the content window for shaded clients: the
+        /* Do not re-map the content window for shaded clients.  The
          * shade operation explicitly unmaps it, and mapping it here
          * would undo the shade and prevent the titlebar-only view
          * from being painted correctly, especially for inactive
@@ -1242,14 +1242,14 @@ int desktop_render_background(desktop_td *desktop)
     /* No external background detected and the window manager owns the
      * background: apply the configured color and clear the root window
      * to make it visible.  Only actually do so when the color changed
-     * since the last time this ran, or on the very first pass: this
+     * since the last time this ran, or on the very first pass.  This
      * function runs on every 'is_current' full-desktop render (every
      * client gaining focus marks its desktop 'is_outdated', not
      * just an actual background change), so without this check every
      * such render would repeat the same full-screen
      * 'xcb_change_window_attributes' + 'xcb_clear_area' for a color
      * that never actually changed.  Checked and updated per screen
-     * (see 's_root_bg_applied_once' above), not per desktop: every
+     * (see 's_root_bg_applied_once' above), not per desktop.  Every
      * desktop sharing this screen's one root window can otherwise
      * repaint over whichever color another one on the same screen
      * applied, without either ever detecting that the color actually

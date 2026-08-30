@@ -63,14 +63,16 @@ enum s_shrink_result_e {
 
 
 /**
- * @brief Shrink a growing free rectangle's right or bottom edge against
- *        one obstacle rectangle, on whichever side loses less area
+ * @brief Shrink a growing free rectangle's right or bottom edge
+ *        against one obstacle rectangle, on whichever side loses
+ *        less area
  *
  * Pulled out of @a placement_free_rect_grow's obstacle loop so the
- * exact same shrink logic applies uniformly whether the obstacle is
- * another client (iterated there) or the systray's on-screen rectangle
- * (checked once more after that loop, when @c windows.  placement's
- * @c "smart" mode is configured to avoid it).
+ * exact same
+ * shrink logic applies uniformly whether the obstacle is another client
+ * (iterated there) or the systray's on-screen rectangle (checked once
+ * more after that loop, when @c windows.  placement's @c "smart" mode
+ * is configured to avoid it).
  *
  * @param x0     Corner X coordinate the free rectangle grows from
  * @param y0     Corner Y coordinate the free rectangle grows from
@@ -132,8 +134,8 @@ static enum s_shrink_result_e s_free_rect_shrink_against(
 
 
 /**
- * @brief What @a s_free_rect_shrink_visit carries across the windows it
- *        meets
+ * @brief What @a s_free_rect_shrink_visit carries across the windows
+ *        it meets
  */
 struct s_shrink_ctx_s {
     /** Client left out of the search */
@@ -153,8 +155,8 @@ struct s_shrink_ctx_s {
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_shrink_ctx_s this walk carries
  *
- * @note Once collapsed, later windows are passed over: there is nothing
- *       left to shrink away from them
+ * @note Once collapsed, later windows are passed over
+ * @note There is nothing left to shrink away from them
  * @note Complexity: @e O(1)
  */
 static void s_free_rect_shrink_visit(client_td *client, void *data)
@@ -189,17 +191,17 @@ static void s_free_rect_shrink_visit(client_td *client, void *data)
 
 
 /**
- * @brief Grow the largest obstacle-free rectangle whose top-left corner
- *        sits at a given point, extending right and down
+ * @brief Grow the largest obstacle-free rectangle whose top-left
+ *        corner sits at a given point, extending right and down
  *
- * Starts from the full box between the corner and the placement bounds,
- * then repeatedly shrinks it on whichever side loses less area whenever
- * a visible client (or, when @p tray_rect is non-null, the systray)
- * intrudes, until nothing intrudes or the box collapses.  Repeating the
- * whole scan (bounded by the client count on @p desktop, plus one more
- * for @p tray_rect) instead of stopping after one pass catches an
- * obstacle that only starts to intrude once an earlier shrink has
- * already pulled a boundary toward it.
+ * Starts from the full box between the corner and the placement
+ * bounds, then repeatedly shrinks it on whichever side loses less
+ * area whenever a visible client (or, when @p tray_rect is not
+ * @c NULL, the systray) intrudes, until nothing intrudes or the box
+ * collapses.  Repeating the whole scan (bounded by the client count
+ * on @p desktop, plus one more for @p tray_rect) instead of stopping
+ * after one pass catches an obstacle that only starts to intrude once
+ * an earlier shrink has already pulled a boundary toward it.
  *
  * @param desktop     Desktop whose clients are checked against
  * @param skip_client Client to ignore (the one being placed)
@@ -217,8 +219,8 @@ static void s_free_rect_shrink_visit(client_td *client, void *data)
  *                    corner itself sits inside another obstacle
  * @param out_h       Receives the free height found, or 0 likewise
  *
- * @note Complexity: @e O(n^2) worst case, where @e n is the number of
- *       clients on @p desktop
+ * @note Complexity: @e O(n^2) worst case, where @e n is the number
+ *       of clients on @p desktop
  *
  * @see @a place_window_smart
  */
@@ -262,7 +264,7 @@ void placement_free_rect_grow(const desktop_td *desktop,
         stacking_walk(desktop, s_free_rect_shrink_visit, &shrink_ctx);
 
         /* Reported through the context rather than returned from the
-         * middle of the walk, which cannot be ended early: a collapsed
+         * middle of the walk, which cannot be ended early.  A collapsed
          * rectangle leaves nothing to go on searching for. */
         if (shrink_ctx.has_collapsed) {
             *out_w = 0u;
@@ -319,12 +321,12 @@ void placement_free_rect_grow(const desktop_td *desktop,
  * @param y           Candidate top coordinate
  * @param fw          Candidate width
  * @param fh          Candidate height
- * @param tray_rect   The systray's current on-screen rectangle to add
- *                    the same per-pixel overlap penalty as an ordinary
- *                    window for, or @c NULL to skip it
- *                    (@c systray.avoid-overlap is @c false, or has no
- *                    effect while @c systray.reserve-space is @c true;
- *                    see @a place_window_smart)
+ * @param tray_rect   The systray's current on-screen rectangle to
+ *                    add the same per-pixel overlap penalty as an
+ *                    ordinary window for, or @c NULL to skip it
+ *                    (@c systray.avoid-overlap is @c false, or has
+ *                    no effect while @c systray.reserve-space is
+ *                    @c true; see @a place_window_smart)
  * @param center_x    X coordinate of the workarea center
  * @param center_y    Y coordinate of the workarea center
  *

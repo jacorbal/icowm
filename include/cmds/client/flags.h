@@ -50,8 +50,9 @@ void ccmd_client_unpin(client_td *client);
  *
  * @param client Window to toggle pin state
  *
- * @note No-op on a surface with only one desktop: stickiness has
- *       nothing to actually toggle when there is only the one
+ * @note No-op on a surface with only one desktop
+ * @note Stickiness has nothing to actually toggle when there is only
+ *       the one
  * @note Complexity: @e O(1)
  */
 void ccmd_client_toggle_pin(client_td *client);

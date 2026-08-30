@@ -579,7 +579,7 @@ void ccmd_client_shade(client_td *client)
     }
 
     /* Same guard 'ccmd_client_maximize'/'_horz'/'_vert' ('geom.c') and
-     * 'ccmd_client_iconify' already apply: skip saving when the client
+     * 'ccmd_client_iconify' already apply.  Skip saving when the client
      * is already maximized (in any of its three variants), so shading
      * a maximized client and then unshading it later restores the
      * maximized size, not the pre-maximize one that
@@ -767,7 +767,7 @@ void ccmd_client_fullscreen(client_td *client)
     }
 
     /* Restore first if iconified, the same reasoning as
-     * 'ccmd_client_shade''s identical guard just above: an
+     * 'ccmd_client_shade''s identical guard just above.  An
      * iconified client's target window is unmapped, and entering
      * fullscreen here would map it back while the icon window is
      * still up. */
@@ -783,7 +783,7 @@ void ccmd_client_fullscreen(client_td *client)
      * clearing CLIENT_FLAG_RESIZABLE; see client/props.c) still needs
      * to enter fullscreen correctly when it requests
      * '_NET_WM_STATE_FULLSCREEN' on its own alt+enter handling, which
-     * this check used to silently swallow. */
+     * a stricter check here would silently swallow. */
 
     LOGGER_TRACE("Entering fullscreen for client window=0x%x",
             client->window);
@@ -793,7 +793,7 @@ void ccmd_client_fullscreen(client_td *client)
     }
 
     /* Fullscreen deliberately targets the raw monitor rect, not the
-     * workarea 'ccmd_client_resolve_workarea' would give: it is meant
+     * workarea 'ccmd_client_resolve_workarea' would give.  It is meant
      * to cover panels and docks too, not stop at their struts the way
      * maximize does. */
     if (ccmd_client_monitor(client, NULL, &monitor)) {
@@ -825,9 +825,9 @@ void ccmd_client_fullscreen(client_td *client)
     target = ccmd_target_win(client);
 
     /* Resized to fill the screen FIRST, before the content window below
-     * (when there is a separate one, i.e., 'target' is the frame):
-     * reversing this order used to leave a real, if brief, window
-     * between the two separate 'ConfigureWindow' requests where the
+     * (when there is a separate one, i.e., 'target' is the frame).
+     * The reverse order leaves a real, if brief, window between the
+     * two separate 'ConfigureWindow' requests where the
      * content window already had its fullscreen size while its
      * parent frame still had its old, smaller one, which X11 clips
      * a child window to regardless of what size the child itself was
@@ -913,7 +913,7 @@ void ccmd_client_fullscreen(client_td *client)
 
     ccmd_client_sync_states(client);
 
-    /* Now genuinely fullscreen and focused both: stack it above every
+    /* Now genuinely fullscreen and focused both.  Stack it above every
      * other client on this desktop, including every other ABOVE-layer
      * one, right away rather than leaving it to whatever future
      * stacking-order pass happens to run next; see
@@ -958,7 +958,7 @@ void ccmd_client_unfullscreen(client_td *client)
      * (correct for every other caller, where the frame already does
      * account for it) returns 0 here unconditionally, collapsing
      * 'inner_w'/'inner_h' below to the frame's full size and
-     * 'frame_extents.left'/'.right' to 0 right along with it: the
+     * 'frame_extents.left'/'.right' to 0 right along with it.  The
      * border theme color never disappears, there is simply no frame
      * pixel width left for it to occupy, the client's content
      * drawn flush against the frame's outer edge instead. */
@@ -966,9 +966,9 @@ void ccmd_client_unfullscreen(client_td *client)
 
     /* Configured BEFORE the frame/target itself shrinks further down,
      * for the same reason 'ccmd_client_fullscreen' now configures its
-     * own outer target before the inner content window: reversing
-     * this order used to leave a real, if brief, window between two
-     * separate 'ConfigureWindow' requests where the frame already had
+     * own outer target before the inner content window.  The reverse
+     * order leaves a real, if brief, window between the two separate
+     * 'ConfigureWindow' requests where the frame already has
      * its smaller, restored size while the content window still
      * had its old, larger fullscreen one, which X11 clips a child
      * window to regardless of what size the child itself still
@@ -1003,10 +1003,10 @@ void ccmd_client_unfullscreen(client_td *client)
 
         /* The frame's X11-native border width must stay 0, always,
          * for a decorated client (see the main render pass in
-         * render/desktop.c, which enforces exactly that): the visible
+         * render/desktop.c, which enforces exactly that).  The visible
          * border comes from the frame's size and background color
-         * (see frame_extents above), not from an X11-native border.  A
-         * non-zero value here would add an extra, unwanted border on
+         * (see 'frame_extents' above), and not from an X11-native
+         * border.  A non-zero value here would add an unwanted one on
          * top of that until the next full repaint reset it back. */
         ccmd_client_apply_geometry(client, client->frame,
                 (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
@@ -1033,7 +1033,7 @@ void ccmd_client_unfullscreen(client_td *client)
     }
 
     /* 'BORDER_WIDTH' is included here too, not just inside the
-     * 'was_decorated_fullscreen' block above: for an undecorated
+     * 'was_decorated_fullscreen' block above.  For an undecorated
      * client, 'target' is its window and this is the only place
      * its border gets restored at all, since there is no separate
      * frame for an earlier step to already have set it on. */
@@ -1142,7 +1142,7 @@ void ccmd_client_toggle_decorate(client_td *client)
      * input/mouse/hover.h) tracked for either of this client's windows
      * would otherwise keep polling and re-applying a cursor to
      * whichever one it was tracking before this toggle, oblivious to
-     * decoration having just changed underneath it: if it was
+     * decoration having just changed underneath it.  If it was
      * tracking the client's window because it was undecorated
      * when hover-polling started, and this toggle adds a frame, the
      * two would fight over the client window's cursor from then on,

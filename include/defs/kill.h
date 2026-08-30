@@ -35,7 +35,7 @@
  * @brief Maximum number of process kills that can be pending escalation
  *        at once
  *
- * A person forcing several unresponsive clients closed in quick
+ * A user forcing several unresponsive clients closed in quick
  * succession, before the first one's timeout has even elapsed, is
  * unusual but not implausible.  Further kills past this many pending at
  * once simply skip escalation, leaving their @a xcb_kill_client as

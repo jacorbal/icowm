@@ -221,7 +221,7 @@ int logger_start(const char *filename,
  *
  * The ordinary flush goes through @c fprintf and @c fflush, neither of
  * which is async-signal-safe, so a process dying on @c SIGSEGV or a
- * sibling took its buffered messages with it: exactly the ones worth
+ * sibling took its buffered messages with it.  Exactly the ones worth
  * reading afterwards.  This writes them with @c write, which is on the
  * guaranteed-safe list, and is called from
  * @a wm_startup_handle_crash before that handler re-raises the signal.
@@ -231,14 +231,14 @@ int logger_start(const char *filename,
  * normal flush like any other shutdown.  Only a genuine crash gets
  * here.
  *
- * @note Takes no lock, and so reads the buffer unsynchronized: a
- *       handler blocking on a mutex the interrupted code already held
+ * @note Takes no lock, and so reads the buffer unsynchronized
+ * @note A handler blocking on a mutex the interrupted code already held
  *       would hang the process rather than let it die
  * @note Safe only because the program runs a single thread, as the
  *       comment on the function itself sets out
- * @note Frees nothing and resets nothing: the process re-raises the
- *       signal immediately afterwards, and the allocator is not
- *       async-signal-safe either
+ * @note Frees nothing and resets nothing
+ * @note The process re-raises the signal immediately afterwards, and
+ *       the allocator is not async-signal-safe either
  * @note Complexity: @e O(n), where @e n is the number of buffered
  *       messages
  */

@@ -287,8 +287,8 @@ void handler_expose(xcb_connection_t *connection,
         /* A fullscreen client's frame can still receive an
          * Expose (e.g., a click landing on it while it happens to
          * still exist as an X window underneath, even though it is
-         * never shown decorated), and this path used to repaint the
-         * theme's regular border onto it unconditionally regardless.
+         * never shown decorated), and repainting the theme's regular
+         * border onto it unconditionally would show through.
          * Same condition 's_desktop_render_one_client'
          * ('render/desktop.c') already uses for its
          * 'hide_decoration'. */

@@ -221,7 +221,7 @@ static struct session_tracked_pid_s *s_session_find_pid(pid_t pid)
  *
  * @note A hook that fails to execute is reported rather than
  *       silently producing a child that exits at once, which is what
- *       a command with a typo in it used to do
+ *       a command with a typo in it otherwise does
  * @note Complexity: @e O(n), where @e n is the number of words
  *       @p command expands to
  */

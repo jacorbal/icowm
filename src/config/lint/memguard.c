@@ -98,9 +98,7 @@ const config_lint_key_td s_schema_memguard[] = {
 };
 
 
-/* A key added to 's_schema_memguard' without its count in the header
- * following makes this declaration negative, and so the build fail
- * here rather than the linter read past the end of the table */
+/* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_memguard_size_check
     [(sizeof(s_schema_memguard) /
       sizeof(s_schema_memguard[0]) == CONFIG_LINT_MEMGUARD_KEYS)

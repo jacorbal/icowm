@@ -87,7 +87,7 @@
  * @a client_init already read it when the window was adopted, but a
  * client that sets the property around that same moment can be sampled
  * before it gets there.  Nothing reads the property a second time
- * afterwards, so the state was lost for good: the window came up at
+ * afterwards, so the state was lost for good.  The window came up at
  * its size while every later check still believed it fullscreen,
  * leaving something that could not be moved or resized and was not
  * fullscreen either.
@@ -100,9 +100,9 @@
  * @param ewmh       EWMH connection
  * @param client     Client whose recorded initial state is refreshed
  *
- * @note Never clears what was already recorded: a client that set the
- *       state early and had it seen is not made to lose it by a reply
- *       that arrives without it
+ * @note Never clears what was already recorded
+ * @note A client that set the state early and had it seen is not made
+ *       to lose it by a reply that arrives without it
  * @note Complexity: @e O(n), where @e n is the number of atoms the
  *       property holds
  */
@@ -161,7 +161,7 @@ static void s_map_refresh_initial_state(xcb_connection_t *connection,
 /**
  * @brief Finish taking a window under management, once it has a place
  *
- * Everything after the placement decision: mapping the frame and the
+ * Everything after the placement decision.  Mapping the frame and the
  * window itself, honouring an initial iconic state, giving focus if
  * the configuration wants new windows to have it, telling the client
  * its screen-relative geometry as ICCCM requires, and announcing the
@@ -302,7 +302,7 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
  * Shared by every early-return path in @c handler_map_request below
  * that declines to manage the window (an unresolvable surface or
  * current desktop, @c client_init itself failing, or the client
- * failing to be added to its desktop): the requesting application
+ * failing to be added to its desktop).  The requesting application
  * gets its window on screen either way, just without a frame or any
  * window-manager tracking.
  *
@@ -379,9 +379,8 @@ void handler_map_request(const wm_td *wm,
      * with keyboard focus regardless (a real, mapped top-level window
      * can still receive it, even one IcoWM never decided to manage),
      * later code that assumes "whatever currently has focus is a
-     * tracked client" has nothing valid to find, which is exactly
-     * what produced the abrupt, broken behavior this comment used to
-     * defend against creating in the first place.  Simply never
+     * tracked client" has nothing valid to find, which is exactly the
+     * abrupt behavior this comment warns against.  Simply never
      * mapping the window instead means the requesting application is
      * left waiting for a MapNotify that will not come, rather than
      * being handed a window it cannot use through the one channel
@@ -479,10 +478,10 @@ void handler_map_request(const wm_td *wm,
 
         /* 'place_window_apply' just above marked this client if the
          * manual policy really did apply to it, so nothing here has to
-         * work out again whether it did: a window that asked for a
-         * position itself, a dialog centered over its parent, or one
-         * clustered next to a sibling never reached that policy at all
-         * and is not marked.  Taking the client leaves it unmapped and
+         * work out again whether it did.  A window that asked for
+         * a position itself, a dialog centered over its parent, or one
+         * clustered next to a sibling never reaches that policy and is
+         * never marked.  Taking the client leaves it unmapped and
          * hands 's_map_finish' over to be called once someone points
          * at where it goes, so this function must stop here rather
          * than finish the map itself.
@@ -495,14 +494,12 @@ void handler_map_request(const wm_td *wm,
                 place_manual_enqueue(connection, wm, surface, desktop,
                         client, mouse_cursor_move(), s_map_finish)) {
             /* Not mapping it here is not enough to keep it off the
-             * screen: a client sits in its desktop's list from the
+             * screen.  A client sits in its desktop's list from the
              * moment it is adopted, and the render pass shows every
-             * one of them that is not marked hidden, so the very next
-             * pass (the one another window's 's_map_finish' triggers,
-             * among others) would put this one on screen
-             * while it is still being asked about.  Paired with the
-             * 'client_unhide' 's_map_finish' already does above, which
-             * is what takes the mark off again once it is settled. */
+             * one not marked hidden, so the next pass would put this
+             * one up while it is still being asked about.  Paired with
+             * the 'client_unhide' that 's_map_finish' does above,
+             * which takes the mark off once it is settled. */
             client_hide(client);
             return;
         }
@@ -570,7 +567,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
             xcb_window_hide(client->titlebar);
         }
         /* 'properties.state' itself, not just the published EWMH
-         * property, must also stop claiming fullscreen here: a
+         * property, must also stop claiming fullscreen here.  A
          * fullscreen client that withdraws itself this way previously
          * had only its '_NET_WM_STATE_FULLSCREEN' atom stripped
          * from the property below, with nothing here ever touching
@@ -624,7 +621,7 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
 
     LOGGER_TRACE("Destroy notify event (window=0x%x)", event->window);
 
-    /* Before the managed-client lookup below, and unconditionally: a
+    /* Before the managed-client lookup below, and unconditionally.  A
      * docked systray icon is never a managed client at all, so the
      * early return that lookup takes for an unmanaged window would
      * otherwise leave the destroyed icon in the tray's array
@@ -647,10 +644,10 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
     }
 
     /* Drop it from the manual-placement queue too, for the same
-     * reason: a window destroyed while it was being pointed at, or
-     * while it waited its turn to be, still holds a place in that
-     * queue and, if it was the one being asked about, the pointer and
-     * the keyboard along with it. */
+     * reason.  A window destroyed while it was being pointed at, or
+     * while waiting its turn, still holds a place in that queue, and
+     * the pointer and the keyboard with it if it was the one being
+     * asked about. */
     place_manual_cancel_client(connection, client);
 
     if (desktop != NULL) {
@@ -682,7 +679,7 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
 
     /* When the frame is destroyed the X server also destroys all its
      * children ('client->window', 'client->titlebar').  Zero them all
-     * out so client_destroy does not issue redundant
+     * out so 'client_destroy' does not issue redundant
      * 'xcb_destroy_window' calls. */
     if (event->window == client->frame) {
         client->frame = 0;
@@ -696,7 +693,7 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
          * Increment 'ignore.unmap' so the 'UnmapNotify' the X server
          * generates for the mapped frame is swallowed and does not
          * re-enter the unmap handler.  Zero both pointers to prevent
-         * client_destroy from issuing redundant destroy calls. */
+         * 'client_destroy' from issuing redundant destroy calls. */
         if (connection != NULL && client->frame != 0) {
             client->ignore.unmap++;
             xcb_window_destroy(client->frame);

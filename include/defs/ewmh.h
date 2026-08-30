@@ -131,9 +131,9 @@
  *
  * Says who is asking, which decides how much weight the request
  * carries.  @c WM_SOURCE_APPLICATION is a program asking on its own
- * behalf, and may be weighed against whatever the person is doing
+ * behalf, and may be weighed against whatever the user is doing
  * right now; @c WM_SOURCE_USER is a pager, a taskbar or a
- * notification, which is to say the person acting through one, and is
+ * notification, which is to say the user acting through one, and is
  * honored.  @c WM_SOURCE_LEGACY is what a client too old to set the
  * field leaves behind, and counts as an application.
  */

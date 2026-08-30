@@ -83,8 +83,8 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
-    /* Independent of focus-follows-mouse below: a resizable client that
-     * selects 'PointerMotion' for its purposes (common in GTK/Qt
+    /* Independent of focus-follows-mouse below.  A resizable client
+     * that selects 'PointerMotion' for its purposes (common in GTK/Qt
      * applications tracking hover for their UI) intercepts motion
      * events at the X11 propagation level before they ever reach
      * 'mouse_handle_motion_hover', so the cursor set while hovering

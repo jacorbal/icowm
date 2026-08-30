@@ -4,8 +4,8 @@
  * @brief Systray protocol handling: selection ownership, window
  *        creation, and icon docking
  *
- * The low-level mechanics of being a system tray manager: interning the
- * atoms the protocol needs, creating the dock window, acquiring and
+ * The low-level mechanics of being a system tray manager.  Interning
+ * the atoms the protocol needs, creating the dock window, acquiring and
  * releasing the @c _NET_SYSTEM_TRAY_Sn selection per the ICCCM
  * manager-selection convention, and reparenting/embedding an icon
  * window that requests to dock.  Where the tray and its icons end up on
@@ -48,7 +48,7 @@
 
 
 /**
- * @brief Best-effort sort key for an icon window: its @c WM_CLASS
+ * @brief Best-effort sort key for an icon window.  Its @c WM_CLASS
  *        instance name
  *
  * Used only by the alphabetical @c order policies; left as an empty
@@ -105,7 +105,7 @@ static void s_systray_icon_sort_key_fetch(xcb_window_t icon,
 /**
  * @brief Index at which a newly docked icon should be inserted
  *
- * Implements the @p systray.order configuration policy: appends,
+ * Implements the @p systray.order configuration policy.  Appends,
  * prepends, or finds the correct position to keep @p s_tray.icons
  * sorted by @p sort_key.
  *
@@ -357,7 +357,7 @@ bool systray_protocol_window_ensure(const wm_td *wm)
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
         /* Without this, the server never generates an 'Expose' event
          * for this window at all, regardless of how correct
-         * 'handler_expose''s systray check is: a region covered and
+         * 'handler_expose''s systray check is.  A region covered and
          * then uncovered stays blank until 'systray_clock_tick' happens
          * to redraw it anyway on its own next per-second update, rather
          * than right away. */

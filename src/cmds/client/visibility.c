@@ -64,7 +64,7 @@
  * @brief Iconize exactly this one client, ignoring any transient
  *        family it may belong to
  *
- * Carries what used to sit inside @a ccmd_client_iconify so
+ * Holds the single-client half of @a ccmd_client_iconify, so
  * that function can redirect to, and cascade across, a transient
  * family (see its comment) while still sharing this single
  * client's worth of ICCCM/EWMH bookkeeping with the top-level, family-
@@ -145,7 +145,7 @@ static void s_ccmd_client_iconify_one(client_td *client)
     /* A client that both asks to be left out of the taskbar/cycle
      * list AND belongs to a transient family with some other,
      * further-up member to represent it (its top parent differs
-     * from itself) gets no icon box of its own here: that top parent
+     * from itself) gets no icon box of its own here.  That top parent
      * already gets one (see 'ccmd_client_iconify''s cascading
      * doc comment), and a second, unselectable box for this same
      * family sitting right next to it would be pure visual clutter
@@ -267,8 +267,8 @@ static void s_ccmd_client_iconify_one(client_td *client)
 
     /* Ensure taskbars reflect the iconified state even when the client
      * was not the active one.  Function 'ccmd_client_focus_fallback'
-     * only marks is_outdated when it changes focus, so a non-active
-     * iconification would otherwise not trigger wm_ewmh_sync. */
+     * only marks 'is_outdated' when it changes focus, so a non-active
+     * iconification would otherwise not trigger 'wm_ewmh_sync'. */
     wm_request_client_redraw(client);
 
 }
@@ -296,7 +296,7 @@ static void s_ccmd_client_iconify_visit(client_td *member, void *ctx)
  * @brief Hide exactly this one client (minimize, but not iconify),
  *        ignoring any transient family it may belong to
  *
- * Carries what used to sit inside @a ccmd_client_hide so
+ * Holds the single-client half of @a ccmd_client_hide, so
  * that function can redirect to, and cascade across, a transient
  * family (see its comment).
  *
@@ -361,7 +361,7 @@ static void s_ccmd_client_hide_visit(client_td *member, void *ctx)
  * @brief Show (unhide) exactly this one client, ignoring any
  *        transient family it may belong to
  *
- * Carries what used to sit inside @a ccmd_client_unhide so
+ * Holds the single-client half of @a ccmd_client_unhide, so
  * that function can redirect to, and cascade across, a transient
  * family (see its comment).
  *
@@ -422,7 +422,7 @@ static void s_ccmd_client_unhide_visit(client_td *member, void *ctx)
  *
  * Every place in this project that unmaps a client window-manager-
  * side (iconifying, hiding for another desktop, sending it
- * elsewhere) shares this exact same two-step shape: increment
+ * elsewhere) shares this exact same two-step shape.  Increment
  * @c client->ignore.unmap by however many @c UnmapNotify events the
  * unmap below is about to generate, THEN issue the unmap itself, so
  * @a handler_unmap_notify (@c handler/map.c) correctly recognizes
@@ -473,7 +473,7 @@ void ccmd_client_unmap_decorated(client_td *client,
  *
  * ICCCM §4.1.2.6 dialogs (a "save changes?" prompt, say) are meant to
  * live and die with the window they belong to, not persist as their
- * own independent, separately-iconified entity: iconizing any single
+ * own independent, separately-iconified entity.  Iconizing any single
  * member of a transient family here redirects to, and iconizes, the
  * family's top-most ancestor (@a ccmd_client_transient_top_parent)
  * first, then every other member of that same family still mapped and
@@ -570,7 +570,7 @@ void ccmd_client_hide(client_td *client)
  *        back with it
  *
  * The matching half of @a ccmd_client_hide's transient-family
- * cascade (see its comment for the full reasoning): redirects
+ * cascade (see its comment for the full reasoning).  Redirects
  * to the family's top-most ancestor, then unhides every other family
  * member still hidden, so a family hidden together comes back
  * together too.  Every other family member is unhidden before the

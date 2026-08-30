@@ -76,7 +76,7 @@ static desktop_td *s_warp_target_desktop(surface_td *surface,
         bool cycle)
 {
     const uint32_t old_desktop_id = surface->desktop_cur;
-    /* Initialized here, not left to the switch below: that switch
+    /* Initialized here, not left to the switch below.  That switch
      * deliberately has no 'default:' so the compiler keeps checking
      * it against every direction, which also means it cannot prove
      * to itself that one of its cases always runs */
@@ -131,7 +131,7 @@ static void s_warp_move_family(desktop_td *old_desktop,
          * closes while some other desktop is the one currently
          * shown, is precisely what tells 'surface_clients_show'
          * (surface/actions.c) to have 'client_focus_fallback' guess
-         * a reasonable replacement once the person switches back,
+         * a reasonable replacement once the user switches back,
          * rather than relinquishing focus outright the way a
          * 'client_active_id' that was 0 to begin with would.  Actually
          * clearing it here would collapse that same distinction this
@@ -141,7 +141,7 @@ static void s_warp_move_family(desktop_td *old_desktop,
     }
     (void) desktop_action_client_add(new_desktop, s_drag.client);
     /* The dragged client is, by construction, always the one the
-     * person is actively engaged with right now; 'new_desktop' itself
+     * user is actively engaged with right now; 'new_desktop' itself
      * has no way to already know that on its own, so without this it
      * would keep rendering whichever client was its last
      * genuinely active one instead, active-window highlight included,
@@ -183,7 +183,7 @@ static void s_warp_move_family(desktop_td *old_desktop,
      * list, 'desktop_id'): the pointer-following visual drag below
      * (position, overlay, pointer warp) is inherently about the one
      * specific window actually held under the cursor and does not
-     * apply to a family member the person is not physically
+     * apply to a family member the user is not physically
      * dragging. */
     if (old_desktop != NULL) {
         client_td *const top =
@@ -255,7 +255,7 @@ static void s_warp_pointer_target(int16_t *out_x, int16_t *out_y)
      * before the final cast: 'screen_w'/'screen_h' (uint32_t, no
      * compile-time bound) are not guaranteed to fit
      * int16_t on an extreme multi-monitor surface, and this pointer
-     * position is sent to the X server as one, via xcb_warp_pointer
+     * position is sent to the X server as one, via 'xcb_warp_pointer'
      * below. */
     is_horizontal = (s_drag.warp_direction == COMPASS_EAST ||
             s_drag.warp_direction == COMPASS_WEST);
@@ -355,7 +355,7 @@ static void s_warp_move_dragged(xcb_connection_t *connection,
                     (struct position_s) { new_window_x,
                         s_drag.client_cur.pos.y });
         } else {
-            /* Same reasoning as the geometry overlay just below: left
+            /* Same reasoning as the geometry overlay just below.  Left
              * untouched here, the outline would stay drawn wherever it
              * was right before the warp, on the old desktop's
              * edge, until whatever real motion notify happens to come
@@ -535,7 +535,7 @@ void drag_warp_tick(xcb_connection_t *connection)
 
     /* Same desktop-switch notification a normal (non-warp) switch
      * shows (see 's_show_desktop_overlay' in cmds/surface.c, whose
-     * thin wrapper over this same call this mirrors): without it, a
+     * thin wrapper over this same call this mirrors).  Without it, a
      * warp is the one way to switch desktops that never shows which
      * one just became active. */
     notify_desktop_show(xcb_connection_get(), surface,

@@ -108,7 +108,7 @@
  *
  * Shared by every dialog that defers its click-triggered close this
  * way.  Closing on the very same repaint that shows the new selection
- * would not give a person any real chance to perceive it, since screen
+ * would not give a user any real chance to perceive it, since screen
  * updates and human perception both take a moment neither the repaint
  * nor the close itself can shortcut.
  *
@@ -122,7 +122,7 @@
  *        a just-applied @c randr.json
  *
  * The cancel/revert button is the dialog's default selection, so this
- * timing out has the same effect as a person pressing it themselves:
+ * timing out has the same effect as a user pressing it themselves:
  * long enough to actually read the prompt and react even if the new
  * profile left the screen in an awkward state, short enough not to sit
  * there indefinitely if nobody is watching (e.g., a reload triggered

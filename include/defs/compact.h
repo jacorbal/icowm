@@ -38,7 +38,7 @@
  *   build without @c COMPACT stays unrestricted until @c (-M <mib>)
  *   asks for it.
  *
- * A person who knows they are always going to run on a severely
+ * A user who knows they are always going to run on a severely
  * memory-constrained target gets both at once from @c COMPACT alone:
  * a build genuinely sized for that target from the ground up, rather
  * than one that merely behaves more conservatively at run time while

@@ -144,9 +144,9 @@
  * on the display something untrue.
  *
  * A panel or a dock is what this keeps out in practice.  Such a window
- * is desktop furniture rather than an application: it has no titlebar
+ * is desktop furniture rather than an application.  It has no titlebar
  * to iconify from, it is pinned to every desktop, and an icon standing
- * in for it would represent something the person never asked to put
+ * in for it would represent something the user never asked to put
  * away.
  *
  * @note Complexity: @e O(1)
@@ -169,7 +169,7 @@
  * @c can_focus @c || @c focus_notify check in @c focus_valid_target
  * (@c focus.c).
  *
- * This is a distinct concept from @a client_is_focusable: that one
+ * This is a distinct concept from @a client_is_focusable.  That one
  * is about the window's @e type (a dock or notification never
  * wants focus, whatever its input model says); this one is about
  * the ICCCM input model any window, dock or not, may declare.  A
@@ -177,7 +177,7 @@
  * @a focus_apply (@c policy/focus.c) risks unfocusing whatever
  * already holds real keyboard focus in favor of a client that can
  * never actually receive it, leaving keyboard input directed
- * nowhere until the person clicks something else by hand.
+ * nowhere until the user clicks something else by hand.
  *
  * @note Complexity: @e O(1)
  */

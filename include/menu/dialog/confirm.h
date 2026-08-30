@@ -59,7 +59,7 @@
  *                        button is activated; receives the XCB
  *                        connection (may be null)
  * @param on_cancel       Optional callback invoked when the cancel
- *                        button is activated, either by a person
+ *                        button is activated, either by a user
  *                        clicking it, selecting it and pressing
  *                        @c Enter / @c Space, pressing @c Escape (which
  *                        always acts as "cancel", regardless of which
@@ -201,7 +201,7 @@ void menu_confirm_dialog_accept(xcb_connection_t *connection);
  * button was actually selected first (irrelevant, since this always
  * takes the cancel path).  Meant for @c Escape and for a countdown
  * timeout, both of which are "back out of this" regardless of whatever
- * a person may have tabbed the selection to in the meantime.
+ * a user may have tabbed the selection to in the meantime.
  *
  * @param connection XCB connection
  *

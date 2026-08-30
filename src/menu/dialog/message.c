@@ -115,7 +115,7 @@ static s_message_layout_td s_message_layout;
  * silently dropping the rest, so a pathologically long message can
  * never grow the dialog, or this function's allocation, without
  * bound.  A @c '\r' is treated exactly like a space (dropped as a
- * word separator, never copied into a line): callers on a platform
+ * word separator, never copied into a line).  Callers on a platform
  * that terminates lines with @c "\r\n" would otherwise leave that
  * @c '\r' attached to the end of a word, where an X core (non-Xft)
  * bitmap font typically has a visible glyph for it instead of
@@ -349,7 +349,7 @@ static void s_message_compute_layout(xcb_connection_t *connection,
 
     /* Measures both 'button.unselected.font' and 'button.selected.
      * font' and keeps the wider/taller of the two, exactly like
-     * 's_confirm_compute_layout' does for its two buttons: this
+     * 's_confirm_compute_layout' does for its two buttons.  This
      * button can render in either state now (unselected by default
      * for warning/error levels; see 'menu_message_dialog_show'), and
      * sizing off only one font risks an off-center label once the
@@ -382,7 +382,7 @@ static void s_message_compute_layout(xcb_connection_t *connection,
                 ((uint16_t) layout->line_height + DIALOG_MSG_LINE_GAP))
         : 0u;
 
-    /* Everything the message area's height competes with: the
+    /* Everything the message area's height competes with.  The
      * padding above it, the gap and button below it, and the bottom
      * padding.  Used both to size the unclamped 'natural' height below
      * and, if that would be too tall, to work out how much of it is
@@ -521,7 +521,7 @@ static void s_message_draw(xcb_connection_t *connection,
      * individually re-centered, so the whole block reads as one
      * left-aligned paragraph rather than each line jittering
      * sideways relative to the others.  Only 'visible_lines' worth of
-     * 'lines', starting at 'scroll_offset', are ever drawn: the rest
+     * 'lines', starting at 'scroll_offset', are ever drawn.  The rest
      * exist off-screen in the buffer and are reached by scrolling. */
     (void) text_renderer_use_font(connection,
             config->theme.dialog.label.font);
@@ -541,7 +541,7 @@ static void s_message_draw(xcb_connection_t *connection,
                 lo->lines[lo->scroll_offset + i]);
     }
 
-    /* Footer, right below the last content row shown above: only
+    /* Footer, right below the last content row shown above.  Only
      * drawn when there is more of the message than fits at once,
      * i.e., exactly when 'visible_lines' was computed with room
      * for it reserved in the first place (see
@@ -681,7 +681,7 @@ void menu_message_dialog_show(xcb_connection_t *connection,
      * one of these two levels cannot be dismissed by reflex, the way
      * repeatedly hitting Escape or Enter/Space to close whatever
      * dialog currently has focus easily could otherwise.  Every other
-     * level keeps the previous, quicker-to-dismiss behavior: the
+     * level keeps the previous, quicker-to-dismiss behavior.  The
      * button starts selected, and Escape works normally. */
     s_message_layout.ok_selected =
         (level != MENU_MSG_LEVEL_WARNING &&
@@ -809,7 +809,7 @@ void menu_message_dialog_close(xcb_connection_t *connection)
     menu_dialog_defer_cancel();
 
     /* Given back immediately on close, rather than held until the
-     * next 'menu_message_dialog_show' reuses or replaces it: nothing
+     * next 'menu_message_dialog_show' reuses or replaces it.  Nothing
      * stays reserved for this dialog's text while no dialog is
      * even open. */
     free(s_message_layout.raw_message);
@@ -847,7 +847,7 @@ void menu_message_dialog_handle_click(xcb_connection_t *connection,
             x < (int) lo->btn.pos.x + (int) lo->btn.dim.w) {
         /* Selected and repainted first, the same as
          * 'menu_confirm_dialog_handle_click' already does for its
-         * two buttons, so a person actually sees the click land on
+         * two buttons, so a user actually sees the click land on
          * the "OK" button before the deferred close below makes the
          * dialog go away. */
         s_message_layout.ok_selected = true;

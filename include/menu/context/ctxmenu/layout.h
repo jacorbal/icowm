@@ -56,8 +56,8 @@ int ctxmenu_entry_top_y(const ctxmenu_state_td *state, int idx);
  * allocated) with the top-Y pixel offset of each row, so that
  * @c ctxmenu_entry_top_y and @c ctxmenu_entry_at_y can look rows up
  * directly afterwards instead of re-walking the entry array on every
- * call.  Also returns the total height, replacing what used to be a
- * separate pass over the same entries.
+ * call.  Also returns the total height, sparing a separate pass over
+ * the same entries.
  *
  * @param state Menu state; @p entries and @p entry_count must already
  *              be set

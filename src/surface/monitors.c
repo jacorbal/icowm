@@ -69,7 +69,7 @@ static void s_surface_monitors_fallback(surface_td *surface)
  * @c config_randr_s, loaded from @c randr.json); a matching profile
  * that is explicitly disabled excludes that output from
  * @c surface->monitors entirely, as if it were not connected at all,
- * letting a person with more physical outputs than they want IcoWM
+ * letting a user with more physical outputs than they want IcoWM
  * to place windows on limit it to specific ones by name (e.g., an
  * always-connected "HDMI-1" projector meant only for mirroring, never
  * for managing windows).  With RandR profile management off
@@ -296,7 +296,7 @@ monitor_td surface_monitor_direction(const surface_td *surface,
          * for its off-monitor fallback: among every monitor that
          * genuinely lies in the requested direction at all (the
          * switch above), whichever one is nearest by that measure is
-         * the one a person would call "the monitor to the north"
+         * the one a user would call "the monitor to the north"
          * (or south, east, west), even when the monitors involved
          * are not all the same size or perfectly aligned. */
         dist = dx * dx + dy * dy;

@@ -1,7 +1,7 @@
 /**
  * @file wm/startup.h
  *
- * @brief Window manager startup helpers: extension probing
+ * @brief Window manager startup helpers.  Extension probing
  *
  * Split by competency into @c wm/startup/install.h (registering signal
  * handlers), @c wm/startup/handle.h (the handlers themselves and the
@@ -66,8 +66,9 @@ int wm_startup_randr_init(wm_td *wm);
  * @retval -1 on fatal input
  *
  * @note No matching teardown, for the same reason as
- *       @a wm_startup_randr_init above: its one reply is freed here,
- *       and the extension data belongs to the connection
+ *       @a wm_startup_randr_init above
+ * @note Its one reply is freed here, and the extension data belongs to
+ *       the connection
  */
 int wm_startup_sync_init(wm_td *wm);
 

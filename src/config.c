@@ -146,7 +146,7 @@ void config_resolve_theme_name(struct config_theme_s *theme,
     }
 
     if (theme->name[0] == '\0') {
-        /* The loaded file set no "name" of its own: falls back to the
+        /* The loaded file set no "name" of its own.  Falls back to the
          * file's short name (the same string "theme": "<this>" in
          * memguard.json/config.json names, not a path or the ".json"
          * extension), same as if that had been its "name" all along. */
@@ -230,7 +230,7 @@ void config_destroy(config_td *config)
 }
 
 
-/* Clear whichever theme file config_load last recorded as specified
+/* Clear whichever theme file 'config_load' last recorded as specified
  * but not actually found */
 void config_missing_theme_reset(void)
 {
@@ -238,7 +238,7 @@ void config_missing_theme_reset(void)
 }
 
 
-/* The theme file path config_load most recently found specified but
+/* The theme file path 'config_load' most recently found specified but
  * missing, if any */
 const char *config_missing_theme_get(void)
 {

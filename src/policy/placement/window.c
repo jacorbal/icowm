@@ -55,12 +55,12 @@
 /* Where the cascade put the last window it placed, as an offset from
  * the workarea origin rather than an absolute position, so the run
  * carries on sensibly across monitors of different sizes and origins.
- * The position itself is the state, not a count of how many windows
- * have been placed: a cascade means each window sits one step on from
- * the one before it, and a count would have to be turned back into
- * a position by a modulus whose divisor depends on the size of
- * whichever window is being placed, which is not the same thing at all
- * (used in 'place_window_apply_cascade') */
+ * The position itself is the state, and not a count of how many
+ * windows have been placed.  A cascade means each window sits one step
+ * on from the one before it, whereas a count would have to be turned
+ * back into a position by a modulus whose divisor depends on the size
+ * of whichever window is being placed (used in
+ * 'place_window_apply_cascade') */
 static struct position_s s_cascade_last = { 0, 0 };
 
 /* Whether 's_cascade_last' holds a position yet, false only until the
@@ -318,7 +318,7 @@ static bool s_place_window_transient_centered(const wm_td *wm,
         new_y = py + ((int32_t) ph - (int32_t) fh) / 2;
         placed_as_transient = true;
     } else {
-        /* Parent not yet managed (or unmanaged window): fall back
+        /* Parent not yet managed (or unmanaged window).  Fall back
          * to 'xcb_get_geometry' on the declared transient-for
          * window */
         xcb_get_geometry_cookie_t pgc;
@@ -374,10 +374,10 @@ static bool s_place_window_transient_centered(const wm_td *wm,
  * @brief Apply gravity, clamp to the workarea, and move the client to
  *        its final resolved position
  *
- * Shared final step of every placement policy: adjusts for window
+ * Shared final step of every placement policy.  Adjusts for window
  * gravity, clamps so the title bar never ends up above the workarea or
- * the physical screen edge, then issues the actual @c ConfigureWindow
- * that moves the window and records the position it was moved to.
+ * the physical screen edge, then issues the @c ConfigureWindow that
+ * moves the window and records the position it was moved to.
  *
  * @param surface Surface the client lives on
  * @param client  Client being placed
@@ -435,11 +435,11 @@ void place_window_apply_cascade(const wm_td *wm,
 
     /* Each axis wraps when that axis stops fitting, separately, and
      * against the size of this window rather than of the run as
-     * a whole.  Sharing one step count between the two, as taking the
-     * smaller of them did, made the shorter axis decide for both: on
-     * a wide screen the run gave up with most of the width still
-     * unused, and came back to the very position it began at.  Wrapped
-     * separately, the vertical axis coming back to the top while the
+     * a whole.  One step count shared between the two would let the
+     * shorter axis decide for both, giving up on a wide screen with
+     * most of the width unused and returning to the position the run
+     * began at.  Wrapped separately, the vertical axis coming back to
+     * the top while the
      * horizontal one keeps going is what opens the next column. */
     if ((uint32_t) off.x + fw > mon_sz.w) {
         off.x = 0;
@@ -463,12 +463,12 @@ void place_window_apply_cascade(const wm_td *wm,
  * @brief Center a splash screen on the workarea
  *
  * EWMH does not require this, saying only what the type means, but it
- * is what every toolkit offering a splash does and what the person
- * expects to see: a start-up screen cascaded into a corner alongside
+ * is what every toolkit offering a splash does and what the user
+ * expects to see.  A start-up screen cascaded into a corner alongside
  * ordinary windows looks like a mistake.
  *
  * First of the overrides, ahead of the honored-position step and not
- * merely ahead of the transient centering: a splash routinely works
+ * merely ahead of the transient centering.  A splash routinely works
  * out a centre for itself and asks for it through @c PPosition, which
  * that step obeys, so a splash never reached this at all while it came
  * later.  What it asks for is a guess at where the middle is, made
@@ -485,11 +485,11 @@ void place_window_apply_cascade(const wm_td *wm,
  *
  * @note Places without going through @a s_place_window_finalize, which
  *       applies the window's gravity to whatever position it is handed
- * @note That is right for a position the client asked for, stated in
- *       terms of its gravity, and wrong for this one: the middle
- *       worked out here is already where the window goes, so a splash
- *       declaring centre gravity had half its width taken off again
- *       and landed left of centre
+ * @note That is right for a position the client asked for in terms of
+ *       its gravity, and wrong for this one, the middle worked out
+ *       here being already where the window goes; a splash declaring
+ *       center gravity would otherwise have half its width taken off
+ *       again and land left of centre
  * @note Complexity: @e O(1)
  */
 static enum s_place_result_e s_place_step_splash(
@@ -777,7 +777,7 @@ static enum s_place_result_e s_place_step_centered(
 
 
 /**
- * @brief Ask the person where the window goes, and sit meanwhile where
+ * @brief Ask the user where the window goes, and sit meanwhile where
  *        the smart scan chose
  *
  * @param ctx     Everything the step may look at
@@ -906,7 +906,7 @@ static enum s_place_result_e s_place_step_keep(
 void place_window_apply(const wm_td *wm,
         surface_td *surface, client_td *client)
 {
-    /* Tried in this order, and the order is the precedence: what used
+    /* Tried in this order, and the order is the precedence.  What used
      * to be several paragraphs explaining why a splash has to be
      * settled before an honored position, and that before the
      * transient centering, is now the order they are written in */
@@ -989,7 +989,7 @@ void place_window_apply(const wm_td *wm,
                     config->base.windows.monitor_policy),
             &ctx.mon_wa, &ctx.mon_sz);
 
-    /* Ahead of the configured policy rather than one of it: a window
+    /* Ahead of the configured policy rather than one of it.  A window
      * joining a group it belongs to is a stronger statement about
      * where it goes than any of them */
     result = s_place_step_sibling(&ctx, &chosen);

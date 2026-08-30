@@ -4,7 +4,7 @@
  * @brief Free-rectangle arithmetic the placement search walks with
  *
  * Pure geometry, with no notion of a client or a surface beyond
- * asking what is already on a desktop: a rectangle is grown to the
+ * asking what is already on a desktop.  A rectangle is grown to the
  * largest it can be without touching what is there, and a position is
  * scored by how little it overlaps.  Kept apart from the rest of
  * placement because it is the one part of this policy that can be

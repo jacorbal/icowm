@@ -292,7 +292,7 @@ static bool s_client_match(const void *key1, const void *key2)
     const client_td *client1 = (const client_td *) key1;
     const client_td *client2 = (const client_td *) key2;
 
-    /* Internal invariant, not external input validation: this is an
+    /* Internal invariant, not external input validation.  This is an
      * ohtbl comparator, called only by 'ohtbl.c''s internals with
      * entries already stored in the table, never with
      * attacker-controlled or user-controlled input.
@@ -334,7 +334,7 @@ static void s_mark_client_outdated_visit(client_td *client, void *data)
  * Shared by @a desktop_update_workarea for both the whole surface's
  * own @c workarea and each individual monitor's entry in
  * @c monitor_workareas, the exact same reservation math either way,
- * only the region it is scoped to differing: the whole surface for
+ * only the region it is scoped to differing.  The whole surface for
  * the former, one monitor's physical extent for the latter.
  *
  * @param desktop             Desktop whose stacking list to scan
@@ -392,7 +392,7 @@ static struct geometry_s s_desktop_compute_workarea(
         : region_y + (int32_t) (region_h - 1u);
 
     /* Aggregate maximum strut on each edge across all stacked clients,
-     * then fold in the window manager's built-in systray: its dock
+     * then fold in the window manager's built-in systray.  Its dock
      * window is override-redirect (see
      * 'systray_protocol_window_ensure'), so it is not a managed client
      * and never appears in the stacking order above, but it is a strut
@@ -424,8 +424,8 @@ static struct geometry_s s_desktop_compute_workarea(
      * '_NET_WM_STRUT_PARTIAL' itself, e.g., Conky) so both are
      * meant to
      * coexist, not override one another.  Applied even with no
-     * clients at all (the early return this replaced never used to
-     * reach here), so a configured margin still reserves its space
+     * clients at all, unlike an early return that would never get
+     * here, so a configured margin still reserves its space
      * on an empty desktop.  Only on whichever side of this region
      * actually coincides with that same side of the whole surface,
      * per 'apply_margin_left'/etc: an internal boundary between two
@@ -680,8 +680,8 @@ void desktop_destroy(desktop_td *desktop)
             desktop->id, desktop->name);
     stacking_destroy(desktop);
 
-    /* Destroy hash table (also destroys all clients via client_destroy
-     * callback) */
+    /* Destroy hash table, which destroys every client through the
+     * 'client_destroy' callback */
     LOGGER_TRACE("Deallocating clients on desktop %u ('%s')",
             desktop->id, desktop->name);
     if (desktop->clients != NULL) {

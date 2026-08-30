@@ -112,11 +112,11 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
  * @c WM_MIN_WINDOW_DIMENSION, the same floors @c ccmd_client_move and
  * @c ccmd_client_resize themselves already enforce.
  *
- * An iconified @p client is left iconified: unlike
+ * An iconified @p client is left iconified.  Unlike
  * @c ccmd_client_shade, @c ccmd_client_fullscreen, and
  * @c ccmd_client_maximize (whose request is itself a visible
- * state change the person is asking for), silently un-iconifying a
- * window a person deliberately minimized just because an external
+ * state change the user is asking for), silently un-iconifying a
+ * window a user deliberately minimized just because an external
  * pager sent it a geometry hint would be a surprising side effect of
  * a request that, on any other client, has no visible effect at all.
  *

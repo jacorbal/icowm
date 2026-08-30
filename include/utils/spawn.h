@@ -79,8 +79,8 @@ typedef struct spawn_opts_s {
  *            reason is logged by this function
  * @retval  1 The pipe or the fork itself failed
  *
- * @note The expansion runs in the parent deliberately: between
- *       @c fork and @c exec a child may call only what is
+ * @note The expansion runs in the parent deliberately
+ * @note Between @c fork and @c exec a child may call only what is
  *       async-signal-safe, and @c wordexp allocates
  * @note Harmless while the process is single-threaded, but a deadlock
  *       waiting to happen the day one thread holds the allocator lock

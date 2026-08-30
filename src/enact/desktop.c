@@ -99,8 +99,8 @@ static void s_broadcast_desktop_event(desktop_td *desktop,
  * @brief Send exactly this one client from one desktop to another,
  *        ignoring any transient family it may belong to
  *
- * Carries what used to sit inside
- * @a enact_desktop_client_send so that function can redirect to, and
+ * Holds the single-client half of
+ * @a enact_desktop_client_send, so that function can redirect to, and
  * cascade across, a transient family (see its comment) while
  * still sharing this single client's worth of desktop-move plumbing
  * with the top-level, family-unaware call it makes on the family's
@@ -188,7 +188,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
     /* Remembered here as 'target''s active client, the same
      * memory 'surface_clients_show' (surface/actions/clients.c)
      * reads back whenever this desktop next becomes visible, so a
-     * client just sent here is what greets a person arriving later,
+     * client just sent here is what greets a user arriving later,
      * exactly as if it had always been the thing they cared about
      * on this desktop, rather than something they have to go hunt
      * for.  Left unset for a genuinely unfocusable client (the same
@@ -199,7 +199,7 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * by the time it is actually read), so it never becomes the
      * remembered target only to be silently skipped over later.
      * Deliberately unconditional otherwise, overwriting whatever
-     * 'target' already remembered even when it was not empty: a
+     * 'target' already remembered even when it was not empty.  A
      * client someone just deliberately placed here is a reasonable
      * thing to consider more relevant on arrival than whatever was
      * last active before it showed up, matching how a freshly opened
@@ -359,13 +359,13 @@ void enact_desktop_show(desktop_td *desktop, bool show)
  *
  * The desktop-move counterpart to @a ccmd_client_iconify's
  * transient-family cascade (see its comment, cmds/client/
- * visibility.c, for the full reasoning): redirects to the family's
+ * visibility.c, for the full reasoning).  Redirects to the family's
  * top-most ancestor first, moving it exactly as this function always
  * has, then moves every other member of that same family too, so a
  * "save changes?" prompt (or any other transient dialog) never ends
  * up left behind on the old desktop, stranded apart from the parent
  * window it belongs to and cannot meaningfully be used without.  A
- * client with no transient relatives at all is unaffected: its
+ * client with no transient relatives at all is unaffected.  Its
  * top parent is itself, and no sibling scan finds anything else to
  * move alongside it.
  *

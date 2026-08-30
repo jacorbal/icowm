@@ -62,7 +62,7 @@ void focus_order_add(client_td *client);
  * Called as a client is destroyed, and never merely because it
  * changed desktop: the order spans every managed client whichever
  * desktop holds it, and that is exactly what lets a pinned window
- * keep its place while following the person around.
+ * keep its place while following the user around.
  *
  * @param client Client to forget
  *
@@ -74,7 +74,7 @@ void focus_order_remove(const client_td *client);
 /**
  * @brief Move a client behind every other client of its own desktop
  *
- * The opposite of @a focus_order_to_top: this client becomes the least
+ * The opposite of @a focus_order_to_top.  This client becomes the least
  * recently used one on @p desktop, so every fallback there prefers
  * anything else before reaching it.
  *
@@ -189,7 +189,7 @@ bool focus_is_sloppy(const config_td *cfg);
  *       which is safe where the caller has already attended to it
  * @note A no-op, leaving whichever client already holds real keyboard
  *       focus untouched, where @a client_accepts_input_focus
- *       (@c client.h) answers false for @p client: taking focus from
+ *       (@c client.h) answers false for @p client.  Taking focus from
  *       a window that has it, in favor of one that can never receive
  *       it under its declared ICCCM input model, would leave keyboard
  *       input directed nowhere

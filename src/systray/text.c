@@ -1,10 +1,10 @@
 /**
  * @file systray/text.c
  *
- * @brief Clock and battery status text: reading, formatting, and
+ * @brief Clock and battery status text.  Reading, formatting, and
  *        measuring the text shown alongside docked icons
  *
- * Only the text content itself lives here: reading the system clock and
+ * Only the text content lives here.  Reading the system clock and
  * battery state into @a s_tray.clock_text / @a s_tray.battery_text, and
  * measuring how much pixel width the currently enabled items need.
  * Actually drawing that text on screen is part of the tray's overall
@@ -57,7 +57,7 @@ void systray_text_refresh_clock(void)
 
     /* The format comes from the configuration, so it cannot be a
      * string literal here and the compiler cannot check it.  That is
-     * deliberate: the whole point of the setting is that a person
+     * deliberate: the whole point of the setting is that a user
      * writes their.  'strftime' takes no variadic arguments, so
      * a wrong format produces wrong text, never a wrong read; and a
      * result of zero, which the guard below catches, is how a format
@@ -167,7 +167,7 @@ int systray_clock_ms_remaining(void)
     }
 
     /* Neither is due yet.  A flat, small poll timeout is used instead
-     * of computing the exact remaining fraction of a second: good
+     * of computing the exact remaining fraction of a second.  Good
      * enough for a display that only needs second-level precision for
      * the clock (the battery's interval is far coarser still), and
      * simpler than reasoning about clock skew between 'time(NULL)'

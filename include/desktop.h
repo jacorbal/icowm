@@ -137,9 +137,9 @@ struct desktop_s {
      * Always @c &surface->config (see @a desktop_init's two
      * callers, surface.c and surface/switch.c), never a config from
      * any other source: every desktop on the same surface points at
-     * the exact same @c config_td, so @p base and @p theme (what
-     * this field used to be two separate pointers for) never
-     * actually diverge from one another in practice.  One pointer
+     * the exact same @c config_td, so @p base and @p theme, which
+     * two separate pointers would reach, never actually diverge from
+     * one another in practice.  One pointer
      * also reaches @p bindings/@p randr/@p desktops/@p a11y, none of
      * which had a field of their own here before, should a future
      * caller ever need one of those from a desktop directly.
@@ -155,7 +155,7 @@ struct desktop_s {
             char *image_path;       /**< Background image */
         } bg;                       /**< Background itself */
     } background;
-    /* No 'bg_applied_once'/'bg_color_applied' cache here: the root
+    /* No 'bg_applied_once'/'bg_color_applied' cache here.  The root
      * window a solid-color background actually paints is one single
      * X resource shared by every desktop on the same screen, so that
      * cache lives per screen instead (cfr. 's_root_bg_applied_once' in
@@ -324,7 +324,7 @@ int desktop_action_client_rem(desktop_td *desktop, client_td *client);
  * @brief Move a client from one desktop to another
  *
  * Removes @p client from @p from, adds it to @p to, and records the
- * new desktop on the client itself, all as one step: a removal that
+ * new desktop on the client itself, all as one step.  A removal that
  * is followed by a failed insertion would otherwise leave the client
  * in no desktop's table at all, still mapped on screen, reachable
  * through nothing.  On such a failure the client is put back where it
