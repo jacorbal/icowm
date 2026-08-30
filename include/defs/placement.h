@@ -78,6 +78,18 @@
 #define PLACE_SMART_ICON_COST_PER_OVERFLOW_ROW (1u)
 
 /**
+ * @brief How far each cascaded window sits down and to the right of
+ *        the one placed before it, in pixels
+ *
+ * Wide enough that the title bar of the window underneath stays
+ * visible, narrow enough that a run of windows gets well across the
+ * screen before the cascade has to start a new column.
+ *
+ * @see @a place_window_apply_cascade, in @c policy/placement/window.c
+ */
+#define WM_PLACE_CASCADE_STEP (24u)
+
+/**
  * @brief How long the manual placement policy holds the pointer
  *        waiting for the click that decides where one window goes
  *

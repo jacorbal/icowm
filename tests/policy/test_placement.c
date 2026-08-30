@@ -331,24 +331,89 @@ static void s_test_cascade_advances_by_one_step(void)
 }
 
 
-/* Over a full cycle of the sequence (determined by how many steps
- * fit the workarea), the cascade position returns to exactly where
- * it started: the sequence wraps rather than running off the edge
- * of the workarea */
-static void s_test_cascade_wraps_around(void)
+/* place_apply_cascade never hands out a position that leaves the
+ * workarea, and never hands out the same position twice running: each
+ * axis wraps back to the origin on its own once that axis stops
+ * fitting, rather than walking off the edge */
+static void s_test_cascade_stays_inside_workarea(void)
+{
+    const int32_t screen_w = 248;
+    const int32_t screen_h = 148;
+    const int32_t win_w = 200;
+    const int32_t win_h = 100;
+    wm_td wm;
+    config_td config;
+    surface_td surface;
+    desktop_td desktop;
+    client_td client;
+    int32_t prev_x = 0;
+    int32_t prev_y = 0;
+    bool is_inside = true;
+    bool has_repeat = false;
+
+    s_reset_stubs();
+    s_make_wm(&wm, &config);
+    s_make_surface(&surface, &desktop, (uint32_t) screen_w,
+            (uint32_t) screen_h);
+    memset(&client, 0, sizeof(client));
+    /* A real window ID: placement now reaches the server through
+     * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
+     * so a client left at zero would never reach the stub below */
+    client.window = 1u;
+    client.layout.geometry.cur.dim.w = (uint32_t) win_w;
+    client.layout.geometry.cur.dim.h = (uint32_t) win_h;
+
+    /* More calls than either axis has room for, so both wrap at least
+     * twice whatever position the shared state carried in */
+    for (int i = 0; i < 12; ++i) {
+        place_window_apply_cascade(&wm, &surface, &client);
+
+        if (s_configured_x < 0 || s_configured_y < 0 ||
+                s_configured_x + win_w > screen_w ||
+                s_configured_y + win_h > screen_h) {
+            is_inside = false;
+        }
+        if (i > 0 && s_configured_x == prev_x &&
+                s_configured_y == prev_y) {
+            has_repeat = true;
+        }
+        prev_x = s_configured_x;
+        prev_y = s_configured_y;
+    }
+
+    TAP_OK(is_inside,
+            "every cascade position stays wholly inside the" \
+            " workarea");
+    TAP_OK(!has_repeat,
+            "no two consecutive cascade positions are the same");
+}
+
+
+/* Wrapping the vertical axis opens a new column rather than returning
+ * to where the run began: the horizontal axis carries on across the
+ * wrap, so each column starts further right than the one before it.
+ * Sharing one step count between the axes, as taking the smaller of
+ * the two did, tied x to y and started every column at the same x */
+static void s_test_cascade_starts_new_column(void)
 {
     wm_td wm;
     config_td config;
     surface_td surface;
     desktop_td desktop;
     client_td client;
-    int32_t x_before;
-    int32_t y_before;
+    int32_t prev_y;
+    int32_t x_top_first = 0;
+    int32_t y_top_first = 0;
+    int32_t x_top_second = 0;
+    int32_t y_top_second = 0;
+    int tops = 0;
 
     s_reset_stubs();
     s_make_wm(&wm, &config);
-    /* max_steps = min((248-200)/24, (148-100)/24) = min(2, 2) = 2 */
-    s_make_surface(&surface, &desktop, 248u, 148u);
+    /* Wide and short: the vertical axis has room for 3 steps
+     * ((148 - 100) / 24) and the horizontal one for 25, so a vertical
+     * wrap has somewhere else to go and cannot take x with it */
+    s_make_surface(&surface, &desktop, 800u, 148u);
     memset(&client, 0, sizeof(client));
     /* A real window ID: placement now reaches the server through
      * 'utils/xcb/window.h', which does nothing for 'XCB_WINDOW_NONE',
@@ -357,19 +422,34 @@ static void s_test_cascade_wraps_around(void)
     client.layout.geometry.cur.dim.w = 200u;
     client.layout.geometry.cur.dim.h = 100u;
 
+    /* The cascade position is shared and carries over from whatever
+     * ran before this, so both column tops are found by watching for
+     * the vertical wrap rather than assumed to fall on any given
+     * call */
     place_window_apply_cascade(&wm, &surface, &client);
-    x_before = s_configured_x;
-    y_before = s_configured_y;
+    prev_y = s_configured_y;
+    for (int i = 0; i < 16 && tops < 2; ++i) {
+        place_window_apply_cascade(&wm, &surface, &client);
 
-    /* Exactly one full cycle later (max_steps == 2 calls), the
-     * position must be identical again */
-    place_window_apply_cascade(&wm, &surface, &client);
-    place_window_apply_cascade(&wm, &surface, &client);
+        if (s_configured_y < prev_y) {
+            if (tops == 0) {
+                x_top_first = s_configured_x;
+                y_top_first = s_configured_y;
+            } else {
+                x_top_second = s_configured_x;
+                y_top_second = s_configured_y;
+            }
+            tops++;
+        }
+        prev_y = s_configured_y;
+    }
 
-    TAP_EQ_INT(s_configured_x, x_before,
-            "after one full cycle, the cascade x position repeats");
-    TAP_EQ_INT(s_configured_y, y_before,
-            "after one full cycle, the cascade y position repeats");
+    TAP_EQ_INT(y_top_second, y_top_first,
+            "every column starts at the same height, the vertical" \
+            " axis wrapping rather than running off the bottom");
+    TAP_OK(tops == 2 && x_top_second > x_top_first,
+            "each column starts further right than the one before" \
+            " it, rather than back where the run began");
 }
 
 
@@ -749,10 +829,11 @@ int main(void)
      * never dereferenced, only checked for being there. */
     xcb_connection_set((xcb_connection_t *) &s_placement_conn);
 
-    TAP_PLAN(19);
+    TAP_PLAN(21);
 
     s_test_cascade_advances_by_one_step();
-    s_test_cascade_wraps_around();
+    s_test_cascade_stays_inside_workarea();
+    s_test_cascade_starts_new_column();
     s_test_cascade_guards();
     s_test_apply_guards();
     s_test_apply_centered();

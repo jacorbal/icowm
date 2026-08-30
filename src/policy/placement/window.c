@@ -52,12 +52,21 @@
 #include <utils/xcb/window.h>
 
 
-/* Cascade sequence: how many clients this policy has placed so
- * far, since the window manager itself started; each new client
- * offsets one step further along the cascade, wrapping back to
- * the top-left corner once it runs past the configured maximum
- * step count (used in place_window_apply_cascade) */
-static uint32_t s_cascade_seq = 0;
+/* Where the cascade put the last window it placed, as an offset from
+ * the workarea origin rather than an absolute position, so the run
+ * carries on sensibly across monitors of different sizes and origins.
+ * The position itself is the state, not a count of how many windows
+ * have been placed: a cascade means each window sits one step on from
+ * the one before it, and a count would have to be turned back into
+ * a position by a modulus whose divisor depends on the size of
+ * whichever window is being placed, which is not the same thing at all
+ * (used in 'place_window_apply_cascade') */
+static struct position_s s_cascade_last = { 0, 0 };
+
+/* Whether 's_cascade_last' holds a position yet, false only until the
+ * first window this policy ever places, which goes at the workarea
+ * origin rather than one step past it */
+static bool s_cascade_has_last = false;
 
 
 /**
@@ -347,15 +356,13 @@ static void s_place_window_finalize(const surface_td *surface,
 void place_window_apply_cascade(const wm_td *wm,
         surface_td *surface, client_td *client)
 {
-    const uint32_t cascade_step = 24u;
-    uint32_t max_steps;
+    const int32_t step = (int32_t) WM_PLACE_CASCADE_STEP;
     uint32_t fw;
     uint32_t fh;
     struct geometry_s wa;
     struct geometry_s mon_wa;
     struct dimensions_s mon_sz;
-    int32_t new_x;
-    int32_t new_y;
+    struct position_s off;
 
     if (wm == NULL || wm_config(wm) == NULL ||
             surface == NULL || client == NULL) {
@@ -366,29 +373,32 @@ void place_window_apply_cascade(const wm_td *wm,
     fh = client->layout.geometry.cur.dim.h;
     placement_workarea(wm, surface, client, &wa, &mon_wa, &mon_sz);
 
-    max_steps = (mon_sz.w > fw) ? (mon_sz.w - fw) / cascade_step : 1u;
-    if (mon_sz.h > fh) {
-        uint32_t my = (mon_sz.h - fh) / cascade_step;
+    off.x = (s_cascade_has_last) ? s_cascade_last.x + step : 0;
+    off.y = (s_cascade_has_last) ? s_cascade_last.y + step : 0;
 
-        if (my < max_steps) {
-            max_steps = my;
-        }
+    /* Each axis wraps when that axis stops fitting, separately, and
+     * against the size of this window rather than of the run as
+     * a whole.  Sharing one step count between the two, as taking the
+     * smaller of them did, made the shorter axis decide for both: on
+     * a wide screen the run gave up with most of the width still
+     * unused, and came back to the very position it began at.  Wrapped
+     * separately, the vertical axis coming back to the top while the
+     * horizontal one keeps going is what opens the next column. */
+    if ((uint32_t) off.x + fw > mon_sz.w) {
+        off.x = 0;
+    }
+    if ((uint32_t) off.y + fh > mon_sz.h) {
+        off.y = 0;
     }
 
-    if (max_steps == 0u) {
-        max_steps = 1u;
-    }
+    s_cascade_last = off;
+    s_cascade_has_last = true;
 
-    /* Cascade starts at the workarea origin, not at (0, 0), so the
-     * title bar is never hidden behind a panel or dock */
-    new_x = mon_wa.pos.x +
-        (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
-    new_y = mon_wa.pos.y +
-        (int32_t) ((s_cascade_seq % max_steps) * cascade_step);
-    s_cascade_seq++;
-
+    /* Offset from the workarea origin, not from (0, 0), so the title
+     * bar is never hidden behind a panel or dock */
     s_place_window_finalize(surface, client, wa.pos,
-            (struct position_s) { new_x, new_y });
+            (struct position_s) { mon_wa.pos.x + off.x,
+                mon_wa.pos.y + off.y });
 }
 
 
