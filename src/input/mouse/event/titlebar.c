@@ -359,6 +359,17 @@ void im_press_titlebar(xcb_connection_t *connection,
         }
     }
 
+    /* Middle-click on the titlebar drag area sends the window to the
+     * back.  It only ever sends down, since an ordinary click on
+     * whatever it went behind is how it comes back, and one button
+     * that hid or revealed a window depending on where it happened to
+     * sit would be the harder one to aim */
+    if (!hit_btn &&
+            (xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_2) {
+        enact_client_lower(client);
+        s_mark_outdated(client, desktop, surface);
+    }
+
     /* Right-click on titlebar drag area (no button hit): window menu */
     if (!hit_btn &&
             (xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_3) {

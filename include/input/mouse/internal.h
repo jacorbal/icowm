@@ -135,8 +135,14 @@ void im_press_scroll_binding(xcb_connection_t *connection,
 /**
  * @brief Handle a press that landed on a client's titlebar
  *
- * Decides between a titlebar button, a double click, and the start of
- * a move drag.
+ * Decides between a titlebar button and what each mouse button does on
+ * the drag area beside them: the left one starts a move drag, or
+ * shades the window on a double click; the middle one sends it to the
+ * back; the right one opens the window menu.
+ *
+ * Reached only where no mouse binding matched the press, so a bound
+ * combination keeps its meaning over the titlebar (see step 6 of
+ * @a mouse_handle_press).
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces

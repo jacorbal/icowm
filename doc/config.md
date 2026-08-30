@@ -1692,6 +1692,23 @@ titlebar) shading/unshading or maximizing/restoring it instead:
 }
 ```
 
+### 3.10. Fixed titlebar behavior
+
+Beside the decoration buttons, a titlebar answers each mouse button on
+its own, without any binding configured for it:
+
+| Button | Action                |
+|--------|-----------------------|
+| Left   | Click and drag to move the window; double-click to shade or unshade it (see `interaction.double-click-ms` in §6). |
+| Middle | Send the window to the back.  An ordinary click on whatever it went behind brings it forward again. |
+| Right  | Open the window menu. |
+
+None of these can be reconfigured, being part of what a decorated window
+is rather than a binding.  A configured binding always wins over them:
+with `mouse.window.lower` at its default of `mod1+button2`, a middle
+click with `mod1` held lowers the window from anywhere on it, and
+a plain middle click does so only over the titlebar.
+
 ## 4. `themes/<name>.json`: Theme configuration
 
 Controls the visual appearance of windows, desktop icons, and the

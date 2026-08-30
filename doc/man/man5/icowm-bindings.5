@@ -215,6 +215,24 @@ Bound to the wheel over the empty desktop.
 .It Ic east Pq Ql button5
 .It Ic west Pq Ql button4
 .El
+.Ss Fixed titlebar behavior
+Beside the decoration buttons, a titlebar answers each mouse button
+without a binding of its own, and no binding here changes that.
+.Bl -tag -width Ds -compact
+.It Left
+Drag to move; double-click to shade or unshade.
+.It Middle
+Send the window to the back; an ordinary click brings it forward.
+.It Right
+Open the window menu.
+.El
+.Pp
+A configured binding wins over all three.  With
+.Ic mouse.window.lower
+at its default, a middle click with
+.Ql mod1
+held lowers the window from anywhere on it, and a plain middle click
+does so only over the titlebar.
 .Sh FILES
 .Bl -tag -width Ds
 .It Pa ${XDG_CONFIG_HOME}/icowm/bindings.json
