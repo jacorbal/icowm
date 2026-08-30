@@ -43,26 +43,26 @@ RELEASE_DATE = "20260923"
 
 ## Directories
 # '.CURDIR' is bmake's own built-in for "the directory this makefile
-# lives in / was invoked from", the same role '$(CURDIR)' plays in
-# GNU Make; kept as its own 'PWD' variable, rather than referencing
-# '.CURDIR' everywhere directly, purely to keep every directory
-# variable below an exact, line-by-line match for 'GNUmakefile''s own.
+# lives in / was invoked from", the same role '$(CURDIR)' plays in GNU
+# Make; kept as its own 'PWD' variable, rather than referencing
+# '.CURDIR' everywhere directly, purely to keep every directory variable
+# below an exact, line-by-line match for 'GNUmakefile''s own.
 PWD = ${.CURDIR}
-# bmake, unlike GNU Make, searches for a directory literally named
-# 'obj' (among a few other candidates) in the launch directory and,
-# if one exists, 'chdir's into it before doing anything else at all,
-# including parsing the rest of this very file; confirmed as a
-# built-in part of bmake itself, not something requiring any system
-# makefile ('sys.mk'/'bsd.obj.mk') to be included first.  Since
-# 'O_DIR' below is that exact directory name, and every relative,
-# non-'.CURDIR'-based bare filename further down ('BUILD_NUMBER_FILE',
-# 'DOXIGEN_FILE') would then resolve inside it instead of the project
-# root the moment 'mkdirs' has ever created it once, this pins
-# bmake's own notion of '.OBJDIR' to be '.CURDIR' outright, disabling
-# that search entirely; every directory this file manages itself
-# ('O_DIR' and the rest) is already tracked through its own absolute,
-# '.CURDIR'-derived variables regardless, so bmake's own separate
-# src/obj-splitting mechanism was never being relied on to begin with.
+# bmake, unlike GNU Make, searches for a directory literally named 'obj'
+# (among a few other candidates) in the launch directory and, if one
+# exists, 'chdir's into it before doing anything else at all, including
+# parsing the rest of this very file; confirmed as a built-in part of
+# bmake itself, not something requiring any system makefile
+# ('sys.mk'/'bsd.obj.mk') to be included first.  Since 'O_DIR' below is
+# that exact directory name, and every relative, non-'.CURDIR'-based
+# bare filename further down ('BUILD_NUMBER_FILE', 'DOXIGEN_FILE') would
+# then resolve inside it instead of the project root the moment 'mkdirs'
+# has ever created it once, this pins bmake's own notion of '.OBJDIR' to
+# be '.CURDIR' outright, disabling that search entirely; every directory
+# this file manages itself ('O_DIR' and the rest) is already tracked
+# through its own absolute, '.CURDIR'-derived variables regardless, so
+# bmake's own separate src/obj-splitting mechanism was never being
+# relied on to begin with.
 .OBJDIR: ${.CURDIR}
 I_DIR = ${PWD}/include
 S_DIR = ${PWD}/src
@@ -73,37 +73,37 @@ B_DIR = ${PWD}/bin
 TESTS_DIR = ${PWD}/tests
 
 # A plain 'SHELL' variable has no special meaning to bmake at all
-# (unlike GNU Make, which recognizes it by name); '.SHELL: path=...'
-# is bmake's own mechanism for the same guarantee 'GNUmakefile''s own
+# (unlike GNU Make, which recognizes it by name); '.SHELL: path=...' is
+# bmake's own mechanism for the same guarantee 'GNUmakefile''s own
 # 'SHELL=/bin/sh' line makes: every recipe below runs under a known,
 # POSIX shell, regardless of whatever shell the invoking environment
 # happens to default to.
 .SHELL: path=/bin/sh
 
 # '!=' hands its right-hand side to the shell immediately and captures
-# stdout, the same role '$(shell ...)' plays in GNU Make, but it is
-# its own assignment operator, not a function that can be nested
-# inside another assignment; a plain '?=' cannot be combined with it
-# directly (there is no single operator for "run a shell command, but
-# only if not already overridden"), so each one first captures into
-# its own '_..._DETECTED' helper, then '?=' picks that helper only if
+# stdout, the same role '$(shell ...)' plays in GNU Make, but it is its
+# own assignment operator, not a function that can be nested inside
+# another assignment; a plain '?=' cannot be combined with it directly
+# (there is no single operator for "run a shell command, but only if not
+# already overridden"), so each one first captures into its own
+# '_..._DETECTED' helper, then '?=' picks that helper only if
 # 'JOBS'/'PKGCONF' was not already set on the command line or in the
 # environment, exactly preserving 'GNUmakefile''s own override rules.
 #
-# 'nproc' is GNU-coreutils-only and does not exist on a stock BSD
-# system at all; 'sysctl -n hw.ncpu' is the actual BSD-native way to
-# ask for the same figure, tried first here since this file's whole
-# reason to exist is running correctly on a BSD system, with 'nproc'
-# only as a fallback for a bmake build running on Linux, and '1' as
-# the final, always-safe fallback if neither tool is present.
+# 'nproc' is GNU-coreutils-only and does not exist on a stock BSD system
+# at all; 'sysctl -n hw.ncpu' is the actual BSD-native way to ask for
+# the same figure, tried first here since this file's whole reason to
+# exist is running correctly on a BSD system, with 'nproc' only as
+# a fallback for a bmake build running on Linux, and '1' as the final,
+# always-safe fallback if neither tool is present.
 _JOBS_DETECTED != sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 1
 JOBS ?= ${_JOBS_DETECTED}
 
 
 ## Installation directories
-# Every one of these is overridable, so a distribution may move
-# a single directory without having to restate the rest, and 'DESTDIR'
-# stages the whole tree somewhere else for a package build.
+# Every one of these is overridable, so a distribution may move a single
+# directory without having to restate the rest, and 'DESTDIR' stages the
+# whole tree somewhere else for a package build.
 OS != uname -s
 
 PREFIX ?= /usr/local
@@ -116,9 +116,9 @@ DOCDIR ?= ${DATADIR}/doc/${PROJECT_NAME_PROG}
 EXAMPLEDIR ?= ${DATADIR}/${PROJECT_NAME_PROG}
 
 # Manual pages sit directly under the prefix on every BSD, and under
-# 'share' on Linux and anything else, which is where the FHS puts
-# them.  Guessed from 'uname', and overridable like the rest for the
-# systems that follow neither.
+# 'share' on Linux and anything else, which is where the FHS puts them.
+# Guessed from 'uname', and overridable like the rest for the systems
+# that follow neither.
 .if !empty(OS:M*BSD) || ${OS} == "DragonFly"
 MANDIR ?= ${PREFIX}/man
 .else
@@ -128,8 +128,8 @@ MANDIR ?= ${DATADIR}/man
 # Neither '-D' nor an owner is asked for anywhere below: the first is
 # a GNU extension BSD's own 'install' does not have, and the second
 # names a group that is 'root' on Linux and 'wheel' on the BSDs.  The
-# directories are made separately, and ownership is left to whoever
-# runs this.
+# directories are made separately, and ownership is left to whoever runs
+# this.
 INSTALL ?= install
 INSTALL_PROGRAM ?= ${INSTALL} -m 0755
 INSTALL_DATA ?= ${INSTALL} -m 0644
@@ -201,7 +201,19 @@ FONT_LFLAGS != ${PKGCONF} --libs freetype2 fontconfig 2>/dev/null || \
         printf '%s' '-lfreetype -lfontconfig'
 JSON_LFLAGS != ${PKGCONF} --libs libcjson 2>/dev/null || \
         ${PKGCONF} --libs cjson 2>/dev/null || printf '%s' '-lcjson'
-OTHR_LFLAGS = -lpthread
+# 'gettext' sits inside the C library on Linux, glibc and musl alike,
+# and in a library of its own on every BSD, where it comes from
+# 'gettext-runtime' or pkgsrc's 'gettext-lib'.  Probed rather than
+# assumed, since either make may run on either system: pkg-config
+# first, for those shipping a '.pc' file for it, then a link test for
+# those that do not, and nothing at all where the C library answers
+# already.  Without this the link fails outright on a BSD, every call
+# to 'gettext' going unresolved.
+INTL_LFLAGS != ${PKGCONF} --libs intl 2>/dev/null || \
+        { printf 'int main(void){return 0;}' | \
+          ${CC} -x c - -o /dev/null -lintl 2>/dev/null && \
+          printf '%s' '-lintl'; } || printf '%s' ''
+OTHR_LFLAGS = -lpthread ${INTL_LFLAGS}
 LDFLAGS = -L ${L_DIR} ${XCB_LFLAGS} ${FONT_LFLAGS} ${JSON_LFLAGS} \
           ${OTHR_LFLAGS}
 MSG_LDFLAGS = -L ${L_DIR} ${JSON_LFLAGS}
@@ -280,8 +292,8 @@ CCWARN += ${CCWARN_GCC}
 .endif
 
 # 'clang' has no '=auto' value for '-flto' (only 'thin'/'full', or
-# nothing at all); only 'gcc' knows to parallelize its own LTRANS
-# pass across every core this way.
+# nothing at all); only 'gcc' knows to parallelize its own LTRANS pass
+# across every core this way.
 .if ${CC} == "gcc"
 LTO_FLAG = -flto=auto
 .else
@@ -307,8 +319,8 @@ LDFLAGS += ${LTO_FLAG} -Wl,-z,relro,-z,now -Wl,-z,noexecstack -pie
 .endif
 
 # Symbols are discarded by default; 'make STRIP=0' keeps them.  Any
-# debug build keeps them whatever this says, a stripped binary being
-# of no use to a debugger or a sanitizer.
+# debug build keeps them whatever this says, a stripped binary being of
+# no use to a debugger or a sanitizer.
 STRIP ?= 1
 .if ${DEBUG} == "0" && ${STRIP} != "0"
 LDFLAGS += -s
@@ -317,10 +329,10 @@ MSG_LDFLAGS += -s
 
 # Use 'make COMPACT=1' to shrink several compile-time array capacities
 # throughout the codebase, for building specifically for a severely
-# memory-constrained target.
-# Independent of restricted-memory mode ('icowm -M <mib>').  It does not
-# turn that mode on by itself, and it does not supply a default for '-M
-# <mib>' when that flag is left off at run time either.
+# memory-constrained target.  Independent of restricted-memory mode
+# ('icowm -M <mib>').  It does not turn that mode on by itself, and it
+# does not supply a default for '-M <mib>' when that flag is left off at
+# run time either.
 COMPACT ?=
 .if !empty(COMPACT)
 CCFLAGS += -D COMPACT
@@ -353,18 +365,18 @@ DEPS = ${OBJS:.o=.d}
 
 # 'icowm-msg' (see 'tools/icowm-msg.c') builds and links entirely
 # separately from icowm itself: its own single object never joins
-# 'OBJS', and its own binary never joins 'TARGET', so a change to
-# one never forces a rebuild of the other.
+# 'OBJS', and its own binary never joins 'TARGET', so a change to one
+# never forces a rebuild of the other.
 MSG_SRCS != find ${T_DIR} -maxdepth 1 -name '*.c' 2>/dev/null | sort
 MSG_OBJS = ${MSG_SRCS:S,${T_DIR}/,${O_DIR}/tools/,:.c=.o}
 MSG_DEPS = ${MSG_OBJS:.o=.d}
 
 
 ## Options
-# bmake has no ".DEFAULT_GOAL" directive; '.MAIN:' is its own,
-# equally explicit way to name the target built when none is given
-# on the command line, rather than relying on 'all' merely happening
-# to be the first target defined below.
+# bmake has no ".DEFAULT_GOAL" directive; '.MAIN:' is its own, equally
+# explicit way to name the target built when none is given on the
+# command line, rather than relying on 'all' merely happening to be the
+# first target defined below.
 .MAIN: all
 
 # Make all, create needed directories and build
@@ -384,9 +396,9 @@ mkdirs:
 
 # 'mkdirs' has to finish before any object is compiled.  Naming it in
 # 'all' alone was not enough: neither make orders the prerequisites of
-# a target under '-j', so a parallel build from a clean tree could
-# start compiling before the object directories existed, and fail on
-# the dependency file it could not open.  bmake has no order-only
+# a target under '-j', so a parallel build from a clean tree could start
+# compiling before the object directories existed, and fail on the
+# dependency file it could not open.  bmake has no order-only
 # prerequisite of GNU Make's kind, so the order is stated outright.
 .ORDER: mkdirs ${TARGET}
 .ORDER: mkdirs ${MSG_TARGET}
@@ -407,11 +419,11 @@ ${MSG_TARGET}: ${MSG_OBJS}
 
 # Compilation
 #
-# One explicit rule per source file, generated by '.for' rather than
-# by the two '%'-pattern rules 'GNUmakefile' uses for this same job;
-# '${src}' is the loop variable itself, substituted textually at
-# parse time, not a local/dynamic variable, so it names the exact,
-# single source file each generated rule compiles.
+# One explicit rule per source file, generated by '.for' rather than by
+# the two '%'-pattern rules 'GNUmakefile' uses for this same job;
+# '${src}' is the loop variable itself, substituted textually at parse
+# time, not a local/dynamic variable, so it names the exact, single
+# source file each generated rule compiles.
 .for src in ${SRCS}
 ${src:S,${S_DIR}/,${O_DIR}/,:.c=.o}: ${src}
 	${CC} ${CCFLAGS} -c ${src} -o ${.TARGET}
@@ -429,11 +441,11 @@ ${src:S,${T_DIR}/,${O_DIR}/tools/,:.c=.o}: ${src}
 # UNLIKE THE REST OF THIS FILE, that one is NOT ported to 'bmake' here:
 # it is written for GNU Make throughout (its own comment in
 # 'GNUmakefile' says it shares this file's variables directly), and
-# testing under bmake is not this port's goal, only building the
-# project itself is.  Included only if present, silently skipped
-# otherwise, so its absence (or its own GNU-only syntax, if it is
-# ever actually read by a stray 'make test') never blocks 'all' or
-# any other real target below from building.
+# testing under bmake is not this port's goal, only building the project
+# itself is.  Included only if present, silently skipped otherwise, so
+# its absence (or its own GNU-only syntax, if it is ever actually read
+# by a stray 'make test') never blocks 'all' or any other real target
+# below from building.
 .if exists(${TESTS_DIR}/Makefile.mk)
 .include "${TESTS_DIR}/Makefile.mk"
 .endif
@@ -561,7 +573,7 @@ help:
 	@echo "  make run ARGS=<args>  Run with arguments (if binary exists)"
 	@echo "  make hard-run         Clean, build and run (if binary exists)"
 	@echo "  make test             Build and run every tests/*/test_*.c"
-	@echo "  make install          Install under PREFIX (default '/usr/local')"
+	@echo "  make install          Install under PREFIX"
 	@echo "  make uninstall        Remove what 'install' put there"
 	@echo
 	@echo "Options:"
@@ -570,7 +582,7 @@ help:
 	@echo "  Use 'DEBUG=1' to generate detailed debug information"
 	@echo "  Use 'DEBUG=2' to also link with address sanitizer"
 	@echo "  Use 'STRIP=0' to keep symbols (they are discarded by default)"
-	@echo "  Use 'PREFIX=<dir>' to install somewhere other than '/usr/local'"
+	@echo "  Use 'PREFIX=<dir>' to install elsewhere (def. '/usr/local')"
 	@echo "  Use 'DESTDIR=<dir>' to stage an install for packaging"
 	@echo "  Use 'COMPACT=1' to build using smaller arrays"
 	@echo
@@ -581,12 +593,12 @@ help:
 ## Auto-generated header dependencies
 #
 # GNU Make's own '-include' silently skips a missing file; bmake's
-# '.include' has no such silent form of its own that could be
-# confirmed portable across every BSD make variant, so the same
-# "skip whichever '.d' files do not exist yet" behavior (true on a
-# clean build, before any object has ever been compiled) is spelled
-# out explicitly here instead, using only 'exists()' and '.include',
-# both already confirmed above.
+# '.include' has no such silent form of its own that could be confirmed
+# portable across every BSD make variant, so the same "skip whichever
+# '.d' files do not exist yet" behavior (true on a clean build, before
+# any object has ever been compiled) is spelled out explicitly here
+# instead, using only 'exists()' and '.include', both already confirmed
+# above.
 .for dep in ${DEPS}
 .if exists(${dep})
 .include "${dep}"
