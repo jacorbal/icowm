@@ -4,7 +4,7 @@
 .\" This file is licensed under the 'ISC License'.
 .\" Read the 'LICENSE' file in the root of this repository for details.
 .\"
-.Dd September 23, 2026
+.Dd December 21, 2026
 .Dt ICOWM 5
 .Os icowm-1.0.1
 .Sh NAME
@@ -189,7 +189,11 @@ steps each new window down and to the right of the last,
 .Ql centered
 centers it on the workarea, and
 .Ql under-mouse
-puts it where the pointer is.
+puts it where the pointer is, and
+.Ql manual
+is reserved for asking where the window goes, which behaves as
+.Ql smart
+until that is written.
 A transient or dialog window is centered on its parent regardless.
 .It Ic windows.placement.monitor Pq string, default Ql \&"pointer\&"
 Which monitor a new window lands on:
@@ -197,7 +201,7 @@ Which monitor a new window lands on:
 .Ql active ,
 .Ql primary ,
 or an explicit index.
-.It Ic windows.placement.group-related Pq boolean, default Ql false
+.It Ic windows.placement.group-related Pq boolean, default Ql true
 Whether a window is placed near others of its own application rather
 than judged on its own.
 .El

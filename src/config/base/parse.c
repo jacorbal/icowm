@@ -71,6 +71,9 @@ enum config_placement_policy_e
     if (safe_strcmp(value_norm, "under-mouse") == 0) {
         return CONFIG_PLACEMENT_POLICY_UNDER_MOUSE;
     }
+    if (safe_strcmp(value_norm, "manual") == 0) {
+        return CONFIG_PLACEMENT_POLICY_MANUAL;
+    }
 
     return CONFIG_PLACEMENT_POLICY_SMART;
 }

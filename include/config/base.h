@@ -248,7 +248,8 @@ struct config_base_s {
             CONFIG_PLACEMENT_POLICY_SMART = 0,
             CONFIG_PLACEMENT_POLICY_CASCADE,
             CONFIG_PLACEMENT_POLICY_CENTERED,
-            CONFIG_PLACEMENT_POLICY_UNDER_MOUSE
+            CONFIG_PLACEMENT_POLICY_UNDER_MOUSE,
+            CONFIG_PLACEMENT_POLICY_MANUAL
         } placement_policy;
 
         /**

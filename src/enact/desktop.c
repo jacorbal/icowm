@@ -458,7 +458,8 @@ void enact_desktop_clients_rearrange(const wm_td *wm,
     policy = config->base.windows.placement_policy;
     single_spot_policy =
         (policy == CONFIG_PLACEMENT_POLICY_CENTERED) ||
-        (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE);
+        (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) ||
+        (policy == CONFIG_PLACEMENT_POLICY_MANUAL);
 
     rearrange_ctx.wm = wm;
     rearrange_ctx.surface = surface;

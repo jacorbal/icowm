@@ -43,6 +43,7 @@
 
 /* Local includes */
 #include <defs/placement.h>
+#include <policy/placement/manual.h>
 #include <policy/placement/monitor.h>
 #include <policy/placement/rect.h>
 #include <policy/placement/score.h>
@@ -618,6 +619,10 @@ void place_window_apply(const wm_td *wm,
             ((int32_t) mon_wa.dim.h - (int32_t) fh) / 2;
         if (new_x < mon_wa.pos.x) { new_x = mon_wa.pos.x; }
         if (new_y < mon_wa.pos.y) { new_y = mon_wa.pos.y; }
+    } else if (policy == CONFIG_PLACEMENT_POLICY_MANUAL) {
+        /* Falls through to whatever the fallback below settles on when
+         * the person is not asked after all */
+        (void) place_window_manual(wm, surface, client, &new_x, &new_y);
     } else if (policy == CONFIG_PLACEMENT_POLICY_UNDER_MOUSE) {
         xcb_query_pointer_reply_t *pointer_reply;
 
