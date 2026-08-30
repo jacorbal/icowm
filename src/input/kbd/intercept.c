@@ -37,6 +37,9 @@
 /* Command includes */
 #include <cmds/surface.h>
 
+/* Policy includes */
+#include <policy/placement/manual.h>
+
 /* Default initial values */
 #include <defs/dialog.h>
 #include <defs/kbd.h>
@@ -227,6 +230,17 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
         surface_td *surface, list_td *surfaces,
         const config_td *config)
 {
+    /* A window being placed by hand holds the keyboard for as long as
+     * it is asking where it goes, so every key reaching this while one
+     * does was meant for that question, whether or not it answers it.
+     * Asked first of all: the question opens on a window mapping,
+     * which can happen at any moment, including while something below
+     * believes it still has the keyboard to itself. */
+    if (place_manual_is_active()) {
+        place_manual_handle_keypress(xcb_connection_get(), keysym);
+        return true;
+    }
+
     /* Keyboard modal move/resize intercepts all keys while active */
     if (kbd_modal_is_active()) {
         kbd_modal_handle_keypress(

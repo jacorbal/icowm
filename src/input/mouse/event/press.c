@@ -43,6 +43,7 @@
 
 /* Policy includes */
 #include <policy/focus.h>
+#include <policy/placement/manual.h>
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
@@ -517,6 +518,16 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     struct position_s root_pos;
 
     if (connection == NULL || event == NULL || config == NULL) {
+        return;
+    }
+
+    /* Deliberately ahead of the numbered steps below rather than one
+     * of them: a window waiting to be placed by hand is holding the
+     * pointer, so this press is the answer to the question it is
+     * asking and never a click on anything those steps would go on to
+     * resolve.  Nothing below it runs at all while one stands open. */
+    if (place_manual_is_active()) {
+        place_manual_handle_press(connection);
         return;
     }
 
