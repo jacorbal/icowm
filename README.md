@@ -45,10 +45,12 @@ Basic features are:
     configuration file as the occasion demands.
 
   - **Window placement policies.**
-    Four strategies govern the placement of newly mapped windows:
-    *smart* (minimum-overlap), *cascade*, *centered*, and *under-mouse*.
-    Transient and dialog windows are, as a matter of course, centered
-    upon their parent.
+    Five strategies govern the placement of newly mapped windows:
+    *smart* (minimum-overlap), *cascade*, *centered*, *under-mouse*, and
+    *manual*, whereby an outline of the window follows the pointer until
+    a click, a key, or a brief wait settles where it goes, after the
+    manner of TWM and FVWM.  Transient and dialog windows are, as
+    a matter of course, centered upon their parent.
 
   - **Window edge snapping.**
     Windows snap, during interactive movement, to the edges of the
@@ -165,7 +167,9 @@ Basic features are:
     Rather than modern minimization to a crowded taskbar, the window is
     iconified upon the desktop in the traditional manner of TWM.  Icon
     placement follows a configurable policy: a top or bottom row, a left
-    or right column, or the smart choice of the first free slot.
+    or right column, the smart choice of the first free slot, or
+    *in-place*, whereby the icon appears over the very corner the window
+    itself occupied.
 
   - **Scratchpad.**
     A single dedicated client, any graphical program, launched on demand
