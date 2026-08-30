@@ -77,5 +77,42 @@
 #define PLACE_SMART_ICON_COST_PER_WIN_PIXEL (256u)
 #define PLACE_SMART_ICON_COST_PER_OVERFLOW_ROW (1u)
 
+/**
+ * @brief How long the manual placement policy holds the pointer
+ *        waiting for the click that decides where one window goes
+ *
+ * A window asking to be placed holds the pointer and the keyboard for
+ * as long as it is asking, so the question cannot be left open
+ * forever: someone who walks away, or who never noticed the outline at
+ * all, would come back to a session that answers nothing.  Once this
+ * elapses the window is placed where the smart policy already chose,
+ * exactly as pressing @c Escape does sooner.
+ *
+ * @see @a place_manual_tick, in @c policy/placement/manual.c
+ */
+#define WM_PLACE_MANUAL_TIMEOUT_MS (5000u)
+
+/**
+ * @brief How many windows may be waiting their turn to be placed by
+ *        hand at once
+ *
+ * Windows that open together are asked about one at a time, each held
+ * unmapped until the one before it is settled, so a session starting
+ * several at once needs somewhere to keep the rest meanwhile.  A
+ * window arriving with the queue already full is placed where the
+ * smart policy chose and mapped straight away rather than refused: an
+ * application opening more windows at once than anyone could
+ * reasonably be asked to aim at one by one is not a person placing
+ * windows, and holding all of them hostage behind that many clicks
+ * would be worse than not asking at all.
+ *
+ * Smaller under @c COMPACT (see @c defs/compact.h).
+ */
+#ifdef COMPACT
+#define WM_PLACE_MANUAL_QUEUE_MAX (4u)
+#else
+#define WM_PLACE_MANUAL_QUEUE_MAX (16u)
+#endif
+
 
 #endif  /* ! DEFS_PLACEMENT_H */
