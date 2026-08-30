@@ -69,7 +69,7 @@
  * @note The prefix goes without separation before the next word unless
  *       it's specified here
  */
-#define MENU_CONTEXT_CTXMENU_LABEL_PREFIX ""    //"--- "
+#define MENU_CONTEXT_CTXMENU_LABEL_PREFIX ""    /* e.g., "--- " */
 
 /**
  * @brief Label suffix appended to non-clickable desktop headings
@@ -77,10 +77,10 @@
  * Paired with @c MENU_CONTEXT_CTXMENU_LABEL_PREFIX to form the full
  * decoration.
  *
- * @note The suffix goes without separation after the next word unless
- *       it's specified here
+ * @note The suffix goes without separation after the preceding word
+ *       unless it's specified here
  */
-#define MENU_CONTEXT_CTXMENU_LABEL_SUFFIX ""    //" ---"
+#define MENU_CONTEXT_CTXMENU_LABEL_SUFFIX ""    /* e.g., " ---" */
 
 /**
  * @brief Label to indicate this menu item is a submenu

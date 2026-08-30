@@ -43,8 +43,8 @@
  * @brief Absolute minimum a client's own content area can be resized
  *        down to, in resize-increment units, for a client that provides
  *        one (@c WM_NORMAL_HINTS's @c width_inc/height_inc, ICCCM
- *        §4.1.2.3).  A terminal counting in character columns and rows,
- *        say, rather than raw pixels.
+ *        §4.1.2.3).  A terminal counting in character columns and
+ *        rows, say, rather than raw pixels.
  *
  * Applied only by @a client_size_constrain (@c client/geom.c), the one
  * path that actually resolves a client's own hints, as the floor such

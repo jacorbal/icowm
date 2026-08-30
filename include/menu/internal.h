@@ -74,9 +74,9 @@ struct cycle_menu_state_s {
     xcb_window_t outline_windows[4]; /**< The 4 strip windows (see
                                           render/outline.h) outlining
                                           whichever client is
-                                          currently selected; @c
-                                          XCB_WINDOW_NONE in all 4
-                                          slots until the first
+                                          currently selected;
+                                          @c XCB_WINDOW_NONE in all
+                                          4 slots until the first
                                           selection is applied */
 
     uint16_t width;

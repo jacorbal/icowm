@@ -354,8 +354,8 @@ desktop_td *surface_desktop_get(surface_td *surface,
  * @c 0, @c col @c desktop_id.  With one configured, the position
  * @p desktop_id's own @c orientation/@c corner combination actually
  * places it at, which is not simply @c row @c 0, @c col @c desktop_id
- * once @c corner is anything other than top-left, nor once @c
- * orientation is vertical.
+ * once @c corner is anything other than top-left, nor once
+ * @c orientation is vertical.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the desktop to locate
@@ -466,8 +466,8 @@ desktop_td *surface_desktop_south(surface_td *surface,
  * the west of it: list-previous on a surface with no
  * @c topology.screens.desktops layout configured (the common case,
  * still the default), the desktop one cell west along the configured
- * grid otherwise, whatever @c desktop_id that cell's own @c
- * orientation/@c corner combination happens to hold (never simply
+ * grid otherwise, whatever @c desktop_id that cell's
+ * @c orientation/@c corner combination happens to hold (never simply
  * "@c desktop_id @c - @c 1": once @c corner is anything other than
  * top-left, a lower ID can sit visually east of a higher one, not west;
  * see @a s_layout_row_col's comment, @c surface/desktops.c, for the

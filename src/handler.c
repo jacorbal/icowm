@@ -7,7 +7,8 @@
  * translation units, each responsible for one family of X events:
  *
  * - @c handler/configure.c: @c CONFIGURE_REQUEST, @c CONFIGURE_NOTIFY
- * - @c handler/map.c: @c MAP_REQUEST, @c UNMAP_NOTIFY, @c DESTROY_NOTIFY
+ * - @c handler/map.c: @c MAP_REQUEST, @c UNMAP_NOTIFY, and
+ *   @c DESTROY_NOTIFY
  * - @c handler/focus.c: @c PROPERTY_NOTIFY, @c FOCUS_IN and
  *   @c MAPPING_NOTIFY
  * - @c handler/expose.c: @c EXPOSE

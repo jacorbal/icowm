@@ -102,14 +102,14 @@ static void s_properties_update(surface_td *surface,
     /* Iterate through depths to find the appropriate visual */
     depth_iter = xcb_screen_allowed_depths_iterator(screen);
 
-    // Assume we take the first depth available (modify as necessary)
+    /* Assume we take the first depth available */
     if (depth_iter.rem > 0) {
         xcb_depth_t *const depth = depth_iter.data;
         xcb_visualtype_iterator_t visual_iter;
 
         surface->properties.visual_info.properties.depth = depth->depth;
 
-        // Get the first visual ID from the first depth
+        /* Get the first visual ID from the first depth */
         visual_iter =
             xcb_depth_visuals_iterator(depth);
         if (visual_iter.rem > 0) {

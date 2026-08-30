@@ -171,7 +171,8 @@ static inline void s_show_help(FILE *fp)
      * at all, which is what the build decides, and what the mode does
      * once on, which is the same either way.  Reported together because
      * a 'COMPACT' build has both true at once, and saying only the
-     * first left people guessing whether the refusal applied to them. */
+     * first left people guessing whether the refusal applied to
+     * them. */
 #ifdef COMPACT
     fprintf(fp, "Restricted-memory mode is on by default in this" \
                 " 'COMPACT' build, with a\n" \
