@@ -75,7 +75,7 @@ static void s_client_layer_finish(client_td *client, desktop_td *desktop)
  * treating it as a second, independent entry point here would place
  * it twice, the second time breaking the family clustering the first
  * placement already established.  @c true whenever the parent is
- * missing, on a different desktop, or in a different layer: none of
+ * missing, on a different desktop, or in a different layer.  None of
  * those get a recursive visit from that parent's placement, so
  * @p client only ever gets placed at all by being its entry
  * point.
@@ -109,7 +109,7 @@ static bool s_enforce_layer_is_top_level(const client_td *client,
  *
  * Openbox's real answer to keeping a transient family together
  * during restacking (confirmed directly against its source,
- * @c restack_windows in @c stacking.c): a dialog belongs directly
+ * @c restack_windows in @c stacking.c).  A dialog belongs directly
  * above the window it is transient for, not wherever it happens to
  * fall in whatever order the rest of the desktop's clients are
  * otherwise sorted in.  Recurses depth-first through @p top's
@@ -263,6 +263,65 @@ static void s_enforce_layer_visit(client_td *client, void *data)
 }
 
 
+/**
+ * @brief Resolve which client of a transient family carries the whole
+ *        of it up or down the stacking order
+ *
+ * @a ccmd_desktop_enforce_layers walks a desktop placing each
+ * top-level client and then pinning that client's transient
+ * descendants immediately above it, so where a family sits is decided
+ * entirely by where its top-level member sits.  Raising a dialog by
+ * itself therefore settles nothing: the pass that runs straight
+ * afterwards puts it back beside a parent that has not moved, and
+ * a dialog holding the keyboard stays buried under whatever covered
+ * it.
+ *
+ * Answering with the top-level member instead moves the family as one,
+ * which is what every window manager does with a dialog and its
+ * window, and what a user asking for either of them expects to see.
+ *
+ * @param client Client a raise or a lower was asked for
+ *
+ * @param desktop Desktop @p client is on
+ *
+ * @return The top-level client of @p client's family, or @p client
+ *         itself where it is already top-level
+ *
+ * @note Resolves the same way @a s_enforce_layer_is_top_level decides,
+ *       group transients (ICCCM §4.1.2.6) included, so the two cannot
+ *       disagree about which client anchors a family
+ * @note Answers @p client unchanged where the parent it names sits on
+ *       another desktop or in another layer, those being placed by
+ *       a pass of their own
+ * @note Complexity: @e O(min(d, @c WM_TRANSIENT_CHAIN_MAX_DEPTH) * n),
+ *       where @e d is the depth of the transient chain and @e n the
+ *       number of clients on the desktop, from resolving a group
+ *       anchor at each step
+ */
+static client_td *s_layer_family_anchor(client_td *client,
+        const desktop_td *desktop)
+{
+    client_td *top = client;
+
+    for (uint32_t depth = 0u;
+            depth < (uint32_t) WM_TRANSIENT_CHAIN_MAX_DEPTH; ++depth) {
+        client_td *parent = top->transient_parent;
+
+        if (parent == NULL && top->is_transient_for_group) {
+            parent = client_group_transient_anchor(top);
+        }
+        if (parent == NULL || parent == top ||
+                parent->desktop_id != desktop->id ||
+                parent->properties.layer != top->properties.layer) {
+            break;
+        }
+        top = parent;
+    }
+
+    return top;
+}
+
+
 /* Raise the client to the top of the stacking order */
 void ccmd_client_raise(client_td *client)
 {
@@ -276,7 +335,8 @@ void ccmd_client_raise(client_td *client)
 
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
-        (void) desktop_action_client_send_front(desktop, client);
+        (void) desktop_action_client_send_front(desktop,
+                s_layer_family_anchor(client, desktop));
         ccmd_desktop_enforce_layers(desktop);
     } else {
         xcb_window_t target = ccmd_target_win(client);
@@ -300,7 +360,8 @@ void ccmd_client_lower(client_td *client)
 
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
-        (void) desktop_action_client_send_back(desktop, client);
+        (void) desktop_action_client_send_back(desktop,
+                s_layer_family_anchor(client, desktop));
         ccmd_desktop_enforce_layers(desktop);
     } else {
         xcb_window_t target = ccmd_target_win(client);
