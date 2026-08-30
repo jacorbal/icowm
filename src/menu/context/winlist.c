@@ -104,6 +104,18 @@ static ctxmenu_entry_td (*s_appgroup_entries)[WINLIST_MAX_APPGROUP_SIZE]
 /** Application-group slots claimed during this 'winlist_show' */
 static int s_appgroup_used = 0;
 
+/** How many application-group slots 's_appgroup_state' and
+ *  's_appgroup_entries' were actually allocated for by this exact
+ *  'winlist_show' call, and so how many of them may be written; zero
+ *  whenever neither is allocated at all.  Checked against rather than
+ *  'WINLIST_MAX_APPGROUPS', which is only the ceiling those two are
+ *  ever sized up to and not the size either one actually has: the two
+ *  agree when the counting pass and the building pass agree, and a
+ *  build that ever outran its own count wrote straight past the end
+ *  of both instead of falling back to listing the group's windows
+ *  one by one, which is what the cap exists to do. */
+static int s_appgroup_capacity = 0;
+
 
 
 /**
@@ -543,7 +555,17 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     char label_buf[WM_CTXMENU_LABEL_MAX_LENGTH];
     int n;
 
-    if (surface == NULL || out_entries == NULL || out_count == NULL) {
+    /* 'out_entries' is deliberately NOT rejected here: a counting-only
+     * pass passes it null on purpose, and this whole function is
+     * written to skip every real side effect in that case (see this
+     * function's comment above, and 's_client_entry_append', which
+     * handles the null itself).  Rejecting it made every counting
+     * pass return before counting anything, so the appgroup total
+     * came back zero however many groups there really were, and both
+     * appgroup arrays were then allocated one single row long; the
+     * second group a real pass went on to build wrote past the end of
+     * both. */
+    if (surface == NULL || out_count == NULL) {
         return;
     }
 
@@ -640,8 +662,8 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
 
         if (*out_count >= WINLIST_MAX_ENTRIES_PER_DESKTOP ||
                 (out_appgroup_count != NULL
-                    ? *out_appgroup_count
-                    : s_appgroup_used) >= WINLIST_MAX_APPGROUPS) {
+                    ? *out_appgroup_count >= WINLIST_MAX_APPGROUPS
+                    : s_appgroup_used >= s_appgroup_capacity)) {
             /* Out of submenu slots: fall back to listing this group's
              * windows directly rather than dropping them silently */
             for (int k = 0; k < member_n; ++k) {
@@ -1096,6 +1118,7 @@ void winlist_show(xcb_connection_t *connection,
         winlist_close();
         return;
     }
+    s_appgroup_capacity = (needed_appgroups > 0) ? needed_appgroups : 1;
 
     n = 0;
 
@@ -1175,6 +1198,7 @@ void winlist_close(void)
         free(s_appgroup_state);
         s_appgroup_state = NULL;
     }
+    s_appgroup_capacity = 0;
 }
 
 
