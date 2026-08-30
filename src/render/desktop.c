@@ -1070,7 +1070,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
             theme->window.titlebar.alignment);
 
     can_maximize = !client_is_fullscreen(client) &&
-        (bool) client_is_resizable(client);
+        (bool) client_is_maximizable(client);
     s_desktop_titlebar_buttons_draw(connection, client->titlebar,
             btn_y, left, left_n, right, right_n, is_focused,
             (bool) client_is_pinned(client),

@@ -246,7 +246,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     ey -= title_y;
 
     can_maximize = !client_is_fullscreen(client) &&
-        (bool) client_is_resizable(client);
+        (bool) client_is_maximizable(client);
     hide_pin = surface != NULL && surface->desktop_count <= 1u;
 
     /* Same layout the render pass just painted from, computed first

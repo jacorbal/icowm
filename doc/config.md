@@ -33,6 +33,8 @@ values, and built-in default value.
    - [3.7. `keyboard.cycle`](#37-keyboardcycle)
    - [3.8. `mouse.window`](#38-mousewindow)
    - [3.9. `mouse.cycle`](#39-mousecycle)
+   - [3.10. Fixed titlebar behavior](#310-fixed-titlebar-behavior)
+   - [3.11. What a modal dialog is not allowed to do](#311-what-a-modal-dialog-is-not-allowed-to-do)
 4. [`themes/<name>.json`: Theme configuration](#4-themesnamejson-theme-configuration)
    - See [`themes.md`](themes.md) for the full reference
 5. [`randr.json`: XRandR output profiles](#5-randrjson-xrandr-output-profiles)
@@ -1708,6 +1710,22 @@ is rather than a binding.  A configured binding always wins over them:
 with `mouse.window.lower` at its default of `mod1+button2`, a middle
 click with `mod1` held lowers the window from anywhere on it, and
 a plain middle click does so only over the titlebar.
+
+### 3.11. What a modal dialog is not allowed to do
+
+A window declaring `_NET_WM_STATE_MODAL` can neither be maximized nor
+put into fullscreen, whichever way it is asked: the titlebar button, the
+window menu entry, a keyboard binding, or the application's own EWMH
+request.  The maximize button is drawn disabled, the same as it already
+is for a window that has fixed its size.
+
+A modal exists to be answered while the window it belongs to stays in
+view, and filling the screen puts that window out of sight with no way
+back to it that does not go through the modal first.
+
+Resizing is untouched.  A client says it will not be resized by pinning
+both axes in `WM_NORMAL_HINTS`, and a modal that resizes freely, which
+a rename prompt with a growable text field does, keeps doing so.
 
 ## 4. `themes/<name>.json`: Theme configuration
 

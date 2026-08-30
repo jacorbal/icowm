@@ -775,8 +775,8 @@ void ccmd_client_fullscreen(client_td *client)
         ccmd_client_restore(client);
     }
 
-    /* Deliberately no 'client_is_resizable' gate here, unlike maximize:
-     * fullscreen is a WM-forced override of the client's preferred
+    /* Deliberately no 'client_is_resizable' gate here, unlike maximize.
+     * Fullscreen is a WM-forced override of the client's preferred
      * geometry, not a user-convenience resize the client's fixed
      * size hints have any say over.  A DOS-emulation or retro-game
      * window that fixes its size (min == max in WM_NORMAL_HINTS,
@@ -784,6 +784,15 @@ void ccmd_client_fullscreen(client_td *client)
      * to enter fullscreen correctly when it requests
      * '_NET_WM_STATE_FULLSCREEN' on its own alt+enter handling, which
      * a stricter check here would silently swallow. */
+
+    /* A modal is refused all the same, for a reason of its own rather
+     * than anything to do with size hints: it exists to be answered
+     * while the window it belongs to stays in view, and filling the
+     * screen puts that window out of sight with no way back to it
+     * that does not go through the modal first */
+    if (client_is_modal(client)) {
+        return;
+    }
 
     LOGGER_TRACE("Entering fullscreen for client window=0x%x",
             client->window);

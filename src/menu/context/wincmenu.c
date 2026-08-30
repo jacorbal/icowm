@@ -184,7 +184,7 @@ static void s_cb_send_to_monitor(xcb_connection_t *connection,
  *   enters keyboard modal move mode, exactly like the "Resize" entry
  *   does for keyboard activation.  Arrow keys move the window,
  *   @c Return confirms, @c Escape restores the original position.
- * - Activated with the mouse (a click on the entry): warps the pointer
+ * - Activated with the mouse (a click on the entry).  Warps the pointer
  *   to the window's center and starts a pointer-driven move drag, so
  *   the window then follows the mouse until the button is released.
  */
@@ -326,7 +326,7 @@ static void s_cb_resize(xcb_connection_t *connection,
         return;
     }
 
-    if (!client_is_resizable(s_target_client) ||
+    if (!client_is_maximizable(s_target_client) ||
             client_is_maximized(s_target_client) ||
             client_is_fullscreen(s_target_client)) {
         return;
@@ -596,7 +596,7 @@ static int s_build_desk_entries(surface_td *surface,
     n = (int) desk_ctx.count;
 
     /* Separates the numbered-desktop entries above from the pin/unpin
-     * one below, only when there actually are any: with none (an
+     * one below, only when there actually are any.  With none (an
      * empty or single-surface edge case), a bare separator would lead
      * nowhere. */
     if (n > 0) {
@@ -604,7 +604,7 @@ static int s_build_desk_entries(surface_td *surface,
         ++n;
     }
 
-    /* "All desktops" entry for sticky support: when the client is
+    /* "All desktops" entry for sticky support.  When the client is
      * already sticky, relabel it as an active un-pin action instead of
      * disabling it, since toggling stickiness on this entry already
      * works both ways and there is otherwise no menu entry to remove
@@ -875,17 +875,18 @@ void wincmenu_show(xcb_connection_t *connection,
     s_entry_command(&s_entries[n], _(STR_WINCMENU_MAXIMIZE),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_MAXIMIZE,
-            !client_is_resizable(client) || client_is_maximized(client) ||
+            !client_is_maximizable(client) ||
+                client_is_maximized(client) ||
                 client_is_fullscreen(client));
     ++n;
 
     /* Disabled under the exact same condition as maximize above,
      * unlike a client's EWMH request to enter fullscreen itself
      * (see 'ccmd_client_fullscreen''s comment, cmds/client/
-     * state.c, for why that path stays unconditional: a fixed-size
+     * state.c, for why that path stays unconditional.  A fixed-size
      * DOS-emulation or retro-game window legitimately requests
      * fullscreen via alt+enter regardless of its own resizable
-     * flag).  This is a different question: whether the window
+     * flag).  This is a different question.  Whether the window
      * manager's user-facing fullscreen offer, this very menu
      * entry, matched by every keybinding and decoration button that
      * also call 'ccmd_client_fullscreen' directly, makes any sense
@@ -902,7 +903,8 @@ void wincmenu_show(xcb_connection_t *connection,
                 : _(STR_WINCMENU_FULLSCREEN_ENTER),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_TOGGLE_FULLSCREEN,
-            !client_is_resizable(client) && !client_is_fullscreen(client));
+            (!client_is_resizable(client) || client_is_modal(client)) &&
+                !client_is_fullscreen(client));
     ++n;
 
     s_entry_command(&s_entries[n],

@@ -113,7 +113,8 @@ static bool s_ccmd_maximize_precheck(client_td *client)
         return false;
     }
 
-    if (!client_is_resizable(client) || client_is_fullscreen(client)) {
+    if (!client_is_maximizable(client) ||
+            client_is_fullscreen(client)) {
         return false;
     }
 
@@ -224,7 +225,7 @@ static bool s_ccmd_maximize_demote(client_td *client, int dir,
  * each now a
  * thin wrapper passing its fixed @p dir; matches Openbox's
  * @c client_maximize (@c client.c), which takes the identical @p dir
- * convention for the identical reason: one function, one place the
+ * convention for the identical reason.  One function, one place the
  * demote/complete/fresh-maximize decision is made, rather than the
  * same three-way branch (see below) duplicated once per axis.
  *
@@ -288,7 +289,7 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
 
     /* Per the X11 protocol (ConfigureWindow), 'x'/'y' name a window's
      * own top-left corner including its native border, if any, drawn
-     * growing rightward/downward from there: the full on-screen
+     * growing rightward/downward from there.  The full on-screen
      * footprint of a client with one reaches all the way to
      * 'x + 2 * border + w', 2 * border wider/taller than 'w' alone
      * (equivalently for height).  'client_border_width' is 0 for a
@@ -306,7 +307,7 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
     s_clamp_to_size_hints(client, &sw, &sh);
 
 
-    /* Complete this single axis to full maximize: the other axis is
+    /* Complete this single axis to full maximize.  The other axis is
      * already the one currently maximized, so fold this one in from
      * the workarea without disturbing it.  Only reachable for a
      * single-axis 'dir'. */
@@ -401,14 +402,14 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
  *        its current workarea
  *
  * A maximized client's geometry, grown or shrunk in place, is
- * only ever right immediately after actually maximizing it: anything
+ * only ever right immediately after actually maximizing it.  Anything
  * that later changes what its workarea resolves to (a panel
  * mapped or unmapped, @c desktops.margins reloaded, or the surface's
  * own strutless-maximization mode,
  * @a surface_action_toggle_strutless_maximize,
  * surface.h, toggled) leaves it still filling wherever the OLD
  * workarea was, not the new one, until something re-applies its
- * maximize geometry from scratch.  This does exactly that: resolved
+ * maximize geometry from scratch.  This does exactly that.  Resolved
  * against @a ccmd_client_resolve_workarea (the same resolution
  * @a ccmd_client_maximize itself already uses), so the client ends up
  * exactly refilling the workarea as it now stands, the same as if it

@@ -227,7 +227,7 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_MAXIMIZE:
-            if (!client_is_resizable(client)) { return; }
+            if (!client_is_maximizable(client)) { return; }
             enact_client_maximize(client);
             return;
 
@@ -278,7 +278,8 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
              * resizable flag, the one case 'ccmd_client_fullscreen'
              * itself (cmds/client/state.c) still leaves ungated on
              * purpose. */
-            if (!client_is_resizable(client) &&
+            if ((!client_is_resizable(client) ||
+                        client_is_modal(client)) &&
                     !client_is_fullscreen(client)) {
                 return;
             }

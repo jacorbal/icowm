@@ -305,6 +305,27 @@
     ((w)->properties.flags & CLIENT_FLAG_MODAL)
 
 /**
+ * @brief Macro that evaluates to whether a client may be maximized
+ *
+ * A client states that it will not be resized by pinning both axes in
+ * @c WM_NORMAL_HINTS, which clears @c CLIENT_FLAG_RESIZABLE, and that
+ * covers most of what should never be maximized.
+ *
+ * It has no equivalent way to say that it resizes but should not fill
+ * the screen, which is what a modal dialog is: it exists to be
+ * answered while the window it belongs to stays in view, and taking
+ * the whole screen puts that window out of sight.  A modal is
+ * therefore not maximizable here even where it resizes freely, which
+ * a "save changes?" prompt with a growable text field does.
+ *
+ * @note Says nothing about resizing, which stays governed by the size
+ *       hints alone, those being how a client asks
+ * @note Complexity: @e O(1)
+ */
+#define client_is_maximizable(w) \
+    (client_is_resizable(w) && !client_is_modal(w))
+
+/**
  * @brief Macro that evaluates to the client unresponsive flag
  *
  * @note Complexity: @e O(1)

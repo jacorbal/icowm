@@ -170,7 +170,7 @@ static void s_handle_wm_state_atom(client_td *client,
     if (is_max_h) {
         bool want;
 
-        if (!client_is_resizable(client)) {
+        if (!client_is_maximizable(client)) {
             return;
         }
 
@@ -185,7 +185,7 @@ static void s_handle_wm_state_atom(client_td *client,
     if (is_max_v) {
         bool want;
 
-        if (!client_is_resizable(client)) {
+        if (!client_is_maximizable(client)) {
             return;
         }
 
