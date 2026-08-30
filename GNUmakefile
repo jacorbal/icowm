@@ -32,7 +32,17 @@ B_DIR = $(PWD)/bin
 TESTS_DIR = $(PWD)/tests
 
 SHELL=/bin/sh
-JOBS ?= $(shell nproc)
+
+# 'nproc' is GNU coreutils only and is not present on a stock BSD
+# system, where 'sysctl -n hw.ncpu' is the native way to ask for the
+# same figure.  This file is the GNU Make one, so 'nproc' is tried
+# first, with the BSD spelling behind it for a GNU Make build running
+# on a BSD (a common enough combination), and '1' as the final,
+# always-safe answer if neither tool is there.  Without the fallbacks
+# 'JOBS' came out empty on such a system and 'parallel' below became
+# a bare '-j', which is unlimited parallelism rather than none.
+JOBS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null \
+        || echo 1)
 
 
 ## Installation directories
@@ -139,16 +149,42 @@ MSG_LDFLAGS = -L $(L_DIR) $(JSON_LFLAGS)
 
 
 ## Data & build information
+# 'SOURCE_DATE_EPOCH', when the environment sets it, is the agreed way
+# for a distribution to ask for a reproducible build: the same sources
+# have to give the same binary, whenever they are compiled.  Two things
+# here stand in the way of that, and both step aside when it is set.
+#
+# The timestamp below is taken from that epoch instead of from the
+# clock, spelled for GNU 'date' first and for BSD 'date' second, since
+# the two disagree about how an epoch is given.
+#
+# The build number stops counting and the file stops being written.  It
+# is a counter of this author's own builds, which is useful here and
+# meaningless in a package, where it would only record how many times
+# somebody else's machine had compiled the sources and leave a tracked
+# file dirty for having done so.
+SOURCE_DATE_EPOCH ?=
+
 BUILD_NUMBER_FILE = Build
 ifneq (,$(wildcard $(BUILD_NUMBER_FILE)))
     LAST_BUILD_NUMBER := $(shell cat $(BUILD_NUMBER_FILE))
 else
     LAST_BUILD_NUMBER := 0
 endif
-BUILD_NUMBER := $(shell echo $$(($(LAST_BUILD_NUMBER) + 1)))
+
+ifeq ($(SOURCE_DATE_EPOCH),)
+    BUILD_NUMBER := $(shell echo $$(($(LAST_BUILD_NUMBER) + 1)))
+    BUILD_TIMESTAMP := $(shell date -u +'%Y%m%dT%H%M')
+else
+    BUILD_NUMBER := $(LAST_BUILD_NUMBER)
+    BUILD_TIMESTAMP := $(shell date -u -d @$(SOURCE_DATE_EPOCH) \
+            +'%Y%m%dT%H%M' 2>/dev/null || \
+        date -u -r $(SOURCE_DATE_EPOCH) +'%Y%m%dT%H%M' 2>/dev/null || \
+        echo 19700101T0000)
+endif
 
 CCFLAGS += -D BUILD_NUMBER=$(BUILD_NUMBER)
-CCFLAGS += -D BUILD_TIMESTAMP=\"$(shell date -u +'%Y%m%dT%H%M')\"
+CCFLAGS += -D BUILD_TIMESTAMP=\"$(BUILD_TIMESTAMP)\"
 CCFLAGS += -D PROJECT_NAME_LONG=\"$(PROJECT_NAME_LONG)\"
 CCFLAGS += -D PROJECT_NAME_SHORT=\"$(PROJECT_NAME_SHORT)\"
 CCFLAGS += -D PROJECT_NAME_PROG=\"$(PROJECT_NAME_PROG)\"
@@ -299,17 +335,29 @@ mkdirs:
 # Linkage
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
+ifeq ($(SOURCE_DATE_EPOCH),)
 	@echo "Increasing build number to $(BUILD_NUMBER)..."
 	@echo $(BUILD_NUMBER) >$(BUILD_NUMBER_FILE)
+else
+	@echo "Reproducible build $(BUILD_NUMBER); build file left alone"
+endif
 
 $(MSG_TARGET): $(MSG_OBJS)
 	$(CC) -o $@ $^ $(MSG_LDFLAGS)
 
 # Compilation
-$(O_DIR)/%.o: $(S_DIR)/%.c
+#
+# 'mkdirs' is an order-only prerequisite of both rules below, written
+# with a pipe so the object files never carry a dependency on its
+# timestamp.  Naming it in 'all' alone was not enough: GNU Make gives
+# no order to the prerequisites of a target under '-j', so a parallel
+# build from a clean tree could start compiling before the object
+# directories existed, and fail on the dependency file it could not
+# open.  Every object needing the directories says so itself now.
+$(O_DIR)/%.o: $(S_DIR)/%.c | mkdirs
 	$(CC) $(CCFLAGS) -c $< -o $@
 
-$(O_DIR)/tools/%.o: $(T_DIR)/%.c
+$(O_DIR)/tools/%.o: $(T_DIR)/%.c | mkdirs
 	$(CC) $(MSG_CCFLAGS) -c $< -o $@
 
 

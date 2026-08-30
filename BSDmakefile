@@ -208,14 +208,37 @@ MSG_LDFLAGS = -L ${L_DIR} ${JSON_LFLAGS}
 
 
 ## Data & build information
+# 'SOURCE_DATE_EPOCH', when the environment sets it, is the agreed way
+# for a distribution to ask for a reproducible build: the same sources
+# have to give the same binary, whenever they are compiled.  Two things
+# here stand in the way of that, and both step aside when it is set.
+#
+# The timestamp below is taken from that epoch instead of from the
+# clock, spelled for BSD 'date' first and for GNU 'date' second, since
+# the two disagree about how an epoch is given.
+#
+# The build number stops counting and the file stops being written.  It
+# is a counter of this author's own builds, which is useful here and
+# meaningless in a package, where it would only record how many times
+# somebody else's machine had compiled the sources and leave a tracked
+# file dirty for having done so.
+SOURCE_DATE_EPOCH ?=
+
 BUILD_NUMBER_FILE = Build
 .if exists(${BUILD_NUMBER_FILE})
 LAST_BUILD_NUMBER != cat ${BUILD_NUMBER_FILE}
 .else
 LAST_BUILD_NUMBER = 0
 .endif
+.if empty(SOURCE_DATE_EPOCH)
 BUILD_NUMBER != echo $$((${LAST_BUILD_NUMBER} + 1))
 _BUILD_TIMESTAMP != date -u +'%Y%m%dT%H%M'
+.else
+BUILD_NUMBER = ${LAST_BUILD_NUMBER}
+_BUILD_TIMESTAMP != date -u -r ${SOURCE_DATE_EPOCH} +'%Y%m%dT%H%M' \
+    2>/dev/null || date -u -d @${SOURCE_DATE_EPOCH} +'%Y%m%dT%H%M' \
+    2>/dev/null || echo 19700101T0000
+.endif
 
 CCFLAGS += -D BUILD_NUMBER=${BUILD_NUMBER}
 CCFLAGS += -D BUILD_TIMESTAMP=\"${_BUILD_TIMESTAMP}\"
@@ -359,11 +382,25 @@ mkdirs:
 			mkdir -p "${O_DIR}/$$dir"; \
 		done
 
+# 'mkdirs' has to finish before any object is compiled.  Naming it in
+# 'all' alone was not enough: neither make orders the prerequisites of
+# a target under '-j', so a parallel build from a clean tree could
+# start compiling before the object directories existed, and fail on
+# the dependency file it could not open.  bmake has no order-only
+# prerequisite of GNU Make's kind, so the order is stated outright.
+.ORDER: mkdirs ${TARGET}
+.ORDER: mkdirs ${MSG_TARGET}
+
+
 # Linkage
 ${TARGET}: ${OBJS}
 	${CC} -o ${.TARGET} ${.ALLSRC} ${LDFLAGS}
+.if empty(SOURCE_DATE_EPOCH)
 	@echo "Increasing build number to ${BUILD_NUMBER}..."
 	@echo ${BUILD_NUMBER} >${BUILD_NUMBER_FILE}
+.else
+	@echo "Reproducible build ${BUILD_NUMBER}; build file left alone"
+.endif
 
 ${MSG_TARGET}: ${MSG_OBJS}
 	${CC} -o ${.TARGET} ${.ALLSRC} ${MSG_LDFLAGS}
