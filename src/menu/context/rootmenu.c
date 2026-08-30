@@ -272,7 +272,21 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
      * 's_entries' copy is still the one 'ctxmenu_show' is actively
      * displaying; sharing the pointer instead would leave 's_entries'
      * holding a dangling one the instant that happened. */
+    /* Bounded by what was actually allocated, not by how many entries
+     * the file holds.  The two are the same until 'menu.json' carries
+     * more than 'WM_CTXMENU_MAX_ENTRIES' of them, at which point the
+     * count above is clamped and this one, left unclamped, wrote every
+     * entry past that ceiling straight off the end of the array, and
+     * left 's_entry_count' claiming they were there for
+     * 'rootmenu_close' to walk and free afterwards. */
     copy_count = s_json_count;
+    if (copy_count > n - ROOTMENU_FOOTER_COUNT) {
+        copy_count = n - ROOTMENU_FOOTER_COUNT;
+        LOGGER_WARNING("Root menu holds %d entries; showing the first" \
+                " %d, which is all '%s' has room for",
+                s_json_count, copy_count, "WM_CTXMENU_MAX_ENTRIES");
+    }
+
     for (int i = 0; i < copy_count; ++i) {
         s_entries[i] = s_json_entries[i];
         s_entries[i].command = safe_strndup(s_json_entries[i].command,

@@ -408,6 +408,15 @@ int wm_action_config_reload(const wm_td *wm)
     if (wm_session(wm) != NULL) {
         (void) session_load(wm_session(wm), config_dir_prefix);
     }
+    /* Closed before its entries are replaced, and not after.  A root
+     * menu on screen holds a shallow copy of every entry, sharing the
+     * 'items' array and the child menu state of each submenu with the
+     * entries 'rootmenu_menu_json_load' is about to free; without this,
+     * clicking a submenu row after a reload followed two pointers into
+     * freed memory.  Activating an entry closes the menu of its own
+     * accord before running anything, so the only way to arrive here
+     * with one still open is a reload asked for over IPC. */
+    rootmenu_close();
     rootmenu_menu_json_load(config_dir_prefix);
 
     s_resync_after_reload(wm);
