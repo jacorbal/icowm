@@ -412,7 +412,7 @@ install:
 	$(INSTALL_DATA) doc/$(PROJECT_NAME_PROG).desktop \
 		$(DESTDIR)$(XSESSIONSDIR)
 	$(INSTALL_DIR) $(DESTDIR)$(DOCDIR)
-	$(INSTALL_DATA) README.md LICENSE COMPLIANCE $(DESTDIR)$(DOCDIR)
+	$(INSTALL_DATA) README.md LICENSE COMPLIANCE.md $(DESTDIR)$(DOCDIR)
 	@find locale -name '*.mo' | while read mo; do \
 		lang=$$(echo "$$mo" | cut -d/ -f2); \
 		$(INSTALL_DIR) \

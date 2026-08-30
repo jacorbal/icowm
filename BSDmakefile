@@ -477,7 +477,7 @@ install:
 	${INSTALL_DATA} ${PWD}/doc/${PROJECT_NAME_PROG}.desktop \
 		${DESTDIR}${XSESSIONSDIR}
 	${INSTALL_DIR} ${DESTDIR}${DOCDIR}
-	${INSTALL_DATA} ${PWD}/README.md ${PWD}/LICENSE ${PWD}/COMPLIANCE \
+	${INSTALL_DATA} ${PWD}/README.md ${PWD}/LICENSE ${PWD}/COMPLIANCE.md \
 		${DESTDIR}${DOCDIR}
 	@cd ${PWD} && find locale -name '*.mo' | while read mo; do \
 		lang=$$(echo "$$mo" | cut -d/ -f2); \
