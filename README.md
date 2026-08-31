@@ -76,8 +76,7 @@ Basic features are:
     kindred atoms.  An incoming `_NET_ACTIVE_WINDOW` request is weighed
     against whichever client already holds focus before being honoured
     outright, so a window idle for some while cannot simply seize the
-    keyboard out from under whatever the person is presently engaged
-    with.
+    keyboard out from under whatever the user is presently engaged with.
 
   - **Inter-Client Communication Conventions Manual (ICCCM) compliance.**
     Due respect is paid to `WM_DELETE_WINDOW`, `WM_TAKE_FOCUS`,
