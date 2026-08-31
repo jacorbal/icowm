@@ -21,13 +21,33 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
+/* Project includes */
+#include <config.h>
+
 /* Local includes */
 #include <menu/context/ctxmenu/handle.h>
 #include <menu/context/ctxmenu/redraw.h>
 #include <menu/context/ctxmenu/tree.h>
 
 
-/* Return the deepest open window in the menu hierarchy */
+/**
+ * @brief Find the window of the innermost menu currently open
+ *
+ * Follows the chain of open submenus from @p state down to the last one
+ * that has a window of its own, which is the menu a keypress belongs
+ * to.  A key pressed with three menus open is meant for the one the
+ * user is looking at, not the one they opened first.
+ *
+ * @param state Menu to start from, usually the root of the tree
+ *
+ * @return The innermost open menu's window, @p state's own where it has
+ *         no open child, or @c XCB_WINDOW_NONE for a null @p state
+ *
+ * @note Stops at the first child without a window rather than walking
+ *       past it, a child being linked before it is shown
+ * @note Complexity: @e O(d), where @e d is the depth of the chain of
+ *       open submenus
+ */
 static xcb_window_t s_deepest_window(const ctxmenu_state_td *state)
 {
     const ctxmenu_state_td *cur;
@@ -37,7 +57,8 @@ static xcb_window_t s_deepest_window(const ctxmenu_state_td *state)
     }
 
     cur = state;
-    while (cur->child != NULL && cur->child->window != XCB_WINDOW_NONE) {
+    while (cur->child != NULL &&
+            cur->child->window != XCB_WINDOW_NONE) {
         cur = cur->child;
     }
 
@@ -106,7 +127,15 @@ bool ctxmenu_tree_handle_click_window(xcb_connection_t *connection,
         return false;
     }
 
-    y -= state->origin_y;
+    /* The position handed to 'xcb_create_window' is the outside corner
+     * of the border, so the interior these rows are measured from
+     * begins one border width further in.  Subtracting the origin alone
+     * leaves the click that many pixels below where it looks, which is
+     * enough to land it on the row after the one the pointer is
+     * highlighting: the highlight arrives from the server already
+     * relative to that interior and never had to be converted. */
+    y -= (int) state->origin_y +
+        (int) state->config->theme.menu.border.width;
     return ctxmenu_handle_click(connection, surface, state, y, config);
 }
 
