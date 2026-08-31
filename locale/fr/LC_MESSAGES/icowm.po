@@ -476,3 +476,135 @@ msgstr ""
 "incantation telle que 'sudo apt install fortune-mod' (ou quelque charme "
 "que votre distribution exige), afin que les sages d'antan puissent "
 "derechef parler par cet humble dialogue."
+
+#: include/defs/uistr.h
+msgid "Up/Down; PgUp/PgDown; scroll wheel"
+msgstr "Haut/Bas ; PgPréc/PgSuiv ; molette de souris"
+
+#: include/defs/uistr.h
+msgid "Identity"
+msgstr "Identité"
+
+#: include/defs/uistr.h
+msgid "Placement"
+msgstr "Emplacement"
+
+#: include/defs/uistr.h
+msgid "State"
+msgstr "État"
+
+#: include/defs/uistr.h
+msgid "Size hints"
+msgstr "Contraintes de taille"
+
+#: include/defs/uistr.h
+msgid "Relations"
+msgstr "Relations"
+
+#: include/defs/uistr.h
+msgid "Protocols"
+msgstr "Protocoles"
+
+#: include/defs/uistr.h
+msgid "Title"
+msgstr "Titre"
+
+#: include/defs/uistr.h
+msgid "Class"
+msgstr "Classe"
+
+#: include/defs/uistr.h
+msgid "Role"
+msgstr "Rôle"
+
+#: include/defs/uistr.h
+msgid "Type"
+msgstr "Type"
+
+#: include/defs/uistr.h
+msgid "Process"
+msgstr "Processus"
+
+#: include/defs/uistr.h
+msgid "Screen"
+msgstr "Écran"
+
+#: include/defs/uistr.h
+msgid "Monitor"
+msgstr "Moniteur"
+
+#: include/defs/uistr.h
+msgid "Geometry"
+msgstr "Géométrie"
+
+#: include/defs/uistr.h
+msgid "Frame extents"
+msgstr "Marges du cadre"
+
+#: include/defs/uistr.h
+msgid "Is"
+msgstr "Est"
+
+#: include/defs/uistr.h
+msgid "Is not"
+msgstr "N'est pas"
+
+#: include/defs/uistr.h
+msgid "Minimum"
+msgstr "Minimum"
+
+#: include/defs/uistr.h
+msgid "Maximum"
+msgstr "Maximum"
+
+#: include/defs/uistr.h
+msgid "Transient for"
+msgstr "Transitoire de"
+
+#: include/defs/uistr.h
+msgid "Transients"
+msgstr "Transitoires"
+
+#: include/defs/uistr.h
+msgid "Group leader"
+msgstr "Chef de groupe"
+
+#: include/defs/uistr.h
+msgid "Supports"
+msgstr "Prend en charge"
+
+#: include/defs/uistr.h
+msgid "Client"
+msgstr "Client"
+
+#: include/defs/uistr.h
+msgid "Frame"
+msgstr "Cadre"
+
+#: include/defs/uistr.h
+msgid "Titlebar"
+msgstr "Barre de titre"
+
+#: include/defs/uistr.h
+msgid "Icon window"
+msgstr "Fenêtre d'icône"
+
+#: include/defs/uistr.h
+msgid "(none)"
+msgstr "(aucun)"
+
+#: include/defs/uistr.h
+msgid "unlimited"
+msgstr "illimité"
+
+#: include/defs/uistr.h
+msgid "pinned to all"
+msgstr "épinglée partout"
+
+#: include/defs/uistr.h
+msgid "Inspect..."
+msgstr "Inspecter..."
+
+#: include/defs/uistr.h
+msgid "Inspect window"
+msgstr "Inspecter la fenêtre"

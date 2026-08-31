@@ -474,3 +474,135 @@ msgstr ""
 "apt install fortune-mod' (o l'encanteri que la vostra distribució "
 "demani), perquè els savis d'antany puguin novament parlar a través "
 "d'aquest humil diàleg."
+
+#: include/defs/uistr.h
+msgid "Up/Down; PgUp/PgDown; scroll wheel"
+msgstr "Amunt/Avall; RePàg/AvPàg; roda de desplaç."
+
+#: include/defs/uistr.h
+msgid "Identity"
+msgstr "Identitat"
+
+#: include/defs/uistr.h
+msgid "Placement"
+msgstr "Ubicació"
+
+#: include/defs/uistr.h
+msgid "State"
+msgstr "Estat"
+
+#: include/defs/uistr.h
+msgid "Size hints"
+msgstr "Límits de mida"
+
+#: include/defs/uistr.h
+msgid "Relations"
+msgstr "Relacions"
+
+#: include/defs/uistr.h
+msgid "Protocols"
+msgstr "Protocols"
+
+#: include/defs/uistr.h
+msgid "Title"
+msgstr "Títol"
+
+#: include/defs/uistr.h
+msgid "Class"
+msgstr "Classe"
+
+#: include/defs/uistr.h
+msgid "Role"
+msgstr "Rol"
+
+#: include/defs/uistr.h
+msgid "Type"
+msgstr "Tipus"
+
+#: include/defs/uistr.h
+msgid "Process"
+msgstr "Procés"
+
+#: include/defs/uistr.h
+msgid "Screen"
+msgstr "Pantalla"
+
+#: include/defs/uistr.h
+msgid "Monitor"
+msgstr "Monitor"
+
+#: include/defs/uistr.h
+msgid "Geometry"
+msgstr "Geometria"
+
+#: include/defs/uistr.h
+msgid "Frame extents"
+msgstr "Marges del marc"
+
+#: include/defs/uistr.h
+msgid "Is"
+msgstr "És"
+
+#: include/defs/uistr.h
+msgid "Is not"
+msgstr "No és"
+
+#: include/defs/uistr.h
+msgid "Minimum"
+msgstr "Mínim"
+
+#: include/defs/uistr.h
+msgid "Maximum"
+msgstr "Màxim"
+
+#: include/defs/uistr.h
+msgid "Transient for"
+msgstr "Transitòria de"
+
+#: include/defs/uistr.h
+msgid "Transients"
+msgstr "Transitòries"
+
+#: include/defs/uistr.h
+msgid "Group leader"
+msgstr "Líder de grup"
+
+#: include/defs/uistr.h
+msgid "Supports"
+msgstr "Admet"
+
+#: include/defs/uistr.h
+msgid "Client"
+msgstr "Client"
+
+#: include/defs/uistr.h
+msgid "Frame"
+msgstr "Marc"
+
+#: include/defs/uistr.h
+msgid "Titlebar"
+msgstr "Barra de títol"
+
+#: include/defs/uistr.h
+msgid "Icon window"
+msgstr "Finestra d'icona"
+
+#: include/defs/uistr.h
+msgid "(none)"
+msgstr "(cap)"
+
+#: include/defs/uistr.h
+msgid "unlimited"
+msgstr "sense límit"
+
+#: include/defs/uistr.h
+msgid "pinned to all"
+msgstr "fixada a tots"
+
+#: include/defs/uistr.h
+msgid "Inspect..."
+msgstr "Inspecciona..."
+
+#: include/defs/uistr.h
+msgid "Inspect window"
+msgstr "Inspecciona finestra"

@@ -476,3 +476,135 @@ msgstr ""
 "(o el hechizo que vuestra distribución hubiere menester), para que las "
 "voces de los sabios de antaño tornen a hablar por medio de este "
 "humilde diálogo."
+
+#: include/defs/uistr.h
+msgid "Up/Down; PgUp/PgDown; scroll wheel"
+msgstr "Arriba/Abajo; RePg/AvPg; rueda de desplaz."
+
+#: include/defs/uistr.h
+msgid "Identity"
+msgstr "Identidad"
+
+#: include/defs/uistr.h
+msgid "Placement"
+msgstr "Ubicación"
+
+#: include/defs/uistr.h
+msgid "State"
+msgstr "Estado"
+
+#: include/defs/uistr.h
+msgid "Size hints"
+msgstr "Límites de tamaño"
+
+#: include/defs/uistr.h
+msgid "Relations"
+msgstr "Relaciones"
+
+#: include/defs/uistr.h
+msgid "Protocols"
+msgstr "Protocolos"
+
+#: include/defs/uistr.h
+msgid "Title"
+msgstr "Título"
+
+#: include/defs/uistr.h
+msgid "Class"
+msgstr "Clase"
+
+#: include/defs/uistr.h
+msgid "Role"
+msgstr "Rol"
+
+#: include/defs/uistr.h
+msgid "Type"
+msgstr "Tipo"
+
+#: include/defs/uistr.h
+msgid "Process"
+msgstr "Proceso"
+
+#: include/defs/uistr.h
+msgid "Screen"
+msgstr "Pantalla"
+
+#: include/defs/uistr.h
+msgid "Monitor"
+msgstr "Monitor"
+
+#: include/defs/uistr.h
+msgid "Geometry"
+msgstr "Geometría"
+
+#: include/defs/uistr.h
+msgid "Frame extents"
+msgstr "Márgenes del marco"
+
+#: include/defs/uistr.h
+msgid "Is"
+msgstr "Es"
+
+#: include/defs/uistr.h
+msgid "Is not"
+msgstr "No es"
+
+#: include/defs/uistr.h
+msgid "Minimum"
+msgstr "Mínimo"
+
+#: include/defs/uistr.h
+msgid "Maximum"
+msgstr "Máximo"
+
+#: include/defs/uistr.h
+msgid "Transient for"
+msgstr "Transitoria de"
+
+#: include/defs/uistr.h
+msgid "Transients"
+msgstr "Transitorias"
+
+#: include/defs/uistr.h
+msgid "Group leader"
+msgstr "Líder de grupo"
+
+#: include/defs/uistr.h
+msgid "Supports"
+msgstr "Admite"
+
+#: include/defs/uistr.h
+msgid "Client"
+msgstr "Cliente"
+
+#: include/defs/uistr.h
+msgid "Frame"
+msgstr "Marco"
+
+#: include/defs/uistr.h
+msgid "Titlebar"
+msgstr "Barra de título"
+
+#: include/defs/uistr.h
+msgid "Icon window"
+msgstr "Ventana de icono"
+
+#: include/defs/uistr.h
+msgid "(none)"
+msgstr "(ninguno)"
+
+#: include/defs/uistr.h
+msgid "unlimited"
+msgstr "sin límite"
+
+#: include/defs/uistr.h
+msgid "pinned to all"
+msgstr "fijada en todos"
+
+#: include/defs/uistr.h
+msgid "Inspect..."
+msgstr "Inspeccionar..."
+
+#: include/defs/uistr.h
+msgid "Inspect window"
+msgstr "Inspeccionar ventana"

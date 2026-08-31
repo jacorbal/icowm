@@ -476,3 +476,135 @@ msgstr ""
 "fortune-mod' anzurufen (oder welcher Zauber auch immer Eure "
 "Distribution verlange), auf dass die Weisen der Vorzeit einst wieder "
 "durch diesen bescheidenen Dialog zu Euch sprechen mögen."
+
+#: include/defs/uistr.h
+msgid "Up/Down; PgUp/PgDown; scroll wheel"
+msgstr "Hoch/Runter; Bild auf/ab; Mausrad"
+
+#: include/defs/uistr.h
+msgid "Identity"
+msgstr "Identität"
+
+#: include/defs/uistr.h
+msgid "Placement"
+msgstr "Platzierung"
+
+#: include/defs/uistr.h
+msgid "State"
+msgstr "Zustand"
+
+#: include/defs/uistr.h
+msgid "Size hints"
+msgstr "Größenvorgaben"
+
+#: include/defs/uistr.h
+msgid "Relations"
+msgstr "Beziehungen"
+
+#: include/defs/uistr.h
+msgid "Protocols"
+msgstr "Protokolle"
+
+#: include/defs/uistr.h
+msgid "Title"
+msgstr "Titel"
+
+#: include/defs/uistr.h
+msgid "Class"
+msgstr "Klasse"
+
+#: include/defs/uistr.h
+msgid "Role"
+msgstr "Rolle"
+
+#: include/defs/uistr.h
+msgid "Type"
+msgstr "Typ"
+
+#: include/defs/uistr.h
+msgid "Process"
+msgstr "Prozess"
+
+#: include/defs/uistr.h
+msgid "Screen"
+msgstr "Bildschirm"
+
+#: include/defs/uistr.h
+msgid "Monitor"
+msgstr "Monitor"
+
+#: include/defs/uistr.h
+msgid "Geometry"
+msgstr "Geometrie"
+
+#: include/defs/uistr.h
+msgid "Frame extents"
+msgstr "Rahmenränder"
+
+#: include/defs/uistr.h
+msgid "Is"
+msgstr "Ist"
+
+#: include/defs/uistr.h
+msgid "Is not"
+msgstr "Ist nicht"
+
+#: include/defs/uistr.h
+msgid "Minimum"
+msgstr "Minimum"
+
+#: include/defs/uistr.h
+msgid "Maximum"
+msgstr "Maximum"
+
+#: include/defs/uistr.h
+msgid "Transient for"
+msgstr "Transient für"
+
+#: include/defs/uistr.h
+msgid "Transients"
+msgstr "Transiente"
+
+#: include/defs/uistr.h
+msgid "Group leader"
+msgstr "Gruppenführer"
+
+#: include/defs/uistr.h
+msgid "Supports"
+msgstr "Unterstützt"
+
+#: include/defs/uistr.h
+msgid "Client"
+msgstr "Client"
+
+#: include/defs/uistr.h
+msgid "Frame"
+msgstr "Rahmen"
+
+#: include/defs/uistr.h
+msgid "Titlebar"
+msgstr "Titelleiste"
+
+#: include/defs/uistr.h
+msgid "Icon window"
+msgstr "Symbolfenster"
+
+#: include/defs/uistr.h
+msgid "(none)"
+msgstr "(keine)"
+
+#: include/defs/uistr.h
+msgid "unlimited"
+msgstr "unbegrenzt"
+
+#: include/defs/uistr.h
+msgid "pinned to all"
+msgstr "überall angeheftet"
+
+#: include/defs/uistr.h
+msgid "Inspect..."
+msgstr "Untersuchen..."
+
+#: include/defs/uistr.h
+msgid "Inspect window"
+msgstr "Fenster untersuchen"
