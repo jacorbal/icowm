@@ -54,7 +54,7 @@ desktops.
 This whole section is read only when the session starts.
 Changing anything under it and reloading has no effect on a running
 window manager: not the screen count, not how many desktops each screen
-has, not a desktop's own name or background color.
+has, not a desktop's name or background color.
 Growing or shrinking the number of screens or desktops while running
 would mean deciding what becomes of the clients, the focus and the EWMH
 state already living on a desktop about to disappear, and reload does
@@ -80,7 +80,7 @@ Defaults to
 .It Ic topology.screens.desktops[].settings[].background-color Pq string
 Background color of one desktop, as
 .Ql #RRGGBB .
-Absent, the theme's own desktop color is used.
+Absent, the theme's desktop color is used.
 .El
 .Pp
 A screen's desktops may be arranged as a grid rather than a flat list,
@@ -230,8 +230,8 @@ Which monitor a new window lands on:
 .Ql primary ,
 or an explicit index.
 .It Ic windows.placement.group-related Pq boolean, default Ql true
-Whether a window is placed near others of its own application rather
-than judged on its own.
+Whether a window is placed beside others of the same application
+rather than wherever the configured policy would put it alone.
 .El
 .Ss icons
 How an iconified window is represented on the desktop.
@@ -371,7 +371,7 @@ Space, in pixels, kept clear at each edge of every desktop, on top of
 whatever panels already reserve.
 .El
 .Ss scratchpad
-A single window kept aside, shown and hidden by its own binding rather
+A single window kept aside, shown and hidden by its binding rather
 than living on any desktop.
 .Bl -tag -width Ds
 .It Ic scratchpad.is-enabled Pq boolean, default Ql true

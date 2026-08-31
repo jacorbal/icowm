@@ -81,7 +81,9 @@ accepts.
 .It Fl w Ar events
 Subscribe to
 .Ar events
-instead of sending a command.
+instead of sending a command; the names it takes are listed under
+.Sx EVENTS
+below.
 See
 .Sx Watching for events
 below.
@@ -334,12 +336,111 @@ that surface's work areas
 .El
 .Ss The window manager itself
 .Bl -tag -width Ds
-.It Ic exit_wm
-Requests that IcoWM stop and exit
-.It Ic reload_config
-Reloads every configuration file
 .It Ic toggle_scratchpad Oo Ar desktop_id Oc Oo Ar surface_id Oc
 Launches the scratchpad, or shows/hides it if already running
+.It Ic reload_config
+Reloads every configuration file
+.It Ic exit_wm
+Requests that IcoWM stop and exit
+.El
+.Sh EVENTS
+Every event that
+.Fl w
+accepts and
+.Fl W
+lists.
+Each arrives as one JSON line naming the event in its
+.Ic event
+field, alongside the fields given here.
+.Bl -tag -width Ds
+.It Ic window_mapped Ar client_id , Ar desktop_id , Ar surface_id
+A client was just mapped onto that desktop
+.It Ic window_closed Ar client_id , Ar desktop_id , Ar surface_id
+A client was just destroyed
+.It Ic desktop_switched Ar surface_id , Ar desktop_id
+That surface's current desktop just changed to
+.Ic desktop_id
+.It Ic focus_changed Ar surface_id , Ar client_id
+That client just became the active one on its surface
+.It Ic urgency_set Ar client_id , Ar desktop_id , Ar surface_id
+That client's urgency hint was just set
+.It Ic urgency_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+That client's urgency hint was just cleared
+.It Ic window_moved Ar client_id , Ar desktop_id , Ar surface_id
+That client's position just changed (see the
+.Ic list_clients
+command for its current
+.Ic x
+/
+.Ic y
+)
+.It Ic window_resized Ar client_id , Ar desktop_id , Ar surface_id
+That client's size just changed (see the
+.Ic list_clients
+command for its current
+.Ic w
+/
+.Ic h
+)
+.It Ic rule_applied Ar client_id , Ar desktop_id , Ar surface_id
+A loaded rule just changed one or more of that client's properties
+.It Ic pin_set Ar client_id , Ar desktop_id , Ar surface_id
+That client was just pinned (visible on every desktop)
+.It Ic pin_cleared Ar client_id , Ar desktop_id , Ar surface_id
+That client was just unpinned
+.It Ic fullscreen_set Ar client_id , Ar desktop_id , Ar surface_id
+That client just entered full screen
+.It Ic fullscreen_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+That client just left full screen
+.It Ic shade_set Ar client_id , Ar desktop_id , Ar surface_id
+That client was just shaded (rolled up into its titlebar)
+.It Ic shade_cleared Ar client_id , Ar desktop_id , Ar surface_id
+That client was just unshaded
+.It Ic hide_set Ar client_id , Ar desktop_id , Ar surface_id
+That client was just hidden
+.It Ic hide_cleared Ar client_id , Ar desktop_id , Ar surface_id
+That client was just unhidden
+.It Ic decoration_set Ar client_id , Ar desktop_id , Ar surface_id
+That client's titlebar and border were just shown
+.It Ic decoration_cleared Ar client_id , Ar desktop_id , , Ar surface_id
+That client's titlebar and border were just hidden
+.It Ic client_iconified Ar client_id , Ar desktop_id , , Ar surface_id
+That client was just iconified
+.It Ic client_deiconified Ar client_id , Ar desktop_id , , Ar surface_id
+That client was just restored from being iconified
+.It Ic layer_changed Ar client_id , Ar desktop_id , Ar surface_id
+That client's stacking layer just changed (see
+.Ic list_clients
+for its current layer)
+.It Ic client_desktop_changed Ar client_id , Ar desktop_id
+, Ar surface_id
+That client just moved to a different desktop (
+.Ic desktop_id
+is the new one)
+.It Ic client_renamed Ar client_id , Ar desktop_id , Ar surface_id
+, Ar name
+That client's displayed title was just overridden
+.It Ic client_reclassed Ar client_id , Ar desktop_id
+, Ar surface_id , Ar class_name , Ar instance_name
+That client's
+.Ic WM_CLASS
+was just overridden
+.It Ic client_reroled Ar client_id , Ar desktop_id , Ar surface_id
+, Ar role
+That client's window role was just overridden
+.It Ic client_icon_changed Ar client_id , Ar desktop_id
+, Ar surface_id , Ar icon_name
+That client's displayed icon was just overridden
+.It Ic desktop_background_changed Ar desktop_id , Ar surface_id
+That desktop's solid background color was just set
+.It Ic desktop_shown Ar desktop_id , Ar surface_id
+Every client on that desktop was just shown at once
+.It Ic desktop_hidden Ar desktop_id , Ar surface_id
+Every client on that desktop was just hidden at once
+.It Ic stacking_changed Ar client_id , Ar desktop_id , , Ar surface_id
+That client's position within its layer's stacking order just changed
+.It Ic config_reloaded
+Every configuration file was just reloaded; carries no fields.
 .El
 .Sh ENVIRONMENT
 .Bl -tag -width XDG_RUNTIME_DIR
@@ -447,7 +548,7 @@ $ icowm-msg move_client client_id=0x1600001 x=100 y=200
 Act on the exit status alone, ignoring the response:
 .Bd -literal -offset indent
 if icowm-msg iconify_all desktop_id=0 >/dev/null; then
-	echo "iconified everything on desktop 0"
+    echo "iconified everything on desktop 0"
 fi
 .Ed
 .Pp
