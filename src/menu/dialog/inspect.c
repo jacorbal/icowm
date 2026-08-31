@@ -87,8 +87,11 @@ static void s_inspect_heading(struct s_inspect_ctx_s *ctx,
         return;
     }
 
-    (void) safe_strncpy(ctx->lstore[ctx->count], text,
-            sizeof(ctx->lstore[ctx->count]));
+    /* Bracketed the way the shortcut list brackets its own headings:
+     * a heading has no right-hand column, so without something to set
+     * it apart it reads as a row whose value went missing */
+    (void) snprintf(ctx->lstore[ctx->count],
+            sizeof(ctx->lstore[ctx->count]), "[%s]", text);
     ctx->pairs[ctx->count].label = ctx->lstore[ctx->count];
     ctx->pairs[ctx->count].value = NULL;
     ctx->count++;
