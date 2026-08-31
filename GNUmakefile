@@ -82,10 +82,10 @@ else
 endif
 
 # Neither '-D' nor an owner is asked for anywhere below: the first is
-# a GNU extension BSD's own 'install' does not have, and the second
-# names a group that is 'root' on Linux and 'wheel' on the BSDs.  The
-# directories are made separately, and ownership is left to whoever runs
-# this.
+# a GNU extension BSD's 'install' does not have, and the second names
+# a group that is 'root' on Linux and 'wheel' on the BSDs.
+# The directories are made separately, and ownership is left to whoever
+# runs this.
 INSTALL ?= install
 INSTALL_PROGRAM ?= $(INSTALL) -m 0755
 INSTALL_DATA ?= $(INSTALL) -m 0644
@@ -181,8 +181,8 @@ MSG_LDFLAGS = -L $(L_DIR) $(JSON_LFLAGS)
 # clock, spelled for GNU 'date' first and for BSD 'date' second, since
 # the two disagree about how an epoch is given.
 #
-# The build number stops counting and the file stops being written.  It
-# is a counter of this author's own builds, which is useful here and
+# The build number stops counting and the file stops being written.
+# It is a counter of this author's own builds, which is useful here and
 # meaningless in a package, where it would only record how many times
 # somebody else's machine had compiled the sources and leave a tracked
 # file dirty for having done so.
@@ -220,10 +220,10 @@ CCFLAGS += -D RELEASE_DATE=\"$(RELEASE_DATE)\"
 CCFLAGS += -D I18N_DOMAIN=\"icowm\"
 CCFLAGS += -D I18N_LOCALE_DIR=\"$(LOCALEDIR)\"
 
-# 'icowm-msg' only ever prints its own name, IcoWM's own short name, its
+# 'icowm-msg' only ever prints its name, IcoWM's short name, its
 # version, its license, its copyright line, and its author (see
-# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's own
-# '-v' output, not something a small IPC client has any reason to report
+# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's '-v'
+# output, not something a small IPC client has any reason to report
 # about itself.
 MSG_CCFLAGS += -D PROJECT_NAME_SHORT=\"$(PROJECT_NAME_SHORT)\"
 MSG_CCFLAGS += -D PROJECT_NAME_PROG=\"$(PROJECT_NAME_PROG)\"
@@ -246,7 +246,7 @@ else
 endif
 
 # 'clang' has no '=auto' value for '-flto' (only 'thin'/'full', or
-# nothing at all); only 'gcc' knows to parallelize its own LTRANS pass
+# nothing at all); only 'gcc' knows to parallelize its LTRANS pass
 # across every core this way.
 ifeq ($(CC), gcc)
     LTO_FLAG = -flto=auto
@@ -285,10 +285,10 @@ endif
 
 # Use 'make COMPACT=1' to shrink several compile-time array capacities
 # throughout the codebase, for building specifically for a severely
-# memory-constrained target.  Independent of restricted-memory mode
-# ('icowm -M <mib>').  It does not turn that mode on by itself, and it
-# does not supply a default for '-M  <mib>' when that flag is left off
-# at run time either.
+# memory-constrained target.
+# Independent of restricted-memory mode ('icowm -M <mib>').  It does not
+# turn that mode on by itself, and it does not supply a default for '-M
+# <mib>' when that flag is left off at run time either.
 COMPACT ?=
 ifneq ($(COMPACT),)
 CCFLAGS += -D COMPACT
@@ -328,9 +328,9 @@ OBJS = $(patsubst $(S_DIR)/%.c, $(O_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
 # 'icowm-msg' (see 'tools/icowm-msg.c') builds and links entirely
-# separately from icowm itself: its own single object never joins
-# 'OBJS', and its own binary never joins 'TARGET', so a change to one
-# never forces a rebuild of the other.
+# separately from icowm itself.  Its single object never joins 'OBJS',
+# and its binary never joins 'TARGET', so a change to one never forces
+# a rebuild of the other.
 MSG_SRCS = $(shell find $(T_DIR) -maxdepth 1 -name '*.c' | sort)
 MSG_OBJS = $(patsubst $(T_DIR)/%.c, $(O_DIR)/tools/%.o, $(MSG_SRCS))
 MSG_DEPS = $(MSG_OBJS:.o=.d)
@@ -424,6 +424,8 @@ install:
 		$(DESTDIR)$(XSESSIONSDIR)
 	$(INSTALL_DIR) $(DESTDIR)$(DOCDIR)
 	$(INSTALL_DATA) README.md LICENSE COMPLIANCE.md $(DESTDIR)$(DOCDIR)
+	$(INSTALL_DATA) doc/config.md doc/themes.md doc/icowm.md \
+		doc/icowm-msg.md $(DESTDIR)$(DOCDIR)
 	$(INSTALL_DIR) $(DESTDIR)$(ICON_SCALABLE)
 	$(INSTALL_DATA) doc/icon/$(PROJECT_NAME_PROG).svg \
 		$(DESTDIR)$(ICON_SCALABLE)
@@ -528,6 +530,7 @@ help:
 	@echo "  make test             Build and run every 'tests/*/test_*.c'"
 	@echo "  make install          Install under 'PREFIX'"
 	@echo "  make uninstall        Remove what 'install' put there"
+	@echo "  make help             Show this help"
 	@echo
 	@echo "Options:"
 	@echo "  Use 'CC=<compiler>' to select a compiler ('gcc' or 'clang')"

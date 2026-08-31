@@ -297,10 +297,10 @@ This lays desktops `0`-`5` out as:
 ```
 
 | Key           | Type    | Default        | Description |
-|---------------|---------|----------------|-------------|
+|---------------|---------|----------------|--------------------|
 | `orientation` | string  | `"horizontal"` | `"horizontal"` fills one whole row before moving to the next; `"vertical"` fills one whole column before moving to the next. |
 | `corner`      | string  | `"top-left"`   | Which corner desktop `0` itself starts at, and so which direction IDs advance from there: `"top-left"`, `"top-right"`, `"bottom-left"`, `"bottom-right"`. |
-| `rows`        | integer | `1`            | Number of rows. |
+| `rows`        | integer | `1`            | Number of rows.    |
 | `columns`     | integer | `1`            | Number of columns. |
 
 **More examples.**  The same `6` desktops, `orientation: "vertical"`
@@ -898,12 +898,12 @@ applications actually launched day to day.
 Controls where a menu appears when it is opened by a means with no
 screen position, such as a keyboard shortcut, one setting per menu type:
 `root` is the desktop context menu (`menu.json`, opened by
-`keyboard.wm.menus.root`, see [3.5 `keyboard.wm`](#35-keyboardwm));
-`windows` is the menu listing every window on every desktop (opened by
-`keyboard.wm.menus.windows`).  Supported values are `"center"`, which
-always opens the menu in the center of the screen, and `"under-mouse"`,
-which opens it under the current mouse pointer position instead,
-matching the naming of `windows.placement.policy`.
+`keyboard.wm.menus.root`, see §3.5); `windows` is the menu listing every
+window on every desktop (opened by `keyboard.wm.menus.windows`).
+Supported values are `"center"`, which always opens the menu in the
+center of the screen, and `"under-mouse"`, which opens it under the
+current mouse pointer position instead, matching the naming of
+`windows.placement.policy`.
 
 This setting has no effect when a menu is opened with the mouse (e.g.,
 right-click on the desktop for the root menu), since it already opens
@@ -1260,7 +1260,7 @@ a shell would be.
 | `ignore-margins`         | boolean            | `false`                    | `false` places it the same way an ordinary client already respects `desktops.margins` and the systray's reserved space; `true` lets it use the full edge regardless, e.g., a top-edge scratchpad sliding out from underneath an external panel that already reserves that same space rather than starting just below it. |
 
 Its border is themed separately from every other window, since it never
-has any other decoration; see `themes.md` §11.
+has any other decoration; see `themes.md` §10.
 
 ```json
 "scratchpad": {

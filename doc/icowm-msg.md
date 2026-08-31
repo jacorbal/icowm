@@ -231,9 +231,8 @@ past the command name must be `key=value`; see §3.
 
 Every command IcoWM currently understands, with its arguments (an
 argument in `[brackets]` is optional) and a one-line summary.  This is
-a compact index only; the full explanation of each, including what each
-response field means and the two actions deliberately left out of this
-catalog, is in [`icowm.md`](icowm.md) §5.3.
+a compact index only; the full explanation of each, including what
+every response field means, is in [`icowm.md`](icowm.md) §5.3.
 
 | Command                        | Arguments                                | Description |
 |--------------------------------|------------------------------------------|-------------|
@@ -298,9 +297,10 @@ catalog, is in [`icowm.md`](icowm.md) §5.3.
 | `goto_west_desktop`            | [`surface_id`]                           | The same, toward the desktop west of the current one |
 | `add_desktop`                  | [`surface_id`] | Adds a new desktop after the resolved surface's last one, growing its configured grid layout by a row or column first if it does not already have a gap cell for it.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
 | `remove_desktop`               | [`surface_id`]                           | Removes the resolved surface's last desktop, moving any client still on it to the one before it, switching the current view there too if it was the one removed.  Shrinks the grid layout back down if that was its last member.  Refused, with an error, while only one desktop remains |
+| `toggle_scratchpad`            | [`desktop_id`] [`surface_id`]            | Launches the scratchpad, or shows/hides it if already running |
+| `toggle_strutless_maximize`    | [`surface_id`]                           | Toggles whether panel and tray struts are set aside when computing that surface's work areas |
 | `exit_wm`                      | none                                     | Requests that IcoWM stop and exit |
 | `reload_config`                | none                                     | Reloads every configuration file |
-| `toggle_scratchpad`            | [`desktop_id`[, `surface_id`]]           | Launches the scratchpad, or shows/hides it if already running |
 
 ## 9. Watching for events
 

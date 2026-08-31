@@ -17,11 +17,11 @@
 # bmake equivalent ('.for' loops instead of pattern rules, '!=' instead
 # of '$(shell ...)', '.if'/'.elif'/'.endif' instead of 'ifeq'/'ifneq',
 # and so on), verified against the FreeBSD/NetBSD/OpenBSD make(1)
-# manuals rather than guessed from GNU Make's own syntax.
+# manuals rather than guessed from GNU Make's syntax.
 #
-# NOTE: 'tests/Makefile.mk', included by the '## Tests' section below,
-# is written for GNU Make (it shares this file's own GNU-Make-specific
-# variables directly, per its own comment in 'GNUmakefile').  It is NOT
+# NOTE: 'tests/Makefile.mk', included by the 'Tests' section below, is
+# written for GNU Make (it shares this file's GNU-Make-specific
+# variables directly, per its comment in 'GNUmakefile').  It is NOT
 # converted here: testing under 'bmake' is not this port's goal, only
 # building the project itself is, so that section includes it only if
 # present and skips it silently otherwise, rather than erroring out.
@@ -42,27 +42,28 @@ RELEASE_DATE = "20260923"
 
 
 ## Directories
-# '.CURDIR' is bmake's own built-in for "the directory this makefile
-# lives in / was invoked from", the same role '$(CURDIR)' plays in GNU
-# Make; kept as its own 'PWD' variable, rather than referencing
-# '.CURDIR' everywhere directly, purely to keep every directory variable
-# below an exact, line-by-line match for 'GNUmakefile''s own.
+# '.CURDIR' is bmake's built-in for "the directory this makefile lives
+# in / was invoked from", the same role '$(CURDIR)' plays in GNU Make;
+# kept as its 'PWD' variable, rather than referencing '.CURDIR'
+# everywhere directly, purely to keep every directory variable below an
+# exact, line-by-line match for 'GNUmakefile''s own.
 PWD = ${.CURDIR}
 # bmake, unlike GNU Make, searches for a directory literally named 'obj'
 # (among a few other candidates) in the launch directory and, if one
 # exists, 'chdir's into it before doing anything else at all, including
 # parsing the rest of this very file; confirmed as a built-in part of
 # bmake itself, not something requiring any system makefile
-# ('sys.mk'/'bsd.obj.mk') to be included first.  Since 'O_DIR' below is
-# that exact directory name, and every relative, non-'.CURDIR'-based
-# bare filename further down ('BUILD_NUMBER_FILE', 'DOXIGEN_FILE') would
-# then resolve inside it instead of the project root the moment 'mkdirs'
-# has ever created it once, this pins bmake's own notion of '.OBJDIR' to
-# be '.CURDIR' outright, disabling that search entirely; every directory
-# this file manages itself ('O_DIR' and the rest) is already tracked
-# through its own absolute, '.CURDIR'-derived variables regardless, so
-# bmake's own separate src/obj-splitting mechanism was never being
-# relied on to begin with.
+# ('sys.mk'/'bsd.obj.mk') to be included first.
+#
+# Since 'O_DIR' below is that exact directory name, and every relative,
+# non-'.CURDIR'-based bare filename further down ('BUILD_NUMBER_FILE',
+# 'DOXIGEN_FILE') would then resolve inside it instead of the project
+# root the moment 'mkdirs' has ever created it once, this pins bmake's
+# notion of '.OBJDIR' to be '.CURDIR' outright, disabling that search
+# entirely; every directory this file manages itself ('O_DIR' and the
+# rest) is already tracked through its absolute, '.CURDIR'-derived
+# variables regardless, so bmake's separate src/obj-splitting mechanism
+# was never being relied on to begin with.
 .OBJDIR: ${.CURDIR}
 I_DIR = ${PWD}/include
 S_DIR = ${PWD}/src
@@ -73,8 +74,8 @@ B_DIR = ${PWD}/bin
 TESTS_DIR = ${PWD}/tests
 
 # A plain 'SHELL' variable has no special meaning to bmake at all
-# (unlike GNU Make, which recognizes it by name); '.SHELL: path=...' is
-# bmake's own mechanism for the same guarantee 'GNUmakefile''s own
+# (unlike GNU Make, which recognizes it by name); '.SHELL: path=...'
+# is bmake's mechanism for the same guarantee 'GNUmakefile''s
 # 'SHELL=/bin/sh' line makes: every recipe below runs under a known,
 # POSIX shell, regardless of whatever shell the invoking environment
 # happens to default to.
@@ -82,13 +83,13 @@ TESTS_DIR = ${PWD}/tests
 
 # '!=' hands its right-hand side to the shell immediately and captures
 # stdout, the same role '$(shell ...)' plays in GNU Make, but it is its
-# own assignment operator, not a function that can be nested inside
-# another assignment; a plain '?=' cannot be combined with it directly
-# (there is no single operator for "run a shell command, but only if not
-# already overridden"), so each one first captures into its own
-# '_..._DETECTED' helper, then '?=' picks that helper only if
-# 'JOBS'/'PKGCONF' was not already set on the command line or in the
-# environment, exactly preserving 'GNUmakefile''s own override rules.
+# assignment operator, not a function that can be nested inside another
+# assignment; a plain '?=' cannot be combined with it directly (there is
+# no single operator for "run a shell command, but only if not already
+# overridden"), so each one first captures into its '_..._DETECTED'
+# helper, then '?=' picks that helper only if 'JOBS'/'PKGCONF' was not
+# already set on the command line or in the environment, exactly
+# preserving 'GNUmakefile''s override rules.
 #
 # 'nproc' is GNU-coreutils-only and does not exist on a stock BSD system
 # at all; 'sysctl -n hw.ncpu' is the actual BSD-native way to ask for
@@ -137,10 +138,10 @@ MANDIR ?= ${DATADIR}/man
 .endif
 
 # Neither '-D' nor an owner is asked for anywhere below: the first is
-# a GNU extension BSD's own 'install' does not have, and the second
-# names a group that is 'root' on Linux and 'wheel' on the BSDs.  The
-# directories are made separately, and ownership is left to whoever runs
-# this.
+# a GNU extension BSD's 'install' does not have, and the second names
+# a group that is 'root' on Linux and 'wheel' on the BSDs.
+# The directories are made separately, and ownership is left to whoever
+# runs this.
 INSTALL ?= install
 INSTALL_PROGRAM ?= ${INSTALL} -m 0755
 INSTALL_DATA ?= ${INSTALL} -m 0644
@@ -240,8 +241,8 @@ MSG_LDFLAGS = -L ${L_DIR} ${JSON_LFLAGS}
 # clock, spelled for BSD 'date' first and for GNU 'date' second, since
 # the two disagree about how an epoch is given.
 #
-# The build number stops counting and the file stops being written.  It
-# is a counter of this author's own builds, which is useful here and
+# The build number stops counting and the file stops being written.
+# It is a counter of this author's builds, which is useful here and
 # meaningless in a package, where it would only record how many times
 # somebody else's machine had compiled the sources and leave a tracked
 # file dirty for having done so.
@@ -277,10 +278,10 @@ CCFLAGS += -D RELEASE_DATE=\"${RELEASE_DATE}\"
 CCFLAGS += -D I18N_DOMAIN=\"icowm\"
 CCFLAGS += -D I18N_LOCALE_DIR=\"${LOCALEDIR}\"
 
-# 'icowm-msg' only ever prints its own name, IcoWM's own short name, its
+# 'icowm-msg' only ever prints its name, IcoWM's short name, its
 # version, its license, its copyright line, and its author (see
-# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's own
-# '-v' output, not something a small IPC client has any reason to report
+# 'tools/icowm-msg.c'); the rest of the metadata above is icowm's '-v'
+# output, not something a small IPC client has any reason to report
 # about itself.
 MSG_CCFLAGS += -D PROJECT_NAME_SHORT=\"${PROJECT_NAME_SHORT}\"
 MSG_CCFLAGS += -D PROJECT_NAME_PROG=\"${PROJECT_NAME_PROG}\"
@@ -303,7 +304,7 @@ CCWARN += ${CCWARN_GCC}
 .endif
 
 # 'clang' has no '=auto' value for '-flto' (only 'thin'/'full', or
-# nothing at all); only 'gcc' knows to parallelize its own LTRANS pass
+# nothing at all); only 'gcc' knows to parallelize its LTRANS pass
 # across every core this way.
 .if ${CC} == "gcc"
 LTO_FLAG = -flto=auto
@@ -375,9 +376,9 @@ OBJS = ${SRCS:S,${S_DIR}/,${O_DIR}/,:.c=.o}
 DEPS = ${OBJS:.o=.d}
 
 # 'icowm-msg' (see 'tools/icowm-msg.c') builds and links entirely
-# separately from icowm itself: its own single object never joins
-# 'OBJS', and its own binary never joins 'TARGET', so a change to one
-# never forces a rebuild of the other.
+# separately from icowm itself.  Its single object never joins 'OBJS',
+# and its binary never joins 'TARGET', so a change to one never forces
+# a rebuild of the other.
 MSG_SRCS != find ${T_DIR} -maxdepth 1 -name '*.c' 2>/dev/null | sort
 MSG_OBJS = ${MSG_SRCS:S,${T_DIR}/,${O_DIR}/tools/,:.c=.o}
 MSG_DEPS = ${MSG_OBJS:.o=.d}
@@ -449,14 +450,14 @@ ${src:S,${T_DIR}/,${O_DIR}/tools/,:.c=.o}: ${src}
 ## Tests
 #
 # See 'tests/Makefile.mk' for every test-related rule and variable.
-# UNLIKE THE REST OF THIS FILE, that one is NOT ported to 'bmake' here:
-# it is written for GNU Make throughout (its own comment in
-# 'GNUmakefile' says it shares this file's variables directly), and
-# testing under bmake is not this port's goal, only building the project
-# itself is.  Included only if present, silently skipped otherwise, so
-# its absence (or its own GNU-only syntax, if it is ever actually read
-# by a stray 'make test') never blocks 'all' or any other real target
-# below from building.
+# UNLIKE THE REST OF THIS FILE, that one is NOT ported to 'bmake' here.
+# It is written for GNU Make throughout (its comment in 'GNUmakefile'
+# says it shares this file's variables directly), and testing under
+# bmake is not this port's goal, only building the project itself is.
+# Included only if present, silently skipped otherwise, so its absence
+# (or its GNU-only syntax, if it is ever actually read by a stray 'make
+# test') never blocks 'all' or any other real target below from
+# building.
 .if exists(${TESTS_DIR}/Makefile.mk)
 .include "${TESTS_DIR}/Makefile.mk"
 .endif
@@ -490,6 +491,8 @@ install:
 	${INSTALL_DIR} ${DESTDIR}${DOCDIR}
 	${INSTALL_DATA} ${PWD}/README.md ${PWD}/LICENSE ${PWD}/COMPLIANCE.md \
 		${DESTDIR}${DOCDIR}
+	${INSTALL_DATA} ${PWD}/doc/config.md ${PWD}/doc/themes.md \
+		${PWD}/doc/icowm.md ${PWD}/doc/icowm-msg.md ${DESTDIR}${DOCDIR}
 	${INSTALL_DIR} ${DESTDIR}${ICON_SCALABLE}
 	${INSTALL_DATA} ${PWD}/doc/icon/${PROJECT_NAME_PROG}.svg \
 		${DESTDIR}${ICON_SCALABLE}
@@ -591,8 +594,8 @@ help:
 	@echo "  make run              Run binary (if exists)"
 	@echo "  make run ARGS=<args>  Run with arguments (if binary exists)"
 	@echo "  make hard-run         Clean, build and run (if binary exists)"
-	@echo "  make test             Build and run every tests/*/test_*.c"
-	@echo "  make install          Install under PREFIX"
+	@echo "  make test             Build and run every 'tests/*/test_*.c'"
+	@echo "  make install          Install under 'PREFIX'"
 	@echo "  make uninstall        Remove what 'install' put there"
 	@echo "  make help             Show this help"
 	@echo
@@ -612,7 +615,7 @@ help:
 
 ## Auto-generated header dependencies
 #
-# GNU Make's own '-include' silently skips a missing file; bmake's
+# GNU Make's '-include' silently skips a missing file; bmake's
 # '.include' has no such silent form of its own that could be confirmed
 # portable across every BSD make variant, so the same "skip whichever
 # '.d' files do not exist yet" behavior (true on a clean build, before

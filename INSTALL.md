@@ -47,7 +47,7 @@ This puts, under `/usr/local` by default:
 | `share/locale/<lang>`              | the compiled message catalogues |
 | `share/icons/hicolor`              | the application icon, scalable and symbolic |
 | `share/icowm`                      | a configuration to copy from    |
-| `share/doc/icowm`                  | `README.md`, `LICENSE` &`COMPLIANCE.md` |
+| `share/doc/icowm`                  | `README.md`, `LICENSE`, `COMPLIANCE.md` & the four guides under `doc/` |
 
 Somewhere other than `/usr/local`:
 

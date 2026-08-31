@@ -18,10 +18,10 @@ surface IcoWM draws.
 7. [`dialog`](#7-dialog)
 8. [`overlay`](#8-overlay)
 9. [`xsettings`](#9-xsettings)
-10. [Font format reference](#10-font-format-reference)
-11. [`scratchpad`](#11-scratchpad)
-12. [`search`](#12-search)
-13. [`prompt`](#13-prompt)
+10. [`scratchpad`](#10-scratchpad)
+11. [`search`](#11-search)
+12. [`prompt`](#12-prompt)
+13. [Font format reference](#13-font-format-reference)
 14. [Full example: `themes/default.json`](#14-full-example-themesdefaultjson)
 
 For everything that is not a theme file, see [`config.md`](config.md)
@@ -67,22 +67,25 @@ the characters `-` or `_`.
 
 Appearance settings for managed windows.
 
-| Key            | Type    | Default | Description                                                                                                                                      |
-|----------------|---------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+Every `font` field in this document, here and in the blocks that
+follow, takes the same string.  §13 sets out its two accepted forms.
+
+| Key            | Type    | Default | Description |
+|----------------|---------|---------|-------------|
 | `is-decorated` | boolean | `true`  | When `false`, windows start without any decoration (no title bar, no themed border).  Equivalent to setting `titlebar.height` to `0`; see below. |
 
 #### `window.titlebar`
 
-| Key                  | Type             | Default                                     | Description                                                                                                                                                                                                                                              |
-|----------------------|------------------|---------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `height`             | integer          | `22`                                        | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s value.                                   |
-| `alignment`          | string           | `"center"`                                  | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`.                                                                                                                                         |
-| `padding.horizontal` | integer          | `2`                                         | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text.                                                                                                             |
-| `padding.vertical`   | integer          | `2`                                         | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
-| `buttons.left`       | array of strings | `['pin', 'layer']`                          | Buttons drawn left-to-right starting at the frame's left edge.                                                                                                                                                                                           |
+| Key                  | Type             | Default            | Description |
+|----------------------|------------------|--------------------|-------------|
+| `height`             | integer          | `22`               | Title bar height in pixels.  A value of `0` is equivalent to `window.is-decorated: false`: with nothing to draw and nowhere to put buttons, the window is treated as undecorated regardless of `is-decorated`'s value.                                   |
+| `alignment`          | string           | `"center"`         | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`.                                                                                                                                         |
+| `padding.horizontal` | integer          | `2`                | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text.                                                                                                             |
+| `padding.vertical`   | integer          | `2`                | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
+| `buttons.left`       | array of strings | `['pin', 'layer']` | Buttons drawn left-to-right starting at the frame's left edge.                                                                                                                                                                                           |
 | `buttons.right`      | array of strings | `['close', 'maximize', 'shade', 'iconize']` | Buttons drawn right-to-left starting at the frame's right edge.                                                                                                                                                                                          |
-| `buttons.color.on`   | string           | `"#142335"`                                 | Color for a button whose state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button.                                                                                                              |
-| `buttons.color.off`  | string           | `"#4E6076"`                                 | Color for a button otherwise, i.e., not engaged.                                                                                                                                                                                                         |
+| `buttons.color.on`   | string           | `"#142335"`        | Color for a button whose state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button.                                                                                                              |
+| `buttons.color.off`  | string           | `"#4E6076"`        | Color for a button otherwise, i.e., not engaged.                                                                                                                                                                                                         |
 
 Accepted button names, for both `buttons.left` and `buttons.right`, are:
 `"pin"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`, `"maximize"`,
@@ -104,13 +107,13 @@ drawn at all rather than needing a separate color for that case.
 Appearance of the focused window (`active`) and of windows that do not
 have focus (`inactive`).  Both share the same shape:
 
-| Key                | Type    | Default (active) | Default (inactive) | Description                                                                                                                                                                                                                                                                                                                               |
-|--------------------|---------|------------------|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `font`             | string  | `"fixed bold"`   | `"fixed"`          | Title bar font (see note below).                                                                                                                                                                                                                                                                                                          |
-| `color.background` | string  | `"#9AAEC8"`      | `"#D0D9E5"`        | Title bar background color.                                                                                                                                                                                                                                                                                                               |
-| `color.foreground` | string  | `"#1B222E"`      | `"#3A4351"`        | Title bar text color.                                                                                                                                                                                                                                                                                                                     |
-| `border.color`     | string  | `"#22272F"`      | `"#1D2732"`        | Border color.                                                                                                                                                                                                                                                                                                                             |
-| `border.width`     | integer | `2`              | `2`                | Border thickness in pixels.                                                                                                                                                                                                                                                                                                               |
+| Key                | Type    | Default (active) | Default (inactive) | Description |
+|--------------------|---------|------------------|--------------------|-------------|
+| `font`             | string  | `"fixed bold"`   | `"fixed"`          | Title bar font (see note below). |
+| `color.background` | string  | `"#9AAEC8"`      | `"#D0D9E5"`        | Title bar background color. |
+| `color.foreground` | string  | `"#1B222E"`      | `"#3A4351"`        | Title bar text color. |
+| `border.color`     | string  | `"#22272F"`      | `"#1D2732"`        | Border color. |
+| `border.width`     | integer | `2`              | `2`                | Border thickness in pixels. |
 | `opacity`          | integer | `100`            | `100`              | Desired opacity, 0 to 100, published on the frame through `_NET_WM_WINDOW_OPACITY`.  IcoWM never composites anything itself, so this has no visible effect at all unless a compositing manager, e.g., picom, is also running and reading the property back off the window.  See `config.md` §7 for a per-window override in `rules.json`. |
 
 `border.width` need not match between `active` and `inactive`.  When
@@ -123,11 +126,11 @@ happen automatically.
 
 Appearance settings for iconified windows.
 
-| Key            | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-|----------------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Key            | Type    | Default | Description |
+|----------------|---------|---------|-------------|
+| `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
 | `show-pixmaps` | boolean | `true`  | When `true`, draws the client's `_NET_WM_ICON` image, centered in and clipped to the icon's square graphic area, above the caption (the two never overlap).  Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`.  Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another (not currently configurable from a JSON file, only at compile time).  The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again.  Forced to `false` automatically in restricted-memory mode (see `-M`), regardless of what this file says. |
-| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's top corners.  A filled square in the top-left when the client is sticky/pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's top corners.  A filled square in the top-left when the client is sticky/pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal). |
 
 #### `icon.active` / `icon.inactive`
 
@@ -162,10 +165,10 @@ the target's position by however many pixels `cycle.border.width`
 happens to be, regardless of what `window.active`/`inactive` (or
 `icon.active`/`inactive`) themselves are configured to.
 
-| Key                  | Type    | Default     | Description                                            |
-|----------------------|---------|-------------|--------------------------------------------------------|
+| Key                  | Type    | Default     | Description             |
+|----------------------|---------|-------------|-------------------------|
 | `cycle.border.color` | string  | `"#E3C76E"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
-| `cycle.border.width` | integer | `4`         | Border width in pixels.                                |
+| `cycle.border.width` | integer | `4`         | Border width in pixels. |
 
 A theme that moves `window.active`/`inactive` away from this project's
 default color family should reconsider this field too, for the same
@@ -551,110 +554,16 @@ exactly as a dedicated XSETTINGS daemon would.
 }
 ```
 
-## 10. Font format reference
-
-> Every `font` field in a theme accepts the same string, tried through
-> two backends in order:
->
-> 1. **X core fonts** (accessed via XCB), IcoWM's original text
->    rendering path.  Only **X11 bitmap fonts** (BDF/PCF) are available
->    through this backend; it is tried first because it has no per-glyph
->    rasterization cost and every X server ships the `fixed` family it
->    falls back to below.
->
-> 2. **TrueType/OpenType**, via fontconfig (font matching), FreeType2
->    (rasterization), and the X RENDER extension (compositing), used
->    automatically whenever a `font` string does not resolve to an
->    X core font, e.g., a family name such as `"DejaVu Sans"` that most
->    systems only have as a scalable font, not as a legacy X bitmap one.
->    This is what gives window titles, menus, and the systray
->    clock/battery text real anti-aliasing and full UTF-8 support
->    (accented characters, non-Latin scripts, and so on), neither of
->    which the X core font backend can provide.
->
-> If a `font` string resolves through neither backend, IcoWM falls back
-> to `"fixed"`, so text rendering is never left completely broken by
-> a single bad theme value.
->
-> No separate field or prefix selects which backend is used: it is
-> decided purely by whether the string resolves as an X core font first.
-> A short description like `"fixed bold 13"` almost always takes the
-> X core font path, since `fixed` is an X bitmap family;
-> a TrueType/OpenType family name takes the fontconfig path instead,
-> using fontconfig's pattern syntax rather than the short description
-> syntax below.
->
-> #### X core font syntax
->
-> The `font` field accepts two X core font formats:
->
-> 1. **Short description:**
->   `"[family] [bold] [italic|oblique] [size] [registry-encoding]"`
->
->    IcoWM parses this and constructs the appropriate XLFD wildcard
->    pattern internally.  All fields after `family` are optional and can
->    appear in any order, except that `registry-encoding` (if given)
->    must come last.  `registry-encoding` is any token that contains
->    a hyphen, e.g., `iso8859-15` or `iso10646-1`; it maps to the last
->    two XLFD fields (`charset_registry` and `charset_encoding`).
->
->   Examples:
->    - `"fixed"`: the `fixed` alias (available on every X server)
->    - `"fixed 13"`: `fixed` family at 13 pixels
->    - `"fixed bold 13"`: `fixed` family, bold weight, 13 pixels
->    - `"fixed bold 13 iso8859-15"`: `fixed`, bold, 13 pixels,
->       ISO 8859-15 charset
->    - `"courier bold italic 17"`: Courier, bold italic, 17 pixels
->
-> 2. **Full XLFD:** a string starting with "`-`", e.g.,
->    `"-*-fixed-bold-r-*-*-13-*-*-*-*-*-iso8859-15"`, is passed verbatim
->    to the X server.
->
-> To list all X core fonts available on your system, run:
->
-> ```
-> xlsfonts
-> ```
->
-> or query a specific pattern:
->
-> ```
-> xlsfonts -fn '-*-fixed-*-*-*-*-*-*-*-*-*-*-*-*'
-> ```
->
-> #### TrueType/OpenType syntax
->
-> A `font` string that reaches the fontconfig fallback is parsed with
-> fontconfig's pattern syntax, the same one used by tools such as
-> `fc-match`:
->
-> ```
-> <family>[-<size>][:<name1>=<value1>[:<name2>=<value2>...]]
-> ```
->
-> Examples:
->  - `"DejaVu Sans Mono"`: family name alone, fontconfig's default size
->  - `"DejaVu Sans Mono-11"`: family and pixel size
->  - `"Noto Sans:bold"`: family and weight
->  - `"Noto Sans:bold:size=11"`: family, weight, and size
->
-> To check what font a given pattern resolves to (and confirm it is
-> actually installed) before putting it in a theme file, run:
->
-> ```
-> fc-match "Noto Sans:bold:size=11"
-> ```
-
-## 11. `scratchpad`
+## 10. `scratchpad`
 
 The scratchpad's border (see `config.md` §2.11), since it is always
 undecorated and so never has any other decoration to theme.  Same as
 `window.active.border` by default, since the scratchpad's window is
 meant to stand out the same way the active window's border already does.
 
-| Key                       | Type    | Default     | Description                                                                                                                   |
-|---------------------------|---------|-------------|-------------------------------------------------------------------------------------------------------------------------------|
-| `scratchpad.border.color` | string  | `"#22272F"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`.                                                                        |
+| Key                       | Type    | Default     | Description |
+|---------------------------|---------|-------------|-------------|
+| `scratchpad.border.color` | string  | `"#22272F"` | Border color as a hex color `"#RRGGBB"` or `"RRGGBB"`. |
 | `scratchpad.border.width` | integer | `2`         | Border width in pixels; `0` disables the border entirely, the same way `window.titlebar.height` of `0` disables the titlebar. |
 
 ```json
@@ -666,7 +575,7 @@ meant to stand out the same way the active window's border already does.
 }
 ```
 
-## 12. `search`
+## 11. `search`
 
 Theme for the fuzzy window-search widget (see `bindings.json` in
 `config.md` §3.5, `search_windows`).  Its dedicated section rather than
@@ -678,19 +587,19 @@ stand out from ordinary context menus if they want to.
 and `unselected` style a result row depending on whether it is the
 current hovered or keyboard-navigated one.
 
-| Key                                  | Type    | Default        | Description                                                                         |
-|--------------------------------------|---------|----------------|-------------------------------------------------------------------------------------|
-| `search.input.font`                  | string  | `"fixed bold"` | Font for the query bar.                                                             |
-| `search.input.color.background`      | string  | `"#9AAEC8"`    | Query bar background.                                                               |
-| `search.input.color.foreground`      | string  | `"#1B222E"`    | Query bar text.                                                                     |
+| Key                                  | Type    | Default        | Description |
+|--------------------------------------|---------|----------------|-------------|
+| `search.input.font`                  | string  | `"fixed bold"` | Font for the query bar. |
+| `search.input.color.background`      | string  | `"#9AAEC8"`    | Query bar background. |
+| `search.input.color.foreground`      | string  | `"#1B222E"`    | Query bar text. |
 | `search.unselected.font`             | string  | `"fixed"`      | Font for a result row that is neither hovered nor the keyboard-navigated selection. |
-| `search.unselected.color.background` | string  | `"#D0D9E5"`    | Unselected row background.                                                          |
-| `search.unselected.color.foreground` | string  | `"#3A4351"`    | Unselected row text.                                                                |
-| `search.selected.font`               | string  | `"fixed"`      | Font for the hovered or keyboard-navigated result row.                              |
-| `search.selected.color.background`   | string  | `"#9AAEC8"`    | Selected row background.                                                            |
-| `search.selected.color.foreground`   | string  | `"#1B222E"`    | Selected row text.                                                                  |
-| `search.border.color`                | string  | `"#4E6076"`    | Widget window's outer frame color.                                                  |
-| `search.border.width`                | integer | `2`            | Widget window's outer frame width in pixels.                                        |
+| `search.unselected.color.background` | string  | `"#D0D9E5"`    | Unselected row background. |
+| `search.unselected.color.foreground` | string  | `"#3A4351"`    | Unselected row text. |
+| `search.selected.font`               | string  | `"fixed"`      | Font for the hovered or keyboard-navigated result row. |
+| `search.selected.color.background`   | string  | `"#9AAEC8"`    | Selected row background. |
+| `search.selected.color.foreground`   | string  | `"#1B222E"`    | Selected row text. |
+| `search.border.color`                | string  | `"#4E6076"`    | Widget window's outer frame color. |
+| `search.border.width`                | integer | `2`            | Widget window's outer frame width in pixels. |
 
 ```json
 "search": {
@@ -710,7 +619,7 @@ current hovered or keyboard-navigated one.
 }
 ```
 
-## 13. `prompt`
+## 12. `prompt`
 
 Theme for the built-in run-box (see `config.md` §2.12).  `label` styles
 the "Run:" prompt itself; `input` styles the typed command, drawn right
@@ -718,15 +627,15 @@ next to it with its independent font and colors, so the two can be told
 apart at a glance the same way `label` and `input` can be given
 different backgrounds below.
 
-| Key                             | Type    | Default        | Description                        |
-|---------------------------------|---------|----------------|------------------------------------|
-| `prompt.label.font`             | string  | `"fixed bold"` | Font for the "Run:" prompt.        |
-| `prompt.label.color.background` | string  | `"#9AAEC8"`    | Prompt background.                 |
-| `prompt.label.color.foreground` | string  | `"#1B222E"`    | Prompt text.                       |
-| `prompt.input.font`             | string  | `"fixed bold"` | Font for the typed command.        |
-| `prompt.input.color.background` | string  | `"#D0D9E5"`    | Typed-command background.          |
-| `prompt.input.color.foreground` | string  | `"#1B222E"`    | Typed-command text.                |
-| `prompt.border.color`           | string  | `"#4E6076"`    | Box's outer frame color.           |
+| Key                             | Type    | Default        | Description  |
+|---------------------------------|---------|----------------|--------------|
+| `prompt.label.font`             | string  | `"fixed bold"` | Font for the "Run:" prompt. |
+| `prompt.label.color.background` | string  | `"#9AAEC8"`    | Prompt background. |
+| `prompt.label.color.foreground` | string  | `"#1B222E"`    | Prompt text. |
+| `prompt.input.font`             | string  | `"fixed bold"` | Font for the typed command. |
+| `prompt.input.color.background` | string  | `"#D0D9E5"`    | Typed-command background. |
+| `prompt.input.color.foreground` | string  | `"#1B222E"`    | Typed-command text. |
+| `prompt.border.color`           | string  | `"#4E6076"`    | Box's outer frame color. |
 | `prompt.border.width`           | integer | `2`            | Box's outer frame width in pixels. |
 
 ```json
@@ -741,6 +650,99 @@ different backgrounds below.
     },
     "border": { "color": "#4E6076", "width": 2 }
 }
+```
+
+## 13. Font format reference
+
+Every `font` field in a theme accepts the same string, tried through two
+backends in order:
+
+1. **X core fonts** (accessed via XCB), IcoWM's original text rendering
+   path.  Only **X11 bitmap fonts** (BDF/PCF) are available through this
+   backend; it is tried first because it has no per-glyph rasterization
+   cost and every X server ships the `fixed` family it falls back to
+   below.
+
+2. **TrueType/OpenType**, via fontconfig (font matching), FreeType2
+   (rasterization), and the X RENDER extension (compositing), used
+   automatically whenever a `font` string does not resolve to an X core
+   font, e.g., a family name such as `"DejaVu Sans"` that most systems
+   only have as a scalable font, not as a legacy X bitmap one.  This is
+   what gives window titles, menus, and the systray clock/battery text
+   real anti-aliasing and full UTF-8 support (accented characters,
+   non-Latin scripts, and so on), neither of which the X core font
+   backend can provide.
+
+If a `font` string resolves through neither backend, IcoWM falls back to
+`"fixed"`, so text rendering is never left completely broken by a single
+bad theme value.
+
+No separate field or prefix selects which backend is used: it is decided
+purely by whether the string resolves as an X core font first.  A short
+description like `"fixed bold 13"` almost always takes the X core font
+path, since `fixed` is an X bitmap family; a TrueType/OpenType family
+name takes the fontconfig path instead, using fontconfig's pattern
+syntax rather than the short description syntax below.
+
+#### X core font syntax
+
+The `font` field accepts two X core font formats:
+
+1. **Short description:**
+  `"[family] [bold] [italic|oblique] [size] [registry-encoding]"`
+
+   IcoWM parses this and constructs the appropriate XLFD wildcard
+   pattern internally.  All fields after `family` are optional and can
+   appear in any order, except that `registry-encoding` (if given) must
+   come last.  `registry-encoding` is any token that contains a hyphen,
+   e.g., `iso8859-15` or `iso10646-1`; it maps to the last two XLFD
+   fields (`charset_registry` and `charset_encoding`).
+
+  Examples:
+   - `"fixed"`: the `fixed` alias (available on every X server)
+   - `"fixed 13"`: `fixed` family at 13 pixels
+   - `"fixed bold 13"`: `fixed` family, bold weight, 13 pixels
+   - `"fixed bold 13 iso8859-15"`: `fixed`, bold, 13 pixels,
+      ISO 8859-15 charset
+   - `"courier bold italic 17"`: Courier, bold italic, 17 pixels
+
+2. **Full XLFD:** a string starting with "`-`", e.g.,
+   `"-*-fixed-bold-r-*-*-13-*-*-*-*-*-iso8859-15"`, is passed verbatim
+   to the X server.
+
+To list all X core fonts available on your system, run:
+
+```
+xlsfonts
+```
+
+or query a specific pattern:
+
+```
+xlsfonts -fn '-*-fixed-*-*-*-*-*-*-*-*-*-*-*-*'
+```
+
+#### TrueType/OpenType syntax
+
+A `font` string that reaches the fontconfig fallback is parsed with
+fontconfig's pattern syntax, the same one used by tools such as
+`fc-match`:
+
+```
+<family>[-<size>][:<name1>=<value1>[:<name2>=<value2>...]]
+```
+
+Examples:
+ - `"DejaVu Sans Mono"`: family name alone, fontconfig's default size
+ - `"DejaVu Sans Mono-11"`: family and pixel size
+ - `"Noto Sans:bold"`: family and weight
+ - `"Noto Sans:bold:size=11"`: family, weight, and size
+
+To check what font a given pattern resolves to (and confirm it is
+actually installed) before putting it in a theme file, run:
+
+```
+fc-match "Noto Sans:bold:size=11"
 ```
 
 ## 14. Full example: `themes/default.json`

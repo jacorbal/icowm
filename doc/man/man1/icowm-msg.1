@@ -30,7 +30,10 @@ running
 and prints back whatever answer comes.
 .Pp
 .Ar command
-is any command name the server knows;
+is any command name the server knows, listed under
+.Sx COMMANDS
+below and obtainable from the running build with
+.Fl K ;
 .Fl K
 lists them.
 Each
@@ -161,6 +164,183 @@ With
 .Fl n Ar count ,
 watching stops once that many events have arrived; without it, watching
 continues until the connection drops or the process is killed.
+.Sh COMMANDS
+Every command the server knows, in the groups the dispatch table
+itself keeps them in.
+An argument in brackets may be left out, and every one is given as
+.Ar key Ns = Ns Ar value ,
+in any order.
+For what each response carries back, see
+.Pa icowm-msg.md ,
+installed alongside this page.
+.Ss Queries
+.Bl -tag -width Ds
+.It Ic get_version
+Reports the wire protocol version
+.It Ic list_desktops
+Lists every desktop on every managed surface
+.It Ic list_clients
+Lists every managed client, with geometry and state flags
+.It Ic get_focused
+Reports the active client of every managed surface
+.El
+.Ss Closing and focusing a client
+.Bl -tag -width Ds
+.It Ic close_client Ar client_id
+Closes the client politely, or destroys its window
+.It Ic kill_client Ar client_id
+Forcibly terminates the client's X connection
+.It Ic deiconify_client Ar client_id
+Restores the client if it was iconified
+.It Ic focus_client Ar client_id
+Moves input focus to the client (does not raise it)
+.It Ic unfocus_client Ar client_id
+Takes input focus away from the client
+.El
+.Ss Iconifying and hiding a client
+.Bl -tag -width Ds
+.It Ic iconify_client Ar client_id
+Iconifies (minimizes) the client
+.It Ic hide_client Ar client_id
+Hides the client without iconifying it
+.It Ic unhide_client Ar client_id
+Undoes `hide_client`
+.El
+.Ss Client flags
+.Bl -tag -width Ds
+.It Ic pin_client Ar client_id
+Makes the client visible on every desktop
+.It Ic unpin_client Ar client_id
+Undoes `pin_client`
+.It Ic toggle_pin_client Ar client_id
+Toggles `pin_client`/`unpin_client`
+.It Ic urge_client Ar client_id
+Marks the client urgent
+.It Ic unurge_client Ar client_id
+Undoes `urge_client`
+.El
+.Ss Client geometry
+.Bl -tag -width Ds
+.It Ic move_client Ar client_id Ar x Ar y
+Moves the client so its top-left corner is at that position
+.It Ic center_client Ar client_id
+Centers the client on its screen
+.It Ic move_client_to_monitor Ar client_id Ar monitor_index
+Moves the client to that physical monitor by its index, rather than by
+compass direction
+.It Ic move_client_to_monitor_north Ar client_id
+Moves the client to the monitor north of its current one, resolved by
+real physical position; a no-op with one monitor or none, or when none
+lies to the north
+.It Ic move_client_to_monitor_south Ar client_id
+The same, toward the monitor south of the current one
+.It Ic move_client_to_monitor_east Ar client_id
+The same, toward the monitor east of the current one
+.It Ic move_client_to_monitor_west Ar client_id
+The same, toward the monitor west of the current one
+.It Ic move_resize_client Ar client_id Ar x Ar y Ar w Ar h
+Moves and resizes the client in one step
+.It Ic resize_client Ar client_id Ar w Ar h
+Resizes the client only, leaving position alone
+.It Ic maximize_client_horz Ar client_id
+Maximizes the client horizontally only
+.It Ic maximize_client_vert Ar client_id
+Maximizes the client vertically only
+.It Ic maximize_client Ar client_id
+Maximizes the client both horizontally and vertically
+.El
+.Ss Client layering
+.Bl -tag -width Ds
+.It Ic raise_client Ar client_id
+Raises the client within its layer
+.It Ic lower_client Ar client_id
+Lowers the client within its layer
+.It Ic set_layer_above_client Ar client_id
+Moves the client to the "always on top" layer
+.It Ic set_layer_normal_client Ar client_id
+Moves the client back to the ordinary layer
+.It Ic set_layer_below_client Ar client_id
+Moves the client to the "always below" layer
+.It Ic cycle_layer_client Ar client_id
+Cycles the client through above, normal, and below
+.El
+.Ss Client metadata
+.Bl -tag -width Ds
+.It Ic rename_client Ar client_id Ar name
+Overrides the client's window title
+.It Ic reclass_client Ar client_id Ar class_name Ar instance_name
+Overrides the client's `WM_CLASS`
+.It Ic rerole_client Ar client_id Ar role
+Overrides the client's window role
+.It Ic set_client_icon Ar client_id Ar icon_name
+Overrides which icon IcoWM shows for the client
+.El
+.Ss Client state
+.Bl -tag -width Ds
+.It Ic shade_client Ar client_id
+Rolls the client up into just its titlebar
+.It Ic unshade_client Ar client_id
+Undoes `shade_client`
+.It Ic toggle_shade_client Ar client_id
+Toggles `shade_client`/`unshade_client`
+.It Ic fullscreen_client Ar client_id
+Makes the client fill its screen
+.It Ic unfullscreen_client Ar client_id
+Undoes `fullscreen_client`
+.It Ic toggle_fullscreen_client Ar client_id
+Toggles `fullscreen_client`/`unfullscreen_client`
+.It Ic toggle_decorate_client Ar client_id
+Shows or hides the client's titlebar and border
+.El
+.Ss Desktops and surfaces
+.Bl -tag -width Ds
+.It Ic set_desktop_background Ar desktop_id Oo Ar surface_id Oc Ar color
+Sets that desktop's solid background color
+.It Ic show_desktop Ar desktop_id Oo Ar surface_id Oc Ar show
+Shows or hides every client on that desktop at once
+.It Ic send_client_to_desktop Ar client_id Ar target_desktop_id
+Moves the client to another desktop on the same surface
+.It Ic send_client_to_front Ar client_id
+Raises the client to the front of its desktop's window stack
+.It Ic send_client_to_back Ar client_id
+Sends the client to the back of its desktop's window stack
+.It Ic iconify_all Oo Ar desktop_id Oc Oo Ar surface_id Oc
+Iconifies every client on that desktop at once
+.It Ic deiconify_all Oo Ar desktop_id Oc Oo Ar surface_id Oc
+Restores every iconified client on that desktop at once
+.It Ic rearrange_desktop Oo Ar desktop_id Oc Oo Ar surface_id Oc
+Re-applies the configured placement policy on that desktop
+.It Ic goto_desktop Ar desktop_id Oo Ar surface_id Oc
+Switches the resolved surface to that desktop
+.It Ic goto_north_desktop Oo Ar surface_id Oc
+Switches the resolved surface to the desktop north of its current one
+.It Ic goto_south_desktop Oo Ar surface_id Oc
+The same, toward the desktop south of the current one
+.It Ic goto_east_desktop Oo Ar surface_id Oc
+The same, toward the desktop east of the current one
+.It Ic goto_west_desktop Oo Ar surface_id Oc
+The same, toward the desktop west of the current one
+.It Ic add_desktop Oo Ar surface_id Oc
+Adds a new desktop after the resolved surface's last one, growing its
+configured grid layout by a row or column first if it does not already
+have a gap cell for it
+.It Ic remove_desktop Oo Ar surface_id Oc
+Removes the resolved surface's last desktop, moving any client still
+on it to the one before it, switching the current view there too if it
+was the one removed
+.It Ic toggle_strutless_maximize Oo Ar surface_id Oc
+Toggles whether panel and tray struts are set aside when computing
+that surface's work areas
+.El
+.Ss The window manager itself
+.Bl -tag -width Ds
+.It Ic exit_wm
+Requests that IcoWM stop and exit
+.It Ic reload_config
+Reloads every configuration file
+.It Ic toggle_scratchpad Oo Ar desktop_id Oc Oo Ar surface_id Oc
+Launches the scratchpad, or shows/hides it if already running
+.El
 .Sh ENVIRONMENT
 .Bl -tag -width XDG_RUNTIME_DIR
 .It Ev XDG_RUNTIME_DIR
@@ -309,6 +489,10 @@ in it.
 .El
 .Sh SEE ALSO
 .Xr icowm 1
+.Pp
+.Pa icowm-msg.md ,
+installed under the documentation directory, carries the same command
+list with the response each one returns, which this page leaves out.
 .Sh HISTORY
 .Nm
 first appeared in version 1.0, together with
@@ -317,5 +501,6 @@ first appeared in version 1.0, together with
 .An J. A. Corbal Aq Mt jacorbal@gmail.com
 .Sh BUGS
 Probably.
+.Pp
 Please report any found at
 .Lk https://github.com/jacorbal/icowm/issues .
