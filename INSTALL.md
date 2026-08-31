@@ -5,7 +5,7 @@ Requirements
 ------------
 
 A C99 compiler, either GNU Make or BSD make, and the libraries listed
-under [Dependencies](README.md#dependencies) in `README.md`.  Nothing
+under "[Dependencies](README.md#dependencies)" in `README.md`.  Nothing
 else: there is no `configure` step, and no build system beyond the two
 makefiles in this directory.
 
