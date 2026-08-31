@@ -260,12 +260,17 @@ DEBUG ?= 0
 ifeq ($(DEBUG), 1)
     CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
 else ifeq ($(DEBUG), 2)
+    # No '-fanalyzer' alongside the sanitizer.  The two answer
+    # different questions, one before the program runs and one while
+    # it does, and gcc 13 loses track of its own instrumentation when
+    # asked for both: a loop whose condition calls another translation
+    # unit, holding a variable that unit fills through a pointer, is
+    # reported as a use of an uninitialized value that no
+    # initialization silences.  'make ANALYZE=1' is where the analyzer
+    # belongs, and it still runs there.
     CCFLAGS += -DDEBUG -g3 -ggdb3 -O0 \
                -fsanitize=address -fno-omit-frame-pointer -fPIE
     LDFLAGS += -fsanitize=address -pie
-    ifeq ($(CC), gcc)
-        CCFLAGS += -fanalyzer
-    endif
 else
     CCFLAGS += -DNDEBUG -O$(CCOPT) $(LTO_FLAG) \
                -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE
