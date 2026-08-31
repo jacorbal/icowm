@@ -412,24 +412,19 @@ That client was just restored from being iconified
 That client's stacking layer just changed (see
 .Ic list_clients
 for its current layer)
-.It Ic client_desktop_changed Ar client_id , Ar desktop_id
-, Ar surface_id
-That client just moved to a different desktop (
+.It Ic client_desktop_changed Ar client_id , Ar desktop_id , Ar surface_id
+That client just moved to a different desktop (here,
 .Ic desktop_id
 is the new one)
-.It Ic client_renamed Ar client_id , Ar desktop_id , Ar surface_id
-, Ar name
+.It Ic client_renamed Ar client_id , Ar desktop_id , Ar surface_id , Ar name
 That client's displayed title was just overridden
-.It Ic client_reclassed Ar client_id , Ar desktop_id
-, Ar surface_id , Ar class_name , Ar instance_name
+.It Ic client_reclassed Ar client_id , Ar desktop_id , Ar surface_id , Ar class_name , Ar instance_name
 That client's
 .Ic WM_CLASS
 was just overridden
-.It Ic client_reroled Ar client_id , Ar desktop_id , Ar surface_id
-, Ar role
+.It Ic client_reroled Ar client_id , Ar desktop_id , Ar surface_id , Ar role
 That client's window role was just overridden
-.It Ic client_icon_changed Ar client_id , Ar desktop_id
-, Ar surface_id , Ar icon_name
+.It Ic client_icon_changed Ar client_id , Ar desktop_id , Ar surface_id , Ar icon_name
 That client's displayed icon was just overridden
 .It Ic desktop_background_changed Ar desktop_id , Ar surface_id
 That desktop's solid background color was just set
