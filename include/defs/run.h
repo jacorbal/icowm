@@ -33,12 +33,32 @@
 /**
  * @brief Fixed width of the run-box, in pixels
  *
- * Narrower than @c WM_SEARCH_WIDTH (defs/search.h): a typed command is
+ * Narrower than @c WM_SEARCH_WIDTH (defs/search.h).  A typed command is
  * ordinarily far shorter than a window title, and the two widgets
  * being visibly different sizes is one more cue, alongside the
  * "Run:" prompt itself, that they are not the same thing.
  */
 #define WM_RUN_WIDTH (320)
+
+/**
+ * @brief Shown at the left edge when the text scrolled out of view
+ *        that way
+ *
+ * Without it there is no telling a command that begins where it looks
+ * to from one whose beginning has scrolled past the edge, which is
+ * the difference between running what was typed and running the tail
+ * of it.
+ */
+#define WM_RUN_MARK_LEFT "<"
+
+/** Shown at the right edge when text continues past it, for the same
+ *  reason @c WM_RUN_MARK_LEFT is shown at the other one */
+#define WM_RUN_MARK_RIGHT ">"
+
+/** Width of the insertion cursor, in pixels; a thin bar between two
+ *  characters rather than a block over one, which is what a text
+ *  field draws and what leaves the character under it legible */
+#define WM_RUN_CURSOR_WIDTH (2)
 
 
 #endif  /* ! DEFS_RUN_H */

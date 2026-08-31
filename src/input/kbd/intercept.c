@@ -199,7 +199,7 @@ static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
  * @param surface    Surface on which the menu is displayed
  * @param config     Active configuration
  *
- * @return @c true if a menu was closed
+ * @return @c true if a menu was closed, @c false otherwise
  */
 static bool s_dispatch_open_menu_key(xcb_keysym_t keysym,
         xcb_connection_t *connection, surface_td *surface,
@@ -267,7 +267,7 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
     if (run_is_open()) {
         run_handle_keypress(
                 (surface != NULL) ? xcb_connection_get() : NULL,
-                surface, typed_keysym, config);
+                surface, typed_keysym, state, config);
         return true;
     }
 
