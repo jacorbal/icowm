@@ -60,6 +60,7 @@
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/select.h>
 #include <menu/context/ctxmenu/tree.h>
+#include <menu/dialog/inspect.h>
 #include <menu/context/wincmenu.h>
 
 
@@ -465,6 +466,26 @@ static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
             LOGGER_WARNING("Unexpected action %d routed through" \
                     " 's_cb_send_action'", action);
             break;
+    }
+}
+
+
+/**
+ * @brief Open the inspector for the client this menu was raised over
+ *
+ * @param connection XCB connection
+ * @param userdata   Unused
+ *
+ * @note Complexity: @e O(t), where @e t is the client's number of
+ *       transient children, which the inspector counts
+ */
+static void s_cb_inspect(xcb_connection_t *connection, void *userdata)
+{
+    (void) userdata;
+
+    if (s_target_client != NULL) {
+        dialog_inspect_show(connection, s_surface, s_config,
+                s_target_client);
     }
 }
 
@@ -920,8 +941,12 @@ void wincmenu_show(xcb_connection_t *connection,
             s_cb_decorate, NULL, client_is_fullscreen(client));
     ++n;
 
-    /* Separator before Close */
+    /* Separator before the two entries that end the menu */
     s_entries[n].type = CTXMENU_SEPARATOR;
+    ++n;
+
+    s_entry_command(&s_entries[n], _(STR_WINCMENU_INSPECT),
+            s_cb_inspect, NULL, false);
     ++n;
 
     s_entry_command(&s_entries[n], _(STR_WINCMENU_CLOSE),

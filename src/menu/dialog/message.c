@@ -661,11 +661,11 @@ static void s_message_draw(xcb_connection_t *connection,
                 sep_gc, 1, &sep_rect);
         xcb_free_gc(connection, sep_gc);
 
-        (void) snprintf(status, sizeof(status),
-                "%u-%u/%u: Up/Down, PgUp/PgDn, wheel",
+        (void) snprintf(status, sizeof(status), "%u-%u/%u: %s",
                 (unsigned int) lo->scroll_offset + 1u,
                 (unsigned int) lo->scroll_offset + shown,
-                (unsigned int) lo->line_count);
+                (unsigned int) lo->line_count,
+                _(STR_DIALOG_MSG_SCROLL_HINT));
         menu_draw_label(connection, s_message_window,
                 (struct position_s) { lo->msg_x, status_y }, status);
     }

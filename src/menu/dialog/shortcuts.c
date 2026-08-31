@@ -414,6 +414,9 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             _(STR_SHORTCUTS_INFO),
             config->bindings.keyboard.window.info);
     s_append_binding(&ctx,
+            _(STR_SHORTCUTS_INSPECT),
+            config->bindings.keyboard.window.inspect);
+    s_append_binding(&ctx,
             _(STR_SHORTCUTS_LAYER),
             config->bindings.keyboard.window.layer);
     s_append_binding(&ctx,

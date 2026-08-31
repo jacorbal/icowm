@@ -182,7 +182,7 @@ static xcb_keysym_t s_parse_keysym_token(const char *token)
  * @param modmask Receives the combined modifier mask
  * @param keysym  Receives the main keysym
  *
- * @return @c true if the binding could be parsed
+ * @return @c true if the binding could be parsed, @c false otherwise
  *
  * @note Complexity: @e O(n), where @e n is the length of @p binding
  */
@@ -372,6 +372,8 @@ static size_t s_keyboard_binding_defs(const config_td *config,
           KEYBIND_CLIENT_CYCLE_LAYER },
         { config->bindings.keyboard.window.info,
           KEYBIND_CLIENT_INFO },
+        { config->bindings.keyboard.window.inspect,
+          KEYBIND_CLIENT_INSPECT },
         { config->bindings.keyboard.window.decorate,
           KEYBIND_CLIENT_TOGGLE_DECORATION },
         { config->bindings.keyboard.window.move.absolute.center,
@@ -558,7 +560,7 @@ static bool s_keyboard_is_disabled(enum wm_keybind_type_e type,
     }
 
     /* Every "move to monitor" direction, when no surface has more
-     * than one monitor to move to.  All four are named: an earlier
+     * than one monitor to move to.  All four are named.  An earlier
      * two-direction version of this guard named only 'next', which
      * silently left 'prev' grabbed, and so reachable as a no-op, on
      * a genuinely single-monitor surface. */
@@ -715,7 +717,7 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
         }
 
         /* Any other binding resolving to the same combination as the
-         * enabled emergency exit is ignored in its favor: both would
+         * enabled emergency exit is ignored in its favor.  Both would
          * otherwise end up grabbed, and whichever dispatch happened
          * to check first would silently win, which for this one
          * combination must always be the emergency exit and never
@@ -886,7 +888,7 @@ xcb_keysym_t keyboard_keysym_for_state(xcb_key_symbols_t *keysyms,
     column = (has_altgr ? 2 : 0) + (has_shift ? 1 : 0);
 
     /* Caps Lock uppercases letters and leaves everything else alone,
-     * so it cannot simply be treated as another Shift: on a Spanish
+     * so it cannot simply be treated as another Shift.  On a Spanish
      * layout that would turn 7 into a slash for as long as the lock
      * was on.  Whether this key is a letter is asked of the key
      * itself, by seeing whether its two columns differ only in case. */

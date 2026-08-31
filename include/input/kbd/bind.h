@@ -85,6 +85,7 @@ enum wm_keybind_type_e {
     /** Toggle stickiness, so the client shows on every desktop */
     KEYBIND_CLIENT_PIN,
     KEYBIND_CLIENT_INFO,
+    KEYBIND_CLIENT_INSPECT,
     KEYBIND_CLIENT_TOGGLE_DECORATION,
     /** Cycle the layer between normal, above and below */
     KEYBIND_CLIENT_CYCLE_LAYER,
@@ -265,7 +266,7 @@ bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask);
  * as the binding lookup does, always answers with the unmodified key.
  *
  * That is right for bindings, which are defined against the key rather
- * than against what it types, and wrong for anything reading text: a
+ * than against what it types, and wrong for anything reading text.  A
  * dialog asking for a command could not be given an uppercase letter,
  * a slash, an asterisk, a dollar sign or a tilde at all.
  *

@@ -38,6 +38,53 @@
  * keyboard-shortcuts list, the fortune easter egg) */
 #define STR_DIALOG_MSG_LABEL_OK "[ OK ]"
 
+/* Window inspector dialog ('src/menu/dialog/inspect.c') */
+/** @{ */
+#define STR_INSPECT_GROUP_IDENTITY  "Identity"
+#define STR_INSPECT_GROUP_PLACEMENT "Placement"
+#define STR_INSPECT_GROUP_STATE     "State"
+#define STR_INSPECT_GROUP_SIZE      "Size hints"
+#define STR_INSPECT_GROUP_RELATIONS "Relations"
+#define STR_INSPECT_GROUP_PROTOCOLS "Protocols"
+#define STR_INSPECT_GROUP_WINDOWS   "Windows"
+
+#define STR_INSPECT_TITLE       "Title"
+#define STR_INSPECT_CLASS       "Class"
+#define STR_INSPECT_ROLE        "Role"
+#define STR_INSPECT_TYPE        "Type"
+#define STR_INSPECT_PROCESS     "Process"
+#define STR_INSPECT_DESKTOP     "Desktop"
+#define STR_INSPECT_SCREEN      "Screen"
+#define STR_INSPECT_MONITOR     "Monitor"
+#define STR_INSPECT_GEOMETRY    "Geometry"
+#define STR_INSPECT_FRAME_EXT   "Frame extents"
+#define STR_INSPECT_LAYER       "Layer"
+#define STR_INSPECT_IS          "Is"
+#define STR_INSPECT_IS_NOT      "Is not"
+#define STR_INSPECT_MINIMUM     "Minimum"
+#define STR_INSPECT_MAXIMUM     "Maximum"
+#define STR_INSPECT_TRANSIENT   "Transient for"
+#define STR_INSPECT_TRANSIENTS  "Transients"
+#define STR_INSPECT_GROUP_LEAD  "Group leader"
+#define STR_INSPECT_SUPPORTS    "Supports"
+#define STR_INSPECT_CLIENT_WIN  "Client"
+#define STR_INSPECT_FRAME_WIN   "Frame"
+#define STR_INSPECT_TITLEBAR    "Titlebar"
+#define STR_INSPECT_ICON_WIN    "Icon window"
+
+/** Shown where a property the inspector lists is absent */
+#define STR_INSPECT_NONE        "(none)"
+/** Shown where a client sets no upper bound on its own size */
+#define STR_INSPECT_UNLIMITED   "unlimited"
+/** Appended to the desktop of a client pinned to every one of them */
+#define STR_INSPECT_PINNED_ALL  "pinned to all"
+/** @} */
+
+/** How to reach the lines a message dialog had no room to show, given
+ *  beside the count of the ones it did */
+#define STR_DIALOG_MSG_SCROLL_HINT \
+    "Up/Down; PgUp/PgDown; scroll wheel"
+
 /* Root menu ('src/menu/context/rootmenu.c').  The fixed footer entries
  * every root menu gets, below whatever 'menus.json' configures */
 #define STR_ROOTMENU_STRUTLESS_MAXIMIZATION "Strutless maximization"
@@ -68,6 +115,9 @@
 #define STR_WINCMENU_UNSHADE "Unshade"
 #define STR_WINCMENU_DECORATE "Decorate"
 #define STR_WINCMENU_UNDECORATE "Undecorate"
+/** Window menu entry opening the property inspector */
+#define STR_WINCMENU_INSPECT "Inspect..."
+
 #define STR_WINCMENU_CLOSE "Close"
 
 /* All-desktops window list ('src/menu/context/winlist.c') */
@@ -164,6 +214,7 @@
 #define STR_SHORTCUTS_DEICONIFY_ALL "Deiconify all"
 #define STR_SHORTCUTS_ARRANGE "Arrange"
 #define STR_SHORTCUTS_INFO "Info"
+#define STR_SHORTCUTS_INSPECT "Inspect window"
 #define STR_SHORTCUTS_LAYER "Layer"
 #define STR_SHORTCUTS_MAXIMIZE "Maximize"
 #define STR_SHORTCUTS_MONITOR_NORTH "Send to monitor to the north"

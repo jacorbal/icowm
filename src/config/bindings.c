@@ -393,6 +393,9 @@ static void s_config_bindings_load_keyboard_window(cJSON *keyboard,
     json_load_string(window, "info",
             config_bindings->keyboard.window.info,
             CONFIG_MAX_LENGTH_BINDING);
+    json_load_string(window, "inspect",
+            config_bindings->keyboard.window.inspect,
+            CONFIG_MAX_LENGTH_BINDING);
     json_load_string(window, "kill",
             config_bindings->keyboard.window.kill,
             CONFIG_MAX_LENGTH_BINDING);
@@ -601,6 +604,9 @@ void config_set_default_bindings_values(
     safe_strncpy(config_bindings->keyboard.window.info,
             "modc+mod4+mods+i",
             sizeof(config_bindings->keyboard.window.info));
+    safe_strncpy(config_bindings->keyboard.window.inspect,
+            "modc+mod4+i",
+            sizeof(config_bindings->keyboard.window.inspect));
     safe_strncpy(config_bindings->keyboard.window.kill,
             "modc+mod1+mods+Escape",
             sizeof(config_bindings->keyboard.window.kill));

@@ -183,6 +183,7 @@ struct config_bindings_s {
             char arrange[CONFIG_MAX_LENGTH_BINDING];
 
             char info[CONFIG_MAX_LENGTH_BINDING];
+            char inspect[CONFIG_MAX_LENGTH_BINDING];
             char layer[CONFIG_MAX_LENGTH_BINDING];
             char kill[CONFIG_MAX_LENGTH_BINDING];
             char maximize[CONFIG_MAX_LENGTH_BINDING];

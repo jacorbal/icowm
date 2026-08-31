@@ -61,6 +61,7 @@
             "iconify-all": "modc+mod1+mods+i",
             "deiconify-all": "modc+mod1+mods+d",
             "info": "modc+mod4+mods+i",
+            "inspect": "modc+mod4+i",
             "layer": "modc+mod1+mods+y",
             "maximize": "modc+mod1+m",
             "fullscreen": "modc+mod1+f",

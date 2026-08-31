@@ -1402,6 +1402,7 @@ Actions performed on the currently focused window.
 | `decorate`      | `modc+mod1+d`           | Toggle window decorations (title bar). |
 | `layer`         | `modc+mod1+mods+y`      | Cycle the window stacking layer: *normal* > *above* > *below*. |
 | `info`          | `modc+mod4+mods+i`      | Show a popup with window information. |
+| `inspect`       | `modc+mod4+i`           | Open a dialog listing everything the manager holds about the focused window: its identity, where it sits, its state spelled out rather than as a number, its size hints, and what it is transient for.  Also on the window menu. |
 
 #### `keyboard.window.move.relative`
 

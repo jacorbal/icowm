@@ -32,6 +32,7 @@
 #include <menu/context/winlist.h>
 #include <menu/cycle.h>
 #include <menu/dialog/fortune.h>
+#include <menu/dialog/inspect.h>
 #include <menu/dialog/quit.h>
 #include <menu/dialog/run.h>
 #include <menu/dialog/shortcuts.h>
@@ -208,6 +209,11 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_INFO:
             popup_show(xcb_connection_get(), surface, desktop, client,
                     bmm, detail, config);
+            return;
+
+        case KEYBIND_CLIENT_INSPECT:
+            dialog_inspect_show(xcb_connection_get(), surface, config,
+                    client);
             return;
 
         case KEYBIND_CLIENT_ICONIFY:
@@ -588,6 +594,7 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_FULLSCREEN:
         case KEYBIND_CLIENT_PIN:
         case KEYBIND_CLIENT_INFO:
+        case KEYBIND_CLIENT_INSPECT:
         case KEYBIND_CLIENT_TOGGLE_DECORATION:
         case KEYBIND_CLIENT_CYCLE_LAYER:
             s_dispatch_client_action(btype, surface, surfaces,

@@ -105,6 +105,7 @@ static const config_lint_key_td s_schema_kb_window[] = {
     {"iconify", NULL, 0u},
     {"iconify-all", NULL, 0u},
     {"info", NULL, 0u},
+    {"inspect", NULL, 0u},
     {"kill", NULL, 0u},
     {"layer", NULL, 0u},
     {"maximize", NULL, 0u},
