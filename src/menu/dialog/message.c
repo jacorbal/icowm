@@ -102,13 +102,24 @@ typedef struct {
 } s_message_layout_td;
 
 
-/** XCB window of the currently visible message dialog */
+/**
+ * @brief XCB window of the currently visible message dialog
+ */
 static xcb_window_t s_message_window = XCB_WINDOW_NONE;
 
-/** Real X11 input focus captured right before this dialog took it,
- *  so it can be restored on close; same pattern already used by
- *  'search.c' and 'cycle.c' */
+/**
+ * @brief Real X11 input focus captured right before this dialog took
+ *        it, so it can be restored on close
+ *
+ * @note Same pattern already used by @c search.c and @c cycle.c
+ */
 static xcb_window_t s_message_prev_focus = XCB_WINDOW_NONE;
+
+/**
+ * @brief Cached layout used for both creation and repaint
+ */
+static s_message_layout_td s_message_layout;
+
 
 /**
  * @brief Work out where the right column of a pairs dialog starts
@@ -154,10 +165,6 @@ static int16_t s_message_value_column(const struct dialog_pair_s *pairs,
 
     return (int16_t) (widest + gap);
 }
-
-
-/** Cached layout used for both creation and repaint */
-static s_message_layout_td s_message_layout;
 
 
 /**
@@ -345,11 +352,13 @@ static s_message_line_td *s_message_wrap_text(const char *raw,
  * unselected state to switch to), so its width and label position are
  * measured directly in that font, avoiding the same off-center risk
  * @c s_confirm_compute_layout (@c menu/dialog/confirm.c) guards against
- * for the two-button confirm dialog.  Caps @p layout->h to 70% of
- * @p surface's resolved target monitor (see @c dlgutil_resolve_monitor)
- * and computes how many message lines fit within that cap into
- * @p layout->visible_lines, scrolling the rest instead of growing past
- * it; see @c s_message_draw for how that scrolling is actually drawn.
+ * for the two-button confirm dialog.
+ *
+ * Caps @p layout->h to 70% of @p surface's resolved target monitor (see
+ * @c dlgutil_resolve_monitor) and computes how many message lines fit
+ * within that cap into @p layout->visible_lines, scrolling the rest
+ * instead of growing past it; see @c s_message_draw for how that
+ * scrolling is actually drawn.
  *
  * @param connection XCB connection, needed to measure the label text
  *                   and to resolve the target monitor
@@ -423,11 +432,12 @@ static void s_message_compute_layout(xcb_connection_t *connection,
 
     /* Measures both 'button.unselected.font' and 'button.selected.
      * font' and keeps the wider/taller of the two, exactly like
-     * 's_confirm_compute_layout' does for its two buttons.  This button
-     * can render in either state now (unselected by default for
-     * warning/error levels; see 'menu_message_dialog_show'), and sizing
-     * off only one font risks an off-center label once the other one is
-     * actually the one drawn. */
+     * 's_confirm_compute_layout' does for its two buttons.
+     *
+     * This button can render in either state now (unselected by default
+     * for warning/error levels; see 'menu_message_dialog_show'), and
+     * sizing off only one font risks an off-center label once the other
+     * one is actually the one drawn. */
     (void) text_renderer_use_font(connection,
             config->theme.dialog.button.unselected.font);
     ok_w = menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK));
@@ -517,7 +527,28 @@ static void s_message_compute_layout(xcb_connection_t *connection,
 
 
 /**
- * @brief Render the message dialog (message text and OK button)
+ * @brief Render the message dialog
+ *
+ * Draws the alert icon for the level the dialog was opened at, the
+ * lines of the message beginning at @c scroll_offset, the right-hand
+ * column beside them where the dialog was given pairs rather than one
+ * block of text, and the "OK" button.
+ *
+ * Where the message has more lines than the cap
+ * @a s_message_compute_layout worked out room for, a separator and
+ * a status line close the message area, naming which of the lines are
+ * on screen and which keys reach the rest.
+ *
+ * @param connection XCB connection
+ * @param config     Active configuration, for the fonts and colors
+ *
+ * @note Draws nothing at all without an open dialog window, so
+ *       a repaint arriving after one closed is harmless
+ * @note Re-asserts the font before each piece of text rather than once
+ *       at the top, for the reason @a s_confirm_draw
+ *       (@c menu/dialog/confirm.c) records
+ * @note Complexity: @e O(v), where @e v is the number of lines
+ *       currently visible, not the number the message holds
  */
 static void s_message_draw(xcb_connection_t *connection,
         const config_td *config)
@@ -599,7 +630,15 @@ static void s_message_draw(xcb_connection_t *connection,
     (void) text_renderer_use_font(connection,
             config->theme.dialog.label.font);
     text_renderer_set_color(fg_nor, bg_win);
-    shown = (uint8_t) (lo->line_count - lo->scroll_offset);
+    /* No lines are drawn where the offset has outrun the count,
+     * rather than letting an unsigned subtraction wrap into a span
+     * reaching past the lines that exist.  The two are kept in step
+     * everywhere they are set, so this is a floor under the
+     * arithmetic and not a case anything is expected to hit; the
+     * button below is drawn regardless, since a dialog that cannot be
+     * dismissed would be the worse failure of the two. */
+    shown = (lo->scroll_offset < lo->line_count)
+        ? (uint8_t) (lo->line_count - lo->scroll_offset) : 0u;
 
     if (shown > lo->visible_lines) {
         shown = lo->visible_lines;
@@ -797,6 +836,19 @@ void menu_message_dialog_show_pairs(xcb_connection_t *connection,
 
     if (connection == NULL || surface == NULL || config == NULL ||
             pairs == NULL || pair_count == 0u) {
+        return;
+    }
+
+    /* Refused here rather than left to the ordinary show path, which
+     * refuses it too but only after this has already replaced the
+     * lines and their count.  The dialog still on screen would then be
+     * drawing from the new ones with the old scroll offset, and that
+     * subtraction is unsigned: an offset past the new count wraps it
+     * into a row span reaching well past the array.  Nothing reaches
+     * this today, both the keyboard and the pointer being swallowed
+     * whole while a dialog is up, which is an invariant kept in two
+     * other files and not one to lean on. */
+    if (menu_message_dialog_is_open()) {
         return;
     }
 
