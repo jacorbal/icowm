@@ -524,8 +524,8 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id);
  * @return Status of the query
  * @retval  true when @a wm_startup_sync_init found XSync present and
  *               queryable
- * @retval false otherwise (including when the window manager is not
- *               initialized)
+ * @retval false otherwise, including when the window manager is not
+ *               initialized
  *
  * @note Complexity: @e O(1)
  */

@@ -209,7 +209,7 @@ bool winlist_owns_window(xcb_window_t win);
  * @param keysym     X keysym of the pressed key
  * @param config     Active configuration
  *
- * @return @c true if the event was consumed, @c false otherwise
+ * @return @c true if the event was consumed
  *
  * @note Complexity: @e O(n), where @e n is the number of menu entries
  */

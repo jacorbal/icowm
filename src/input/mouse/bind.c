@@ -96,7 +96,7 @@ static xcb_button_index_t s_parse_button_token(const char *tok)
  * @param modmask Receives the combined modifier mask
  * @param button  Receives the parsed button index
  *
- * @return @c true when the binding could be parsed, @c false otherwise
+ * @return @c true when the binding could be parsed
  *
  * @note Complexity: @e O(n), where @e n is the length of @p binding
  */

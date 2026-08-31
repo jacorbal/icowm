@@ -3,11 +3,10 @@
  *
  * @brief Smart placement: the search for the least-covered spot
  *
- * Walks the positions a client could take and keeps the one
- * overlapping least of what is already on screen, which is what
- * 'smart' means here.  The arithmetic it walks with lives in
- * @c policy/placement/rect.h, and the area it walks over comes from
- * @c policy/placement/monitor.h.
+ * Walks the positions a client could take and keeps the one overlapping
+ * least of what is already on screen, which is what "smart" means here.
+ * The arithmetic it walks with lives in @c policy/placement/rect.h, and
+ * the area it walks over comes from @c policy/placement/monitor.h.
  *
  * @defgroup placement_smart Smart placement
  * @ingroup policy
@@ -22,6 +21,7 @@
 
 #ifndef POLICY_PLACEMENT_SMART_H
 #define POLICY_PLACEMENT_SMART_H
+
 
 /* System includes */
 #include <stdint.h>
@@ -52,7 +52,7 @@
  * @param out_x   Output pointer for the selected X coordinate
  * @param out_y   Output pointer for the selected Y coordinate
  *
- * @return @c true if a free position was found, @c false otherwise
+ * @return @c true if a free position was found
  *
  * @note Complexity: @e O(g * n), where @e g is the number of grid
  *       positions tested and @e n is the number of clients on the

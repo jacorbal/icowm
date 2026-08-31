@@ -198,9 +198,8 @@
  * prefix followed by a literal digit placeholder; '%u' and the second
  * '%s' are a desktop's index and its combo.  Keep every
  * placeholder, in this exact order, in translation. */
-#define STR_SHORTCUTS_GOTO_DESKTOP_RANGE_FMT \
-    "Go to desktop 0-9: %.*s<0-9>"
-#define STR_SHORTCUTS_GOTO_DESKTOP_FMT "Go to desktop %u: %s"
+#define STR_SHORTCUTS_GOTO_DESKTOP_RANGE "Go to desktop 0-9"
+#define STR_SHORTCUTS_GOTO_DESKTOP_FMT "Go to desktop %u"
 
 /* Cross-desktop urgency notification ('src/desktop/dclient.c',
  * 'desktop_action_recompute_urgent'): shown, via the shared message

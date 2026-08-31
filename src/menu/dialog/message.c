@@ -49,40 +49,56 @@
 
 /* Message dialog state and layout */
 
-/** One already-wrapped message line, at most
- *  @c DIALOG_MSG_LINE_MAX_LENGTH bytes wide */
+/**
+ * @brief One already-wrapped message line, at most
+ *        @c DIALOG_MSG_LINE_MAX_LENGTH bytes wide
+ */
 typedef char s_message_line_td[DIALOG_MSG_LINE_MAX_LENGTH];
 
 /** Internal layout record for the message dialog */
 typedef struct {
-    char *raw_message;      /**< Prefix + caller's text, before
-                                 wrapping; allocated to exactly what
-                                 this message needs, see
-                                 'menu_message_dialog_show' */
+    char *raw_message;          /**< Prefix + caller's text, before
+                                     wrapping; allocated to exactly what
+                                     this message needs, see
+                                     'menu_message_dialog_show' */
 
-    s_message_line_td *lines; /**< Wrapped lines; allocated to exactly
-                                   'line_count' of them, see
-                                   's_message_wrap_text' */
+    s_message_line_td *lines;   /**< Wrapped lines; allocated to exactly
+                                     'line_count' of them, see
+                                     's_message_wrap_text' */
 
-    menu_msg_level_e level; /**< Alert level this dialog was shown at */
+    s_message_line_td *values;  /**< Right column of a pairs dialog, one
+                                     per line and allocated with
+                                     'lines'; null for an ordinary
+                                     message.  Which of the two is empty
+                                     says what a line is: 'lines' alone
+                                     is a heading, 'values' alone is the
+                                     continuation of a wrapped value,
+                                     both is a pair, neither is a blank
+                                     line */
+
+    int16_t value_x;            /**< Where the right column starts, in
+                                     window coordinates; zero when this
+                                     is not a pairs dialog */
+
+    menu_msg_level_e level;     /**< Alert level this dialog was shown at */
     struct geometry_s btn;
     uint16_t w;
     uint16_t h;
     int16_t msg_x;
     int16_t msg_y;
-    int16_t line_height;    /**< Pixel height (ascent + descent) of
-                                 one wrapped line in the label font */
+    int16_t line_height;        /**< Pixel height (ascent + descent) of
+                                     one wrapped line in the label font */
     uint8_t line_count;
-    uint8_t visible_lines;  /**< How many of 'lines' fit within 'h' at
-                                 once; the rest scroll */
-    uint8_t scroll_offset;  /**< Index into 'lines' of the first
-                                 currently visible line */
+    uint8_t visible_lines;      /**< How many of 'lines' fit within 'h'
+                                     at once; the rest scroll */
+    uint8_t scroll_offset;      /**< Index into 'lines' of the first
+                                     currently visible line */
 
-    bool ok_selected;       /**< Whether the "OK" button is currently
-                                 selected; see 'menu_message_dialog_
-                                 show' for why this starts false for
-                                 warning/error dialogs instead of
-                                 always true */
+    bool ok_selected;           /**< Whether the "OK" button is
+                                     currently selected; see
+                                     'menu_message_dialog_show' for why
+                                     this starts false for warning/error
+                                     dialogs instead of always true */
 } s_message_layout_td;
 
 
@@ -94,49 +110,96 @@ static xcb_window_t s_message_window = XCB_WINDOW_NONE;
  *  'search.c' and 'cycle.c' */
 static xcb_window_t s_message_prev_focus = XCB_WINDOW_NONE;
 
+/**
+ * @brief Work out where the right column of a pairs dialog starts
+ *
+ * Measured rather than counted: the widest label decides, in pixels
+ * with the label font, so the column lands correctly whether that font
+ * is one of the fixed-width X core ones or a proportional TrueType
+ * face, and whichever language the labels arrived in.
+ *
+ * @param pairs      Rows the dialog will show
+ * @param pair_count How many of them
+ * @param gap        Space to leave between the two columns, in pixels
+ * @param cap        Widest the left column may become, in pixels
+ *
+ * @return Offset from the left margin at which values are drawn
+ *
+ * @note Capped rather than left to the widest label, since one long
+ *       translated label would otherwise squeeze every value out of the
+ *       dialog
+ * @note Complexity: @e O(n * c), where @e n is @p pair_count and @e c
+ *       the longest label's length
+ */
+static int16_t s_message_value_column(const struct dialog_pair_s *pairs,
+        size_t pair_count, uint16_t gap, uint16_t cap)
+{
+    uint16_t widest = 0u;
+
+    for (size_t i = 0u; i < pair_count; ++i) {
+        uint16_t w;
+
+        if (pairs[i].label == NULL || pairs[i].value == NULL) {
+            continue;
+        }
+        w = menu_draw_measure(pairs[i].label);
+        if (w > widest) {
+            widest = w;
+        }
+    }
+
+    if (widest > cap) {
+        widest = cap;
+    }
+
+    return (int16_t) (widest + gap);
+}
+
+
 /** Cached layout used for both creation and repaint */
 static s_message_layout_td s_message_layout;
 
 
 /**
- * @brief Word-wrap @p raw into a freshly allocated array of lines,
- *        each at most @c DIALOG_MSG_LINE_MAX_LENGTH bytes wide
+ * @brief Word-wrap @p raw into a freshly allocated array of lines, each
+ *        at most @c DIALOG_MSG_LINE_MAX_LENGTH bytes wide
  *
  * A general-purpose wrap usable for any message dialog text, not
  * specific to any one caller.  Explicit @c '\n' characters in @p raw
- * force a line break, so a caller that already knows its
- * paragraph structure is respected exactly, and within each such
- * paragraph, words are packed onto a line up to the wrap width before
- * moving to the next one.  A single word wider than the wrap width on
- * its is placed on its own line and allowed to overflow rather
- * than being split mid-word, since breaking a word arbitrarily reads
- * worse than a rare, slightly-too-wide line.  Stops after
- * @c DIALOG_MSG_MAX_LINES lines regardless of how much text remains,
- * silently dropping the rest, so a pathologically long message can
- * never grow the dialog, or this function's allocation, without
- * bound.  A @c '\r' is treated exactly like a space (dropped as a
- * word separator, never copied into a line).  Callers on a platform
- * that terminates lines with @c "\r\n" would otherwise leave that
- * @c '\r' attached to the end of a word, where an X core (non-Xft)
- * bitmap font typically has a visible glyph for it instead of
- * treating it as whitespace.
+ * force a line break, so a caller that already knows its paragraph
+ * structure is respected exactly, and within each such paragraph, words
+ * are packed onto a line up to the wrap width before moving to the next
+ * one.  A single word wider than the wrap width on its is placed on its
+ * own line and allowed to overflow rather than being split mid-word,
+ * since breaking a word arbitrarily reads worse than a rare,
+ * slightly-too-wide line.
  *
- * Wraps into a fixed-size scratch buffer on this function's
- * stack first, sized to the @c DIALOG_MSG_MAX_LINES safety ceiling,
- * then allocates and returns only the @c *out_count lines that
- * actually got produced.  Reusing the same wrapping logic against a
- * stack scratch buffer, rather than wrapping twice (once to count
- * lines, once to fill an exactly-sized allocation), avoids
- * duplicating it; the stack buffer itself costs nothing once this
- * call returns, unlike a @c static one that stayed reserved for the
- * life of the process regardless of whether a dialog was even open.
+ * Stops after @c DIALOG_MSG_MAX_LINES lines regardless of how much text
+ * remains, silently dropping the rest, so a pathologically long message
+ * can never grow the dialog, or this function's allocation, without
+ * bound.  A @c '\r' is treated exactly like a space (dropped as a word
+ * separator, never copied into a line).  Callers on a platform that
+ * terminates lines with @c "\r\n" would otherwise leave that @c '\r'
+ * attached to the end of a word, where an X core (non-Xft) bitmap font
+ * typically has a visible glyph for it instead of treating it as
+ * whitespace.
+ *
+ * Wraps into a fixed-size scratch buffer on this function's stack
+ * first, sized to the @c DIALOG_MSG_MAX_LINES safety ceiling, then
+ * allocates and returns only the @c *out_count lines that actually got
+ * produced.  Reusing the same wrapping logic against a stack scratch
+ * buffer, rather than wrapping twice (once to count lines, once to fill
+ * an exactly-sized allocation), avoids duplicating it; the stack buffer
+ * itself costs nothing once this call returns, unlike a @c static one
+ * that stayed reserved for the life of the process regardless of
+ * whether a dialog was even open.
  *
  * @param raw        Null-terminated text to wrap
  * @param out_count  Receives the number of lines actually produced,
  *                   always set even on failure
  *
- * @return A @c malloc'd array of @c *out_count lines, for the caller
- *         to @c free once done with it, or @c NULL if @p raw or
+ * @return A @c malloc'd array of @c *out_count lines, for the caller to
+ *         @c free once done with it, or @c NULL if @p raw or
  *         @p out_count is @c NULL, @p raw is empty, or the allocation
  *         itself fails
  *
@@ -190,17 +253,16 @@ static s_message_line_td *s_message_wrap_text(const char *raw,
              * optional separating space plus 'fit_len' bytes of the
              * word always fits within 'candidate', with room left for
              * the terminating null ('used' capped at capacity first
-             * avoids the subtraction underflowing if 'line' is
-             * already at or past it).  Built here with explicit
-             * 'memcpy' calls at that already-proven-safe length,
-             * rather than 'snprintf' with a '%.*s' precision
-             * argument: GCC's '-Wformat-truncation' analysis is
-             * not able to trace a bound proven this way (through
-             * several local variables and a ternary) back to a
-             * precision argument, and warns as if the call were
-             * unbounded even though it provably is not; avoiding the
-             * format string here entirely sidesteps that analysis
-             * rather than silencing it. */
+             * avoids the subtraction underflowing if 'line' is already
+             * at or past it).  Built here with explicit 'memcpy' calls
+             * at that already-proven-safe length, rather than
+             * 'snprintf' with a '%.*s' precision argument: GCC's
+             * '-Wformat-truncation' analysis is not able to trace
+             * a bound proven this way (through several local variables
+             * and a ternary) back to a precision argument, and warns as
+             * if the call were unbounded even though it provably is
+             * not; avoiding the format string here entirely sidesteps
+             * that analysis rather than silencing it. */
             space_len = (line_len > 0u) ? 1u : 0u;
             used = line_len + space_len;
             avail = (used < sizeof(candidate) - 1u)
@@ -226,23 +288,22 @@ static s_message_line_td *s_message_wrap_text(const char *raw,
                 if (fit_len < word_len) {
                     /* The word itself does not fit within 'candidate'
                      * own raw buffer capacity at all (a far more
-                     * extreme case than merely overflowing the
-                     * visual wrap target above), so only its
-                     * first 'fit_len' bytes actually made it onto
-                     * this line.  Rewound here to right after
-                     * whatever was actually consumed, rather than
-                     * past the word's real end, so its
-                     * remaining bytes are not silently dropped:
-                     * picked back up as the start of the very next
-                     * line instead, the same as any other word that
-                     * does not fit on the current one. */
+                     * extreme case than merely overflowing the visual
+                     * wrap target above), so only its first 'fit_len'
+                     * bytes actually made it onto this line.  Rewound
+                     * here to right after whatever was actually
+                     * consumed, rather than past the word's real end,
+                     * so its remaining bytes are not silently dropped:
+                     * picked back up as the start of the very next line
+                     * instead, the same as any other word that does not
+                     * fit on the current one. */
                     i = word_start + fit_len;
                     break;
                 }
             } else {
                 /* Does not fit and the line already has something on
-                 * it: rewind to re-process this same word as the
-                 * start of the next line instead. */
+                 * it: rewind to re-process this same word as the start
+                 * of the next line instead. */
                 i = word_start;
                 break;
             }
@@ -280,16 +341,15 @@ static s_message_line_td *s_message_wrap_text(const char *raw,
  * @brief Compute layout geometry for the message dialog
  *
  * Uses the message text already stored in @p layout->raw_message.
- * The "OK" button always renders in @c button.selected.font (it has
- * no unselected state to switch to), so its width and label position
- * are measured directly in that font, avoiding the same off-center
- * risk @c s_confirm_compute_layout (menu/dialog/confirm.c) guards
- * against for the two-button confirm dialog.  Caps @p layout->h to
- * 70% of @p surface's resolved target monitor (see
- * @c dlgutil_resolve_monitor) and computes how many message lines fit
- * within that cap into @p layout->visible_lines, scrolling the rest
- * instead of growing past it; see @c s_message_draw for how that
- * scrolling is actually drawn.
+ * The "OK" button always renders in @c button.selected.font (it has no
+ * unselected state to switch to), so its width and label position are
+ * measured directly in that font, avoiding the same off-center risk
+ * @c s_confirm_compute_layout (@c menu/dialog/confirm.c) guards against
+ * for the two-button confirm dialog.  Caps @p layout->h to 70% of
+ * @p surface's resolved target monitor (see @c dlgutil_resolve_monitor)
+ * and computes how many message lines fit within that cap into
+ * @p layout->visible_lines, scrolling the rest instead of growing past
+ * it; see @c s_message_draw for how that scrolling is actually drawn.
  *
  * @param connection XCB connection, needed to measure the label text
  *                   and to resolve the target monitor
@@ -329,19 +389,33 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     (void) text_renderer_use_font(connection,
             config->theme.dialog.label.font);
 
-    /* Freed defensively before this call's assignment below, the
-     * same as 'menu_message_dialog_show' already does for
-     * 'raw_message': a no-op in the normal one-open-dialog-at-a-time
-     * flow, but cheap enough to rule out a leak here too rather than
-     * rely on that flow never changing. */
-    free(layout->lines);
-    layout->lines = s_message_wrap_text(layout->raw_message,
-            &layout->line_count);
+    /* Freed defensively before this call's assignment below, the same
+     * as 'menu_message_dialog_show' already does for 'raw_message':
+     * a no-op in the normal one-open-dialog-at-a-time flow, but cheap
+     * enough to rule out a leak here too rather than rely on that flow
+     * never changing. */
+    /* A pairs dialog arrives with its lines already built and wrapped
+     * by 'menu_message_dialog_show_pairs', which had to measure them
+     * to place the column; re-wrapping them here would undo that. */
+    if (layout->values == NULL) {
+        free(layout->lines);
+        layout->lines = s_message_wrap_text(layout->raw_message,
+                &layout->line_count);
+    }
     layout->line_height = (int16_t) (text_font_ascent() +
             text_font_descent());
     for (uint8_t i = 0u; i < layout->line_count; ++i) {
         uint16_t w = menu_draw_measure(layout->lines[i]);
 
+        if (layout->values != NULL &&
+                layout->values[i][0] != '\0') {
+            uint16_t vw = (uint16_t) (layout->value_x +
+                    (int16_t) menu_draw_measure(layout->values[i]));
+
+            if (vw > w) {
+                w = vw;
+            }
+        }
         if (w > msg_w) {
             msg_w = w;
         }
@@ -349,11 +423,11 @@ static void s_message_compute_layout(xcb_connection_t *connection,
 
     /* Measures both 'button.unselected.font' and 'button.selected.
      * font' and keeps the wider/taller of the two, exactly like
-     * 's_confirm_compute_layout' does for its two buttons.  This
-     * button can render in either state now (unselected by default
-     * for warning/error levels; see 'menu_message_dialog_show'), and
-     * sizing off only one font risks an off-center label once the
-     * other one is actually the one drawn. */
+     * 's_confirm_compute_layout' does for its two buttons.  This button
+     * can render in either state now (unselected by default for
+     * warning/error levels; see 'menu_message_dialog_show'), and sizing
+     * off only one font risks an off-center label once the other one is
+     * actually the one drawn. */
     (void) text_renderer_use_font(connection,
             config->theme.dialog.button.unselected.font);
     ok_w = menu_draw_measure(_(STR_DIALOG_MSG_LABEL_OK));
@@ -373,21 +447,20 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     msg_span_w = (uint16_t) (msg_w + (label_pad_x * 2u));
     ok_span_w = (uint16_t) (layout->btn.dim.w + (label_pad_x * 2u));
 
-    /* Every wrapped line past the first extends the dialog by one
-     * more line height plus the inter-line gap; a single-line message
-     * (the common case) adds nothing here, matching the previous
-     * fixed layout exactly. */
+    /* Every wrapped line past the first extends the dialog by one more
+     * line height plus the inter-line gap; a single-line message (the
+     * common case) adds nothing here, matching the previous fixed
+     * layout exactly. */
     extra_lines_h = (layout->line_count > 1u)
         ? (uint16_t) ((layout->line_count - 1u) *
                 ((uint16_t) layout->line_height + DIALOG_MSG_LINE_GAP))
         : 0u;
 
-    /* Everything the message area's height competes with.  The
-     * padding above it, the gap and button below it, and the bottom
-     * padding.  Used both to size the unclamped 'natural' height below
-     * and, if that would be too tall, to work out how much of it is
-     * actually left over for message lines once the monitor cap is
-     * applied. */
+    /* Everything the message area's height competes with.  The padding
+     * above it, the gap and button below it, and the bottom padding.
+     * Used both to size the unclamped 'natural' height below and, if
+     * that would be too tall, to work out how much of it is actually
+     * left over for message lines once the monitor cap is applied. */
     reserved_h = (uint16_t) (DIALOG_PROMPT_BASELINE_Y +
             DIALOG_PROMPT_TO_BTN_GAP +
             layout->btn.dim.h +
@@ -398,12 +471,12 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     layout->h = dlgutil_u16max(DIALOG_MIN_H,
             (uint16_t) (reserved_h + extra_lines_h));
 
-    /* Cap the dialog to a fraction of its target monitor's
-     * height, well short of covering it edge to edge, and scroll
-     * whatever does not fit instead of ever growing past that; see
-     * 's_message_draw' for how 'scroll_offset' and the three-row
-     * footer (a blank spacer, a separator rule, and the status/
-     * scroll-hint line itself) it reserves when active are used. */
+    /* Cap the dialog to a fraction of its target monitor's height, well
+     * short of covering it edge to edge, and scroll whatever does not
+     * fit instead of ever growing past that; see 's_message_draw' for
+     * how 'scroll_offset' and the three-row footer (a blank spacer,
+     * a separator rule, and the status/ scroll-hint line itself) it
+     * reserves when active are used. */
     monitor = dlgutil_resolve_monitor(connection, surface);
     max_h = (uint16_t) ((monitor.h * 70u) / 100u);
     if (max_h > 0u && layout->h > max_h) {
@@ -494,10 +567,10 @@ static void s_message_draw(xcb_connection_t *connection,
     xcb_poly_fill_rectangle(connection, s_message_window, gc, 1, &rect);
 
     /* OK button: highlighted only once 'lo->ok_selected' is true (see
-     * 'menu_message_dialog_show' for when that starts false instead
-     * of the previous, always-true behavior), the same selected/
-     * unselected distinction 's_confirm_draw' already draws between
-     * its two buttons. */
+     * 'menu_message_dialog_show' for when that starts false instead of
+     * the previous, always-true behavior), the same selected/
+     * unselected distinction 's_confirm_draw' already draws between its
+     * two buttons. */
     gc_vals[0] = (lo->ok_selected) ? bg_sel : bg_btn_nor;
     xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, gc_vals);
     rect.x = (int16_t) lo->btn.pos.x;
@@ -516,13 +589,13 @@ static void s_message_draw(xcb_connection_t *connection,
                 : config->theme.dialog.button.unselected.border.width,
             lo->btn);
 
-    /* Message text, one call per wrapped line; each line uses the
-     * same 'msg_x' (computed from the widest line) rather than being
+    /* Message text, one call per wrapped line; each line uses the same
+     * 'msg_x' (computed from the widest line) rather than being
      * individually re-centered, so the whole block reads as one
-     * left-aligned paragraph rather than each line jittering
-     * sideways relative to the others.  Only 'visible_lines' worth of
-     * 'lines', starting at 'scroll_offset', are ever drawn.  The rest
-     * exist off-screen in the buffer and are reached by scrolling. */
+     * left-aligned paragraph rather than each line jittering sideways
+     * relative to the others.  Only 'visible_lines' worth of 'lines',
+     * starting at 'scroll_offset', are ever drawn.  The rest exist
+     * off-screen in the buffer and are reached by scrolling. */
     (void) text_renderer_use_font(connection,
             config->theme.dialog.label.font);
     text_renderer_set_color(fg_nor, bg_win);
@@ -539,19 +612,29 @@ static void s_message_draw(xcb_connection_t *connection,
         menu_draw_label(connection, s_message_window,
                 (struct position_s) { lo->msg_x, line_y },
                 lo->lines[lo->scroll_offset + i]);
+
+        /* The right column of a pairs dialog, drawn at the one x every
+         * value shares.  A wrapped value's continuation lines carry an
+         * empty label and land here too, which is what keeps a row
+         * reading as one entry however many lines it takes. */
+        if (lo->values != NULL &&
+                lo->values[lo->scroll_offset + i][0] != '\0') {
+            menu_draw_label(connection, s_message_window,
+                    (struct position_s) {
+                        (int16_t) (lo->msg_x + lo->value_x), line_y },
+                    lo->values[lo->scroll_offset + i]);
+        }
     }
 
-    /* Footer, right below the last content row shown above.  Only
-     * drawn when there is more of the message than fits at once,
-     * i.e., exactly when 'visible_lines' was computed with room
-     * for it reserved in the first place (see
-     * 's_message_compute_layout').  Three rows: a blank spacer so
-     * the footer reads as clearly separate from the message
-     * above it, a drawn horizontal rule for the same reason
-     * (matching how 'ctxmenu/redraw.c' draws a context-menu
-     * separator,
-     * not a row of dashed text), and the "more above/below"
-     * status/scroll-hint line itself. */
+    /* Footer, right below the last content row shown above.
+     * Only drawn when there is more of the message than fits at once,
+     * i.e., exactly when 'visible_lines' was computed with room for it
+     * reserved in the first place (see 's_message_compute_layout').
+     * Three rows: a blank spacer so the footer reads as clearly
+     * separate from the message above it, a drawn horizontal rule for
+     * the same reason (matching how 'ctxmenu/redraw.c' draws
+     * a context-menu separator, not a row of dashed text), and the
+     * "more above/below" status/scroll-hint line itself. */
     if (lo->line_count > lo->visible_lines) {
         char status[DIALOG_MSG_LINE_MAX_LENGTH];
         int16_t row_step = (int16_t) (lo->line_height +
@@ -589,12 +672,12 @@ static void s_message_draw(xcb_connection_t *connection,
 
     /* OK label: font, and therefore width, depends on whether the
      * button is currently selected, so both are recomputed fresh on
-     * every repaint, as 's_message_compute_layout''s comment
-     * describes, rather than using a fixed position; the vertical
-     * centering the same way, using the active font's ascent/
-     * descent against 'btn.dim.h' so it stays centered regardless of
-     * which font is taller.  Same reasoning as the cancel/confirm
-     * labels in 's_confirm_draw' (menu/dialog/confirm.c). */
+     * every repaint, as 's_message_compute_layout''s comment describes,
+     * rather than using a fixed position; the vertical centering the
+     * same way, using the active font's ascent/ descent against
+     * 'btn.dim.h' so it stays centered regardless of which font is
+     * taller.  Same reasoning as the cancel/confirm labels in
+     * 's_confirm_draw' (menu/dialog/confirm.c). */
     (void) text_renderer_use_font(connection, (lo->ok_selected)
             ? config->theme.dialog.button.selected.font
             : config->theme.dialog.button.unselected.font);
@@ -617,6 +700,202 @@ static void s_message_draw(xcb_connection_t *connection,
 
 
 /* Open the message dialog */
+/**
+ * @brief Split one value across as many lines as its column allows
+ *
+ * Breaks on spaces so a value reads as words rather than as fragments,
+ * and only inside a word where a single word is wider than the column
+ * has to give.
+ *
+ * @param value  Text to lay out
+ * @param avail  Width the column leaves for it, in pixels
+ * @param out    Lines written here, the first being the one drawn
+ *               beside the label
+ * @param room   How many of @p out remain
+ *
+ * @return How many lines were written
+ *
+ * @note Answers @c 1 with an empty line for a null or empty @p value,
+ *       so a row with no value still occupies its place in the list
+ * @note Complexity: @e O(c * c), where @e c is @p value's length, from
+ *       measuring each candidate break
+ */
+static uint8_t s_message_wrap_value(const char *value, uint16_t avail,
+        s_message_line_td *out, uint8_t room)
+{
+    size_t len;
+    size_t at = 0u;
+    uint8_t used = 0u;
+
+    if (out == NULL || room == 0u) {
+        return 0u;
+    }
+    if (value == NULL || value[0] == '\0') {
+        out[0][0] = '\0';
+        return 1u;
+    }
+
+    len = safe_strlen(value);
+    while (at < len && used < room) {
+        size_t take = 0u;
+        size_t last_space = 0u;
+        char probe[DIALOG_MSG_LINE_MAX_LENGTH];
+
+        while (at + take < len &&
+                take < (size_t) DIALOG_MSG_LINE_MAX_LENGTH - 1u) {
+            probe[take] = value[at + take];
+            probe[take + 1u] = '\0';
+            if (menu_draw_measure(probe) > avail && take > 0u) {
+                break;
+            }
+            if (value[at + take] == ' ') {
+                last_space = take;
+            }
+            take++;
+        }
+
+        /* Back up to the last space, so the break falls between words;
+         * a single word wider than the column has none to back up to
+         * and is broken where it stopped fitting instead */
+        if (at + take < len && last_space > 0u) {
+            take = last_space;
+        }
+
+        /* 'safe_strncpy' takes the destination's size and copies one
+         * fewer, so the count of characters wanted has to be one more
+         * than that */
+        (void) safe_strncpy(out[used], value + at, take + 1u);
+        used++;
+
+        at += take;
+        while (at < len && value[at] == ' ') {
+            at++;
+        }
+    }
+
+    return (used > 0u) ? used : 1u;
+}
+
+
+/* Show a message dialog whose content is a list of label and value
+ * pairs */
+void menu_message_dialog_show_pairs(xcb_connection_t *connection,
+        surface_td *surface, const config_td *config,
+        const struct dialog_pair_s *pairs, size_t pair_count,
+        menu_msg_level_e level)
+{
+    s_message_line_td labels[DIALOG_MSG_MAX_LINES];
+    s_message_line_td values[DIALOG_MSG_MAX_LINES];
+    monitor_td monitor;
+    uint16_t gap;
+    uint16_t cap;
+    uint16_t room;
+    int32_t target;
+    uint16_t avail;
+    uint8_t count = 0u;
+    int16_t column;
+
+    if (connection == NULL || surface == NULL || config == NULL ||
+            pairs == NULL || pair_count == 0u) {
+        return;
+    }
+
+    /* The label font decides every measurement below, so it has to be
+     * the one in force before any of them are taken */
+    (void) text_renderer_use_font(connection,
+            config->theme.dialog.label.font);
+
+    /* Half a line height, which is what an em amounts to here: the body
+     * of the font rather than the width of any one letter */
+    gap = (uint16_t) ((text_font_ascent() + text_font_descent()) / 2);
+    monitor = dlgutil_resolve_monitor(connection, surface);
+    /* Two fifths of what the dialog may ever grow to, so one long
+     * translated label cannot squeeze the values out of it */
+    room = (uint16_t) (monitor.w * 70u / 100u);
+    cap = (uint16_t) (room * 2u / 5u);
+    column = s_message_value_column(pairs, pair_count, gap, cap);
+
+    /* Values wrap against a third of the room rather than all of it,
+     * so the dialog comes out the width its content wants and not the
+     * width the monitor allows.  A third puts a dialog at about a
+     * third of the screen, which reads without the eye having to
+     * travel; half left the longest values unbroken and the dialog
+     * closer to half the screen. */
+    target = (int32_t) (room / 3u) - (int32_t) column -
+        (int32_t) (config->theme.dialog.label.padding.horizontal * 2);
+
+    /* Worked out signed and floored afterwards, since the column may
+     * legitimately be wider than the third being aimed at: a label
+     * long enough to reach its own cap would otherwise leave this
+     * subtraction below zero and wrap it into a width larger than the
+     * screen, which no floor phrased in unsigned terms would catch. */
+    if (target < (int32_t) (room / 5u)) {
+        target = (int32_t) (room / 5u);
+    }
+    avail = (uint16_t) target;
+
+    for (size_t i = 0u; i < pair_count &&
+            count < (uint8_t) DIALOG_MSG_MAX_LINES; ++i) {
+        uint8_t used;
+        uint8_t k;
+
+        if (pairs[i].label == NULL && pairs[i].value == NULL) {
+            labels[count][0] = '\0';
+            values[count][0] = '\0';
+            count++;
+            continue;
+        }
+        if (pairs[i].value == NULL) {
+            (void) safe_strncpy(labels[count], pairs[i].label,
+                    (size_t) DIALOG_MSG_LINE_MAX_LENGTH - 1u);
+            labels[count][DIALOG_MSG_LINE_MAX_LENGTH - 1u] = '\0';
+            values[count][0] = '\0';
+            count++;
+            continue;
+        }
+
+        used = s_message_wrap_value(pairs[i].value, avail,
+                &values[count],
+                (uint8_t) ((uint8_t) DIALOG_MSG_MAX_LINES - count));
+        for (k = 0u; k < used; ++k) {
+            if (k == 0u && pairs[i].label != NULL) {
+                (void) safe_strncpy(labels[count + k], pairs[i].label,
+                        (size_t) DIALOG_MSG_LINE_MAX_LENGTH - 1u);
+                labels[count + k][DIALOG_MSG_LINE_MAX_LENGTH - 1u] =
+                    '\0';
+            } else {
+                labels[count + k][0] = '\0';
+            }
+        }
+        count = (uint8_t) (count + used);
+    }
+
+    /* Handed over before the ordinary show path runs, which sees
+     * a non-null 'values' and leaves the lines alone rather than
+     * wrapping 'raw_message' over the top of them */
+    free(s_message_layout.lines);
+    free(s_message_layout.values);
+    s_message_layout.lines = malloc((size_t) count * sizeof(labels[0]));
+    s_message_layout.values = malloc((size_t) count * sizeof(values[0]));
+    if (s_message_layout.lines == NULL ||
+            s_message_layout.values == NULL) {
+        free(s_message_layout.lines);
+        free(s_message_layout.values);
+        s_message_layout.lines = NULL;
+        s_message_layout.values = NULL;
+        return;
+    }
+    memcpy(s_message_layout.lines, labels,
+            (size_t) count * sizeof(labels[0]));
+    memcpy(s_message_layout.values, values,
+            (size_t) count * sizeof(values[0]));
+    s_message_layout.line_count = count;
+    s_message_layout.value_x = column;
+
+    menu_message_dialog_show(connection, surface, config, NULL, level);
+}
+
+
 void menu_message_dialog_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config,
         const char *message, menu_msg_level_e level)
@@ -654,8 +933,8 @@ void menu_message_dialog_show(xcb_connection_t *connection,
 
     switch (level) {
         case MENU_MSG_LEVEL_NONE:
-            /* 'prefix' is already the empty string from its
-             * declaration above; nothing to do here */
+            /* 'prefix' is already the empty string from its declaration
+             * above; nothing to do here */
             break;
 
         case MENU_MSG_LEVEL_WARNING:
@@ -675,30 +954,30 @@ void menu_message_dialog_show(xcb_connection_t *connection,
 
     /* Warning and error dialogs require the "OK" button to be
      * explicitly selected (click it directly, or Tab to it then
-     * Enter/Space; see the keyboard handling in input/kbd/event.c)
+     * Enter/Space; see the keyboard handling in 'input/kbd/event.c')
      * before it can be activated, and Escape does not dismiss them at
-     * all: both exist so that a message serious enough to warrant
-     * one of these two levels cannot be dismissed by reflex, the way
-     * repeatedly hitting Escape or Enter/Space to close whatever
-     * dialog currently has focus easily could otherwise.  Every other
-     * level keeps the previous, quicker-to-dismiss behavior.  The
-     * button starts selected, and Escape works normally. */
+     * all.  Both exist so that a message serious enough to warrant one
+     * of these two levels cannot be dismissed by reflex, the way
+     * repeatedly hitting Escape or Enter/Space to close whatever dialog
+     * currently has focus easily could otherwise.  Every other level
+     * keeps the previous, quicker-to-dismiss behavior.  The button
+     * starts selected, and Escape works normally. */
     s_message_layout.ok_selected =
         (level != MENU_MSG_LEVEL_WARNING &&
          level != MENU_MSG_LEVEL_ERROR);
 
     /* Freed defensively here even though 'menu_message_dialog_close'
      * already frees and nulls it, and the early return above already
-     * refuses a second 'show' while one dialog is still open: 'free'
-     * on a null pointer is a valid no-op, so this costs nothing when
-     * everything else already behaved, while still ruling out a leak
-     * if that ever stops being true. */
+     * refuses a second 'show' while one dialog is still open: 'free' on
+     * a null pointer is a valid no-op, so this costs nothing when
+     * everything else already behaved, while still ruling out a leak if
+     * that ever stops being true. */
     free(s_message_layout.raw_message);
     s_message_layout.raw_message = NULL;
 
     /* Allocated to exactly what this message needs, capped at
-     * 'DIALOG_MSG_RAW_MAX_LENGTH' as a safety ceiling against a
-     * pathologically long caller-supplied 'message' rather than as
+     * 'DIALOG_MSG_RAW_MAX_LENGTH' as a safety ceiling against
+     * a pathologically long caller-supplied 'message' rather than as
      * this allocation's default size. */
     prefix_len = safe_strlen(prefix);
     message_len = (message != NULL) ? safe_strlen(message) : 0u;
@@ -732,8 +1011,8 @@ void menu_message_dialog_show(xcb_connection_t *connection,
      * of their mask.
      *
      * BACK_PIXEL(2) < BORDER_PIXEL(8) < OVERRIDE_REDIRECT(512) <
-     * EVENT_MASK(2048)
-     * */
+     *                                                 EVENT_MASK(2048)
+     */
     mask = XCB_CW_BACK_PIXEL        |
         XCB_CW_BORDER_PIXEL         |
         XCB_CW_OVERRIDE_REDIRECT    |
@@ -787,11 +1066,11 @@ void menu_message_dialog_close(xcb_connection_t *connection)
     s_message_window = XCB_WINDOW_NONE;
 
     /* Restore whichever real X11 focus this dialog displaced when it
-     * opened; without this, focus reverts to 'PointerRoot' instead
-     * (per the revert_to mode 'menu_message_dialog_show' set it up
-     * with), which may land on a different client than the one the
-     * window manager's bookkeeping still shows as active, or on
-     * nothing at all. */
+     * opened; without this, focus reverts to 'PointerRoot' instead (per
+     * the revert_to mode 'menu_message_dialog_show' set it up with),
+     * which may land on a different client than the one the window
+     * manager's bookkeeping still shows as active, or on nothing at
+     * all. */
     if (s_message_prev_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection, XCB_INPUT_FOCUS_PARENT,
                 s_message_prev_focus, (client_last_user_time() != 0u)
@@ -802,20 +1081,22 @@ void menu_message_dialog_close(xcb_connection_t *connection)
 
     /* Also cancels any click-triggered close still scheduled (see
      * 'menu_dialog_defer_schedule' in
-     * 'menu_message_dialog_handle_click'), so
-     * 'menu_dialog_defer_tick' has nothing left to do once
-     * this dialog is gone through some other path (e.g., Escape)
-     * before that delay elapsed on its own. */
+     * 'menu_message_dialog_handle_click'), so 'menu_dialog_defer_tick'
+     * has nothing left to do once this dialog is gone through some
+     * other path (e.g., Escape) before that delay elapsed on its
+     * own. */
     menu_dialog_defer_cancel();
 
-    /* Given back immediately on close, rather than held until the
-     * next 'menu_message_dialog_show' reuses or replaces it.  Nothing
-     * stays reserved for this dialog's text while no dialog is
-     * even open. */
+    /* Given back immediately on close, rather than held until the next
+     * 'menu_message_dialog_show' reuses or replaces it.  Nothing stays
+     * reserved for this dialog's text while no dialog is even open. */
     free(s_message_layout.raw_message);
     s_message_layout.raw_message = NULL;
     free(s_message_layout.lines);
     s_message_layout.lines = NULL;
+    free(s_message_layout.values);
+    s_message_layout.values = NULL;
+    s_message_layout.value_x = 0;
 }
 
 
@@ -846,10 +1127,10 @@ void menu_message_dialog_handle_click(xcb_connection_t *connection,
             x >= (int) lo->btn.pos.x &&
             x < (int) lo->btn.pos.x + (int) lo->btn.dim.w) {
         /* Selected and repainted first, the same as
-         * 'menu_confirm_dialog_handle_click' already does for its
-         * two buttons, so a user actually sees the click land on
-         * the "OK" button before the deferred close below makes the
-         * dialog go away. */
+         * 'menu_confirm_dialog_handle_click' already does for its two
+         * buttons, so a user actually sees the click land on the "OK"
+         * button before the deferred close below makes the dialog go
+         * away. */
         s_message_layout.ok_selected = true;
         if (config != NULL) {
             s_message_draw(connection, config);
@@ -875,8 +1156,8 @@ void menu_message_dialog_tick(xcb_connection_t *connection)
 }
 
 
-/* Query whether the currently visible message dialog requires the
- * "OK" button to be explicitly selected first */
+/* Query whether the currently visible message dialog requires the "OK"
+ * button to be explicitly selected first */
 bool menu_message_dialog_requires_selection(void)
 {
     return s_message_window != XCB_WINDOW_NONE &&

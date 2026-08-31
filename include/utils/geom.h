@@ -77,7 +77,7 @@ static inline uint16_t geom_dim_clamp(int32_t value)
  * @param bw Width of the second rectangle
  * @param bh Height of the second rectangle
  *
- * @return @c true if the interiors overlap, @c false otherwise
+ * @return @c true if the interiors overlap
  *
  * @note Complexity: @e O(1)
  */

@@ -50,7 +50,7 @@
  *                  be based on the number of defined flags
  *                  (e.g., @c 1u << @p max_flags)
  *
- * @return @c true if the flag is valid, @c false otherwise
+ * @return @c true if the @p flag is valid
  */
 bool safeflg_is_valid(uint16_t flag, uint16_t max_flags);
 

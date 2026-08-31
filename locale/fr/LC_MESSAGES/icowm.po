@@ -344,12 +344,12 @@ msgid "Windows"
 msgstr "Fenêtres"
 
 #: include/defs/uistr.h:186;
-msgid "Go to desktop 0-9: %.*s<0-9>"
-msgstr "Aller au bureau 0-9 : %.*s<0-9>"
+msgid "Go to desktop 0-9"
+msgstr "Aller au bureau 0-9"
 
 #: include/defs/uistr.h:188;
-msgid "Go to desktop %u: %s"
-msgstr "Aller au bureau %u : %s"
+msgid "Go to desktop %u"
+msgstr "Aller au bureau %u"
 
 #: include/defs/uistr.h:199;
 msgid "Detected activity on desktop [%u]"

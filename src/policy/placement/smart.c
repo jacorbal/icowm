@@ -56,9 +56,10 @@
  *        every candidate it tests
  */
 struct s_place_window_smart_ctx_s {
-    const desktop_td *desktop;    /**< Desktop @c client is placed on */
-    /** Client being placed, excluded from the overlap checks */
-    const client_td *skip_client;
+    const desktop_td *desktop;      /**< Desktop @c client is placed on */
+    const client_td *skip_client;   /**< Client being placed, excluded
+                                         from the overlap checks */
+
     uint32_t fw;            /**< Client's frame width */
     uint32_t fh;            /**< Client's frame height */
 
@@ -77,6 +78,7 @@ struct s_place_window_smart_ctx_s {
     int32_t best_y;         /**< Best candidate found so far, Y */
     uint64_t best_cost;     /**< Lowest overlap cost found so far */
     uint64_t best_area;     /**< Largest free area found so far */
+
     bool has_free_rect;     /**< Whether any candidate so far actually
                                  fit @c client without overlapping
                                  anything */
@@ -247,17 +249,18 @@ static void s_place_window_edge_visit(client_td *client, void *data)
  * right at its corner overlap it outright, and shrinking against it
  * without testing its edges as candidates would leave real free space
  * sitting right next to the tray untested, unable to ever be found
- * (this second half is the easier one to overlook.  A corner that is
- * otherwise a genuinely productive candidate, workarea (0, 0) with
- * the tray docked there by default, collapses to zero free area
- * once the tray shrinks against it, and nothing replaced it as
+ * (this second half is the easier one to overlook.
+ *
+ * A corner that is otherwise a genuinely productive candidate, workarea
+ * (0, 0) with the tray docked there by default, collapses to zero free
+ * area once the tray shrinks against it, and nothing replaced it as
  * a candidate anchored at the tray's edge instead, until this).
  * Fetched fresh from @a systray_get_geometry for this one placement
  * decision, then passed to every @a placement_free_rect_grow /
- * @a placement_score_window_pos call the same way @p desktop's
- * clients already are.  Affects placement scoring only, nothing about
- * the tray becoming movable, iconifiable, or otherwise actable on the
- * way a real window is.
+ * @a placement_score_window_pos call the same way @p desktop's clients
+ * already are.  Affects placement scoring only, nothing about the tray
+ * becoming movable, iconifiable, or otherwise actable on the way a real
+ * window is.
  *
  * @param wm      Pointer to the window manager singleton
  * @param surface Pointer to the surface where the client will appear
@@ -265,7 +268,7 @@ static void s_place_window_edge_visit(client_td *client, void *data)
  * @param out_x   Output pointer for the selected X coordinate
  * @param out_y   Output pointer for the selected Y coordinate
  *
- * @return @c true if a position was found, @c false otherwise
+ * @return @c true if a position was found
  *
  * @note Complexity: @e O(n^3) worst case, where @e n is the number of
  *       clients on the current desktop (@e n candidates, each scored by
@@ -300,7 +303,7 @@ bool place_window_smart(const wm_td *wm,
      * dimensions when none is set) and clips it to whichever physical
      * monitor 'windows.placement.monitor' resolves to, on a surface
      * made of more than one (the common case of several monitors
-     * sharing one combined X screen): a new window should land within
+     * sharing one combined X screen).  A new window should land within
      * one monitor, not be scored against the whole combined area, which
      * could place it straddling the seam between two of them.  'wa'
      * (unclipped) is only needed because 'placement_workarea' requires

@@ -59,6 +59,28 @@ typedef enum {
 
 
 /**
+ * @brief One row of a two-column message dialog
+ *
+ * Which of the two strings is present decides what the row is, so no
+ * separate kind is carried alongside them:
+ *
+ *   - both given: an aligned pair, @p label at the left margin and
+ *     @p value at a column shared by every pair in the dialog
+ *   - @p label alone: a heading or a line of prose, drawn at the left
+ *     margin across the full width
+ *   - neither: a blank line, for spacing between groups
+ *
+ * @note A @p value too long for its column is wrapped onto further
+ *       lines that begin at that same column, so a row reads as one
+ *       entry however many lines it takes
+ */
+struct dialog_pair_s {
+    const char *label;      /**< Left column, or the whole line */
+    const char *value;      /**< Right column, or null */
+};
+
+
+/**
  * @brief Open the message dialog centered on the screen
  *
  * Creates and maps a modal dialog window showing @p message with an
@@ -79,6 +101,40 @@ typedef enum {
 void menu_message_dialog_show(xcb_connection_t *connection,
         surface_td *surface, const config_td *config,
         const char *message, menu_msg_level_e level);
+
+/**
+ * @brief Show a message dialog whose content is a list of label and
+ *        value pairs
+ *
+ * The same dialog @a menu_message_dialog_show opens, and with the same
+ * scrolling, monitor cap and "OK" button, differing only in that the
+ * values line up in a column of their own rather than following their
+ * labels inline.
+ *
+ * That column sits half a line height past the widest label, measured
+ * in pixels with the label font rather than counted in characters, so
+ * it lands correctly whichever of the two font backends is in use and
+ * whatever language the labels were translated into.  It is capped at
+ * two fifths of the dialog's width, past which a label is truncated
+ * rather than left to squeeze the values out of the dialog.
+ *
+ * @param connection XCB connection
+ * @param surface    Surface to show the dialog on
+ * @param config     Active configuration
+ * @param pairs      Rows to show, in order
+ * @param pair_count How many of them
+ * @param level      Alert level, which decides the icon and the
+ *                   initial button selection
+ *
+ * @note A row whose value wraps takes as many lines as it needs, and
+ *       those count toward the scrolling the same as any other
+ * @note Complexity: @e O(n * c), where @e n is @p pair_count and @e c
+ *       the longest value's length, from measuring and wrapping each
+ */
+void menu_message_dialog_show_pairs(xcb_connection_t *connection,
+        surface_td *surface, const config_td *config,
+        const struct dialog_pair_s *pairs, size_t pair_count,
+        menu_msg_level_e level);
 
 /**
  * @brief Destroy the currently visible message dialog

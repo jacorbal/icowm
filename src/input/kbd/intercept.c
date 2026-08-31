@@ -199,7 +199,7 @@ static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
  * @param surface    Surface on which the menu is displayed
  * @param config     Active configuration
  *
- * @return @c true if a menu was closed, @c false otherwise
+ * @return @c true if a menu was closed
  */
 static bool s_dispatch_open_menu_key(xcb_keysym_t keysym,
         xcb_connection_t *connection, surface_td *surface,

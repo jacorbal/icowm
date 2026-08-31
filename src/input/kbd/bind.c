@@ -182,7 +182,7 @@ static xcb_keysym_t s_parse_keysym_token(const char *token)
  * @param modmask Receives the combined modifier mask
  * @param keysym  Receives the main keysym
  *
- * @return @c true if the binding could be parsed, @c false otherwise
+ * @return @c true if the binding could be parsed
  *
  * @note Complexity: @e O(n), where @e n is the length of @p binding
  */
