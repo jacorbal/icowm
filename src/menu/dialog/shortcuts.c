@@ -476,13 +476,13 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     s_append_group(&ctx,
             _(STR_SHORTCUTS_MOVE_ABSOLUTE),
             (const char *const [])
-                {"Center", "TopLeft", "TopRight", "BotLeft", "BotRight"},
+                {"TopLeft", "TopRight", "BotLeft", "BotRight", "Center"},
             (const char *const []) {
-                config->bindings.keyboard.window.move.absolute.center,
                 config->bindings.keyboard.window.move.absolute.top_left,
                 config->bindings.keyboard.window.move.absolute.top_right,
                 config->bindings.keyboard.window.move.absolute.bottom_left,
-                config->bindings.keyboard.window.move.absolute.bottom_right
+                config->bindings.keyboard.window.move.absolute.bottom_right,
+                config->bindings.keyboard.window.move.absolute.center
             }, 5u);
     s_append_group(&ctx,
             _(STR_SHORTCUTS_RESIZE),
