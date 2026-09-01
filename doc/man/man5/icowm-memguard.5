@@ -60,7 +60,10 @@ so only the differences are spelled out here.
 .It Ic icons.show-geom
 .It Ic icons.placement.policy
 .It Ic systray
-.It Ic shutdown.enable-emergency-shortcut
+.It Ic shutdown.enable-emergency-shortcut Pq boolean, default Ql true
+As in
+.Xr icowm 5 ,
+except that this mode defaults it to true rather than false.
 .It Ic shutdown.timeout-seconds
 As in
 .Xr icowm 5 .
@@ -79,16 +82,23 @@ The single desktop the session starts with stays the only one: the
 window list's entries for adding and removing a desktop, and their
 bindings, do not appear at all rather than appearing and refusing.
 .Pp
-Three more are read and then overridden, since this mode never docks a
-tray icon:
+The screen count is the count of X screens, not of monitors.
+A single X screen still holds however many monitors RandR reports, so
+the settings that name one, among them
+.Ic windows.placement.monitor ,
+go on meaning what they mean anywhere else.
+What is fixed here is the RandR profiles of
+.Xr icowm-randr 5 ,
+which are never applied in this mode; the monitors themselves are
+detected as usual.
+.Pp
 .Ic systray.text.position
 and
 .Ic systray.order
-are forced back to
-.Ql left
-and
-.Ql left-to-right ,
-and embedding itself can never be switched on.
+are discarded.
+Both only ever place docked icons, or place the text block relative to
+them, and this mode docks none, so setting either has no effect.
+Embedding is not read at all, being always off here.
 The tray still shows its clock, battery and frame while
 .Ic systray.is-enabled
 is true; it simply accepts no docked application icon.
@@ -105,25 +115,34 @@ looks in.
 .El
 .Sh EXAMPLES
 A profile for a small machine, keeping the launcher in-process and the
-tray to its clock alone:
+tray to a battery gauge alone:
 .Bd -literal -offset indent
 {
     "programs": { "terminal": "xterm -fn fixed" },
     "prompt": { "is-enabled": true },
     "windows": {
-        "focus": { "policy": "sloppy" },
+        "focus": { "policy": "sloppy", "raise": false },
         "placement": { "policy": "cascade" }
     },
     "systray": {
         "is-enabled": true,
-        "clock": { "is-enabled": true, "format": "%R" },
-        "battery": { "is-enabled": true }
+        "position": "top-right",
+        "clock": { "is-enabled": false },
+        "battery": {
+            "is-enabled": true,
+            "backend": { "type": "acpi", "number": 0 }
+        }
     }
 }
 .Ed
 .Pp
-Start a session with a ceiling of 24 mebibytes, which is what makes this
-file be read at all:
+Start a session under a memory ceiling, which is what makes this file
+be read at all.
+The number is the ceiling in mebibytes; passing
+.Fl M
+is what puts the session in restricted-memory mode and sends it to
+this file instead of
+.Pa config.json :
 .Bd -literal -offset indent
 exec icowm -M 24
 .Ed

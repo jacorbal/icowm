@@ -384,7 +384,10 @@ A window's
 descendants, its dialogs and the like, are raised along with it, so none
 is left stranded beneath the window it belongs to.
 .Pp
-The source is strict C99 and POSIX.
+The source is strict C99 and POSIX.1-2001, built with
+.Fl D Ns Ar _POSIX_C_SOURCE Ns = Ns Ar 200112L ,
+with no extensions from either compiler, and none from the C library
+beyond what that level defines.
 .Sh HISTORY
 .Nm
 first appeared in version 1.0, together with

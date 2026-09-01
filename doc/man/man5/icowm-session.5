@@ -48,8 +48,8 @@ is exiting.
 Note that the emergency exit shortcut skips
 .Ic on-exit
 entirely, along with everything else the ordinary quit action does.
-That is the point of it: it exists for a session that may already be
-broken, so it takes the shortest path out.
+That is the point of it, for it exists for a session that may already
+be broken, so it takes the shortest path out.
 .Sh FILES
 .Bl -tag -width Ds
 .It Pa ${XDG_CONFIG_HOME}/icowm/session.json
@@ -58,24 +58,36 @@ The file this page describes, at the first of the several locations
 looks in.
 .El
 .Sh EXAMPLES
-Set a wallpaper and start a compositor with the session, and put the
-wallpaper back after a reload:
+A session that dresses the desktop when it starts, says so when the
+configuration is reloaded, and cleans up after itself when it ends:
 .Bd -literal -offset indent
 {
     "on-start": [
-        "xsetbg -fullscreen '~/.background",
-        "dex -a",
+        "feh --bg-fill ~/.background.png",
+        "dex --autostart",
         "nm-applet",
         "picom --daemon"
     ],
     "on-reload": [
-        "notify-send -e -i 'configuration' 'IcoWM' 'Configuration reloaded'"
+        "notify-send -i configuration 'IcoWM' 'Configuration reloaded'"
     ],
     "on-exit": [
         "pkill picom"
     ]
 }
 .Ed
+.Pp
+The four commands at start-up set a wallpaper, with whatever tool is
+at hand, run the autostart entries the desktop-entry specification
+puts in
+.Pa ~/.config/autostart ,
+bring up a network tray applet, and start a compositor.
+A solid background color needs none of this, being what
+.Ic desktop.color.background
+already sets; an image is the part no theme can do, which is why
+a hook is the place for it.
+Only the compositor is stopped again on the way out, the rest ending
+with the session that owns them.
 .Sh SEE ALSO
 .Xr icowm 1 ,
 .Xr icowm-msg 1 ,

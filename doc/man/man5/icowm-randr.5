@@ -21,7 +21,11 @@ whenever an output is connected or disconnected.
 The file is optional.
 Without it, hot-plug events are still handled and surfaces reflow as
 outputs come and go; only the profiles are absent.
-At most sixteen outputs are described, or two in a low-memory build.
+At most sixteen outputs are described, or two in a build compiled with
+.Ic COMPACT ,
+which is a compile-time option and not the restricted-memory mode
+.Xr icowm-memguard 5
+describes.
 .Bl -tag -width Ds
 .It Ic is-enabled Pq boolean, default Ql false
 Master switch for profile management.

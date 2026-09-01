@@ -52,20 +52,43 @@ matching is enough.
 All the fields given must match together.
 .Bl -tag -width Ds
 .It Ic match.instance
+The first half of
+.Ql WM_CLASS ,
+which names the particular program, as
+.Ql xterm
+does.
 .It Ic match.class
-The two halves of
-.Ql WM_CLASS .
+The second half, which names the family it belongs to, as
+.Ql XTerm
+does.
+Both halves come from the application itself, and
+.Xr xprop 1
+reports them in that order.
 .It Ic match.role
-.Ql WM_WINDOW_ROLE .
+.Ql WM_WINDOW_ROLE ,
+which an application sets to tell two of its own windows apart, as
+Firefox does with
+.Ql browser
+and
+.Ql About .
 .It Ic match.title
 The window title.
 .It Ic match.type
-The EWMH window type, such as
-.Ql dialog
+The EWMH window type, one of
+.Ql normal ,
+.Ql dialog ,
+.Ql toolbar ,
+.Ql notification ,
+.Ql menu ,
+.Ql desktop ,
+.Ql splash ,
+.Ql utility
 or
 .Ql dock .
+A window declaring any other type matches none of these.
 .It Ic match.transient Pq boolean
-Whether the window is transient for another.
+Whether the window is transient for another, as a dialog is for the
+window it belongs to.
 .El
 .Ss Applying
 .Bl -tag -width Ds
@@ -100,13 +123,13 @@ whatever unless a compositing manager, such as
 .Xr picom 1 ,
 is also running and reading it back.
 Without one, setting this changes nothing on screen.
-.It Ic apply.position
+.It Ic apply.position Pq string or object
 Where to put the window, overriding the placement policy.
 Either an object with
 .Ic x
 and
 .Ic y ,
-an absolute pixel position, or the string
+both integers, an absolute pixel position, or the string
 .Ql center ,
 which centers the window at the moment the rule runs rather than
 pinning it to a fixed point.
@@ -129,9 +152,28 @@ A rule naming a
 and no
 .Ic position
 at all centers on it.
-.It Ic apply.size.width Pq integer
-.It Ic apply.size.height Pq integer
-Give it this size.
+.It Ic apply.size Pq object
+Give it this size, as an object with
+.Ic width
+and
+.Ic height ,
+both integers.
+The figure counts the whole decorated frame: the border and the title
+bar are inside it, not added to it, so a window asked for
+.Ql 800
+by
+.Ql 600
+with a two-pixel border and a twenty-four-pixel title bar gets 796 by
+574 of content.
+.Pp
+The application's own size hints still hold.
+One that resizes only in whole character cells, as a terminal does,
+lands on the nearest cell to what was asked for rather than on the
+figure itself, and one that refuses to resize at all keeps the size it
+chose.
+.Pp
+Nothing is resized while the window is fullscreen, its geometry being
+the window manager's to set then; the rest of the rule still applies.
 .El
 .Sh FILES
 .Bl -tag -width Ds

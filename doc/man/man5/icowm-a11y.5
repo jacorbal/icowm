@@ -33,6 +33,15 @@ whatever the theme asks for.
 Zero leaves the theme alone.
 .It Ic urgency.sound-bell Pq boolean, default Ql false
 Whether the X bell rings when a window demands attention.
+.Pp
+IcoWM only asks for it.
+Whether anything is heard rests with the X server, which is silent
+until
+.Xr xset 1
+gives the bell a non-zero volume, and on many systems with a sound
+daemon standing between the server and the speakers.
+Turning this on and hearing nothing usually means the bell itself is
+off, not that the setting was ignored.
 .It Ic urgency.blink-interval-ms Pq integer, default Ql 600
 How long, in milliseconds, each half of the urgency blink lasts.
 A longer interval blinks more slowly, which is easier to follow and
