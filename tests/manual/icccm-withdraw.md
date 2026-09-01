@@ -1,12 +1,12 @@
 # Verifying the ICCCM handover on exit
 
-What is under test: every client is left **mapped**, **reparented to
-the root window**, and with **`WM_STATE` set to `NormalState`** when
-IcoWM exits, so that another window manager can adopt them and so that
-nothing the person had open becomes unreachable.  ICCCM §4.1.4.
+What is under test: every client is left **mapped**, **reparented to the
+root window**, and with **`WM_STATE` set to `NormalState`** when IcoWM
+exits, so that another window manager can adopt them and so that nothing
+the person had open becomes unreachable.  ICCCM §4.1.4.
 
-This needs a running X server, so it is a manual check rather than a
-unit test.  A nested server keeps it away from the real session.
+This needs a running X server, so it is a manual check rather than
+a unit test.  A nested server keeps it away from the real session.
 
 ## Setup
 
@@ -15,10 +15,10 @@ unit test.  A nested server keeps it away from the real session.
 
 ## The case that used to fail
 
-The interesting windows are the ones IcoWM unmaps in the ordinary
-course of things: those on a desktop that is not the current one, and
-iconified ones.  A window on the visible desktop was mapped all along
-and proves nothing.
+The interesting windows are the ones IcoWM unmaps in the ordinary course
+of things: those on a desktop that is not the current one, and iconified
+ones.  A window on the visible desktop was mapped all along and proves
+nothing.
 
     DISPLAY=:9 xterm -title on-desktop-1 &
     # switch to desktop 2, then:
@@ -55,11 +55,11 @@ must report `window state: Normal`.
     DISPLAY=:9 twm &
 
 Every window that was open before is present and usable under the new
-window manager.  That is the whole point of the handover; anything
-still unmapped is a window the person has lost.
+window manager.  That is the whole point of the handover; anything still
+unmapped is a window the user has lost.
 
 ## What this does not cover
 
 A death by fatal signal runs none of this, so windows unmapped at that
-moment stay unmapped.  Nothing can be done about that from inside a
-signal handler, and it is not what this check is for.
+moment stay unmapped.  Nothing can be done about that from inside
+a signal handler, and it is not what this check is for.
