@@ -143,14 +143,13 @@ make analyze    # a static analysis pass, with gcc
 
 `DEBUG=2` deliberately leaves `-fanalyzer` off: gcc 13 loses track of
 its own instrumentation when given both and reports uninitialized values
-that are not there.  The analyzer belongs to `ANALYZE=1`, where it runs
-clean.
+that are not there.
 
-Build with both compilers before believing anything is finished.  gcc
-and clang each catch what the other does not: clang's `-Wdocumentation`
-finds a comment naming a parameter that no longer exists, and its
-`-Wswitch-enum` finds an enumeration value quietly swallowed by a
-`default`.
+Build with both compilers is recommended before believing anything is
+finished.  gcc and clang each catch what the other does not: clang's
+`-Wdocumentation` finds a comment naming a parameter that no longer
+exists, and its `-Wswitch-enum` finds an enumeration value quietly
+swallowed by a `default`.
 
 At runtime, `-L` sets how much is logged, from `0` for every traced
 action to `8` for fatal errors alone, and `-l` sends it to a file.
