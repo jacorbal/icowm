@@ -265,28 +265,6 @@ The four edge policies count their slots from a screen edge while this
 one counts from wherever the window was, so their icons do not line up
 with each other.
 .El
-.Ss shutdown and fortune
-.Bl -tag -width Ds
-.It Ic shutdown.enable-emergency-shortcut Pq boolean, default Ql false
-Whether
-.Ql Ctrl+Mod1+Backspace
-terminates the session at once, with no dialog and no wait.
-See
-.Xr icowm 1 .
-.It Ic shutdown.timeout-seconds Pq integer, default Ql 15
-How long the ordinary quit action waits for applications to close
-themselves before exiting anyway.
-.It Ic fortune.is-enabled Pq boolean, default Ql true
-Whether the fortune binding is grabbed at all.
-.It Ic fortune.command Pq string, default Ql \&"fortune\&"
-Command whose output that binding displays.
-.El
-.Ss startup-notification
-.Bl -tag -width Ds
-.It Ic startup-notification.timeout-seconds Pq integer, default Ql 15
-How long a busy cursor is shown after launching an application before
-giving up on it announcing itself.
-.El
 .Ss menus
 .Bl -tag -width Ds
 .It Ic menus.root.position Pq string, default Ql \&"under-mouse\&"
@@ -384,6 +362,24 @@ Which edge the window slides in from.
 Whether it may cover the space
 .Ic desktops.margins
 keeps clear.
+.It Ic scratchpad.width Pq integer or string, default Ql "max"
+.It Ic scratchpad.height Pq integer or string, default Ql 200
+How large the window is made each time it is shown.
+A number is that many pixels; the string
+.Ql max
+is as much as there is along that axis.
+The defaults give a band across the top, which is the shape a
+scratchpad sliding in from an edge usually wants.
+.Pp
+Both are measured against the desktop's work area, or against the
+whole monitor where
+.Ic scratchpad.ignore-margins
+is true, so
+.Ql max
+means the same thing that setting covers.
+Unlike the edge, which only decides where the window comes from, these
+two are applied every time it is shown, whatever size the application
+gave itself.
 .El
 .Ss prompt
 A single always-centered field for typing a command directly, with no
@@ -398,6 +394,31 @@ spawning
 .Ic programs.launcher .
 Defaults to false ordinarily, and to true under restricted-memory mode,
 which prefers it precisely to avoid the extra process.
+.El
+.Ss fortune
+.Bl -tag -width Ds
+.It Ic fortune.is-enabled Pq boolean, default Ql true
+Whether the fortune binding is grabbed at all.
+.It Ic fortune.command Pq string, default Ql \&"fortune\&"
+Command whose output that binding displays.
+.El
+.Ss startup-notification
+.Bl -tag -width Ds
+.It Ic startup-notification.timeout-seconds Pq integer, default Ql 15
+How long a busy cursor is shown after launching an application before
+giving up on it announcing itself.
+.El
+.Ss shutdown
+.Bl -tag -width Ds
+.It Ic shutdown.enable-emergency-shortcut Pq boolean, default Ql false
+Whether
+.Ql Ctrl+Mod1+Backspace
+terminates the session at once, with no dialog and no wait.
+See
+.Xr icowm 1 .
+.It Ic shutdown.timeout-seconds Pq integer, default Ql 15
+How long the ordinary quit action waits for applications to close
+themselves before exiting anyway.
 .El
 .Sh FILES
 .Bl -tag -width Ds
