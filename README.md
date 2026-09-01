@@ -274,7 +274,8 @@ options, and the notes for packagers and for the BSDs.
 
 Also, [`HACKING.md`](HACKING.md) is the map of the source for anyone
 about to change it, and [`CONTRIBUTING.md`](CONTRIBUTING.md) is the
-style every file is written in.
+style every file is written in, and [`NEWS.md`](NEWS.md) is what each
+release brought.
 
 Bugs
 ----
