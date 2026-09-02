@@ -234,7 +234,8 @@ void client_props_refresh_icon_name(client_td *client)
     memset(&net_reply, 0, sizeof(net_reply));
     if (xcb_ewmh_connection_get() != NULL &&
             xcb_ewmh_get_wm_icon_name_reply(xcb_ewmh_connection_get(),
-                xcb_ewmh_get_wm_icon_name(xcb_ewmh_connection_get(), client->window),
+                xcb_ewmh_get_wm_icon_name(xcb_ewmh_connection_get(),
+                        client->window),
                 &net_reply, NULL) &&
             net_reply.strings_len > 0) {
         size_t len = (net_reply.strings_len < (CONFIG_MAX_LENGTH_NAME - 1u))
@@ -266,7 +267,8 @@ void client_props_refresh_name(client_td *client)
     memset(&net_reply, 0, sizeof(net_reply));
     if (xcb_ewmh_connection_get() != NULL &&
             xcb_ewmh_get_wm_name_reply(xcb_ewmh_connection_get(),
-                xcb_ewmh_get_wm_name(xcb_ewmh_connection_get(), client->window),
+                xcb_ewmh_get_wm_name(xcb_ewmh_connection_get(),
+                        client->window),
                 &net_reply, NULL) &&
             net_reply.strings_len > 0) {
         size_t len = (net_reply.strings_len < (CONFIG_MAX_LENGTH_NAME - 1u))

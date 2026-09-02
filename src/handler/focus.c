@@ -264,7 +264,8 @@ void handler_property_notify(const wm_td *wm,
     }
 
     if (xcb_ewmh_connection_get() != NULL &&
-            (event->atom == xcb_ewmh_connection_get()->_NET_WM_STRUT_PARTIAL ||
+            (event->atom ==
+                 xcb_ewmh_connection_get()->_NET_WM_STRUT_PARTIAL ||
              event->atom == xcb_ewmh_connection_get()->_NET_WM_STRUT)) {
         memset(&strut, 0, sizeof(strut));
         memset(&partial, 0, sizeof(partial));
@@ -297,7 +298,8 @@ void handler_property_notify(const wm_td *wm,
             client->layout.strut_partial.end.bottom =
                 (int32_t) partial.bottom_end_x;
         } else if (xcb_ewmh_get_wm_strut_reply(xcb_ewmh_connection_get(),
-                    xcb_ewmh_get_wm_strut(xcb_ewmh_connection_get(), client->window),
+                    xcb_ewmh_get_wm_strut(xcb_ewmh_connection_get(),
+                            client->window),
                     &strut, NULL)) {
             client->layout.strut_partial.sides.left =
                 (int32_t) strut.left;

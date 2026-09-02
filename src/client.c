@@ -1022,8 +1022,9 @@ void client_sync_visible_name(client_td *client, char *cached,
             xcb_window_t, uint32_t, const char *),
         xcb_atom_t atom)
 {
-    if (client == NULL || xcb_ewmh_connection_get() == NULL || cached == NULL ||
-            full_name == NULL || rendered == NULL || set_fn == NULL) {
+    if (client == NULL || xcb_ewmh_connection_get() == NULL ||
+            cached == NULL || full_name == NULL || rendered == NULL ||
+            set_fn == NULL) {
         return;
     }
 
@@ -1176,12 +1177,14 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Read '_NET_WM_NAME', which is UTF-8, and fall back to
      * 'WM_NAME', which is Latin-1 */
-    client_props_get_net_wm_name(ewmh, window, net_wm_name, sizeof(net_wm_name));
+    client_props_get_net_wm_name(ewmh, window, net_wm_name,
+            sizeof(net_wm_name));
     if (net_wm_name[0] != '\0') {
         s_client_display_name_set(client, net_wm_name);
     } else {
         char wm_name[256];
-        client_props_get_wm_name(connection, window, wm_name, sizeof(wm_name));
+        client_props_get_wm_name(connection, window, wm_name,
+                sizeof(wm_name));
         s_client_display_name_set(client, wm_name);
     }
 
@@ -1304,7 +1307,8 @@ client_td *client_init(xcb_connection_t *connection,
             client->properties.type == (uint16_t) CLIENT_TYPE_TOOLBAR ||
             client->properties.type == (uint16_t) CLIENT_TYPE_UTILITY) {
         if (xcb_ewmh_connection_get() != NULL) {
-            xcb_ewmh_set_wm_state(xcb_ewmh_connection_get(), client->window, 0, NULL);
+            xcb_ewmh_set_wm_state(xcb_ewmh_connection_get(),
+                    client->window, 0, NULL);
         }
     }
 

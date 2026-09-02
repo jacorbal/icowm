@@ -68,6 +68,7 @@ struct s_shortcuts_ctx_s {
  * @param fmt @c printf-style format string for the line's content (the
  *            trailing newline is added automatically, do not include
  *            one)
+ * @param ... Arguments @p fmt consumes
  *
  * @note Complexity: @e O(n), where @e n is the formatted line's length
  */
@@ -102,6 +103,7 @@ static void s_append_line(struct s_shortcuts_ctx_s *ctx,
  * @param ctx   Rows being gathered
  * @param label Left column, copied rather than pointed at
  * @param fmt   'printf'-style format for the right column
+ * @param ...   Arguments @p fmt consumes
  *
  * @note Silently does nothing once the dialog is full, as its
  *       neighbours do

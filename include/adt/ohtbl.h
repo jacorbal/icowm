@@ -12,6 +12,10 @@
  * @ingroup adt
  */
 
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L /* struct timespec */
+#endif
+
 #ifndef OHTBL_H
 #define OHTBL_H
 

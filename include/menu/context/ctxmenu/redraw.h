@@ -47,7 +47,7 @@ void ctxmenu_redraw(ctxmenu_state_td *state);
  *
  * @note Complexity: @e O(1)
  */
-void ctxmenu_redraw_entries(ctxmenu_state_td *state,
+void ctxmenu_redraw_entries(const ctxmenu_state_td *state,
         int idx_a, int idx_b);
 
 

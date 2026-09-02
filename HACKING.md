@@ -86,11 +86,12 @@ type: `map.c` decides what to do with a window asking to appear,
 `configure.c` with one asking to move.
 
 **`policy/`** answers the questions with more than one right answer:
-where a window goes, what gets focus, how the stack is ordered.  A
-policy decides; it does not act.
+where a window goes, what gets focus, how the stack is ordered.
+A policy decides; it does not act.
 
-**`cmds/`** performs one operation on one client, at the level of X
-requests.  `ccmd_client_iconify` unmaps, marks, creates the icon window.
+**`cmds/`** performs one operation on one client, at the level of
+X requests.  `ccmd_client_iconify` unmaps, marks, creates the icon
+window.
 
 **`enact/`** is the public face of `cmds/`, and the difference is that
 it announces: `enact_client_iconify` calls the command and then
@@ -100,8 +101,8 @@ for goes through `enact/`, so that the socket never misses an event.
 Reach for `cmds/` from inside the manager and `enact/` from anything
 answering a request.
 
-The loop that drives all of it is in `loop/`: `pollset.c` waits on the X
-connection and the control socket, `timers.c` schedules what has to
+The loop that drives all of it is in `loop/`: `pollset.c` waits on the
+X connection and the control socket, `timers.c` schedules what has to
 happen later, `dispatch.c` hands each event to its handler.
 
 Things worth knowing before changing them
@@ -139,6 +140,7 @@ Building for work rather than for use
 make DEBUG=1    # symbols, no optimization
 make DEBUG=2    # the above, plus AddressSanitizer
 make analyze    # a static analysis pass, with gcc
+make headers    # check every header compiles alone
 ```
 
 `DEBUG=2` deliberately leaves `-fanalyzer` off: gcc 13 loses track of

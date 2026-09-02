@@ -104,6 +104,7 @@ static void s_inspect_heading(struct s_inspect_ctx_s *ctx,
  * @param ctx   Rows being gathered
  * @param label Left column, already translated
  * @param fmt   'printf'-style format for the right column
+ * @param ...   Arguments @p fmt consumes
  *
  * @note Both halves are copied, since a caller composing either on
  *       its own stack would otherwise leave this holding a pointer

@@ -197,6 +197,12 @@ CCFLAGS_BASE = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR} \
                ${CCDEPS}
 CCFLAGS = ${CCFLAGS_BASE} ${XCB_CFLAGS} ${FONT_CFLAGS} ${JSON_CFLAGS}
 
+# The same flags without the dependency-file ones, for the 'headers'
+# pass: those would write a '.d' beside the makefile for every header
+# checked, and outlive the throwaway source describing it
+HDRFLAGS = ${CCOPTS} ${CCWARN} -std=${CCSTD} ${CCEXTRA} -I ${I_DIR} \
+           ${XCB_CFLAGS} ${FONT_CFLAGS} ${JSON_CFLAGS}
+
 # 'icowm-msg' (see 'tools/icowm-msg.c') is a small, deliberately
 # self-contained IPC client: it never touches X11 at all, so it has no
 # reason to pull in the XCB or font libraries the window manager itself
@@ -323,9 +329,8 @@ CCFLAGS += -DDEBUG -g3 -ggdb3 -O0
 # gcc 13 loses track of its own instrumentation when asked for both:
 # a loop whose condition calls another translation unit, holding
 # a variable that unit fills through a pointer, is reported as a use of
-# an uninitialized value that no initialization silences.
-# 'make ANALYZE=1' is where the analyzer belongs, and it still runs
-# there.
+# an uninitialized value that no initialization silences.  'make
+# analyze' is where the analyzer belongs, and it still runs there.
 CCFLAGS += -DDEBUG -g3 -ggdb3 -O0 \
            -fsanitize=address -fno-omit-frame-pointer -fPIE
 LDFLAGS += -fsanitize=address -pie
@@ -575,6 +580,23 @@ doxygen:
 	@[ -f '${DOXIGEN_FILE}' ] && doxygen || \
 		echo "Error: '${DOXIGEN_FILE}' not found" >&2
 
+# 'CCDEPS' is cleared for this pass: the dependency files it asks for
+# would land beside the makefile, one per header, and outlive the
+# throwaway source they describe.  Nothing is written to disk at all
+# here, the source going in on the standard input instead.
+headers:
+	@fail=0; total=0; \
+	for h in `cd ${I_DIR} && find . -name '*.h' | sed 's|^\./||'`; do \
+		total=`expr $$total + 1`; \
+		printf '#include <%s>\nint main(void){return 0;}\n' "$$h" \
+			| ${CC} ${HDRFLAGS} -fsyntax-only -x c - \
+			  2>/dev/null \
+			|| { echo "not self-contained: $$h" >&2; \
+			     fail=`expr $$fail + 1`; }; \
+	done; \
+	echo "`expr $$total - $$fail`/$$total headers compile on their own"; \
+	[ $$fail -eq 0 ]
+
 analyze:
 .if ${CC} == "gcc"
 	${MAKE} ANALYZE=1 all
@@ -600,6 +622,7 @@ help:
 	@echo "  make run ARGS=<args>  Run with arguments (if binary exists)"
 	@echo "  make hard-run         Clean, build and run (if binary exists)"
 	@echo "  make test             Build and run every 'tests/*/test_*.c'"
+	@echo "  make headers          Check every header compiles alone"
 	@echo "  make install          Install under 'PREFIX'"
 	@echo "  make uninstall        Remove what 'install' put there"
 	@echo "  make help             Show this help"
@@ -640,5 +663,5 @@ help:
 
 ## Phony targets
 .PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build \
-    run hard hard-run install uninstall \
+    run hard hard-run test headers install uninstall \
     doxygen analyze ccflags ldflags parallel help

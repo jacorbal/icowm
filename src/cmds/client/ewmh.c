@@ -106,57 +106,60 @@ void ccmd_client_sync_states(client_td *client)
 {
     xcb_atom_t states[13];
     uint32_t num = 0;
+    xcb_ewmh_connection_t *ewmh;
 
     if (client == NULL || xcb_ewmh_connection_get() == NULL) {
         return;
     }
+
+    ewmh = xcb_ewmh_connection_get();
 
     /* Each bit is published on its own, since EWMH holds them
      * independent: a window may be maximized on one axis, on both, or
      * on both while also full screen, and every combination has to
      * read back off the property exactly as it stands. */
     if (client_is_maximized_horz(client)) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_MAXIMIZED_HORZ;
+        states[num++] = ewmh->_NET_WM_STATE_MAXIMIZED_HORZ;
     }
     if (client_is_maximized_vert(client)) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_MAXIMIZED_VERT;
+        states[num++] = ewmh->_NET_WM_STATE_MAXIMIZED_VERT;
     }
     if (client_is_fullscreen(client)) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_FULLSCREEN;
+        states[num++] = ewmh->_NET_WM_STATE_FULLSCREEN;
     }
     if (client_is_iconified(client) || client_is_hidden(client)) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_HIDDEN;
+        states[num++] = ewmh->_NET_WM_STATE_HIDDEN;
     }
     if (client_is_pinned(client)) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_STICKY;
+        states[num++] = ewmh->_NET_WM_STATE_STICKY;
     }
     if (client_is_urgent(client)) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_DEMANDS_ATTENTION;
+        states[num++] = ewmh->_NET_WM_STATE_DEMANDS_ATTENTION;
     }
     if (client_is_shaded(client)) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_SHADED;
+        states[num++] = ewmh->_NET_WM_STATE_SHADED;
     }
     if (client->properties.layer == (uint16_t) CLIENT_LAYER_ABOVE) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_ABOVE;
+        states[num++] = ewmh->_NET_WM_STATE_ABOVE;
     }
     if (client->properties.layer == (uint16_t) CLIENT_LAYER_BELOW) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_BELOW;
+        states[num++] = ewmh->_NET_WM_STATE_BELOW;
     }
     if (client_is_modal(client)) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_MODAL;
+        states[num++] = ewmh->_NET_WM_STATE_MODAL;
     }
     if (client_is_focused(client)) {
         states[num++] = ccmd_intern_atom(xcb_connection_get(),
                 "_NET_WM_STATE_FOCUSED");
     }
     if (client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_SKIP_TASKBAR;
+        states[num++] = ewmh->_NET_WM_STATE_SKIP_TASKBAR;
     }
     if (client->properties.flags & CLIENT_FLAG_SKIP_PAGER) {
-        states[num++] = xcb_ewmh_connection_get()->_NET_WM_STATE_SKIP_PAGER;
+        states[num++] = ewmh->_NET_WM_STATE_SKIP_PAGER;
     }
 
-    xcb_ewmh_set_wm_state(xcb_ewmh_connection_get(), client->window, num, states);
+    xcb_ewmh_set_wm_state(ewmh, client->window, num, states);
 }
 
 

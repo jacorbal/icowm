@@ -136,12 +136,6 @@ static void s_rules_load_apply(cJSON *apply_json,
         struct rules_rule_s *rule)
 {
     cJSON *item;
-    cJSON *x;
-    cJSON *y;
-    cJSON *w;
-    cJSON *h;
-    cJSON *opacity_active;
-    cJSON *opacity_inactive;
 
     item = json_get_item(apply_json, "desktop");
     if (cJSON_IsNumber(item) && item->valueint >= 0) {
@@ -192,8 +186,8 @@ static void s_rules_load_apply(cJSON *apply_json,
             s_clamp_opacity_percent(item->valueint);
         rule->apply.opacity_inactive = rule->apply.opacity_active;
     } else if (cJSON_IsObject(item)) {
-        opacity_active = json_get_item(item, "active");
-        opacity_inactive = json_get_item(item, "inactive");
+        cJSON *const opacity_active = json_get_item(item, "active");
+        cJSON *const opacity_inactive = json_get_item(item, "inactive");
 
         if (cJSON_IsNumber(opacity_active)) {
             rule->apply.has_opacity_active = true;
@@ -209,8 +203,8 @@ static void s_rules_load_apply(cJSON *apply_json,
 
     item = json_get_item(apply_json, "position");
     if (cJSON_IsObject(item)) {
-        x = json_get_item(item, "x");
-        y = json_get_item(item, "y");
+        cJSON *const x = json_get_item(item, "x");
+        cJSON *const y = json_get_item(item, "y");
 
         if (cJSON_IsNumber(x) && cJSON_IsNumber(y)) {
             rule->apply.has_position = true;
@@ -226,8 +220,8 @@ static void s_rules_load_apply(cJSON *apply_json,
 
     item = json_get_item(apply_json, "size");
     if (cJSON_IsObject(item)) {
-        w = json_get_item(item, "width");
-        h = json_get_item(item, "height");
+        cJSON *const w = json_get_item(item, "width");
+        cJSON *const h = json_get_item(item, "height");
 
         if (cJSON_IsNumber(w) && cJSON_IsNumber(h) &&
                 w->valueint > 0 && h->valueint > 0) {

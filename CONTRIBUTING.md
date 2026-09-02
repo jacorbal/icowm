@@ -16,9 +16,9 @@ Before anything else
 The whole of it must build clean and pass its tests:
 
 ```sh
-make                    # gcc, no warnings, no errors
-make CC=clang           # clang, likewise
-make analyze            # the static analysis pass
+make            # gcc, no warnings, no errors
+make CC=clang   # clang, likewise
+make analyze    # the static analysis pass
 ```
 
 Every warning is an error, under a deliberately unforgiving set of
@@ -253,13 +253,16 @@ per domain, not scattered as literals through the code.
 Header files
 ------------
 
-Every header compiles alone.  All of them do (or should), and a patch is
-expected to keep it so:
+Every header compiles alone.  All of them do, and a patch is expected to
+keep it so:
 
 ```sh
-printf '#include <client/icccm.h>\nint main(void){return 0;}\n' > t.c
-gcc -std=c99 -Wall -Wextra -Werror -I include -fsyntax-only t.c
+make headers
 ```
+
+That builds a one-line source for each of them in turn and names any
+that will not compile, which is the check the rule above used to want
+doing by hand.
 
 A header that leans on its includer having included something first is
 a header that will break the day somebody includes it somewhere new.
@@ -285,8 +288,8 @@ it moves with it, in the same patch.
 Commit messages
 ---------------
 
-A title of at most 52 characters, in United States English, in the
-imperative, with no full stop.
+A title of at most 52 characters, in US English, in the imperative, with
+no full stop.
 
 A body wrapped at 70 columns, in prose paragraphs.  Not a bullet list.
 Identifiers in the body go in `backticks`.

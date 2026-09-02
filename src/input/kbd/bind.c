@@ -247,11 +247,18 @@ static bool s_parse_binding(const config_td *config,
  * @return @c true if @p predicate returned @c true for at least one
  *         surface in @p surfaces
  *
+ * @note Answers @c false without a list, since @c list_head reaches
+ *       into one unguarded and the contract that every caller passes
+ *       the manager's own is nowhere written down
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
 static bool s_any_surface_matches(list_td *surfaces,
         bool (*predicate)(const surface_td *surface))
 {
+    if (surfaces == NULL || predicate == NULL) {
+        return false;
+    }
+
     for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {
         surface_td *const surface = (surface_td *) list_data(node);

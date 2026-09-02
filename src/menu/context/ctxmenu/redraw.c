@@ -227,7 +227,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
  *
  * @note Complexity: @e O(1)
  */
-void ctxmenu_redraw_entries(ctxmenu_state_td *state,
+void ctxmenu_redraw_entries(const ctxmenu_state_td *state,
         int idx_a, int idx_b)
 {
     if (state == NULL || xcb_connection_get() == NULL ||

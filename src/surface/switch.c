@@ -325,8 +325,8 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
                 xcb_connection_get() != NULL) {
             xcb_change_property(xcb_connection_get(),
                     XCB_PROP_MODE_REPLACE, client->window,
-                    xcb_ewmh_connection_get()->_NET_WM_DESKTOP, XCB_ATOM_CARDINAL,
-                    32, 1, &to_desktop->id);
+                    xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
+                    XCB_ATOM_CARDINAL, 32, 1, &to_desktop->id);
         }
     }
 }

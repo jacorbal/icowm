@@ -53,7 +53,7 @@
  */
 static void s_client_hide_visit(client_td *client, void *data)
 {
-    surface_td *const surface = data;
+    const surface_td *const surface = data;
 
     if (surface == NULL) {
         return;
@@ -109,7 +109,7 @@ static void s_client_hide_visit(client_td *client, void *data)
  */
 static void s_client_show_visit(client_td *client, void *data)
 {
-    surface_td *const surface = data;
+    const surface_td *const surface = data;
 
     if (surface == NULL) {
         return;

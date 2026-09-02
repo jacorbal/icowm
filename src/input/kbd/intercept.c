@@ -71,7 +71,7 @@
  * @param config   Active configuration
  */
 static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
-        surface_td *surface, list_td *surfaces,
+        const surface_td *surface, list_td *surfaces,
         const config_td *config)
 {
     xcb_connection_t *const conn = (surface != NULL)
@@ -158,7 +158,7 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
  * @see @a menu_confirm_dialog_cancel
  */
 static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
-        surface_td *surface, const config_td *config)
+        const surface_td *surface, const config_td *config)
 {
     xcb_connection_t *const conn = (surface != NULL)
         ? xcb_connection_get() : NULL;

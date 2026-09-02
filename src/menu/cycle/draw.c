@@ -171,7 +171,8 @@ static void s_cycle_draw_row(xcb_connection_t *connection, int i,
      * capped 'menu_w' at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' when the
      * menu opened (see 'cycle_init' in menu/cycle.c) is cut to match
      * instead of running past the window's right edge. */
-    (void) snprintf(label_buf, sizeof(label_buf), "%s", g_cycle_menu.labels[i]);
+    (void) snprintf(label_buf, sizeof(label_buf), "%s",
+            g_cycle_menu.labels[i]);
     if (g_cycle_menu.width > text_x + style->pad_x) {
         menu_draw_truncate(label_buf,
                 (uint16_t) (g_cycle_menu.width - text_x - style->pad_x));

@@ -327,13 +327,10 @@ void handler_client_message(wm_td *wm,
                     if (cur_desktop != NULL && cur_desktop != desktop) {
                         (void) desktop_action_client_move(desktop,
                                 cur_desktop, client);
-                        if (ewmh != NULL) {
-                            xcb_change_property(connection,
-                                    XCB_PROP_MODE_REPLACE,
-                                    client->window,
-                                    ewmh->_NET_WM_DESKTOP,
-                                    XCB_ATOM_CARDINAL, 32, 1, &cur_id);
-                        }
+                        xcb_change_property(connection,
+                                XCB_PROP_MODE_REPLACE, client->window,
+                                ewmh->_NET_WM_DESKTOP,
+                                XCB_ATOM_CARDINAL, 32, 1, &cur_id);
                         desktop = cur_desktop;
                     }
                 } else {

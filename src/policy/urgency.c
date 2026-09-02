@@ -76,7 +76,7 @@ static bool s_has_urgent = false;
 static void s_urgent_search_visit(desktop_td *desktop, void *data)
 {
     bool *const is_any_urgent = data;
-    void *elem;
+    const void *elem;
 
     if (is_any_urgent == NULL || desktop->clients == NULL) {
         return;

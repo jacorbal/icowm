@@ -177,7 +177,7 @@ cJSON *ipc_action_deiconify_all(const wm_td *wm, const cJSON *args)
 cJSON *ipc_action_rearrange(const wm_td *wm, const cJSON *args)
 {
     surface_td *surface = NULL;
-    desktop_td *desktop;
+    const desktop_td *desktop;
     cJSON *error = NULL;
 
     desktop = ipc_resolve_desktop(wm, args, false, &surface, &error);

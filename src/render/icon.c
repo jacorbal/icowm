@@ -198,7 +198,8 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * would otherwise have its pixmap appear and vanish on every
      * phase rather than simply changing color. */
     if (client->config->theme.icon.show_pixmaps && !is_cycle_sel) {
-        wmicon_draw(xcb_connection_get(), xcb_ewmh_connection_get(), client->window,
+        wmicon_draw(xcb_connection_get(), xcb_ewmh_connection_get(),
+                client->window,
                 client->icon_window, WM_ICON_SQUARE_SIZE,
                 (display_active)
                     ? client->config->theme.icon.active.color.foreground

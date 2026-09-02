@@ -24,6 +24,10 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L /* struct timespec */
+#endif
+
 #ifndef UTILS_TIME_CLOCK_H
 #define UTILS_TIME_CLOCK_H
 

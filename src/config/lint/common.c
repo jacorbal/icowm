@@ -120,7 +120,8 @@ const config_lint_key_td s_schema_systray[] = {
 /* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_desktops_margins_size_check
     [(sizeof(s_schema_desktops_margins) /
-      sizeof(s_schema_desktops_margins[0]) == CONFIG_LINT_DESKTOPS_MARGINS_KEYS)
+      sizeof(s_schema_desktops_margins[0]) ==
+          CONFIG_LINT_DESKTOPS_MARGINS_KEYS)
      ? 1 : -1];
 
 
@@ -162,5 +163,6 @@ typedef char config_lint_windows_focus_size_check
 /* Size check; see 'config/lint/internal.h' for why */
 typedef char config_lint_windows_placement_size_check
     [(sizeof(s_schema_windows_placement) /
-      sizeof(s_schema_windows_placement[0]) == CONFIG_LINT_WINDOWS_PLACEMENT_KEYS)
+      sizeof(s_schema_windows_placement[0]) ==
+          CONFIG_LINT_WINDOWS_PLACEMENT_KEYS)
      ? 1 : -1];

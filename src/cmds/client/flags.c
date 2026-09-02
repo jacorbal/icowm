@@ -408,14 +408,17 @@ void ccmd_client_update_allowed_actions(client_td *client)
 {
     xcb_atom_t actions[12];
     uint32_t n = 0u;
+    xcb_ewmh_connection_t *ewmh;
 
     if (client == NULL || xcb_ewmh_connection_get() == NULL) {
         return;
     }
 
+    ewmh = xcb_ewmh_connection_get();
+
     /* Actions available to all managed, visible clients */
-    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_CLOSE;
-    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_CHANGE_DESKTOP;
+    actions[n++] = ewmh->_NET_WM_ACTION_CLOSE;
+    actions[n++] = ewmh->_NET_WM_ACTION_CHANGE_DESKTOP;
 
     /* None of moving, resizing or maximizing means anything while a
      * client is fullscreen: it occupies the monitor whole, and the
@@ -423,10 +426,10 @@ void ccmd_client_update_allowed_actions(client_td *client)
      * Advertising them anyway told a client it could ask for
      * something that would be refused. */
     if (client_is_resizable(client) && !client_is_fullscreen(client)) {
-        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_MOVE;
-        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_RESIZE;
-        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_MAXIMIZE_HORZ;
-        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_MAXIMIZE_VERT;
+        actions[n++] = ewmh->_NET_WM_ACTION_MOVE;
+        actions[n++] = ewmh->_NET_WM_ACTION_RESIZE;
+        actions[n++] = ewmh->_NET_WM_ACTION_MAXIMIZE_HORZ;
+        actions[n++] = ewmh->_NET_WM_ACTION_MAXIMIZE_VERT;
     }
 
     /* Not folded into the 'client_is_resizable' block above, unlike
@@ -440,21 +443,21 @@ void ccmd_client_update_allowed_actions(client_td *client)
      * at all, so advertising it as disallowed here would have kept
      * the fix in 'ccmd_client_fullscreen' itself from ever being
      * reached. */
-    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_FULLSCREEN;
+    actions[n++] = ewmh->_NET_WM_ACTION_FULLSCREEN;
 
     /* The same predicate 'ccmd_client_iconify' refuses on, so that
      * what is advertised here and what actually happens cannot drift
      * apart */
     if (client_is_iconifiable(client)) {
-        actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_MINIMIZE;
+        actions[n++] = ewmh->_NET_WM_ACTION_MINIMIZE;
     }
 
     /* All clients may be shaded, sticked, and re-stacked */
-    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_SHADE;
-    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_STICK;
-    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_ABOVE;
-    actions[n++] = xcb_ewmh_connection_get()->_NET_WM_ACTION_BELOW;
+    actions[n++] = ewmh->_NET_WM_ACTION_SHADE;
+    actions[n++] = ewmh->_NET_WM_ACTION_STICK;
+    actions[n++] = ewmh->_NET_WM_ACTION_ABOVE;
+    actions[n++] = ewmh->_NET_WM_ACTION_BELOW;
     xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
-            client->window, xcb_ewmh_connection_get()->_NET_WM_ALLOWED_ACTIONS,
+            client->window, ewmh->_NET_WM_ALLOWED_ACTIONS,
             XCB_ATOM_ATOM, 32, n, actions);
 }

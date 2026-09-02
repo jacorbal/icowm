@@ -189,8 +189,9 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
          * actually set. */
         if (!desktop->background.is_image &&
                 !desktop->background.use_root_pixmap) {
-            uint32_t new_color = ctx->config_base->screens[ctx->surface->id].desktops[this_index]
-                .settings.background.color;
+            uint32_t new_color =
+                ctx->config_base->screens[ctx->surface->id]
+                .desktops[this_index].settings.background.color;
 
             desktop->background.bg.color =
                 (new_color == WM_DESKTOP_BG_COLOR_UNSET)
@@ -295,7 +296,7 @@ static void s_resync_after_reload(const wm_td *wm)
 /* Rearrange every visible window on the current desktop */
 void wm_action_rearrange(const wm_td *wm, surface_td *surface)
 {
-    desktop_td *desktop;
+    const desktop_td *desktop;
 
     if (surface == NULL) {
         return;

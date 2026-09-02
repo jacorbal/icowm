@@ -3,6 +3,31 @@ News for IcoWM
 
 What each release brought, newest first.
 
+
+`icowm_1.0.1` "'ovelya"
+-----------------------
+
+### September 23, 2026
+
+- **RELEASED.**  From `1.0.1-rc.1` to stable (codename: "'ovelya") as
+  the Autumnal Equinox raises its head above the horizon at precisely
+  00:05:38 UTC
+- **DOCUMENTATION.**  Wiki page on GitHub:
+  <https://github.com/jacorbal/icowm/wiki>
+
+
+`icowm_1.0.1-rc.1`
+------------------
+
+### September 7, 2026
+
+- **TESTING.**  `1.0.1-rc.1` out for field testing before promotion
+
+### September 6, 2026
+
+- **FROZEN.**  From `1.0.1-beta.6` to `1.0.1-rc.1`
+
+
 `icowm_1.0.1-beta.6`
 --------------------
 
