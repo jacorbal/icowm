@@ -411,10 +411,10 @@ parallel:
 mkdirs:
 	@mkdir -p ${B_DIR} ${O_DIR} ${O_DIR}/tools
 	@find ${S_DIR} -mindepth 1 -type d | \
-		sed 's|${S_DIR}/||' | \
-		while read dir; do \
-			mkdir -p "${O_DIR}/$$dir"; \
-		done
+	    sed 's|${S_DIR}/||' | \
+	    while read dir; do \
+	        mkdir -p "${O_DIR}/$$dir"; \
+	    done
 
 # 'mkdirs' has to finish before any object is compiled.  Naming it in
 # 'all' alone was not enough: neither make orders the prerequisites of
@@ -476,19 +476,19 @@ ${src:S,${T_DIR}/,${O_DIR}/tools/,:.c=.o}: ${src}
 # Other options
 ctags:
 	@if command -v ctags >/dev/null 2>&1; then \
-		echo "Generating tags..."; \
-		ctags -R --exclude='doc' --exclude='obj' --exclude='tmp' .; \
+	    echo "Generating tags..."; \
+	    ctags -R --exclude='doc' --exclude='obj' --exclude='tmp' .; \
 	else \
-		echo "Skipping tags: 'ctags' not found"; \
+	    echo "Skipping tags: 'ctags' not found"; \
 	fi
 
 install:
 	@test -x ${TARGET} || { \
-		echo "install: ${TARGET} is not built; run 'make' first" >&2; \
-		exit 1; }
+	    echo "install: ${TARGET} is not built; run 'make' first" >&2; \
+	    exit 1; }
 	@test -x ${MSG_TARGET} || { \
-		echo "install: ${MSG_TARGET} is not built; run 'make' first" >&2; \
-		exit 1; }
+	    echo "install: ${MSG_TARGET} is not built; run 'make' first" >&2; \
+	    exit 1; }
 	${INSTALL_DIR} ${DESTDIR}${BINDIR}
 	${INSTALL_PROGRAM} ${TARGET} ${DESTDIR}${BINDIR}
 	${INSTALL_PROGRAM} ${MSG_TARGET} ${DESTDIR}${BINDIR}
@@ -497,54 +497,54 @@ install:
 	${INSTALL_DATA} ${PWD}/doc/man/man5/*.5 ${DESTDIR}${MANDIR}/man5
 	${INSTALL_DIR} ${DESTDIR}${XSESSIONSDIR}
 	${INSTALL_DATA} ${PWD}/doc/${PROJECT_NAME_PROG}.desktop \
-		${DESTDIR}${XSESSIONSDIR}
+	    ${DESTDIR}${XSESSIONSDIR}
 	${INSTALL_DIR} ${DESTDIR}${DOCDIR}
 	${INSTALL_DATA} ${PWD}/README.md ${PWD}/LICENSE ${PWD}/COMPLIANCE.md \
-		${DESTDIR}${DOCDIR}
+	    ${DESTDIR}${DOCDIR}
 	${INSTALL_DATA} ${PWD}/doc/config.md ${PWD}/doc/themes.md \
-		${PWD}/doc/icowm.md ${PWD}/doc/icowm-msg.md ${DESTDIR}${DOCDIR}
+	    ${PWD}/doc/icowm.md ${PWD}/doc/icowm-msg.md ${DESTDIR}${DOCDIR}
 	${INSTALL_DIR} ${DESTDIR}${ICON_SCALABLE}
 	${INSTALL_DATA} ${PWD}/doc/icon/${PROJECT_NAME_PROG}.svg \
-		${DESTDIR}${ICON_SCALABLE}
+	    ${DESTDIR}${ICON_SCALABLE}
 	${INSTALL_DIR} ${DESTDIR}${ICON_SYMBOLIC}
 	${INSTALL_DATA} ${PWD}/doc/icon/${PROJECT_NAME_PROG}-symbolic.svg \
-		${DESTDIR}${ICON_SYMBOLIC}
+	    ${DESTDIR}${ICON_SYMBOLIC}
 	@cd ${PWD} && find locale -name '*.mo' | while read mo; do \
-		lang=$$(echo "$$mo" | cut -d/ -f2); \
-		${INSTALL_DIR} \
-			"${DESTDIR}${LOCALEDIR}/$$lang/LC_MESSAGES"; \
-		${INSTALL_DATA} "$$mo" \
-			"${DESTDIR}${LOCALEDIR}/$$lang/LC_MESSAGES"; \
+	    lang=$$(echo "$$mo" | cut -d/ -f2); \
+	    ${INSTALL_DIR} \
+	        "${DESTDIR}${LOCALEDIR}/$$lang/LC_MESSAGES"; \
+	    ${INSTALL_DATA} "$$mo" \
+	        "${DESTDIR}${LOCALEDIR}/$$lang/LC_MESSAGES"; \
 	done
 	@cd ${PWD} && find doc/config.example -type d | \
-		sed 's|doc/config.example||' | \
-		while read dir; do \
-			${INSTALL_DIR} "${DESTDIR}${EXAMPLEDIR}$$dir"; \
-		done
+	    sed 's|doc/config.example||' | \
+	    while read dir; do \
+	        ${INSTALL_DIR} "${DESTDIR}${EXAMPLEDIR}$$dir"; \
+	    done
 	@cd ${PWD} && find doc/config.example -type f | \
-		sed 's|doc/config.example/||' | \
-		while read file; do \
-			${INSTALL_DATA} "doc/config.example/$$file" \
-				"${DESTDIR}${EXAMPLEDIR}/$$file"; \
-		done
+	    sed 's|doc/config.example/||' | \
+	    while read file; do \
+	        ${INSTALL_DATA} "doc/config.example/$$file" \
+	            "${DESTDIR}${EXAMPLEDIR}/$$file"; \
+	    done
 	@echo "Installed under ${DESTDIR}${PREFIX}"
 
 uninstall:
 	rm -f ${DESTDIR}${BINDIR}/${PROJECT_NAME_PROG}
 	rm -f ${DESTDIR}${BINDIR}/${PROJECT_NAME_PROG}-msg
 	@cd ${PWD} && for page in doc/man/man1/*.1; do \
-		rm -f "${DESTDIR}${MANDIR}/man1/$$(basename $$page)"; \
+	    rm -f "${DESTDIR}${MANDIR}/man1/$$(basename $$page)"; \
 	done
 	@cd ${PWD} && for page in doc/man/man5/*.5; do \
-		rm -f "${DESTDIR}${MANDIR}/man5/$$(basename $$page)"; \
+	    rm -f "${DESTDIR}${MANDIR}/man5/$$(basename $$page)"; \
 	done
 	rm -f ${DESTDIR}${XSESSIONSDIR}/${PROJECT_NAME_PROG}.desktop
 	rm -f ${DESTDIR}${ICON_SCALABLE}/${PROJECT_NAME_PROG}.svg
 	rm -f ${DESTDIR}${ICON_SYMBOLIC}/${PROJECT_NAME_PROG}-symbolic.svg
 	@cd ${PWD} && find locale -name '*.mo' | while read mo; do \
-		lang=$$(echo "$$mo" | cut -d/ -f2); \
-		rm -f "${DESTDIR}${LOCALEDIR}/$$lang/LC_MESSAGES/$$(basename \
-			$$mo)"; \
+	    lang=$$(echo "$$mo" | cut -d/ -f2); \
+	    rm -f \
+	        "${DESTDIR}${LOCALEDIR}/$$lang/LC_MESSAGES/$$(basename $$mo)"; \
 	done
 	rm -rf ${DESTDIR}${EXAMPLEDIR}
 	rm -rf ${DESTDIR}${DOCDIR}
@@ -578,26 +578,27 @@ hard-run: hard run
 
 doxygen:
 	@if command -v doxygen >/dev/null 2>&1; then \
-		if [ -f '${DOXIGEN_FILE}' ]; then \
-			doxygen; \
-		else \
-			echo "Error: '${DOXIGEN_FILE}' not found" >&2; \
-		fi; \
+	    if [ -f '${DOXIGEN_FILE}' ]; then \
+	        doxygen; \
+	    else \
+	        echo "Error: '${DOXIGEN_FILE}' not found" >&2; \
+	    fi; \
 	else \
-		echo "Skipping doxygen: 'doxygen' not found" >&2; \
+	    echo "Skipping doxygen: 'doxygen' not found" >&2; \
 	fi
 
 # Packages a source-only snapshot for distribution.  Excludes anything
-# generated ('tmp', 'bin', 'obj', 'tags', 'Build', 'compile_commands.json')
-# and every dotfile/dotdir ('.*'), plus 'doc/doxygen': the user can
-# always regenerate that with 'make doxygen', so shipping it would only
-# add dead weight to the archive.
+# generated ('tmp', 'bin', 'obj', 'tags', 'Build',
+# 'compile_commands.json') and every dotfile/dotdir ('.*'), plus
+# 'doc/doxygen', as the user can always regenerate that with 'make
+# doxygen', so shipping it would only add dead weight to the archive.
 dist: clean
 	@ver=`echo '${PROJECT_VERSION}' | tr -d '"'`; \
 	dirname=`basename "${PWD}"`; \
 	outfile="../${PROJECT_NAME_PROG}_$${ver}.tar.gz"; \
 	tar --exclude='.*' --exclude='tmp' --exclude='bin' --exclude='obj' \
-	    --exclude='tags' --exclude='Build' --exclude='compile_commands.json' \
+	    --exclude='tags' --exclude='Build' \
+	    --exclude='compile_commands.json' \
 	    --exclude='doc/doxygen' \
 	    -czf "$$outfile" -C .. "$$dirname"; \
 	echo "Created $$outfile"
@@ -609,12 +610,11 @@ dist: clean
 headers:
 	@fail=0; total=0; \
 	for h in `cd ${I_DIR} && find . -name '*.h' | sed 's|^\./||'`; do \
-		total=`expr $$total + 1`; \
-		printf '#include <%s>\nint main(void){return 0;}\n' "$$h" \
-			| ${CC} ${HDRFLAGS} -fsyntax-only -x c - \
-			  2>/dev/null \
-			|| { echo "not self-contained: $$h" >&2; \
-			     fail=`expr $$fail + 1`; }; \
+	    total=`expr $$total + 1`; \
+	    printf '#include <%s>\nint main(void){return 0;}\n' "$$h" \
+	        | ${CC} ${HDRFLAGS} -fsyntax-only -x c - 2>/dev/null \
+	        || { echo "not self-contained: $$h" >&2; \
+	             fail=`expr $$fail + 1`; }; \
 	done; \
 	echo "`expr $$total - $$fail`/$$total headers compile on their own"; \
 	[ $$fail -eq 0 ]
@@ -624,9 +624,9 @@ analyze:
 	${MAKE} ANALYZE=1 all
 .else
 	@command -v scan-build >/dev/null 2>&1 || \
-		{ echo "Error: 'scan-build' not found (part of the" \
-		       "clang-tools/llvm package); required to analyze" \
-		       "under clang" >&2; exit 1; }
+	    { echo "Error: 'scan-build' not found (part of the" \
+	           "clang-tools/llvm package); required to analyze" \
+	           "under clang" >&2; exit 1; }
 	scan-build --use-cc=${CC} ${MAKE} all
 .endif
 

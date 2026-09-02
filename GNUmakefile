@@ -359,10 +359,10 @@ parallel: ctags
 mkdirs:
 	@mkdir -p $(B_DIR) $(O_DIR) $(O_DIR)/tools
 	@find $(S_DIR) -mindepth 1 -type d | \
-		sed 's|$(S_DIR)/||' | \
-		while read dir; do \
-			mkdir -p "$(O_DIR)/$$dir"; \
-		done
+	    sed 's|$(S_DIR)/||' | \
+	    while read dir; do \
+	        mkdir -p "$(O_DIR)/$$dir"; \
+	    done
 
 # Linkage
 $(TARGET): $(OBJS)
@@ -418,11 +418,11 @@ endif
 
 install:
 	@test -x $(TARGET) || { \
-		echo "install: $(TARGET) is not built; run 'make' first" >&2; \
-		exit 1; }
+	    echo "install: $(TARGET) is not built; run 'make' first" >&2; \
+	    exit 1; }
 	@test -x $(MSG_TARGET) || { \
-		echo "install: $(MSG_TARGET) is not built; run 'make' first" >&2; \
-		exit 1; }
+	    echo "install: $(MSG_TARGET) is not built; run 'make' first" >&2; \
+	    exit 1; }
 	$(INSTALL_DIR) $(DESTDIR)$(BINDIR)
 	$(INSTALL_PROGRAM) $(TARGET) $(DESTDIR)$(BINDIR)
 	$(INSTALL_PROGRAM) $(MSG_TARGET) $(DESTDIR)$(BINDIR)
@@ -431,53 +431,53 @@ install:
 	$(INSTALL_DATA) doc/man/man5/*.5 $(DESTDIR)$(MANDIR)/man5
 	$(INSTALL_DIR) $(DESTDIR)$(XSESSIONSDIR)
 	$(INSTALL_DATA) doc/$(PROJECT_NAME_PROG).desktop \
-		$(DESTDIR)$(XSESSIONSDIR)
+	    $(DESTDIR)$(XSESSIONSDIR)
 	$(INSTALL_DIR) $(DESTDIR)$(DOCDIR)
 	$(INSTALL_DATA) README.md LICENSE COMPLIANCE.md $(DESTDIR)$(DOCDIR)
 	$(INSTALL_DATA) doc/config.md doc/themes.md doc/icowm.md \
-		doc/icowm-msg.md $(DESTDIR)$(DOCDIR)
+	    doc/icowm-msg.md $(DESTDIR)$(DOCDIR)
 	$(INSTALL_DIR) $(DESTDIR)$(ICON_SCALABLE)
 	$(INSTALL_DATA) doc/icon/$(PROJECT_NAME_PROG).svg \
-		$(DESTDIR)$(ICON_SCALABLE)
+	    $(DESTDIR)$(ICON_SCALABLE)
 	$(INSTALL_DIR) $(DESTDIR)$(ICON_SYMBOLIC)
 	$(INSTALL_DATA) doc/icon/$(PROJECT_NAME_PROG)-symbolic.svg \
-		$(DESTDIR)$(ICON_SYMBOLIC)
+	    $(DESTDIR)$(ICON_SYMBOLIC)
 	@find locale -name '*.mo' | while read mo; do \
-		lang=$$(echo "$$mo" | cut -d/ -f2); \
-		$(INSTALL_DIR) \
-			"$(DESTDIR)$(LOCALEDIR)/$$lang/LC_MESSAGES"; \
-		$(INSTALL_DATA) "$$mo" \
-			"$(DESTDIR)$(LOCALEDIR)/$$lang/LC_MESSAGES"; \
+	    lang=$$(echo "$$mo" | cut -d/ -f2); \
+	    $(INSTALL_DIR) \
+	        "$(DESTDIR)$(LOCALEDIR)/$$lang/LC_MESSAGES"; \
+	    $(INSTALL_DATA) "$$mo" \
+	        "$(DESTDIR)$(LOCALEDIR)/$$lang/LC_MESSAGES"; \
 	done
 	@find doc/config.example -type d | \
-		sed 's|doc/config.example||' | \
-		while read dir; do \
-			$(INSTALL_DIR) "$(DESTDIR)$(EXAMPLEDIR)$$dir"; \
-		done
+	    sed 's|doc/config.example||' | \
+	    while read dir; do \
+	        $(INSTALL_DIR) "$(DESTDIR)$(EXAMPLEDIR)$$dir"; \
+	    done
 	@find doc/config.example -type f | \
-		sed 's|doc/config.example/||' | \
-		while read file; do \
-			$(INSTALL_DATA) "doc/config.example/$$file" \
-				"$(DESTDIR)$(EXAMPLEDIR)/$$file"; \
-		done
+	    sed 's|doc/config.example/||' | \
+	    while read file; do \
+	        $(INSTALL_DATA) "doc/config.example/$$file" \
+	            "$(DESTDIR)$(EXAMPLEDIR)/$$file"; \
+	    done
 	@echo "Installed under $(DESTDIR)$(PREFIX)"
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(PROJECT_NAME_PROG)
 	rm -f $(DESTDIR)$(BINDIR)/$(PROJECT_NAME_PROG)-msg
 	@for page in doc/man/man1/*.1; do \
-		rm -f "$(DESTDIR)$(MANDIR)/man1/$$(basename $$page)"; \
+	    rm -f "$(DESTDIR)$(MANDIR)/man1/$$(basename $$page)"; \
 	done
 	@for page in doc/man/man5/*.5; do \
-		rm -f "$(DESTDIR)$(MANDIR)/man5/$$(basename $$page)"; \
+	    rm -f "$(DESTDIR)$(MANDIR)/man5/$$(basename $$page)"; \
 	done
 	rm -f $(DESTDIR)$(XSESSIONSDIR)/$(PROJECT_NAME_PROG).desktop
 	rm -f $(DESTDIR)$(ICON_SCALABLE)/$(PROJECT_NAME_PROG).svg
 	rm -f $(DESTDIR)$(ICON_SYMBOLIC)/$(PROJECT_NAME_PROG)-symbolic.svg
 	@find locale -name '*.mo' | while read mo; do \
-		lang=$$(echo "$$mo" | cut -d/ -f2); \
-		rm -f "$(DESTDIR)$(LOCALEDIR)/$$lang/LC_MESSAGES/$$(basename \
-			$$mo)"; \
+	    lang=$$(echo "$$mo" | cut -d/ -f2); \
+	    rm -f \
+	        "$(DESTDIR)$(LOCALEDIR)/$$lang/LC_MESSAGES/$$(basename $$mo)"; \
 	done
 	rm -rf $(DESTDIR)$(EXAMPLEDIR)
 	rm -rf $(DESTDIR)$(DOCDIR)
@@ -512,9 +512,9 @@ hard-run: hard run
 doxygen:
 ifneq (,$(shell command -v doxygen 2>/dev/null))
 	@if [ -f '$(DOXIGEN_FILE)' ]; then \
-		doxygen; \
+	    doxygen; \
 	else \
-		echo "Error: '$(DOXIGEN_FILE)' not found" >&2; \
+	    echo "Error: '$(DOXIGEN_FILE)' not found" >&2; \
 	fi
 else
 	@echo "Skipping doxygen: 'doxygen' not found" >&2
@@ -538,12 +538,11 @@ dist: clean
 headers:
 	@fail=0; total=0; \
 	for h in $$(cd $(I_DIR) && find . -name '*.h' | sed 's|^\./||'); do \
-		total=$$((total + 1)); \
-		printf '#include <%s>\nint main(void){return 0;}\n' "$$h" \
-			| $(CC) $(HDRFLAGS) -fsyntax-only -x c - \
-			  2>/dev/null \
-			|| { echo "not self-contained: $$h" >&2; \
-			     fail=$$((fail + 1)); }; \
+	    total=$$((total + 1)); \
+	    printf '#include <%s>\nint main(void){return 0;}\n' "$$h" \
+	        | $(CC) $(HDRFLAGS) -fsyntax-only -x c -  2>/dev/null \
+	        || { echo "not self-contained: $$h" >&2; \
+	             fail=$$((fail + 1)); }; \
 	done; \
 	echo "$$((total - fail))/$$total headers compile on their own"; \
 	[ $$fail -eq 0 ]
@@ -553,9 +552,9 @@ ifeq ($(CC), gcc)
 	$(MAKE) ANALYZE=1 all
 else
 	@command -v scan-build >/dev/null 2>&1 || \
-		{ echo "Error: 'scan-build' not found (part of the" \
-		       "clang-tools/llvm package); required to analyze" \
-		       "under clang" >&2; exit 1; }
+	    { echo "Error: 'scan-build' not found (part of the" \
+	           "clang-tools/llvm package); required to analyze" \
+	           "under clang" >&2; exit 1; }
 	scan-build --use-cc=$(CC) $(MAKE) all
 endif
 
