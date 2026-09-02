@@ -608,3 +608,16 @@ msgstr "Inspecter..."
 #: include/defs/uistr.h
 msgid "Inspect window"
 msgstr "Inspecter la fenêtre"
+
+#: include/defs/uistr.h
+msgid ""
+"IcoWM has reached its configured memory ceiling: using %u MiB of the "
+"%u MiB allowed (see the '-M' command-line option).  Each window "
+"IcoWM manages adds to its own memory use, regardless of that "
+"window's own application.  Close a window before opening more."
+msgstr ""
+"IcoWM a atteint son plafond de mémoire configuré : utilisation de %u "
+"Mio sur les %u Mio autorisés (voir l'option de ligne de commande "
+"'-M').  Chaque fenêtre gérée par IcoWM accroît sa propre "
+"consommation de mémoire, indépendamment de l'application de cette "
+"fenêtre.  Fermez une fenêtre avant d'en ouvrir d'autres."

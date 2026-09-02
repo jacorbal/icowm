@@ -4,7 +4,7 @@ News for IcoWM
 What each release brought, newest first.
 
 
-`icowm_1.0.1` "'ovelya"
+`icowm_1.0.1` "'ovelya" [intended]
 -----------------------
 
 ### September 23, 2026
@@ -16,7 +16,7 @@ What each release brought, newest first.
   <https://github.com/jacorbal/icowm/wiki>
 
 
-`icowm_1.0.1-rc.1`
+`icowm_1.0.1-rc.1` [intended]
 ------------------
 
 ### September 7, 2026
