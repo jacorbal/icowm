@@ -587,6 +587,21 @@ doxygen:
 		echo "Skipping doxygen: 'doxygen' not found" >&2; \
 	fi
 
+# Packages a source-only snapshot for distribution.  Excludes anything
+# generated ('tmp', 'bin', 'obj', 'tags', 'Build', 'compile_commands.json')
+# and every dotfile/dotdir ('.*'), plus 'doc/doxygen': the user can
+# always regenerate that with 'make doxygen', so shipping it would only
+# add dead weight to the archive.
+dist: clean
+	@ver=`echo '${PROJECT_VERSION}' | tr -d '"'`; \
+	dirname=`basename "${PWD}"`; \
+	outfile="../${PROJECT_NAME_PROG}_$${ver}.tar.gz"; \
+	tar --exclude='.*' --exclude='tmp' --exclude='bin' --exclude='obj' \
+	    --exclude='tags' --exclude='Build' --exclude='compile_commands.json' \
+	    --exclude='doc/doxygen' \
+	    -czf "$$outfile" -C .. "$$dirname"; \
+	echo "Created $$outfile"
+
 # 'CCDEPS' is cleared for this pass: the dependency files it asks for
 # would land beside the makefile, one per header, and outlive the
 # throwaway source they describe.  Nothing is written to disk at all
@@ -623,6 +638,7 @@ help:
 	@echo "  make clean            Clean binary and object files"
 	@echo "  make ctags            Generate tag files for source"
 	@echo "  make doxygen          Create Doxygen documentation"
+	@echo "  make dist             Package a source-only tarball for release"
 	@echo "  make analyze          Run a static-analysis pass (if 'gcc')"
 	@echo "  make hard             Clean and build"
 	@echo "  make run              Run binary (if exists)"
@@ -671,4 +687,4 @@ help:
 ## Phony targets
 .PHONY: all mkdirs ctags clean clean-obj clean-bin clean-build \
     run hard hard-run test headers install uninstall \
-    doxygen analyze ccflags ldflags parallel help
+    doxygen dist analyze ccflags ldflags parallel help
