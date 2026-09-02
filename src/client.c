@@ -1022,7 +1022,9 @@ void client_sync_visible_name(client_td *client, char *cached,
             xcb_window_t, uint32_t, const char *),
         xcb_atom_t atom)
 {
-    if (client == NULL || xcb_ewmh_connection_get() == NULL ||
+    xcb_ewmh_connection_t *const ewmh = xcb_ewmh_connection_get();
+
+    if (client == NULL || ewmh == NULL ||
             cached == NULL || full_name == NULL || rendered == NULL ||
             set_fn == NULL) {
         return;
@@ -1034,7 +1036,7 @@ void client_sync_visible_name(client_td *client, char *cached,
             return;
         }
         safe_strncpy(cached, rendered, CONFIG_MAX_LENGTH_NAME);
-        set_fn(xcb_ewmh_connection_get(), client->window,
+        set_fn(ewmh, client->window,
                 (uint32_t) safe_strlen(rendered), rendered);
     } else {
         /* No longer (or never) truncated: the property should not be
@@ -1233,7 +1235,7 @@ client_td *client_init(xcb_connection_t *connection,
     s_client_read_motif_hints(connection, client, &ck);
 
     if (client->properties.type == (uint16_t) CLIENT_TYPE_DOCK &&
-            xcb_ewmh_connection_get() != NULL) {
+            ewmh != NULL) {
         client_pin(client);
         client_skip_taskbar(client);
         client_skip_pager(client);
@@ -1306,8 +1308,8 @@ client_td *client_init(xcb_connection_t *connection,
             client->properties.type == (uint16_t) CLIENT_TYPE_DIALOG ||
             client->properties.type == (uint16_t) CLIENT_TYPE_TOOLBAR ||
             client->properties.type == (uint16_t) CLIENT_TYPE_UTILITY) {
-        if (xcb_ewmh_connection_get() != NULL) {
-            xcb_ewmh_set_wm_state(xcb_ewmh_connection_get(),
+        if (ewmh != NULL) {
+            xcb_ewmh_set_wm_state(ewmh,
                     client->window, 0, NULL);
         }
     }

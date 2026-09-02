@@ -128,12 +128,14 @@ static void s_ccmd_resize_configure(client_td *client,
 static void s_ccmd_resize_send_sync_request(client_td *client)
 {
     xcb_client_message_event_t ev;
+    xcb_ewmh_connection_t *const ewmh =
+        xcb_ewmh_connection_get();
 
     client->hints_ewmh.sync.value += 1u;
     client->hints_ewmh.sync.is_waiting = true;
     client->hints_ewmh.sync.wait_ticks = 0u;
 
-    if (xcb_ewmh_connection_get() == NULL) {
+    if (ewmh == NULL) {
         return;
     }
 
@@ -141,8 +143,8 @@ static void s_ccmd_resize_send_sync_request(client_td *client)
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.format = 32;
     ev.window = client->window;
-    ev.type = xcb_ewmh_connection_get()->WM_PROTOCOLS;
-    ev.data.data32[0] = xcb_ewmh_connection_get()->_NET_WM_SYNC_REQUEST;
+    ev.type = ewmh->WM_PROTOCOLS;
+    ev.data.data32[0] = ewmh->_NET_WM_SYNC_REQUEST;
     ev.data.data32[1] = XCB_CURRENT_TIME;
     ev.data.data32[2] = client->hints_ewmh.sync.value;
     ev.data.data32[3] = 0u;    /* high 32 bits: always 0 at our scale */

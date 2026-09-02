@@ -224,6 +224,8 @@ int client_props_get_wm_class(xcb_connection_t *connection,
 void client_props_refresh_icon_name(client_td *client)
 {
     xcb_ewmh_get_utf8_strings_reply_t net_reply;
+    xcb_ewmh_connection_t *const ewmh =
+        xcb_ewmh_connection_get();
 
     if (client == NULL) {
         return;
@@ -232,9 +234,9 @@ void client_props_refresh_icon_name(client_td *client)
     /* Prefer '_NET_WM_ICON_NAME', which is UTF-8, over
      * 'WM_ICON_NAME', which is Latin-1 */
     memset(&net_reply, 0, sizeof(net_reply));
-    if (xcb_ewmh_connection_get() != NULL &&
-            xcb_ewmh_get_wm_icon_name_reply(xcb_ewmh_connection_get(),
-                xcb_ewmh_get_wm_icon_name(xcb_ewmh_connection_get(),
+    if (ewmh != NULL &&
+            xcb_ewmh_get_wm_icon_name_reply(ewmh,
+                xcb_ewmh_get_wm_icon_name(ewmh,
                         client->window),
                 &net_reply, NULL) &&
             net_reply.strings_len > 0) {
@@ -258,6 +260,8 @@ void client_props_refresh_icon_name(client_td *client)
 void client_props_refresh_name(client_td *client)
 {
     xcb_ewmh_get_utf8_strings_reply_t net_reply;
+    xcb_ewmh_connection_t *const ewmh =
+        xcb_ewmh_connection_get();
 
     if (client == NULL) {
         return;
@@ -265,9 +269,9 @@ void client_props_refresh_name(client_td *client)
 
     /* Prefer '_NET_WM_NAME' (UTF-8) over 'WM_NAME' (Latin-1) */
     memset(&net_reply, 0, sizeof(net_reply));
-    if (xcb_ewmh_connection_get() != NULL &&
-            xcb_ewmh_get_wm_name_reply(xcb_ewmh_connection_get(),
-                xcb_ewmh_get_wm_name(xcb_ewmh_connection_get(),
+    if (ewmh != NULL &&
+            xcb_ewmh_get_wm_name_reply(ewmh,
+                xcb_ewmh_get_wm_name(ewmh,
                         client->window),
                 &net_reply, NULL) &&
             net_reply.strings_len > 0) {

@@ -75,6 +75,7 @@ void handler_property_notify(const wm_td *wm,
     xcb_atom_t motif_hints_atom = XCB_ATOM_NONE;
     xcb_atom_t colormap_windows_atom = XCB_ATOM_NONE;
     xcb_get_property_cookie_t motif_ck;
+    xcb_ewmh_connection_t *const ewmh = xcb_ewmh_connection_get();
 
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in property handler",
@@ -138,8 +139,8 @@ void handler_property_notify(const wm_td *wm,
     }
 
     if (event->atom == XCB_ATOM_WM_NAME ||
-            (xcb_ewmh_connection_get() != NULL &&
-             event->atom == xcb_ewmh_connection_get()->_NET_WM_NAME)) {
+            (ewmh != NULL &&
+             event->atom == ewmh->_NET_WM_NAME)) {
         client_props_refresh_name(client);
 
         if (surface != NULL && desktop != NULL) {
@@ -162,8 +163,8 @@ void handler_property_notify(const wm_td *wm,
     }
 
     if (event->atom == XCB_ATOM_WM_ICON_NAME ||
-            (xcb_ewmh_connection_get() != NULL &&
-             event->atom == xcb_ewmh_connection_get()->_NET_WM_ICON_NAME)) {
+            (ewmh != NULL &&
+             event->atom == ewmh->_NET_WM_ICON_NAME)) {
         client_props_refresh_icon_name(client);
         wm_outdate_client(client);
         wm_outdate_surface(surface);
@@ -185,8 +186,8 @@ void handler_property_notify(const wm_td *wm,
      * invalidation, even though most of 'WM_HINTS' otherwise unrelated
      * to icons (input model, urgency, window group) is not itself
      * re-read here. */
-    if ((xcb_ewmh_connection_get() != NULL &&
-                event->atom == xcb_ewmh_connection_get()->_NET_WM_ICON) ||
+    if ((ewmh != NULL &&
+                event->atom == ewmh->_NET_WM_ICON) ||
             event->atom == XCB_ATOM_WM_HINTS) {
         wmicon_invalidate(xcb_connection_get(), &client->icon_pixmap_cache);
         wm_outdate_client(client);
@@ -263,14 +264,14 @@ void handler_property_notify(const wm_td *wm,
         return;
     }
 
-    if (xcb_ewmh_connection_get() != NULL &&
+    if (ewmh != NULL &&
             (event->atom ==
-                 xcb_ewmh_connection_get()->_NET_WM_STRUT_PARTIAL ||
-             event->atom == xcb_ewmh_connection_get()->_NET_WM_STRUT)) {
+                 ewmh->_NET_WM_STRUT_PARTIAL ||
+             event->atom == ewmh->_NET_WM_STRUT)) {
         memset(&strut, 0, sizeof(strut));
         memset(&partial, 0, sizeof(partial));
-        if (xcb_ewmh_get_wm_strut_partial_reply(xcb_ewmh_connection_get(),
-                    xcb_ewmh_get_wm_strut_partial(xcb_ewmh_connection_get(),
+        if (xcb_ewmh_get_wm_strut_partial_reply(ewmh,
+                    xcb_ewmh_get_wm_strut_partial(ewmh,
                             client->window),
                     &partial, NULL)) {
             client->layout.strut_partial.sides.left =
@@ -297,8 +298,8 @@ void handler_property_notify(const wm_td *wm,
                 (int32_t) partial.top_end_x;
             client->layout.strut_partial.end.bottom =
                 (int32_t) partial.bottom_end_x;
-        } else if (xcb_ewmh_get_wm_strut_reply(xcb_ewmh_connection_get(),
-                    xcb_ewmh_get_wm_strut(xcb_ewmh_connection_get(),
+        } else if (xcb_ewmh_get_wm_strut_reply(ewmh,
+                    xcb_ewmh_get_wm_strut(ewmh,
                             client->window),
                     &strut, NULL)) {
             client->layout.strut_partial.sides.left =

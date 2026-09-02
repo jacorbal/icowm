@@ -435,8 +435,10 @@ static void s_wm_sync_client_lists(surface_td *surface)
     size_t idx = 0u;
     xcb_window_t *client_list;
     xcb_window_t *stacking_list;
+    xcb_ewmh_connection_t *const ewmh =
+        xcb_ewmh_connection_get();
 
-    if (surface == NULL || xcb_ewmh_connection_get() == NULL) {
+    if (surface == NULL || ewmh == NULL) {
         return;
     }
 
@@ -444,9 +446,9 @@ static void s_wm_sync_client_lists(surface_td *surface)
             &total_clients);
 
     if (total_clients == 0u) {
-        xcb_ewmh_set_client_list(xcb_ewmh_connection_get(),
+        xcb_ewmh_set_client_list(ewmh,
                 (int) surface->id, 0u, NULL);
-        xcb_ewmh_set_client_list_stacking(xcb_ewmh_connection_get(),
+        xcb_ewmh_set_client_list_stacking(ewmh,
                 (int) surface->id, 0u, NULL);
         return;
     }
@@ -465,7 +467,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
     surface_desktops_walk(surface, s_client_list_visit, &client_ctx);
     idx = client_ctx.count;
 
-    xcb_ewmh_set_client_list(xcb_ewmh_connection_get(),
+    xcb_ewmh_set_client_list(ewmh,
             (int) surface->id,
             (uint32_t) idx, client_list);
 
@@ -476,7 +478,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
     surface_desktops_walk(surface,
             s_stacking_collect_visit, &stack_ctx);
 
-    xcb_ewmh_set_client_list_stacking(xcb_ewmh_connection_get(),
+    xcb_ewmh_set_client_list_stacking(ewmh,
             (int) surface->id, (uint32_t) idx, stacking_list);
 
     free(client_list);
@@ -702,6 +704,8 @@ void wm_ewmh_sync(wm_td *wm)
 {
     xcb_connection_t *connection = wm_connection(wm);
     list_td *surfaces = wm_surfaces(wm);
+    xcb_ewmh_connection_t *const ewmh =
+        xcb_ewmh_connection_get();
 
     if (wm == NULL || surfaces == NULL || wm_ewmh(wm) == NULL) {
         return;
@@ -719,17 +723,17 @@ void wm_ewmh_sync(wm_td *wm)
             continue;
         }
 
-        xcb_ewmh_set_number_of_desktops(xcb_ewmh_connection_get(),
+        xcb_ewmh_set_number_of_desktops(ewmh,
                 (int) surface->id, surface->desktop_count);
-        xcb_ewmh_set_current_desktop(xcb_ewmh_connection_get(),
+        xcb_ewmh_set_current_desktop(ewmh,
                 (int) surface->id, surface->desktop_cur);
-        xcb_ewmh_set_desktop_geometry(xcb_ewmh_connection_get(),
+        xcb_ewmh_set_desktop_geometry(ewmh,
                 (int) surface->id,
                 surface->properties.dim.w, surface->properties.dim.h);
         viewport = calloc(surface->desktop_count,
                 sizeof(xcb_ewmh_coordinates_t));
         if (viewport != NULL) {
-            xcb_ewmh_set_desktop_viewport(xcb_ewmh_connection_get(),
+            xcb_ewmh_set_desktop_viewport(ewmh,
                     (int) surface->id, surface->desktop_count,
                     viewport);
             free(viewport);
@@ -745,9 +749,9 @@ void wm_ewmh_sync(wm_td *wm)
             }
         }
 
-        xcb_ewmh_set_active_window(xcb_ewmh_connection_get(),
+        xcb_ewmh_set_active_window(ewmh,
                 (int) surface->id, active);
-        xcb_ewmh_set_showing_desktop(xcb_ewmh_connection_get(),
+        xcb_ewmh_set_showing_desktop(ewmh,
                 (int) surface->id,
                 (surface->is_showing_desktop) ? 1u : 0u);
         s_wm_sync_desktop_names(surface);

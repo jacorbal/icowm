@@ -78,6 +78,8 @@ void ri_render_client_icon(client_td *client, bool is_current,
     uint32_t border_width;
     xcb_window_t tray_below;
     bool display_active;
+    xcb_ewmh_connection_t *const ewmh =
+        xcb_ewmh_connection_get();
 
     if (client == NULL || xcb_connection_get() == NULL ||
             client->config == NULL) {
@@ -198,7 +200,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * would otherwise have its pixmap appear and vanish on every
      * phase rather than simply changing color. */
     if (client->config->theme.icon.show_pixmaps && !is_cycle_sel) {
-        wmicon_draw(xcb_connection_get(), xcb_ewmh_connection_get(),
+        wmicon_draw(xcb_connection_get(), ewmh,
                 client->window,
                 client->icon_window, WM_ICON_SQUARE_SIZE,
                 (display_active)
@@ -232,12 +234,12 @@ void ri_render_client_icon(client_td *client, bool is_current,
         text_truncate_to_width(caption, sizeof(caption),
                 client->info.name, WM_ICON_SQUARE_SIZE);
 
-        if (xcb_ewmh_connection_get() != NULL) {
+        if (ewmh != NULL) {
             client_sync_visible_name(client,
                     client->icon_info.visible_icon_name,
                     client->info.name, caption,
                     xcb_ewmh_set_wm_visible_icon_name_checked,
-                    xcb_ewmh_connection_get()->_NET_WM_VISIBLE_ICON_NAME);
+                    ewmh->_NET_WM_VISIBLE_ICON_NAME);
         }
 
         if (caption[0] != '\0') {

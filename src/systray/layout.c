@@ -216,6 +216,8 @@ static bool s_systray_strut_update(struct geometry_s geom,
 {
     const struct strut_partial_s previous = s_tray.reserved_strut;
     xcb_ewmh_wm_strut_partial_t partial;
+    xcb_ewmh_connection_t *const ewmh =
+        xcb_ewmh_connection_get();
 
     memset(&partial, 0, sizeof(partial));
 
@@ -269,11 +271,11 @@ static bool s_systray_strut_update(struct geometry_s geom,
         partial.left += s_tray.strut_margins.left;
     }
 
-    if (xcb_ewmh_connection_get() != NULL &&
+    if (ewmh != NULL &&
             s_tray.window != XCB_WINDOW_NONE) {
-        (void) xcb_ewmh_set_wm_strut_partial(xcb_ewmh_connection_get(), 
+        (void) xcb_ewmh_set_wm_strut_partial(ewmh, 
                 s_tray.window, partial);
-        (void) xcb_ewmh_set_wm_strut(xcb_ewmh_connection_get(),
+        (void) xcb_ewmh_set_wm_strut(ewmh,
                 s_tray.window,
                 partial.left, partial.right,
                 partial.top, partial.bottom);

@@ -515,6 +515,7 @@ void ccmd_client_focus(client_td *client)
      * seen no input at all has no real timestamp to offer. */
     const uint32_t focus_time = (client_last_user_time() != 0u)
         ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
+    xcb_ewmh_connection_t *const ewmh = xcb_ewmh_connection_get();
 
     /* The timestamp both the focus request and the 'WM_TAKE_FOCUS'
      * message further down carry.  'XCB_CURRENT_TIME' only when
@@ -641,13 +642,13 @@ void ccmd_client_focus(client_td *client)
      * to take focus, which looks from the outside like a titlebar
      * that lights up while the keyboard goes elsewhere. */
     if (client->hints_icccm.protocols.has_take_focus &&
-            xcb_ewmh_connection_get() != NULL) {
+            ewmh != NULL) {
         xcb_client_message_event_t ev;
         memset(&ev, 0, sizeof(ev));
         ev.response_type = XCB_CLIENT_MESSAGE;
         ev.format = 32;
         ev.window = client->window;
-        ev.type = xcb_ewmh_connection_get()->WM_PROTOCOLS;
+        ev.type = ewmh->WM_PROTOCOLS;
         ev.data.data32[0] = client->hints_icccm.protocols.take_focus_atom;
         ev.data.data32[1] = focus_time;
         xcb_send_event(xcb_connection_get(), 0, client->window,
@@ -702,8 +703,8 @@ void ccmd_client_focus(client_td *client)
         client_theme_layout_resync(client, true);
     }
 
-    if (xcb_ewmh_connection_get() != NULL) {
-        xcb_ewmh_set_active_window(xcb_ewmh_connection_get(),
+    if (ewmh != NULL) {
+        xcb_ewmh_set_active_window(ewmh,
                 (int) client->screen_id,
                 client->window);
     }
