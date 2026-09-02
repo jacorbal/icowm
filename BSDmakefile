@@ -170,10 +170,10 @@ CCWARN_MORE = -Wwrite-strings -Wconversion -Wdouble-promotion
 CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
               -Wcast-align -Wpointer-arith -Wstrict-overflow=2 \
               -Wunreachable-code -Wmissing-format-attribute \
-              -Wdeprecated -fwrapv
+              -Wdeprecated
 
 CCWARN_GCC = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
-             -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
+             -Wformat-overflow -Wformat-signedness \
              -Wno-suggest-attribute=format
 
 CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
@@ -577,8 +577,15 @@ hard: clean all
 hard-run: hard run
 
 doxygen:
-	@[ -f '${DOXIGEN_FILE}' ] && doxygen || \
-		echo "Error: '${DOXIGEN_FILE}' not found" >&2
+	@if command -v doxygen >/dev/null 2>&1; then \
+		if [ -f '${DOXIGEN_FILE}' ]; then \
+			doxygen; \
+		else \
+			echo "Error: '${DOXIGEN_FILE}' not found" >&2; \
+		fi; \
+	else \
+		echo "Skipping doxygen: 'doxygen' not found" >&2; \
+	fi
 
 # 'CCDEPS' is cleared for this pass: the dependency files it asks for
 # would land beside the makefile, one per header, and outlive the

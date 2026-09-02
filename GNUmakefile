@@ -113,7 +113,7 @@ CCWARN_MOST = -Wformat -Wuninitialized -Wfloat-equal \
               -Wdeprecated
 
 CCWARN_GCC = -Wlogical-op -Wstrict-aliasing=3 -Wduplicated-branches \
-             -Wformat-overflow -Wformat-signedness -Wstrict-aliasing=3 \
+             -Wformat-overflow -Wformat-signedness \
              -Wno-suggest-attribute=format
 
 CCWARN_CLANG = -Wbad-function-cast -Wextra-semi-stmt -Wmissing-prototypes \
@@ -510,8 +510,15 @@ hard: clean all
 hard-run: hard run
 
 doxygen:
-	@[ -f '$(DOXIGEN_FILE)' ] && doxygen || \
-		echo "Error: '$(DOXIGEN_FILE)' not found" >&2
+ifneq (,$(shell command -v doxygen 2>/dev/null))
+	@if [ -f '$(DOXIGEN_FILE)' ]; then \
+		doxygen; \
+	else \
+		echo "Error: '$(DOXIGEN_FILE)' not found" >&2; \
+	fi
+else
+	@echo "Skipping doxygen: 'doxygen' not found" >&2
+endif
 
 headers:
 	@fail=0; total=0; \
