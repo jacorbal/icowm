@@ -3,24 +3,22 @@
  *
  * @brief Command-line client for IcoWM's own IPC control socket
  *
- * A thin, self-contained wrapper around IcoWM's own IPC wire
- * protocol: builds one JSON request line out of its own
- * command-line arguments, sends it to a running IcoWM's control socket,
- * and prints back whatever it answers with.  Deliberately independent
- * of the rest of the project (only @c defs/ipc.h, for the handful of
- * constants that must stay in step with the socket itself, and
- * @c cjson, for the JSON this reads and writes): a small client tool
- * has no reason to pull in anything IcoWM itself needs only to be
- * a window manager.
+ * A thin, self-contained wrapper around IcoWM's own IPC wire protocol.
+ * Builds one JSON request line out of its own command-line arguments,
+ * sends it to a running IcoWM's control socket, and prints back
+ * whatever it answers with.  Deliberately independent of the rest of
+ * the project (only @c defs/ipc.h, for the handful of constants that
+ * must stay in step with the socket itself, and @c cjson, for the JSON
+ * this reads and writes): a small client tool has no reason to pull in
+ * anything IcoWM itself needs only to be a window manager.
  *
  * Usage:
  *   icowm-msg <command> [<key>=<value> ...]
  *
  * Each @c key=value becomes one field of the request object alongside
- * "cmd", naming that command's own argument.  A value is sent as a
- * JSON boolean when it is exactly @c true or @c false, as a JSON
- * number when it parses as one in full, and as a JSON string
- * otherwise.
+ * "cmd", naming that command's own argument.  A value is sent as a JSON
+ * boolean when it is exactly @c true or @c false, as a JSON number when
+ * it parses as one in full, and as a JSON string otherwise.
  *
  * Exit status:
  *   0  The command reached IcoWM and it reported success
@@ -62,8 +60,9 @@
 #define S_MAX_KEY_LENGTH (64)
 
 /**
- * @brief Longest full request or response line this tool will hold;
- *        kept in step with the server's own @c IPC_MSG_MAX_LENGTH
+ * @brief Longest full request or response line this tool will hold
+ *
+ * @note Kept in step with the server's own @c IPC_MSG_MAX_LENGTH
  */
 #define S_MAX_LINE_LENGTH (IPC_MSG_MAX_LENGTH)
 
@@ -78,6 +77,7 @@
  * buys: this list can drift out of sync with the server's own table
  * over time if one side gains or loses a command and the other is not
  * updated to match, something a live query could never do.
+ *
  * Deliberately used only to answer @c -K's own question ("what commands
  * does this build know the names of"), never to locally validate or
  * reject a command before sending it: an ordinary request still reaches
@@ -351,7 +351,8 @@ static void s_show_help(FILE *fp)
     fprintf(fp, "\n");
     fprintf(fp, "Exit status:\n");
     fprintf(fp, "   0 on success\n");
-    fprintf(fp, "   1 when %s itself reports failure\n", PROJECT_NAME_SHORT);
+    fprintf(fp, "   1 when %s itself reports failure\n",
+            PROJECT_NAME_SHORT);
     fprintf(fp, "   2 when the request never reached it at all" \
                 " (socket or connection failure,\n" \
                 "     or a local argument-parsing error)\n");
@@ -377,11 +378,12 @@ static void s_resolve_socket_path(char *out, size_t out_size)
     const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
 
     if (xdg_runtime != NULL && xdg_runtime[0] != '\0') {
-        snprintf(out, out_size, "%s/icowm/%s", xdg_runtime,
+        snprintf(out, out_size, IPC_SOCKET_PATH_FMT_XDG, xdg_runtime,
                 IPC_SOCKET_FILENAME);
     } else {
-        snprintf(out, out_size, "%s%u/icowm/%s", IPC_TMP_FALLBACK_PREFIX,
-                (unsigned int) getuid(), IPC_SOCKET_FILENAME);
+        snprintf(out, out_size, IPC_SOCKET_PATH_FMT_TMP,
+                IPC_TMP_FALLBACK_PREFIX, (unsigned int) getuid(),
+                IPC_SOCKET_FILENAME);
     }
 }
 
@@ -449,7 +451,7 @@ static cJSON *s_build_request(const char *cmd, int argc, char **argv,
     cJSON_AddStringToObject(req, "cmd", cmd);
 
     for (i = start; i < argc; ++i) {
-        char *eq = strchr(argv[i], '=');
+        const char *eq = strchr(argv[i], '=');
         char key[S_MAX_KEY_LENGTH];
         size_t key_len;
 
@@ -737,7 +739,9 @@ static int s_watch(const char *socket_path, const char *event_list,
     printf("%s\n", line);
 
     parsed = cJSON_Parse(line);
-    ok_field = (parsed != NULL) ? cJSON_GetObjectItem(parsed, "ok") : NULL;
+    ok_field = (parsed != NULL)
+        ? cJSON_GetObjectItem(parsed, "ok")
+        : NULL;
     if (parsed == NULL || !cJSON_IsBool(ok_field) ||
             !cJSON_IsTrue(ok_field)) {
         cJSON_Delete(parsed);
@@ -748,11 +752,10 @@ static int s_watch(const char *socket_path, const char *event_list,
 
     while (limit == 0 || seen < limit) {
         if (s_read_line(fd, line, sizeof(line)) != 0) {
-            /* Connection lost mid-watch: 's_read_line' already
-             * reported why on stderr; report it as the same class
-             * of failure a connection that was never made at all
-             * would be, since either way the watch could not
-             * continue. */
+            /* Connection lost mid-watch: 's_read_line' already reported
+             * why on stderr; report it as the same class of failure
+             * a connection that was never made at all would be, since
+             * either way the watch could not continue. */
             close(fd);
             return 2;
         }

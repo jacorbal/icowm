@@ -17,9 +17,12 @@
 #define DEFS_IPC_H
 
 
+/* Project includes */
+#include <defs/config.h>
+
+
 /**
- * @brief File name of the listening socket inside its runtime
- *        directory
+ * @brief File name of the listening socket inside its runtime directory
  *
  * @see @a xdg_resolve_dir with @c XDG_DIR_RUNTIME
  */
@@ -52,9 +55,33 @@
  * The numeric user ID is appended by whoever builds this path, since
  * this file only owns the fixed part of the name.
  *
- * @see @a ipc_init in @c ipc.c
+ * @see @c IPC_SOCKET_PATH_FMT_XDG, @c IPC_SOCKET_PATH_FMT_TMP
  */
 #define IPC_TMP_FALLBACK_PREFIX "/tmp/icowm-"
+
+/**
+ * @brief Where the control socket sits when @c XDG_RUNTIME_DIR names
+ *        a directory
+ *
+ * Takes that directory and @c IPC_SOCKET_FILENAME, in that order.
+ */
+#define IPC_SOCKET_PATH_FMT_XDG "%s/" CONFIG_DIR_BASE "/%s"
+
+/**
+ * @brief Where it sits when that variable is unset
+ *
+ * Takes @c IPC_TMP_FALLBACK_PREFIX, the numeric user ID and
+ * @c IPC_SOCKET_FILENAME, in that order.  There is no project directory
+ * inside this one, unlike the form above: the prefix already names the
+ * project.
+ *
+ * @note Both forms live here rather than at each end because the
+ *       manager and @c icowm-msg have to agree on them exactly, and two
+ *       independently written templates once drifted apart in this very
+ *       case, leaving the client looking one directory deeper than the
+ *       socket it was after
+ */
+#define IPC_SOCKET_PATH_FMT_TMP "%s%u/%s"
 
 /**
  * @brief Maximum number of simultaneously connected IPC clients
@@ -76,10 +103,9 @@
 /**
  * @brief Version of the line-JSON IPC wire protocol itself
  *
- * Not this program's version: a client only needs to know whether
- * the shape of the messages it is about to send matches what this
- * running instance understands, not which release of IcoWM it is
- * talking to.
+ * Not this program's version: a client only needs to know whether the
+ * shape of the messages it is about to send matches what this running
+ * instance understands, not which release of IcoWM it is talking to.
  *
  * Bumped only when the wire protocol itself changes in a way an
  * existing client could not already handle (a command's argument or

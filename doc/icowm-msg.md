@@ -210,8 +210,10 @@ one of:
   user, or a terminal from before `$XDG_RUNTIME_DIR` was changed, for
   instance).  `icowm-msg` resolves the socket path the same way IcoWM
   itself does (`icowm.md` §5.1): under `$XDG_RUNTIME_DIR/icowm/`, or
-  `/tmp/icowm-<uid>/icowm/` when that variable is unset, so the two need
-  to agree on that variable to find the same socket.
+  `/tmp/icowm-<uid>/` when that variable is unset, the fallback having
+  no `icowm/` of its own because the directory is already named after
+  the program.  The two need to agree on that variable to find the same
+  socket.
 
 **A response is printed, but the exit status is always `2`**
 
@@ -231,8 +233,8 @@ past the command name must be `key=value`; see §3.
 
 Every command IcoWM currently understands, with its arguments (an
 argument in `[brackets]` is optional) and a one-line summary.  This is
-a compact index only; the full explanation of each, including what
-every response field means, is in [`icowm.md`](icowm.md) §5.3.
+a compact index only; the full explanation of each, including what every
+response field means, is in [`icowm.md`](icowm.md) §5.3.
 
 | Command                        | Arguments                                | Description |
 |--------------------------------|------------------------------------------|-------------|
