@@ -154,6 +154,17 @@ xcb_get_geometry_reply_t *xcb_get_geometry_reply(xcb_connection_t *c,
  *  client/transient.c): every client this file builds names its own
  *  transient parent directly when it has one, so the group lookup
  *  never has an answer to give */
+/** Link-only stand-in for atom_set_window_bypass_compositor
+ *  (utils/xcb/atom.c): the drag outline sets that property on the
+ *  strips it creates, and no test here has a server to set it on */
+void atom_set_window_bypass_compositor(xcb_connection_t *connection,
+        xcb_window_t window)
+{
+    (void) connection;
+    (void) window;
+}
+
+
 client_td *client_group_transient_anchor(const client_td *client)
 {
     (void) client;

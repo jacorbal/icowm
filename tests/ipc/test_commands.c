@@ -207,6 +207,14 @@ cJSON *ipc_action_remove_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
+cJSON *ipc_action_restart_wm(const wm_td *wm, const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+    return NULL;
+}
+
+
 cJSON *ipc_action_toggle_strutless_maximize(const wm_td *wm,
         const cJSON *args)
 {
