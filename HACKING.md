@@ -133,6 +133,25 @@ is a compile-time option that shrinks fixed arrays; `icowm -M <mib>` is
 a runtime mode that reads `memguard.json` instead of `config.json`.
 The two of them are unrelated and both exist, and also may coexist.
 
+**An override-redirect window of icowm's own needs its own
+`_NET_WM_WINDOW_TYPE`.**  A menu, a dialog, a tooltip, the tray bar, any
+window icowm creates for itself rather than adopts from a client, is
+invisible to a compositor or a pager unless it says what it is.  The
+pattern is always the same, right after the `xcb_create_window` call
+that makes it: guard on `xcb_ewmh_connection_get() != NULL`, take the
+matching `_NET_WM_WINDOW_TYPE_*` atom off it, and hand both to
+`xcb_ewmh_set_wm_window_type`.  Both `menu/context/ctxmenu.c` and
+`menu/cycle.c` use `_MENU`; the three dialogs under `menu/dialog/` and
+`menu/search.c` use `_DIALOG`; `menu/popup.c` and
+`input/mouse/drag/overlay.c` use `_TOOLTIP`; `menu/notify.c` uses
+`_NOTIFICATION`; `systray/protocol.c`'s tray bar uses `_DOCK`.  Adding
+a new one of these windows without adding this block is the single most
+recurring gap this tree has had, so treat it as part of creating the
+window, not as a follow-up.  The one deliberate exception is
+`render/outline.c`'s drag outline, which is a guide with no EWMH
+semantic of its own, and `xsettings.c`'s selection-owner window, which
+is never mapped at all.
+
 Building for work rather than for use
 -------------------------------------
 
