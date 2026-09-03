@@ -1,14 +1,13 @@
 /**
  * @file render/outline.h
  *
- * @brief Outline stand-in windows, shared by any caller needing to
- *        show a rectangle around a target without touching the
- *        target's geometry
+ * @brief Outline stand-in windows, shared by any caller needing to show
+ *        a rectangle around a target without touching the target's
+ *        geometry
  *
  * The strip-window mechanism itself, with no drag-specific state of
- * its.  A
- * caller owns its 4-element @c xcb_window_t array (initialized to
- * @c XCB_WINDOW_NONE before first use) and passes it to every call
+ * its.  A caller owns its 4-element @c xcb_window_t array (initialized
+ * to @c XCB_WINDOW_NONE before first use) and passes it to every call
  * below; this file itself keeps none of that state.
  */
 /*
@@ -68,12 +67,12 @@ void render_outline_show(xcb_connection_t *connection, xcb_window_t root,
  * @param connection   X connection
  * @param geom         New rectangle to outline, in root coordinates
  * @param border_width Thickness of each strip, in pixels
- * @param stack_below  A window every strip is kept stacked below
- *                     (never covering it), or @c XCB_WINDOW_NONE for
- *                     no such constraint
+ * @param stack_below  A window every strip is kept stacked below (never
+ *                     covering it), or @c XCB_WINDOW_NONE for no such
+ *                     constraint
  * @param windows      The same 4-element array @a render_outline_show
- *                     filled in; entries still @c XCB_WINDOW_NONE
- *                     are skipped
+ *                     filled in; entries still @c XCB_WINDOW_NONE are
+ *                     skipped
  *
  * @note No-op if @p connection is null
  * @note Complexity: @e O(1)
@@ -90,8 +89,8 @@ void render_outline_move(xcb_connection_t *connection,
  * @param windows    The same 4-element array @a render_outline_show
  *                   filled in
  *
- * @note No-op if @p connection is null, or @p windows' first
- *       entry is already @c XCB_WINDOW_NONE
+ * @note No-op if @p connection is null, or @p windows' first entry is
+ *       already @c XCB_WINDOW_NONE
  * @note Complexity: @e O(1)
  */
 void render_outline_hide(xcb_connection_t *connection,

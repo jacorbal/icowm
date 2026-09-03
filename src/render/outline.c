@@ -1,12 +1,11 @@
 /**
  * @file render/outline.c
  *
- * @brief Outline stand-in windows, shared by any caller needing to
- *        show a rectangle around a target without touching the
- *        target's geometry
+ * @brief Outline stand-in windows, shared by any caller needing to show
+ *        a rectangle around a target without touching the target's
+ *        geometry
  *
- * The strip-window mechanism itself, with no drag-specific state of
- * its.
+ * The strip-window mechanism itself, with no drag-specific state of its.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -36,21 +35,21 @@
  * @brief Create or reconfigure the 4 outline strip windows around
  *        a rectangle
  *
- * Computes each strip's position and size (top, bottom, left,
- * right, in that fixed order) from the target rectangle, then either
- * creates and maps all 4 (@p create true) or reconfigures the
- * already-existing ones (@p create false) to match.
+ * Computes each strip's position and size (top, bottom, left, right, in
+ * that fixed order) from the target rectangle, then either creates and
+ * maps all 4 (@p create true) or reconfigures the already-existing ones
+ * (@p create false) to match.
  *
- * @param connection   XCB connection used to create or reconfigure
- *                     the strip windows
- * @param root         Root window the 4 strips are created as
- *                     children of; unused when @p create is @c false
+ * @param connection   XCB connection used to create or reconfigure the
+ *                     strip windows
+ * @param root         Root window the 4 strips are created as children
+ *                     of; unused when @p create is @c false
  * @param geom         Rectangle, in root coordinates
  * @param border_width Thickness of each strip, in pixels
  * @param color        Fill color for all 4 strips; unused when
  *                     @p create is @c false
- * @param stack_below  A window every strip is kept stacked below,
- *                     or @c XCB_WINDOW_NONE for no such constraint
+ * @param stack_below  A window every strip is kept stacked below, or
+ *                     @c XCB_WINDOW_NONE for no such constraint
  * @param create       @c true to create and map the 4 strip windows,
  *                     @c false to reconfigure the existing ones
  * @param windows      Caller-owned 4-element array: filled in when
@@ -68,8 +67,8 @@ static void s_render_outline_place(xcb_connection_t *connection,
     uint32_t bw = border_width;
     /* Each strip's (x, y, w, h), in 'windows''s fixed
      * top/bottom/left/right order; width/height floored at 1, since
-     * 'xcb_create_window'/'xcb_configure_window' both reject a
-     * genuinely zero-sized window outright, which a resize shrinking
+     * 'xcb_create_window'/'xcb_configure_window' both reject
+     * a genuinely zero-sized window outright, which a resize shrinking
      * past the border's thickness would otherwise hand them. */
     uint32_t strip_x[4];
     uint32_t strip_y[4];
@@ -105,6 +104,16 @@ static void s_render_outline_place(xcb_connection_t *connection,
     strip_w[3] = bw;
     strip_h[3] = full_h;
 
+    /* Deliberately given no '_NET_WM_WINDOW_TYPE'.  These are four thin
+     * strips marking where a rectangle would land, not a window with
+     * content, and no type in the specification describes that: they
+     * are neither tooltip nor notification nor dialog, and
+     * '_NET_WM_WINDOW_TYPE_DND' would claim a drag-and-drop is under
+     * way when none is.  A type that misdescribes what a window is
+     * leads a compositor somewhere worse than no type at all.  Should
+     * the compositor's treatment of these ever need steering, the
+     * property for that is '_NET_WM_BYPASS_COMPOSITOR' or whatever the
+     * compositor itself reads, not a borrowed window type. */
     for (int i = 0; i < 4; ++i) {
         if (create) {
             uint32_t create_mask;
@@ -131,12 +140,12 @@ static void s_render_outline_place(xcb_connection_t *connection,
                     (int32_t) strip_y[i], strip_w[i], strip_h[i]);
         }
 
-        /* Re-asserted on every create and every move, not just once
-         * at creation: a strip window is otherwise free to end up
-         * above whatever 'stack_below' names the moment anything
-         * else on screen gets raised in between, this call's
-         * only guarantee being where the strip sits relative to that
-         * one window, not that it never moves again afterward. */
+        /* Re-asserted on every create and every move, not just once at
+         * creation: a strip window is otherwise free to end up above
+         * whatever 'stack_below' names the moment anything else on
+         * screen gets raised in between, this call's only guarantee
+         * being where the strip sits relative to that one window, not
+         * that it never moves again afterward. */
         if (windows[i] != XCB_WINDOW_NONE &&
                 stack_below != XCB_WINDOW_NONE) {
             xcb_window_stack_below(windows[i], stack_below);
@@ -165,7 +174,7 @@ void render_outline_move(xcb_connection_t *connection,
 }
 
 
-/* Destroy the 4 strip windows and reset 'windows' to XCB_WINDOW_NONE */
+/* Destroy the 4 strip windows and reset 'windows' to 'XCB_WINDOW_NONE' */
 void render_outline_hide(xcb_connection_t *connection,
         xcb_window_t windows[4])
 {
