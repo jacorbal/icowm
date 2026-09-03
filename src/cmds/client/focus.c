@@ -92,10 +92,11 @@ struct s_fallback_ctx_s {
  * @p desktop's stacking list: mapped and visible (not hidden or
  * iconified; shaded is fine, @a ccmd_client_focus below already
  * targets a shaded client's frame instead of its unmapped
- * content), able to take real focus by window type, not explicitly
- * opted out via @a client_has_no_focus_fallback, and not skipping
- * the taskbar unless it is modal, urgent, or a dialog (which need
- * the user's attention regardless of that flag).
+ * content), able to take real focus by window type and by its
+ * declared ICCCM input model, not explicitly opted out via
+ * @a client_has_no_focus_fallback, and not skipping the taskbar
+ * unless it is modal, urgent, or a dialog (which need the user's
+ * attention regardless of that flag).
  *
  * @param candidate Client being considered as a fallback target
  * @param data      Pointer to the @c s_fallback_ctx_s this search
@@ -117,6 +118,7 @@ static bool s_client_focus_fallback_valid(const client_td *candidate,
         !(candidate->properties.flags & CLIENT_FLAG_HIDDEN) &&
         !client_is_iconified(candidate) &&
         (candidate->properties.flags & CLIENT_FLAG_FOCUSABLE) &&
+        client_accepts_input_focus(candidate) &&
         !client_has_no_focus_fallback(candidate) &&
         (!(candidate->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) ||
          client_is_modal(candidate) ||
@@ -276,7 +278,7 @@ static void s_ccmd_client_restore_one(client_td *client)
 /* Transfer focus away from a client that is leaving the current
  * visible focus chain; see cmds/client/internal.h for the full
  * doc comment */
-void ccmd_client_focus_fallback(const client_td *client)
+void ccmd_client_focus_fallback(client_td *client)
 {
     surface_td *surface;
     desktop_td *desktop;
@@ -313,7 +315,7 @@ void ccmd_client_focus_fallback(const client_td *client)
  * focusable client on the same desktop, or to 'PointerRoot' if
  * none qualifies; see the full criteria in the header */
 void client_focus_fallback(desktop_td *desktop, surface_td *surface,
-        const client_td *exclude)
+        client_td *exclude)
 {
     client_td *next_focus = NULL;
     xcb_window_t exclude_leader;
@@ -361,6 +363,15 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
          * had deliberately placed above it */
         focus_order_to_top(next_focus);
         ccmd_client_focus(next_focus);
+    } else if (exclude != NULL) {
+        /* No replacement candidate qualifies, so 'exclude' itself is
+         * what actually still looks focused to the outside world:
+         * 'ccmd_client_unfocus' clears its own '_NET_WM_STATE_FOCUSED'
+         * mark and the root's '_NET_ACTIVE_WINDOW', on top of
+         * redirecting real input focus to 'PointerRoot', rather than
+         * leaving both stale the way relinquishing only the X input
+         * focus below would. */
+        ccmd_client_unfocus(exclude);
     } else if (xcb_connection_get() != NULL) {
         /* Same timestamp every other focus call in this file uses,
          * so that relinquishing here cannot record a last focus
@@ -772,36 +783,28 @@ void ccmd_client_unfocus(client_td *client)
 /* Make a client the active one of its own desktop */
 void ccmd_client_make_active(client_td *client)
 {
+    surface_td *surface;
     desktop_td *desktop;
 
     if (client == NULL || !client_is_focusable(client)) {
         return;
     }
 
+    surface = wm_get_surface_by_id(client->screen_id);
     desktop = wm_get_client_desktop(client);
-    if (desktop == NULL) {
+    if (surface == NULL || desktop == NULL) {
         ccmd_client_focus(client);
         return;
     }
 
-    /* The outgoing client is unfocused before the slot is overwritten,
-     * not after: once the ID is gone, nothing can find which client
-     * used to hold it, and it keeps its active border for as long as
-     * nothing else happens to repaint it */
-    if (desktop->client_active_id != 0u &&
-            desktop->client_active_id != client->id) {
-        client_td *const previous = lookup_find_client(
-                wm_get_surfaces(), desktop->client_active_id,
-                NULL, NULL);
-
-        if (previous != NULL) {
-            ccmd_client_unfocus(previous);
-        }
-    }
-
-    desktop->client_active_id = client->id;
-    desktop->is_focus_dirty = true;
-    (void) desktop_action_client_send_front(desktop, client);
-    desktop->is_outdated = true;
-    ccmd_client_focus(client);
+    /* Delegates to the same central path 'focus_apply'
+     * (policy/focus.c) already gives every other focus-granting
+     * call site, rather than reimplementing its unfocus-previous,
+     * activate, and raise steps by hand here.  Raised unconditionally
+     * ('raise' true regardless of the user's raise-on-focus setting),
+     * matching what this function's own raise call did on its own
+     * before, since a window arriving back from an icon or otherwise
+     * being made the active one is meant to actually be seen */
+    focus_apply(wm_get_surfaces(), surface, desktop, client, true,
+            wm_get_config());
 }

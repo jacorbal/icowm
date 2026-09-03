@@ -713,6 +713,14 @@ int ci_create_decorations(client_td *client)
             client->frame,
             (int16_t) left, (int16_t) top);
 
+    /* Now a child of 'frame' rather than of root, so from here on
+     * this window manager dying takes 'frame' down with it unless
+     * the save set has already been told to hand the window back to
+     * root instead of letting it go with its frame (Scheifler and
+     * Gettys, 1994, "Inter-Client Communication Conventions Manual",
+     * v2.0, §4.1.2). */
+    xcb_window_save_set(client->window, true);
+
     ccmd_client_apply_geometry(client, client->window,
             (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
             0, 0, 0u, 0u, 0u);

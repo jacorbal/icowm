@@ -27,6 +27,9 @@
 /* Default initial values */
 #include <defs/client.h>     /* WM_SYNC_MAX_WAIT_TICKS */
 
+/* Utils includes */
+#include <utils/geom.h>
+
 /* Project includes */
 #include <client.h>
 #include <surface.h>
@@ -57,6 +60,39 @@ static void s_ccmd_resize_configure(client_td *client,
 {
     xcb_window_t target;
     uint16_t mask;
+    uint32_t ext_w;
+    uint32_t ext_h;
+    uint32_t content_w;
+    uint32_t content_h;
+
+    /* A second barrier against whatever 'req_geom' the caller handed
+     * down, on top of whichever one that caller may already have
+     * applied of its own: 'client_size_constrain' (client.h) expects
+     * its width/height in terms of the client's content window, what
+     * its 'WM_NORMAL_HINTS' actually describe (ICCCM §4.1.2.3), not
+     * the frame dimensions 'req_geom' carries here, so the round trip
+     * through content space mirrors the one 's_drag_resize_geometry'
+     * (input/mouse/drag.c) and 's_kbd_resize_apply'
+     * (input/kbd/interact.c) already make for the same reason.
+     * 'geom_dim_clamp' (utils/geom.h) runs last as a plain sanity
+     * floor and ceiling completely independent of any hint the client
+     * declared, which matters because both fields are 'uint32_t': a
+     * caller that ever let a subtraction go negative before storing
+     * it here would hand this function an enormous value rather than
+     * a negative one, and 'client_size_constrain' alone only clamps
+     * against a maximum the client actually declared, which most
+     * never do */
+    ext_w = (uint32_t) client->layout.frame_extents.left +
+        (uint32_t) client->layout.frame_extents.right;
+    ext_h = (uint32_t) client->layout.frame_extents.top +
+        (uint32_t) client->layout.frame_extents.bottom;
+    content_w = (req_geom.dim.w > ext_w) ? req_geom.dim.w - ext_w : 0u;
+    content_h = (req_geom.dim.h > ext_h) ? req_geom.dim.h - ext_h : 0u;
+
+    client_size_constrain(client, &content_w, &content_h);
+
+    req_geom.dim.w = geom_dim_clamp((int32_t) (content_w + ext_w));
+    req_geom.dim.h = geom_dim_clamp((int32_t) (content_h + ext_h));
 
     target = ccmd_target_win(client);
     mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;

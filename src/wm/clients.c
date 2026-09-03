@@ -109,6 +109,14 @@ static void s_client_unmanage(client_td *client)
 
         xcb_window_reparent(client->window,
                 client->parent_id, abs_x, abs_y);
+
+        /* Handed back to its true parent by hand, so the save set
+         * no longer has anything to do for it; leaving it in would
+         * only have this connection's eventual close-down reparent
+         * it a second time for nothing (Scheifler and Gettys, 1994,
+         * "Inter-Client Communication Conventions Manual", v2.0,
+         * §4.1.2). */
+        xcb_window_save_set(client->window, false);
     }
 
     xcb_window_show(client->window);

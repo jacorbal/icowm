@@ -44,6 +44,7 @@
 
 
 /* System includes */
+#include <stdbool.h>
 #include <stdint.h>
 
 /* XCB includes */
@@ -201,6 +202,29 @@ void xcb_window_destroy(xcb_window_t window);
  */
 void xcb_window_reparent(xcb_window_t window, xcb_window_t parent,
         int16_t x, int16_t y);
+
+/**
+ * @brief Add or remove a window from this connection's save set
+ *
+ * A window reparented into one of this window manager's own windows
+ * (a frame, most of the time) has to sit in the save set for as long
+ * as it stays there: should this window manager's connection ever
+ * drop, whether from a clean exit or a crash, the 'X' server walks
+ * the save set and reparents every window still in it back to the
+ * closest surviving ancestor instead of destroying it along with the
+ * frame that is about to go away with the connection (Scheifler and
+ * Gettys, 1994, "Inter-Client Communication Conventions Manual",
+ * v2.0, §4.1.2).  @p insert reverses cleanly: taking a window back
+ * out of the save set, as happens when handing it back to the root
+ * window on purpose, is exactly the same call with the mode flipped.
+ *
+ * @param window Window to add to or drop from the save set
+ * @param insert @c true to add it, @c false to drop it
+ *
+ * @note No-op for @c XCB_WINDOW_NONE
+ * @note Complexity: @e O(1)
+ */
+void xcb_window_save_set(xcb_window_t window, bool insert);
 
 
 #endif /* !UTILS_XCB_WINDOW_H */

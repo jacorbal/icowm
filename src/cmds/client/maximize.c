@@ -100,10 +100,10 @@ static void s_clamp_to_size_hints(const client_td *client,
  * @param client Client about to be maximized, on one axis or both
  *
  * @return @c true if the caller should proceed (the client is
- *         resizable, not fullscreen, and any prior iconified or
- *         shaded state has already been cleared); @c false if
- *         @p client is @c NULL or the maximize should be refused
- *         outright
+ *         resizable, not fullscreen, not locked, and any prior
+ *         iconified or shaded state has already been cleared);
+ *         @c false if @p client is @c NULL or the maximize should
+ *         be refused outright
  *
  * @note Complexity: @e O(1)
  */
@@ -114,7 +114,7 @@ static bool s_ccmd_maximize_precheck(client_td *client)
     }
 
     if (!client_is_maximizable(client) ||
-            client_is_fullscreen(client)) {
+            client_is_fullscreen(client) || client_is_locked(client)) {
         return false;
     }
 

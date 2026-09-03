@@ -516,6 +516,8 @@ void handler_unmap_notify(xcb_connection_t *connection,
     desktop_td *desktop;
     surface_td *surface;
 
+    (void) connection;
+
     if (event == NULL) {
         LOGGER_ERROR("Received null pointer in unmap handler", L_NARG);
         return;
@@ -584,7 +586,17 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * iconify/restore cascade among them). */
         client->properties.state = CLIENT_STATE_NORMAL;
 
-        ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
+        /* ICCCM §4.1.4: a client unmapping its own window withdraws
+         * it, which §4.1.3.1 requires 'WM_STATE' to reflect as
+         * 'WithdrawnState', not 'IconicState'.  The latter is only
+         * for a window the window manager itself has iconified,
+         * still under its management and eligible to be restored
+         * with no more than a map request; a client that unmapped
+         * itself may never be mapped again at all, and is not being
+         * tracked as an icon here ('client_hide' above sets
+         * 'CLIENT_FLAG_HIDDEN', a distinct concept from iconified,
+         * as the comment right above already explains) */
+        ccmd_set_wm_state(client, CCMD_WM_STATE_WITHDRAWN, XCB_NONE);
         ccmd_client_sync_states(client);
         /* 'wm_outdate_client'/'_surface'/'_desktop' directly, not
          * 'wm_request_client_redraw': 'surface' and 'desktop' are
@@ -597,9 +609,6 @@ void handler_unmap_notify(xcb_connection_t *connection,
         wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
-
-        if (connection != NULL) {
-        }
     }
 }
 
@@ -670,8 +679,6 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
      * onto the parent the fallback just chose. */
     if (desktop != NULL && desktop->client_active_id == client->id) {
         client_focus_fallback(desktop, surface, client);
-        if (connection != NULL) {
-        }
     }
 
     /* ICCCM withdrawn state: remove WM_STATE on unmanage */

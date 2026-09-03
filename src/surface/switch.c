@@ -36,6 +36,7 @@
 #include <surface.h>
 
 /* Local includes */
+#include <cmds/client/ewmh.h>
 #include <cmds/client/flags.h>
 #include <cmds/client/icon.h>
 #include <cmds/client/maximize.h>
@@ -205,10 +206,12 @@ static void s_surface_layout_shrink_after(surface_td *surface,
 
 
 /**
- * @brief How many clients one desktop can be emptied of at a time
+ * @brief How many clients one desktop can be emptied of in a single
+ *        batch
  *
- * A desktop holding more than this keeps the remainder, which is a
- * bounded, visible outcome rather than an unbounded stack array.
+ * A desktop holding more than this is drained one batch at a time
+ * instead of needing an array sized for the worst case up front;
+ * see @a s_surface_desktop_evacuate's comment.
  */
 #define SWITCH_EVACUATE_MAX_CLIENTS (256)
 
@@ -249,15 +252,22 @@ static void s_client_evacuate_visit(client_td *client, void *data)
  *        @p to_desktop, updating EWMH @c _NET_WM_DESKTOP along
  *        the way
  *
- * Reads @c cdlist_head repeatedly rather than snapshotting the list
- * first: each iteration's @a desktop_action_client_rem ordinarily
- * shrinks @p from_desktop's stacking list by one, so the next
- * head is normally always the next client still needing to move.
- * Bounded by the list's starting size regardless, in case some
- * client already sits in this stacking list without a matching hash
- * table entry to remove, a state this function has no way to detect
- * on its own; see the loop's comment for what happens without
- * that bound.
+ * Gathers up to @c SWITCH_EVACUATE_MAX_CLIENTS clients before moving
+ * any of them, rather than repeatedly taking whichever client the
+ * desktop holds first: moving one takes it off @p from_desktop, so a
+ * walk that moved as it went would be reading a set it was itself
+ * changing.  A desktop holding more than one batch's worth simply
+ * runs another gather-and-move round, since a client that this round
+ * already moved no longer shows up under @p from_desktop for the
+ * next one to find; @p from_desktop ends up fully drained regardless
+ * of how many clients it started with, rather than silently keeping
+ * whatever did not fit in a single fixed-size array.  A round is only
+ * repeated after one that both filled its batch and actually moved
+ * at least one client in it, so a client that keeps failing to move
+ * (@a desktop_action_client_move refusing every attempt, most likely
+ * because @p to_desktop itself is somehow out of room) is retried
+ * exactly once more and then left in place rather than retried
+ * forever.
  *
  * @param from_desktop Desktop being emptied
  * @param to_desktop   Desktop every client moves to
@@ -273,62 +283,49 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
     client_td *clients[SWITCH_EVACUATE_MAX_CLIENTS];
     struct s_evacuate_ctx_s evacuate_ctx;
     int index;
+    bool made_progress;
 
     if (from_desktop == NULL || to_desktop == NULL) {
         return;
     }
 
-    /* Gathered before any of them is moved, rather than repeatedly
-     * taking whichever client the desktop holds first.  Moving one
-     * takes it off 'from_desktop', so a walk that moved as it went
-     * would be reading a set it was itself changing.
-     *
-     * That is also what the loop this replaces was guarding against
-     * with a starting count: a client that somehow failed to move
-     * would be handed back forever, and the count was the only thing
-     * standing between that and an unconditional infinite loop.  With
-     * the set fixed up front there is nothing to guard. */
-    evacuate_ctx.out = clients;
-    evacuate_ctx.capacity =
-        (int) (sizeof(clients) / sizeof(clients[0]));
-    evacuate_ctx.count = 0;
-    stacking_walk(from_desktop, s_client_evacuate_visit,
-            &evacuate_ctx);
+    do {
+        evacuate_ctx.out = clients;
+        evacuate_ctx.capacity =
+            (int) (sizeof(clients) / sizeof(clients[0]));
+        evacuate_ctx.count = 0;
+        stacking_walk(from_desktop, s_client_evacuate_visit,
+                &evacuate_ctx);
 
-    for (index = 0; index < evacuate_ctx.count; ++index) {
-        client_td *const client = clients[index];
+        made_progress = false;
+        for (index = 0; index < evacuate_ctx.count; ++index) {
+            client_td *const client = clients[index];
 
-        if (client == NULL) {
-            continue;
+            if (client == NULL) {
+                continue;
+            }
+
+            if (desktop_action_client_move(from_desktop, to_desktop,
+                    client) == 0) {
+                made_progress = true;
+            }
+
+            /* An iconified client keeps the icon position it already
+             * had on 'from_desktop'; that exact spot is only a
+             * coincidence on 'to_desktop', which may already have an
+             * icon of its own sitting right there.  Relocated to a
+             * free spot, the same way a client repositions its icon
+             * (or gets a fresh one) whenever a saved position turns
+             * out already claimed; see
+             * 'ccmd_client_relocate_icon_if_taken' (cmds/client/
+             * basic.h) for the exact same 'unless claimed' logic
+             * applied to a freshly (re-)iconified client. */
+            ccmd_client_relocate_icon_if_taken(client);
+
+            ccmd_publish_wm_desktop(client, to_desktop->id);
         }
-
-        (void) desktop_action_client_move(from_desktop, to_desktop,
-                client);
-
-        /* An iconified client keeps the icon position it already had
-         * on 'from_desktop'; that exact spot is only a coincidence on
-         * 'to_desktop', which may already have an icon of its own
-         * sitting right there.  Relocated to a free spot, the same
-         * way a client repositions its icon (or gets a fresh
-         * one) whenever a saved position turns out already claimed;
-         * see 'ccmd_client_relocate_icon_if_taken' (cmds/client/
-         * basic.h) for the exact same 'unless claimed' logic applied
-         * to a freshly (re-)iconified client. */
-        ccmd_client_relocate_icon_if_taken(client);
-
-        /* A pinned client's '_NET_WM_DESKTOP' is already the
-         * EWMH 'all desktops' sentinel, set once by 'ccmd_client_pin'
-         * and never meant to track a specific desktop again; only a
-         * genuinely single-desktop client needs this property
-         * brought in line with where it actually landed. */
-        if (!client_is_pinned(client) && xcb_ewmh_connection_get() != NULL &&
-                xcb_connection_get() != NULL) {
-            xcb_change_property(xcb_connection_get(),
-                    XCB_PROP_MODE_REPLACE, client->window,
-                    xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
-                    XCB_ATOM_CARDINAL, 32, 1, &to_desktop->id);
-        }
-    }
+    } while (made_progress &&
+            evacuate_ctx.count == evacuate_ctx.capacity);
 }
 
 

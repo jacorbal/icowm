@@ -123,5 +123,44 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
 void ccmd_publish_frame_extents(client_td *client,
         uint32_t left, uint32_t right, uint32_t top, uint32_t bottom);
 
+/**
+ * @brief Publish @c _NET_WM_DESKTOP on the client window
+ *
+ * Writes the EWMH @c _NET_WM_DESKTOP cardinal property so that
+ * pagers and taskbars learn which desktop @p client now belongs to,
+ * the single place every desktop-move path shares for it instead of
+ * each writing the property by hand.  A pinned client publishes the
+ * EWMH "all desktops" sentinel regardless of @p desktop_id, since
+ * its registration under one particular desktop is bookkeeping this
+ * window manager needs, not something an external tool watching
+ * this property should ever see change.  No-op when @p client or
+ * its @c ewmh connection is null.
+ *
+ * @param client     Pointer to the client
+ * @param desktop_id Desktop @p client now belongs to
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_publish_wm_desktop(client_td *client, uint32_t desktop_id);
+
+/**
+ * @brief Send a @c _NET_WM_PING probe to a client
+ *
+ * Builds and sends the @c WM_PROTOCOLS @c ClientMessage EWMH §4.6
+ * (and ICCCM §4.2.8, the same envelope @c WM_DELETE_WINDOW and
+ * @c WM_TAKE_FOCUS already use) describes, and marks the ping as
+ * outstanding on @p client so @c policy/ping.h's periodic scan
+ * knows to start counting toward @c WM_EWMH_PING_TIMEOUT_SECONDS.
+ * A no-op when @p client does not advertise @c _NET_WM_PING
+ * support.
+ *
+ * @param client Client to probe
+ *
+ * @note A null @p client or one with no @c ewmh connection is a
+ *       silent no-op
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_ping_send(client_td *client);
+
 
 #endif  /* ! CMDS_CCMD_EWMH_H */

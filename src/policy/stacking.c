@@ -301,6 +301,21 @@ int stacking_lower(const desktop_td *desktop, client_td *client)
 }
 
 
+/* The client currently at the bottom of the whole session's
+ * stacking order */
+client_td *stacking_bottom(void)
+{
+    cdlist_item_td *node;
+
+    if (s_stacking == NULL || cdlist_size(s_stacking) == 0u) {
+        return NULL;
+    }
+
+    node = cdlist_head(s_stacking);
+    return (node != NULL) ? (client_td *) cdlist_data(node) : NULL;
+}
+
+
 /* How many clients a desktop's stacking order holds */
 uint32_t stacking_count(const desktop_td *desktop)
 {

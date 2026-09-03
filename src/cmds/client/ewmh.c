@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL */
+#include <string.h>     /* memset */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -22,6 +23,9 @@
 
 /* Utils includes */
 #include <utils/xcb/atom.h>
+
+/* Default initial values */
+#include <defs/desktop.h>     /* WM_DESKTOP_ID_ALL */
 
 /* Project includes */
 #include <client.h>
@@ -223,4 +227,60 @@ void ccmd_publish_frame_extents(client_td *client,
     xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
             client->window, xcb_ewmh_connection_get()->_NET_FRAME_EXTENTS,
             XCB_ATOM_CARDINAL, 32, 4, extents);
+}
+
+
+/* Publish '_NET_WM_DESKTOP' on the client window */
+void ccmd_publish_wm_desktop(client_td *client, uint32_t desktop_id)
+{
+    uint32_t did;
+
+    if (client == NULL || xcb_ewmh_connection_get() == NULL) {
+        return;
+    }
+
+    did = (client->properties.flags & CLIENT_FLAG_PIN)
+        ? WM_DESKTOP_ID_ALL : desktop_id;
+    xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
+            client->window, xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
+            XCB_ATOM_CARDINAL, 32, 1, &did);
+}
+
+
+/* Send a '_NET_WM_PING' probe to a client */
+void ccmd_client_ping_send(client_td *client)
+{
+    xcb_ewmh_connection_t *ewmh;
+    xcb_client_message_event_t ev;
+    uint32_t timestamp;
+
+    if (client == NULL || !client->hints_ewmh.ping.is_supported ||
+            xcb_ewmh_connection_get() == NULL) {
+        return;
+    }
+
+    ewmh = xcb_ewmh_connection_get();
+
+    /* EWMH §4.6: the timestamp only has to let this window manager
+     * tell one probe apart from another, never carrying the
+     * ICCCM §4.1.7 focus-granting weight 'ccmd_client_focus' gives
+     * its own, so falling back to 'XCB_CURRENT_TIME' here is
+     * harmless even though it stays that way for a window manager
+     * that has not seen any real input yet */
+    timestamp = (client_last_user_time() != 0u)
+        ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
+
+    memset(&ev, 0, sizeof(ev));
+    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.format = 32;
+    ev.window = client->window;
+    ev.type = ewmh->WM_PROTOCOLS;
+    ev.data.data32[0] = ewmh->_NET_WM_PING;
+    ev.data.data32[1] = timestamp;
+    ev.data.data32[2] = client->window;
+    xcb_send_event(xcb_connection_get(), 0, client->window,
+            XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
+
+    client->hints_ewmh.ping.last_sent = timestamp;
+    client->hints_ewmh.ping.is_waiting = true;
 }

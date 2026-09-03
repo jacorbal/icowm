@@ -22,6 +22,7 @@
 #include <adt/list.h>
 
 /* Policy includes */
+#include <policy/ping.h>
 #include <policy/placement/manual.h>
 #include <policy/urgency.h>
 
@@ -103,6 +104,11 @@ int loop_timers_timeout(const loop_ctx_td *ctx)
     s_loop_timers_tighten(&poll_timeout_ms,
             urgency_blink_ms_remaining(ctx->config));
 
+    /* Shorter still while at least one managed client advertises
+     * '_NET_WM_PING' support (see 'ping_tick' in policy/ping.h), so
+     * the next probe or unresponsive-timeout check fires on time. */
+    s_loop_timers_tighten(&poll_timeout_ms, ping_ms_remaining());
+
     s_loop_timers_tighten(&poll_timeout_ms, cctl_sn_ms_remaining());
 
     /* Shorter still while a resize-cursor poll target is being
@@ -166,6 +172,7 @@ void loop_timers_tick(const loop_ctx_td *ctx)
 
     systray_clock_tick();
     urgency_blink_tick(ctx->surfaces, ctx->config);
+    ping_tick(ctx->surfaces);
     cctl_sn_tick(xcb_connection_get(), ctx->surfaces);
     mouse_hover_poll_tick(xcb_connection_get(), ctx->surfaces);
     menu_confirm_dialog_tick(xcb_connection_get(), ctx->config);

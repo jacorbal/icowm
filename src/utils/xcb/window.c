@@ -195,3 +195,16 @@ void xcb_window_reparent(xcb_window_t window, xcb_window_t parent,
 
     xcb_reparent_window(xcb_connection_get(), window, parent, x, y);
 }
+
+
+/* Add or remove a window from this connection's save set */
+void xcb_window_save_set(xcb_window_t window, bool insert)
+{
+    if (!s_window_is_addressable(window)) {
+        return;
+    }
+
+    xcb_change_save_set(xcb_connection_get(),
+            insert ? XCB_SET_MODE_INSERT : XCB_SET_MODE_DELETE,
+            window);
+}

@@ -24,9 +24,6 @@
 /* ADT includes */
 #include <adt/cdlist.h>
 
-/* Default initial values */
-#include <defs/desktop.h>
-
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -42,6 +39,7 @@
 #include <ipc.h>
 
 /* Command includes */
+#include <cmds/client/ewmh.h>
 #include <cmds/client/focus.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
@@ -60,7 +58,6 @@
 /* Local includes */
 #include <enact.h>
 #include <enact/internal.h>
-#include <utils/xcb/connection.h>
 #include <utils/xcb/window.h>
 
 
@@ -154,20 +151,19 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * in 'desktop->clients' at the moment of the search, even though
      * it is already on its way to 'target'; the same reasoning
      * behind the matching reorder in 'handler_destroy_notify' and
-     * 'handler_unmap_notify' (handler/map.c). */
-    desktop_action_client_rem(desktop, client);
-    if (desktop_action_client_add(target, client) != 0) {
-        /* 'target' refused it (a resource exhaustion or a genuine
-         * hashtable-insert failure; see 'desktop_action_client_add's
-         * comment, desktop.h): put it back exactly where it
-         * came from, undoing the unmap above too if it happened,
-         * rather than leaving the client registered under neither
-         * desktop, or invisible on the very desktop it is actually
-         * still on. */
+     * 'handler_unmap_notify' (handler/map.c).  The remove-add-
+     * rollback-record sequence itself comes straight from
+     * 'desktop_action_client_move' (desktop/dclient.c) rather than
+     * being reimplemented here, so it stays the one place that
+     * undoes a failed insertion and records the client's resulting
+     * desktop for every caller of this whole mechanism alike; only
+     * the unmap performed above is this function's own to undo,
+     * since that is a decoration/visibility concern outside that
+     * function's reach. */
+    if (desktop_action_client_move(desktop, target, client) != 0) {
         LOGGER_WARNING("Failed to move client window=0x%x to" \
                 " desktop %u; leaving it on desktop %u instead",
                 client->window, target->id, desktop->id);
-        (void) desktop_action_client_add(desktop, client);
         if (unmapped_main) {
             win_target = (client_is_decorated(client) &&
                     client->frame != 0)
@@ -183,7 +179,6 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
         }
         return;
     }
-    client->desktop_id = target->id;
 
     /* Remembered here as 'target''s active client, the same
      * memory 'surface_clients_show' (surface/actions/clients.c)
@@ -215,21 +210,11 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * rather than each duplicating this same publish on its own:
      * an EWMH-aware external tool (a taskbar or pager) watching
      * '_NET_WM_DESKTOP' needs to learn about the reassignment
-     * regardless of which of those actually triggered it.  A pinned
-     * client keeps publishing the EWMH "all desktops" sentinel
-     * instead of any one real index, unaffected by which desktop it
-     * is actually registered under (see 'ccmd_client_bring_family's
-     * comment, cmds/client/transient.c, for the fuller
-     * reasoning on why a pinned client's registration and its
-     * own published desktop can differ like this). */
-    if (xcb_ewmh_connection_get() != NULL) {
-        uint32_t did = (client->properties.flags & CLIENT_FLAG_PIN)
-            ? WM_DESKTOP_ID_ALL : target->id;
-
-        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
-                client->window, xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
-                XCB_ATOM_CARDINAL, 32, 1, &did);
-    }
+     * regardless of which of those actually triggered it.  See
+     * 'ccmd_client_bring_family's comment, cmds/client/transient.c,
+     * for the fuller reasoning on why a pinned client's registration
+     * and its own published desktop can differ. */
+    ccmd_publish_wm_desktop(client, target->id);
 
     /* If 'client' was the source desktop's active client, hand
      * focus there off to whatever else on that desktop qualifies,

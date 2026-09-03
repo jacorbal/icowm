@@ -76,6 +76,15 @@ struct client_hints_ewmh_s {
                                        sent */
         uint32_t last_reply;      /**< X timestamp of last ping
                                        reply */
+        bool is_waiting;      /**< @c true between sending a ping
+                                   and receiving its reply (or
+                                   giving up after @p pending_ticks) */
+        uint8_t pending_ticks; /**< Consecutive probe rounds spent
+                                    waiting for the current ping;
+                                    past
+                                    @c WM_EWMH_PING_TIMEOUT_SECONDS
+                                    worth of them the client is
+                                    marked unresponsive */
     } ping;
 
     /**

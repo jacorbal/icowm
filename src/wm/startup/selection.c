@@ -177,6 +177,26 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
         values[0] = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
         xcb_change_window_attributes(connection, previous_owner,
                 XCB_CW_EVENT_MASK, values);
+
+        /* ICCCM §2.8: the previous owner may have relinquished the
+         * selection, or been destroyed outright, in the gap between
+         * the very first check above and this subscription taking
+         * effect, so a 'DestroyNotify' for it may already have come
+         * and gone before anything here was watching for one.  Asking
+         * again now, while still the only thing on this connection,
+         * catches that race: an owner that no longer matches means
+         * there is nothing left to wait out below. */
+        owner_reply = xcb_get_selection_owner_reply(connection,
+                xcb_get_selection_owner(connection, selection_atom),
+                &owner_error);
+        xcb_reply_log_error(owner_error,
+                "the current owner of a manager selection");
+        if (owner_reply != NULL) {
+            if (owner_reply->owner != previous_owner) {
+                previous_owner = (xcb_window_t) XCB_NONE;
+            }
+            free(owner_reply);
+        }
     }
 
     xcb_set_selection_owner(connection, support, selection_atom,

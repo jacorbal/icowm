@@ -57,6 +57,7 @@
 /* Utils includes */
 #include <utils/config/json.h>
 #include <utils/sysmem.h>
+#include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
 
 /* Menu includes */
@@ -126,6 +127,50 @@ static void s_desktop_outdate_visit(desktop_td *desktop, void *data)
 
 
 /**
+ * @brief Explicitly relinquish every screen's @c WM_Sn manager
+ *        selection ahead of destroying its owner window
+ *
+ * ICCCM §2.8's own account of an orderly shutdown: the selection is
+ * released on purpose rather than left for the owner window's
+ * destruction to relinquish it as a side effect, the same distinction
+ * @a xsettings_shutdown and @a systray_shutdown already draw for
+ * their own manager selections.
+ *
+ * @note No-op if the global window manager instance is @c NULL,
+ *       its connection is not established, or it manages no surfaces
+ * @note Complexity: @e O(n), where @e n is the number of managed
+ *       surfaces
+ */
+static void s_wm_release_manager_selections(void)
+{
+    char selection_name[16];
+
+    if (wm == NULL || wm->connection == NULL || wm->surfaces == NULL) {
+        return;
+    }
+
+    for (list_item_td *snode = list_head(wm->surfaces);
+            snode != NULL; snode = list_next(snode)) {
+        surface_td *const surface = (surface_td *) list_data(snode);
+        xcb_atom_t selection_atom;
+
+        if (surface == NULL) {
+            continue;
+        }
+
+        (void) snprintf(selection_name, sizeof(selection_name),
+                "WM_S%u", surface->id);
+        selection_atom = atom_intern(wm->connection, selection_name,
+                true);
+        if (selection_atom != XCB_ATOM_NONE) {
+            xcb_set_selection_owner(wm->connection, XCB_NONE,
+                    selection_atom, XCB_CURRENT_TIME);
+        }
+    }
+}
+
+
+/**
  * @brief Release every initialized window-manager subsystem
  *
  * Frees only the members that were successfully initialized so it can
@@ -163,6 +208,8 @@ static void s_wm_cleanup(void)
     }
 
     text_renderer_destroy();
+
+    s_wm_release_manager_selections();
 
     if (wm->surfaces != NULL) {
         list_destroy(wm->surfaces);

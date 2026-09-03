@@ -181,6 +181,13 @@ static void s_client_enable_decoration(client_td *client,
             client->frame,
             (int16_t) bw, (int16_t) (bw + th));
 
+    /* Back under a frame of ours, so back in the save set too, or
+     * this window manager dying would take the client down along
+     * with it instead of handing it back to root (Scheifler and
+     * Gettys, 1994, "Inter-Client Communication Conventions
+     * Manual", v2.0, §4.1.2). */
+    xcb_window_save_set(client->window, true);
+
     ccmd_client_apply_geometry(client, client->window,
             (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
             0, 0, 0u, 0u, 0u);
@@ -301,6 +308,12 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
         xcb_window_reparent(client->window,
                 client->parent_id,
                 (int16_t) inner.pos.x, (int16_t) inner.pos.y);
+
+        /* No longer a child of a frame of ours, so out of the save
+         * set as well: nothing left here for it to be rescued
+         * from (Scheifler and Gettys, 1994, "Inter-Client
+         * Communication Conventions Manual", v2.0, §4.1.2). */
+        xcb_window_save_set(client->window, false);
 
         ccmd_client_apply_geometry(client, client->window,
                 (uint16_t) XCB_CONFIG_WINDOW_X |

@@ -7,8 +7,10 @@ for inactive windows, placing a significant emphasis on the utilization
 of iconification (iconization) in a manner reminiscent of traditional
 TWM aesthetics, but with a modern touch.
 
-[![Screenshot 1: IcoWM 1.0.1](doc/scrot/icowm_1.0.1-rc.1_a-800.png)](doc/scrot/icowm_1.0.1-rc.1_a.png)
-[![Screenshot 2: IcoWM 1.0.1](doc/scrot/icowm_1.0.1-rc.1_b-800.png)](doc/scrot/icowm_1.0.1-rc.1_b.png)
+  - Current version: 1.0.1 ("*'ovelya*")
+
+[![Screenshot 1: IcoWM 1.0.1](doc/scrot/icowm_1.0.1_a-800.png)](doc/scrot/icowm_1.0.1_a.png)
+[![Screenshot 2: IcoWM 1.0.1](doc/scrot/icowm_1.0.1_b-800.png)](doc/scrot/icowm_1.0.1_b.png)
 
 Basic features are:
 
@@ -271,11 +273,16 @@ Installing
 
 See [`INSTALL.md`](INSTALL.md) for building, installing, the build
 options, and the notes for packagers and for the BSDs.
+[`NEWS.md`](NEWS.md) says what each release brought, which is worth
+a look before upgrading one that already works.
 
-Also, [`HACKING.md`](HACKING.md) is the map of the source for anyone
-about to change it, and [`CONTRIBUTING.md`](CONTRIBUTING.md) is the
-style every file is written in, and [`NEWS.md`](NEWS.md) is what each
-release brought.
+Working on it
+-------------
+
+For anyone about to change the source rather than build it,
+[`HACKING.md`](HACKING.md) maps out how the pieces fit together, and
+[`CONTRIBUTING.md`](CONTRIBUTING.md) sets out the style every file is
+written in.
 
 Bugs
 ----
@@ -298,5 +305,4 @@ Contact information
 Correspondence, and further particulars, may be found at the following:
 
   - GitHub repository: <https://github.com/jacorbal/icowm/>
-  - Web page: <https://jacorbal.org/icowm/>
   - E-mail: <jacorbal@gmail.com>

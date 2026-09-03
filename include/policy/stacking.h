@@ -172,6 +172,24 @@ int stacking_raise(const desktop_td *desktop, client_td *client);
 int stacking_lower(const desktop_td *desktop, client_td *client);
 
 /**
+ * @brief The client currently at the bottom of the whole session's
+ *        stacking order
+ *
+ * Spans every desktop, there being one order for all of them (see
+ * this file's own comment).  For a caller that needs to anchor a
+ * window below an actual managed sibling rather than issuing an
+ * unqualified lower request the X server would apply against
+ * whatever else happens to sit under the root, managed by this
+ * window manager or not.
+ *
+ * @return The client at the bottom of the order, or @c NULL when it
+ *         holds none
+ *
+ * @note Complexity: @e O(1)
+ */
+client_td *stacking_bottom(void);
+
+/**
  * @brief How many clients a desktop's stacking order holds
  *
  * @param desktop Desktop to count for; may be @c NULL

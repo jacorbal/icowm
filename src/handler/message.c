@@ -448,6 +448,8 @@ void handler_client_message(wm_td *wm,
                 &surface, &desktop);
         if (client != NULL) {
             client->hints_ewmh.ping.last_reply = event->data.data32[1];
+            client->hints_ewmh.ping.is_waiting = false;
+            client->hints_ewmh.ping.pending_ticks = 0u;
             client_mark_responsive(client);
             wm_outdate_client(client);
             wm_outdate_surface(surface);

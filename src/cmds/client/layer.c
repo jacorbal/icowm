@@ -175,7 +175,22 @@ static void s_enforce_layer_place_family(client_td *top,
             if (tray_below != XCB_WINDOW_NONE) {
                 xcb_window_stack_above(target, tray_below);
             } else {
-                xcb_window_lower(target);
+                /* No tray to anchor on either: fall back to the
+                 * session's own lowest managed client instead of an
+                 * unqualified lower, which the X server would apply
+                 * against whatever else happens to sit under the
+                 * root, managed by this window manager or not. */
+                client_td *lowest = stacking_bottom();
+                xcb_window_t lowest_target =
+                    (lowest != NULL && lowest != top)
+                        ? ccmd_target_win(lowest) : XCB_WINDOW_NONE;
+
+                if (lowest_target != XCB_WINDOW_NONE &&
+                        lowest_target != target) {
+                    xcb_window_stack_below(target, lowest_target);
+                } else {
+                    xcb_window_lower(target);
+                }
             }
         } else {
             xcb_window_stack_above(target, *prev_target);
@@ -497,8 +512,5 @@ void ccmd_desktop_enforce_layers(desktop_td *desktop)
                 xcb_window_raise(active_target);
             }
         }
-    }
-
-    if (xcb_connection_get() != NULL) {
     }
 }

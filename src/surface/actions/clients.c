@@ -37,6 +37,7 @@
 #include <systray.h>
 
 /* Command includes */
+#include <cmds/client/ewmh.h>
 #include <cmds/client/focus.h>
 #include <cmds/client/state.h>
 #include <cmds/client/visibility.h>
@@ -523,6 +524,7 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
 
                 (void) desktop_action_client_move(from_desktop,
                         to_desktop, sticky[i]);
+                ccmd_publish_wm_desktop(sticky[i], to_desktop->id);
 
                 /* Arriving at the bottom unless it was the window
                  * being worked in.  'desktop_action_client_move' adds

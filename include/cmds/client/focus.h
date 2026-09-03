@@ -147,14 +147,15 @@ void ccmd_client_make_active(client_td *client);
  *                are updated
  * @param surface Surface @p desktop belongs to, marked outdated
  * @param exclude Client to exclude from the search (the one losing
- *                focus); may be null
+ *                focus); may be null.  Unfocused in place when no
+ *                replacement candidate is found
  *
  * @note No-op if @p desktop is null
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
 void client_focus_fallback(desktop_td *desktop, surface_td *surface,
-        const client_td *exclude);
+        client_td *exclude);
 
 /**
  * @brief Remove focus from the given client
@@ -178,12 +179,13 @@ void ccmd_client_unfocus(client_td *client);
  * not whichever is showing, the two being different whenever a client
  * loses focus while the user is looking elsewhere.
  *
- * @param client Client that is being hidden or iconified
+ * @param client Client that is being hidden or iconified.  Unfocused
+ *               in place when no replacement candidate is found
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       that desktop
  */
-void ccmd_client_focus_fallback(const client_td *client);
+void ccmd_client_focus_fallback(client_td *client);
 
 
 #endif  /* ! CMDS_CCMD_FOCUS_H */

@@ -74,7 +74,7 @@
  * @brief One matched entry ready to be drawn
  *
  * Its client, the desktop it lives on, and its pre-rendered name/hints
- * text
+ * text.
  */
 typedef struct {
     client_td *client;
@@ -116,11 +116,11 @@ static struct {
  * @brief Score how well a typed query matches a candidate string as
  *        a fuzzy subsequence
  *
- * Every character of @p query must appear in @p text in the same
- * order, case-insensitively, but not necessarily contiguous, the
- * same style of match tools like @e fzf use.  Consecutive matched
- * characters and a match starting right at the beginning of @p text
- * both score higher, so tighter and earlier matches sort first.
+ * Every character of @p query must appear in @p text in the same order,
+ * case-insensitively, but not necessarily contiguous, the same style of
+ * match tools like @e fzf use.  Consecutive matched characters and
+ * a match starting right at the beginning of @p text both score higher,
+ * so tighter and earlier matches sort first.
  *
  * @param query Typed query, already known non-empty
  * @param text  Candidate string to test
@@ -208,8 +208,8 @@ static void s_search_build_hints(const client_td *client, char *out,
     }
 
     /* On its own rather than in the chain above: being an icon is not
-     * one of the geometry states, it is a thing that happens to a
-     * window whatever geometry state it holds, so a maximized window
+     * one of the geometry states, it is a thing that happens to
+     * a window whatever geometry state it holds, so a maximized window
      * sitting as an icon has to report both. */
     if (client_is_iconified(client) && n < sizeof(letters)) {
         letters[n++] = WM_ICON_HINT_ICONIFIED;
@@ -275,9 +275,8 @@ static void s_search_candidate_visit(client_td *client, void *data)
 
 
 /**
- * @brief Collect every focusable, non-skip-taskbar client across
- *        every desktop of @c s_search.surface into
- *        @c s_search.candidates
+ * @brief Collect every focusable, non-skip-taskbar client across every
+ *        desktop of @c s_search.surface into @c s_search.candidates
  *
  * Same eligibility filter @a cycle_init uses for its own window list;
  * unrelated to the currently active desktop, so a client on a desktop
@@ -576,7 +575,8 @@ static void s_search_draw_row(xcb_connection_t *connection,
         : cfg->theme.search.unselected.color.background;
 
     menu_draw_row_bg(connection, s_search.window, bg, row_y,
-            (uint16_t) WM_SEARCH_ROW_HEIGHT, (uint16_t) WM_SEARCH_WIDTH);
+            (uint16_t) WM_SEARCH_ROW_HEIGHT,
+            (uint16_t) WM_SEARCH_WIDTH);
 
     if (cfg->theme.menu.show_pixmaps && r->client != NULL &&
             s_search.surface != NULL) {
@@ -608,8 +608,8 @@ static void s_search_draw_row(xcb_connection_t *connection,
     /* The desktop label comes first and the window title after it,
      * rather than the other way round.  A title is as long as the
      * application cares to make it, so with the title leading, the
-     * label lands at a different offset on every row and cannot be
-     * read down the list; at the front the labels line up in a column.
+     * label lands at a different offset on every row and cannot be read
+     * down the list; at the front the labels line up in a column.
      *
      * That is also why the label leaves out the desktop's own name
      * here: what identifies an entry in a list of windows is the
@@ -626,8 +626,10 @@ static void s_search_draw_row(xcb_connection_t *connection,
             menu_draw_truncate(desk_buf,
                     (uint16_t) (safe_right - text_x));
             menu_draw_label(connection, s_search.window,
-                    (struct position_s) { text_x,
-                        row_y + WM_SEARCH_ROW_HEIGHT - 4 }, desk_buf);
+                    (struct position_s) {
+                        text_x,
+                        row_y + WM_SEARCH_ROW_HEIGHT - 4
+                    }, desk_buf);
             text_x = (int16_t) (text_x + menu_draw_measure(desk_buf) +
                     WM_SEARCH_COLUMN_GAP);
         }
@@ -643,8 +645,10 @@ static void s_search_draw_row(xcb_connection_t *connection,
         menu_draw_truncate(name_buf, name_max);
     }
     menu_draw_label(connection, s_search.window,
-            (struct position_s) { text_x,
-                row_y + WM_SEARCH_ROW_HEIGHT - 4 }, name_buf);
+            (struct position_s) {
+                text_x,
+                row_y + WM_SEARCH_ROW_HEIGHT - 4
+            }, name_buf);
 
     if (r->hints[0] != '\0') {
         uint16_t hint_w = menu_draw_measure(r->hints);
@@ -652,8 +656,10 @@ static void s_search_draw_row(xcb_connection_t *connection,
                 hint_w);
 
         menu_draw_label(connection, s_search.window,
-                (struct position_s) { hint_x,
-                    row_y + WM_SEARCH_ROW_HEIGHT - 4 }, r->hints);
+                (struct position_s) {
+                    hint_x,
+                    row_y + WM_SEARCH_ROW_HEIGHT - 4
+                }, r->hints);
     }
 }
 
@@ -845,8 +851,14 @@ void search_handle_keypress(xcb_connection_t *connection,
         list_td *surfaces, xcb_keysym_t keysym, uint16_t state,
         const config_td *cfg)
 {
-    bool is_tab = (keysym == 0xff09u);   /* Tab */
-    bool has_shift = (state & (uint16_t) XCB_MOD_MASK_SHIFT) != 0u;
+    /* X sends a keysym of its own for a shifted Tab rather than Tab
+     * with the shift bit set, so both spellings have to be taken:
+     * matching on 0xff09 alone leaves Shift+Tab reaching neither branch
+     * below, and the widget going forwards only */
+    bool is_back_tab = (keysym == 0xfe20u);  /* ISO_Left_Tab */
+    bool is_tab = (keysym == 0xff09u) || is_back_tab;
+    bool has_shift = is_back_tab ||
+        (state & (uint16_t) XCB_MOD_MASK_SHIFT) != 0u;
 
     (void) cfg;
 
@@ -1007,8 +1019,10 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
                     cfg->theme.search.selected.color.foreground,
                     cfg->theme.search.unselected.color.background);
             menu_draw_label(connection, s_search.window,
-                    (struct position_s) { WM_SEARCH_WIDTH / 2 - 4,
-                        up_y + text_font_ascent() },
+                    (struct position_s) {
+                        WM_SEARCH_WIDTH / 2 - 4,
+                        up_y + text_font_ascent()
+                    },
                     WM_SEARCH_MENU_SCROLL_UP_INDICATOR);
         }
 
@@ -1018,8 +1032,10 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
                     cfg->theme.search.selected.color.foreground,
                     cfg->theme.search.unselected.color.background);
             menu_draw_label(connection, s_search.window,
-                    (struct position_s) { WM_SEARCH_WIDTH / 2 - 4,
-                        down_y + WM_SEARCH_PAD_Y - text_font_descent() },
+                    (struct position_s) {
+                        WM_SEARCH_WIDTH / 2 - 4,
+                        down_y + WM_SEARCH_PAD_Y - text_font_descent()
+                    },
                     WM_SEARCH_MENU_SCROLL_DOWN_INDICATOR);
         }
     }

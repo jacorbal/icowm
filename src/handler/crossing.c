@@ -26,6 +26,7 @@
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
+#include <enact.h>
 #include <lookup.h>
 #include <surface.h>
 #include <wm.h>
@@ -41,7 +42,6 @@ void handler_leave_notify(const wm_td *wm,
     surface_td *surface = NULL;
     desktop_td *desktop = NULL;
     const config_td *config = wm_config(wm);
-    xcb_connection_t *connection = wm_connection(wm);
 
     if (wm == NULL || event == NULL) {
         return;
@@ -58,19 +58,24 @@ void handler_leave_notify(const wm_td *wm,
             event->mode == XCB_NOTIFY_MODE_NORMAL &&
             event->detail != XCB_NOTIFY_DETAIL_INFERIOR &&
             lookup_find_client(wm_surfaces(wm), event->event,
-                    &surface, &desktop) != NULL) {
-        /* Pointer left a managed window; release focus so the cursor
-         * resting on the root background leaves all clients visually
-         * unfocused */
-        xcb_set_input_focus(connection,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                event->time);
-        if (desktop != NULL) {
-            desktop->client_active_id = 0;
-            desktop->is_focus_dirty = true;
-            desktop->is_outdated = true;
+                    &surface, &desktop) != NULL &&
+            desktop != NULL && desktop->client_active_id != 0) {
+        client_td *const active = lookup_find_client(wm_surfaces(wm),
+                desktop->client_active_id, NULL, NULL);
+
+        /* Pointer left a managed window; release focus the same way
+         * clicking the empty desktop background does (see
+         * 'mouse_handle_press', input/mouse/event/press.c), through
+         * 'enact_client_unfocus' rather than by hand, so the EWMH
+         * '_NET_WM_STATE_FOCUSED' mark, '_NET_ACTIVE_WINDOW', and the
+         * client's own decoration all stay in sync with the real
+         * input focus this already redirects to the pointer root */
+        if (active != NULL) {
+            enact_client_unfocus(active);
         }
+        desktop->client_active_id = 0;
+        desktop->is_focus_dirty = true;
+        desktop->is_outdated = true;
         if (surface != NULL) {
             surface->is_outdated = true;
         }
