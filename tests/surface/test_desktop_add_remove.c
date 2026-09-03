@@ -138,6 +138,16 @@ void ccmd_client_refill_maximized(client_td *client)
 }
 
 
+/** Link-only stand-in for ccmd_publish_wm_desktop
+ *  (cmds/client/ewmh.c): the property it would set needs a server,
+ *  and this test drives the desktop bookkeeping alone */
+void ccmd_publish_wm_desktop(client_td *client, uint32_t desktop_id)
+{
+    (void) client;
+    (void) desktop_id;
+}
+
+
 /** Link-only stand-in for ccmd_client_relocate_icon_if_taken
  *  (cmds/client/basic.c); see desktop_action_client_add's own
  *  comment above for why this is never actually reached */

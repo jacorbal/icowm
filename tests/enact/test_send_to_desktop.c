@@ -119,6 +119,33 @@ int desktop_action_client_add(desktop_td *desktop, client_td *client)
 }
 
 
+/** Link-only stand-in for desktop_action_client_move (desktop.c):
+ *  always succeeds, the move having replaced the remove-add pair this
+ *  file used to stand in for separately.  Records the client's new
+ *  desktop as the real one does, that bookkeeping having moved in
+ *  there too and being what two of the assertions below check */
+int desktop_action_client_move(desktop_td *from, desktop_td *to,
+        client_td *client)
+{
+    (void) from;
+
+    if (to != NULL && client != NULL) {
+        client->desktop_id = to->id;
+    }
+
+    return 0;
+}
+
+
+/** Link-only stand-in for ccmd_publish_wm_desktop
+ *  (cmds/client/ewmh.c): the property it would set needs a server */
+void ccmd_publish_wm_desktop(client_td *client, uint32_t desktop_id)
+{
+    (void) client;
+    (void) desktop_id;
+}
+
+
 /** Link-only stand-in for desktop_action_client_rem (desktop.c) */
 int desktop_action_client_rem(desktop_td *desktop, client_td *client)
 {

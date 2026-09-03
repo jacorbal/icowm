@@ -51,6 +51,22 @@ void desktop_destroy(desktop_td *desktop)
 }
 
 
+/**
+ * @brief Stubbed out so this test need not link the whole of client.c
+ *        for the one timestamp the ping in @c cmds/client/ewmh.c asks
+ *        it for
+ *
+ * @return Zero, which is what the real one answers before any input
+ *         has been seen
+ *
+ * @note Complexity: @e O(1)
+ */
+uint32_t client_last_user_time(void)
+{
+    return 0u;
+}
+
+
 /** This file owns the one real wm_td instance, passed explicitly to
  *  every wm_for_each_client call below */
 wm_td *wm = NULL;
