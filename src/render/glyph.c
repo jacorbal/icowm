@@ -40,6 +40,7 @@
 #include <defs/text.h>
 
 /* Local includes */
+#include <logger.h>
 #include <render/glyph.h>
 #include <utils/xcb/connection.h>
 
@@ -282,6 +283,8 @@ static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
     uint32_t gid;
     uint16_t stride;
     uint8_t *padded;
+    xcb_void_cookie_t add_ck;
+    xcb_generic_error_t *add_err;
 
     if (font == NULL) {
         return false;
@@ -349,12 +352,18 @@ static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
     }
 
     gid = codepoint;
-    (void) xcb_render_add_glyphs_checked(xcb_connection_get(),
+    add_ck = xcb_render_add_glyphs_checked(xcb_connection_get(),
             font->glyphset, 1u, &gid, &ginfo,
             (uint32_t) stride * (uint32_t) ginfo.height, padded);
     free(padded);
 
-    if (font->cache_count < WM_TEXT_GLYPH_CACHE_MAX) {
+    add_err = xcb_request_check(xcb_connection_get(), add_ck);
+    if (add_err != NULL) {
+        LOGGER_WARNING("xcb_render_add_glyphs failed for" \
+                " codepoint=%u, error=%d", codepoint,
+                add_err->error_code);
+        free(add_err);
+    } else if (font->cache_count < WM_TEXT_GLYPH_CACHE_MAX) {
         font->cache[font->cache_count].codepoint = codepoint;
         font->cache[font->cache_count].advance_x = ginfo.x_off;
         ++font->cache_count;

@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
+#include <stdlib.h>     /* free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -32,6 +33,7 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <logger.h>
 #include <render/icon.h>
 
 /* Local includes */
@@ -48,6 +50,9 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
         struct position_s root_pos,
         struct dimensions_s screen_dim)
 {
+    xcb_grab_pointer_cookie_t grab_cookie;
+    xcb_grab_pointer_reply_t *grab_reply;
+
     if (connection == NULL || client == NULL) {
         return;
     }
@@ -87,7 +92,7 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
      * it unselected for a frame first. */
     ri_render_client_icon(client, true, true);
 
-    xcb_grab_pointer(connection,
+    grab_cookie = xcb_grab_pointer(connection,
             0,
             root,
             XCB_EVENT_MASK_BUTTON_RELEASE |
@@ -97,6 +102,18 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
             XCB_NONE,
             XCB_NONE,
             event_time);
+    grab_reply = xcb_grab_pointer_reply(connection, grab_cookie, NULL);
+
+    if (grab_reply == NULL ||
+            grab_reply->status != XCB_GRAB_STATUS_SUCCESS) {
+        LOGGER_WARNING("xcb_grab_pointer failed for icon drag start," \
+                " status=%d",
+                (grab_reply != NULL) ? (int) grab_reply->status : -1);
+        free(grab_reply);
+        s_drag.is_active = false;
+        return;
+    }
+    free(grab_reply);
 }
 
 

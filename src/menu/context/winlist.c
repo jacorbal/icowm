@@ -313,7 +313,9 @@ static void s_cb_focus_client(xcb_connection_t *connection,
  *
  * Wraps @p name in parentheses if the client is iconified, in angle
  * brackets if hidden (but not iconified), or copies it verbatim
- * otherwise.  The result is written into @p buf.
+ * otherwise, then appends @c STR_WINLIST_UNRESPONSIVE_SUFFIX when the
+ * client stopped answering @c _NET_WM_PING (@a client_is_unresponsive,
+ * @c client/predicates.h).  The result is written into @p buf.
  *
  * @c CLIENT_FLAG_HIDDEN is set for both an iconified and a genuinely
  * hidden client (see @c client_hide, called from both paths),
@@ -329,17 +331,22 @@ static void s_cb_focus_client(xcb_connection_t *connection,
 static void s_client_label_format(const client_td *client,
         const char *restrict name, char *restrict buf, size_t buf_size)
 {
+    const char *suffix;
+
     if (client == NULL || name == NULL || buf == NULL ||
             buf_size == 0u) {
         return;
     }
 
+    suffix = client_is_unresponsive(client)
+        ? _(STR_WINLIST_UNRESPONSIVE_SUFFIX) : "";
+
     if (client_is_iconified(client)) {
-        (void) snprintf(buf, buf_size, "(%s)", name);
+        (void) snprintf(buf, buf_size, "(%s)%s", name, suffix);
     } else if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
-        (void) snprintf(buf, buf_size, "<%s>", name);
+        (void) snprintf(buf, buf_size, "<%s>%s", name, suffix);
     } else {
-        (void) snprintf(buf, buf_size, "%s", name);
+        (void) snprintf(buf, buf_size, "%s%s", name, suffix);
     }
 }
 

@@ -103,6 +103,54 @@ static void s_systray_icon_sort_key_fetch(xcb_window_t icon,
 
 
 /**
+ * @brief Whether an icon's own '_XEMBED_INFO' asks to be shown
+ *
+ * Per the XEmbed protocol specification, a conforming icon may publish
+ * '_XEMBED_INFO' (format 32, two 'CARD32': version and flags) with the
+ * 'XEMBED_MAPPED' flag bit still clear while it finishes its own
+ * initialization, and expects the tray manager to honor that rather
+ * than mapping it regardless.  A window with no such property at all
+ * predates the convention, so it is mapped unconditionally, exactly as
+ * icowm already did before this check existed.
+ *
+ * @param icon Icon window to query
+ *
+ * @return @c true if @p icon should be shown right now
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_systray_icon_wants_mapped(xcb_window_t icon)
+{
+    xcb_get_property_cookie_t cookie;
+    xcb_get_property_reply_t *reply;
+    bool wants_mapped;
+
+    if (s_tray.xembed_info_atom == XCB_ATOM_NONE) {
+        return true;
+    }
+
+    cookie = xcb_get_property(xcb_connection_get(), 0, icon,
+            s_tray.xembed_info_atom, s_tray.xembed_info_atom, 0, 2);
+    reply = xcb_get_property_reply(xcb_connection_get(), cookie, NULL);
+
+    wants_mapped = true;
+    if (reply != NULL) {
+        if (reply->format == 32 &&
+                xcb_get_property_value_length(reply) >=
+                    (int) (2u * sizeof(uint32_t))) {
+            const uint32_t *info = (const uint32_t *)
+                xcb_get_property_value(reply);
+
+            wants_mapped = (info[1] & SYSTRAY_XEMBED_MAPPED) != 0u;
+        }
+        free(reply);
+    }
+
+    return wants_mapped;
+}
+
+
+/**
  * @brief Index at which a newly docked icon should be inserted
  *
  * Implements the @p systray.order configuration policy.  Appends,
@@ -216,8 +264,12 @@ void systray_protocol_dock(xcb_window_t icon)
     }
 
     /* Track 'StructureNotify' so 'systray_handle_destroy' learns when
-     * the icon's application exits or otherwise destroys the window */
-    attr_values[0] = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+     * the icon's application exits or otherwise destroys the window,
+     * and 'PropertyNotify' so a later change to '_XEMBED_INFO' (an
+     * icon that starts out with 'XEMBED_MAPPED' clear and sets it
+     * only once its own initialization finishes) is not missed */
+    attr_values[0] = XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+        XCB_EVENT_MASK_PROPERTY_CHANGE;
     xcb_change_window_attributes(xcb_connection_get(), icon,
             XCB_CW_EVENT_MASK, attr_values);
 
@@ -229,7 +281,12 @@ void systray_protocol_dock(xcb_window_t icon)
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
             size_values);
 
-    xcb_window_show(icon);
+    /* A conforming icon may ask, via '_XEMBED_INFO', to stay unmapped
+     * until it finishes initializing; see
+     * 's_systray_icon_wants_mapped' */
+    if (s_systray_icon_wants_mapped(icon)) {
+        xcb_window_show(icon);
+    }
 
     /* The XEMBED handshake tells the icon it is now embedded, and by
      * whom */
@@ -261,6 +318,35 @@ void systray_protocol_dock(xcb_window_t icon)
             (unsigned int) s_tray.icon_count);
 
     systray_layout_reflow();
+}
+
+
+/* React to a property change on a docked icon window; only
+ * '_XEMBED_INFO' toggling its 'XEMBED_MAPPED' bit after the fact is
+ * of any interest here */
+void systray_protocol_property_changed(xcb_window_t window,
+        xcb_atom_t atom)
+{
+    uint16_t i;
+
+    if (atom != s_tray.xembed_info_atom || atom == XCB_ATOM_NONE) {
+        return;
+    }
+
+    for (i = 0u; i < s_tray.icon_count; ++i) {
+        if (s_tray.icons[i].window == window) {
+            break;
+        }
+    }
+    if (i >= s_tray.icon_count) {
+        return;
+    }
+
+    if (s_systray_icon_wants_mapped(window)) {
+        xcb_window_show(window);
+    } else {
+        xcb_window_hide(window);
+    }
 }
 
 
@@ -330,6 +416,8 @@ bool systray_protocol_window_ensure(const wm_td *wm)
     s_tray.visual_atom = atom_intern(connection,
             "_NET_SYSTEM_TRAY_VISUAL", false);
     s_tray.xembed_atom = atom_intern(connection, "_XEMBED", false);
+    s_tray.xembed_info_atom = atom_intern(connection, "_XEMBED_INFO",
+            false);
 
     if (s_tray.selection_atom == XCB_ATOM_NONE ||
             s_tray.opcode_atom == XCB_ATOM_NONE ||

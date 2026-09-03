@@ -57,6 +57,7 @@ typedef struct {
     xcb_window_t window;
     bool in_use;
     char buf[SN_MSG_MAX_LEN];
+    struct timespec updated_at;
 } s_reassembly_td;
 
 
@@ -231,9 +232,16 @@ static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
 static s_reassembly_td *s_reassembly_for(xcb_window_t window)
 {
     s_reassembly_td *free_slot = NULL;
+    struct timespec now;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        now.tv_sec = 0;
+        now.tv_nsec = 0;
+    }
 
     for (uint8_t i = 0u; i < SN_MAX_REASSEMBLY; ++i) {
         if (s_reassembly[i].in_use && s_reassembly[i].window == window) {
+            s_reassembly[i].updated_at = now;
             return &s_reassembly[i];
         }
         if (!s_reassembly[i].in_use && free_slot == NULL) {
@@ -246,6 +254,7 @@ static s_reassembly_td *s_reassembly_for(xcb_window_t window)
         free_slot->window = window;
         free_slot->len = 0u;
         free_slot->buf[0] = '\0';
+        free_slot->updated_at = now;
     }
 
     return free_slot;
@@ -476,18 +485,42 @@ int cctl_sn_ms_remaining(void)
 }
 
 
-/* Expire any pending sequence whose timeout has elapsed */
+/* Expire any pending sequence whose timeout has elapsed, and recycle
+ * any reassembly slot that has sat idle past
+ * 'SN_REASSEMBLY_TIMEOUT_MS' */
 void cctl_sn_tick(xcb_connection_t *connection, list_td *surfaces)
 {
     struct timespec now;
     uint8_t i;
 
-    if (s_pending_count == 0u || connection == NULL ||
-            surfaces == NULL) {
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
         return;
     }
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+    for (i = 0u; i < SN_MAX_REASSEMBLY; ++i) {
+        int64_t idle_ms;
+
+        if (!s_reassembly[i].in_use) {
+            continue;
+        }
+
+        idle_ms =
+            ((int64_t) now.tv_sec -
+                (int64_t) s_reassembly[i].updated_at.tv_sec) * 1000 +
+            ((int64_t) now.tv_nsec -
+                (int64_t) s_reassembly[i].updated_at.tv_nsec) / 1000000;
+
+        if (idle_ms >= (int64_t) SN_REASSEMBLY_TIMEOUT_MS) {
+            LOGGER_DEBUG("Startup-notification reassembly for" \
+                    " window 0x%x abandoned; slot recycled",
+                    s_reassembly[i].window);
+            s_reassembly[i].in_use = false;
+            s_reassembly[i].len = 0u;
+        }
+    }
+
+    if (s_pending_count == 0u || connection == NULL ||
+            surfaces == NULL) {
         return;
     }
 

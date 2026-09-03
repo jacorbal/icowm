@@ -358,6 +358,11 @@ int main(int argc, char *const argv[])
 #endif
     int opt;
 
+    if (log_filename == NULL) {
+        fprintf(stderr, "Failed to store default log destination\n");
+        return 2;
+    }
+
     /* GUI text translation, set up unconditionally, this early,
      * so nothing later ever needs to reason about whether it has
      * run yet: -h/-v themselves are deliberately never translated

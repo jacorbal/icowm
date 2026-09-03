@@ -159,8 +159,7 @@ static const list_td *s_session_hook_list_const(const session_td *session,
  *
  * Finds the first free slot in @c s_session_tracked and stores @p pid
  * together with the originating hook name and command string.  When the
- * table is full the function returns silently and the PID will not be
- * tracked.
+ * table is full, logs a warning and the PID will not be tracked.
  *
  * @param pid     PID of the spawned child process
  * @param hook    Name of the session hook that spawned the child
@@ -181,6 +180,10 @@ static void s_session_track_pid(pid_t pid, const char *restrict hook,
             return;
         }
     }
+
+    LOGGER_WARNING("Session tracking table full;" \
+            " pid %d spawned by hook '%s' will not be tracked",
+            (int) pid, hook);
 }
 
 

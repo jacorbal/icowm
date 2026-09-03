@@ -102,6 +102,7 @@ struct systray_state_s {
     xcb_atom_t orientation_atom;
     xcb_atom_t visual_atom;         /**< @c _NET_SYSTEM_TRAY_VISUAL */
     xcb_atom_t xembed_atom;         /**< @c _XEMBED */
+    xcb_atom_t xembed_info_atom;    /**< @c _XEMBED_INFO */
     enum config_systray_position_e position;
     enum config_systray_order_e order;
     enum config_systray_layer_e layer;
@@ -314,6 +315,19 @@ void systray_protocol_selection_release(void);
  *             request
  */
 void systray_protocol_dock(xcb_window_t icon);
+
+/**
+ * @brief React to a property change on a docked icon window
+ *
+ * A no-op unless @p atom is @c _XEMBED_INFO and @p window is a
+ * currently docked icon, in which case the icon is shown or hidden to
+ * match its @c XEMBED_MAPPED flag bit, as read fresh from the window.
+ *
+ * @param window Window the property changed on
+ * @param atom   Property that changed
+ */
+void systray_protocol_property_changed(xcb_window_t window,
+        xcb_atom_t atom);
 
 /**
  * @brief Re-apply the theme's background color, border color, and

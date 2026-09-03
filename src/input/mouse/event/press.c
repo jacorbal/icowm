@@ -64,6 +64,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <logger.h>
 #include <lookup.h>
 #include <surface.h>
 #include <wm.h>
@@ -146,13 +147,19 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_1) {
         xcb_get_geometry_cookie_t gc;
         xcb_get_geometry_reply_t *gr;
+        xcb_generic_error_t *err;
         struct position_s icon_pos;
         struct position_s root_pos;
         struct dimensions_s screen_dim;
         const surface_td *surface;
 
         gc = xcb_get_geometry(connection, client->icon_window);
-        gr = xcb_get_geometry_reply(connection, gc, NULL);
+        gr = xcb_get_geometry_reply(connection, gc, &err);
+        if (err != NULL) {
+            LOGGER_TRACE("xcb_get_geometry failed for icon window," \
+                    " error=%d", err->error_code);
+            free(err);
+        }
         icon_pos.x = (gr != NULL)
             ? (int32_t) gr->x : (int32_t) client->icon_pos.x;
         icon_pos.y = (gr != NULL)

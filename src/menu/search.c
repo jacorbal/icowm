@@ -797,6 +797,17 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
+    /* Advertise this as a dialog window, so a compositor or pager
+     * that inspects '_NET_WM_WINDOW_TYPE' recognizes it for what
+     * it is */
+    if (xcb_ewmh_connection_get() != NULL) {
+        xcb_atom_t window_type =
+            xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_DIALOG;
+
+        xcb_ewmh_set_wm_window_type(xcb_ewmh_connection_get(),
+                s_search.window, 1, &window_type);
+    }
+
     xcb_map_window(connection, s_search.window);
     xcb_grab_keyboard(connection,
             0,

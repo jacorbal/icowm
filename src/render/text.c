@@ -723,6 +723,7 @@ static bool s_try_x11(xcb_connection_t *connection, const char *xlfd,
 {
     uint32_t gc_values[2];
     xcb_query_font_reply_t *qf_reply;
+    xcb_generic_error_t *gc_err;
 
     entry->font = xcb_generate_id(connection);
     xcb_open_font(connection, entry->font,
@@ -751,11 +752,24 @@ static bool s_try_x11(xcb_connection_t *connection, const char *xlfd,
      * use the foreground/background colors from theme */
     gc_values[0] = 0xFFFFFFu;   /* fg: white */
     gc_values[1] = 0x000000u;   /* bg: black */
-    xcb_create_gc(connection, entry->gc,
-            xcb_setup_roots_iterator(xcb_get_setup(connection)).data->root,
-            XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
-    xcb_change_gc(connection, entry->gc, XCB_GC_FONT,
-            (const uint32_t[]) {entry->font});
+    gc_err = xcb_request_check(connection,
+            xcb_create_gc_checked(connection, entry->gc,
+                xcb_setup_roots_iterator(
+                    xcb_get_setup(connection)).data->root,
+                XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values));
+    if (gc_err != NULL) {
+        LOGGER_WARNING("xcb_create_gc failed for text renderer," \
+                " error=%d", gc_err->error_code);
+        free(gc_err);
+    }
+    gc_err = xcb_request_check(connection,
+            xcb_change_gc_checked(connection, entry->gc, XCB_GC_FONT,
+                (const uint32_t[]) {entry->font}));
+    if (gc_err != NULL) {
+        LOGGER_WARNING("xcb_change_gc failed for text renderer," \
+                " error=%d", gc_err->error_code);
+        free(gc_err);
+    }
 
     return true;
 }

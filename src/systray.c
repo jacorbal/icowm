@@ -389,6 +389,21 @@ void systray_handle_destroy(wm_td *wm, xcb_window_t window)
 }
 
 
+/* Handle a property change on a docked icon window */
+void systray_handle_property_notify(const wm_td *wm,
+        const xcb_property_notify_event_t *event)
+{
+    (void) wm;
+
+    if (event == NULL || !s_tray.is_window_ready ||
+            event->state == XCB_PROPERTY_DELETE) {
+        return;
+    }
+
+    systray_protocol_property_changed(event->window, event->atom);
+}
+
+
 /* Reposition the tray dock window for its surface's current size */
 void systray_handle_surface_resize(wm_td *wm)
 {

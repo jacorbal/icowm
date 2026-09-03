@@ -101,7 +101,7 @@ void notify_popup_show_centered(xcb_connection_t *connection,
     int16_t x;
     int16_t y;
     uint32_t mask;
-    uint32_t values[3];
+    uint32_t values[4];
     uint16_t text_w;
 
     if (connection == NULL || surface == NULL || state == NULL ||
@@ -125,10 +125,14 @@ void notify_popup_show_centered(xcb_connection_t *connection,
     if (y < 0) { y = 0; }
 
     state->window = xcb_generate_id(connection);
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    mask = XCB_CW_BACK_PIXEL        |
+           XCB_CW_BORDER_PIXEL      |
+           XCB_CW_OVERRIDE_REDIRECT |
+           XCB_CW_EVENT_MASK;
     values[0] = cfg->theme.overlay.color.background;
     values[1] = cfg->theme.overlay.border.color;
-    values[2] = XCB_EVENT_MASK_EXPOSURE;
+    values[2] = 1;  /* override_redirect: prevent WM from managing it */
+    values[3] = XCB_EVENT_MASK_EXPOSURE;
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, state->window,
             surface->screen->root, x, y, (uint16_t) width,

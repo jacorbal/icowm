@@ -125,6 +125,7 @@
 #define STR_WINLIST_DESKTOP_ADD "Add new desktop"
 #define STR_WINLIST_DESKTOP_REMOVE "Remove last desktop"
 #define STR_WINLIST_NO_WINDOWS "(no windows)"
+#define STR_WINLIST_UNRESPONSIVE_SUFFIX " (not responding)"
 
 /* Quit-confirmation dialog ('src/menu/dialog/quit.c'); the prompt is
  * a format string taking the window manager's display name (see

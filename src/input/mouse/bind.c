@@ -259,7 +259,9 @@ void mouse_load(list_td *surfaces, const config_td *config)
             for (size_t k = 0;
                     k < sizeof(lockmods) / sizeof(lockmods[0]);
                     ++k) {
-                xcb_grab_button(xcb_connection_get(),
+                xcb_void_cookie_t ck;
+                xcb_generic_error_t *err;
+                ck = xcb_grab_button_checked(connection,
                         0,
                         surface->screen->root,
                         XCB_EVENT_MASK_BUTTON_PRESS   |
@@ -271,11 +273,18 @@ void mouse_load(list_td *surfaces, const config_td *config)
                         XCB_NONE,
                         (uint8_t) button,
                         (uint16_t) (modmask | lockmods[k]));
+                err = xcb_request_check(connection, ck);
+                if (err != NULL) {
+                    LOGGER_WARNING(
+                            "xcb_grab_button failed for" \
+                            " button=%u modmask=0x%x error=%d",
+                            (unsigned) button,
+                            (unsigned) (modmask | lockmods[k]),
+                            err->error_code);
+                    free(err);
+                }
             }
         }
-    }
-
-    if (connection != NULL) {
     }
 
     LOGGER_DEBUG("Grabbed %d mouse binding(s)", s_mousebindings_count);

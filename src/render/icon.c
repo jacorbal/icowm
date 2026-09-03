@@ -42,6 +42,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <render/icon.h>
+#include <render/outdate.h>
 #include <render/text.h>
 #include <render/wmicon.h>
 #include <systray.h>
@@ -261,7 +262,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * 'desktop_render_clients', which routes a hidden client here
      * instead).  Left uncleared, it would stay 'true' forever once set,
      * permanently defeating the skip check above. */
-    client->is_outdated = false;
+    wm_validate_client(client);
 }
 
 

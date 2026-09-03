@@ -24,6 +24,7 @@
 #include <render/desktop.h>
 
 /* Local includes */
+#include <render/outdate.h>
 #include <render/surface.h>
 #include <utils/xcb/connection.h>
 
@@ -174,7 +175,7 @@ int surface_render_all_desktops(surface_td *surface)
 
     /* FLUSH ONCE at the end, not per-desktop */
     surface_render_flush(surface);
-    surface->is_outdated = false;
+    wm_validate_surface(surface);
 
     return 0;
 }
@@ -206,4 +207,5 @@ void surface_render_flush(surface_td *surface)
     }
 
     LOGGER_DEBUG("Flushing surface %u to X server", surface->id);
+    xcb_flush(xcb_connection_get());
 }

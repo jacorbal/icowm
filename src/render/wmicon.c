@@ -57,8 +57,11 @@
  * offers never changes for the life of that connection, so querying it
  * again on every icon rebuilt is pure waste.
  *
- * @note Never freed: held for the life of the process, perpetually, the
- *       same as @c render/glyph.c's copy of this same cache
+ * @note Held for the life of the current connection, the same as
+ *       @c render/glyph.c's copy of this same cache; freed and
+ *       re-queried only if @c s_get_formats is ever called again with
+ *       a different connection, which does not currently happen in
+ *       practice
  *
  * @see @c render/glyph.c, which caches it the same way, for the same
  *      reason
@@ -101,6 +104,9 @@ static const xcb_render_query_pict_formats_reply_t *s_get_formats(
         xcb_connection_t *connection)
 {
     if (s_formats == NULL || s_formats_connection != connection) {
+        if (s_formats != NULL) {
+            free((void *) s_formats);
+        }
         s_formats = xcb_render_util_query_formats(connection);
         s_formats_connection = connection;
     }
@@ -930,4 +936,23 @@ void wmicon_invalidate(xcb_connection_t *connection,
     cache->dest_w = 0u;
     cache->dest_h = 0u;
     cache->has_no_icon = false;
+}
+
+
+/* Release the cached picture-format query and default-icon graphics
+ * context held across all 'wmicon_draw' calls */
+void wmicon_renderer_destroy(void)
+{
+    if (s_formats != NULL) {
+        free((void *) s_formats);
+        s_formats = NULL;
+    }
+    s_formats_connection = NULL;
+
+    if (s_default_icon_gc != XCB_NONE &&
+            s_default_icon_gc_connection != NULL) {
+        xcb_free_gc(s_default_icon_gc_connection, s_default_icon_gc);
+    }
+    s_default_icon_gc = XCB_NONE;
+    s_default_icon_gc_connection = NULL;
 }

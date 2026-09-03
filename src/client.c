@@ -720,7 +720,6 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  * manager is already running.
  *
  * @param connection XCB connection
- * @param ewmh       EWMH connection; a no-op if @c NULL
  * @param window     Window being adopted
  * @param ck         Requests already issued by @a client_init; this
  *                   reader awaits its rather than making one
@@ -731,95 +730,92 @@ static void s_client_read_motif_hints(xcb_connection_t *connection,
  *       '_NET_WM_STATE' lists
  */
 static void s_client_read_pre_existing_state(xcb_connection_t *connection,
-        const xcb_ewmh_connection_t *ewmh, xcb_window_t window,
-        client_td *client,
+        xcb_window_t window, client_td *client,
         const struct s_client_cookies_init_s *ck)
 {
-    if (ewmh != NULL) {
-        xcb_atom_t atom_above;
-        xcb_atom_t atom_below;
-        xcb_atom_t atom_skip_taskbar;
-        xcb_atom_t atom_skip_pager;
-        xcb_atom_t atom_fullscreen;
-        xcb_atom_t atom_max_horz;
-        xcb_atom_t atom_max_vert;
-        xcb_atom_t atom_demands_attention;
+    xcb_atom_t atom_above;
+    xcb_atom_t atom_below;
+    xcb_atom_t atom_skip_taskbar;
+    xcb_atom_t atom_skip_pager;
+    xcb_atom_t atom_fullscreen;
+    xcb_atom_t atom_max_horz;
+    xcb_atom_t atom_max_vert;
+    xcb_atom_t atom_demands_attention;
 
-        atom_above = atom_intern(connection, "_NET_WM_STATE_ABOVE", true);
-        atom_below = atom_intern(connection, "_NET_WM_STATE_BELOW", true);
-        atom_skip_taskbar = atom_intern(connection,
-                "_NET_WM_STATE_SKIP_TASKBAR", true);
-        atom_skip_pager = atom_intern(connection,
-                "_NET_WM_STATE_SKIP_PAGER", true);
-        atom_fullscreen = atom_intern(connection,
-                "_NET_WM_STATE_FULLSCREEN", true);
-        atom_max_horz = atom_intern(connection,
-                "_NET_WM_STATE_MAXIMIZED_HORZ", true);
-        atom_max_vert = atom_intern(connection,
-                "_NET_WM_STATE_MAXIMIZED_VERT", true);
-        atom_demands_attention = atom_intern(connection,
-                "_NET_WM_STATE_DEMANDS_ATTENTION", true);
+    atom_above = atom_intern(connection, "_NET_WM_STATE_ABOVE", true);
+    atom_below = atom_intern(connection, "_NET_WM_STATE_BELOW", true);
+    atom_skip_taskbar = atom_intern(connection,
+            "_NET_WM_STATE_SKIP_TASKBAR", true);
+    atom_skip_pager = atom_intern(connection,
+            "_NET_WM_STATE_SKIP_PAGER", true);
+    atom_fullscreen = atom_intern(connection,
+            "_NET_WM_STATE_FULLSCREEN", true);
+    atom_max_horz = atom_intern(connection,
+            "_NET_WM_STATE_MAXIMIZED_HORZ", true);
+    atom_max_vert = atom_intern(connection,
+            "_NET_WM_STATE_MAXIMIZED_VERT", true);
+    atom_demands_attention = atom_intern(connection,
+            "_NET_WM_STATE_DEMANDS_ATTENTION", true);
 
-        if (atom_above != XCB_ATOM_NONE ||
-                atom_below != XCB_ATOM_NONE ||
-                atom_skip_taskbar != XCB_ATOM_NONE ||
-                atom_skip_pager != XCB_ATOM_NONE ||
-                atom_fullscreen != XCB_ATOM_NONE ||
-                atom_max_horz != XCB_ATOM_NONE ||
-                atom_max_vert != XCB_ATOM_NONE ||
-                atom_demands_attention != XCB_ATOM_NONE) {
-            xcb_get_property_reply_t *state_r;
+    if (atom_above != XCB_ATOM_NONE ||
+            atom_below != XCB_ATOM_NONE ||
+            atom_skip_taskbar != XCB_ATOM_NONE ||
+            atom_skip_pager != XCB_ATOM_NONE ||
+            atom_fullscreen != XCB_ATOM_NONE ||
+            atom_max_horz != XCB_ATOM_NONE ||
+            atom_max_vert != XCB_ATOM_NONE ||
+            atom_demands_attention != XCB_ATOM_NONE) {
+        xcb_get_property_reply_t *state_r;
 
-            state_r = xcb_get_property_reply(connection, ck->wm_state,
-                    NULL);
-            if (state_r != NULL) {
-                uint32_t natoms = (uint32_t)
-                    xcb_get_property_value_length(state_r) /
-                    sizeof(xcb_atom_t);
-                const xcb_atom_t *atoms = (xcb_atom_t *)
-                    xcb_get_property_value(state_r);
-                for (uint32_t si = 0; si < natoms; ++si) {
-                    if (atoms[si] == atom_above) {
-                        client->properties.layer = CLIENT_LAYER_ABOVE;
-                    } else if (atoms[si] == atom_below) {
-                        client->properties.layer = CLIENT_LAYER_BELOW;
-                    } else if (atoms[si] == atom_skip_taskbar) {
-                        client_skip_taskbar(client);
-                    } else if (atoms[si] == atom_skip_pager) {
-                        client_skip_pager(client);
-                    } else if (atoms[si] == atom_fullscreen) {
-                        client->hints_ewmh.initial_state.is_fullscreen =
-                            true;
-                    } else if (atoms[si] == atom_max_horz) {
-                        client->hints_ewmh.initial_state
-                            .is_maximized_horz = true;
-                    } else if (atoms[si] == atom_max_vert) {
-                        client->hints_ewmh.initial_state
-                            .is_maximized_vert = true;
-                    } else if (atoms[si] == atom_demands_attention) {
-                        client_urge(client);
-                    }
+        state_r = xcb_get_property_reply(connection, ck->wm_state,
+                NULL);
+        if (state_r != NULL) {
+            uint32_t natoms = (uint32_t)
+                xcb_get_property_value_length(state_r) /
+                sizeof(xcb_atom_t);
+            const xcb_atom_t *atoms = (xcb_atom_t *)
+                xcb_get_property_value(state_r);
+            for (uint32_t si = 0; si < natoms; ++si) {
+                if (atoms[si] == atom_above) {
+                    client->properties.layer = CLIENT_LAYER_ABOVE;
+                } else if (atoms[si] == atom_below) {
+                    client->properties.layer = CLIENT_LAYER_BELOW;
+                } else if (atoms[si] == atom_skip_taskbar) {
+                    client_skip_taskbar(client);
+                } else if (atoms[si] == atom_skip_pager) {
+                    client_skip_pager(client);
+                } else if (atoms[si] == atom_fullscreen) {
+                    client->hints_ewmh.initial_state.is_fullscreen =
+                        true;
+                } else if (atoms[si] == atom_max_horz) {
+                    client->hints_ewmh.initial_state
+                        .is_maximized_horz = true;
+                } else if (atoms[si] == atom_max_vert) {
+                    client->hints_ewmh.initial_state
+                        .is_maximized_vert = true;
+                } else if (atoms[si] == atom_demands_attention) {
+                    client_urge(client);
                 }
-                LOGGER_TRACE("window=0x%x pre-existing _NET_WM_STATE:" \
-                        " layer=%u, skip_taskbar=%d, skip_pager=%d," \
-                        " fullscreen=%d, maximized_horz=%d," \
-                        " maximized_vert=%d, urgent=%d",
-                        window, (unsigned int) client->properties.layer,
-                        (int) ((client->properties.flags &
-                                CLIENT_FLAG_SKIP_TASKBAR) != 0u),
-                        (int) ((client->properties.flags &
-                                CLIENT_FLAG_SKIP_PAGER) != 0u),
-                        (int) client->hints_ewmh.initial_state
-                            .is_fullscreen,
-                        (int) client->hints_ewmh.initial_state
-                            .is_maximized_horz,
-                        (int) client->hints_ewmh.initial_state
-                            .is_maximized_vert,
-                        (int) client_is_urgent(client));
-                free(state_r);
-            } /* ! if (!state_r) */
-        } /* ! if (atom_above) */
-    } /* ! if (!ewmh) */
+            }
+            LOGGER_TRACE("window=0x%x pre-existing _NET_WM_STATE:" \
+                    " layer=%u, skip_taskbar=%d, skip_pager=%d," \
+                    " fullscreen=%d, maximized_horz=%d," \
+                    " maximized_vert=%d, urgent=%d",
+                    window, (unsigned int) client->properties.layer,
+                    (int) ((client->properties.flags &
+                            CLIENT_FLAG_SKIP_TASKBAR) != 0u),
+                    (int) ((client->properties.flags &
+                            CLIENT_FLAG_SKIP_PAGER) != 0u),
+                    (int) client->hints_ewmh.initial_state
+                        .is_fullscreen,
+                    (int) client->hints_ewmh.initial_state
+                        .is_maximized_horz,
+                    (int) client->hints_ewmh.initial_state
+                        .is_maximized_vert,
+                    (int) client_is_urgent(client));
+            free(state_r);
+        } /* ! if (!state_r) */
+    } /* ! if (atom_above) */
 }
 
 
@@ -1244,8 +1240,7 @@ client_td *client_init(xcb_connection_t *connection,
 
     /* Read the pre-existing '_NET_WM_STATE' property; see the sibling
      * function's comment for the full explanation */
-    s_client_read_pre_existing_state(connection, ewmh, window,
-            client, &ck);
+    s_client_read_pre_existing_state(connection, window, client, &ck);
 
     /* Read '_NET_WM_PID': associate X window with its owning process */
     ewmh_pid = 0u;

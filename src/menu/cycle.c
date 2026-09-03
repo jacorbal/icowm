@@ -525,6 +525,18 @@ void cycle_init(xcb_connection_t *connection,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
+    /* Advertise this as a menu window, matching the same override
+     * redirect 'ctxmenu.c' also uses, so a compositor or pager
+     * that inspects '_NET_WM_WINDOW_TYPE' recognizes this switcher
+     * for what it is */
+    if (xcb_ewmh_connection_get() != NULL) {
+        xcb_atom_t window_type =
+            xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_MENU;
+
+        xcb_ewmh_set_wm_window_type(xcb_ewmh_connection_get(),
+                g_cycle_menu.window, 1, &window_type);
+    }
+
     /* Same window-level opacity 'ctxmenu.c''s window publishes,
      * shared with it via 'config_theme_s.menu.opacity' ('config.h') */
     atom_set_window_opacity(connection, g_cycle_menu.window,

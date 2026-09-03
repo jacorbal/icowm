@@ -948,8 +948,6 @@ void handler_configure_notify(xcb_connection_t *connection,
                                 : ((client->config != NULL)
                                         ? &client->config->theme : NULL));
                 }
-                if (connection != NULL) {
-                }
             }
             if (geom_changed) {
                 wm_outdate_client(client);

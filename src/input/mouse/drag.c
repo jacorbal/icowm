@@ -24,6 +24,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf, NULL */
+#include <stdlib.h>     /* free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -544,6 +545,9 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         struct position_s root_pos,
         struct dimensions_s screen_dim)
 {
+    xcb_grab_pointer_cookie_t grab_cookie;
+    xcb_grab_pointer_reply_t *grab_reply;
+
     if (connection == NULL || client == NULL) {
         return;
     }
@@ -659,7 +663,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         drag_outline_start(connection, s_drag.client_start);
     }
 
-    xcb_grab_pointer(connection,
+    grab_cookie = xcb_grab_pointer(connection,
             0,
             root,
             XCB_EVENT_MASK_BUTTON_RELEASE |
@@ -673,6 +677,21 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
                         s_drag.is_resize_h, s_drag.is_anchor_right,
                         s_drag.is_anchor_bottom),
             event_time);
+    grab_reply = xcb_grab_pointer_reply(connection, grab_cookie, NULL);
+
+    if (grab_reply == NULL ||
+            grab_reply->status != XCB_GRAB_STATUS_SUCCESS) {
+        LOGGER_WARNING("xcb_grab_pointer failed for drag start," \
+                " status=%d",
+                (grab_reply != NULL) ? (int) grab_reply->status : -1);
+        free(grab_reply);
+        if (!s_drag.is_solid_drag) {
+            drag_outline_end(connection);
+        }
+        s_drag.is_active = false;
+        return;
+    }
+    free(grab_reply);
     xcb_flush(connection);
 }
 

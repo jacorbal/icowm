@@ -56,6 +56,7 @@
 /* Local includes */
 #include <render/desktop.h>
 #include <render/icon.h>
+#include <render/outdate.h>
 #include <utils/xcb/connection.h>
 #include <utils/xcb/window.h>
 
@@ -645,7 +646,7 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
         }
     }
 
-    client->is_outdated = false;
+    wm_validate_client(client);
 }
 
 
@@ -1310,7 +1311,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
     }
 
     /* Mark desktop as up-to-date */
-    desktop->is_outdated = false;
+    wm_validate_desktop(desktop);
 
     /* Every client just had its chance, in the loop above, to compare
      * itself against 'is_focus_dirty' and refresh its decoration

@@ -81,4 +81,49 @@ static inline void wm_outdate_desktop(desktop_td *d)
 }
 
 
+/**
+ * @brief Clear a client's outdated flag once its repaint is done
+ *
+ * @param c Client to validate, or null (no-op)
+ *
+ * @note Complexity: @e O(1)
+ */
+static inline void wm_validate_client(client_td *c)
+{
+    if (c != NULL) {
+        c->is_outdated = false;
+    }
+}
+
+
+/**
+ * @brief Clear a surface's outdated flag once its repaint is done
+ *
+ * @param s Surface to validate, or null (no-op)
+ *
+ * @note Complexity: @e O(1)
+ */
+static inline void wm_validate_surface(surface_td *s)
+{
+    if (s != NULL) {
+        s->is_outdated = false;
+    }
+}
+
+
+/**
+ * @brief Clear a desktop's outdated flag once its repaint is done
+ *
+ * @param d Desktop to validate, or null (no-op)
+ *
+ * @note Complexity: @e O(1)
+ */
+static inline void wm_validate_desktop(desktop_td *d)
+{
+    if (d != NULL) {
+        d->is_outdated = false;
+    }
+}
+
+
 #endif  /* ! RENDER_OUTDATE_H */

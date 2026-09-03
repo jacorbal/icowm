@@ -58,6 +58,12 @@
  */
 #define SYSTRAY_OPCODE_REQUEST_DOCK (0u)
 
+/**
+ * @c XEMBED_MAPPED bit of the @c flags field in @c _XEMBED_INFO,
+ * signaling that the icon wants to be shown
+ */
+#define SYSTRAY_XEMBED_MAPPED (1u << 0)
+
 
 /**
  * @brief Acquire the tray selection and create the dock window
@@ -257,6 +263,22 @@ void systray_handle_client_message(wm_td *wm,
  * @note Complexity: @e O(n), where @e n is the number of docked icons
  */
 void systray_handle_destroy(wm_td *wm, xcb_window_t window);
+
+/**
+ * @brief Handle a property change on a docked icon window
+ *
+ * Only @c _XEMBED_INFO is of interest: when its @c XEMBED_MAPPED flag
+ * bit changes after the icon was already docked, the icon is shown or
+ * hidden to match.  A no-op for any other property, or for a window
+ * that is not currently docked.
+ *
+ * @param wm    Window manager state
+ * @param event Incoming @c PropertyNotify event
+ *
+ * @note Complexity: @e O(n), where @e n is the number of docked icons
+ */
+void systray_handle_property_notify(const wm_td *wm,
+        const xcb_property_notify_event_t *event);
 
 /**
  * @brief Reposition the tray dock window for its surface's current size

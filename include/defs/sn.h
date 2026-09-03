@@ -45,6 +45,19 @@
  *  sender window sending interleaved chunks) */
 #define SN_MAX_REASSEMBLY (8)
 
+/**
+ * @brief Milliseconds an in-progress reassembly slot may sit idle
+ *        before it is forcibly recycled
+ *
+ * The chunks of one message arrive back-to-back in the same burst, so
+ * a slot that has not seen a fragment in this long belongs to a sender
+ * that stopped mid-message (crashed, closed the window, or never sent
+ * the final short chunk) rather than one that is merely running slow;
+ * without this, such a slot would sit reserved forever and, with
+ * enough of them, permanently starve @c SN_MAX_REASSEMBLY.
+ */
+#define SN_REASSEMBLY_TIMEOUT_MS (5000)
+
 /** Bytes of text payload in one format-8 @c ClientMessage */
 #define SN_CHUNK_LEN (20)
 

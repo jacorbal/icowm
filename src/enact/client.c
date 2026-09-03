@@ -182,8 +182,6 @@ void enact_broadcast_client_event(client_td *client, uint32_t type)
 void enact_client_close(client_td *client)
 {
     ccmd_client_close(client);
-    if (client != NULL) {
-    }
 }
 
 
@@ -191,8 +189,6 @@ void enact_client_close(client_td *client)
 void enact_client_kill(client_td *client)
 {
     ccmd_client_kill(client);
-    if (client != NULL) {
-    }
 }
 
 
@@ -211,8 +207,6 @@ void enact_client_restore(client_td *client)
 void enact_client_focus(client_td *client)
 {
     ccmd_client_focus(client);
-    if (client != NULL) {
-    }
 }
 
 
@@ -659,8 +653,6 @@ void enact_client_cycle_layer(client_td *client)
 void enact_client_urge(client_td *client)
 {
     ccmd_client_urge(client);
-    if (client != NULL) {
-    }
 }
 
 
@@ -668,8 +660,6 @@ void enact_client_urge(client_td *client)
 void enact_client_unurge(client_td *client)
 {
     ccmd_client_unurge(client);
-    if (client != NULL) {
-    }
 }
 
 

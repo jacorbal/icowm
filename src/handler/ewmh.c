@@ -380,7 +380,6 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
  * plumbing with the top-level call it makes on the family's top
  * parent and on every other member in turn.
  *
- * @param wm          Window manager instance
  * @param client      Client to move; must be non-null
  * @param surface     Client's surface; must be non-null
  * @param src_desktop Client's current desktop; must be non-null
@@ -391,13 +390,10 @@ static void s_moveresize_direction_to_anchor(uint32_t direction,
  *
  * @note Complexity: @e O(1)
  */
-static void s_hi_handle_net_wm_desktop_one(const wm_td *wm,
-        client_td *client, const surface_td *surface,
-        desktop_td *src_desktop, desktop_td *tgt_desktop,
-        uint32_t target_id)
+static void s_hi_handle_net_wm_desktop_one(client_td *client,
+        const surface_td *surface, desktop_td *src_desktop,
+        desktop_td *tgt_desktop, uint32_t target_id)
 {
-    xcb_connection_t *connection = wm_connection(wm);
-
     /* Moved as one step: the removal and the insertion together,
      * plus the client's recorded 'desktop_id', which anything
      * reading a client's desktop from that field directly (the
@@ -421,11 +417,7 @@ static void s_hi_handle_net_wm_desktop_one(const wm_td *wm,
         ccmd_client_unmap_decorated(client, target);
     }
 
-    if (wm_ewmh(wm) != NULL) {
-        xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-                client->window, wm_ewmh(wm)->_NET_WM_DESKTOP,
-                XCB_ATOM_CARDINAL, 32, 1, &target_id);
-    }
+    ccmd_publish_wm_desktop(client, target_id);
 
     wm_outdate_desktop(src_desktop);
     wm_outdate_desktop(tgt_desktop);
@@ -609,14 +601,14 @@ void hi_handle_net_wm_desktop(const wm_td *wm,
         return;
     }
 
-    s_hi_handle_net_wm_desktop_one(wm, top, surface, top_desktop,
+    s_hi_handle_net_wm_desktop_one(top, surface, top_desktop,
             tgt_desktop, target_id);
 
     siblings = ccmd_client_transient_family_snapshot(top_desktop, top,
             &count);
     if (siblings != NULL) {
         for (size_t i = 0; i < count; i++) {
-            s_hi_handle_net_wm_desktop_one(wm, siblings[i], surface,
+            s_hi_handle_net_wm_desktop_one(siblings[i], surface,
                     top_desktop, tgt_desktop, target_id);
         }
 

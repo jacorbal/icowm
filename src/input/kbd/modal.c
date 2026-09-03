@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
+#include <stdlib.h>     /* free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -27,6 +28,7 @@
 #include <client.h>
 #include <config.h>
 #include <enact.h>
+#include <logger.h>
 #include <render/surface.h>
 #include <utils/geom.h>
 
@@ -325,30 +327,43 @@ static void s_modal_enter(xcb_connection_t *connection,
         surface_td *surface, client_td *client, s_mode_e mode)
 {
     xcb_window_t root_win;
+    xcb_grab_keyboard_cookie_t cookie;
+    xcb_grab_keyboard_reply_t *reply;
 
     if (connection == NULL || client == NULL || surface == NULL) {
         return;
     }
+
+    root_win = (surface->screen != NULL)
+        ? surface->screen->root
+        : XCB_WINDOW_NONE;
+
+    if (root_win == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    cookie = xcb_grab_keyboard(connection,
+            0,
+            root_win,
+            XCB_CURRENT_TIME,
+            XCB_GRAB_MODE_ASYNC,
+            XCB_GRAB_MODE_ASYNC);
+    reply = xcb_grab_keyboard_reply(connection, cookie, NULL);
+
+    if (reply == NULL || reply->status != XCB_GRAB_STATUS_SUCCESS) {
+        LOGGER_WARNING("xcb_grab_keyboard failed for modal session," \
+                " status=%d",
+                (reply != NULL) ? (int) reply->status : -1);
+        free(reply);
+        return;
+    }
+    free(reply);
 
     s_conn = connection;
     s_client = client;
     s_saved_geom = client->layout.geometry.cur;
     s_edge = KBD_EDGE_NONE;
     s_mode = mode;
-
-    root_win = (surface->screen != NULL)
-        ? surface->screen->root
-        : XCB_WINDOW_NONE;
-
-    if (root_win != XCB_WINDOW_NONE) {
-        xcb_grab_keyboard(connection,
-                0,
-                root_win,
-                XCB_CURRENT_TIME,
-                XCB_GRAB_MODE_ASYNC,
-                XCB_GRAB_MODE_ASYNC);
-        xcb_flush(connection);
-    }
 }
 
 

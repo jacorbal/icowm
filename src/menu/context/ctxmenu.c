@@ -141,6 +141,17 @@ void ctxmenu_show(xcb_connection_t *connection,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
+    /* Advertise this as a menu window, so a compositor or pager
+     * that inspects '_NET_WM_WINDOW_TYPE' recognizes this and every
+     * submenu built the same way for what they are */
+    if (xcb_ewmh_connection_get() != NULL) {
+        xcb_atom_t window_type =
+            xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_MENU;
+
+        xcb_ewmh_set_wm_window_type(xcb_ewmh_connection_get(),
+                state->window, 1, &window_type);
+    }
+
     /* The whole menu window's opacity, distinct from any one
      * row's font/color/border, since '_NET_WM_WINDOW_OPACITY' is
      * a per-window property, not a per-row one; see the doc comment
@@ -216,9 +227,6 @@ void ctxmenu_close(ctxmenu_state_td *state)
     if (state->parent == NULL && xcb_connection_get() != NULL) {
         xcb_ungrab_keyboard(xcb_connection_get(), XCB_CURRENT_TIME);
         xcb_ungrab_pointer(xcb_connection_get(), XCB_CURRENT_TIME);
-    }
-
-    if (xcb_connection_get() != NULL) {
     }
 
     state->window = XCB_WINDOW_NONE;

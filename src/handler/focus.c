@@ -116,6 +116,15 @@ void handler_property_notify(const wm_td *wm,
         return;
     }
 
+    /* A docked systray icon is a plain reparented window, never a
+     * managed client, so 'lookup_find_client' below would never find
+     * one for it either; checked here for the same reason the root
+     * window is checked just above */
+    if (systray_owns_window(event->window)) {
+        systray_handle_property_notify(wm, event);
+        return;
+    }
+
     desktop = NULL;
     client = lookup_find_client(surfaces, event->window,
             &surface, &desktop);

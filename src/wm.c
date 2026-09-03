@@ -31,6 +31,7 @@
 
 /* Render includes */
 #include <render/text.h>
+#include <render/wmicon.h>
 
 /* Default initial values */
 #include <defs/uistr.h>
@@ -208,6 +209,7 @@ static void s_wm_cleanup(void)
     }
 
     text_renderer_destroy();
+    wmicon_renderer_destroy();
 
     s_wm_release_manager_selections();
 

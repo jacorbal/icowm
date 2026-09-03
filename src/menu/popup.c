@@ -84,7 +84,7 @@ void popup_show(xcb_connection_t *connection,
     int32_t max_x;
     int32_t max_y;
     uint32_t mask;
-    uint32_t values[3];
+    uint32_t values[4];
     surface_td *client_surface = NULL;
     monitor_td client_monitor;
     uint32_t monitor_id = 0u;
@@ -180,10 +180,14 @@ void popup_show(xcb_connection_t *connection,
     s_popup_keycode = keycode;
     s_popup_window = xcb_generate_id(connection);
 
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+    mask = XCB_CW_BACK_PIXEL        |
+           XCB_CW_BORDER_PIXEL      |
+           XCB_CW_OVERRIDE_REDIRECT |
+           XCB_CW_EVENT_MASK;
     values[0] = cfg->theme.overlay.color.background;
     values[1] = cfg->theme.overlay.border.color;
-    values[2] = XCB_EVENT_MASK_EXPOSURE    |
+    values[2] = 1;  /* override_redirect: prevent WM from managing it */
+    values[3] = XCB_EVENT_MASK_EXPOSURE    |
                 XCB_EVENT_MASK_BUTTON_PRESS |
                 XCB_EVENT_MASK_KEY_PRESS;
     xcb_create_window(connection,

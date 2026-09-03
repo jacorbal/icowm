@@ -46,7 +46,6 @@
 /* Local includes */
 #include <rules.h>
 #include <rules/internal.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -396,63 +395,21 @@ static void s_rules_apply_flags(client_td *client,
 }
 
 
-/**
- * @brief Apply the map/unmap side effect of a desktop-reassignment rule
- *
- * Only relevant when a property-triggered rule (@p trigger @c ==
- * @c RULES_TRIGGER_PROPERTY) actually moved @p client to a different
- * desktop than it was already on: unmaps @p client's window (and its
- * frame, if decorated) when the desktop it landed on is not the one
- * currently shown, or maps them back when it is.  A no-op in every
- * other case, including every other trigger, since only a property
- * change can retarget an already-mapped, already-visible client this
- * way; @a s_rules_apply_desktop must have already run and updated
- * @p client->desktop_id before this is called.
- *
- * @param client          Client whose visibility is to be updated
- * @param connection      XCB connection
- * @param surface         Surface @p client lives on
- * @param trigger         What triggered this rule evaluation
- * @param apply           Action descriptor
- * @param prev_desktop_id @p client->desktop_id as it was before
- *                        @a s_rules_apply_desktop ran
- *
- * @note Complexity: @e O(1)
- */
-static void s_rules_apply_visibility(client_td *client,
-        xcb_connection_t *connection, const surface_td *surface,
-        enum rules_trigger_e trigger,
-        const struct rules_apply_s *apply, uint32_t prev_desktop_id)
-{
-    if (trigger != RULES_TRIGGER_PROPERTY || !apply->has_desktop ||
-            client->desktop_id == prev_desktop_id || surface == NULL) {
-        return;
-    }
-
-    if (surface->desktop_cur != client->desktop_id) {
-        /* Two 'UnmapNotify' events arrive for 'client->window'
-         * itself ('SubstructureNotify' on its parent +
-         * 'StructureNotify' on the window), both matching
-         * 'handler_unmap_notify''s 'event->window ==
-         * client->window' check; without this, the first one
-         * reaching it with 'ignore_unmap' still zero is read as
-         * the client withdrawing itself rather than the window
-         * manager hiding it for a desktop reassignment.  The
-         * frame's separate 'UnmapNotify' never carries
-         * 'event->window == client->window', so it needs no
-         * token of its own. */
-        client->ignore.unmap += 2u;
-        xcb_unmap_window(connection, client->window);
-        if (client->frame != 0) {
-            xcb_unmap_window(connection, client->frame);
-        }
-    } else {
-        if (client->frame != 0) {
-            xcb_map_window(connection, client->frame);
-        }
-        xcb_map_window(connection, client->window);
-    }
-}
+/* A property-triggered desktop reassignment ('s_rules_apply_desktop'
+ * just above) already leaves the client correctly mapped or unmapped
+ * on its own: 'enact_desktop_client_send' itself synchronously unmaps
+ * the window when it was visible on the desktop it is leaving, and
+ * every 'RULES_TRIGGER_PROPERTY' call site in 'handler/focus.c' marks
+ * the client, its surface, and its (now-updated) desktop outdated
+ * right after a matching rule fires, which is what maps the window
+ * back in on arrival if the desktop it lands on turns out to be the
+ * one currently shown ('desktop_render_one_client', render/desktop.c).
+ * A second, ad-hoc remap/unmap pass here used to duplicate exactly
+ * that, down to re-incrementing 'client->ignore.unmap' for an
+ * 'UnmapNotify' that had already been accounted for once, leaving the
+ * counter permanently one unmap too high and silently swallowing the
+ * next genuine self-unmap (e.g., an application withdrawing to the
+ * system tray). */
 
 
 /**
@@ -540,9 +497,7 @@ bool rules_apply(const wm_td *wm, client_td *client,
     struct rules_apply_s merged;
     bool has_match;
     bool changed;
-    uint32_t prev_desktop_id;
     rules_td *rules = wm_rules(wm);
-    xcb_connection_t *connection = wm_connection(wm);
     const config_td *config = wm_config(wm);
 
     if (wm == NULL || rules == NULL || client == NULL ||
@@ -553,7 +508,6 @@ bool rules_apply(const wm_td *wm, client_td *client,
 
     memset(&merged, 0, sizeof(merged));
     has_match = false;
-    prev_desktop_id = client->desktop_id;
 
     for (uint32_t i = 0u; i < rules->count; ++i) {
         struct rules_rule_s *rule = &rules->rules[i];
@@ -618,8 +572,6 @@ bool rules_apply(const wm_td *wm, client_td *client,
     }
 
     s_rules_apply_desktop(client, *surface_io, desktop_io, &merged);
-    s_rules_apply_visibility(client, connection, *surface_io, trigger,
-            &merged, prev_desktop_id);
     s_rules_apply_layer(client, &merged);
     s_rules_apply_flags(client, &merged);
     s_rules_apply_geometry(*surface_io, client, &merged);

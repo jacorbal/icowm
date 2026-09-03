@@ -245,5 +245,18 @@ void wmicon_draw_at(xcb_connection_t *connection,
 void wmicon_invalidate(xcb_connection_t *connection,
         wmicon_cache_td *cache);
 
+/**
+ * @brief Release the cached picture-format query and default-icon
+ *        graphics context held across all @c wmicon_draw calls
+ *
+ * Call this once, alongside @a text_renderer_destroy, when the window
+ * manager is shutting down, so nothing this file cached at the
+ * connection level outlives the connection it was queried for.
+ *
+ * @note A no-op if @a wmicon_draw was never called
+ * @note Complexity: @e O(1)
+ */
+void wmicon_renderer_destroy(void);
+
 
 #endif  /* ! RENDER_WMICON_H */

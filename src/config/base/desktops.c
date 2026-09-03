@@ -391,8 +391,8 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
     /* Desktops, as screens, are zero-based indexed, so if the
      * inaugural desktop is a number bigger than the desktop, it
      * reverts to the first desktop of all: the 0th */
-    if (config_base->screens[screen_idx].desktop_inaugural >
-            config_base->screens[screen_idx].desktop_count - 1) {
+    if (config_base->screens[screen_idx].desktop_inaugural >=
+            config_base->screens[screen_idx].desktop_count) {
         config_base->screens[screen_idx].desktop_inaugural = 0;
     }
 
@@ -480,6 +480,12 @@ void ci_config_load_screens(cJSON *json,
     json_load_uint(screen_settings, "count", &config_base->screen_count);
     s_config_enforce_min_count(&config_base->screen_count, 1u,
             "topology.screens.count", filename);
+    if (config_base->screen_count > (uint32_t) CONFIG_MAX_SCREENS) {
+        LOGGER_WARNING("%s: topology.screens.count (%u) exceeds the" \
+                " configured maximum of %d; clamped",
+                filename, config_base->screen_count, CONFIG_MAX_SCREENS);
+        config_base->screen_count = (uint32_t) CONFIG_MAX_SCREENS;
+    }
 
     /* 'desktops' sits directly under 'topology.screens'; no intervening
      * 'settings' object (unlike each individual screen entry's

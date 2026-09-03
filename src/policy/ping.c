@@ -1,7 +1,7 @@
 /**
  * @file policy/ping.c
  *
- * @brief Periodic @c _NET_WM_PING liveness probing implementation
+ * @brief Periodic _NET_WM_PING liveness probing implementation
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -37,20 +37,18 @@
 #include <utils/time/clock.h>
 
 
-/**
- * @brief When the most recent probing round happened, @c CLOCK_MONOTONIC
- */
+/** When the most recent probing round happened, @c CLOCK_MONOTONIC */
 static struct timespec s_last_probe;
 
 /**
- * @brief Whether at least one client advertised @c _NET_WM_PING support
- *        as of the most recent @a ping_tick call
+ * @brief Whether at least one client advertised @c _NET_WM_PING
+ *        support as of the most recent @a ping_tick call
  *
- * Cached here rather than recomputed by @a ping_ms_remaining itself, so
- * the one full scan over every client each iteration needs happens
- * exactly once, in @c ping_tick, the same way @a urgency_blink_tick and
- * @a urgency_blink_ms_remaining split the same two responsibilities (in
- * @c src/policy/urgency.c).
+ * Cached here rather than recomputed by @a ping_ms_remaining itself,
+ * so the one full scan over every client each iteration needs happens
+ * exactly once, in @c ping_tick, the same way @a urgency_blink_tick
+ * and @a urgency_blink_ms_remaining split the same two
+ * responsibilities (@c src/policy/urgency.c).
  */
 static bool s_has_supported = false;
 
@@ -62,8 +60,8 @@ static bool s_has_supported = false;
  * @param desktop Desktop reached by the walk
  * @param data    Pointer to the @c bool being set
  *
- * @note The whole walk runs even once one is found, a visitor having no
- *       way to end it; the caller stops on the flag instead
+ * @note The whole walk runs even once one is found, a visitor having
+ *       no way to end it; the caller stops on the flag instead
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
  */
@@ -90,16 +88,16 @@ static void s_ping_supported_visit(desktop_td *desktop, void *data)
  * @brief Whether at least one managed client, anywhere, currently
  *        advertises @c _NET_WM_PING support
  *
- * A pure scan with no side effects at all, safe to call on every single
- * @a ping_tick (i.e., every main-loop iteration, not just at the actual
- * @c WM_EWMH_PING_INTERVAL_SECONDS cadence).
+ * A pure scan with no side effects at all, safe to call on every
+ * single @a ping_tick (i.e., every main-loop iteration, not just at
+ * the actual @c WM_EWMH_PING_INTERVAL_SECONDS cadence).
  *
  * @param surfaces All managed surfaces
  *
  * @return @c true when at least one such client was found
  *
- * @note Complexity: @e O(n), where @e n is the total number of managed
- *       clients
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       managed clients
  */
 static bool s_ping_any_supported(list_td *surfaces)
 {
@@ -109,8 +107,7 @@ static bool s_ping_any_supported(list_td *surfaces)
 
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
-        const surface_td *const surface =
-            (surface_td *) list_data(snode);
+        const surface_td *const surface = (surface_td *) list_data(snode);
         bool has_supported = false;
 
         if (surface == NULL) {
@@ -132,8 +129,8 @@ static bool s_ping_any_supported(list_td *surfaces)
  * @brief Probe or age out one desktop's ping-capable clients
  *
  * A client not yet waiting on a reply is simply sent a fresh probe.
- * One already waiting has its pending-round count advanced first, and
- * is marked unresponsive once that count covers
+ * One already waiting has its pending-round count advanced first,
+ * and is marked unresponsive once that count covers
  * @c WM_EWMH_PING_TIMEOUT_SECONDS worth of rounds, before being sent
  * this round's probe regardless, so a client that recovers later is
  * still given the chance to answer and clear the mark again (see
@@ -185,8 +182,8 @@ static void s_ping_probe_visit(desktop_td *desktop, void *data)
  *
  * @param surfaces All managed surfaces
  *
- * @note Complexity: @e O(n), where @e n is the total number of managed
- *       clients
+ * @note Complexity: @e O(n), where @e n is the total number of
+ *       managed clients
  */
 static void s_ping_probe_round(list_td *surfaces)
 {

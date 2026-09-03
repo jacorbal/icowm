@@ -76,16 +76,9 @@
  */
 static void s_ccmd_client_pin_one(client_td *client)
 {
-    uint32_t all_desktops;
-
     client_pin(client);
     ccmd_client_sync_states(client);
-    if (xcb_ewmh_connection_get() != NULL) {
-        all_desktops = WM_DESKTOP_ID_ALL;
-        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
-                client->window, xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
-                XCB_ATOM_CARDINAL, 32, 1, &all_desktops);
-    }
+    ccmd_publish_wm_desktop(client, client->desktop_id);
 
     wm_request_client_redraw(client);
 }
@@ -130,11 +123,7 @@ static void s_ccmd_client_unpin_one(client_td *client)
 
     client_unpin(client);
     ccmd_client_sync_states(client);
-    if (xcb_ewmh_connection_get() != NULL) {
-        xcb_change_property(xcb_connection_get(), XCB_PROP_MODE_REPLACE,
-                client->window, xcb_ewmh_connection_get()->_NET_WM_DESKTOP,
-                XCB_ATOM_CARDINAL, 32, 1, &client->desktop_id);
-    }
+    ccmd_publish_wm_desktop(client, client->desktop_id);
 
     owner_desktop = wm_get_client_desktop(client);
     surface = wm_get_surface_by_id(client->screen_id);
