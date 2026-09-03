@@ -80,7 +80,8 @@ static bool s_parse_array(const cJSON *arr,
     entries = (ctxmenu_entry_td *) calloc((size_t) count,
             sizeof(ctxmenu_entry_td));
     if (entries == NULL) {
-        LOGGER_ERROR("Failed to allocate %d entries in JSON menu", count);
+        LOGGER_ERROR("Failed to allocate %d entries in JSON menu",
+                count);
         return false;
     }
 

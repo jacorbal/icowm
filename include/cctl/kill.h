@@ -5,14 +5,14 @@
  *        level to its owning process
  *
  * @a ccmd_client_kill (@c cmds/client/focus.h) already terminates
- * a client's connection to the X server via @a xcb_kill_client,
- * which is enough for the common case.  Losing that connection is
- * normally fatal to whatever toolkit the client is built on, so the
- * process exits on its own shortly after.  A genuinely unresponsive
- * client, stuck in some loop that never processes its X connection
- * at all, never notices that loss and keeps running regardless, even
- * though its window has already vanished from every list the window
- * manager itself keeps.
+ * a client's connection to the X server via @a xcb_kill_client, which
+ * is enough for the common case.  Losing that connection is normally
+ * fatal to whatever toolkit the client is built on, so the process
+ * exits on its own shortly after.  A genuinely unresponsive client,
+ * stuck in some loop that never processes its X connection at all,
+ * never notices that loss and keeps running regardless, even though its
+ * window has already vanished from every list the window manager itself
+ * keeps.
  *
  * This module tracks a client's real OS process (its @c pid_t, read
  * from @c _NET_WM_PID where the client publishes one) for a bounded
@@ -53,8 +53,8 @@
  *       @p client_td.process.pid.
  *
  * @param pid Process to watch; a no-op if not strictly positive
- *            (@p client_td.process.pid defaults to @c -1 for a
- *            client that never published @c _NET_WM_PID)
+ *            (@p client_td.process.pid defaults to @c -1 for a client
+ *            that never published @c _NET_WM_PID)
  *
  * @note A no-op, silently, once @c WM_KILL_ESCALATE_MAX_PENDING
  *       registrations are already pending at once

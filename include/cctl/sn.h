@@ -21,12 +21,18 @@
  * startup-notification aware, so the timeout is what keeps
  * a non-conforming one from leaving the busy cursor on indefinitely.
  *
- * @note Only the launcher side is implemented here, and not window
- *       association, which is the matching of a newly mapped window
- *       back to the startup sequence that produced it, for placement
- *       or focus decisions
- * @note Ending the busy cursor is the only user-visible behavior that
- *       currently depends on that association
+ * @note Window association exists only for initial desktop placement:
+ *       @a cctl_sn_desktop_for_window matches a newly mapped window's
+ *       own @c _NET_STARTUP_ID back to the pending sequence that
+ *       produced it, so a slow-starting application lands on the
+ *       desktop it was launched from rather than whichever one happens
+ *       to be current once it finally maps.  It does not follow
+ *       @c WM_CLIENT_LEADER the way the specification allows for
+ *       a group's other windows, and it plays no part in any focus
+ *       decision
+ * @note Ending the busy cursor still depends only on the
+ *       @c ("remove:" message) or the timeout, neither of which needs
+ *       window association at all
  *
  * @ingroup wm
  */
@@ -79,17 +85,20 @@ void cctl_sn_set_timeout_seconds(uint32_t seconds);
  * Generates a unique startup ID, broadcasts @c _NET_STARTUP_INFO_BEGIN
  * on every managed root window, shows the busy cursor, and registers
  * the sequence so it can be expired by @a cctl_sn_tick if nothing ever
- * completes it.
+ * completes it.  @p origin_desktop is recorded alongside the sequence
+ * purely so a later @a cctl_sn_desktop_for_window can recover it; it
+ * has no other effect on the sequence itself.
  *
- * @param connection XCB connection
- * @param surfaces   Managed surfaces, one root window per screen
- * @param name       Human-readable application name to publish in the
- *                   message (e.g., the command being launched); may be
- *                   null
- * @param out_id     Buffer to receive the generated startup ID,
- *                   suitable for passing to the child process as
- *                   @c DESKTOP_STARTUP_ID
- * @param out_id_size Size of @p out_id in bytes
+ * @param connection     XCB connection
+ * @param surfaces       Managed surfaces, one root window per screen
+ * @param name           Human-readable application name to publish in
+ *                       the message (e.g., the command being
+ *                       launched); may be null
+ * @param origin_desktop Desktop the launch was requested from
+ * @param out_id         Buffer to receive the generated startup ID,
+ *                       suitable for passing to the child process as
+ *                       @c DESKTOP_STARTUP_ID
+ * @param out_id_size    Size of @p out_id in bytes
  *
  * @return Status of the operation
  * @retval  true on success
@@ -100,8 +109,40 @@ void cctl_sn_set_timeout_seconds(uint32_t seconds);
  *       surfaces
  */
 bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
-        const char *restrict name, char *restrict out_id,
-        size_t out_id_size);
+        const char *restrict name, uint32_t origin_desktop,
+        char *restrict out_id, size_t out_id_size);
+
+/**
+ * @brief Look up the desktop a newly mapped window's startup sequence
+ *        was launched from
+ *
+ * Reads @p window's own @c _NET_STARTUP_ID property (set by
+ * a startup-notification-aware toolkit from the @c DESKTOP_STARTUP_ID
+ * environment variable this window manager itself hands its children)
+ * and, if it names a sequence still pending, recovers the desktop that
+ * @a cctl_sn_begin recorded for it.
+ *
+ * A peek, not a consuming lookup: the pending sequence itself is left
+ * untouched, since ending its busy cursor depends only on the
+ * @c ("remove:" message) or the timeout, and a single sequence could
+ * in theory still go on to map more than one window.
+ *
+ * @param connection    XCB connection
+ * @param window        Newly mapped window to check
+ * @param out_desktop   Set to the origin desktop on a match; left
+ *                      untouched otherwise
+ *
+ * @return Status of the lookup
+ * @retval  true  @p window carries a @c _NET_STARTUP_ID naming a
+ *                still-pending sequence, and @p out_desktop was set
+ * @retval false  @p window has no such property, or it names no
+ *                currently pending sequence
+ *
+ * @note Complexity: @e O(p), where @e p is the number of currently
+ *       pending sequences
+ */
+bool cctl_sn_desktop_for_window(xcb_connection_t *connection,
+        xcb_window_t window, uint32_t *out_desktop);
 
 /**
  * @brief Handle a @c _NET_STARTUP_INFO_BEGIN or @c _NET_STARTUP_INFO

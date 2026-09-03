@@ -11,7 +11,6 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
-
 /* System includes */
 #include <stdbool.h>
 #include <stdio.h>
@@ -95,7 +94,7 @@ struct cycle_menu_state_s g_cycle_menu = {
  */
 struct s_cycle_collect_ctx_s {
     xcb_window_t active_id;     /**< Desktop's active client */
-    int active_idx;             /**< Index it landed at, or -1 */
+    int active_idx;             /**< Index it landed at, or @c -1 */
     bool is_icon;               /**< Collecting icons, not windows */
 };
 
@@ -133,14 +132,16 @@ static void s_cycle_collect(client_td *c, void *data)
     g_cycle_menu.clients[idx] = c;
 
     /* Encode window state directly in the menu label:
+     *
      *  - icon   -> "(name)"
      *  - hidden -> "<name>"
      *  - normal ->  "name"
-     * 'CLIENT_FLAG_HIDDEN' is set for BOTH an iconified and a
-     * genuinely hidden client (see 'client_hide', called from both
-     * paths), so the more specific iconified state has to be checked
-     * first; the hidden flag is only checked once iconified has
-     * already been ruled out. */
+     *
+     * 'CLIENT_FLAG_HIDDEN' is set for BOTH an iconified and a genuinely
+     * hidden client (see 'client_hide', called from both paths), so the
+     * more specific iconified state has to be checked first; the hidden
+     * flag is only checked once iconified has already been ruled
+     * out. */
     if (client_is_iconified(c)) {
         (void) snprintf(g_cycle_menu.labels[idx],
                 WM_CYCLE_MENU_ENTRY_LENGTH, "(%s)", name);
@@ -192,15 +193,15 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
         target =
             mi_cycle_preview_target(client, g_cycle_menu.is_icon_menu);
         if (target == XCB_WINDOW_NONE) {
-            /* A non-icon-menu client with no target here became
-             * hidden while carrying the raw preview border/frame
-             * colors 'mi_cycle_preview_apply' wrote directly over
-             * XCB, bypassing the render pass entirely.  The menu is
-             * about to close and nothing else will ever revisit this
-             * same client to correct it, so mark it outdated instead:
-             * the next time it renders, whenever it is shown again,
-             * its decoration is recomputed from scratch rather than
-             * keeping the stale color indefinitely. */
+            /* A non-icon-menu client with no target here became hidden
+             * while carrying the raw preview border/frame colors
+             * 'mi_cycle_preview_apply' wrote directly over XCB,
+             * bypassing the render pass entirely.  The menu is about to
+             * close and nothing else will ever revisit this same client
+             * to correct it, so mark it outdated instead: the next time
+             * it renders, whenever it is shown again, its decoration is
+             * recomputed from scratch rather than keeping the stale
+             * color indefinitely. */
             if (!g_cycle_menu.is_icon_menu) {
                 client->is_outdated = true;
             }
@@ -274,12 +275,12 @@ static void s_cycle_scroll_to_selection(void)
  *
  * Which of the two a client is does not need saying here, and that is
  * why this takes no flag for it: @a ri_render_client_icon works out on
- * its whether the client it is handed is the one the cycle has
- * picked.  The newly selected one comes out in active colors, its
- * active font and no pixmap; the one just passed over, back in its
- * ordinary inactive appearance with its pixmap.  The render is forced,
- * since either may look to that function's skip check the same as
- * it did a moment earlier.
+ * its whether the client it is handed is the one the cycle has picked.
+ * The newly selected one comes out in active colors, its active font
+ * and no pixmap; the one just passed over, back in its ordinary
+ * inactive appearance with its pixmap.  The render is forced, since
+ * either may look to that function's skip check the same as it did
+ * a moment earlier.
  *
  * @param client Client whose real desktop icon to repaint
  *
@@ -396,12 +397,12 @@ void cycle_init(xcb_connection_t *connection,
      * is only the bits shared by BOTH the cycle-next and cycle-prev
      * bindings, e.g., just 'Alt' when "next" is 'Alt+Tab' and "prev" is
      * 'Alt+Shift+Tab'.  The bit that differs between the two (Shift, in
-     * that example) is what lets a user switch direction while the
-     * menu stays open, by pressing the direction key again with that
-     * bit now toggled, so it must never itself be treated as part of
-     * what has to stay held.  Using the full modmask of whichever
-     * specific binding was pressed to get here would include that
-     * differing bit, closing the menu the moment it alone
+     * that example) is what lets a user switch direction while the menu
+     * stays open, by pressing the direction key again with that bit now
+     * toggled, so it must never itself be treated as part of what has
+     * to stay held.  Using the full modmask of whichever specific
+     * binding was pressed to get here would include that differing bit,
+     * closing the menu the moment it alone
      * is released instead of only on 'Alt''s release. */
     g_cycle_menu.modifier =
         (uint16_t) ((unsigned int) g_cycle_menu.next_modmask &
@@ -409,8 +410,8 @@ void cycle_init(xcb_connection_t *connection,
     g_cycle_menu.preview_client = NULL;
     g_cycle_menu.config = cfg;
 
-    /* Collected in focus order, most recently worked in first, which
-     * is the ordering Openbox and evilwm cycle in.  The stacking list
+    /* Collected in focus order, most recently worked in first, which is
+     * the ordering Openbox and evilwm cycle in.  The stacking list
      * answers a different question, where each window sits on screen,
      * and reading it here followed the last window raised rather than
      * the last one worked in; see 'policy/focus.h'. */
@@ -442,7 +443,7 @@ void cycle_init(xcb_connection_t *connection,
      * measurement is capped at 'WM_CYCLE_MENU_LABEL_MAX_WIDTH' so one
      * very long window title cannot stretch the whole menu; such
      * a label is truncated when actually drawn instead (see
-     * 's_cycle_draw_row' in menu/cycle/draw.c). */
+     * 's_cycle_draw_row' in 'menu/cycle/draw.c'). */
     (void) text_renderer_use_font(connection,
             cfg->theme.menu.unselected.font);
     for (int i = 0; i < g_cycle_menu.count; ++i) {
@@ -465,9 +466,9 @@ void cycle_init(xcb_connection_t *connection,
     menu_w = (uint16_t) (max_w +
             (uint16_t) (cfg->theme.menu.padding.horizontal * 2u));
 
-    /* Widen for a row's client icon, the same reservation
-     * 'cycle_draw' makes per row; see 'theme.menu.show-pixmaps''s
-     * comment in 'config.h'. */
+    /* Widen for a row's client icon, the same reservation 'cycle_draw'
+     * makes per row; see 'theme.menu.show-pixmaps''s comment in
+     * 'config.h'. */
     if (cfg->theme.menu.show_pixmaps) {
         /* '#if' and not a ternary; see 'WM_MENU_ICON_INSET' in
           * 'defs/ctxmenu.h' for why */
@@ -538,9 +539,9 @@ void cycle_init(xcb_connection_t *connection,
             mask, values);
 
     /* Advertise this as a menu window, matching the same override
-     * redirect 'ctxmenu.c' also uses, so a compositor or pager
-     * that inspects '_NET_WM_WINDOW_TYPE' recognizes this switcher
-     * for what it is */
+     * redirect 'ctxmenu.c' also uses, so a compositor or pager that
+     * inspects '_NET_WM_WINDOW_TYPE' recognizes this switcher for what
+     * it is */
     if (xcb_ewmh_connection_get() != NULL) {
         xcb_atom_t window_type =
             xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_MENU;
@@ -559,7 +560,7 @@ void cycle_init(xcb_connection_t *connection,
      * with 'CurrentTime' would record a last focus change later than
      * the one 'focus_apply' carries when the selection is confirmed,
      * and X discards a 'SetInputFocus' older than the last focus
-     * change: the chosen window would light its titlebar with the
+     * change.  The chosen window would light its titlebar with the
      * keyboard left behind. */
     xcb_set_input_focus(connection,
             XCB_INPUT_FOCUS_POINTER_ROOT,
@@ -571,9 +572,8 @@ void cycle_init(xcb_connection_t *connection,
      * caption and hints, no pixmap) that every later navigation call
      * gets via 's_cycle_repaint_icon' (see 'mi_cycle_preview_apply''s
      * implementation in 'menu/cycle/draw.c', which forces that render
-     * directly for exactly this
-     * reason) so the cycle's initial preselection needs no separate
-     * call here to match it. */
+     * directly for exactly this reason) so the cycle's initial
+     * preselection needs no separate call here to match it. */
     mi_cycle_preview_apply(connection, cfg);
 
 }
@@ -621,9 +621,9 @@ void cycle_destroy(xcb_connection_t *connection)
                     : (uint32_t) XCB_CURRENT_TIME);
     }
 
-    /* Marked rather than painted here: the menu closing has no
-     * deadline of its own, so the repaint goes out with everything
-     * else this turn settles, once */
+    /* Marked rather than painted here: the menu closing has no deadline
+     * of its own, so the repaint goes out with everything else this
+     * turn settles, once */
     if (surface != NULL) {
         surface->is_outdated = true;
     }
@@ -668,18 +668,18 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
     desktop = g_cycle_menu.desktop;
     is_icon = g_cycle_menu.is_icon_menu;
 
-    /* Cleared so that 'cycle_destroy' below does not hand focus back
-     * to whatever held it before the menu opened.  That restore is
-     * for the cancel path, where nothing else will set the focus; on
-     * this path 'focus_apply' is about to, and the restore does real
-     * harm rather than merely wasted work.
+    /* Cleared so that 'cycle_destroy' below does not hand focus back to
+     * whatever held it before the menu opened.  That restore is for the
+     * cancel path, where nothing else will set the focus; on this path
+     * 'focus_apply' is about to, and the restore does real harm rather
+     * than merely wasted work.
      *
-     * It sets the focus with 'CurrentTime', which the X server
-     * replaces with the current server time and records as the last
-     * focus change.  Every later 'SetInputFocus' carrying the
-     * timestamp of the key press that started all this is then older
-     * than that, and the server ignores it.  The window came forward
-     * and its titlebar lit, while the keyboard stayed with the window
+     * It sets the focus with 'CurrentTime', which the X server replaces
+     * with the current server time and records as the last focus
+     * change.  Every later 'SetInputFocus' carrying the timestamp of
+     * the key press that started all this is then older than that, and
+     * the server ignores it.  The window came forward and its titlebar
+     * lit, while the keyboard stayed with the window
      * the user had just cycled away from. */
     g_cycle_menu.prev_focus = XCB_WINDOW_NONE;
 
@@ -728,8 +728,8 @@ void cycle_navigate_to(unsigned int idx)
 }
 
 
-/* Force the next 'cycle_draw' call to repaint the whole viewport
- * (see this function's comment in 'menu/cycle.h') */
+/* Force the next 'cycle_draw' call to repaint the whole viewport (see
+ * this function's comment in 'menu/cycle.h') */
 void cycle_force_full_repaint(void)
 {
     g_cycle_menu.has_drawn_once = false;

@@ -558,7 +558,8 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
     have_startup_id = (xcb_connection_get() != NULL) &&
         desktop->config->base.startup_notification.is_enabled &&
         cctl_sn_begin(xcb_connection_get(), wm_get_surfaces(),
-                executable_path, startup_id, sizeof(startup_id));
+                executable_path, desktop->id, startup_id,
+                sizeof(startup_id));
 
     opts.startup_id = (have_startup_id) ? startup_id : NULL;
     opts.class_name = class_name;

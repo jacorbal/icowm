@@ -81,7 +81,9 @@ monitor_td dlgutil_resolve_monitor(xcb_connection_t *connection,
         reply = xcb_query_pointer_reply(connection, cookie, NULL);
         if (reply != NULL) {
             monitor = surface_monitor_for_point(surface,
-                    (struct position_s) { reply->root_x, reply->root_y });
+                    (struct position_s) {
+                        reply->root_x, reply->root_y
+                    });
             free(reply);
         }
     }

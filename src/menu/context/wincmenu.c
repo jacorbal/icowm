@@ -181,6 +181,7 @@ static void s_cb_send_to_monitor(xcb_connection_t *connection,
  * @brief Callback: move the client
  *
  * Dispatches based on how the "Move" entry was activated:
+ *
  * - Activated from the keyboard (@c Return or a letter shortcut):
  *   enters keyboard modal move mode, exactly like the "Resize" entry
  *   does for keyboard activation.  Arrow keys move the window,
@@ -195,11 +196,11 @@ static void s_cb_move(xcb_connection_t *connection,
     xcb_window_t root_win;
     struct position_s center_pos;
     struct dimensions_s screen_dim;
-    surface_td *surface;
 
     (void) userdata;
 
-    if (s_target_client == NULL || connection == NULL || s_surface == NULL ||
+    if (s_target_client == NULL || connection == NULL ||
+            s_surface == NULL ||
             s_surface->screen == NULL) {
         return;
     }
@@ -211,7 +212,8 @@ static void s_cb_move(xcb_connection_t *connection,
     }
 
     if (ctxmenu_last_activation_was_keyboard()) {
-        surface = wm_get_surface_by_id(s_target_client->screen_id);
+        surface_td *surface =
+            wm_get_surface_by_id(s_target_client->screen_id);
         kbd_modal_move_start(connection, surface, s_target_client);
         return;
     }
@@ -245,23 +247,23 @@ static void s_cb_move(xcb_connection_t *connection,
  *
  * Determines which screen quadrant the window's center falls in and
  * returns the coordinates of the opposite corner of the window frame,
- * one pixel inside each edge so @c drag_start recognizes it as
- * a corner handle (see @c im_bounds_resize in
- * input/mouse/bounds.h):
- * - Window in the top-left quadrant    -> bottom-right corner.
- * - Window in the bottom-left quadrant -> top-right corner.
- * - Window in the bottom-right quadrant -> top-left corner.
- * - Window in the top-right quadrant   -> bottom-left corner.
+ * one pixel inside each edge so @c drag_start recognizes it as a corner
+ * handle (see @c im_bounds_resize in @c input/mouse/bounds.h):
+ *
+ * - window in the top-left quadrant,     bottom-right corner;
+ * - window in the bottom-left quadrant,  top-right corner;
+ * - window in the bottom-right quadrant, top-left corner;
+ * - window in the top-right quadrant,    bottom-left corner.
  *
  * This keeps the resize handle on the side of the window that is
  * furthest from the screen edge it is closest to, so the pointer never
- * has to be warped off-screen (or right against a screen edge) to
- * start the drag.
+ * has to be warped off-screen (or right against a screen edge) to start
+ * the drag.
  *
- * @param client Client to resize
+ * @param client  Client to resize
  * @param surface Surface the client is on (for screen dimensions)
- * @param out_x  Output: root-relative X of the chosen corner
- * @param out_y  Output: root-relative Y of the chosen corner
+ * @param out_x   Output: root-relative X of the chosen corner
+ * @param out_y   Output: root-relative Y of the chosen corner
  *
  * @note Complexity: @e O(1)
  */
@@ -285,8 +287,10 @@ static void s_resize_corner_grab(const client_td *client,
     right = left + (int32_t) client->layout.geometry.cur.dim.w - 1;
     bottom = top + (int32_t) client->layout.geometry.cur.dim.h - 1;
 
-    win_center_x = left + (int32_t) (client->layout.geometry.cur.dim.w / 2u);
-    win_center_y = top + (int32_t) (client->layout.geometry.cur.dim.h / 2u);
+    win_center_x = left +
+        (int32_t) (client->layout.geometry.cur.dim.w / 2u);
+    win_center_y = top +
+        (int32_t) (client->layout.geometry.cur.dim.h / 2u);
     screen_center_x = (int32_t) (surface->properties.dim.w / 2u);
     screen_center_y = (int32_t) (surface->properties.dim.h / 2u);
 
@@ -302,6 +306,7 @@ static void s_resize_corner_grab(const client_td *client,
  * @brief Callback: resize the client
  *
  * Dispatches based on how the "Resize" entry was activated:
+ *
  * - Activated from the keyboard: enters keyboard modal resize mode.
  *   The user presses arrow keys to grow or shrink along the chosen
  *   edge; @c Return confirms and @c Escape restores the original
@@ -310,11 +315,10 @@ static void s_resize_corner_grab(const client_td *client,
  *   the window is diagonally opposite its screen quadrant and starts
  *   a pointer-driven resize drag from there, so the resize handle is
  *   always the corner furthest from the screen edge the window is
- *   closest to (and thus always reachable without the pointer having
- *   to leave the screen).  See @c s_resize_corner_grab.
+ *   closest to (and thus always reachable without the pointer having to
+ *   leave the screen).  See @c s_resize_corner_grab.
  */
-static void s_cb_resize(xcb_connection_t *connection,
-        void *userdata)
+static void s_cb_resize(xcb_connection_t *connection, void *userdata)
 {
     surface_td *surface;
     xcb_window_t root_win;
@@ -375,21 +379,22 @@ static void s_cb_resize(xcb_connection_t *connection,
  * Shared by every entry below whose activation is nothing more than
  * "send this one @c action_client_e to the target client": iconify,
  * hide, maximize, fullscreen, shade, and close.  The action itself
- * travels through @p userdata (see @c s_entry_command's callers
- * for each, cast through @c intptr_t the same way any small integer
- * value is conventionally threaded through a @c void* callback
- * parameter), rather than each action needing its near-identical
- * one-line wrapper.  @c s_cb_decorate stays separate below since it
- * has an extra unshade step first, not just a different action
- * constant.
+ * travels through @p userdata (see @c s_entry_command's callers for
+ * each, cast through @c intptr_t the same way any small integer value
+ * is conventionally threaded through a @c void* callback parameter),
+ * rather than each action needing its near-identical one-line wrapper.
+ * @c s_cb_decorate stays separate below since it has an extra unshade
+ * step first, not just a different action constant.
  *
  * @param connection Unused; kept for the callback's required signature
  * @param userdata   The @c enum @c action_client_e to send, cast to
  *                   @c void*
  */
-static void s_cb_send_action(xcb_connection_t *connection, void *userdata)
+static void s_cb_send_action(xcb_connection_t *connection,
+        void *userdata)
 {
-    enum action_client_e action = (enum action_client_e) (intptr_t) userdata;
+    enum action_client_e action =
+        (enum action_client_e) (intptr_t) userdata;
 
     (void) connection;
 
@@ -595,9 +600,9 @@ static void s_desktop_entry_visit(desktop_td *desktop, void *data)
  *
  * @return Number of entries filled in @a s_desk_entries
  *
- * @note Complexity: @e O(n), where @e n is the number of desktops
- *       (a single walk of the surface's circular desktop list,
- *       not one lookup per index)
+ * @note Complexity: @e O(n), where @e n is the number of desktops (a
+ *       single walk of the surface's circular desktop list, not one
+ *       lookup per index)
  */
 static int s_build_desk_entries(surface_td *surface,
         desktop_td *desktop, client_td *client)
@@ -617,8 +622,8 @@ static int s_build_desk_entries(surface_td *surface,
     n = (int) desk_ctx.count;
 
     /* Separates the numbered-desktop entries above from the pin/unpin
-     * one below, only when there actually are any.  With none (an
-     * empty or single-surface edge case), a bare separator would lead
+     * one below, only when there actually are any.  With none (an empty
+     * or single-surface edge case), a bare separator would lead
      * nowhere. */
     if (n > 0) {
         s_desk_entries[n].type = CTXMENU_SEPARATOR;
@@ -662,7 +667,8 @@ static int s_build_desk_entries(surface_td *surface,
  *
  * @note Complexity: @e O(n), where @e n is the number of monitors
  */
-static int s_build_monitor_entries(surface_td *surface, client_td *client)
+static int s_build_monitor_entries(surface_td *surface,
+        client_td *client)
 {
     int n = 0;
     monitor_td cur_monitor;
@@ -722,7 +728,8 @@ static void s_build_layer_entries(const client_td *client)
     is_below = (client->properties.layer ==
             (uint16_t) CLIENT_LAYER_BELOW);
 
-    s_entry_command(&s_layer_entries[0], _(STR_WINCMENU_LAYER_ALWAYS_ON_TOP),
+    s_entry_command(&s_layer_entries[0],
+            _(STR_WINCMENU_LAYER_ALWAYS_ON_TOP),
             s_cb_send_action,
             (void *) (intptr_t) ACTION_CLIENT_LAYER_ABOVE, is_above);
     s_entry_command(&s_layer_entries[1], _(STR_WINCMENU_LAYER_NORMAL),
@@ -749,7 +756,8 @@ void wincmenu_show(xcb_connection_t *connection,
     bool can_shade;
 
     if (connection == NULL || surface == NULL || desktop == NULL ||
-            client == NULL || config == NULL || client_is_locked(client)) {
+            client == NULL || config == NULL ||
+            client_is_locked(client)) {
         return;
     }
 
@@ -781,13 +789,13 @@ void wincmenu_show(xcb_connection_t *connection,
             CLIENT_FLAG_DECORATED) != 0u
         && !client_is_fullscreen(client);
 
-    /* Build 'Send to desktop' submenu, only meaningful (and only
-     * shown at all, see below) on a surface with more than one
-     * desktop; this is also where the "all desktops" sticky toggle
-     * lives, so hiding the whole submenu on a single-desktop surface
-     * (as in restricted-memory mode; see 'memguard.h') correctly
-     * hides that too, since sticking to every desktop means nothing
-     * when there is only the one. */
+    /* Build 'Send to desktop' submenu, only meaningful (and only shown
+     * at all, see below) on a surface with more than one desktop; this
+     * is also where the "all desktops" sticky toggle lives, so hiding
+     * the whole submenu on a single-desktop surface (as in
+     * restricted-memory mode; see 'memguard.h') correctly hides that
+     * too, since sticking to every desktop means nothing when there is
+     * only the one. */
     desk_count = 0;
     if (surface->desktop_count > 1u) {
         memset(s_desk_entries, 0, sizeof(s_desk_entries));
@@ -799,9 +807,8 @@ void wincmenu_show(xcb_connection_t *connection,
         s_desk_state.entry_count = desk_count;
     }
 
-    /* Build "Send to monitor" submenu, only meaningful (and only
-     * shown at all, see below) on a surface with more than one
-     * monitor */
+    /* Build "Send to monitor" submenu, only meaningful (and only shown
+     * at all, see below) on a surface with more than one monitor */
     monitor_count = 0;
     if (surface->monitor_count > 1u) {
         memset(s_monitor_entries, 0, sizeof(s_monitor_entries));
@@ -830,7 +837,8 @@ void wincmenu_show(xcb_connection_t *connection,
      * on a surface with only one desktop */
     if (desk_count > 0) {
         s_entries[n].type = CTXMENU_SUBMENU;
-        safe_strncpy(s_entries[n].label, _(STR_WINCMENU_SEND_TO_DESKTOP),
+        safe_strncpy(s_entries[n].label,
+                _(STR_WINCMENU_SEND_TO_DESKTOP),
                 sizeof(s_entries[n].label) - 1u);
         s_entries[n].items = s_desk_entries;
         s_entries[n].item_count = desk_count;
@@ -842,7 +850,8 @@ void wincmenu_show(xcb_connection_t *connection,
      * on a surface with only one monitor */
     if (monitor_count > 0) {
         s_entries[n].type = CTXMENU_SUBMENU;
-        safe_strncpy(s_entries[n].label, _(STR_WINCMENU_SEND_TO_MONITOR),
+        safe_strncpy(s_entries[n].label,
+                _(STR_WINCMENU_SEND_TO_MONITOR),
                 sizeof(s_entries[n].label) - 1u);
         s_entries[n].items = s_monitor_entries;
         s_entries[n].item_count = monitor_count;
@@ -851,12 +860,11 @@ void wincmenu_show(xcb_connection_t *connection,
     }
 
     /* Layer (submenu): disabled while fullscreen, since a focused
-     * fullscreen client's stacking is always forced above
-     * everything else regardless of its own real layer (see
-     * 'ccmd_desktop_enforce_layers''s comment); choosing a
-     * layer here would silently do nothing visible until the client
-     * later leaves fullscreen, which reads as broken rather than
-     * merely deferred. */
+     * fullscreen client's stacking is always forced above everything
+     * else regardless of its own real layer (see
+     * 'ccmd_desktop_enforce_layers''s comment); choosing a layer here
+     * would silently do nothing visible until the client later leaves
+     * fullscreen, which reads as broken rather than merely deferred. */
     s_entries[n].type = CTXMENU_SUBMENU;
     safe_strncpy(s_entries[n].label, _(STR_WINCMENU_LAYER),
             sizeof(s_entries[n].label) - 1u);
@@ -901,23 +909,24 @@ void wincmenu_show(xcb_connection_t *connection,
                 client_is_fullscreen(client));
     ++n;
 
-    /* Disabled under the exact same condition as maximize above,
-     * unlike a client's EWMH request to enter fullscreen itself
-     * (see 'ccmd_client_fullscreen''s comment, cmds/client/
-     * state.c, for why that path stays unconditional.  A fixed-size
-     * DOS-emulation or retro-game window legitimately requests
-     * fullscreen via alt+enter regardless of its own resizable
-     * flag).  This is a different question.  Whether the window
-     * manager's user-facing fullscreen offer, this very menu
-     * entry, matched by every keybinding and decoration button that
-     * also call 'ccmd_client_fullscreen' directly, makes any sense
-     * to present at all for a client with no legitimate reason to
-     * ever cover the whole screen, a fixed-size confirmation dialog
-     * ("Are you sure you want to delete this file?") foremost among
-     * them: nothing about entering fullscreen from here overrides
-     * 'client_is_resizable' the way the client's EWMH request
-     * does, so a client that can never resize itself gains nothing
-     * from it either way. */
+    /* Disabled under the exact same condition as maximize above, unlike
+     * a client's EWMH request to enter fullscreen itself (see
+     * 'ccmd_client_fullscreen''s comment, in 'cmds/client/state.c', for
+     * why that path stays unconditional.  A fixed-size DOS-emulation or
+     * retro-game window legitimately requests fullscreen via 'Alt+Enter'
+     * regardless of its own resizable flag).  Here, the situation is
+     * different.  Whether the window manager's user-facing fullscreen
+     * offer, this very menu entry, matched by every keybinding and
+     * decoration button that also call 'ccmd_client_fullscreen'
+     * directly, makes any sense to present at all for a client with no
+     * legitimate reason to ever cover the whole screen, a fixed-size
+     * confirmation dialog ("Are you sure you want to delete this
+     * file?") foremost among them.
+     *
+     * Nothing about entering fullscreen from here overrides
+     * 'client_is_resizable' the way the client's EWMH request does, so
+     * a client that can never resize itself gains nothing from it
+     * either way. */
     s_entry_command(&s_entries[n],
             (client_is_fullscreen(client))
                 ? _(STR_WINCMENU_UNFULLSCREEN)
@@ -986,8 +995,8 @@ bool wincmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, xcb_window_t win, int y,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_click_window(connection, surface, &s_root,
-            win, y, config);
+    return ctxmenu_tree_handle_click_window(connection, surface,
+            &s_root, win, y, config);
 }
 
 

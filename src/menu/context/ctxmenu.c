@@ -6,11 +6,11 @@
  *
  * Split by competency into @c ctxmenu/layout.c (row geometry and
  * hit-testing), @c ctxmenu/redraw.c (painting), @c ctxmenu/select.c
- * (selection and activation), @c ctxmenu/handle.c (raw event
- * handling for a single window), and @c ctxmenu/tree.c (dispatch
- * across a submenu window tree), leaving this file with only what
- * belongs to no single one of those: creating and destroying the
- * menu window itself, and querying whether it is open.
+ * (selection and activation), @c ctxmenu/handle.c (raw event handling
+ * for a single window), and @c ctxmenu/tree.c (dispatch across
+ * a submenu window tree), leaving this file with only what belongs to
+ * no single one of those: creating and destroying the menu window
+ * itself, and querying whether it is open.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -66,14 +66,13 @@ void ctxmenu_show(xcb_connection_t *connection,
     }
 
     /* Copied into a 'size_t' local right after the guard above proved
-     * it positive: GCC's allocation-size analysis cannot otherwise
-     * see past the 'ctxmenu_close' and 'ctxmenu_width_compute' calls
-     * between here and the 'calloc' below to know
-     * 'state->entry_count' is
-     * still positive at that point, since either call could in
-     * principle modify the struct through the same pointer, so
-     * without this it falls back to assuming the field's entire
-     * signed range is possible there. */
+     * it positive: GCC's allocation-size analysis cannot otherwise see
+     * past the 'ctxmenu_close' and 'ctxmenu_width_compute' calls
+     * between here and the 'calloc' below to know 'state->entry_count'
+     * is still positive at that point, since either call could in
+     * principle modify the struct through the same pointer, so without
+     * this it falls back to assuming the field's entire signed range is
+     * possible there. */
     entry_count = (size_t) state->entry_count;
 
     ctxmenu_close(state);
@@ -141,9 +140,9 @@ void ctxmenu_show(xcb_connection_t *connection,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    /* Advertise this as a menu window, so a compositor or pager
-     * that inspects '_NET_WM_WINDOW_TYPE' recognizes this and every
-     * submenu built the same way for what they are */
+    /* Advertise this as a menu window, so a compositor or pager that
+     * inspects '_NET_WM_WINDOW_TYPE' recognizes this and every submenu
+     * built the same way for what they are */
     if (xcb_ewmh_connection_get() != NULL) {
         xcb_atom_t window_type =
             xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_MENU;
@@ -152,10 +151,10 @@ void ctxmenu_show(xcb_connection_t *connection,
                 state->window, 1, &window_type);
     }
 
-    /* The whole menu window's opacity, distinct from any one
-     * row's font/color/border, since '_NET_WM_WINDOW_OPACITY' is
-     * a per-window property, not a per-row one; see the doc comment
-     * on 'config_theme_s.menu.opacity' (config.h) */
+    /* The whole menu window's opacity, distinct from any one row's
+     * font/color/border, since '_NET_WM_WINDOW_OPACITY' is a per-window
+     * property, not a per-row one; see the doc comment on
+     * 'config_theme_s.menu.opacity' (config.h) */
     atom_set_window_opacity(connection, state->window,
             config_theme_opacity_to_raw(config->theme.menu.opacity));
 

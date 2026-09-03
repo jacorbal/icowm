@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* snprintf, NULL, size_t */
+#include <stdlib.h>     /* free */
 #include <string.h>     /* memset, memcpy, strchr, strstr */
 #include <time.h>       /* CLOCK_MONOTONIC, clock_gettime, time */
 #include <unistd.h>     /* getpid */
@@ -48,6 +49,7 @@
 typedef struct {
     char id[SN_ID_MAX_LEN];
     struct timespec started_at;
+    uint32_t desktop_id;
 } s_pending_td;
 
 
@@ -69,6 +71,8 @@ static uint32_t s_timeout_seconds = SN_TIMEOUT_SECONDS;
 static bool s_cursor_busy = false;
 static xcb_atom_t s_atom_begin = XCB_ATOM_NONE;
 static xcb_atom_t s_atom_info = XCB_ATOM_NONE;
+static xcb_atom_t s_atom_startup_id = XCB_ATOM_NONE;
+static xcb_atom_t s_atom_utf8_string = XCB_ATOM_NONE;
 
 
 /**
@@ -341,8 +345,8 @@ static void s_handle_complete_message(xcb_connection_t *connection,
 
 /* Begin a startup-notification sequence for a launched process */
 bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
-        const char *restrict name, char *restrict out_id,
-        size_t out_id_size)
+        const char *restrict name, uint32_t origin_desktop,
+        char *restrict out_id, size_t out_id_size)
 {
     char id[SN_ID_MAX_LEN];
     char message[SN_MSG_MAX_LEN];
@@ -392,6 +396,7 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
         s_pending[s_pending_count].id[
             sizeof(s_pending[s_pending_count].id) - 1u] = '\0';
         s_pending[s_pending_count].started_at = now;
+        s_pending[s_pending_count].desktop_id = origin_desktop;
         ++s_pending_count;
     }
 
@@ -403,6 +408,60 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
     }
 
     return true;
+}
+
+
+/* Look up the desktop a mapped window's startup sequence began on */
+bool cctl_sn_desktop_for_window(xcb_connection_t *connection,
+        xcb_window_t window, uint32_t *out_desktop)
+{
+    xcb_get_property_cookie_t cookie;
+    xcb_get_property_reply_t *reply;
+    char id[SN_ID_MAX_LEN];
+    size_t id_len;
+
+    if (connection == NULL || out_desktop == NULL) {
+        return false;
+    }
+
+    if (s_atom_startup_id == XCB_ATOM_NONE) {
+        s_atom_startup_id = atom_intern(connection,
+                "_NET_STARTUP_ID", true);
+    }
+    if (s_atom_utf8_string == XCB_ATOM_NONE) {
+        s_atom_utf8_string = atom_intern(connection,
+                "UTF8_STRING", false);
+    }
+    if (s_atom_startup_id == XCB_ATOM_NONE ||
+            s_atom_utf8_string == XCB_ATOM_NONE) {
+        return false;
+    }
+
+    cookie = xcb_get_property(connection, 0, window, s_atom_startup_id,
+            s_atom_utf8_string, 0, SN_ID_MAX_LEN - 1u);
+    reply = xcb_get_property_reply(connection, cookie, NULL);
+    if (reply == NULL) {
+        return false;
+    }
+    if (reply->value_len == 0u) {
+        free(reply);
+        return false;
+    }
+
+    id_len = ((size_t) reply->value_len < sizeof(id) - 1u)
+        ? (size_t) reply->value_len : sizeof(id) - 1u;
+    memcpy(id, xcb_get_property_value(reply), id_len);
+    id[id_len] = '\0';
+    free(reply);
+
+    for (uint8_t i = 0u; i < s_pending_count; ++i) {
+        if (safe_strcmp(s_pending[i].id, id) == 0) {
+            *out_desktop = s_pending[i].desktop_id;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 

@@ -44,6 +44,7 @@
 #include <render/outdate.h>
 
 /* Project includes */
+#include <cctl/sn.h>
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
@@ -324,8 +325,10 @@ void handler_map_request(const wm_td *wm,
 {
     surface_td *surface;
     desktop_td *desktop;
+    desktop_td *origin_desktop;
     client_td *client;
     uint32_t max_clients;
+    uint32_t origin_desktop_id;
     xcb_connection_t *connection = wm_connection(wm);
     xcb_ewmh_connection_t *ewmh = wm_ewmh(wm);
     const config_td *config = wm_config(wm);
@@ -375,6 +378,22 @@ void handler_map_request(const wm_td *wm,
 
         s_map_unmanaged(connection, event->window);
         return;
+    }
+
+    /* A window whose own '_NET_STARTUP_ID' still names a pending
+     * launch sequence gets placed on the desktop that launch was
+     * requested from, rather than whichever desktop merely happens to
+     * be current by the time it finally maps; a slow-starting
+     * application would otherwise land wherever the user has since
+     * switched to, which is rarely where they meant to open it.  Any
+     * window without that property, or whose sequence has already
+     * expired or completed, keeps today's behavior unchanged. */
+    if (cctl_sn_desktop_for_window(connection, event->window,
+                &origin_desktop_id)) {
+        origin_desktop = surface_desktop_get(surface, origin_desktop_id);
+        if (origin_desktop != NULL) {
+            desktop = origin_desktop;
+        }
     }
 
     /* Checked before 'client_init' does any of its own (comparatively

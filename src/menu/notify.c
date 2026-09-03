@@ -136,14 +136,14 @@ void notify_popup_show_centered(xcb_connection_t *connection,
     values[3] = XCB_EVENT_MASK_EXPOSURE;
 
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, state->window,
-            surface->screen->root, x, y, (uint16_t) width,
-            (uint16_t) height, (uint16_t) cfg->theme.overlay.border.width,
+            surface->screen->root,
+            x, y, (uint16_t) width, (uint16_t) height,
+            (uint16_t) cfg->theme.overlay.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT, mask, values);
 
-    /* Advertise this as a notification window, so a compositor
-     * that inspects '_NET_WM_WINDOW_TYPE' recognizes it for what
-     * it is */
+    /* Advertise this as a notification window, so a compositor that
+     * inspects '_NET_WM_WINDOW_TYPE' recognizes it for what it is */
     if (xcb_ewmh_connection_get() != NULL) {
         xcb_atom_t window_type =
             xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_NOTIFICATION;

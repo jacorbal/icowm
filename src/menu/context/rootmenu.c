@@ -47,16 +47,21 @@
 #include <menu/dialog/quit.h>
 
 
-/** Surface stored at open time (needed by the exit callback) */
+/**
+ * @brief Surface stored at open time (needed by the exit callback)
+ */
 static surface_td *s_surface = NULL;
 
-/** Config stored at open time (needed by the exit callback) */
+/**
+ * @brief Config stored at open time (needed by the exit callback)
+ */
 static const config_td *s_config = NULL;
 
-/** Window manager instance stored at open time (needed by the
- *  "Rearrange" and "Reload configuration" callbacks) */
+/**
+ * @brief Window manager instance stored at open time (needed by the
+ *       "Rearrange" and "Reload configuration" callbacks)
+ */
 static wm_td *s_wm = NULL;
-
 
 /** Singleton root menu state */
 static ctxmenu_state_td s_root;
@@ -125,8 +130,8 @@ static void s_cb_redraw(xcb_connection_t *connection, void *userdata)
  * @brief Callback: toggle whether panel/tray struts are set aside on
  *        the surface this menu was opened on
  *
- * A surface-wide setting, not a per-window one, so it lives here
- * rather than in the window context menu ('Alt+Space').
+ * A surface-wide setting, not a per-window one, so it lives here rather
+ * than in the window context menu ('Alt+Space').
  *
  * @param connection Unused, matches @c ctxmenu_on_activate_fn's
  *                   signature
@@ -163,8 +168,8 @@ static void s_cb_exit(xcb_connection_t *connection, void *userdata)
 }
 
 
-/* Load (or reload) 'menu.json''s entries; see this function's
- * comment in 'menu/context/rootmenu.h' */
+/* Load (or reload) 'menu.json''s entries; see this function's comment
+ * in 'menu/context/rootmenu.h' */
 void rootmenu_menu_json_load(const char *config_dir)
 {
     char menu_path[ROOTMENU_PATH_MAX];
@@ -187,24 +192,27 @@ void rootmenu_menu_json_load(const char *config_dir)
 
         if (xdg != NULL) {
             (void) snprintf(menu_path, sizeof(menu_path),
-                    "%s/%s/%s", xdg, CONFIG_DIR_BASE, CONFIG_FILENAME_MENU);
+                    "%s/%s/%s", xdg,
+                    CONFIG_DIR_BASE, CONFIG_FILENAME_MENU);
         } else if (home != NULL) {
             (void) snprintf(menu_path, sizeof(menu_path),
-                    "%s/.%s/%s", home, CONFIG_DIR_BASE, CONFIG_FILENAME_MENU);
+                    "%s/.%s/%s", home,
+                    CONFIG_DIR_BASE, CONFIG_FILENAME_MENU);
         } else {
             (void) snprintf(menu_path, sizeof(menu_path),
-                    "./%s/%s", CONFIG_DIR_BASE, CONFIG_FILENAME_MENU);
+                    "./%s/%s",
+                    CONFIG_DIR_BASE, CONFIG_FILENAME_MENU);
         }
     }
 
     /* Failure is non-fatal: an absent or unparsable 'menu.json' just
      * leaves the root menu showing its fixed footer with no JSON
      * entries above it.  Not followed by 'wm_json_syntax_errors_warn'
-     * here: both of this function's callers (startup, in wm.c;
-     * reload, in wm/actions.c) already call it themselves once
-     * everything for that pass has finished loading, so calling it
-     * here too would just show the same warning dialog for the same
-     * pass a second time. */
+     * here.  Both of this function's callers (startup, in 'wm.c';
+     * reload, in 'wm/actions.c') already call it themselves once
+     * everything for that pass has finished loading, so calling it here
+     * too would just show the same warning dialog for the same pass
+     * a second time. */
     (void) menujson_load(menu_path, &json_entries, &json_count);
 
     s_json_entries = json_entries;
@@ -261,19 +269,19 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
         return;
     }
 
-    /* Copy the already-loaded JSON entries.  'command'/'class_name'
-     * are deliberately deep-copied here via their fresh
-     * 'safe_strndup', not shared with 's_json_entries' strings:
-     * 'reload_config' (also reachable through the IPC command of the
-     * same name, not just the keybind this menu's keyboard grab
-     * would otherwise block while open) can free and replace
-     * 's_json_entries' at any moment, including while this exact
-     * 's_entries' copy is still the one 'ctxmenu_show' is actively
-     * displaying; sharing the pointer instead would leave 's_entries'
-     * holding a dangling one the instant that happened. */
+    /* Copy the already-loaded JSON entries.  'command'/'class_name' are
+     * deliberately deep-copied here via their fresh 'safe_strndup', not
+     * shared with 's_json_entries' strings: 'reload_config' (also
+     * reachable through the IPC command of the same name, not just the
+     * keybind this menu's keyboard grab would otherwise block while
+     * open) can free and replace 's_json_entries' at any moment,
+     * including while this exact 's_entries' copy is still the one
+     * 'ctxmenu_show' is actively displaying; sharing the pointer
+     * instead would leave 's_entries' holding a dangling one the
+     * instant that happened. */
     /* Clamped to the room the array has, since the footer below is
-     * written after these entries and needs the slots reserved for
-     * it.  'menu.json' may hold any number of them */
+     * written after these entries and needs the slots reserved for it.
+     * 'menu.json' may hold any number of them */
     copy_count = s_json_count;
     if (copy_count > n - ROOTMENU_FOOTER_COUNT) {
         copy_count = n - ROOTMENU_FOOTER_COUNT;
@@ -353,14 +361,14 @@ void rootmenu_close(void)
     ctxmenu_close(&s_root);
 
     /* Deliberately not freed here: 's_json_entries' persists across
-     * opens/closes, and is only ever replaced (on reload) or freed
-     * (at shutdown) by 'rootmenu_menu_json_load' or by
+     * opens/closes, and is only ever replaced (on reload) or freed (at
+     * shutdown) by 'rootmenu_menu_json_load' or by
      * 'rootmenu_menu_json_free' (read their comments for a change) */
     if (s_entries != NULL) {
         /* 'command'/'class_name' alone, of everything in each entry,
-         * are 's_entries' independent copies rather than shared
-         * with 's_json_entries'; see 'rootmenu_show''s comment on
-         * why, right where they are copied. */
+         * are 's_entries' independent copies rather than shared with
+         * 's_json_entries'; see 'rootmenu_show''s comment on why, right
+         * where they are copied. */
         for (int i = 0; i < s_entry_count; ++i) {
             free(s_entries[i].command);
             free(s_entries[i].class_name);
@@ -388,8 +396,8 @@ bool rootmenu_handle_click(xcb_connection_t *connection,
         surface_td *surface, xcb_window_t win, int y,
         const config_td *config)
 {
-    return ctxmenu_tree_handle_click_window(connection, surface, &s_root,
-            win, y, config);
+    return ctxmenu_tree_handle_click_window(connection, surface,
+            &s_root, win, y, config);
 }
 
 

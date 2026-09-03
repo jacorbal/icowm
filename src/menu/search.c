@@ -797,9 +797,8 @@ void search_init(list_td *surfaces, xcb_connection_t *connection,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
-    /* Advertise this as a dialog window, so a compositor or pager
-     * that inspects '_NET_WM_WINDOW_TYPE' recognizes it for what
-     * it is */
+    /* Advertise this as a dialog window, so a compositor or pager that
+     * inspects '_NET_WM_WINDOW_TYPE' recognizes it for what it is */
     if (xcb_ewmh_connection_get() != NULL) {
         xcb_atom_t window_type =
             xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_DIALOG;
@@ -862,10 +861,10 @@ void search_handle_keypress(xcb_connection_t *connection,
         list_td *surfaces, xcb_keysym_t keysym, uint16_t state,
         const config_td *cfg)
 {
-    /* X sends a keysym of its own for a shifted Tab rather than Tab
-     * with the shift bit set, so both spellings have to be taken:
-     * matching on 0xff09 alone leaves Shift+Tab reaching neither branch
-     * below, and the widget going forwards only */
+    /* X sends a keysym of its own for a shifted 'Tab' rather than 'Tab'
+     * with the shift bit set, so both spellings have to be taken.
+     * Matching on 0xff09 alone leaves 'Shift+Tab' reaching neither
+     * branch below, and the widget going forwards only */
     bool is_back_tab = (keysym == 0xfe20u);  /* ISO_Left_Tab */
     bool is_tab = (keysym == 0xff09u) || is_back_tab;
     bool has_shift = is_back_tab ||
