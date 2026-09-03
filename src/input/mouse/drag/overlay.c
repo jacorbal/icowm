@@ -32,6 +32,9 @@
 #include <client.h>
 #include <render/text.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Local includes */
 #include <input/mouse/drag/internal.h>
 #include <input/mouse/drag/overlay.h>
@@ -153,6 +156,18 @@ void drag_overlay_show(xcb_connection_t *connection,
                 XCB_WINDOW_CLASS_INPUT_OUTPUT,
                 XCB_COPY_FROM_PARENT,
                 create_mask, create_values);
+
+        /* Advertise this as a tooltip window, so a compositor
+         * that inspects '_NET_WM_WINDOW_TYPE' recognizes it for
+         * what it is */
+        if (xcb_ewmh_connection_get() != NULL) {
+            xcb_atom_t window_type =
+                xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_TOOLTIP;
+
+            xcb_ewmh_set_wm_window_type(xcb_ewmh_connection_get(),
+                    s_drag.overlay_window, 1, &window_type);
+        }
+
         xcb_map_window(connection, s_drag.overlay_window);
     } else {
         xcb_configure_window(connection, s_drag.overlay_window,

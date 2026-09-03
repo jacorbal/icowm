@@ -457,6 +457,18 @@ bool systray_protocol_window_ensure(const wm_td *wm)
             (uint16_t) config->theme.systray.style.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
             mask, values);
+
+    /* Advertise this as a dock window, so a compositor or pager
+     * that inspects '_NET_WM_WINDOW_TYPE' recognizes it for what
+     * it is */
+    if (xcb_ewmh_connection_get() != NULL) {
+        xcb_atom_t window_type =
+            xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_DOCK;
+
+        xcb_ewmh_set_wm_window_type(xcb_ewmh_connection_get(),
+                s_tray.window, 1, &window_type);
+    }
+
     atom_set_window_opacity(connection, s_tray.window,
             config_theme_opacity_to_raw(
                 config->theme.systray.style.opacity));
