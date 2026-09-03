@@ -97,6 +97,11 @@ void mouse_handle_release(xcb_connection_t *connection,
  * transition (entering this same client's content area from its
  * frame) skips focus re-evaluation, since the client was already
  * focused to get there, but still gets the cursor re-evaluation above.
+ * With @c windows.focus.delay-ms left at its default of @c 0, that
+ * focus change happens right here, same as always; set above @c 0, it
+ * is deferred instead, armed here but only actually carried out by
+ * @a mouse_enter_focus_tick once the delay elapses, and dropped
+ * outright by @a mouse_enter_focus_cancel if the pointer leaves first.
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces (for lookup and focus)
@@ -131,6 +136,51 @@ bool mouse_enter_focus_is_active(void);
  * @note Complexity: @e O(1)
  */
 void mouse_enter_focus_clear(void);
+
+/**
+ * @brief Cancel a pending delayed sloppy-focus if it targets @p window
+ *
+ * Call from the @c LeaveNotify handler for every window a client owns,
+ * the same way @a mouse_hover_poll_clear already is, so a pointer that
+ * leaves before @c windows.focus.delay-ms elapses never ends up
+ * focusing a client it already moved past.
+ *
+ * @param window Window to compare against the currently pending one
+ *
+ * @note A no-op if @p window is not the one currently pending, or if
+ *       nothing is pending at all
+ * @note Complexity: @e O(1)
+ */
+void mouse_enter_focus_cancel(xcb_window_t window);
+
+/**
+ * @brief Milliseconds until the pending delayed sloppy-focus becomes
+ *        due
+ *
+ * For the main loop to fold into its poll timeout computation, the
+ * same way @a mouse_hover_poll_ms_remaining and similar already are.
+ *
+ * @return Milliseconds remaining (never negative), or @c -1 if nothing
+ *         is currently pending
+ *
+ * @note Complexity: @e O(1)
+ */
+int mouse_enter_focus_ms_remaining(void);
+
+/**
+ * @brief Apply the pending delayed sloppy-focus, if one is due
+ *
+ * A no-op if nothing is pending, if the pending one is not yet due, or
+ * if the focus policy is no longer @c sloppy by the time it comes due
+ * (a config reload could have switched it to @c click in the
+ * meantime).
+ *
+ * @param surfaces All managed surfaces (for lookup and focus)
+ * @param config   Active configuration
+ *
+ * @note Complexity: @e O(n)
+ */
+void mouse_enter_focus_tick(list_td *surfaces, const config_td *config);
 
 
 #endif  /* ! INPUT_MOUSE_EVENT_H */

@@ -1,8 +1,8 @@
 /**
  * @file config/base/defaults.c
  *
- * @brief Compiled-in default values for the base and desktop-navigation
- *        configuration structures
+ * @brief Compiled-in default values for the base and desktop-
+ *        navigation configuration structures
  *
  * One of the files @c config/base/ is made of;
  * @c config_set_default_base_values is used both as the initial
@@ -72,8 +72,8 @@ void config_set_default_base_values(struct config_base_s *config_base,
      * a slot it does not itself set a color for would otherwise still
      * be sitting at zero from this whole structure's initial 'calloc'
      * rather than at the sentinel, which reads as an opaque black
-     * background instead of falling back to the theme's color the way
-     * an genuinely unset one should. */
+     * background instead of falling back to the theme's color the
+     * way an genuinely unset one should. */
     LOGGER_TRACE("Setting background-color sentinel for every" \
             " possible screen and desktop slot", L_NARG);
     for (unsigned int i = 0; i < CONFIG_MAX_SCREENS; ++i) {
@@ -98,15 +98,15 @@ void config_set_default_base_values(struct config_base_s *config_base,
                 ? CONFIG_MAX_DESKTOPS : desktop_default;
         config_base->screens[i].desktop_inaugural = 0;
 
-        /* The exact same reading order the desktop list itself already
-         * had before layout existed at all: a single row, one column
-         * per desktop, corner and orientation both irrelevant at that
-         * point since there is only ever one direction to read in.
-         * A 'config.json' that specifies its own
-         * 'topology.screens.desktops[].layout' always overrides this
-         * default the same way 'desktop_count' above does (see that
-         * field's comment); this is purely the starting baseline before
-         * any JSON is read. */
+        /* The exact same reading order the desktop list itself
+         * already had before layout existed at all: a single row,
+         * one column per desktop, corner and orientation both
+         * irrelevant at that point since there is only ever one
+         * direction to read in.  A 'config.json' that specifies its
+         * own 'topology.screens.desktops[].layout' always overrides
+         * this default the same way 'desktop_count' above does (see
+         * that field's comment); this is purely the starting
+         * baseline before any JSON is read. */
         config_base->screens[i].desktop_layout.orientation =
             CONFIG_DESKTOP_ORIENTATION_HORIZONTAL;
         config_base->screens[i].desktop_layout.corner =
@@ -156,12 +156,12 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->scratchpad.ignore_margins = false;
 
     config_base->windows.move_step = 10;
-    /* Resize step is usually overridden by hints */
+    /* usually overridden by hints */
     config_base->windows.resize_step = 20;
     config_base->windows.edges.snap.window = 6;
     config_base->windows.edges.snap.screen = 6;
-    /* Matches Openbox's default for 'config_resist_edge' (in
-     * 'config.c'), reused there for the identical purpose */
+    /* Matches Openbox's default for 'config_resist_edge'
+     * (config.c), reused there for the identical purpose */
     config_base->windows.edges.resistance = 20;
     config_base->windows.show_geom = true;
     config_base->windows.solid_drag = true;
@@ -173,6 +173,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.group_related = false;
     config_base->windows.focus.focus_new = true;
     config_base->windows.focus.raise = false;
+    config_base->windows.focus.delay_ms = 0;
     config_base->icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config_base->icons.show_geom = false;
     config_base->shutdown.enable_emergency_shortcut = false;

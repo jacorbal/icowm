@@ -8,6 +8,14 @@
  * outside this file and @c handler_focus_in (@c handler/focus.c), which
  * clears it.  See @c input/mouse/event/press.c's comment for the
  * reasoning behind the three-way split.
+ *
+ * Also carries @c s_pending_window and @c s_pending_due, the state
+ * behind @c windows.focus.delay-ms: with the delay left at its default
+ * of 0, sloppy focus still applies the instant @a mouse_handle_enter
+ * sees it, exactly as before this pair existed; set above 0, that same
+ * function arms a deadline here instead of focusing right away, left
+ * for @a mouse_enter_focus_tick to carry out once it elapses, or for
+ * @a mouse_enter_focus_cancel to drop if the pointer leaves first.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -17,10 +25,14 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* CLOCK_MONOTONIC, clock_gettime */
+
+
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
+#include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -33,6 +45,9 @@
 
 /* Policy includes */
 #include <policy/focus.h>
+
+/* Utils includes */
+#include <utils/time/clock.h>
 
 /* Project includes */
 #include <client.h>
@@ -57,6 +72,20 @@
  * event arrives.
  */
 static bool s_enter_focus_active = false;
+
+/**
+ * @brief Window a delayed sloppy-focus is currently pending for, or
+ *        @c XCB_WINDOW_NONE for none
+ *
+ * Armed by @a mouse_handle_enter when @c windows.focus.delay-ms is
+ * above 0, carried out by @a mouse_enter_focus_tick once
+ * @a s_pending_due arrives, and dropped by @a mouse_enter_focus_cancel
+ * if the pointer leaves @p s_pending_window first.
+ */
+static xcb_window_t s_pending_window = XCB_WINDOW_NONE;
+
+/** Absolute time @a s_pending_window's delayed focus becomes due */
+static struct timespec s_pending_due;
 
 
 /* Re-evaluate the resize cursor, then apply focus-follows-mouse, on
@@ -127,9 +156,16 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
-    s_enter_focus_active = true;
-    focus_apply(surfaces, surface, desktop, client, false, config);
+    if (config->base.windows.focus.delay_ms == 0u ||
+            clock_gettime(CLOCK_MONOTONIC, &s_pending_due) != 0) {
+        s_pending_window = XCB_WINDOW_NONE;
+        s_enter_focus_active = true;
+        focus_apply(surfaces, surface, desktop, client, false, config);
+        return;
+    }
 
+    clock_add_ms(&s_pending_due, config->base.windows.focus.delay_ms);
+    s_pending_window = event->event;
 }
 
 
@@ -144,4 +180,55 @@ bool mouse_enter_focus_is_active(void)
 void mouse_enter_focus_clear(void)
 {
     s_enter_focus_active = false;
+}
+
+
+/* Cancel a pending delayed sloppy-focus if it targets 'window' */
+void mouse_enter_focus_cancel(xcb_window_t window)
+{
+    if (window != XCB_WINDOW_NONE && window == s_pending_window) {
+        s_pending_window = XCB_WINDOW_NONE;
+    }
+}
+
+
+/* Milliseconds until the pending delayed sloppy-focus becomes due */
+int mouse_enter_focus_ms_remaining(void)
+{
+    if (s_pending_window == XCB_WINDOW_NONE) {
+        return -1;
+    }
+
+    return (int) clock_ms_until(&s_pending_due);
+}
+
+
+/* Apply the pending delayed sloppy-focus, if one is due */
+void mouse_enter_focus_tick(list_td *surfaces, const config_td *config)
+{
+    client_td *client;
+    desktop_td *desktop;
+    surface_td *surface;
+    xcb_window_t window;
+
+    if (surfaces == NULL || config == NULL ||
+            s_pending_window == XCB_WINDOW_NONE ||
+            mouse_enter_focus_ms_remaining() > 0) {
+        return;
+    }
+
+    window = s_pending_window;
+    s_pending_window = XCB_WINDOW_NONE;
+
+    if (!focus_is_sloppy(config)) {
+        return;
+    }
+
+    client = lookup_find_client(surfaces, window, &surface, &desktop);
+    if (client == NULL || surface == NULL || desktop == NULL) {
+        return;
+    }
+
+    s_enter_focus_active = true;
+    focus_apply(surfaces, surface, desktop, client, false, config);
 }

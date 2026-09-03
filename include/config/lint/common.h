@@ -52,7 +52,7 @@ extern const config_lint_key_td
     s_schema_systray[CONFIG_LINT_SYSTRAY_KEYS];
 
 /** How many keys @c s_schema_windows_focus holds */
-#define CONFIG_LINT_WINDOWS_FOCUS_KEYS (3u)
+#define CONFIG_LINT_WINDOWS_FOCUS_KEYS (4u)
 
 extern const config_lint_key_td
     s_schema_windows_focus[CONFIG_LINT_WINDOWS_FOCUS_KEYS];

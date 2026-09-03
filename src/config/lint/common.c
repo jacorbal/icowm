@@ -41,7 +41,8 @@ const config_lint_key_td s_schema_prompt[] = {
 const config_lint_key_td s_schema_windows_focus[] = {
     {"policy", NULL, 0u},
     {"focus-new", NULL, 0u},
-    {"raise", NULL, 0u}
+    {"raise", NULL, 0u},
+    {"delay-ms", NULL, 0u}
 };
 
 const config_lint_key_td s_schema_windows_placement[] = {

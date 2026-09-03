@@ -21,6 +21,7 @@
 #include <policy/focus.h>
 
 /* Input includes */
+#include <input/mouse/event.h>
 #include <input/mouse/hover.h>
 
 /* Project includes */
@@ -53,6 +54,13 @@ void handler_leave_notify(const wm_td *wm,
      * has actually left it, regardless of whether hover also affects
      * focus. */
     mouse_hover_poll_clear(event->event);
+
+    /* Same reasoning, for a delayed sloppy-focus armed by this same
+     * window's 'EnterNotify' (see 'windows.focus.delay-ms',
+     * 'mouse_handle_enter' in input/mouse/event/enter.c): a pointer
+     * leaving before that delay elapses must never end up focusing a
+     * client it already moved past. */
+    mouse_enter_focus_cancel(event->event);
 
     if (focus_is_sloppy(config) &&
             event->mode == XCB_NOTIFY_MODE_NORMAL &&

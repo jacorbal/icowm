@@ -185,6 +185,19 @@ focus, and the wheel over the desktop shading or unshading it.
 It therefore makes no observable difference under
 .Ql click
 focus.
+.It Ic windows.focus.delay-ms Pq integer, default Ql 0
+Milliseconds the pointer must sit still over a window before it is
+focused.
+Only takes effect under
+.Ql sloppy
+focus; with it left at 0, the pointer entering a window focuses it
+immediately, the same as before this key existed.
+Leaving the window before the delay elapses cancels it, so passing
+through one window on the way to another never steals focus along the
+way.
+Has no effect at all under
+.Ql click
+focus.
 .It Ic windows.placement.policy Pq string, default Ql \&"smart\&"
 Where a newly mapped window is put:
 .Ql smart

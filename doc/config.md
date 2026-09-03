@@ -626,13 +626,15 @@ nothing.  Restricted-memory mode (`memguard.json`) always runs with this
 | `focus.policy`             | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
 | `focus.focus-new`          | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
 | `focus.raise`              | boolean | `false`   | When `true`, a window is also raised when it gains focus by pointer or wheel. |
+| `focus.delay-ms`           | integer | `0`       | Milliseconds the pointer must sit still over a window before it is focused. Only takes effect under `"sloppy"`; has no effect under `"click"`. |
 
 ```json
 "windows": {
     "focus": {
         "policy": "click",
         "focus-new": true,
-        "raise: false
+        "raise": false,
+        "delay-ms": 0
     }
 }
 ```
@@ -653,6 +655,14 @@ whatever the person had deliberately placed above it.
 
 It therefore makes no observable difference under `"click"` focus, where
 none of those paths is reached.
+
+`delay-ms` likewise only has an effect under `"sloppy"` focus.  With it
+left at the default of `0`, the pointer entering a window focuses it
+immediately, same as always.  Set above `0`, the pointer has to sit
+still over the window for that many milliseconds before it actually
+gains focus; leaving early cancels it, so passing through a window on
+the way to another one never steals focus along the way.  Under
+`"click"` focus this key is simply never consulted at all.
 
 #### `windows.placement`
 
@@ -2442,7 +2452,8 @@ to whatever theme loads, unconditionally.
         "focus": {
             "policy": "click",
             "focus-new": true,
-            "raise": false
+            "raise": false,
+            "delay-ms": 0
         },
         "placement": {
             "policy": "smart",

@@ -28,6 +28,7 @@
 
 /* Input includes */
 #include <input/mouse/drag/warp.h>
+#include <input/mouse/event.h>
 #include <input/mouse/hover.h>
 
 /* Menu includes */
@@ -118,6 +119,13 @@ int loop_timers_timeout(const loop_ctx_td *ctx)
     s_loop_timers_tighten(&poll_timeout_ms,
             mouse_hover_poll_ms_remaining());
 
+    /* Shorter still while a delayed sloppy-focus is pending (see
+     * 'mouse_enter_focus_tick' in input/mouse/event.h, and
+     * 'windows.focus.delay-ms'), so it fires right on time instead of
+     * waiting for the next unrelated event to wake the loop up. */
+    s_loop_timers_tighten(&poll_timeout_ms,
+            mouse_enter_focus_ms_remaining());
+
     /* Shorter still while a confirm dialog has a timer of its own
      * running (see 'menu_confirm_dialog_tick' in menu/dialog/
      * confirm.h): a pending click-triggered close/accept, or a
@@ -175,6 +183,7 @@ void loop_timers_tick(const loop_ctx_td *ctx)
     ping_tick(ctx->surfaces);
     cctl_sn_tick(xcb_connection_get(), ctx->surfaces);
     mouse_hover_poll_tick(xcb_connection_get(), ctx->surfaces);
+    mouse_enter_focus_tick(ctx->surfaces, ctx->config);
     menu_confirm_dialog_tick(xcb_connection_get(), ctx->config);
     menu_message_dialog_tick(xcb_connection_get());
     drag_warp_tick(xcb_connection_get());

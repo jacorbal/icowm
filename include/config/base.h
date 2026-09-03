@@ -358,6 +358,23 @@ struct config_base_s {
         struct {
             bool focus_new;
             bool raise;
+
+            /**
+             * @brief Milliseconds the pointer must sit still over a
+             *        client before it is focused, meaningful only
+             *        under @c focus_policy's @c CONFIG_FOCUS_POLICY_
+             *        SLOPPY; ignored under @c CLICK, which never
+             *        focuses on an @c EnterNotify at all
+             *
+             * @c 0 (the default) focuses the instant the pointer
+             * enters, exactly as before this field existed.  Leaving
+             * the client before the delay elapses cancels it, so a
+             * pointer only passing through on its way elsewhere never
+             * steals focus.
+             *
+             * @see @a mouse_handle_enter, @a mouse_enter_focus_tick
+             */
+            uint32_t delay_ms;
         } focus;
     } windows;
 

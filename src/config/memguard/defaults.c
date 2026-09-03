@@ -111,6 +111,7 @@ void config_set_default_values_memguard(config_td *config)
     config->base.windows.group_related = false;
     config->base.windows.focus.focus_new = true;
     config->base.windows.focus.raise = false;
+    config->base.windows.focus.delay_ms = 0u;
 
     /* SMART's cost is bounded (256 candidate slots, each checked
      * against every already-docked icon, so O(256*n) at worst) and runs
