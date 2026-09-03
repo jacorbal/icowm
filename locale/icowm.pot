@@ -554,61 +554,49 @@ msgstr ""
 msgid "Window Manager"
 msgstr ""
 
-
 #: include/defs/uistr.h
 msgid "Launch"
 msgstr ""
-
 
 #: include/defs/uistr.h
 msgid "Window"
 msgstr ""
 
-
 #: include/defs/uistr.h
 msgid "Cycle"
 msgstr ""
-
 
 #: include/defs/uistr.h
 msgid "Send to monitor to the north"
 msgstr ""
 
-
 #: include/defs/uistr.h
 msgid "Send to monitor to the south"
 msgstr ""
-
 
 #: include/defs/uistr.h
 msgid "Send to monitor to the east"
 msgstr ""
 
-
 #: include/defs/uistr.h
 msgid "Send to monitor to the west"
 msgstr ""
-
 
 #: include/defs/uistr.h
 msgid "Send to desktop to the north"
 msgstr ""
 
-
 #: include/defs/uistr.h
 msgid "Send to desktop to the south"
 msgstr ""
-
 
 #: include/defs/uistr.h
 msgid "Send to desktop to the east"
 msgstr ""
 
-
 #: include/defs/uistr.h
 msgid "Send to desktop to the west"
 msgstr ""
-
 
 #: include/defs/uistr.h
 msgid ""
@@ -617,7 +605,6 @@ msgid ""
 "IcoWM manages adds to its own memory use, regardless of that "
 "window's own application.  Close a window before opening more."
 msgstr ""
-
 
 #: include/defs/uistr.h
 msgid "On all desktops"
