@@ -16,6 +16,7 @@
 #ifndef INPUT_MOUSE_DRAG_ICON_H
 #define INPUT_MOUSE_DRAG_ICON_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -32,8 +33,7 @@
  * @brief Begin a drag operation for an icon window
  *
  * Like @a drag_start (@c input/mouse/drag.h), but the drag target is
- * the icon window of @p client rather than the decorated client
- * frame.
+ * the icon window of @p client rather than the decorated client frame.
  *
  * @param connection XCB connection
  * @param root       Root window on which to grab the pointer
@@ -44,8 +44,7 @@
  *                   @a drag_start's @p desktop parameter
  * @param icon_pos   Current icon window position (screen-relative)
  * @param event_time Timestamp from the triggering button-press event
- * @param root_pos   Root-relative position of the pointer at press
- *                   time
+ * @param root_pos   Root-relative position of the pointer at press time
  * @param screen_dim Surface dimensions, for edge snapping and
  *                   @p desktops.warp's edge detection
  *

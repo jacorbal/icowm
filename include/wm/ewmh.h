@@ -4,14 +4,14 @@
  * @brief Root-window EWMH properties this window manager publishes
  *
  * What a compliant panel, pager or taskbar reads to learn what this
- * window manager is and what it supports.  Held apart from the rest
- * of @c wm.h because it is one protocol rather than one more thing
- * the window manager happens to do, and because everything on the
- * other side of it belongs to somebody else's program.
+ * window manager is and what it supports.  Held apart from the rest of
+ * @c wm.h because it is one protocol rather than one more thing the
+ * window manager happens to do, and because everything on the other
+ * side of it belongs to somebody else's program.
  *
- * Only the root window's properties are here.  What a client
- * publishes about itself goes through @c cmds/client/ewmh.h, and what
- * a client asks of the window manager arrives at @c handler/ewmh.h.
+ * Only the root window's properties are here.  What a client publishes
+ * about itself goes through @c cmds/client/ewmh.h, and what a client
+ * asks of the window manager arrives at @c handler/ewmh.h.
  *
  * @defgroup wmewmh Root EWMH properties
  * @ingroup wm

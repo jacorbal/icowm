@@ -31,8 +31,7 @@
 
 
 /**
- * @brief Look up one GUI string's translation for the current
- *        locale
+ * @brief Look up one GUI string's translation for the current locale
  *
  * Wrapper around @a gettext itself, named the short, conventional way
  * every @a gettext project names it, so a translated string reads as

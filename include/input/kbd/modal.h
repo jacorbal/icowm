@@ -93,8 +93,8 @@ void kbd_modal_resize_start(xcb_connection_t *connection,
  *                   used as fallback)
  * @param surface    Current surface (used for move/resize step config)
  * @param keysym     X keysym of the pressed key
- * @param config     Active configuration, for the move and resize
- *                   step sizes
+ * @param config     Active configuration, for the move and resize step
+ *                   sizes
  *
  * @return @c true (the key is always consumed while modal is active)
  *

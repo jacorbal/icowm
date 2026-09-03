@@ -89,8 +89,8 @@ bool drag_is_overlay_window(xcb_window_t window);
  * interactive move/resize feedback.  Called both when the overlay's
  * content changes mid-drag, and from @c handler_expose
  * (@c handler/expose.c) when the overlay window itself receives an
- * @c Expose event (e.g., after another window that had been covering
- * it is removed or moved away).
+ * @c Expose event (e.g., after another window that had been covering it
+ * is removed or moved away).
  *
  * @param connection XCB connection
  *

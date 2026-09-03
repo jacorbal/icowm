@@ -44,7 +44,7 @@
  * rest would go on to resolve.
  *
  * @param wm         Window manager instance, needed only for the
- *                    root-window right-click's root menu
+ *                   root-window right-click's root menu
  * @param connection XCB connection
  * @param surfaces   All managed surfaces (for lookup and focus)
  * @param event      Button-press event
@@ -82,21 +82,22 @@ void mouse_handle_release(xcb_connection_t *connection,
  * a normal one (gated only by @p event->mode below, not by whether
  * focus-follows-mouse is even enabled).  A resizable client that
  * selects @c PointerMotion for its purposes (common in GTK/Qt
- * applications tracking hover for their UI) intercepts motion
- * events at the X11 propagation level before
- * @a mouse_handle_motion_hover ever sees them, which otherwise leaves
- * whichever resize-border cursor was last set stuck for as long as the
- * pointer stays over that client's content.  This enter-notify
- * still fires reliably even then, since it is selected directly on the
- * client's window (cfr. @c client.c), giving the cursor logic
- * a second, independent chance motion alone might have missed.
+ * applications tracking hover for their UI) intercepts motion events at
+ * the X11 propagation level before @a mouse_handle_motion_hover ever
+ * sees them, which otherwise leaves whichever resize-border cursor was
+ * last set stuck for as long as the pointer stays over that client's
+ * content.  This enter-notify still fires reliably even then, since it
+ * is selected directly on the client's window (cfr. @c client.c),
+ * giving the cursor logic a second, independent chance motion alone
+ * might have missed.
  *
  * Focus itself is then applied to the client under the pointer only
  * when the configured focus policy is @c sloppy.  Normal events on
  * managed client frames raise no stacking change; an inferior
- * transition (entering this same client's content area from its
- * frame) skips focus re-evaluation, since the client was already
- * focused to get there, but still gets the cursor re-evaluation above.
+ * transition (entering this same client's content area from its frame)
+ * skips focus re-evaluation, since the client was already focused to
+ * get there, but still gets the cursor re-evaluation above.
+ *
  * With @c windows.focus.delay-ms left at its default of @c 0, that
  * focus change happens right here, same as always; set above @c 0, it
  * is deferred instead, armed here but only actually carried out by
@@ -157,8 +158,8 @@ void mouse_enter_focus_cancel(xcb_window_t window);
  * @brief Milliseconds until the pending delayed sloppy-focus becomes
  *        due
  *
- * For the main loop to fold into its poll timeout computation, the
- * same way @a mouse_hover_poll_ms_remaining and similar already are.
+ * For the main loop to fold into its poll timeout computation, the same
+ * way @a mouse_hover_poll_ms_remaining and similar already are.
  *
  * @return Milliseconds remaining (never negative), or @c -1 if nothing
  *         is currently pending
@@ -172,8 +173,7 @@ int mouse_enter_focus_ms_remaining(void);
  *
  * A no-op if nothing is pending, if the pending one is not yet due, or
  * if the focus policy is no longer @c sloppy by the time it comes due
- * (a config reload could have switched it to @c click in the
- * meantime).
+ * (a config reload could have switched it to @c click in the meantime).
  *
  * @param surfaces All managed surfaces (for lookup and focus)
  * @param config   Active configuration

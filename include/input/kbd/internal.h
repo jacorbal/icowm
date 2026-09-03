@@ -7,8 +7,8 @@
  * Splitting @c src/input/kbd/event.c into the main dispatch (cycle
  * menu, dialog, open-menu, and generic client-action key handling) and
  * the direct client-interaction handlers (program launch, keyboard
- * move, keyboard resize) still leaves one function the latter's
- * file exposes for the former to call, and vice versa: both need the
+ * move, keyboard resize) still leaves one function the latter's file
+ * exposes for the former to call, and vice versa: both need the
  * currently focused client, which is genuinely shared lookup logic, not
  * duplicated per file.
  *
@@ -157,8 +157,8 @@ void ik_handle_resize(enum ik_resize_e edge,
  *
  * A window being placed by hand, a modal move or resize, an open cycle
  * menu, the search widget, the run box, a confirm or message dialog,
- * and any open context menu all take every key while they last, in
- * that order of priority.  Asked before the binding table is consulted
+ * and any open context menu all take every key while they last, in that
+ * order of priority.  Asked before the binding table is consulted
  * at all, so that a shortcut cannot fire while one of them is up.
  *
  * The window being placed comes first of them because it holds the
@@ -200,8 +200,8 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
  * @param out_modmask Receives the matched binding's raw modifier
  *                    mask, which some actions need; may be null
  *
- * @return The action bound to the combination, or @c KEYBIND_NONE
- *         when no binding matches
+ * @return The action bound to the combination, or @c KEYBIND_NONE when
+ *         no binding matches
  *
  * @note Complexity: @e O(k), where @e k is the number of configured
  *       bindings

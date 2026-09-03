@@ -9,18 +9,17 @@
  *
  * Nothing here ever waits in place.  Asking holds the pointer and the
  * keyboard, either of which can answer, draws an outline where the
- * window would go, and returns,
- * so every event still arrives through the main loop as usual and
- * every other client keeps running while the question is open.  The
- * caller that asked hands over what finishes the map, to be called
- * once the position is settled, and gets told that it must not finish
- * the map itself.
+ * window would go, and returns, so every event still arrives through
+ * the main loop as usual and every other client keeps running while the
+ * question is open.  The caller that asked hands over what finishes the
+ * map, to be called once the position is settled, and gets told that it
+ * must not finish the map itself.
  *
  * A window whose turn has not come yet is held unmapped, with the wait
- * for it starting only when it becomes the one being asked about.
- * That wait measures silence rather than the age of the question:
- * every answer that does not settle the window starts it over, so
- * aiming slowly is never mistaken for ignoring it.
+ * for it starting only when it becomes the one being asked about.  That
+ * wait measures silence rather than the age of the question: every
+ * answer that does not settle the window starts it over, so aiming
+ * slowly is never mistaken for ignoring it.
  *
  * @defgroup placement_manual Manual placement
  * @ingroup policy
@@ -171,9 +170,9 @@ void place_manual_handle_press(xcb_connection_t *connection);
  * already-placed window gives to a keyboard move, so there is one set
  * of keys to learn rather than two.
  *
- * Every other key is swallowed: the keyboard is held for as long as
- * the question is open, and a key meant for whatever had it before
- * would have nowhere to go.
+ * Every other key is swallowed: the keyboard is held for as long as the
+ * question is open, and a key meant for whatever had it before would
+ * have nowhere to go.
  *
  * @param connection XCB connection
  * @param keysym     Keysym of the pressed key
@@ -192,17 +191,17 @@ void place_manual_handle_keypress(xcb_connection_t *connection,
  * @brief Milliseconds left before the window being placed is given up
  *        on and placed anyway
  *
- * For the main loop to fold into its @c poll timeout computation,
- * the same way @a mouse_hover_poll_ms_remaining already is, so the
- * wait ends on time rather than whenever the next unrelated event
- * happens to wake the loop up.
+ * For the main loop to fold into its @c poll timeout computation, the
+ * same way @a mouse_hover_poll_ms_remaining already is, so the wait
+ * ends on time rather than whenever the next unrelated event happens to
+ * wake the loop up.
  *
  * @return Milliseconds remaining (never negative), or @c -1 when no
  *         window is currently being pointed at
  *
- * @note Counted from the last answer rather than from when the
- *       question opened, so this rises again whenever the outline is
- *       moved by either device
+ * @note Counted from the last answer rather than from when the question
+ *       opened, so this rises again whenever the outline is moved by
+ *       either device
  * @note Complexity: @e O(1)
  */
 int place_manual_ms_remaining(void);
@@ -214,19 +213,19 @@ int place_manual_ms_remaining(void);
  *
  * @note A no-op when no window is being pointed at, or when one is but
  *       its wait has not elapsed yet
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop, from the map this hands on to
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop, from the map this hands on to
  */
 void place_manual_tick(xcb_connection_t *connection);
 
 /**
  * @brief Drop a window that disappeared before it could be placed
  *
- * Releases the pointer and the keyboard and takes the outline down
- * when @p client is the one currently being pointed at, and simply
- * forgets it when it was still waiting its turn.  What would have
- * finished the map is deliberately never called.  There is no longer a
- * window to map.
+ * Releases the pointer and the keyboard and takes the outline down when
+ * @p client is the one currently being pointed at, and simply forgets
+ * it when it was still waiting its turn.  What would have finished the
+ * map is deliberately never called.  There is no longer a window to
+ * map.
  *
  * @param connection XCB connection
  * @param client     Client that disappeared

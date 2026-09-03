@@ -72,7 +72,7 @@ struct cycle_menu_state_s {
     int last_drawn_scroll_offset;   /**< See @p last_drawn_selected */
 
     xcb_window_t outline_windows[4];/**< The 4 strip windows (see
-                                         render/outline.h) outlining
+                                         @c render/outline.h) outlining
                                          whichever client is
                                          currently selected;
                                          @c XCB_WINDOW_NONE in all

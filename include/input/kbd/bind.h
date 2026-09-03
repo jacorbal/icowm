@@ -93,10 +93,11 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_CYCLE_NEXT,
     /** Focus the previous client */
     KEYBIND_CLIENT_CYCLE_PREV,
+
     /**
      * @brief Open this client's context menu
      *
-     * Bound to a fixed 'Alt+Space' and unrelated to
+     * Bound to a fixed @c Alt+Space and unrelated to
      * @c KEYBIND_WM_WINDOWS_MENU.
      */
     KEYBIND_CLIENT_WINDOW_MENU,
@@ -160,7 +161,7 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_REMOVE,
 
     /** Toggle strutless maximization, setting panel and tray struts
-     *  aside */
+     * aside */
     KEYBIND_WM_TOGGLE_STRUTLESS_MAXIMIZE,
 
     /* Window manager lifecycle */
@@ -195,7 +196,7 @@ enum wm_keybind_type_e {
  */
 typedef struct {
     xcb_keysym_t keysym;            /**< X keysym for this binding */
-    enum wm_keybind_type_e type;    /** Action this binding triggers */
+    enum wm_keybind_type_e type;    /**< Action this binding triggers */
     uint16_t modmask;               /**< Required modifier mask */
 } wm_keybinding_td;
 
@@ -258,27 +259,27 @@ bool keyboard_is_modifier_for_mask(xcb_keysym_t keysym, uint16_t mask);
 /**
  * @brief The symbol a key actually produces, modifiers included
  *
- * A keycode names a physical key, and what that key produces depends
- * on which modifiers are held: the same key gives @c 7 on its own and
- * @c slash with Shift on a Spanish layout, and @c 4, @c dollar or
- * @c asciitilde depending on Shift and AltGr.  X arranges those in
- * columns of the keyboard mapping, and asking for column @c 0 alone,
- * as the binding lookup does, always answers with the unmodified key.
+ * A keycode names a physical key, and what that key produces depends on
+ * which modifiers are held: the same key gives @c 7 on its own and @c
+ * slash with @c Shift, and @c 4, @c dollar or @c asciitilde depending
+ * on @c Shift and @c AltGr on some layouts.  X arranges those in
+ * columns of the keyboard mapping, and asking for column @c 0 alone, as
+ * the binding lookup does, always answers with the unmodified key.
  *
  * That is right for bindings, which are defined against the key rather
- * than against what it types, and wrong for anything reading text.  A
- * dialog asking for a command could not be given an uppercase letter,
+ * than against what it types, and wrong for anything reading text.
+ * A dialog asking for a command could not be given an uppercase letter,
  * a slash, an asterisk, a dollar sign or a tilde at all.
  *
- * @param keysyms Keyboard mapping to consult; may be @c NULL
+ * @param keysyms Keyboard mapping to consult; may be null
  * @param keycode Physical key that was pressed
  * @param state   Modifier state the press carried
  *
  * @return The symbol that key and those modifiers produce, or
  *         @c XCB_NO_SYMBOL when it produces none
  *
- * @note Caps Lock counts as Shift for letters only, which is what X
- *       itself defines: it uppercases @c a, and leaves @c 7 alone
+ * @note Caps Lock counts as @c Shift for letters only, which is what
+ *       X itself defines: it uppercases @c a, and leaves @c 7 alone
  * @note Complexity: @e O(1)
  */
 xcb_keysym_t keyboard_keysym_for_state(xcb_key_symbols_t *keysyms,
@@ -291,8 +292,9 @@ xcb_keysym_t keyboard_keysym_for_state(xcb_key_symbols_t *keysyms,
  * modifier keysym (@c Shift, @c Control, @c Meta/Alt, @c Num_Lock,
  * @c Super, @c Hyper) regardless of which specific one, rather than
  * restricting the check to bits set in a caller-supplied mask.
+ *
  * Used by @a s_handle_cycle_key (@c input/kbd/event.c) so that tapping
- * a bare modifier such as Shift, to switch cycle direction, does not
+ * a bare modifier such as @c Shift, to switch cycle direction, does not
  * close the cycle menu; see @a cycle_init's @p g_cycle_menu @p modifier
  * assignment (in @c menu/cycle.c) for the other half of that same fix.
  *

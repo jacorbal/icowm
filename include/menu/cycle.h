@@ -96,10 +96,10 @@ void cycle_draw(xcb_connection_t *connection, const config_td *cfg);
  *        viewport, not just whatever selection change it can tell
  *        happened on its own
  *
- * For any redraw need @a cycle_draw cannot infer from its
- * @p selected / @p scroll_offset bookkeeping alone, in particular an
- * @c Expose event.  The window's prior content may be gone
- * regardless of whether either of those changed.
+ * For any redraw need @a cycle_draw cannot infer from its @p selected /
+ * @p scroll_offset bookkeeping alone, in particular an @c Expose event.
+ * The window's prior content may be gone regardless of whether either
+ * of those changed.
  *
  * @note A no-op the menu itself already accounts for on every other
  *       path (opening it fresh, or a viewport-shifting navigation), so
@@ -147,10 +147,10 @@ void cycle_confirm(xcb_connection_t *connection,
  * @brief Set the selection directly to a given index
  *
  * If @p idx is out of range it is clamped to the last valid entry.
- * Does nothing when the menu has no entries.
  *
  * @param idx Zero-based row index to select
  *
+ * @note Does nothing when the menu has no entries
  * @note Complexity: @e O(1)
  */
 void cycle_navigate_to(unsigned int idx);

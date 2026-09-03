@@ -84,12 +84,12 @@
  *                   @c menu.json)
  *
  * @note A no-op, not a failure, if @c menu.json does not exist or fails
- *       to parse; the root menu simply shows its fixed footer with
- *       no JSON entries above it
+ *       to parse; the root menu simply shows its fixed footer with no
+ *       JSON entries above it
  * @note Call once at startup and again on every configuration reload,
  *       never from @a rootmenu_show itself
- * @note Safe to call again later; a previous call's entries, if
- *       any, are freed first
+ * @note Safe to call again later; a previous call's entries, if any,
+ *       are freed first
  * @note Complexity: @e O(n), where @e n is the total number of menu
  *       entries in @c menu.json
  */
@@ -108,17 +108,17 @@ void rootmenu_menu_json_free(void);
  * @brief Display the root desktop menu
  *
  * Combines the entries @a rootmenu_menu_json_load already parsed with
- * the fixed footer entries, and shows the result at @p pos.  Any
- * previously open root menu is closed first.
+ * the fixed footer entries, and shows the result at @p pos.
  *
- * @param wm         Window manager instance, cached for the
- *                    callbacks of the "Rearrange" and "Reload
- *                    configuration" entries
+ * @param wm         Window manager instance, cached for the callbacks
+ *                   of the "Rearrange" and "Reload configuration"
+ *                   entries
  * @param connection XCB connection
  * @param surface    Surface on which to display the menu
  * @param pos        Requested origin (root coordinates)
  * @param config     Active configuration
  *
+ * @note Any previously open root menu is closed first
  * @note Complexity: @e O(n), where @e n is the total number of menu
  *       entries
  */

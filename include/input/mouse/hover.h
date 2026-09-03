@@ -31,10 +31,10 @@
  *        matches @p window
  *
  * Call from the @c LeaveNotify handler for every window a client owns
- * (its window at minimum), so a client the pointer has actually
- * left stops being polled; a stale poll target left set after the
- * pointer leaves would keep re-querying and re-applying a cursor to
- * a window the pointer is no longer over.
+ * (its window at minimum), so a client the pointer has actually left
+ * stops being polled; a stale poll target left set after the pointer
+ * leaves would keep re-querying and re-applying a cursor to a window
+ * the pointer is no longer over.
  *
  * @param window Window to compare against the currently tracked one
  *
@@ -47,9 +47,9 @@ void mouse_hover_poll_clear(xcb_window_t window);
  * @brief Milliseconds until the tracked resize-cursor poll target
  *        should next be re-evaluated
  *
- * For the main loop to fold into its @c poll timeout computation,
- * the same way @a popup_ms_remaining and similar already are, so the
- * loop wakes up promptly enough for @a mouse_hover_poll_tick to feel
+ * For the main loop to fold into its @c poll timeout computation, the
+ * same way @a popup_ms_remaining and similar already are, so the loop
+ * wakes up promptly enough for @a mouse_hover_poll_tick to feel
  * responsive without polling on every single iteration regardless of
  * whether anything is actually being tracked.
  *
@@ -71,12 +71,13 @@ int mouse_hover_poll_ms_remaining(void);
  * whatsoever for an @c EnterNotify to catch, and its
  * @c PointerMotion may be just as intercepted by the client's event
  * selection as any other client's (common in GTK/Qt applications
- * tracking hover for their UI).  Periodically polling the actual
- * pointer position via @a xcb_query_pointer, which does not depend on
- * any event ever being delivered at all, is the only mechanism left
- * that still catches that transition; see @a mouse_handle_enter for
- * where a client starts being tracked this way, and
- * @a mouse_hover_poll_clear for where it stops.
+ * tracking hover for their UI).
+ *
+ * Periodically polling the actual pointer position via
+ * @a xcb_query_pointer, which does not depend on any event ever being
+ * delivered at all, is the only mechanism left that still catches that
+ * transition; see @a mouse_handle_enter for where a client starts being
+ * tracked this way, and @a mouse_hover_poll_clear for where it stops.
  *
  * @param connection XCB connection
  * @param surfaces   Every managed surface, to look up the tracked
@@ -86,7 +87,8 @@ int mouse_hover_poll_ms_remaining(void);
  *       yet due for its next poll
  * @note Complexity: @e O(1)
  */
-void mouse_hover_poll_tick(xcb_connection_t *connection, list_td *surfaces);
+void mouse_hover_poll_tick(xcb_connection_t *connection,
+        list_td *surfaces);
 
 /**
  * @brief Update the pointer cursor to match a window's resize border
@@ -130,9 +132,9 @@ void mouse_handle_motion_hover(xcb_connection_t *connection,
  * transition to catch; periodic polling is the only way to still
  * re-evaluate the cursor there.
  *
- * @param window Window to track, or @c XCB_WINDOW_NONE to stop
- *               tracking (the common case: most entered windows do
- *               not need this fallback at all)
+ * @param window Window to track, or @c XCB_WINDOW_NONE to stop tracking
+ *               (the common case: most entered windows do not need this
+ *               fallback at all)
  *
  * @see @a mouse_hover_poll_tick
  * @note Complexity: @e O(1)

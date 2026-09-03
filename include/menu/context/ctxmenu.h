@@ -103,12 +103,14 @@ typedef enum {
 /**
  * @brief A single entry in a context menu
  *
- * For @c CTXMENU_COMMAND the caller provides @p label and @p command
- * (the command string) plus an optional @p on_activate callback.  For
- * @c CTXMENU_SUBMENU @p items and @p item_count describe the child
- * entries.  @c CTXMENU_SEPARATOR and @c CTXMENU_LABEL only use @p label
- * (label may be null for separators).  The @p is_disabled flag applies
- * to @c CTXMENU_COMMAND and @c CTXMENU_SUBMENU entries only.
+ * - For @c CTXMENU_COMMAND the caller provides @p label and @p command
+ *   (the command string) plus an optional @p on_activate callback;
+ * - for @c CTXMENU_SUBMENU @p items and @p item_count describe the
+ *   child entries.
+ *
+ * @c CTXMENU_SEPARATOR and @c CTXMENU_LABEL only use @p label (label
+ * may be null for separators).  The @p is_disabled flag applies to @c
+ * CTXMENU_COMMAND and @c CTXMENU_SUBMENU entries only.
  */
 typedef struct ctxmenu_entry_s {
     /**
@@ -140,8 +142,8 @@ typedef struct ctxmenu_entry_s {
 
     void *userdata;     /**< User data passed to @p on_activate */
 
-    /** Child entries for @c CTXMENU_SUBMENU */
-    struct ctxmenu_entry_s *items;
+    struct ctxmenu_entry_s *items;  /**< Child entries for
+                                         @c CTXMENU_SUBMENU */
 
     /**
      * @brief That client's icon cache slot reused across repaints
@@ -153,7 +155,7 @@ typedef struct ctxmenu_entry_s {
      */
     wmicon_cache_td *icon_cache;
 
-    ctxmenu_entry_type_e type;                  /**< Entry kind */
+    ctxmenu_entry_type_e type;      /**< Entry kind */
     int item_count;
 
     /**
@@ -166,7 +168,7 @@ typedef struct ctxmenu_entry_s {
      * of @c XCB_WINDOW_NONE elsewhere, which reserves no icon space and
      * draws no icon regardless of @p theme.menu.show-pixmaps.
      *
-     * @see For that setting full behavior, see @c config.h
+     * @see @c config.h for that setting full behavior
      */
     xcb_window_t icon_window;
 
@@ -202,12 +204,11 @@ typedef struct ctxmenu_state_s {
     struct ctxmenu_state_s *parent;
 
     /** Cached connection, for repaints */
-    const config_td *config;        /**< Cached configuration */
-    surface_td *surface;            /**< Cached activation surface */
-    /** XCB window, or @c XCB_WINDOW_NONE */
-    xcb_window_t window;
-    int entry_count;                /**< Entries in @p entries */
-    int selected;                   /**< Highlighted row index */
+    const config_td *config;    /**< Cached configuration */
+    surface_td *surface;        /**< Cached activation surface */
+    xcb_window_t window;        /**< XCB window, or @c XCB_WINDOW_NONE */
+    int entry_count;            /**< Entries in @p entries */
+    int selected;               /**< Highlighted row index */
 
     /**
      * @brief Window-relative Y of the last @c MotionNotify actually
@@ -222,10 +223,10 @@ typedef struct ctxmenu_state_s {
      */
     int32_t last_motion_y;
 
-    uint16_t width;                 /**< Computed menu window width */
-    uint16_t height;                /**< Computed menu window height */
-    int16_t origin_x;               /**< X origin after clamping */
-    int16_t origin_y;               /**< Y origin after clamping */
+    uint16_t width;             /**< Computed menu window width */
+    uint16_t height;            /**< Computed menu window height */
+    int16_t origin_x;           /**< X origin after clamping */
+    int16_t origin_y;           /**< Y origin after clamping */
 } ctxmenu_state_td;
 
 

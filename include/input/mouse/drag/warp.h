@@ -22,23 +22,23 @@
 
 
 /**
- * @brief Track whether the pointer is currently held against a
- *        warp-eligible screen edge, and schedule (or keep, or cancel)
+ * @brief Track whether the pointer is currently held against
+ *        a warp-eligible screen edge, and schedule (or keep, or cancel)
  *        the pending desktop-warp countdown accordingly
  *
- * A no-op, clearing any pending warp, unless the surface the drag is
- * on actually has @c desktops.warp_on_edge_drag enabled and more than
- * one desktop to warp between.  Restarting the countdown on every
- * single motion notify while the same edge stays held is deliberately
- * avoided, since that would leave the countdown permanently reset and
- * never actually elapse.  When the pointer sits against two edges
- * at once (a screen corner), the horizontal edge wins, matching
- * whichever edge this same check already preferred before a second,
- * vertical one existed at all.
+ * Restarting the countdown on every single motion notify while the same
+ * edge stays held is deliberately avoided, since that would leave the
+ * countdown permanently reset and never actually elapse.  When the
+ * pointer sits against two edges at once (a screen corner), the
+ * horizontal edge wins, matching whichever edge this same check already
+ * preferred before a second, vertical one existed at all.
  *
  * @param root_x Pointer X position in root-window coordinates
  * @param root_y Pointer Y position in root-window coordinates
  *
+ * @note A no-op, clearing any pending warp, unless the surface the drag
+ *       is on actually has @c desktops.warp_on_edge_drag enabled and
+ *       more than one desktop to warp between
  * @note Complexity: @e O(1)
  */
 void drag_warp_edge_check(int16_t root_x, int16_t root_y);
@@ -73,9 +73,9 @@ int drag_warp_ms_remaining(void);
  *
  * Moves the dragged client to the adjacent desktop without unmapping it
  * at any point (it must stay visible throughout), switches the
- * surface's current desktop to match, and repositions the pointer
- * to the opposite edge.  Adjusting the drag's internal state so
- * that jump does not make the dragged window visually snap on the next
+ * surface's current desktop to match, and repositions the pointer to
+ * the opposite edge.  Adjusting the drag's internal state so that jump
+ * does not make the dragged window visually snap on the next
  * @c MotionNotify.
  *
  * @param connection XCB connection

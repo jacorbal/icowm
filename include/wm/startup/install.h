@@ -24,7 +24,8 @@
  * @c SIGCONT, and @c SIGCHLD; see @c wm/startup/handle.h for each one's
  * own individual purpose.
  *
- * @return 0 on success, -1 if any @c sigaction call fails
+ * @retval  0 on success
+ * @retval -1 if any @c sigaction call fails
  */
 int wm_startup_install_signals(void);
 
@@ -37,7 +38,8 @@ int wm_startup_install_signals(void);
  * error before the process actually terminates, rather than dying
  * silently.
  *
- * @return 0 on success, -1 if any @c sigaction call fails
+ * @retval  0 on success
+ * @retval -1 if any @c sigaction call fails
  */
 int wm_startup_install_crash_handlers(void);
 

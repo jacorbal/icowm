@@ -4,8 +4,8 @@
  * @brief Private state and helpers shared across @c wm sub-modules
  *
  * Defines the real @c wm_td structure (opaque everywhere else; see
- * @c wm.h's accessor functions), and declares helpers shared by
- * more than one of @c wm/shutdown.c, @c wm/ewmh.c, and @c wm/action.c.
+ * @c wm.h's accessor functions), and declares helpers shared by more
+ * than one of @c wm/shutdown.c, @c wm/ewmh.c, and @c wm/action.c.
  *
  * @note This header is private to the @c wm subsystem and must not be
  *       included outside of @c src/wm.c and @c src/wm/, for it is NOT
@@ -50,12 +50,11 @@
  * currently operational, while the @p surfaces linked list holds
  * references to all surfaces being managed.  The @p config pointer
  * allows for customization of the window manager's settings; events
- * that affect window behavior and user interactions are dispatched
- * from @a loop_run instead, not tracked as a field here.
+ * that affect window behavior and user interactions are dispatched from
+ * @a loop_run instead, not tracked as a field here.
  *
  * Reached from outside @c wm.c and @c wm/instance.c only through
- * @c wm.h's accessor functions, never through direct member
- * access.
+ * @c wm.h's accessor functions, never through direct member access.
  *
  * @see @c loop.h
  */
@@ -141,8 +140,8 @@ uint32_t wm_for_each_client(const wm_td *wm,
 
 /**
  * @brief Release every client, on every desktop of every managed
- *        surface, back to bare X before this whole instance's
- *        teardown destroys the window manager's resources
+ *        surface, back to bare X before this whole instance's teardown
+ *        destroys the window manager's resources
  *
  * @param wm Window manager instance
  *

@@ -17,6 +17,7 @@
 #ifndef MENU_NOTIFY_H
 #define MENU_NOTIFY_H
 
+
 /* Type includes */
 #include <types/handles.h>
 

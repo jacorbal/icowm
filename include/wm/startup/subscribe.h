@@ -22,27 +22,27 @@
 
 
 /**
- * @brief Subscribe to XRandR notifications on each managed root
- *        window
+ * @brief Subscribe to XRandR notifications on each managed root window
  *
  * @param wm Window manager state
  *
- * @return 0 on success (including when XRandR is unavailable), -1 if
- *         @p wm or its members are null
+ * @retval  0 on success (including when XRandR is unavailable)
+ * @retval -1 if @p wm or its members are null
  */
 int wm_startup_subscribe_randr_events(const wm_td *wm);
 
 /**
  * @brief Subscribe to root window events on all managed surfaces
  *
- * Also sets a default left-pointer cursor on every root window; see
- * the implementation's comment for why that lives here.
+ * Also sets a default left-pointer cursor on every root window.
  *
  * @param wm Window manager state
  *
- * @return 0 on success, -1 if @p wm or its members are null, or if
- *         another window manager already holds the root event
- *         subscription
+ * @retval  0 on success
+ * @retval -1 if @p wm or its members are null, or if another window
+ *            manager already holds the root event subscription
+ *
+ * @see Implementation's comment for why the left-pointer lives here
  */
 int wm_startup_subscribe_root_events(const wm_td *wm);
 

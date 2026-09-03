@@ -2,14 +2,14 @@
  * @file scratchpad.h
  *
  * @brief A single dedicated client, launched on demand from its
- *        configured command, toggled visible/hidden by its keybind
- *        or IPC command instead of iconified/restored
+ *        configured command, toggled visible/hidden by its keybind or
+ *        IPC command instead of iconified/restored
  *
  * The scratchpad client keeps running between one hide and the next
  * show: hiding it never terminates the underlying process, only maps it
  * off-screen the same way @a hide_client already does for any other
- * client, so its state (a shell's scrollback, say) is exactly where
- * it was left.  Only the client actually exiting on its own (the shell
+ * client, so its state (a shell's scrollback, say) is exactly where it
+ * was left.  Only the client actually exiting on its own (the shell
  * inside it receiving @a exit, for instance) ever clears the current
  * scratchpad, at which point the next toggle launches a fresh one from
  * @p config->base.scratchpad.command.
@@ -62,8 +62,8 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop);
  * @brief Claim a newly created client as the scratchpad, if one was
  *        just launched and is still awaited
  *
- * Called from @a client_init itself, after every other field
- * (including @p info.class_name) is already filled in.
+ * Called from @a client_init itself, after every other field (including
+ * @p info.class_name) is already filled in.
  *
  * A no-op unless @a scratchpad_toggle's launch is still pending, in
  * which case @p client (regardless of its own real @c WM_CLASS, since
@@ -71,11 +71,11 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop);
  * forced to @c WM_SCRATCHPAD_WM_CLASS (@c defs/scratchpad.h)
  * via @a ccmd_client_reclass, marked to skip the taskbar and pager the
  * same way any client requesting that itself would be, stripped of
- * decoration, and has its @p rule_position_locked set so the
- * ordinary map-time @a place_window_apply never touches its geometry.
- * That geometry is applied separately, by @a scratchpad_position, once
- * @p client's desktop and surface are known (client_init runs
- * before either is assigned).
+ * decoration, and has its @p rule_position_locked set so the ordinary
+ * map-time @a place_window_apply never touches its geometry.  That
+ * geometry is applied separately, by @a scratchpad_position, once
+ * @p client's desktop and surface are known (client_init runs before
+ * either is assigned).
  *
  * @param client Newly created client, not yet added to any desktop
  *
@@ -84,15 +84,14 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop);
 void scratchpad_notice_client_created(client_td *client);
 
 /**
- * @brief Position the current scratchpad client against its
- *        configured edge, size, and desktop
+ * @brief Position the current scratchpad client against its configured
+ *        edge, size, and desktop
  *
- * Called once, at map time, right after @p client's @p desktop_id
- * and @p screen_id are assigned, since
- * @a scratchpad_notice_client_created runs too early for either to
- * be available yet; called
- * again later by @a scratchpad_reposition, whenever @p surface's
- * work areas are recomputed for any other reason.
+ * Called once, at map time, right after @p client's @p desktop_id and
+ * @p screen_id are assigned, since @a scratchpad_notice_client_created
+ * runs too early for either to be available yet; called again later by
+ * @a scratchpad_reposition, whenever @p surface's work areas are
+ * recomputed for any other reason.
  *
  * @param client  Client to position
  * @param desktop Desktop @p client was just added to
@@ -107,25 +106,25 @@ void scratchpad_position(client_td *client,
         const desktop_td *desktop, surface_td *surface);
 
 /**
- * @brief Reposition the current scratchpad client, if its
- *        desktop belongs to the given surface
+ * @brief Reposition the current scratchpad client, if its desktop
+ *        belongs to the given surface
  *
  * Called from @a surface_refresh_workareas (@c surface/workareas.c)
- * itself, right after that function recomputes every desktop's
- * work area on @p surface, so every path already reaching that
- * function (an XRandR resolution change, a dock or panel appearing
- * or disappearing, and every other one) reaches this too, without
- * each needing its separate call.  Without this, a scratchpad
- * already positioned against one work area (@c "max" width against
- * the bottom edge, say) stayed at that exact size and position no
- * matter how the work area it was computed against later changed,
- * until the underlying process happened to exit on its own and a
- * fresh one was relaunched against the work area current then.
+ * itself, right after that function recomputes every desktop's work
+ * area on @p surface, so every path already reaching that function (an
+ * XRandR resolution change, a dock or panel appearing or disappearing,
+ * and every other one) reaches this too, without each needing its
+ * separate call.  Without this, a scratchpad already positioned against
+ * one work area (@c "max" width against the bottom edge, say) stayed at
+ * that exact size and position no matter how the work area it was
+ * computed against later changed, until the underlying process happened
+ * to exit on its own and a fresh one was relaunched against the work
+ * area current then.
  *
  * @param surface Surface whose work areas were just recomputed
  *
- * @note A no-op if there is no current scratchpad client, or if its
- *       own desktop does not belong to @p surface
+ * @note A no-op if there is no current scratchpad client, or if its own
+ *       desktop does not belong to @p surface
  * @note Complexity: @e O(1)
  *
  * @see @a scratchpad_position, which this calls

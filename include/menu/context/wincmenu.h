@@ -44,17 +44,21 @@
  *
  * Tied to @c CONFIG_MAX_DESKTOPS itself, the one real source of truth
  * for how many desktops a surface can ever have, rather than an
- * independent number of its own that could silently drift out of
- * step with it and make some desktop past this cap unreachable from
- * this submenu; see @c WINLIST_MAX_DESKTOPS (winlist.h) for the exact
- * same reasoning applied there.
+ * independent number of its own that could silently drift out of step
+ * with it and make some desktop past this cap unreachable from this
+ * submenu.
+ *
+ * @see @c WINLIST_MAX_DESKTOPS (@c winlist.h) for the exact same
+ *      reasoning applied there
  */
 #define WINCMENU_MAX_DESKTOPS CONFIG_MAX_DESKTOPS
 
 /**
  * @brief Maximum number of monitors shown in the "Send to monitor"
- *        submenu; matches @c WM_SURFACE_MAX_MONITORS, the real cap on
- *        how many a surface can ever report
+ *        submenu
+ *
+ * Matches @c WM_SURFACE_MAX_MONITORS, the real cap on how many
+ * a surface can ever report.
  */
 #define WINCMENU_MAX_MONITORS (WM_SURFACE_MAX_MONITORS)
 
@@ -66,8 +70,8 @@
 /**
  * @brief Number of fixed top-level entries in the window context menu
  *
- * THREE submenus (Send to desktop, Send to monitor, Layer) + ONE
- * separator + NINE commands (Restore, Move, Resize, Iconify, Hide,
+ * THREE submenus (Send to desktop, Send to monitor, Layer) +
+ * ONE separator + NINE commands (Restore, Move, Resize, Iconify, Hide,
  * Maximize, Un/fullscreen, Un/shade, Un/decorate) + ONE separator +
  * ONE command (Close) = FIFTEEN total.
  *

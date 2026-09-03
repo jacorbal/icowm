@@ -8,9 +8,9 @@
  * maximum prompt buffer size.  All layout and rendering logic lives in
  * the generic confirm-dialog infrastructure (@c menu/confirm.h).
  *
- * The thin wrapper function declared here is the public entry point
- * for opening the quit-confirmation dialog; it delegates directly to
- * the generic confirm-dialog API, which also handles every subsequent
+ * The thin wrapper function declared here is the public entry point for
+ * opening the quit-confirmation dialog; it delegates directly to the
+ * generic confirm-dialog API, which also handles every subsequent
  * interaction (repaint, click, selection, close) for it.
  *
  * @ingroup menu_dialog

@@ -7,9 +7,8 @@
  * handlers), @c wm/startup/handle.h (the handlers themselves and the
  * flags they set, queried back by the main loop), and
  * @c wm/startup/subscribe.h, for the X server event subscriptions.
- * This header keeps only the two X extension probes that belong to
- * no single one
- * of those.
+ * This header keeps only the two X extension probes that belong to no
+ * single one of those.
  *
  * @ingroup loop
  */
@@ -42,9 +41,9 @@
  * @retval  0 on success or when XRandR is unavailable
  * @retval -1 on fatal input
  *
- * @note No matching teardown: the replies this asks the server for
- *       are freed here, and what it keeps is a version number and
- *       whether the extension is present at all
+ * @note No matching teardown: the replies this asks the server for are
+ *       freed here, and what it keeps is a version number and whether
+ *       the extension is present at all
  * @note The extension data itself belongs to the connection and goes
  *       with @a xcb_disconnect
  */

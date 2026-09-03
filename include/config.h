@@ -66,8 +66,8 @@ struct config_s {
 /**
  * @brief Initialize a new structure for the configuration
  *
- * Allocates memory for a new @c config_td structure and initializes
- * its fields to an ordinary session's default values.
+ * Allocates memory for a new @c config_td structure and initializes its
+ * fields to an ordinary session's default values.
  *
  * @return Pointer to the initialized configuration structure, or
  *         @c NULL on failure
@@ -75,8 +75,8 @@ struct config_s {
  * @note The caller takes ownership of the returned configuration and
  *       releases it with @a config_destroy
  * @note Restricted-memory mode never calls this
- * @note Complexity: @e O(1), as it only involves memory allocation
- *       and initialization
+ * @note Complexity: @e O(1), as it only involves memory allocation and
+ *       initialization
  *
  * @see @a config_memguard_init in @c config/memguard.h for its
  *      completely separate path, which this function knows nothing
@@ -122,8 +122,7 @@ void config_destroy(config_td *config);
 void config_set_default_theme_values(struct config_theme_s *theme);
 
 /**
- * @brief Populate default values for one accessibility (a11y)
- *        structure
+ * @brief Populate default values for one accessibility (a11y) structure
  *
  * Used both as the initial process-wide default and, before applying
  * any @c a11y.json found, as the known-good starting point that file's
@@ -198,8 +197,8 @@ void config_missing_theme_reset(void);
  * (that case is already covered by @a json_syntax_errors_get, since
  * @a config_load_theme goes through @a json_load_config the same as any
  * other configuration file); this is specifically for @c config.json
- * parsing successfully, naming a theme, and that theme's file
- * simply not existing.
+ * parsing successfully, naming a theme, and that theme's file simply
+ * not existing.
  *
  * @return The path, or @c NULL if no theme is currently missing
  *
@@ -257,7 +256,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
  * @param config_desktop Pointer to the desktop-behavior structure to
  *                       populate
  *
- * @return 0 on success, or otherwise
+ * @retval  0 on success
  *
  * @note Complexity: @e O(n), where @e n is the size of the
  *       configuration file being read
@@ -294,7 +293,7 @@ void config_set_default_bindings_values(
  * @param config_bindings Pointer to the bindings configuration
  *                        structure to populate
  *
- * @return 0 on success, or otherwise
+ * @retval  0 on success
  *
  * @note Complexity: @e O(n), where @e n is the size of the key bindings
  *       file being read
@@ -314,7 +313,7 @@ int config_load_bindings(const char *filename,
  * @param config_theme Pointer to the theme configuration structure to
  *                     populate
  *
- * @return 0 on success, or otherwise
+ * @retval  0 on success
  *
  * @note Complexity: @e O(n), where @e n is the size of the theme file
  *       being read
@@ -325,8 +324,8 @@ int config_load_theme(const char *filename,
         struct config_theme_s *config_theme);
 
 /**
- * @brief Convert a theme's 0 to 100 opacity percentage to the
- *        32-bit value @c _NET_WM_WINDOW_OPACITY itself expects
+ * @brief Convert a theme's 0 to 100 opacity percentage to the 32-bit
+ *        value @c _NET_WM_WINDOW_OPACITY itself expects
  *
  * The property's valid range is @c 0 (fully transparent) to
  * @c 0xffffffff (fully opaque); this scales @p percent linearly onto
@@ -346,8 +345,7 @@ int config_load_theme(const char *filename,
 uint32_t config_theme_opacity_to_raw(uint8_t percent);
 
 /**
- * @brief Populate default values for one RandR output-profile
- *        structure
+ * @brief Populate default values for one RandR output-profile structure
  *
  * Used both as the initial process-wide default and, before applying
  * any @c randr.json found, as the known-good starting point that file's
@@ -370,7 +368,7 @@ void config_set_default_randr_values(
  * @param config_randr Pointer to the RandR configuration structure to
  *                     populate
  *
- * @return 0 on success, or otherwise
+ * @retval  0 on success
  *
  * @note Complexity: @e O(n), where @e n is the number of output entries
  *       in the file
@@ -394,7 +392,7 @@ int config_load_randr(const char *filename,
  * @param config_a11y Pointer to the a11y configuration structure to
  *                    populate
  *
- * @return 0 on success, or otherwise
+ * @retval  0 on success
  *
  * @note Complexity: @e O(1)
  *
@@ -409,8 +407,8 @@ int config_load_a11y(const char *filename,
  * Called once, right after attempting to load a theme file (whether
  * that attempt succeeded, failed, or was never even made because no
  * theme was named at all), so the answer to "was a theme actually
- * loaded, and did it set its name" is already known by the time
- * this runs.
+ * loaded, and did it set its name" is already known by the time this
+ * runs.
  *
  * Three cases, per own naming rule:
  *

@@ -141,9 +141,9 @@ int wm_startup_subscribe_root_events(const wm_td *wm)
      * cursor is visible even when no client window is under the
      * pointer.  Loaded from the active cursor theme via
      * 'util_cursor_load' (see 'utils/cursor.h'), falling back to the
-     * X core cursor font automatically if the theme has no
-     * "left_ptr" cursor; see 'defs/cursor.h' for that fallback
-     * glyph's named constant. */
+     * X core cursor font automatically if the theme has no "left_ptr"
+     * cursor; see 'defs/cursor.h' for that fallback glyph's named
+     * constant. */
     first_surface = NULL;
     for (list_item_td *node = list_head(surfaces);
             node != NULL; node = list_next(node)) {

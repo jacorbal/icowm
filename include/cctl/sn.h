@@ -26,10 +26,10 @@
  *       own @c _NET_STARTUP_ID back to the pending sequence that
  *       produced it, so a slow-starting application lands on the
  *       desktop it was launched from rather than whichever one happens
- *       to be current once it finally maps.  It does not follow
- *       @c WM_CLIENT_LEADER the way the specification allows for
- *       a group's other windows, and it plays no part in any focus
- *       decision
+ *       to be current once it finally maps
+ * @note That association does not follow @c WM_CLIENT_LEADER the way
+ *       the specification allows for a group's other windows, and it
+ *       plays no part in any focus decision
  * @note Ending the busy cursor still depends only on the
  *       @c ("remove:" message) or the timeout, neither of which needs
  *       window association at all
@@ -46,6 +46,7 @@
 
 #ifndef CCTL_SN_H
 #define CCTL_SN_H
+
 
 /* System includes */
 #include <stdbool.h>
@@ -92,8 +93,8 @@ void cctl_sn_set_timeout_seconds(uint32_t seconds);
  * @param connection     XCB connection
  * @param surfaces       Managed surfaces, one root window per screen
  * @param name           Human-readable application name to publish in
- *                       the message (e.g., the command being
- *                       launched); may be null
+ *                       the message (e.g., the command being launched);
+ *                       may be null
  * @param origin_desktop Desktop the launch was requested from
  * @param out_id         Buffer to receive the generated startup ID,
  *                       suitable for passing to the child process as
@@ -124,19 +125,19 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
  *
  * A peek, not a consuming lookup: the pending sequence itself is left
  * untouched, since ending its busy cursor depends only on the
- * @c ("remove:" message) or the timeout, and a single sequence could
- * in theory still go on to map more than one window.
+ * @c ("remove:" message) or the timeout, and a single sequence could in
+ * theory still go on to map more than one window.
  *
- * @param connection    XCB connection
- * @param window        Newly mapped window to check
- * @param out_desktop   Set to the origin desktop on a match; left
- *                      untouched otherwise
+ * @param connection  XCB connection
+ * @param window      Newly mapped window to check
+ * @param out_desktop Set to the origin desktop on a match; left
+ *                    untouched otherwise
  *
  * @return Status of the lookup
- * @retval  true  @p window carries a @c _NET_STARTUP_ID naming a
- *                still-pending sequence, and @p out_desktop was set
- * @retval false  @p window has no such property, or it names no
- *                currently pending sequence
+ * @retval  true @p window carries a @c _NET_STARTUP_ID naming
+ *               a still-pending sequence, and @p out_desktop was set
+ * @retval false @p window has no such property, or it names no
+ *               currently pending sequence
  *
  * @note Complexity: @e O(p), where @e p is the number of currently
  *       pending sequences

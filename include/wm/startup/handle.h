@@ -4,9 +4,9 @@
  * @brief Signal handlers and the flags they set, queried back by the
  *        main loop
  *
- * Keeps each flag together with both the handler that writes it and
- * the query that reads and clears it, avoiding an extern between
- * this file and any other.
+ * Keeps each flag together with both the handler that writes it and the
+ * query that reads and clears it, avoiding an extern between this file
+ * and any other.
  *
  * @ingroup startup
  */
@@ -51,10 +51,9 @@ void wm_startup_handle_reload(int signum);
 /**
  * @brief Signal handler for @c SIGCONT (VT resume)
  *
- * Sets a flag consumed by @a wm_startup_requested_resume so that
- * the main loop can re-establish keyboard and mouse grabs after
- * returning from
- * a virtual-terminal switch.
+ * Sets a flag consumed by @a wm_startup_requested_resume so that the
+ * main loop can re-establish keyboard and mouse grabs after returning
+ * from a virtual-terminal switch.
  *
  * @param signum Number of the received signal (always @c SIGCONT)
  */
@@ -73,11 +72,10 @@ void wm_startup_handle_child(int signum);
 /**
  * @brief Async-signal-safe handler for fatal signals
  *
- * See @a wm_startup_install_crash_handlers in
- * @c wm/startup/install.h for the full reasoning: this cannot
- * recover and keep running, only make sure
- * dying is not silent.  Every operation here is restricted to what
- * POSIX guarantees is safe from within a signal handler.
+ * See @a wm_startup_install_crash_handlers in @c wm/startup/install.h
+ * for the full reasoning: this cannot recover and keep running, only
+ * make sure dying is not silent.  Every operation here is restricted to
+ * what POSIX guarantees is safe from within a signal handler.
  *
  * @param signum Number of the received fatal signal
  */

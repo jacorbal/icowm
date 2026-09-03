@@ -52,9 +52,7 @@ enum session_hook_e {
 
 #ifndef SESSION_TD_DECLARED
 #define SESSION_TD_DECLARED
-/**
- * @brief Opaque session hooks table
- */
+/** Opaque session hooks table */
 typedef struct session_s session_td;
 #endif
 
@@ -115,10 +113,10 @@ int session_load(session_td *session, const char *config_dir_prefix);
  * before execution to prevent interference with the parent's
  * X connection.
  *
- * @param session    Session table that holds the command lists; if
- *                   @c NULL the function returns immediately
- *                   each child before @c execvp (may be null)
- * @param hook       Lifecycle event whose commands are to be run
+ * @param session Session table that holds the command lists; if
+ *                @c NULL the function returns immediately each child
+ *                before @c execvp (may be null)
+ * @param hook    Lifecycle event whose commands are to be run
  *
  * @note Spawned processes are tracked so @a session_reap_children can
  *       log their exit status

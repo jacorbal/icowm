@@ -48,15 +48,15 @@
  * job once every client has actually closed or the configured timeout
  * elapses, whichever comes first.
  *
- * Requests the window manager's stop directly instead, with no wait
- * at all, when there is nothing to wait for, e.g., no managed clients.
+ * Requests the window manager's stop directly instead, with no wait at
+ * all, when there is nothing to wait for, e.g., no managed clients.
  * Calling this while a shutdown is already in progress has no further
  * effect.
  *
  * @param wm Window manager instance
  *
- * @note Complexity: @e O(n), where @e n is the total number of
- *       managed clients across every surface and desktop
+ * @note Complexity: @e O(n), where @e n is the total number of managed
+ *       clients across every surface and desktop
  *
  * @see see @a ccmd_client_close in @c cmds/client/focus.h
  */

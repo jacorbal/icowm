@@ -110,9 +110,9 @@ xcb_window_t popup_window(void);
  * @brief Return the milliseconds remaining before the popup auto-closes
  *
  * Computes the remaining time until @c WM_INFO_POPUP_TIMEOUT_MS has
- * elapsed since the popup was shown.  Returns 0 when the popup has
- * already expired, and -1 when no popup is currently open or the open
- * time was not recorded.
+ * elapsed since the popup was shown.  Returns @c 0 when the popup has
+ * already expired, and @c -1 when no popup is currently open or the
+ * open time was not recorded.
  *
  * @return Milliseconds until auto-close, @c 0 if expired, @c -1 if
  *         no popup

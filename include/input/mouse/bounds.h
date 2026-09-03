@@ -4,12 +4,11 @@
  * @brief Shared resize-border and adaptive grab-margin computation
  *
  * Declares @a im_bounds_resize, used by both
- * @c input/mouse/event/press.c
- * (border-hit detection and the resize-cursor display) and
- * @c input/mouse/drag.c (picking which corner a resize drag anchors
- * to), so the three stay in agreement about exactly where a client's
- * resize border is instead of drifting apart as three independent
- * computations.
+ * @c input/mouse/event/press.c (border-hit detection and the
+ * resize-cursor display) and @c input/mouse/drag.c (picking which
+ * corner a resize drag anchors to), so the three stay in agreement
+ * about exactly where a client's resize border is instead of drifting
+ * apart as three independent computations.
  *
  * @note This header is private to the mouse subsystem and must not be
  *       included outside of @c src/input/mouse/
@@ -40,14 +39,13 @@
  * @brief A client's resize border, in root coordinates, together with
  *        the adaptive per-edge grab margin around it
  *
- * Members @p left/top/right/bottom are the client's current
- * bounding box (its frame's, if decorated; its window's,
- * otherwise).  Members @p margin_left/top/right/bottom are how many
- * pixels beyond (outside @p left / @p top, inside @p right / @p bottom)
- * still count as "on that edge" for resize purposes; see
- * @a im_bounds_resize and @c WM_RESIZE_GRAB_THRESHOLD in
- * @c defs/input.h for how each is derived from that edge's actual
- * border width.
+ * Members @p left/top/right/bottom are the client's current bounding
+ * box (its frame's, if decorated; its window's, otherwise).  Members @p
+ * margin_left/top/right/bottom are how many pixels beyond (outside @p
+ * left / @p top, inside @p right / @p bottom) still count as "on that
+ * edge" for resize purposes; see @a im_bounds_resize and
+ * @c WM_RESIZE_GRAB_THRESHOLD in @c defs/input.h for how each is
+ * derived from that edge's actual border width.
  *
  * Member @p has_titlebar_row, when true, means @p titlebar_row_top and
  * @p titlebar_row_bottom bound a row (in the same root-coordinate
@@ -80,10 +78,9 @@ typedef struct {
  * threshold wide needs no help, so the margin is exactly that border
  * width, while a thinner one is padded out to the full threshold
  * instead, so every border thinner than the threshold feels the same to
- * grab regardless of how thin it visually is.  The top edge uses
- * only the border strip above the titlebar (see @c has_titlebar_row
- * above), never the titlebar's height, as its border width for this
- * purpose.
+ * grab regardless of how thin it visually is.  The top edge uses only
+ * the border strip above the titlebar (see @c has_titlebar_row above),
+ * never the titlebar's height, as its border width for this purpose.
  *
  * @param client Client to compute bounds for (must not be null)
  *

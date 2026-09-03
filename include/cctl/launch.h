@@ -33,8 +33,8 @@
  *
  * @note Complexity: @e O(1)
  */
-void cctl_launch_dispatch(surface_td *surface, const char *restrict prog,
-        const char *restrict class_name);
+void cctl_launch_dispatch(surface_td *surface,
+        const char *restrict prog, const char *restrict class_name);
 
 
 #endif  /* ! CCTL_LAUNCH_H */

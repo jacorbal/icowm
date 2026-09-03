@@ -8,11 +8,11 @@
  * only the two window-manager-level actions, @a enact_wm_exit and
  * @a enact_wm_configuration_reload, that do not belong to any one of
  * those three domains).  @a enact_broadcast_client_event is the only
- * helper any of those files need from one another: primarily a
- * client-domain concern, implemented in @c enact/client.c, but also
+ * helper any of those files need from one another: primarily
+ * a client-domain concern, implemented in @c enact/client.c, but also
  * needed by @c enact/desktop.c's @a enact_desktop_client_send,
- * @a _send_front, and @a _send_back, each of which broadcasts a
- * client-level IPC event about the one client they each act on.
+ * @a _send_front, and @a _send_back, each of which broadcasts
+ * a client-level IPC event about the one client they each act on.
  *
  * @note This header is private to @c enact/ and must not be included
  *       outside of it
@@ -42,7 +42,7 @@
  *
  * @param client Client the event is about
  * @param type   IPC event bitmask (a single @c IPC_EVENT_* value; see
- *               ipc.h)
+ *               @c ipc.h)
  *
  * @note No-op if @p client is @c NULL
  * @note Complexity: @e O(1)

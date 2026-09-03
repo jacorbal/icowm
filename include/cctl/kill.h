@@ -86,8 +86,8 @@ int cctl_kill_ms_remaining(void);
  * For each pending registration whose timeout has elapsed, checks
  * whether its process is still alive and sends it @c SIGKILL if so,
  * then frees its slot either way.  Meant to be called once per main
- * loop iteration the same way every other timed subsystem's
- * @p *_tick already is.
+ * loop iteration the same way every other timed subsystem's @p *_tick
+ * already is.
  *
  * @note Complexity: @e O(n), where @e n is
  *       @c WM_KILL_ESCALATE_MAX_PENDING

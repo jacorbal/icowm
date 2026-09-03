@@ -1,8 +1,8 @@
 /**
  * @file menu/dialog/message.h
  *
- * @brief Read-only message modal dialog with a scrollable body and a
- *        single dismiss button
+ * @brief Read-only message modal dialog with a scrollable body and
+ *        a single dismiss button
  *
  * Shows a message with an alert level (info, warning, or error) and
  * a single "OK" button.  Also backs the keyboard-shortcuts list (cfr.
@@ -258,14 +258,14 @@ void menu_message_dialog_select_ok(xcb_connection_t *connection,
  * @param delta      Lines to scroll by; negative scrolls up (toward the
  *                   start), positive scrolls down (toward the end)
  *
- * @note Repaints immediately when there's motion
- * @note Parameter @p delta is lamped to the valid range, so passing an
- *       arbitrarily large magnitude is a safe way to scroll all the way
- *       to either end in one call
  * @note A no-op when the whole message already fits without scrolling,
  *       when @p delta would not actually move the current scroll
  *       position (already at either end), or when the dialog is not
  *       open
+ * @note Repaints immediately when there's motion
+ * @note Parameter @p delta is lamped to the valid range, so passing an
+ *       arbitrarily large magnitude is a safe way to scroll all the way
+ *       to either end in one call
  * @note Complexity: @e O(1)
  */
 void menu_message_dialog_scroll(xcb_connection_t *connection,

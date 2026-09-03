@@ -9,9 +9,8 @@
  * Each desktop group is introduced by a non-clickable label entry
  * holding the prefix, the index, the desktop name and the suffix, or
  * just the prefix, the index and the suffix when the name is empty or
- * null.  Each client window inside that group is listed as a
- * clickable command entry that focuses and raises the window when
- * activated.
+ * null.  Each client window inside that group is listed as a clickable
+ * command entry that focuses and raises the window when activated.
  *
  * @ingroup menu_context
  */
@@ -45,11 +44,11 @@
  * Tied to @c CONFIG_MAX_DESKTOPS itself, the one real source of truth
  * for how many desktops a surface can ever have, rather than an
  * independent number of its own: a smaller, separately-chosen value
- * here would silently make every desktop past it unreachable from
- * this menu, exactly the kind of drift that set in when
+ * here would silently make every desktop past it unreachable from this
+ * menu, exactly the kind of drift that set in when
  * @c CONFIG_MAX_DESKTOPS itself was later raised without anything
- * checking whether some other constant had quietly come to assume
- * the two stayed in step.
+ * checking whether some other constant had quietly come to assume the
+ * two stayed in step.
  */
 #define WINLIST_MAX_DESKTOPS CONFIG_MAX_DESKTOPS
 
@@ -81,16 +80,16 @@
 #define WINLIST_MAX_COLLECTED (128)
 
 /**
- * @brief Maximum pixel width a client entry's label may claim
- *        towards the windows-menu's width
+ * @brief Maximum pixel width a client entry's label may claim towards
+ *        the windows-menu's width
  *
  * Caps how far one very long window title can stretch the whole menu;
  * a label wider than this truncates instead, the same reasoning
  * @c WM_CYCLE_MENU_LABEL_MAX_WIDTH truncates a cycle-menu entry
  * (@c defs/cycle.h).  Application-group and desktop submenu labels are
  * short, fixed phrases the user themselves configures (a desktop's
- * name, an application's class name) rather than an arbitrary
- * window title, so this only applies to the per-client entries.
+ * name, an application's class name) rather than an arbitrary window
+ * title, so this only applies to the per-client entries.
  *
  * @see @a s_client_label_format in @c menu/context/winlist.c
  */
@@ -121,9 +120,9 @@
  * and @a s_build_desktop_entries's comments), so its
  * dynamically-allocated per-desktop and per-application-group entry
  * storage can be sized to what this exact call actually needs instead
- * of a fixed worst case held throughout the window manager's
- * whole lifetime regardless of how many desktops or applications a
- * given session actually has.
+ * of a fixed worst case held throughout the window manager's whole
+ * lifetime regardless of how many desktops or applications a given
+ * session actually has.
  *
  * @param connection XCB connection
  * @param surface    Surface whose clients are listed
@@ -132,8 +131,8 @@
  *
  * @note Complexity: @e O(n), where @e n is the total number of clients
  *       across all desktops; visited twice, once to count and once to
- *       build, rather than the single pass this used before its
- *       storage became dynamically sized
+ *       build, rather than the single pass this used before its storage
+ *       became dynamically sized
  */
 void winlist_show(xcb_connection_t *connection,
         surface_td *surface, struct position_s pos,
@@ -144,8 +143,8 @@ void winlist_show(xcb_connection_t *connection,
  *
  * Frees all three of the arrays @a winlist_show allocates, one of
  * per-desktop submenu entries and two of per-application-group ones,
- * each sized fresh on every call to what that call needs rather than
- * to a worst case held for the whole session.
+ * each sized fresh on every call to what that call needs rather than to
+ * a worst case held for the whole session.
  *
  * @note Safe to call where the menu was never open, or was closed
  *       already, freeing a null pointer being a no-op in itself
