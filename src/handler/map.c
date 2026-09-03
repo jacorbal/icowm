@@ -876,6 +876,7 @@ void handler_circulate_request(xcb_connection_t *connection,
         list_td *surfaces, xcb_circulate_request_event_t *event)
 {
     client_td *client;
+    desktop_td *desktop;
     xcb_window_t target;
     uint32_t stack_mode;
 
@@ -888,7 +889,8 @@ void handler_circulate_request(xcb_connection_t *connection,
     LOGGER_TRACE("Circulate request event (window=0x%x, place=%u)",
             event->window, event->place);
 
-    client = lookup_find_client(surfaces, event->window, NULL, NULL);
+    client = lookup_find_client(surfaces, event->window,
+            NULL, &desktop);
     if (client == NULL) {
         return;
     }
@@ -900,5 +902,16 @@ void handler_circulate_request(xcb_connection_t *connection,
 
     xcb_configure_window(connection, target,
             XCB_CONFIG_WINDOW_STACK_MODE, &stack_mode);
+
+    /* A raw 'CirculateRequest' is honored above exactly as asked,
+     * the same way 'handler_configure_request' honors a plain
+     * 'ConfigureRequest' stack-mode change, but without this call
+     * afterward that alone would let a normal-layer client
+     * circulate itself above an 'above'-layer one, or a
+     * 'below'-layer one above a normal client, since nothing else
+     * here re-imposes the layer ordering 'ccmd_client_layer_above'
+     * and 'ccmd_client_layer_below' otherwise guarantee */
+    ccmd_desktop_enforce_layers(desktop);
+
     wm_request_client_redraw(client);
 }
