@@ -11,8 +11,11 @@
  * past mark).
  *
  * Functions:
- *  - @c 'long clock_ms_until(const struct timespec *due)'
- *  - @c 'long clock_ms_since(const struct timespec *start)'
+ *
+ * @code{.c}
+ * long clock_ms_until(const struct timespec *due)
+ * long clock_ms_since(const struct timespec *start)
+ * @endcode
  *
  * @ingroup utils_time
  */

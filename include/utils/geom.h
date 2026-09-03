@@ -81,10 +81,9 @@ static inline uint16_t geom_dim_clamp(int32_t value)
  *
  * @note Complexity: @e O(1)
  */
-static inline bool geom_overlap_rect(int32_t ax, int32_t ay,
-        uint32_t aw, uint32_t ah,
-        int32_t bx, int32_t by,
-        uint32_t bw, uint32_t bh)
+static inline bool geom_overlap_rect(
+        int32_t ax, int32_t ay, uint32_t aw, uint32_t ah,
+        int32_t bx, int32_t by, uint32_t bw, uint32_t bh)
 {
     return ax < bx + (int32_t) bw &&
         bx < ax + (int32_t) aw &&
@@ -112,10 +111,8 @@ static inline bool geom_overlap_rect(int32_t ax, int32_t ay,
  * @note Complexity: @e O(1)
  */
 static inline struct geometry_s geom_intersect_rect(
-        int32_t ax, int32_t ay,
-        uint32_t aw, uint32_t ah,
-        int32_t bx, int32_t by,
-        uint32_t bw, uint32_t bh)
+        int32_t ax, int32_t ay, uint32_t aw, uint32_t ah,
+        int32_t bx, int32_t by, uint32_t bw, uint32_t bh)
 {
     struct geometry_s result =
         {.pos = {.x = 0, .y = 0}, .dim = {.w = 0u, .h = 0u}};
@@ -129,9 +126,9 @@ static inline struct geometry_s geom_intersect_rect(
     int64_t by_end;
 
     /* Widened before adding: a rectangle whose right edge lands past
-     * @c INT32_MAX would otherwise overflow, and comparing the sums
-     * in the same width they were computed in is what lets the
-     * optimizer assume that never happens */
+     * 'INT32_MAX' would otherwise overflow, and comparing the sums in
+     * the same width they were computed in is what lets the optimizer
+     * assume that never happens */
     ax_end = (int64_t) ax + (int64_t) aw;
     ay_end = (int64_t) ay + (int64_t) ah;
     bx_end = (int64_t) bx + (int64_t) bw;
@@ -178,10 +175,9 @@ static inline struct geometry_s geom_intersect_rect(
  *
  * @note Complexity: @e O(1)
  */
-static inline uint32_t geom_intersection_area(int32_t ax, int32_t ay,
-        uint32_t aw, uint32_t ah,
-        int32_t bx, int32_t by,
-        uint32_t bw, uint32_t bh)
+static inline uint32_t geom_intersection_area(
+        int32_t ax, int32_t ay, uint32_t aw, uint32_t ah,
+        int32_t bx, int32_t by, uint32_t bw, uint32_t bh)
 {
     struct geometry_s r = geom_intersect_rect(ax, ay, aw, ah,
             bx, by, bw, bh);

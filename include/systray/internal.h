@@ -14,9 +14,9 @@
  * @c menu/dialog/confirm.c and @c menu/dialog/fortune.c each own their
  * own separate state.
  *
- * @note This header is private to the systray subsystem and must not
- *       be included outside of @c src/systray.c and @c src/systray/,
- *       for it is NOT part of the public API
+ * @note This header is private to the systray subsystem and must not be
+ *       included outside of @c src/systray.c and @c src/systray/, for
+ *       it is NOT part of the public API
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -74,7 +74,7 @@ typedef struct {
  *       through this declaration
  */
 struct systray_state_s {
-    surface_td *surface;            /**< Surface the tray docks on */
+    surface_td *surface;        /**< Surface the tray docks on */
 
     const struct config_theme_s *theme; /**< Shared pointer into
                                              @p wm->config->theme; stays
@@ -98,8 +98,7 @@ struct systray_state_s {
     xcb_atom_t selection_atom;      /**< @c _NET_SYSTEM_TRAY_Sn */
     xcb_atom_t manager_atom;        /**< @c MANAGER */
     xcb_atom_t opcode_atom;         /**< @c _NET_SYSTEM_TRAY_OPCODE */
-    /** @c _NET_SYSTEM_TRAY_ORIENTATION */
-    xcb_atom_t orientation_atom;
+    xcb_atom_t orientation_atom;    /**< @c _NET_SYSTEM_TRAY_ORIENTATION */
     xcb_atom_t visual_atom;         /**< @c _NET_SYSTEM_TRAY_VISUAL */
     xcb_atom_t xembed_atom;         /**< @c _XEMBED */
     xcb_atom_t xembed_info_atom;    /**< @c _XEMBED_INFO */
@@ -127,8 +126,8 @@ struct systray_state_s {
         uint32_t right;
         uint32_t bottom;
         uint32_t left;
-    } strut_margins;                /**< Extra space added to the tray's
-                                         own computed strut */
+    } strut_margins;    /**< Extra space added to the tray's own
+                             computed strut */
 
     /**
      * @brief Space this tray currently reserves for itself via
@@ -147,10 +146,8 @@ struct systray_state_s {
 
     systray_icon_td icons[WM_SYSTRAY_MAX_ICONS];
     uint16_t height;
-    /** @see @c config.theme.systray.pixmap.size */
-    uint16_t pixmap_size;
-    /** @see @c config.theme.systray.pixmap.padding */
-    uint16_t pixmap_pad;
+    uint16_t pixmap_size; /**< @see @c config.theme.systray.pixmap.size */
+    uint16_t pixmap_pad;  /**< @see @c config.theme.systray.pixmap.padding */
     uint16_t text_gap;
     uint16_t icon_count;
 
@@ -160,8 +157,8 @@ struct systray_state_s {
      * Restacking is a request the server answers by exposing whatever
      * the move uncovered, and those exposures reach the tray, which
      * reflows, which restacks: a loop that runs as fast as the server
-     * replies.  Remembering what was asked for lets an unchanged
-     * answer be skipped, which is what breaks it.
+     * replies.  Remembering what was asked for lets an unchanged answer
+     * be skipped, which is what breaks it.
      *
      * @c XCB_WINDOW_NONE means "raised to the top"; any other window
      * means "stacked directly below that one".
@@ -174,23 +171,21 @@ struct systray_state_s {
     /** Whether @c stacked_against holds an answer yet */
     bool is_stacking_known;
 
-    bool is_window_ready;           /**< Window created, atoms interned;
-                                         persists across is-enabled
-                                         toggles so docked icons are
-                                         never evicted just because the
-                                         tray was disabled */
+    bool is_window_ready;       /**< Window created, atoms interned;
+                                     persists across is-enabled toggles
+                                     so docked icons are never evicted
+                                     just because the tray was disabled */
 
-    bool is_active;                 /**< Whether the tray should be
-                                         showing anything at all right
-                                         now (@p is-enabled, kept in
-                                         sync across a reload); gates
-                                         the window's own visibility
-                                         and the clock/battery text
-                                         refresh, independent of
-                                         @p is_selection_owned, so a
-                                         restricted-memory session
-                                         (which never sets that) still
-                                         shows its own status text */
+    bool is_active;             /**< Whether the tray should be showing
+                                     anything at all right now
+                                     (@p is-enabled, kept in sync across
+                                     a reload); gates the window's own
+                                     visibility and the clock/battery
+                                     text refresh, independent of
+                                     @p is_selection_owned, so
+                                     a restricted-memory session (which
+                                     never sets that) still shows its
+                                     own status text */
 
     /**
      * @brief Currently owns the @c _NET_SYSTEM_TRAY_Sn selection
@@ -203,8 +198,8 @@ struct systray_state_s {
      */
     bool is_selection_owned;
 
-    bool reserve_space;             /**< Whether the tray publishes its
-                                         own strut */
+    bool reserve_space;         /**< Whether the tray publishes its own
+                                     strut */
     bool clock_enabled;
     bool battery_enabled;
     uint8_t text_order_count;
@@ -259,8 +254,6 @@ uint16_t systray_text_width(void);
 const char *systray_text_for_item(enum config_systray_text_item_e item,
         bool *out_enabled);
 
-
-
 /**
  * @brief Apply the configured @c systray.layer stacking rule
  *
@@ -268,8 +261,6 @@ const char *systray_text_for_item(enum config_systray_text_item_e item,
  *       reconsidering
  */
 void systray_layout_restack(void);
-
-
 
 /**
  * @brief Create the tray window and intern its atoms, once!
@@ -319,12 +310,13 @@ void systray_protocol_dock(xcb_window_t icon);
 /**
  * @brief React to a property change on a docked icon window
  *
- * A no-op unless @p atom is @c _XEMBED_INFO and @p window is a
- * currently docked icon, in which case the icon is shown or hidden to
- * match its @c XEMBED_MAPPED flag bit, as read fresh from the window.
- *
  * @param window Window the property changed on
  * @param atom   Property that changed
+ *
+ * @note A no-op unless @p atom is @c _XEMBED_INFO and @p window is
+ *       a currently docked icon, in which case the icon is shown or
+ *       hidden to match its @c XEMBED_MAPPED flag bit, as read fresh
+ *       from the window
  */
 void systray_protocol_property_changed(xcb_window_t window,
         xcb_atom_t atom);
@@ -332,17 +324,20 @@ void systray_protocol_property_changed(xcb_window_t window,
 /**
  * @brief React to a docked icon window requesting to map itself
  *
- * A no-op unless @p window is a currently docked icon, in which case
- * the request is granted or refused to match its @c XEMBED_MAPPED
- * flag bit, exactly as @a systray_protocol_property_changed already
- * does for a later @c _XEMBED_INFO change; a nonconforming icon that
- * calls @c XMapWindow on itself directly, instead of waiting on the
- * embedder as @c XEMBED intends, gets the same answer either way.
+ * A nonconforming icon that calls @c XMapWindow on itself directly,
+ * instead of waiting on the embedder as @c XEMBED intends, gets the
+ * same answer either way.
  *
  * @param window Window that requested to map itself
  *
  * @return @c true if @p window was a docked icon (the request was
  *         just granted or refused), @c false otherwise
+ *
+ * @note A no-op unless @p window is a currently docked icon, in which
+ *       case the request is granted or refused to match its
+ *       @c XEMBED_MAPPED flag bit, exactly as
+ *       @a systray_protocol_property_changed already does for a later
+ *       @c _XEMBED_INFO change
  */
 bool systray_protocol_map_request(xcb_window_t window);
 

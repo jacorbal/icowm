@@ -2,8 +2,8 @@
  * @file utils/sysmem.h
  *
  * @brief Memory reading from the Linux @c /proc pseudo-filesystem:
- *        system-wide available memory, and this process's
- *        resident memory usage
+ *        system-wide available memory, and this process's resident
+ *        memory usage
  *
  * Used by restricted-memory mode @c (icowm -M).  The parameter
  * @p sysmem_available_mib decides whether there is enough free system
@@ -31,10 +31,14 @@
 #include <stdint.h>
 
 
-/** Path to the Linux kernel's system memory statistics pseudo-file */
+/**
+ * @brief Path to the Linux kernel's system memory statistics pseudo-file
+ */
 #define SYSMEM_MEMINFO_FILE "/proc/meminfo"
 
-/** Path to the calling process's status pseudo-file */
+/**
+ * @brief Path to the calling process's status pseudo-file
+ */
 #define SYSMEM_SELF_STATUS_FILE "/proc/self/status"
 
 /**
@@ -53,8 +57,8 @@
  *        memory
  *
  * Reads the @c MemAvailable line from @c SYSMEM_MEMINFO_FILE: the
- * kernel's estimate of how much memory is available for starting
- * new applications without swapping, already accounting for reclaimable
+ * kernel's estimate of how much memory is available for starting new
+ * applications without swapping, already accounting for reclaimable
  * caches and buffers, so this is a meaningfully better signal than
  * @c MemFree alone would be.  Linux-specific; on any other kernel, or
  * if the file cannot be read or parsed, returns @c false and leaves
@@ -72,10 +76,11 @@ bool sysmem_available_mib(uint32_t *out_mib);
 /**
  * @brief Read the calling process's current resident memory usage
  *
- * Reads the @c VmRSS line from @c SYSMEM_SELF_STATUS_FILE.  The portion
- * of this process's memory currently held in RAM (as opposed to
- * swapped out, or merely reserved address space never actually
- * touched), the same figure tools like @c top and @c ps report.
+ * Reads the @c VmRSS line from @c SYSMEM_SELF_STATUS_FILE.
+ * The portion of this process's memory currently held in RAM (as
+ * opposed to swapped out, or merely reserved address space never
+ * actually touched), the same figure tools like @c top and @c ps
+ * report.
  *
  * @param out_mib Receives this process's resident memory usage, in
  *                mebibytes, rounded down

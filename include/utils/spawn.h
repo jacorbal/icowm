@@ -5,10 +5,10 @@
  *
  * One place where @c fork and @c execvp happen, so that the care the
  * child path needs is written once: the inherited X connection is
- * closed before anything else, the command line is word-expanded in
- * the parent rather than between @c fork and @c exec, and a failure
- * to execute is reported back over a close-on-exec pipe instead of
- * being lost in a child that simply exits.
+ * closed before anything else, the command line is word-expanded in the
+ * parent rather than between @c fork and @c exec, and a failure to
+ * execute is reported back over a close-on-exec pipe instead of being
+ * lost in a child that simply exits.
  *
  * @ingroup utils
  */
@@ -34,8 +34,8 @@
 /**
  * @brief What a spawned command needs from its launcher
  *
- * Every field is optional: a zeroed structure asks for a plain
- * launch, with no environment of its own and nothing to close.
+ * Every field is optional: a zeroed structure asks for a plain launch,
+ * with no environment of its own and nothing to close.
  */
 typedef struct spawn_opts_s {
     /**
@@ -63,20 +63,19 @@ typedef struct spawn_opts_s {
  *
  * Word-expands @p command with @c WRDE_NOCMD, so that a configured
  * command line cannot run a subshell of its own, and executes the
- * result.  Returns as soon as the child has either executed the
- * program or failed to, which is decided by the time the error pipe
- * closes and so costs no measurable wait.
+ * result.  Returns as soon as the child has either executed the program
+ * or failed to, which is decided by the time the error pipe closes and
+ * so costs no measurable wait.
  *
  * @param command  Command line to expand and run
- * @param opts     What the child needs; @c NULL asks for a plain
- *                 launch
- * @param out_pid  Receives the child's PID on success; may be @c NULL
+ * @param opts     What the child needs; @c NULL asks for a plain launch
+ * @param out_pid  Receives the child's PID on success; may be null
  *
  * @return Status of the operation
  * @retval  0 The child is running the program
  * @retval -1 @p command was missing or empty
- * @retval -2 The command could not be expanded or executed; the
- *            reason is logged by this function
+ * @retval -2 The command could not be expanded or executed; the reason
+ *            is logged by this function
  * @retval  1 The pipe or the fork itself failed
  *
  * @note The expansion runs in the parent deliberately

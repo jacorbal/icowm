@@ -27,13 +27,21 @@
 #include <config.h>
 
 
-/** Base sysfs directory the Linux ACPI battery interface lives under */
+/**
+ * @brief Base sysfs directory the Linux ACPI battery interface lives
+ *        under
+ */
 #define BATTERY_ACPI_BASE_DIR "/sys/class/power_supply"
 
-/** Legacy APM battery/AC status pseudo-file */
+/**
+ * @brief Legacy APM battery/AC status pseudo-file
+ */
 #define BATTERY_APM_PROC_FILE "/proc/apm"
 
-/** Maximum bytes read from any one single-line @c sysfs/procfs file */
+/**
+ * @brief Maximum bytes read from any one single-line @c sysfs/procfs
+ *        file
+ * */
 #define BATTERY_LINE_MAX_LEN (64)
 
 /**
@@ -51,13 +59,13 @@
  * @brief Buffer size for one constructed sysfs path under
  *        @c BATTERY_ACPI_BASE_DIR
  *
- * Sized generously above the worst case a compiler's static
- * truncation analysis can prove for @c ("<base>/<d_name>/<suffix>")
- * (the base directory's length, plus a full directory entry name
- * with size @c NAME_MAX, plus the longest suffix used, @c /online, plus
- * the terminating null), so building such a path can never be flagged
- * as a possible truncation regardless of what the C library's
- * @p d_name field declares itself capable of holding.
+ * Sized generously above the worst case a compiler's static truncation
+ * analysis can prove for @c ("<base>/<d_name>/<suffix>") (the base
+ * directory's length, plus a full directory entry name with size
+ * @c NAME_MAX, plus the longest suffix used, @c /online, plus the
+ * terminating null), so building such a path can never be flagged as
+ * a possible truncation regardless of what the C library's @p d_name
+ * field declares itself capable of holding.
  */
 #define BATTERY_PATH_MAX_LEN (320)
 
@@ -65,9 +73,9 @@
 /**
  * @brief Read the current battery/AC state and format it into @p out
  *
- * The formatted text follows a fixed set of shapes depending on
- * whether AC power is connected and how the battery's charge compares
- * to @p threshold_charged / @p threshold_low / @p threshold_critical:
+ * The formatted text follows a fixed set of shapes depending on whether
+ * AC power is connected and how the battery's charge compares to
+ * @p threshold_charged / @p threshold_low / @p threshold_critical:
  *
  * @code{.md}
  * | State                                                | Text       |

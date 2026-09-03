@@ -6,8 +6,8 @@
  * Contains various safe string manipulation functions to ensure no
  * buffer overflows occur and that strings are properly null-terminated.
  *
- * @note Prefer sized variants (@c safe_strncpy and @c safe_strncat).
- *       Unsized variants (@c safe_strcpy and @c safe_strcat) are kept
+ * @note Prefer sized variants (@c safe_strncpy and @c safe_strncat)
+ * @note Unsized variants (@c safe_strcpy and @c safe_strcat) are kept
  *       for compatibility and should not be used in new code
  *
  * Functions:

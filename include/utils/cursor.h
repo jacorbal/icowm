@@ -9,9 +9,9 @@
  * goes through this one helper, so the whole project draws cursors from
  * the user's actual cursor theme (the same one published via
  * @p xsettings.cursor-theme-name) via @c libxcb-cursor, rather than the
- * fixed, low-resolution glyphs built into the X server's "cursor"
- * font.  The X core font is used only as an automatic fallback, for
- * a cursor name the active theme happens not to provide.
+ * fixed, low-resolution glyphs built into the X server's "cursor" font.
+ * The X core font is used only as an automatic fallback, for a cursor
+ * name the active theme happens not to provide.
  *
  * @ingroup utils
  */
@@ -54,8 +54,8 @@ typedef struct util_cursor_ctx_s util_cursor_ctx_td;
  *         to the X core font every time, just without the
  *         reused-lookup-handle savings)
  *
- * @note The caller takes ownership of the returned context and
- *       releases it with @a util_cursor_ctx_free
+ * @note The caller takes ownership of the returned context and releases
+ *       it with @a util_cursor_ctx_free
  * @note Complexity: @e O(1), aside from the underlying library's
  *       one-time theme lookup setup
  */
@@ -69,8 +69,8 @@ util_cursor_ctx_td *util_cursor_ctx_new(xcb_connection_t *connection,
  *                        @c NULL to always use the fallback font
  * @param name            Standard Xcursor name (e.g., "left_ptr",
  *                        "watch", "top_side")
- * @param fallback_glyph  X core cursor-font glyph to fall back to
- *                        if the active cursor theme does not provide
+ * @param fallback_glyph  X core cursor-font glyph to fall back to if
+ *                        the active cursor theme does not provide
  *                        @p name
  *
  * @return Identifier of the loaded cursor resource, or @c XCB_NONE if

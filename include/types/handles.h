@@ -3,24 +3,24 @@
  *
  * @brief Names of the types that cross module boundaries
  *
- * A header that only ever mentions one of these through a pointer
- * needs the name, not the definition, so it includes this instead of
- * the whole header the type is defined in.  That keeps a declaration
- * from dragging in every field, macro and function of a module it
- * merely refers to.
+ * A header that only ever mentions one of these through a pointer needs
+ * the name, not the definition, so it includes this instead of the
+ * whole header the type is defined in.  That keeps a declaration from
+ * dragging in every field, macro and function of a module it merely
+ * refers to.
  *
- * A header that stores one of these by value, or reads a field of
- * one, does need the definition and includes the real header.
+ * A header that stores one of these by value, or reads a field of one,
+ * does need the definition and includes the real header.
  *
  * Every name here is guarded on its own, with the same guard the
- * headers defining these types already use, so including both this
- * file and the real one in any order is fine.
+ * headers defining these types already use, so including both this file
+ * and the real one in any order is fine.
  *
- * @note Unlike its neighbors in @c types/, this file defines
- *       nothing.  @c types/pair.h and @c types/direction.h are where
- *       their types live, whereas every name here belongs to a
- *       module of its own and is merely named again, so a header can
- *       refer to it without the definition
+ * @note Unlike its neighbors in @c types/, this file defines nothing.
+ *       @c types/pair.h and @c types/direction.h are where their types
+ *       live, whereas every name here belongs to a module of its own
+ *       and is merely named again, so a header can refer to it without
+ *       the definition
  *
  * @ingroup types
  */
