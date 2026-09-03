@@ -171,7 +171,8 @@ void ci_config_load_systray(cJSON *json,
 
             for (int i = 0;
                     i < arr_size && out_count < 2u; ++i) {
-                cJSON *const elem = cJSON_GetArrayItem(text_order_item, i);
+                cJSON *const elem =
+                    cJSON_GetArrayItem(text_order_item, i);
                 enum config_systray_text_item_e parsed;
 
                 if (elem != NULL && cJSON_IsString(elem) &&

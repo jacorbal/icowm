@@ -48,8 +48,8 @@ void config_set_default_values_memguard(config_td *config)
 
     /* A single screen, a single desktop: neither edge-warping nor
      * wrap-around navigation, nor the desktop-name overlay or the
-     * cross-desktop activity notification, mean anything with only
-     * one desktop to switch to. */
+     * cross-desktop activity notification, mean anything with only one
+     * desktop to switch to. */
     config->desktops.show_overlay = false;
     config->desktops.notify_activity = false;
     config->desktops.warp_on_edge_drag = false;
@@ -72,10 +72,10 @@ void config_set_default_values_memguard(config_td *config)
     config->base.screens[0].desktops[0].settings.background.color =
         WM_DESKTOP_BG_COLOR_UNSET;
 
-    /* Launched-program defaults, in case memguard.json does not
-     * specify its; identical to 'config_set_default_values''s
-     * defaults, since restricted-memory mode has no particular reason
-     * to prefer different programs. */
+    /* Launched-program defaults, in case memguard.json does not specify
+     * its; identical to 'config_set_default_values''s defaults, since
+     * restricted-memory mode has no particular reason to prefer
+     * different programs. */
     safe_strncpy(config->base.programs.terminal, "xterm",
             sizeof(config->base.programs.terminal));
     safe_strncpy(config->base.programs.launcher, "gmrun",
@@ -105,8 +105,10 @@ void config_set_default_values_memguard(config_td *config)
     config->base.windows.solid_drag = false;
     config->base.windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
     config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
-    config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
-    config->base.windows.monitor_policy = CONFIG_PLACEMENT_MONITOR_POINTER;
+    config->base.windows.placement_policy =
+        CONFIG_PLACEMENT_POLICY_SMART;
+    config->base.windows.monitor_policy =
+        CONFIG_PLACEMENT_MONITOR_POINTER;
     config->base.windows.monitor_index = 0u;
     config->base.windows.group_related = false;
     config->base.windows.focus.focus_new = true;
@@ -140,14 +142,16 @@ void config_set_default_values_memguard(config_td *config)
     config->base.startup_notification.timeout_seconds =
         (uint32_t) SN_TIMEOUT_SECONDS;
 
-    config->base.menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
-    config->base.menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
+    config->base.menus.root.position =
+        CONFIG_MENU_POSITION_UNDER_MOUSE;
+    config->base.menus.windows.position =
+        CONFIG_MENU_POSITION_UNDER_MOUSE;
 
     /* Systray defaults, in case memguard.json does not specify its.
-     * A lower 'battery.poll_seconds' than an ordinary session's
-     * default is the one deliberate difference here, both to check less
-     * often and since a stale battery reading for a few extra seconds
-     * matters little either way. */
+     * A lower 'battery.poll_seconds' than an ordinary session's default
+     * is the one deliberate difference here, both to check less often
+     * and since a stale battery reading for a few extra seconds matters
+     * little either way. */
     config->base.systray.is_enabled = true;
     /* Fixed false for this mode, deliberately not something
      * 'memguard.json' is allowed to configure; see
@@ -160,7 +164,8 @@ void config_set_default_values_memguard(config_td *config)
     config->base.systray.margins.bottom = 0u;
     config->base.systray.margins.left = 0u;
     config->base.systray.position = CONFIG_SYSTRAY_POSITION_TOP_LEFT;
-    config->base.systray.monitor.anchor = CONFIG_SYSTRAY_MONITOR_SURFACE;
+    config->base.systray.monitor.anchor =
+        CONFIG_SYSTRAY_MONITOR_SURFACE;
     config->base.systray.monitor.index = 0u;
     config->base.systray.order = CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT;
     config->base.systray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
@@ -172,7 +177,8 @@ void config_set_default_values_memguard(config_td *config)
     config->base.systray.battery.threshold.charged = 100u;
     config->base.systray.battery.threshold.low = 20u;
     config->base.systray.battery.threshold.critical = 5u;
-    config->base.systray.battery.backend.type = CONFIG_BATTERY_BACKEND_ACPI;
+    config->base.systray.battery.backend.type =
+        CONFIG_BATTERY_BACKEND_ACPI;
     config->base.systray.battery.backend.number = 0u;
     config->base.systray.battery.poll_seconds = 30u;
 
@@ -186,13 +192,12 @@ void config_set_default_values_memguard(config_td *config)
     config->randr.is_enabled = false;
     config->randr.output_count = 0u;
 
-    /* Same reasoning as 'config_load''s equivalent call.  Without
-     * this, a session with no theme named in 'memguard.json' at all
-     * would leave 'config->theme' entirely zeroed (every color black,
-     * every font an empty string) rather than falling back to
-     * a sensible compiled-in theme, and a reload that switched away
-     * from a theme specifying some field to one that does not would
-     * leave that field stuck at the old theme's value instead of
-     * this default. */
+    /* Same reasoning as 'config_load''s equivalent call.  Without this,
+     * a session with no theme named in 'memguard.json' at all would
+     * leave 'config->theme' entirely zeroed (every color black, every
+     * font an empty string) rather than falling back to a sensible
+     * compiled-in theme, and a reload that switched away from a theme
+     * specifying some field to one that does not would leave that field
+     * stuck at the old theme's value instead of this default. */
     config_set_default_theme_values(&config->theme);
 }

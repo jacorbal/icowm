@@ -167,8 +167,10 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.solid_drag = true;
     config_base->windows.gravity = CONFIG_GRAVITY_NORTH_WEST;
     config_base->windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
-    config_base->windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
-    config_base->windows.monitor_policy = CONFIG_PLACEMENT_MONITOR_POINTER;
+    config_base->windows.placement_policy =
+        CONFIG_PLACEMENT_POLICY_SMART;
+    config_base->windows.monitor_policy =
+        CONFIG_PLACEMENT_MONITOR_POINTER;
     config_base->windows.monitor_index = 0;
     config_base->windows.group_related = false;
     config_base->windows.focus.focus_new = true;
@@ -185,7 +187,8 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->startup_notification.timeout_seconds =
         (uint32_t) SN_TIMEOUT_SECONDS;
     config_base->menus.root.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
-    config_base->menus.windows.position = CONFIG_MENU_POSITION_UNDER_MOUSE;
+    config_base->menus.windows.position =
+        CONFIG_MENU_POSITION_UNDER_MOUSE;
     config_base->systray.is_enabled = true;
     config_base->systray.is_embedding_enabled = true;
     config_base->systray.reserve_space = false;
@@ -207,7 +210,8 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->systray.battery.threshold.charged = 100u;
     config_base->systray.battery.threshold.low = 20u;
     config_base->systray.battery.threshold.critical = 5u;
-    config_base->systray.battery.backend.type = CONFIG_BATTERY_BACKEND_ACPI;
+    config_base->systray.battery.backend.type =
+        CONFIG_BATTERY_BACKEND_ACPI;
     config_base->systray.battery.backend.number = 0u;
     config_base->systray.battery.poll_seconds =
         (uint32_t) WM_SYSTRAY_BATTERY_POLL_SECONDS;

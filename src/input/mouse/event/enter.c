@@ -43,6 +43,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Menu includes */
+#include <menu/cycle.h>
+
 /* Policy includes */
 #include <policy/focus.h>
 
@@ -145,6 +148,26 @@ void mouse_handle_enter(xcb_connection_t *connection,
         return;
     }
 
+    /* While the cycle menu is open, navigating it restacks each newly
+     * selected client just under the popup (see
+     * 'mi_cycle_preview_apply', 'menu/cycle/draw.c'), which can raise
+     * that client out from under a pointer that never itself moved,
+     * generating a perfectly genuine 'EnterNotify' for it.  Without
+     * this, sloppy focus took that as license to hand it real input
+     * focus mid-cycle, stealing it away from the cycle menu window
+     * (see 'cycle_init', 'menu/cycle.c', which focuses the menu
+     * itself so the modifier's eventual release reaches it): the
+     * automatic keyboard grab a cycle-next/prev binding leaves
+     * active (see 'keyboard_handle_release', 'input/kbd/event.c')
+     * only lasts as long as that trigger key itself stays down, not
+     * the modifier, so by the time the user actually releases the
+     * modifier, nothing is left to route that release back to this
+     * window manager at all, and the menu stays on screen with
+     * nothing left to close it. */
+    if (cycle_is_open()) {
+        return;
+    }
+
     client = lookup_find_client(surfaces, event->event, NULL,
             &desktop);
     if (client == NULL) {
@@ -221,6 +244,14 @@ void mouse_enter_focus_tick(list_td *surfaces, const config_td *config)
     s_pending_window = XCB_WINDOW_NONE;
 
     if (!focus_is_sloppy(config)) {
+        return;
+    }
+
+    /* Same reasoning as 'mouse_handle_enter''s own 'cycle_is_open'
+     * guard above: a delayed sloppy-focus becoming due while the
+     * cycle menu happens to still be open is exactly as capable of
+     * stealing its real input focus and leaving the menu stuck. */
+    if (cycle_is_open()) {
         return;
     }
 

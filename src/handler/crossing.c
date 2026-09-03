@@ -26,6 +26,9 @@
 #include <input/mouse/event.h>
 #include <input/mouse/hover.h>
 
+/* Menu includes */
+#include <menu/cycle.h>
+
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
@@ -63,6 +66,20 @@ void handler_leave_notify(const wm_td *wm,
      * leaving before that delay elapses must never end up focusing a
      * client it already moved past. */
     mouse_enter_focus_cancel(event->event);
+
+    /* Same reasoning as 'mouse_handle_enter''s own 'cycle_is_open'
+     * guard (input/mouse/event/enter.c): the cycle menu's own
+     * navigation restacks the newly selected client just under
+     * itself (see 'mi_cycle_preview_apply', 'menu/cycle/draw.c'),
+     * which can cover whatever the pointer happens to be resting on
+     * and raise a perfectly genuine 'LeaveNotify' for it without the
+     * pointer itself having moved.  Relinquishing real focus to the
+     * pointer root below would steal it away from the cycle menu's
+     * own window the same way a stolen 'EnterNotify' would, leaving
+     * nothing for the modifier's eventual release to reach. */
+    if (cycle_is_open()) {
+        return;
+    }
 
     if (focus_is_sloppy(config) &&
             event->mode == XCB_NOTIFY_MODE_NORMAL &&

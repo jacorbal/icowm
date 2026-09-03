@@ -306,7 +306,8 @@ static void s_config_theme_load_window(cJSON *json,
                     &config_theme->window.titlebar.height);
 
             alignment_item = json_get_item(titlebar, "alignment");
-            if (alignment_item != NULL && cJSON_IsString(alignment_item)) {
+            if (alignment_item != NULL &&
+                    cJSON_IsString(alignment_item)) {
                 config_theme->window.titlebar.alignment =
                     s_parse_titlebar_alignment(
                             alignment_item->valuestring);
@@ -666,7 +667,8 @@ static void s_config_theme_load_dialog(cJSON *json,
             cJSON *label_color;
             cJSON *label_padding;
 
-            json_load_string(label, "font", config_theme->dialog.label.font,
+            json_load_string(label, "font",
+                    config_theme->dialog.label.font,
                     CONFIG_MAX_LENGTH_FONTNAME);
             label_color = cJSON_GetObjectItem(label, "color");
             if (label_color) {
@@ -688,7 +690,8 @@ static void s_config_theme_load_dialog(cJSON *json,
                     "unselected");
             cJSON *const btn_selected =
                 cJSON_GetObjectItem(button, "selected");
-            cJSON *const btn_padding = cJSON_GetObjectItem(button, "padding");
+            cJSON *const btn_padding =
+                cJSON_GetObjectItem(button, "padding");
 
             s_load_theme_colors(btn_unselected,
                     &config_theme->dialog.button.unselected);
@@ -1074,7 +1077,8 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->dialog.button.padding.horizontal = 12u;
     theme->dialog.button.padding.vertical = 6u;
 
-    safe_strncpy(theme->overlay.font, "fixed", sizeof(theme->overlay.font));
+    safe_strncpy(theme->overlay.font, "fixed",
+            sizeof(theme->overlay.font));
     theme->overlay.color.background = json_hex2uint32("D0D9E5");
     theme->overlay.color.foreground = json_hex2uint32("3A4351");
     theme->overlay.border.color = json_hex2uint32("4E6076");
