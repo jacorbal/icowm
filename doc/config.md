@@ -2097,6 +2097,11 @@ matching rule for each property are applied.
 | `apply.focus`            | boolean              | unset   | Whether the matched window should receive focus. |
 | `apply.pinned`           | boolean              | unset   | Whether the window should be visible on all desktops. |
 | `apply.decorated`        | boolean              | unset   | Whether the window should keep its decorations. |
+| `apply.iconified`        | boolean              | unset   | Whether the window should be iconified, turned into an actual icon on the desktop instead of a taskbar entry, the same as pressing `iconify` by hand.  Overrides the window's own `WM_HINTS` initial-state request. |
+| `apply.fullscreen`       | boolean              | unset   | Whether the window should be fullscreen.  Overrides the window's own EWMH initial-state hint, and takes precedence over `apply.maximized` when a rule asks for both, the same precedence entering fullscreen by hand already has over a maximized window. |
+| `apply.maximized`        | boolean              | unset   | Whether the window should be maximized, both horizontally and vertically together; there is no field here for maximizing only one axis.  Overrides the window's own EWMH initial-state hint. |
+| `apply.shaded`           | boolean              | unset   | Whether the window should be shaded, rolled up to just its titlebar.  Ignored, with a warning logged, if the window is not decorated, if the same rule also asks for `apply.fullscreen`, or if the same rule also asks for `apply.iconified`. |
+| `apply.hidden`           | boolean              | unset   | Whether the window should be hidden: withdrawn from the desktop and any pager or taskbar alike, without being iconified. |
 | `apply.opacity`          | integer or object    | unset   | Desired opacity, 0 to 100, published on the window through `_NET_WM_WINDOW_OPACITY`, overriding the theme's `window.active.opacity`/`window.inactive.opacity` (`themes.md` §1) for this one window; see below. |
 | `apply.opacity.active`   | integer              | unset   | Opacity while the window is focused (when `opacity` is an object). |
 | `apply.opacity.inactive` | integer              | unset   | Opacity while the window is not focused (when `opacity` is an object). |
@@ -2329,6 +2334,7 @@ not merely refuse to act.
 | `windows.focus.focus-new`                | boolean           | `true`         | Same as `config.json`'s `focus.focus-new`: when `true`, newly mapped windows receive focus automatically. |
 | `windows.focus.raise`                    | boolean           | `false`        | Same as `config.json`'s `focus.raise`: when `true`, a window is also raised when it gains focus by pointer or wheel. |
 | `windows.focus.policy`                   | string            | `"click"`      | Same as `config.json`'s `focus.policy`: `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
+| `windows.focus.delay-ms`                 | integer           | `250`          | Same as `config.json`'s `focus.delay-ms`: milliseconds the pointer must sit still over a window before it is focused; only takes effect under `"sloppy"`. |
 | `windows.placement.policy`               | string            | `"smart"`      | Same as `config.json`'s `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
 | `windows.placement.monitor`              | string or integer | `"pointer"`    | Same as `config.json`'s `windows.placement.monitor`: which physical monitor a placement decision targets, on a surface with more than one. |
 | `windows.placement.group-related`        | boolean           | `false`        | Same as `config.json`'s `windows.placement.group-related`: cluster windows of the same application together. |
@@ -2738,7 +2744,7 @@ the keyboard `exit` binding.
     {
         "when": "property",
         "match": {
-            "title": [ "Journal console" ]
+            "title": "Journal console"
         },
         "apply": {
             "desktop": 2,
@@ -2749,7 +2755,7 @@ the keyboard `exit` binding.
     {
         "when": "map",
         "match": {
-            "title": [ "*Sonata" ],
+            "class": [ "Sonata", "Deadbeef" ],
                 "type": "normal"
         },
         "apply": {
@@ -2765,7 +2771,7 @@ the keyboard `exit` binding.
     {
         "when": "map",
         "match": {
-            "title": [ "gmrun" ],
+            "instance": "gmrun",
             "type": "normal"
         },
         "apply": {
