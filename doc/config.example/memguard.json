@@ -29,6 +29,7 @@
             "resistance": 20
         },
         "focus": {
+            "delay-ms": 100,
             "focus-new": true,
             "raise": false,
             "policy": "click"
