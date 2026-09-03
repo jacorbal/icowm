@@ -238,8 +238,7 @@ static inline void s_show_copyright_str(FILE *fp)
 static inline void s_show_version_str(FILE *fp)
 {
     fprintf(fp, "%s (\"%s\")\n",
-            PROJECT_VERSION,
-            PROJECT_VERSION_CODENAME);
+            PROJECT_VERSION, PROJECT_VERSION_CODENAME);
 }
 
 
@@ -302,8 +301,9 @@ static void s_show_events(FILE *fp)
  */
 static void s_show_help(FILE *fp)
 {
-    fprintf(fp, "%s-msg -- Command-line client for %s's own IPC control" \
-                " socket\n", PROJECT_NAME_SHORT, PROJECT_NAME_SHORT);
+    fprintf(fp,
+            "%s-msg -- Command-line client for %s's own IPC control" \
+            " socket\n", PROJECT_NAME_SHORT, PROJECT_NAME_SHORT);
 
     fprintf(fp, "Usage: %s-msg (<command> [<key>=<value> ...] |\n",
             PROJECT_NAME_PROG);
