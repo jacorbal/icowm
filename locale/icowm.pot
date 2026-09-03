@@ -623,3 +623,6 @@ msgstr ""
 msgid "On all desktops"
 msgstr ""
 
+#: include/defs/uistr.h
+msgid " (not responding)"
+msgstr ""

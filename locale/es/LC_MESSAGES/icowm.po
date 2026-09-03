@@ -621,3 +621,7 @@ msgstr ""
 "'-M').  Cada ventana que IcoWM gestiona aumenta su propio uso de "
 "memoria, con independencia de la aplicación de esa ventana.  Cierra "
 "una ventana antes de abrir más."
+
+#: include/defs/uistr.h
+msgid " (not responding)"
+msgstr " (no responde)"

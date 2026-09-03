@@ -621,3 +621,7 @@ msgstr ""
 "'-M').  Chaque fenêtre gérée par IcoWM accroît sa propre "
 "consommation de mémoire, indépendamment de l'application de cette "
 "fenêtre.  Fermez une fenêtre avant d'en ouvrir d'autres."
+
+#: include/defs/uistr.h
+msgid " (not responding)"
+msgstr " (ne répond pas)"

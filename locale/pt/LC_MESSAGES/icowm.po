@@ -619,3 +619,7 @@ msgstr ""
 "janela que o IcoWM gere aumenta o seu próprio uso de memória, "
 "independentemente da aplicação dessa janela.  Feche uma janela antes "
 "de abrir mais."
+
+#: include/defs/uistr.h
+msgid " (not responding)"
+msgstr " (não responde)"

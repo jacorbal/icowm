@@ -621,3 +621,7 @@ msgstr ""
 "'-M').  Jedes von IcoWM verwaltete Fenster erhöht dessen eigenen "
 "Speicherverbrauch, unabhängig von der Anwendung des Fensters.  "
 "Schließen Sie ein Fenster, bevor Sie weitere öffnen."
+
+#: include/defs/uistr.h
+msgid " (not responding)"
+msgstr " (reagiert nicht)"

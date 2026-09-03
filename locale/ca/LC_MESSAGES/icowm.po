@@ -619,3 +619,7 @@ msgstr ""
 "Cada finestra que gestiona l'IcoWM augmenta el seu propi ús de "
 "memòria, independentment de l'aplicació d'aquella finestra.  Tanca "
 "una finestra abans d'obrir-ne més."
+
+#: include/defs/uistr.h
+msgid " (not responding)"
+msgstr " (no respon)"

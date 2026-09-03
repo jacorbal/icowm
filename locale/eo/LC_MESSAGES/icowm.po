@@ -618,3 +618,7 @@ msgstr ""
 "administrata de IcoWM aldonas al ĝia propra memoruzo, sendepende de "
 "la aplikaĵo de tiu fenestro.  Fermu fenestron antaŭ ol malfermi "
 "pliajn."
+
+#: include/defs/uistr.h
+msgid " (not responding)"
+msgstr " (ne respondas)"

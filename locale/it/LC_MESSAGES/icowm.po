@@ -620,3 +620,7 @@ msgstr ""
 "Ogni finestra gestita da IcoWM aumenta il suo stesso consumo di "
 "memoria, indipendentemente dall'applicazione di quella finestra.  "
 "Chiudi una finestra prima di aprirne altre."
+
+#: include/defs/uistr.h
+msgid " (not responding)"
+msgstr " (non risponde)"

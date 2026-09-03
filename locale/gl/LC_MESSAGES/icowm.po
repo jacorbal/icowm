@@ -619,3 +619,7 @@ msgstr ""
 "xanela que IcoWM xestiona aumenta o seu propio uso de memoria, con "
 "independencia da aplicación desa xanela.  Pecha unha xanela antes de "
 "abrir máis."
+
+#: include/defs/uistr.h
+msgid " (not responding)"
+msgstr " (non responde)"
