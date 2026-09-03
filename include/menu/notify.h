@@ -14,6 +14,10 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L /* struct timespec */
+#endif
+
 #ifndef MENU_NOTIFY_H
 #define MENU_NOTIFY_H
 
@@ -24,7 +28,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
-#include <time.h>       /* timespec */
+#include <time.h>       /* struct timespec */
 
 /* XCB includes */
 #include <xcb/xcb.h>

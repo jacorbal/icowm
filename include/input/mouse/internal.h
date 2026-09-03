@@ -41,6 +41,7 @@
 #ifndef INPUT_MOUSE_INTERNAL_H
 #define INPUT_MOUSE_INTERNAL_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>

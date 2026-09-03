@@ -23,6 +23,7 @@
 #ifndef INPUT_MOUSE_DRAG_H
 #define INPUT_MOUSE_DRAG_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
