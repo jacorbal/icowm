@@ -659,6 +659,7 @@ int wm_ewmh_init(const wm_td *wm)
     supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_MENU;
     supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_UTILITY;
     supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_SPLASH;
+    supported_atoms[n_supported++] = ewmh->_NET_WM_WINDOW_TYPE_TOOLTIP;
     supported_atoms[n_supported++] = net_wm_win_type_notif;
     supported_atoms[n_supported++] = net_wm_icon_geometry;
 

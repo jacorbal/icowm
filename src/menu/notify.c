@@ -26,6 +26,7 @@
 #include <utils/safe/safestr.h>
 #include <utils/time/clock.h>
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 
 /* Project includes */
 #include <config.h>
@@ -139,6 +140,18 @@ void notify_popup_show_centered(xcb_connection_t *connection,
             (uint16_t) height, (uint16_t) cfg->theme.overlay.border.width,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCB_COPY_FROM_PARENT, mask, values);
+
+    /* Advertise this as a notification window, so a compositor
+     * that inspects '_NET_WM_WINDOW_TYPE' recognizes it for what
+     * it is */
+    if (xcb_ewmh_connection_get() != NULL) {
+        xcb_atom_t window_type =
+            xcb_ewmh_connection_get()->_NET_WM_WINDOW_TYPE_NOTIFICATION;
+
+        xcb_ewmh_set_wm_window_type(xcb_ewmh_connection_get(),
+                state->window, 1, &window_type);
+    }
+
     atom_set_window_opacity(connection, state->window,
             config_theme_opacity_to_raw(cfg->theme.overlay.opacity));
     xcb_map_window(connection, state->window);
