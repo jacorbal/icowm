@@ -152,6 +152,23 @@ window, not as a follow-up.  The one deliberate exception is
 semantic of its own, and `xsettings.c`'s selection-owner window, which
 is never mapped at all.
 
+**A restart is a fresh execvp, not a config reload.**  `restart_wm`
+(over IPC, or `icowm-msg restart_wm` from a terminal) sets a flag `main`
+checks once `wm_start` returns, then re-executes this very binary with
+the same `argv`.  Every managed client is already back under bare X by
+then, released the same way any other exit releases them, so the fresh
+process's own startup scan just adopts each one again.  `reload_config`
+is a different thing entirely, as it re-reads files into the process
+already running, and never touches `argv` or `main` at all.
+
+**A `_NET_WM_PID` may name a process on another host.**
+`WM_CLIENT_MACHINE` says which one; `client.c` compares it against
+`gethostname(2)` once at adoption time, and `cmds/client/focus.c` only
+ever escalates a stuck kill to a real `SIGKILL` (`cctl_kill_register`)
+when the two agree.  `xcb_kill_client` alone, being protocol-level
+rather than PID-based, still reaches a remote client's connection just
+fine.
+
 Building for work rather than for use
 -------------------------------------
 
