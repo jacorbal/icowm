@@ -12,7 +12,7 @@
     {
         "when": "map",
         "match": {
-            "title": [ "gmrun" ]
+            "instance": [ "gmrun" ]
         },
         "apply": {
             "decorated": false,
@@ -31,6 +31,15 @@
             "decorated": false,
             "pinned": false,
             "position": "center"
+        }
+    },
+    {
+        "when": "map",
+        "match": {
+            "class": [ "Firefox", "Chromium" ]
+        },
+        "apply": {
+            "maximized": true
         }
     }
     ]

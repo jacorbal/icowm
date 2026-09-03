@@ -53,14 +53,14 @@
  *        fields
  *
  * Mirrors @a enact_broadcast_client_event's field shape
- * (@c enact/internal.h), which this file cannot reach directly: that
- * header is deliberately private to @c enact/ itself (see its
- * doc comment for why), so this is its small, local copy of the
- * same fields instead.
+ * (@c enact/internal.h), which this file cannot reach directly.
+ * That header is deliberately private to @c enact/ itself (see its
+ * comment for why), so this is its small, local copy of the same fields
+ * instead.
  *
  * @param client Client the event is about
  * @param type   IPC event bitmask (a single @c IPC_EVENT_* value; see
- *               ipc.h)
+ *               @c ipc.h)
  *
  * @note No-op if @p client is @c NULL
  * @note Complexity: @e O(1)
@@ -91,16 +91,18 @@ static void s_rules_broadcast_client_event(client_td *client,
  * @brief Move a client to the desktop specified by a rule
  *
  * Resolves the target desktop identified by @p apply->desktop, then
- * delegates the actual move to @a enact_desktop_client_send, the
- * same shared primitive the "Send to desktop" menu and the move-to-
- * desktop keybind both already use, so a rule-driven move gets the
- * exact same family-wide cascade, visibility handling, focus
- * fallback, EWMH publish, and IPC broadcast every other trigger of
- * this same action already gets, rather than a second, narrower
- * reimplementation of its own.  If the target desktop does not
- * exist, falls back to 0th-desktop (logging a warning); if it is the
- * same as the current one, or 0th-desktop does not exist either, the
- * function returns without doing anything.
+ * delegates the actual move to @a enact_desktop_client_send, the same
+ * shared primitive the "Send to desktop" menu and the move-to-desktop
+ * keybind both already use, so a rule-driven move gets the exact same
+ * family-wide cascade, visibility handling, focus fallback, EWMH
+ * publish, and IPC broadcast every other trigger of this same action
+ * already gets, rather than a second, narrower reimplementation of its
+ * own.
+ *
+ * If the target desktop does not exist, falls back to 0th-desktop
+ * (logging a warning); if it is the same as the current one, or
+ * 0th-desktop does not exist either, the function returns without doing
+ * anything.
  *
  * @param client     Client to move
  * @param surface    Surface on which the target desktop lives
@@ -178,18 +180,19 @@ static void s_rules_apply_layer(client_td *client,
  *
  * Position, through @c apply->x and @c apply->y or through
  * @c apply->is_position_centered, size, through @c apply->w and
- * @c apply->h, and monitor, through @c apply->monitor, are
- * applied independently: only the fields flagged as present are
- * touched.  When the client has a decoration frame, the
- * synchronization helper is called to keep the inner window aligned.
+ * @c apply->h, and monitor, through @c apply->monitor, are applied
+ * independently: only the fields flagged as present are touched.  When
+ * the client has a decoration frame, the synchronization helper is
+ * called to keep the inner window aligned.
+ *
  * The single, combined @c XCB_CONFIG_WINDOW_* call itself funnels
  * through @a ccmd_client_apply_geometry, the same shared primitive
- * every other geometry-changing operation in this project already
- * uses, rather than building its values array by hand; flushed
- * and broadcast afterward (@c IPC_EVENT_WINDOW_MOVED and/or
- * @c _RESIZED, matching whichever of position/size actually changed),
- * the same as @a enact_client_move/@c _resize do for every other
- * trigger of the same two events.
+ * every other geometry-changing operation in this project already uses,
+ * rather than building its values array by hand; flushed and broadcast
+ * afterward (@c IPC_EVENT_WINDOW_MOVED and/or @c _RESIZED, matching
+ * whichever of position/size actually changed), the same as
+ * @a enact_client_move/@c _resize do for every other trigger of the
+ * same two events.
  *
  * Size is resolved before position so that a rule combining
  * @c ("position": "center") with an explicit @c size centers the client
@@ -197,20 +200,20 @@ static void s_rules_apply_layer(client_td *client,
  * been placed at.
  *
  * When @p apply->has_monitor is set, @p apply->monitor selects
- * a monitor within @p surface's monitor list (out of range falls
- * back to 0th-monitor, logging a warning), and every position below
- * becomes relative to that monitor's top-left corner instead of the
- * whole surface's, as explicit @c x / @c y are offset by it, and
- * centering targets that monitor instead of the whole surface.  A rule
- * that sets @c monitor without an explicit @c position centers on that
- * monitor by default, since otherwise @c monitor alone would have no
- * visible effect at all.
+ * a monitor within @p surface's monitor list (out of range falls back
+ * to 0th-monitor, logging a warning), and every position below becomes
+ * relative to that monitor's top-left corner instead of the whole
+ * surface's, as explicit @c x / @c y are offset by it, and centering
+ * targets that monitor instead of the whole surface.  A rule that sets
+ * @c monitor without an explicit @c position centers on that monitor by
+ * default, since otherwise @c monitor alone would have no visible
+ * effect at all.
  *
- * @param surface    Surface the client is on, used to compute the
- *                   center point for @p apply->is_position_centered and
- *                   to resolve @p apply->monitor
- * @param client     Client whose geometry is to be set
- * @param apply      Action descriptor
+ * @param surface Surface the client is on, used to compute the center
+ *                point for @p apply->is_position_centered and to
+ *                resolve @p apply->monitor
+ * @param client  Client whose geometry is to be set
+ * @param apply   Action descriptor
  *
  * @note The function is a no-op when none of @p apply->has_position,
  *       @p apply->has_size, or @p apply->has_monitor is @c true
@@ -240,15 +243,17 @@ static void s_rules_apply_geometry(const surface_td *surface,
      * cmds/client/state.c), and every source that might otherwise
      * change position/size while it holds respects that already
      * ('handler_configure_request', handler/configure.c, for the
-     * client's attempts).  A rule is no different: 'rules_apply'
-     * itself re-runs on any property change this client's window
-     * happens to generate while fullscreen (not just its initial map),
-     * via the generic fallback at the end of 'handler_property_notify'
-     * (handler/focus.c), so without this a rule with its
-     * 'apply.size'/'apply.position' would silently undo fullscreen the
-     * next time that client touched some unrelated property of its
-     * own.  Every other rule effect (desktop, layer, flags) still
-     * applies regardless; only geometry itself is skipped here. */
+     * client's attempts).
+     *
+     * A rule is no different: 'rules_apply' itself re-runs on any
+     * property change this client's window happens to generate while
+     * fullscreen (not just its initial map), via the generic fallback
+     * at the end of 'handler_property_notify' (handler/focus.c), so
+     * without this a rule with its 'apply.size'/'apply.position' would
+     * silently undo fullscreen the next time that client touched some
+     * unrelated property of its own.  Every other rule effect (desktop,
+     * layer, flags) still applies regardless; only geometry itself is
+     * skipped here. */
     if (client_is_fullscreen(client)) {
         return;
     }
@@ -258,16 +263,16 @@ static void s_rules_apply_geometry(const surface_td *surface,
 
     if (apply->has_size) {
         /* 'apply->w'/'apply->h' (rules.json's 'apply.size.width'/
-         * 'apply.size.height') name the decorated frame's total,
-         * border and titlebar included, the same as
+         * 'apply.size.height') name the decorated frame's total, border
+         * and titlebar included, the same as
          * 'client->layout.geometry.cur.dim' itself already does.
          *
          * But the ICCCM size hints 'client_size_constrain' enforces are
          * always about a client's content alone, regardless of
          * decoration, so convert to content space first, apply them
          * there, then convert back, the same round trip
-         * 'input/mouse/drag.c' and 's_kb_resize_axis_target'
-         * (in 'input/kbd/interact.c') already make for their resize
+         * 'input/mouse/drag.c' and 's_kb_resize_axis_target' (in
+         * 'input/kbd/interact.c') already make for their resize
          * paths. */
         uint32_t ext_w = (uint32_t) client->layout.frame_extents.left +
             (uint32_t) client->layout.frame_extents.right;
@@ -395,15 +400,166 @@ static void s_rules_apply_flags(client_td *client,
 }
 
 
+/**
+ * @brief Record iconified/fullscreen/maximized/shaded/hidden rule
+ *        requests on a client that is not mapped yet
+ *
+ * The setter used at @c RULES_TRIGGER_PROPERTY time
+ * (@a s_rules_apply_state) is unsafe to call from @c RULES_TRIGGER_MAP
+ * instead.  Yhe client's frame, titlebar, and window are not mapped yet
+ * at that point (@a rules_apply runs before @a s_map_finish, see
+ * @c handler/map.c), and several of those setters call
+ * @a ccmd_client_focus internally, which needs a viewable window to
+ * give X11 focus to (again, see that function's own doc comment).
+ *
+ * This just remembers what was asked for instead, the same way
+ * @c has_rule_position_locked already does for @c apply.position
+ * (@c include/client.h); @a s_map_finish reads these back once the
+ * window is actually up, alongside the client's own EWMH initial- state
+ * hints it already consults there.
+ *
+ * @param client Client to update
+ * @param apply  Action descriptor
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_rules_defer_state_to_map(client_td *client,
+        const struct rules_apply_s *apply)
+{
+    if (apply->has_iconified) {
+        client->has_rule_iconified = true;
+        client->is_rule_iconified = apply->is_iconified;
+    }
+    if (apply->has_fullscreen) {
+        client->has_rule_fullscreen = true;
+        client->is_rule_fullscreen = apply->is_fullscreen;
+    }
+    if (apply->has_maximized) {
+        client->has_rule_maximized = true;
+        client->is_rule_maximized = apply->is_maximized;
+    }
+    if (apply->has_shaded) {
+        client->has_rule_shaded = true;
+        client->is_rule_shaded = apply->is_shaded;
+    }
+    if (apply->has_hidden) {
+        client->has_rule_hidden = true;
+        client->is_rule_hidden = apply->is_hidden;
+    }
+}
+
+
+/**
+ * @brief Apply iconified/fullscreen/maximized/shaded/hidden rules to
+ *        an already-mapped client
+ *
+ * These five track independent bits of the client's own state model
+ * (@c include/client/state.h says as much for maximized/fullscreen;
+ * @c include/client/state.h's @c CLIENT_FLAG_* set does the same for
+ * hidden/shaded), so a rule is free to ask for any combination of them,
+ * same as it already is for @c pinned/decorated in
+ * @a s_rules_apply_flags.
+ *
+ * Order matters here in a way it does not there: leaving fullscreen
+ * before touching maximized keeps a fullscreen-then-restore rule from
+ * momentarily maximizing into the geometry fullscreen was about to give
+ * up anyway, entering fullscreen after maximized lets a rule ask for
+ * both and land on fullscreen (matching the precedence
+ * @a ccmd_client_fullscreen itself already gives it over maximized on
+ * the way in), and iconified last avoids the one call in this group
+ * that is not a plain setter: @a enact_client_restore also undoes
+ * fullscreen/maximized when the client is not currently iconified, so
+ * calling it on every rule application, iconified or not, would
+ * silently strip state this same function had just finished setting.
+ *
+ * @c apply.shaded can lose to three different already-true conditions
+ * (not decorated, fullscreen, or (about to be) iconified) each logged
+ * once here rather than left to the silent no-op @a ccmd_client_shade's
+ * own guard would otherwise give, the same reasoning
+ * @a s_rules_apply_desktop and @a s_rules_apply_geometry already log
+ * for their own out-of-range/fullscreen fallbacks.
+ *
+ * Only ever called for @c RULES_TRIGGER_PROPERTY: a client reached
+ * through @c RULES_TRIGGER_MAP is not mapped yet, and every function
+ * called from here that also calls @a ccmd_client_focus requires
+ * a viewable window to do that on (see that function's own doc comment,
+ * @c cmds/client/focus.c); @a rules_apply defers these same five fields
+ * to @c client_td's own @c has_rule_iconified and its four siblings
+ * instead for that trigger, applied once @a s_map_finish has actually
+ * mapped the window.
+ *
+ * @param client Client to update
+ * @param apply  Action descriptor
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_rules_apply_state(client_td *client,
+        const struct rules_apply_s *apply)
+{
+    if (apply->has_fullscreen && !apply->is_fullscreen &&
+            client_is_fullscreen(client)) {
+        enact_client_unfullscreen(client);
+    }
+
+    if (apply->has_maximized &&
+            apply->is_maximized != client_is_maximized(client)) {
+        enact_client_maximize(client);
+    }
+
+    if (apply->has_fullscreen && apply->is_fullscreen &&
+            !client_is_fullscreen(client)) {
+        enact_client_fullscreen(client);
+    }
+
+    if (apply->has_shaded) {
+        if (!apply->is_shaded) {
+            enact_client_unshade(client);
+        } else if (!client_is_decorated(client)) {
+            LOGGER_WARNING("Rule requests shaded but client is not" \
+                    " decorated; shaded ignored", L_NARG);
+        } else if (client_is_fullscreen(client)) {
+            LOGGER_WARNING("Rule requests shaded while fullscreen is" \
+                    " also requested; fullscreen takes precedence," \
+                    " shaded ignored", L_NARG);
+        } else if (apply->has_iconified && apply->is_iconified) {
+            LOGGER_WARNING("Rule requests shaded while iconified is" \
+                    " also requested; iconified takes precedence," \
+                    " shaded ignored", L_NARG);
+        } else {
+            enact_client_shade(client);
+        }
+    }
+
+    if (apply->has_hidden) {
+        if (apply->is_hidden) {
+            enact_client_hide(client);
+        } else {
+            enact_client_unhide(client);
+        }
+    }
+
+    if (apply->has_iconified) {
+        bool now_iconified = client_is_iconified(client);
+
+        if (apply->is_iconified && !now_iconified) {
+            enact_client_iconify(client);
+        } else if (!apply->is_iconified && now_iconified) {
+            enact_client_restore(client);
+        }
+    }
+}
+
+
 /* A property-triggered desktop reassignment ('s_rules_apply_desktop'
- * just above) already leaves the client correctly mapped or unmapped
- * on its own: 'enact_desktop_client_send' itself synchronously unmaps
- * the window when it was visible on the desktop it is leaving, and
- * every 'RULES_TRIGGER_PROPERTY' call site in 'handler/focus.c' marks
- * the client, its surface, and its (now-updated) desktop outdated
- * right after a matching rule fires, which is what maps the window
- * back in on arrival if the desktop it lands on turns out to be the
- * one currently shown ('desktop_render_one_client', render/desktop.c).
+ * just above) already leaves the client correctly mapped or unmapped on
+ * its own: 'enact_desktop_client_send' itself synchronously unmaps the
+ * window when it was visible on the desktop it is leaving, and every
+ * 'RULES_TRIGGER_PROPERTY' call site in 'handler/focus.c' marks the
+ * client, its surface, and its (now-updated) desktop outdated right
+ * after a matching rule fires, which is what maps the window back in on
+ * arrival if the desktop it lands on turns out to be the one currently
+ * shown ('desktop_render_one_client', in 'render/desktop.c').
+ *
  * A second, ad-hoc remap/unmap pass here used to duplicate exactly
  * that, down to re-incrementing 'client->ignore.unmap' for an
  * 'UnmapNotify' that had already been accounted for once, leaving the
@@ -415,10 +571,9 @@ static void s_rules_apply_flags(client_td *client,
 /**
  * @brief Apply the focus rule to a client
  *
- * Focuses @p client when @c apply->has_focus and
- * @c apply->is_focused are both set, @p config is available, and
- * @p client is focusable; a
- * no-op otherwise.
+ * Focuses @p client when @c apply->has_focus and @c apply->is_focused
+ * are both set, @p config is available, and @p client is focusable;
+ * a no-op otherwise.
  *
  * @param wm      Window manager instance, for @a wm_surfaces
  * @param client  Client to focus
@@ -447,17 +602,17 @@ static void s_rules_apply_focus(const wm_td *wm, client_td *client,
  * @brief Broadcast @c IPC_EVENT_RULE_APPLIED when a rule changed
  *        anything
  *
- * A rule that matched but left every @c has_* field in @p apply
- * false (theoretically possible, e.g., a rule with an empty @c apply
- * object) changes nothing and is not broadcast.
+ * A rule that matched but left every @c has_* field in @p apply false
+ * (theoretically possible, e.g., a rule with an empty @c apply object)
+ * changes nothing and is not broadcast.
  *
  * @param client  Client the rule was applied to
  * @param desktop Client's desktop after every other apply step
  * @param surface Client's surface
  * @param apply   Action descriptor
  *
- * @return @c true when at least one field in @p apply was set,
- *         i.e., when the event was actually broadcast
+ * @return @c true when at least one field in @p apply was set, i.e.,
+ *         when the event was actually broadcast
  *
  * @note Complexity: @e O(1)
  */
@@ -468,7 +623,9 @@ static bool s_rules_notify_change(const client_td *client,
     bool changed = apply->has_desktop || apply->has_monitor ||
         apply->has_layer || apply->has_focus || apply->has_position ||
         apply->has_size || apply->has_sticky || apply->has_decoration ||
-        apply->has_opacity_active || apply->has_opacity_inactive;
+        apply->has_opacity_active || apply->has_opacity_inactive ||
+        apply->has_iconified || apply->has_fullscreen ||
+        apply->has_maximized || apply->has_shaded || apply->has_hidden;
 
     if (changed) {
         cJSON *const fields = cJSON_CreateObject();
@@ -540,7 +697,8 @@ bool rules_apply(const wm_td *wm, client_td *client,
         }
         if (rule->apply.has_position) {
             merged.has_position = true;
-            merged.is_position_centered = rule->apply.is_position_centered;
+            merged.is_position_centered =
+                rule->apply.is_position_centered;
             merged.x = rule->apply.x;
             merged.y = rule->apply.y;
         }
@@ -565,6 +723,26 @@ bool rules_apply(const wm_td *wm, client_td *client,
             merged.has_opacity_inactive = true;
             merged.opacity_inactive = rule->apply.opacity_inactive;
         }
+        if (rule->apply.has_iconified) {
+            merged.has_iconified = true;
+            merged.is_iconified = rule->apply.is_iconified;
+        }
+        if (rule->apply.has_fullscreen) {
+            merged.has_fullscreen = true;
+            merged.is_fullscreen = rule->apply.is_fullscreen;
+        }
+        if (rule->apply.has_maximized) {
+            merged.has_maximized = true;
+            merged.is_maximized = rule->apply.is_maximized;
+        }
+        if (rule->apply.has_shaded) {
+            merged.has_shaded = true;
+            merged.is_shaded = rule->apply.is_shaded;
+        }
+        if (rule->apply.has_hidden) {
+            merged.has_hidden = true;
+            merged.is_hidden = rule->apply.is_hidden;
+        }
     }
 
     if (!has_match) {
@@ -574,6 +752,11 @@ bool rules_apply(const wm_td *wm, client_td *client,
     s_rules_apply_desktop(client, *surface_io, desktop_io, &merged);
     s_rules_apply_layer(client, &merged);
     s_rules_apply_flags(client, &merged);
+    if (trigger == RULES_TRIGGER_MAP) {
+        s_rules_defer_state_to_map(client, &merged);
+    } else {
+        s_rules_apply_state(client, &merged);
+    }
     s_rules_apply_geometry(*surface_io, client, &merged);
     s_rules_apply_focus(wm, client, *surface_io, *desktop_io, &merged,
             config);

@@ -85,11 +85,11 @@
 /**
  * @brief Read @c _NET_WM_STATE again, just before the window is shown
  *
- * @a client_init already read it when the window was adopted, but a
- * client that sets the property around that same moment can be sampled
- * before it gets there.  Nothing reads the property a second time
- * afterwards, so the state was lost for good.  The window came up at
- * its size while every later check still believed it fullscreen,
+ * @a client_init already read it when the window was adopted, but
+ * a client that sets the property around that same moment can be
+ * sampled before it gets there.  Nothing reads the property a second
+ * time afterwards, so the state was lost for good.  The window came up
+ * at its size while every later check still believed it fullscreen,
  * leaving something that could not be moved or resized and was not
  * fullscreen either.
  *
@@ -163,10 +163,10 @@ static void s_map_refresh_initial_state(xcb_connection_t *connection,
  * @brief Finish taking a window under management, once it has a place
  *
  * Everything after the placement decision.  Mapping the frame and the
- * window itself, honouring an initial iconic state, giving focus if
- * the configuration wants new windows to have it, telling the client
- * its screen-relative geometry as ICCCM requires, and announcing the
- * whole thing over IPC.
+ * window itself, honouring an initial iconic state, giving focus if the
+ * configuration wants new windows to have it, telling the client its
+ * screen-relative geometry as ICCCM requires, and announcing the whole
+ * thing over IPC.
  *
  * Held apart from the decision that precedes it so that a placement
  * which cannot answer at once has somewhere to hand the rest of the
@@ -184,10 +184,23 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
         desktop_td *desktop, client_td *client)
 {
     cJSON *fields;
+    bool want_iconic;
+    bool want_fullscreen;
+    bool want_maximized_horz;
+    bool want_maximized_vert;
 
     /* ICCCM §4.1.2.4: honor 'WM_HINTS' 'initial_state' when
-     * 'IconicState' */
-    if (client->hints_icccm.hints.is_initial_iconic) {
+     * 'IconicState', unless a rule already gave an explicit
+     * 'apply.iconified' for this client ('s_rules_defer_state_to_map',
+     * rules/apply.c): the rule speaks for the user's own configuration
+     * and so takes precedence over the client's own request either way,
+     * the same as 'has_rule_position_locked' already overrides
+     * a client-initiated move (client.h). */
+    want_iconic = client->has_rule_iconified
+        ? client->is_rule_iconified
+        : client->hints_icccm.hints.is_initial_iconic;
+
+    if (want_iconic) {
         ccmd_client_iconify(client);
     } else {
         if (client->titlebar != 0) {
@@ -233,44 +246,97 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
         xcb_clear_area(xcb_connection_get(), 1, client->window,
                 0, 0, 0, 0);
 
-        /* EWMH's correct way for a client to request fullscreen
-         * from the outset (see 'hints_ewmh.initial_state''s doc
-         * comment, client.h) rather than waiting for a 'ClientMessage'
-         * after mapping.  Deliberately last in this whole block, after
-         * the synthetic 'ConfigureNotify' just above:
-         * 'ccmd_client_fullscreen' sends its with the true
-         * fullscreen geometry, and sending the ordinary one afterward
-         * would tell the client its old, pre-fullscreen position and
-         * size right after telling it the correct one. */
+        /* EWMH's correct way for a client to request fullscreen from
+         * the outset (see 'hints_ewmh.initial_state''s doc comment,
+         * client.h) rather than waiting for a 'ClientMessage' after
+         * mapping.  Deliberately last in this whole block, after the
+         * synthetic 'ConfigureNotify' just above:
+         * 'ccmd_client_fullscreen' sends its with the true fullscreen
+         * geometry, and sending the ordinary one afterward would tell
+         * the client its old, pre-fullscreen position and size right
+         * after telling it the correct one. */
         /* Re-read rather than trusting what 'client_init' saw.  That
          * read happens when the window is first adopted, and a client
-         * that sets '_NET_WM_STATE' around that moment could be
-         * sampled before it got there: the state was then lost for
-         * good, since nothing reads the property again, and the
-         * window came up at its small size while every later
-         * check still believed it was fullscreen.  Asking again here,
-         * with the window about to be shown, makes the outcome the
-         * same whichever order the two happened in. */
+         * that sets '_NET_WM_STATE' around that moment could be sampled
+         * before it got there: the state was then lost for good, since
+         * nothing reads the property again, and the window came up at
+         * its small size while every later check still believed it was
+         * fullscreen.  Asking again here, with the window about to be
+         * shown, makes the outcome the same whichever order the two
+         * happened in. */
         s_map_refresh_initial_state(xcb_connection_get(),
                 xcb_ewmh_connection_get(), client);
 
-        if (client->hints_ewmh.initial_state.is_fullscreen) {
+        /* A rule's own 'apply.fullscreen'/'apply.maximized' (deferred
+         * here by 's_rules_defer_state_to_map', for the same
+         * not-mapped-yet reason 'want_iconic' above already gives)
+         * takes precedence over the client's own EWMH hint for that
+         * same field, one boolean overriding both maximize axes at once
+         * since 'apply.maximized' itself makes no distinction between
+         * them (see 'struct rules_apply_s', rules/internal.h); a client
+         * whose hint disagrees loses,
+         * same as its 'WM_HINTS' iconic request already can. */
+        want_fullscreen = client->has_rule_fullscreen
+            ? client->is_rule_fullscreen
+            : client->hints_ewmh.initial_state.is_fullscreen;
+        want_maximized_horz = client->has_rule_maximized
+            ? client->is_rule_maximized
+            : client->hints_ewmh.initial_state.is_maximized_horz;
+        want_maximized_vert = client->has_rule_maximized
+            ? client->is_rule_maximized
+            : client->hints_ewmh.initial_state.is_maximized_vert;
+
+        if (want_fullscreen) {
             ccmd_client_fullscreen(client);
-        } else if (client->hints_ewmh.initial_state.is_maximized_horz &&
-                client->hints_ewmh.initial_state.is_maximized_vert) {
-            /* Same reasoning as 'is_fullscreen' just above, for
-             * the same EWMH pre-existing-state mechanism applied to
-             * 'is_maximized_horz'/'_vert' (client.h) instead; a
-             * client requesting both at once is maximized on both
-             * axes together, one call, rather than two in sequence
-             * each sending its synthetic 'ConfigureNotify' for an
+        } else if (want_maximized_horz && want_maximized_vert) {
+            /* Same reasoning as 'is_fullscreen' just above, for the
+             * same EWMH pre-existing-state mechanism applied to
+             * 'is_maximized_horz'/'_vert' (client.h) instead; a client
+             * requesting both at once is maximized on both axes
+             * together, one call, rather than two in sequence each
+             * sending its synthetic 'ConfigureNotify' for an
              * intermediate, single-axis geometry the client never
              * actually asked for. */
             ccmd_client_maximize(client);
-        } else if (client->hints_ewmh.initial_state.is_maximized_horz) {
+        } else if (want_maximized_horz) {
             ccmd_client_maximize_horz(client);
-        } else if (client->hints_ewmh.initial_state.is_maximized_vert) {
+        } else if (want_maximized_vert) {
             ccmd_client_maximize_vert(client);
+        }
+
+        /* 'apply.shaded'/'apply.hidden' have no EWMH hint counterpart
+         * to fall back to, so, unlike the pair just above, these only
+         * ever run at all when a rule actually gave one.  Shaded shares
+         * the same conflict a rule can hit at 'RULES_TRIGGER_PROPERTY'
+         * time in 's_rules_apply_state' ('rules/apply.c', whose comment
+         * covers the reasoning this mirrors): undecorated or fullscreen
+         * both leave it a silent no-op inside 'ccmd_client_shade'
+         * itself, worth a warning here for the same reason it is worth
+         * one there.  Iconified taking precedence over shaded needs no
+         * such warning here, unlike there, because 'want_iconic' above
+         * already sent an iconified client down the other branch of
+         * this whole function before either could ever be reached. */
+        if (client->has_rule_shaded) {
+            if (!client->is_rule_shaded) {
+                ccmd_client_unshade(client);
+            } else if (!client_is_decorated(client)) {
+                LOGGER_WARNING("Rule requests shaded but client is" \
+                        " not decorated; shaded ignored", L_NARG);
+            } else if (client_is_fullscreen(client)) {
+                LOGGER_WARNING("Rule requests shaded while" \
+                        " fullscreen is also requested; fullscreen" \
+                        " takes precedence, shaded ignored", L_NARG);
+            } else {
+                ccmd_client_shade(client);
+            }
+        }
+
+        if (client->has_rule_hidden) {
+            if (client->is_rule_hidden) {
+                ccmd_client_hide(client);
+            } else {
+                ccmd_client_unhide(client);
+            }
         }
     }
 
@@ -302,9 +368,9 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
  *
  * Shared by every early-return path in @c handler_map_request below
  * that declines to manage the window (an unresolvable surface or
- * current desktop, @c client_init itself failing, or the client
- * failing to be added to its desktop).  The requesting application
- * gets its window on screen either way, just without a frame or any
+ * current desktop, @c client_init itself failing, or the client failing
+ * to be added to its desktop).  The requesting application gets its
+ * window on screen either way, just without a frame or any
  * window-manager tracking.
  *
  * @param connection XCB connection
@@ -354,8 +420,8 @@ void handler_map_request(const wm_td *wm,
 
     /* A docked systray icon is not a managed client, so it would
      * otherwise fall through to the generic top-level adoption path
-     * below and end up managed as a brand-new decorated client
-     * instead of staying a plain docked icon; see
+     * below and end up managed as a brand-new decorated client instead
+     * of staying a plain docked icon; see
      * 'systray_icon_map_request'. */
     if (systray_icon_map_request(event->window)) {
         return;
@@ -380,14 +446,14 @@ void handler_map_request(const wm_td *wm,
         return;
     }
 
-    /* A window whose own '_NET_STARTUP_ID' still names a pending
-     * launch sequence gets placed on the desktop that launch was
-     * requested from, rather than whichever desktop merely happens to
-     * be current by the time it finally maps; a slow-starting
-     * application would otherwise land wherever the user has since
-     * switched to, which is rarely where they meant to open it.  Any
-     * window without that property, or whose sequence has already
-     * expired or completed, keeps today's behavior unchanged. */
+    /* A window whose own '_NET_STARTUP_ID' still names a pending launch
+     * sequence gets placed on the desktop that launch was requested
+     * from, rather than whichever desktop merely happens to be current
+     * by the time it finally maps; a slow-starting application would
+     * otherwise land wherever the user has since switched to, which is
+     * rarely where they meant to open it.  Any window without that
+     * property, or whose sequence has already expired or completed,
+     * keeps today's behavior unchanged. */
     if (cctl_sn_desktop_for_window(connection, event->window,
                 &origin_desktop_id)) {
         origin_desktop = surface_desktop_get(surface, origin_desktop_id);
@@ -398,24 +464,23 @@ void handler_map_request(const wm_td *wm,
 
     /* Checked before 'client_init' does any of its own (comparatively
      * expensive) setup work, so a client refused here never pays for
-     * work that would just be thrown away.  Deliberately left
-     * unmapped, unlike every other early-return path in this function
-     * that declines to manage a window: an unmanaged-but-mapped
-     * window is genuinely broken, not merely undecorated, since it
-     * has no frame, is not tracked in any client list, and cannot be
-     * moved or closed through IcoWM at all; if it somehow ends up
-     * with keyboard focus regardless (a real, mapped top-level window
-     * can still receive it, even one IcoWM never decided to manage),
-     * later code that assumes "whatever currently has focus is a
-     * tracked client" has nothing valid to find, which is exactly the
-     * abrupt behavior this comment warns against.  Simply never
-     * mapping the window instead means the requesting application is
-     * left waiting for a MapNotify that will not come, rather than
-     * being handed a window it cannot use through the one channel
-     * (the window manager) applications normally rely on for that.
-     * 'memguard_max_clients' already reads 0 as "restricted-memory
-     * mode is off, no cap", so nothing else needs to check that
-     * separately here. */
+     * work that would just be thrown away.  Deliberately left unmapped,
+     * unlike every other early-return path in this function that
+     * declines to manage a window: an unmanaged-but-mapped window is
+     * genuinely broken, not merely undecorated, since it has no frame,
+     * is not tracked in any client list, and cannot be moved or closed
+     * through IcoWM at all; if it somehow ends up with keyboard focus
+     * regardless (a real, mapped top-level window can still receive it,
+     * even one IcoWM never decided to manage), later code that assumes
+     * "whatever currently has focus is a tracked client" has nothing
+     * valid to find, which is exactly the abrupt behavior this comment
+     * warns against.  Simply never mapping the window instead means the
+     * requesting application is left waiting for a MapNotify that will
+     * not come, rather than being handed a window it cannot use through
+     * the one channel (the window manager) applications normally rely
+     * on for that.  'memguard_max_clients' already reads 0 as
+     * "restricted-memory mode is off, no cap", so nothing else needs to
+     * check that separately here. */
     max_clients = memguard_max_clients();
 
     if (max_clients > 0u &&
@@ -445,11 +510,11 @@ void handler_map_request(const wm_td *wm,
 
     /* Links 'client' into its parent's transient tree, if
      * 'transient_for' names an already-managed client, right after
-     * 'client' itself is a genuine managed client (added to its
-     * desktop just above): every other family-wide function in this
-     * project (top-parent walks, focus redirection, iconify/restore/
-     * pin/etc. cascades) relies on this link already being in place
-     * to walk real pointers instead of scanning every client on every
+     * 'client' itself is a genuine managed client (added to its desktop
+     * just above): every other family-wide function in this project
+     * (top-parent walks, focus redirection, iconify/restore/
+     * pin/etc. cascades) relies on this link already being in place to
+     * walk real pointers instead of scanning every client on every
      * desktop. */
     client_link_transient(client);
 
@@ -458,13 +523,13 @@ void handler_map_request(const wm_td *wm,
      * redirects to the family's top-most ancestor and cascades from
      * there, so every member is pinned together.  A member that only
      * appears afterwards, a dialog its parent opens later, was the one
-     * case left out, and it stayed behind on the desktop it was born
-     * on while its parent travelled: a modal one left that parent
+     * case left out, and it stayed behind on the desktop it was born on
+     * while its parent travelled: a modal one left that parent
      * unresponsive for a reason not visible anywhere.
      *
-     * Asked of the top parent rather than the immediate one, since
-     * that is what pinning itself acts on, and only when it really is
-     * pinned: an ordinary window's dialogs stay with it on its own
+     * Asked of the top parent rather than the immediate one, since that
+     * is what pinning itself acts on, and only when it really is
+     * pinned.  An ordinary window's dialogs stay with it on its own
      * desktop exactly as before. */
     if (!client_is_pinned(client)) {
         const client_td *const top =
@@ -498,8 +563,8 @@ void handler_map_request(const wm_td *wm,
         wm_outdate_desktop(desktop);
     }
 
-    /* Dock and panel windows position themselves, so their
-     * geometry is never overridden */
+    /* Dock and panel windows position themselves, so their geometry is
+     * never overridden */
     if (client->properties.type != (uint16_t) CLIENT_TYPE_DOCK &&
             !client->has_rule_position_locked) {
         place_window_apply(wm, surface, client);
@@ -509,10 +574,10 @@ void handler_map_request(const wm_td *wm,
          * work out again whether it did.  A window that asked for
          * a position itself, a dialog centered over its parent, or one
          * clustered next to a sibling never reaches that policy and is
-         * never marked.  Taking the client leaves it unmapped and
-         * hands 's_map_finish' over to be called once someone points
-         * at where it goes, so this function must stop here rather
-         * than finish the map itself.
+         * never marked.  Taking the client leaves it unmapped and hands
+         * 's_map_finish' over to be called once someone points at where
+         * it goes, so this function must stop here rather than finish
+         * the map itself.
          *
          * Never asked about a window that is going to come up as an
          * icon anyway: 's_map_finish' iconifies it instead of showing
@@ -523,11 +588,11 @@ void handler_map_request(const wm_td *wm,
                         client, mouse_cursor_move(), s_map_finish)) {
             /* Not mapping it here is not enough to keep it off the
              * screen.  A client sits in its desktop's list from the
-             * moment it is adopted, and the render pass shows every
-             * one not marked hidden, so the next pass would put this
-             * one up while it is still being asked about.  Paired with
-             * the 'client_unhide' that 's_map_finish' does above,
-             * which takes the mark off once it is settled. */
+             * moment it is adopted, and the render pass shows every one
+             * not marked hidden, so the next pass would put this one up
+             * while it is still being asked about.  Paired with the
+             * 'client_unhide' that 's_map_finish' does above, which
+             * takes the mark off once it is settled. */
             client_hide(client);
             return;
         }
@@ -568,15 +633,15 @@ void handler_unmap_notify(xcb_connection_t *connection,
             return;
         }
 
-        /* Marked hidden before the fallback call just below, not
-         * after: 'ccmd_client_focus' (called from inside
+        /* Marked hidden before the fallback call just below, not after:
+         * 'ccmd_client_focus' (called from inside
          * 'client_focus_fallback') redirects to whichever mapped
          * transient descendant of the new target should actually
-         * receive focus in its place (see 'ccmd_client_focus_target'
-         * 's comment, cmds/client/internal.h), and that
-         * redirect walk excludes a 'CLIENT_FLAG_HIDDEN' candidate
-         * specifically so a fallback landing back on 'client''s
-         * parent does not find this same withdrawing 'client' here
+         * receive focus in its place (see 'ccmd_client_focus_target''s
+         * comment, 'cmds/client/internal.h'), and that redirect walk
+         * excludes a 'CLIENT_FLAG_HIDDEN' candidate specifically so
+         * a fallback landing back on 'client''s parent does not find
+         * this same withdrawing 'client' here
          * and send real input focus right back onto it. */
         client_hide(client);
 
@@ -597,33 +662,33 @@ void handler_unmap_notify(xcb_connection_t *connection,
             xcb_window_hide(client->titlebar);
         }
         /* 'properties.state' itself, not just the published EWMH
-         * property, must also stop claiming fullscreen here.  A
-         * fullscreen client that withdraws itself this way previously
-         * had only its '_NET_WM_STATE_FULLSCREEN' atom stripped
-         * from the property below, with nothing here ever touching
+         * property, must also stop claiming fullscreen here.
+         * A fullscreen client that withdraws itself this way previously
+         * had only its '_NET_WM_STATE_FULLSCREEN' atom stripped from
+         * the property below, with nothing here ever touching
          * 'properties.state' itself, silently leaving the two
          * disagreeing with each other from then on.  Reset to plain
-         * normal specifically, not iconified: 'client_hide' just
-         * above already marks 'CLIENT_FLAG_HIDDEN', which alone is
-         * enough for 'ccmd_client_sync_states' (cmds/client/ewmh.c)
-         * to correctly still publish '_NET_WM_STATE_HIDDEN' below;
-         * claiming 'CLIENT_STATE_ICONIFIED' here instead would make
+         * normal specifically, not iconified: 'client_hide' just above
+         * already marks 'CLIENT_FLAG_HIDDEN', which alone is enough for
+         * 'ccmd_client_sync_states' ('cmds/client/ewmh.c') to correctly
+         * still publish '_NET_WM_STATE_HIDDEN' below; claiming
+         * 'CLIENT_STATE_ICONIFIED' here instead would make
          * 'client_is_iconified' true for a client the window manager
          * itself never actually iconified, with consequences well
          * beyond this one property (the whole transient-family
          * iconify/restore cascade among them). */
         client->properties.state = CLIENT_STATE_NORMAL;
 
-        /* ICCCM §4.1.4: a client unmapping its own window withdraws
-         * it, which §4.1.3.1 requires 'WM_STATE' to reflect as
-         * 'WithdrawnState', not 'IconicState'.  The latter is only
-         * for a window the window manager itself has iconified,
-         * still under its management and eligible to be restored
-         * with no more than a map request; a client that unmapped
-         * itself may never be mapped again at all, and is not being
-         * tracked as an icon here ('client_hide' above sets
-         * 'CLIENT_FLAG_HIDDEN', a distinct concept from iconified,
-         * as the comment right above already explains) */
+        /* ICCCM §4.1.4: a client unmapping its own window withdraws it,
+         * which §4.1.3.1 requires 'WM_STATE' to reflect as
+         * 'WithdrawnState', not 'IconicState'.  The latter is only for
+         * a window the window manager itself has iconified, still under
+         * its management and eligible to be restored with no more than
+         * a map request; a client that unmapped itself may never be
+         * mapped again at all, and is not being tracked as an icon here
+         * ('client_hide' above sets 'CLIENT_FLAG_HIDDEN', a distinct
+         * concept from iconified, as the comment right above already
+         * explains) */
         ccmd_set_wm_state(client, CCMD_WM_STATE_WITHDRAWN, XCB_NONE);
         ccmd_client_sync_states(client);
         /* 'wm_outdate_client'/'_surface'/'_desktop' directly, not
@@ -631,9 +696,9 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * already resolved locally above (from the same
          * 'lookup_find_client' call this whole handler already made),
          * so calling the convenience wrapper here would only re-derive
-         * both through a redundant lookup, an O(n) scan over the
-         * global 'wm->surfaces' for 'surface' alone, for values
-         * already sitting in scope. */
+         * both through a redundant lookup, an O(n) scan over the global
+         * 'wm->surfaces' for 'surface' alone, for values already
+         * sitting in scope. */
         wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);
@@ -658,11 +723,10 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
 
     LOGGER_TRACE("Destroy notify event (window=0x%x)", event->window);
 
-    /* Before the managed-client lookup below, and unconditionally.  A
-     * docked systray icon is never a managed client at all, so the
+    /* Before the managed-client lookup below, and unconditionally.
+     * A docked systray icon is never a managed client at all, so the
      * early return that lookup takes for an unmanaged window would
-     * otherwise leave the destroyed icon in the tray's array
-     * forever */
+     * otherwise leave the destroyed icon in the tray's array forever */
     systray_handle_destroy(wm, event->window);
 
     client = lookup_find_client(surfaces, event->window,
@@ -680,11 +744,11 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
         drag_cancel(connection, client);
     }
 
-    /* Drop it from the manual-placement queue too, for the same
-     * reason.  A window destroyed while it was being pointed at, or
-     * while waiting its turn, still holds a place in that queue, and
-     * the pointer and the keyboard with it if it was the one being
-     * asked about. */
+    /* Drop it from the manual-placement queue too, for the same reason.
+     * A window destroyed while it was being pointed at, or while
+     * waiting its turn, still holds a place in that queue, and the
+     * pointer and the keyboard with it if it was the one being asked
+     * about. */
     place_manual_cancel_client(connection, client);
 
     if (desktop != NULL) {
@@ -693,18 +757,18 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
         surface_refresh_workareas(surface);
     }
 
-    /* Falls back AFTER 'client' is already removed from 'desktop',
-     * not before: 'ccmd_client_focus' (called from inside this),
-     * itself redirects to whichever mapped transient descendant of
-     * the new target should actually receive focus in its place
-     * (see 'ccmd_client_focus_target''s comment, cmds/
-     * client/internal.h).  With 'client' (the very dialog now
-     * closing) still sitting in 'desktop->clients' at the time of
-     * that redirect, a fallback landing back on its own parent would
-     * find this closing dialog itself as a still-valid-looking
-     * transient child, and redirect real input focus right back onto
-     * a window about to be destroyed a few lines below, rather than
-     * onto the parent the fallback just chose. */
+    /* Falls back AFTER 'client' is already removed from 'desktop', not
+     * before: 'ccmd_client_focus' (called from inside this), itself
+     * redirects to whichever mapped transient descendant of the new
+     * target should actually receive focus in its place (see
+     * 'ccmd_client_focus_target''s comment, 'cmds/client/internal.h').
+     * With 'client' (the very dialog now closing) still sitting in
+     * 'desktop->clients' at the time of that redirect, a fallback
+     * landing back on its own parent would find this closing dialog
+     * itself as a still-valid-looking transient child, and redirect
+     * real input focus right back onto a window about to be destroyed
+     * a few lines below, rather than onto the parent the fallback just
+     * chose. */
     if (desktop != NULL && desktop->client_active_id == client->id) {
         client_focus_fallback(desktop, surface, client);
     }
@@ -811,15 +875,14 @@ void handler_map_notify(xcb_connection_t *connection,
         if (event->window == client->window) {
             xcb_clear_area(connection, 1, client->window, 0, 0, 0, 0);
 
-            /* Re-assert the plain-pointer cursor 'client_init'
-             * already set once on this same window (see client.c).
-             * Many GTK/GDK applications explicitly set their
-             * top-level window's cursor as part of their own
-             * realization, which can run after (and so silently
-             * overwrite) that first assignment; MapNotify, confirming
-             * the window has actually become visible, is reliably
-             * later than that realization, so setting it again here
-             * wins whatever race existed. */
+            /* Re-assert the plain-pointer cursor 'client_init' already
+             * set once on this same window (see client.c).  Many
+             * GTK/GDK applications explicitly set their top-level
+             * window's cursor as part of their own realization, which
+             * can run after (and so silently overwrite) that first
+             * assignment; MapNotify, confirming the window has actually
+             * become visible, is reliably later than that realization,
+             * so setting it again here wins whatever race existed. */
             xcb_change_window_attributes(connection, client->window,
                     XCB_CW_CURSOR,
                     (const uint32_t[]) { mouse_plain_cursor() });
@@ -847,8 +910,8 @@ void handler_gravity_notify(xcb_connection_t *connection,
 
     /* The X server repositioned a frame window ('event->window') within
      * root because the screen was resized and the client's win_gravity
-     * ('client->layout.gravity') placed it at a non-NW anchor.
-     * Update the cached frame position and re-sync decorations. */
+     * ('client->layout.gravity') placed it at a non-NW anchor.  Update
+     * the cached frame position and re-sync decorations. */
     client = lookup_find_client(surfaces, event->window, NULL, NULL);
     if (client != NULL) {
         client->layout.geometry.cur.pos.x = event->x;
@@ -922,13 +985,13 @@ void handler_circulate_request(xcb_connection_t *connection,
     xcb_configure_window(connection, target,
             XCB_CONFIG_WINDOW_STACK_MODE, &stack_mode);
 
-    /* A raw 'CirculateRequest' is honored above exactly as asked,
-     * the same way 'handler_configure_request' honors a plain
+    /* A raw 'CirculateRequest' is honored above exactly as asked, the
+     * same way 'handler_configure_request' honors a plain
      * 'ConfigureRequest' stack-mode change, but without this call
-     * afterward that alone would let a normal-layer client
-     * circulate itself above an 'above'-layer one, or a
-     * 'below'-layer one above a normal client, since nothing else
-     * here re-imposes the layer ordering 'ccmd_client_layer_above'
+     * afterward that alone would let a normal-layer client circulate
+     * itself above an 'above'-layer one, or a 'below'-layer one above
+     * a normal client, since nothing else here re-imposes the layer
+     * ordering 'ccmd_client_layer_above'
      * and 'ccmd_client_layer_below' otherwise guarantee */
     ccmd_desktop_enforce_layers(desktop);
 

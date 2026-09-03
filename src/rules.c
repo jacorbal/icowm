@@ -54,7 +54,7 @@
  * @param dest         Destination fixed-size string array
  * @param count_out    Receives the number of values actually stored
  * @param has_flag_out Set to @c true when at least one value was
- *                      stored
+ *                     stored
  *
  * @note Complexity: @e O(n), where @e n is @c RULES_MATCH_MAX_VALUES
  */
@@ -98,10 +98,10 @@ static void s_rules_load_match_list(cJSON *match_json, const char *key,
 
 /**
  * @brief Clamp a JSON opacity value into the 0 to 100 range
- *        'config_theme_style_s.opacity' itself uses
+ *        @c config_theme_style_s.opacity itself uses
  *
- * @param raw The cJSON number's 'valueint', which may be
- *            negative or above 100
+ * @param raw The cJSON number's 'valueint', which may be negative or
+ *            above 100
  *
  * @return @p raw clamped into 0 to 100
  *
@@ -123,8 +123,8 @@ static uint8_t s_clamp_opacity_percent(int raw)
  * @brief Read a rule's "apply" object into the rule
  *
  * Every field is optional and each is read the same way: ask for it,
- * check its type, and note both the value and that it was given at
- * all, a rule saying nothing about a field leaving it alone.
+ * check its type, and note both the value and that it was given at all,
+ * a rule saying nothing about a field leaving it alone.
  *
  * @param apply_json The rule's @c apply object
  * @param rule       Rule to fill in
@@ -173,11 +173,41 @@ static void s_rules_load_apply(cJSON *apply_json,
         rule->apply.is_decorated = cJSON_IsTrue(item);
     }
 
-    /* Either a single value applying to both states, or an
-     * object naming one, the other, or both separately; each
-     * half stays independently unset (falling back to the
-     * theme's 'window.active.opacity'/'window.inactive.
-     * opacity' at apply time) if that half is not given here */
+    item = json_get_item(apply_json, "iconified");
+    if (cJSON_IsBool(item)) {
+        rule->apply.has_iconified = true;
+        rule->apply.is_iconified = cJSON_IsTrue(item);
+    }
+
+    item = json_get_item(apply_json, "fullscreen");
+    if (cJSON_IsBool(item)) {
+        rule->apply.has_fullscreen = true;
+        rule->apply.is_fullscreen = cJSON_IsTrue(item);
+    }
+
+    item = json_get_item(apply_json, "maximized");
+    if (cJSON_IsBool(item)) {
+        rule->apply.has_maximized = true;
+        rule->apply.is_maximized = cJSON_IsTrue(item);
+    }
+
+    item = json_get_item(apply_json, "shaded");
+    if (cJSON_IsBool(item)) {
+        rule->apply.has_shaded = true;
+        rule->apply.is_shaded = cJSON_IsTrue(item);
+    }
+
+    item = json_get_item(apply_json, "hidden");
+    if (cJSON_IsBool(item)) {
+        rule->apply.has_hidden = true;
+        rule->apply.is_hidden = cJSON_IsTrue(item);
+    }
+
+    /* Either a single value applying to both states, or an object
+     * naming one, the other, or both separately; each half stays
+     * independently unset (falling back to the theme's
+     * 'window.active.opacity'/'window.inactive.  opacity' at apply
+     * time) if that half is not given here */
     item = json_get_item(apply_json, "opacity");
     if (cJSON_IsNumber(item)) {
         rule->apply.has_opacity_active = true;

@@ -129,6 +129,41 @@ Whether it takes focus on appearing.
 Whether it shows on every desktop.
 .It Ic apply.decorated Pq boolean
 Whether it gets a frame and titlebar.
+.Pp
+The five fields below track independent bits of the window's own
+state, and a rule may hold them in any combination, except where
+noted otherwise.
+.It Ic apply.iconified Pq boolean
+Whether it is iconified, turned into an actual icon on the desktop
+rather than disappearing into a taskbar entry, the way pressing
+.Ic iconify
+already does by hand; see
+.Xr icowm-bindings 5 .
+Overrides the window's own
+.Ql WM_HINTS
+initial-state request for the same.
+.It Ic apply.fullscreen Pq boolean
+Whether it is fullscreen.
+Overrides the window's own EWMH initial-state hint for the same.
+Takes precedence over
+.Ic apply.maximized
+when a rule asks for both together, the same precedence entering
+fullscreen by hand already has over a maximized window.
+.It Ic apply.maximized Pq boolean
+Whether it is maximized, both horizontally and vertically together;
+there is no field here for maximizing only one of the two axes.
+Overrides the window's own EWMH initial-state hint for the same.
+.It Ic apply.shaded Pq boolean
+Whether it is shaded, rolled up to just its titlebar.
+Three conditions leave this a no-op instead, each logged as a
+warning rather than failing silently, checked in this order: the
+window is not decorated, the same rule also asks for
+.Ic apply.fullscreen ,
+or the same rule also asks for
+.Ic apply.iconified .
+.It Ic apply.hidden Pq boolean
+Whether it is hidden: withdrawn from the desktop and any pager or
+taskbar alike, without being iconified.
 .It Ic apply.opacity Pq integer or object
 Desired opacity, 0 to 100, overriding the theme's own for this one
 window.
@@ -226,7 +261,7 @@ player pinned and undecorated wherever it goes:
     "rules": [
         {
             "when": "map",
-            "match": { "class": "XTerm" },
+            "match": { "instance": "xterm" },
             "apply": { "desktop": 1, "focus": true }
         },
         {
@@ -256,8 +291,8 @@ away:
 }
 .Ed
 .Pp
-Give a calculator a fixed size and center it on the second monitor,
-which is where the size being resolved first matters:
+Give a calculator a fixed size and fixed position it on the second
+monitor:
 .Bd -literal -offset indent
 {
     "rules": [
@@ -265,9 +300,29 @@ which is where the size being resolved first matters:
             "match": { "class": "Xcalc" },
             "apply": {
                 "monitor": 1,
-                "position": "center",
+                "position": { "x": 100, "y": 50 },
                 "size": { "width": 400, "height": 500 }
             }
+        }
+    ]
+}
+.Ed
+.Pp
+Start a chat client iconified so it does not demand attention the
+moment it opens, although centered when not iconized, and pinned
+to every desktop; and open movie players already fullscreen:
+.Bd -literal -offset indent
+{
+    "rules": [
+        {
+            "match": { "class": "Pidgin" },
+            "apply": { "iconified": true,
+                       "pinned": true,
+                       "position": "center" }
+        },
+        {
+            "match": { "title": [ "*mpv", "*mplayer", " VLC media player" ] },
+            "apply": { "fullscreen": true }
         }
     ]
 }

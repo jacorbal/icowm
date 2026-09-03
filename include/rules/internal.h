@@ -34,7 +34,9 @@
 #include <rules.h>
 
 
-/** Maximum number of rule entries stored in a single rules table */
+/**
+ * @brief Maximum number of rule entries stored in a single rules table
+ */
 #define RULES_MAX (256u)
 
 /**
@@ -50,6 +52,7 @@
  */
 #define RULES_MATCH_MAX_VALUES (6u)
 
+
 /**
  * @brief Timing constraint controlling when a rule is evaluated
  */
@@ -63,7 +66,7 @@ enum rules_when_e {
  * @brief Criteria used to match a client against one rule entry
  *
  * Each @p has_* criterion, when present, may hold one or more
- * alternative values (see @c RULES_MATCH_MAX_VALUES): the client
+ * alternative values (see @c RULES_MATCH_MAX_VALUES).  The client
  * matches that criterion if it matches any one of them.  A client must
  * match every criterion that is present to match the rule as a whole.
  */
@@ -96,16 +99,16 @@ struct rules_match_s {
  * @p has_position, @p has_sticky, and so on say whether the rule
  * specifies a value for that action at all; the paired field itself
  * (@p is_focused, @p is_position_centered, @p is_pinned, and so on) is
- * the value to apply, meaningful only when its @p has_* flag is
- * @c true.  A rule that omits a field entirely leaves the client
- * unchanged for that one action.
+ * the value to apply, meaningful only when its @p has_* flag is @c
+ * true.  A rule that omits a field entirely leaves the client unchanged
+ * for that one action.
  */
 struct rules_apply_s {
     /**
      * @brief Index into the client's surface's monitor list
      *
-     * Named @p monitor, not @p screen': this project's @p screen_id
-     * / @p (screens[]) terminology refers to a whole X screen, and this
+     * Named @p monitor, not @p screen': this project's @p screen_id /
+     * @p (screens[]) terminology refers to a whole X screen, and this
      * codebase has no notion of moving a client between X screens at
      * all, desktop reassignment above included, so a rule field with
      * that name would misleadingly suggest a capability that does not
@@ -135,28 +138,45 @@ struct rules_apply_s {
     uint8_t opacity_inactive;
 
     bool has_desktop;
-    bool has_monitor;       /**< Target monitor within the client's
-                                 own surface; see 'monitor' below */
+    bool has_monitor;           /**< Target monitor within the client's
+                                     own surface; see 'monitor' below */
     bool has_layer;
     bool has_focus;
-    /** @c x and @c y, or @c is_position_centered, set independently
-     *  of @c size */
-    bool has_position;
-    bool is_position_centered; /**< @c ("position": "center") was given
-                                    instead of an @c ({x,y}) object:
-                                    center the client on its screen at
-                                    apply time instead of using @p x and
-                                    @p y */
-    bool has_size;          /**< @p width & @p height independent of
-                                 position */
+    bool has_position;          /**< @c x and @c y, or
+                                     @c is_position_centered, set
+                                     independently of @c size */
+    bool is_position_centered;  /**< @c ("position": "center") was given
+                                     instead of an @c ({x,y}) object;
+                                     center the client on its screen at
+                                     apply time instead of using
+                                     @p x and @p y */
+    bool has_size;              /**< @p width & @p height independent of
+                                     position */
     bool has_sticky;
     bool has_decoration;
     bool has_opacity_active;
     bool has_opacity_inactive;
 
+    /* The client state model these five mirror
+     * ('include/client/state.h') holds each as an independent bit,
+     * a client free to combine any of them, rather than one mutually
+     * exclusive value; kept here as five separate 'has_*'/value pairs
+     * for the same reason, instead of a single enum the way 'layer'
+     * above is one. */
+    bool has_iconified;
+    bool has_fullscreen;
+    bool has_maximized;
+    bool has_shaded;
+    bool has_hidden;
+
     bool is_focused;
     bool is_pinned;
     bool is_decorated;
+    bool is_iconified;
+    bool is_fullscreen;
+    bool is_maximized;
+    bool is_shaded;
+    bool is_hidden;
 };
 
 /**

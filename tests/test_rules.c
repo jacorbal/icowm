@@ -111,6 +111,11 @@ static void s_test_load_full_rule(void)
         "    \"focus\": true,"
         "    \"pinned\": true,"
         "    \"decorated\": false,"
+        "    \"iconified\": true,"
+        "    \"fullscreen\": false,"
+        "    \"maximized\": true,"
+        "    \"shaded\": false,"
+        "    \"hidden\": true,"
         "    \"opacity\": 80,"
         "    \"position\": {\"x\": 10, \"y\": 20},"
         "    \"size\": {\"width\": 640, \"height\": 480}"
@@ -142,6 +147,16 @@ static void s_test_load_full_rule(void)
             "apply.sticky is parsed as true");
     TAP_OK(rule->apply.has_decoration && !rule->apply.is_decorated,
             "apply.decoration is parsed as false");
+    TAP_OK(rule->apply.has_iconified && rule->apply.is_iconified,
+            "apply.iconified is parsed as true");
+    TAP_OK(rule->apply.has_fullscreen && !rule->apply.is_fullscreen,
+            "apply.fullscreen is parsed as false");
+    TAP_OK(rule->apply.has_maximized && rule->apply.is_maximized,
+            "apply.maximized is parsed as true");
+    TAP_OK(rule->apply.has_shaded && !rule->apply.is_shaded,
+            "apply.shaded is parsed as false");
+    TAP_OK(rule->apply.has_hidden && rule->apply.is_hidden,
+            "apply.hidden is parsed as true");
     TAP_OK(rule->apply.has_opacity_active &&
             rule->apply.opacity_active == 80u,
             "a single opacity number sets opacity_active");
@@ -287,7 +302,7 @@ static void s_test_load_multiple_rules(void)
 
 int main(void)
 {
-    TAP_PLAN(31);
+    TAP_PLAN(36);
 
     s_test_init_and_destroy();
     s_test_load_null_table();
