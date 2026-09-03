@@ -207,10 +207,21 @@ EWMH Compliance
 
 - [`+`] `_NET_FRAME_EXTENTS` (1.3)
 - [`-`] `_NET_WM_OPAQUE_REGION` (1.5)
-- [`-`] `_NET_WM_BYPASS_COMPOSITOR` (1.5)
 
-    IcoWM has no built-in compositor and does not run one; neither hint
-    applies.
+    IcoWM never draws an ARGB, alpha-channel window of its own; every
+    window it creates uses the parent visual's opaque depth, which a
+    compositor already treats as fully opaque with no hint needed, so
+    there is no per-window region left to describe.
+
+- [`/`] `_NET_WM_BYPASS_COMPOSITOR` (1.5)
+
+    Set only on the 4 outline strip windows `render/outline.c` creates
+    (`s_render_outline_place`), a rapidly-repainted drag indicator where
+    compositing would add a visible lag.  Left off every other
+    icowm-owned window (menus, dialogs, tooltips, notifications, the
+    systray dock): each already carries its own `_NET_WM_WINDOW_TYPE`,
+    which lets the user's own compositor configuration decide how to
+    treat it; forcing a bypass there would take that choice away.
 
 ### Window Manager Protocols
 
@@ -353,12 +364,17 @@ was individually confirmed by reading its handling code.
     way (this matters only on 8-bit PseudoColor-class displays,
     essentially extinct).
 
-- [`-`] `WM_CLIENT_MACHINE` (2.0)
+- [`/`] `WM_CLIENT_MACHINE` (2.0)
 
-    Not read anywhere; nothing in IcoWM's feature set currently needs it
-    (this identifies the host a client is running on, of use mainly to
-    a session manager or remote-process indicator, neither of which
-    IcoWM implements).
+    Read in `src/client.c` (client_init, alongside `_NET_WM_PID`) and
+    compared against this host's own name so a `_NET_WM_PID` naming
+    another host's process table is never trusted; when the two
+    disagree, or a client sets no `WM_CLIENT_MACHINE` at all,
+    `src/cmds/client/focus.c`'s kill-escalation guard skips registering
+    that PID for `SIGKILL`, relying on `xcb_kill_client` alone, which is
+    location-agnostic by nature.  Not read for any other purpose (a
+    session manager or remote-process indicator, neither of which IcoWM
+    implements).
 
 ### Window Manager Withdrawal (ICCCM 4.1.4)
 
