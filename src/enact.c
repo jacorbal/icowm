@@ -38,6 +38,13 @@ int enact_wm_exit(void)
 }
 
 
+/* Request that the window manager stop and restart itself in place */
+int enact_wm_restart(void)
+{
+    return wm_request_restart();
+}
+
+
 /* Reload the window manager's configuration */
 int enact_wm_configuration_reload(const wm_td *wm)
 {

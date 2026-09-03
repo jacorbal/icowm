@@ -36,6 +36,18 @@ cJSON *ipc_action_exit_wm(const wm_td *wm, const cJSON *args)
 }
 
 
+cJSON *ipc_action_restart_wm(const wm_td *wm, const cJSON *args)
+{
+    (void) wm;
+    (void) args;
+
+    if (enact_wm_restart() != 0) {
+        return ipc_response_error("failed to request a restart");
+    }
+    return ipc_response_ok();
+}
+
+
 cJSON *ipc_action_reload_config(const wm_td *wm, const cJSON *args)
 {
     (void) args;

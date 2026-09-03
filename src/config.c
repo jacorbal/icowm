@@ -5,7 +5,7 @@
  *        implementation
  */
 /*
- *  MUSINGS AND ADMONITIONS UNTO MINE OWN REFLECTIVE INNER SELF, WHICH
+ * JOTTINGS AND ADMONITIONS UNTO MINE OWN REFLECTIVE INNER SELF, WHICH
  *                           DWELLETH WITHIN
  *
  * Regarding mine own forthcoming self (Sat Mar 22 05:01 CET 2025):

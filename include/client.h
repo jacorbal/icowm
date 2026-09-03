@@ -164,6 +164,12 @@ struct client_s {
 
     struct {
         pid_t pid;                  /**< PID being executed */
+        /** Whether @c pid names a process on this same host, per
+         *  @c WM_CLIENT_MACHINE; @c false both for a client naming
+         *  another host and for one setting no such property, since
+         *  either way this local @c pid cannot be trusted to be a
+         *  live process this host itself is running */
+        bool pid_is_local;
         char *command;              /**< Command being executed */
     } process;                      /**< Process information */
 

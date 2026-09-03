@@ -132,6 +132,7 @@ static const char *const s_known_commands[] = {
     "rename_client",
     "rerole_client",
     "resize_client",
+    "restart_wm",
     "send_client_to_back",
     "send_client_to_desktop",
     "send_client_to_front",

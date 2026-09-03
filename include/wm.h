@@ -450,6 +450,46 @@ int wm_request_stop(void);
 void wm_request_graceful_stop(void);
 
 /**
+ * @brief Request that the window manager stop and restart itself in
+ *        place
+ *
+ * Sets the running flag to @c false exactly like @a wm_request_stop,
+ * asking nothing of any managed client, since every one of them is
+ * meant to survive this: @a wm_stop's own teardown already hands each
+ * one back to bare X rather than closing it (@a wm_all_clients_unmanage,
+ * @c wm/clients.c), and it is @c main itself that, once that teardown
+ * finishes, re-executes this very binary instead of letting the
+ * process end.  The freshly re-exec'd instance's own startup scan
+ * (@a cctl_adopt_scan, @c cctl/adopt.h) then picks every one of those
+ * clients back up on its own, the same way it would any window left
+ * open by a crashed prior instance.
+ *
+ * @return Status of the operation
+ * @retval  0 Success
+ * @retval  1 If the window manager singleton is not initialized
+ *
+ * @see @a wm_restart_requested, consulted by @c main.c once
+ *      @a wm_stop returns, to tell a restart apart from an ordinary
+ *      exit
+ */
+int wm_request_restart(void);
+
+/**
+ * @brief Whether the most recent stop was a restart request rather
+ *        than an ordinary exit
+ *
+ * @return @c true if @a wm_request_restart, not @a wm_request_stop or
+ *         @a wm_request_graceful_stop, was the one that ended the main
+ *         loop
+ *
+ * @note Safe to call after @a wm_stop has already destroyed the
+ *       window manager singleton; the flag it reports lives on its
+ *       own, independent of it
+ * @note Complexity: @e O(1)
+ */
+bool wm_restart_requested(void);
+
+/**
  * @brief Reload the configuration from the configuration files
  *
  * @param wm Window manager instance

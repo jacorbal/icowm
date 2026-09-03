@@ -806,6 +806,10 @@ int wm_stop(void)
 }
 
 
+/** Whether the last stop requested was a restart rather than an exit */
+static bool s_restart_requested = false;
+
+
 /* Request a graceful stop of the main window manager loop */
 int wm_request_stop(void)
 {
@@ -815,6 +819,27 @@ int wm_request_stop(void)
 
     wm->is_running = false;
     return 0;
+}
+
+
+/* Request that the window manager stop and restart itself in place */
+int wm_request_restart(void)
+{
+    if (wm == NULL) {
+        return 1;
+    }
+
+    s_restart_requested = true;
+    wm->is_running = false;
+    return 0;
+}
+
+
+/* Whether the most recent stop was a restart request rather than an
+ * ordinary exit */
+bool wm_restart_requested(void)
+{
+    return s_restart_requested;
 }
 
 

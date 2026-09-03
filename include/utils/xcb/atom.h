@@ -110,4 +110,19 @@ void atom_set_window_opacity(xcb_connection_t *connection,
         xcb_window_t window, uint32_t raw);
 
 
+/**
+ * @brief Publish @c _NET_WM_BYPASS_COMPOSITOR on a window, requesting
+ *        that a compositing manager render it uncomposited
+ *
+ * @param connection XCB connection
+ * @param window     Window to publish the property on
+ *
+ * @note A no-op if @p connection is @c NULL or @p window is
+ *       @c XCB_WINDOW_NONE
+ * @note Complexity: @e O(1)
+ */
+void atom_set_window_bypass_compositor(xcb_connection_t *connection,
+        xcb_window_t window);
+
+
 #endif  /* ! UTILS_XCB_ATOM_H */

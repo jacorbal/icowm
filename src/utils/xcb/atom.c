@@ -242,3 +242,24 @@ void atom_set_window_opacity(xcb_connection_t *connection,
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window,
             opacity_atom, XCB_ATOM_CARDINAL, 32, 1, &raw);
 }
+
+
+/* Publish '_NET_WM_BYPASS_COMPOSITOR' on a window */
+void atom_set_window_bypass_compositor(xcb_connection_t *connection,
+        xcb_window_t window)
+{
+    xcb_atom_t bypass_atom;
+    /* 1 = 'Disable compositing of this window', per the EWMH spec;
+     * the only value this window manager itself ever has reason to
+     * publish */
+    uint32_t bypass = 1u;
+
+    if (connection == NULL || window == XCB_WINDOW_NONE) {
+        return;
+    }
+
+    bypass_atom = atom_intern(connection,
+            "_NET_WM_BYPASS_COMPOSITOR", false);
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window,
+            bypass_atom, XCB_ATOM_CARDINAL, 32, 1, &bypass);
+}

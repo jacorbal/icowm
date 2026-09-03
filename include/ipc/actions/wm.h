@@ -29,6 +29,10 @@
 /** @c exit_wm: request that IcoWM stop and exit; no arguments */
 cJSON *ipc_action_exit_wm(const wm_td *wm, const cJSON *args);
 
+/** @c restart_wm: request that IcoWM stop and restart itself in
+ *  place, keeping every managed client open; no arguments */
+cJSON *ipc_action_restart_wm(const wm_td *wm, const cJSON *args);
+
 /** @c reload_config: reload every configuration file, the same as
  *  sending IcoWM @c SIGHUP; no arguments */
 cJSON *ipc_action_reload_config(const wm_td *wm, const cJSON *args);

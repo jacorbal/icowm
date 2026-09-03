@@ -21,7 +21,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>     /* NULL, free, calloc */
-#include <string.h>     /* memcpy, memset, snprintf */
+#include <string.h>     /* memcpy, memset, snprintf, strncmp */
+#include <unistd.h>     /* gethostname */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -204,6 +205,8 @@ struct s_client_cookies_init_s {
     xcb_get_property_cookie_t motif_hints;   /**< @c _MOTIF_WM_HINTS */
     xcb_get_property_cookie_t wm_state;      /**< @c _NET_WM_STATE */
     xcb_get_property_cookie_t wm_pid;        /**< @c _NET_WM_PID */
+    /** @c WM_CLIENT_MACHINE */
+    xcb_get_property_cookie_t client_machine;
     /** @c _NET_WM_USER_TIME_WINDOW */
     xcb_get_property_cookie_t user_time_window;
 };
@@ -1063,6 +1066,41 @@ void client_subscribe_colormap_windows(
 }
 
 
+/**
+ * @brief This host's own hostname, as set in @c WM_CLIENT_MACHINE by
+ *        a well-behaved local client
+ *
+ * Read once and cached for the life of the process: a host's own
+ * name does not change while it is running, so every later client
+ * adopted reuses this same answer instead of each paying for its own
+ * @c gethostname(2) call.
+ *
+ * @return This host's hostname, or an empty string if @c gethostname
+ *         itself failed, in which case no client will ever be found
+ *         to match it
+ *
+ * @note Complexity: @e O(1) amortized; the underlying system call
+ *       runs at most once
+ */
+static const char *s_local_hostname(void)
+{
+    static char name[HOST_NAME_MAX + 1] = "";
+    static bool is_read = false;
+
+    if (!is_read) {
+        if (gethostname(name, sizeof(name)) != 0) {
+            name[0] = '\0';
+        }
+        /* POSIX leaves the string unterminated if it was truncated
+         * to fit; the buffer is one byte larger than advertised
+         * precisely to give this an always-safe place to land */
+        name[HOST_NAME_MAX] = '\0';
+        is_read = true;
+    }
+    return name;
+}
+
+
 /* Initialize a new client, adopting an existing X window under
  * window manager control */
 client_td *client_init(xcb_connection_t *connection,
@@ -1077,6 +1115,7 @@ client_td *client_init(xcb_connection_t *connection,
     char wm_instance[256];
     char net_wm_name[256];
     uint32_t ewmh_pid;
+    xcb_icccm_get_text_property_reply_t machine_prop;
     uint32_t utime;
     xcb_window_t user_time_window;
     struct s_client_cookies_init_s ck;
@@ -1140,6 +1179,8 @@ client_td *client_init(xcb_connection_t *connection,
             motif_hints_atom, motif_hints_atom, 0, 5);
     ck.wm_state = xcb_ewmh_get_wm_state(ewmh, window);
     ck.wm_pid = xcb_ewmh_get_wm_pid(ewmh, window);
+    ck.client_machine = xcb_icccm_get_wm_client_machine(connection,
+            window);
     ck.user_time_window = xcb_ewmh_get_wm_user_time_window(ewmh,
             window);
 
@@ -1247,6 +1288,22 @@ client_td *client_init(xcb_connection_t *connection,
     if (xcb_ewmh_get_wm_pid_reply(ewmh, ck.wm_pid,
                 &ewmh_pid, NULL)) {
         client->process.pid = (int) ewmh_pid;
+    }
+
+    /* Read 'WM_CLIENT_MACHINE': a bare '_NET_WM_PID' names a process
+     * table this window manager shares only when the two agree on
+     * which host that table belongs to.  A client silent on the
+     * matter, same as one naming some other host, leaves
+     * 'pid_is_local' at its 'false' default, since a PID is never
+     * safe to act on without that confirmation. */
+    if (xcb_icccm_get_wm_client_machine_reply(connection,
+                ck.client_machine, &machine_prop, NULL)) {
+        const char *local_name = s_local_hostname();
+        size_t local_len = strlen(local_name);
+        client->process.pid_is_local = (local_len > 0u) &&
+            (machine_prop.name_len == local_len) &&
+            (strncmp(machine_prop.name, local_name, local_len) == 0);
+        xcb_icccm_get_text_property_reply_wipe(&machine_prop);
     }
 
     /* Read '_NET_WM_USER_TIME': used for initial focus policy.

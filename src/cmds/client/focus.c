@@ -444,8 +444,18 @@ void ccmd_client_kill(client_td *client)
      * running regardless; 'cctl_kill_register' watches for exactly
      * that and sends a real 'SIGKILL' if it is still alive once its
      * own bounded window elapses.  See cctl/kill.h's comment
-     * for the full reasoning. */
-    cctl_kill_register(client->process.pid);
+     * for the full reasoning.
+     *
+     * Skipped for a client whose 'WM_CLIENT_MACHINE' names another
+     * host, or names none at all: its 'process.pid' is meaningful
+     * only on the host that set it, and this window manager has no
+     * business sending a real signal to whatever local process
+     * happens to reuse that same number.  'xcb_kill_client' above,
+     * being a request the X server itself routes to the right place,
+     * is already the whole answer for a remote client. */
+    if (client->process.pid_is_local) {
+        cctl_kill_register(client->process.pid);
+    }
 }
 
 

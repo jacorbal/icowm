@@ -36,12 +36,14 @@
 
 
 /* System includes */
+#include <errno.h>      /* errno */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>      /* FILE, fprintf */
 #include <stdlib.h>     /* NULL, atoi, atol, getenv, srand */
+#include <string.h>     /* strerror */
 #include <time.h>       /* time */
-#include <unistd.h>     /* optarg, getopt, getpid */
+#include <unistd.h>     /* execvp, optarg, getopt, getpid */
 
 /* Utils includes */
 #include <utils/safe/safemem.h>
@@ -525,6 +527,24 @@ int main(int argc, char *const argv[])
 
     /* Deallocate last things... */
     s_deallocate_buffers(&log_filename, &display_name, &config_dir);
+
+    /* A restart asked for through IPC ('restart_wm') is not really an
+     * exit: every managed client was already handed back to bare X
+     * moments ago, by 'wm_stop' itself, still open, so re-executing
+     * this very binary lets the fresh instance's own startup scan
+     * pick every one of them right back up.  'argv' is passed through
+     * exactly as received: 'getopt' only ever reorders it, never
+     * frees or rewrites any of the strings it points to, so it is
+     * still exactly what this process itself was started with. */
+    if (wm_restart_requested()) {
+        execvp(argv[0], argv);
+
+        /* Only reached if 'execvp' itself failed, since it never
+         * returns on success */
+        fprintf(stderr, "%s: failed to restart: %s\n",
+                PROJECT_NAME_SHORT, strerror(errno));
+        return 1;
+    }
 
     /* Depart: be polite, say goodbye */
     s_show_farewell(stdout);

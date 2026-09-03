@@ -854,6 +854,16 @@ void enact_surface_toggle_strutless_maximize(surface_td *surface);
 int enact_wm_exit(void);
 
 /**
+ * @brief Request that the window manager stop and restart itself in
+ *        place, keeping every managed client open
+ *
+ * @return @c 0 on success, non-zero otherwise
+ *
+ * @note Complexity: @e O(1)
+ */
+int enact_wm_restart(void);
+
+/**
  * @brief Reload the window manager's configuration
  *
  * @param wm Window manager instance

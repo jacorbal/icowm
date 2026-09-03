@@ -177,6 +177,7 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
 
     /* Whole window manager: ipc/actions/wm.h */
     { "exit_wm",                  ipc_action_exit_wm },
+    { "restart_wm",               ipc_action_restart_wm },
     { "reload_config",            ipc_action_reload_config },
     { "toggle_scratchpad",        ipc_action_toggle_scratchpad },
 };
