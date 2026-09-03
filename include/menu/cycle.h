@@ -109,6 +109,25 @@ void cycle_draw(xcb_connection_t *connection, const config_td *cfg);
 void cycle_force_full_repaint(void);
 
 /**
+ * @brief Notice that a client is about to be destroyed
+ *
+ * Closes the cycle menu outright when @p client is one of the entries
+ * it is currently listing.  @c g_cycle_menu keeps its own array of raw
+ * @c client_td pointers, separate from the focus and stacking orders
+ * @a client_destroy already scrubs, so leaving it untouched here would
+ * leave a dangling pointer for the very next navigation, redraw, or
+ * confirmation of the still-open menu to dereference.
+ *
+ * @param client Client about to be destroyed
+ *
+ * @note A no-op when the menu is closed, or when @p client is not one
+ *       of its entries
+ * @note Complexity: @e O(n), where @e n is the number of clients
+ *       currently listed in the cycle menu
+ */
+void cycle_notice_client_destroyed(const client_td *client);
+
+/**
  * @brief Confirm the currently selected cycle menu entry
  *
  * For icon menus, restores the selected iconified client.  For window

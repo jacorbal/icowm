@@ -12,7 +12,9 @@
  */
 
 /* System includes */
+#include <stdbool.h>
 #include <stddef.h>     /* NULL */
+#include <stdlib.h>     /* free */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -70,6 +72,41 @@ void handler_leave_notify(const wm_td *wm,
             desktop != NULL && desktop->client_active_id != 0) {
         client_td *const active = lookup_find_client(wm_surfaces(wm),
                 desktop->client_active_id, NULL, NULL);
+
+        /* A 'NONLINEAR' crossing raised by one of the active client's
+         * own sub-windows (its content and titlebar are siblings
+         * under the frame, so moving between them is never
+         * 'INFERIOR') is not the pointer actually leaving that
+         * client, only passing through their shared parent; unfocusing
+         * here would just be undone by 'mouse_handle_enter' focusing
+         * the same client back a moment later, with nothing in
+         * between but a redundant repaint.  'event->child' names
+         * nothing useful for a 'NONLINEAR' leave (ICCCM has no window
+         * to put there), so only a fresh 'QueryPointer' on the root
+         * reveals whether the destination frame still belongs to
+         * 'active'. */
+        if (event->detail == XCB_NOTIFY_DETAIL_NONLINEAR &&
+                active != NULL && surface != NULL &&
+                surface->screen != NULL) {
+            xcb_query_pointer_reply_t *const pointer_reply =
+                xcb_query_pointer_reply(wm_connection(wm),
+                        xcb_query_pointer(wm_connection(wm),
+                                surface->screen->root), NULL);
+
+            if (pointer_reply != NULL) {
+                client_td *const entered =
+                    (pointer_reply->child != XCB_WINDOW_NONE)
+                        ? lookup_find_client(wm_surfaces(wm),
+                                pointer_reply->child, NULL, NULL)
+                        : NULL;
+                const bool is_sibling_crossing = (entered == active);
+
+                free(pointer_reply);
+                if (is_sibling_crossing) {
+                    return;
+                }
+            }
+        }
 
         /* Pointer left a managed window; release focus the same way
          * clicking the empty desktop background does (see

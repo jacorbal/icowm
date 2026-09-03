@@ -184,7 +184,7 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
     }
 
     for (int i = 0; i < g_cycle_menu.count; ++i) {
-        const client_td *client = g_cycle_menu.clients[i];
+        client_td *client = g_cycle_menu.clients[i];
         if (client == NULL) {
             continue;
         }
@@ -192,6 +192,18 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
         target =
             mi_cycle_preview_target(client, g_cycle_menu.is_icon_menu);
         if (target == XCB_WINDOW_NONE) {
+            /* A non-icon-menu client with no target here became
+             * hidden while carrying the raw preview border/frame
+             * colors 'mi_cycle_preview_apply' wrote directly over
+             * XCB, bypassing the render pass entirely.  The menu is
+             * about to close and nothing else will ever revisit this
+             * same client to correct it, so mark it outdated instead:
+             * the next time it renders, whenever it is shown again,
+             * its decoration is recomputed from scratch rather than
+             * keeping the stale color indefinitely. */
+            if (!g_cycle_menu.is_icon_menu) {
+                client->is_outdated = true;
+            }
             continue;
         }
 
@@ -614,6 +626,24 @@ void cycle_destroy(xcb_connection_t *connection)
      * else this turn settles, once */
     if (surface != NULL) {
         surface->is_outdated = true;
+    }
+}
+
+
+/* Notice that a client is about to be destroyed */
+void cycle_notice_client_destroyed(const client_td *client)
+{
+    int i;
+
+    if (client == NULL || !cycle_is_open()) {
+        return;
+    }
+
+    for (i = 0; i < g_cycle_menu.count; ++i) {
+        if (g_cycle_menu.clients[i] == client) {
+            cycle_destroy(xcb_connection_get());
+            return;
+        }
     }
 }
 

@@ -58,6 +58,7 @@
 #include <render/wmicon.h>
 #include <policy/focus.h>
 #include <policy/stacking.h>
+#include <menu/cycle.h>
 #include <scratchpad.h>
 #include <wm.h>
 
@@ -937,6 +938,7 @@ void client_destroy(client_td *client)
      * for whoever encounters it next. */
     client_unlink_transient(client);
 
+    cycle_notice_client_destroyed(client);
     scratchpad_notice_client_destroyed(client);
 
     LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",
