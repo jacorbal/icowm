@@ -350,6 +350,33 @@ void systray_protocol_property_changed(xcb_window_t window,
 }
 
 
+/* React to a docked icon window requesting to map itself */
+bool systray_protocol_map_request(xcb_window_t window)
+{
+    uint16_t i;
+
+    if (window == XCB_WINDOW_NONE) {
+        return false;
+    }
+
+    for (i = 0u; i < s_tray.icon_count; ++i) {
+        if (s_tray.icons[i].window == window) {
+            break;
+        }
+    }
+    if (i >= s_tray.icon_count) {
+        return false;
+    }
+
+    if (s_systray_icon_wants_mapped(window)) {
+        xcb_window_show(window);
+    } else {
+        xcb_window_hide(window);
+    }
+    return true;
+}
+
+
 /* Re-apply the theme's background color, border color, and border width
  * to the already-existing tray window */
 void systray_protocol_apply_theme_style(void)

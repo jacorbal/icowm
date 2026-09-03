@@ -330,6 +330,23 @@ void systray_protocol_property_changed(xcb_window_t window,
         xcb_atom_t atom);
 
 /**
+ * @brief React to a docked icon window requesting to map itself
+ *
+ * A no-op unless @p window is a currently docked icon, in which case
+ * the request is granted or refused to match its @c XEMBED_MAPPED
+ * flag bit, exactly as @a systray_protocol_property_changed already
+ * does for a later @c _XEMBED_INFO change; a nonconforming icon that
+ * calls @c XMapWindow on itself directly, instead of waiting on the
+ * embedder as @c XEMBED intends, gets the same answer either way.
+ *
+ * @param window Window that requested to map itself
+ *
+ * @return @c true if @p window was a docked icon (the request was
+ *         just granted or refused), @c false otherwise
+ */
+bool systray_protocol_map_request(xcb_window_t window);
+
+/**
  * @brief Re-apply the theme's background color, border color, and
  *        border width to the already-existing tray window
  *

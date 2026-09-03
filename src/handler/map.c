@@ -349,6 +349,15 @@ void handler_map_request(const wm_td *wm,
         return;
     }
 
+    /* A docked systray icon is not a managed client, so it would
+     * otherwise fall through to the generic top-level adoption path
+     * below and end up managed as a brand-new decorated client
+     * instead of staying a plain docked icon; see
+     * 'systray_icon_map_request'. */
+    if (systray_icon_map_request(event->window)) {
+        return;
+    }
+
     surface = lookup_surface_for_root(surfaces, event->parent);
     if (surface == NULL && !list_is_empty(surfaces)) {
         surface = (surface_td *) list_data(list_head(surfaces));

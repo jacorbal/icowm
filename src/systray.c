@@ -328,6 +328,14 @@ bool systray_icon_size_enforce(xcb_window_t window)
 }
 
 
+/* Query whether 'window' is a currently docked icon that just
+ * requested to map itself, and if so, grant or refuse the request */
+bool systray_icon_map_request(xcb_window_t window)
+{
+    return systray_protocol_map_request(window);
+}
+
+
 /* Handle a 'ClientMessage' addressed to the tray window */
 void systray_handle_client_message(wm_td *wm,
         const xcb_client_message_event_t *event)
