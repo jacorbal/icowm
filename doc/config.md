@@ -626,7 +626,7 @@ nothing.  Restricted-memory mode (`memguard.json`) always runs with this
 | `focus.policy`             | string  | `"click"` | Focus policy. `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
 | `focus.focus-new`          | boolean | `true`    | When `true`, newly mapped windows receive focus automatically. |
 | `focus.raise`              | boolean | `false`   | When `true`, a window is also raised when it gains focus by pointer or wheel. |
-| `focus.delay-ms`           | integer | `0`       | Milliseconds the pointer must sit still over a window before it is focused. Only takes effect under `"sloppy"`; has no effect under `"click"`. |
+| `focus.delay-ms`           | integer | `250`     | Milliseconds the pointer must sit still over a window before it is focused. Only takes effect under `"sloppy"`; has no effect under `"click"`. |
 
 ```json
 "windows": {
@@ -634,7 +634,7 @@ nothing.  Restricted-memory mode (`memguard.json`) always runs with this
         "policy": "click",
         "focus-new": true,
         "raise": false,
-        "delay-ms": 0
+        "delay-ms": 250
     }
 }
 ```
@@ -2453,7 +2453,7 @@ to whatever theme loads, unconditionally.
             "policy": "click",
             "focus-new": true,
             "raise": false,
-            "delay-ms": 0
+            "delay-ms": 250
         },
         "placement": {
             "policy": "smart",
