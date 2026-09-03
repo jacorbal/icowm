@@ -112,6 +112,19 @@ EWMH Compliance
     input focus follows a newly mapped window the same way most other
     window managers reserve it for.
 
+    IcoWM also sets this property on its own windows, not only reads it
+    off a client's: `menu/context/ctxmenu.c` and `menu/cycle.c` mark
+    themselves ` _MENU`; the three dialogs under `menu/dialog/` and
+    `menu/search.c` mark themselves ` _DIALOG`; `menu/popup.c` and
+    `input/mouse/drag/overlay.c` mark themselves ` _TOOLTIP`;
+    `menu/notify.c` marks itself ` _NOTIFICATION`; and
+    `systray/protocol.c`'s tray bar marks itself ` _DOCK`, which closes
+    the gap between that type's long-standing presence in
+    `_NET_SUPPORTED` and no window of IcoWM's own ever having carried
+    it.  `render/outline.c`'s drag outline and `xsettings.c`'s
+    selection-owner window carry no type, deliberately: the former has
+    no EWMH semantic to claim, and the latter is never mapped.
+
 - [`+`] `_NET_WM_STATE` (1.3)
 
     ` _MODAL`, ` _STICKY`, ` _MAXIMIZED_VERT`, ` _MAXIMIZED_HORZ`,
