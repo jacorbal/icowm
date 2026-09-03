@@ -267,14 +267,14 @@ static void s_handle_resize_key(xcb_keysym_t keysym,
         }
 
         /* A client maximized on just one axis has nothing free to
-         * resize along the other: refuse picking an edge on the
-         * locked axis outright, resetting back to no active edge
-         * rather than leaving it set to one that will never actually
-         * move anything, so a later press on the still-free axis is
-         * free to start over as a genuine first press of its own.
-         * The same axis-lock every other interactive resize entry
-         * point in this project already applies (mouse border drag
-         * via 'drag_start_resize_axis_locked', input/mouse/drag.c;
+         * resize along the other: refuse picking an edge on the locked
+         * axis outright, resetting back to no active edge rather than
+         * leaving it set to one that will never actually move anything,
+         * so a later press on the still-free axis is free to start over
+         * as a genuine first press of its own.  The same axis-lock
+         * every other interactive resize entry point in this project
+         * already applies (mouse border drag via
+         * 'drag_start_resize_axis_locked', input/mouse/drag.c;
          * per-keypress resize in 's_kbd_resize_axis_target',
          * input/kbd/interact.c). */
         if ((s_edge == KBD_EDGE_TOP || s_edge == KBD_EDGE_BOTTOM) &&
@@ -405,10 +405,12 @@ bool kbd_modal_handle_keypress(xcb_connection_t *connection,
         return false;
     }
 
-    move_step = (config != NULL && config->base.windows.move_step > 0u)
-        ? (int32_t) config->base.windows.move_step : 1;
-    resize_step = (config != NULL && config->base.windows.resize_step > 0u)
-        ? (int32_t) config->base.windows.resize_step : 1;
+    move_step =
+        (config != NULL && config->base.windows.move_step > 0u)
+            ? (int32_t) config->base.windows.move_step : 1;
+    resize_step =
+        (config != NULL && config->base.windows.resize_step > 0u)
+            ? (int32_t) config->base.windows.resize_step : 1;
 
     if (s_mode == KBD_MODAL_MOVING) {
         s_handle_move_key(keysym, move_step);

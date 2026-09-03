@@ -21,7 +21,7 @@ carries on without any rules when it is absent or unparseable.
 .Pp
 The file is either an array of rule objects, or an object with a
 .Ic rules
-array.
+array, holding at most 256 of them; any past that are ignored.
 Rules are evaluated in the order written, and where several match the
 same window, a later one overrides an earlier one field by field, not
 wholesale.
@@ -47,9 +47,23 @@ Absent, the rule is ignored.
 .Ss Matching
 Every field of
 .Ic match
-takes either one string or an array of them, in which case any one
-matching is enough.
+takes either one string or an array of up to six of them, in which
+case any one matching is enough; extra values past the sixth are
+ignored.
 All the fields given must match together.
+.Pp
+.Ic instance ,
+.Ic class ,
+.Ic role
+and
+.Ic title
+are shell glob patterns, the same syntax
+.Xr fnmatch 3
+accepts, so
+.Ql *
+and
+.Ql \&?
+work as wildcards and an exact string still matches only itself.
 .Bl -tag -width Ds
 .It Ic match.instance
 The first half of
@@ -94,10 +108,21 @@ window it belongs to.
 .Bl -tag -width Ds
 .It Ic apply.desktop Pq integer
 Send the window to this desktop.
+A desktop that does not exist on the window's surface falls back to
+desktop 0.
 .It Ic apply.monitor Pq integer
 Place it on this monitor.
+A monitor that does not exist on the window's surface falls back to
+monitor 0.
 .It Ic apply.layer Pq string
-Put it in this stacking layer.
+Put it in this stacking layer, one of
+.Ql normal ,
+.Ql above
+or
+.Ql below .
+Anything else logs a warning and falls back to
+.Ql normal
+rather than being ignored.
 .It Ic apply.focus Pq boolean
 Whether it takes focus on appearing.
 .It Ic apply.pinned Pq boolean
@@ -133,6 +158,13 @@ both integers, an absolute pixel position, or the string
 .Ql center ,
 which centers the window at the moment the rule runs rather than
 pinning it to a fixed point.
+An object naming only one of
+.Ic x
+and
+.Ic y
+is ignored entirely, as if
+.Ic position
+had not been given.
 .Pp
 Combining
 .Ql center
@@ -157,7 +189,11 @@ Give it this size, as an object with
 .Ic width
 and
 .Ic height ,
-both integers.
+both integers greater than zero.
+Missing either one, or giving zero or a negative number for one, is
+ignored entirely, as if
+.Ic size
+had not been given.
 The figure counts the whole decorated frame: the border and the title
 bar are inside it, not added to it, so a window asked for
 .Ql 800

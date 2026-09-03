@@ -22,10 +22,12 @@ without that option.
 For that one session it replaces
 .Pa config.json
 entirely, which is not consulted at all.
-.Pa bindings.json
+.Pa bindings.json ,
+.Pa a11y.json
 and a theme under
 .Pa themes/
-are still read exactly as usual.
+are still read exactly as usual, wanting to save memory being no
+reason to give up basic accessibility accommodations.
 The file is optional: missing or unreadable, a fixed built-in profile is
 used instead.
 .Pp

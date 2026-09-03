@@ -38,6 +38,16 @@ It also needs
 the label shown, and
 .Ic command ,
 what to run.
+An optional
+.Ic class
+sets the
+.Ev RESOURCE_NAME
+and
+.Ev RESOURCE_CLASS
+environment variables the command is run with, for toolkits that take
+a window's class from there rather than setting it themselves, so
+.Xr icowm-rules 5
+can still match the window that comes of it.
 .It Ql submenu
 A nested menu, revealed on hover or click.
 It needs

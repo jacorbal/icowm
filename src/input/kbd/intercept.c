@@ -54,15 +54,16 @@
 #include <input/kbd/modal.h>
 #include <utils/xcb/connection.h>
 
+
 /**
  * @brief Handle a key press while the window-cycle menu is open
  *
  * Navigates the cycle menu with arrow keys, confirms with Enter,
  * cancels with @c Escape, and navigates with the configured
  * cycle-next/prev bindings.  A bare modifier key-press (@c Shift,
- * @c Control, and so on, pressed on its own) is ignored outright,
- * since it carries no navigation intent by itself; any other key
- * closes the menu without activating a client.
+ * @c Control, and so on, pressed on its own) is ignored outright, since
+ * it carries no navigation intent by itself; any other key closes the
+ * menu without activating a client.
  *
  * @param keysym   Keysym of the pressed key
  * @param state    Stripped modifier state (lock modifiers removed)
@@ -123,12 +124,12 @@ static void s_handle_cycle_key(xcb_keysym_t keysym, uint16_t state,
 
     /* A bare modifier key-press (e.g., tapping Shift on its own while
      * Alt is still held, to switch cycling direction before the next
-     * cycle-next/prev key comes back down) generates its KeyPress
-     * for that modifier's keysym, which matches none of the cases
-     * above; without this, it would fall through to the catch-all
-     * below and close the menu the instant a modifier is pressed,
-     * before the user ever gets a chance to press the direction key
-     * again with the now-changed modifier state. */
+     * cycle-next/prev key comes back down) generates its KeyPress for
+     * that modifier's keysym, which matches none of the cases above;
+     * without this, it would fall through to the catch-all below and
+     * close the menu the instant a modifier is pressed, before the user
+     * ever gets a chance to press the direction key again with the
+     * now-changed modifier state. */
     if (keyboard_keysym_is_modifier(keysym)) {
         return;
     }
@@ -233,8 +234,8 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
     /* A window being placed by hand holds the keyboard for as long as
      * it is asking where it goes, so every key reaching this while one
      * does was meant for that question, whether or not it answers it.
-     * Asked first of all: the question opens on a window mapping,
-     * which can happen at any moment, including while something below
+     * Asked first of all: the question opens on a window mapping, which
+     * can happen at any moment, including while something below
      * believes it still has the keyboard to itself. */
     if (place_manual_is_active()) {
         place_manual_handle_keypress(xcb_connection_get(), keysym);
@@ -271,21 +272,21 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
         return true;
     }
 
-    /* Generic confirm dialog intercepts all keys while open, whether
-     * it is currently showing as the quit-confirmation dialog or
-     * something else built on 'menu/dialog/confirm.h' (see
-     * 's_handle_menu_confirm_dialog_key'); only one instance of it
-     * can ever be open at a time, so which wrapper opened it does not
+    /* Generic confirm dialog intercepts all keys while open, whether it
+     * is currently showing as the quit-confirmation dialog or something
+     * else built on 'menu/dialog/confirm.h' (see
+     * 's_handle_menu_confirm_dialog_key'); only one instance of it can
+     * ever be open at a time, so which wrapper opened it does not
      * matter here. */
     if (menu_confirm_dialog_is_open()) {
         s_handle_menu_confirm_dialog_key(keysym, surface, config);
         return true;
     }
 
-    /* Info dialog: Up/Down scroll by one line, PageUp/PageDown by a
-     * whole page (harmless no-ops when the message already fits
-     * without scrolling; see 'menu_message_dialog_scroll'), and
-     * Enter, Space, or Escape close it same as clicking "OK" would */
+    /* Info dialog: Up/Down scroll by one line, PageUp/PageDown by
+     * a whole page (harmless no-ops when the message already fits
+     * without scrolling; see 'menu_message_dialog_scroll'), and Enter,
+     * Space, or Escape close it same as clicking "OK" would */
     if (dialog_info_is_open()) {
         if (surface != NULL && xcb_connection_get() != NULL) {
             if (keysym == KS_UP) {
@@ -314,18 +315,18 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
                 return true;
             }
         }
+
         /* Warning and error dialogs, as
-         * 'menu_message_dialog_requires_selection' decides, cannot
-         * be reflex-dismissed: Escape
-         * does nothing at all, and Enter/Space only activate "OK"
-         * once it has actually been selected (Tab, just above, or a
-         * direct click; see 'menu_message_dialog_handle_click' in
-         * input/mouse/event/press.c, which is not gated the same
-         * way, since
-         * a deliberate click already demonstrates the same intent
-         * selecting first and then pressing Enter/Space would).
-         * Every other level keeps the previous, quicker-to-dismiss
-         * behavior, where all four keys always just close it. */
+         * 'menu_message_dialog_requires_selection' decides, cannot be
+         * reflex-dismissed: Escape does nothing at all, and Enter/Space
+         * only activate "OK" once it has actually been selected (Tab,
+         * just above, or a direct click; see
+         * 'menu_message_dialog_handle_click' in
+         * input/mouse/event/press.c, which is not gated the same way,
+         * since a deliberate click already demonstrates the same intent
+         * selecting first and then pressing Enter/Space would).  Every
+         * other level keeps the previous, quicker-to-dismiss behavior,
+         * where all four keys always just close it. */
         if (keysym == KS_RETURN || keysym == KS_KP_ENTER ||
                 keysym == KS_SPACE) {
             if (surface != NULL && xcb_connection_get() != NULL &&
@@ -343,9 +344,9 @@ bool ik_intercept_keypress(xcb_keysym_t keysym,
     }
 
     /* Message dialog (warnings, errors, info messages, the 'fortune'
-     * easter egg): dead code today, since 'dialog_info_is_open()'
-     * above already covers the exact same underlying state and always
-     * returns first; kept in the same up-to-date shape as that block
+     * easter egg): dead code today, since 'dialog_info_is_open()' above
+     * already covers the exact same underlying state and always returns
+     * first; kept in the same up-to-date shape as that block
      * regardless, rather than left to visibly rot, in case a future
      * change to the block above ever makes this one reachable again. */
     if (menu_message_dialog_is_open()) {

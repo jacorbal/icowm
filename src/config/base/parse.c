@@ -3,13 +3,12 @@
  *
  * @brief Configuration string-to-enumeration parsing helpers
  *
- * One of the files @c config/base/ is made of;
- * everything here parses one JSON string field into its matching
- * configuration enumeration value, shared across
- * @c config/base/desktops.c, @c defaults.c, @c systray.c, and
- * @c load.c (all declared in @c config/internal.h for exactly that
- * reason), so none of it stays static to this file the way it once
- * did as part of a single translation unit.
+ * One of the files @c config/base/ is made of; everything here parses
+ * one JSON string field into its matching configuration enumeration
+ * value, shared across @c config/base/desktops.c, @c defaults.c,
+ * @c systray.c, and @c load.c (all declared in @c config/internal.h for
+ * exactly that reason), so none of it stays static to this file the way
+ * it once did as part of a single translation unit.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -89,6 +88,10 @@ enum config_placement_monitor_e
         return CONFIG_PLACEMENT_MONITOR_POINTER;
     }
 
+    if (safe_strcmp(value_norm, "active") == 0) {
+        return CONFIG_PLACEMENT_MONITOR_ACTIVE;
+    }
+
     if (safe_strcmp(value_norm, "primary") == 0) {
         return CONFIG_PLACEMENT_MONITOR_PRIMARY;
     }
@@ -109,6 +112,18 @@ enum config_menu_position_e
 
     if (safe_strcmp(value_norm, "center") == 0) {
         return CONFIG_MENU_POSITION_CENTER;
+    }
+    if (safe_strcmp(value_norm, "top-left") == 0) {
+        return CONFIG_MENU_POSITION_TOP_LEFT;
+    }
+    if (safe_strcmp(value_norm, "top-right") == 0) {
+        return CONFIG_MENU_POSITION_TOP_RIGHT;
+    }
+    if (safe_strcmp(value_norm, "bottom-left") == 0) {
+        return CONFIG_MENU_POSITION_BOTTOM_LEFT;
+    }
+    if (safe_strcmp(value_norm, "bottom-right") == 0) {
+        return CONFIG_MENU_POSITION_BOTTOM_RIGHT;
     }
 
     return CONFIG_MENU_POSITION_UNDER_MOUSE;

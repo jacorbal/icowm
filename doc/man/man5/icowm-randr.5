@@ -37,6 +37,13 @@ holds an array, each entry describing one output.
 An entry naming an output that is not currently connected is skipped
 until one by that name appears, which is what makes a profile for a
 monitor that is only sometimes plugged in useful.
+Name matching is case-insensitive.
+.Pp
+The array is one single list shared by every X screen this session
+manages, not one per screen.
+On a multi-GPU setup where two screens each expose an output of the
+same name, an entry naming it applies to both alike; there is no way
+to profile one and leave the other alone.
 .Bl -tag -width Ds
 .It Ic name Pq string
 The connector name as the X server reports it, such as

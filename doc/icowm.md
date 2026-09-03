@@ -516,8 +516,9 @@ broken rather than merely deferred.
 
 | Command         | Arguments | What it does |
 |-----------------|-----------|--------------|
-| `exit_wm`       | none      | Requests that IcoWM stop and exit, the same as its quit shortcut |
 | `reload_config` | none      | Reloads every configuration file, the same as sending IcoWM `SIGHUP` |
+| `restart_wm`    | none      | Requests that IcoWM stop and restart itself in place, keeping every managed client open |
+| `exit_wm`       | none      | Requests that IcoWM stop and exit, the same as its quit shortcut |
 
 ### 5.4. The `icowm-msg` tool
 

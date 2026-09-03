@@ -62,6 +62,9 @@ void placement_clip_to_monitor(const surface_td *surface,
  * @param wm             Window manager state
  * @param client         Client being placed
  * @param monitor_policy What the configuration asks for
+ * @param monitor_index  Explicit monitor index @p monitor_policy
+ *                       consults when it is
+ *                       @c CONFIG_PLACEMENT_MONITOR_INDEX
  *
  * @return The monitor chosen
  *
@@ -69,7 +72,8 @@ void placement_clip_to_monitor(const surface_td *surface,
  */
 monitor_td placement_reference_monitor(const wm_td *wm,
         surface_td *surface, const client_td *client,
-        enum config_placement_monitor_e monitor_policy);
+        enum config_placement_monitor_e monitor_policy,
+        uint32_t monitor_index);
 
 
 /**

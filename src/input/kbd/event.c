@@ -94,8 +94,8 @@ void keyboard_handle_release(xcb_key_symbols_t *keysyms,
     /* Auto-confirm cycle menu when its modifier is released */
     if (cycle_is_open() && cycle_modifier() != 0 &&
             keyboard_is_modifier_for_mask(keysym, cycle_modifier())) {
-        const surface_td *const surface = s_lookup_surface_fallback(surfaces,
-                event->root);
+        const surface_td *const surface =
+            s_lookup_surface_fallback(surfaces, event->root);
         if (surface != NULL) {
             cycle_confirm(xcb_connection_get(), surfaces, config);
         }

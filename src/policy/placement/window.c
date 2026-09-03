@@ -55,11 +55,11 @@
 /* Where the cascade put the last window it placed, as an offset from
  * the workarea origin rather than an absolute position, so the run
  * carries on sensibly across monitors of different sizes and origins.
- * The position itself is the state, and not a count of how many
- * windows have been placed.  A cascade means each window sits one step
- * on from the one before it, whereas a count would have to be turned
- * back into a position by a modulus whose divisor depends on the size
- * of whichever window is being placed (used in
+ * The position itself is the state, and not a count of how many windows
+ * have been placed.  A cascade means each window sits one step on from
+ * the one before it, whereas a count would have to be turned back into
+ * a position by a modulus whose divisor depends on the size of
+ * whichever window is being placed (used in
  * 'place_window_apply_cascade') */
 static struct position_s s_cascade_last = { 0, 0 };
 
@@ -267,12 +267,11 @@ static bool s_place_window_transient_centered(const wm_td *wm,
     /* ICCCM: 'WM_TRANSIENT_FOR' set to the root window means this
      * dialog is transient for its whole application group, not one
      * specific window ("Window Managers should decide" how to handle
-     * this, per the spec's wording); prefer
-     * centering over whichever currently-mapped sibling shares the
-     * same group leader as this client, falling through to the
-     * ordinary geometry-based fallback further below (which, for the
-     * root window specifically, ends up centering on screen) when no
-     * such sibling is currently mapped. */
+     * this, per the spec's wording); prefer centering over whichever
+     * currently-mapped sibling shares the same group leader as this
+     * client, falling through to the ordinary geometry-based fallback
+     * further below (which, for the root window specifically, ends up
+     * centering on screen) when no such sibling is currently mapped. */
     if (client->transient_for == surface->screen->root) {
         xcb_window_t leader = client_group_leader(client);
 
@@ -297,13 +296,12 @@ static bool s_place_window_transient_centered(const wm_td *wm,
         } /* ! if (leader) */
     }
 
-    /* Prefer the WM's stored frame geometry over
-     * 'xcb_get_geometry': after reparenting the parent's inner
-     * window lives inside the frame, so 'xcb_get_geometry' would
-     * return its position relative to the frame (left, top); not
-     * the frame's root-relative screen position.  Using the stored
-     * geometry correctly centers the dialog wherever the parent
-     * window is on screen. */
+    /* Prefer the WM's stored frame geometry over 'xcb_get_geometry':
+     * after reparenting the parent's inner window lives inside the
+     * frame, so 'xcb_get_geometry' would return its position relative
+     * to the frame (left, top); not the frame's root-relative screen
+     * position.  Using the stored geometry correctly centers the dialog
+     * wherever the parent window is on screen. */
     if (parent == NULL) {
         parent = lookup_find_client(wm_surfaces(wm),
                 client->transient_for, NULL, NULL);
@@ -318,9 +316,8 @@ static bool s_place_window_transient_centered(const wm_td *wm,
         new_y = py + ((int32_t) ph - (int32_t) fh) / 2;
         placed_as_transient = true;
     } else {
-        /* Parent not yet managed (or unmanaged window).  Fall back
-         * to 'xcb_get_geometry' on the declared transient-for
-         * window */
+        /* Parent not yet managed (or unmanaged window).  Fall back to
+         * 'xcb_get_geometry' on the declared transient-for window */
         xcb_get_geometry_cookie_t pgc;
         xcb_get_geometry_reply_t *pgr;
         pgc = xcb_get_geometry(connection, client->transient_for);
@@ -339,10 +336,9 @@ static bool s_place_window_transient_centered(const wm_td *wm,
         return false;
     }
 
-    /* Resolved from the dialog's proposed center, not the
-     * pointer: it is meant to sit with its parent, wherever
-     * that is, regardless of where the pointer happens to be
-     * right now. */
+    /* Resolved from the dialog's proposed center, not the pointer: it
+     * is meant to sit with its parent, wherever that is, regardless of
+     * where the pointer happens to be right now. */
     screen.w = surface->properties.dim.w;
     screen.h = surface->properties.dim.h;
     placement_clip_to_monitor(surface, &wa, &screen,
@@ -362,7 +358,8 @@ static bool s_place_window_transient_centered(const wm_td *wm,
     }
 
     target = (client_is_decorated(client) && client->frame != 0)
-        ? client->frame : client->window;
+        ? client->frame
+        : client->window;
     xcb_window_move(target, new_x, new_y);
     client->layout.geometry.cur.pos.x = new_x;
     client->layout.geometry.cur.pos.y = new_y;
@@ -439,8 +436,8 @@ void place_window_apply_cascade(const wm_td *wm,
      * shorter axis decide for both, giving up on a wide screen with
      * most of the width unused and returning to the position the run
      * began at.  Wrapped separately, the vertical axis coming back to
-     * the top while the
-     * horizontal one keeps going is what opens the next column. */
+     * the top while the horizontal one keeps going is what opens the
+     * next column. */
     if ((uint32_t) off.x + fw > mon_sz.w) {
         off.x = 0;
     }
@@ -486,10 +483,10 @@ void place_window_apply_cascade(const wm_td *wm,
  * @note Places without going through @a s_place_window_finalize, which
  *       applies the window's gravity to whatever position it is handed
  * @note That is right for a position the client asked for in terms of
- *       its gravity, and wrong for this one, the middle worked out
- *       here being already where the window goes; a splash declaring
- *       center gravity would otherwise have half its width taken off
- *       again and land left of centre
+ *       its gravity, and wrong for this one, the middle worked out here
+ *       being already where the window goes; a splash declaring center
+ *       gravity would otherwise have half its width taken off again and
+ *       land left of centre
  * @note Complexity: @e O(1)
  */
 static enum s_place_result_e s_place_step_splash(
@@ -511,7 +508,8 @@ static enum s_place_result_e s_place_step_splash(
 
     xcb_configure_window(ctx->connection,
             (client_is_decorated(ctx->client) && ctx->client->frame != 0)
-                ? ctx->client->frame : ctx->client->window,
+                ? ctx->client->frame
+                : ctx->client->window,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
             (const uint32_t[]) { (uint32_t) centered.x,
                 (uint32_t) centered.y });
@@ -524,12 +522,12 @@ static enum s_place_result_e s_place_step_splash(
 /**
  * @brief Honor a position the client asked for itself
  *
- * ICCCM §4.1.2.3: a client-requested position takes priority over
- * every policy, including the transient-centering convenience of the
- * step after this one.  An explicit request is the client's most
- * specific, deliberate statement of where it wants to appear, ahead of
- * any convenience default this window manager would otherwise pick on
- * its behalf.
+ * ICCCM §4.1.2.3: a client-requested position takes priority over every
+ * policy, including the transient-centering convenience of the step
+ * after this one.  An explicit request is the client's most specific,
+ * deliberate statement of where it wants to appear, ahead of any
+ * convenience default this window manager would otherwise pick on its
+ * behalf.
  *
  * One exception: a transient window asking for exactly (0, 0).  In
  * practice that combination is never a deliberate placement choice on
@@ -538,10 +536,10 @@ static enum s_place_result_e s_place_step_splash(
  * value, and honoring it verbatim pins every such dialog to the
  * screen's top-left corner instead of the transient-centered position
  * ICCCM §4.1.2.6 recommends.  A window genuinely wanting (0, 0) is
- * vanishingly rare among transients, so the exception costs nothing
- * for any other client while fixing that one common, confusing case,
- * a "save changes?" prompt landing at the screen corner instead of
- * over its parent.
+ * vanishingly rare among transients, so the exception costs nothing for
+ * any other client while fixing that one common, confusing case,
+ * a "save changes?" prompt landing at the screen corner instead of over
+ * its parent.
  *
  * @param ctx     Everything the step may look at
  * @param out_pos Receives the requested position
@@ -609,8 +607,8 @@ static enum s_place_result_e s_place_step_transient(
  * @c windows.placement.group-related, since not everyone wants it.
  *
  * The offset scales with how many siblings already exist, not just
- * whichever one the walk happens to visit first, so a third, fourth
- * and later window of the same group each land at a further, distinct
+ * whichever one the walk happens to visit first, so a third, fourth and
+ * later window of the same group each land at a further, distinct
  * position instead of every one after the second piling up on exactly
  * the spot the second took.
  *
@@ -623,8 +621,8 @@ static enum s_place_result_e s_place_step_transient(
  * @note Resolved against the monitor the sibling sits on rather than
  *       the one the pointer is over, a related window being meant to
  *       stay with its group wherever that is
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
  */
 static enum s_place_result_e s_place_step_sibling(
         const struct s_place_ctx_s *ctx,
@@ -704,8 +702,8 @@ static enum s_place_result_e s_place_step_sibling(
  *         @c S_PLACE_RESULT_DECLINED when nothing is free
  *
  * @note Complexity: @e O(g * n), where @e g is the number of grid
- *       positions tested and @e n is the number of clients on
- *       the desktop
+ *       positions tested and @e n is the number of clients on the
+ *       desktop
  */
 static enum s_place_result_e s_place_step_smart(
         const struct s_place_ctx_s *ctx,
@@ -790,8 +788,8 @@ static enum s_place_result_e s_place_step_centered(
  *       so the question is put either way and only the position it
  *       starts from differs
  * @note Complexity: @e O(g * n), where @e g is the number of grid
- *       positions tested and @e n is the number of clients on
- *       the desktop
+ *       positions tested and @e n is the number of clients on the
+ *       desktop
  */
 static enum s_place_result_e s_place_step_manual(
         const struct s_place_ctx_s *ctx,
@@ -986,7 +984,8 @@ void place_window_apply(const wm_td *wm,
      * to place into. */
     placement_clip_to_monitor(surface, &ctx.wa, &ctx.screen,
             placement_reference_monitor(wm, surface, client,
-                    config->base.windows.monitor_policy),
+                    config->base.windows.monitor_policy,
+                    config->base.windows.monitor_index),
             &ctx.mon_wa, &ctx.mon_sz);
 
     /* Ahead of the configured policy rather than one of it.  A window

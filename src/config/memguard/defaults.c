@@ -107,6 +107,7 @@ void config_set_default_values_memguard(config_td *config)
     config->base.windows.focus_policy = CONFIG_FOCUS_POLICY_CLICK;
     config->base.windows.placement_policy = CONFIG_PLACEMENT_POLICY_SMART;
     config->base.windows.monitor_policy = CONFIG_PLACEMENT_MONITOR_POINTER;
+    config->base.windows.monitor_index = 0u;
     config->base.windows.group_related = false;
     config->base.windows.focus.focus_new = true;
     config->base.windows.focus.raise = false;

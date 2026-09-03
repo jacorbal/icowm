@@ -656,11 +656,11 @@ none of those paths is reached.
 
 #### `windows.placement`
 
-| Key                       | Type    | Default     | Description |
-|---------------------------|---------|-------------|-------------|
-| `placement.policy`        | string  | `"smart"`   | How newly mapped windows are placed. |
-| `placement.monitor`       | string  | `"pointer"` | Which physical monitor a placement decision targets, on a surface with more than one. |
-| `placement.group-related` | boolean | `true`      | Cluster windows of the same application together. |
+| Key                       | Type              | Default     | Description |
+|---------------------------|-------------------|-------------|-------------|
+| `placement.policy`        | string            | `"smart"`   | How newly mapped windows are placed. |
+| `placement.monitor`       | string or integer | `"pointer"` | Which physical monitor a placement decision targets, on a surface with more than one. |
+| `placement.group-related` | boolean           | `false`     | Cluster windows of the same application together. |
 
 Accepted placement policy values:
 
@@ -702,8 +702,15 @@ has no effect otherwise):
 
 | Value       | Behavior |
 |-------------|----------|
+| `"active"`  | Targets whichever monitor holds the current desktop's active window, falling back to `"pointer"` when there is none. |
 | `"pointer"` | Targets whichever monitor the pointer is currently on: not necessarily where on that monitor the pointer actually is, only which one it is on, so the window can still land far from the cursor within it depending on `placement.policy`. |
 | `"primary"` | Always targets the monitor RandR reports as primary. |
+
+`placement.monitor` also accepts a plain number instead of one of the
+strings above, a zero-based index into the surface's monitor list, e.g.,
+`"monitor": 1` targets that specific monitor directly.  Falls back to
+monitor 0 if the surface does not have that many, logging a warning, the
+same as `systray.monitor.index` and `rules.json`'s `apply.monitor`.
 
 Transient (dialog) windows are always centered over their parent window,
 regardless of `placement.policy`, and windows clustered by
@@ -713,14 +720,14 @@ sibling is actually on, regardless of `placement.monitor`, since neither
 case is about picking a monitor for a window with no better signal to go
 on: they already have one.
 
-When `group-related` is `true` (the default), a newly mapped window
-whose `WM_CLIENT_LEADER` (or, failing that, its `WM_HINTS` window group)
+Set `group-related` to `true` and a newly mapped window whose
+`WM_CLIENT_LEADER` (or, failing that, its `WM_HINTS` window group)
 matches another currently visible window's is placed offset from that
 group instead of running the policy above for it, i.e., a second, third,
 fourth, ... window opened by the same application lands next to the
-others instead of wherever `policy` would otherwise put it.  Set it to
-`false` to always use `policy` for every window, with no special-casing
-for related ones.
+others instead of wherever `policy` would otherwise put it.  It is
+`false` by default, so every window always uses `policy`, with no
+special-casing for related ones.
 
 This is named after what it actually groups by (an application's stated
 client/window group), not by `WM_CLASS`, since not every application
@@ -732,7 +739,7 @@ name.
     "placement": {
         "policy": "smart",
         "monitor": "pointer",
-        "group-related": true
+        "group-related": false
     }
 }
 ```
@@ -900,10 +907,17 @@ screen position, such as a keyboard shortcut, one setting per menu type:
 `root` is the desktop context menu (`menu.json`, opened by
 `keyboard.wm.menus.root`, see §3.5); `windows` is the menu listing every
 window on every desktop (opened by `keyboard.wm.menus.windows`).
-Supported values are `"center"`, which always opens the menu in the
-center of the screen, and `"under-mouse"`, which opens it under the
-current mouse pointer position instead, matching the naming of
-`windows.placement.policy`.
+
+Accepted values:
+
+| Value              | Behavior |
+|--------------------|----------|
+| `"center"`         | Always opens the menu in the center of the screen. |
+| `"under-mouse"`    | Opens the menu under the current mouse pointer position instead, matching the naming of `windows.placement.policy`. |
+| `"top-left"`       | Pins the menu to the top-left corner of the current desktop's work area. |
+| `"top-right"`      | Pins the menu to the top-right corner of the current desktop's work area. |
+| `"bottom-left"`    | Pins the menu to the bottom-left corner of the current desktop's work area. |
+| `"bottom-right"`   | Pins the menu to the bottom-right corner of the current desktop's work area. |
 
 This setting has no effect when a menu is opened with the mouse (e.g.,
 right-click on the desktop for the root menu), since it already opens
@@ -2286,33 +2300,33 @@ not merely refuse to act.
 
 ### 10.1. Configurable fields
 
-| Key                                      | Type    | Default        | Description |
-|------------------------------------------|---------|----------------|-------------|
-| `theme`                                  | string  | `""` (built-in default theme) | Same as `config.json`'s `theme`: the filename (without `.json`) of a theme under `themes/`. |
-| `programs.editor`                        | string  | `"gvim"`       | Same as `config.json`'s `programs.editor`. |
-| `programs.file-manager`                  | string  | `"pcmanfm"`    | Same as `config.json`'s `programs.file-manager`. |
-| `programs.launcher`                      | string  | `"gmrun"`      | Same as `config.json`'s `programs.launcher`. |
-| `programs.terminal`                      | string  | `"xterm"`      | Same as `config.json`'s `programs.terminal`. |
-| `programs.web-browser`                   | string  | `"firefox"`    | Same as `config.json`'s `programs.web-browser`. |
-| `prompt.is-enabled`                      | boolean | `true`         | Same as `config.json`'s `prompt.is-enabled` (§2.12), except restricted-memory mode defaults this to `true` rather than `false`, to avoid spawning `programs.launcher` as a separate process. |
-| `desktops.margins.top/right/bottom/left` | integer | `0`            | Same as `config.json`'s `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
-| `windows.move-step`                      | integer | `10`           | Same as `config.json`'s `windows.move-step`. |
-| `windows.show-geom`                      | boolean | `true`         | Same as `config.json`'s `windows.show-geom`: shows a small overlay with the exact position (moving) or size (resizing) while dragging. |
-| `windows.edges.snap.window`              | integer | `6`            | Same as `config.json`'s `windows.edges.snap.window`: attraction distance in pixels toward another window's edge. |
-| `windows.edges.snap.screen`              | integer | `6`            | Same as `config.json`'s `windows.edges.snap.screen`: attraction distance in pixels toward the screen's edge. |
-| `windows.edges.resistance`               | integer | `20`           | Same as `config.json`'s `windows.edges.resistance`: pixels of deliberate extra drag before a maximized axis starts changing while interactively resizing. |
-| `windows.gravity`                        | string  | `"north-west"` | Same as `config.json`'s `windows.gravity`: a fallback only, for a client that never declares its ; see §2.4 for the accepted values and why this is fallback-only. |
-| `windows.focus.focus-new`                | boolean | `true`         | Same as `config.json`'s `focus.focus-new`: when `true`, newly mapped windows receive focus automatically. |
-| `windows.focus.raise`                    | boolean | `false`        | Same as `config.json`'s `focus.raise`: when `true`, a window is also raised when it gains focus by pointer or wheel. |
-| `windows.focus.policy`                   | string  | `"click"`      | Same as `config.json`'s `focus.policy`: `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
-| `windows.placement.policy`               | string  | `"smart"`      | Same as `config.json`'s `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
-| `windows.placement.monitor`              | string  | `"pointer"`    | Same as `config.json`'s `windows.placement.monitor`: which physical monitor a placement decision targets, on a surface with more than one. |
-| `windows.placement.group-related`        | boolean | `true`         | Same as `config.json`'s `windows.placement.group-related`: cluster windows of the same application together. |
-| `icons.show-geom`                        | boolean | `false`        | Same as `config.json`'s `icons.show-geom`: shows the exact size in the center of the icon while resizing. |
-| `icons.placement.policy`                 | string  | `"smart"`      | Same as `config.json`'s `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
-| `systray`                                | object  | see §10.2      | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
-| `shutdown.enable-emergency-shortcut`     | boolean | `false`        | Same as `config.json`'s `shutdown.enable-emergency-shortcut`. |
-| `shutdown.timeout-seconds`               | integer | `15`           | Same as `config.json`'s `shutdown.timeout-seconds`. |
+| Key                                      | Type              | Default        | Description |
+|------------------------------------------|-------------------|----------------|-------------|
+| `theme`                                  | string            | `""` (built-in default theme) | Same as `config.json`'s `theme`: the filename (without `.json`) of a theme under `themes/`. |
+| `programs.editor`                        | string            | `"gvim"`       | Same as `config.json`'s `programs.editor`. |
+| `programs.file-manager`                  | string            | `"pcmanfm"`    | Same as `config.json`'s `programs.file-manager`. |
+| `programs.launcher`                      | string            | `"gmrun"`      | Same as `config.json`'s `programs.launcher`. |
+| `programs.terminal`                      | string            | `"xterm"`      | Same as `config.json`'s `programs.terminal`. |
+| `programs.web-browser`                   | string            | `"firefox"`    | Same as `config.json`'s `programs.web-browser`. |
+| `prompt.is-enabled`                      | boolean           | `true`         | Same as `config.json`'s `prompt.is-enabled` (§2.12), except restricted-memory mode defaults this to `true` rather than `false`, to avoid spawning `programs.launcher` as a separate process. |
+| `desktops.margins.top/right/bottom/left` | integer           | `0`            | Same as `config.json`'s `desktops.margins`; this mode always runs with a single screen and a single desktop, so this is the only per-desktop setting still worth having. |
+| `windows.move-step`                      | integer           | `10`           | Same as `config.json`'s `windows.move-step`. |
+| `windows.show-geom`                      | boolean           | `true`         | Same as `config.json`'s `windows.show-geom`: shows a small overlay with the exact position (moving) or size (resizing) while dragging. |
+| `windows.edges.snap.window`              | integer           | `6`            | Same as `config.json`'s `windows.edges.snap.window`: attraction distance in pixels toward another window's edge. |
+| `windows.edges.snap.screen`              | integer           | `6`            | Same as `config.json`'s `windows.edges.snap.screen`: attraction distance in pixels toward the screen's edge. |
+| `windows.edges.resistance`               | integer           | `20`           | Same as `config.json`'s `windows.edges.resistance`: pixels of deliberate extra drag before a maximized axis starts changing while interactively resizing. |
+| `windows.gravity`                        | string            | `"north-west"` | Same as `config.json`'s `windows.gravity`: a fallback only, for a client that never declares its ; see §2.4 for the accepted values and why this is fallback-only. |
+| `windows.focus.focus-new`                | boolean           | `true`         | Same as `config.json`'s `focus.focus-new`: when `true`, newly mapped windows receive focus automatically. |
+| `windows.focus.raise`                    | boolean           | `false`        | Same as `config.json`'s `focus.raise`: when `true`, a window is also raised when it gains focus by pointer or wheel. |
+| `windows.focus.policy`                   | string            | `"click"`      | Same as `config.json`'s `focus.policy`: `"click"` requires a click to focus; `"sloppy"` focuses whichever window is under the pointer. |
+| `windows.placement.policy`               | string            | `"smart"`      | Same as `config.json`'s `windows.placement.policy`: `smart`, `cascade`, `centered`, or `under-mouse`. |
+| `windows.placement.monitor`              | string or integer | `"pointer"`    | Same as `config.json`'s `windows.placement.monitor`: which physical monitor a placement decision targets, on a surface with more than one. |
+| `windows.placement.group-related`        | boolean           | `false`        | Same as `config.json`'s `windows.placement.group-related`: cluster windows of the same application together. |
+| `icons.show-geom`                        | boolean           | `false`        | Same as `config.json`'s `icons.show-geom`: shows the exact size in the center of the icon while resizing. |
+| `icons.placement.policy`                 | string            | `"smart"`      | Same as `config.json`'s `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
+| `systray`                                | object            | see §10.2      | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
+| `shutdown.enable-emergency-shortcut`     | boolean           | `false`        | Same as `config.json`'s `shutdown.enable-emergency-shortcut`. |
+| `shutdown.timeout-seconds`               | integer           | `15`           | Same as `config.json`'s `shutdown.timeout-seconds`. |
 
 ### 10.2. Fields this mode never lets `memguard.json` change
 

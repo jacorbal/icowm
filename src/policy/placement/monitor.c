@@ -53,6 +53,14 @@
  *
  * - Under @c CONFIG_PLACEMENT_MONITOR_PRIMARY, always returns
  *   @p surface's primary monitor.
+ * - Under @c CONFIG_PLACEMENT_MONITOR_INDEX, returns @p monitor_index
+ *   specifically (out of range falls back to monitor 0, logging
+ *   a warning, the same as @c systray.monitor.index and @c rules.json's
+ *   @c apply.monitor).
+ * - Under @c CONFIG_PLACEMENT_MONITOR_ACTIVE, returns whichever monitor
+ *   holds the current desktop's active client, falling through to the
+ *   pointer-based resolution below when there is none or its monitor
+ *   cannot be resolved.
  * - Under @c CONFIG_PLACEMENT_MONITOR_POINTER (the default), queries
  *   the pointer and returns whichever monitor it is currently over, or
  *   a degenerate (zero-area) geometry if the query fails; passing that
@@ -63,15 +71,18 @@
  * @param wm             Window manager state, for the pointer query
  * @param surface        Surface to resolve a monitor on
  * @param monitor_policy Which strategy to resolve with
+ * @param monitor_index  Explicit monitor index, only consulted under
+ *                       @c CONFIG_PLACEMENT_MONITOR_INDEX
  *
  * @return The resolved monitor's geometry
  *
- * @note Complexity: @e O(n), where @e n is the number of monitors on
- *       @p surface
+ * @note Complexity: @e O(n), where @e n is the number of monitors or
+ *       clients on @p surface, whichever the resolved policy walks
  */
 static monitor_td s_reference_monitor(const wm_td *wm,
         surface_td *surface,
-        enum config_placement_monitor_e monitor_policy)
+        enum config_placement_monitor_e monitor_policy,
+        uint32_t monitor_index)
 {
     xcb_query_pointer_cookie_t cookie;
     xcb_query_pointer_reply_t *reply;
@@ -79,6 +90,51 @@ static monitor_td s_reference_monitor(const wm_td *wm,
 
     if (monitor_policy == CONFIG_PLACEMENT_MONITOR_PRIMARY) {
         return surface_primary_monitor(surface);
+    }
+
+    if (monitor_policy == CONFIG_PLACEMENT_MONITOR_INDEX) {
+        uint32_t idx = monitor_index;
+
+        if (surface->monitor_count == 0u) {
+            return result;
+        }
+        if (idx >= surface->monitor_count) {
+            LOGGER_WARNING("Placement targets monitor %u, which does" \
+                    " not exist on surface %u (%u monitor(s));" \
+                    " falling back to monitor 0", monitor_index,
+                    surface->id, surface->monitor_count);
+            idx = 0u;
+        }
+        return surface->monitors[idx];
+    }
+
+    if (monitor_policy == CONFIG_PLACEMENT_MONITOR_ACTIVE) {
+        desktop_td *desktop =
+            surface_desktop_get(surface, surface->desktop_cur);
+
+        if (desktop != NULL && desktop->client_active_id != 0u &&
+                desktop->clients != NULL) {
+            void *elem;
+
+            ohtbl_foreach(desktop->clients, elem) {
+                client_td *const active = (client_td *) elem;
+
+                if (active != NULL &&
+                        active->id == desktop->client_active_id) {
+                    monitor_td active_monitor =
+                        surface_monitor_for_point(surface,
+                                active->layout.geometry.cur.pos);
+
+                    if (active_monitor.w > 0u && active_monitor.h > 0u) {
+                        return active_monitor;
+                    }
+                    break;
+                }
+            }
+        }
+        /* No active client, or its monitor could not be resolved: falls
+         * through to the pointer-based resolution below, the same
+         * fallback CONFIG_PLACEMENT_MONITOR_POINTER itself uses */
     }
 
     cookie = xcb_query_pointer(wm_connection(wm), surface->screen->root);
@@ -165,6 +221,9 @@ void placement_clip_to_monitor(const surface_td *surface,
  *                       policy
  * @param monitor_policy Fallback strategy when no related client is
  *                       found
+ * @param monitor_index  Explicit monitor index @p monitor_policy falls
+ *                       back to when it is
+ *                       @c CONFIG_PLACEMENT_MONITOR_INDEX
  *
  * @return The resolved monitor's geometry
  *
@@ -175,7 +234,8 @@ void placement_clip_to_monitor(const surface_td *surface,
  */
 monitor_td placement_reference_monitor(const wm_td *wm,
         surface_td *surface, const client_td *client,
-        enum config_placement_monitor_e monitor_policy)
+        enum config_placement_monitor_e monitor_policy,
+        uint32_t monitor_index)
 {
     const client_td *anchor = NULL;
 
@@ -219,7 +279,7 @@ monitor_td placement_reference_monitor(const wm_td *wm,
         }
     }
 
-    return s_reference_monitor(wm, surface, monitor_policy);
+    return s_reference_monitor(wm, surface, monitor_policy, monitor_index);
 }
 
 
@@ -234,11 +294,9 @@ monitor_td placement_reference_monitor(const wm_td *wm,
  * @param wm         Window manager instance
  * @param surface    Surface the client lives on
  * @param client     Client being placed
- * @param out_wa     Resolved workarea, unclipped to any single
- *                   monitor
+ * @param out_wa     Resolved workarea, unclipped to any single monitor
  * @param out_mon_wa Workarea, clipped to the reference monitor
- * @param out_mon_sz Screen dimensions, clipped to the reference
- *                   monitor
+ * @param out_mon_sz Screen dimensions, clipped to the reference monitor
  *
  * @note Complexity: @e O(1)
  */
@@ -265,6 +323,7 @@ void placement_workarea(const wm_td *wm, surface_td *surface,
 
     placement_clip_to_monitor(surface, out_wa, &screen,
             placement_reference_monitor(wm, surface, client,
-                    wm_config(wm)->base.windows.monitor_policy),
+                    wm_config(wm)->base.windows.monitor_policy,
+                    wm_config(wm)->base.windows.monitor_index),
             out_mon_wa, out_mon_sz);
 }

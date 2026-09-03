@@ -194,7 +194,8 @@ enum config_placement_monitor_e
  *
  * @return Parsed menu position enumeration value
  *
- * @note Supported values are @c center and @c under-mouse
+ * @note Supported values are @c center, @c under-mouse, @c top-left,
+ *       @c top-right, @c bottom-left, and @c bottom-right
  * @note Implemented in @c config/base/parse.c
  * @note Complexity: @e O(n), where @e n is the length of @p value
  */

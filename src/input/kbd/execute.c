@@ -65,31 +65,76 @@
 #include <input/kbd/internal.h>
 #include <utils/xcb/connection.h>
 
+
 /**
  * @brief Resolve where a keyboard-triggered root/window-list menu
- *        should open: centered on the surface, or under the current
- *        pointer position
+ *        should open, per its configured @c config_menu_position_e
  *
  * Shared by @c KEYBIND_WM_ROOT_MENU and @c KEYBIND_WM_WINDOWS_MENU in
  * @c keyboard_handle_press, which only differ in which configuration
- * field selects "under mouse" and which function they go on to call
- * with the resolved position.  Falls back to the surface center if
- * @p under_mouse is @c true but the pointer query itself fails.
+ * field's @c position resolves here and which function they go on to
+ * call with the resolved position.  Falls back to the surface center if
+ * @p position is @c CONFIG_MENU_POSITION_UNDER_MOUSE but the pointer
+ * query itself fails.
  *
- * @param surface     Surface the menu will open on
- * @param under_mouse Whether to query the pointer at all, rather than
- *                    always using the surface center
- * @param out_pos     Receives the resolved position
+ * The four corner values resolve to a point at or beyond that corner of
+ * the current desktop's work area, rather than the corner's exact
+ * pixel.  @a ctxmenu_show already clamps whatever origin it is given
+ * back onto the work area once it knows the menu's real width and
+ * height, so handing it a point past the corner leaves the menu flush
+ * against it, the same way @c systray.position pins the tray dock to
+ * a corner without either caller needing to know the tray's or menu's
+ * size up front.
+ *
+ * @param surface  Surface the menu will open on
+ * @param position Configured menu position
+ * @param out_pos  Receives the resolved position
  *
  * @note Complexity: @e O(1)
  */
-static void s_menu_position_resolve(surface_td *surface, bool under_mouse,
+static void s_menu_position_resolve(surface_td *surface,
+        enum config_menu_position_e position,
         struct position_s *restrict out_pos)
 {
+    struct geometry_s work = { { 0, 0 }, surface->properties.dim };
+    const desktop_td *desktop =
+        surface_desktop_get(surface, surface->desktop_cur);
+
+    if (desktop != NULL) {
+        work = desktop->workarea;
+    }
+
+    switch (position) {
+        case CONFIG_MENU_POSITION_TOP_LEFT:
+            out_pos->x = work.pos.x;
+            out_pos->y = work.pos.y;
+            return;
+
+        case CONFIG_MENU_POSITION_TOP_RIGHT:
+            out_pos->x = work.pos.x + (int32_t) work.dim.w;
+            out_pos->y = work.pos.y;
+            return;
+
+        case CONFIG_MENU_POSITION_BOTTOM_LEFT:
+            out_pos->x = work.pos.x;
+            out_pos->y = work.pos.y + (int32_t) work.dim.h;
+            return;
+
+        case CONFIG_MENU_POSITION_BOTTOM_RIGHT:
+            out_pos->x = work.pos.x + (int32_t) work.dim.w;
+            out_pos->y = work.pos.y + (int32_t) work.dim.h;
+            return;
+
+        case CONFIG_MENU_POSITION_UNDER_MOUSE:
+        case CONFIG_MENU_POSITION_CENTER:
+            break;
+    }
+
     out_pos->x = (int32_t) (surface->properties.dim.w / 2u);
     out_pos->y = (int32_t) (surface->properties.dim.h / 2u);
 
-    if (under_mouse && surface->screen != NULL) {
+    if (position == CONFIG_MENU_POSITION_UNDER_MOUSE &&
+            surface->screen != NULL) {
         xcb_query_pointer_cookie_t qc =
             xcb_query_pointer(xcb_connection_get(), surface->screen->root);
         xcb_query_pointer_reply_t *const qr =
@@ -109,11 +154,11 @@ static void s_menu_position_resolve(surface_td *surface, bool under_mouse,
  * Resolves the focused client and dispatches the action identified by
  * @p btype.  Each binding type maps to exactly one @c enact_client_*
  * function.  Actions that require resize capability, maximize and
- * fullscreen among them, are silently dropped when the client is
- * not resizable, and
- * @c KEYBIND_CLIENT_CYCLE_LAYER is silently dropped when the client is
- * fullscreen (see @a ccmd_desktop_enforce_layers's comment on
- * why changing its layer there would have no visible effect).
+ * fullscreen among them, are silently dropped when the client is not
+ * resizable, and @c KEYBIND_CLIENT_CYCLE_LAYER is silently dropped when
+ * the client is fullscreen (see @a ccmd_desktop_enforce_layers's
+ * comment on why changing its layer there would have no visible
+ * effect).
  *
  * @param btype    Keyboard binding type (one of the @c KEYBIND_CLIENT_*
  *                 constants)
@@ -148,8 +193,8 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
     }
 
     switch (btype) {
-        /* Every case must be listed, so the compiler keeps
-         * checking this switch against the whole enumeration */
+        /* Every case must be listed, so the compiler keeps checking
+         * this switch against the whole enumeration */
         case KEYBIND_NONE:
         case KEYBIND_DESKTOP_NORTH:
         case KEYBIND_DESKTOP_SOUTH:
@@ -279,8 +324,8 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
 
         case KEYBIND_CLIENT_FULLSCREEN:
             /* Blocks entering, the same as maximize above, but not
-             * exiting: a client already fullscreen through its
-             * EWMH request stays exitable here regardless of its own
+             * exiting: a client already fullscreen through its EWMH
+             * request stays exitable here regardless of its own
              * resizable flag, the one case 'ccmd_client_fullscreen'
              * itself (cmds/client/state.c) still leaves ungated on
              * purpose. */
@@ -306,15 +351,13 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         case KEYBIND_CLIENT_CYCLE_LAYER:
-            /* A fullscreen client's stacking is always forced
-             * above everything else while it holds focus, regardless
-             * of its own real layer, as
-             * 'ccmd_desktop_enforce_layers''s comment describes;
-             * cycling its layer here
-             * would silently do nothing visible until it later
-             * leaves fullscreen, the same reasoning the window
-             * context menu's 'Layer' submenu is disabled for
-             * already. */
+            /* A fullscreen client's stacking is always forced above
+             * everything else while it holds focus, regardless of its
+             * own real layer, as 'ccmd_desktop_enforce_layers''s
+             * comment describes; cycling its layer here would silently
+             * do nothing visible until it later leaves fullscreen, the
+             * same reasoning the window context menu's 'Layer' submenu
+             * is disabled for already. */
             if (!client_is_fullscreen(client)) {
                 enact_client_cycle_layer(client);
             }
@@ -325,21 +368,20 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
 
 /* Carry out the action a resolved binding names
  *
- * Long on purpose.  What follows is a dispatch table written as a
- * switch: seventy-four labels, none of whose bodies runs past a
- * couple of dozen lines, and almost every line of it sits directly
+ * Long on purpose.  What follows is a dispatch table written as
+ * a switch: seventy-four damn labels, none of whose bodies runs past
+ * a couple of dozen lines, and almost every line of it sits directly
  * inside the switch rather than nested any deeper.  Its length is
- * proportional to how many bindings the window manager has, not to
- * any complexity of its own.
+ * proportional to how many bindings the window manager has, not to any
+ * complexity of its own.
  *
- * Splitting it by family would cost more than it returns.  The
- * families are interleaved here rather than contiguous, so each
- * would need either a switch of its own that no longer covers the
- * whole enumeration, which '-Wswitch-enum' and
- * '-Wcovered-switch-default' between them rule out, or a narrow
- * enumeration whose translation from the wide one would have to
- * happen in this very switch.  Either way the labels stay and more
- * switches appear.
+ * Splitting it by family would cost more than it returns.  The families
+ * are interleaved here rather than contiguous, so each would need
+ * either a switch of its own that no longer covers the whole
+ * enumeration, which '-Wswitch-enum' and '-Wcovered-switch-default'
+ * between them rule out, or a narrow enumeration whose translation from
+ * the wide one would have to happen in this very switch.  Either way
+ * the labels stay and more switches appear.
  *
  * Covering every value here is what keeps the compiler checking this
  * dispatch against the whole enumeration, so a binding added later
@@ -518,14 +560,13 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
             if (surface != NULL && xcb_connection_get() != NULL) {
                 struct position_s pos;
 
-                /* When configured to appear under the cursor
-                 * instead of always centered, query the current
-                 * pointer position and use it, falling back to the
-                 * screen center if the query fails */
+                /* Resolves 'menus.root.position' to an actual point,
+                 * falling back to always-centered if there is no
+                 * configuration to read it from */
                 s_menu_position_resolve(surface,
-                        config != NULL &&
-                            config->base.menus.root.position ==
-                                CONFIG_MENU_POSITION_UNDER_MOUSE,
+                        (config != NULL)
+                            ? config->base.menus.root.position
+                            : CONFIG_MENU_POSITION_CENTER,
                         &pos);
 
                 rootmenu_show(wm, xcb_connection_get(), surface,
@@ -537,14 +578,13 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
             if (surface != NULL && xcb_connection_get() != NULL) {
                 struct position_s pos;
 
-                /* Same "under the cursor instead of a fixed point"
-                 * behavior as the root menu (see
-                 * 'KEYBIND_WM_ROOT_MENU' above), just governed by
-                 * its 'menus.windows.position' setting */
+                /* Same position resolution as the root menu (see
+                 * 'KEYBIND_WM_ROOT_MENU' above), just governed by its
+                 * 'menus.windows.position' setting */
                 s_menu_position_resolve(surface,
-                        config != NULL &&
-                            config->base.menus.windows.position ==
-                                CONFIG_MENU_POSITION_UNDER_MOUSE,
+                        (config != NULL)
+                            ? config->base.menus.windows.position
+                            : CONFIG_MENU_POSITION_CENTER,
                         &pos);
 
                 winlist_show(xcb_connection_get(), surface,

@@ -26,10 +26,10 @@
 /**
  * @brief Strip the modifiers that must never take part in a match
  *
- * Caps Lock and Num Lock are states of the keyboard rather than
- * intent of the user, and the X server reports them in the same word
- * as the modifiers that do carry intent, so a binding on @c Mod4+d
- * would otherwise stop working the moment Num Lock is on.
+ * Caps Lock and Num Lock are states of the keyboard rather than intent
+ * of the user, and the X server reports them in the same word as the
+ * modifiers that do carry intent, so a binding on @c Mod4+d would
+ * otherwise stop working the moment Num Lock is on.
  *
  * @param mask Raw modifier mask, as reported or as configured
  *

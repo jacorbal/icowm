@@ -28,10 +28,19 @@ without the
 suffix.
 Every key is optional: what a file leaves out keeps the built-in
 default, so a theme need only state what it changes.
+A key's case does not matter, nor does writing it with
+.Ql -
+or with
+.Ql _ :
+.Ic is-decorated ,
+.Ic is_decorated
+and
+.Ic Is-Decorated
+all name the same field.
 .Pp
 .Ic name
-at the top level is the theme's own name, reported in the window
-information dialog.
+at the top level is the theme's own name, written to the debug log
+when the theme loads and otherwise unused.
 A key beginning with
 .Ql -
 or
@@ -48,15 +57,19 @@ An object with
 .Ic background
 and
 .Ic foreground ,
-each an
+each a hex color as
 .Ql #RRGGBB
-string.
+or
+.Ql RRGGBB ,
+the leading
+.Ql #
+being optional.
 .It Ic border
 An object with
 .Ic color ,
-an
+a hex color in the same
 .Ql #RRGGBB
-string, and
+form, and
 .Ic width ,
 in pixels.
 .It Ic padding
@@ -102,8 +115,16 @@ for the focused window and the rest.
 .Ic titlebar
 holds its
 .Ic height ,
-its text
+zero being equivalent to
+.Ic is-decorated
+set false, its text
 .Ic alignment ,
+one of
+.Ql left
+(the default),
+.Ql center
+or
+.Ql right ,
 its
 .Ic padding ,
 and a
@@ -155,7 +176,13 @@ around it, and
 with the
 .Ic gap
 before the clock and its vertical
-.Ic valign .
+.Ic valign ,
+one of
+.Ql top ,
+.Ql bottom
+or
+.Ql center
+(the default).
 .It Ic desktop
 The desktop background, through
 .Ic color .
@@ -172,9 +199,15 @@ and a
 .Ic font ,
 for an ordinary row, the one under the pointer, and a heading.
 .Ic disabled
-holds the
-.Ic color
-of a row that cannot be chosen,
+holds
+.Ic color.foreground
+for a row that cannot be chosen; unlike the shape's usual
+.Ic background
+and
+.Ic foreground
+pair, only
+.Ic foreground
+is read here.
 .Ic separator
 the
 .Ic color
@@ -187,12 +220,23 @@ an
 and
 .Ic show-pixmaps .
 .It Ic dialog
-.Ic color
+.Ic color.background
 and
 .Ic border
-for the dialog itself,
+for the dialog itself, only
+.Ic background
+being read out of the usual color pair,
+.Ic opacity ,
 .Ic label
-for its text, and
+for its text, holding a
+.Ic font ,
+a
+.Ic padding
+and a
+.Ic color.foreground
+(again only
+.Ic foreground ,
+not the full pair), and
 .Ic button
 holding the
 .Ic gap

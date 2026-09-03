@@ -35,11 +35,25 @@
  * @brief Where a menu appears when it is opened by a means that has no
  *        inherent screen position of its own (e.g., a keyboard
  *        shortcut); shared by every menu type below
+ *
+ * The four corner values pin the menu to that corner of the current
+ * desktop's work area instead, unaffected by wherever the pointer
+ * happens to be; @a s_menu_position_resolve (@c input/kbd/execute.c)
+ * resolves each to the exact point that leaves the menu flush against
+ * it once @a ctxmenu_show's own edge clamping runs.
  */
 enum config_menu_position_e {
-    CONFIG_MENU_POSITION_CENTER = 0,    /**< Always screen-centered */
-    CONFIG_MENU_POSITION_UNDER_MOUSE    /**< Under the current
-                                             mouse pointer position */
+    CONFIG_MENU_POSITION_CENTER = 0,   /**< Always screen-centered */
+    CONFIG_MENU_POSITION_UNDER_MOUSE,  /**< Under the current mouse
+                                            pointer position */
+    CONFIG_MENU_POSITION_TOP_LEFT,     /**< Pinned to the work area's
+                                            top-left corner */
+    CONFIG_MENU_POSITION_TOP_RIGHT,    /**< Pinned to the work area's
+                                            top-right corner */
+    CONFIG_MENU_POSITION_BOTTOM_LEFT,  /**< Pinned to the work area's
+                                            bottom-left corner */
+    CONFIG_MENU_POSITION_BOTTOM_RIGHT  /**< Pinned to the work area's
+                                            bottom-right corner */
 };
 
 
@@ -264,14 +278,30 @@ struct config_base_s {
          * currently on (not necessarily where on that monitor the
          * pointer actually is; the window can still land far from the
          * cursor within it, depending on the placement policy),
-         * @c primary always picks the one RandR reports as primary.
+         * @c active picks whichever monitor holds the desktop's
+         * currently active client, falling back to @c pointer when
+         * there is none, @c primary always picks the one RandR reports
+         * as primary, and @c index picks @p monitor_index explicitly (a
+         * zero-based index into the surface's monitor list, falling
+         * back to monitor 0 if it does not exist, logging a warning,
+         * the same as @c systray.monitor.index and @c rules.json's
+         * @c apply.monitor).
          *
          * @see @a place_window_apply
          */
         enum config_placement_monitor_e {
             CONFIG_PLACEMENT_MONITOR_POINTER = 0,
-            CONFIG_PLACEMENT_MONITOR_PRIMARY
+            CONFIG_PLACEMENT_MONITOR_ACTIVE,
+            CONFIG_PLACEMENT_MONITOR_PRIMARY,
+            CONFIG_PLACEMENT_MONITOR_INDEX
         } monitor_policy;
+
+        /**
+         * @brief Explicit monitor index @p monitor_policy resolves
+         *        against, only meaningful when it is
+         *        @c CONFIG_PLACEMENT_MONITOR_INDEX
+         */
+        uint32_t monitor_index;
 
         /**
          * @brief Behavior of a window's edges against nearby

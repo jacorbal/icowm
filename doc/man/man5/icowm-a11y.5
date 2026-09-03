@@ -21,8 +21,10 @@ The file is optional, and every key within it is too.
 .Bl -tag -width Ds
 .It Ic is-enabled Pq boolean, default Ql false
 Whether anything in this file is honored at all.
-While false the rest is read but not applied, so a set of overrides can
-be kept ready and switched on when wanted.
+While false the rest of the file is not even read, every other field
+keeping its own built-in default rather than whatever value sits
+beside this one in the file, so a set of overrides can be kept ready
+and switched on when wanted.
 .It Ic interaction.double-click-ms Pq integer, default Ql 400
 How long, in milliseconds, may pass between two clicks for them to count
 as a double click.

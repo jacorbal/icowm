@@ -92,6 +92,27 @@ Acts on the focused window.
 .It Ic inspect Pq Ql modc+mod4+i
 .El
 .Pp
+.Ic maximize
+and
+.Ic fullscreen
+do nothing to a modal dialog, which either would put out of the view
+of the window it exists to be answered by; a modal already resizable
+by dragging is unaffected.
+Exiting fullscreen is not restricted this way: a client already
+fullscreen through its own EWMH request stays exitable regardless.
+.Pp
+.Ic layer
+cycles
+.Ql normal ,
+.Ql above
+and
+.Ql below
+in that order, then back to
+.Ql normal
+and round again, doing nothing to a client currently fullscreen,
+whose stacking is forced above everything else regardless of its
+real layer until it leaves fullscreen.
+.Pp
 .Ic move.relative
 shifts the window by
 .Ic windows.move-step
@@ -209,12 +230,44 @@ step through what is on the current desktop:
 .It Ic resize Pq Ql mod1+button3
 .El
 .Ss mouse.cycle
-Bound to the wheel over the empty desktop.
+Bound to the wheel.
 .Bl -tag -width Ds -compact
 .It Ic north Pq Ql mods+button4
 .It Ic south Pq Ql mods+button5
 .It Ic east Pq Ql button5
 .It Ic west Pq Ql button4
+.El
+Over the root, with no client under the pointer, these switch desktop
+in the scrolled direction, right away.
+Over a client's content area they do nothing of icowm's own, the
+scroll being replayed to the application instead.
+Over a client's titlebar, they act on that client rather than on the
+desktop:
+.Ic north
+maximizes it, unless it already is,
+.Ic south
+restores it from fully maximized, unless it already is,
+.Ic west
+shades it and moves focus away, and
+.Ic east
+unshades it and regains focus.
+Maximizing or restoring never moves focus the way shading does.
+.Ss Fixed keyboard behavior
+Two keys are grabbed outright and answer to nothing in this file,
+the common desktop-environment convention for both being reason
+enough to leave them out of it.
+.Bl -tag -width Ds -compact
+.It Ic Mod1+space
+Open the window menu of the focused window, the same menu a
+titlebar's right click opens.
+.It Ic Ctrl+Mod1+Backspace
+Emergency exit, quitting
+.Xr icowm 1
+outright, with no dialog and no wait.
+Grabbed only when
+.Ic shutdown.enable-emergency-shortcut
+is true, which it is not by default; see
+.Xr icowm 5 .
 .El
 .Ss Fixed titlebar behavior
 Beside the decoration buttons, a titlebar answers each mouse button

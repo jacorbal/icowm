@@ -203,6 +203,13 @@ int config_load_base(const char *filename,
                 config_base->windows.monitor_policy =
                     ci_config_parse_placement_monitor(
                             placement_monitor_item->valuestring);
+            } else if (placement_monitor_item != NULL &&
+                    cJSON_IsNumber(placement_monitor_item) &&
+                    placement_monitor_item->valueint >= 0) {
+                config_base->windows.monitor_policy =
+                    CONFIG_PLACEMENT_MONITOR_INDEX;
+                config_base->windows.monitor_index =
+                    (uint32_t) placement_monitor_item->valueint;
             }
             json_load_bool(placement, "group-related",
                     &config_base->windows.group_related);

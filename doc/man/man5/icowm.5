@@ -79,7 +79,12 @@ Defaults to
 .Ql Desktop Ar N .
 .It Ic topology.screens.desktops[].settings[].background-color Pq string
 Background color of one desktop, as
-.Ql #RRGGBB .
+.Ql #RRGGBB
+or
+.Ql RRGGBB ,
+the leading
+.Ql #
+being optional.
 Absent, the theme's desktop color is used.
 .El
 .Pp
@@ -229,7 +234,7 @@ Which monitor a new window lands on:
 .Ql active ,
 .Ql primary ,
 or an explicit index.
-.It Ic windows.placement.group-related Pq boolean, default Ql true
+.It Ic windows.placement.group-related Pq boolean, default Ql false
 Whether a window is placed beside others of the same application
 rather than wherever the configured policy would put it alone.
 .El
@@ -270,8 +275,14 @@ with each other.
 .It Ic menus.root.position Pq string, default Ql \&"under-mouse\&"
 .It Ic menus.windows.position Pq string, default Ql \&"under-mouse\&"
 Where the root menu and the window list open:
+.Ql center ,
 .Ql under-mouse ,
-or a fixed corner of the workarea.
+or a fixed corner of the workarea, namely
+.Ql top-left ,
+.Ql top-right ,
+.Ql bottom-left ,
+or
+.Ql bottom-right .
 The root menu's contents come from a file of their own; see
 .Xr icowm-menu 5 .
 .El
@@ -288,7 +299,12 @@ of it rather than passing underneath.
 Whether window placement treats the tray as occupied even when it
 reserves no space.
 .It Ic systray.position Pq string, default Ql \&"top-left\&"
-Which corner or edge of its monitor the tray docks against.
+Which corner of its monitor the tray docks against:
+.Ql top-left ,
+.Ql top-right ,
+.Ql bottom-left ,
+or
+.Ql bottom-right .
 .It Ic systray.margins Pq object
 Gap, in pixels, between the tray and each edge, through
 .Ic top ,
@@ -327,6 +343,14 @@ How often it is read.
 Which side of the icons the clock and battery text sits on.
 Its spacing and vertical alignment are theme concerns instead; see
 .Xr icowm-theme 5 .
+.It Ic systray.text.order Pq array, default Ql \&[\&"clock\&", \&"battery\&"]
+The order the clock and battery readouts appear in, listing
+.Ql clock
+and
+.Ql battery
+in whichever sequence is wanted.
+Entries past the first two, and any not one of those two names, are
+ignored.
 .El
 .Ss desktops
 How switching between desktops behaves, and how much of each is left
@@ -354,7 +378,7 @@ than living on any desktop.
 .Bl -tag -width Ds
 .It Ic scratchpad.is-enabled Pq boolean, default Ql true
 Whether the scratchpad binding does anything.
-.It Ic scratchpad.command Pq string
+.It Ic scratchpad.command Pq string, default Ql \&"xterm -fg black -bg ivory -cr black\&"
 Command run to produce the scratchpad window on first use.
 .It Ic scratchpad.edge Pq string, default Ql \&"top\&"
 Which edge the window slides in from.
@@ -404,6 +428,9 @@ Command whose output that binding displays.
 .El
 .Ss startup-notification
 .Bl -tag -width Ds
+.It Ic startup-notification.is-enabled Pq boolean, default Ql true
+Whether launching a program begins a startup-notification sequence at
+all.
 .It Ic startup-notification.timeout-seconds Pq integer, default Ql 15
 How long a busy cursor is shown after launching an application before
 giving up on it announcing itself.
@@ -438,9 +465,11 @@ keeping its default:
         "placement": { "policy": "cascade" }
     },
     "topology": {
-        "screens": [
-            { "desktops": { "count": 6, "inaugural": 0 } }
-        ]
+        "screens": {
+            "desktops": [
+                { "count": 6, "inaugural": 0 }
+            ]
+        }
     }
 }
 .Ed
@@ -450,9 +479,9 @@ the top left:
 .Bd -literal -offset indent
 {
     "topology": {
-        "screens": [
-            {
-                "desktops": {
+        "screens": {
+            "desktops": [
+                {
                     "count": 6,
                     "layout": {
                         "orientation": "horizontal",
@@ -461,8 +490,8 @@ the top left:
                         "columns": 3
                     }
                 }
-            }
-        ]
+            ]
+        }
     }
 }
 .Ed

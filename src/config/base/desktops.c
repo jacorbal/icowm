@@ -3,15 +3,14 @@
  *
  * @brief Screen and desktop topology loading
  *
- * One of the files @c config/base/ is made of;
- * everything here loads @c topology.screens (screen count, and each
- * screen's desktop count/inaugural desktop/desktop entries, in either
- * the flat or nested on-disk shape) and @c desktops (desktop-navigation
- * and reserved-space behavior) from parsed @c config.json.
- * @c ci_config_load_screens and @c ci_config_load_desktop_behavior are
- * the only two entry points @c config/base/load.c's
- * @c config_load_base calls from here; everything else stays static to
- * this file.
+ * One of the files @c config/base/ is made of; everything here loads @c
+ * topology.screens (screen count, and each screen's desktop
+ * count/inaugural desktop/desktop entries, in either the flat or nested
+ * on-disk shape) and @c desktops (desktop-navigation and reserved-space
+ * behavior) from parsed @c config.json.  @c ci_config_load_screens and
+ * @c ci_config_load_desktop_behavior are the only two entry points
+ * @c config/base/load.c's @c config_load_base calls from here;
+ * everything else stays static to this file.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -41,7 +40,6 @@
 #include <config/internal.h>
 
 
-
 /**
  * @brief Load a desktop entry from a JSON object
  *
@@ -67,14 +65,14 @@ static void s_config_load_desktop_entry(cJSON *desktop_json,
             CONFIG_MAX_LENGTH_NAME);
 
     /* Reset to the sentinel before every attempt, not just the very
-     * first one: a reload whose 'config.json' no longer names a
-     * 'background-color' for this desktop must fall back to the
+     * first one: a reload whose 'config.json' no longer names
+     * a 'background-color' for this desktop must fall back to the
      * theme's 'desktop.color.background' (see 'desktop_init',
-     * desktop.c, and its reload-time counterpart in wm/actions.c)
-     * the same way a desktop that never had one does, rather than
-     * keeping whatever color an earlier load happened to leave here.
-     * 'json_load_color' below already logs its DEBUG line when
-     * the field is absent, so nothing further is logged here for
+     * desktop.c, and its reload-time counterpart in wm/actions.c) the
+     * same way a desktop that never had one does, rather than keeping
+     * whatever color an earlier load happened to leave here.
+     * 'json_load_color' below already logs its DEBUG line when the
+     * field is absent, so nothing further is logged here for
      * that, entirely ordinary, case. */
     settings_out->background.color = WM_DESKTOP_BG_COLOR_UNSET;
     (void) json_load_color(desktop_json, "background-color",
@@ -86,23 +84,23 @@ static void s_config_load_desktop_entry(cJSON *desktop_json,
  * @brief Enforce a minimum on a just-loaded configuration count field,
  *        logging and correcting it in place if it falls short
  *
- * A handful of configuration count fields (number of screens, number
- * of desktops on a screen) are meaningless below 1: a window manager
- * with 0 screens or 0 desktops has nowhere to put a single window.
- * Centralizes the "warn and default to the floor" behavior every one
- * of them needs, rather than repeating the same check at each call
- * site.
+ * A handful of configuration count fields (number of screens, number of
+ * desktops on a screen) are meaningless below 1: a window manager with
+ * @c 0 screens or @c 0 desktops has nowhere to put a single window.
+ * Centralizes the "warn and default to the floor" behavior every one of
+ * them needs, rather than repeating the same check at each call site.
  *
  * @param value       Field to check and, if needed, correct in place
  * @param minimum     Smallest value considered valid; typically 1
  * @param field_label Human-readable name for the log message
  * @param filename    Path the value was loaded from, for the log
- *                     message only
+ *                    message only
  *
  * @note Complexity: @e O(1)
  */
-static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
-        const char *restrict field_label, const char *restrict filename)
+static void s_config_enforce_min_count(uint32_t *value,
+        uint32_t minimum, const char *restrict field_label,
+        const char *restrict filename)
 {
     if (*value >= minimum) {
         return;
@@ -116,13 +114,13 @@ static void s_config_enforce_min_count(uint32_t *value, uint32_t minimum,
 
 
 /**
- * @brief Fall back one screen's @p desktop_layout to a single
- *        row, one column per desktop
+ * @brief Fall back one screen's @p desktop_layout to a single row, one
+ *        column per desktop
  *
- * The exact same reading order the flat desktop list itself already
- * had before layout existed at all, shared by every "layout absent"
- * or "layout invalid" case in @a s_config_load_desktop_layout below,
- * so both log the same way and never drift apart from each other by
+ * The exact same reading order the flat desktop list itself already had
+ * before layout existed at all, shared by every "layout absent" or
+ * "layout invalid" case in @a s_config_load_desktop_layout below, so
+ * both log the same way and never drift apart from each other by
  * accident.
  *
  * @param config_base Destination structure
@@ -150,10 +148,10 @@ static void s_config_desktop_layout_fallback(
  * Falls back to a single row, one column per desktop whenever @c layout
  * is absent entirely, or present but invalid: @c rows or @c columns is
  * explicitly @c 0 or above @c CONFIG_MAX_DESKTOPS (checked before
- * either is ever used as a divisor or in an addition below, so
- * neither computing the other, nor the final @c rows x @c columns
- * check, can ever overflow), or @c rows x @c columns ultimately falls
- * short of this screen's, already-finalized @p desktop_count.
+ * either is ever used as a divisor or in an addition below, so neither
+ * computing the other, nor the final @c rows x @c columns check, can
+ * ever overflow), or @c rows x @c columns ultimately falls short of
+ * this screen's, already-finalized @p desktop_count.
  *
  * @c orientation defaults to @c horizontal and @c corner to @c top-left
  * whenever @c layout is present but either key is itself missing, the
@@ -171,7 +169,7 @@ static void s_config_desktop_layout_fallback(
  *
  * @param desktop_item One entry of @c topology.screens.desktops,
  *                     describing screen @p screen_idx; this screen's
- *                     own @c desktop_count must already be finalized in
+ *                     @c desktop_count must already be finalized in
  *                     @p config_base before this call
  * @param screen_idx   Index of the screen this entry describes
  * @param config_base  Destination structure
@@ -291,7 +289,7 @@ static bool s_config_screens_uses_nested_layout(cJSON *desktops_array)
 /**
  * @brief Load the flat @p topology.screens.desktops shape
  *
- * Every array entry is a plain desktop, all applied to screen 0.
+ * Every array entry is a plain desktop, all applied to screen @c 0.
  *
  * @param desktops_array The @c topology.screens.desktops array itself
  * @param desktop_count  Number of entries in @p desktops_array,
@@ -330,9 +328,8 @@ static void s_config_load_screens_flat(cJSON *desktops_array,
  *        @c topology.screens.desktops shape
  *
  * Reads that one screen's @c count / @c inaugural, clamping the
- * inaugural desktop back to 0 if it names one past the screen's
- * desktop count, then loads every desktop named in its @c settings
- * array.
+ * inaugural desktop back to 0 if it names one past the screen's desktop
+ * count, then loads every desktop named in its @c settings array.
  *
  * @param desktop_item One entry of 'topology.screens.desktops',
  *                     describing screen @p screen_idx
@@ -357,15 +354,14 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
             &config_base->screens[screen_idx].desktop_count, 1u,
             "topology.screens.desktops[].count", filename);
 
-    /* 'config_base->screens[screen_idx].desktops' (config.h) is a
-     * fixed-size 'CONFIG_MAX_DESKTOPS' array; unlike the flat shape
-     * (@a s_config_load_screens_flat, whose 'desktop_count'
-     * parameter already arrives pre-clamped from its caller),
-     * this one reads "count" fresh from this one screen's JSON
-     * entry, with nothing else clamping it before every later
-     * consumer (starting with 'surface_init' at startup, wm.c) takes
-     * it as a trusted upper bound for iterating or indexing that same
-     * array. */
+    /* 'config_base->screens[screen_idx].desktops' (config.h) is
+     * a fixed-size 'CONFIG_MAX_DESKTOPS' array; unlike the flat shape
+     * (@a s_config_load_screens_flat, whose 'desktop_count' parameter
+     * already arrives pre-clamped from its caller), this one reads
+     * "count" fresh from this one screen's JSON entry, with nothing
+     * else clamping it before every later consumer (starting with
+     * 'surface_init' at startup, wm.c) takes it as a trusted upper
+     * bound for iterating or indexing that same array. */
     if (config_base->screens[screen_idx].desktop_count >
             (uint32_t) CONFIG_MAX_DESKTOPS) {
         LOGGER_WARNING("%s: topology.screens.desktops[%u].count (%u)" \
@@ -377,20 +373,19 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
             (uint32_t) CONFIG_MAX_DESKTOPS;
     }
 
-    /* This screen's 'desktop_count' is fully finalized as of
-     * right here, the exact precondition
-     * 's_config_load_desktop_layout' itself depends on for its
-     * 'rows * columns'
-     * validation just below. */
+    /* This screen's 'desktop_count' is fully finalized as of right
+     * here, the exact precondition 's_config_load_desktop_layout'
+     * itself depends on for its 'rows * columns' validation just
+     * below. */
     s_config_load_desktop_layout(desktop_item, screen_idx, config_base,
             filename);
 
     json_load_uint(desktop_item, "inaugural",
             &config_base->screens[screen_idx].desktop_inaugural);
 
-    /* Desktops, as screens, are zero-based indexed, so if the
-     * inaugural desktop is a number bigger than the desktop, it
-     * reverts to the first desktop of all: the 0th */
+    /* Desktops, as screens, are zero-based indexed, so if the inaugural
+     * desktop is a number bigger than the desktop, it reverts to the
+     * first desktop of all: the 0th */
     if (config_base->screens[screen_idx].desktop_inaugural >=
             config_base->screens[screen_idx].desktop_count) {
         config_base->screens[screen_idx].desktop_inaugural = 0;
@@ -424,11 +419,11 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
  * Every array entry describes one whole screen.
  *
  * @param desktops_array The @c topology.screens.desktops array itself
- * @param desktop_count  Number of entries in @p desktops_array,
- *                       already clamped to @c CONFIG_MAX_DESKTOPS;
- *                       reused here against @c CONFIG_MAX_SCREENS
- *                       instead, since each entry is a screen in this
- *                       shape, not a desktop (see the note below)
+ * @param desktop_count  Number of entries in @p desktops_array, already
+ *                       clamped to @c CONFIG_MAX_DESKTOPS; reused here
+ *                       against @c CONFIG_MAX_SCREENS instead, since
+ *                       each entry is a screen in this shape, not
+ *                       a desktop (see the note below)
  * @param config_base    Destination structure
  * @param filename       Path the JSON was read from, for log messages
  *                       only
@@ -442,8 +437,8 @@ static void s_config_load_screens_nested(cJSON *desktops_array,
 {
     /* Each entry of 'desktops_array' represents a screen in this
      * layout, so the bound must be 'CONFIG_MAX_SCREENS', not
-     * 'CONFIG_MAX_DESKTOPS'; otherwise 'config_base->screens[i]'
-     * would be written out of bounds */
+     * 'CONFIG_MAX_DESKTOPS'; otherwise 'config_base->screens[i]' would
+     * be written out of bounds */
     for (unsigned int i = 0;
             i < desktop_count && i < CONFIG_MAX_SCREENS; ++i) {
         cJSON *const desktop_item =
@@ -514,8 +509,8 @@ void ci_config_load_screens(cJSON *json,
 }
 
 
-/* Load 'desktops' (desktop-navigation and reserved-space behavior)
- * from parsed 'config.json' */
+/* Load 'desktops' (desktop-navigation and reserved-space behavior) from
+ * parsed 'config.json' */
 void ci_config_load_desktop_behavior(cJSON *json,
         struct config_desktop_s *config_desktop, const char *filename)
 {

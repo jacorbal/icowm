@@ -113,6 +113,13 @@ static void s_memguard_load_windows(cJSON *json, config_td *config)
                 config->base.windows.monitor_policy =
                     ci_config_parse_placement_monitor(
                             monitor_item->valuestring);
+            } else if (monitor_item != NULL &&
+                    cJSON_IsNumber(monitor_item) &&
+                    monitor_item->valueint >= 0) {
+                config->base.windows.monitor_policy =
+                    CONFIG_PLACEMENT_MONITOR_INDEX;
+                config->base.windows.monitor_index =
+                    (uint32_t) monitor_item->valueint;
             }
             json_load_bool(placement_item, "group-related",
                     &config->base.windows.group_related);

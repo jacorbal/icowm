@@ -297,12 +297,13 @@ response field means, is in [`icowm.md`](icowm.md) §5.3.
 | `goto_south_desktop`           | [`surface_id`]                           | The same, toward the desktop south of the current one |
 | `goto_east_desktop`            | [`surface_id`]                           | The same, toward the desktop east of the current one |
 | `goto_west_desktop`            | [`surface_id`]                           | The same, toward the desktop west of the current one |
-| `add_desktop`                  | [`surface_id`] | Adds a new desktop after the resolved surface's last one, growing its configured grid layout by a row or column first if it does not already have a gap cell for it.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
+| `add_desktop`                  | [`surface_id`]                           | Adds a new desktop after the resolved surface's last one, growing its configured grid layout by a row or column first if it does not already have a gap cell for it.  Refused, with an error, once the hardcoded number of max desktops allowed is already reached, or under restricted-memory mode (`-M`), which is always locked to a single desktop |
 | `remove_desktop`               | [`surface_id`]                           | Removes the resolved surface's last desktop, moving any client still on it to the one before it, switching the current view there too if it was the one removed.  Shrinks the grid layout back down if that was its last member.  Refused, with an error, while only one desktop remains |
 | `toggle_scratchpad`            | [`desktop_id`] [`surface_id`]            | Launches the scratchpad, or shows/hides it if already running |
 | `toggle_strutless_maximize`    | [`surface_id`]                           | Toggles whether panel and tray struts are set aside when computing that surface's work areas |
-| `exit_wm`                      | none                                     | Requests that IcoWM stop and exit |
 | `reload_config`                | none                                     | Reloads every configuration file |
+| `restart_wm`                   | none                                     | Requests that IcoWM stop and restart itself in place, keeping every managed client open |
+| `exit_wm`                      | none                                     | Requests that IcoWM stop and exit |
 
 ## 9. Watching for events
 
