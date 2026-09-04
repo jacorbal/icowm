@@ -42,6 +42,7 @@
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/pixmap.h>
 #include <utils/xcb/window.h>
 
 /* Project includes */
@@ -78,7 +79,6 @@ static bool s_root_bg_applied_once[CONFIG_MAX_SCREENS];
 static uint32_t s_root_bg_color_applied[CONFIG_MAX_SCREENS];
 
 
-/* Draw all clients on a desktop */
 /**
  * @brief What rendering one client needs to know about it
  *
@@ -99,6 +99,7 @@ struct s_render_ctx_s {
 };
 
 
+/* Draw all clients on a desktop */
 /**
  * @brief Property names a wallpaper-setting tool might publish its own
  *        root window background pixmap under
@@ -986,49 +987,6 @@ void desktop_render_one_client(desktop_td *desktop,
 }
 
 
-/**
- * @brief Create an off-screen buffer sized to stand in for a titlebar
- *
- * @c desktop_repaint_titlebar_content draws into the pixmap this
- * returns instead of straight onto the titlebar itself, so nothing
- * midway through that drawing is ever visible on screen; see its own
- * comment for why that matters.  @p depth has to be the titlebar's own,
- * since the cached text-renderer graphics context (built once, in
- * @c render/text.c, against the screen root) can only draw onto
- * a drawable sharing that same depth.
- *
- * @param connection Active XCB connection
- * @param depth      Depth to create the pixmap at, matching
- *                   @p titlebar's own
- * @param titlebar   Titlebar window the pixmap is created against; only
- *                   its screen matters here, not its contents
- * @param width      Pixmap width, matching the titlebar's own
- * @param height     Pixmap height, matching the titlebar's own
- *
- * @return The new pixmap, or @c XCB_NONE when @p width or @p height
- *         is zero
- *
- * @note Complexity: @e O(1)
- */
-static xcb_pixmap_t
-    s_titlebar_buffer_create(xcb_connection_t *connection,
-            uint8_t depth, xcb_window_t titlebar,
-            uint16_t width, uint16_t height)
-{
-    xcb_pixmap_t buffer;
-
-    if (width == 0u || height == 0u) {
-        return XCB_NONE;
-    }
-
-    buffer = xcb_generate_id(connection);
-    xcb_create_pixmap(connection, depth, buffer, titlebar,
-            width, height);
-
-    return buffer;
-}
-
-
 /* Repaint a titlebar's background, text and buttons */
 void desktop_repaint_titlebar_content(xcb_connection_t *connection,
         client_td *client, bool is_focused, uint16_t inner_w,
@@ -1066,7 +1024,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
             (const uint32_t[]) { bg_color });
 
     buffer = (surface != NULL)
-        ? s_titlebar_buffer_create(connection,
+        ? xcb_offscreen_buffer_create(connection,
                 surface->screen->root_depth, client->titlebar,
                 inner_w, title_h)
         : XCB_NONE;
@@ -1295,8 +1253,8 @@ int desktop_render_background(desktop_td *desktop)
      * 's_root_bg_applied_once' above), not per desktop.  Every desktop
      * sharing this screen's one root window can otherwise repaint over
      * whichever color another one on the same screen applied, without
-     * either ever detecting that the color actually
-     * showing has changed since its last render. */
+     * either ever detecting that the color actually showing has changed
+     * since its last render. */
     if (s_root_bg_applied_once[desktop->screen_id] &&
             s_root_bg_color_applied[desktop->screen_id] ==
                 desktop->background.bg.color) {

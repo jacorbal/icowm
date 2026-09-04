@@ -38,6 +38,7 @@
 /* Utils includes */
 #include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/pixmap.h>
 #include <utils/xcb/window.h>
 
 /* Project includes */
@@ -52,47 +53,6 @@
 #include <render/outdate.h>
 #include <render/text.h>
 #include <render/wmicon.h>
-
-
-/**
- * @brief Create an off-screen buffer sized to stand in for an icon
- *        window
- *
- * @c ri_render_client_icon draws into the pixmap this returns instead
- * of straight onto the icon window itself, so nothing midway through
- * that drawing is ever visible on screen; see its own comment for why
- * that matters.  @p depth has to be the icon window's own, since the
- * cached text-renderer graphics context (built once, in
- * 'render/text.c', against the screen root) can only draw onto a
- * drawable sharing that same depth.
- *
- * @param connection Active XCB connection
- * @param depth      Depth to create the pixmap at, matching the icon
- *                   window's own
- * @param icon       Icon window the pixmap is created against; only
- *                   its screen matters here, not its contents
- * @param width      Pixmap width, matching the icon window's own
- * @param height     Pixmap height, matching the icon window's own
- *
- * @return The new pixmap, or @c XCB_NONE when @p width or @p height
- *         is zero
- *
- * @note Complexity: @e O(1)
- */
-static xcb_pixmap_t s_icon_buffer_create(xcb_connection_t *connection,
-        uint8_t depth, xcb_window_t icon, uint16_t width, uint16_t height)
-{
-    xcb_pixmap_t buffer;
-
-    if (width == 0u || height == 0u) {
-        return XCB_NONE;
-    }
-
-    buffer = xcb_generate_id(connection);
-    xcb_create_pixmap(connection, depth, buffer, icon, width, height);
-
-    return buffer;
-}
 
 
 /**
@@ -240,7 +200,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
                 ? WM_ICON_CAPTION_HEIGHT : 0u));
     surface = wm_get_surface_by_id(client->screen_id);
     buffer = (surface != NULL)
-        ? s_icon_buffer_create(xcb_connection_get(),
+        ? xcb_offscreen_buffer_create(xcb_connection_get(),
                 surface->screen->root_depth, client->icon_window,
                 (uint16_t) WM_ICON_SQUARE_SIZE, icon_h)
         : XCB_NONE;

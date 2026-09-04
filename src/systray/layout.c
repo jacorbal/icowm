@@ -38,6 +38,7 @@
 
 /* Utils includes */
 #include <utils/xcb/connection.h>
+#include <utils/xcb/pixmap.h>
 #include <utils/xcb/window.h>
 
 /* Project includes */
@@ -349,48 +350,6 @@ static monitor_td s_systray_anchor_rect(void)
 }
 
 
-/**
- * @brief Create an off-screen buffer sized to stand in for the tray's
- *        text block
- *
- * @c systray_layout_reflow draws the clock/battery text into the pixmap
- * this returns instead of straight onto the tray window itself, so
- * nothing midway through that drawing is ever visible on screen; see
- * its own comment for why that matters.  @p depth has to be the tray
- * window's own, since the cached text-renderer graphics context (built
- * once, in @c render/text.c, against the screen root) can only draw
- * onto a drawable sharing that same depth.
- *
- * @param connection Active XCB connection
- * @param depth      Depth to create the pixmap at, matching the tray
- *                   window's own
- * @param window     Tray window the pixmap is created against; only its
- *                   screen matters here, not its contents
- * @param width      Pixmap width, matching the text block's own
- * @param height     Pixmap height, matching the tray window's own
- *
- * @return The new pixmap, or @c XCB_NONE when @p width or @p height is
- *         zero
- *
- * @note Complexity: @e O(1)
- */
-static xcb_pixmap_t s_systray_text_buffer_create(
-        xcb_connection_t *connection, uint8_t depth,
-        xcb_window_t window, uint16_t width, uint16_t height)
-{
-    xcb_pixmap_t buffer;
-
-    if (width == 0u || height == 0u) {
-        return XCB_NONE;
-    }
-
-    buffer = xcb_generate_id(connection);
-    xcb_create_pixmap(connection, depth, buffer, window, width, height);
-
-    return buffer;
-}
-
-
 /* Apply the configured 'systray.layer' stacking rule */
 void systray_layout_restack(void)
 {
@@ -570,7 +529,7 @@ void systray_layout_reflow(void)
         xcb_gcontext_t gc;
 
         buffer = (s_tray.surface != NULL)
-            ? s_systray_text_buffer_create(xcb_connection_get(),
+            ? xcb_offscreen_buffer_create(xcb_connection_get(),
                     s_tray.surface->screen->root_depth, s_tray.window,
                     text_w, h)
             : XCB_NONE;

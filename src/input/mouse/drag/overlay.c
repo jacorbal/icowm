@@ -28,31 +28,34 @@
 /* Default initial values */
 #include <defs/icon.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+#include <utils/xcb/pixmap.h>
+#include <utils/xcb/window.h>
+
 /* Project includes */
 #include <client.h>
 #include <render/text.h>
-
-/* Utils includes */
-#include <utils/xcb/connection.h>
+#include <surface.h>
+#include <wm.h>
 
 /* Local includes */
 #include <input/mouse/drag/internal.h>
 #include <input/mouse/drag/overlay.h>
-#include <utils/xcb/window.h>
 
 
 /**
  * @brief Compute the centered overlay position for a target rectangle
  *
- * Centers an overlay of size @p overlay_dim within the target
- * rectangle and stores the resulting top-left coordinates in
- * @p out_pos.  Negative coordinates are clamped to zero before
- * conversion to @c int16_t.
+ * Centers an overlay of size @p overlay_dim within the target rectangle
+ * and stores the resulting top-left coordinates in @p out_pos.
  *
  * @param target      Target rectangle
  * @param overlay_dim Width/height of the overlay rectangle
  * @param out_pos     Computed overlay position
  *
+ * @note Negative coordinates are clamped to zero before conversion to
+ *       @c int16_t
  * @note Complexity: @e O(1)
  */
 static void s_drag_overlay_rect(struct geometry_s target,
@@ -74,19 +77,24 @@ static void s_drag_overlay_rect(struct geometry_s target,
         centered_y = 0;
     }
 
-    out_pos->x = (centered_x < INT16_MIN) ? INT16_MIN
-        : (centered_x > INT16_MAX) ? INT16_MAX
-        : centered_x;
-    out_pos->y = (centered_y < INT16_MIN) ? INT16_MIN
-        : (centered_y > INT16_MAX) ? INT16_MAX
-        : centered_y;
+    out_pos->x = (centered_x < INT16_MIN)
+        ? INT16_MIN
+        : (centered_x > INT16_MAX)
+            ? INT16_MAX
+            : centered_x;
+    out_pos->y = (centered_y < INT16_MIN)
+        ? INT16_MIN
+        : (centered_y > INT16_MAX)
+            ? INT16_MAX
+            : centered_y;
 }
 
 
 /* Destroy and reset the active drag overlay window */
 void drag_overlay_hide(xcb_connection_t *connection)
 {
-    if (connection != NULL && s_drag.overlay_window != XCB_WINDOW_NONE) {
+    if (connection != NULL &&
+            s_drag.overlay_window != XCB_WINDOW_NONE) {
         xcb_window_destroy(s_drag.overlay_window);
     }
 
@@ -208,6 +216,10 @@ void drag_overlay_repaint(xcb_connection_t *connection)
     int16_t ascent;
     int16_t descent;
     int16_t text_y;
+    surface_td *surface;
+    xcb_pixmap_t buffer;
+    xcb_drawable_t target;
+    xcb_gcontext_t gc;
 
     if (connection == NULL ||
             s_drag.overlay_window == XCB_WINDOW_NONE ||
@@ -231,18 +243,16 @@ void drag_overlay_repaint(xcb_connection_t *connection)
     xcb_change_window_attributes(connection, s_drag.overlay_window,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) { bg, border });
-    xcb_clear_area(connection, 0, s_drag.overlay_window, 0, 0, 0, 0);
 
     (void) text_renderer_use_font(connection, font_name);
     text_renderer_set_color(fg, bg);
 
     text_w = text_string_measure(s_drag.overlay_text);
-    /* Horizontally centered within the overlay window's actual
-     * width, computed with the exact same formula
-     * 's_drag_overlay_show' used to size that window in the first
-     * place, rather than
-     * a separately hardcoded threshold that happened to only agree with
-     * it for a wide-enough or narrow-enough string.
+    /* Horizontally centered within the overlay window's actual width,
+     * computed with the exact same formula 's_drag_overlay_show' used
+     * to size that window in the first place, rather than a separately
+     * hardcoded threshold that happened to only agree with it for
+     * a wide-enough or narrow-enough string.
      *
      * Those two thresholds ('text_w + 2*PAD_X < MIN_WIDTH' here versus
      * 'text_w < MIN_WIDTH' in the box-sizing formula) disagreeing for
@@ -266,14 +276,48 @@ void drag_overlay_repaint(xcb_connection_t *connection)
      * actually configures, rather than a single Y hardcoded for one
      * particular font size: see 'text_font_ascent's comment in
      * 'render/text.h' for the derivation (ascent placed 'top' pixels
-     * below the box's top edge, here with 'top' itself computed
-     * from ascent/descent so half the leftover vertical space sits on
-     * each side). */
+     * below the box's top edge, here with 'top' itself computed from
+     * ascent/descent so half the leftover vertical space sits on each
+     * side). */
     ascent = text_font_ascent();
     descent = text_font_descent();
     text_y = (int16_t)
         (((int32_t) WM_DRAG_OVERLAY_HEIGHT + ascent - descent) / 2);
 
-    text_draw_string(connection, s_drag.overlay_window, XCB_NONE,
-            (struct position_s) { text_x, text_y }, s_drag.overlay_text);
+    surface = wm_get_surface_by_id(s_drag.client->screen_id);
+    buffer = (surface != NULL)
+        ? xcb_offscreen_buffer_create(connection,
+                surface->screen->root_depth, s_drag.overlay_window,
+                overlay_w, (uint16_t) WM_DRAG_OVERLAY_HEIGHT)
+        : XCB_NONE;
+    target = (buffer != XCB_NONE) ? buffer : s_drag.overlay_window;
+
+    if (buffer != XCB_NONE) {
+        gc = xcb_generate_id(connection);
+        xcb_create_gc(connection, gc, buffer, XCB_GC_FOREGROUND, &bg);
+        xcb_poly_fill_rectangle(connection, buffer, gc, 1,
+                (const xcb_rectangle_t[]) {
+                    { 0, 0,
+                    overlay_w,
+                    (uint16_t) WM_DRAG_OVERLAY_HEIGHT }
+                });
+        xcb_free_gc(connection, gc);
+    } else {
+        xcb_clear_area(connection, 0, s_drag.overlay_window,
+                0, 0, 0, 0);
+    }
+
+    text_draw_string(connection, target, XCB_NONE,
+            (struct position_s) { text_x, text_y },
+            s_drag.overlay_text);
+
+    if (buffer != XCB_NONE) {
+        gc = xcb_generate_id(connection);
+        xcb_create_gc(connection, gc, s_drag.overlay_window, 0u, NULL);
+        xcb_copy_area(connection, buffer, s_drag.overlay_window, gc,
+                0, 0, 0, 0, overlay_w,
+                (uint16_t) WM_DRAG_OVERLAY_HEIGHT);
+        xcb_free_gc(connection, gc);
+        xcb_free_pixmap(connection, buffer);
+    }
 }
