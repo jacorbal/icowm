@@ -53,6 +53,22 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/systray/test_battery \
     $(O_DIR)/tests/render/test_surface \
     $(O_DIR)/tests/client/test_state \
+    $(O_DIR)/tests/client/test_gravity \
+    $(O_DIR)/tests/client/test_geom \
+    $(O_DIR)/tests/client/test_props \
+    $(O_DIR)/tests/test_client \
+    $(O_DIR)/tests/test_surface_lifecycle \
+    $(O_DIR)/tests/cmds/client/test_flags \
+    $(O_DIR)/tests/cmds/client/test_state \
+    $(O_DIR)/tests/cmds/client/test_layer \
+    $(O_DIR)/tests/cmds/client/test_visibility \
+    $(O_DIR)/tests/cmds/client/test_workarea \
+    $(O_DIR)/tests/cmds/client/test_maximize \
+    $(O_DIR)/tests/cmds/client/test_transient \
+    $(O_DIR)/tests/input/mouse/drag/test_resist \
+    $(O_DIR)/tests/input/mouse/drag/test_snap \
+    $(O_DIR)/tests/input/mouse/drag/test_warp \
+    $(O_DIR)/tests/rules/test_apply \
     $(O_DIR)/tests/policy/test_placement \
     $(O_DIR)/tests/policy/test_tiling \
     $(O_DIR)/tests/surface/test_desktop_grid \
@@ -286,6 +302,127 @@ $(O_DIR)/tests/client/test_state: \
 		$(TESTS_DIR)/client/test_state.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
+
+$(O_DIR)/tests/client/test_gravity: \
+		$(TESTS_DIR)/client/test_gravity.c \
+		$(S_DIR)/client/state.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/client/test_geom: \
+		$(TESTS_DIR)/client/test_geom.c \
+		$(S_DIR)/client/geom.c \
+		$(S_DIR)/utils/safe/safemem.c \
+		$(S_DIR)/utils/safe/safeflg.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/client/test_props: \
+		$(TESTS_DIR)/client/test_props.c \
+		$(S_DIR)/client/props.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/test_client: \
+		$(TESTS_DIR)/test_client.c \
+		$(S_DIR)/client.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/test_surface_lifecycle: \
+		$(TESTS_DIR)/test_surface_lifecycle.c \
+		$(S_DIR)/surface.c \
+		$(S_DIR)/adt/cdlist.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_flags: \
+		$(TESTS_DIR)/cmds/client/test_flags.c \
+		$(S_DIR)/cmds/client/flags.c \
+		$(S_DIR)/utils/safe/safeflg.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_state: \
+		$(TESTS_DIR)/cmds/client/test_state.c \
+		$(S_DIR)/cmds/client/state.c \
+		$(S_DIR)/utils/safe/safeflg.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_layer: \
+		$(TESTS_DIR)/cmds/client/test_layer.c \
+		$(S_DIR)/cmds/client/layer.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/desktop/dfind.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_visibility: \
+		$(TESTS_DIR)/cmds/client/test_visibility.c \
+		$(S_DIR)/cmds/client/visibility.c \
+		$(S_DIR)/utils/safe/safeflg.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_workarea: \
+		$(TESTS_DIR)/cmds/client/test_workarea.c \
+		$(S_DIR)/cmds/client/workarea.c \
+		$(S_DIR)/cmds/client/screen.c \
+		$(S_DIR)/adt/list.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_maximize: \
+		$(TESTS_DIR)/cmds/client/test_maximize.c \
+		$(S_DIR)/cmds/client/maximize.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_transient: \
+		$(TESTS_DIR)/cmds/client/test_transient.c \
+		$(S_DIR)/cmds/client/transient.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/drag/test_resist: \
+		$(TESTS_DIR)/input/mouse/drag/test_resist.c \
+		$(S_DIR)/input/mouse/drag/resist.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/drag/test_snap: \
+		$(TESTS_DIR)/input/mouse/drag/test_snap.c \
+		$(S_DIR)/input/mouse/drag/snap.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/desktop/dfind.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/drag/test_warp: \
+		$(TESTS_DIR)/input/mouse/drag/test_warp.c \
+		$(S_DIR)/input/mouse/drag/warp.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/rules/test_apply: \
+		$(TESTS_DIR)/rules/test_apply.c \
+		$(S_DIR)/rules/apply.c \
+		$(S_DIR)/rules/match.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 $(O_DIR)/tests/policy/test_placement: $(TESTS_DIR)/policy/test_placement.c \
 		$(S_DIR)/utils/xcb/window.c \
