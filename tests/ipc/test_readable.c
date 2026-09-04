@@ -156,7 +156,6 @@ static void s_test_multiple_lines_in_one_read_both_dispatched(void)
     int a;
     int b;
     char reply[256];
-    ssize_t n;
     size_t total = 0u;
 
     ipc_test_reset();
@@ -171,7 +170,7 @@ static void s_test_multiple_lines_in_one_read_both_dispatched(void)
      * echoes are seen or no more is available */
     memset(reply, 0, sizeof(reply));
     for (int tries = 0; tries < 4; ++tries) {
-        n = s_read_available(b, reply + total,
+        ssize_t n = s_read_available(b, reply + total,
                 sizeof(reply) - total);
         if (n <= 0) {
             break;

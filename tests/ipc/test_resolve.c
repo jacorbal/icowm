@@ -59,7 +59,8 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
  *  driven the same realistic way */
 static desktop_td *s_desktops_by_id[8];
 
-desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+desktop_td *surface_desktop_get(surface_td *surface,
+        uint32_t desktop_id)
 {
     (void) surface;
     if (desktop_id >= 8u) {
@@ -93,7 +94,7 @@ static void s_test_resolve_surface_explicit_id(void)
 {
     surface_td surface;
     cJSON *args = cJSON_CreateObject();
-    surface_td *found;
+    const surface_td *found;
 
     memset(&surface, 0, sizeof(surface));
     s_surface_by_id_result = &surface;
@@ -115,7 +116,7 @@ static void s_test_resolve_surface_falls_back_to_first(void)
     surface_td a;
     surface_td b;
     cJSON *args = cJSON_CreateObject();
-    surface_td *found;
+    const surface_td *found;
 
     memset(&wm, 0, sizeof(wm));
     memset(&a, 0, sizeof(a));
@@ -174,7 +175,8 @@ static void s_test_resolve_desktop_no_surface(void)
     TAP_NULL(found, "no resolvable surface: desktop resolution fails");
     TAP_NOT_NULL(out_error, "an error response is built");
     TAP_EQ_STR(cJSON_GetObjectItem(out_error, "error")->valuestring,
-            "no such surface", "the error message names the real cause");
+            "no such surface",
+            "the error message names the real cause");
 
     cJSON_Delete(out_error);
     list_destroy(wm.surfaces);
@@ -191,7 +193,7 @@ static void s_test_resolve_desktop_explicit_id(void)
     cJSON *args = cJSON_CreateObject();
     surface_td *out_surface = NULL;
     cJSON *out_error = NULL;
-    desktop_td *found;
+    const desktop_td *found;
 
     memset(&surface, 0, sizeof(surface));
     memset(&desktop, 0, sizeof(desktop));
@@ -201,9 +203,11 @@ static void s_test_resolve_desktop_explicit_id(void)
     cJSON_AddNumberToObject(args, "surface_id", 0);
     cJSON_AddNumberToObject(args, "desktop_id", 2);
 
-    found = ipc_resolve_desktop(NULL, args, true, &out_surface, &out_error);
+    found = ipc_resolve_desktop(NULL, args, true,
+            &out_surface, &out_error);
 
-    TAP_OK(found == &desktop, "an explicit, in-range desktop_id resolves");
+    TAP_OK(found == &desktop,
+            "an explicit, in-range desktop_id resolves");
     TAP_OK(out_surface == &surface, "out_surface is set to the" \
             " resolved surface");
 
@@ -229,7 +233,8 @@ static void s_test_resolve_desktop_id_out_of_range(void)
     cJSON_AddNumberToObject(args, "surface_id", 0);
     cJSON_AddNumberToObject(args, "desktop_id", 5);
 
-    found = ipc_resolve_desktop(NULL, args, true, &out_surface, &out_error);
+    found = ipc_resolve_desktop(NULL, args, true,
+            &out_surface, &out_error);
 
     TAP_NULL(found, "an out-of-range desktop_id fails");
     TAP_EQ_STR(cJSON_GetObjectItem(out_error, "error")->valuestring,
@@ -256,7 +261,8 @@ static void s_test_resolve_desktop_missing_id_required(void)
     s_surface_by_id_result = &surface;
     cJSON_AddNumberToObject(args, "surface_id", 0);
 
-    found = ipc_resolve_desktop(NULL, args, true, &out_surface, &out_error);
+    found = ipc_resolve_desktop(NULL, args, true,
+            &out_surface, &out_error);
 
     TAP_NULL(found, "a missing desktop_id fails when required");
     TAP_EQ_STR(cJSON_GetObjectItem(out_error, "error")->valuestring,
@@ -277,7 +283,7 @@ static void s_test_resolve_desktop_missing_id_falls_back(void)
     cJSON *args = cJSON_CreateObject();
     surface_td *out_surface = NULL;
     cJSON *out_error = NULL;
-    desktop_td *found;
+    const desktop_td *found;
 
     memset(&surface, 0, sizeof(surface));
     memset(&desktop, 0, sizeof(desktop));
@@ -332,7 +338,7 @@ static void s_test_resolve_client_found(void)
     surface_td *out_surface = NULL;
     desktop_td *out_desktop = NULL;
     cJSON *out_error = NULL;
-    client_td *found;
+    const client_td *found;
 
     memset(&wm, 0, sizeof(wm));
     memset(&surface, 0, sizeof(surface));

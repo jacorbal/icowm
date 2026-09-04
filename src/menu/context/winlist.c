@@ -94,8 +94,7 @@ static ctxmenu_state_td s_desktop_state[WINLIST_MAX_DESKTOPS];
  *  @c class_name, only @c on_activate and @c userdata, so no individual
  *  entry holds anything to release */
 static ctxmenu_entry_td
-(*s_desktop_entries)[WINLIST_MAX_ENTRIES_PER_DESKTOP]
-    = NULL;
+    (*s_desktop_entries)[WINLIST_MAX_ENTRIES_PER_DESKTOP] = NULL;
 
 /**
  * @brief State for each application-group submenu, allocated afresh and
@@ -110,8 +109,8 @@ static ctxmenu_state_td *s_appgroup_state = NULL;
  * @note Sized, allocated and released alongside @c s_appgroup_state
  *       above and for the same reasons
  */
-static ctxmenu_entry_td (*s_appgroup_entries)[WINLIST_MAX_APPGROUP_SIZE]
-    = NULL;
+static ctxmenu_entry_td
+    (*s_appgroup_entries)[WINLIST_MAX_APPGROUP_SIZE] = NULL;
 
 /**
  * @brief Application-group slots claimed during this @a winlist_show
@@ -233,7 +232,7 @@ static void s_cb_add_desktop(xcb_connection_t *connection,
  *
  * Callback invoked from the window list's trailing "Remove last
  * desktop" entry.  A no-op, silently, when only one desktop remains;
- * see @a surface_action_desktop_remove (surface.h) for the exact
+ * see @a surface_action_desktop_remove (@c surface.h) for the exact
  * refusal conditions, and this same entry's @c is_disabled below
  * (@a winlist_show) for how that state reaches the user before they
  * even try.
@@ -665,14 +664,21 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
             continue;
         }
 
+        /* A leader with more than 'WINLIST_MAX_APPGROUP_SIZE' windows
+         * still open leaves the extra ones unplaced here rather than
+         * marking them done without ever appending them anywhere: the
+         * outer loop reaches them on a later 'i' and gives them another
+         * pass at being grouped (or, once fewer than two are left
+         * ungrouped, listed on their own), so a window is never simply
+         * absent from its own desktop's list over nothing worse than
+         * sharing a leader with too many others. */
         member_n = 0;
         for (int j = i; j < collected_n; ++j) {
             if (!placed[j] &&
-                    client_group_leader(collected[j]) == leader) {
-                if (member_n < WINLIST_MAX_APPGROUP_SIZE) {
-                    members[member_n] = collected[j];
-                    member_n++;
-                }
+                    client_group_leader(collected[j]) == leader &&
+                    member_n < WINLIST_MAX_APPGROUP_SIZE) {
+                members[member_n] = collected[j];
+                member_n++;
                 placed[j] = true;
             }
         }
