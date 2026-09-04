@@ -47,20 +47,14 @@
 #include <menu/dialog/quit.h>
 
 
-/**
- * @brief Surface stored at open time (needed by the exit callback)
- */
+/** Surface stored at open time (needed by the exit callback) */
 static surface_td *s_surface = NULL;
 
-/**
- * @brief Config stored at open time (needed by the exit callback)
- */
+/** Config stored at open time (needed by the exit callback) */
 static const config_td *s_config = NULL;
 
-/**
- * @brief Window manager instance stored at open time (needed by the
- *       "Rearrange" and "Reload configuration" callbacks)
- */
+/** Window manager instance stored at open time (needed by the
+ *  "Rearrange" and "Reload configuration" callbacks) */
 static wm_td *s_wm = NULL;
 
 /** Singleton root menu state */
@@ -131,7 +125,7 @@ static void s_cb_redraw(xcb_connection_t *connection, void *userdata)
  *        the surface this menu was opened on
  *
  * A surface-wide setting, not a per-window one, so it lives here rather
- * than in the window context menu ('Alt+Space').
+ * than in the window context menu (@c Alt+Space).
  *
  * @param connection Unused, matches @c ctxmenu_on_activate_fn's
  *                   signature
@@ -168,8 +162,8 @@ static void s_cb_exit(xcb_connection_t *connection, void *userdata)
 }
 
 
-/* Load (or reload) 'menu.json''s entries; see this function's comment
- * in 'menu/context/rootmenu.h' */
+/* Load (or reload) 'menu.json''s entries; see this function's
+ * comment in 'menu/context/rootmenu.h' */
 void rootmenu_menu_json_load(const char *config_dir)
 {
     char menu_path[ROOTMENU_PATH_MAX];
@@ -208,11 +202,11 @@ void rootmenu_menu_json_load(const char *config_dir)
     /* Failure is non-fatal: an absent or unparsable 'menu.json' just
      * leaves the root menu showing its fixed footer with no JSON
      * entries above it.  Not followed by 'wm_json_syntax_errors_warn'
-     * here.  Both of this function's callers (startup, in 'wm.c';
+     * here: both of this function's callers (startup, in 'wm.c';
      * reload, in 'wm/actions.c') already call it themselves once
-     * everything for that pass has finished loading, so calling it here
-     * too would just show the same warning dialog for the same pass
-     * a second time. */
+     * everything for that pass has finished loading, so calling it
+     * here too would just show the same warning dialog for the same
+     * pass a second time. */
     (void) menujson_load(menu_path, &json_entries, &json_count);
 
     s_json_entries = json_entries;
@@ -254,9 +248,9 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
     s_wm = wm;
 
     /* Total entries: JSON entries + footer */
-    /* The leading separator is only added when JSON entries are present
-     * so the footer is not preceded by a bare separator when
-     * 'menu.json' is missing or empty */
+    /* The leading separator is only added when JSON entries are
+     * present so the footer is not preceded by a bare separator
+     * when 'menu.json' is missing or empty */
     n = s_json_count + ROOTMENU_FOOTER_COUNT -
         ((s_json_count == 0) ? 1 : 0);
     if (n > ROOTMENU_MAX_ENTRIES) {
@@ -283,7 +277,12 @@ void rootmenu_show(wm_td *wm, xcb_connection_t *connection,
      * written after these entries and needs the slots reserved for it.
      * 'menu.json' may hold any number of them */
     copy_count = s_json_count;
-    if (copy_count > n - ROOTMENU_FOOTER_COUNT) {
+    if (n - ROOTMENU_FOOTER_COUNT < 0) {
+        /* The footer alone already exceeds 'n' when there are no
+         * JSON entries to separate it from (see the leading-separator
+         * skip above), so there is no room left for any copy at all */
+        copy_count = 0;
+    } else if (copy_count > n - ROOTMENU_FOOTER_COUNT) {
         copy_count = n - ROOTMENU_FOOTER_COUNT;
         LOGGER_WARNING("Root menu holds %d entries; showing the first" \
                 " %d, which is all '%s' has room for",
@@ -366,9 +365,9 @@ void rootmenu_close(void)
      * 'rootmenu_menu_json_free' (read their comments for a change) */
     if (s_entries != NULL) {
         /* 'command'/'class_name' alone, of everything in each entry,
-         * are 's_entries' independent copies rather than shared with
-         * 's_json_entries'; see 'rootmenu_show''s comment on why, right
-         * where they are copied. */
+         * are 's_entries' independent copies rather than shared
+         * with 's_json_entries'; see 'rootmenu_show''s comment on
+         * why, right where they are copied. */
         for (int i = 0; i < s_entry_count; ++i) {
             free(s_entries[i].command);
             free(s_entries[i].class_name);

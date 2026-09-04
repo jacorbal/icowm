@@ -35,7 +35,9 @@
 /* Utils include */
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 #include <utils/xcb/selection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <logger.h>
@@ -43,12 +45,10 @@
 
 /* Local includes */
 #include <systray/internal.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**
- * @brief Best-effort sort key for an icon window.  Its @c WM_CLASS
+ * @brief Best-effort sort key for an icon window: its @c WM_CLASS
  *        instance name
  *
  * Used only by the alphabetical @c order policies; left as an empty
@@ -103,11 +103,11 @@ static void s_systray_icon_sort_key_fetch(xcb_window_t icon,
 
 
 /**
- * @brief Whether an icon's own '_XEMBED_INFO' asks to be shown
+ * @brief Whether an icon's own @c _XEMBED_INFO asks to be shown
  *
  * Per the XEmbed protocol specification, a conforming icon may publish
- * '_XEMBED_INFO' (format 32, two 'CARD32': version and flags) with the
- * 'XEMBED_MAPPED' flag bit still clear while it finishes its own
+ * @c _XEMBED_INFO (format 32, two @c CARD32: version and flags) with
+ * the @c XEMBED_MAPPED flag bit still clear while it finishes its own
  * initialization, and expects the tray manager to honor that rather
  * than mapping it regardless.  A window with no such property at all
  * predates the convention, so it is mapped unconditionally, exactly as
@@ -265,9 +265,9 @@ void systray_protocol_dock(xcb_window_t icon)
 
     /* Track 'StructureNotify' so 'systray_handle_destroy' learns when
      * the icon's application exits or otherwise destroys the window,
-     * and 'PropertyNotify' so a later change to '_XEMBED_INFO' (an
-     * icon that starts out with 'XEMBED_MAPPED' clear and sets it
-     * only once its own initialization finishes) is not missed */
+     * and 'PropertyNotify' so a later change to '_XEMBED_INFO' (an icon
+     * that starts out with 'XEMBED_MAPPED' clear and sets it only once
+     * its own initialization finishes) is not missed */
     attr_values[0] = XCB_EVENT_MASK_STRUCTURE_NOTIFY |
         XCB_EVENT_MASK_PROPERTY_CHANGE;
     xcb_change_window_attributes(xcb_connection_get(), icon,
@@ -282,8 +282,7 @@ void systray_protocol_dock(xcb_window_t icon)
             size_values);
 
     /* A conforming icon may ask, via '_XEMBED_INFO', to stay unmapped
-     * until it finishes initializing; see
-     * 's_systray_icon_wants_mapped' */
+     * until it finishes initializing; see 's_systray_icon_wants_mapped' */
     if (s_systray_icon_wants_mapped(icon)) {
         xcb_window_show(icon);
     }
@@ -322,8 +321,8 @@ void systray_protocol_dock(xcb_window_t icon)
 
 
 /* React to a property change on a docked icon window; only
- * '_XEMBED_INFO' toggling its 'XEMBED_MAPPED' bit after the fact is
- * of any interest here */
+ * '_XEMBED_INFO' toggling its 'XEMBED_MAPPED' bit after the fact is of
+ * any interest here */
 void systray_protocol_property_changed(xcb_window_t window,
         xcb_atom_t atom)
 {
@@ -402,12 +401,13 @@ void systray_protocol_apply_theme_style(void)
 /* Create the tray window and intern its atoms, once
  *
  * - Idempotent: does nothing (beyond returning success) if
- * 's_tray.is_window_ready' is already 'true'.
+ *   's_tray.is_window_ready' is already 'true'.
  * - Does not acquire the selection; see
- * 'systray_protocol_selection_acquire'. */
+ *   'systray_protocol_selection_acquire'. */
 bool systray_protocol_window_ensure(const wm_td *wm)
 {
     surface_td *surface;
+    list_item_td *node;
     char selection_name[32];
     uint32_t mask;
     uint32_t values[4];
@@ -424,7 +424,12 @@ bool systray_protocol_window_ensure(const wm_td *wm)
         return false;
     }
 
-    surface = (surface_td *) list_data(list_head(surfaces));
+    node = list_head(surfaces);
+    if (node == NULL) {
+        return false;
+    }
+
+    surface = (surface_td *) list_data(node);
     if (surface == NULL || surface->screen == NULL) {
         return false;
     }
@@ -455,17 +460,17 @@ bool systray_protocol_window_ensure(const wm_td *wm)
     }
 
     s_tray.window = xcb_generate_id(connection);
-    mask = XCB_CW_BACK_PIXEL   |
-        XCB_CW_BORDER_PIXEL    |
+    mask = XCB_CW_BACK_PIXEL     |
+        XCB_CW_BORDER_PIXEL      |
         XCB_CW_OVERRIDE_REDIRECT |
         XCB_CW_EVENT_MASK;
     values[0] = config->theme.systray.style.color.background;
     values[1] = config->theme.systray.style.border.color;
     values[2] = 1;   /* override_redirect: never managed as a client */
     values[3] = XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-        /* Without this, a docked icon's resize attempt on itself
-         * (many apps resize their tray icon for DPI or content reasons)
-         * is applied by the server directly with no 'ConfigureRequest'
+        /* Without this, a docked icon's resize attempt on itself (many
+         * apps resize their tray icon for DPI or content reasons) is
+         * applied by the server directly with no 'ConfigureRequest'
          * ever generated, silently undoing the configured
          * 's_tray.pixmap_size' this module forces on it at dock time;
          * see 'systray_icon_size_enforce' in 'systray.c'. */
@@ -555,11 +560,11 @@ void systray_protocol_selection_release(void)
             s_tray.selection_atom, XCB_CURRENT_TIME);
     s_tray.is_selection_owned = false;
     /* Actually unmaps only if 'is_active' is also already false by now:
-     * systray_reload's 'disabled' path always sets that first,
-     * right before calling this.  Still safe to call from
-     * systray_shutdown instead, where 'is_active' may still be true
-     * here, since that caller destroys the window outright right after
-     * regardless of whether this unmapped it first. */
+     * systray_reload's 'disabled' path always sets that first, right
+     * before calling this.  Still safe to call from systray_shutdown
+     * instead, where 'is_active' may still be true here, since that
+     * caller destroys the window outright right after regardless of
+     * whether this unmapped it first. */
     systray_layout_reflow();
 
     LOGGER_INFO("Systray selection released (%u icon(s) kept docked" \

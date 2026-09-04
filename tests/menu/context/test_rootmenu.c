@@ -369,40 +369,41 @@ static void s_test_show_guards(void)
 
 
 /**
- * @brief Document a discovered defect: showing the menu while zero
- *        JSON entries are loaded overflows the allocated entry array
+ * @brief Showing the menu with zero JSON entries loaded produces
+ *        exactly the fixed 6-row footer, with no leading separator
+ *        and no out-of-bounds write into the entry array
  *
  * 'rootmenu_show' reserves 'n = s_json_count + ROOTMENU_FOOTER_COUNT -
  * (s_json_count == 0 ? 1 : 0)' slots, which is 6 when no menu.json
  * entries are loaded ('ROOTMENU_FOOTER_COUNT' is 7, and the leading
  * separator that '- 1' accounts for is genuinely skipped, so the
- * footer alone really does only write 6 entries).  Its later clamp,
- * 'if (copy_count > n - ROOTMENU_FOOTER_COUNT) copy_count = n -
- * ROOTMENU_FOOTER_COUNT;', does not special-case that same
- * zero-entries reservation: with 'n == 6' it computes 'n -
- * ROOTMENU_FOOTER_COUNT == -1', so 'copy_count' (already 0) is
- * wrongly clamped down to -1, and every subsequent 'fi'-indexed write
- * in the footer-building block runs from 'fi = -1', one slot before
- * the array, corrupting memory adjacent to the heap allocation.
- * Confirmed here with AddressSanitizer, which reports a SEGV (write)
- * at 'src/menu/context/rootmenu.c:303' the instant 'rootmenu_show' is
- * called with no menu.json entries loaded; a debugger backtrace at
- * that crash shows 'copy_count = -1' and 'fi = -1' at the crashing
- * frame, exactly as this analysis predicts.  Per this task's ground
- * rules, 'src/' is never modified to work around this, so this
- * scenario is deliberately never exercised through the public API in
- * any other test in this file; every other 's_test_show_*' scenario
- * here loads at least one JSON entry first specifically to keep
- * 'copy_count' non-negative and avoid retriggering it.
+ * footer alone really does only need 6 slots).  The later clamp on
+ * 'copy_count' now floors at 0 instead of letting 'n -
+ * ROOTMENU_FOOTER_COUNT' go negative in this exact case, so 'fi'
+ * starts the footer-building block at '0' rather than '-1'
  */
-static void s_test_show_empty_json_defect_documented(void)
+static void s_test_show_empty_json(void)
 {
-    TAP_OK(true,
-            "known defect: rootmenu_show corrupts memory when zero"
-            " JSON entries are loaded (see this test's comment);"
-            " deliberately not exercised live, since src/ may not be"
-            " modified to fix it and doing so would abort the whole"
-            " suite under ASan");
+    surface_td surface;
+    config_td config;
+    struct position_s pos = { 0, 0 };
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    memset(&config, 0, sizeof(config));
+    rootmenu_menu_json_load("/etc/icowm");
+
+    rootmenu_show(NULL, (xcb_connection_t *) 1, &surface, pos, &config);
+
+    TAP_EQ_INT(s_show_state->entry_count, 6,
+            "the 6-row footer alone makes 6 rows total when no JSON"
+            " entries are loaded");
+    TAP_EQ_INT((int) s_show_state->entries[0].type,
+            (int) CTXMENU_COMMAND,
+            "the first row is the first footer command, not a stray"
+            " leading separator");
+
+    rootmenu_menu_json_free();
 }
 
 
@@ -484,10 +485,9 @@ static void s_test_show_strutted_label(void)
     memset(fixture, 0, sizeof(fixture));
     surface.strutless_maximize = true;
 
-    /* At least one JSON entry is loaded here to sidestep the
-     * zero-entries defect documented by
-     * 's_test_show_empty_json_defect_documented'; see that test's
-     * comment for the full analysis. */
+    /* A JSON entry is loaded here purely so 'entries[2]' below lands
+     * on the footer's first row, right after the leading separator
+     * that only appears when JSON entries are present */
     fixture[0].type = CTXMENU_COMMAND;
     strcpy(fixture[0].label, "Terminal");
     s_json_load_entries = fixture;
@@ -606,11 +606,11 @@ static void s_test_wrappers(void)
 
 int main(void)
 {
-    TAP_PLAN(34);
+    TAP_PLAN(35);
 
     s_test_json_load();
     s_test_show_guards();
-    s_test_show_empty_json_defect_documented();
+    s_test_show_empty_json();
     s_test_show_with_json_entries();
     s_test_show_strutted_label();
     s_test_show_closes_previous();

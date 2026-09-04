@@ -1076,17 +1076,8 @@ static void s_test_window_ensure_idempotent(void)
 
 /**
  * @brief 'systray_protocol_window_ensure' refuses cleanly for a NULL
- *        'wm', a NULL connection, config, or surface list, or
- *        a screen-less surface
- *
- * An empty (but non-NULL) surface list is deliberately NOT exercised
- * here: the real source at src/systray/protocol.c:427 calls
- * 'list_data(list_head(surfaces))' unconditionally once 'surfaces'
- * itself is confirmed non-NULL, and 'list_head' on an empty list is
- * NULL, so 'list_data' (a bare '(item)->data' macro) dereferences it,
- * which crashes under ASan; this is a genuine bug in the module under
- * test, not something this test file may fix, so that one scenario is
- * skipped and documented instead, per this round's instructions
+ *        'wm', a NULL connection, config, or surface list, an empty
+ *        surface list, or a screen-less surface
  */
 static void s_test_window_ensure_guards(void)
 {
@@ -1103,11 +1094,16 @@ static void s_test_window_ensure_guards(void)
     ok = systray_protocol_window_ensure(s_fake_wm);
     TAP_OK(!ok, "a NULL surface list is refused");
 
-    TAP_OK(true, "skipped: an empty, non-NULL surface list is not"
-            " exercised here, since protocol.c:427 dereferences"
-            " list_head's NULL result unconditionally in that case,"
-            " a genuine bug in the module under test that this file"
-            " may not fix, only work around by not triggering it");
+    s_reset();
+    s_reset_config();
+    s_surfaces_stub = list_init(NULL);
+    ok = systray_protocol_window_ensure(s_fake_wm);
+    TAP_OK(!ok, "an empty, non-NULL surface list is refused rather"
+            " than dereferencing list_head's NULL result");
+    TAP_EQ_INT(s_create_window_calls, 0, "and nothing is created"
+            " either");
+    list_destroy(s_surfaces_stub);
+    s_surfaces_stub = NULL;
 
     s_reset();
     s_reset_config();
@@ -1323,7 +1319,7 @@ static void s_test_selection_release_success(void)
 
 int main(void)
 {
-    TAP_PLAN(80);
+    TAP_PLAN(81);
 
     s_test_resort_noop_for_directional_orders();
     s_test_resort_sorts_by_key();
