@@ -94,11 +94,6 @@ Basic features are:
     such that window placement and icon layout each respect the work
     area actually available.
 
-  - **Window cycling.**
-    An interactive window-cycle menu, not unlike the familiar `Alt+Tab`,
-    permits swift, keyboard-driven navigation amongst open clients and
-    iconified windows alike.
-
   - **Fuzzy window search.**
     A dedicated search widget filters open windows by their title as the
     query is typed, fuzzy-matched and ranked by how well each one fits,
@@ -162,8 +157,8 @@ Basic features are:
     Every dialog message, button, and menu label is translatable via
     `gettext`, so IcoWM's user-facing text may render in the user's
     locale.  The command line and diagnostic log messages are
-    deliberately left untranslated, as these serve a diagnostic, not an
-    end-user, audience.
+    deliberately left untranslated, as these serve a diagnostic
+    audience rather than an end-user one.
 
   - **Iconifying (traditional).**
     Rather than modern minimization to a crowded taskbar, the window is
@@ -186,8 +181,7 @@ Basic features are:
     a low-power single-board computer, or a virtual machine allotted but
     a modest share of memory.  A companion compile-time option, `make
     COMPACT=1`, may be combined with it for a build sized for such
-    a target from the very ground up.  See `doc/icowm.md` for the whole
-    of it.
+    a target from the very ground up.
 
 IcoWM aspires to blend a lightweight design *ethos* with usability.
 
