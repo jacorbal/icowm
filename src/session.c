@@ -32,17 +32,18 @@
 /* Default initial values */
 #include <defs/config.h>
 
-/* Project includes */
-#include <config.h>
-#include <logger.h>
+/* Utils includes */
 #include <utils/config/json.h>
 #include <utils/safe/safestr.h>
 #include <utils/spawn.h>
+#include <utils/xcb/connection.h>
+
+/* Project includes */
+#include <config.h>
+#include <logger.h>
 
 /* Local includes */
 #include <session.h>
-#include <utils/xcb/connection.h>
-
 
 
 /** Session table holding the three hook command lists */
@@ -212,10 +213,8 @@ static struct session_tracked_pid_s *s_session_find_pid(pid_t pid)
 /**
  * @brief Run one hook command and record the child it produces
  *
- *                   the child before executing (may be null)
- * @param command    Shell command to run; word-expanded before
- *                   @a exec
- * @param hook       Hook name used only for logging and tracking
+ * @param command Shell command to run; word-expanded before @a exec
+ * @param hook    Hook name used only for logging and tracking the child
  *
  * @return Status of the operation
  * @retval  0 The hook is running
@@ -388,7 +387,8 @@ void session_reap_children(void)
     pid_t pid;
 
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        struct session_tracked_pid_s *const tracked = s_session_find_pid(pid);
+        struct session_tracked_pid_s *const tracked =
+            s_session_find_pid(pid);
 
         if (tracked != NULL) {
             if (WIFEXITED(status)) {

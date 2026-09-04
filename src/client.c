@@ -31,10 +31,12 @@
 #include <xcb/sync.h>
 
 /* Utils includes */
+#include <utils/safe/safeflg.h>
 #include <utils/safe/safemem.h>
 #include <utils/safe/safestr.h>
-#include <utils/safe/safeflg.h>
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Type includes */
 #include <types/pair.h>
@@ -68,8 +70,6 @@
 /* Local includes */
 #include <client/internal.h>
 #include <client/props.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**

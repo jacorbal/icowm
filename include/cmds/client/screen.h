@@ -18,6 +18,7 @@
 #ifndef CMDS_CCMD_SCREEN_H
 #define CMDS_CCMD_SCREEN_H
 
+
 /* System includes */
 #include <stdbool.h>
 
@@ -48,20 +49,19 @@ xcb_window_t ccmd_target_win(client_td *client);
  * @brief Find which monitor a client is currently on
  *
  * Resolves @p client's surface from the global @c wm singleton, then
- * finds whichever of that surface's monitors @p client's center
- * point currently falls on.
+ * finds whichever of that surface's monitors @p client's center point
+ * currently falls on.
  *
  * @param client      Client to resolve a monitor for
- * @param out_surface Receives the resolved surface (may be @c NULL)
+ * @param out_surface Receives the resolved surface (may be null)
  * @param out_monitor Receives the resolved monitor's raw geometry
- *                     (screen edges, not adjusted for panel/dock
- *                     struts)
+ *                    (screen edges, not adjusted for panel/dock struts)
  *
- * @return @c true on success, @c false if the client's surface could
- *         not be found; callers fall back to @c ccmd_screen_dim's raw
- *         screen size in that case
+ * @retval  true on success
+ * @retval false if the client's surface could not be found; callers
+ *               fall back to @c ccmd_screen_dim's raw screen size in
+ *               that case
  *
- * @note Implemented in @c cmds/client/screen.c
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
 bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
@@ -76,7 +76,7 @@ bool ccmd_client_monitor(client_td *client, surface_td **out_surface,
  * @param out_w  Destination for the screen width in pixels, or null
  * @param out_h  Destination for the screen height in pixels, or null
  *
- * @return @c true on success, @c false on failure
+ * @return @c true on success
  *
  * @note Complexity: @e O(n), where @e n is the screen index
  */

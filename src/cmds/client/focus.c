@@ -4,11 +4,10 @@
  * @brief Focus-granting, focus-fallback, close, kill, and restore
  *        actions over clients
  *
- * One of the files @c cmds/client/ is made of;
- * kept as one contiguous block (matching the order these already had
- * in that file) rather than separated further, since
- * @a ccmd_client_close, @a ccmd_client_kill and
- * @a ccmd_client_restore all lead into the same focus-fallback
+ * One of the files @c cmds/client/ is made of; kept as one contiguous
+ * block (matching the order these already had in that file) rather than
+ * separated further, since @a ccmd_client_close, @a ccmd_client_kill
+ * and @a ccmd_client_restore all lead into the same focus-fallback
  * mechanism that @a ccmd_client_focus_fallback and
  * @a client_focus_fallback provide right above them.
  */
@@ -45,6 +44,8 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <client.h>
@@ -66,8 +67,6 @@
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**
@@ -459,26 +458,8 @@ void ccmd_client_kill(client_td *client)
 }
 
 
-/**
- * @brief Restore the client to its normal state, bringing its whole
- *        transient family back with it
- *
- * The matching half of @a ccmd_client_iconify's transient-family
- * cascade (see its comment for the full reasoning).  Redirects
- * to the family's top-most ancestor first, restoring it exactly as
- * this function always has, then restores every other family member
- * that is currently iconified too, so a family iconized together as
- * one grouped icon comes back together as well, rather than leaving
- * every member but the one explicitly restored still sitting iconized
- * on their own.  A family member that was never iconified in the
- * first place (mapped and simply not the target of this call) is left
- * untouched, since there is nothing on it to restore.
- *
- * @param client Client to restore
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's desktop
- */
+/* Restore the client to its normal state, bringing its whole transient
+ * family back with it */
 void ccmd_client_restore(client_td *client)
 {
     client_td *top;

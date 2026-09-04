@@ -362,7 +362,7 @@ shows: a legitimate choice, room to add one more desktop later without
 reshaping the grid.  Only a `rows`/`columns` combination too small to
 ever hold `count` desktops at all, no matter how arranged, or either
 value explicitly `0`, negative, non-numeric, or above
-`CONFIG_MAX_DESKTOPS`, is rejected outright — logged as a warning,
+`CONFIG_MAX_DESKTOPS`, is rejected outright; logged as a warning,
 falling back to the same single-row default as if `layout` were absent.
 
 **Adding and removing desktops at runtime** (the window list's "Add new
@@ -389,7 +389,7 @@ Adding a `7`th:
 [6][ ][ ]
 ```
 
-A brand new row appears below the last one — never a new column, since
+A brand new row appears below the last one, never a new column, since
 `orientation: "horizontal"` already fills columns first, and growing
 that same axis would reshuffle where every existing desktop sits
 (desktop `3`, at row `1` column `0` today, would otherwise have to jump
@@ -657,7 +657,7 @@ It therefore makes no observable difference under `"click"` focus, where
 none of those paths is reached.
 
 `delay-ms` likewise only has an effect under `"sloppy"` focus.  With it
-left at the default of `0`, the pointer entering a window focuses it
+left at the default of `250`, the pointer entering a window focuses it
 immediately, same as always.  Set above `0`, the pointer has to sit
 still over the window for that many milliseconds before it actually
 gains focus; leaving early cancels it, so passing through a window on
@@ -1124,15 +1124,15 @@ that drains quickly enough that 30 seconds feels stale.
 The status text's exact shape depends on both AC power and how the
 battery's charge compares to `threshold`:
 
-| State                                          | Text        |
-|------------------------------------------------|-------------|
-| On battery, above `low`                        | `"X%"`      |
-| On battery, at/below `low`                     | `"X%!"`     |
-| On battery, at/below `critical`                | `"X%!!"`    |
-| On AC, not fully charged                       | `"X% AC"`   |
-| Fully charged (`charged` or above), on battery | `"Full"`    |
-| Fully charged, on AC                           | `"Full AC"` |
-| No battery found for `backend`                 | `"N/A"`     |
+| State                                          | Text         |
+|------------------------------------------------|--------------|
+| On battery, above `low`                        | `"X%"`       |
+| On battery, at/below `low`                     | `"X%!"`      |
+| On battery, at/below `critical`                | `"X%!!"`     |
+| On AC, not fully charged                       | `"X% AC"`    |
+| Fully charged (`charged` or above), on battery | `"Full"`     |
+| Fully charged, on AC                           | `"Full, AC"` |
+| No battery found for `backend`                 | `"N/A"`      |
 
 A battery counts as "fully charged" once its percentage reaches
 `threshold.charged`, regardless of what the kernel itself reports as its
@@ -1368,16 +1368,16 @@ Example:  `"modc+mod1+Return"` with the default modifiers resolves to
 Symbolic names for modifier keys.  Every binding that references
 a modifier uses one of these aliases.
 
-| Alias  | Default X11 key | Description                   |
-|--------|-----------------|-------------------------------|
-| `modc` | `Control`       | Control key                   |
-| `mods` | `Shift`         | Shift key                     |
-| `modl` | `Caps_Lock`     | Caps Lock                     |
-| `mod1` | `Alt`           | Alt / Meta key                |
-| `mod2` | `Num_Lock`      | Num Lock                      |
-| `mod3` | `""`            | Unassigned (empty by default) |
-| `mod4` | `Super`         | Super / Windows key           |
-| `mod5` | `Hyper`         | Hyper key                     |
+| Alias  | Default X11 key | Description                     |
+|--------|-----------------|---------------------------------|
+| `modc` | `Control`       | Control key                     |
+| `mods` | `Shift`         | Shift key                       |
+| `modl` | `Caps_Lock`     | Caps Lock                       |
+| `mod1` | `Alt`           | Alt / Meta key                  |
+| `mod2` | `Num_Lock`      | Num Lock                        |
+| `mod3` | `""`            | *Unassigned* (empty by default) |
+| `mod4` | `Super`         | Super / Windows key             |
+| `mod5` | `Hyper`         | Hyper key                       |
 
 ```json
 "modifiers": {
@@ -2785,16 +2785,17 @@ the keyboard `exit` binding.
 ```
 
 This example shows three complete rules:
+
 - a `"property"` rule that waits until a window title becomes `"Journal
   console"`, then moves it to desktop of index `2`, focuses it, and
   raises it to the `"above"` layer.
-- a `"map"` rule for the program name `"\*Sonata"` that applies once
-  when the window is first managed, keeping it pinned, undecorated, in
-  the `"below"` layer, and positioned at the top-right corner using
-  a fixed geometry.
-- a `"map"` rule for the program name `"gmrun"` that applies once when
-  the window is first managed, keeping it undecorated, in the `"above"`
-  layer.
+- a `"map"` rule for the program classes `"Sonata"` and "`Deadbeef`"
+  that applies once when the window is first managed, keeping it pinned,
+  undecorated, in the `"below"` layer, and positioned at the top-right
+  corner using a fixed geometry.
+- a `"map"` rule for the program instance `"gmrun"` that applies once
+  when the window is first managed, keeping it undecorated, in the
+  `"above"` layer.
 
 ### `session.json`
 

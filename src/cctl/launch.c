@@ -25,12 +25,14 @@
 /* Project includes */
 #include <i18n.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Menu includes */
 #include <menu/dialog/info.h>
 
 /* Local includes */
 #include <cctl/launch.h>
-#include <utils/xcb/connection.h>
 
 
 /* Build and enqueue a launch event for a desktop */

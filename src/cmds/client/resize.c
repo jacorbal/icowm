@@ -3,10 +3,10 @@
  *
  * @brief Client resize command implementation
  *
- * One of the files @c cmds/client/ is made of.  Covers resizing a
- * client, including the @c _NET_WM_SYNC_REQUEST throttling pipeline
- * that paces an ongoing interactive resize against the client's
- * redraw acknowledgements.
+ * One of the files @c cmds/client/ is made of.  Covers resizing
+ * a client, including the @c _NET_WM_SYNC_REQUEST throttling pipeline
+ * that paces an ongoing interactive resize against the client's redraw
+ * acknowledgements.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -29,6 +29,7 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+#include <utils/xcb/connection.h>
 
 /* Project includes */
 #include <client.h>
@@ -40,20 +41,20 @@
 #include <cmds/client/resize.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/state.h>
-#include <utils/xcb/connection.h>
 
 
 /**
  * @brief Configure a client to the given frame geometry
  *
- * The single actual configure point used by @c ccmd_client_resize,
+ * The single actual configure point used by @a ccmd_client_resize,
  * whether the request is applied right away (an unsynchronized client,
  * or the first step of a synchronized one) or later, once a pending
- * @c _NET_WM_SYNC_REQUEST acknowledgement arrives (see
- * @c ccmd_client_resize_flush_pending).
+ * @c _NET_WM_SYNC_REQUEST acknowledgement arrives.
  *
  * @param client   Window to resize
  * @param req_geom Requested frame position and dimensions
+ *
+ * @see @a ccmd_client_resize_flush_pending
  */
 static void s_ccmd_resize_configure(client_td *client,
         struct geometry_s req_geom)
@@ -67,21 +68,22 @@ static void s_ccmd_resize_configure(client_td *client,
 
     /* A second barrier against whatever 'req_geom' the caller handed
      * down, on top of whichever one that caller may already have
-     * applied of its own: 'client_size_constrain' (client.h) expects
+     * applied of its own: 'client_size_constrain' ('client.h') expects
      * its width/height in terms of the client's content window, what
-     * its 'WM_NORMAL_HINTS' actually describe (ICCCM §4.1.2.3), not
-     * the frame dimensions 'req_geom' carries here, so the round trip
+     * its 'WM_NORMAL_HINTS' actually describe (ICCCM §4.1.2.3), not the
+     * frame dimensions 'req_geom' carries here, so the round trip
      * through content space mirrors the one 's_drag_resize_geometry'
-     * (input/mouse/drag.c) and 's_kbd_resize_apply'
-     * (input/kbd/interact.c) already make for the same reason.
-     * 'geom_dim_clamp' (utils/geom.h) runs last as a plain sanity
+     * ('input/mouse/drag.c') and 's_kbd_resize_apply'
+     * ('input/kbd/interact.c') already make for the same reason.
+     *
+     * 'geom_dim_clamp' ('utils/geom.h') runs last as a plain sanity
      * floor and ceiling completely independent of any hint the client
-     * declared, which matters because both fields are 'uint32_t': a
-     * caller that ever let a subtraction go negative before storing
+     * declared, which matters because both fields are 'uint32_t':
+     * a caller that ever let a subtraction go negative before storing
      * it here would hand this function an enormous value rather than
      * a negative one, and 'client_size_constrain' alone only clamps
-     * against a maximum the client actually declared, which most
-     * never do */
+     * against a maximum the client actually declared, which most never
+     * do */
     ext_w = (uint32_t) client->layout.frame_extents.left +
         (uint32_t) client->layout.frame_extents.right;
     ext_h = (uint32_t) client->layout.frame_extents.top +
@@ -164,7 +166,7 @@ static void s_ccmd_resize_configure(client_td *client,
 static void s_ccmd_resize_send_sync_request(client_td *client)
 {
     xcb_client_message_event_t ev;
-    xcb_ewmh_connection_t *const ewmh =
+    const xcb_ewmh_connection_t *const ewmh =
         xcb_ewmh_connection_get();
 
     client->hints_ewmh.sync.value += 1u;
@@ -215,27 +217,27 @@ static void s_ccmd_resize_dispatch_synced(client_td *client,
 /**
  * @brief Shared precondition check for either resize entry point
  *
- * Resizing is forbidden outright only where neither axis has
- * anything free to resize at all: fully maximized (both axes) or
- * fullscreen.  A client maximized on just one axis, that is,
- * @c CLIENT_STATE_MAXIMIZED_HORZ or @c CLIENT_STATE_MAXIMIZED_VERT,
- * is deliberately let through
- * here: its free axis stays genuinely resizable, matching every
- * one of this project's interactive resize entry points (mouse
- * border drag via @a drag_start_resize_axis_locked, its matching
- * mouse-bound keybinding, and keyboard resize in @c input/kbd/
- * interact.c), each of which already freezes the maximized axis's
- * own dimension at its current value before ever calling down to
- * this function.  Refusing the whole call here regardless silently
- * drops every live resize update a solid drag sends along the way,
- * and strands a non-solid (outline)
- * drag's final call off screen for good (see @c drag_end's
- * comment on @c enact_client_resize_force, @c input/mouse/drag.c),
- * since that call exists specifically to bring the real window back
- * from where a non-solid drag parks it for the drag's duration,
- * and this same refusal silently swallowed that too.  A shaded
- * client is first restored so the requested size applies to the
- * normal window geometry instead of the rolled-up titlebar.
+ * Resizing is forbidden outright only where neither axis has anything
+ * free to resize at all: fully maximized (both axes) or fullscreen.
+ * A client maximized on just one axis, that is,
+ * @c CLIENT_STATE_MAXIMIZED_HORZ or @c CLIENT_STATE_MAXIMIZED_VERT, is
+ * deliberately let through here: its free axis stays genuinely
+ * resizable, matching every one of this project's interactive resize
+ * entry points (mouse border drag via @a drag_start_resize_axis_locked,
+ * its matching mouse-bound keybinding, and keyboard resize in
+ * @c input/kbd/interact.c), each of which already freezes the maximized
+ * axis's own dimension at its current value before ever calling down to
+ * this function.
+ *
+ * Refusing the whole call here regardless silently drops every live
+ * resize update a solid drag sends along the way, and strands
+ * a non-solid (outline) drag's final call off screen for good (see
+ * @c drag_end's comment on @c enact_client_resize_force, in
+ * @c input/mouse/drag.c), since that call exists specifically to bring
+ * the real window back from where a non-solid drag parks it for the
+ * drag's duration, and this same refusal silently swallowed that too.
+ * A shaded client is first restored so the requested size applies to
+ * the normal window geometry instead of the rolled-up titlebar.
  *
  * @param client Client about to be resized
  *
@@ -266,7 +268,8 @@ void ccmd_client_resize(client_td *client, struct geometry_s geom)
         return;
     }
 
-    synced = client->hints_ewmh.sync.is_supported && wm_sync_is_available();
+    synced = client->hints_ewmh.sync.is_supported &&
+        wm_sync_is_available();
 
     if (!synced) {
         s_ccmd_resize_configure(client, geom);
@@ -297,6 +300,7 @@ void ccmd_client_resize(client_td *client, struct geometry_s geom)
 }
 
 
+/* Resize the client to new dimensions immediately */
 void ccmd_client_resize_force(client_td *client, struct geometry_s geom)
 {
     if (client == NULL || !s_ccmd_resize_allowed(client)) {
@@ -304,18 +308,18 @@ void ccmd_client_resize_force(client_td *client, struct geometry_s geom)
     }
 
     /* Discard any geometry left queued by an earlier, still-
-     * unacknowledged exchange: applying this call's geometry
-     * below already supersedes it, and leaving it set would let a
-     * late 'AlarmNotify' for that older exchange silently revert
-     * this one the next time 'ccmd_client_resize_flush_pending' runs */
+     * unacknowledged exchange: applying this call's geometry below
+     * already supersedes it, and leaving it set would let a late
+     * 'AlarmNotify' for that older exchange silently revert this one
+     * the next time 'ccmd_client_resize_flush_pending' runs */
     client->hints_ewmh.sync.has_pending = false;
 
     if (client->hints_ewmh.sync.is_supported && wm_sync_is_available()) {
         /* Still tells a sync-aware client about the new size (so its
          * own internal counter stays in step), but this call itself
-         * never waits on or queues behind that acknowledgment the
-         * way 'ccmd_client_resize' does; see the header's doc
-         * comment for when this is the right call to make instead */
+         * never waits on or queues behind that acknowledgment the way
+         * 'ccmd_client_resize' does; see the header's comment for when
+         * this is the right call to make instead */
         s_ccmd_resize_dispatch_synced(client, geom);
     } else {
         s_ccmd_resize_configure(client, geom);
@@ -323,6 +327,7 @@ void ccmd_client_resize_force(client_td *client, struct geometry_s geom)
 }
 
 
+/* Apply a client's pending '_NET_WM_SYNC_REQUEST'-throttled resize */
 void ccmd_client_resize_flush_pending(client_td *client)
 {
     if (client == NULL) {

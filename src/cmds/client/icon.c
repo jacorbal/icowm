@@ -37,6 +37,7 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+#include <utils/xcb/connection.h>
 
 /* Types includes */
 #include <types/pair.h>
@@ -56,7 +57,6 @@
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/visibility.h>
-#include <utils/xcb/connection.h>
 
 
 /**

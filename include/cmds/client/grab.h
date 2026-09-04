@@ -32,7 +32,6 @@
  *
  * @param client Pointer to the client
  *
- * @note Implemented in @c cmds/client/grab.c
  * @note Complexity: @e O(1)
  */
 void ccmd_client_grab_buttons(client_td *client);

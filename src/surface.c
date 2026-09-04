@@ -35,9 +35,11 @@
 #include <desktop.h>
 #include <logger.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Local includes */
 #include <surface.h>
-#include <utils/xcb/connection.h>
 
 
 /**

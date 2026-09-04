@@ -98,7 +98,7 @@ void mouse_handle_release(xcb_connection_t *connection,
  * skips focus re-evaluation, since the client was already focused to
  * get there, but still gets the cursor re-evaluation above.
  *
- * With @c windows.focus.delay-ms left at its default of @c 0, that
+ * With @c windows.focus.delay-ms left at its default of @c 250, that
  * focus change happens right here, same as always; set above @c 0, it
  * is deferred instead, armed here but only actually carried out by
  * @a mouse_enter_focus_tick once the delay elapses, and dropped

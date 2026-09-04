@@ -38,6 +38,8 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <client.h>
@@ -56,8 +58,6 @@
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**
@@ -416,41 +416,8 @@ static void s_ccmd_client_unhide_visit(client_td *member, void *ctx)
 }
 
 
-/**
- * @brief Unmap a client's decoration target, correctly pre-arming
- *        @c ignore.unmap first
- *
- * Every place in this project that unmaps a client window-manager-
- * side (iconifying, hiding for another desktop, sending it
- * elsewhere) shares this exact same two-step shape.  Increment
- * @c client->ignore.unmap by however many @c UnmapNotify events the
- * unmap below is about to generate, THEN issue the unmap itself, so
- * @a handler_unmap_notify (@c handler/map.c) correctly recognizes
- * this as a window-manager-initiated unmap rather than the client
- * withdrawing itself.  Two events always arrive for @p target itself
- * (its @c StructureNotify plus its parent's
- * @c SubstructureNotify); one further event arrives for the
- * titlebar, if present, via the frame's @c SubstructureNotify.
- *
- * A caller whose @p target can differ from @p client->window
- * (the frame, when decorated, rather than the bare content window)
- * and that also needs the content window itself unmapped separately
- * (@a s_ccmd_client_iconify_one and @a s_ccmd_client_hide_one above
- * are the only two such callers today) still has to account for,
- * and issue, that additional unmap on its own right after calling
- * this: two more events arrive for @c client->window in that case,
- * matching this same two-events-per-window rule, and this function
- * only knows about the one @p target it was actually given.
- *
- * @param client     Client being unmapped; its @c ignore.unmap is
- *                    incremented here
- * @param target     Window to unmap: the frame when decorated, the
- *                   bare content window otherwise, as
- *                   @a ccmd_target_win resolves it
- *
- * @note A null @p client is a silent no-op
- * @note Complexity: @e O(1)
- */
+/* Unmap a client's decoration target, correctly pre-arming
+ * 'ignore.unmap' first */
 void ccmd_client_unmap_decorated(client_td *client,
         xcb_window_t target)
 {
@@ -467,27 +434,7 @@ void ccmd_client_unmap_decorated(client_td *client,
 }
 
 
-/**
- * @brief Iconize the client, taking its whole transient family down
- *        with it
- *
- * ICCCM §4.1.2.6 dialogs (a "save changes?" prompt, say) are meant to
- * live and die with the window they belong to, not persist as their
- * own independent, separately-iconified entity.  Iconizing any single
- * member of a transient family here redirects to, and iconizes, the
- * family's top-most ancestor (@a ccmd_client_transient_top_parent)
- * first, then every other member of that same family still mapped and
- * not yet iconified, so the whole group vanishes into one grouped icon
- * together and comes back together too (see @a ccmd_client_restore's
- * own matching half of this).  A client with no transient relatives at
- * all is unaffected: its top parent is itself, and no sibling scan
- * finds anything else to cascade to.
- *
- * @param client Window to iconify
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's desktop
- */
+/* Iconize the client, taking its whole transient family down with it */
 void ccmd_client_iconify(client_td *client)
 {
     client_td *top;
@@ -520,30 +467,8 @@ void ccmd_client_iconify(client_td *client)
 }
 
 
-/**
- * @brief Hide the client (minimize, but not iconify), taking its
- *        whole transient family down with it
- *
- * A hidden client without a taskbar or window-list entry showing it
- * (unlike an iconified one, which always keeps its icon) has no
- * way back if it is a transient dialog left behind on its own,
- * separately hidden: nothing on screen still points at it, and
- * nothing will ever unhide it again.  Hiding any single member of a
- * transient family here redirects to, and hides, the family's
- * top-most ancestor (@a ccmd_client_transient_top_parent) first, then
- * every other member of that same family still visible, the same
- * cascade @a ccmd_client_iconify's comment already covers in
- * full for iconifying, so the whole group disappears together and
- * comes back together too (see @a ccmd_client_unhide's matching
- * half of this).  A client with no transient relatives at all is
- * unaffected: its top parent is itself, and no sibling scan finds
- * anything else to cascade to.
- *
- * @param client Window to hide
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's desktop
- */
+/* Hide the client (minimize, but not iconify), taking its whole
+ * transient family down with it */
 void ccmd_client_hide(client_td *client)
 {
     client_td *top;
@@ -565,29 +490,8 @@ void ccmd_client_hide(client_td *client)
 }
 
 
-/**
- * @brief Show (unhide) the client, taking its whole transient family
- *        back with it
- *
- * The matching half of @a ccmd_client_hide's transient-family
- * cascade (see its comment for the full reasoning).  Redirects
- * to the family's top-most ancestor, then unhides every other family
- * member still hidden, so a family hidden together comes back
- * together too.  Every other family member is unhidden before the
- * top parent's unhide, not after, the same ordering
- * @a ccmd_client_restore already uses and for the same reason (see
- * its
- * doc comment, cmds/client/focus.c): the top parent's focus-
- * granting step redirects through @a ccmd_client_focus_target to
- * whichever transient dialog should actually end up focused, which
- * only finds that dialog if it is already mapped by the time this
- * reaches that step.
- *
- * @param client Client to unhide
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's desktop
- */
+/* Show (unhide) the client, taking its whole transient family back
+ * with it */
 void ccmd_client_unhide(client_td *client)
 {
     client_td *top;

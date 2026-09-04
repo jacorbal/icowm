@@ -26,12 +26,14 @@
 #include <lookup.h>
 #include <surface.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Menu includes */
 #include <menu/notify/desktop.h>
 
 /* Local includes */
 #include <cmds/surface.h>
-#include <utils/xcb/connection.h>
 
 
 /**

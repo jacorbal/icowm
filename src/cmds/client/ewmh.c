@@ -23,6 +23,7 @@
 
 /* Utils includes */
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 
 /* Default initial values */
 #include <defs/desktop.h>     /* WM_DESKTOP_ID_ALL */
@@ -33,7 +34,6 @@
 /* Local includes */
 #include <cmds/client/ewmh.h>
 #include <cmds/client/visibility.h>
-#include <utils/xcb/connection.h>
 
 
 /* Intern an atom name in the X11 system */
@@ -44,68 +44,8 @@ xcb_atom_t ccmd_intern_atom(xcb_connection_t *connection,
 }
 
 
-/**
- * @brief Republish every @c _NET_WM_STATE atom a client currently
- *        holds, read straight off its fields, in one single XCB
- *        write
- *
- * Openbox's real answer to keeping @c _NET_WM_STATE in sync
- * (confirmed directly against its source, @c client_change_state in
- * @c client.c): rebuild the whole list from scratch every time, from
- * whichever of the client's boolean fields are true right now,
- * rather than reading the property back first to add or remove one
- * specific atom from whatever was already there.  @a ccmd_add_states
- * and @a ccmd_rem_states did the opposite.  A read (one XCB round
- * trip) followed by a merge and a write, on every single call, at
- * every one of the dozens of call sites across this project that
- * change some piece of a client's state.  This function needs
- * only the write: every state below already has its single
- * source of truth living directly on @p client itself
- * (@c properties.state, @c properties.layer, or a
- * @c CLIENT_FLAG_* bit),
- * so there is nothing to read back and merge with in the first
- * place.
- *
- * Called once, after whichever single field actually changed has
- * already been updated, by every caller in place of
- * @a ccmd_add_states or @a ccmd_rem_states directly;
- * @a ccmd_add_states and
- * @a ccmd_rem_states themselves no longer exist; every one of their
- * old call sites now sets its underlying field first (most
- * already did, right alongside the old add/rem call, since the
- * property was only ever meant to mirror that field to begin with)
- * and calls this instead.
- *
- * @c _NET_WM_STATE_MAXIMIZED_HORZ/@c _VERT do not map to a single
- * bit each the way most of the others do: @c properties.state holds
- * one of @c CLIENT_STATE_MAXIMIZED (both axes), @c _MAXIMIZED_HORZ,
- * or @c _MAXIMIZED_VERT (one axis) as three distinct, mutually
- * exclusive values, so each of the two atoms is published whenever
- * @c properties.state matches either the combined value or its
- * single-axis one.  @c _NET_WM_STATE_HIDDEN similarly covers two
- * separate concepts this project tracks apart from each other
- * internally (@c properties.state @c == @c CLIENT_STATE_ICONIFIED,
- * and @c CLIENT_FLAG_HIDDEN, a client hidden without being
- * iconified; see @a ccmd_client_hide, cmds/client/visibility.c) but
- * that EWMH itself does not distinguish, so it is published whenever
- * either one holds.
- *
- * @c _NET_WM_STATE_FOCUSED has no matching field on
- * @c xcb_ewmh_connection_t (a newer, less universally standard
- * extension than
- * the rest), so it is the one atom here still resolved through
- * @a ccmd_intern_atom rather than read directly off the EWMH
- * connection;
- * @a atom_intern's internal cache (@c utils/xcb/atom.c) already
- * makes every call after the very first one a plain lookup, no XCB
- * round trip, so this costs nothing extra on every later sync.
- *
- * @param client Client whose current state to republish
- *
- * @note A null @p client or one with no @c ewmh connection is a
- *       silent no-op
- * @note Complexity: @e O(1)
- */
+/* Republish every @c _NET_WM_STATE atom a client currently holds, read
+ * straight off its fields, in one single XCB write */
 void ccmd_client_sync_states(client_td *client)
 {
     xcb_atom_t states[13];
@@ -120,8 +60,8 @@ void ccmd_client_sync_states(client_td *client)
 
     /* Each bit is published on its own, since EWMH holds them
      * independent: a window may be maximized on one axis, on both, or
-     * on both while also full screen, and every combination has to
-     * read back off the property exactly as it stands. */
+     * on both while also full screen, and every combination has to read
+     * back off the property exactly as it stands. */
     if (client_is_maximized_horz(client)) {
         states[num++] = ewmh->_NET_WM_STATE_MAXIMIZED_HORZ;
     }
@@ -250,7 +190,7 @@ void ccmd_publish_wm_desktop(client_td *client, uint32_t desktop_id)
 /* Send a '_NET_WM_PING' probe to a client */
 void ccmd_client_ping_send(client_td *client)
 {
-    xcb_ewmh_connection_t *ewmh;
+    const xcb_ewmh_connection_t *ewmh;
     xcb_client_message_event_t ev;
     uint32_t timestamp;
 
@@ -261,12 +201,12 @@ void ccmd_client_ping_send(client_td *client)
 
     ewmh = xcb_ewmh_connection_get();
 
-    /* EWMH §4.6: the timestamp only has to let this window manager
-     * tell one probe apart from another, never carrying the
-     * ICCCM §4.1.7 focus-granting weight 'ccmd_client_focus' gives
-     * its own, so falling back to 'XCB_CURRENT_TIME' here is
-     * harmless even though it stays that way for a window manager
-     * that has not seen any real input yet */
+    /* EWMH §4.6: the timestamp only has to let this window manager tell
+     * one probe apart from another, never carrying the ICCCM §4.1.7
+     * focus-granting weight 'ccmd_client_focus' gives its own, so
+     * falling back to 'XCB_CURRENT_TIME' here is harmless even though
+     * it stays that way for a window manager that has not seen any real
+     * input yet */
     timestamp = (client_last_user_time() != 0u)
         ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
 

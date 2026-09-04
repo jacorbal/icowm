@@ -16,10 +16,10 @@
 #ifndef CMDS_CCMD_RESIZE_H
 #define CMDS_CCMD_RESIZE_H
 
+
 /* Type includes */
 #include <types/handles.h>
 #include <types/pair.h>
-
 
 
 /**
@@ -58,7 +58,7 @@ void ccmd_client_resize_force(client_td *client, struct geometry_s geom);
 
 
 /**
- * @brief Apply a client's pending @c (_NET_WM_SYNC_REQUEST)-throttled
+ * @brief Apply a client's pending @c _NET_WM_SYNC_REQUEST-throttled
  *        resize
  *
  * Called from @a handler_sync_event when an @c AlarmNotify confirms the

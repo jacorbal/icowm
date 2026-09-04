@@ -11,11 +11,11 @@
  *
  * Also carries @c s_pending_window and @c s_pending_due, the state
  * behind @c windows.focus.delay-ms: with the delay left at its default
- * of 0, sloppy focus still applies the instant @a mouse_handle_enter
- * sees it, exactly as before this pair existed; set above 0, that same
- * function arms a deadline here instead of focusing right away, left
- * for @a mouse_enter_focus_tick to carry out once it elapses, or for
- * @a mouse_enter_focus_cancel to drop if the pointer leaves first.
+ * of 250, sloppy focus still applies the instant @a mouse_handle_enter
+ * sees it, exactly as before this pair existed; set above @c 0, that
+ * same function arms a deadline here instead of focusing right away,
+ * left for @a mouse_enter_focus_tick to carry out once it elapses, or
+ * for @a mouse_enter_focus_cancel to drop if the pointer leaves first.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -87,7 +87,9 @@ static bool s_enter_focus_active = false;
  */
 static xcb_window_t s_pending_window = XCB_WINDOW_NONE;
 
-/** Absolute time @a s_pending_window's delayed focus becomes due */
+/**
+ * @brief Absolute time @a s_pending_window's delayed focus becomes due
+ */
 static struct timespec s_pending_due;
 
 

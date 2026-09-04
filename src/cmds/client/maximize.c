@@ -23,10 +23,13 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/geom.h>
+#include <utils/xcb/connection.h>
+
 /* Project includes */
 #include <client.h>
 #include <surface.h>
-#include <utils/geom.h>
 #include <wm.h>
 
 /* Local includes */
@@ -37,25 +40,26 @@
 #include <cmds/client/screen.h>
 #include <cmds/client/state.h>
 #include <cmds/client/workarea.h>
-#include <utils/xcb/connection.h>
+
+
 /**
  * @brief Hold a maximized size to whatever maximum the client declared
  *
  * ICCCM §4.1.2.3 has the window manager honor @c WM_NORMAL_HINTS
  * @c max_width and @c max_height, and nothing in EWMH exempts
- * maximization from that: a client stating a maximum expects it to
- * hold here too, which is why a dialog or a fixed-size utility being
+ * maximization from that: a client stating a maximum expects it to hold
+ * here too, which is why a dialog or a fixed-size utility being
  * maximized should stop at its limit rather than stretch past it.
  *
  * Only the maximum is applied, deliberately.  The minimum cannot bind,
  * the workarea being larger than it in any sane case, and the resize
  * increments are left alone: snapping a maximized window down to whole
  * character cells is defensible, but it is a different decision from
- * this one and would change the size of every maximized terminal on
- * the desktop.
+ * this one and would change the size of every maximized terminal on the
+ * desktop.
  *
- * The hints describe the client's content, so the frame the
- * decoration adds is taken off before comparing and put back after.
+ * The hints describe the client's content, so the frame the decoration
+ * adds is taken off before comparing and put back after.
  *
  * @param client Client whose hints apply
  * @param w      Frame width to hold, updated in place
@@ -92,18 +96,17 @@ static void s_clamp_to_size_hints(const client_td *client,
 
 /**
  * @brief Precondition checks shared by @a ccmd_client_maximize,
- *        @a ccmd_client_maximize_horz and
- *        @a ccmd_client_maximize_vert, restoring an iconified
- *        client and unshading a shaded one
- *        along the way
+ *        @a ccmd_client_maximize_horz and @a ccmd_client_maximize_vert,
+ *        restoring an iconified client and unshading a shaded one along
+ *        the way
  *
  * @param client Client about to be maximized, on one axis or both
  *
- * @return @c true if the caller should proceed (the client is
- *         resizable, not fullscreen, not locked, and any prior
- *         iconified or shaded state has already been cleared);
- *         @c false if @p client is @c NULL or the maximize should
- *         be refused outright
+ * @retval  true if the caller should proceed (the client is resizable,
+ *               not fullscreen, not locked, and any prior iconified or
+ *               shaded state has already been cleared)
+ * @retval false if @p client is @c NULL or the maximize should be
+ *               refused outright
  *
  * @note Complexity: @e O(1)
  */
@@ -138,11 +141,11 @@ static bool s_ccmd_maximize_precheck(client_td *client)
 /**
  * @brief Undo maximization on whichever axes the request names
  *
- * @param client    Client to demote
- * @param dir       Which axes: 0 both, 1 horizontal, 2 vertical
- * @param target    Window the geometry is applied to
- * @param horz_now  Whether it is maximized horizontally already
- * @param vert_now  Whether it is maximized vertically already
+ * @param client   Client to demote
+ * @param dir      Which axes: @c 0 both, @c 1 horizontal, @c 2 vertical
+ * @param target   Window the geometry is applied to
+ * @param horz_now Whether it is maximized horizontally already
+ * @param vert_now Whether it is maximized vertically already
  *
  * @return @c true when the request was a demotion and is now done
  *
@@ -174,10 +177,10 @@ static bool s_ccmd_maximize_demote(client_td *client, int dir,
     /* Demote this single axis alone, restoring it from the saved
      * pre-maximize geometry and leaving the other axis exactly as it
      * currently is: fully maximized demotes to the other axis alone,
-     * and this axis alone demotes to normal. Only reachable for a
-     * single-axis 'dir'; 'dir == 0' either already returned above
-     * (both axes maximized) or falls through to maximizing both
-     * below regardless of any single axis's current state. */
+     * and this axis alone demotes to normal.  Only reachable for
+     * a single-axis 'dir'; 'dir == 0' either already returned above
+     * (both axes maximized) or falls through to maximizing both below
+     * regardless of any single axis's current state. */
     if (dir != 0 && ((dir == 1 && horz_now) || (dir == 2 && vert_now))) {
         if (dir == 1) {
             client->layout.geometry.cur.pos.x =
@@ -221,31 +224,30 @@ static bool s_ccmd_maximize_demote(client_td *client, int dir,
  *        complete depending on its current maximize state
  *
  * The shared implementation behind @a ccmd_client_maximize,
- * @a ccmd_client_maximize_horz and @a ccmd_client_maximize_vert,
- * each now a
- * thin wrapper passing its fixed @p dir; matches Openbox's
+ * @a ccmd_client_maximize_horz and @a ccmd_client_maximize_vert, each
+ * now a thin wrapper passing its fixed @p dir; matches other WM's
  * @c client_maximize (@c client.c), which takes the identical @p dir
  * convention for the identical reason.  One function, one place the
- * demote/complete/fresh-maximize decision is made, rather than the
- * same three-way branch (see below) duplicated once per axis.
+ * demote/complete/fresh-maximize decision is made, rather than the same
+ * three-way branch (see below) duplicated once per axis.
  *
  * Each axis is a bit of its own in @c properties.state, the way EWMH
  * holds them, so "is the horizontal axis maximized" is one bit test,
  * which @a client_is_maximized_horz makes.
  *
- * @p dir @c == @c 0, both axes, has the two cases Openbox's
- * top-level toggle does: already maximized in both directions, so
- * restore; anything else, so maximize both.  @p dir @c == @c 1 or
- * @c 2, one axis, has three: demote this axis alone if it is
- * currently maximized, restoring it from @c layout.geometry.old and
- * leaving the other exactly as it is; fold this axis in from the
- * workarea if the other is already maximized; or maximize this axis
- * alone otherwise, saving the pre-maximize geometry first unless some
- * maximized state already holds it.
+ * @p dir @c == @c 0, both axes, has the two cases Openbox's top-level
+ * toggle does: already maximized in both directions, so restore;
+ * anything else, so maximize both.  @p dir @c == @c 1 or @c 2, one
+ * axis, has three: demote this axis alone if it is currently maximized,
+ * restoring it from @c layout.geometry.old and leaving the other
+ * exactly as it is; fold this axis in from the workarea if the other is
+ * already maximized; or maximize this axis alone otherwise, saving the
+ * pre-maximize geometry first unless some maximized state already holds
+ * it.
  *
  * @param client Client to maximize
- * @param dir    @c 0 for both axes, @c 1 for horizontal only, @c 2
- *               for vertical only
+ * @param dir    @c 0 for both axes, @c 1 for horizontal only, @c 2 for
+ *               vertical only
  *
  * @note A null @p client, or a failing
  *       @a s_ccmd_maximize_precheck, is a silent no-op
@@ -273,10 +275,10 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
     vert_now = client_is_maximized_vert(client);
     target = ccmd_target_win(client);
 
-    /* Toggle: both axes fully maximized already restores to normal;
-     * any other current state (normal, or maximized on just one
-     * axis) falls through to maximizing both below instead,
-     * overriding whatever partial state was there. */
+    /* Toggle: both axes fully maximized already restores to normal; any
+     * other current state (normal, or maximized on just one axis) falls
+     * through to maximizing both below instead, overriding whatever
+     * partial state was there. */
     if (s_ccmd_maximize_demote(client, dir, target, horz_now,
                 vert_now)) {
         return;
@@ -292,11 +294,11 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
      * growing rightward/downward from there.  The full on-screen
      * footprint of a client with one reaches all the way to
      * 'x + 2 * border + w', 2 * border wider/taller than 'w' alone
-     * (equivalently for height).  'client_border_width' is 0 for a
-     * decorated client, so this only ever actually shrinks the
-     * target for an undecorated one; kept within the workarea/
-     * monitor rect 'sw'/'sh' just resolved above, rather than
-     * spilling its border past its right/bottom edge. */
+     * (equivalently for height).  'client_border_width' is 0 for
+     * a decorated client, so this only ever actually shrinks the target
+     * for an undecorated one; kept within the workarea/ monitor rect
+     * 'sw'/'sh' just resolved above, rather than spilling its border
+     * past its right/bottom edge. */
     own_desktop = wm_get_client_desktop(client);
     is_active = own_desktop != NULL &&
         own_desktop->client_active_id == client->id;
@@ -308,9 +310,9 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
 
 
     /* Complete this single axis to full maximize.  The other axis is
-     * already the one currently maximized, so fold this one in from
-     * the workarea without disturbing it.  Only reachable for a
-     * single-axis 'dir'. */
+     * already the one currently maximized, so fold this one in from the
+     * workarea without disturbing it.
+     * Only reachable for a single-axis 'dir'. */
     if (dir == 1 && vert_now) {
         ccmd_client_apply_geometry(client, target,
                 (uint16_t) XCB_CONFIG_WINDOW_X |
@@ -346,11 +348,11 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
 
     /* Maximize fresh: either both axes at once ('dir == 0', which can
      * only still reach here with neither axis currently fully
-     * maximized), or this single axis alone with the other left
-     * exactly as it is.  Only remember the geometry to restore to if
-     * it is not already a maximized state's geometry, or restoring
-     * later would land at whichever partial-maximize size happened
-     * to be current instead of the window's true original one. */
+     * maximized), or this single axis alone with the other left exactly
+     * as it is.  Only remember the geometry to restore to if it is not
+     * already a maximized state's geometry, or restoring later would
+     * land at whichever partial-maximize size happened to be current
+     * instead of the window's true original one. */
     if (!client_is_maximized_any(client)) {
         client_geometry_save(client);
     }
@@ -397,35 +399,8 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
 }
 
 
-/**
- * @brief Re-fill an already-maximized client's geometry against
- *        its current workarea
- *
- * A maximized client's geometry, grown or shrunk in place, is
- * only ever right immediately after actually maximizing it.  Anything
- * that later changes what its workarea resolves to (a panel
- * mapped or unmapped, @c desktops.margins reloaded, or the surface's
- * own strutless-maximization mode,
- * @a surface_action_toggle_strutless_maximize,
- * surface.h, toggled) leaves it still filling wherever the OLD
- * workarea was, not the new one, until something re-applies its
- * maximize geometry from scratch.  This does exactly that.  Resolved
- * against @a ccmd_client_resolve_workarea (the same resolution
- * @a ccmd_client_maximize itself already uses), so the client ends up
- * exactly refilling the workarea as it now stands, the same as if it
- * had only just been maximized.
- *
- * Only the axis (or axes) @p client's @c properties.state
- * actually names gets touched: a client maximized on one axis alone
- * keeps its other axis exactly as it already was, rather than
- * growing it to fill the workarea too and silently turning a
- * horizontal- or vertical-only maximize into a full one.
- *
- * @param client Client to re-fill; a no-op unless it is currently
- *               maximized on at least one axis
- *
- * @note Complexity: @e O(1)
- */
+/* Re-fill an already-maximized client's geometry against its current
+ * workarea */
 void ccmd_client_refill_maximized(client_td *client)
 {
     int32_t mx = 0;
@@ -490,18 +465,21 @@ void ccmd_client_refill_maximized(client_td *client)
 }
 
 
+/* Maximize the client horizontally */
 void ccmd_client_maximize_horz(client_td *client)
 {
     s_ccmd_client_maximize_dir(client, 1);
 }
 
 
+/* Maximize the client vertically */
 void ccmd_client_maximize_vert(client_td *client)
 {
     s_ccmd_client_maximize_dir(client, 2);
 }
 
 
+/* Demote a single axis's maximize state alone */
 void ccmd_client_demote_axis_state(client_td *client, int dir)
 {
     if (client == NULL) {
@@ -515,6 +493,7 @@ void ccmd_client_demote_axis_state(client_td *client, int dir)
 }
 
 
+/* Promote a single axis's maximize state back */
 void ccmd_client_promote_axis_state(client_td *client, int dir)
 {
     if (client == NULL) {
@@ -528,6 +507,7 @@ void ccmd_client_promote_axis_state(client_td *client, int dir)
 }
 
 
+/* Maximize the client entirely */
 void ccmd_client_maximize(client_td *client)
 {
     s_ccmd_client_maximize_dir(client, 0);

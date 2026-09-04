@@ -26,6 +26,8 @@
 
 /* Utils includes */
 #include <utils/safe/safemem.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Default initial values */
 #include <defs/config.h>
@@ -41,8 +43,6 @@
 
 /* Local includes */
 #include <client/internal.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /* Allocate and zero all heap string buffers for a client */

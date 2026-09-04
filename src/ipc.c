@@ -41,9 +41,6 @@
 /* Project includes */
 #include <logger.h>
 
-/* Utils includes */
-#include <utils/safe/safestr.h>
-
 /* Local includes */
 #include <ipc.h>
 #include <ipc/commands.h>

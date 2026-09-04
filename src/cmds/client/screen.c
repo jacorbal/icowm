@@ -21,6 +21,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Project includes */
 #include <client.h>
 #include <surface.h>
@@ -28,7 +31,6 @@
 
 /* Local includes */
 #include <cmds/client/screen.h>
-#include <utils/xcb/connection.h>
 
 
 /* Return the frame when decorated, the client window otherwise */

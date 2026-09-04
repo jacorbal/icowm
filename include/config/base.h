@@ -1,8 +1,8 @@
 /**
  * @file config/base.h
  *
- * @brief Screen and desktop topology, and the policies that apply
- *        to them
+ * @brief Screen and desktop topology, and the policies that apply to
+ *        them
  *
  * Everything @c config.json's top-level objects describe: how many
  * screens and desktops exist and what each is called, plus the focus,
@@ -70,7 +70,7 @@ enum config_desktop_orientation_e {
 
 /**
  * @brief Which corner of a configured @c topology.screens.desktops
- *        layout desktop index 0 starts at, and so which direction
+ *        layout desktop index @c 0 starts at, and so which direction
  *        indices advance in from there
  */
 enum config_desktop_corner_e {
@@ -91,15 +91,16 @@ enum config_desktop_corner_e {
  * @c desktops[] itself, or a desktop's settings within it, changes
  * depending on whether one is configured at all.
  *
- * Always populated with a valid value, whether @c topology.screens.
- * desktops[].layout was present in config.json or not: @c rows @c 1,
- * @c columns the screen's @c desktop_count, @c orientation
- * horizontal, @c corner top-left describes the exact same reading
- * order the desktop list itself already had before this existed, so
- * a config that never mentions layout at all behaves identically to
- * before.  The same fallback also applies whenever a given @c layout
- * fails validation (see @c ci_config_load_screens's comment,
- * config/base/desktops.c, for what "fails validation" means here).
+ * Always populated with a valid value, whether
+ * @c topology.screens.desktops[].layout was present in @c config.json
+ * or not: @c rows @c 1, @c columns the screen's @c desktop_count, @c
+ * orientation horizontal, @c corner top-left describes the exact same
+ * reading order the desktop list itself already had before this
+ * existed, so a config that never mentions layout at all behaves
+ * identically to before.  The same fallback also applies whenever a
+ * given @c layout fails validation (see @c ci_config_load_screens's
+ * comment, @c config/base/desktops.c, for what "fails validation" means
+ * here).
  */
 struct config_desktop_layout_s {
     enum config_desktop_orientation_e orientation;
@@ -366,7 +367,7 @@ struct config_base_s {
              *        SLOPPY; ignored under @c CLICK, which never
              *        focuses on an @c EnterNotify at all
              *
-             * @c 0 (the default) focuses the instant the pointer
+             * @c 250 (the default) focuses the instant the pointer
              * enters, exactly as before this field existed.  Leaving
              * the client before the delay elapses cancels it, so a
              * pointer only passing through on its way elsewhere never
@@ -381,13 +382,13 @@ struct config_base_s {
     /**
      * @brief Configuration for the scratchpad: a single dedicated
      *        client, launched on demand from @p command, toggled
-     *        visible/hidden by its keybind or IPC command instead
-     *        of iconified/restored
+     *        visible/hidden by its keybind or IPC command instead of
+     *        iconified/restored
      *
      * @p is_enabled just gates whether the toggle action does anything
      * at all; @p width and @p height are always applied regardless of
      * whatever geometry the client itself requests, against whichever
-     * edge @p edge names, centered along that edge's other axis.
+      edge @p edge names, centered along that edge's other axis.
      *
      * @see @c scratchpad.c
      */
@@ -407,8 +408,8 @@ struct config_base_s {
          *
          * @p pixels is only meaningful when @p mode is
          * @c CONFIG_SCRATCHPAD_SIZE_FIXED; under
-         * @c CONFIG_SCRATCHPAD_SIZE_MAX the scratchpad's placement
-         * code computes it fresh every time instead, against
+         * @c CONFIG_SCRATCHPAD_SIZE_MAX the scratchpad's placement code
+         * computes it fresh every time instead, against
          * @p desktop->workarea (or the full monitor extent, when
          * @p ignore_margins is @c true), the same as a numeric value
          * would be measured against.
@@ -419,9 +420,8 @@ struct config_base_s {
                 CONFIG_SCRATCHPAD_SIZE_MAX
             } mode;
             uint32_t pixels;
-        } width;             /**< Always-applied width */
-        struct config_scratchpad_size_s height; /**< Always-applied
-                                                     height */
+        } width;                                /**< Always-applied width */
+        struct config_scratchpad_size_s height; /**< Always-applied height */
 
         bool is_enabled;    /**< Enable the scratchpad toggle action */
 
@@ -472,9 +472,9 @@ struct config_base_s {
          * as if there were only one monitor; @p primary anchors it to
          * the monitor RandR reports as primary; @p index anchors it to
          * @p monitor.index specifically, a zero-based index into that
-         * surface's monitor list (falls back to monitor 0 if it
-         * does not exist, logging a warning, the same as
-         * @c rules.json's @c apply.monitor).
+         * surface's monitor list (falls back to monitor 0 if it does
+         * not exist, logging a warning, the same as @c rules.json's
+         * @c apply.monitor).
          *
          * Only one tray dock ever exists at a time regardless of this
          * setting: the @c _NET_SYSTEM_TRAY_Sn specification permits
@@ -493,8 +493,10 @@ struct config_base_s {
                                  @c CONFIG_SYSTRAY_MONITOR_INDEX */
         } monitor;
 
-        /** Where newly docked icons are placed relative to the ones
-         *  already docked */
+        /**
+         * @brief Where newly docked icons are placed relative to the
+         *        ones already docked
+         */
         enum config_systray_order_e {
             /** New icons are appended after the last one */
             CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT = 0,
@@ -519,9 +521,8 @@ struct config_base_s {
          * always sets it @c false, as a fixed part of that mode's
          * profile rather than something @c memguard.json itself is
          * allowed to configure.  With this @c false, the tray still
-         * shows its clock and battery text when @p is_enabled is
-         * also @c true; only docking a third party's icon is ever
-         * affected.
+         * shows its clock and battery text when @p is_enabled is also
+         * @c true; only docking a third party's icon is ever affected.
          *
          * @see @a systray_init and @a systray_reload
          */
@@ -530,15 +531,15 @@ struct config_base_s {
         /**
          * @brief Whether the tray publishes an
          *        @c _NET_WM_STRUT_PARTIAL / @c _NET_WM_STRUT, reserving
-         *        an on-screen area that maximized windows and
-         *        placement leave alone
+         *        an on-screen area that maximized windows and placement
+         *        leave alone
          *
-         * @c false by default, so nothing is reserved and an
-         * explicit {0, 0, 0, 0} strut is published, the same as if
-         * the tray were not there at all for placement purposes.
-         * Setting this @c true instead makes the tray reserve an
-         * on-screen area, per the specification's recommendation for
-         * a docking area, a taskbar, or a panel.
+         * @c false by default, so nothing is reserved and an explicit
+         * {0, 0, 0, 0} strut is published, the same as if the tray were
+         * not there at all for placement purposes.  Setting this
+         * @c true instead makes the tray reserve an on-screen area, per
+         * the specification's recommendation for a docking area, a
+         * taskbar, or a panel.
          *
          * @see @a systray_get_reserved_strut and
          *      @a desktop_update_workarea
@@ -571,18 +572,18 @@ struct config_base_s {
 
         /**
          * @brief Extra space added on top of whatever @c reserve_space
-         *        already reserves for the tray, on each of the
-         *        four screen edges
+         *        already reserves for the tray, on each of the four
+         *        screen edges
          *
-         * Mirrors @p config_desktop_s's @p margins exactly: added
-         * to the tray's computed strut rather than replacing it, so
-         * a taller reservation than the tray's exact visual
-         * footprint is possible without having to fake it by inflating
-         * @p height instead.  All zero by default, same as no extra
-         * margin at all.  Has no effect when @p reserve_space is
-         * @c false: an all-zero strut plus a margin is still all zero
-         * from @p desktop_update_workarea's point of view, so there
-         * is nothing meaningful to add to.
+         * Mirrors @p config_desktop_s's @p margins exactly: added to
+         * the tray's computed strut rather than replacing it, so a
+         * taller reservation than the tray's exact visual footprint is
+         * possible without having to fake it by inflating @p height
+         * instead.  All zero by default, same as no extra margin at
+         * all.  Has no effect when @p reserve_space is @c false: an
+         * all-zero strut plus a margin is still all zero from
+         * @p desktop_update_workarea's point of view, so there is
+         * nothing meaningful to add to.
          *
          * @see @a s_systray_strut_update in @c systray/layout.c
          */
@@ -611,7 +612,9 @@ struct config_base_s {
          * @brief Optional clock drawn inside the systray dock
          *
          * Where it is positioned/aligned is shared with @c battery
-         * below; see @c text.
+         * below.
+         *
+         * @see @c text
          */
         struct {
             bool is_enabled;        /**< Draw the clock or not */
@@ -672,7 +675,7 @@ struct config_base_s {
                  * @brief Which battery to read when a system has more
                  *        than one, zero-indexed
                  *
-                 * For instance, 1 selects @c BAT1 under ACPI.
+                 * For instance, @c 1 selects @c BAT1 under ACPI.
                  * Meaningless for APM, which only ever exposes one
                  * aggregate battery.
                  */
@@ -742,17 +745,17 @@ struct config_base_s {
      *
      * Its top-level section, rather than nested under @p programs
      * itself, specifically to avoid the confusion a second, differently
-     * typed "launcher" key nested right next to @p programs.launcher
-     * (a plain command string) would invite; see @c menu/dialog/run.h
-     * for the run-box itself.
+     * typed "launcher" key nested right next to @p programs.launcher (a
+     * plain command string) would invite; see @c menu/dialog/run.h for
+     * the run-box itself.
      *
      * @p is_enabled defaults to @c false in normal mode; defaults to
      * @c true in restricted-memory mode, where avoiding the extra
-     * process @p programs.launcher itself would otherwise spawn (even
-     * a minimal one, e.g., 'gmrun', this mode's default for it)
-     * fits that mode's whole reason for existing.
+     * process @p programs.launcher itself would otherwise spawn (even a
+     * minimal one, e.g., 'gmrun', this mode's default for it) fits that
+     * mode's whole reason for existing.
      *
-     * @see @a ik_handle_launch (input/kbd/interact.c) for where this
+     * @see @a ik_handle_launch (@c input/kbd/interact.c) for where this
      *      is consulted
      */
     struct {
@@ -760,8 +763,8 @@ struct config_base_s {
     } prompt;
 
     /**
-     * @brief The @c fortune easter egg, whether its keyboard
-     *        shortcut is active at all, and which command it runs
+     * @brief The @c fortune easter egg, whether its keyboard shortcut
+     *        is active at all, and which command it runs
      *
      * @p command is run through a shell (@a popen), so it may be any
      * shell command line, not just a bare executable name (e.g.,

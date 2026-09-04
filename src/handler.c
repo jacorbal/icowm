@@ -19,8 +19,8 @@
  * - @c handler/sync.c: XSync extension @c _NET_WM_SYNC_REQUEST alarms
  *
  * This file is intentionally empty; all implementations live in the
- * modules listed above.  The public API declared in handler.h remains
- * unchanged.
+ * modules listed above.  The public API declared in @c handler.h
+ * remains unchanged.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -23,6 +23,7 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 
 /* Project includes */
 #include <client.h>
@@ -30,7 +31,6 @@
 
 /* Local includes */
 #include <cmds/client/meta.h>
-#include <utils/xcb/connection.h>
 
 
 /* Rename the client window */
@@ -40,8 +40,8 @@ void ccmd_client_rename(client_td *client, const char *name)
         return;
     }
 
-    LOGGER_TRACE("Renaming client window=0x%x to '%s'", client->window,
-            name);
+    LOGGER_TRACE("Renaming client window=0x%x to '%s'",
+            client->window, name);
 
     free(client->info.name);
     client->info.name = safe_strdup(name);
@@ -71,7 +71,8 @@ void ccmd_client_reclass(client_td *client,
     size_t len0;
     size_t len1;
 
-    if (client == NULL || class_name == NULL || instance_name == NULL) {
+    if (client == NULL ||
+            class_name == NULL || instance_name == NULL) {
         return;
     }
 
@@ -123,7 +124,8 @@ void ccmd_client_rerole(client_td *client, const char *role)
     free(client->info.role_name);
     client->info.role_name = safe_strdup(role);
 
-    role_atom = atom_intern(xcb_connection_get(), "WM_WINDOW_ROLE", false);
+    role_atom = atom_intern(xcb_connection_get(),
+            "WM_WINDOW_ROLE", false);
     if (role_atom == XCB_ATOM_NONE) {
         return;
     }

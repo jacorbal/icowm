@@ -3,11 +3,11 @@
  *
  * @brief Client positioning command implementation
  *
- * One of the files @c cmds/client/ is made of.  Covers moving a
- * client (including to a specific monitor, or centering it), plus
+ * One of the files @c cmds/client/ is made of.  Covers moving a client
+ * (including to a specific monitor, or centering it), plus
  * @a ccmd_client_apply_geometry, the single shared XCB call every
- * geometry-changing operation across move, resize, and maximize
- * alike funnels through.
+ * geometry-changing operation across move, resize, and maximize alike
+ * funnels through.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -28,6 +28,9 @@
 #include <types/direction.h>
 #include <types/pair.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -39,7 +42,6 @@
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/workarea.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -53,7 +55,7 @@
  * already on, which is what @a surface_monitor_direction returns when
  * there is no neighbor that way.
  *
- * @param client    Client to move; may be @c NULL
+ * @param client    Client to move; may be null
  * @param direction Which way to look for a neighboring monitor
  *
  * @note Complexity: @e O(n), where @e n is the number of monitors on
@@ -95,58 +97,7 @@ static void s_move_to_monitor_toward(client_td *client,
 }
 
 
-/**
- * @brief Apply a client's geometry to its target window in a single
- *        XCB call
- *
- * Openbox's real answer to configuring a window's geometry
- * (confirmed directly against its source, @c client_configure in
- * @c client.c): one shared function every geometry-changing operation
- * funnels through, rather than each one building its
- * @c xcb_configure_window values array by hand.  @c XCB_CONFIG_WINDOW_*
- * bit values themselves fix the order @c xcb_configure_window's
- * values array must list whichever fields @p mask selects in (@c X
- * @c <@c Y @c <@c WIDTH @c <@c HEIGHT @c <@c BORDER_WIDTH, confirmed
- * directly against @c xproto.h), the exact ordering every one of this
- * function's former call sites had to get right by hand, on its
- * own, every single time; this function gets it right once.
- *
- * Deliberately narrow in scope: only the single
- * @c xcb_configure_window call itself, nothing about updating
- * @p client's tracked
- * @c layout.geometry.cur fields to match, which stays each caller's
- * own concern, since which fields to track, and anything else a
- * caller needs alongside such as clearing
- * @c has_rule_position_locked, genuinely varies from one call site
- * to the next in ways a
- * single shared function covering both would only obscure.
- *
- * @param client       Client whose target window to configure
- * @param target       Window to configure; @a ccmd_target_win's
- *                      result, the frame for a decorated client or
- *                      the bare content window otherwise
- * @param mask         Bitwise OR of whichever @c XCB_CONFIG_WINDOW_X/
- *                      @c _Y/@c _WIDTH/@c _HEIGHT/@c _BORDER_WIDTH
- *                      bits are actually changing; a field whose
- *                      bit is not set here is never read at all,
- *                      whatever @p x/@p y/@p w/@p h/@p border_width
- *                      themselves happen to hold
- * @param x            New X position, only applied when
- *                     @c XCB_CONFIG_WINDOW_X is set in @p mask
- * @param y            New Y position, only applied when
- *                     @c XCB_CONFIG_WINDOW_Y is set in @p mask
- * @param w            New width, only applied when
- *                     @c XCB_CONFIG_WINDOW_WIDTH is set in @p mask
- * @param h            New height, only applied when
- *                     @c XCB_CONFIG_WINDOW_HEIGHT is set in @p mask
- * @param border_width New native border width, only applied if
- *                      @c XCB_CONFIG_WINDOW_BORDER_WIDTH is set in
- *                      @p mask
- *
- * @note A null @p client, one with no connection, or a @p target of
- *       @c XCB_WINDOW_NONE is a silent no-op
- * @note Complexity: @e O(1)
- */
+/* Apply a client's geometry to its target window in a single XCB call */
 void ccmd_client_apply_geometry(const client_td *client,
         xcb_window_t target, uint16_t mask,
         int32_t x, int32_t y, uint32_t w, uint32_t h,
@@ -180,6 +131,7 @@ void ccmd_client_apply_geometry(const client_td *client,
 }
 
 
+/* Move the client to a new position */
 void ccmd_client_move(client_td *client, struct position_s pos)
 {
     xcb_window_t target;
@@ -200,6 +152,7 @@ void ccmd_client_move(client_td *client, struct position_s pos)
 }
 
 
+/* Center the client on its current screen */
 void ccmd_client_center(client_td *client)
 {
     uint16_t sw;
@@ -216,12 +169,12 @@ void ccmd_client_center(client_td *client)
     }
 
     /* Centers within the workarea of whichever monitor 'client'
-     * currently sits on, not its raw dimensions: consistent with
-     * every other quick-position command in this project (maximize,
-     * smart placement, transient centering, and now the keyboard's
-     * own corner moves in 'ik_handle_move', input/kbd/interact.c),
-     * none of which would tuck a client under a panel or the tray
-     * reserving space at that same edge. */
+     * currently sits on, not its raw dimensions: consistent with every
+     * other quick-position command in this project (maximize, smart
+     * placement, transient centering, and now the keyboard's own corner
+     * moves in 'ik_handle_move', input/kbd/interact.c), none of which
+     * would tuck a client under a panel or the tray reserving space at
+     * that same edge. */
     if (!ccmd_client_resolve_workarea(client, &mx, &my, &sw, &sh) &&
             !ccmd_screen_dim(client, &sw, &sh)) {
         return;
@@ -241,7 +194,7 @@ void ccmd_client_center(client_td *client)
 
     ccmd_client_apply_geometry(client, target,
             (uint16_t) XCB_CONFIG_WINDOW_X |
-                (uint16_t) XCB_CONFIG_WINDOW_Y,
+            (uint16_t) XCB_CONFIG_WINDOW_Y,
             x, y, 0u, 0u, 0u);
     client->layout.geometry.cur.pos.x = x;
     client->layout.geometry.cur.pos.y = y;
@@ -249,7 +202,9 @@ void ccmd_client_center(client_td *client)
 }
 
 
-void ccmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
+/* Move the client to a specific monitor on its own surface */
+void ccmd_client_move_to_monitor(client_td *client,
+        uint32_t monitor_index)
 {
     surface_td *surface = NULL;
     monitor_td cur_monitor;
@@ -288,8 +243,8 @@ void ccmd_client_move_to_monitor(client_td *client, uint32_t monitor_index)
     new_y = client->layout.geometry.cur.pos.y -
         cur_monitor.y + target_monitor.y;
 
-    /* Clamp so the window stays fully on the target monitor even if
-     * it is smaller than the one the client came from */
+    /* Clamp so the window stays fully on the target monitor even if it
+     * is smaller than the one the client came from */
     if (new_x < target_monitor.x) {
         new_x = target_monitor.x;
     } else if ((uint32_t) (new_x - target_monitor.x) +

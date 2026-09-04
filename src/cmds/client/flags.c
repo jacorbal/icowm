@@ -40,6 +40,8 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <client.h>
@@ -58,8 +60,6 @@
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**
@@ -173,30 +173,8 @@ static void s_ccmd_client_unpin_visit(client_td *member, void *ctx)
 }
 
 
-/**
- * @brief Pin the client to every desktop, taking its whole transient
- *        family along with it
- *
- * ICCCM §4.1.2.6 dialogs and the window they belong to are, for
- * every purpose this whole session's transient-family cascade has
- * already covered (iconify, restore, desktop moves), treated as one
- * single unit that can never be split across desktops; pin state is
- * no different, since a "save changes?" prompt left behind on one
- * desktop while its pinned parent now follows the user to
- * every other one would be exactly that kind of split.  Pinning any
- * single member of a transient family here pins the family's
- * top-most ancestor (@a ccmd_client_transient_top_parent) first, then
- * every other member of that same family not already pinned, so the
- * whole group stays together on every desktop from then on.  A
- * client with no transient relatives at all is unaffected.  Its
- * top parent is itself, and no sibling scan finds anything else to
- * cascade to.
- *
- * @param client Client to pin
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's desktop
- */
+/* Pin the client to every desktop, taking its whole transient family
+ * along with it */
 void ccmd_client_pin(client_td *client)
 {
     client_td *top;
@@ -218,22 +196,8 @@ void ccmd_client_pin(client_td *client)
 }
 
 
-/**
- * @brief Unpin the client from every desktop but its, taking its
- *        whole transient family along with it
- *
- * The matching half of @a ccmd_client_pin's transient-family
- * cascade (see its comment for the full reasoning).  Redirects
- * to the family's top-most ancestor first, unpinning it exactly as
- * this function always has, then unpins every other family member
- * still pinned too, so a family pinned together stays together when
- * unpinned as well.
- *
- * @param client Client to unpin
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's desktop
- */
+/* Unpin the client from every desktop but its, taking its whole
+ * transient family along with it */
 void ccmd_client_unpin(client_td *client)
 {
     client_td *top;
@@ -422,15 +386,16 @@ void ccmd_client_update_allowed_actions(client_td *client)
     }
 
     /* Not folded into the 'client_is_resizable' block above, unlike
-     * maximize: fullscreen is a WM-forced override of the client's
-     * own preferred geometry, not a user-convenience resize the
-     * client's fixed size hints have any say over; see
+     * maximize: fullscreen is a WM-forced override of the client's own
+     * preferred geometry, not a user-convenience resize the client's
+     * fixed size hints have any say over; see
      * 'ccmd_client_fullscreen''s comment for the full reasoning.
+     *
      * A DOS-emulation or retro-game window that fixes its size is
      * exactly the case this matters for: some such clients check this
      * very property before ever attempting '_NET_WM_STATE_FULLSCREEN'
-     * at all, so advertising it as disallowed here would have kept
-     * the fix in 'ccmd_client_fullscreen' itself from ever being
+     * at all, so advertising it as disallowed here would have kept the
+     * fix in 'ccmd_client_fullscreen' itself from ever being
      * reached. */
     actions[n++] = ewmh->_NET_WM_ACTION_FULLSCREEN;
 

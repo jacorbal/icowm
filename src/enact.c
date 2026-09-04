@@ -1,8 +1,8 @@
 /**
  * @file enact.c
  *
- * @brief Window-manager-level actions that do not belong to the
- *        client, desktop, or surface domain
+ * @brief Window-manager-level actions that do not belong to the client,
+ *        desktop, or surface domain
  *
  * Every client-, desktop-, and surface-level action lives in
  * @c enact/client.c, @c enact/desktop.c, and @c enact/surface.c

@@ -32,14 +32,16 @@
 /* Utils include */
 #include <utils/safe/safestr.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
+
 /* Project includes */
 #include <logger.h>
 #include <wm.h>
 
 /* Local includes */
 #include <systray/internal.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /* Module-level built-in systray state; see 'systray/internal.h' for
@@ -216,10 +218,10 @@ void systray_shutdown(wm_td *wm)
         /* Destroying the tray window implicitly reparents any
          * still-docked icons back to the root window; each icon's
          * application is responsible for re-docking if a tray reappears
-         * later, exactly as with every other systray.  This full
-         * teardown is only for the window manager itself exiting;
-         * toggling 'is-enabled' off goes through 'systray_reload',
-         * which keeps the window and icons alive via
+         * later, exactly as with every other systray.
+         * This full teardown is only for the window manager itself
+         * exiting; toggling 'is-enabled' off goes through
+         * 'systray_reload', which keeps the window and icons alive via
          * 'systray_protocol_selection_release' instead. */
         xcb_window_destroy(s_tray.window);
         xcb_flush(xcb_connection_get());

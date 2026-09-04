@@ -1,12 +1,12 @@
 /**
  * @file desktop.c
  *
- * @brief Desktop lifecycle: init, destroy, workarea
+ * @brief Desktop lifecycle: initialize, destroy, workarea
  *
  * Implements @a desktop_init, @a desktop_destroy,
  * @a desktop_update_workarea and @a desktop_mark_outdated.  Renaming,
- * backgrounds and everything a desktop does with its clients live
- * under @c desktop/ instead.
+ * backgrounds and everything a desktop does with its clients live under
+ * @c desktop/ instead.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -37,6 +37,10 @@
 /* Utils includes */
 #include <utils/hash/murmurhash.h>
 #include <utils/safe/safestr.h>
+#include <utils/xcb/connection.h>
+
+/* Policy includes */
+#include <policy/stacking.h>
 
 /* Project includes */
 #include <client.h>
@@ -47,8 +51,6 @@
 
 /* Local includes */
 #include <desktop.h>
-#include <policy/stacking.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -337,30 +339,27 @@ static void s_mark_client_outdated_visit(client_td *client, void *data)
  * only the region it is scoped to differing.  The whole surface for
  * the former, one monitor's physical extent for the latter.
  *
- * @param desktop             Desktop whose stacking list to scan
- *                            for client struts
- * @param region_x            Region's left edge, in surface
- *                            coordinates
- * @param region_y            Region's top edge, in surface
- *                            coordinates
+ * @param desktop             Desktop whose stacking list to scan for
+ *                            client struts
+ * @param region_x            Region's left edge, in surface coordinates
+ * @param region_y            Region's top edge, in surface coordinates
  * @param region_w            Region's width
  * @param region_h            Region's height
- * @param apply_margin_left   Whether this region's left edge
- *                            coincides with a side of the surface
- *                            @p config_desktop's @p margins
- *                            should actually reserve on
+ * @param apply_margin_left   Whether this region's left edge coincides
+ *                            with a side of the surface
+ *                            @p config_desktop's @p margins should
+ *                            actually reserve on
  * @param apply_margin_right  Same, for the right edge
  * @param apply_margin_top    Same, for the top edge
  * @param apply_margin_bottom Same, for the bottom edge
- * @param config_desktop      Active desktop-behavior configuration,
- *                            for its @p margins; a @c NULL
- *                            treats every margin as @c 0
+ * @param config_desktop      Active desktop-behavior configuration, for
+ *                            its @p margins; a @c NULL treats every
+ *                            margin as @c 0
  * @param systray_strut       The systray's current reservation;
  *                            a @c NULL value folds in nothing
- * @param ignore_struts       When @c true, neither @p systray_strut
- *                            nor any client's strut is folded
- *                            in, only whichever margins
- *                            @p apply_margin_* select
+ * @param ignore_struts       When @c true, neither @p systray_strut nor
+ *                            any client's strut is folded in, only
+ *                            whichever margins @p apply_margin_* select
  *
  * @return The resulting work area, in surface coordinates
  *
@@ -417,20 +416,18 @@ static struct geometry_s s_desktop_compute_workarea(
     }
 
     /* Configured margins ('config.json''s 'desktops.margins') add on
-     * top of whatever clients themselves already reserve on each
-     * edge above, rather than only keeping whichever of the two is
-     * larger.  They cover a distinct case (a program that reserves
-     * screen space without publishing '_NET_WM_STRUT' or
-     * '_NET_WM_STRUT_PARTIAL' itself, e.g., Conky) so both are
-     * meant to
-     * coexist, not override one another.  Applied even with no
-     * clients at all, unlike an early return that would never get
-     * here, so a configured margin still reserves its space
-     * on an empty desktop.  Only on whichever side of this region
-     * actually coincides with that same side of the whole surface,
-     * per 'apply_margin_left'/etc: an internal boundary between two
-     * monitors is not "the screen edge" a margin is meant to carve
-     * out in the first place. */
+     * top of whatever clients themselves already reserve on each edge
+     * above, rather than only keeping whichever of the two is larger.
+     * They cover a distinct case (a program that reserves screen space
+     * without publishing '_NET_WM_STRUT' or '_NET_WM_STRUT_PARTIAL'
+     * itself, e.g., Conky) so both are meant to coexist, not override
+     * one another.  Applied even with no clients at all, unlike an
+     * early return that would never get here, so a configured margin
+     * still reserves its space on an empty desktop.  Only on whichever
+     * side of this region actually coincides with that same side of the
+     * whole surface, per 'apply_margin_left'/etc: an internal boundary
+     * between two monitors is not "the screen edge" a margin is meant
+     * to carve out in the first place. */
     if (config_desktop != NULL) {
         if (apply_margin_left) {
             left += (int32_t) config_desktop->margins.left;

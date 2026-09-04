@@ -18,12 +18,14 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Project includes */
 #include <client.h>
 
 /* Local includes */
 #include <cmds/client/grab.h>
-#include <utils/xcb/connection.h>
 
 
 /* Passively grab mouse buttons (excluding scroll wheel) on an

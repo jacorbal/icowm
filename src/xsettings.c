@@ -27,7 +27,9 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 #include <utils/xcb/selection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <config.h>
@@ -37,8 +39,6 @@
 
 /* Local includes */
 #include <xsettings.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**

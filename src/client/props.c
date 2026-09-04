@@ -28,12 +28,12 @@
 
 /* Utils includes */
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 
 /* Local includes */
 #include <client.h>
 #include <client/internal.h>
 #include <client/props.h>
-#include <utils/xcb/connection.h>
 
 
 /**
