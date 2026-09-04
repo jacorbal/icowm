@@ -96,7 +96,37 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/config/test_lint \
     $(O_DIR)/tests/config/test_base \
     $(O_DIR)/tests/config/test_config \
-    $(O_DIR)/tests/rules/test_match
+    $(O_DIR)/tests/rules/test_match \
+    $(O_DIR)/tests/cmds/client/test_grab \
+    $(O_DIR)/tests/cmds/client/test_icon \
+    $(O_DIR)/tests/cmds/client/test_focus \
+    $(O_DIR)/tests/cmds/client/test_move \
+    $(O_DIR)/tests/cmds/client/test_resize \
+    $(O_DIR)/tests/cmds/client/test_ewmh \
+    $(O_DIR)/tests/cmds/test_surface_desktop_switch \
+    $(O_DIR)/tests/surface/test_workareas \
+    $(O_DIR)/tests/surface/actions/test_randr \
+    $(O_DIR)/tests/policy/test_ping \
+    $(O_DIR)/tests/enact/test_surface \
+    $(O_DIR)/tests/ipc/actions/client/test_flags \
+    $(O_DIR)/tests/ipc/actions/client/test_focus \
+    $(O_DIR)/tests/ipc/actions/client/test_geom \
+    $(O_DIR)/tests/ipc/actions/client/test_layer \
+    $(O_DIR)/tests/ipc/actions/client/test_meta \
+    $(O_DIR)/tests/ipc/actions/client/test_state \
+    $(O_DIR)/tests/ipc/actions/client/test_visibility \
+    $(O_DIR)/tests/ipc/actions/test_wm \
+    $(O_DIR)/tests/ipc/actions/test_scratchpad \
+    $(O_DIR)/tests/ipc/actions/test_surface_action \
+    $(O_DIR)/tests/ipc/actions/test_desktop \
+    $(O_DIR)/tests/ipc/actions/test_query \
+    $(O_DIR)/tests/enact/test_client \
+    $(O_DIR)/tests/menu/context/ctxmenu/test_tree \
+    $(O_DIR)/tests/menu/dialog/test_confirm \
+    $(O_DIR)/tests/desktop/test_dclient \
+    $(O_DIR)/tests/wm/test_actions \
+    $(O_DIR)/tests/systray/test_layout \
+    $(O_DIR)/tests/menu/test_search
 
 test: $(TEST_BINS)
 	@status=0; \
@@ -732,3 +762,302 @@ $(O_DIR)/tests/rules/test_match: \
 		$(S_DIR)/logger.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
+
+$(O_DIR)/tests/cmds/client/test_grab: \
+		$(TESTS_DIR)/cmds/client/test_grab.c \
+		$(S_DIR)/cmds/client/grab.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_icon: \
+		$(TESTS_DIR)/cmds/client/test_icon.c \
+		$(S_DIR)/cmds/client/icon.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/desktop/dfind.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_focus: \
+		$(TESTS_DIR)/cmds/client/test_focus.c \
+		$(S_DIR)/cmds/client/focus.c \
+		$(S_DIR)/utils/safe/safeflg.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_move: \
+		$(TESTS_DIR)/cmds/client/test_move.c \
+		$(S_DIR)/cmds/client/move.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_resize: \
+		$(TESTS_DIR)/cmds/client/test_resize.c \
+		$(S_DIR)/cmds/client/resize.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_ewmh: \
+		$(TESTS_DIR)/cmds/client/test_ewmh.c \
+		$(S_DIR)/cmds/client/ewmh.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/cmds/test_surface_desktop_switch: \
+		$(TESTS_DIR)/cmds/test_surface_desktop_switch.c \
+		$(S_DIR)/cmds/surface.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/surface/test_workareas: \
+		$(TESTS_DIR)/surface/test_workareas.c \
+		$(S_DIR)/surface/workareas.c \
+		$(S_DIR)/adt/cdlist.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/surface/actions/test_randr: \
+		$(TESTS_DIR)/surface/actions/test_randr.c \
+		$(S_DIR)/surface/actions/randr.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/policy/test_ping: \
+		$(TESTS_DIR)/policy/test_ping.c \
+		$(S_DIR)/policy/ping.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/utils/time/clock.c \
+		$(S_DIR)/utils/safe/safeflg.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/enact/test_surface: \
+		$(TESTS_DIR)/enact/test_surface.c \
+		$(S_DIR)/enact/surface.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/client/test_flags: \
+		$(TESTS_DIR)/ipc/actions/client/test_flags.c \
+		$(S_DIR)/ipc/actions/client/flags.c \
+		$(S_DIR)/ipc/dispatch.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/client/test_focus: \
+		$(TESTS_DIR)/ipc/actions/client/test_focus.c \
+		$(S_DIR)/ipc/actions/client/focus.c \
+		$(S_DIR)/ipc/dispatch.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/client/test_geom: \
+		$(TESTS_DIR)/ipc/actions/client/test_geom.c \
+		$(S_DIR)/ipc/actions/client/geom.c \
+		$(S_DIR)/ipc/dispatch.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/client/state.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/client/test_layer: \
+		$(TESTS_DIR)/ipc/actions/client/test_layer.c \
+		$(S_DIR)/ipc/actions/client/layer.c \
+		$(S_DIR)/ipc/dispatch.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/client/test_meta: \
+		$(TESTS_DIR)/ipc/actions/client/test_meta.c \
+		$(S_DIR)/ipc/actions/client/meta.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/client/test_state: \
+		$(TESTS_DIR)/ipc/actions/client/test_state.c \
+		$(S_DIR)/ipc/actions/client/state.c \
+		$(S_DIR)/ipc/dispatch.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/client/test_visibility: \
+		$(TESTS_DIR)/ipc/actions/client/test_visibility.c \
+		$(S_DIR)/ipc/actions/client/visibility.c \
+		$(S_DIR)/ipc/dispatch.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/test_wm: \
+		$(TESTS_DIR)/ipc/actions/test_wm.c \
+		$(S_DIR)/ipc/actions/wm.c \
+		$(S_DIR)/ipc/response.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/test_scratchpad: \
+		$(TESTS_DIR)/ipc/actions/test_scratchpad.c \
+		$(S_DIR)/ipc/actions/scratchpad.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/test_surface_action: \
+		$(TESTS_DIR)/ipc/actions/test_surface_action.c \
+		$(S_DIR)/ipc/actions/surface.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/test_desktop: \
+		$(TESTS_DIR)/ipc/actions/test_desktop.c \
+		$(S_DIR)/ipc/actions/desktop.c \
+		$(S_DIR)/ipc/resolve.c \
+		$(S_DIR)/ipc/args.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/adt/cdlist.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/ipc/actions/test_query: \
+		$(TESTS_DIR)/ipc/actions/test_query.c \
+		$(S_DIR)/ipc/actions/query.c \
+		$(S_DIR)/ipc/response.c \
+		$(S_DIR)/lookup.c \
+		$(S_DIR)/surface/desktops.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/enact/test_client: \
+		$(TESTS_DIR)/enact/test_client.c \
+		$(S_DIR)/enact/client.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/menu/context/ctxmenu/test_tree: \
+		$(TESTS_DIR)/menu/context/ctxmenu/test_tree.c \
+		$(S_DIR)/menu/context/ctxmenu/tree.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/dialog/test_confirm: \
+		$(TESTS_DIR)/menu/dialog/test_confirm.c \
+		$(S_DIR)/menu/dialog/confirm.c \
+		$(S_DIR)/menu/dialog/defer.c \
+		$(S_DIR)/utils/time/clock.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/desktop/test_dclient: \
+		$(TESTS_DIR)/desktop/test_dclient.c \
+		$(S_DIR)/desktop/dclient.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/desktop/dfind.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/utils/hash/murmurhash.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/logger.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) -lpthread
+
+$(O_DIR)/tests/wm/test_actions: \
+		$(TESTS_DIR)/wm/test_actions.c \
+		$(S_DIR)/wm/actions.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/systray/test_layout: \
+		$(TESTS_DIR)/systray/test_layout.c \
+		$(S_DIR)/systray/layout.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/adt/list.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/test_search: \
+		$(TESTS_DIR)/menu/test_search.c \
+		$(S_DIR)/menu/search.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)

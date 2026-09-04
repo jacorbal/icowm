@@ -1,0 +1,369 @@
+/**
+ * @file tests/surface/test_workareas.c
+ *
+ * @brief Test battery for per-desktop work-area recomputation
+ *        (surface/workareas.c)
+ *
+ * 'surface_refresh_workareas' walks every desktop on a surface and
+ * calls 'desktop_update_workarea' once per desktop, then always
+ * finishes with 'scratchpad_reposition'; this file links the real
+ * source under test directly.  'surface_desktops_walk' is a link-only
+ * stand-in walking a real 'cdlist_td' this file builds itself,
+ * exactly the way the real one (surface/desktops.c) would, so the
+ * static visitor 's_workarea_update_visit' still runs for real
+ * through the function pointer it is handed, without pulling in the
+ * rest of 'surface/desktops.c' and its own unrelated dependencies.
+ * 'desktop_update_workarea' and 'scratchpad_reposition' are
+ * call-counting, argument-recording stand-ins, letting each scenario
+ * assert on exactly which desktops were visited, what config/strut/
+ * flag combination each visit received, and that repositioning always
+ * runs last.
+ */
+/*
+ * Copyright (c) 2026, J. A. Corbal.
+ * All rights reserved.
+ *
+ * This file is licensed under the 'ISC License'.
+ * Read the 'LICENSE' file in the root of this repository for details.
+ */
+
+/* System includes */
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+/* ADT includes */
+#include <adt/cdlist.h>
+
+/* Project includes */
+#include <desktop.h>
+#include <harness/tap.h>
+#include <surface.h>
+
+
+/** Link-only stand-in for @a surface_desktops_walk (surface/
+ *  desktops.c): walks a real 'cdlist_td' this file builds itself, so
+ *  the real, static 's_workarea_update_visit' (surface/workareas.c)
+ *  still runs through the function pointer handed to it
+ *  @note Complexity: @e O(n), where @e n is the number of desktops on
+ *        @p surface
+ */
+void surface_desktops_walk(const surface_td *surface,
+        surface_desktop_visitor_fn visit, void *data)
+{
+    cdlist_item_td *node;
+
+    if (surface == NULL || surface->desktops == NULL || visit == NULL) {
+        return;
+    }
+
+    cdlist_foreach(surface->desktops, node) {
+        desktop_td *const desktop = (desktop_td *) cdlist_data(node);
+
+        if (desktop != NULL) {
+            visit(desktop, data);
+        }
+    }
+}
+
+
+/** Desktops visited, and the surface/config/strut/flag combination
+ *  each visit received, recorded in visitation order */
+#define MAX_RECORDED_VISITS (8)
+static desktop_td *s_visited_desktops[MAX_RECORDED_VISITS];
+static const surface_td *s_visited_surfaces[MAX_RECORDED_VISITS];
+static const struct config_desktop_s
+    *s_visited_config_desktops[MAX_RECORDED_VISITS];
+static const struct strut_partial_s
+    *s_visited_systray_struts[MAX_RECORDED_VISITS];
+static bool s_visited_ignore_struts[MAX_RECORDED_VISITS];
+static int s_call_update_workarea;
+
+/** Test-controlled stand-in for @a desktop_update_workarea
+ *  (desktop.c)
+ *  @note Complexity: @e O(1)
+ */
+void desktop_update_workarea(desktop_td *desktop,
+        const surface_td *surface,
+        const struct config_desktop_s *config_desktop,
+        const struct strut_partial_s *systray_strut,
+        bool ignore_struts)
+{
+    if (s_call_update_workarea < MAX_RECORDED_VISITS) {
+        s_visited_desktops[s_call_update_workarea] = desktop;
+        s_visited_surfaces[s_call_update_workarea] = surface;
+        s_visited_config_desktops[s_call_update_workarea] = config_desktop;
+        s_visited_systray_struts[s_call_update_workarea] = systray_strut;
+        s_visited_ignore_struts[s_call_update_workarea] = ignore_struts;
+    }
+    s_call_update_workarea++;
+}
+
+
+/** Strut this file's own 'systray_get_reserved_strut' stand-in
+ *  answers with, set by each scenario before calling the function
+ *  under test */
+static const struct strut_partial_s *s_stub_systray_strut;
+
+/** Test-controlled stand-in for @a systray_get_reserved_strut
+ *  (systray.c)
+ *  @note Complexity: @e O(1)
+ */
+const struct strut_partial_s
+    *systray_get_reserved_strut(const surface_td *surface)
+{
+    (void) surface;
+    return s_stub_systray_strut;
+}
+
+
+/** Whether, and with which surface, 'scratchpad_reposition' was
+ *  called */
+static int s_call_reposition;
+static const surface_td *s_last_reposition_surface;
+
+/** Order 'scratchpad_reposition' was called in, relative to
+ *  'desktop_update_workarea' calls: recorded as the value
+ *  's_call_update_workarea' held at that moment, so a scenario can
+ *  confirm repositioning always happens after every desktop visit */
+static int s_reposition_seen_after_visits;
+
+/** Call-recording stand-in for @a scratchpad_reposition
+ *  (scratchpad.c)
+ *  @note Complexity: @e O(1)
+ */
+void scratchpad_reposition(surface_td *surface)
+{
+    s_call_reposition++;
+    s_last_reposition_surface = surface;
+    s_reposition_seen_after_visits = s_call_update_workarea;
+}
+
+
+static void s_reset(void)
+{
+    memset(s_visited_desktops, 0, sizeof(s_visited_desktops));
+    memset(s_visited_surfaces, 0, sizeof(s_visited_surfaces));
+    memset(s_visited_config_desktops, 0,
+            sizeof(s_visited_config_desktops));
+    memset(s_visited_systray_struts, 0, sizeof(s_visited_systray_struts));
+    memset(s_visited_ignore_struts, 0, sizeof(s_visited_ignore_struts));
+    s_call_update_workarea = 0;
+    s_stub_systray_strut = NULL;
+    s_call_reposition = 0;
+    s_last_reposition_surface = NULL;
+    s_reposition_seen_after_visits = -1;
+}
+
+
+/* A null surface is refused outright: neither the walk nor the
+ * reposition call ever runs */
+static void s_test_null_surface_is_noop(void)
+{
+    s_reset();
+
+    surface_refresh_workareas(NULL);
+    TAP_EQ_INT(s_call_update_workarea, 0,
+            "a null surface never visits any desktop");
+    TAP_EQ_INT(s_call_reposition, 0,
+            "a null surface never repositions the scratchpad either");
+}
+
+
+/* A surface with no desktops at all still repositions the scratchpad,
+ * exactly once, having visited nothing */
+static void s_test_empty_desktop_list_still_repositions(void)
+{
+    surface_td surface;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    surface.desktops = cdlist_init(NULL);
+
+    surface_refresh_workareas(&surface);
+    TAP_EQ_INT(s_call_update_workarea, 0,
+            "an empty desktop list visits no desktop");
+    TAP_EQ_INT(s_call_reposition, 1,
+            "the scratchpad is still repositioned once, even with no"
+            " desktops");
+
+    cdlist_destroy(surface.desktops);
+}
+
+
+/* A single desktop is visited exactly once, with the surface's own
+ * config->desktops and the systray's current strut, honoring
+ * strutless_maximize as false */
+static void s_test_single_desktop_visited_with_config(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+    config_td config;
+    struct strut_partial_s strut;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&config, 0, sizeof(config));
+    memset(&strut, 0, sizeof(strut));
+
+    surface.desktops = cdlist_init(NULL);
+    (void) cdlist_ins_next(surface.desktops, NULL, &desktop);
+    surface.config = &config;
+    surface.strutless_maximize = false;
+    s_stub_systray_strut = &strut;
+
+    surface_refresh_workareas(&surface);
+    TAP_EQ_INT(s_call_update_workarea, 1,
+            "a single desktop is visited exactly once");
+    TAP_OK(s_visited_desktops[0] == &desktop,
+            "the desktop visited is the one on the surface's list");
+    TAP_OK(s_visited_surfaces[0] == &surface,
+            "the surface handed to desktop_update_workarea is the one"
+            " being refreshed");
+    TAP_OK(s_visited_config_desktops[0] == &config.desktops,
+            "the surface's own config.desktops is forwarded");
+    TAP_OK(s_visited_systray_struts[0] == &strut,
+            "the systray's current reservation is forwarded");
+    TAP_OK(!s_visited_ignore_struts[0],
+            "ignore_struts reflects strutless_maximize being false");
+
+    cdlist_destroy(surface.desktops);
+}
+
+
+/* A surface with no config forwards a null config_desktop rather than
+ * dereferencing a null pointer */
+static void s_test_null_config_forwards_null_config_desktop(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+
+    surface.desktops = cdlist_init(NULL);
+    (void) cdlist_ins_next(surface.desktops, NULL, &desktop);
+    surface.config = NULL;
+
+    surface_refresh_workareas(&surface);
+    TAP_EQ_INT(s_call_update_workarea, 1,
+            "the desktop is still visited even with no config at all");
+    TAP_NULL(s_visited_config_desktops[0],
+            "a null surface config forwards a null config_desktop"
+            " rather than dereferencing it");
+
+    cdlist_destroy(surface.desktops);
+}
+
+
+/* strutless_maximize being true is forwarded as ignore_struts true */
+static void s_test_strutless_maximize_forwards_ignore_struts(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+
+    surface.desktops = cdlist_init(NULL);
+    (void) cdlist_ins_next(surface.desktops, NULL, &desktop);
+    surface.strutless_maximize = true;
+
+    surface_refresh_workareas(&surface);
+    TAP_OK(s_visited_ignore_struts[0],
+            "strutless_maximize true is forwarded as ignore_struts"
+            " true");
+
+    cdlist_destroy(surface.desktops);
+}
+
+
+/* A null systray reservation is forwarded as-is, rather than
+ * substituted for anything */
+static void s_test_null_systray_strut_forwarded_as_null(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+
+    surface.desktops = cdlist_init(NULL);
+    (void) cdlist_ins_next(surface.desktops, NULL, &desktop);
+    s_stub_systray_strut = NULL;
+
+    surface_refresh_workareas(&surface);
+    TAP_NULL(s_visited_systray_struts[0],
+            "no systray reservation is forwarded as a null strut,"
+            " unchanged");
+
+    cdlist_destroy(surface.desktops);
+}
+
+
+/* Multiple desktops are all visited, each in the surface's own list
+ * order, and the scratchpad is repositioned exactly once, after every
+ * one of them */
+static void s_test_multiple_desktops_all_visited_then_repositioned(void)
+{
+    surface_td surface;
+    desktop_td desktop_a;
+    desktop_td desktop_b;
+    desktop_td desktop_c;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop_a, 0, sizeof(desktop_a));
+    memset(&desktop_b, 0, sizeof(desktop_b));
+    memset(&desktop_c, 0, sizeof(desktop_c));
+
+    /* Each 'cdlist_ins_next' call with a null 'item' inserts at the
+     * head, so the three are inserted in reverse to land in a, b, c
+     * order when walked from the head afterward */
+    surface.desktops = cdlist_init(NULL);
+    (void) cdlist_ins_next(surface.desktops, NULL, &desktop_c);
+    (void) cdlist_ins_next(surface.desktops, NULL, &desktop_b);
+    (void) cdlist_ins_next(surface.desktops, NULL, &desktop_a);
+
+    surface_refresh_workareas(&surface);
+    TAP_EQ_INT(s_call_update_workarea, 3,
+            "every desktop on the surface's list is visited");
+    TAP_OK(s_visited_desktops[0] == &desktop_a,
+            "the first desktop visited is the list's own first");
+    TAP_OK(s_visited_desktops[1] == &desktop_b,
+            "the second desktop visited is the list's own second");
+    TAP_OK(s_visited_desktops[2] == &desktop_c,
+            "the third desktop visited is the list's own third");
+    TAP_EQ_INT(s_call_reposition, 1,
+            "the scratchpad is repositioned exactly once regardless of"
+            " how many desktops were visited");
+    TAP_EQ_INT(s_reposition_seen_after_visits, 3,
+            "repositioning happens only after every desktop has"
+            " already been visited");
+    TAP_OK(s_last_reposition_surface == &surface,
+            "the scratchpad is repositioned for the same surface being"
+            " refreshed");
+
+    cdlist_destroy(surface.desktops);
+}
+
+
+int main(void)
+{
+    TAP_PLAN(21);
+
+    s_test_null_surface_is_noop();
+    s_test_empty_desktop_list_still_repositions();
+    s_test_single_desktop_visited_with_config();
+    s_test_null_config_forwards_null_config_desktop();
+    s_test_strutless_maximize_forwards_ignore_struts();
+    s_test_null_systray_strut_forwarded_as_null();
+    s_test_multiple_desktops_all_visited_then_repositioned();
+
+    return TAP_DONE();
+}
