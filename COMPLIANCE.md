@@ -12,7 +12,7 @@ Compliance:
   - [`-`] = none,
   - [`/`] = partial,
   - [`+`] = complete,
-  - [`*`] = IcoWM is compliant, but something else needs checking
+  - [`*`] = compliant, but something else needs checking
   - [`?`] = unknown
 
 Verified directly against the source (`src/wm/ewmh.c`'s `_NET_SUPPORTED`
@@ -31,11 +31,15 @@ EWMH Compliance
 - [`+`] `_NET_DESKTOP_GEOMETRY` (1.3)
 
     IcoWM doesn't support large desktops, so this always matches the
-    screen size.
+    screen size, and a pager's request to change it is ignored, which
+    the specification allows a window manager that has no larger desktop
+    to give.
 
 - [`+`] `_NET_DESKTOP_VIEWPORT` (1.3)
 
-    IcoWM doesn't support large desktops, so these are always (0,0).
+    IcoWM doesn't support large desktops, so these are always (0,0), one
+    pair per desktop as the specification asks; a pager's request to
+    scroll the viewport is ignored, there being nowhere to scroll to.
 
 - [`+`] `_NET_CURRENT_DESKTOP` (1.3)
 - [`+`] `_NET_DESKTOP_NAMES` (1.3)
@@ -65,14 +69,16 @@ EWMH Compliance
     focused one to get through.
 
     A request that fails all of that is refused with
+    `_NET_WM_STATE_DEMANDS_ATTENTION`, as §5 provides for
+    (`src/handler/message.c`).
 
-        `_NET_WM_STATE_DEMANDS_ATTENTION`, as §5 provides for
-        (`src/handler/message.c`).
 - [`+`] `_NET_WORKAREA` (1.3)
 - [`+`] `_NET_SUPPORTING_WM_CHECK` (1.3)
 - [`-`] `_NET_VIRTUAL_ROOTS` (1.3)
-        IcoWM does not use virtual roots, so this is not needed, and it
-        is not advertised in `_NET_SUPPORTED` at all.
+
+    IcoWM does not use virtual roots, so this is not needed, and it is
+    not advertised in `_NET_SUPPORTED` at all.
+
 - [`+`] `_NET_DESKTOP_LAYOUT` (1.3)
 - [`+`] `_NET_SHOWING_DESKTOP` (1.3)
 
@@ -178,9 +184,9 @@ EWMH Compliance
 
 - [`*`] `_NET_WM_ICON` (1.3)
 
-    Read and rendered by render/wmicon.c when a client provides one and
-    the active theme's 'icons.show-pixmaps' is enabled; falls back to
-    a themed glyph otherwise.  Never written by IcoWM itself, since
+    Read and rendered by `render/wmicon.c` when a client provides one
+    and the active theme's 'icons.show-pixmaps' is enabled; falls back
+    to a themed glyph otherwise.  Never written by IcoWM itself, since
     IcoWM is not the one supplying a client's icon.
 
 - [`+`] `_NET_WM_PID` (1.3)
@@ -191,9 +197,9 @@ EWMH Compliance
 
 - [`-`] `_NET_WM_HANDLED_ICONS` (1.3)
 
-    Only ever read (cmds/client/visibility.c checks whether a pager has
-    set this on the root window, and defers to it if so); IcoWM itself
-    never sets it, since IcoWM always handles iconified windows'
+    Only ever read (`cmds/client/visibility.c` checks whether a pager
+    has set this on the root window, and defers to it if so); IcoWM
+    itself never sets it, since IcoWM always handles iconified windows'
     on-screen icons itself.
 
 - [`+`] `_NET_WM_USER_TIME` (1.3)
