@@ -58,9 +58,11 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/surface/test_desktop_grid \
     $(O_DIR)/tests/surface/test_monitor_direction \
     $(O_DIR)/tests/surface/test_desktop_add_remove \
+    $(O_DIR)/tests/surface/test_sticky_transfer \
     $(O_DIR)/tests/enact/test_send_to_desktop \
     $(O_DIR)/tests/desktop/test_workarea \
     $(O_DIR)/tests/menu/context/ctxmenu/test_layout \
+    $(O_DIR)/tests/menu/context/test_winlist \
     $(O_DIR)/tests/input/test_modifier \
     $(O_DIR)/tests/utils/test_geom \
     $(O_DIR)/tests/utils/test_sysmem \
@@ -362,6 +364,16 @@ $(O_DIR)/tests/surface/test_desktop_add_remove: \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
+$(O_DIR)/tests/surface/test_sticky_transfer: \
+		$(TESTS_DIR)/surface/test_sticky_transfer.c \
+		$(S_DIR)/surface/actions/clients.c \
+		$(S_DIR)/policy/stacking.c \
+		$(S_DIR)/desktop/dfind.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
 # See this test file's own top-of-file comment: 'enact/desktop.c'
 # compiles as a single translation unit, so every one of its own
 # public functions besides 'enact_desktop_client_send' pulls in its
@@ -402,6 +414,15 @@ $(O_DIR)/tests/desktop/test_workarea: \
 $(O_DIR)/tests/menu/context/ctxmenu/test_layout: \
 		$(TESTS_DIR)/menu/context/ctxmenu/test_layout.c \
 		$(S_DIR)/menu/context/ctxmenu/layout.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/context/test_winlist: \
+		$(TESTS_DIR)/menu/context/test_winlist.c \
+		$(S_DIR)/menu/context/winlist.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/ohtbl.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
