@@ -17,6 +17,7 @@
 #ifndef RENDER_DESKTOP_H
 #define RENDER_DESKTOP_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -156,18 +157,27 @@ int desktop_render_full(desktop_td *desktop, bool is_current);
  * drawn underneath them) before calling
  * @a s_desktop_titlebar_buttons_draw.
  *
+ * Background, title and buttons are all drawn into an off-screen pixmap
+ * first and copied onto the titlebar with a single request only once
+ * every one of them is on it, rather than drawn straight onto the
+ * titlebar itself across several separate requests; without that, the
+ * gap between the first of those requests and the last was wide enough
+ * for the X server to show the titlebar with its background alone,
+ * neither title nor buttons yet drawn, an intermittent flicker on any
+ * window regardless of whether that particular window was the one whose
+ * focus, urgency, or geometry actually changed.
+ *
  * @param connection Active XCB connection
  * @param client     Client whose titlebar is to be repainted
- * @param is_focused Whether to paint with the active or inactive
- *                   font and colors.  Ordinarily reflects whether
- *                   @p client actually holds input focus, except
- *                   for an urgent client mid-blink (see @c policy/
- *                   urgency.h), where it is deliberately the
- *                   opposite of the real focus state for one half of
- *                   the blink cycle: font and colors swap together,
- *                   so the titlebar reads as clearly attention-
- *                   grabbing rather than merely looking like focus
- *                   flickered
+ * @param is_focused Whether to paint with the active or inactive font
+ *                   and colors.  Ordinarily reflects whether @p client
+ *                   actually holds input focus, except for an urgent
+ *                   client mid-blink (see @c policy/urgency.h), where
+ *                   it is deliberately the opposite of the real focus
+ *                   state for one half of the blink cycle: font and
+ *                   colors swap together, so the titlebar reads as
+ *                   clearly attention-grabbing rather than merely
+ *                   looking like focus flickered
  * @param inner_w    Width available for the titlebar (the frame's
  *                   width minus its left/right decoration extents)
  * @param title_h    Titlebar height in pixels

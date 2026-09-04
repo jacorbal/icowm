@@ -29,14 +29,14 @@
 /* JSON includes */
 #include <cjson/cJSON.h>
 
-/* Default initial values */
-#include <defs/config.h>
-
 /* Utils includes */
 #include <utils/config/json.h>
 #include <utils/safe/safestr.h>
 #include <utils/spawn.h>
 #include <utils/xcb/connection.h>
+
+/* Default initial values */
+#include <defs/config.h>
 
 /* Project includes */
 #include <config.h>
@@ -141,8 +141,9 @@ static list_td **s_session_hook_list(session_td *session,
  *
  * @note Complexity: @e O(1)
  */
-static const list_td *s_session_hook_list_const(const session_td *session,
-        enum session_hook_e hook)
+static const list_td
+    *s_session_hook_list_const(const session_td *session,
+            enum session_hook_e hook)
 {
     if (hook == SESSION_HOOK_START) {
         return session->on_start;
@@ -214,16 +215,16 @@ static struct session_tracked_pid_s *s_session_find_pid(pid_t pid)
  * @brief Run one hook command and record the child it produces
  *
  * @param command Shell command to run; word-expanded before @a exec
- * @param hook    Hook name used only for logging and tracking the child
+ * @param hook    Hook name used only for logging and tracking
  *
  * @return Status of the operation
  * @retval  0 The hook is running
  * @retval  1 The hook could not be started, for whichever reason
  *            @a spawn_command already logged
  *
- * @note A hook that fails to execute is reported rather than
- *       silently producing a child that exits at once, which is what
- *       a command with a typo in it otherwise does
+ * @note A hook that fails to execute is reported rather than silently
+ *       producing a child that exits at once, which is what a command
+ *       with a typo in it otherwise does
  * @note Complexity: @e O(n), where @e n is the number of words
  *       @p command expands to
  */

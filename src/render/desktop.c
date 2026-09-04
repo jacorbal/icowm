@@ -41,6 +41,8 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <client.h>
@@ -57,41 +59,60 @@
 #include <render/desktop.h>
 #include <render/icon.h>
 #include <render/outdate.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /* Per-screen (not per-desktop) cache of the root window's last
  * solid-color fill, indexed by 'screen_id'.  Every virtual desktop on
  * a given screen shares that one same root window as an X resource, so
- * whether it still shows a particular desktop's configured color
- * has to be tracked per screen too, not per desktop.
+ * whether it still shows a particular desktop's configured color has to
+ * be tracked per screen too, not per desktop.
  *
- * A field on 'desktop_td' itself would instead let each desktop
- * believe its color remains applied purely because it was
- * the last one THAT desktop painted, even after some other desktop
- * sharing the same root window repainted over it with a different one;
- * and, since a config reload does not reset any of this, leaves that
- * other, now-stale color on screen indefinitely, with no further
+ * A field on 'desktop_td' itself would instead let each desktop believe
+ * its color remains applied purely because it was the last one THAT
+ * desktop painted, even after some other desktop sharing the same root
+ * window repainted over it with a different one; and, since a config
+ * reload does not reset any of this, leaves that other, now-stale color
+ * on screen indefinitely, with no further
  * repaint ever believing there is anything left to fix. */
 static bool s_root_bg_applied_once[CONFIG_MAX_SCREENS];
 static uint32_t s_root_bg_color_applied[CONFIG_MAX_SCREENS];
 
 
+/* Draw all clients on a desktop */
 /**
- * @brief Property names a wallpaper-setting tool might publish its
- *        own root window background pixmap under
+ * @brief What rendering one client needs to know about it
+ *
+ * Gathered so the two paths below, applying an outdated geometry and
+ * refreshing decoration colors alone, can each be a function rather
+ * than another hundred lines inside @a desktop_render_one_client.
+ * Only what both paths need before they start is carried, for the frame
+ * extents and the titlebar height are worked out inside each of them,
+ * and the theme is reached through @p desktop.
+ */
+struct s_render_ctx_s {
+    desktop_td *desktop;
+    client_td *client;
+    xcb_window_t target;
+    bool is_focused;
+    bool hide_decoration;
+    bool titlebar_visible;
+};
+
+
+/**
+ * @brief Property names a wallpaper-setting tool might publish its own
+ *        root window background pixmap under
  *
  * - @c ESETROOT_PMAP_ID: legacy 'Esetroot' alias, also used by @c feh
  * - @c _XROOTPMAP_ID: set by @c Esetroot, @c feh, @c nitrogen,
  *   @c hsetroot, and others
  * - @c _XSETROOT_ID: set by @c xsetroot and @c xsetbg
  *
- * Shared between @c s_get_root_background_pixmap, which checks each
- * in turn for a pixmap value, and
+ * Shared between @c s_get_root_background_pixmap, which checks each in
+ * turn for a pixmap value, and
  * @c desktop_property_is_background_pixmap, which the @c PropertyNotify
- * handler in handler/focus.c uses to recognize a change to one of
- * them on the root window.
+ * handler in handler/focus.c uses to recognize a change to one of them
+ * on the root window.
  */
 static const char *const s_bg_prop_names[3] = {
     "_XROOTPMAP_ID", "ESETROOT_PMAP_ID", "_XSETROOT_ID"
@@ -106,8 +127,8 @@ static const char *const s_bg_prop_names[3] = {
  * lazily by @a s_resolve_bg_atoms on first use, retried on any later
  * call for whichever of the three are still unresolved.
  *
- * @see @a s_resolve_bg_atoms's comment for why a resolution
- *       failure, unlike a success, is not permanent here
+ * @see @a s_resolve_bg_atoms's comment for why a resolution failure,
+ *      unlike a success, is not permanent here
  */
 static xcb_atom_t s_bg_atoms[3] = {
     XCB_ATOM_NONE, XCB_ATOM_NONE, XCB_ATOM_NONE
@@ -117,13 +138,13 @@ static xcb_atom_t s_bg_atoms[3] = {
 /**
  * @brief Cached resolution of the root window's background pixmap
  *
- * A well-behaved system sets this once (a wallpaper tool such as
- * feh, nitrogen, or hsetroot runs once at session start) and
- * essentially never changes it again during a normal session, so
- * resolving it fresh on every @a s_get_root_background_pixmap call (up
- * to three property fetches, each a round trip to the X server) would
- * be paying that cost repeatedly for something that stays the same
- * almost every single time.
+ * A well-behaved system sets this once (a wallpaper tool such as feh,
+ * nitrogen, or hsetroot runs once at session start) and essentially
+ * never changes it again during a normal session, so resolving it fresh
+ * on every @a s_get_root_background_pixmap call (up to three property
+ * fetches, each a round trip to the X server) would be paying that cost
+ * repeatedly for something that stays the same almost every single
+ * time.
  *
  * @note Cached here instead, and only re-resolved once
  *       @a desktop_background_pixmap_cache_invalidate says the
@@ -136,8 +157,8 @@ static xcb_pixmap_t s_bg_pixmap_cache[CONFIG_MAX_SCREENS];
 /**
  * @brief Resolve @c s_bg_prop_names into @c s_bg_atoms, once
  *
- * @param connection XCB connection used to intern any atom not
- *                   already resolved from a previous call
+ * @param connection XCB connection used to intern any atom not already
+ *                   resolved from a previous call
  *
  * @note Complexity: @e O(1) once resolved; @e O(n) in the number of
  *       candidate properties the first time
@@ -156,10 +177,10 @@ static void s_resolve_bg_atoms(xcb_connection_t *connection)
      * exists, is permanent for the life of the connection) that failure
      * is not itself permanent.
      *
-     * A wallpaper tool run for the first time after this module's
-     * first lookup, before any of these three names had ever been
-     * interned by anyone, would otherwise be watched for forever using
-     * an atom id that was cached as none before it ever existed. */
+     * A wallpaper tool run for the first time after this module's first
+     * lookup, before any of these three names had ever been interned by
+     * anyone, would otherwise be watched for forever using an atom id
+     * that was cached as none before it ever existed. */
     for (size_t i = 0; i < 3u; ++i) {
         if (s_bg_atoms[i] == XCB_ATOM_NONE) {
             any_unresolved = true;
@@ -276,8 +297,8 @@ static xcb_pixmap_t
  * other button reflects window focus instead, the same way the titlebar
  * text itself does.  Maximize and fullscreen fall back to the
  * background color, which makes them effectively invisible, when the
- * client cannot be resized,
- * instead of drawing a button that would do nothing if clicked.
+ * client cannot be resized, instead of drawing a button that would do
+ * nothing if clicked.
  */
 static uint32_t s_titlebar_button_color(
         enum config_titlebar_button_e button, bool is_focused,
@@ -303,7 +324,7 @@ static uint32_t s_titlebar_button_color(
 
 /**
  * @brief Draw the buttons configured in @c window.titlebar.buttons on
- *        a titlebar window
+ *        a titlebar window or an off-screen buffer standing in for one
  *
  * Draws exactly the buttons in @p left (before the window title) and
  * @p right (after the window title), at the positions
@@ -314,12 +335,15 @@ static uint32_t s_titlebar_button_color(
  * computed layout.  The fill color for most buttons is taken from
  * @p theme: @c window.active.color.foreground when @p is_focused is
  * @c true, @c window.inactive.color.foreground otherwise; the pin and
- * layer buttons instead reflect their state (sticky/non-normal
- * layer) regardless of focus; maximize and fullscreen fall back to the
+ * layer buttons instead reflect their state (sticky/non-normal layer)
+ * regardless of focus; maximize and fullscreen fall back to the
  * background color when @p can_maximize is @c false.
  *
  * @param connection   Active XCB connection
- * @param titlebar     XCB window identifier of the titlebar
+ * @param target       Drawable the buttons land on: the titlebar
+ *                     window itself, or an off-screen buffer
+ *                     @c desktop_repaint_titlebar_content copies onto
+ *                     it in one piece once every button is drawn
  * @param btn_y        Y position every button shares, from
  *                     @c client_titlebar_layout
  * @param left         Left-side button layout from
@@ -337,7 +361,7 @@ static uint32_t s_titlebar_button_color(
  * @note Complexity: @e O(n), where @e n is @p left_n + @p right_n
  */
 static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
-        xcb_window_t titlebar, int16_t btn_y,
+        xcb_drawable_t target, int16_t btn_y,
         const struct titlebar_button_layout_s *left, uint8_t left_n,
         const struct titlebar_button_layout_s *right, uint8_t right_n,
         bool is_focused, bool is_sticky, bool is_layered,
@@ -348,9 +372,9 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
     xcb_rectangle_t rect;
     uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
 
-    /* Button colors have their dedicated theme entry, independent
-     * of the titlebar text foreground, so a theme can style one
-     * without the other changing to match.  See
+    /* Button colors have their dedicated theme entry, independent of
+     * the titlebar text foreground, so a theme can style one without
+     * the other changing to match.  See
      * 'window.titlebar.buttons.color'. */
     uint32_t color_active = (theme != NULL)
         ? theme->window.titlebar.buttons.color.on
@@ -364,7 +388,7 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
             : theme->window.inactive.color.background)
         : color_active;
 
-    if (connection == NULL || titlebar == XCB_WINDOW_NONE) {
+    if (connection == NULL || target == XCB_NONE) {
         return;
     }
 
@@ -373,10 +397,10 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
                 is_sticky, is_layered, can_maximize, color_active,
                 color_inactive, bg_fill);
         gc = xcb_generate_id(connection);
-        xcb_create_gc(connection, gc, titlebar,
+        xcb_create_gc(connection, gc, target,
                 XCB_GC_FOREGROUND, &color);
         rect = (xcb_rectangle_t) { left[i].x, btn_y, btn, btn };
-        xcb_poly_fill_rectangle(connection, titlebar, gc, 1, &rect);
+        xcb_poly_fill_rectangle(connection, target, gc, 1, &rect);
         xcb_free_gc(connection, gc);
     }
 
@@ -385,10 +409,10 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
                 is_sticky, is_layered, can_maximize, color_active,
                 color_inactive, bg_fill);
         gc = xcb_generate_id(connection);
-        xcb_create_gc(connection, gc, titlebar,
+        xcb_create_gc(connection, gc, target,
                 XCB_GC_FOREGROUND, &color);
         rect = (xcb_rectangle_t) { right[i].x, btn_y, btn, btn };
-        xcb_poly_fill_rectangle(connection, titlebar, gc, 1, &rect);
+        xcb_poly_fill_rectangle(connection, target, gc, 1, &rect);
         xcb_free_gc(connection, gc);
     }
 }
@@ -401,12 +425,12 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
  * A title too wide for the available space is truncated one character
  * at a time until it fits, rather than letting it draw underneath the
  * right-hand buttons.  Whatever ends up actually drawn is kept in sync
- * with @c _NET_WM_VISIBLE_NAME via @a client_sync_visible_name, so a
- * pager showing the same title has a way to know it no longer matches
+ * with @c _NET_WM_VISIBLE_NAME via @a client_sync_visible_name, so
+ * a pager showing the same title has a way to know it no longer matches
  * @c _NET_WM_NAME verbatim.
  */
 static void s_titlebar_draw_title(xcb_connection_t *connection,
-        client_td *client, xcb_window_t titlebar, int16_t title_x,
+        client_td *client, xcb_drawable_t target, int16_t title_x,
         uint16_t title_w, int16_t text_y, const char *text,
         enum config_titlebar_alignment_e alignment)
 {
@@ -443,21 +467,20 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
         draw_x = (int16_t) (title_x + (title_w - text_w));
     }
 
-    text_draw_string(connection, titlebar, XCB_NONE,
+    text_draw_string(connection, target, XCB_NONE,
             (struct position_s) { draw_x, text_y }, buf);
 }
 
 
 /**
- * @brief Repaint a client's frame decoration, unless it is
- *        currently forced hidden
+ * @brief Repaint a client's frame decoration, unless it is currently
+ *        forced hidden
  *
  * Shared by @c desktop_render_one_client's full-repaint and
  * focus-only-repaint branches, which otherwise each repeat the exact
  * same @c hide_decoration guard around the same call (see that
- * function's @c hide_decoration for what forces this.  Currently
- * only a fullscreen client that was decorated before going
- * fullscreen).
+ * function's @c hide_decoration for what forces this.  Currently only
+ * a fullscreen client that was decorated before going fullscreen).
  *
  * @param connection      XCB connection
  * @param client          Client whose frame decoration to repaint
@@ -481,34 +504,12 @@ static void s_repaint_frame_decoration_unless_hidden(
 }
 
 
-/* Draw all clients on a desktop */
-/**
- * @brief What rendering one client needs to know about it
- *
- * Gathered so the two paths below, applying an outdated geometry and
- * refreshing decoration colors alone, can each be a function rather
- * than another hundred lines inside
- * @a desktop_render_one_client.  Only what both paths need before
- * they start is carried: the frame extents and the titlebar height
- * are worked out inside each of them, and the theme is reached
- * through @p desktop.
- */
-struct s_render_ctx_s {
-    desktop_td *desktop;
-    client_td *client;
-    xcb_window_t target;
-    bool is_focused;
-    bool hide_decoration;
-    bool titlebar_visible;
-};
-
-
 /**
  * @brief Apply a client's geometry, and repaint what it moves
  *
  * Taken when the client is marked outdated, so its position and size
- * are sent to the server and every decoration is laid out against
- * the geometry that results.
+ * are sent to the server and every decoration is laid out against the
+ * geometry that results.
  *
  * @param ctx State of the client being rendered
  *
@@ -523,12 +524,12 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
     const bool hide_decoration = ctx->hide_decoration;
     const bool titlebar_visible = ctx->titlebar_visible;
 
-    /* Configure position and size; only when the client's
-     * geometry or decoration changed.  Skipping this for
-     * up-to-date clients prevents the server from generating
-     * spurious 'ConfigureNotify' and 'Expose' events that cause
-     * other windows to unnecessarily redraw, which appears as
-     * flicker during keyboard resize of an unrelated client. */
+    /* Configure position and size; only when the client's geometry or
+     * decoration changed.  Skipping this for up-to-date clients
+     * prevents the server from generating spurious 'ConfigureNotify'
+     * and 'Expose' events that cause other windows to unnecessarily
+     * redraw, which appears as flicker during keyboard resize of an
+     * unrelated client. */
     LOGGER_TRACE("Render pass applying outdated geometry for" \
             " window=0x%x: target=0x%x (%s frame), %ux%u%+d%+d",
             client->window, target,
@@ -552,17 +553,17 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
         uint16_t inner_w;
         uint16_t title_h;
 
-        /* Forced to zero outright for a fullscreen client, rather
-         * than trusting 'frame_extents' to already be zero.  This
-         * is the exact geometry a click or a losing-focus repaint
-         * would otherwise leave stuck at whatever theme padding
-         * 'frame_extents' happened to hold, showing the frame's
-         * own background (set to the theme's border color by
+        /* Forced to zero outright for a fullscreen client, rather than
+         * trusting 'frame_extents' to already be zero.  This is the
+         * exact geometry a click or a losing-focus repaint would
+         * otherwise leave stuck at whatever theme padding
+         * 'frame_extents' happened to hold, showing the frame's own
+         * background (set to the theme's border color by
          * 'desktop_repaint_frame_decoration') through the gap left
-         * along the content window's top and left edges.
-         * Visually indistinguishable from a real border, though
-         * neither an X11 border nor that repaint function was
-         * ever actually involved. */
+         * along the content window's top and left edges.  Visually
+         * indistinguishable from a real border, though neither an X11
+         * border nor that repaint function was ever actually
+         * involved. */
         if (hide_decoration) {
             left = 0;
             right = 0;
@@ -584,49 +585,44 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
                     top - bottom)
             : 1;
 
-        /* A shaded client's content window is deliberately
-         * left unmapped, at whatever geometry it already had
-         * (see 'ccmd_client_shade', cmds/client/state.c).  None
-         * of the three calls below (repositioning it, telling it
-         * about that new position, and prompting it to redraw)
-         * are meant for it while shaded, since it is never seen
-         * regardless of what geometry it holds.  'left'/'top'/
-         * 'inner_w'/'title_h', computed above either way, are
-         * still needed below this whole 'if' to position the
-         * titlebar correctly even while shaded. */
+        /* A shaded client's content window is deliberately left
+         * unmapped, at whatever geometry it already had (see
+         * 'ccmd_client_shade', cmds/client/state.c).  None of the three
+         * calls below (repositioning it, telling it about that new
+         * position, and prompting it to redraw) are meant for it while
+         * shaded, since it is never seen regardless of what geometry it
+         * holds.  'left'/'top'/ 'inner_w'/'title_h', computed above
+         * either way, are still needed below this whole 'if' to
+         * position the titlebar correctly even while shaded. */
         if (!client_is_shaded(client)) {
             xcb_window_place(client->window, left, top,
                     inner_w, inner_h);
 
-            /* ICCCM §4.2.3: the 'xcb_configure_window' above
-             * positions the inner window relative to the frame
-             * (x=left, y=top), so the X server delivers a
-             * 'ConfigureNotify' to the client with those
-             * frame-relative coordinates.  Override it
-             * immediately with a synthetic 'ConfigureNotify'
+            /* ICCCM §4.2.3: the 'xcb_configure_window' above positions
+             * the inner window relative to the frame (x=left, y=top),
+             * so the X server delivers a 'ConfigureNotify' to the
+             * client with those frame-relative coordinates.  Override
+             * it immediately with a synthetic 'ConfigureNotify'
              * carrying the true screen-relative position so the
-             * client's last geometry notification is always
-             * correct.  Without this a decorated client sees a
-             * frame-relative 'ConfigureNotify' as its final
-             * event on every render pass, causing misaligned
-             * popups and a content area that appears not to
-             * fill the frame until the next user-triggered
-             * repaint. */
+             * client's last geometry notification is always correct.
+             * Without this a decorated client sees a frame-relative
+             * 'ConfigureNotify' as its final event on every render
+             * pass, causing misaligned popups and a content area that
+             * appears not to fill the frame until the next
+             * user-triggered repaint. */
             client_send_synthetic_configure_notify(
                     xcb_connection_get(), client);
 
-            /* Force a repaint AFTER the synthetic
-             * 'ConfigureNotify' so the client always redraws at
-             * its correct screen-relative geometry.  Some
-             * programs do not redraw on 'ConfigureNotify' alone;
-             * this 'Expose' ensures the drawing happens at the
-             * right size and position after every render pass,
-             * including the initial map and post-resize
-             * redraws.  Setting 'exposures=1' causes the X
-             * server to generate an 'Expose' event, which
-             * arrives in the client's queue after both the
-             * 'xcb_configure_window' and the synthetic
-             * 'ConfigureNotify' above. */
+            /* Force a repaint AFTER the synthetic 'ConfigureNotify' so
+             * the client always redraws at its correct screen-relative
+             * geometry.  Some programs do not redraw on
+             * 'ConfigureNotify' alone; this 'Expose' ensures the
+             * drawing happens at the right size and position after
+             * every render pass, including the initial map and
+             * post-resize redraws.  Setting 'exposures=1' causes the
+             * X server to generate an 'Expose' event, which arrives in
+             * the client's queue after both the 'xcb_configure_window'
+             * and the synthetic 'ConfigureNotify' above. */
             xcb_clear_area(xcb_connection_get(), 1,
                     client->window, 0, 0, 0, 0);
         }
@@ -675,14 +671,13 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
 
     /* The client geometry has not changed; only refresh the
      * focus-sensitive decoration colors (border and titlebar
-     * background/text) when the active client actually changed,
-     * or when this specific client is urgent (its attention
-     * blink alternates these same colors on every phase change,
-     * the same reasoning 'ri_render_client_icon', render/icon.c,
-     * already applies via its '!client_is_urgent' skip-check
-     * condition, just expressed the other way around here).
-     * Skipping this repaint otherwise avoids spurious
-     * 'xcb_clear_area + text-draw' calls on every render pass
+     * background/text) when the active client actually changed, or when
+     * this specific client is urgent (its attention blink alternates
+     * these same colors on every phase change, the same reasoning
+     * 'ri_render_client_icon', in 'render/icon.c', already applies via
+     * its '!client_is_urgent' skip-check condition, just expressed the
+     * other way around here).  Skipping this repaint otherwise avoids
+     * spurious 'xcb_clear_area + text-draw' calls on every render pass
      * during resize, which was the source of the desktop-wide
      * flickering visible on all non-resized windows. */
     left = (uint16_t) client->layout.frame_extents.left;
@@ -693,14 +688,13 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
                 left - right)
         : 1;
 
-    /* Skipped entirely, not just recolored, for the same reason
-     * the full-repaint branch above never gives a fullscreen
-     * client a border in the first place (see its comment by
-     * 'client_is_fullscreen' there): a focus change alone must
-     * not paint one back in over fullscreen content just because
-     * this lighter branch only meant to refresh existing colors,
-     * not decide from scratch whether a border belongs here at
-     * all. */
+    /* Skipped entirely, not just recolored, for the same reason the
+     * full-repaint branch above never gives a fullscreen client
+     * a border in the first place (see its comment by
+     * 'client_is_fullscreen' there): a focus change alone must not
+     * paint one back in over fullscreen content just because this
+     * lighter branch only meant to refresh existing colors, not decide
+     * from scratch whether a border belongs here at all. */
     s_repaint_frame_decoration_unless_hidden(xcb_connection_get(),
             client, is_focused, hide_decoration,
             &desktop->config->theme);
@@ -824,21 +818,20 @@ static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
  * @brief Render, position, and decorate a single already-non-hidden
  *        client during a stacking-order render pass
  *
- * Applies the client's border width (only when it actually
- * changed, to avoid needless server round trips), maps or unmaps its
+ * Applies the client's border width (only when it actually changed, to
+ * avoid needless server round trips), maps or unmaps its
  * frame/titlebar/content window as appropriate for whether @p desktop
- * is the surface's currently displayed one, and either reconfigures
- * its full geometry and decoration (when @c is_outdated) or, more
- * cheaply, only refreshes focus-sensitive decoration colors (when
- * only @p desktop's @c is_focus_dirty changed).  See the caller's
- * own stacking-order iteration for how this fits into a full render
- * pass.
+ * is the surface's currently displayed one, and either reconfigures its
+ * full geometry and decoration (when @c is_outdated) or, more cheaply,
+ * only refreshes focus-sensitive decoration colors (when only
+ * @p desktop's @c is_focus_dirty changed).  See the caller's own
+ * stacking-order iteration for how this fits into a full render pass.
  *
  * Public (not @c static) so @c policy/urgency.c can repaint one
  * specific urgent client directly on its own blink-phase change,
- * without forcing a full-desktop @c desktop_render_full pass (and
- * every other client on it repainting along with it) just to update
- * one client's titlebar colors.
+ * without forcing a full-desktop @c desktop_render_full pass (and every
+ * other client on it repainting along with it) just to update one
+ * client's titlebar colors.
  *
  * @param desktop    Desktop the client belongs to
  * @param client     Client to render; assumed non-@c NULL and not
@@ -861,10 +854,10 @@ void desktop_render_one_client(desktop_td *desktop,
     is_focused = (desktop->client_active_id == client->id);
 
     /* Swapped for one half of the blink cycle when this client is
-     * urgent (see 'policy/urgency.h'): every later use of
-     * 'is_focused' below (border, background, font, and text colors)
-     * already follows from this one flip, so the titlebar reads as
-     * attention-grabbing without a second, separate code path. */
+     * urgent (see 'policy/urgency.h'): every later use of 'is_focused'
+     * below (border, background, font, and text colors) already follows
+     * from this one flip, so the titlebar reads as attention-grabbing
+     * without a second, separate code path. */
     if (client_is_urgent(client) && urgency_blink_is_on()) {
         is_focused = !is_focused;
     }
@@ -877,9 +870,9 @@ void desktop_render_one_client(desktop_td *desktop,
      * titlebar != 0 && !hide_decoration' at each of the three spots
      * below (the initial map, the full outdated repaint, and the
      * lighter focus-only repaint) that all need to draw exactly the
-     * same distinction between "this client currently has a
-     * titlebar to show at all" and "decoration is being suppressed
-     * right now" (fullscreen). */
+     * same distinction between "this client currently has a titlebar to
+     * show at all" and "decoration is being suppressed right now"
+     * (fullscreen). */
     titlebar_visible = (client->titlebar != 0 && !hide_decoration);
 
     target = (client_is_decorated(client) && client->frame != 0)
@@ -893,12 +886,12 @@ void desktop_render_one_client(desktop_td *desktop,
         border_width = 0u;
     } else if (client_is_fullscreen(client)) {
         /* A fullscreen client is undecorated (see 'hide_decoration'
-         * above), so it falls to the same 'not decorated' branch a
-         * plain undecorated window would, which would otherwise
-         * apply the theme's regular window border directly to its
-         * own raw window: a border painted over video or other
-         * fullscreen content, not just an unwanted frame around an
-         * ordinary window. */
+         * above), so it falls to the same 'not decorated' branch
+         * a plain undecorated window would, which would otherwise apply
+         * the theme's regular window border directly to its own raw
+         * window: a border painted over video or other fullscreen
+         * content, not just an unwanted frame around an ordinary
+         * window. */
         border_width = 0u;
     } else if (client_is_decorated(client) && client->frame != 0) {
         border_width = 0u;
@@ -906,14 +899,14 @@ void desktop_render_one_client(desktop_td *desktop,
         border_width = client_border_width(client, is_focused, false);
     }
 
-    /* Only actually send the request when the value would change:
-     * an unconditional 'ConfigureWindow' here on every render pass
-     * for every client (needed so an icon-cycle selection border
-     * appears/disappears promptly) was extra server round-trip
-     * traffic for the common case where nothing about this
-     * particular client changed at all (e.g., a keyboard resize of
-     * one window previously still re-sent border width for every
-     * other window on the desktop each time). */
+    /* Only actually send the request when the value would change: an
+     * unconditional 'ConfigureWindow' here on every render pass for
+     * every client (needed so an icon-cycle selection border
+     * appears/disappears promptly) was extra server round-trip traffic
+     * for the common case where nothing about this particular client
+     * changed at all (e.g., a keyboard resize of one window previously
+     * still re-sent border width for every other window on the desktop
+     * each time). */
     if (border_width != client->last_border_width) {
         xcb_window_set_border(target, border_width);
         client->last_border_width = border_width;
@@ -924,27 +917,26 @@ void desktop_render_one_client(desktop_td *desktop,
      * above, so both now follow from 'is_focused' in the same pass.
      * Leaving the color to whoever changes the focus instead means
      * a path that forgets leaves a window still wearing the active
-     * border after another has taken the focus
-     * from it, where a decorated window would have corrected itself
-     * on the next pass.  Skipped when unchanged, as the width is. */
+     * border after another has taken the focus from it, where
+     * a decorated window would have corrected itself on the next pass.
+     * Skipped when unchanged, as the width is. */
     if (!client_is_decorated(client) || client->frame == 0) {
         client_border_color_apply(client, is_focused);
     }
 
-    /* Map the window to make it visible.
-     * Only do this when 'desktop' is the surface's currently
-     * displayed desktop.
+    /* Map the window to make it visible.  Only do this when 'desktop'
+     * is the surface's currently displayed desktop.
      *
      * Its also invoked as part of a general
-     * 'surface_render_all_desktops' refresh pass whenever ANY
-     * desktop's 'is_outdated' flag is set (e.g., after moving or
-     * resizing a client, which marks its desktop outdated).
+     * 'surface_render_all_desktops' refresh pass whenever ANY desktop's
+     * 'is_outdated' flag is set (e.g., after moving or resizing
+     * a client, which marks its desktop outdated).
      *
-     * If that pass unconditionally mapped clients on a desktop that
-     * is not currently shown, it could race with (and undo) an
-     * explicit 'surface_clients_hide' issued by a desktop switch,
-     * making a client reappear on top of the desktop the user just
-     * switched to.
+     * If that pass unconditionally mapped clients on a desktop that is
+     * not currently shown, it could race with (and undo) an explicit
+     * 'surface_clients_hide' issued by a desktop switch, making
+     * a client reappear on top of the desktop the user just switched
+     * to.
      *
      * Visibility of non-current desktops must be governed solely by
      * 'surface_clients_hide'/'surface_clients_show' */
@@ -962,9 +954,9 @@ void desktop_render_one_client(desktop_td *desktop,
 
         /* Do not re-map the content window for shaded clients.  The
          * shade operation explicitly unmaps it, and mapping it here
-         * would undo the shade and prevent the titlebar-only view
-         * from being painted correctly, especially for inactive
-         * windows that receive no 'FocusOut'-triggered repaint */
+         * would undo the shade and prevent the titlebar-only view from
+         * being painted correctly, especially for inactive windows that
+         * receive no 'FocusOut'-triggered repaint */
         if (target != client->window && !client_is_shaded(client)) {
             xcb_window_show(client->window);
         }
@@ -995,17 +987,49 @@ void desktop_render_one_client(desktop_td *desktop,
 
 
 /**
- * @brief Repaint a titlebar's background, text and buttons
+ * @brief Create an off-screen buffer sized to stand in for a titlebar
  *
- * @param connection XCB connection
- * @param client     Client whose titlebar is repainted
- * @param is_focused Whether the client currently holds focus
- * @param inner_w    Width available inside the frame
- * @param title_h    Height of the titlebar itself
- * @param theme      Theme the colors and fonts come from
+ * @c desktop_repaint_titlebar_content draws into the pixmap this
+ * returns instead of straight onto the titlebar itself, so nothing
+ * midway through that drawing is ever visible on screen; see its own
+ * comment for why that matters.  @p depth has to be the titlebar's own,
+ * since the cached text-renderer graphics context (built once, in
+ * @c render/text.c, against the screen root) can only draw onto
+ * a drawable sharing that same depth.
  *
- * @note Complexity: @e O(n), where @e n is the number of buttons
+ * @param connection Active XCB connection
+ * @param depth      Depth to create the pixmap at, matching
+ *                   @p titlebar's own
+ * @param titlebar   Titlebar window the pixmap is created against; only
+ *                   its screen matters here, not its contents
+ * @param width      Pixmap width, matching the titlebar's own
+ * @param height     Pixmap height, matching the titlebar's own
+ *
+ * @return The new pixmap, or @c XCB_NONE when @p width or @p height
+ *         is zero
+ *
+ * @note Complexity: @e O(1)
  */
+static xcb_pixmap_t
+    s_titlebar_buffer_create(xcb_connection_t *connection,
+            uint8_t depth, xcb_window_t titlebar,
+            uint16_t width, uint16_t height)
+{
+    xcb_pixmap_t buffer;
+
+    if (width == 0u || height == 0u) {
+        return XCB_NONE;
+    }
+
+    buffer = xcb_generate_id(connection);
+    xcb_create_pixmap(connection, depth, buffer, titlebar,
+            width, height);
+
+    return buffer;
+}
+
+
+/* Repaint a titlebar's background, text and buttons */
 void desktop_repaint_titlebar_content(xcb_connection_t *connection,
         client_td *client, bool is_focused, uint16_t inner_w,
         uint16_t title_h, const struct config_theme_s *theme)
@@ -1021,6 +1045,10 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
     bool can_maximize;
     bool hide_pin;
     surface_td *surface;
+    uint32_t bg_color;
+    xcb_pixmap_t buffer;
+    xcb_drawable_t target;
+    xcb_gcontext_t gc;
 
     if (connection == NULL || client == NULL || theme == NULL ||
             client->titlebar == 0) {
@@ -1029,15 +1057,33 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
 
     surface = wm_get_surface_by_id(client->screen_id);
     hide_pin = surface != NULL && surface->desktop_count <= 1u;
+    bg_color = (is_focused)
+        ? theme->window.active.color.background
+        : theme->window.inactive.color.background;
 
     xcb_change_window_attributes(connection,
             client->titlebar, XCB_CW_BACK_PIXEL,
-            (const uint32_t[]) {
-                (is_focused)
-                    ? theme->window.active.color.background
-                    : theme->window.inactive.color.background
-            });
-    xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
+            (const uint32_t[]) { bg_color });
+
+    buffer = (surface != NULL)
+        ? s_titlebar_buffer_create(connection,
+                surface->screen->root_depth, client->titlebar,
+                inner_w, title_h)
+        : XCB_NONE;
+    target = (buffer != XCB_NONE) ? buffer : client->titlebar;
+
+    if (buffer != XCB_NONE) {
+        gc = xcb_generate_id(connection);
+        xcb_create_gc(connection, gc, buffer, XCB_GC_FOREGROUND,
+                &bg_color);
+        xcb_poly_fill_rectangle(connection, buffer, gc, 1,
+                (const xcb_rectangle_t[]) {
+                    { 0, 0, inner_w, title_h }
+                });
+        xcb_free_gc(connection, gc);
+    } else {
+        xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
+    }
 
     (void) text_renderer_use_font(connection,
             (is_focused)
@@ -1047,9 +1093,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
             (is_focused)
                 ? theme->window.active.color.foreground
                 : theme->window.inactive.color.foreground,
-            (is_focused)
-                ? theme->window.active.color.background
-                : theme->window.inactive.color.background);
+            bg_color);
 
     client_titlebar_layout(theme, inner_w, title_h, hide_pin, left,
             &left_n, right, &right_n, &title_x, &title_w, &btn_y);
@@ -1057,40 +1101,39 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
     /* Vertically centered against the titlebar's font ascent and
      * descent, the same way 'client_titlebar_layout' above already
      * centers 'btn_y' against the button size, rather than a fixed
-     * pixel offset from the bottom: a fixed offset only happens to
-     * look centered for whichever font it was tuned against, and
-     * drifts visibly off-center for any other (a restricted-memory
-     * session's plain X core font included, since that swap
-     * changes the font's ascent/descent without this titlebar's
-     * own height changing to match). */
+     * pixel offset from the bottom: a fixed offset only happens to look
+     * centered for whichever font it was tuned against, and drifts
+     * visibly off-center for any other (a restricted-memory session's
+     * plain X core font included, since that swap changes the font's
+     * ascent/descent without this titlebar's own height changing to
+     * match). */
     text_y = (int16_t) (((int16_t) title_h -
-                (int16_t) (text_font_ascent() + text_font_descent())) / 2 +
-            text_font_ascent());
-    s_titlebar_draw_title(connection, client, client->titlebar,
+                (int16_t) (text_font_ascent() +
+                    text_font_descent())) / 2 + text_font_ascent());
+    s_titlebar_draw_title(connection, client, target,
             title_x, title_w, text_y, client->info.name,
             theme->window.titlebar.alignment);
 
     can_maximize = !client_is_fullscreen(client) &&
         (bool) client_is_maximizable(client);
-    s_desktop_titlebar_buttons_draw(connection, client->titlebar,
+    s_desktop_titlebar_buttons_draw(connection, target,
             btn_y, left, left_n, right, right_n, is_focused,
             (bool) client_is_pinned(client),
             (client->properties.layer != CLIENT_LAYER_NORMAL),
             can_maximize, theme);
+
+    if (buffer != XCB_NONE) {
+        gc = xcb_generate_id(connection);
+        xcb_create_gc(connection, gc, client->titlebar, 0u, NULL);
+        xcb_copy_area(connection, buffer, client->titlebar, gc,
+                0, 0, 0, 0, inner_w, title_h);
+        xcb_free_gc(connection, gc);
+        xcb_free_pixmap(connection, buffer);
+    }
 }
 
 
-/**
- * @brief Repaint the frame background, border and corner resize
- *        grips
- *
- * @param connection       XCB connection
- * @param client           Client whose frame is repainted
- * @param use_active_style Whether the active colors apply
- * @param theme            Theme the colors come from
- *
- * @note Complexity: @e O(1)
- */
+/* Repaint the frame background, border and corner resize grips */
 void desktop_repaint_frame_decoration(xcb_connection_t *connection,
         const client_td *client, bool use_active_style,
         const struct config_theme_s *theme)
@@ -1128,14 +1171,13 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
 }
 
 
-/* Invalidate the cached root window background pixmap on every
- * screen: cheap and always correct, even though only one screen's
- * own property actually changed, since which one that was is not
- * known at this call site (handler/focus.c, a generic PropertyNotify
- * handler not otherwise concerned with which screen a client's
- * root belongs to) and this only ever runs on the comparatively rare
- * event of an external wallpaper tool actually changing something,
- * not on every render pass. */
+/* Invalidate the cached root window background pixmap on every screen:
+ * cheap and always correct, even though only one screen's own property
+ * actually changed, since which one that was is not known at this call
+ * site (handler/focus.c, a generic PropertyNotify handler not otherwise
+ * concerned with which screen a client's root belongs to) and this only
+ * ever runs on the comparatively rare event of an external wallpaper
+ * tool actually changing something, not on every render pass. */
 void desktop_background_pixmap_cache_invalidate(void)
 {
     for (size_t i = 0; i < (size_t) CONFIG_MAX_SCREENS; ++i) {
@@ -1221,8 +1263,8 @@ int desktop_render_background(desktop_td *desktop)
          * equal whatever it last applied before this external pixmap
          * appeared.  Otherwise this screen's shared root window would
          * be left showing the stale external wallpaper under the
-         * mistaken belief that the WM's color was already correctly
-         * in place. */
+         * mistaken belief that the WM's color was already correctly in
+         * place. */
         s_root_bg_applied_once[desktop->screen_id] = false;
         LOGGER_TRACE("External root pixmap 0x%x detected for" \
                 " desktop %u ('%s'); skipping color fill",
@@ -1245,15 +1287,15 @@ int desktop_render_background(desktop_td *desktop)
      * to make it visible.  Only actually do so when the color changed
      * since the last time this ran, or on the very first pass.  This
      * function runs on every 'is_current' full-desktop render (every
-     * client gaining focus marks its desktop 'is_outdated', not
-     * just an actual background change), so without this check every
-     * such render would repeat the same full-screen
+     * client gaining focus marks its desktop 'is_outdated', not just an
+     * actual background change), so without this check every such
+     * render would repeat the same full-screen
      * 'xcb_change_window_attributes' + 'xcb_clear_area' for a color
-     * that never actually changed.  Checked and updated per screen
-     * (see 's_root_bg_applied_once' above), not per desktop.  Every
-     * desktop sharing this screen's one root window can otherwise
-     * repaint over whichever color another one on the same screen
-     * applied, without either ever detecting that the color actually
+     * that never actually changed.  Checked and updated per screen (see
+     * 's_root_bg_applied_once' above), not per desktop.  Every desktop
+     * sharing this screen's one root window can otherwise repaint over
+     * whichever color another one on the same screen applied, without
+     * either ever detecting that the color actually
      * showing has changed since its last render. */
     if (s_root_bg_applied_once[desktop->screen_id] &&
             s_root_bg_color_applied[desktop->screen_id] ==
@@ -1290,13 +1332,13 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
             desktop->id, desktop->name);
 
     /* Draw background, but only for the desktop currently shown on
-     * screen: a non-current desktop's background is never
-     * actually visible (the surface-level repaint that calls this,
-     * in render/surface.c, re-applies the current desktop's
-     * background again right after every desktop in the list has
-     * been rendered, specifically because earlier ones painting
-     * theirs would otherwise overwrite it on the one shared root
-     * window), so painting it here for a desktop nobody can see would
+     * screen: a non-current desktop's background is never actually
+     * visible (the surface-level repaint that calls this, in
+     * 'render/surface.c', re-applies the current desktop's background
+     * again right after every desktop in the list has been rendered,
+     * specifically because earlier ones painting theirs would otherwise
+     * overwrite it on the one shared root window), so painting it here
+     * for a desktop nobody can see would
      * just be work immediately thrown away. */
     if (is_current && desktop_render_background(desktop) != 0) {
         LOGGER_ERROR("Failed to render background on" \
@@ -1314,10 +1356,10 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
     wm_validate_desktop(desktop);
 
     /* Every client just had its chance, in the loop above, to compare
-     * itself against 'is_focus_dirty' and refresh its decoration
-     * colors if the active client changed since the last full render.
-     * Clearing it here consumes that signal so the next pass (e.g., a
-     * later resize of one otherwise-unrelated client, with focus
+     * itself against 'is_focus_dirty' and refresh its decoration colors
+     * if the active client changed since the last full render.
+     * Clearing it here consumes that signal so the next pass (e.g.,
+     * a later resize of one otherwise-unrelated client, with focus
      * unchanged since) does not see it still set and re-trigger the
      * exact spurious 'xcb_clear_area + text-draw' repaint on every
      * other window this flag exists to avoid.  See its comment in
