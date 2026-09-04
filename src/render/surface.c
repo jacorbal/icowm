@@ -23,10 +23,12 @@
 #include <logger.h>
 #include <render/desktop.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Local includes */
 #include <render/outdate.h>
 #include <render/surface.h>
-#include <utils/xcb/connection.h>
 
 
 /* Render the current desktop on a surface */

@@ -36,6 +36,10 @@
 /* Type includes */
 #include <types/pair.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -45,8 +49,6 @@
 
 /* Local includes */
 #include <systray/internal.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**
@@ -72,16 +74,16 @@ static uint16_t s_systray_content_width(void)
 
 
 /**
- * @brief Find the currently fullscreen client the tray's layer
- *        should duck behind, if any
+ * @brief Find the currently fullscreen client the tray's layer should
+ *        duck behind, if any
  *
- * Scoped to @p s_tray.surface's currently displayed desktop only,
- * the one surface the tray itself actually belongs to and the only
- * desktop whose content can actually be on screen at the same time as
- * the tray.  A client fullscreen on some other surface (a different
- * physical monitor's root window) or on a desktop of
- * @p s_tray.surface that is not the one currently shown is not visible
- * right now, so it has no bearing on where this one tray should stack.
+ * Scoped to @p s_tray.surface's currently displayed desktop only, the
+ * one surface the tray itself actually belongs to and the only desktop
+ * whose content can actually be on screen at the same time as the tray.
+ * A client fullscreen on some other surface (a different physical
+ * monitor's root window) or on a desktop of @p s_tray.surface that is
+ * not the one currently shown is not visible right now, so it has no
+ * bearing on where this one tray should stack.
  *
  * @return The fullscreen client's frame (or plain window, if
  *         undecorated), or @c XCB_WINDOW_NONE if none is fullscreen on
@@ -122,7 +124,7 @@ static xcb_window_t s_systray_fullscreen_target_find(void)
 /**
  * @brief Push every currently mapped icon window below the tray
  *
- * Called right after the tray restacks itself into the 'below' layer,
+ * Called right after the tray restacks itself into the "below" layer,
  * so icons stay "stuck to the desktop" (lower than the tray, even
  * though both are nominally in the same 'below' layer) regardless of
  * restack ordering.
@@ -132,8 +134,8 @@ static xcb_window_t s_systray_fullscreen_target_find(void)
  * any one icon to stack itself relative to) would otherwise claim the
  * absolute bottom of the sibling stack out from under any icon that was
  * already there, the same "whichever restacked most recently wins"
- * problem @a ccmd_client_iconify's explicit stack-below handles for
- * the opposite ordering.
+ * problem @a ccmd_client_iconify's explicit stack-below handles for the
+ * opposite ordering.
  *
  * @note Complexity: @e O(n), where @e n is the total number of managed
  *       clients across every desktop and surface
@@ -186,26 +188,26 @@ static void s_systray_icons_push_below(void)
 
 
 /**
- * @brief Publish (or clear) the tray's reserved-space strut on its
- *        dock window, and mirror the same values into
+ * @brief Publish (or clear) the tray's reserved-space strut on its dock
+ *        window, and mirror the same values into
  *        @a s_tray.reserved_strut for @a systray_get_reserved_strut
  *
- * Per the specification's recommendation for a docking area,
- * a taskbar, or a panel, the tray publishes @c _NET_WM_STRUT_PARTIAL
- * (and, for compatibility with anything that only understands the
- * legacy property, plain @c _NET_WM_STRUT alongside it) covering the
- * exact strip of screen its configured corner and current size
- * occupy, so a maximized window (and this window manager's
- * placement logic, via @a desktop_update_workarea) both leave that
- * strip alone the same way they already do for an external panel or
- * dock, plus @p config.systray.margins added on top of that strip.
+ * Per the specification's recommendation for a docking area, a taskbar,
+ * or a panel, the tray publishes @c _NET_WM_STRUT_PARTIAL (and, for
+ * compatibility with anything that only understands the legacy
+ * property, plain @c _NET_WM_STRUT alongside it) covering the exact
+ * strip of screen its configured corner and current size occupy, so
+ * a maximized window (and this window manager's placement logic, via @a
+ * desktop_update_workarea) both leave that strip alone the same way
+ * they already do for an external panel or dock, plus
+ * @p config.systray.margins added on top of that strip.
  *
  * Publishes an all-zero strut instead when
  * @p config.systray.reserve-space is @c false, for anyone who would
  * rather windows stayed free to maximize over or under the tray.
  *
- * @param geom    Tray's current rectangle (root coordinates); a
- *                zero dimension clears the strut (the tray itself is
+ * @param geom    Tray's current rectangle (root coordinates); a zero
+ *                dimension clears the strut (the tray itself is
  *                unmapped)
  * @param bborder Total border thickness, both sides combined
  *
@@ -256,15 +258,14 @@ static bool s_systray_strut_update(struct geometry_s geom,
         }
 
         /* 'config.systray.margins': added on top of whatever the switch
-         * above just computed from the tray's actual geometry, the
-         * same way 'config_desktop_s''s 'margins' adds on top of
-         * a client's published strut in 'desktop_update_workarea'; not
-         * restricted to the edge the tray currently docks at
-         * (left/right add to a screen side the tray itself never
-         * reserves on its own), left with no start/end range of their
-         * own to honor (0..0), so they apply along the whole edge
-         * unconditionally, exactly like 'config_desktop_s''s
-         * margins do. */
+         * above just computed from the tray's actual geometry, the same
+         * way 'config_desktop_s''s 'margins' adds on top of a client's
+         * published strut in 'desktop_update_workarea'; not restricted
+         * to the edge the tray currently docks at (left/right add to
+         * a screen side the tray itself never reserves on its own),
+         * left with no start/end range of their own to honor (0..0), so
+         * they apply along the whole edge unconditionally, exactly like
+         * 'config_desktop_s''s margins do. */
         partial.top += s_tray.strut_margins.top;
         partial.right += s_tray.strut_margins.right;
         partial.bottom += s_tray.strut_margins.bottom;
@@ -348,29 +349,49 @@ static monitor_td s_systray_anchor_rect(void)
 }
 
 
-/* Apply the configured 'systray.layer' stacking rule
+/**
+ * @brief Create an off-screen buffer sized to stand in for the tray's
+ *        text block
  *
- * - 'CONFIG_SYSTRAY_LAYER_BELOW' (the default): stacks the tray window
- *   at the very bottom, behind every client window.
- * - 'CONFIG_SYSTRAY_LAYER_ABOVE': stacks it at the top, unless a client
- *   is currently fullscreen, in which case it stacks just below that
- *   client instead, so a fullscreen window still covers it; the same
- *   way a taskbar or panel gets covered by a fullscreen window in most
- *   desktop environments, instead of a systray floating above literally
- *   everything regardless of what the user is doing.  Always resolved
- *   to its final position in one single 'ConfigureWindow' call (cfr.
- *   's_systray_fullscreen_target_find' above), never by raising to the
- *   top and only then lowering in a second, separate request, which
- *   would flash the tray above fullscreen content for the brief moment
- *   between the two.
- * - 'CONFIG_SYSTRAY_LAYER_OVERLAY': stacks it at the top and leaves it
- *   there unconditionally, even over fullscreen windows.
+ * @c systray_layout_reflow draws the clock/battery text into the pixmap
+ * this returns instead of straight onto the tray window itself, so
+ * nothing midway through that drawing is ever visible on screen; see
+ * its own comment for why that matters.  @p depth has to be the tray
+ * window's own, since the cached text-renderer graphics context (built
+ * once, in @c render/text.c, against the screen root) can only draw
+ * onto a drawable sharing that same depth.
  *
- * Safe to call whenever the tray's stacking might need reconsidering.
- * After every reflow, and whenever any client enters or exits
- * fullscreen (see 'ccmd_client_fullscreen' and
- * 'ccmd_client_unfullscreen', which call the public 'systray_restack'
- * wrapper in 'systray.c'). */
+ * @param connection Active XCB connection
+ * @param depth      Depth to create the pixmap at, matching the tray
+ *                   window's own
+ * @param window     Tray window the pixmap is created against; only its
+ *                   screen matters here, not its contents
+ * @param width      Pixmap width, matching the text block's own
+ * @param height     Pixmap height, matching the tray window's own
+ *
+ * @return The new pixmap, or @c XCB_NONE when @p width or @p height is
+ *         zero
+ *
+ * @note Complexity: @e O(1)
+ */
+static xcb_pixmap_t s_systray_text_buffer_create(
+        xcb_connection_t *connection, uint8_t depth,
+        xcb_window_t window, uint16_t width, uint16_t height)
+{
+    xcb_pixmap_t buffer;
+
+    if (width == 0u || height == 0u) {
+        return XCB_NONE;
+    }
+
+    buffer = xcb_generate_id(connection);
+    xcb_create_pixmap(connection, depth, buffer, window, width, height);
+
+    return buffer;
+}
+
+
+/* Apply the configured 'systray.layer' stacking rule */
 void systray_layout_restack(void)
 {
     xcb_window_t fullscreen_target;
@@ -426,17 +447,7 @@ void systray_layout_restack(void)
 }
 
 
-/* Reposition the tray window and lay out its docked icons
- *
- * Unmaps the tray window while empty (nothing docked and neither the
- * clock nor the battery text enabled) or while the tray is not
- * currently active at all (disabled by configuration; see 'is_active''s
- * comment in 'include/systray/internal.h'), so it never shows on screen
- * in either case; otherwise sizes and moves it to the configured corner
- * of 's_tray.surface' and arranges icons in a single horizontal row
- * inside it, in 's_tray.icons' order (see 'systray_protocol_dock' in
- * 'systray/protocol.c' for how that order is maintained per the 'order'
- * policy). */
+/* Reposition the tray window and lay out its docked icons */
 void systray_layout_reflow(void)
 {
     bool is_strut_changed;
@@ -554,9 +565,33 @@ void systray_layout_reflow(void)
         int16_t item_h;
         int16_t item_y = 0;
         int16_t pen_x;
+        xcb_pixmap_t buffer;
+        xcb_drawable_t target;
+        xcb_gcontext_t gc;
 
-        xcb_clear_area(xcb_connection_get(), 0, s_tray.window,
-                block_x, 0, text_w, h);
+        buffer = (s_tray.surface != NULL)
+            ? s_systray_text_buffer_create(xcb_connection_get(),
+                    s_tray.surface->screen->root_depth, s_tray.window,
+                    text_w, h)
+            : XCB_NONE;
+        target = (buffer != XCB_NONE) ? buffer : s_tray.window;
+
+        if (buffer != XCB_NONE) {
+            gc = xcb_generate_id(xcb_connection_get());
+            xcb_create_gc(xcb_connection_get(), gc, buffer,
+                    XCB_GC_FOREGROUND,
+                    (const uint32_t[]) {
+                        s_tray.theme->systray.style.color.background });
+            xcb_poly_fill_rectangle(xcb_connection_get(), buffer, gc, 1,
+                    (const xcb_rectangle_t[]) {
+                        { 0, 0, text_w, h }
+                    });
+            xcb_free_gc(xcb_connection_get(), gc);
+        } else {
+            xcb_clear_area(xcb_connection_get(), 0, s_tray.window,
+                    block_x, 0, text_w, h);
+        }
+
         (void) text_renderer_use_font(xcb_connection_get(),
                 s_tray.theme->systray.style.font);
         text_renderer_set_color(s_tray.theme->systray.style.color.foreground,
@@ -590,7 +625,13 @@ void systray_layout_reflow(void)
                 break;
         }
 
-        pen_x = (int16_t) (block_x + (int16_t) s_tray.pixmap_pad);
+        /* Local to the buffer when one exists (its own origin already
+         * sits at 'block_x' once copied back), the same pen position as
+         * before ('block_x' included) only in the direct-to-window
+         * fallback */
+        pen_x = (buffer != XCB_NONE)
+            ? (int16_t) s_tray.pixmap_pad
+            : (int16_t) (block_x + (int16_t) s_tray.pixmap_pad);
         for (uint8_t i = 0u; i < s_tray.text_order_count; ++i) {
             bool enabled = false;
             const char *text = systray_text_for_item(
@@ -601,11 +642,21 @@ void systray_layout_reflow(void)
             }
 
             text_draw_string(xcb_connection_get(),
-                    s_tray.window, XCB_NONE,
+                    target, XCB_NONE,
                     (struct position_s) { pen_x, item_y }, text);
             pen_x = (int16_t) (pen_x +
                     (int16_t) text_string_measure(text) +
                     (int16_t) s_tray.text_gap);
+        }
+
+        if (buffer != XCB_NONE) {
+            gc = xcb_generate_id(xcb_connection_get());
+            xcb_create_gc(xcb_connection_get(), gc, s_tray.window, 0u,
+                    NULL);
+            xcb_copy_area(xcb_connection_get(), buffer, s_tray.window,
+                    gc, 0, 0, block_x, 0, text_w, h);
+            xcb_free_gc(xcb_connection_get(), gc);
+            xcb_free_pixmap(xcb_connection_get(), buffer);
         }
     }
 
@@ -613,12 +664,12 @@ void systray_layout_reflow(void)
     systray_layout_restack();
 
     /* Only when the strut actually changed does what every desktop on
-     * this same surface considers its available 'workarea' change
-     * with it.  A reflow that republished the same strut, as every
-     * repaint of the tray does, has nothing to recompute.  An icon
-     * dragged across the tray exposes it hundreds of times a second,
-     * and each of those was walking every client of every desktop to
-     * arrive back at the numbers already there.
+     * this same surface considers its available 'workarea' change with
+     * it.  A reflow that republished the same strut, as every repaint
+     * of the tray does, has nothing to recompute.  An icon dragged
+     * across the tray exposes it hundreds of times a second, and each
+     * of those was walking every client of every desktop to arrive back
+     * at the numbers already there.
      *
      * When it did change, it is recomputed here rather than left for
      * whatever unrelated trigger happens to call this next, the same

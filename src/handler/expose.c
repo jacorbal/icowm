@@ -28,6 +28,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
+#include <wm.h>
 
 /* Render includes */
 #include <render/desktop.h>
@@ -47,23 +48,65 @@
 #include <menu/dialog/run.h>
 #include <menu/search.h>
 
-/* Systray includes */
-#include <systray.h>
-
 /* Input includes */
 #include <input/mouse/drag.h>
 #include <input/mouse/drag/icon.h>
 #include <input/mouse/drag/overlay.h>
+
+/* Utils includes */
+#include <utils/xcb/connection.h>
 
 /* Default initial values */
 #include <defs/icon.h>
 
 /* Project includes */
 #include <lookup.h>
+#include <systray.h>
 
 /* Local includes */
 #include <handler.h>
-#include <utils/xcb/connection.h>
+
+
+/**
+ * @brief Create an off-screen buffer sized to stand in for an icon
+ *        window
+ *
+ * @c handler_expose draws into the pixmap this returns instead of
+ * straight onto the icon window itself, so nothing midway through that
+ * drawing is ever visible on screen.  A local copy of
+ * @c render/icon.c's own 's_icon_buffer_create' rather than a shared
+ * one, since @a ri_render_client_icon's comment on its skip-check
+ * explains that this handler is deliberately kept as its own, separate
+ * repaint path.
+ *
+ * @param connection Active XCB connection
+ * @param depth      Depth to create the pixmap at, matching the icon
+ *                   window's own
+ * @param icon       Icon window the pixmap is created against; only
+ *                   its screen matters here, not its contents
+ * @param width      Pixmap width, matching the icon window's own
+ * @param height     Pixmap height, matching the icon window's own
+ *
+ * @return The new pixmap, or @c XCB_NONE when @p width or @p height is
+ *         zero
+ *
+ * @note Complexity: @e O(1)
+ */
+static xcb_pixmap_t s_icon_buffer_create(xcb_connection_t *connection,
+        uint8_t depth, xcb_window_t icon,
+        uint16_t width, uint16_t height)
+{
+    xcb_pixmap_t buffer;
+
+    if (width == 0u || height == 0u) {
+        return XCB_NONE;
+    }
+
+    buffer = xcb_generate_id(connection);
+    xcb_create_pixmap(connection, depth, buffer, icon, width, height);
+
+    return buffer;
+}
 
 
 /* Handle an 'EXPOSE' event for decoration repaints */
@@ -100,12 +143,12 @@ void handler_expose(xcb_connection_t *connection,
         return;
     }
 
-    /* Systray repaint: redraws whatever text/icons are already
-     * cached (see 'systray_layout_reflow''s body), never
-     * recomputing the clock or re-polling the battery, so a region
-     * revealed after being covered reappears right away instead of
-     * staying blank until 'systray_clock_tick''s next per-second
-     * update happens to redraw it anyway. */
+    /* Systray repaint: redraws whatever text/icons are already cached
+     * (see 'systray_layout_reflow''s body), never recomputing the clock
+     * or re-polling the battery, so a region revealed after being
+     * covered reappears right away instead of staying blank until
+     * 'systray_clock_tick''s next per-second update happens to redraw
+     * it anyway. */
     if (systray_owns_window(event->window)) {
         systray_layout_reflow();
         return;
@@ -186,15 +229,20 @@ void handler_expose(xcb_connection_t *connection,
     /* Icon window: repaint caption */
     if (client->icon_window == event->window) {
         bool is_icon_dragging;
+        uint32_t bg_color;
+        uint16_t icon_h;
+        surface_td *surface;
+        xcb_pixmap_t buffer;
+        xcb_drawable_t target;
+        xcb_gcontext_t gc;
 
         cycle_client = cycle_get_selected_client();
         is_icon_dragging = drag_is_active() && drag_is_icon_drag() &&
             drag_client() == client;
         /* The icon's drag ('drag_icon_start' in
-         * 'input/mouse/drag/icon.c') sets the active styling once,
-         * at the start of the drag, and nothing re-applies it
-         * afterward; an
-         * icon passing behind another window mid-drag gets exposed
+         * 'input/mouse/drag/icon.c') sets the active styling once, at
+         * the start of the drag, and nothing re-applies it afterward;
+         * an icon passing behind another window mid-drag gets exposed
          * again once it re-emerges, and without this check that repaint
          * would fall back to the inactive styling for the rest of the
          * drag, well after it visually cleared whatever it had passed
@@ -206,26 +254,51 @@ void handler_expose(xcb_connection_t *connection,
         if (!(client->properties.flags & CLIENT_FLAG_HIDDEN)) {
             return;
         }
+        bg_color = (is_active_visual)
+            ? cfg->theme.icon.active.color.background
+            : cfg->theme.icon.inactive.color.background;
         xcb_change_window_attributes(connection, client->icon_window,
                 XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
                 (const uint32_t[]) {
-                    (is_active_visual)
-                        ? cfg->theme.icon.active.color.background
-                        : cfg->theme.icon.inactive.color.background,
+                    bg_color,
                     (is_active_visual)
                         ? cfg->theme.icon.active.border.color
                         : cfg->theme.icon.inactive.border.color
                 });
-        xcb_clear_area(connection, 0, client->icon_window, 0, 0, 0, 0);
+
+        icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
+                ((cfg->theme.icon.is_captioned)
+                    ? WM_ICON_CAPTION_HEIGHT : 0u));
+        surface = wm_get_surface_by_id(client->screen_id);
+        buffer = (surface != NULL)
+            ? s_icon_buffer_create(connection,
+                    surface->screen->root_depth, client->icon_window,
+                    (uint16_t) WM_ICON_SQUARE_SIZE, icon_h)
+            : XCB_NONE;
+        target = (buffer != XCB_NONE) ? buffer : client->icon_window;
+
+        if (buffer != XCB_NONE) {
+            gc = xcb_generate_id(connection);
+            xcb_create_gc(connection, gc, buffer,
+                    XCB_GC_FOREGROUND, &bg_color);
+            xcb_poly_fill_rectangle(connection, buffer, gc, 1,
+                    (const xcb_rectangle_t[]) {
+                        { 0, 0, (uint16_t) WM_ICON_SQUARE_SIZE, icon_h }
+                    });
+            xcb_free_gc(connection, gc);
+        } else {
+            xcb_clear_area(connection, 0, client->icon_window,
+                    0, 0, 0, 0);
+        }
 
         /* Deliberately skipped while this same icon is either being
          * dragged ('drag_icon_sync_active_visual' in
          * 'input/mouse/drag/icon.c' clears the icon window without
          * drawing its pixmap when the drag starts, on purpose) or
          * currently selected in the icon cycle menu
-         * ('ri_render_client_icon' in 'render/icon.c' draws either
-         * case the same way, asking about both itself), both
-         * already folded into 'is_active_visual' above.
+         * ('ri_render_client_icon' in 'render/icon.c' draws either case
+         * the same way, asking about both itself), both already folded
+         * into 'is_active_visual' above.
          *
          * Without this check, an 'Expose' from passing behind another
          * window (or the cycle menu's floating window happening to
@@ -238,7 +311,7 @@ void handler_expose(xcb_connection_t *connection,
              * '!is_active_visual' above, so it is always false by the
              * time this runs */
             wmicon_draw(connection, xcb_ewmh_connection_get(), client->window,
-                    client->icon_window, WM_ICON_SQUARE_SIZE,
+                    target, WM_ICON_SQUARE_SIZE,
                     cfg->theme.icon.inactive.color.foreground,
                     cfg->theme.icon.inactive.color.background,
                     &client->icon_pixmap_cache);
@@ -263,15 +336,24 @@ void handler_expose(xcb_connection_t *connection,
                     (is_active_visual)
                         ? cfg->theme.icon.active.color.background
                         : cfg->theme.icon.inactive.color.background);
-            text_draw_string(connection, client->icon_window, XCB_NONE,
+            text_draw_string(connection, target, XCB_NONE,
                     (struct position_s) { 2,
                         WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
                             2u },
                     caption);
         }
 
-        ri_icon_hints_draw(connection, client, is_active_visual,
+        ri_icon_hints_draw(connection, client, target, is_active_visual,
                 &cfg->theme);
+
+        if (buffer != XCB_NONE) {
+            gc = xcb_generate_id(connection);
+            xcb_create_gc(connection, gc, client->icon_window, 0u, NULL);
+            xcb_copy_area(connection, buffer, client->icon_window, gc,
+                    0, 0, 0, 0, (uint16_t) WM_ICON_SQUARE_SIZE, icon_h);
+            xcb_free_gc(connection, gc);
+            xcb_free_pixmap(connection, buffer);
+        }
 
         return;
     }
@@ -284,14 +366,13 @@ void handler_expose(xcb_connection_t *connection,
 
     /* Frame-only expose: repaint border and background */
     if (client->frame != 0 && client->frame == event->window) {
-        /* A fullscreen client's frame can still receive an
-         * Expose (e.g., a click landing on it while it happens to
-         * still exist as an X window underneath, even though it is
-         * never shown decorated), and repainting the theme's regular
-         * border onto it unconditionally would show through.
-         * Same condition 's_desktop_render_one_client'
-         * ('render/desktop.c') already uses for its
-         * 'hide_decoration'. */
+        /* A fullscreen client's frame can still receive an Expose
+         * (e.g., a click landing on it while it happens to still exist
+         * as an X window underneath, even though it is never shown
+         * decorated), and repainting the theme's regular border onto it
+         * unconditionally would show through.  Same condition
+         * 's_desktop_render_one_client' ('render/desktop.c') already
+         * uses for its 'hide_decoration'. */
         if (!(client_is_fullscreen(client) &&
                     client->was_decorated_fullscreen)) {
             desktop_repaint_frame_decoration(connection, client,
@@ -313,5 +394,4 @@ void handler_expose(xcb_connection_t *connection,
 
     desktop_repaint_titlebar_content(connection, client,
             use_active_style, inner_w, title_h, &cfg->theme);
-
 }

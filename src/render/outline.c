@@ -27,10 +27,12 @@
 /* Type includes */
 #include <types/pair.h>
 
-/* Local includes */
-#include <render/outline.h>
+/* Utils includes */
 #include <utils/xcb/atom.h>
 #include <utils/xcb/window.h>
+
+/* Local includes */
+#include <render/outline.h>
 
 
 /**

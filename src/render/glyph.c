@@ -35,14 +35,16 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/connection.h>
 
 /* Default initial values */
 #include <defs/text.h>
 
-/* Local includes */
+/* Project includes */
 #include <logger.h>
+
+/* Local includes */
 #include <render/glyph.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -52,7 +54,6 @@ typedef struct {
     uint32_t codepoint;
     int16_t advance_x;
 } s_glyph_cache_entry_td;
-
 
 
 /**

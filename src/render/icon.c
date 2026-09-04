@@ -37,17 +37,62 @@
 
 /* Utils includes */
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+#include <surface.h>
+#include <systray.h>
+#include <wm.h>
+
+/* Local includes */
 #include <render/icon.h>
 #include <render/outdate.h>
 #include <render/text.h>
 #include <render/wmicon.h>
-#include <systray.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
+
+
+/**
+ * @brief Create an off-screen buffer sized to stand in for an icon
+ *        window
+ *
+ * @c ri_render_client_icon draws into the pixmap this returns instead
+ * of straight onto the icon window itself, so nothing midway through
+ * that drawing is ever visible on screen; see its own comment for why
+ * that matters.  @p depth has to be the icon window's own, since the
+ * cached text-renderer graphics context (built once, in
+ * 'render/text.c', against the screen root) can only draw onto a
+ * drawable sharing that same depth.
+ *
+ * @param connection Active XCB connection
+ * @param depth      Depth to create the pixmap at, matching the icon
+ *                   window's own
+ * @param icon       Icon window the pixmap is created against; only
+ *                   its screen matters here, not its contents
+ * @param width      Pixmap width, matching the icon window's own
+ * @param height     Pixmap height, matching the icon window's own
+ *
+ * @return The new pixmap, or @c XCB_NONE when @p width or @p height
+ *         is zero
+ *
+ * @note Complexity: @e O(1)
+ */
+static xcb_pixmap_t s_icon_buffer_create(xcb_connection_t *connection,
+        uint8_t depth, xcb_window_t icon, uint16_t width, uint16_t height)
+{
+    xcb_pixmap_t buffer;
+
+    if (width == 0u || height == 0u) {
+        return XCB_NONE;
+    }
+
+    buffer = xcb_generate_id(connection);
+    xcb_create_pixmap(connection, depth, buffer, icon, width, height);
+
+    return buffer;
+}
 
 
 /**
@@ -58,6 +103,15 @@
  * optionally draws a caption label, and optionally draws the
  * pinned/state-hint indicators.  Called from @p desktop_render_clients
  * for clients that are both hidden and iconified.
+ *
+ * The pixmap, the caption and the hint indicators are drawn into an
+ * off-screen buffer first and copied onto the icon window in a single
+ * request only once every one of them is already on it, rather than
+ * drawn straight onto the icon window across several separate
+ * requests the way this function used to: an urgent client's
+ * attention blink repaints its icon on every phase change, and each of
+ * those used to show the icon blank for the moment between the old
+ * clear and the last of the old draw calls.
  *
  * @param client     The iconified client to render; its theme and
  *                   connection are what this draws with
@@ -79,6 +133,12 @@ void ri_render_client_icon(client_td *client, bool is_current,
     uint32_t border_width;
     xcb_window_t tray_below;
     bool display_active;
+    uint32_t bg_color;
+    uint16_t icon_h;
+    surface_td *surface;
+    xcb_pixmap_t buffer;
+    xcb_drawable_t target;
+    xcb_gcontext_t gc;
     xcb_ewmh_connection_t *const ewmh =
         xcb_ewmh_connection_get();
 
@@ -152,13 +212,14 @@ void ri_render_client_icon(client_td *client, bool is_current,
         display_active = !display_active;
     }
 
+    bg_color = (display_active)
+        ? client->config->theme.icon.active.color.background
+        : client->config->theme.icon.inactive.color.background;
     xcb_change_window_attributes(xcb_connection_get(),
             client->icon_window,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
-        (display_active)
-            ? client->config->theme.icon.active.color.background
-            : client->config->theme.icon.inactive.color.background,
+        bg_color,
         (display_active)
             ? client->config->theme.icon.active.border.color
             : client->config->theme.icon.inactive.border.color
@@ -174,8 +235,30 @@ void ri_render_client_icon(client_td *client, bool is_current,
                 ? client->config->theme.icon.active.opacity
                 : client->config->theme.icon.inactive.opacity));
 
-    xcb_clear_area(xcb_connection_get(), 0,
-            client->icon_window, 0, 0, 0, 0);
+    icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
+            ((client->config->theme.icon.is_captioned)
+                ? WM_ICON_CAPTION_HEIGHT : 0u));
+    surface = wm_get_surface_by_id(client->screen_id);
+    buffer = (surface != NULL)
+        ? s_icon_buffer_create(xcb_connection_get(),
+                surface->screen->root_depth, client->icon_window,
+                (uint16_t) WM_ICON_SQUARE_SIZE, icon_h)
+        : XCB_NONE;
+    target = (buffer != XCB_NONE) ? buffer : client->icon_window;
+
+    if (buffer != XCB_NONE) {
+        gc = xcb_generate_id(xcb_connection_get());
+        xcb_create_gc(xcb_connection_get(), gc, buffer,
+                XCB_GC_FOREGROUND, &bg_color);
+        xcb_poly_fill_rectangle(xcb_connection_get(), buffer, gc, 1,
+                (const xcb_rectangle_t[]) {
+                    { 0, 0, (uint16_t) WM_ICON_SQUARE_SIZE, icon_h }
+                });
+        xcb_free_gc(xcb_connection_get(), gc);
+    } else {
+        xcb_clear_area(xcb_connection_get(), 0,
+                client->icon_window, 0, 0, 0, 0);
+    }
     xcb_window_show(client->icon_window);
 
     /* Icons stay lower than the tray even within the shared 'below'
@@ -203,7 +286,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
     if (client->config->theme.icon.show_pixmaps && !is_cycle_sel) {
         wmicon_draw(xcb_connection_get(), ewmh,
                 client->window,
-                client->icon_window, WM_ICON_SQUARE_SIZE,
+                target, WM_ICON_SQUARE_SIZE,
                 (display_active)
                     ? client->config->theme.icon.active.color.foreground
                     : client->config->theme.icon.inactive.color.foreground,
@@ -245,7 +328,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
 
         if (caption[0] != '\0') {
             text_draw_string(xcb_connection_get(),
-                    client->icon_window, XCB_NONE,
+                    target, XCB_NONE,
                     (struct position_s) { 2,
                         WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
                             2u },
@@ -253,8 +336,18 @@ void ri_render_client_icon(client_td *client, bool is_current,
         }
     }
 
-    ri_icon_hints_draw(xcb_connection_get(), client, display_active,
-            &client->config->theme);
+    ri_icon_hints_draw(xcb_connection_get(), client, target,
+            display_active, &client->config->theme);
+
+    if (buffer != XCB_NONE) {
+        gc = xcb_generate_id(xcb_connection_get());
+        xcb_create_gc(xcb_connection_get(), gc, client->icon_window, 0u,
+                NULL);
+        xcb_copy_area(xcb_connection_get(), buffer, client->icon_window,
+                gc, 0, 0, 0, 0, (uint16_t) WM_ICON_SQUARE_SIZE, icon_h);
+        xcb_free_gc(xcb_connection_get(), gc);
+        xcb_free_pixmap(xcb_connection_get(), buffer);
+    }
 
     /* This is not reset anywhere else for a hidden/iconified client.
      * Only 's_desktop_render_one_client' ('render/desktop.c') clears
@@ -269,7 +362,8 @@ void ri_render_client_icon(client_td *client, bool is_current,
 /* Draw the state-hint indicators in an iconified client's top
  * corners */
 void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
-        bool is_cycle_sel, const struct config_theme_s *theme)
+        xcb_drawable_t target, bool is_cycle_sel,
+        const struct config_theme_s *theme)
 {
     char letter[2] = { 0, 0 };
     uint16_t letter_w;
@@ -277,7 +371,7 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
     bool blink_on;
 
     if (connection == NULL || client == NULL || theme == NULL ||
-            client->icon_window == 0) {
+            client->icon_window == 0 || target == XCB_NONE) {
         return;
     }
 
@@ -329,10 +423,8 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
               (100u - WM_ICON_PIXMAP_SCALE_PERCENT)) / 200u);
         xcb_rectangle_t rect = { 0, 0, pin_size, pin_size };
 
-        xcb_create_gc(connection, gc, client->icon_window,
-                XCB_GC_FOREGROUND, &color);
-        xcb_poly_fill_rectangle(connection, client->icon_window, gc,
-                1, &rect);
+        xcb_create_gc(connection, gc, target, XCB_GC_FOREGROUND, &color);
+        xcb_poly_fill_rectangle(connection, target, gc, 1, &rect);
         xcb_free_gc(connection, gc);
     }
 
@@ -374,7 +466,7 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
                 : theme->icon.inactive.color.background);
 
     letter_w = text_string_measure(letter);
-    text_draw_string(connection, client->icon_window, XCB_NONE,
+    text_draw_string(connection, target, XCB_NONE,
             (struct position_s) {
                 (int32_t) WM_ICON_SQUARE_SIZE - (int32_t) letter_w - 2,
                 2 + text_font_ascent() },

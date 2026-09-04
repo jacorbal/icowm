@@ -23,6 +23,7 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/connection.h>
 
 /* Default initial values */
 #include <defs/text.h>
@@ -33,7 +34,6 @@
 /* Local includes */
 #include <render/glyph.h>
 #include <render/text.h>
-#include <utils/xcb/connection.h>
 
 
 /**
