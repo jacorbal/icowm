@@ -18,16 +18,20 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* ADT includes */
+#include <adt/cdlist.h>
+
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
+/* Default initial values */
+#include <defs/dialog.h>
+#include <defs/uistr.h>
+
 /* Project includes */
-#include <adt/cdlist.h>
 #include <client.h>
 #include <client/predicates.h>
 #include <config.h>
-#include <defs/dialog.h>
-#include <defs/uistr.h>
 #include <i18n.h>
 #include <monitor.h>
 #include <surface.h>
@@ -51,25 +55,6 @@ struct s_inspect_ctx_s {
     char vstore[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
     uint8_t count;
 };
-
-
-/**
- * @brief Append one blank line, separating two groups
- *
- * @param ctx Rows being gathered
- *
- * @note Complexity: @e O(1)
- */
-static void s_inspect_blank(struct s_inspect_ctx_s *ctx)
-{
-    if (ctx->count >= (uint8_t) DIALOG_MSG_MAX_LINES) {
-        return;
-    }
-
-    ctx->pairs[ctx->count].label = NULL;
-    ctx->pairs[ctx->count].value = NULL;
-    ctx->count++;
-}
 
 
 /**
@@ -106,9 +91,9 @@ static void s_inspect_heading(struct s_inspect_ctx_s *ctx,
  * @param fmt   'printf'-style format for the right column
  * @param ...   Arguments @p fmt consumes
  *
- * @note Both halves are copied, since a caller composing either on
- *       its own stack would otherwise leave this holding a pointer
- *       into a frame already gone
+ * @note Both halves are copied, since a caller composing either on its
+ *       own stack would otherwise leave this holding a pointer into
+ *       a frame already gone
  * @note Complexity: @e O(n), where @e n is the composed value's length
  */
 static void s_inspect_row(struct s_inspect_ctx_s *ctx,
@@ -158,8 +143,8 @@ static const char *s_inspect_or_none(const char *text)
  *
  * @return A short lowercase name for it
  *
- * @note Answers @c "normal" for a value outside the enumeration,
- *       which is what an unset @c _NET_WM_WINDOW_TYPE amounts to
+ * @note Answers @c "normal" for a value outside the enumeration, which
+ *       is what an unset @c _NET_WM_WINDOW_TYPE amounts to
  * @note Complexity: @e O(1)
  */
 static const char *s_inspect_type_name(uint16_t type)
@@ -265,7 +250,7 @@ void dialog_inspect_show(xcb_connection_t *connection,
                 (long) client->process.pid);
     }
 
-    s_inspect_blank(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_inspect_heading(&ctx, _(STR_INSPECT_GROUP_PLACEMENT));
     if (client_is_pinned(client)) {
         s_inspect_row(&ctx, _(STR_INSPECT_DESKTOP), "%u (%s)",
@@ -279,9 +264,9 @@ void dialog_inspect_show(xcb_connection_t *connection,
             (unsigned int) client->screen_id);
 
     /* Resolved from the window's own centre rather than its origin, so
-     * a window straddling two monitors is reported on the one it
-     * mostly occupies, which is the one every other part of the
-     * manager already treats it as being on */
+     * a window straddling two monitors is reported on the one it mostly
+     * occupies, which is the one every other part of the manager
+     * already treats it as being on */
     monitor = surface_monitor_for_point(surface,
             (struct position_s) {
                 client->layout.geometry.cur.pos.x +
@@ -305,7 +290,7 @@ void dialog_inspect_show(xcb_connection_t *connection,
     s_inspect_row(&ctx, _(STR_INSPECT_LAYER), "%s",
             s_inspect_layer_name(client->properties.layer));
 
-    s_inspect_blank(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_inspect_heading(&ctx, _(STR_INSPECT_GROUP_STATE));
     s_inspect_flag(client_is_focused(client) ? yes : no,
             sizeof(yes), "focused");
@@ -332,7 +317,7 @@ void dialog_inspect_show(xcb_connection_t *connection,
     s_inspect_row(&ctx, _(STR_INSPECT_IS_NOT), "%s",
             s_inspect_or_none(no));
 
-    s_inspect_blank(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_inspect_heading(&ctx, _(STR_INSPECT_GROUP_SIZE));
     s_inspect_row(&ctx, _(STR_INSPECT_MINIMUM), "%ux%u",
             (unsigned int) client->hints_icccm.size.min.w,
@@ -347,7 +332,7 @@ void dialog_inspect_show(xcb_connection_t *connection,
                 (unsigned int) client->hints_icccm.size.max.h);
     }
 
-    s_inspect_blank(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_inspect_heading(&ctx, _(STR_INSPECT_GROUP_RELATIONS));
     if (client->transient_parent != NULL) {
         s_inspect_row(&ctx, _(STR_INSPECT_TRANSIENT), "0x%x (%s)",
@@ -361,7 +346,7 @@ void dialog_inspect_show(xcb_connection_t *connection,
             (client->transients != NULL)
                 ? (unsigned int) cdlist_size(client->transients) : 0u);
 
-    s_inspect_blank(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_inspect_heading(&ctx, _(STR_INSPECT_GROUP_WINDOWS));
     s_inspect_row(&ctx, _(STR_INSPECT_CLIENT_WIN), "0x%x",
             (unsigned int) client->window);

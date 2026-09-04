@@ -33,6 +33,7 @@
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <client.h>
@@ -45,7 +46,6 @@
 #include <menu/dialog/defer.h>
 #include <menu/dialog/message.h>
 #include <menu/draw.h>
-#include <utils/xcb/window.h>
 
 
 /* Message dialog state and layout */
@@ -817,6 +817,21 @@ static uint8_t s_message_wrap_value(const char *value, uint16_t avail,
 }
 
 
+/* Append one blank line, for visual separation between groups, to
+ * a caller-built array of dialog pairs */
+void dialog_pair_append_blank(struct dialog_pair_s *pairs,
+        uint8_t *count)
+{
+    if (*count >= (uint8_t) DIALOG_MSG_MAX_LINES) {
+        return;
+    }
+
+    pairs[*count].label = NULL;
+    pairs[*count].value = NULL;
+    (*count)++;
+}
+
+
 /* Show a message dialog whose content is a list of label and value
  * pairs */
 void menu_message_dialog_show_pairs(xcb_connection_t *connection,
@@ -841,8 +856,8 @@ void menu_message_dialog_show_pairs(xcb_connection_t *connection,
     }
 
     /* Refused here rather than left to the ordinary show path, which
-     * refuses it too but only after this has already replaced the
-     * lines and their count.  The dialog still on screen would then be
+     * refuses it too but only after this has already replaced the lines
+     * and their count.  The dialog still on screen would then be
      * drawing from the new ones with the old scroll offset, and that
      * subtraction is unsigned: an offset past the new count wraps it
      * into a row span reaching well past the array.  Nothing reaches
@@ -868,18 +883,18 @@ void menu_message_dialog_show_pairs(xcb_connection_t *connection,
     cap = (uint16_t) (room * 2u / 5u);
     column = s_message_value_column(pairs, pair_count, gap, cap);
 
-    /* Values wrap against a third of the room rather than all of it,
-     * so the dialog comes out the width its content wants and not the
-     * width the monitor allows.  A third puts a dialog at about a
-     * third of the screen, which reads without the eye having to
-     * travel; half left the longest values unbroken and the dialog
-     * closer to half the screen. */
+    /* Values wrap against a third of the room rather than all of it, so
+     * the dialog comes out the width its content wants and not the
+     * width the monitor allows.  A third puts a dialog at about a third
+     * of the screen, which reads without the eye having to travel; half
+     * left the longest values unbroken and the dialog closer to half
+     * the screen. */
     target = (int32_t) (room / 3u) - (int32_t) column -
         (int32_t) (config->theme.dialog.label.padding.horizontal * 2);
 
     /* Worked out signed and floored afterwards, since the column may
-     * legitimately be wider than the third being aimed at: a label
-     * long enough to reach its own cap would otherwise leave this
+     * legitimately be wider than the third being aimed at: a label long
+     * enough to reach its own cap would otherwise leave this
      * subtraction below zero and wrap it into a width larger than the
      * screen, which no floor phrased in unsigned terms would catch. */
     if (target < (int32_t) (room / 5u)) {

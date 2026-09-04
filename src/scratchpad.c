@@ -34,18 +34,20 @@
 /* Utils includes */
 #include <utils/time/clock.h>
 
+/* Policy includes */
+#include <policy/focus.h>
+
+/* Default initial values */
+#include <defs/scratchpad.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
 #include <logger.h>
-#include <policy/focus.h>
 #include <surface.h>
 #include <wm.h>
-
-/* Default initial values */
-#include <defs/scratchpad.h>
 
 /* Local includes */
 #include <scratchpad.h>

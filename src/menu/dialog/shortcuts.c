@@ -22,13 +22,13 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
+/* Defauilt initial values */
+#include <defs/uistr.h>
+
 /* Project includes */
 #include <config.h>
-#include <surface.h>
-
-/* Defs includes */
-#include <defs/uistr.h>
 #include <i18n.h>
+#include <surface.h>
 
 /* Local includes */
 #include <menu/dialog/shortcuts.h>
@@ -130,25 +130,6 @@ static void s_append_pair_fmt(struct s_shortcuts_ctx_s *ctx,
             sizeof(ctx->lstore[ctx->count]));
     ctx->pairs[ctx->count].label = ctx->lstore[ctx->count];
     ctx->pairs[ctx->count].value = ctx->store[ctx->count];
-    ctx->count++;
-}
-
-
-/**
- * @brief Append one blank line, for visual separation between sections
- *
- * @param ctx Rows being gathered
- *
- * @note Complexity: @e O(1)
- */
-static void s_append_blank_line(struct s_shortcuts_ctx_s *ctx)
-{
-    if (ctx->count >= (uint8_t) DIALOG_MSG_MAX_LINES) {
-        return;
-    }
-
-    ctx->pairs[ctx->count].label = NULL;
-    ctx->pairs[ctx->count].value = NULL;
     ctx->count++;
 }
 
@@ -304,7 +285,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             "modc=%s, mods=%s, mod1=%s, mod4=%s",
             config->bindings.modc, config->bindings.mods,
             config->bindings.mod1, config->bindings.mod4);
-    s_append_blank_line(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
 
     s_append_line(&ctx, "[%s]",
             _(STR_SHORTCUTS_HEADER_WM));
@@ -347,7 +328,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             _(STR_SHORTCUTS_THIS_LIST),
             config->bindings.keyboard.wm.shortcuts);
 
-    s_append_blank_line(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_append_line(&ctx, "[%s]",
             _(STR_SHORTCUTS_HEADER_DESKTOP));
     s_append_binding(&ctx,
@@ -363,7 +344,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
         s_append_goto_desktop(&ctx, config);
     }
 
-    s_append_blank_line(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_append_line(&ctx, "[%s]",
             _(STR_SHORTCUTS_HEADER_LAUNCH));
     s_append_binding(&ctx,
@@ -382,7 +363,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             _(STR_SHORTCUTS_EDITOR),
             config->bindings.keyboard.launch.editor);
 
-    s_append_blank_line(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_append_line(&ctx, "[%s]",
             _(STR_SHORTCUTS_HEADER_WINDOW));
     s_append_binding(&ctx,
@@ -496,7 +477,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 config->bindings.keyboard.window.resize.down
             }, 4u);
 
-    s_append_blank_line(&ctx);
+    dialog_pair_append_blank(ctx.pairs, &ctx.count);
     s_append_line(&ctx, "[%s]",
             _(STR_SHORTCUTS_HEADER_CYCLE));
     if (surface->desktop_count > 1u) {

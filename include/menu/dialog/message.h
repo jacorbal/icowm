@@ -64,11 +64,11 @@ typedef enum {
  * Which of the two strings is present decides what the row is, so no
  * separate kind is carried alongside them:
  *
- *   - both given: an aligned pair, @p label at the left margin and
- *     @p value at a column shared by every pair in the dialog
- *   - @p label alone: a heading or a line of prose, drawn at the left
- *     margin across the full width
- *   - neither: a blank line, for spacing between groups
+ * - both given: an aligned pair, @p label at the left margin and
+ *   @p value at a column shared by every pair in the dialog
+ * - @p label alone: a heading or a line of prose, drawn at the left
+ *   margin across the full width
+ * - neither: a blank line, for spacing between groups
  *
  * @note A @p value too long for its column is wrapped onto further
  *       lines that begin at that same column, so a row reads as one
@@ -79,6 +79,27 @@ struct dialog_pair_s {
     const char *value;      /**< Right column, or null */
 };
 
+
+/**
+ * @brief Append one blank line, for visual separation between groups,
+ *        to a caller-built array of dialog pairs
+ *
+ * Shared by every dialog that gathers its own @c dialog_pair_s array
+ * before handing it to @a menu_message_dialog_show_pairs, so a heading,
+ * a group of rows, another heading and so on can be spaced apart the
+ * same way wherever they are built.
+ *
+ * @param pairs Array being filled in
+ * @param count Rows filled in so far; incremented by this call unless
+ *              @p pairs is already full
+ *
+ * @note Silently does nothing once @p count reaches
+ *       @c DIALOG_MSG_MAX_LINES, the same as every other row-adding
+ *       helper built around this array
+ * @note Complexity: @e O(1)
+ */
+void dialog_pair_append_blank(struct dialog_pair_s *pairs,
+        uint8_t *count);
 
 /**
  * @brief Open the message dialog centered on the screen
