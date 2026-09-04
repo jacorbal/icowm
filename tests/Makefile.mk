@@ -180,7 +180,43 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/wm/test_ewmh \
     $(O_DIR)/tests/wm/test_lifecycle \
     $(O_DIR)/tests/wm/test_shutdown \
-    $(O_DIR)/tests/wm/test_startup
+    $(O_DIR)/tests/wm/test_startup \
+    $(O_DIR)/tests/cctl/test_adopt \
+    $(O_DIR)/tests/cctl/test_kill \
+    $(O_DIR)/tests/cctl/test_launch \
+    $(O_DIR)/tests/cctl/test_sn \
+    $(O_DIR)/tests/handler/test_colormap \
+    $(O_DIR)/tests/handler/test_configure \
+    $(O_DIR)/tests/handler/test_crossing \
+    $(O_DIR)/tests/handler/test_error \
+    $(O_DIR)/tests/handler/test_ewmh \
+    $(O_DIR)/tests/handler/test_expose \
+    $(O_DIR)/tests/handler/test_focus \
+    $(O_DIR)/tests/handler/test_map \
+    $(O_DIR)/tests/handler/test_message \
+    $(O_DIR)/tests/handler/test_randr \
+    $(O_DIR)/tests/handler/test_sync \
+    $(O_DIR)/tests/loop/event/test_input \
+    $(O_DIR)/tests/loop/event/test_motion \
+    $(O_DIR)/tests/loop/test_context \
+    $(O_DIR)/tests/loop/test_dispatch \
+    $(O_DIR)/tests/loop/test_loop \
+    $(O_DIR)/tests/loop/test_pollset \
+    $(O_DIR)/tests/loop/test_refresh \
+    $(O_DIR)/tests/loop/test_signals \
+    $(O_DIR)/tests/loop/test_timers \
+    $(O_DIR)/tests/render/test_desktop \
+    $(O_DIR)/tests/render/test_glyph \
+    $(O_DIR)/tests/render/test_icon \
+    $(O_DIR)/tests/render/test_text \
+    $(O_DIR)/tests/render/test_wmicon \
+    $(O_DIR)/tests/test_main \
+    $(O_DIR)/tests/test_session \
+    $(O_DIR)/tests/test_xsettings \
+    $(O_DIR)/tests/wm/startup/test_handle \
+    $(O_DIR)/tests/wm/startup/test_install \
+    $(O_DIR)/tests/wm/startup/test_selection \
+    $(O_DIR)/tests/wm/startup/test_subscribe
 
 test: $(TEST_BINS)
 	@status=0; \
@@ -1505,5 +1541,291 @@ $(O_DIR)/tests/wm/test_startup: \
 		$(S_DIR)/utils/xcb/reply.c \
 		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/wm/startup.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/cctl/test_adopt: \
+		$(TESTS_DIR)/cctl/test_adopt.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/cctl/adopt.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cctl/test_kill: \
+		$(TESTS_DIR)/cctl/test_kill.c \
+		$(S_DIR)/cctl/kill.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cctl/test_launch: \
+		$(TESTS_DIR)/cctl/test_launch.c \
+		$(S_DIR)/cctl/launch.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cctl/test_sn: \
+		$(TESTS_DIR)/cctl/test_sn.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/cctl/sn.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_colormap: \
+		$(TESTS_DIR)/handler/test_colormap.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/handler/colormap.c \
+		$(S_DIR)/surface/desktops.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_configure: \
+		$(TESTS_DIR)/handler/test_configure.c \
+		$(S_DIR)/client/state.c \
+		$(S_DIR)/handler/configure.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_crossing: \
+		$(TESTS_DIR)/handler/test_crossing.c \
+		$(S_DIR)/handler/crossing.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_error: \
+		$(TESTS_DIR)/handler/test_error.c \
+		$(S_DIR)/handler/error.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_ewmh: \
+		$(TESTS_DIR)/handler/test_ewmh.c \
+		$(S_DIR)/handler/ewmh.c \
+		$(S_DIR)/utils/safe/safeflg.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_expose: \
+		$(TESTS_DIR)/handler/test_expose.c \
+		$(S_DIR)/handler/expose.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_focus: \
+		$(TESTS_DIR)/handler/test_focus.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/handler/focus.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_map: \
+		$(TESTS_DIR)/handler/test_map.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/handler/map.c \
+		$(S_DIR)/utils/safe/safeflg.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/handler/test_message: \
+		$(TESTS_DIR)/handler/test_message.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/handler/message.c \
+		$(S_DIR)/utils/safe/safeflg.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_randr: \
+		$(TESTS_DIR)/handler/test_randr.c \
+		$(S_DIR)/handler/randr.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_sync: \
+		$(TESTS_DIR)/handler/test_sync.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/handler/sync.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/loop/event/test_input: \
+		$(TESTS_DIR)/loop/event/test_input.c \
+		$(S_DIR)/loop/event/input.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/loop/event/test_motion: \
+		$(TESTS_DIR)/loop/event/test_motion.c \
+		$(S_DIR)/loop/event/motion.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/loop/test_context: \
+		$(TESTS_DIR)/loop/test_context.c \
+		$(S_DIR)/loop/context.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/loop/test_dispatch: \
+		$(TESTS_DIR)/loop/test_dispatch.c \
+		$(S_DIR)/loop/dispatch.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/loop/test_loop: \
+		$(TESTS_DIR)/loop/test_loop.c \
+		$(S_DIR)/loop.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/loop/test_pollset: \
+		$(TESTS_DIR)/loop/test_pollset.c \
+		$(S_DIR)/loop/pollset.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/loop/test_refresh: \
+		$(TESTS_DIR)/loop/test_refresh.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/loop/refresh.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/loop/test_signals: \
+		$(TESTS_DIR)/loop/test_signals.c \
+		$(S_DIR)/loop/signals.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/loop/test_timers: \
+		$(TESTS_DIR)/loop/test_timers.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/loop/timers.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/render/test_desktop: \
+		$(TESTS_DIR)/render/test_desktop.c \
+		$(S_DIR)/render/desktop.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/render/test_glyph: \
+		$(TESTS_DIR)/render/test_glyph.c \
+		$(S_DIR)/render/glyph.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $(FONT_CFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS) $(FONT_LFLAGS)
+
+$(O_DIR)/tests/render/test_icon: \
+		$(TESTS_DIR)/render/test_icon.c \
+		$(S_DIR)/render/icon.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/render/test_text: \
+		$(TESTS_DIR)/render/test_text.c \
+		$(S_DIR)/render/text.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/render/test_wmicon: \
+		$(TESTS_DIR)/render/test_wmicon.c \
+		$(S_DIR)/render/wmicon.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+# 'main.c' declares its own real 'main', which would collide with this
+# test file's own TAP-driving 'main'; built here in three steps
+# instead of the single-invocation pattern every other test uses:
+# 'test_main.c' compiled plainly first, then 'main.c' compiled on its
+# own with '-Dmain=icowm_main' (a preprocessor rename applied only to
+# that one translation unit, without editing 'src/main.c' itself) plus
+# the project-identity macros it needs that only ever come from the
+# root 'GNUmakefile' during a real build, and finally both objects
+# linked together with the remaining plain dependencies
+$(O_DIR)/tests/test_main: \
+		$(TESTS_DIR)/test_main.c \
+		$(S_DIR)/main.c \
+		$(S_DIR)/i18n.c \
+		$(S_DIR)/utils/safe/safemem.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) -D I18N_DOMAIN=\"icowm\" -D I18N_LOCALE_DIR=\"/tmp\" \
+		-c $(TESTS_DIR)/test_main.c -o $(O_DIR)/tests/test_main_file.o
+	$(CC) $(TEST_CCFLAGS) -D I18N_DOMAIN=\"icowm\" -D I18N_LOCALE_DIR=\"/tmp\" \
+		-Dmain=icowm_main \
+		-D BUILD_NUMBER=1 -D BUILD_TIMESTAMP=\"20260101T0000\" \
+		-D PROJECT_NAME_LONG=\"$(PROJECT_NAME_LONG)\" \
+		-D PROJECT_NAME_SHORT=\"$(PROJECT_NAME_SHORT)\" \
+		-D PROJECT_NAME_PROG=\"$(PROJECT_NAME_PROG)\" \
+		-D PROJECT_VERSION=\"$(PROJECT_VERSION)\" \
+		-D PROJECT_VERSION_CODENAME=\"ovelya\" \
+		-D AUTHOR=\"$(AUTHOR)\" -D COPYRIGHT=\"$(COPYRIGHT)\" \
+		-D LICENSE=\"$(LICENSE)\" -D RELEASE_DATE=\"$(RELEASE_DATE)\" \
+		-c $(S_DIR)/main.c -o $(O_DIR)/tests/main_renamed.o
+	$(CC) $(TEST_CCFLAGS) -D I18N_DOMAIN=\"icowm\" -D I18N_LOCALE_DIR=\"/tmp\" \
+		$(O_DIR)/tests/test_main_file.o $(O_DIR)/tests/main_renamed.o \
+		$(S_DIR)/i18n.c $(S_DIR)/utils/safe/safemem.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		-o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/test_session: \
+		$(TESTS_DIR)/test_session.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/session.c \
+		$(S_DIR)/utils/config/json.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/test_xsettings: \
+		$(TESTS_DIR)/test_xsettings.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/xsettings.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/wm/startup/test_handle: \
+		$(TESTS_DIR)/wm/startup/test_handle.c \
+		$(S_DIR)/wm/startup/handle.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/wm/startup/test_install: \
+		$(TESTS_DIR)/wm/startup/test_install.c \
+		$(S_DIR)/wm/startup/handle.c \
+		$(S_DIR)/wm/startup/install.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/wm/startup/test_selection: \
+		$(TESTS_DIR)/wm/startup/test_selection.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/wm/startup/selection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/wm/startup/test_subscribe: \
+		$(TESTS_DIR)/wm/startup/test_subscribe.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/wm/startup/subscribe.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
