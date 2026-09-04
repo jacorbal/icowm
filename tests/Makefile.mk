@@ -126,7 +126,61 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/desktop/test_dclient \
     $(O_DIR)/tests/wm/test_actions \
     $(O_DIR)/tests/systray/test_layout \
-    $(O_DIR)/tests/menu/test_search
+    $(O_DIR)/tests/menu/test_search \
+    $(O_DIR)/tests/cmds/client/test_meta \
+    $(O_DIR)/tests/input/kbd/test_bind \
+    $(O_DIR)/tests/input/kbd/test_event \
+    $(O_DIR)/tests/input/kbd/test_execute \
+    $(O_DIR)/tests/input/kbd/test_interact \
+    $(O_DIR)/tests/input/kbd/test_intercept \
+    $(O_DIR)/tests/input/mouse/drag/test_drag \
+    $(O_DIR)/tests/input/mouse/drag/test_icon \
+    $(O_DIR)/tests/input/mouse/drag/test_outline \
+    $(O_DIR)/tests/input/mouse/drag/test_overlay \
+    $(O_DIR)/tests/input/mouse/event/test_enter \
+    $(O_DIR)/tests/input/mouse/event/test_overlay \
+    $(O_DIR)/tests/input/mouse/event/test_press \
+    $(O_DIR)/tests/input/mouse/event/test_release \
+    $(O_DIR)/tests/input/mouse/event/test_scroll \
+    $(O_DIR)/tests/input/mouse/event/test_titlebar \
+    $(O_DIR)/tests/input/mouse/test_bind \
+    $(O_DIR)/tests/input/mouse/test_cursor \
+    $(O_DIR)/tests/input/mouse/test_hover \
+    $(O_DIR)/tests/menu/context/ctxmenu/test_handle \
+    $(O_DIR)/tests/menu/context/ctxmenu/test_redraw \
+    $(O_DIR)/tests/menu/context/ctxmenu/test_select \
+    $(O_DIR)/tests/menu/context/test_ctxmenu \
+    $(O_DIR)/tests/menu/context/test_menujson \
+    $(O_DIR)/tests/menu/context/test_rootmenu \
+    $(O_DIR)/tests/menu/context/test_wincmenu \
+    $(O_DIR)/tests/menu/cycle/test_draw \
+    $(O_DIR)/tests/menu/dialog/test_fortune \
+    $(O_DIR)/tests/menu/dialog/test_info \
+    $(O_DIR)/tests/menu/dialog/test_inspect \
+    $(O_DIR)/tests/menu/dialog/test_message \
+    $(O_DIR)/tests/menu/dialog/test_quit \
+    $(O_DIR)/tests/menu/dialog/test_rrsafe \
+    $(O_DIR)/tests/menu/dialog/test_run \
+    $(O_DIR)/tests/menu/dialog/test_shortcuts \
+    $(O_DIR)/tests/menu/notify/test_desktop \
+    $(O_DIR)/tests/menu/test_cycle \
+    $(O_DIR)/tests/menu/test_dialog \
+    $(O_DIR)/tests/menu/test_draw \
+    $(O_DIR)/tests/menu/test_notify \
+    $(O_DIR)/tests/menu/test_popup \
+    $(O_DIR)/tests/systray/test_protocol \
+    $(O_DIR)/tests/test_enact \
+    $(O_DIR)/tests/test_ipc \
+    $(O_DIR)/tests/test_systray \
+    $(O_DIR)/tests/utils/test_cursor \
+    $(O_DIR)/tests/utils/test_spawn \
+    $(O_DIR)/tests/utils/xcb/test_pixmap \
+    $(O_DIR)/tests/utils/xcb/test_selection \
+    $(O_DIR)/tests/utils/xcb/test_wait \
+    $(O_DIR)/tests/wm/test_ewmh \
+    $(O_DIR)/tests/wm/test_lifecycle \
+    $(O_DIR)/tests/wm/test_shutdown \
+    $(O_DIR)/tests/wm/test_startup
 
 test: $(TEST_BINS)
 	@status=0; \
@@ -1061,3 +1115,395 @@ $(O_DIR)/tests/menu/test_search: \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/cmds/client/test_meta: \
+		$(TESTS_DIR)/cmds/client/test_meta.c \
+		$(S_DIR)/cmds/client/meta.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/kbd/test_bind: \
+		$(TESTS_DIR)/input/kbd/test_bind.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/input/kbd/bind.c \
+		$(S_DIR)/input/modifier.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/utils/xcb/connection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/kbd/test_event: \
+		$(TESTS_DIR)/input/kbd/test_event.c \
+		$(S_DIR)/input/kbd/event.c \
+		$(S_DIR)/utils/xcb/connection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/kbd/test_execute: \
+		$(TESTS_DIR)/input/kbd/test_execute.c \
+		$(S_DIR)/input/kbd/execute.c \
+		$(S_DIR)/utils/xcb/connection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/kbd/test_interact: \
+		$(TESTS_DIR)/input/kbd/test_interact.c \
+		$(S_DIR)/input/kbd/interact.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/kbd/test_intercept: \
+		$(TESTS_DIR)/input/kbd/test_intercept.c \
+		$(S_DIR)/input/kbd/bind.c \
+		$(S_DIR)/input/kbd/intercept.c \
+		$(S_DIR)/input/modifier.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/utils/xcb/connection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/drag/test_drag: \
+		$(TESTS_DIR)/input/mouse/drag/test_drag.c \
+		$(S_DIR)/input/mouse/drag.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/drag/test_icon: \
+		$(TESTS_DIR)/input/mouse/drag/test_icon.c \
+		$(S_DIR)/input/mouse/drag/icon.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/drag/test_outline: \
+		$(TESTS_DIR)/input/mouse/drag/test_outline.c \
+		$(S_DIR)/input/mouse/drag/outline.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/drag/test_overlay: \
+		$(TESTS_DIR)/input/mouse/drag/test_overlay.c \
+		$(S_DIR)/input/mouse/drag/overlay.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/input/mouse/event/test_enter: \
+		$(TESTS_DIR)/input/mouse/event/test_enter.c \
+		$(S_DIR)/input/mouse/event/enter.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/event/test_overlay: \
+		$(TESTS_DIR)/input/mouse/event/test_overlay.c \
+		$(S_DIR)/input/mouse/event/overlay.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/event/test_press: \
+		$(TESTS_DIR)/input/mouse/event/test_press.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/input/mouse/event/press.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/input/mouse/event/test_release: \
+		$(TESTS_DIR)/input/mouse/event/test_release.c \
+		$(S_DIR)/input/mouse/event/release.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/event/test_scroll: \
+		$(TESTS_DIR)/input/mouse/event/test_scroll.c \
+		$(S_DIR)/input/mouse/event/scroll.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/event/test_titlebar: \
+		$(TESTS_DIR)/input/mouse/event/test_titlebar.c \
+		$(S_DIR)/input/mouse/event/titlebar.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/test_bind: \
+		$(TESTS_DIR)/input/mouse/test_bind.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/input/modifier.c \
+		$(S_DIR)/input/mouse/bind.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/test_cursor: \
+		$(TESTS_DIR)/input/mouse/test_cursor.c \
+		$(S_DIR)/input/mouse/bounds.c \
+		$(S_DIR)/input/mouse/cursor.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/input/mouse/test_hover: \
+		$(TESTS_DIR)/input/mouse/test_hover.c \
+		$(S_DIR)/input/mouse/hover.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/context/ctxmenu/test_handle: \
+		$(TESTS_DIR)/menu/context/ctxmenu/test_handle.c \
+		$(S_DIR)/menu/context/ctxmenu/handle.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/context/ctxmenu/test_redraw: \
+		$(TESTS_DIR)/menu/context/ctxmenu/test_redraw.c \
+		$(S_DIR)/menu/context/ctxmenu/redraw.c \
+		$(S_DIR)/utils/xcb/connection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/menu/context/ctxmenu/test_select: \
+		$(TESTS_DIR)/menu/context/ctxmenu/test_select.c \
+		$(S_DIR)/menu/context/ctxmenu/select.c \
+		$(S_DIR)/utils/xcb/connection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/context/test_ctxmenu: \
+		$(TESTS_DIR)/menu/context/test_ctxmenu.c \
+		$(S_DIR)/menu/context/ctxmenu.c \
+		$(S_DIR)/utils/xcb/connection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/menu/context/test_menujson: \
+		$(TESTS_DIR)/menu/context/test_menujson.c \
+		$(S_DIR)/menu/context/menujson.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/menu/context/test_rootmenu: \
+		$(TESTS_DIR)/menu/context/test_rootmenu.c \
+		$(S_DIR)/menu/context/rootmenu.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/context/test_wincmenu: \
+		$(TESTS_DIR)/menu/context/test_wincmenu.c \
+		$(S_DIR)/menu/context/wincmenu.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/menu/cycle/test_draw: \
+		$(TESTS_DIR)/menu/cycle/test_draw.c \
+		$(S_DIR)/menu/cycle/draw.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/dialog/test_fortune: \
+		$(TESTS_DIR)/menu/dialog/test_fortune.c \
+		$(S_DIR)/menu/dialog/fortune.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/dialog/test_info: \
+		$(TESTS_DIR)/menu/dialog/test_info.c \
+		$(S_DIR)/menu/dialog/info.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/dialog/test_inspect: \
+		$(TESTS_DIR)/menu/dialog/test_inspect.c \
+		$(S_DIR)/adt/cdlist.c \
+		$(S_DIR)/menu/dialog/inspect.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/dialog/test_message: \
+		$(TESTS_DIR)/menu/dialog/test_message.c \
+		$(S_DIR)/menu/dialog/defer.c \
+		$(S_DIR)/menu/dialog/message.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/dialog/test_quit: \
+		$(TESTS_DIR)/menu/dialog/test_quit.c \
+		$(S_DIR)/menu/dialog/quit.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/dialog/test_rrsafe: \
+		$(TESTS_DIR)/menu/dialog/test_rrsafe.c \
+		$(S_DIR)/menu/dialog/rrsafe.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/dialog/test_run: \
+		$(TESTS_DIR)/menu/dialog/test_run.c \
+		$(S_DIR)/menu/dialog/run.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/dialog/test_shortcuts: \
+		$(TESTS_DIR)/menu/dialog/test_shortcuts.c \
+		$(S_DIR)/config/bindings.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/menu/dialog/shortcuts.c \
+		$(S_DIR)/utils/config/json.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/menu/notify/test_desktop: \
+		$(TESTS_DIR)/menu/notify/test_desktop.c \
+		$(S_DIR)/menu/draw.c \
+		$(S_DIR)/menu/notify.c \
+		$(S_DIR)/menu/notify/desktop.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/test_cycle: \
+		$(TESTS_DIR)/menu/test_cycle.c \
+		$(S_DIR)/menu/cycle.c \
+		$(S_DIR)/menu/draw.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/test_dialog: \
+		$(TESTS_DIR)/menu/test_dialog.c \
+		$(S_DIR)/menu/dialog.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/test_draw: \
+		$(TESTS_DIR)/menu/test_draw.c \
+		$(S_DIR)/menu/draw.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/test_notify: \
+		$(TESTS_DIR)/menu/test_notify.c \
+		$(S_DIR)/menu/draw.c \
+		$(S_DIR)/menu/notify.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/test_popup: \
+		$(TESTS_DIR)/menu/test_popup.c \
+		$(S_DIR)/menu/draw.c \
+		$(S_DIR)/menu/popup.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/systray/test_protocol: \
+		$(TESTS_DIR)/systray/test_protocol.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/systray/protocol.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/utils/xcb/reply.c \
+		$(S_DIR)/utils/xcb/selection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/test_enact: \
+		$(TESTS_DIR)/test_enact.c \
+		$(S_DIR)/enact.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/test_ipc: \
+		$(TESTS_DIR)/test_ipc.c \
+		$(S_DIR)/ipc.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/config/path.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(JSON_LFLAGS)
+
+$(O_DIR)/tests/test_systray: \
+		$(TESTS_DIR)/test_systray.c \
+		$(S_DIR)/systray.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/test_cursor: \
+		$(TESTS_DIR)/utils/test_cursor.c \
+		$(S_DIR)/utils/cursor.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/test_spawn: \
+		$(TESTS_DIR)/utils/test_spawn.c \
+		$(S_DIR)/utils/spawn.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/xcb/test_pixmap: \
+		$(TESTS_DIR)/utils/xcb/test_pixmap.c \
+		$(S_DIR)/utils/xcb/pixmap.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/xcb/test_selection: \
+		$(TESTS_DIR)/utils/xcb/test_selection.c \
+		$(S_DIR)/utils/xcb/reply.c \
+		$(S_DIR)/utils/xcb/selection.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/utils/xcb/test_wait: \
+		$(TESTS_DIR)/utils/xcb/test_wait.c \
+		$(S_DIR)/utils/xcb/wait.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/wm/test_ewmh: \
+		$(TESTS_DIR)/wm/test_ewmh.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/utils/safe/safestr.c \
+		$(S_DIR)/wm/ewmh.c \
+		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/wm/test_lifecycle: \
+		$(TESTS_DIR)/wm/test_lifecycle.c \
+		$(S_DIR)/adt/list.c \
+		$(S_DIR)/wm.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/wm/test_shutdown: \
+		$(TESTS_DIR)/wm/test_shutdown.c \
+		$(S_DIR)/utils/time/clock.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/wm/shutdown.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/wm/test_startup: \
+		$(TESTS_DIR)/wm/test_startup.c \
+		$(S_DIR)/utils/xcb/reply.c \
+		$(S_DIR)/wm/instance.c \
+		$(S_DIR)/wm/startup.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
