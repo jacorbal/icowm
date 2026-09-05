@@ -60,6 +60,19 @@
 #define CONFIG_MAX_DESKTOPS (16)
 #endif
 
+/* Maximum pannable-viewport size, in whole screens per axis
+ *
+ * 'columns' and 'rows' are each capped independently against this;
+ * their product is never taken, so this alone cannot overflow a
+ * 32-bit accumulator the way 'CONFIG_MAX_DESKTOPS' pairs with
+ * 'desktop_layout' can.  Smaller under 'COMPACT' for the same reason
+ * as the pair above. */
+#ifdef COMPACT
+#define CONFIG_VIEWPORT_MAX_PAGES (4)
+#else
+#define CONFIG_VIEWPORT_MAX_PAGES (16)
+#endif
+
 /* XRandR output profile configuration limits
  *
  * 'CONFIG_RANDR_MAX_OUTPUTS' is also smaller under 'COMPACT', for the

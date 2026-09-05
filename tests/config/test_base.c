@@ -434,6 +434,102 @@ static void s_test_layout_rows_above_max_rejected(void)
 }
 
 
+/* No 'viewport' at all: falls back to a pannable area exactly the
+ * size of the physical screen, i.e., panning disabled */
+static void s_test_viewport_absent_defaults_to_1x1(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 5}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].viewport.columns, 1,
+            "no viewport: columns defaults to 1");
+    TAP_EQ_INT((int) base.screens[0].viewport.rows, 1,
+            "no viewport: rows defaults to 1");
+}
+
+
+/* Both keys named explicitly: used exactly as read */
+static void s_test_viewport_both_fields_explicit(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 5, \"viewport\": {\"columns\": 3, \"rows\": 2}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].viewport.columns, 3,
+            "viewport.columns read as given");
+    TAP_EQ_INT((int) base.screens[0].viewport.rows, 2,
+            "viewport.rows read as given");
+}
+
+
+/* Unlike 'layout', a 'viewport' has no 'desktop_count' to size a
+ * missing axis against: naming only one of the two leaves the other
+ * at its own independent default of 1, rather than inferring it */
+static void s_test_viewport_only_columns_rows_defaults_alone(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 5, \"viewport\": {\"columns\": 4}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].viewport.columns, 4,
+            "viewport.columns read as given");
+    TAP_EQ_INT((int) base.screens[0].viewport.rows, 1,
+            "viewport.rows left at its own default of 1, not inferred");
+}
+
+
+/* A 'rows' of 0 is rejected the same way 'desktop_layout' rejects it,
+ * falling the whole viewport back to panning disabled rather than
+ * only the invalid axis */
+static void s_test_viewport_rows_zero_rejected(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 5, \"viewport\": {\"columns\": 3, \"rows\": 0}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].viewport.columns, 1,
+            "rows=0: whole viewport falls back, not only rows");
+    TAP_EQ_INT((int) base.screens[0].viewport.rows, 1,
+            "rows=0: falls back to panning disabled");
+}
+
+
+/* Above CONFIG_VIEWPORT_MAX_PAGES is rejected the same way, even for
+ * a single named axis */
+static void s_test_viewport_columns_above_max_rejected(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 5, \"viewport\": {\"columns\": 999}}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].viewport.columns, 1,
+            "columns above CONFIG_VIEWPORT_MAX_PAGES: rejected");
+    TAP_EQ_INT((int) base.screens[0].viewport.rows, 1,
+            "falls back to panning disabled");
+}
+
+
 /* A missing 'topology.screens' object leaves defaults untouched,
  * rather than crashing or zeroing anything */
 static void s_test_missing_topology_leaves_defaults(void)
@@ -676,7 +772,7 @@ static void s_test_systray_text_order_no_dedup(void)
 
 int main(void)
 {
-    TAP_PLAN(83);
+    TAP_PLAN(93);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
@@ -694,6 +790,11 @@ int main(void)
     s_test_layout_rows_zero_rejected();
     s_test_layout_too_small_rejected();
     s_test_layout_rows_above_max_rejected();
+    s_test_viewport_absent_defaults_to_1x1();
+    s_test_viewport_both_fields_explicit();
+    s_test_viewport_only_columns_rows_defaults_alone();
+    s_test_viewport_rows_zero_rejected();
+    s_test_viewport_columns_above_max_rejected();
     s_test_missing_topology_leaves_defaults();
     s_test_representative_fields();
     s_test_icons_placement_modern_object_form();

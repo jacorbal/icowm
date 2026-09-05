@@ -115,6 +115,12 @@ void config_set_default_base_values(struct config_base_s *config_base,
         config_base->screens[i].desktop_layout.columns =
             config_base->screens[i].desktop_count;
 
+        /* A pannable area exactly the size of the physical screen,
+         * i.e., panning disabled, unless 'config.json' names its own
+         * 'topology.screens.desktops[].viewport' */
+        config_base->screens[i].viewport.columns = 1u;
+        config_base->screens[i].viewport.rows = 1u;
+
         /* All desktop settings */
         LOGGER_TRACE("Setting desktops configuration on screen %u", i);
         for (unsigned int j = 0;

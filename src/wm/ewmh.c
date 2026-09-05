@@ -719,9 +719,25 @@ void wm_ewmh_sync(wm_td *wm)
         desktop_td *current;
         xcb_window_t active = XCB_NONE;
         xcb_ewmh_coordinates_t *viewport;
+        uint32_t viewport_columns = 1u;
+        uint32_t viewport_rows = 1u;
 
         if (surface == NULL) {
             continue;
+        }
+
+        /* The pannable area can be wider and/or taller than the
+         * physical screen by this many whole screens; a surface with
+         * no 'config', or an 'id' past 'CONFIG_MAX_SCREENS', simply
+         * reports the physical screen size back, the same 1x1
+         * 'config_viewport_s' fallback every other reader of this
+         * field already falls back to. */
+        if (surface->config != NULL &&
+                surface->id < (uint32_t) CONFIG_MAX_SCREENS) {
+            viewport_columns = surface->config->base
+                .screens[surface->id].viewport.columns;
+            viewport_rows = surface->config->base
+                .screens[surface->id].viewport.rows;
         }
 
         xcb_ewmh_set_number_of_desktops(ewmh,
@@ -730,7 +746,8 @@ void wm_ewmh_sync(wm_td *wm)
                 (int) surface->id, surface->desktop_cur);
         xcb_ewmh_set_desktop_geometry(ewmh,
                 (int) surface->id,
-                surface->properties.dim.w, surface->properties.dim.h);
+                surface->properties.dim.w * viewport_columns,
+                surface->properties.dim.h * viewport_rows);
         viewport = calloc(surface->desktop_count,
                 sizeof(xcb_ewmh_coordinates_t));
         if (viewport != NULL) {

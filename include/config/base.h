@@ -111,6 +111,29 @@ struct config_desktop_layout_s {
 
 
 /**
+ * @brief One screen's pannable virtual-desktop size, in whole screens
+ *
+ * Not to be confused with @c config_desktop_layout_s above: that one
+ * arranges separate desktop entities in a grid for north/south/east/
+ * west switching between them, while this one instead sizes a single
+ * desktop's own pannable area, wider and/or taller than the physical
+ * screen by this many whole screens, that @c CLIENT_FLAG_STICKY
+ * (@c client/state.h) is defined against.
+ *
+ * Always populated with a valid value, whether
+ * @c topology.screens.desktops[].viewport was present in
+ * @c config.json or not: @c columns @c 1, @c rows @c 1 describes a
+ * pannable area exactly the size of the physical screen, i.e., panning
+ * disabled, the exact same behavior as before this existed.  The same
+ * fallback also applies whenever a given @c viewport fails validation.
+ */
+struct config_viewport_s {
+    uint32_t columns;
+    uint32_t rows;
+};
+
+
+/**
  * @brief Base settings configuration structure
  */
 struct config_base_s {
@@ -727,6 +750,9 @@ struct config_base_s {
 
         /** Grid interpretation of the desktop list below */
         struct config_desktop_layout_s desktop_layout;
+
+        /** Pannable virtual-desktop size, in whole screens */
+        struct config_viewport_s viewport;
 
         struct {
             char name[CONFIG_MAX_LENGTH_NAME];  /**< Desktop name */

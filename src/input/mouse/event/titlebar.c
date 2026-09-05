@@ -254,18 +254,18 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
         (bool) client_is_maximizable(client);
     hide_pin = surface != NULL && surface->desktop_count <= 1u;
 
-    /* Same idea as 'hide_pin' above, gated on the desktop grid instead
-     * of the desktop count: a sticky client stays put across a
-     * viewport pan, so the button is pointless on a surface whose
-     * desktop grid is not even wide enough or tall enough to pan
+    /* Same idea as 'hide_pin' above, gated on the pannable viewport
+     * size instead of the desktop count: a sticky client stays put
+     * across a viewport pan, so the button is pointless on a surface
+     * whose viewport is not even wide enough or tall enough to pan
      * across, and a missing 'surface'/'config' answers the same as
      * a genuinely 1x1 one, hiding the button rather than guessing. */
     hide_sticky = surface == NULL || surface->config == NULL ||
         surface->id >= (uint32_t) CONFIG_MAX_SCREENS ||
         (surface->config->base.screens[surface->id]
-             .desktop_layout.rows <= 1u &&
+             .viewport.columns <= 1u &&
          surface->config->base.screens[surface->id]
-             .desktop_layout.columns <= 1u);
+             .viewport.rows <= 1u);
 
     /* Same layout the render pass just painted from, computed first
      * (not just when the click Y already looks close) since it is what

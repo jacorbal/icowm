@@ -256,6 +256,90 @@ static void s_config_load_desktop_layout(cJSON *desktop_item,
 
 
 /**
+ * @brief Fall back one screen's @p viewport to a pannable area exactly
+ *        the size of the physical screen, i.e., panning disabled
+ *
+ * Shared by every "viewport absent" or "viewport invalid" case in
+ * @a s_config_load_viewport below, so both log the same way and never
+ * drift apart from each other by accident.
+ *
+ * @param config_base Destination structure
+ * @param screen_idx  Index of the screen whose viewport to fall back
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_config_viewport_fallback(
+        struct config_base_s *config_base, uint32_t screen_idx)
+{
+    struct config_viewport_s *dest =
+        &config_base->screens[screen_idx].viewport;
+
+    dest->columns = 1u;
+    dest->rows = 1u;
+}
+
+
+/**
+ * @brief Load and validate one screen's @p viewport object within the
+ *        per-screen (nested) @c topology.screens.desktops shape
+ *
+ * Falls back to a pannable area exactly the size of the physical
+ * screen (panning disabled) whenever @c viewport is absent entirely,
+ * or present but @c columns or @c rows is explicitly @c 0 or above
+ * @c CONFIG_VIEWPORT_MAX_PAGES.  Either field missing on an otherwise
+ * valid @c viewport object defaults to @c 1 on its own, independently
+ * of the other, unlike @a s_config_load_desktop_layout's paired
+ * rows/columns inference: a pannable area has no @c desktop_count to
+ * size the missing axis against, so there is nothing to infer it
+ * from.
+ *
+ * @param desktop_item One entry of @c topology.screens.desktops,
+ *                     describing screen @p screen_idx
+ * @param screen_idx   Index of the screen this entry describes
+ * @param config_base  Destination structure
+ * @param filename     Path the JSON was read from, for log messages
+ *                     only
+ *
+ * @note Complexity: @e O(1)
+ *
+ * @see @a s_config_viewport_fallback
+ */
+static void s_config_load_viewport(cJSON *desktop_item,
+        uint32_t screen_idx, struct config_base_s *config_base,
+        const char *filename)
+{
+    cJSON *viewport;
+    struct config_viewport_s *dest =
+        &config_base->screens[screen_idx].viewport;
+    uint32_t columns = 1u;
+    uint32_t rows = 1u;
+
+    viewport = cJSON_GetObjectItem(desktop_item, "viewport");
+    if (viewport == NULL) {
+        s_config_viewport_fallback(config_base, screen_idx);
+        return;
+    }
+
+    json_load_uint(viewport, "columns", &columns);
+    json_load_uint(viewport, "rows", &rows);
+
+    if (columns == 0u || columns > (uint32_t) CONFIG_VIEWPORT_MAX_PAGES ||
+            rows == 0u || rows > (uint32_t) CONFIG_VIEWPORT_MAX_PAGES) {
+        LOGGER_WARNING("%s: topology.screens.desktops[%u].viewport" \
+                " (%u columns, %u rows) is out of the accepted" \
+                " 1-%d range; falling back to panning disabled",
+                filename, screen_idx, columns, rows,
+                CONFIG_VIEWPORT_MAX_PAGES);
+        s_config_viewport_fallback(config_base, screen_idx);
+        return;
+    }
+
+    dest->columns = columns;
+    dest->rows = rows;
+}
+
+
+/**
  * @brief Detect which of the two accepted @p topology.screens.desktops
  *        shapes a JSON array is using, looking at its first entry alone
  *
@@ -378,6 +462,8 @@ static void s_config_load_screen_desktop_settings(cJSON *desktop_item,
      * itself depends on for its 'rows * columns' validation just
      * below. */
     s_config_load_desktop_layout(desktop_item, screen_idx, config_base,
+            filename);
+    s_config_load_viewport(desktop_item, screen_idx, config_base,
             filename);
 
     json_load_uint(desktop_item, "inaugural",

@@ -1617,8 +1617,8 @@ static void s_test_repaint_titlebar_hide_sticky_single_cell_viewport(void)
     surface.screen = &screen;
     surface.id = 0u;
     surface.config = &config;
-    config.base.screens[0].desktop_layout.rows = 1u;
-    config.base.screens[0].desktop_layout.columns = 1u;
+    config.base.screens[0].viewport.columns = 1u;
+    config.base.screens[0].viewport.rows = 1u;
     client.titlebar = 0x806u;
     s_surface_by_id_result = &surface;
 
@@ -1626,9 +1626,9 @@ static void s_test_repaint_titlebar_hide_sticky_single_cell_viewport(void)
             100u, 20u, &theme);
 
     TAP_OK(s_titlebar_layout_last_hide_sticky,
-            "a surface whose desktop grid is a single 1x1 cell hides"
-            " the sticky button: nothing for a client to stay put"
-            " against there");
+            "a surface whose pannable viewport is a single 1x1 screen"
+            " hides the sticky button: nothing for a client to stay"
+            " put against there");
 }
 
 static void s_test_repaint_titlebar_shows_sticky_wide_viewport(void)
@@ -1648,8 +1648,8 @@ static void s_test_repaint_titlebar_shows_sticky_wide_viewport(void)
     surface.screen = &screen;
     surface.id = 0u;
     surface.config = &config;
-    config.base.screens[0].desktop_layout.rows = 1u;
-    config.base.screens[0].desktop_layout.columns = 2u;
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
     client.titlebar = 0x807u;
     s_surface_by_id_result = &surface;
 
@@ -1657,8 +1657,8 @@ static void s_test_repaint_titlebar_shows_sticky_wide_viewport(void)
             100u, 20u, &theme);
 
     TAP_OK(!s_titlebar_layout_last_hide_sticky,
-            "a surface whose desktop grid is wider than a single cell"
-            " shows the sticky button normally");
+            "a surface whose pannable viewport is wider than a single"
+            " screen shows the sticky button normally");
 }
 
 static void s_test_repaint_titlebar_truncates_and_draws_title(void)
