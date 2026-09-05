@@ -656,11 +656,12 @@ static void s_font_config_to_xlfd(const char *restrict input,
  * @param out      Destination buffer
  * @param out_size Size of @p out, in bytes
  *
- * @return Length of the converted string in @p out, in bytes.
- *         A spelled-out replacement can be longer than the one byte its
- *         codepoint would have taken, but never longer than the UTF-8
- *         sequence it came from, so the result still fits wherever the
- *         original text did
+ * @return Length of the converted string in @p out, in bytes, or
+ *         @c 0 if @p out_size is @c 0 (in which case @p out is never
+ *         touched).  A spelled-out replacement can be longer than the
+ *         one byte its codepoint would have taken, but never longer
+ *         than the UTF-8 sequence it came from, so the result still
+ *         fits wherever the original text did
  *
  * @note Complexity: @e O(n), where @e n is the length of @p text
  */
@@ -669,6 +670,10 @@ static size_t s_utf8_to_latin1(const char *restrict text,
 {
     size_t byte_index = 0u;
     size_t out_len = 0u;
+
+    if (out_size == 0u) {
+        return 0u;
+    }
 
     while (out_len < out_size - 1u) {
         uint32_t codepoint = glyph_utf8_next(text, &byte_index);
