@@ -26,7 +26,11 @@
  * the path where a real connection exists, deliberately never taken
  * by any scenario below.  'notify_desktop_show' is a link-only
  * stand-in for the same reason: unreachable once 'xcb_connection_get'
- * reports 'NULL'.
+ * reports 'NULL'.  'ccmd_target_win', 'ccmd_client_apply_geometry',
+ * and 'stacking_walk' are link-only stand-ins too, needed only
+ * because 'cmds/surface.c' now also contains viewport-panning code
+ * that references them; no scenario here exercises panning, so none
+ * of the three is ever actually reached
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -49,10 +53,12 @@
 #include <types/direction.h>
 
 /* Project includes */
+#include <client.h>
 #include <cmds/surface.h>
 #include <desktop.h>
 #include <harness/tap.h>
 #include <logger.h>
+#include <policy/stacking.h>
 #include <surface.h>
 
 
@@ -113,6 +119,52 @@ void notify_desktop_show(xcb_connection_t *connection,
     (void) desktop_idx;
     (void) desktop_name;
     (void) config;
+}
+
+
+/** Link-only stand-in for @a ccmd_target_win (cmds/client/screen.c):
+ *  unreachable here, since no scenario below ever exercises viewport
+ *  panning
+ *  @note Complexity: @e O(1)
+ */
+xcb_window_t ccmd_target_win(client_td *client)
+{
+    (void) client;
+    return (xcb_window_t) 1;
+}
+
+
+/** Link-only stand-in for @a ccmd_client_apply_geometry (cmds/
+ *  client/move.c): unreachable for the same reason as
+ *  'ccmd_target_win' above
+ *  @note Complexity: @e O(1)
+ */
+void ccmd_client_apply_geometry(const client_td *client,
+        xcb_window_t target, uint16_t mask,
+        int32_t x, int32_t y, uint32_t w, uint32_t h,
+        uint32_t border_width)
+{
+    (void) client;
+    (void) target;
+    (void) mask;
+    (void) x;
+    (void) y;
+    (void) w;
+    (void) h;
+    (void) border_width;
+}
+
+
+/** Link-only stand-in for @a stacking_walk (policy/stacking.c):
+ *  unreachable for the same reason as 'ccmd_target_win' above
+ *  @note Complexity: @e O(1)
+ */
+void stacking_walk(const desktop_td *desktop, stacking_visitor_fn visit,
+        void *data)
+{
+    (void) desktop;
+    (void) visit;
+    (void) data;
 }
 
 

@@ -129,6 +129,11 @@ static const config_lint_key_td s_schema_kb_cycle[] = {
         sizeof(s_schema_prev_next) / sizeof(s_schema_prev_next[0])}
 };
 
+static const config_lint_key_td s_schema_kb_viewport_pan[] = {
+    {"pan", s_schema_compass,
+        sizeof(s_schema_compass) / sizeof(s_schema_compass[0])}
+};
+
 static const config_lint_key_td s_schema_keyboard[] = {
     {"wm", s_schema_kb_wm,
         sizeof(s_schema_kb_wm) / sizeof(s_schema_kb_wm[0])},
@@ -139,7 +144,10 @@ static const config_lint_key_td s_schema_keyboard[] = {
     {"window", s_schema_kb_window,
         sizeof(s_schema_kb_window) / sizeof(s_schema_kb_window[0])},
     {"cycle", s_schema_kb_cycle,
-        sizeof(s_schema_kb_cycle) / sizeof(s_schema_kb_cycle[0])}
+        sizeof(s_schema_kb_cycle) / sizeof(s_schema_kb_cycle[0])},
+    {"viewport", s_schema_kb_viewport_pan,
+        sizeof(s_schema_kb_viewport_pan) /
+            sizeof(s_schema_kb_viewport_pan[0])}
 };
 
 static const config_lint_key_td s_schema_mouse_window[] = {

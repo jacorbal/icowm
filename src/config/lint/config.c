@@ -31,6 +31,7 @@ static const config_lint_key_td s_schema_desktops[] = {
     {"show-overlay", NULL, 0u},
     {"notify-activity", NULL, 0u},
     {"warp-on-edge-drag", NULL, 0u},
+    {"pan-on-edge-hover", NULL, 0u},
     {"wrap-at-bounds", NULL, 0u},
     {"margins", s_schema_desktops_margins,
         sizeof(s_schema_desktops_margins) /

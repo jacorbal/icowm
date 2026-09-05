@@ -26,6 +26,7 @@
 #include <input/mouse/drag.h>
 #include <input/mouse/event.h>
 #include <input/mouse/hover.h>
+#include <input/mouse/viewport_edge.h>
 
 /* Policy includes */
 #include <policy/placement/manual.h>
@@ -175,6 +176,8 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
         case S_MOTION_TARGET_HOVER:
             mouse_handle_motion_hover(xcb_connection_get(), ctx->surfaces,
                     me);
+            mouse_viewport_edge_check(ctx->surfaces, me->root,
+                    me->root_x, me->root_y);
             break;
 
         case S_MOTION_TARGET_NONE:

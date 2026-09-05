@@ -284,6 +284,27 @@ struct config_bindings_s {
                 char next[CONFIG_MAX_LENGTH_BINDING];
             } window;
         } cycle;
+
+        /**
+         * @brief Pan the current desktop's own viewport by one
+         *        screen in a direction, clamped rather than cyclic
+         *
+         * Parallels @c cycle.desktop above, which switches to a
+         * different desktop entirely; these four only move where
+         * within the current one the physical screen is looking, a
+         * no-op on any desktop whose @c viewport is a single screen.
+         *
+         * @see @a enact_surface_viewport_pan_north in @c enact.h, and
+         *      its three siblings
+         */
+        struct {
+            struct {
+                char north[CONFIG_MAX_LENGTH_BINDING];
+                char south[CONFIG_MAX_LENGTH_BINDING];
+                char east[CONFIG_MAX_LENGTH_BINDING];
+                char west[CONFIG_MAX_LENGTH_BINDING];
+            } pan;
+        } viewport;
     } keyboard;
 
     /* Mouse bindings */

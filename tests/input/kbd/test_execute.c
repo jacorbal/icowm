@@ -142,6 +142,10 @@ static int s_call_enact_surface_desktop_switch_south;
 static int s_call_enact_surface_desktop_switch_east;
 static int s_call_enact_surface_desktop_switch_west;
 static int s_call_enact_surface_desktop_switch;
+static int s_call_enact_surface_viewport_pan_north;
+static int s_call_enact_surface_viewport_pan_south;
+static int s_call_enact_surface_viewport_pan_east;
+static int s_call_enact_surface_viewport_pan_west;
 static uint32_t s_last_desktop_switch_id;
 static int s_call_enact_surface_desktop_add;
 static int s_call_enact_surface_desktop_remove;
@@ -217,6 +221,10 @@ static void s_reset(void)
     s_call_enact_surface_desktop_switch_east = 0;
     s_call_enact_surface_desktop_switch_west = 0;
     s_call_enact_surface_desktop_switch = 0;
+    s_call_enact_surface_viewport_pan_north = 0;
+    s_call_enact_surface_viewport_pan_south = 0;
+    s_call_enact_surface_viewport_pan_east = 0;
+    s_call_enact_surface_viewport_pan_west = 0;
     s_last_desktop_switch_id = 0;
     s_call_enact_surface_desktop_add = 0;
     s_call_enact_surface_desktop_remove = 0;
@@ -532,6 +540,36 @@ void enact_surface_toggle_strutless_maximize(surface_td *surface)
 {
     (void) surface;
     s_call_enact_surface_toggle_strutless_maximize++;
+}
+
+
+/* Stand-ins: enact.h viewport-pan actions */
+
+void enact_surface_viewport_pan_north(surface_td *surface)
+{
+    (void) surface;
+    s_call_enact_surface_viewport_pan_north++;
+}
+
+
+void enact_surface_viewport_pan_south(surface_td *surface)
+{
+    (void) surface;
+    s_call_enact_surface_viewport_pan_south++;
+}
+
+
+void enact_surface_viewport_pan_east(surface_td *surface)
+{
+    (void) surface;
+    s_call_enact_surface_viewport_pan_east++;
+}
+
+
+void enact_surface_viewport_pan_west(surface_td *surface)
+{
+    (void) surface;
+    s_call_enact_surface_viewport_pan_west++;
 }
 
 
@@ -856,6 +894,53 @@ static void s_test_desktop_north_null_surface_is_noop(void)
     TAP_EQ_INT(s_call_enact_surface_desktop_switch_north, 0,
             "a null surface guards KEYBIND_DESKTOP_NORTH from" \
             " reaching enact_surface_desktop_switch_north");
+}
+
+
+/* KEYBIND_VIEWPORT_PAN_NORTH/SOUTH/EAST/WEST: surface-relative
+ * viewport panning along the four compass directions */
+
+static void s_test_viewport_pan_north_south_east_west(void)
+{
+    surface_td surface;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+
+    ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_PAN_NORTH, 0, 0,
+            &surface, NULL, NULL);
+    ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_PAN_SOUTH, 0, 0,
+            &surface, NULL, NULL);
+    ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_PAN_EAST, 0, 0,
+            &surface, NULL, NULL);
+    ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_PAN_WEST, 0, 0,
+            &surface, NULL, NULL);
+
+    TAP_EQ_INT(s_call_enact_surface_viewport_pan_north, 1,
+            "KEYBIND_VIEWPORT_PAN_NORTH reaches" \
+            " enact_surface_viewport_pan_north exactly once");
+    TAP_EQ_INT(s_call_enact_surface_viewport_pan_south, 1,
+            "KEYBIND_VIEWPORT_PAN_SOUTH reaches" \
+            " enact_surface_viewport_pan_south exactly once");
+    TAP_EQ_INT(s_call_enact_surface_viewport_pan_east, 1,
+            "KEYBIND_VIEWPORT_PAN_EAST reaches" \
+            " enact_surface_viewport_pan_east exactly once");
+    TAP_EQ_INT(s_call_enact_surface_viewport_pan_west, 1,
+            "KEYBIND_VIEWPORT_PAN_WEST reaches" \
+            " enact_surface_viewport_pan_west exactly once");
+}
+
+
+static void s_test_viewport_pan_north_null_surface_is_noop(void)
+{
+    s_reset();
+
+    ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_PAN_NORTH, 0, 0, NULL,
+            NULL, NULL);
+
+    TAP_EQ_INT(s_call_enact_surface_viewport_pan_north, 0,
+            "a null surface guards KEYBIND_VIEWPORT_PAN_NORTH from" \
+            " reaching enact_surface_viewport_pan_north");
 }
 
 
@@ -1769,10 +1854,12 @@ static void s_test_keybind_none_is_a_logged_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(93);
+    TAP_PLAN(98);
 
     s_test_desktop_north_south_east_west();
     s_test_desktop_north_null_surface_is_noop();
+    s_test_viewport_pan_north_south_east_west();
+    s_test_viewport_pan_north_null_surface_is_noop();
     s_test_desktop_show_toggles_the_flag();
     s_test_scratchpad_toggle_needs_a_surface();
     s_test_desktop_clients_iconify_deiconify_rearrange();

@@ -57,6 +57,14 @@ enum wm_keybind_type_e {
     KEYBIND_DESKTOP_EAST,
     KEYBIND_DESKTOP_WEST,
 
+    /* Pan the current desktop's own viewport by one screen, clamped
+     * rather than cyclic, and never changing which desktop is
+     * current */
+    KEYBIND_VIEWPORT_PAN_NORTH,
+    KEYBIND_VIEWPORT_PAN_SOUTH,
+    KEYBIND_VIEWPORT_PAN_EAST,
+    KEYBIND_VIEWPORT_PAN_WEST,
+
     /* Window operations, each on the focused client */
     KEYBIND_CLIENT_ICONIFY,
     /** Hide, which is what other window managers call minimizing */

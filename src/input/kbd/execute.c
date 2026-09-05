@@ -204,6 +204,10 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_CYCLE_PREV:
         case KEYBIND_DESKTOP_ICON_NEXT:
         case KEYBIND_DESKTOP_ICON_PREV:
+        case KEYBIND_VIEWPORT_PAN_NORTH:
+        case KEYBIND_VIEWPORT_PAN_SOUTH:
+        case KEYBIND_VIEWPORT_PAN_EAST:
+        case KEYBIND_VIEWPORT_PAN_WEST:
         case KEYBIND_LAUNCH_TERMINAL:
         case KEYBIND_LAUNCH_LAUNCHER:
         case KEYBIND_LAUNCH_FILE_MANAGER:
@@ -413,6 +417,30 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         case KEYBIND_DESKTOP_WEST:
             if (surface != NULL) {
                 enact_surface_desktop_switch_west(surface);
+            }
+            return;
+
+        case KEYBIND_VIEWPORT_PAN_NORTH:
+            if (surface != NULL) {
+                enact_surface_viewport_pan_north(surface);
+            }
+            return;
+
+        case KEYBIND_VIEWPORT_PAN_SOUTH:
+            if (surface != NULL) {
+                enact_surface_viewport_pan_south(surface);
+            }
+            return;
+
+        case KEYBIND_VIEWPORT_PAN_EAST:
+            if (surface != NULL) {
+                enact_surface_viewport_pan_east(surface);
+            }
+            return;
+
+        case KEYBIND_VIEWPORT_PAN_WEST:
+            if (surface != NULL) {
+                enact_surface_viewport_pan_west(surface);
             }
             return;
 

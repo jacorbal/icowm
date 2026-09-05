@@ -182,6 +182,7 @@
 #define STR_SHORTCUTS_HEADER_LAUNCH "Launch"
 #define STR_SHORTCUTS_HEADER_WINDOW "Window"
 #define STR_SHORTCUTS_HEADER_CYCLE "Cycle"
+#define STR_SHORTCUTS_HEADER_VIEWPORT "Viewport"
 
 #define STR_SHORTCUTS_ROOT_MENU "Root menu"
 #define STR_SHORTCUTS_WINDOWS_MENU "Windows menu"
@@ -239,6 +240,7 @@
 #define STR_SHORTCUTS_DESKTOPS "Desktops"
 #define STR_SHORTCUTS_ICONS "Icons"
 #define STR_SHORTCUTS_WINDOWS "Windows"
+#define STR_SHORTCUTS_VIEWPORT_PAN "Pan"
 
 /* Deliberately NOT translated, unlike every label above: 'Right',
  * 'Left', 'Up', 'Down', 'Center', 'TopLeft', 'TopRight', 'BotLeft',

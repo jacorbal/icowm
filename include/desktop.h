@@ -172,6 +172,23 @@ struct desktop_s {
     struct geometry_s workarea;
 
     /**
+     * @brief This desktop's remembered pan offset within its own
+     *        pannable viewport
+     *
+     * Always @c {0, 0} on a @c viewport.columns<=1 && viewport.rows<=1
+     * screen (panning disabled), and clamped so that
+     * @c 0 <= x <= (viewport.columns - 1) * geometry.dim.w and
+     * likewise for @c y, one whole screen at a time, never a
+     * fractional pan.  Every non-sticky client's window is kept
+     * translated by this same offset in real X11 screen coordinates
+     * whenever it changes (see @a scmd_surface_viewport_pan_north and
+     * its three siblings, @c cmds/surface.c), so nothing else in
+     * placement, move, or snap code ever needs to know a virtual
+     * coordinate space exists at all.
+     */
+    struct position_s viewport_origin;
+
+    /**
      * @brief Per-monitor work area, the same reservations @p workarea
      *        itself folds in but scoped to each individual monitor
      *        instead of the whole surface at once

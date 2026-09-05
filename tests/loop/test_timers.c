@@ -58,6 +58,7 @@ static int s_mouse_enter_focus_ms;
 static int s_menu_confirm_dialog_ms;
 static int s_menu_message_dialog_ms;
 static int s_drag_warp_ms;
+static int s_viewport_edge_ms;
 static int s_wm_shutdown_ms;
 static int s_cctl_kill_ms;
 static int s_place_manual_ms;
@@ -70,7 +71,7 @@ static bool s_notify_desktop_is_open;
 
 /* Call counters for loop_timers_tick's own forwarding, one per
  * subsystem tick function */
-static int s_tick_calls[12];
+static int s_tick_calls[13];
 enum {
     S_TICK_SYSTRAY = 0,
     S_TICK_URGENCY,
@@ -81,6 +82,7 @@ enum {
     S_TICK_CONFIRM,
     S_TICK_MESSAGE,
     S_TICK_WARP,
+    S_TICK_VIEWPORT_EDGE,
     S_TICK_SHUTDOWN,
     S_TICK_KILL,
     S_TICK_PLACE_MANUAL
@@ -104,6 +106,7 @@ static void s_reset(void)
     s_menu_confirm_dialog_ms = -1;
     s_menu_message_dialog_ms = -1;
     s_drag_warp_ms = -1;
+    s_viewport_edge_ms = -1;
     s_wm_shutdown_ms = -1;
     s_cctl_kill_ms = -1;
     s_place_manual_ms = -1;
@@ -222,6 +225,14 @@ int drag_warp_ms_remaining(void)
 }
 
 
+/** Link-only stand-in for mouse_viewport_edge_ms_remaining
+ *  (input/mouse/viewport_edge.c) */
+int mouse_viewport_edge_ms_remaining(void)
+{
+    return s_viewport_edge_ms;
+}
+
+
 /** Link-only stand-in for wm_shutdown_ms_remaining (wm/shutdown.c) */
 int wm_shutdown_ms_remaining(void)
 {
@@ -321,6 +332,15 @@ void drag_warp_tick(xcb_connection_t *connection)
 {
     (void) connection;
     s_tick_calls[S_TICK_WARP]++;
+}
+
+
+/** Link-only stand-in for mouse_viewport_edge_tick
+ *  (input/mouse/viewport_edge.c) */
+void mouse_viewport_edge_tick(xcb_connection_t *connection)
+{
+    (void) connection;
+    s_tick_calls[S_TICK_VIEWPORT_EDGE]++;
 }
 
 
@@ -478,6 +498,11 @@ static void s_test_timeout_unconditional_countdowns_tighten(void)
             "drag_warp_ms_remaining tightens the timeout");
 
     s_reset();
+    s_viewport_edge_ms = 35;
+    TAP_EQ_INT(loop_timers_timeout(&ctx), 35,
+            "mouse_viewport_edge_ms_remaining tightens the timeout");
+
+    s_reset();
     s_wm_shutdown_ms = 30;
     TAP_EQ_INT(loop_timers_timeout(&ctx), 30,
             "wm_shutdown_ms_remaining tightens the timeout");
@@ -555,7 +580,7 @@ static void s_test_tick_null_ctx(void)
     s_reset();
     loop_timers_tick(NULL);
 
-    for (int i = 0; i < 12; ++i) {
+    for (int i = 0; i < 13; ++i) {
         TAP_EQ_INT(s_tick_calls[i], 0,
                 "loop_timers_tick on a null ctx calls no subsystem"
                 " tick");
@@ -577,7 +602,7 @@ static void s_test_tick_calls_every_subsystem_once(void)
     ctx.surfaces = NULL;
     loop_timers_tick(&ctx);
 
-    for (int i = 0; i < 12; ++i) {
+    for (int i = 0; i < 13; ++i) {
         TAP_EQ_INT(s_tick_calls[i], 1,
                 "loop_timers_tick runs each unconditional subsystem"
                 " tick exactly once");
@@ -634,7 +659,7 @@ static void s_test_tick_memguard_gating(void)
 
 int main(void)
 {
-    TAP_PLAN(51);
+    TAP_PLAN(54);
 
     s_test_timeout_null_ctx();
     s_test_timeout_all_inactive();

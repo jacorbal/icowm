@@ -590,6 +590,49 @@ static void s_test_load_desktop_bindings_need_multi_desktop(void)
 }
 
 
+/* A viewport-pan binding is skipped unless at least one surface's
+ * configured viewport is wider or taller than a single screen */
+static void s_test_load_viewport_bindings_need_viewport(void)
+{
+    config_td config;
+    list_td *surfaces;
+    surface_td surface;
+    xcb_keysym_t keysym = XCB_NO_SYMBOL;
+    uint16_t modmask = 0;
+    bool found_1x1;
+    bool found_wide;
+
+    s_config_reset(&config);
+    safe_strncpy(config.bindings.keyboard.viewport.pan.east, "ctrl+right",
+            sizeof(config.bindings.keyboard.viewport.pan.east));
+
+    memset(&surface, 0, sizeof(surface));
+    surface.config = &config;
+    surface.id = 0u;
+    config.base.screens[0].viewport.columns = 1u;
+    config.base.screens[0].viewport.rows = 1u;
+
+    surfaces = list_init(NULL);
+    list_ins_next(surfaces, NULL, &surface);
+
+    s_reset();
+    keyboard_load(surfaces, s_fake_keysyms, &config);
+    found_1x1 = keyboard_find(KEYBIND_VIEWPORT_PAN_EAST, &keysym, &modmask);
+    TAP_OK(!found_1x1,
+            "a viewport-pan binding is absent with a 1x1 viewport");
+
+    config.base.screens[0].viewport.columns = 2u;
+    s_reset();
+    keyboard_load(surfaces, s_fake_keysyms, &config);
+    found_wide = keyboard_find(KEYBIND_VIEWPORT_PAN_EAST, &keysym, &modmask);
+    TAP_OK(found_wide,
+            "the same binding is present once a surface's viewport" \
+            " has more than one column");
+
+    list_destroy(surfaces);
+}
+
+
 /* keyboard_load replaces the whole table on a second call: reloading
  * with fewer bindings does not leave stale entries behind */
 static void s_test_load_reload_replaces_table(void)
@@ -669,7 +712,7 @@ int main(void)
 {
     xcb_connection_set(s_fake_connection);
 
-    TAP_PLAN(29);
+    TAP_PLAN(31);
 
     s_test_initial_state_empty();
     s_test_find_null_outputs();
@@ -682,6 +725,7 @@ int main(void)
     s_test_load_fortune_disabled_by_default();
     s_test_load_monitor_bindings_need_multi_monitor();
     s_test_load_desktop_bindings_need_multi_desktop();
+    s_test_load_viewport_bindings_need_viewport();
     s_test_load_reload_replaces_table();
     s_test_modifier_keysym_checks();
     s_test_keysym_for_state_null_keysyms();

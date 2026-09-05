@@ -121,6 +121,8 @@ static void s_test_default_values_key_fields(void)
             "a single desktop by default");
     TAP_OK(!config->desktops.warp_on_edge_drag,
             "edge warp off: meaningless with 1 desktop");
+    TAP_OK(!config->desktops.pan_on_edge_hover,
+            "edge hover pan off: meaningless with no viewport");
     TAP_OK(!config->desktops.wrap_at_bounds,
             "circular switching off: meaningless with 1 desktop");
     TAP_EQ_STR(config->base.theme, "", "no theme name until loaded");
@@ -319,7 +321,7 @@ static void s_test_load_memguard_also_loads_bindings(void)
 
 int main(void)
 {
-    TAP_PLAN(26);
+    TAP_PLAN(27);
 
     s_test_init_memguard();
     s_test_default_values_null_safe();

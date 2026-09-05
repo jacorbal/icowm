@@ -403,6 +403,11 @@ xcb_void_cookie_t xcb_ewmh_set_desktop_geometry(xcb_ewmh_connection_t *ewmh,
 static uint32_t s_dv_len;
 static int s_dv_count;
 
+/** A copy of the per-desktop coordinates last handed to
+ *  @a xcb_ewmh_set_desktop_viewport, for tests that verify real
+ *  viewport origins get published rather than an all-zero list */
+static xcb_ewmh_coordinates_t s_dv_last[8];
+
 
 /**
  * @brief Recording stand-in for @a xcb_ewmh_set_desktop_viewport
@@ -412,13 +417,16 @@ xcb_void_cookie_t xcb_ewmh_set_desktop_viewport(xcb_ewmh_connection_t *ewmh,
         int screen_nbr, uint32_t list_len, xcb_ewmh_coordinates_t *list)
 {
     xcb_void_cookie_t cookie = {.sequence = 0u};
+    uint32_t i;
 
     (void) ewmh;
     (void) screen_nbr;
-    (void) list;
 
     s_dv_len = list_len;
     s_dv_count++;
+    for (i = 0; i < list_len && i < 8u && list != NULL; i++) {
+        s_dv_last[i] = list[i];
+    }
 
     return cookie;
 }
@@ -1620,9 +1628,60 @@ static void s_test_sync_pinned_client_publishes_all_desktops(void)
 }
 
 
+/* wm_ewmh_sync publishes each desktop's own real viewport origin,
+ * rather than leaving the whole coordinates list at zero */
+static void s_test_sync_publishes_real_viewport_origins(void)
+{
+    wm_td wm_instance;
+    list_td *surfaces;
+    surface_td surface;
+    desktop_td first;
+    desktop_td second;
+    desktop_td *desktops[2];
+
+    s_reset();
+    s_set_ewmh_present(true);
+    surfaces = list_init(NULL);
+    memset(&first, 0, sizeof(first));
+    first.id = 0u;
+    first.viewport_origin.x = 1024;
+    first.viewport_origin.y = 0;
+    memset(&second, 0, sizeof(second));
+    second.id = 1u;
+    second.viewport_origin.x = 0;
+    second.viewport_origin.y = 768;
+    memset(&surface, 0, sizeof(surface));
+    surface.id = 0u;
+    surface.desktop_count = 2u;
+    surface.desktop_cur = 0u;
+    list_ins_next(surfaces, list_tail(surfaces), &surface);
+    desktops[0] = &first;
+    desktops[1] = &second;
+    s_set_walk_desktops(desktops, 2);
+    memset(&wm_instance, 0, sizeof(wm_instance));
+    wm_instance.connection = (xcb_connection_t *) (uintptr_t) 1;
+    wm_instance.ewmh = &s_ewmh;
+    wm_instance.surfaces = surfaces;
+
+    wm_ewmh_sync(&wm_instance);
+
+    TAP_EQ_INT((long) s_dv_len, 2,
+            "wm_ewmh_sync publishes one viewport coordinate pair per" \
+            " desktop");
+    TAP_EQ_INT((long) s_dv_last[0].x, 1024,
+            "the first desktop's real viewport X origin is" \
+            " published rather than left at zero");
+    TAP_EQ_INT((long) s_dv_last[1].y, 768,
+            "the second desktop's real viewport Y origin is" \
+            " published rather than left at zero");
+
+    list_destroy(surfaces);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(56);
+    TAP_PLAN(59);
 
     s_test_init_null_guards();
     s_test_init_no_surfaces_still_publishes_wm_name();
@@ -1639,6 +1698,7 @@ int main(void)
     s_test_sync_no_clients_publishes_empty_lists();
     s_test_sync_publishes_client_list_and_desktop_property();
     s_test_sync_pinned_client_publishes_all_desktops();
+    s_test_sync_publishes_real_viewport_origins();
 
     return TAP_DONE();
 }

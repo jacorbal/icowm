@@ -74,6 +74,25 @@ void hi_handle_net_current_desktop(const wm_td *wm,
 
 
 /**
+ * @brief Handle a @c _NET_DESKTOP_VIEWPORT client message
+ *
+ * Moves the current desktop's viewport, on the surface identified by
+ * @c event->window, straight to the origin carried in the event's
+ * first two data words, the way a pager or other external EWMH
+ * client asks for it.
+ *
+ * @param wm    Window manager context
+ * @param event Received @c CLIENT_MESSAGE event
+ *
+ * @note Implemented in @c handler/ewmh.c
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the surface's current desktop
+ */
+void hi_handle_net_desktop_viewport(const wm_td *wm,
+        xcb_client_message_event_t *event);
+
+
+/**
  * @brief Handle a @c _NET_WM_DESKTOP client message
  *
  * Moves @p client from @p src_desktop to the target desktop requested

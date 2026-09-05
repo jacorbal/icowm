@@ -824,6 +824,50 @@ void enact_surface_desktop_switch_east(surface_td *surface);
 void enact_surface_desktop_switch_west(surface_td *surface);
 
 /**
+ * @brief Pan the surface's current desktop viewport one screen north,
+ *        clamped at the top of the pannable area
+ *
+ * @param surface Surface to pan
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void enact_surface_viewport_pan_north(surface_td *surface);
+
+/**
+ * @brief Pan the surface's current desktop viewport one screen south,
+ *        clamped at the bottom of the pannable area
+ *
+ * @param surface Surface to pan
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void enact_surface_viewport_pan_south(surface_td *surface);
+
+/**
+ * @brief Pan the surface's current desktop viewport one screen east,
+ *        clamped at the right of the pannable area
+ *
+ * @param surface Surface to pan
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void enact_surface_viewport_pan_east(surface_td *surface);
+
+/**
+ * @brief Pan the surface's current desktop viewport one screen west,
+ *        clamped at the left of the pannable area
+ *
+ * @param surface Surface to pan
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void enact_surface_viewport_pan_west(surface_td *surface);
+
+/**
  * @brief Add a new, empty desktop to the end of the surface's
  *        desktop list
  *

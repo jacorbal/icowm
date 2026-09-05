@@ -83,5 +83,33 @@
  */
 #define WM_DESKTOP_WARP_DELAY_MS (500)
 
+/**
+ * @brief Milliseconds the pointer has to rest against a screen edge,
+ *        with no drag in progress, before that edge's first
+ *        viewport pan
+ *
+ * Milliseconds before @p desktops.pan_on_edge_hover (@c config.json)
+ * pans the current desktop's viewport toward the held edge for the
+ * first time.  Long enough that merely passing through the edge on
+ * the way elsewhere does not trigger it.
+ *
+ * @see @c config_desktop_s
+ */
+#define WM_VIEWPORT_PAN_DELAY_MS (500)
+
+/**
+ * @brief Milliseconds between repeated viewport pans while the pointer
+ *        stays held against the same screen edge
+ *
+ * Shorter than @c WM_VIEWPORT_PAN_DELAY_MS above, since once the first
+ * pan already confirmed the pointer is deliberately resting there
+ * rather than just passing through, further pans need not wait as
+ * long, the same way a key held down auto-repeats faster than its
+ * initial delay.
+ *
+ * @see @c config_desktop_s
+ */
+#define WM_VIEWPORT_PAN_REPEAT_MS (200)
+
 
 #endif  /* ! DEFS_DESKTOP_H */

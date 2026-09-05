@@ -75,6 +75,23 @@ struct config_desktop_s {
      */
     bool warp_on_edge_drag;
 
+    /**
+     * @brief Whether resting the pointer against a screen edge, with
+     *        no drag in progress, pans the current desktop's viewport
+     *        toward that edge
+     *
+     * Held there past @c WM_VIEWPORT_PAN_DELAY_MS (@c defs/desktop.h),
+     * pans one screen toward the held edge, then repeats every
+     * @c WM_VIEWPORT_PAN_REPEAT_MS for as long as the pointer stays
+     * held there.
+     *
+     * @note Meaningless on a screen whose @c viewport is @c 1x1 (no
+     *       panning configured), or while a window or icon is being
+     *       dragged: an edge held during a drag is @c warp_on_edge_drag
+     *       above's to answer instead, never this one's
+     */
+    bool pan_on_edge_hover;
+
     /** Whether switching past the first or last desktop wraps around to
      *  the other end, rather than stopping there.  Meaningless with
      *  only one desktop. */

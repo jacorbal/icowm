@@ -23,7 +23,12 @@
  * fields cJSON actually built for it (surface_id, desktop_id), with
  * the real cJSON library linked directly, so the broadcast payload
  * itself is exercised for real, only the socket write it would
- * otherwise reach is stood in for.
+ * otherwise reach is stood in for.  Each 'scmd_surface_viewport_pan_
+ * north/south/east/west' (cmds/surface.c) is a call-counting
+ * stand-in too, letting this file isolate 'enact/surface.c's own
+ * responsibility for the four panning wrappers: dispatching to the
+ * right command alone, without re-verifying the command's own
+ * internal panning logic a second time
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -123,6 +128,57 @@ void scmd_surface_desktop_switch_west(surface_td *surface)
 {
     (void) surface;
     s_call_switch_west++;
+}
+
+
+/** Call counters for each of the four 'scmd_surface_viewport_pan_*'
+ *  functions */
+static int s_call_pan_north;
+static int s_call_pan_south;
+static int s_call_pan_east;
+static int s_call_pan_west;
+
+/** Call-counting stand-in for @a scmd_surface_viewport_pan_north
+ *  (cmds/surface.c)
+ *  @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_pan_north(surface_td *surface)
+{
+    (void) surface;
+    s_call_pan_north++;
+}
+
+
+/** Call-counting stand-in for @a scmd_surface_viewport_pan_south
+ *  (cmds/surface.c)
+ *  @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_pan_south(surface_td *surface)
+{
+    (void) surface;
+    s_call_pan_south++;
+}
+
+
+/** Call-counting stand-in for @a scmd_surface_viewport_pan_east
+ *  (cmds/surface.c)
+ *  @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_pan_east(surface_td *surface)
+{
+    (void) surface;
+    s_call_pan_east++;
+}
+
+
+/** Call-counting stand-in for @a scmd_surface_viewport_pan_west
+ *  (cmds/surface.c)
+ *  @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_pan_west(surface_td *surface)
+{
+    (void) surface;
+    s_call_pan_west++;
 }
 
 
@@ -270,6 +326,10 @@ static void s_reset(void)
     s_call_switch_south = 0;
     s_call_switch_east = 0;
     s_call_switch_west = 0;
+    s_call_pan_north = 0;
+    s_call_pan_south = 0;
+    s_call_pan_east = 0;
+    s_call_pan_west = 0;
     s_action_desktop_add_result = 0;
     s_call_action_desktop_add = 0;
     s_action_desktop_remove_result = 0;
@@ -558,9 +618,87 @@ static void s_test_toggle_strutless_failure_does_not_broadcast(void)
 }
 
 
+/* Each of the four viewport-pan wrappers dispatches to its own
+ * command alone, and never broadcasts an IPC event of its own */
+static void s_test_viewport_pan_north_dispatches(void)
+{
+    surface_td *surface = s_make_surface(0u, 0u);
+
+    s_reset();
+
+    enact_surface_viewport_pan_north(surface);
+    TAP_EQ_INT(s_call_pan_north, 1,
+            "north dispatches to scmd_surface_viewport_pan_north"
+            " exactly once");
+    TAP_EQ_INT(s_call_pan_south + s_call_pan_east + s_call_pan_west, 0,
+            "no other panning command runs for a north dispatch");
+    TAP_EQ_INT(s_call_broadcast, 0,
+            "a viewport pan never broadcasts an event of its own");
+
+    free(surface);
+}
+
+
+static void s_test_viewport_pan_south_dispatches(void)
+{
+    surface_td *surface = s_make_surface(0u, 0u);
+
+    s_reset();
+
+    enact_surface_viewport_pan_south(surface);
+    TAP_EQ_INT(s_call_pan_south, 1,
+            "south dispatches to scmd_surface_viewport_pan_south"
+            " exactly once");
+    TAP_EQ_INT(s_call_pan_north + s_call_pan_east + s_call_pan_west, 0,
+            "no other panning command runs for a south dispatch");
+    TAP_EQ_INT(s_call_broadcast, 0,
+            "a viewport pan never broadcasts an event of its own");
+
+    free(surface);
+}
+
+
+static void s_test_viewport_pan_east_dispatches(void)
+{
+    surface_td *surface = s_make_surface(0u, 0u);
+
+    s_reset();
+
+    enact_surface_viewport_pan_east(surface);
+    TAP_EQ_INT(s_call_pan_east, 1,
+            "east dispatches to scmd_surface_viewport_pan_east"
+            " exactly once");
+    TAP_EQ_INT(s_call_pan_north + s_call_pan_south + s_call_pan_west, 0,
+            "no other panning command runs for an east dispatch");
+    TAP_EQ_INT(s_call_broadcast, 0,
+            "a viewport pan never broadcasts an event of its own");
+
+    free(surface);
+}
+
+
+static void s_test_viewport_pan_west_dispatches(void)
+{
+    surface_td *surface = s_make_surface(0u, 0u);
+
+    s_reset();
+
+    enact_surface_viewport_pan_west(surface);
+    TAP_EQ_INT(s_call_pan_west, 1,
+            "west dispatches to scmd_surface_viewport_pan_west"
+            " exactly once");
+    TAP_EQ_INT(s_call_pan_north + s_call_pan_south + s_call_pan_east, 0,
+            "no other panning command runs for a west dispatch");
+    TAP_EQ_INT(s_call_broadcast, 0,
+            "a viewport pan never broadcasts an event of its own");
+
+    free(surface);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(36);
+    TAP_PLAN(44);
 
     s_test_desktop_switch_dispatches_and_broadcasts();
     s_test_cyclic_north_dispatches_and_broadcasts();
@@ -574,6 +712,10 @@ int main(void)
     s_test_desktop_remove_failure_does_neither();
     s_test_toggle_strutless_success_broadcasts_only();
     s_test_toggle_strutless_failure_does_not_broadcast();
+    s_test_viewport_pan_north_dispatches();
+    s_test_viewport_pan_south_dispatches();
+    s_test_viewport_pan_east_dispatches();
+    s_test_viewport_pan_west_dispatches();
 
     return TAP_DONE();
 }

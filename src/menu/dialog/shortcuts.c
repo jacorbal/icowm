@@ -522,6 +522,38 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 config->bindings.keyboard.cycle.window.next
             }, 2u);
 
+    if (surface->config != NULL &&
+            surface->id < (uint32_t) CONFIG_MAX_SCREENS) {
+        const struct config_viewport_s *const viewport =
+            &surface->config->base.screens[surface->id].viewport;
+
+        if (viewport->columns > 1u || viewport->rows > 1u) {
+            dialog_pair_append_blank(ctx.pairs, &ctx.count);
+            s_append_line(&ctx, "[%s]",
+                    _(STR_SHORTCUTS_HEADER_VIEWPORT));
+            if (viewport->rows > 1u) {
+                s_append_group(&ctx,
+                        _(STR_SHORTCUTS_VIEWPORT_PAN),
+                        (const char *const [])
+                            {"north", "south", "east", "west"},
+                        (const char *const []) {
+                            config->bindings.keyboard.viewport.pan.north,
+                            config->bindings.keyboard.viewport.pan.south,
+                            config->bindings.keyboard.viewport.pan.east,
+                            config->bindings.keyboard.viewport.pan.west
+                        }, 4u);
+            } else {
+                s_append_group(&ctx,
+                        _(STR_SHORTCUTS_VIEWPORT_PAN),
+                        (const char *const []) {"east", "west"},
+                        (const char *const []) {
+                            config->bindings.keyboard.viewport.pan.east,
+                            config->bindings.keyboard.viewport.pan.west
+                        }, 2u);
+            }
+        }
+    }
+
     menu_message_dialog_show_pairs(connection, surface, config,
             ctx.pairs, ctx.count, MENU_MSG_LEVEL_NONE);
 }

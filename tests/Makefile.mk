@@ -69,6 +69,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/input/mouse/drag/test_resist \
     $(O_DIR)/tests/input/mouse/drag/test_snap \
     $(O_DIR)/tests/input/mouse/drag/test_warp \
+    $(O_DIR)/tests/input/mouse/test_viewport_edge \
     $(O_DIR)/tests/rules/test_apply \
     $(O_DIR)/tests/policy/test_placement \
     $(O_DIR)/tests/policy/test_tiling \
@@ -105,6 +106,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/cmds/client/test_resize \
     $(O_DIR)/tests/cmds/client/test_ewmh \
     $(O_DIR)/tests/cmds/test_surface_desktop_switch \
+    $(O_DIR)/tests/cmds/test_surface_viewport_pan \
     $(O_DIR)/tests/surface/test_workareas \
     $(O_DIR)/tests/surface/actions/test_randr \
     $(O_DIR)/tests/policy/test_ping \
@@ -544,6 +546,13 @@ $(O_DIR)/tests/input/mouse/drag/test_warp: \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
 
+$(O_DIR)/tests/input/mouse/test_viewport_edge: \
+		$(TESTS_DIR)/input/mouse/test_viewport_edge.c \
+		$(S_DIR)/input/mouse/viewport_edge.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
 $(O_DIR)/tests/rules/test_apply: \
 		$(TESTS_DIR)/rules/test_apply.c \
 		$(S_DIR)/rules/apply.c \
@@ -905,6 +914,12 @@ $(O_DIR)/tests/cmds/client/test_ewmh: \
 
 $(O_DIR)/tests/cmds/test_surface_desktop_switch: \
 		$(TESTS_DIR)/cmds/test_surface_desktop_switch.c \
+		$(S_DIR)/cmds/surface.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/cmds/test_surface_viewport_pan: \
+		$(TESTS_DIR)/cmds/test_surface_viewport_pan.c \
 		$(S_DIR)/cmds/surface.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)

@@ -160,3 +160,31 @@ void enact_surface_toggle_strutless_maximize(surface_td *surface)
         s_broadcast_desktop_switched(surface);
     }
 }
+
+
+/* Pan the surface's current desktop viewport one screen north */
+void enact_surface_viewport_pan_north(surface_td *surface)
+{
+    scmd_surface_viewport_pan_north(surface);
+}
+
+
+/* Pan the surface's current desktop viewport one screen south */
+void enact_surface_viewport_pan_south(surface_td *surface)
+{
+    scmd_surface_viewport_pan_south(surface);
+}
+
+
+/* Pan the surface's current desktop viewport one screen east */
+void enact_surface_viewport_pan_east(surface_td *surface)
+{
+    scmd_surface_viewport_pan_east(surface);
+}
+
+
+/* Pan the surface's current desktop viewport one screen west */
+void enact_surface_viewport_pan_west(surface_td *surface)
+{
+    scmd_surface_viewport_pan_west(surface);
+}

@@ -114,6 +114,7 @@ static unsigned int s_call_hi_restack_window = 0u;
 static unsigned int s_call_hi_fullscreen_monitors = 0u;
 static unsigned int s_call_hi_moveresize = 0u;
 static unsigned int s_call_hi_current_desktop = 0u;
+static unsigned int s_call_hi_desktop_viewport = 0u;
 static unsigned int s_call_hi_wm_desktop = 0u;
 static unsigned int s_call_hi_moveresize_window = 0u;
 static unsigned int s_call_hi_showing_desktop = 0u;
@@ -236,6 +237,17 @@ void hi_handle_net_current_desktop(const wm_td *wm,
     (void) event;
 
     s_call_hi_current_desktop++;
+}
+
+
+/** Link-only stand-in for hi_handle_net_desktop_viewport */
+void hi_handle_net_desktop_viewport(const wm_td *wm,
+        xcb_client_message_event_t *event)
+{
+    (void) wm;
+    (void) event;
+
+    s_call_hi_desktop_viewport++;
 }
 
 
@@ -520,6 +532,7 @@ static void s_test_reset_state(void)
     s_call_hi_fullscreen_monitors = 0u;
     s_call_hi_moveresize = 0u;
     s_call_hi_current_desktop = 0u;
+    s_call_hi_desktop_viewport = 0u;
     s_call_hi_wm_desktop = 0u;
     s_call_hi_moveresize_window = 0u;
     s_call_hi_showing_desktop = 0u;
@@ -1332,6 +1345,35 @@ static void s_test_current_desktop_dispatch(void)
 }
 
 
+/* _NET_DESKTOP_VIEWPORT is dispatched directly, without going
+ * through s_dispatch_to_client_handler (it needs no client lookup) */
+static void s_test_desktop_viewport_dispatch(void)
+{
+    xcb_ewmh_connection_t ewmh;
+    list_td *surfaces;
+    config_td config;
+    xcb_client_message_event_t event;
+    wm_td wm;
+
+    s_test_reset_state();
+    memset(&ewmh, 0, sizeof(ewmh));
+    ewmh._NET_DESKTOP_VIEWPORT = (xcb_atom_t) 501;
+    surfaces = list_init(NULL);
+    memset(&config, 0, sizeof(config));
+    s_test_build_wm(&wm, &ewmh, surfaces, &config);
+    s_test_build_event(&event, 0x1, ewmh._NET_DESKTOP_VIEWPORT);
+    s_lookup_result = NULL;
+
+    handler_client_message(&wm, &event);
+
+    TAP_OK(s_call_hi_desktop_viewport == 1u,
+            "_NET_DESKTOP_VIEWPORT dispatches to its handler exactly" \
+            " once, with no client lookup required");
+
+    list_destroy(surfaces);
+}
+
+
 /* _NET_MOVERESIZE_WINDOW dispatches to its own handler */
 static void s_test_moveresize_window_dispatch(void)
 {
@@ -1614,7 +1656,7 @@ static void s_test_wm_change_state_non_iconic_ignored(void)
 
 int main(void)
 {
-    TAP_PLAN(45);
+    TAP_PLAN(46);
 
     s_test_null_wm();
     s_test_null_event();
@@ -1637,6 +1679,7 @@ int main(void)
     s_test_close_window_no_client();
     s_test_wm_desktop_dispatch();
     s_test_current_desktop_dispatch();
+    s_test_desktop_viewport_dispatch();
     s_test_moveresize_window_dispatch();
     s_test_request_frame_extents_replies();
     s_test_request_frame_extents_no_client();

@@ -477,6 +477,41 @@ static void s_config_bindings_load_keyboard_cycle(cJSON *keyboard,
 
 
 /**
+ * @brief Load the @c viewport keyboard bindings
+ *
+ * @param keyboard        The @c keyboard object of the bindings file
+ * @param config_bindings Bindings the section is loaded into
+ *
+ * @note Complexity: @e O(n), where @e n is the number of keys the
+ *       section holds
+ */
+static void s_config_bindings_load_keyboard_viewport(cJSON *keyboard,
+        struct config_bindings_s *config_bindings)
+{
+    cJSON *const viewport = cJSON_GetObjectItem(keyboard, "viewport");
+
+    if (viewport) {
+        cJSON *const pan = cJSON_GetObjectItem(viewport, "pan");
+
+        if (pan) {
+            json_load_string(pan, "north",
+                    config_bindings->keyboard.viewport.pan.north,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(pan, "south",
+                    config_bindings->keyboard.viewport.pan.south,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(pan, "east",
+                    config_bindings->keyboard.viewport.pan.east,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(pan, "west",
+                    config_bindings->keyboard.viewport.pan.west,
+                    CONFIG_MAX_LENGTH_BINDING);
+        }
+    }
+}
+
+
+/**
  * @brief Load the @c mouse section of a bindings file
  *
  * @param json             Root object of the parsed bindings file
@@ -642,6 +677,18 @@ void config_set_default_bindings_values(
             sizeof(config_bindings->keyboard.cycle.window.prev));
     safe_strncpy(config_bindings->keyboard.cycle.window.next,
             "mod1+Tab", sizeof(config_bindings->keyboard.cycle.window.next));
+    safe_strncpy(config_bindings->keyboard.viewport.pan.north,
+            "modc+mod4+mods+Up",
+            sizeof(config_bindings->keyboard.viewport.pan.north));
+    safe_strncpy(config_bindings->keyboard.viewport.pan.south,
+            "modc+mod4+mods+Down",
+            sizeof(config_bindings->keyboard.viewport.pan.south));
+    safe_strncpy(config_bindings->keyboard.viewport.pan.east,
+            "modc+mod4+mod5+Right",
+            sizeof(config_bindings->keyboard.viewport.pan.east));
+    safe_strncpy(config_bindings->keyboard.viewport.pan.west,
+            "modc+mod4+mod5+Left",
+            sizeof(config_bindings->keyboard.viewport.pan.west));
     safe_strncpy(config_bindings->keyboard.wm.redraw,
             "modc+mod1+mods+r", sizeof(config_bindings->keyboard.wm.redraw));
     safe_strncpy(config_bindings->keyboard.wm.reload,
@@ -833,6 +880,8 @@ int config_load_bindings(const char *filename,
         s_config_bindings_load_keyboard_window(keyboard,
                 config_bindings);
         s_config_bindings_load_keyboard_cycle(keyboard,
+                config_bindings);
+        s_config_bindings_load_keyboard_viewport(keyboard,
                 config_bindings);
     }
 

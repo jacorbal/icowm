@@ -30,6 +30,7 @@
 #include <input/mouse/drag/warp.h>
 #include <input/mouse/event.h>
 #include <input/mouse/hover.h>
+#include <input/mouse/viewport_edge.h>
 
 /* Menu includes */
 #include <menu/dialog/confirm.h>
@@ -147,6 +148,14 @@ int loop_timers_timeout(const loop_ctx_td *ctx)
      * to drive it. */
     s_loop_timers_tighten(&poll_timeout_ms, drag_warp_ms_remaining());
 
+    /* Shorter still while the pointer, with no drag in progress, is
+     * holding against a pan-eligible screen edge (see
+     * 'mouse_viewport_edge_tick' in input/mouse/viewport_edge.h), so
+     * it still pans the viewport once its countdown elapses even with
+     * no further 'MotionNotify' arriving to drive it. */
+    s_loop_timers_tighten(&poll_timeout_ms,
+            mouse_viewport_edge_ms_remaining());
+
     /* Shorter still while a coordinated shutdown (see
      * 'wm_shutdown_tick' in wm/shutdown.h) is waiting on managed
      * clients to close on their own, so the timeout that forces the
@@ -187,6 +196,7 @@ void loop_timers_tick(const loop_ctx_td *ctx)
     menu_confirm_dialog_tick(xcb_connection_get(), ctx->config);
     menu_message_dialog_tick(xcb_connection_get());
     drag_warp_tick(xcb_connection_get());
+    mouse_viewport_edge_tick(xcb_connection_get());
     wm_shutdown_tick(ctx->wm);
     cctl_kill_tick();
     place_manual_tick(xcb_connection_get());

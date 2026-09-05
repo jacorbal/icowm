@@ -597,6 +597,10 @@ desktop_td *desktop_init(xcb_connection_t *connection,
      * struts are adopted via 'desktop_update_workarea' */
     desktop->workarea = desktop->geometry;
 
+    /* Every desktop starts panned to its own origin, whether or not
+     * panning is even configured for its screen */
+    desktop->viewport_origin = (struct position_s) {.x = 0, .y = 0};
+
     /* Mark desktop as outdated to trigger initial render */
     desktop->is_outdated = true;
     desktop->is_focus_dirty = true;

@@ -59,6 +59,7 @@ static int s_rootmenu_handle_motion_calls;
 static int s_winlist_handle_motion_calls;
 static int s_search_handle_motion_calls;
 static int s_mouse_handle_motion_hover_calls;
+static int s_mouse_viewport_edge_check_calls;
 static int s_drag_update_calls;
 static struct position_s s_drag_update_last_position;
 
@@ -85,6 +86,7 @@ static void s_reset(void)
     s_winlist_handle_motion_calls = 0;
     s_search_handle_motion_calls = 0;
     s_mouse_handle_motion_hover_calls = 0;
+    s_mouse_viewport_edge_check_calls = 0;
     s_drag_update_calls = 0;
     s_drag_update_last_position.x = 0;
     s_drag_update_last_position.y = 0;
@@ -244,6 +246,19 @@ void mouse_handle_motion_hover(xcb_connection_t *connection,
 }
 
 
+/** Link-only stand-in for mouse_viewport_edge_check
+ *  (input/mouse/viewport_edge.c) */
+void mouse_viewport_edge_check(list_td *surfaces, xcb_window_t root,
+        int16_t root_x, int16_t root_y)
+{
+    (void) surfaces;
+    (void) root;
+    (void) root_x;
+    (void) root_y;
+    s_mouse_viewport_edge_check_calls++;
+}
+
+
 /**
  * @brief Build a loop context with every field left null/zero
  */
@@ -339,6 +354,8 @@ static void s_test_no_queued_events_falls_to_hover(void)
     TAP_EQ_INT(s_mouse_handle_motion_hover_calls, 1,
             "with nothing else active, the event falls through to"
             " plain hover tracking exactly once");
+    TAP_EQ_INT(s_mouse_viewport_edge_check_calls, 1,
+            "and the edge-pan check runs alongside it, exactly once");
 
     free(event);
 }
@@ -624,6 +641,8 @@ static void s_test_target_priority_drag_claims_none(void)
     TAP_EQ_INT(s_mouse_handle_motion_hover_calls, 0,
             "an active drag claiming the event means hover tracking"
             " is never separately called");
+    TAP_EQ_INT(s_mouse_viewport_edge_check_calls, 0,
+            "nor is the edge-pan check, hover's own sibling call");
     TAP_EQ_INT(s_place_manual_handle_motion_calls, 0,
             "an active drag claiming the event means manual placement"
             " is never separately called either");
@@ -634,7 +653,7 @@ static void s_test_target_priority_drag_claims_none(void)
 
 int main(void)
 {
-    TAP_PLAN(29);
+    TAP_PLAN(31);
 
     s_test_null_guards();
     s_test_no_queued_events_falls_to_hover();

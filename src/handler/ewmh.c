@@ -547,6 +547,27 @@ void hi_handle_net_current_desktop(const wm_td *wm,
 }
 
 
+/* Handle a '_NET_DESKTOP_VIEWPORT' client message */
+void hi_handle_net_desktop_viewport(const wm_td *wm,
+        xcb_client_message_event_t *event)
+{
+    surface_td *surface;
+
+    if (wm == NULL || event == NULL) {
+        return;
+    }
+
+    surface = lookup_surface_for_root(wm_surfaces(wm), event->window);
+    if (surface == NULL) {
+        return;
+    }
+
+    scmd_surface_viewport_set(surface, (int32_t) event->data.data32[0],
+            (int32_t) event->data.data32[1]);
+    wm_outdate_surface(surface);
+}
+
+
 /**
  * @brief Handle a @c _NET_WM_DESKTOP client message, taking the
  *        requested client's whole transient family along with it

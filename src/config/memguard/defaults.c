@@ -53,6 +53,7 @@ void config_set_default_values_memguard(config_td *config)
     config->desktops.show_overlay = false;
     config->desktops.notify_activity = false;
     config->desktops.warp_on_edge_drag = false;
+    config->desktops.pan_on_edge_hover = false;
     config->desktops.wrap_at_bounds = false;
     config->desktops.margins.top = 0u;
     config->desktops.margins.right = 0u;

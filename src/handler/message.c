@@ -109,7 +109,8 @@ static void s_dispatch_to_client_handler(wm_td *wm,
  * @c _NET_WM_FULLSCREEN_MONITORS, @c _NET_WM_MOVERESIZE,
  * @c _NET_ACTIVE_WINDOW,
  * @c _NET_CLOSE_WINDOW, @c _NET_WM_DESKTOP,
- * @c _NET_CURRENT_DESKTOP, @c _NET_MOVERESIZE_WINDOW,
+ * @c _NET_CURRENT_DESKTOP, @c _NET_DESKTOP_VIEWPORT,
+ * @c _NET_MOVERESIZE_WINDOW,
  * @c _NET_REQUEST_FRAME_EXTENTS, @c _NET_SHOWING_DESKTOP,
  * @c _NET_WM_PING, and @c WM_CHANGE_STATE.
  *
@@ -391,6 +392,11 @@ void handler_client_message(wm_td *wm,
 
     if (event->type == ewmh->_NET_CURRENT_DESKTOP) {
         hi_handle_net_current_desktop(wm, event);
+        return;
+    }
+
+    if (event->type == ewmh->_NET_DESKTOP_VIEWPORT) {
+        hi_handle_net_desktop_viewport(wm, event);
         return;
     }
 

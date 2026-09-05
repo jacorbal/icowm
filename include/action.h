@@ -152,7 +152,15 @@ enum action_surface_e {
     ACTION_SURFACE_DESKTOP_SWITCH_EAST,
     ACTION_SURFACE_DESKTOP_SWITCH_WEST,
 
-    ACTION_SURFACE_MAX = ACTION_SURFACE_DESKTOP_SWITCH_WEST,
+    /* Pan the current desktop's own viewport in a direction, clamped
+     * rather than cyclic, and never changing which desktop is
+     * current */
+    ACTION_SURFACE_VIEWPORT_PAN_NORTH,
+    ACTION_SURFACE_VIEWPORT_PAN_SOUTH,
+    ACTION_SURFACE_VIEWPORT_PAN_EAST,
+    ACTION_SURFACE_VIEWPORT_PAN_WEST,
+
+    ACTION_SURFACE_MAX = ACTION_SURFACE_VIEWPORT_PAN_WEST,
 };
 
 

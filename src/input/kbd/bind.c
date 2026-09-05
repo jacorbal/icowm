@@ -307,6 +307,36 @@ static bool s_surface_has_multiple_desktops(const surface_td *surface)
 
 
 /**
+ * @brief Predicate: is this surface's viewport wider or taller than a
+ *        single screen?
+ *
+ * A surface with no @c config, or an @c id past
+ * @c CONFIG_MAX_SCREENS, reports @c false, the same 1x1
+ * @c config_viewport_s fallback every other reader of this field
+ * already falls back to.
+ *
+ * @param surface Surface to check
+ *
+ * @return @c true if @p surface's configured viewport has more than
+ *         one column or more than one row
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_surface_has_viewport(const surface_td *surface)
+{
+    if (surface->config == NULL ||
+            surface->id >= (uint32_t) CONFIG_MAX_SCREENS) {
+        return false;
+    }
+
+    return surface->config->base.screens[surface->id]
+            .viewport.columns > 1u ||
+        surface->config->base.screens[surface->id]
+            .viewport.rows > 1u;
+}
+
+
+/**
  * @brief Fill in every binding the configuration names
  *
  * The array is terminated by an entry whose @c binding is @c NULL, the
@@ -466,6 +496,14 @@ static size_t s_keyboard_binding_defs(const config_td *config,
           KEYBIND_DESKTOP_ICON_PREV },
         { config->bindings.keyboard.cycle.icon.next,
           KEYBIND_DESKTOP_ICON_NEXT },
+        { config->bindings.keyboard.viewport.pan.north,
+          KEYBIND_VIEWPORT_PAN_NORTH },
+        { config->bindings.keyboard.viewport.pan.south,
+          KEYBIND_VIEWPORT_PAN_SOUTH },
+        { config->bindings.keyboard.viewport.pan.east,
+          KEYBIND_VIEWPORT_PAN_EAST },
+        { config->bindings.keyboard.viewport.pan.west,
+          KEYBIND_VIEWPORT_PAN_WEST },
         /* Hardcoded 'Alt+Space': always opens the per-window context
          * menu (right-click on a titlebar); fixed, not configurable,
          * matching the common desktop-environment convention for this
@@ -542,6 +580,8 @@ static void s_keyboard_ungrab_all(list_td *surfaces)
  * @param config             Active configuration
  * @param has_multi_monitor  Whether any surface has several monitors
  * @param has_multi_desktop  Whether any surface has several desktops
+ * @param has_viewport       Whether any surface has a viewport wider
+ *                           or taller than a single screen
  *
  * @return @c true when the binding must be skipped
  *
@@ -549,7 +589,7 @@ static void s_keyboard_ungrab_all(list_td *surfaces)
  */
 static bool s_keyboard_is_disabled(enum wm_keybind_type_e type,
         const config_td *config, bool has_multi_monitor,
-        bool has_multi_desktop)
+        bool has_multi_desktop, bool has_viewport)
 {
     /* Named directly rather than through @c KEYBIND_NONE: that value
      * only ever appears on the array's terminator, which the loop
@@ -588,6 +628,16 @@ static bool s_keyboard_is_disabled(enum wm_keybind_type_e type,
                 (type >= KEYBIND_DESKTOP_GOTO_0 &&
                  type <= KEYBIND_DESKTOP_GOTO_9)) &&
             !has_multi_desktop) {
+        return true;
+    }
+
+    /* Every viewport-pan binding, when no surface has a viewport
+     * wider or taller than a single screen to pan within */
+    if ((type == KEYBIND_VIEWPORT_PAN_NORTH ||
+                type == KEYBIND_VIEWPORT_PAN_SOUTH ||
+                type == KEYBIND_VIEWPORT_PAN_EAST ||
+                type == KEYBIND_VIEWPORT_PAN_WEST) &&
+            !has_viewport) {
         return true;
     }
 
@@ -690,11 +740,14 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
     uint16_t emergency_modmask = 0;
     bool has_multi_monitor_surface;
     bool has_multi_desktop_surface;
+    bool has_viewport_surface;
 
     has_multi_monitor_surface = s_any_surface_matches(surfaces,
             s_surface_has_multiple_monitors);
     has_multi_desktop_surface = s_any_surface_matches(surfaces,
             s_surface_has_multiple_desktops);
+    has_viewport_surface = s_any_surface_matches(surfaces,
+            s_surface_has_viewport);
 
     s_keybindings_count = 0;
     (void) s_keyboard_binding_defs(config, defs,
@@ -713,7 +766,8 @@ void keyboard_load(list_td *surfaces, xcb_key_symbols_t *keysyms,
 
         if (s_keyboard_is_disabled(defs[i].type, config,
                     has_multi_monitor_surface,
-                    has_multi_desktop_surface)) {
+                    has_multi_desktop_surface,
+                    has_viewport_surface)) {
             continue;
         }
 

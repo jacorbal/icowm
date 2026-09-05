@@ -127,6 +127,9 @@ static unsigned int s_call_transient_top_parent = 0u;
 static unsigned int s_call_transient_family_snapshot = 0u;
 static unsigned int s_call_lookup_surface_for_root = 0u;
 static unsigned int s_call_surface_switch = 0u;
+static unsigned int s_call_surface_viewport_set = 0u;
+static int32_t s_last_viewport_set_x = 0;
+static int32_t s_last_viewport_set_y = 0;
 static unsigned int s_call_surface_desktop_get = 0u;
 static unsigned int s_call_configure_window = 0u;
 static unsigned int s_call_atom_intern = 0u;
@@ -398,6 +401,17 @@ void scmd_surface_desktop_switch(surface_td *surface, uint32_t desktop_id)
     (void) desktop_id;
 
     s_call_surface_switch++;
+}
+
+
+/** Recording stand-in for scmd_surface_viewport_set */
+void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y)
+{
+    (void) surface;
+
+    s_call_surface_viewport_set++;
+    s_last_viewport_set_x = x;
+    s_last_viewport_set_y = y;
 }
 
 
@@ -682,6 +696,9 @@ static void s_test_reset_state(void)
     s_call_transient_family_snapshot = 0u;
     s_call_lookup_surface_for_root = 0u;
     s_call_surface_switch = 0u;
+    s_call_surface_viewport_set = 0u;
+    s_last_viewport_set_x = 0;
+    s_last_viewport_set_y = 0;
     s_call_surface_desktop_get = 0u;
     s_call_configure_window = 0u;
     s_call_atom_intern = 0u;
@@ -1141,6 +1158,85 @@ static void s_test_current_desktop_switches(void)
             " once");
     TAP_OK(surface.is_outdated,
             "switching desktops outdates the surface");
+}
+
+
+/* hi_handle_net_desktop_viewport: null wm/event is a no-op */
+static void s_test_desktop_viewport_null_guards(void)
+{
+    wm_td wm;
+    xcb_ewmh_connection_t ewmh;
+    config_td config;
+    xcb_client_message_event_t event;
+
+    s_test_reset_state();
+    memset(&ewmh, 0, sizeof(ewmh));
+    memset(&config, 0, sizeof(config));
+    s_test_build_wm(&wm, &ewmh, &config);
+    s_test_build_event(&event, 0x1, (xcb_atom_t) 1);
+
+    hi_handle_net_desktop_viewport(NULL, &event);
+    hi_handle_net_desktop_viewport(&wm, NULL);
+
+    TAP_OK(s_call_lookup_surface_for_root == 0u,
+            "a null wm or event never reaches the surface lookup");
+}
+
+
+/* hi_handle_net_desktop_viewport: an unresolved root window is a
+ * no-op */
+static void s_test_desktop_viewport_no_surface(void)
+{
+    wm_td wm;
+    xcb_ewmh_connection_t ewmh;
+    config_td config;
+    xcb_client_message_event_t event;
+
+    s_test_reset_state();
+    memset(&ewmh, 0, sizeof(ewmh));
+    memset(&config, 0, sizeof(config));
+    s_test_build_wm(&wm, &ewmh, &config);
+    s_test_build_event(&event, 0x1, (xcb_atom_t) 1);
+    s_lookup_surface_for_root_result = NULL;
+
+    hi_handle_net_desktop_viewport(&wm, &event);
+
+    TAP_OK(s_call_surface_viewport_set == 0u,
+            "an unresolved root window never moves any viewport");
+}
+
+
+/* hi_handle_net_desktop_viewport: a resolved surface moves its
+ * current desktop's viewport to the requested origin and gets
+ * outdated */
+static void s_test_desktop_viewport_moves(void)
+{
+    wm_td wm;
+    xcb_ewmh_connection_t ewmh;
+    config_td config;
+    surface_td surface;
+    xcb_client_message_event_t event;
+
+    s_test_reset_state();
+    memset(&ewmh, 0, sizeof(ewmh));
+    memset(&config, 0, sizeof(config));
+    memset(&surface, 0, sizeof(surface));
+    s_test_build_wm(&wm, &ewmh, &config);
+    s_test_build_event(&event, 0x1, (xcb_atom_t) 1);
+    event.data.data32[0] = 1024u;
+    event.data.data32[1] = 768u;
+    s_lookup_surface_for_root_result = &surface;
+
+    hi_handle_net_desktop_viewport(&wm, &event);
+
+    TAP_OK(s_call_surface_viewport_set == 1u,
+            "a resolved surface moves its viewport exactly once");
+    TAP_EQ_INT(s_last_viewport_set_x, 1024,
+            "the requested X origin is forwarded unchanged");
+    TAP_EQ_INT(s_last_viewport_set_y, 768,
+            "the requested Y origin is forwarded unchanged");
+    TAP_OK(surface.is_outdated,
+            "moving the viewport outdates the surface");
 }
 
 
@@ -1982,7 +2078,7 @@ static void s_test_wm_moveresize_resize_starts_directed_drag(void)
 
 int main(void)
 {
-    TAP_PLAN(61);
+    TAP_PLAN(67);
 
     s_test_wm_state_null_guards();
     s_test_wm_state_fullscreen_add();
@@ -1995,6 +2091,9 @@ int main(void)
     s_test_current_desktop_null_guards();
     s_test_current_desktop_no_surface();
     s_test_current_desktop_switches();
+    s_test_desktop_viewport_null_guards();
+    s_test_desktop_viewport_no_surface();
+    s_test_desktop_viewport_moves();
     s_test_wm_desktop_null_guards();
     s_test_wm_desktop_same_or_missing_target();
     s_test_wm_desktop_no_top_parent();

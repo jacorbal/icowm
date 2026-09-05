@@ -751,6 +751,15 @@ void wm_ewmh_sync(wm_td *wm)
         viewport = calloc(surface->desktop_count,
                 sizeof(xcb_ewmh_coordinates_t));
         if (viewport != NULL) {
+            for (uint32_t i = 0; i < surface->desktop_count; i++) {
+                const desktop_td *const d =
+                    surface_desktop_get(surface, i);
+
+                if (d != NULL) {
+                    viewport[i].x = (uint32_t) d->viewport_origin.x;
+                    viewport[i].y = (uint32_t) d->viewport_origin.y;
+                }
+            }
             xcb_ewmh_set_desktop_viewport(ewmh,
                     (int) surface->id, surface->desktop_count,
                     viewport);

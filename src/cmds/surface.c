@@ -32,6 +32,16 @@
 /* Menu includes */
 #include <menu/notify/desktop.h>
 
+/* Command includes */
+#include <cmds/client/move.h>
+#include <cmds/client/screen.h>
+
+/* Policy includes */
+#include <policy/stacking.h>
+
+/* Defs includes */
+#include <defs/config.h>  /* CONFIG_MAX_SCREENS */
+
 /* Local includes */
 #include <cmds/surface.h>
 
@@ -202,4 +212,238 @@ void scmd_surface_desktop_switch_east(surface_td *surface)
 void scmd_surface_desktop_switch_west(surface_td *surface)
 {
     s_switch_cyclic(surface, COMPASS_WEST);
+}
+
+
+/**
+ * @brief Per-client callback for @a s_viewport_pan, translating one
+ *        client's stored geometry and its on-screen window together
+ *
+ * Skips any client stuck to the screen rather than the desktop's own
+ * pannable canvas ('client_is_sticky'), leaving it exactly where it
+ * already sits.  Every other client, maximized or fullscreen included,
+ * moves by the same delta as the desktop's own viewport origin: both
+ * 'cur' and 'old' halves of its saved geometry shift together, so a
+ * later unmaximize or unshade restores it to where this pan left it
+ * rather than to where it sat before.  Reaches the real window
+ * directly through 'ccmd_client_apply_geometry' rather than
+ * 'ccmd_client_move', since that higher-level wrapper refuses to touch
+ * a maximized or fullscreen client at all.
+ *
+ * @param client Client the walk is currently visiting; never @c NULL
+ * @param data   The 'struct position_s' pixel delta to add to
+ *               'client's position, cast back from 'void *'
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_viewport_translate_visit(client_td *client, void *data)
+{
+    const struct position_s *delta = (const struct position_s *) data;
+    xcb_window_t target;
+
+    if (client_is_sticky(client)) {
+        return;
+    }
+
+    client->layout.geometry.cur.pos.x += delta->x;
+    client->layout.geometry.cur.pos.y += delta->y;
+    client->layout.geometry.old.pos.x += delta->x;
+    client->layout.geometry.old.pos.y += delta->y;
+
+    target = ccmd_target_win(client);
+    ccmd_client_apply_geometry(client, target,
+            (uint16_t) XCB_CONFIG_WINDOW_X |
+                (uint16_t) XCB_CONFIG_WINDOW_Y,
+            client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y, 0u, 0u, 0u);
+}
+
+
+/**
+ * @brief Read the configured viewport size for @p surface's screen
+ *
+ * A surface with no @c config, or an @c id past
+ * @c CONFIG_MAX_SCREENS, reports the physical screen size back (a 1x1
+ * viewport), the same fallback every other reader of this field
+ * already falls back to.
+ *
+ * @param surface     Surface to read the viewport size for
+ * @param columns_out Where the configured viewport width, in whole
+ *                    screens, is written; never @c NULL
+ * @param rows_out    Where the configured viewport height, in whole
+ *                    screens, is written; never @c NULL
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_surface_viewport_dims(const surface_td *surface,
+        uint32_t *columns_out, uint32_t *rows_out)
+{
+    *columns_out = 1u;
+    *rows_out = 1u;
+
+    if (surface->config != NULL &&
+            surface->id < (uint32_t) CONFIG_MAX_SCREENS) {
+        *columns_out = surface->config->base.screens[surface->id]
+            .viewport.columns;
+        *rows_out = surface->config->base.screens[surface->id]
+            .viewport.rows;
+    }
+}
+
+
+/**
+ * @brief Clamp a requested viewport origin to the pannable area and,
+ *        if it differs from the current one, translate every
+ *        non-sticky client on @p desktop by the resulting delta
+ *
+ * Shared by @a s_viewport_pan and @a scmd_surface_viewport_set, which
+ * only differ in how each arrives at the requested @p origin before
+ * this clamp is applied.
+ *
+ * @param surface Surface owning @p desktop, marked outdated when the
+ *                origin actually changes
+ * @param desktop Desktop whose viewport is being repositioned
+ * @param columns Configured viewport width, in whole screens
+ * @param rows    Configured viewport height, in whole screens
+ * @param origin  Requested new viewport origin, in pixels, not yet
+ *                clamped to the pannable area
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+static void s_viewport_apply_origin(surface_td *surface,
+        desktop_td *desktop, uint32_t columns, uint32_t rows,
+        struct position_s origin)
+{
+    int32_t max_x;
+    int32_t max_y;
+    struct position_s delta;
+
+    max_x = (int32_t) (columns - 1u) * (int32_t) desktop->geometry.dim.w;
+    max_y = (int32_t) (rows - 1u) * (int32_t) desktop->geometry.dim.h;
+    origin.x = (origin.x < 0) ? 0 : origin.x;
+    origin.y = (origin.y < 0) ? 0 : origin.y;
+    origin.x = (origin.x > max_x) ? max_x : origin.x;
+    origin.y = (origin.y > max_y) ? max_y : origin.y;
+
+    if (origin.x == desktop->viewport_origin.x &&
+            origin.y == desktop->viewport_origin.y) {
+        return;     /* Already at the requested origin */
+    }
+
+    delta.x = desktop->viewport_origin.x - origin.x;
+    delta.y = desktop->viewport_origin.y - origin.y;
+    stacking_walk(desktop, s_viewport_translate_visit, &delta);
+    desktop->viewport_origin = origin;
+    surface->is_outdated = true;
+}
+
+
+/**
+ * @brief Pan the current desktop's viewport by one whole screen in a
+ *        given compass direction, clamped at the edges of the
+ *        pannable area
+ *
+ * Shared by @a scmd_surface_viewport_pan_north and its three siblings
+ * below, which only differ in direction.  Unlike
+ * @a s_switch_cyclic, this never wraps around and never changes
+ * @p surface's current desktop: it only moves where within that one
+ * desktop the physical screen is looking, translating every non-sticky
+ * client the opposite way so their positions on screen stay put
+ * relative to the desktop's virtual canvas.
+ *
+ * @param surface   Surface to pan
+ * @param direction Compass direction to pan toward
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+static void s_viewport_pan(surface_td *surface,
+        enum compass_direction_e direction)
+{
+    desktop_td *desktop;
+    uint32_t columns;
+    uint32_t rows;
+    struct position_s origin;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return;
+    }
+
+    s_surface_viewport_dims(surface, &columns, &rows);
+    origin = desktop->viewport_origin;
+
+    switch (direction) {
+    case COMPASS_NORTH:
+        origin.y -= (int32_t) desktop->geometry.dim.h;
+        break;
+    case COMPASS_SOUTH:
+        origin.y += (int32_t) desktop->geometry.dim.h;
+        break;
+    case COMPASS_EAST:
+        origin.x += (int32_t) desktop->geometry.dim.w;
+        break;
+    case COMPASS_WEST:
+        origin.x -= (int32_t) desktop->geometry.dim.w;
+        break;
+    }
+
+    s_viewport_apply_origin(surface, desktop, columns, rows, origin);
+}
+
+
+/* Pan the current desktop's viewport one screen north */
+void scmd_surface_viewport_pan_north(surface_td *surface)
+{
+    s_viewport_pan(surface, COMPASS_NORTH);
+}
+
+
+/* Pan the current desktop's viewport one screen south */
+void scmd_surface_viewport_pan_south(surface_td *surface)
+{
+    s_viewport_pan(surface, COMPASS_SOUTH);
+}
+
+
+/* Pan the current desktop's viewport one screen east */
+void scmd_surface_viewport_pan_east(surface_td *surface)
+{
+    s_viewport_pan(surface, COMPASS_EAST);
+}
+
+
+/* Pan the current desktop's viewport one screen west */
+void scmd_surface_viewport_pan_west(surface_td *surface)
+{
+    s_viewport_pan(surface, COMPASS_WEST);
+}
+
+
+/* Move the current desktop's viewport straight to an absolute origin */
+void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y)
+{
+    desktop_td *desktop;
+    uint32_t columns;
+    uint32_t rows;
+    struct position_s origin;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return;
+    }
+
+    s_surface_viewport_dims(surface, &columns, &rows);
+    origin.x = x;
+    origin.y = y;
+    s_viewport_apply_origin(surface, desktop, columns, rows, origin);
 }
