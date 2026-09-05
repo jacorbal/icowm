@@ -17,104 +17,149 @@
 
 
 const config_lint_key_td s_schema_desktops_margins[] = {
-    {"top", NULL, 0u},
-    {"right", NULL, 0u},
-    {"bottom", NULL, 0u},
-    {"left", NULL, 0u}
+    {"top", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"right", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"bottom", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"left", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 const config_lint_key_td s_schema_programs[] = {
-    {"terminal", NULL, 0u},
-    {"launcher", NULL, 0u},
-    {"file-manager", NULL, 0u},
-    {"web-browser", NULL, 0u},
-    {"editor", NULL, 0u}
+    {"terminal", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"launcher", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"file-manager", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"web-browser", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"editor", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 /* Accepted at config.json's top level (built-in run-box) and
  * reused verbatim by memguard.json, same reasoning as 'programs' and
  * 'shutdown' above having one shared schema each */
 const config_lint_key_td s_schema_prompt[] = {
-    {"is-enabled", NULL, 0u}
+    {"is-enabled", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 const config_lint_key_td s_schema_windows_focus[] = {
-    {"policy", NULL, 0u},
-    {"focus-new", NULL, 0u},
-    {"raise", NULL, 0u},
-    {"delay-ms", NULL, 0u}
+    {"policy", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"focus-new", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"raise", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"delay-ms", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 const config_lint_key_td s_schema_windows_placement[] = {
-    {"policy", NULL, 0u},
-    {"monitor", NULL, 0u},
-    {"group-related", NULL, 0u}
+    {"policy", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"monitor", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"group-related", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 const config_lint_key_td s_schema_shutdown[] = {
-    {"enable-emergency-shortcut", NULL, 0u},
-    {"timeout-seconds", NULL, 0u}
+    {"enable-emergency-shortcut", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"timeout-seconds", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 static const config_lint_key_td s_schema_battery_threshold[] = {
-    {"charged", NULL, 0u},
-    {"low", NULL, 0u},
-    {"critical", NULL, 0u}
+    {"charged", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"low", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"critical", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 static const config_lint_key_td s_schema_battery_backend[] = {
-    {"type", NULL, 0u},
-    {"number", NULL, 0u}
+    {"type", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"number", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 static const config_lint_key_td s_schema_battery[] = {
-    {"is-enabled", NULL, 0u},
+    {"is-enabled", NULL, 0u,
+        0, NULL, 0u, NULL},
     {"threshold", s_schema_battery_threshold,
         sizeof(s_schema_battery_threshold) /
-            sizeof(s_schema_battery_threshold[0])},
+            sizeof(s_schema_battery_threshold[0]),
+        0, NULL, 0u, NULL},
     {"backend", s_schema_battery_backend,
         sizeof(s_schema_battery_backend) /
-            sizeof(s_schema_battery_backend[0])},
-    {"poll-seconds", NULL, 0u}
+            sizeof(s_schema_battery_backend[0]),
+        0, NULL, 0u, NULL},
+    {"poll-seconds", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 static const config_lint_key_td s_schema_clock[] = {
-    {"is-enabled", NULL, 0u},
-    {"format", NULL, 0u}
+    {"is-enabled", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"format", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 static const config_lint_key_td s_schema_systray_text[] = {
-    {"order", NULL, 0u},
-    {"position", NULL, 0u}
+    {"order", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"position", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 static const config_lint_key_td s_schema_systray_monitor[] = {
-    {"anchor", NULL, 0u},
-    {"index", NULL, 0u}
+    {"anchor", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"index", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 const config_lint_key_td s_schema_systray[] = {
-    {"is-enabled", NULL, 0u},
-    {"reserve-space", NULL, 0u},
-    {"avoid-overlap", NULL, 0u},
+    {"is-enabled", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"reserve-space", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"avoid-overlap", NULL, 0u,
+        0, NULL, 0u, NULL},
     /* Reuses 'desktops.margins''s schema array.  Identical shape
      * (top/right/bottom/left), so no separate one is needed just for
      * this section. */
     {"margins", s_schema_desktops_margins,
         sizeof(s_schema_desktops_margins) /
-            sizeof(s_schema_desktops_margins[0])},
-    {"position", NULL, 0u},
+            sizeof(s_schema_desktops_margins[0]),
+        0, NULL, 0u, NULL},
+    {"position", NULL, 0u,
+        0, NULL, 0u, NULL},
     {"monitor", s_schema_systray_monitor,
         sizeof(s_schema_systray_monitor) /
-            sizeof(s_schema_systray_monitor[0])},
-    {"order", NULL, 0u},
-    {"layer", NULL, 0u},
+            sizeof(s_schema_systray_monitor[0]),
+        0, NULL, 0u, NULL},
+    {"order", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"layer", NULL, 0u,
+        0, NULL, 0u, NULL},
     {"clock", s_schema_clock,
-        sizeof(s_schema_clock) / sizeof(s_schema_clock[0])},
+        sizeof(s_schema_clock) / sizeof(s_schema_clock[0]),
+        0, NULL, 0u, NULL},
     {"battery", s_schema_battery,
-        sizeof(s_schema_battery) / sizeof(s_schema_battery[0])},
+        sizeof(s_schema_battery) / sizeof(s_schema_battery[0]),
+        0, NULL, 0u, NULL},
     {"text", s_schema_systray_text,
-        sizeof(s_schema_systray_text) / sizeof(s_schema_systray_text[0])}
+        sizeof(s_schema_systray_text) / sizeof(s_schema_systray_text[0]),
+        0, NULL, 0u, NULL}
 };
 
 

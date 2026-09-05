@@ -484,6 +484,101 @@ static void s_test_pan_east_moves_and_translates_clients(void)
 }
 
 
+/* When 'icons.follow-viewport' is on and a client's icon is currently
+ * mapped, panning shifts that icon's own saved position (and its
+ * real window) by the exact same delta as the client itself, right
+ * after the client's own window is moved */
+static void s_test_pan_east_also_translates_mapped_icon(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *moving = s_make_client(10, 20, false);
+    client_td *clients[1];
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    config.base.icons.follow_viewport = true;
+    surface = s_make_surface(&config, 0u);
+
+    moving->config = &config;
+    moving->icon_window = (xcb_window_t) 7;
+    moving->is_icon_mapped = true;
+    moving->icon_pos.x = 50;
+    moving->icon_pos.y = 60;
+
+    clients[0] = moving;
+
+    s_reset();
+    s_stub_desktop = desktop;
+    s_stub_clients = clients;
+    s_stub_client_count = 1u;
+
+    scmd_surface_viewport_pan_east(surface);
+    TAP_EQ_INT(s_call_apply_geometry, 2,
+            "ccmd_client_apply_geometry runs twice: once for the"
+            " window, once for the mapped icon");
+    TAP_EQ_INT((int) moving->icon_pos.x, 50 - 800,
+            "the icon's saved X shifts by the same delta as the"
+            " client's own window");
+    TAP_EQ_INT((int) moving->icon_pos.y, 60,
+            "panning east never touches the icon's saved Y");
+    TAP_EQ_INT((int) s_last_apply_target, 7,
+            "the icon window itself, not ccmd_target_win's result,"
+            " is the last one reconfigured");
+    TAP_EQ_INT(s_last_apply_x, 50 - 800,
+            "the X position applied to the icon matches its own"
+            " shifted position");
+
+    free(surface);
+    free(desktop);
+    free(moving);
+}
+
+
+/* The same mapped icon is left untouched when 'icons.follow-viewport'
+ * is off, the default, confirming the new behavior never engages
+ * unless explicitly requested */
+static void s_test_pan_east_leaves_icon_when_follow_viewport_off(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *moving = s_make_client(10, 20, false);
+    client_td *clients[1];
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    moving->config = &config;
+    moving->icon_window = (xcb_window_t) 7;
+    moving->is_icon_mapped = true;
+    moving->icon_pos.x = 50;
+    moving->icon_pos.y = 60;
+
+    clients[0] = moving;
+
+    s_reset();
+    s_stub_desktop = desktop;
+    s_stub_clients = clients;
+    s_stub_client_count = 1u;
+
+    scmd_surface_viewport_pan_east(surface);
+    TAP_EQ_INT(s_call_apply_geometry, 1,
+            "ccmd_client_apply_geometry runs once, for the window"
+            " alone");
+    TAP_EQ_INT((int) moving->icon_pos.x, 50,
+            "the icon's saved X is left untouched");
+
+    free(surface);
+    free(desktop);
+    free(moving);
+}
+
+
 /* Panning east again once already at the rightmost edge is clamped
  * back to that same edge, recognized as no movement, and is a no-op */
 static void s_test_pan_east_clamped_at_edge_is_noop(void)
@@ -825,13 +920,15 @@ static void s_test_set_clamps_and_noops_at_same_origin(void)
 
 int main(void)
 {
-    TAP_PLAN(47);
+    TAP_PLAN(54);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
     s_test_pan_no_config_falls_back_to_1x1();
     s_test_pan_id_past_max_screens_falls_back_to_1x1();
     s_test_pan_east_moves_and_translates_clients();
+    s_test_pan_east_also_translates_mapped_icon();
+    s_test_pan_east_leaves_icon_when_follow_viewport_off();
     s_test_pan_east_clamped_at_edge_is_noop();
     s_test_pan_west_moves_origin_back();
     s_test_pan_west_clamped_at_zero_is_noop();

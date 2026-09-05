@@ -142,7 +142,8 @@ struct config_base_s {
 
     /* Icon placement policy settings */
     struct {
-        bool show_geom;     /**< Show geometry overlay on move/resize */
+        bool show_geom;   /**< Show geometry overlay on move/resize */
+        bool follow_viewport;  /**< Pan icons along with the viewport */
         enum config_icon_placement_e {
             /** Bottom row, the default */
             CONFIG_ICON_PLACEMENT_BOTTOM = 0,

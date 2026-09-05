@@ -225,6 +225,8 @@ int config_load_base(const char *filename,
 
         json_load_bool(icons, "show-geom",
                 &config_base->icons.show_geom);
+        json_load_bool(icons, "follow-viewport",
+                &config_base->icons.follow_viewport);
         placement = cJSON_GetObjectItem(icons, "placement");
         if (placement && cJSON_IsObject(placement)) {
             cJSON *const icon_policy_item =

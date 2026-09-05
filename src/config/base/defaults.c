@@ -186,6 +186,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.focus.delay_ms = 250;
     config_base->icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config_base->icons.show_geom = false;
+    config_base->icons.follow_viewport = false;
     config_base->shutdown.enable_emergency_shortcut = false;
     config_base->shutdown.timeout_seconds = 15u;
     config_base->fortune.is_enabled = true;

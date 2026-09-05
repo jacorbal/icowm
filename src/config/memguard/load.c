@@ -203,6 +203,8 @@ int ci_memguard_load_json(const char *filename, config_td *config)
 
         json_load_bool(icons_item, "show-geom",
                 &config->base.icons.show_geom);
+        json_load_bool(icons_item, "follow-viewport",
+                &config->base.icons.follow_viewport);
 
         if (placement_item != NULL) {
             cJSON *policy_item = json_get_item(placement_item, "policy");

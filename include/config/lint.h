@@ -23,12 +23,16 @@
  * @c "-author" can be used freely to annotate a configuration file
  * without tripping the checker.
  *
- * Deeply dynamic or polymorphic parts of the schema (the several
- * accepted shapes of @c screens.settings.desktops, being the main
- * one) are treated as opaque once their key is recognized: this
- * checker does not attempt to validate what is inside them, since
- * doing so risks false positives on a legitimate but less common
- * shape rather than catching a real typo.
+ * A key with more than one genuinely different accepted shape (@c
+ * topology.screens.desktops, being the only one so far, each entry
+ * either a plain desktop or a whole per-screen block) is checked
+ * against whichever of its shapes the first array element actually
+ * looks like it is using, the same way the loader itself tells the
+ * two apart, rather than left opaque: this still catches a typo
+ * inside either shape without risking a false positive on the other.
+ * A polymorphic key with no discernible shape at all would instead be
+ * left opaque once recognized, undetectable from here, but no config
+ * file this checker knows about currently needs that.
  *
  * Findings are grouped by file, each one headed by its name
  * (printed once, only if that file actually has something to report)

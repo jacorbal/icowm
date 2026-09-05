@@ -263,6 +263,29 @@ static void s_test_flat_shape_clamped_to_max_desktops(void)
 }
 
 
+/* The nested shape's own 'topology.screens.desktops[].count' of 0 is
+ * just as meaningless as the flat shape's, and is corrected up to the
+ * minimum of 1 the same way, rather than left at 0 to underflow or
+ * out-of-bounds-index anything relying on it as a trusted array size
+ * later on */
+static void s_test_nested_desktop_count_enforced_minimum(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"topology\": {\"screens\": {\"count\": 1, \"desktops\": ["
+        "  {\"count\": 0}"
+        "] } } }", &base, &desktop);
+
+    TAP_EQ_INT((int) base.screens[0].desktop_count, 1,
+            "nested shape: desktop count of 0 corrected up to 1");
+    TAP_EQ_INT((int) base.screens[0].desktop_layout.columns, 1,
+            "layout still sized off the corrected count, not the" \
+            " raw 0");
+}
+
+
 /* No 'layout' at all: falls back to the exact single-row default,
  * the same reading order the desktop list itself already had before
  * 'layout' existed */
@@ -655,6 +678,25 @@ static void s_test_icons_placement_legacy_windows_location(void)
 }
 
 
+/* 'icons.follow-viewport' loads independently of 'icons.show-geom',
+ * and stays off when absent, the same as any other missing bool */
+static void s_test_icons_follow_viewport_loads(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load("{\"icons\": {\"show-geom\": true,"
+        " \"follow-viewport\": true}}", &base, &desktop);
+    TAP_OK(base.icons.show_geom, "icons.show-geom still loads");
+    TAP_OK(base.icons.follow_viewport,
+            "icons.follow-viewport: true loads");
+
+    s_load("{\"icons\": {\"show-geom\": true}}", &base, &desktop);
+    TAP_OK(!base.icons.follow_viewport,
+            "icons.follow-viewport: absent stays false");
+}
+
+
 /* desktops.show-overlay/warp-on-edge-drag/wrap-at-bounds/margins, a
  * sibling of 'topology' at the config root, meant to still apply on
  * every reload (unlike topology) */
@@ -776,7 +818,7 @@ static void s_test_systray_text_order_no_dedup(void)
 
 int main(void)
 {
-    TAP_PLAN(95);
+    TAP_PLAN(100);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
@@ -786,6 +828,7 @@ int main(void)
     s_test_inaugural_out_of_range_reverts_to_zero();
     s_test_screen_count_enforced_minimum();
     s_test_flat_shape_clamped_to_max_desktops();
+    s_test_nested_desktop_count_enforced_minimum();
     s_test_layout_absent_defaults_to_linear();
     s_test_layout_all_fields_explicit();
     s_test_layout_only_rows_computes_columns();
@@ -804,6 +847,7 @@ int main(void)
     s_test_icons_placement_modern_object_form();
     s_test_icons_placement_bare_string_form();
     s_test_icons_placement_legacy_windows_location();
+    s_test_icons_follow_viewport_loads();
     s_test_desktop_behavior();
     s_test_systray_representative_fields();
     s_test_systray_text_order();

@@ -23,15 +23,64 @@
 #include <stddef.h>
 
 
+/**
+ * @brief How an array-valued key's own elements get checked
+ *
+ * @c CONFIG_LINT_ARRAY_NONE is the default a plain @c {"name", NULL,
+ * 0u} entry gets, unchanged from before this existed: an array value
+ * is simply left alone, the same as any other leaf.  The other two
+ * only apply to a key whose JSON value is itself an array of objects,
+ * every element of which shares one fixed shape ('randr.json''s
+ * @c outputs, 'rules.json''s @c rules): @c CONFIG_LINT_ARRAY_UNIFORM
+ * checks every element against @c children.  @c
+ * CONFIG_LINT_ARRAY_POLYMORPHIC is for the rarer case where a single
+ * key accepts two genuinely different shapes
+ * (@c topology.screens.desktops, see config/lint.h): the first
+ * element is inspected for any of @c discriminator_keys, and every
+ * element is then checked against @c children_alt if found, or
+ * @c children otherwise, mirroring the same shape a loader itself
+ * would pick.
+ */
+enum config_lint_array_kind_e {
+    CONFIG_LINT_ARRAY_NONE = 0,
+    CONFIG_LINT_ARRAY_UNIFORM,
+    CONFIG_LINT_ARRAY_POLYMORPHIC
+};
+
 /** One key a schema recognizes at a given nesting level */
 typedef struct config_lint_key_s {
     const char *name;
     const struct config_lint_key_s *children; /**< 'NULL' for a leaf,
-                                                   or for a subtree
+                                                   for a subtree
                                                    deliberately left
                                                    opaque (see
-                                                   config/lint.h) */
+                                                   config/lint.h), or
+                                                   the array-element
+                                                   schema used when
+                                                   'discriminator_keys'
+                                                   is not matched */
     size_t children_count;
+    enum config_lint_array_kind_e array_kind; /**< 'CONFIG_LINT_ARRAY_NONE'
+                                                   when omitted, so
+                                                   every existing
+                                                   three-field schema
+                                                   entry keeps working
+                                                   unchanged */
+    const struct config_lint_key_s *children_alt; /**< Array-element
+                                                       schema used when
+                                                       'discriminator_keys'
+                                                       is matched;
+                                                       only meaningful
+                                                       under
+                                                       'CONFIG_LINT_ARRAY_POLYMORPHIC' */
+    size_t children_alt_count;
+    const char *const *discriminator_keys; /**< 'NULL'-terminated list
+                                                of key names whose
+                                                presence in the first
+                                                array element selects
+                                                'children_alt'; only
+                                                meaningful under
+                                                'CONFIG_LINT_ARRAY_POLYMORPHIC' */
 } config_lint_key_td;
 
 /** One configuration file this linter knows how to check */

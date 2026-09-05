@@ -822,6 +822,17 @@ name.
 When `true`, geometry when moving (mouse drag) is shown in the center of
 the icon.
 
+#### `icons.follow-viewport`
+
+| Key                     | Type    | Default |
+|-------------------------|---------|---------|
+| `icons.follow-viewport` | boolean | `false` |
+
+When `false` (the default), an icon stays fixed on screen while a viewport
+pan moves the desktop underneath it, the same way it always has. When
+`true`, an icon that is currently mapped pans together with the desktop,
+landing wherever its own window would have landed.
+
 #### `icons.placement`
 
 Controls how iconified windows are laid out on the desktop.
@@ -2463,6 +2474,7 @@ not merely refuse to act.
 | `windows.placement.monitor`              | string or integer | `"pointer"`    | Same as `config.json`'s `windows.placement.monitor`: which physical monitor a placement decision targets, on a surface with more than one. |
 | `windows.placement.group-related`        | boolean           | `false`        | Same as `config.json`'s `windows.placement.group-related`: cluster windows of the same application together. |
 | `icons.show-geom`                        | boolean           | `false`        | Same as `config.json`'s `icons.show-geom`: shows the exact size in the center of the icon while resizing. |
+| `icons.follow-viewport`                  | boolean           | `false`        | Same as `config.json`'s `icons.follow-viewport`, kept for consistency only; this mode's viewport is always a fixed 1x1, so there is never a pan for an icon to follow. |
 | `icons.placement.policy`                 | string            | `"smart"`      | Same as `config.json`'s `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
 | `systray`                                | object            | see §10.2      | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
 | `shutdown.enable-emergency-shortcut`     | boolean           | `false`        | Same as `config.json`'s `shutdown.enable-emergency-shortcut`. |

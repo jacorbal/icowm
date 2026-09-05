@@ -128,6 +128,12 @@ void config_set_default_values_memguard(config_td *config)
     config->base.icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config->base.icons.show_geom = false;
 
+    /* Moot here: this screen's viewport is permanently 1x1 (see just
+     * above), so there is never a pan to follow, but the field still
+     * exists and defaults the same way as an ordinary session's for
+     * consistency and to avoid leaving it uninitialized. */
+    config->base.icons.follow_viewport = false;
+
     config->base.shutdown.enable_emergency_shortcut = true;
     config->base.shutdown.timeout_seconds = 15u;
     config->base.fortune.is_enabled = false;

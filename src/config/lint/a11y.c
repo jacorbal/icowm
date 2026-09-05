@@ -17,29 +17,37 @@
 
 
 static const config_lint_key_td s_schema_a11y_interaction[] = {
-    {"double-click-ms", NULL, 0u}
+    {"double-click-ms", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 static const config_lint_key_td s_schema_a11y_focus_indicator[] = {
-    {"min-border-width", NULL, 0u}
+    {"min-border-width", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 static const config_lint_key_td s_schema_a11y_urgency[] = {
-    {"sound-bell", NULL, 0u},
-    {"blink-interval-ms", NULL, 0u}
+    {"sound-bell", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"blink-interval-ms", NULL, 0u,
+        0, NULL, 0u, NULL}
 };
 
 const config_lint_key_td s_schema_a11y[] = {
-    {"is-enabled", NULL, 0u},
+    {"is-enabled", NULL, 0u,
+        0, NULL, 0u, NULL},
     {"interaction", s_schema_a11y_interaction,
         sizeof(s_schema_a11y_interaction) /
-            sizeof(s_schema_a11y_interaction[0])},
+            sizeof(s_schema_a11y_interaction[0]),
+        0, NULL, 0u, NULL},
     {"focus-indicator", s_schema_a11y_focus_indicator,
         sizeof(s_schema_a11y_focus_indicator) /
-            sizeof(s_schema_a11y_focus_indicator[0])},
+            sizeof(s_schema_a11y_focus_indicator[0]),
+        0, NULL, 0u, NULL},
     {"urgency", s_schema_a11y_urgency,
         sizeof(s_schema_a11y_urgency) /
-            sizeof(s_schema_a11y_urgency[0])}
+            sizeof(s_schema_a11y_urgency[0]),
+        0, NULL, 0u, NULL}
 };
 
 

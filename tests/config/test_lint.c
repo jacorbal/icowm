@@ -294,9 +294,227 @@ static void s_test_missing_themes_dir_not_an_error(void)
 }
 
 
+/* Every field of a fully valid 'randr.json' output entry is
+ * recognized: 'outputs[]' has one single fixed shape, so it is
+ * validated in full rather than left opaque */
+static void s_test_randr_output_recognized_not_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "randr.json",
+            "{\"outputs\": [{\"name\": \"eDP-1\", \"is-enabled\": true, "
+            "\"is-primary\": true, \"resolution\": {\"w\": 1920, "
+            "\"h\": 1080}, \"position\": {\"x\": 0, \"y\": 0}, "
+            "\"rotation\": \"normal\"}]}");
+    TAP_EQ_INT(s_lint_quietly(dir), 0,
+            "a fully valid 'outputs[]' entry has none of its keys"
+            " flagged");
+    s_remove_temp_dir(dir);
+}
+
+
+/* An unrecognized key inside a randr.json 'outputs[]' entry is found,
+ * since that array's single fixed shape is now validated rather than
+ * left opaque */
+static void s_test_randr_output_unknown_key_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "randr.json",
+            "{\"outputs\": [{\"name\": \"eDP-1\", \"bogus-field\": 1}]}");
+    TAP_EQ_INT(s_lint_quietly(dir), 1,
+            "an unrecognized key inside an 'outputs[]' entry is found");
+    s_remove_temp_dir(dir);
+}
+
+
+/* An unrecognized key nested one level deeper still, inside
+ * 'outputs[].resolution', is also found */
+static void s_test_randr_output_nested_unknown_key_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "randr.json",
+            "{\"outputs\": [{\"resolution\": {\"w\": 1920, "
+            "\"bogus\": 1}}]}");
+    TAP_EQ_INT(s_lint_quietly(dir), 1,
+            "an unrecognized key inside 'outputs[].resolution' is"
+            " found");
+    s_remove_temp_dir(dir);
+}
+
+
+/* A fully valid rules.json entry, 'match' and 'apply' both included,
+ * has none of its keys flagged: 'rules[]' has one single fixed shape,
+ * so it is validated in full rather than left opaque */
+static void s_test_rules_entry_recognized_not_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "rules.json",
+            "{\"rules\": [{\"when\": \"map\", \"match\": "
+            "{\"class\": \"Firefox\", \"transient\": false}, "
+            "\"apply\": {\"desktop\": 1, \"opacity\": "
+            "{\"active\": 100, \"inactive\": 80}}}]}");
+    TAP_EQ_INT(s_lint_quietly(dir), 0,
+            "a fully valid 'rules[]' entry has none of its keys"
+            " flagged");
+    s_remove_temp_dir(dir);
+}
+
+
+/* An unrecognized key directly on a rules.json rule entry (a sibling
+ * of 'match'/'apply') is found */
+static void s_test_rules_entry_unknown_key_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "rules.json",
+            "{\"rules\": [{\"match\": {\"class\": \"x\"}, "
+            "\"bogus-field\": 1}]}");
+    TAP_EQ_INT(s_lint_quietly(dir), 1,
+            "an unrecognized key on a 'rules[]' entry itself is found");
+    s_remove_temp_dir(dir);
+}
+
+
+/* An unrecognized key nested inside a rule's 'apply' object is found */
+static void s_test_rules_apply_nested_unknown_key_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "rules.json",
+            "{\"rules\": [{\"apply\": {\"desktop\": 1, "
+            "\"bogus-nested\": 1}}]}");
+    TAP_EQ_INT(s_lint_quietly(dir), 1,
+            "an unrecognized key inside a rule's 'apply' object is"
+            " found");
+    s_remove_temp_dir(dir);
+}
+
+
+/* 'topology.screens.desktops[]' in its flat shape (plain 'name'/
+ * 'background-color' entries) is now validated instead of left
+ * opaque: a recognized entry is not flagged */
+static void s_test_desktops_flat_shape_recognized_not_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "config.json",
+            "{\"topology\": {\"screens\": {\"desktops\": "
+            "[{\"name\": \"Main\", \"background-color\": \"#000\"}]"
+            "}}}");
+    TAP_EQ_INT(s_lint_quietly(dir), 0,
+            "a recognized flat-shape 'desktops[]' entry is not"
+            " flagged");
+    s_remove_temp_dir(dir);
+}
+
+
+/* An unrecognized key in a flat-shape 'desktops[]' entry is found */
+static void s_test_desktops_flat_shape_unknown_key_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "config.json",
+            "{\"topology\": {\"screens\": {\"desktops\": "
+            "[{\"name\": \"Main\", \"bogus-field\": 1}]}}}");
+    TAP_EQ_INT(s_lint_quietly(dir), 1,
+            "an unrecognized key in a flat-shape 'desktops[]' entry"
+            " is found");
+    s_remove_temp_dir(dir);
+}
+
+
+/* 'topology.screens.desktops[]' in its per-screen shape ('count',
+ * 'inaugural', 'layout', 'viewport', 'settings') is told apart from
+ * the flat shape the same way the loader itself does, and a fully
+ * recognized entry is not flagged */
+static void s_test_desktops_nested_shape_recognized_not_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "config.json",
+            "{\"topology\": {\"screens\": {\"desktops\": "
+            "[{\"count\": 2, \"inaugural\": 0, \"layout\": "
+            "{\"orientation\": \"horizontal\", \"rows\": 1, "
+            "\"columns\": 2}, \"viewport\": {\"columns\": 2, "
+            "\"rows\": 1}, \"settings\": [{\"name\": \"Main\"}]}]"
+            "}}}");
+    TAP_EQ_INT(s_lint_quietly(dir), 0,
+            "a recognized per-screen-shape 'desktops[]' entry, with"
+            " 'layout', 'viewport' and 'settings' all valid, is not"
+            " flagged");
+    s_remove_temp_dir(dir);
+}
+
+
+/* An unrecognized key directly on a per-screen-shape 'desktops[]'
+ * entry (told apart from the flat shape by 'count' being present) is
+ * found */
+static void s_test_desktops_nested_shape_unknown_key_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "config.json",
+            "{\"topology\": {\"screens\": {\"desktops\": "
+            "[{\"count\": 2, \"bogus-field\": 1}]}}}");
+    TAP_EQ_INT(s_lint_quietly(dir), 1,
+            "an unrecognized key on a per-screen-shape 'desktops[]'"
+            " entry is found");
+    s_remove_temp_dir(dir);
+}
+
+
+/* An unrecognized key inside 'desktops[].viewport' is found */
+static void s_test_desktops_viewport_nested_unknown_key_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "config.json",
+            "{\"topology\": {\"screens\": {\"desktops\": "
+            "[{\"count\": 1, \"viewport\": {\"columns\": 2, "
+            "\"bogus\": 1}}]}}}");
+    TAP_EQ_INT(s_lint_quietly(dir), 1,
+            "an unrecognized key inside 'desktops[].viewport' is"
+            " found");
+    s_remove_temp_dir(dir);
+}
+
+
+/* An unrecognized key inside a per-screen entry's nested
+ * 'settings[]' array is found, one level deeper than the entry
+ * itself */
+static void s_test_desktops_settings_nested_unknown_key_flagged(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "config.json",
+            "{\"topology\": {\"screens\": {\"desktops\": "
+            "[{\"count\": 1, \"settings\": [{\"name\": \"Main\", "
+            "\"bogus\": 1}]}]}}}");
+    TAP_EQ_INT(s_lint_quietly(dir), 1,
+            "an unrecognized key inside a per-screen entry's"
+            " 'settings[]' array is found");
+    s_remove_temp_dir(dir);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(14);
+    TAP_PLAN(26);
 
     s_test_null_dir();
     s_test_missing_dir();
@@ -312,6 +530,18 @@ int main(void)
     s_test_theme_files_checked();
     s_test_non_json_theme_file_ignored();
     s_test_missing_themes_dir_not_an_error();
+    s_test_randr_output_recognized_not_flagged();
+    s_test_randr_output_unknown_key_flagged();
+    s_test_randr_output_nested_unknown_key_flagged();
+    s_test_rules_entry_recognized_not_flagged();
+    s_test_rules_entry_unknown_key_flagged();
+    s_test_rules_apply_nested_unknown_key_flagged();
+    s_test_desktops_flat_shape_recognized_not_flagged();
+    s_test_desktops_flat_shape_unknown_key_flagged();
+    s_test_desktops_nested_shape_recognized_not_flagged();
+    s_test_desktops_nested_shape_unknown_key_flagged();
+    s_test_desktops_viewport_nested_unknown_key_flagged();
+    s_test_desktops_settings_nested_unknown_key_flagged();
 
     return TAP_DONE();
 }

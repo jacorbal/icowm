@@ -176,7 +176,8 @@ static void s_test_load_full_file(void)
         "\"desktops\": {\"margins\": {\"top\": 5}},"
         "\"windows\": {\"move-step\": 25,"
         "  \"placement\": {\"policy\": \"cascade\"}},"
-        "\"icons\": {\"placement\": {\"policy\": \"grid\"}},"
+        "\"icons\": {\"placement\": {\"policy\": \"grid\"},"
+        "  \"follow-viewport\": true},"
         "\"shutdown\": {\"enable-emergency-shortcut\": true}"
         "}");
 
@@ -188,6 +189,8 @@ static void s_test_load_full_file(void)
             "desktops.margins.top loaded");
     TAP_EQ_INT((int) config->base.windows.move_step, 25,
             "windows.move-step loaded");
+    TAP_OK(config->base.icons.follow_viewport,
+            "icons.follow-viewport loaded");
     TAP_OK(config->base.shutdown.enable_emergency_shortcut,
             "shutdown.enable-emergency-shortcut loaded");
 
@@ -323,7 +326,7 @@ static void s_test_load_memguard_also_loads_bindings(void)
 
 int main(void)
 {
-    TAP_PLAN(28);
+    TAP_PLAN(29);
 
     s_test_init_memguard();
     s_test_default_values_null_safe();

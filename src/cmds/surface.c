@@ -216,6 +216,46 @@ void scmd_surface_desktop_switch_west(surface_td *surface)
 
 
 /**
+ * @brief Pan one already-panned client's icon window by the same
+ *        delta, when @c icons.follow-viewport asks for it
+ *
+ * A no-op whenever the client has no @c config to read the flag from,
+ * the flag itself is off (the default), there is no icon window at
+ * all yet, that window is not currently the one on screen (@a
+ * is_icon_mapped false, e.g., the client is not iconified right
+ * now), or 'icon_pos' is still the unset sentinel (@c -1, @c -1):
+ * exactly the same 'icon_pos' guard @a s_icon_position_choose and its
+ * callers in @c cmds/client/icon.c already rely on.  Otherwise shifts
+ * the saved 'icon_pos' by 'delta' and reconfigures the real icon
+ * window to match, mirroring how @a s_viewport_translate_visit itself
+ * moves the client's own window.
+ *
+ * @param client Client whose icon, if visibly mapped, should pan too
+ * @param delta  Pixel delta to add to 'icon_pos'
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_viewport_translate_icon(client_td *client,
+        const struct position_s *delta)
+{
+    if (client->config == NULL ||
+            !client->config->base.icons.follow_viewport ||
+            client->icon_window == 0u || !client->is_icon_mapped ||
+            client->icon_pos.x < 0 || client->icon_pos.y < 0) {
+        return;
+    }
+
+    client->icon_pos.x = (int16_t) (client->icon_pos.x + delta->x);
+    client->icon_pos.y = (int16_t) (client->icon_pos.y + delta->y);
+
+    ccmd_client_apply_geometry(client, client->icon_window,
+            (uint16_t) XCB_CONFIG_WINDOW_X |
+                (uint16_t) XCB_CONFIG_WINDOW_Y,
+            client->icon_pos.x, client->icon_pos.y, 0u, 0u, 0u);
+}
+
+
+/**
  * @brief Per-client callback for @a s_viewport_pan, translating one
  *        client's stored geometry and its on-screen window together
  *
@@ -228,7 +268,9 @@ void scmd_surface_desktop_switch_west(surface_td *surface)
  * rather than to where it sat before.  Reaches the real window
  * directly through 'ccmd_client_apply_geometry' rather than
  * 'ccmd_client_move', since that higher-level wrapper refuses to touch
- * a maximized or fullscreen client at all.
+ * a maximized or fullscreen client at all.  Finally hands off to @a
+ * s_viewport_translate_icon, which decides on its own whether this
+ * client's icon should pan along too.
  *
  * @param client Client the walk is currently visiting; never @c NULL
  * @param data   The 'struct position_s' pixel delta to add to
@@ -256,6 +298,8 @@ static void s_viewport_translate_visit(client_td *client, void *data)
                 (uint16_t) XCB_CONFIG_WINDOW_Y,
             client->layout.geometry.cur.pos.x,
             client->layout.geometry.cur.pos.y, 0u, 0u, 0u);
+
+    s_viewport_translate_icon(client, delta);
 }
 
 

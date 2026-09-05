@@ -14,6 +14,7 @@
 /* System includes */
 #include <dirent.h>
 #include <stdbool.h>
+#include <stdint.h>     /* uint16_t */
 #include <stdio.h>      /* fprintf, snprintf */
 
 /* Third-party includes */
@@ -60,15 +61,15 @@ typedef struct {
 /* 'bindings.json schema' */
 
 
-/* `theme.json` schema: validated to the same full depth as every other
- *      fixed-shape file ('config.json', 'bindings.json', 'a11y.json').
- *      Unlike 'randr.json''s "outputs" or 'rules.json''s
- *      "rules", nothing under theme.json is genuinely polymorphic (see
- *      the opaque-subtree rule in 'config/lint.h' for what that means
- *      and why it does not apply here).  Every field's shape is
- *      fixed and known ahead of time, so there is no risk of a false
- *      positive on a legitimate but less common shape the way there
- *      would be for those. */
+/* `theme.json` schema: validated to the same full depth as every
+ *      other fixed-shape file ('config.json', 'bindings.json',
+ *      'a11y.json', 'randr.json''s "outputs", 'rules.json''s "rules").
+ *      Every field's shape is fixed and known ahead of time, so there
+ *      is no risk of a false positive on a legitimate but less common
+ *      shape the way there would be for a genuinely polymorphic key
+ *      such as 'topology.screens.desktops' (see the opaque-subtree
+ *      rule in 'config/lint.h' for what that means and why it does
+ *      not apply here). */
 
 
 /* memguard.json schema: a stricter subset of config.json's,
@@ -197,6 +198,52 @@ static const config_lint_key_td *s_find_key(const char *key,
 
 
 /**
+ * @brief Whether an array's first element carries any of a
+ *        polymorphic key's discriminator names
+ *
+ * Mirrors the same kind of check a loader itself runs to tell two
+ * accepted shapes apart (e.g., @c s_config_screens_uses_nested_layout
+ * in @c config/base/desktops.c for @c topology.screens.desktops):
+ * exact, non-normalized key lookup on the first element only, so the
+ * linter's shape choice always agrees with what the loader would
+ * actually do with the same file.
+ *
+ * @param arr                Array whose first element is inspected
+ * @param discriminator_keys 'NULL'-terminated list of key names; may
+ *                            be 'NULL' itself
+ *
+ * @return @c true if the first element is an object carrying at least
+ *         one of @p discriminator_keys, @c false otherwise
+ *
+ * @note Complexity: @e O(n), where @e n is the number of
+ *       @p discriminator_keys
+ */
+static bool s_array_first_matches_discriminator(const cJSON *arr,
+        const char *const *discriminator_keys)
+{
+    const cJSON *first;
+
+    if (discriminator_keys == NULL) {
+        return false;
+    }
+
+    first = cJSON_GetArrayItem((cJSON *) arr, 0);
+    if (first == NULL || !cJSON_IsObject((cJSON *) first)) {
+        return false;
+    }
+
+    for (int i = 0; discriminator_keys[i] != NULL; ++i) {
+        if (cJSON_GetObjectItem((cJSON *) first, discriminator_keys[i]) !=
+                NULL) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/**
  * @brief Recursively check one JSON object's keys against a schema
  *
  * @param obj          JSON object to check
@@ -206,8 +253,14 @@ static const config_lint_key_td *s_find_key(const char *key,
  * @param report       This file's shared report state; the header is
  *                      printed here, lazily, on the first finding
  *
+ * A key whose schema entry names an @c array_kind other than
+ * @c CONFIG_LINT_ARRAY_NONE is, in addition, expected to hold a JSON
+ * array; each of that array's own object elements is checked the same
+ * way, against whichever schema applies (see
+ * @c config_lint_array_kind_e in @c config/lint/internal.h).
+ *
  * @note Complexity: @e O(n), where @e n is the number of keys in
- *       @p obj and everything nested under it
+ *       @p obj and everything nested or held in an array under it
  */
 static void s_lint_object(const cJSON *obj,
         const config_lint_key_td *schema, size_t schema_count,
@@ -268,7 +321,40 @@ static void s_lint_object(const cJSON *obj,
             continue;
         }
 
-        if (match->children != NULL && cJSON_IsObject((cJSON *) item)) {
+        if (match->array_kind != CONFIG_LINT_ARRAY_NONE &&
+                cJSON_IsArray((cJSON *) item)) {
+            const config_lint_key_td *elem_schema = match->children;
+            size_t elem_schema_count = match->children_count;
+            const cJSON *elem;
+            uint16_t elem_index = 0u;
+
+            if (match->array_kind == CONFIG_LINT_ARRAY_POLYMORPHIC &&
+                    s_array_first_matches_discriminator(item,
+                        match->discriminator_keys)) {
+                elem_schema = match->children_alt;
+                elem_schema_count = match->children_alt_count;
+            }
+
+            cJSON_ArrayForEach(elem, item) {
+                /* Sized well beyond 'child_path' (itself capped at
+                 * 'JSON_FIELD_MAX * 2u') plus the widest possible
+                 * '[%u]' suffix a 'uint16_t' index can ever print, so
+                 * GCC's '-Wformat-truncation' can actually prove this
+                 * 'snprintf' below never truncates */
+                char elem_path[(JSON_FIELD_MAX * 2u) + 16u];
+
+                if (!cJSON_IsObject((cJSON *) elem)) {
+                    elem_index++;
+                    continue;
+                }
+                (void) snprintf(elem_path, sizeof(elem_path), "%s[%u]",
+                        child_path, (unsigned int) elem_index);
+                s_lint_object(elem, elem_schema, elem_schema_count,
+                        elem_path, report);
+                elem_index++;
+            }
+        } else if (match->children != NULL &&
+                cJSON_IsObject((cJSON *) item)) {
             s_lint_object(item, match->children, match->children_count,
                     child_path, report);
         }

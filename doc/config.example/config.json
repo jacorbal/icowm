@@ -15,7 +15,7 @@
                     "columns": 2
                 },
                 "viewport": {
-                    "columns": 2,
+                    "columns": 1,
                     "rows": 1
                 },
                 "settings": [
@@ -31,6 +31,18 @@
         }
     },
 
+    "desktops": {
+        "notify-activity": true,
+        "show-overlay": true,
+        "warp-on-edge-drag": true,
+        "pan-on-edge-hover": true,
+        "wrap-at-bounds": true,
+        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
+    },
+
+    "viewport": {
+    },
+
     "programs": {
         "editor": "gvim",
         "file-manager": "pcmanfm",
@@ -41,15 +53,6 @@
 
     "prompt": {
         "is-enabled": true
-    },
-
-    "desktops": {
-        "notify-activity": true,
-        "show-overlay": true,
-        "warp-on-edge-drag": true,
-        "pan-on-edge-hover": true,
-        "wrap-at-bounds": true,
-        "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }
     },
 
     "windows": {
@@ -78,6 +81,7 @@
     },
 
     "icons": {
+        "follow-viewport": false,
         "show-geom": false,
         "placement": {
             "policy": "smart"
