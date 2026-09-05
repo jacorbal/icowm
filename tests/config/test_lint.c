@@ -232,6 +232,22 @@ static void s_test_nested_unrecognized_key_found(void)
 }
 
 
+/* The new 'pan-on-edge-drag' desktops key is itself recognized by
+ * the schema, not merely tolerated as a side effect of some other
+ * key's presence */
+static void s_test_pan_on_edge_drag_key_recognized(void)
+{
+    char dir[300];
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "config.json",
+            "{\"desktops\": {\"pan-on-edge-drag\": true}}");
+    TAP_EQ_INT(s_lint_quietly(dir), 0,
+            "'pan-on-edge-drag' is a recognized desktops key");
+    s_remove_temp_dir(dir);
+}
+
+
 /* Every *.json file directly under themes/ is checked against the
  * theme schema */
 static void s_test_theme_files_checked(void)
@@ -280,7 +296,7 @@ static void s_test_missing_themes_dir_not_an_error(void)
 
 int main(void)
 {
-    TAP_PLAN(13);
+    TAP_PLAN(14);
 
     s_test_null_dir();
     s_test_missing_dir();
@@ -292,6 +308,7 @@ int main(void)
     s_test_findings_summed_across_files();
     s_test_malformed_json_not_counted();
     s_test_nested_unrecognized_key_found();
+    s_test_pan_on_edge_drag_key_recognized();
     s_test_theme_files_checked();
     s_test_non_json_theme_file_ignored();
     s_test_missing_themes_dir_not_an_error();

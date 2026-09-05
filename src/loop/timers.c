@@ -27,6 +27,7 @@
 #include <policy/urgency.h>
 
 /* Input includes */
+#include <input/mouse/drag/pan.h>
 #include <input/mouse/drag/warp.h>
 #include <input/mouse/event.h>
 #include <input/mouse/hover.h>
@@ -148,6 +149,13 @@ int loop_timers_timeout(const loop_ctx_td *ctx)
      * to drive it. */
     s_loop_timers_tighten(&poll_timeout_ms, drag_warp_ms_remaining());
 
+    /* Shorter still while a window drag is holding the pointer
+     * against a pan-eligible screen edge (see 'drag_pan_tick' in
+     * input/mouse/drag/pan.h), so it still pans the viewport once its
+     * countdown elapses even with no further 'MotionNotify' arriving
+     * to drive it. */
+    s_loop_timers_tighten(&poll_timeout_ms, drag_pan_ms_remaining());
+
     /* Shorter still while the pointer, with no drag in progress, is
      * holding against a pan-eligible screen edge (see
      * 'mouse_viewport_edge_tick' in input/mouse/viewport_edge.h), so
@@ -196,6 +204,7 @@ void loop_timers_tick(const loop_ctx_td *ctx)
     menu_confirm_dialog_tick(xcb_connection_get(), ctx->config);
     menu_message_dialog_tick(xcb_connection_get());
     drag_warp_tick(xcb_connection_get());
+    drag_pan_tick(xcb_connection_get());
     mouse_viewport_edge_tick(xcb_connection_get());
     wm_shutdown_tick(ctx->wm);
     cctl_kill_tick();

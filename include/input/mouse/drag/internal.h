@@ -157,6 +157,21 @@ typedef struct {
     struct timespec warp_due;       /**< When the held edge becomes due
                                          to warp, only meaningful when
                                          @a is_warp_pending */
+
+    /**
+     * @brief Whether the pointer is held against a pan-eligible screen
+     *        edge, counting down to a viewport pan
+     *
+     *  @note Governed by @c desktops.pan_on_edge_drag in
+     *        @c config.json; see @c input/mouse/drag/pan.h
+     */
+    bool is_pan_pending;
+    enum compass_direction_e pan_direction; /**< Which edge,
+                                         meaningful only while
+                                         @a is_pan_pending */
+    struct timespec pan_due;        /**< When the held edge becomes due
+                                         to pan, only meaningful when
+                                         @a is_pan_pending */
     xcb_window_t root;              /**< Root window, saved at
                                          @a drag_start so @a drag_update /
                                          @a drag_end can draw an outline

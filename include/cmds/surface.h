@@ -74,6 +74,28 @@ void scmd_surface_desktop_switch_east(surface_td *surface);
 void scmd_surface_desktop_switch_west(surface_td *surface);
 
 /**
+ * @brief Whether the current desktop's viewport still has room to pan
+ *        one more screen toward @p direction
+ *
+ * Shared by @c input/mouse/drag/warp.h (to defer an edge-triggered
+ * desktop warp while a pan is still possible instead) and
+ * @c input/mouse/drag/pan.h (to decide whether an edge-triggered pan
+ * itself is), so neither has to duplicate the clamp math
+ * @a scmd_surface_viewport_pan_north and its three siblings already
+ * apply.
+ *
+ * @param surface   Pointer to the surface
+ * @param direction Compass direction to check
+ *
+ * @return Whether panning one more screen toward @p direction would
+ *         actually move the viewport
+ *
+ * @note Complexity: @e O(1)
+ */
+bool scmd_surface_viewport_pan_available(surface_td *surface,
+        enum compass_direction_e direction);
+
+/**
  * @brief Pan the current desktop's viewport one screen north, clamped
  *        at the top of the pannable area
  *

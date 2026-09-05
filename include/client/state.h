@@ -230,12 +230,12 @@ enum window_flags_e {
      * read from, any client property.
      *
      * Toggled by @c ACTION_CLIENT_TOGGLE_STICKY (see
-     * @a ccmd_client_toggle_stick in @c cmds/client/flags.c).  Has no
-     * observable effect yet: viewport panning itself, the very thing
-     * this flag is meant to survive, is not implemented, so every
-     * client's screen position is already fixed regardless of this
-     * flag's value.  It is stored and toggleable today so the rest of
-     * that feature has something to build on once panning exists
+     * @a ccmd_client_toggle_stick in @c cmds/client/flags.c).  Read by
+     * @a s_viewport_translate_visit (@c cmds/surface.c), which skips
+     * translating any client holding this flag whenever the desktop's
+     * viewport pans, whether that pan was triggered by a keyboard
+     * shortcut, the pointer resting against a screen edge, or a window
+     * or icon being dragged against one
      *
      * @see @a client_is_sticky below
      */

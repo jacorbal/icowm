@@ -102,6 +102,7 @@ static bool s_resist_finalize_last_arg;
 static int s_snap_move_calls;
 static int s_snap_resize_calls;
 static int s_warp_edge_check_calls;
+static int s_pan_edge_check_calls;
 static int s_icon_height_calls;
 
 static int s_enact_move_calls;
@@ -423,6 +424,19 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
 
 
 /**
+ * @brief Recording stand-in for @a drag_pan_edge_check
+ * @note Complexity: @e O(1)
+ */
+void drag_pan_edge_check(int16_t root_x, int16_t root_y)
+{
+    (void) root_x;
+    (void) root_y;
+
+    s_pan_edge_check_calls++;
+}
+
+
+/**
  * @brief Controllable stand-in for @a drag_icon_height
  * @note Complexity: @e O(1)
  */
@@ -671,6 +685,7 @@ static void s_reset(void)
     s_snap_move_calls = 0;
     s_snap_resize_calls = 0;
     s_warp_edge_check_calls = 0;
+    s_pan_edge_check_calls = 0;
     s_icon_height_calls = 0;
 
     s_enact_move_calls = 0;
@@ -1068,12 +1083,16 @@ static void s_test_update_null_guards_are_noop(void)
     drag_update(NULL, root_pos);
     TAP_EQ_INT(s_warp_edge_check_calls, 0,
             "null connection: nothing runs at all");
+    TAP_EQ_INT(s_pan_edge_check_calls, 0,
+            "null connection: the pan edge check does not run either");
 
     s_reset();
     s_drag.is_active = false;
     drag_update((xcb_connection_t *) 1, root_pos);
     TAP_EQ_INT(s_warp_edge_check_calls, 0,
             "no active drag: nothing runs at all");
+    TAP_EQ_INT(s_pan_edge_check_calls, 0,
+            "no active drag: the pan edge check does not run either");
 
     s_reset();
     s_drag.is_active = true;
@@ -1082,6 +1101,9 @@ static void s_test_update_null_guards_are_noop(void)
     TAP_EQ_INT(s_warp_edge_check_calls, 0,
             "active drag but no client attached: nothing runs at"
             " all");
+    TAP_EQ_INT(s_pan_edge_check_calls, 0,
+            "active drag but no client attached: the pan edge check"
+            " does not run either");
 }
 
 
@@ -1144,6 +1166,8 @@ static void s_test_update_move_dispatches_to_move_path(void)
             "a solid drag never goes through the outline path");
     TAP_EQ_INT(s_warp_edge_check_calls, 1,
             "the pointer-warp edge is still checked exactly once");
+    TAP_EQ_INT(s_pan_edge_check_calls, 1,
+            "the viewport-pan edge is also checked exactly once");
 }
 
 
@@ -1628,7 +1652,7 @@ static void s_test_client_returns_attached_client(void)
 
 int main(void)
 {
-    TAP_PLAN(110);
+    TAP_PLAN(114);
 
     s_test_start_null_guards_are_noop();
     s_test_start_move_success_populates_state();

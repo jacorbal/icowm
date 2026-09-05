@@ -39,6 +39,12 @@
  * @note A no-op, clearing any pending warp, unless the surface the drag
  *       is on actually has @c desktops.warp_on_edge_drag enabled and
  *       more than one desktop to warp between
+ * @note Also a no-op, deferring instead to @a drag_pan_edge_check
+ *       (@c input/mouse/drag/pan.h), whenever the current desktop's
+ *       viewport still has room to pan toward the held edge and
+ *       @c desktops.pan_on_edge_drag is enabled: panning within the
+ *       viewport always takes priority over switching desktops for as
+ *       long as it remains possible
  * @note Complexity: @e O(1)
  */
 void drag_warp_edge_check(int16_t root_x, int16_t root_y);
@@ -69,7 +75,9 @@ int drag_warp_ms_remaining(void);
  * has not yet elapsed, the drag it belonged to is no longer a plain
  * window or icon move, warping is disabled, there is only one desktop,
  * or (with @p desktops.wrap_at_bounds off) the edge held is already the
- * first or last desktop.
+ * first or last desktop.  Also a no-op, deferring to a pan instead (see
+ * @a drag_warp_edge_check's own note), if the viewport gained room to
+ * pan the held edge after the warp was armed.
  *
  * Moves the dragged client to the adjacent desktop without unmapping it
  * at any point (it must stay visible throughout), switches the

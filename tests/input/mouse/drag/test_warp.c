@@ -78,6 +78,11 @@ static int s_call_drag_overlay_show;
 static int s_call_desktop_action_client_add;
 static int s_call_desktop_action_client_rem;
 
+/** Value @a scmd_surface_viewport_pan_available hands back, reset to
+ *  @c false (the sensible "no room to pan" default) by @a s_reset
+ *  before each scenario */
+static bool s_stub_pan_available;
+
 
 /**
  * @brief Link-only stand-in for @a wm_get_surface_by_id
@@ -371,6 +376,20 @@ uint16_t drag_icon_height(const client_td *client)
 }
 
 
+/**
+ * @brief Controllable stand-in for @a scmd_surface_viewport_pan_available
+ *
+ * @note Complexity: @e O(1)
+ */
+bool scmd_surface_viewport_pan_available(surface_td *surface,
+        enum compass_direction_e direction)
+{
+    (void) surface;
+    (void) direction;
+    return s_stub_pan_available;
+}
+
+
 static void s_reset(void)
 {
     static client_td dragged;
@@ -404,6 +423,7 @@ static void s_reset(void)
     s_call_drag_overlay_show = 0;
     s_call_desktop_action_client_add = 0;
     s_call_desktop_action_client_rem = 0;
+    s_stub_pan_available = false;
 }
 
 
@@ -484,6 +504,22 @@ static void s_test_edge_check_left_edge_arms_west(void)
     TAP_OK(s_drag.is_warp_pending, "x=0 arms a pending warp");
     TAP_EQ_INT((long) s_drag.warp_direction, (long) COMPASS_WEST,
             "direction is west");
+}
+
+
+/* Pointer at the left edge, but the viewport still has room to pan
+ * that same edge with 'pan_on_edge_drag' enabled: the warp defers to
+ * the pan instead of arming */
+static void s_test_edge_check_pan_available_defers_to_pan(void)
+{
+    s_reset();
+    s_stub_surface->config->desktops.pan_on_edge_drag = true;
+    s_stub_pan_available = true;
+
+    drag_warp_edge_check(0, 500);
+
+    TAP_OK(!s_drag.is_warp_pending,
+            "viewport pan still available: no warp armed");
 }
 
 
@@ -839,7 +875,7 @@ static void s_test_tick_due_no_surface_stops_early(void)
 
 int main(void)
 {
-    TAP_PLAN(38);
+    TAP_PLAN(39);
 
     s_test_edge_check_no_client_clears_pending();
     s_test_edge_check_no_surface_is_noop();
@@ -847,6 +883,7 @@ int main(void)
     s_test_edge_check_single_desktop_is_noop();
     s_test_edge_check_middle_of_screen_is_noop();
     s_test_edge_check_left_edge_arms_west();
+    s_test_edge_check_pan_available_defers_to_pan();
     s_test_edge_check_one_past_left_edge_is_noop();
     s_test_edge_check_right_edge_arms_east();
     s_test_edge_check_top_edge_arms_north();

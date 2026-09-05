@@ -58,6 +58,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_desktop->show_overlay = true;
     config_desktop->notify_activity = true;
     config_desktop->warp_on_edge_drag = true;
+    config_desktop->pan_on_edge_drag = true;
     config_desktop->pan_on_edge_hover = true;
     config_desktop->wrap_at_bounds = true;
     config_desktop->margins.top = 0u;

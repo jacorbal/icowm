@@ -473,7 +473,9 @@ Optional, and only meaningful in the per-screen shape above.  Gives
 every desktop on this screen a pannable area larger than the physical
 screen itself, `columns` × `rows` screens wide, scrolled through by
 resting the pointer against a screen edge (`desktops.pan-on-edge-hover`,
-§2.10) or a dedicated set of keyboard shortcuts (`bindings.json`), with
+§2.10), holding it there while dragging a window or icon
+(`desktops.pan-on-edge-drag`, §2.10), or a dedicated set of keyboard
+shortcuts (`bindings.json`), with
 `_NET_DESKTOP_VIEWPORT` kept in sync for any EWMH-aware pager as the
 origin moves.  That origin is remembered independently per desktop, so
 switching to another desktop and back leaves the first one exactly
@@ -1265,8 +1267,9 @@ everything here **does** take effect on a configuration reload.
 |---------------------|---------|---------|-------------|
 | `show-overlay`      | boolean | `true`  | Whether a small notification popup is displayed in the center of the screen for approximately 400 ms whenever the active virtual desktop changes.  The popup shows the desktop index and name in the format `[index] -- Name`, or just `[index]` when the desktop has no name; with a `topology.screens.desktops[].layout` genuinely more than one row configured, `(row,column)` is appended after the index the same way it is in the search box and window lists. |
 | `notify-activity`   | boolean | `true`  | Whether a client becoming urgent on a desktop other than the one currently visible on its surface shows an informational dialog naming that desktop (`Detected activity on desktop [index] -- Name`, with a surface disambiguator appended when more than one surface is managed).  A client urgent on the currently visible desktop already gets its titlebar blink instead (see `urgency.*` in `a11y.json`, §6), which this never duplicates. |
-| `warp-on-edge-drag` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge switches to the adjacent desktop in that direction (left/right always; top/bottom too, once a `layout` with more than one row is configured), cursor and dragged window or icon both carried across, after a short delay.  Meaningless with only one desktop. |
-| `pan-on-edge-hover`  | boolean | `true`  | With no drag in progress, merely resting the pointer against a screen edge pans the current desktop's viewport toward that edge instead, after a short delay, repeating for as long as the pointer stays held there.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured); an edge held during a drag is `warp-on-edge-drag` above's to answer instead, never this one's. |
+| `warp-on-edge-drag` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge switches to the adjacent desktop in that direction (left/right always; top/bottom too, once a `layout` with more than one row is configured), cursor and dragged window or icon both carried across, after a short delay.  Deferred entirely to `pan-on-edge-drag` below for as long as the current desktop's viewport still has room to pan toward that same edge instead; only once the viewport's own bound is reached does holding the edge switch desktops.  Meaningless with only one desktop. |
+| `pan-on-edge-drag`  | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge pans the current desktop's viewport toward that edge instead, carrying the dragged window or icon along with every other non-sticky client on the desktop, after a short delay, repeating for as long as the pointer stays held there and the viewport still has room left that direction.  Takes priority over `warp-on-edge-drag` above whenever there is room to pan; once the viewport's own bound is reached, holding the edge further switches desktops instead, exactly as if this were disabled.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+| `pan-on-edge-hover`  | boolean | `true`  | With no drag in progress, merely resting the pointer against a screen edge pans the current desktop's viewport toward that edge instead, after a short delay, repeating for as long as the pointer stays held there.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured); an edge held during a drag is `pan-on-edge-drag` or `warp-on-edge-drag` above's to answer instead, never this one's. |
 | `wrap-at-bounds`    | boolean | `true`  | Whether switching past the edge of the desktop grid, in any of the four compass directions, however triggered (keyboard binding, mouse scroll, an edge drag, or otherwise), wraps around to the other end of that same row or column, rather than stopping there.  Meaningless with only one desktop. |
 | `margins.top`       | integer | `0`     | Extra space reserved at the top of every desktop's workarea, in pixels, on every screen. |
 | `margins.right`     | integer | `0`     | Extra space reserved on the right, in pixels. |
@@ -1289,6 +1292,7 @@ override.
     "show-overlay": true,
     "notify-activity": true,
     "warp-on-edge-drag": true,
+    "pan-on-edge-drag": true,
     "pan-on-edge-hover": true,
     "wrap-at-bounds": true,
     "margins": {
@@ -2526,6 +2530,7 @@ to whatever theme loads, unconditionally.
         "show-overlay": true,
         "notify-activity": true,
         "warp-on-edge-drag": true,
+        "pan-on-edge-drag": true,
         "pan-on-edge-hover": true,
         "wrap-at-bounds": true,
         "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 }

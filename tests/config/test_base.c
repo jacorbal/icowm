@@ -666,12 +666,14 @@ static void s_test_desktop_behavior(void)
     s_load(
         "{\"desktops\": {\"show-overlay\": true,"
         " \"warp-on-edge-drag\": true, \"pan-on-edge-hover\": true,"
+        " \"pan-on-edge-drag\": true,"
         " \"wrap-at-bounds\": true,"
         " \"margins\": {\"top\": 3, \"left\": 7}}}", &base, &desktop);
 
     TAP_OK(desktop.show_overlay, "desktops.show-overlay");
     TAP_OK(desktop.warp_on_edge_drag, "desktops.warp-on-edge-drag");
     TAP_OK(desktop.pan_on_edge_hover, "desktops.pan-on-edge-hover");
+    TAP_OK(desktop.pan_on_edge_drag, "desktops.pan-on-edge-drag");
     TAP_OK(desktop.wrap_at_bounds, "desktops.wrap-at-bounds");
     TAP_EQ_INT((int) desktop.margins.top, 3, "desktops.margins.top");
     TAP_EQ_INT((int) desktop.margins.left, 7, "desktops.margins.left");
@@ -774,7 +776,7 @@ static void s_test_systray_text_order_no_dedup(void)
 
 int main(void)
 {
-    TAP_PLAN(94);
+    TAP_PLAN(95);
 
     s_test_missing_file();
     s_test_screens_flat_shape();

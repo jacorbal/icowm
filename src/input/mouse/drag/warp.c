@@ -36,6 +36,7 @@
 
 /* Command includes */
 #include <cmds/client/transient.h>
+#include <cmds/surface.h>
 
 /* Project includes */
 #include <client.h>
@@ -404,7 +405,7 @@ static void s_warp_move_dragged(xcb_connection_t *connection,
  * full reasoning */
 void drag_warp_edge_check(int16_t root_x, int16_t root_y)
 {
-    const surface_td *surface;
+    surface_td *surface;
     bool at_left;
     bool at_right;
     bool at_top;
@@ -441,6 +442,18 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
     } else if (at_bottom) {
         direction = COMPASS_SOUTH;
     } else {
+        s_drag.is_warp_pending = false;
+        return;
+    }
+
+    if (surface->config->desktops.pan_on_edge_drag &&
+            scmd_surface_viewport_pan_available(surface, direction)) {
+        /* The current desktop's viewport still has room to pan toward
+         * this same edge; that takes priority over a desktop switch
+         * for as long as it does (see 'pan_on_edge_drag' in
+         * config/desktops.h), so this defers to 'drag_pan_edge_check'
+         * (drag/pan.h) entirely rather than arming a warp underneath
+         * it too. */
         s_drag.is_warp_pending = false;
         return;
     }
@@ -513,6 +526,18 @@ void drag_warp_tick(xcb_connection_t *connection)
             surface->config == NULL ||
             !surface->config->desktops.warp_on_edge_drag ||
             surface->desktop_count <= 1u) {
+        return;
+    }
+
+    if (surface->config->desktops.pan_on_edge_drag &&
+            scmd_surface_viewport_pan_available(surface,
+                s_drag.warp_direction)) {
+        /* Live re-check, same reasoning as 'drag_warp_edge_check':
+         * the viewport may have gained room to pan this same edge
+         * since this warp was armed (a keyboard shortcut moving it
+         * mid-countdown, say), in which case that takes priority over
+         * a desktop switch now just as it would have from the
+         * start. */
         return;
     }
 

@@ -68,6 +68,7 @@
 #include <input/mouse/drag/resist.h>
 #include <input/mouse/drag/snap.h>
 #include <input/mouse/drag/outline.h>
+#include <input/mouse/drag/pan.h>
 #include <input/mouse/drag/warp.h>
 #include <utils/xcb/window.h>
 
@@ -104,6 +105,9 @@ drag_state_td s_drag = {
     .is_warp_pending = false,
     .warp_direction = COMPASS_NORTH,
     .warp_due = {0},
+    .is_pan_pending = false,
+    .pan_direction = COMPASS_NORTH,
+    .pan_due = {0},
     .root = XCB_WINDOW_NONE,
     .is_solid_drag = true,
     .is_outline_offscreened = false,
@@ -219,6 +223,8 @@ static void s_drag_update_icon(xcb_connection_t *connection,
     }
     drag_warp_edge_check((int16_t) root_pos.x,
             (int16_t) root_pos.y);
+    drag_pan_edge_check((int16_t) root_pos.x,
+            (int16_t) root_pos.y);
     xcb_flush(connection);
 }
 
@@ -286,6 +292,8 @@ static void s_drag_update_move(xcb_connection_t *connection,
         drag_overlay_hide(connection);
     }
     drag_warp_edge_check((int16_t) root_pos.x,
+            (int16_t) root_pos.y);
+    drag_pan_edge_check((int16_t) root_pos.x,
             (int16_t) root_pos.y);
 }
 
@@ -582,6 +590,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
         ? 0u : client->config->base.windows.edges.snap.screen;
     s_drag.has_last_pos = false;
     s_drag.is_warp_pending = false;
+    s_drag.is_pan_pending = false;
 
     /* For resize operations, make the visible corner handles define the
      * corner hit zones.  Outside those adaptive-margin corner zones
@@ -1055,6 +1064,7 @@ void drag_end(xcb_connection_t *connection,
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.was_icon_mapped = false;
     s_drag.is_warp_pending = false;
+    s_drag.is_pan_pending = false;
 
     if (connection != NULL) {
         xcb_ungrab_pointer(connection, XCB_CURRENT_TIME);
@@ -1097,6 +1107,7 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
     s_drag.is_active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.is_warp_pending = false;
+    s_drag.is_pan_pending = false;
     if (s_drag.client != NULL) {
         /* The module-level 's_drag' bookkeeping above is reset either
          * way, but without this the client's OWN operation flag stays

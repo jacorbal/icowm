@@ -397,6 +397,55 @@ static void s_viewport_pan(surface_td *surface,
 }
 
 
+/* Whether the current desktop's viewport still has room to pan one
+ * more screen toward a given compass direction */
+bool scmd_surface_viewport_pan_available(surface_td *surface,
+        enum compass_direction_e direction)
+{
+    const desktop_td *desktop;
+    uint32_t columns;
+    uint32_t rows;
+    int32_t max_x;
+    int32_t max_y;
+    /* Initialized here, not left to the switch below, matching
+     * 's_warp_target_desktop' (input/mouse/drag/warp.c): that switch
+     * deliberately has no 'default:' so the compiler keeps checking it
+     * against every direction, which also means it cannot prove to
+     * itself that one of its cases always runs. */
+    bool available = false;
+
+    if (surface == NULL) {
+        return false;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return false;
+    }
+
+    s_surface_viewport_dims(surface, &columns, &rows);
+    max_x = (int32_t) (columns - 1u) * (int32_t) desktop->geometry.dim.w;
+    max_y = (int32_t) (rows - 1u) * (int32_t) desktop->geometry.dim.h;
+
+    switch (direction) {
+    case COMPASS_NORTH:
+        available = desktop->viewport_origin.y > 0;
+        break;
+    case COMPASS_SOUTH:
+        available = desktop->viewport_origin.y < max_y;
+        break;
+    case COMPASS_EAST:
+        available = desktop->viewport_origin.x < max_x;
+        break;
+    case COMPASS_WEST:
+        available = desktop->viewport_origin.x > 0;
+        break;
+    }
+
+    return available;
+}
+
+
 /* Pan the current desktop's viewport one screen north */
 void scmd_surface_viewport_pan_north(surface_td *surface)
 {

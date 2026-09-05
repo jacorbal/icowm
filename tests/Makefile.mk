@@ -69,6 +69,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/input/mouse/drag/test_resist \
     $(O_DIR)/tests/input/mouse/drag/test_snap \
     $(O_DIR)/tests/input/mouse/drag/test_warp \
+    $(O_DIR)/tests/input/mouse/drag/test_pan \
     $(O_DIR)/tests/input/mouse/test_viewport_edge \
     $(O_DIR)/tests/rules/test_apply \
     $(O_DIR)/tests/policy/test_placement \
@@ -542,6 +543,13 @@ $(O_DIR)/tests/input/mouse/drag/test_snap: \
 $(O_DIR)/tests/input/mouse/drag/test_warp: \
 		$(TESTS_DIR)/input/mouse/drag/test_warp.c \
 		$(S_DIR)/input/mouse/drag/warp.c \
+		$(S_DIR)/utils/time/clock.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/input/mouse/drag/test_pan: \
+		$(TESTS_DIR)/input/mouse/drag/test_pan.c \
+		$(S_DIR)/input/mouse/drag/pan.c \
 		$(S_DIR)/utils/time/clock.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
