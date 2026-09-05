@@ -96,6 +96,27 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
         enum compass_direction_e direction);
 
 /**
+ * @brief Set or clear the one client a viewport pan's per-client
+ *        translate walk should leave untouched
+ *
+ * A drag in progress already repositions @p client (or leaves it
+ * deliberately parked off screen, for an outline drag) through its
+ * own logic in @c input/mouse/drag/pan.c, so folding it into the
+ * ordinary translate walk too (@c s_viewport_translate_visit, this
+ * file) would fight that logic instead of cooperating with it: an
+ * outline drag in particular parks the real window off screen for
+ * the whole drag and must never have that parking spot silently
+ * nudged back toward the visible screen by an unrelated pan.  Passing
+ * @c NULL clears the exclusion once the drag ends or is cancelled.
+ *
+ * @param client Client to exclude from every future pan's translate
+ *               walk until cleared, or @c NULL to clear it
+ *
+ * @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_drag_exclude(client_td *client);
+
+/**
  * @brief Pan the current desktop's viewport one screen north, clamped
  *        at the top of the pannable area
  *

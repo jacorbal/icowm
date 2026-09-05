@@ -158,7 +158,12 @@ static void s_pan_apply(surface_td *surface,
  * already left it untouched on screen (@a s_viewport_translate_visit,
  * @c cmds/surface.c, skips any client holding @c CLIENT_FLAG_STICKY),
  * so shifting the drag's own cached position here would only make it
- * visually snap on the next @c MotionNotify instead.
+ * visually snap on the next @c MotionNotify instead.  The dragged
+ * client itself is also the one client that same translate walk
+ * always skips regardless of stickiness (@a
+ * scmd_surface_viewport_drag_exclude having named it for the whole
+ * drag's duration), so every bit of its own repositioning below is
+ * this function's job alone rather than shared with that walk.
  *
  * @param connection XCB connection
  * @param is_icon    Whether an icon window is being dragged
@@ -207,14 +212,38 @@ static void s_pan_move_dragged(xcb_connection_t *connection,
         show_geom = s_drag.client->config != NULL &&
             s_drag.client->config->base.windows.show_geom;
 
-        /* Solid drag: 's_pan_apply' above already moved the real
-         * window itself, exactly like every other non-sticky client on
-         * the desktop ('s_viewport_translate_visit', cmds/surface.c),
-         * so there is nothing further to configure here.  Only the
-         * outline stand-in ('!is_solid_drag') needs a manual move,
-         * since it is a set of separate, override-redirect windows the
-         * per-client translate walk never touches at all. */
-        if (!s_drag.is_solid_drag) {
+        /* Solid drag: the real window moves live on every genuine
+         * 'MotionNotify' too ('drag_update', drag.c), so a pan mid-
+         * drag follows that exact same precedent instead of leaving
+         * the dragged client to the generic per-client translate walk
+         * (which now excludes it outright, see 's_viewport_pan_
+         * excluded_client', cmds/surface.c).  A raw 'xcb_configure_
+         * window' rather than 'ccmd_client_move', for the same reason
+         * 's_viewport_translate_visit' itself avoids that wrapper: it
+         * refuses to touch a maximized or fullscreen client at all,
+         * while a pan still has to move one of those exactly like
+         * every other client.  Only the outline stand-in
+         * ('!is_solid_drag') needs its own manual move here instead,
+         * since it is a set of separate, override-redirect windows
+         * that walk never touched even before this exclusion existed.
+         * The real window behind an outline drag stays exactly where
+         * 'drag_client_move_offscreen' parked it, untouched by a pan,
+         * precisely because that walk no longer reaches it either. */
+        if (s_drag.is_solid_drag) {
+            xcb_window_t target;
+            uint32_t vals[2];
+
+            s_drag.client->layout.geometry.cur.pos.x = new_window_x;
+            s_drag.client->layout.geometry.cur.pos.y = new_window_y;
+            target = (client_is_decorated(s_drag.client) &&
+                    s_drag.client->frame != 0)
+                ? s_drag.client->frame
+                : s_drag.client->window;
+            vals[0] = (uint32_t) new_window_x;
+            vals[1] = (uint32_t) new_window_y;
+            xcb_configure_window(connection, target,
+                    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, vals);
+        } else {
             drag_outline_move(connection, (struct geometry_s) {
                         { new_window_x, new_window_y },
                         { s_drag.client_start.dim.w,

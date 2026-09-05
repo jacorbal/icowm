@@ -53,6 +53,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <cmds/surface.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
@@ -125,6 +126,8 @@ static int s_bounds_resize_calls;
 static im_resize_bounds_td s_stub_bounds_resize;
 static int s_redraw_calls;
 static int s_logger_msg_calls;
+static int s_viewport_drag_exclude_calls;
+static client_td *s_viewport_drag_exclude_last_client;
 
 
 /**
@@ -464,6 +467,17 @@ void enact_client_move(client_td *client, struct position_s pos)
 
 
 /**
+ * @brief Recording stand-in for @a scmd_surface_viewport_drag_exclude
+ * @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_drag_exclude(client_td *client)
+{
+    s_viewport_drag_exclude_calls++;
+    s_viewport_drag_exclude_last_client = client;
+}
+
+
+/**
  * @brief Recording stand-in for @a enact_client_resize
  * @note Complexity: @e O(1)
  */
@@ -709,6 +723,8 @@ static void s_reset(void)
     memset(&s_stub_bounds_resize, 0, sizeof(s_stub_bounds_resize));
     s_redraw_calls = 0;
     s_logger_msg_calls = 0;
+    s_viewport_drag_exclude_calls = 0;
+    s_viewport_drag_exclude_last_client = NULL;
 }
 
 

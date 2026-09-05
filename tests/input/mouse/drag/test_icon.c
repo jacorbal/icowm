@@ -39,6 +39,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <cmds/surface.h>
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
@@ -57,6 +58,8 @@ drag_state_td s_drag;
 static int s_overlay_hide_calls;
 static int s_logger_msg_calls;
 static int s_render_icon_calls;
+static int s_viewport_drag_exclude_calls;
+static client_td *s_viewport_drag_exclude_last_client;
 static bool s_render_icon_last_is_current;
 static bool s_render_icon_last_force;
 
@@ -94,6 +97,17 @@ void drag_overlay_hide(xcb_connection_t *connection)
     (void) connection;
 
     s_overlay_hide_calls++;
+}
+
+
+/**
+ * @brief Recording stand-in for @a scmd_surface_viewport_drag_exclude
+ * @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_drag_exclude(client_td *client)
+{
+    s_viewport_drag_exclude_calls++;
+    s_viewport_drag_exclude_last_client = client;
 }
 
 
@@ -187,6 +201,8 @@ static void s_reset(void)
     s_stub_grab_reply_null = false;
     s_grab_pointer_calls = 0;
     s_grab_pointer_reply_calls = 0;
+    s_viewport_drag_exclude_calls = 0;
+    s_viewport_drag_exclude_last_client = NULL;
 }
 
 

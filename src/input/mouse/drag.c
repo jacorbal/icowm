@@ -50,6 +50,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <cmds/surface.h>
 #include <desktop.h>
 #include <enact.h>
 #include <logger.h>
@@ -563,6 +564,7 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
     drag_overlay_hide(connection);
     s_drag.is_active = true;
     s_drag.client = client;
+    scmd_surface_viewport_drag_exclude(client);
     s_drag.desktop = desktop;
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.operation = operation;
@@ -1060,6 +1062,7 @@ void drag_end(xcb_connection_t *connection,
     s_drag.is_active = false;
     s_drag.operation = CLIENT_OPERATION_IDLE;
     s_drag.client = NULL;
+    scmd_surface_viewport_drag_exclude(NULL);
     s_drag.desktop = NULL;
     s_drag.drag_window = XCB_WINDOW_NONE;
     s_drag.was_icon_mapped = false;
@@ -1116,6 +1119,7 @@ void drag_cancel(xcb_connection_t *connection, const client_td *client)
         s_drag.client->properties.operation = CLIENT_OPERATION_IDLE;
     }
     s_drag.client = NULL;
+    scmd_surface_viewport_drag_exclude(NULL);
     s_drag.desktop = NULL;
     s_drag.drag_window = XCB_WINDOW_NONE;
 

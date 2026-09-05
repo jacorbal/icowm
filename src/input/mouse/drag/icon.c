@@ -32,6 +32,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <cmds/surface.h>
 #include <desktop.h>
 #include <logger.h>
 #include <render/icon.h>
@@ -60,6 +61,7 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
     drag_overlay_hide(connection);
     s_drag.is_active = true;
     s_drag.client = client;
+    scmd_surface_viewport_drag_exclude(client);
     s_drag.desktop = desktop;
     s_drag.drag_window = client->icon_window;
     s_drag.operation = CLIENT_OPERATION_MOVING;

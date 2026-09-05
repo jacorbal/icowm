@@ -765,9 +765,29 @@ static void s_test_tick_due_solid_west_pan_shifts_state(void)
             "client_cur.pos.x shifts by the same +1920 delta");
     TAP_EQ_INT(s_drag.client_cur.pos.y, 210,
             "client_cur.pos.y is likewise untouched");
-    TAP_EQ_INT(s_call_configure_window, 0,
-            "a solid, non-icon drag never touches the icon window"
-            " directly");
+    TAP_EQ_INT(s_call_configure_window, 1,
+            "a solid drag repositions the real window exactly once"
+            " via a raw configure, bypassing the generic per-client"
+            " viewport walk, which now excludes the dragged client"
+            " outright");
+    TAP_OK(s_configure_window_last_window != s_drag.client->icon_window,
+            "specifically the client's own real window, never its icon"
+            " window");
+    TAP_EQ_INT((int) s_configure_window_last_mask,
+            (int) (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y),
+            "only X and Y are configured, no size change");
+    TAP_EQ_INT(s_configure_window_last_x, 2030,
+            "moved to the same shifted X the state tracking now"
+            " reflects");
+    TAP_EQ_INT(s_configure_window_last_y, 210,
+            "moved to the same untouched Y the state tracking now"
+            " reflects");
+    TAP_EQ_INT(s_drag.client->layout.geometry.cur.pos.x, 2030,
+            "the client's own 'cur.pos.x' is kept in sync with the"
+            " raw configure, matching what every other part of the"
+            " window manager still relies on");
+    TAP_EQ_INT(s_drag.client->layout.geometry.cur.pos.y, 210,
+            "likewise for 'cur.pos.y'");
     TAP_EQ_INT(s_call_drag_outline_move, 0,
             "a solid drag never goes through the outline path"
             " either");

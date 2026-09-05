@@ -255,20 +255,29 @@ static void s_viewport_translate_icon(client_td *client,
 }
 
 
+/** Client a viewport pan's per-client translate walk must leave
+ * untouched, since a drag in progress already handles its position
+ * (or its off-screen parking spot) through 'input/mouse/drag/pan.c'
+ * instead; @c NULL whenever no drag is excluding one. */
+static client_td *s_viewport_pan_excluded_client = NULL;
+
+
 /**
  * @brief Per-client callback for @a s_viewport_pan, translating one
  *        client's stored geometry and its on-screen window together
  *
  * Skips any client stuck to the screen rather than the desktop's own
  * pannable canvas ('client_is_sticky'), leaving it exactly where it
- * already sits.  Every other client, maximized or fullscreen included,
- * moves by the same delta as the desktop's own viewport origin: both
- * 'cur' and 'old' halves of its saved geometry shift together, so a
- * later unmaximize or unshade restores it to where this pan left it
- * rather than to where it sat before.  Reaches the real window
- * directly through 'ccmd_client_apply_geometry' rather than
- * 'ccmd_client_move', since that higher-level wrapper refuses to touch
- * a maximized or fullscreen client at all.  Finally hands off to @a
+ * already sits, as well as whichever single client (if any)
+ * @a scmd_surface_viewport_drag_exclude last named.  Every other
+ * client, maximized or fullscreen included, moves by the same delta
+ * as the desktop's own viewport origin: both 'cur' and 'old' halves
+ * of its saved geometry shift together, so a later unmaximize or
+ * unshade restores it to where this pan left it rather than to where
+ * it sat before.  Reaches the real window directly through
+ * 'ccmd_client_apply_geometry' rather than 'ccmd_client_move', since
+ * that higher-level wrapper refuses to touch a maximized or
+ * fullscreen client at all.  Finally hands off to @a
  * s_viewport_translate_icon, which decides on its own whether this
  * client's icon should pan along too.
  *
@@ -283,7 +292,7 @@ static void s_viewport_translate_visit(client_td *client, void *data)
     const struct position_s *delta = (const struct position_s *) data;
     xcb_window_t target;
 
-    if (client_is_sticky(client)) {
+    if (client_is_sticky(client) || client == s_viewport_pan_excluded_client) {
         return;
     }
 
@@ -438,6 +447,14 @@ static void s_viewport_pan(surface_td *surface,
     }
 
     s_viewport_apply_origin(surface, desktop, columns, rows, origin);
+}
+
+
+/* Set or clear the one client the translate walk of every future pan
+ * must leave untouched, because a drag already owns its position */
+void scmd_surface_viewport_drag_exclude(client_td *client)
+{
+    s_viewport_pan_excluded_client = client;
 }
 
 

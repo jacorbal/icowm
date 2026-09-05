@@ -484,6 +484,55 @@ static void s_test_pan_east_moves_and_translates_clients(void)
 }
 
 
+/* A client currently marked as the drag-excluded one (via
+ * 'scmd_surface_viewport_drag_exclude') is skipped by the walk
+ * exactly like a sticky client, since a pan mid-drag must never
+ * reposition the real window out from under the drag that is already
+ * tracking it by other means */
+static void s_test_pan_east_skips_drag_excluded_client(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *moving = s_make_client(10, 20, false);
+    client_td *dragged = s_make_client(30, 40, false);
+    client_td *clients[2];
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    clients[0] = moving;
+    clients[1] = dragged;
+
+    s_reset();
+    s_stub_desktop = desktop;
+    s_stub_clients = clients;
+    s_stub_client_count = 2u;
+
+    scmd_surface_viewport_drag_exclude(dragged);
+    scmd_surface_viewport_pan_east(surface);
+    scmd_surface_viewport_drag_exclude(NULL);
+
+    TAP_EQ_INT(moving->layout.geometry.cur.pos.x, -790,
+            "the un-excluded client is still translated as usual");
+    TAP_EQ_INT(dragged->layout.geometry.cur.pos.x, 30,
+            "the drag-excluded client is left exactly where it was");
+    TAP_EQ_INT(s_call_target_win, 1,
+            "ccmd_target_win is reached exactly once, for the"
+            " un-excluded client alone");
+    TAP_EQ_INT(s_call_apply_geometry, 1,
+            "ccmd_client_apply_geometry is reached exactly once, for"
+            " the un-excluded client alone");
+
+    free(surface);
+    free(desktop);
+    free(moving);
+    free(dragged);
+}
+
+
 /* When 'icons.follow-viewport' is on and a client's icon is currently
  * mapped, panning shifts that icon's own saved position (and its
  * real window) by the exact same delta as the client itself, right
@@ -927,6 +976,7 @@ int main(void)
     s_test_pan_no_config_falls_back_to_1x1();
     s_test_pan_id_past_max_screens_falls_back_to_1x1();
     s_test_pan_east_moves_and_translates_clients();
+    s_test_pan_east_skips_drag_excluded_client();
     s_test_pan_east_also_translates_mapped_icon();
     s_test_pan_east_leaves_icon_when_follow_viewport_off();
     s_test_pan_east_clamped_at_edge_is_noop();
