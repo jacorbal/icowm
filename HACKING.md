@@ -189,10 +189,25 @@ finished.  gcc and clang each catch what the other does not: clang's
 exists, and its `-Wswitch-enum` finds an enumeration value quietly
 swallowed by a `default`.
 
-At runtime, `-L` sets how much is logged, from `0` for every traced
-action to `8` for fatal errors alone, and `-l` sends it to a file.
-Using `-L 0` on a busy session produces tens of thousands of lines,
-which is what makes it useful when an event ordering is in question.
+At runtime, `-L <level>` sets how much is logged, from `0` for every
+traced action to `8` for fatal errors alone, and `-l <log_file>` sends
+it to a file.  Using `-L 0` on a busy session produces tens of thousands
+of lines, which is what makes it useful when an event ordering is in
+question.
+
+Allowed values for log level:
+
+| Value | Level    |
+|-------|----------|
+|     0 | Trace    |
+|     1 | Debug    |
+|     2 | Info     |
+|     3 | Notice   |
+|     4 | Warning  |
+|     5 | Error    |
+|     6 | Critical |
+|     7 | Alert    |
+|     8 | Fatal    |
 
 Tests
 -----
