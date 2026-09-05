@@ -224,6 +224,27 @@
     (!client_is_pinned(w))
 
 /**
+ * @brief Macro that evaluates to the client sticky flag
+ *
+ * Not to be confused with @a client_is_pinned above; see
+ * @c CLIENT_FLAG_STICKY's comment in @c client/state.h for the full
+ * distinction between the two
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_sticky(w) \
+    ((w)->properties.flags & CLIENT_FLAG_STICKY)
+
+/**
+ * @brief Macro that evaluates to the negation of the client sticky
+ *        flag
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_unsticky(w) \
+    (!client_is_sticky(w))
+
+/**
  * @brief Macro that evaluates to the client decoration flag
  *
  * Normalized to @c 0 or @c 1, unlike leaving the raw flag bit's
@@ -559,6 +580,46 @@
 #define client_toggle_pin(w) \
     safeflg_toggle(&((w)->properties.flags), \
             CLIENT_FLAG_PIN, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that sets the sticky flag of a client
+ *
+ * Not to be confused with @a client_pin above; see
+ * @c CLIENT_FLAG_STICKY's comment in @c client/state.h for the full
+ * distinction between the two
+ *
+ * @param w Pointer to the client structure whose sticky flag is to
+ *          be set
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_stick(w) \
+    safeflg_set(&((w)->properties.flags), \
+            CLIENT_FLAG_STICKY, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that clears the sticky flag of a client
+ *
+ * @param w Pointer to the client structure whose sticky flag is to
+ *          be cleared
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_unstick(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            CLIENT_FLAG_STICKY, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that toggles the sticky flag of a client
+ *
+ * @param w Pointer to the client structure whose sticky flag is to
+ *          be toggled
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_toggle_stick(w) \
+    safeflg_toggle(&((w)->properties.flags), \
+            CLIENT_FLAG_STICKY, (1 << CLIENT_FLAG_MAX))
 
 /**
  * @brief Macro that sets the decoration flag of a client

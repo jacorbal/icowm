@@ -366,6 +366,9 @@ static void s_test_null_client_is_a_no_op(void)
     ccmd_client_pin(NULL);
     ccmd_client_unpin(NULL);
     ccmd_client_toggle_pin(NULL);
+    ccmd_client_stick(NULL);
+    ccmd_client_unstick(NULL);
+    ccmd_client_toggle_stick(NULL);
     ccmd_client_urge(NULL);
     ccmd_client_unurge(NULL);
     ccmd_client_set_opacity_active(NULL, 50u);
@@ -576,6 +579,132 @@ static void s_test_toggle_pin_locked_client_is_a_no_op(void)
 }
 
 
+/* Sticking an unstuck client sets its own sticky flag; unlike pin,
+ * sticky has no transient family, no EWMH state to sync, and no
+ * desktop-changed ping to publish, so none of those side-effect
+ * counters ever move */
+static void s_test_stick_sets_flag_with_no_side_effects(void)
+{
+    client_td *client;
+
+    s_reset();
+    client = s_make_client(50u);
+
+    ccmd_client_stick(client);
+
+    TAP_OK(client_is_sticky(client) != 0,
+            "sticking an unstuck client sets its sticky flag");
+    TAP_EQ_INT(s_sync_states_calls, 0,
+            "sticky has no EWMH counterpart to sync state for");
+    TAP_EQ_INT(s_publish_calls, 0,
+            "sticky does not move the client between desktops");
+    TAP_EQ_INT(s_redraw_calls, 0,
+            "sticky has no visual indicator yet to redraw for");
+
+    s_teardown();
+}
+
+
+/* A locked client is never stuck, whatever its own sticky flag says */
+static void s_test_stick_locked_client_is_a_no_op(void)
+{
+    client_td *client;
+
+    s_reset();
+    client = s_make_client(51u);
+    client->properties.flags |= CLIENT_FLAG_LOCKED;
+
+    ccmd_client_stick(client);
+
+    TAP_OK(client_is_unsticky(client),
+            "a locked client stays unstuck regardless of a stick"
+            " request");
+
+    s_teardown();
+}
+
+
+/* Unsticking a stuck, unlocked client clears its own sticky flag */
+static void s_test_unstick_clears_flag(void)
+{
+    client_td *client;
+
+    s_reset();
+    client = s_make_client(52u);
+    client_stick(client);
+
+    ccmd_client_unstick(client);
+
+    TAP_OK(client_is_unsticky(client),
+            "unsticking a stuck client clears its sticky flag");
+
+    s_teardown();
+}
+
+
+/* A locked client is never unstuck, whatever its own sticky flag
+ * says */
+static void s_test_unstick_locked_client_is_a_no_op(void)
+{
+    client_td *client;
+
+    s_reset();
+    client = s_make_client(53u);
+    client_stick(client);
+    client->properties.flags |= CLIENT_FLAG_LOCKED;
+
+    ccmd_client_unstick(client);
+
+    TAP_OK(client_is_sticky(client) != 0,
+            "a locked client stays stuck regardless of an unstick"
+            " request");
+
+    s_teardown();
+}
+
+
+/* Toggling sticky on a currently-unstuck client sticks it, and
+ * toggling again unsticks it */
+static void s_test_toggle_stick_flips_both_ways(void)
+{
+    client_td *client;
+
+    s_reset();
+    client = s_make_client(54u);
+
+    ccmd_client_toggle_stick(client);
+    TAP_OK(client_is_sticky(client) != 0,
+            "toggling an unstuck client sticks it");
+
+    ccmd_client_toggle_stick(client);
+    TAP_OK(client_is_unsticky(client),
+            "toggling it again unsticks it back");
+
+    s_teardown();
+}
+
+
+/* A locked client's toggle never even reaches the stick/unstick
+ * split: it is refused outright, same as a direct unstick request
+ * would be */
+static void s_test_toggle_stick_locked_client_is_a_no_op(void)
+{
+    client_td *client;
+
+    s_reset();
+    client = s_make_client(55u);
+    client->properties.flags |= CLIENT_FLAG_LOCKED;
+
+    ccmd_client_toggle_stick(client);
+
+    TAP_OK(client_is_unsticky(client),
+            "a locked, unstuck client stays unstuck through a"
+            " toggle request");
+
+    s_teardown();
+}
+
+
 /* Setting the active-state opacity override marks it set, stores the
  * given percentage, and requests a redraw */
 static void s_test_set_opacity_active_stores_value(void)
@@ -723,7 +852,7 @@ static void s_test_unurge_clears_flag_and_broadcasts(void)
 
 int main(void)
 {
-    TAP_PLAN(44);
+    TAP_PLAN(54);
 
     s_test_null_client_is_a_no_op();
     s_test_pin_sets_flag_and_side_effects();
@@ -734,6 +863,12 @@ int main(void)
     s_test_unpin_cascades_but_skips_locked();
     s_test_toggle_pin_flips_both_ways();
     s_test_toggle_pin_locked_client_is_a_no_op();
+    s_test_stick_sets_flag_with_no_side_effects();
+    s_test_stick_locked_client_is_a_no_op();
+    s_test_unstick_clears_flag();
+    s_test_unstick_locked_client_is_a_no_op();
+    s_test_toggle_stick_flips_both_ways();
+    s_test_toggle_stick_locked_client_is_a_no_op();
     s_test_set_opacity_active_stores_value();
     s_test_set_opacity_inactive_stores_value();
     s_test_set_border_override_stores_values();

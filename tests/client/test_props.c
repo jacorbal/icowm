@@ -235,7 +235,7 @@ xcb_atom_t atom_intern(xcb_connection_t *connection, const char *name,
  *
  * @note Complexity: @e O(1)
  */
-int safeflg_unset(uint16_t *flags, uint16_t flag, uint16_t max_flags)
+int safeflg_unset(uint32_t *flags, uint32_t flag, uint32_t max_flags)
 {
     (void) flags;
     (void) flag;

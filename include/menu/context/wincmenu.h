@@ -71,9 +71,9 @@
  * @brief Number of fixed top-level entries in the window context menu
  *
  * THREE submenus (Send to desktop, Send to monitor, Layer) +
- * ONE separator + NINE commands (Restore, Move, Resize, Iconify, Hide,
- * Maximize, Un/fullscreen, Un/shade, Un/decorate) + ONE separator +
- * ONE command (Close) = FIFTEEN total.
+ * ONE command (Un/sticky) + ONE separator + NINE commands (Restore,
+ * Move, Resize, Iconify, Hide, Maximize, Un/fullscreen, Un/shade,
+ * Un/decorate) + ONE separator + ONE command (Close) = SIXTEEN total.
  *
  * "Send to monitor" only actually appears on a surface with more than
  * one monitor, so this counts it as always present for a simple,
@@ -81,7 +81,7 @@
  * common single-monitor case.  "Send to desktop" does not appear when
  * the topology is set to just one desktop.
  */
-#define WINCMENU_FIXED_ENTRIES (15)
+#define WINCMENU_FIXED_ENTRIES (16)
 
 /**
  * @brief Total top-level entry slots:

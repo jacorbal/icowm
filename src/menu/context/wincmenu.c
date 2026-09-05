@@ -439,6 +439,9 @@ static void s_cb_send_action(xcb_connection_t *connection,
         case ACTION_CLIENT_TOGGLE_PIN:
             enact_client_toggle_pin(s_target_client);
             break;
+        case ACTION_CLIENT_TOGGLE_STICKY:
+            enact_client_toggle_stick(s_target_client);
+            break;
         case ACTION_CLIENT_KILL:
         case ACTION_CLIENT_FOCUS:
         case ACTION_CLIENT_UNFOCUS:
@@ -858,6 +861,20 @@ void wincmenu_show(xcb_connection_t *connection,
         s_entries[n].userdata = &s_monitor_state;
         ++n;
     }
+
+    /* Sticky/Unsticky: fixes the client's position on screen across
+     * viewport panning.  A plain command, relabeled in place, the same
+     * way Shade/Unshade and Decorate/Undecorate are below, rather than
+     * a submenu; unrelated to the pin support inside "Send to
+     * desktop" above despite the similar-sounding name (see
+     * 'CLIENT_FLAG_STICKY''s comment in 'client/state.h' for the full
+     * distinction between the two). */
+    s_entry_command(&s_entries[n],
+            (client_is_sticky(client)) ? _(STR_WINCMENU_UNSTICK)
+                : _(STR_WINCMENU_STICK),
+            s_cb_send_action,
+            (void *) (intptr_t) ACTION_CLIENT_TOGGLE_STICKY, false);
+    ++n;
 
     /* Layer (submenu): disabled while fullscreen, since a focused
      * fullscreen client's stacking is always forced above everything

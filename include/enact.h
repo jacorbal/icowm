@@ -420,7 +420,7 @@ void enact_client_pin(client_td *client);
 /**
  * @brief Remove the client's pin mode
  *
- * @param client Client to unstick
+ * @param client Client to unpin
  *
  * @note Complexity: @e O(1)
  */
@@ -434,6 +434,23 @@ void enact_client_unpin(client_td *client);
  * @note Complexity: @e O(1)
  */
 void enact_client_toggle_pin(client_td *client);
+
+/**
+ * @brief Toggle the client's sticky mode
+ *
+ * Not to be confused with @a enact_client_toggle_pin above; see
+ * @c CLIENT_FLAG_STICKY's comment in @c client/state.h for the full
+ * distinction between the two
+ *
+ * @param client Client to toggle
+ *
+ * @note Does not broadcast an IPC event the way the pin, shade, and
+ *       fullscreen toggles above do: every bit of the 32-bit
+ *       @c IPC_EVENT_* mask (@c ipc.h) is already spoken for, with
+ *       none free for a new @c IPC_EVENT_STICK_SET/@c _CLEARED pair
+ * @note Complexity: @e O(1)
+ */
+void enact_client_toggle_stick(client_td *client);
 
 /**
  * @brief Set the client to full screen mode

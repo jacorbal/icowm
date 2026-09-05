@@ -95,6 +95,7 @@ struct s_ccmd_calls_s {
     int pin;
     int unpin;
     int toggle_pin;
+    int toggle_stick;
     int fullscreen;
     int unfullscreen;
     int toggle_fullscreen;
@@ -272,6 +273,14 @@ void ccmd_client_toggle_pin(client_td *client)
     s_calls.toggle_pin++;
     if (client != NULL) {
         client->properties.flags ^= (uint16_t) CLIENT_FLAG_PIN;
+    }
+}
+
+void ccmd_client_toggle_stick(client_td *client)
+{
+    s_calls.toggle_stick++;
+    if (client != NULL) {
+        client->properties.flags ^= (uint32_t) CLIENT_FLAG_STICKY;
     }
 }
 
@@ -703,6 +712,13 @@ static void s_test_toggle_actions_pick_event_by_resulting_state(void)
     enact_client_toggle_pin(&s_client);
     TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_PIN_CLEARED,
             "toggling pin again broadcasts IPC_EVENT_PIN_CLEARED");
+
+    s_reset();
+    enact_client_toggle_stick(&s_client);
+    TAP_EQ_INT(s_calls.toggle_stick, 1,
+            "toggling sticky calls ccmd_client_toggle_stick exactly once");
+    TAP_EQ_INT(s_call_broadcast, 0,
+            "toggling sticky broadcasts no IPC event, unlike pin");
 
     s_reset();
     enact_client_toggle_fullscreen(&s_client);

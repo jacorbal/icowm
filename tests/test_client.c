@@ -410,7 +410,7 @@ int safe_free_var(void **first, ...)
  *
  * @note Complexity: @e O(1)
  */
-int safeflg_set(uint16_t *flags, uint16_t flag, uint16_t max_flags)
+int safeflg_set(uint32_t *flags, uint32_t flag, uint32_t max_flags)
 {
     (void) flags;
     (void) flag;
@@ -426,7 +426,7 @@ int safeflg_set(uint16_t *flags, uint16_t flag, uint16_t max_flags)
  *
  * @note Complexity: @e O(1)
  */
-int safeflg_unset(uint16_t *flags, uint16_t flag, uint16_t max_flags)
+int safeflg_unset(uint32_t *flags, uint32_t flag, uint32_t max_flags)
 {
     (void) flags;
     (void) flag;

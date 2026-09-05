@@ -107,7 +107,30 @@ enum window_operation_e {
 enum window_flags_e {
     CLIENT_FLAG_HIDDEN       = 1 << 0,
     CLIENT_FLAG_FOCUSABLE    = 1 << 1,
+
+    /**
+     * @brief Client is visible on every desktop, instead of only the
+     *        one it actually belongs to
+     *
+     * Not to be confused with @c CLIENT_FLAG_STICKY below, a wholly
+     * unrelated, orthogonal concept despite the similar-sounding
+     * name: this one is about @e which @e desktop shows the client
+     * (all of them at once), while @c CLIENT_FLAG_STICKY is about
+     * @e where @e on @e screen the client sits once one is showing
+     * it.  A client may hold either bit, both, or neither; none of
+     * the four combinations implies or excludes any of the others.
+     * The historical EWMH atom for this very flag is even named
+     * @c _NET_WM_STATE_STICKY (see @c handler/ewmh.c and
+     * @c cmds/client/ewmh.c), a naming collision from a spec written
+     * before this window manager had any notion of viewport panning
+     * to need a second, genuinely @e sticky flag of its own; that
+     * atom name is fixed by the protocol and cannot be changed,
+     * which is exactly why this comment exists.
+     *
+     * @see @a client_is_pinned below
+     */
     CLIENT_FLAG_PIN          = 1 << 2,
+
     CLIENT_FLAG_SHADED       = 1 << 3,
     CLIENT_FLAG_DECORATED    = 1 << 4,
     CLIENT_FLAG_URGENT       = 1 << 5,
@@ -187,7 +210,38 @@ enum window_flags_e {
      */
     CLIENT_FLAG_FOCUSED = 1 << 14,
 
-    CLIENT_FLAG_MAX = 15,
+    /**
+     * @brief Client stays fixed at its current position on screen
+     *        whenever the desktop's viewport pans, regardless of
+     *        which desktop it belongs to
+     *
+     * Not to be confused with @c CLIENT_FLAG_PIN above, a wholly
+     * unrelated, orthogonal concept despite the similar-sounding
+     * name: pinning is about @e which @e desktop shows the client
+     * (all of them at once, rather than only its own), while this
+     * flag is about @e where @e on @e screen the client sits once
+     * a desktop showing it pans its viewport.  A client may hold
+     * either bit, both, or neither; none of the four combinations
+     * implies or excludes any of the others.  Unlike @c
+     * CLIENT_FLAG_PIN, this one has no EWMH counterpart at all: no
+     * @c _NET_WM_STATE atom describes staying fixed across a viewport
+     * pan, because the specification has no notion of a viewport to
+     * pan in the first place, so this flag is never published to, or
+     * read from, any client property.
+     *
+     * Toggled by @c ACTION_CLIENT_TOGGLE_STICKY (see
+     * @a ccmd_client_toggle_stick in @c cmds/client/flags.c).  Has no
+     * observable effect yet: viewport panning itself, the very thing
+     * this flag is meant to survive, is not implemented, so every
+     * client's screen position is already fixed regardless of this
+     * flag's value.  It is stored and toggleable today so the rest of
+     * that feature has something to build on once panning exists
+     *
+     * @see @a client_is_sticky below
+     */
+    CLIENT_FLAG_STICKY = 1 << 15,
+
+    CLIENT_FLAG_MAX = 16,
 };
 
 

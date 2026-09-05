@@ -557,6 +557,15 @@ void enact_client_toggle_pin(client_td *client)
 }
 
 
+/* Toggle the client's sticky mode.  No IPC event to broadcast here,
+ * unlike its pin counterpart above: every bit of the IPC_EVENT_* mask
+ * is already in use, with none free for a new sticky pair */
+void enact_client_toggle_stick(client_td *client)
+{
+    ccmd_client_toggle_stick(client);
+}
+
+
 /* Set the client to full screen mode */
 void enact_client_fullscreen(client_td *client)
 {

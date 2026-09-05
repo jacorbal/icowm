@@ -1,8 +1,8 @@
 /**
  * @file cmds/client/flags.h
  *
- * @brief Functions on a client's pin, opacity, border, urgency, and
- *        allowed-actions flags
+ * @brief Functions on a client's pin, sticky, opacity, border,
+ *        urgency, and allowed-actions flags
  *
  * @defgroup cmds Client, desktop, and surface commands
  * @ingroup enact
@@ -51,11 +51,46 @@ void ccmd_client_unpin(client_td *client);
  * @param client Window to toggle pin state
  *
  * @note No-op on a surface with only one desktop
- * @note Stickiness has nothing to actually toggle when there is only
- *       the one
+ * @note Nothing to actually toggle when there is only the one desktop:
+ *       "visible on every desktop" and "visible on this one desktop"
+ *       are the exact same thing then
  * @note Complexity: @e O(1)
  */
 void ccmd_client_toggle_pin(client_td *client);
+
+/**
+ * @brief Stick the client (fixed on screen across viewport panning)
+ *
+ * Not to be confused with @a ccmd_client_pin above; see
+ * @c CLIENT_FLAG_STICKY's comment in @c client/state.h for the full
+ * distinction between the two
+ *
+ * @param client Window to stick
+ *
+ * @note No-op on a locked client
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_stick(client_td *client);
+
+/**
+ * @brief Unstick the client
+ *
+ * @param client Window to unstick
+ *
+ * @note No-op on a locked client
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_unstick(client_td *client);
+
+/**
+ * @brief Toggle sticky mode for the client
+ *
+ * @param client Window to toggle sticky state
+ *
+ * @note No-op on a locked client
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_toggle_stick(client_td *client);
 
 /**
  * @brief Override the client's active-state opacity

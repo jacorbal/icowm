@@ -219,7 +219,7 @@ void ccmd_client_unpin(client_td *client)
 }
 
 
-/* Toggle stickiness */
+/* Toggle the client's pin state */
 void ccmd_client_toggle_pin(client_td *client)
 {
     const surface_td *surface;
@@ -245,6 +245,44 @@ void ccmd_client_toggle_pin(client_td *client)
         ccmd_client_unpin(client);
     } else {
         ccmd_client_pin(client);
+    }
+}
+
+
+/* Stick the client, fixing its position on screen across viewport
+ * panning */
+void ccmd_client_stick(client_td *client)
+{
+    if (client == NULL || client_is_locked(client)) {
+        return;
+    }
+
+    client_stick(client);
+}
+
+
+/* Unstick the client */
+void ccmd_client_unstick(client_td *client)
+{
+    if (client == NULL || client_is_locked(client)) {
+        return;
+    }
+
+    client_unstick(client);
+}
+
+
+/* Toggle the client's sticky state */
+void ccmd_client_toggle_stick(client_td *client)
+{
+    if (client == NULL || client_is_locked(client)) {
+        return;
+    }
+
+    if (client_is_sticky(client)) {
+        ccmd_client_unstick(client);
+    } else {
+        ccmd_client_stick(client);
     }
 }
 
@@ -406,7 +444,7 @@ void ccmd_client_update_allowed_actions(client_td *client)
         actions[n++] = ewmh->_NET_WM_ACTION_MINIMIZE;
     }
 
-    /* All clients may be shaded, sticked, and re-stacked */
+    /* All clients may be shaded, pinned, and re-stacked */
     actions[n++] = ewmh->_NET_WM_ACTION_SHADE;
     actions[n++] = ewmh->_NET_WM_ACTION_STICK;
     actions[n++] = ewmh->_NET_WM_ACTION_ABOVE;

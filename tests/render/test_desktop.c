@@ -1568,7 +1568,7 @@ static void s_test_repaint_titlebar_hide_pin_single_desktop(void)
 
     TAP_OK(s_titlebar_layout_last_hide_pin,
             "a surface with only one desktop hides the pin button:"
-            " sticking a client to a single desktop is meaningless"
+            " pinning a client to a single desktop is meaningless"
             " there");
 }
 

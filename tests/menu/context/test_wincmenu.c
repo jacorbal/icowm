@@ -248,6 +248,11 @@ void enact_client_toggle_pin(client_td *client)
     (void) client;
 }
 
+void enact_client_toggle_stick(client_td *client)
+{
+    (void) client;
+}
+
 void enact_client_toggle_shade(client_td *client)
 {
     (void) client;
@@ -500,19 +505,24 @@ static void s_test_show_single_desktop_single_monitor(void)
 
     TAP_NOT_NULL(s_captured_state,
             "showing a valid client calls ctxmenu_show");
-    TAP_EQ_STR(s_captured_state->entries[0].label, "Layer",
-            "with one desktop and one monitor, Layer is the first"
+    TAP_EQ_STR(s_captured_state->entries[0].label, "Sticky",
+            "with one desktop and one monitor, Sticky is the first"
             " entry");
     TAP_EQ_INT((int) s_captured_state->entries[0].type,
+            (int) CTXMENU_COMMAND,
+            "Sticky is a plain command entry, not a submenu");
+    TAP_EQ_STR(s_captured_state->entries[1].label, "Layer",
+            "Layer follows Sticky");
+    TAP_EQ_INT((int) s_captured_state->entries[1].type,
             (int) CTXMENU_SUBMENU,
             "Layer is a submenu entry");
-    TAP_EQ_INT(s_captured_state->entries[0].item_count, 3,
+    TAP_EQ_INT(s_captured_state->entries[1].item_count, 3,
             "the Layer submenu holds exactly the 3 fixed layer"
             " choices");
-    TAP_EQ_INT((int) s_captured_state->entries[1].type,
+    TAP_EQ_INT((int) s_captured_state->entries[2].type,
             (int) CTXMENU_SEPARATOR,
             "a separator follows the Layer submenu");
-    TAP_EQ_STR(s_captured_state->entries[2].label, "Restore",
+    TAP_EQ_STR(s_captured_state->entries[3].label, "Restore",
             "Restore is the next entry after the separator");
 
     s_teardown();
@@ -567,8 +577,10 @@ static void s_test_show_multi_desktop_multi_monitor(void)
     TAP_EQ_INT((int) s_captured_state->entries[1].type,
             (int) CTXMENU_SUBMENU,
             "the second entry is the Send to monitor submenu");
-    TAP_EQ_STR(s_captured_state->entries[2].label, "Layer",
-            "Layer follows both submenus");
+    TAP_EQ_STR(s_captured_state->entries[2].label, "Sticky",
+            "Sticky follows both submenus");
+    TAP_EQ_STR(s_captured_state->entries[3].label, "Layer",
+            "Layer follows Sticky");
 
     /* Send to desktop submenu: one row per desktop plus a trailing
      * separator plus the pin/unpin toggle */
@@ -664,50 +676,52 @@ static void s_test_show_fixed_entries_plain_client(void)
     wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
             pos, &config);
 
-    /* Layer, separator, Restore, Move, Resize, Iconify, Hide,
+    /* Sticky, Layer, separator, Restore, Move, Resize, Iconify, Hide,
      * Maximize, Fullscreen, Shade, Decorate, separator, Inspect,
      * Close */
     e = s_captured_state->entries;
-    TAP_EQ_INT(s_captured_state->entry_count, 14,
-            "a plain client with 1 desktop and 1 monitor yields 14"
+    TAP_EQ_INT(s_captured_state->entry_count, 15,
+            "a plain client with 1 desktop and 1 monitor yields 15"
             " top-level entries");
-    TAP_EQ_STR(e[2].label, "Restore", "entry 2 is Restore");
-    TAP_OK(e[2].is_disabled,
+    TAP_EQ_STR(e[0].label, "Sticky", "entry 0 is Sticky");
+    TAP_OK(!e[0].is_disabled, "Sticky is never disabled");
+    TAP_EQ_STR(e[3].label, "Restore", "entry 3 is Restore");
+    TAP_OK(e[3].is_disabled,
             "Restore is disabled for an unmaximized, non-fullscreen"
             " client");
-    TAP_EQ_STR(e[3].label, "Move", "entry 3 is Move");
-    TAP_OK(!e[3].is_disabled, "Move is enabled for a plain client");
-    TAP_EQ_STR(e[4].label, "Resize", "entry 4 is Resize");
-    TAP_OK(!e[4].is_disabled,
+    TAP_EQ_STR(e[4].label, "Move", "entry 4 is Move");
+    TAP_OK(!e[4].is_disabled, "Move is enabled for a plain client");
+    TAP_EQ_STR(e[5].label, "Resize", "entry 5 is Resize");
+    TAP_OK(!e[5].is_disabled,
             "Resize is enabled for a resizable, unmaximized client");
-    TAP_EQ_STR(e[5].label, "Iconify", "entry 5 is Iconify");
-    TAP_OK(!e[5].is_disabled, "Iconify is never disabled");
-    TAP_EQ_STR(e[6].label, "Hide", "entry 6 is Hide");
-    TAP_OK(!e[6].is_disabled, "Hide is never disabled");
-    TAP_EQ_STR(e[7].label, "Maximize", "entry 7 is Maximize");
-    TAP_OK(!e[7].is_disabled,
+    TAP_EQ_STR(e[6].label, "Iconify", "entry 6 is Iconify");
+    TAP_OK(!e[6].is_disabled, "Iconify is never disabled");
+    TAP_EQ_STR(e[7].label, "Hide", "entry 7 is Hide");
+    TAP_OK(!e[7].is_disabled, "Hide is never disabled");
+    TAP_EQ_STR(e[8].label, "Maximize", "entry 8 is Maximize");
+    TAP_OK(!e[8].is_disabled,
             "Maximize is enabled for a maximizable, unmaximized"
             " client");
-    TAP_EQ_STR(e[8].label, "Fullscreen", "entry 8 is"
+    TAP_EQ_STR(e[9].label, "Fullscreen", "entry 9 is"
             " Fullscreen for a windowed, resizable client");
-    TAP_OK(!e[8].is_disabled,
+    TAP_OK(!e[9].is_disabled,
             "fullscreen is enabled for a resizable, non-modal"
             " client");
-    TAP_EQ_STR(e[9].label, "Shade", "entry 9 is Shade");
-    TAP_OK(!e[9].is_disabled,
+    TAP_EQ_STR(e[10].label, "Shade", "entry 10 is Shade");
+    TAP_OK(!e[10].is_disabled,
             "Shade is enabled for a decorated, non-fullscreen"
             " client");
-    TAP_EQ_STR(e[10].label, "Undecorate",
-            "entry 10 reads Undecorate for an already-decorated"
+    TAP_EQ_STR(e[11].label, "Undecorate",
+            "entry 11 reads Undecorate for an already-decorated"
             " client");
-    TAP_OK(!e[10].is_disabled,
+    TAP_OK(!e[11].is_disabled,
             "Decorate/Undecorate is enabled outside fullscreen");
-    TAP_EQ_INT((int) e[11].type, (int) CTXMENU_SEPARATOR,
-            "entry 11 is the separator before Inspect/Close");
-    TAP_EQ_STR(e[12].label, "Inspect...", "entry 12 is Inspect...");
-    TAP_OK(!e[12].is_disabled, "Inspect is never disabled");
-    TAP_EQ_STR(e[13].label, "Close", "entry 13 is Close");
-    TAP_OK(!e[13].is_disabled, "Close is never disabled");
+    TAP_EQ_INT((int) e[12].type, (int) CTXMENU_SEPARATOR,
+            "entry 12 is the separator before Inspect/Close");
+    TAP_EQ_STR(e[13].label, "Inspect...", "entry 13 is Inspect...");
+    TAP_OK(!e[13].is_disabled, "Inspect is never disabled");
+    TAP_EQ_STR(e[14].label, "Close", "entry 14 is Close");
+    TAP_OK(!e[14].is_disabled, "Close is never disabled");
 
     s_teardown();
 }
@@ -739,11 +753,11 @@ static void s_test_show_maximized_client(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(!e[2].is_disabled,
+    TAP_OK(!e[3].is_disabled,
             "Restore is enabled once the client is maximized");
-    TAP_OK(e[3].is_disabled, "Move is disabled while maximized");
-    TAP_OK(e[4].is_disabled, "Resize is disabled while maximized");
-    TAP_OK(e[7].is_disabled,
+    TAP_OK(e[4].is_disabled, "Move is disabled while maximized");
+    TAP_OK(e[5].is_disabled, "Resize is disabled while maximized");
+    TAP_OK(e[8].is_disabled,
             "Maximize itself is disabled while already maximized");
 
     s_teardown();
@@ -777,17 +791,17 @@ static void s_test_show_fullscreen_client(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(e[0].is_disabled,
+    TAP_OK(e[1].is_disabled,
             "the Layer submenu is disabled while fullscreen");
-    TAP_OK(e[3].is_disabled, "Move is disabled while fullscreen");
-    TAP_OK(e[4].is_disabled, "Resize is disabled while fullscreen");
-    TAP_EQ_STR(e[8].label, "Unfullscreen",
+    TAP_OK(e[4].is_disabled, "Move is disabled while fullscreen");
+    TAP_OK(e[5].is_disabled, "Resize is disabled while fullscreen");
+    TAP_EQ_STR(e[9].label, "Unfullscreen",
             "the fullscreen entry reads Unfullscreen once"
             " active");
-    TAP_OK(!e[8].is_disabled,
+    TAP_OK(!e[9].is_disabled,
             "exiting fullscreen is always enabled once active");
-    TAP_OK(e[9].is_disabled, "Shade is disabled while fullscreen");
-    TAP_OK(e[10].is_disabled,
+    TAP_OK(e[10].is_disabled, "Shade is disabled while fullscreen");
+    TAP_OK(e[11].is_disabled,
             "Decorate/Undecorate is disabled while fullscreen");
 
     s_teardown();
@@ -820,7 +834,7 @@ static void s_test_show_modal_client_blocks_fullscreen(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(e[8].is_disabled,
+    TAP_OK(e[9].is_disabled,
             "a modal client cannot enter fullscreen even though it"
             " is resizable");
 
@@ -854,11 +868,11 @@ static void s_test_show_non_resizable_client(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(e[4].is_disabled,
+    TAP_OK(e[5].is_disabled,
             "Resize is disabled for a non-resizable client");
-    TAP_OK(e[7].is_disabled,
-            "Maximize is disabled for a non-resizable client");
     TAP_OK(e[8].is_disabled,
+            "Maximize is disabled for a non-resizable client");
+    TAP_OK(e[9].is_disabled,
             "fullscreen is disabled for a non-resizable client");
 
     s_teardown();
@@ -891,9 +905,9 @@ static void s_test_show_undecorated_client(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(e[9].is_disabled,
+    TAP_OK(e[10].is_disabled,
             "Shade is disabled for an undecorated client");
-    TAP_EQ_STR(e[10].label, "Decorate",
+    TAP_EQ_STR(e[11].label, "Decorate",
             "the toggle reads Decorate for an undecorated client");
 
     s_teardown();

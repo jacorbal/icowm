@@ -73,7 +73,7 @@ static void s_test_set_null_flags(void)
  * *flags even though it's already known-valid before the call */
 static void s_test_set_invalid_flag_leaves_flags_untouched(void)
 {
-    uint16_t flags = 0x00AAu;
+    uint32_t flags = 0x00AAu;
     int status = safeflg_set(&flags, 3u, 16u);  /* 3 is not a power of 2 */
 
     TAP_EQ_INT(status, 1, "set with an invalid flag fails");
@@ -85,7 +85,7 @@ static void s_test_set_invalid_flag_leaves_flags_untouched(void)
  * disturbing any other bit already set */
 static void s_test_set_ors_in_the_bit(void)
 {
-    uint16_t flags = 0x0010u;  /* bit 4 already set */
+    uint32_t flags = 0x0010u;  /* bit 4 already set */
     int status = safeflg_set(&flags, 0x0001u, 0x8000u);
 
     TAP_EQ_INT(status, 0, "set on a valid flag succeeds");
@@ -97,7 +97,7 @@ static void s_test_set_ors_in_the_bit(void)
  * idempotent no-op (still succeeds, value unchanged) */
 static void s_test_set_is_idempotent(void)
 {
-    uint16_t flags = 0x0004u;
+    uint32_t flags = 0x0004u;
     int status = safeflg_set(&flags, 0x0004u, 0x8000u);
 
     TAP_EQ_INT(status, 0, "re-setting an already-set flag succeeds");
@@ -118,7 +118,7 @@ static void s_test_unset_null_flags(void)
  * any other bit */
 static void s_test_unset_clears_the_bit(void)
 {
-    uint16_t flags = 0x0011u;  /* bits 0 and 4 set */
+    uint32_t flags = 0x0011u;  /* bits 0 and 4 set */
     int status = safeflg_unset(&flags, 0x0001u, 0x8000u);
 
     TAP_EQ_INT(status, 0, "unset on a valid flag succeeds");
@@ -130,7 +130,7 @@ static void s_test_unset_clears_the_bit(void)
  * harmless, idempotent no-op */
 static void s_test_unset_is_idempotent(void)
 {
-    uint16_t flags = 0x0010u;
+    uint32_t flags = 0x0010u;
     int status = safeflg_unset(&flags, 0x0001u, 0x8000u);
 
     TAP_EQ_INT(status, 0, "unsetting an already-clear flag succeeds");
@@ -142,7 +142,7 @@ static void s_test_unset_is_idempotent(void)
  * to clear on a second call, restoring the original value */
 static void s_test_toggle_flips_both_ways(void)
 {
-    uint16_t flags = 0x0000u;
+    uint32_t flags = 0x0000u;
 
     TAP_EQ_INT(safeflg_toggle(&flags, 0x0002u, 0x8000u), 0,
             "first toggle succeeds");
@@ -158,7 +158,7 @@ static void s_test_toggle_flips_both_ways(void)
  * *flags, the same as set/unset */
 static void s_test_toggle_invalid_flag_leaves_flags_untouched(void)
 {
-    uint16_t flags = 0x0055u;
+    uint32_t flags = 0x0055u;
     int status = safeflg_toggle(&flags, 6u, 16u);  /* not a power of 2 */
 
     TAP_EQ_INT(status, 1, "toggle with an invalid flag fails");

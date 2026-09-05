@@ -82,7 +82,7 @@ enum wm_keybind_type_e {
 
     KEYBIND_CLIENT_SHADE,
     KEYBIND_CLIENT_FULLSCREEN,
-    /** Toggle stickiness, so the client shows on every desktop */
+    /** Toggle the pin flag, so the client shows on every desktop */
     KEYBIND_CLIENT_PIN,
     KEYBIND_CLIENT_INFO,
     KEYBIND_CLIENT_INSPECT,

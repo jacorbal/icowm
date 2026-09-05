@@ -67,6 +67,12 @@ enum action_client_e {
     ACTION_CLIENT_UNPIN,
     ACTION_CLIENT_TOGGLE_PIN,
 
+    /** Stick, so the window stays fixed on screen across viewport
+     * panning; not to be confused with @c ACTION_CLIENT_TOGGLE_PIN
+     * above, an unrelated concept despite the similar name (see
+     * @c CLIENT_FLAG_STICKY's comment in @c client/state.h) */
+    ACTION_CLIENT_TOGGLE_STICKY,
+
     ACTION_CLIENT_FULLSCREEN,
     ACTION_CLIENT_UNFULLSCREEN,
     ACTION_CLIENT_TOGGLE_FULLSCREEN,

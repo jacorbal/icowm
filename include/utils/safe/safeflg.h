@@ -9,7 +9,7 @@
  * invalid operations on flags are avoided.  The implementation utilizes
  * bitwise operations to manipulate flag states efficiently.
  *
- * @note The implementation uses @c uint16_t for flag storage, which
+ * @note The implementation uses @c uint32_t for flag storage, which
  *       allows for a wide range of defined flags while maintaining type
  *       safety and clarity
  * @note These functions are designed to be used with a variety of
@@ -33,7 +33,7 @@
 
 /* System includes */
 #include <stdbool.h>    /* bool */
-#include <stdint.h>     /* uint16_t */
+#include <stdint.h>     /* uint32_t */
 
 
 /* Public interface */
@@ -52,7 +52,7 @@
  *
  * @return @c true if the @p flag is valid
  */
-bool safeflg_is_valid(uint16_t flag, uint16_t max_flags);
+bool safeflg_is_valid(uint32_t flag, uint32_t max_flags);
 
 /**
  * @brief Set (enable) the specified flag in the given flag set
@@ -72,7 +72,7 @@ bool safeflg_is_valid(uint16_t flag, uint16_t max_flags);
  *       a valid single bit flag and does not exceed the maximum allowed
  * @see @a safeflg_is_valid
  */
-int safeflg_set(uint16_t *flags, uint16_t flag, uint16_t max_flags);
+int safeflg_set(uint32_t *flags, uint32_t flag, uint32_t max_flags);
 
 /**
  * @brief Unset (clear) the specified flag in the given flag set
@@ -92,7 +92,7 @@ int safeflg_set(uint16_t *flags, uint16_t flag, uint16_t max_flags);
  *       a valid single bit flag and does not exceed the maximum allowed
  * @see @a safeflg_is_valid
  */
-int safeflg_unset(uint16_t *flags, uint16_t flag, uint16_t max_flags);
+int safeflg_unset(uint32_t *flags, uint32_t flag, uint32_t max_flags);
 
 /**
  * @brief Toggle the specified flag in the given flag set
@@ -112,7 +112,7 @@ int safeflg_unset(uint16_t *flags, uint16_t flag, uint16_t max_flags);
  *       a valid single bit flag and does not exceed the maximum allowed
  * @see @a safeflg_is_valid
  */
-int safeflg_toggle(uint16_t *flags, uint16_t flag, uint16_t max_flags);
+int safeflg_toggle(uint32_t *flags, uint32_t flag, uint32_t max_flags);
 
 
 #endif  /* ! SAFEFLG_H */
