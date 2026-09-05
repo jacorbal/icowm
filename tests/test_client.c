@@ -1567,7 +1567,8 @@ static void s_test_sync_visible_name_untruncated_deletes_property(void)
 /* When the rendered text already matches both the full name and the
  * cached buffer, an untruncated update is a no-op: the property is
  * never deleted again */
-static void s_test_sync_visible_name_untruncated_already_cached_is_a_no_op(void)
+static void
+    s_test_sync_visible_name_untruncated_already_cached_is_a_no_op(void)
 {
     client_td *client = calloc(1, sizeof(*client));
     char cached[CONFIG_MAX_LENGTH_NAME] = "Same Title";

@@ -146,7 +146,7 @@ struct ohtbl_s {
      *       maintain compactness and efficiency of the hash table
      * @note It is essential to distinguish between null (indicating an
      *       empty slot) and vacated slots, as this affects the logic of
-     *       search and insertion operations.
+     *       search and insertion operations
      */
     void *vacated;
 

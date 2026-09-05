@@ -1387,7 +1387,8 @@ static void s_test_client_focus_fallback_skips_group_pass_without_leader(void)
 /* client_focus_fallback: no candidate qualifies but an excluded
  * client was named, so that client itself is explicitly unfocused
  * rather than left wearing a stale focused mark */
-static void s_test_client_focus_fallback_unfocuses_exclude_when_none_found(void)
+static void
+    s_test_client_focus_fallback_unfocuses_exclude_when_none_found(void)
 {
     desktop_td desktop;
     surface_td surface;

@@ -262,6 +262,7 @@ int logger_stop(void);
  * @param level  Severity of this message
  * @param prefix Prefix to display before the message
  * @param fmt    Formatted message to be logged
+ * @param ...    Arguments @p fmt consumes
  *
  * Logs messages with a specified severity level to the given file
  * pointer by the logger instance.  If the severity level is

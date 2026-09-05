@@ -256,12 +256,14 @@ static void s_test_theme_colors_full_shape(void)
         "{"
         "\"window\": {\"active\": {"
         "  \"font\": \"Sans 10\","
-        "  \"color\": {\"background\": \"#112233\", \"foreground\": \"#ffffff\"},"
+        "  \"color\": {\"background\": \"#112233\", "
+        "\"foreground\": \"#ffffff\"},"
         "  \"border\": {\"color\": \"#000000\", \"width\": 2}"
         "} },"
         "\"icon\": {\"inactive\": {"
         "  \"font\": \"Sans 8\","
-        "  \"color\": {\"background\": \"#445566\", \"foreground\": \"#000000\"}"
+        "  \"color\": {\"background\": \"#445566\", "
+        "\"foreground\": \"#000000\"}"
         "} }"
         "}");
     config_load_theme(path, &theme);

@@ -189,7 +189,8 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
     int i;
 
     for (i = 0; i < s_sd_registered; i++) {
-        if (s_sd_surfaces[i] == surface && s_sd_desktop_ids[i] == desktop_id) {
+        if (s_sd_surfaces[i] == surface &&
+                s_sd_desktop_ids[i] == desktop_id) {
             return s_sd_desktops[i];
         }
     }
