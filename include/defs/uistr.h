@@ -230,6 +230,10 @@
 #define STR_SHORTCUTS_SEND_TO_DESKTOP_EAST "Send to desktop to the east"
 #define STR_SHORTCUTS_SEND_TO_DESKTOP_WEST "Send to desktop to the west"
 #define STR_SHORTCUTS_PIN "Pin"
+/** Not to be confused with @c STR_SHORTCUTS_PIN above; see
+ *  @c CLIENT_FLAG_STICKY's comment in @c client/state.h for the full
+ *  distinction between the two */
+#define STR_SHORTCUTS_STICKY "Sticky"
 #define STR_SHORTCUTS_SHADE "Shade"
 
 /* Group labels; each pairs with a short direction/position name below,
@@ -256,6 +260,12 @@
  * placeholder, in this exact order, in translation. */
 #define STR_SHORTCUTS_GOTO_DESKTOP_RANGE "Go to desktop 0-9"
 #define STR_SHORTCUTS_GOTO_DESKTOP_FMT "Go to desktop %u"
+
+/* TRANSLATION: same placeholder rules as the desktop pair above,
+ * just for the viewport's own 1-9 page range instead of a desktop's
+ * 0-9 one */
+#define STR_SHORTCUTS_GOTO_VIEWPORT_RANGE "Go to viewport page 1-9"
+#define STR_SHORTCUTS_GOTO_VIEWPORT_FMT "Go to viewport page %u"
 
 /* Cross-desktop urgency notification ('src/desktop/dclient.c',
  * 'desktop_action_recompute_urgent'): shown, via the shared message

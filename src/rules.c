@@ -167,6 +167,14 @@ static void s_rules_load_apply(cJSON *apply_json,
         rule->apply.is_pinned = cJSON_IsTrue(item);
     }
 
+    /* Not to be confused with 'pinned' above; see 'is_sticky's own
+     * comment ('rules/internal.h') for the full distinction */
+    item = json_get_item(apply_json, "sticky");
+    if (cJSON_IsBool(item)) {
+        rule->apply.has_sticky = true;
+        rule->apply.is_sticky = cJSON_IsTrue(item);
+    }
+
     item = json_get_item(apply_json, "decorated");
     if (cJSON_IsBool(item)) {
         rule->apply.has_decoration = true;

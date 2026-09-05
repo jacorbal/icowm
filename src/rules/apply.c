@@ -384,6 +384,16 @@ static void s_rules_apply_flags(client_td *client,
         }
     }
 
+    /* Not to be confused with 'pinned' above; see 'is_sticky's own
+     * comment ('rules/internal.h') for the full distinction */
+    if (apply->has_sticky) {
+        if (apply->is_sticky) {
+            enact_client_stick(client);
+        } else {
+            enact_client_unstick(client);
+        }
+    }
+
     if (apply->has_decoration) {
         if (apply->is_decorated != client_is_decorated(client)) {
             enact_client_toggle_decorate(client);
@@ -622,7 +632,8 @@ static bool s_rules_notify_change(const client_td *client,
 {
     bool changed = apply->has_desktop || apply->has_monitor ||
         apply->has_layer || apply->has_focus || apply->has_position ||
-        apply->has_size || apply->has_pinned || apply->has_decoration ||
+        apply->has_size || apply->has_pinned || apply->has_sticky ||
+        apply->has_decoration ||
         apply->has_opacity_active || apply->has_opacity_inactive ||
         apply->has_iconified || apply->has_fullscreen ||
         apply->has_maximized || apply->has_shaded || apply->has_hidden;
@@ -710,6 +721,10 @@ bool rules_apply(const wm_td *wm, client_td *client,
         if (rule->apply.has_pinned) {
             merged.has_pinned = true;
             merged.is_pinned = rule->apply.is_pinned;
+        }
+        if (rule->apply.has_sticky) {
+            merged.has_sticky = true;
+            merged.is_sticky = rule->apply.is_sticky;
         }
         if (rule->apply.has_decoration) {
             merged.has_decoration = true;

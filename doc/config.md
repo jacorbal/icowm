@@ -1494,7 +1494,8 @@ Actions performed on the currently focused window.
 | `maximize`      | `modc+mod1+m`           | Toggle maximize (full work area). |
 | `fullscreen`    | `modc+mod1+f`           | Toggle true fullscreen mode. |
 | `shade`         | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
-| `pin`           | `modc+mod1+p`           | Toggle pinned mode (window appears on all desktops). |
+| `pin`           | `modc+mod1+p`           | Toggle pinned mode (window appears on all desktops).  Not to be confused with `sticky` below; see [3.8. `keyboard.viewport`](#38-keyboardviewport) for the distinction. |
+| `sticky`        | `modc+mod1+t`           | Toggle sticky mode (window stays fixed on screen across viewport pans, still tied to a single desktop). |
 | `decorate`      | `modc+mod1+d`           | Toggle window decorations (title bar). |
 | `layer`         | `modc+mod1+mods+y`      | Cycle the window stacking layer: *normal* > *above* > *below*. |
 | `info`          | `modc+mod4+mods+i`      | Show a popup with window information. |
@@ -1752,6 +1753,20 @@ Cycle through iconified (minimized) windows only.
 Shortcuts for panning a desktop's viewport, when its
 `topology.screens.desktops[].viewport` grid (§2.2) is wider or taller
 than one screen; see that section for how the grid itself is sized.
+
+**`sticky` versus `pinned`.**  These two client states sound similar
+but solve different problems, and neither one implies the other.
+`pinned` (see [3.4. `keyboard.window`](#34-keyboardwindow) and
+`rules.json`'s `apply.pinned`) is about desktops: a pinned window
+follows the user to every desktop, historically mapped to the EWMH
+state `_NET_WM_STATE_STICKY`, a naming collision with the option below
+that is EWMH's fault, not this manager's.  `sticky` is about the
+viewport instead: a sticky window keeps its position on the physical
+screen as the viewport is panned with the shortcuts in this section,
+the way a note stuck to a monitor's bezel would not move if the
+desktop behind it scrolled.  A window can be pinned, sticky, both, or
+neither; only sticky has no EWMH counterpart, since a panning viewport
+is this manager's own concept.
 
 #### `keyboard.viewport.pan`
 

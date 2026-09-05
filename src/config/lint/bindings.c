@@ -173,6 +173,8 @@ static const config_lint_key_td s_schema_kb_window[] = {
         0, NULL, 0u, NULL},
     {"pin", NULL, 0u,
         0, NULL, 0u, NULL},
+    {"sticky", NULL, 0u,
+        0, NULL, 0u, NULL},
     {"shade", NULL, 0u,
         0, NULL, 0u, NULL},
     {"move", s_schema_window_move,

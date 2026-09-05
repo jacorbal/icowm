@@ -114,6 +114,8 @@ static const config_lint_key_td s_schema_rules_apply[] = {
         0, NULL, 0u, NULL},
     {"pinned", NULL, 0u,
         0, NULL, 0u, NULL},
+    {"sticky", NULL, 0u,
+        0, NULL, 0u, NULL},
     {"decorated", NULL, 0u,
         0, NULL, 0u, NULL},
     {"iconified", NULL, 0u,

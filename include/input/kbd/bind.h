@@ -109,6 +109,10 @@ enum wm_keybind_type_e {
     KEYBIND_CLIENT_FULLSCREEN,
     /** Toggle the pin flag, so the client shows on every desktop */
     KEYBIND_CLIENT_PIN,
+    /** Toggle the sticky flag; not to be confused with
+     *  @c KEYBIND_CLIENT_PIN above, see @c CLIENT_FLAG_STICKY's
+     *  comment in @c client/state.h for the full distinction */
+    KEYBIND_CLIENT_STICKY,
     KEYBIND_CLIENT_INFO,
     KEYBIND_CLIENT_INSPECT,
     KEYBIND_CLIENT_TOGGLE_DECORATION,

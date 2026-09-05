@@ -86,6 +86,7 @@ Acts on the focused window.
 .It Ic fullscreen Pq Ql modc+mod1+f
 .It Ic shade Pq Ql modc+mod1+s
 .It Ic pin Pq Ql modc+mod1+p
+.It Ic sticky Pq Ql modc+mod1+t
 .It Ic decorate Pq Ql modc+mod1+d
 .It Ic layer Pq Ql modc+mod1+mods+y
 .It Ic info Pq Ql modc+mod4+mods+i
@@ -223,6 +224,41 @@ step through what is on the current desktop:
 .It Ic icon.next Pq Ql modc+mod1+Tab
 .It Ic icon.prev Pq Ql modc+mod1+mods+Tab
 .El
+.Ss keyboard.viewport
+Pans the current desktop's viewport, when its
+.Ic topology.screens.desktops[].viewport
+grid is wider or taller than one screen; see
+.Xr icowm 5
+for how the grid itself is sized.
+Not to be confused with
+.Ic pin
+above, which follows a window to every desktop instead: this
+section's
+.Ic sticky
+keeps a window's position fixed on the physical screen as the
+viewport is panned, with no bearing on which desktop it lives on.
+.Ic pan
+moves by one whole screen in the given direction, translating every
+non-sticky client the opposite way so its on-screen position stays
+put relative to the desktop's virtual canvas:
+.Bl -tag -width Ds -compact
+.It Ic north Pq Ql modc+mod4+mods+Up
+.It Ic south Pq Ql modc+mod4+mods+Down
+.It Ic east Pq Ql modc+mod4+mod5+Right
+.It Ic west Pq Ql modc+mod4+mod5+Left
+.El
+.Pp
+.Ic go-to
+jumps straight to one page of the viewport grid by index, numbered
+row-major from the top-left page, from
+.Ic page1
+at
+.Ql modc+mod4+1
+through
+.Ic page9
+at
+.Ql modc+mod4+9 ,
+reaching no page past index 9.
 .Ss mouse.window
 .Bl -tag -width Ds -compact
 .It Ic move Pq Ql mod1+button1

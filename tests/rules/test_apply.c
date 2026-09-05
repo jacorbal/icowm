@@ -83,6 +83,8 @@ static int s_call_enact_client_layer_below;
 static int s_call_enact_client_layer_normal;
 static int s_call_enact_client_pin;
 static int s_call_enact_client_unpin;
+static int s_call_enact_client_stick;
+static int s_call_enact_client_unstick;
 static int s_call_enact_client_toggle_decorate;
 static int s_call_ccmd_client_set_opacity_active;
 static uint8_t s_last_opacity_active;
@@ -234,6 +236,30 @@ void enact_client_unpin(client_td *client)
 {
     (void) client;
     s_call_enact_client_unpin++;
+}
+
+
+/**
+ * @brief Recording stand-in for @a enact_client_stick
+ *
+ * @note Complexity: @e O(1)
+ */
+void enact_client_stick(client_td *client)
+{
+    (void) client;
+    s_call_enact_client_stick++;
+}
+
+
+/**
+ * @brief Recording stand-in for @a enact_client_unstick
+ *
+ * @note Complexity: @e O(1)
+ */
+void enact_client_unstick(client_td *client)
+{
+    (void) client;
+    s_call_enact_client_unstick++;
 }
 
 
@@ -556,6 +582,8 @@ static void s_reset(void)
     s_call_enact_client_layer_normal = 0;
     s_call_enact_client_pin = 0;
     s_call_enact_client_unpin = 0;
+    s_call_enact_client_stick = 0;
+    s_call_enact_client_unstick = 0;
     s_call_enact_client_toggle_decorate = 0;
     s_call_ccmd_client_set_opacity_active = 0;
     s_last_opacity_active = 0u;
@@ -812,6 +840,36 @@ static void s_test_pinned_pins_or_unpins(void)
             RULES_TRIGGER_PROPERTY);
     TAP_EQ_INT(s_call_enact_client_unpin, 1,
             "is_pinned false: unpins once");
+}
+
+
+/* has_sticky true sticks the client, false unsticks it; not to be
+ * confused with has_pinned above, a fully independent flag */
+static void s_test_sticky_sticks_or_unsticks(void)
+{
+    surface_td *surface = &s_surface;
+    desktop_td *desktop = &s_desktop;
+    struct rules_apply_s apply;
+
+    memset(&apply, 0, sizeof(apply));
+    apply.has_sticky = true;
+
+    s_reset();
+    apply.is_sticky = true;
+    s_add_rule(RULES_WHEN_BOTH, apply);
+    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+            RULES_TRIGGER_PROPERTY);
+    TAP_EQ_INT(s_call_enact_client_stick, 1,
+            "is_sticky true: sticks once");
+    TAP_EQ_INT(s_call_enact_client_unstick, 0, "and never unsticks");
+
+    s_reset();
+    apply.is_sticky = false;
+    s_add_rule(RULES_WHEN_BOTH, apply);
+    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+            RULES_TRIGGER_PROPERTY);
+    TAP_EQ_INT(s_call_enact_client_unstick, 1,
+            "is_sticky false: unsticks once");
 }
 
 
@@ -1506,7 +1564,7 @@ static void s_test_successful_apply_broadcasts_and_returns_true(void)
 
 int main(void)
 {
-    TAP_PLAN(66);
+    TAP_PLAN(69);
 
     s_test_null_wm_returns_false();
     s_test_null_client_returns_false();
@@ -1517,6 +1575,7 @@ int main(void)
     s_test_layer_dispatches_to_the_right_enact_call();
     s_test_no_layer_field_calls_nothing();
     s_test_pinned_pins_or_unpins();
+    s_test_sticky_sticks_or_unsticks();
     s_test_decoration_toggles_only_on_mismatch();
     s_test_opacity_forwards_exact_values();
     s_test_map_trigger_defers_state_instead_of_enacting();

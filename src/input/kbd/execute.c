@@ -354,6 +354,13 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             enact_client_toggle_pin(client);
             return;
 
+        /* Not to be confused with KEYBIND_CLIENT_PIN above; see
+         * CLIENT_FLAG_STICKY's comment in client/state.h for the
+         * full distinction between the two */
+        case KEYBIND_CLIENT_STICKY:
+            enact_client_toggle_stick(client);
+            return;
+
         case KEYBIND_CLIENT_TOGGLE_DECORATION:
             /* Unshade first: toggling decoration while shaded would
              * leave the window in an inconsistent visual state */
@@ -685,6 +692,7 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         case KEYBIND_CLIENT_SHADE:
         case KEYBIND_CLIENT_FULLSCREEN:
         case KEYBIND_CLIENT_PIN:
+        case KEYBIND_CLIENT_STICKY:
         case KEYBIND_CLIENT_INFO:
         case KEYBIND_CLIENT_INSPECT:
         case KEYBIND_CLIENT_TOGGLE_DECORATION:

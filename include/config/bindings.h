@@ -188,6 +188,12 @@ struct config_bindings_s {
             char kill[CONFIG_MAX_LENGTH_BINDING];
             char maximize[CONFIG_MAX_LENGTH_BINDING];
             char pin[CONFIG_MAX_LENGTH_BINDING];
+
+            /** Not to be confused with @a pin above; see
+             *  @c CLIENT_FLAG_STICKY's comment in @c client/state.h
+             *  for the full distinction between the two */
+            char sticky[CONFIG_MAX_LENGTH_BINDING];
+
             char shade[CONFIG_MAX_LENGTH_BINDING];
 
             /* Window movement, absolute and relative positions */

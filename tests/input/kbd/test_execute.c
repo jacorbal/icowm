@@ -133,6 +133,7 @@ static int s_call_enact_client_send_to_desktop_west;
 static int s_call_enact_client_toggle_shade;
 static int s_call_enact_client_toggle_fullscreen;
 static int s_call_enact_client_toggle_pin;
+static int s_call_enact_client_toggle_stick;
 static int s_call_enact_client_toggle_decorate;
 static int s_call_enact_client_cycle_layer;
 static int s_call_ccmd_client_unshade;
@@ -214,6 +215,7 @@ static void s_reset(void)
     s_call_enact_client_toggle_shade = 0;
     s_call_enact_client_toggle_fullscreen = 0;
     s_call_enact_client_toggle_pin = 0;
+    s_call_enact_client_toggle_stick = 0;
     s_call_enact_client_toggle_decorate = 0;
     s_call_enact_client_cycle_layer = 0;
     s_call_ccmd_client_unshade = 0;
@@ -464,6 +466,13 @@ void enact_client_toggle_pin(client_td *client)
 {
     (void) client;
     s_call_enact_client_toggle_pin++;
+}
+
+
+void enact_client_toggle_stick(client_td *client)
+{
+    (void) client;
+    s_call_enact_client_toggle_stick++;
 }
 
 
@@ -1596,12 +1605,20 @@ static void s_test_client_shade_pin(void)
             NULL, NULL);
     ik_execute_binding(s_fake_wm, KEYBIND_CLIENT_PIN, 0, 0, &surface,
             NULL, NULL);
+    ik_execute_binding(s_fake_wm, KEYBIND_CLIENT_STICKY, 0, 0, &surface,
+            NULL, NULL);
 
     TAP_EQ_INT(s_call_enact_client_toggle_shade, 1,
             "KEYBIND_CLIENT_SHADE reaches enact_client_toggle_shade" \
             " exactly once");
     TAP_EQ_INT(s_call_enact_client_toggle_pin, 1,
             "KEYBIND_CLIENT_PIN reaches enact_client_toggle_pin" \
+            " exactly once");
+    /* Not to be confused with KEYBIND_CLIENT_PIN above; see
+     * CLIENT_FLAG_STICKY's comment in client/state.h for the full
+     * distinction between the two */
+    TAP_EQ_INT(s_call_enact_client_toggle_stick, 1,
+            "KEYBIND_CLIENT_STICKY reaches enact_client_toggle_stick" \
             " exactly once");
 }
 
@@ -1914,7 +1931,7 @@ static void s_test_keybind_none_is_a_logged_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(103);
+    TAP_PLAN(104);
 
     s_test_desktop_north_south_east_west();
     s_test_desktop_north_null_surface_is_noop();

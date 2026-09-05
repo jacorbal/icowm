@@ -3,7 +3,8 @@
     {
         "when": "map",
             "match": {
-                "title": [ "About *" ]
+                "title": [ "About *" ],
+                "transient": true
             },
             "apply": {
                 "position": "center"
@@ -40,6 +41,62 @@
         },
         "apply": {
             "maximized": true
+        }
+    },
+    {
+        "when": "both",
+        "match": {
+            "class": [ "Conky" ],
+            "role": [ "desktop-widget" ],
+            "type": [ "utility" ]
+        },
+        "apply": {
+            "sticky": true,
+            "focus": false,
+            "layer": "below",
+            "monitor": 0,
+            "opacity": { "active": 90, "inactive": 60 },
+            "position": { "x": 20, "y": 20 },
+            "size": { "width": 200, "height": 100 }
+        }
+    },
+    {
+        "when": "property",
+        "match": {
+            "class": [ "Steam" ],
+            "type": [ "normal" ],
+            "transient": false
+        },
+        "apply": {
+            "desktop": 2,
+            "fullscreen": true
+        }
+    },
+    {
+        "when": "map",
+        "match": {
+            "type": [ "splash" ]
+        },
+        "apply": {
+            "hidden": true
+        }
+    },
+    {
+        "when": "map",
+        "match": {
+            "instance": [ "syncthing-gtk" ]
+        },
+        "apply": {
+            "iconified": true
+        }
+    },
+    {
+        "when": "map",
+        "match": {
+            "class": [ "Xfce4-notes" ]
+        },
+        "apply": {
+            "shaded": true
         }
     }
     ]

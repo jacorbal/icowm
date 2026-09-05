@@ -95,6 +95,8 @@ struct s_ccmd_calls_s {
     int pin;
     int unpin;
     int toggle_pin;
+    int stick;
+    int unstick;
     int toggle_stick;
     int fullscreen;
     int unfullscreen;
@@ -273,6 +275,22 @@ void ccmd_client_toggle_pin(client_td *client)
     s_calls.toggle_pin++;
     if (client != NULL) {
         client->properties.flags ^= (uint16_t) CLIENT_FLAG_PIN;
+    }
+}
+
+void ccmd_client_stick(client_td *client)
+{
+    s_calls.stick++;
+    if (client != NULL) {
+        client->properties.flags |= (uint32_t) CLIENT_FLAG_STICKY;
+    }
+}
+
+void ccmd_client_unstick(client_td *client)
+{
+    s_calls.unstick++;
+    if (client != NULL) {
+        client->properties.flags &= (uint32_t) ~CLIENT_FLAG_STICKY;
     }
 }
 
@@ -670,6 +688,20 @@ static void s_test_call_then_fixed_broadcast_actions(void)
     TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_PIN_CLEARED,
             "unpin broadcasts IPC_EVENT_PIN_CLEARED");
 
+    /* Not to be confused with pin above; see CLIENT_FLAG_STICKY's
+     * comment in client/state.h for the full distinction */
+    s_reset();
+    enact_client_stick(&s_client);
+    TAP_EQ_INT(s_calls.stick, 1,
+            "stick calls ccmd_client_stick exactly once");
+    TAP_EQ_INT(s_call_broadcast, 0,
+            "stick broadcasts no IPC event, unlike pin");
+    enact_client_unstick(&s_client);
+    TAP_EQ_INT(s_calls.unstick, 1,
+            "unstick calls ccmd_client_unstick exactly once");
+    TAP_EQ_INT(s_call_broadcast, 0,
+            "unstick broadcasts no IPC event either");
+
     s_reset();
     enact_client_fullscreen(&s_client);
     TAP_EQ_INT((int) s_last_broadcast_type, (int) IPC_EVENT_FULLSCREEN_SET,
@@ -941,7 +973,7 @@ static void s_test_send_to_desktop_moves_and_follows(void)
 
 int main(void)
 {
-    TAP_PLAN(64);
+    TAP_PLAN(68);
 
     s_test_broadcast_free_actions();
     s_test_restore_broadcasts_deiconified();

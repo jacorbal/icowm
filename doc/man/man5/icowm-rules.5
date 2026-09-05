@@ -127,6 +127,14 @@ rather than being ignored.
 Whether it takes focus on appearing.
 .It Ic apply.pinned Pq boolean
 Whether it shows on every desktop.
+.It Ic apply.sticky Pq boolean
+Whether its position stays fixed on the physical screen as the
+viewport is panned; see
+.Xr icowm-bindings 5
+for the full distinction from
+.Ic apply.pinned
+above, which the two are easy to confuse but do not imply each
+other.
 .It Ic apply.decorated Pq boolean
 Whether it gets a frame and titlebar.
 .Pp

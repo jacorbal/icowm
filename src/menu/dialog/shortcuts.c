@@ -219,6 +219,64 @@ static void s_append_goto_desktop(struct s_shortcuts_ctx_s *ctx,
 
 
 /**
+ * @brief Append the viewport go-to-page bindings as one line when they
+ *        all share a common prefix followed by their digit, or as
+ *        individual lines otherwise, the same idea as
+ *        @a s_append_goto_desktop above, just over @p page_count
+ *        pages instead of a fixed ten desktops
+ *
+ * @param ctx        Rows being gathered
+ * @param config     Active configuration
+ * @param page_count Number of viewport pages actually laid out
+ *                   (@c columns times @c rows), capped by the caller
+ *                   to the 9 bindings that exist at all
+ *
+ * @note Complexity: @e O(1), at most nine fixed-size string
+ *       comparisons
+ */
+static void s_append_goto_viewport(struct s_shortcuts_ctx_s *ctx,
+        const config_td *config, uint32_t page_count)
+{
+    const char (*page)[CONFIG_MAX_LENGTH_BINDING] =
+        config->bindings.keyboard.viewport.go_to.page;
+    size_t prefix_len = 0u;
+    bool shared_prefix = (page_count > 0u && page[0][0] != '\0');
+
+    if (shared_prefix) {
+        prefix_len = safe_strlen(page[0]) - 1u;
+        for (uint32_t i = 0u; i < page_count; ++i) {
+            char expect_digit = (char) ('1' + i);
+
+            if (safe_strlen(page[i]) != prefix_len + 1u ||
+                    page[i][prefix_len] != expect_digit ||
+                    safe_strncmp(page[i], page[0], prefix_len) != 0) {
+                shared_prefix = false;
+                break;
+            }
+        }
+    }
+
+    if (shared_prefix) {
+        s_append_pair_fmt(ctx, _(STR_SHORTCUTS_GOTO_VIEWPORT_RANGE),
+                "%.*s<1-9>", (int) prefix_len, page[0]);
+        return;
+    }
+
+    for (uint32_t i = 0u; i < page_count; ++i) {
+        char label[DIALOG_MSG_LINE_MAX_LENGTH];
+
+        if (page[i][0] == '\0') {
+            continue;
+        }
+
+        (void) snprintf(label, sizeof(label),
+                _(STR_SHORTCUTS_GOTO_VIEWPORT_FMT), i + 1u);
+        s_append_pair_fmt(ctx, label, "%s", page[i]);
+    }
+}
+
+
+/**
  * @brief Append one line combining several related bindings, skipping
  *        any of them that is empty (unbound)
  *
@@ -446,6 +504,12 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
     s_append_binding(&ctx,
             _(STR_SHORTCUTS_SHADE),
             config->bindings.keyboard.window.shade);
+    /* Not to be confused with STR_SHORTCUTS_PIN above; see
+     * CLIENT_FLAG_STICKY's comment in client/state.h for the full
+     * distinction between the two */
+    s_append_binding(&ctx,
+            _(STR_SHORTCUTS_STICKY),
+            config->bindings.keyboard.window.sticky);
 
     s_append_group(&ctx,
             _(STR_SHORTCUTS_MOVE_RELATIVE),
@@ -528,6 +592,11 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             &surface->config->base.screens[surface->id].viewport;
 
         if (viewport->columns > 1u || viewport->rows > 1u) {
+            uint32_t page_count = viewport->columns * viewport->rows;
+
+            if (page_count > 9u) {
+                page_count = 9u;
+            }
             dialog_pair_append_blank(ctx.pairs, &ctx.count);
             s_append_line(&ctx, "[%s]",
                     _(STR_SHORTCUTS_HEADER_VIEWPORT));
@@ -551,6 +620,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                             config->bindings.keyboard.viewport.pan.west
                         }, 2u);
             }
+            s_append_goto_viewport(&ctx, config, page_count);
         }
     }
 

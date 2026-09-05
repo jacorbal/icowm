@@ -153,6 +153,7 @@ struct rules_apply_s {
     bool has_size;              /**< @p width & @p height independent of
                                      position */
     bool has_pinned;
+    bool has_sticky;
     bool has_decoration;
     bool has_opacity_active;
     bool has_opacity_inactive;
@@ -171,6 +172,15 @@ struct rules_apply_s {
 
     bool is_focused;
     bool is_pinned;
+    bool is_sticky;             /**< Not to be confused with
+                                     @p is_pinned above; @p is_pinned
+                                     is about @e which @e desktop
+                                     shows the client, this is about
+                                     @e where @e on @e screen it sits
+                                     once one does (see
+                                     @c CLIENT_FLAG_STICKY's own
+                                     comment, @c client/state.h, for
+                                     the full distinction) */
     bool is_decorated;
     bool is_iconified;
     bool is_fullscreen;

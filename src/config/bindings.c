@@ -408,6 +408,9 @@ static void s_config_bindings_load_keyboard_window(cJSON *keyboard,
     json_load_string(window, "pin",
             config_bindings->keyboard.window.pin,
             CONFIG_MAX_LENGTH_BINDING);
+    json_load_string(window, "sticky",
+            config_bindings->keyboard.window.sticky,
+            CONFIG_MAX_LENGTH_BINDING);
     json_load_string(window, "shade",
             config_bindings->keyboard.window.shade,
             CONFIG_MAX_LENGTH_BINDING);
@@ -666,6 +669,9 @@ void config_set_default_bindings_values(
             "modc+mod1+m", sizeof(config_bindings->keyboard.window.maximize));
     safe_strncpy(config_bindings->keyboard.window.pin,
             "modc+mod1+p", sizeof(config_bindings->keyboard.window.pin));
+    safe_strncpy(config_bindings->keyboard.window.sticky,
+            "modc+mod1+t",
+            sizeof(config_bindings->keyboard.window.sticky));
     safe_strncpy(config_bindings->keyboard.window.layer,
             "modc+mod1+mods+y",
             sizeof(config_bindings->keyboard.window.layer));
@@ -701,10 +707,10 @@ void config_set_default_bindings_values(
             "modc+mod4+mods+Down",
             sizeof(config_bindings->keyboard.viewport.pan.south));
     safe_strncpy(config_bindings->keyboard.viewport.pan.east,
-            "modc+mod4+mod5+Right",
+            "modc+mod4+mods+Right",
             sizeof(config_bindings->keyboard.viewport.pan.east));
     safe_strncpy(config_bindings->keyboard.viewport.pan.west,
-            "modc+mod4+mod5+Left",
+            "modc+mod4+mods+Left",
             sizeof(config_bindings->keyboard.viewport.pan.west));
     safe_strncpy(config_bindings->keyboard.wm.redraw,
             "modc+mod1+mods+r", sizeof(config_bindings->keyboard.wm.redraw));

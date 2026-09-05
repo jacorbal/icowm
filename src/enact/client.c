@@ -557,6 +557,23 @@ void enact_client_toggle_pin(client_td *client)
 }
 
 
+/* Set the client's sticky mode.  No IPC event to broadcast here,
+ * unlike its pin counterpart above: every bit of the IPC_EVENT_* mask
+ * is already in use, with none free for a new sticky pair */
+void enact_client_stick(client_td *client)
+{
+    ccmd_client_stick(client);
+}
+
+
+/* Remove the client's sticky mode.  Same reasoning as its setter
+ * above for why there is no IPC event to broadcast */
+void enact_client_unstick(client_td *client)
+{
+    ccmd_client_unstick(client);
+}
+
+
 /* Toggle the client's sticky mode.  No IPC event to broadcast here,
  * unlike its pin counterpart above: every bit of the IPC_EVENT_* mask
  * is already in use, with none free for a new sticky pair */

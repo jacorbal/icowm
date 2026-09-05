@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: IcoWM 1.0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-18 21:12+0200\n"
+"POT-Creation-Date: 2026-09-05 00:00+0000\n"
 "PO-Revision-Date: 2026-08-18 21:12+0200\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -20,608 +20,628 @@ msgid "[ OK ]"
 msgstr "[ OK ]"
 
 #: include/defs/uistr.h:43;
-msgid "Strutless maximization"
-msgstr "Maximisation sans panneaux"
+msgid "Identity"
+msgstr "Identité"
 
 #: include/defs/uistr.h:44;
-msgid "Strutted maximization"
-msgstr "Maximisation avec panneaux"
+msgid "Placement"
+msgstr "Emplacement"
 
 #: include/defs/uistr.h:45;
-msgid "Rearrange windows"
-msgstr "Organiser les fenêtres"
+msgid "State"
+msgstr "État"
 
-#: include/defs/uistr.h:46; include/defs/uistr.h:130;
-msgid "Reload configuration"
-msgstr "Recharger la configuration"
+#: include/defs/uistr.h:46;
+msgid "Size hints"
+msgstr "Contraintes de taille"
 
 #: include/defs/uistr.h:47;
-msgid "Redraw all windows"
-msgstr "Redessiner toutes les fenêtres"
+msgid "Relations"
+msgstr "Relations"
 
 #: include/defs/uistr.h:48;
-msgid "Exit"
-msgstr "Quitter"
+msgid "Protocols"
+msgstr "Protocoles"
 
-#: include/defs/uistr.h:51;
-msgid "Send to desktop"
-msgstr "Envoyer vers le bureau"
-
-#: include/defs/uistr.h:52;
-msgid "Send to monitor"
-msgstr "Envoyer vers l'écran"
-
-#: include/defs/uistr.h:53; include/defs/uistr.h:159;
-msgid "Layer"
-msgstr "Plan"
-
-#: include/defs/uistr.h:54;
-msgid "Always on top"
-msgstr "Toujours au premier plan"
-
-#: include/defs/uistr.h:55;
-msgid "Normal"
-msgstr "Normal"
-
-#: include/defs/uistr.h:56;
-msgid "Always on bottom"
-msgstr "Toujours à l'arrière-plan"
-
-#: include/defs/uistr.h:57;
-msgid "All desktops (pin)"
-msgstr "Tous les bureaux (épingler)"
-
-#: include/defs/uistr.h:58;
-msgid "This desktop only (unpin)"
-msgstr "Ce bureau uniquement (détacher)"
-
-#: include/defs/uistr.h:59;
-msgid "Restore"
-msgstr "Restaurer"
-
-#: include/defs/uistr.h:60;
-msgid "Move"
-msgstr "Déplacer"
-
-#: include/defs/uistr.h:61; include/defs/uistr.h:169;
-msgid "Resize"
-msgstr "Redimensionner"
-
-#: include/defs/uistr.h:62; include/defs/uistr.h:154;
-msgid "Iconify"
-msgstr "Iconifier"
-
-#: include/defs/uistr.h:63; include/defs/uistr.h:153;
-msgid "Hide"
-msgstr "Masquer"
-
-#: include/defs/uistr.h:64; include/defs/uistr.h:160;
-msgid "Maximize"
-msgstr "Agrandir"
-
-#: include/defs/uistr.h:65; include/defs/uistr.h:152;
-msgid "Fullscreen"
-msgstr "Plein écran"
-
-#: include/defs/uistr.h:66;
-msgid "Unfullscreen"
-msgstr "Quitter le plein écran"
-
-#: include/defs/uistr.h:67; include/defs/uistr.h:163;
-msgid "Shade"
-msgstr "Enrouler"
-
-#: include/defs/uistr.h:68;
-msgid "Unshade"
-msgstr "Dérouler"
-
-#: include/defs/uistr.h:69; include/defs/uistr.h:151;
-msgid "Decorate"
-msgstr "Décorer"
-
-#: include/defs/uistr.h:70;
-msgid "Undecorate"
-msgstr "Ôter la décoration"
-
-#: include/defs/uistr.h:71; include/defs/uistr.h:149;
-msgid "Close"
-msgstr "Fermer"
-
-#: include/defs/uistr.h:74;
-msgid "Go there..."
-msgstr "Y aller..."
-
-#: include/defs/uistr.h:75;
-msgid "Add new desktop"
-msgstr "Ajouter un nouveau bureau"
-
-#: include/defs/uistr.h:76;
-msgid "Remove last desktop"
-msgstr "Supprimer le dernier bureau"
-
-#: include/defs/uistr.h:77;
-msgid "(no windows)"
-msgstr "(aucune fenêtre)"
-
-#: include/defs/uistr.h:82;
-msgid "Are you sure you want to exit %s?"
-msgstr "Voulez-vous vraiment quitter %s ?"
-
-#: include/defs/uistr.h:83;
-msgid "[ Cancel ]"
-msgstr "[ Annuler ]"
-
-#: include/defs/uistr.h:84;
-msgid "[ Exit ]"
-msgstr "[ Quitter ]"
-
-#: include/defs/uistr.h:104;
-msgid "Automatically selecting '%.255s' in %d second(s)"
-msgstr "Sélection automatique de '%.255s' dans %d seconde(s)"
-
-#: include/defs/uistr.h:111;
-msgid ""
-"The 'randr.json' configuration has been applied.  Keep it, or revert to "
-"the previous one?"
-msgstr ""
-"La configuration 'randr.json' a été appliquée.  La conserver ou revenir "
-"à la précédente ?"
-
-#: include/defs/uistr.h:114;
-msgid "[ Revert ]"
-msgstr "[ Revenir ]"
-
-#: include/defs/uistr.h:115;
-msgid "[ Keep ]"
-msgstr "[ Conserver ]"
-
-#: include/defs/uistr.h:127;
-msgid "Window Manager"
-msgstr "Gestionnaire de fenêtres"
-
-#: include/defs/uistr.h:128;
-msgid "Desktop"
-msgstr "Bureau"
-
-#: include/defs/uistr.h:129;
-msgid "Launch"
-msgstr "Lancer"
-
-#: include/defs/uistr.h:130;
-msgid "Window"
-msgstr "Fenêtre"
-
-#: include/defs/uistr.h:131;
-msgid "Cycle"
-msgstr "Parcourir"
-
-#: include/defs/uistr.h:125;
-msgid "Root menu"
-msgstr "Menu racine"
-
-#: include/defs/uistr.h:126;
-msgid "Windows menu"
-msgstr "Menu des fenêtres"
-
-#: include/defs/uistr.h:127;
-msgid "Search windows"
-msgstr "Rechercher des fenêtres"
-
-#: include/defs/uistr.h:128;
-msgid "Show desktop"
-msgstr "Afficher le bureau"
-
-#: include/defs/uistr.h:129;
-msgid "Redraw"
-msgstr "Redessiner"
-
-#: include/defs/uistr.h:131;
-msgid "Quit"
-msgstr "Quitter"
-
-#: include/defs/uistr.h:132;
-msgid "This list"
-msgstr "Cette liste"
-
-#: include/defs/uistr.h:133;
-msgid "Fortune"
-msgstr "Citation du jour"
-
-#: include/defs/uistr.h:134;
-msgid "Scratchpad"
-msgstr "Espace de travail temporaire"
-
-#: include/defs/uistr.h:135;
-msgid "Add desktop"
-msgstr "Ajouter un bureau"
-
-#: include/defs/uistr.h:136;
-msgid "Remove desktop"
-msgstr "Supprimer le bureau"
-
-#: include/defs/uistr.h:137;
-msgid "Toggle strutless maximization"
-msgstr "Basculer la maximisation sans panneaux"
-
-#: include/defs/uistr.h:141;
-msgid "Emergency exit: Ctrl+Mod1+Backspace"
-msgstr "Sortie d'urgence : Ctrl+Mod1+Backspace"
-
-#: include/defs/uistr.h:143;
-msgid "Terminal"
-msgstr "Terminal"
-
-#: include/defs/uistr.h:144;
-msgid "Launcher"
-msgstr "Lanceur"
-
-#: include/defs/uistr.h:145;
-msgid "File manager"
-msgstr "Gestionnaire de fichiers"
-
-#: include/defs/uistr.h:146;
-msgid "Web browser"
-msgstr "Navigateur web"
-
-#: include/defs/uistr.h:147;
-msgid "Editor"
-msgstr "Éditeur"
-
-#: include/defs/uistr.h:150;
-msgid "Kill"
-msgstr "Tuer"
-
-#: include/defs/uistr.h:155;
-msgid "Iconify all"
-msgstr "Tout iconifier"
-
-#: include/defs/uistr.h:156;
-msgid "Deiconify all"
-msgstr "Tout désiconifier"
-
-#: include/defs/uistr.h:157;
-msgid "Arrange"
-msgstr "Organiser"
-
-#: include/defs/uistr.h:158;
-msgid "Info"
-msgstr "Infos"
-
-#: include/defs/uistr.h:169;
-msgid "Send to monitor to the north"
-msgstr "Envoyer vers l'écran du nord"
-
-#: include/defs/uistr.h:170;
-msgid "Send to monitor to the south"
-msgstr "Envoyer vers l'écran du sud"
-
-#: include/defs/uistr.h:171;
-msgid "Send to monitor to the east"
-msgstr "Envoyer vers l'écran de l'est"
-
-#: include/defs/uistr.h:172;
-msgid "Send to monitor to the west"
-msgstr "Envoyer vers l'écran de l'ouest"
-
-#: include/defs/uistr.h:171;
-msgid "Send to desktop to the north"
-msgstr "Envoyer vers le bureau du nord"
-
-#: include/defs/uistr.h:172;
-msgid "Send to desktop to the south"
-msgstr "Envoyer vers le bureau du sud"
-
-#: include/defs/uistr.h:173;
-msgid "Send to desktop to the east"
-msgstr "Envoyer vers le bureau de l'est"
-
-#: include/defs/uistr.h:174;
-msgid "Send to desktop to the west"
-msgstr "Envoyer vers le bureau de l'ouest"
-
-#: include/defs/uistr.h:162;
-msgid "Pin"
-msgstr "Épingler"
-
-#: include/defs/uistr.h:167;
-msgid "Move (relative)"
-msgstr "Déplacer (relatif)"
-
-#: include/defs/uistr.h:168;
-msgid "Move (absolute)"
-msgstr "Déplacer (absolu)"
-
-#: include/defs/uistr.h:170;
-msgid "Desktops"
-msgstr "Bureaux"
-
-#: include/defs/uistr.h:171;
-msgid "Icons"
-msgstr "Icônes"
-
-#: include/defs/uistr.h:172;
+#: include/defs/uistr.h:49; include/defs/uistr.h:246;
 msgid "Windows"
 msgstr "Fenêtres"
 
-#: include/defs/uistr.h:186;
+#: include/defs/uistr.h:51;
+msgid "Title"
+msgstr "Titre"
+
+#: include/defs/uistr.h:52;
+msgid "Class"
+msgstr "Classe"
+
+#: include/defs/uistr.h:53;
+msgid "Role"
+msgstr "Rôle"
+
+#: include/defs/uistr.h:54;
+msgid "Type"
+msgstr "Type"
+
+#: include/defs/uistr.h:55;
+msgid "Process"
+msgstr "Processus"
+
+#: include/defs/uistr.h:56; include/defs/uistr.h:181;
+msgid "Desktop"
+msgstr "Bureau"
+
+#: include/defs/uistr.h:57;
+msgid "Screen"
+msgstr "Écran"
+
+#: include/defs/uistr.h:58;
+msgid "Monitor"
+msgstr "Moniteur"
+
+#: include/defs/uistr.h:59;
+msgid "Geometry"
+msgstr "Géométrie"
+
+#: include/defs/uistr.h:60;
+msgid "Frame extents"
+msgstr "Marges du cadre"
+
+#: include/defs/uistr.h:61; include/defs/uistr.h:102; include/defs/uistr.h:222;
+msgid "Layer"
+msgstr "Plan"
+
+#: include/defs/uistr.h:62;
+msgid "Is"
+msgstr "Est"
+
+#: include/defs/uistr.h:63;
+msgid "Is not"
+msgstr "N'est pas"
+
+#: include/defs/uistr.h:64;
+msgid "Minimum"
+msgstr "Minimum"
+
+#: include/defs/uistr.h:65;
+msgid "Maximum"
+msgstr "Maximum"
+
+#: include/defs/uistr.h:66;
+msgid "Transient for"
+msgstr "Transitoire de"
+
+#: include/defs/uistr.h:67;
+msgid "Transients"
+msgstr "Transitoires"
+
+#: include/defs/uistr.h:68;
+msgid "Group leader"
+msgstr "Chef de groupe"
+
+#: include/defs/uistr.h:69;
+msgid "Supports"
+msgstr "Prend en charge"
+
+#: include/defs/uistr.h:70;
+msgid "Client"
+msgstr "Client"
+
+#: include/defs/uistr.h:71;
+msgid "Frame"
+msgstr "Cadre"
+
+#: include/defs/uistr.h:72;
+msgid "Titlebar"
+msgstr "Barre de titre"
+
+#: include/defs/uistr.h:73;
+msgid "Icon window"
+msgstr "Fenêtre d'icône"
+
+#: include/defs/uistr.h:76;
+msgid "(none)"
+msgstr "(aucun)"
+
+#: include/defs/uistr.h:78;
+msgid "unlimited"
+msgstr "illimité"
+
+#: include/defs/uistr.h:80;
+msgid "pinned to all"
+msgstr "épinglée partout"
+
+#: include/defs/uistr.h:85;
+msgid "Up/Down; PgUp/PgDown; scroll wheel"
+msgstr "Haut/Bas ; PgPréc/PgSuiv ; molette de souris"
+
+#: include/defs/uistr.h:90;
+msgid "Strutless maximization"
+msgstr "Maximisation sans panneaux"
+
+#: include/defs/uistr.h:91;
+msgid "Strutted maximization"
+msgstr "Maximisation avec panneaux"
+
+#: include/defs/uistr.h:92;
+msgid "Rearrange windows"
+msgstr "Organiser les fenêtres"
+
+#: include/defs/uistr.h:93; include/defs/uistr.h:192;
+msgid "Reload configuration"
+msgstr "Recharger la configuration"
+
+#: include/defs/uistr.h:94;
+msgid "Redraw all windows"
+msgstr "Redessiner toutes les fenêtres"
+
+#: include/defs/uistr.h:95;
+msgid "Exit"
+msgstr "Quitter"
+
+#: include/defs/uistr.h:98;
+msgid "Send to desktop"
+msgstr "Envoyer vers le bureau"
+
+#: include/defs/uistr.h:99;
+msgid "Send to monitor"
+msgstr "Envoyer vers l'écran"
+
+#: include/defs/uistr.h:100; include/defs/uistr.h:236;
+msgid "Sticky"
+msgstr "Coller"
+
+#: include/defs/uistr.h:101;
+msgid "Unsticky"
+msgstr "Décoller"
+
+#: include/defs/uistr.h:103;
+msgid "Always on top"
+msgstr "Toujours au premier plan"
+
+#: include/defs/uistr.h:104;
+msgid "Normal"
+msgstr "Normal"
+
+#: include/defs/uistr.h:105;
+msgid "Always on bottom"
+msgstr "Toujours à l'arrière-plan"
+
+#: include/defs/uistr.h:106;
+msgid "All desktops (pin)"
+msgstr "Tous les bureaux (épingler)"
+
+#: include/defs/uistr.h:107;
+msgid "This desktop only (unpin)"
+msgstr "Ce bureau uniquement (détacher)"
+
+#: include/defs/uistr.h:108;
+msgid "Restore"
+msgstr "Restaurer"
+
+#: include/defs/uistr.h:109;
+msgid "Move"
+msgstr "Déplacer"
+
+#: include/defs/uistr.h:110; include/defs/uistr.h:243;
+msgid "Resize"
+msgstr "Redimensionner"
+
+#: include/defs/uistr.h:111; include/defs/uistr.h:216;
+msgid "Iconify"
+msgstr "Iconifier"
+
+#: include/defs/uistr.h:112; include/defs/uistr.h:215;
+msgid "Hide"
+msgstr "Masquer"
+
+#: include/defs/uistr.h:113; include/defs/uistr.h:223;
+msgid "Maximize"
+msgstr "Agrandir"
+
+#: include/defs/uistr.h:114; include/defs/uistr.h:214;
+msgid "Fullscreen"
+msgstr "Plein écran"
+
+#: include/defs/uistr.h:115;
+msgid "Unfullscreen"
+msgstr "Quitter le plein écran"
+
+#: include/defs/uistr.h:116; include/defs/uistr.h:237;
+msgid "Shade"
+msgstr "Enrouler"
+
+#: include/defs/uistr.h:117;
+msgid "Unshade"
+msgstr "Dérouler"
+
+#: include/defs/uistr.h:118; include/defs/uistr.h:213;
+msgid "Decorate"
+msgstr "Décorer"
+
+#: include/defs/uistr.h:119;
+msgid "Undecorate"
+msgstr "Ôter la décoration"
+
+#: include/defs/uistr.h:121;
+msgid "Inspect..."
+msgstr "Inspecter..."
+
+#: include/defs/uistr.h:123; include/defs/uistr.h:211;
+msgid "Close"
+msgstr "Fermer"
+
+#: include/defs/uistr.h:126;
+msgid "Go there..."
+msgstr "Y aller..."
+
+#: include/defs/uistr.h:127;
+msgid "Add new desktop"
+msgstr "Ajouter un nouveau bureau"
+
+#: include/defs/uistr.h:128;
+msgid "Remove last desktop"
+msgstr "Supprimer le dernier bureau"
+
+#: include/defs/uistr.h:129;
+msgid "(no windows)"
+msgstr "(aucune fenêtre)"
+
+#: include/defs/uistr.h:130;
+msgid " (not responding)"
+msgstr " (ne répond pas)"
+
+#: include/defs/uistr.h:135;
+msgid "Are you sure you want to exit %s?"
+msgstr "Voulez-vous vraiment quitter %s ?"
+
+#: include/defs/uistr.h:136;
+msgid "[ Cancel ]"
+msgstr "[ Annuler ]"
+
+#: include/defs/uistr.h:137;
+msgid "[ Exit ]"
+msgstr "[ Quitter ]"
+
+#: include/defs/uistr.h:157;
+msgid "Automatically selecting '%.255s' in %d second(s)"
+msgstr "Sélection automatique de '%.255s' dans %d seconde(s)"
+
+#: include/defs/uistr.h:164;
+msgid ""
+"The 'randr.json' configuration has been applied.  Keep it, or revert to the "
+"previous one?"
+msgstr ""
+"La configuration 'randr.json' a été appliquée.  La conserver ou revenir à la "
+"précédente ?"
+
+#: include/defs/uistr.h:167;
+msgid "[ Revert ]"
+msgstr "[ Revenir ]"
+
+#: include/defs/uistr.h:168;
+msgid "[ Keep ]"
+msgstr "[ Conserver ]"
+
+#: include/defs/uistr.h:180;
+msgid "Window Manager"
+msgstr "Gestionnaire de fenêtres"
+
+#: include/defs/uistr.h:182;
+msgid "Launch"
+msgstr "Lancer"
+
+#: include/defs/uistr.h:183;
+msgid "Window"
+msgstr "Fenêtre"
+
+#: include/defs/uistr.h:184;
+msgid "Cycle"
+msgstr "Parcourir"
+
+#: include/defs/uistr.h:185;
+msgid "Viewport"
+msgstr "Vue"
+
+#: include/defs/uistr.h:187;
+msgid "Root menu"
+msgstr "Menu racine"
+
+#: include/defs/uistr.h:188;
+msgid "Windows menu"
+msgstr "Menu des fenêtres"
+
+#: include/defs/uistr.h:189;
+msgid "Search windows"
+msgstr "Rechercher des fenêtres"
+
+#: include/defs/uistr.h:190;
+msgid "Show desktop"
+msgstr "Afficher le bureau"
+
+#: include/defs/uistr.h:191;
+msgid "Redraw"
+msgstr "Redessiner"
+
+#: include/defs/uistr.h:193;
+msgid "Quit"
+msgstr "Quitter"
+
+#: include/defs/uistr.h:194;
+msgid "This list"
+msgstr "Cette liste"
+
+#: include/defs/uistr.h:195;
+msgid "Fortune"
+msgstr "Citation du jour"
+
+#: include/defs/uistr.h:196;
+msgid "Scratchpad"
+msgstr "Espace de travail temporaire"
+
+#: include/defs/uistr.h:197;
+msgid "Add desktop"
+msgstr "Ajouter un bureau"
+
+#: include/defs/uistr.h:198;
+msgid "Remove desktop"
+msgstr "Supprimer le bureau"
+
+#: include/defs/uistr.h:199;
+msgid "Toggle strutless maximization"
+msgstr "Basculer la maximisation sans panneaux"
+
+#: include/defs/uistr.h:203;
+msgid "Emergency exit: Ctrl+Mod1+Backspace"
+msgstr "Sortie d'urgence : Ctrl+Mod1+Backspace"
+
+#: include/defs/uistr.h:205;
+msgid "Terminal"
+msgstr "Terminal"
+
+#: include/defs/uistr.h:206;
+msgid "Launcher"
+msgstr "Lanceur"
+
+#: include/defs/uistr.h:207;
+msgid "File manager"
+msgstr "Gestionnaire de fichiers"
+
+#: include/defs/uistr.h:208;
+msgid "Web browser"
+msgstr "Navigateur web"
+
+#: include/defs/uistr.h:209;
+msgid "Editor"
+msgstr "Éditeur"
+
+#: include/defs/uistr.h:212;
+msgid "Kill"
+msgstr "Tuer"
+
+#: include/defs/uistr.h:217;
+msgid "Iconify all"
+msgstr "Tout iconifier"
+
+#: include/defs/uistr.h:218;
+msgid "Deiconify all"
+msgstr "Tout désiconifier"
+
+#: include/defs/uistr.h:219;
+msgid "Arrange"
+msgstr "Organiser"
+
+#: include/defs/uistr.h:220;
+msgid "Info"
+msgstr "Infos"
+
+#: include/defs/uistr.h:221;
+msgid "Inspect window"
+msgstr "Inspecter la fenêtre"
+
+#: include/defs/uistr.h:224;
+msgid "Send to monitor to the north"
+msgstr "Envoyer vers l'écran du nord"
+
+#: include/defs/uistr.h:225;
+msgid "Send to monitor to the south"
+msgstr "Envoyer vers l'écran du sud"
+
+#: include/defs/uistr.h:226;
+msgid "Send to monitor to the east"
+msgstr "Envoyer vers l'écran de l'est"
+
+#: include/defs/uistr.h:227;
+msgid "Send to monitor to the west"
+msgstr "Envoyer vers l'écran de l'ouest"
+
+#: include/defs/uistr.h:228;
+msgid "Send to desktop to the north"
+msgstr "Envoyer vers le bureau du nord"
+
+#: include/defs/uistr.h:229;
+msgid "Send to desktop to the south"
+msgstr "Envoyer vers le bureau du sud"
+
+#: include/defs/uistr.h:230;
+msgid "Send to desktop to the east"
+msgstr "Envoyer vers le bureau de l'est"
+
+#: include/defs/uistr.h:231;
+msgid "Send to desktop to the west"
+msgstr "Envoyer vers le bureau de l'ouest"
+
+#: include/defs/uistr.h:232;
+msgid "Pin"
+msgstr "Épingler"
+
+#: include/defs/uistr.h:241;
+msgid "Move (relative)"
+msgstr "Déplacer (relatif)"
+
+#: include/defs/uistr.h:242;
+msgid "Move (absolute)"
+msgstr "Déplacer (absolu)"
+
+#: include/defs/uistr.h:244;
+msgid "Desktops"
+msgstr "Bureaux"
+
+#: include/defs/uistr.h:245;
+msgid "Icons"
+msgstr "Icônes"
+
+#: include/defs/uistr.h:247;
+msgid "Pan"
+msgstr "Défiler"
+
+#: include/defs/uistr.h:261;
 msgid "Go to desktop 0-9"
 msgstr "Aller au bureau 0-9"
 
-#: include/defs/uistr.h:188;
+#: include/defs/uistr.h:262;
 msgid "Go to desktop %u"
 msgstr "Aller au bureau %u"
 
-#: include/defs/uistr.h:199;
+#: include/defs/uistr.h:267;
+msgid "Go to viewport page 1-9"
+msgstr "Aller à la page 1-9 de la vue"
+
+#: include/defs/uistr.h:268;
+msgid "Go to viewport page %u"
+msgstr "Aller à la page %u de la vue"
+
+#: include/defs/uistr.h:279;
 msgid "Detected activity on desktop [%u]"
 msgstr "Activité détectée sur le bureau [%u]"
 
-#: include/defs/uistr.h:209;
+#: include/defs/uistr.h:289;
 msgid " -- %s"
 msgstr " -- %s"
 
-#: include/defs/uistr.h:217;
+#: include/defs/uistr.h:297;
 msgid " (on surface %u)"
 msgstr " (sur la surface %u)"
 
-#: include/defs/uistr.h:221;
+#: include/defs/uistr.h:301;
 msgid "N/A"
 msgstr "N/D"
 
-#: include/defs/uistr.h:222;
+#: include/defs/uistr.h:302;
 msgid "Full, AC"
 msgstr "Pleine, secteur"
 
-#: include/defs/uistr.h:223;
+#: include/defs/uistr.h:303;
 msgid "Full"
 msgstr "Pleine"
 
-#: include/defs/uistr.h:232;
+#: include/defs/uistr.h:312;
 msgid "%u%%"
 msgstr "%u %%"
 
-#: include/defs/uistr.h:240;
+#: include/defs/uistr.h:320;
 msgid "AC"
 msgstr "Secteur"
 
-#: include/defs/uistr.h:244;
+#: include/defs/uistr.h:324;
 msgid ""
-"IcoWM is running in restricted-memory mode.  In this mode: application "
-"icons are shown without their own picture, text is drawn with simpler "
-"fonts, and there is a limit on how many windows can be open at once.  "
-"All of this trades some visual polish for keeping memory use low and "
-"predictable."
+"IcoWM is running in restricted-memory mode.  In this mode: application icons "
+"are shown without their own picture, text is drawn with simpler fonts, and "
+"there is a limit on how many windows can be open at once.  All of this "
+"trades some visual polish for keeping memory use low and predictable."
 msgstr ""
-"IcoWM fonctionne en mode mémoire restreinte.  Dans ce mode : les icônes "
-"des applications sont affichées sans leur propre image, le texte est "
-"dessiné avec des polices plus simples, et il existe une limite au "
-"nombre de fenêtres pouvant être ouvertes à la fois.  Tout cela sacrifie "
-"un peu de finition visuelle pour garder une utilisation de la mémoire "
-"faible et prévisible."
+"IcoWM fonctionne en mode mémoire restreinte.  Dans ce mode : les icônes des "
+"applications sont affichées sans leur propre image, le texte est dessiné "
+"avec des polices plus simples, et il existe une limite au nombre de fenêtres "
+"pouvant être ouvertes à la fois.  Tout cela sacrifie un peu de finition "
+"visuelle pour garder une utilisation de la mémoire faible et prévisible."
 
-#: include/defs/uistr.h:256;
-msgid ""
-"Error parsing '%s'; possible syntax error.  Reverted to default values."
+#: include/defs/uistr.h:337;
+msgid "Error parsing '%s'; possible syntax error.  Reverted to default values."
 msgstr ""
-"Erreur d'analyse de '%s' ; erreur de syntaxe possible.  Retour aux "
-"valeurs par défaut."
+"Erreur d'analyse de '%s' ; erreur de syntaxe possible.  Retour aux valeurs "
+"par défaut."
 
-#: include/defs/uistr.h:259;
+#: include/defs/uistr.h:340;
 msgid ""
-"Error parsing the following file(s); possible syntax error(s).  "
-"Reverted to default values for each: '%s'"
+"Error parsing the following file(s); possible syntax error(s).  Reverted to "
+"default values for each: '%s'"
 msgstr ""
 "Erreur d'analyse du/des fichier(s) suivant(s) ; erreur(s) de syntaxe "
 "possible(s).  Retour aux valeurs par défaut pour chacun : '%s'"
 
-#: include/defs/uistr.h:268;
+#: include/defs/uistr.h:349;
 msgid ""
-"  Additionally, the theme file '%s' named by 'config.json' was not "
-"found; using the built-in default theme instead."
+"  Additionally, the theme file '%s' named by 'config.json' was not found; "
+"using the built-in default theme instead."
 msgstr ""
 "  De plus, le fichier de thème '%s' nommé par 'config.json' est "
 "introuvable ; utilisation du thème par défaut intégré."
 
-#: include/defs/uistr.h:277;
+#: include/defs/uistr.h:358;
 msgid ""
-"IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
-"MiB allowed (see the '-M' command-line option).  Close some windows to "
-"free up memory before opening more."
+"IcoWM has reached its configured memory ceiling: using %u MiB of the %u MiB "
+"allowed (see the '-M' command-line option).  Each window IcoWM manages adds "
+"to its own memory use, regardless of that window's own application.  Close a "
+"window before opening more."
 msgstr ""
-"IcoWM a atteint son plafond de mémoire configuré : utilisation de %u "
-"Mio sur les %u Mio autorisés (voir l'option de ligne de commande "
-"'-M').  Fermez quelques fenêtres pour libérer de la mémoire avant d'en "
-"ouvrir d'autres."
+"IcoWM a atteint son plafond de mémoire configuré : utilisation de %u Mio sur "
+"les %u Mio autorisés (voir l'option de ligne de commande '-M').  Chaque "
+"fenêtre gérée par IcoWM accroît sa propre consommation de mémoire, "
+"indépendamment de l'application de cette fenêtre.  Fermez une fenêtre avant "
+"d'en ouvrir d'autres."
 
-#: include/defs/uistr.h:281;
+#: include/defs/uistr.h:364;
 msgid ""
-"IcoWM is running in restricted-memory mode and will not manage more "
-"than %u window(s) at once (see the '-M' command-line option).  Close a "
-"window before opening another."
+"IcoWM is running in restricted-memory mode and will not manage more than %u "
+"window(s) at once (see the '-M' command-line option).  Close a window before "
+"opening another."
 msgstr ""
 "IcoWM fonctionne en mode mémoire restreinte et ne gérera pas plus de %u "
-"fenêtre(s) à la fois (voir l'option de ligne de commande '-M').  Fermez "
-"une fenêtre avant d'en ouvrir une autre."
+"fenêtre(s) à la fois (voir l'option de ligne de commande '-M').  Fermez une "
+"fenêtre avant d'en ouvrir une autre."
 
-#: include/defs/uistr.h:288;
+#: include/defs/uistr.h:371;
 msgid "There are no open windows in this session at the moment."
 msgstr "Aucune fenêtre n'est actuellement ouverte dans cette session."
 
-#: include/defs/uistr.h:302;
+#: include/defs/uistr.h:383;
 msgid "On all desktops"
 msgstr "Tous les bureaux"
 
-#: include/defs/uistr.h:295;
+#: include/defs/uistr.h:389;
 msgid "Run:"
 msgstr "Exécuter :"
 
-#: include/defs/uistr.h:302;
+#: include/defs/uistr.h:396;
 msgid "Command '%s' not found."
 msgstr "Commande '%s' introuvable."
 
-#: include/defs/uistr.h:315;
+#: include/defs/uistr.h:409;
 msgid "Failed to execute '%s': command not found."
 msgstr "Échec de l'exécution de '%s' : commande introuvable."
 
-#: include/defs/uistr.h:322;
+#: include/defs/uistr.h:416;
 msgid ""
-"Alack!  The oracle 'fortune' abideth not upon this machine, wherefore "
-"no wisdom of the ancients may this day be divined.  Prithee, entreat "
-"thy package steward with an incantation such as 'sudo apt install "
-"fortune-mod' (or whate'er charm thy distribution demandeth), that the "
-"sages of yore might once more speak through this humble dialog."
+"Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no "
+"wisdom of the ancients may this day be divined.  Prithee, entreat thy "
+"package steward with an incantation such as 'sudo apt install fortune-mod' "
+"(or whate'er charm thy distribution demandeth), that the sages of yore might "
+"once more speak through this humble dialog."
 msgstr ""
 "Hélas !  L'oracle 'fortune' ne demeure point sur cette machine, si bien "
-"qu'aucune sagesse des anciens ne saurait aujourd'hui être devinée.  Je "
-"vous prie d'implorer votre gestionnaire de paquets par quelque "
-"incantation telle que 'sudo apt install fortune-mod' (ou quelque charme "
-"que votre distribution exige), afin que les sages d'antan puissent "
-"derechef parler par cet humble dialogue."
+"qu'aucune sagesse des anciens ne saurait aujourd'hui être devinée.  Je vous "
+"prie d'implorer votre gestionnaire de paquets par quelque incantation telle "
+"que 'sudo apt install fortune-mod' (ou quelque charme que votre distribution "
+"exige), afin que les sages d'antan puissent derechef parler par cet humble "
+"dialogue."
 
-#: include/defs/uistr.h
-msgid "Up/Down; PgUp/PgDown; scroll wheel"
-msgstr "Haut/Bas ; PgPréc/PgSuiv ; molette de souris"
-
-#: include/defs/uistr.h
-msgid "Identity"
-msgstr "Identité"
-
-#: include/defs/uistr.h
-msgid "Placement"
-msgstr "Emplacement"
-
-#: include/defs/uistr.h
-msgid "State"
-msgstr "État"
-
-#: include/defs/uistr.h
-msgid "Size hints"
-msgstr "Contraintes de taille"
-
-#: include/defs/uistr.h
-msgid "Relations"
-msgstr "Relations"
-
-#: include/defs/uistr.h
-msgid "Protocols"
-msgstr "Protocoles"
-
-#: include/defs/uistr.h
-msgid "Title"
-msgstr "Titre"
-
-#: include/defs/uistr.h
-msgid "Class"
-msgstr "Classe"
-
-#: include/defs/uistr.h
-msgid "Role"
-msgstr "Rôle"
-
-#: include/defs/uistr.h
-msgid "Type"
-msgstr "Type"
-
-#: include/defs/uistr.h
-msgid "Process"
-msgstr "Processus"
-
-#: include/defs/uistr.h
-msgid "Screen"
-msgstr "Écran"
-
-#: include/defs/uistr.h
-msgid "Monitor"
-msgstr "Moniteur"
-
-#: include/defs/uistr.h
-msgid "Geometry"
-msgstr "Géométrie"
-
-#: include/defs/uistr.h
-msgid "Frame extents"
-msgstr "Marges du cadre"
-
-#: include/defs/uistr.h
-msgid "Is"
-msgstr "Est"
-
-#: include/defs/uistr.h
-msgid "Is not"
-msgstr "N'est pas"
-
-#: include/defs/uistr.h
-msgid "Minimum"
-msgstr "Minimum"
-
-#: include/defs/uistr.h
-msgid "Maximum"
-msgstr "Maximum"
-
-#: include/defs/uistr.h
-msgid "Transient for"
-msgstr "Transitoire de"
-
-#: include/defs/uistr.h
-msgid "Transients"
-msgstr "Transitoires"
-
-#: include/defs/uistr.h
-msgid "Group leader"
-msgstr "Chef de groupe"
-
-#: include/defs/uistr.h
-msgid "Supports"
-msgstr "Prend en charge"
-
-#: include/defs/uistr.h
-msgid "Client"
-msgstr "Client"
-
-#: include/defs/uistr.h
-msgid "Frame"
-msgstr "Cadre"
-
-#: include/defs/uistr.h
-msgid "Titlebar"
-msgstr "Barre de titre"
-
-#: include/defs/uistr.h
-msgid "Icon window"
-msgstr "Fenêtre d'icône"
-
-#: include/defs/uistr.h
-msgid "(none)"
-msgstr "(aucun)"
-
-#: include/defs/uistr.h
-msgid "unlimited"
-msgstr "illimité"
-
-#: include/defs/uistr.h
-msgid "pinned to all"
-msgstr "épinglée partout"
-
-#: include/defs/uistr.h
-msgid "Inspect..."
-msgstr "Inspecter..."
-
-#: include/defs/uistr.h
-msgid "Inspect window"
-msgstr "Inspecter la fenêtre"
-
-#: include/defs/uistr.h
-msgid ""
-"IcoWM has reached its configured memory ceiling: using %u MiB of the "
-"%u MiB allowed (see the '-M' command-line option).  Each window "
-"IcoWM manages adds to its own memory use, regardless of that "
-"window's own application.  Close a window before opening more."
-msgstr ""
-"IcoWM a atteint son plafond de mémoire configuré : utilisation de %u "
-"Mio sur les %u Mio autorisés (voir l'option de ligne de commande "
-"'-M').  Chaque fenêtre gérée par IcoWM accroît sa propre "
-"consommation de mémoire, indépendamment de l'application de cette "
-"fenêtre.  Fermez une fenêtre avant d'en ouvrir d'autres."
-
-#: include/defs/uistr.h
-msgid " (not responding)"
-msgstr " (ne répond pas)"
+#~ msgid ""
+#~ "IcoWM has reached its configured memory ceiling: using %u MiB of the %u "
+#~ "MiB allowed (see the '-M' command-line option).  Close some windows to "
+#~ "free up memory before opening more."
+#~ msgstr ""
+#~ "IcoWM a atteint son plafond de mémoire configuré : utilisation de %u Mio "
+#~ "sur les %u Mio autorisés (voir l'option de ligne de commande '-M').  "
+#~ "Fermez quelques fenêtres pour libérer de la mémoire avant d'en ouvrir "
+#~ "d'autres."
