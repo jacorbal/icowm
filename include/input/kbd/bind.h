@@ -65,6 +65,23 @@ enum wm_keybind_type_e {
     KEYBIND_VIEWPORT_PAN_EAST,
     KEYBIND_VIEWPORT_PAN_WEST,
 
+    /* Direct viewport page go-to, keys 1 to 9 addressing the first
+     * nine pages of the configured grid, in row-major order; unlike
+     * 'KEYBIND_DESKTOP_GOTO_0' through '_9' above, the key itself is
+     * one-based (key '1' reaches the very first page, index 0) so
+     * every one of the nine digit keys names a real page instead of
+     * key '0' being spent on the page already showing most of the
+     * time */
+    KEYBIND_VIEWPORT_GOTO_1,
+    KEYBIND_VIEWPORT_GOTO_2,
+    KEYBIND_VIEWPORT_GOTO_3,
+    KEYBIND_VIEWPORT_GOTO_4,
+    KEYBIND_VIEWPORT_GOTO_5,
+    KEYBIND_VIEWPORT_GOTO_6,
+    KEYBIND_VIEWPORT_GOTO_7,
+    KEYBIND_VIEWPORT_GOTO_8,
+    KEYBIND_VIEWPORT_GOTO_9,
+
     /* Window operations, each on the focused client */
     KEYBIND_CLIENT_ICONIFY,
     /** Hide, which is what other window managers call minimizing */

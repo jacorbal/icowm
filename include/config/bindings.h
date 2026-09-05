@@ -304,6 +304,23 @@ struct config_bindings_s {
                 char east[CONFIG_MAX_LENGTH_BINDING];
                 char west[CONFIG_MAX_LENGTH_BINDING];
             } pan;
+
+            /**
+             * @brief Direct viewport page go-to shortcuts, one-based
+             *        keys 1-9 addressing the grid's first nine pages
+             *        in row-major order
+             *
+             * Parallels @c desktop.go_to above, which switches to a
+             * different desktop entirely by index; these instead only
+             * move where within the current desktop the physical
+             * screen is looking, a no-op past the configured
+             * @c viewport grid's own page count.
+             *
+             * @see @a enact_surface_viewport_goto in @c enact.h
+             */
+            struct {
+                char page[9][CONFIG_MAX_LENGTH_BINDING];
+            } go_to;
         } viewport;
     } keyboard;
 

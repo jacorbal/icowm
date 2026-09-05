@@ -692,6 +692,96 @@ static void s_test_set_moves_to_absolute_origin(void)
 }
 
 
+/* A null surface, or one with no resolvable current desktop, is
+ * refused outright by the page go-to command too */
+static void s_test_goto_null_surface_or_no_desktop_is_noop(void)
+{
+    config_td config;
+    surface_td *surface;
+
+    memset(&config, 0, sizeof(config));
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = NULL;
+
+    scmd_surface_viewport_goto(NULL, 0u);
+    scmd_surface_viewport_goto(surface, 0u);
+
+    TAP_OK(!surface->is_outdated,
+            "a null surface, or one with no resolvable current" \
+            " desktop, never outdates anything through" \
+            " scmd_surface_viewport_goto");
+
+    free(surface);
+}
+
+
+/* A page index maps to its own origin in row-major order across the
+ * configured grid, and lands there exactly the same way
+ * 'scmd_surface_viewport_set' would given that pixel origin */
+static void s_test_goto_moves_to_correct_page(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 3u;
+    config.base.screens[0].viewport.rows = 2u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    /* Page 4 (zero-based), 3 columns wide: row 1, column 1 */
+    scmd_surface_viewport_goto(surface, 4u);
+
+    TAP_EQ_INT(desktop->viewport_origin.x, 800,
+            "page 4 across a 3-column grid lands on column 1's" \
+            " X origin");
+    TAP_EQ_INT(desktop->viewport_origin.y, 600,
+            "page 4 across a 3-column grid lands on row 1's" \
+            " Y origin");
+    TAP_OK(surface->is_outdated,
+            "a real page jump marks the surface outdated");
+
+    free(surface);
+    free(desktop);
+}
+
+
+/* A page index at or past the configured grid's own page count is
+ * refused outright, unlike a pixel origin which would instead be
+ * clamped into range */
+static void s_test_goto_out_of_range_page_is_noop(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 2u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    scmd_surface_viewport_goto(surface, 4u);
+
+    TAP_OK(s_call_stacking_walk == 0,
+            "a page index past the grid's own count walks no client" \
+            " at all");
+    TAP_OK(!surface->is_outdated,
+            "a page index past the grid's own count never outdates" \
+            " the surface");
+
+    free(surface);
+    free(desktop);
+}
+
+
 /* A requested origin past the pannable area is clamped back to its
  * nearest edge, and requesting the origin already in effect is a
  * no-op */
@@ -735,7 +825,7 @@ static void s_test_set_clamps_and_noops_at_same_origin(void)
 
 int main(void)
 {
-    TAP_PLAN(41);
+    TAP_PLAN(47);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
@@ -750,6 +840,9 @@ int main(void)
     s_test_set_null_surface_or_no_desktop_is_noop();
     s_test_set_moves_to_absolute_origin();
     s_test_set_clamps_and_noops_at_same_origin();
+    s_test_goto_null_surface_or_no_desktop_is_noop();
+    s_test_goto_moves_to_correct_page();
+    s_test_goto_out_of_range_page_is_noop();
 
     return TAP_DONE();
 }

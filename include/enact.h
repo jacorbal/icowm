@@ -868,6 +868,20 @@ void enact_surface_viewport_pan_east(surface_td *surface);
 void enact_surface_viewport_pan_west(surface_td *surface);
 
 /**
+ * @brief Jump the surface's current desktop viewport straight to one
+ *        of its configured pages, addressed by a single linear index
+ *
+ * @param surface Surface to reposition
+ * @param page    Zero-based page index; see @a scmd_surface_
+ *                viewport_goto (cmds/surface.h) for how it maps onto
+ *                the configured viewport grid
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void enact_surface_viewport_goto(surface_td *surface, uint32_t page);
+
+/**
  * @brief Add a new, empty desktop to the end of the surface's
  *        desktop list
  *

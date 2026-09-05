@@ -504,6 +504,24 @@ static size_t s_keyboard_binding_defs(const config_td *config,
           KEYBIND_VIEWPORT_PAN_EAST },
         { config->bindings.keyboard.viewport.pan.west,
           KEYBIND_VIEWPORT_PAN_WEST },
+        { config->bindings.keyboard.viewport.go_to.page[0],
+          KEYBIND_VIEWPORT_GOTO_1 },
+        { config->bindings.keyboard.viewport.go_to.page[1],
+          KEYBIND_VIEWPORT_GOTO_2 },
+        { config->bindings.keyboard.viewport.go_to.page[2],
+          KEYBIND_VIEWPORT_GOTO_3 },
+        { config->bindings.keyboard.viewport.go_to.page[3],
+          KEYBIND_VIEWPORT_GOTO_4 },
+        { config->bindings.keyboard.viewport.go_to.page[4],
+          KEYBIND_VIEWPORT_GOTO_5 },
+        { config->bindings.keyboard.viewport.go_to.page[5],
+          KEYBIND_VIEWPORT_GOTO_6 },
+        { config->bindings.keyboard.viewport.go_to.page[6],
+          KEYBIND_VIEWPORT_GOTO_7 },
+        { config->bindings.keyboard.viewport.go_to.page[7],
+          KEYBIND_VIEWPORT_GOTO_8 },
+        { config->bindings.keyboard.viewport.go_to.page[8],
+          KEYBIND_VIEWPORT_GOTO_9 },
         /* Hardcoded 'Alt+Space': always opens the per-window context
          * menu (right-click on a titlebar); fixed, not configurable,
          * matching the common desktop-environment convention for this
@@ -631,12 +649,15 @@ static bool s_keyboard_is_disabled(enum wm_keybind_type_e type,
         return true;
     }
 
-    /* Every viewport-pan binding, when no surface has a viewport
-     * wider or taller than a single screen to pan within */
+    /* Every viewport-pan and go-to-page-N binding, when no surface
+     * has a viewport wider or taller than a single screen to pan
+     * within or jump around */
     if ((type == KEYBIND_VIEWPORT_PAN_NORTH ||
                 type == KEYBIND_VIEWPORT_PAN_SOUTH ||
                 type == KEYBIND_VIEWPORT_PAN_EAST ||
-                type == KEYBIND_VIEWPORT_PAN_WEST) &&
+                type == KEYBIND_VIEWPORT_PAN_WEST ||
+                (type >= KEYBIND_VIEWPORT_GOTO_1 &&
+                 type <= KEYBIND_VIEWPORT_GOTO_9)) &&
             !has_viewport) {
         return true;
     }

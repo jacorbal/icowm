@@ -182,6 +182,23 @@ void scmd_surface_viewport_pan_west(surface_td *surface)
 }
 
 
+/** Call counter and last-seen argument for @a scmd_surface_viewport_
+ *  goto */
+static int s_call_goto;
+static uint32_t s_last_goto_page;
+
+/** Call-recording stand-in for @a scmd_surface_viewport_goto
+ *  (cmds/surface.c)
+ *  @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_goto(surface_td *surface, uint32_t page)
+{
+    (void) surface;
+    s_call_goto++;
+    s_last_goto_page = page;
+}
+
+
 /** Outcome each of the three surface_action_* stand-ins below should
  *  report, one per action, set by each scenario before calling the
  *  function under test */
@@ -330,6 +347,8 @@ static void s_reset(void)
     s_call_pan_south = 0;
     s_call_pan_east = 0;
     s_call_pan_west = 0;
+    s_call_goto = 0;
+    s_last_goto_page = 0u;
     s_action_desktop_add_result = 0;
     s_call_action_desktop_add = 0;
     s_action_desktop_remove_result = 0;
@@ -696,9 +715,32 @@ static void s_test_viewport_pan_west_dispatches(void)
 }
 
 
+static void s_test_viewport_goto_dispatches(void)
+{
+    surface_td *surface = s_make_surface(0u, 0u);
+
+    s_reset();
+
+    enact_surface_viewport_goto(surface, 3u);
+    TAP_EQ_INT(s_call_goto, 1,
+            "a page go-to dispatches to scmd_surface_viewport_goto"
+            " exactly once");
+    TAP_EQ_INT((int) s_last_goto_page, 3,
+            "the requested page index is passed through unchanged");
+    TAP_EQ_INT(s_call_pan_north + s_call_pan_south + s_call_pan_east +
+            s_call_pan_west, 0,
+            "no panning command runs for a page go-to dispatch");
+    TAP_EQ_INT(s_call_broadcast, 0,
+            "a viewport page go-to never broadcasts an event of its"
+            " own");
+
+    free(surface);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(44);
+    TAP_PLAN(52);
 
     s_test_desktop_switch_dispatches_and_broadcasts();
     s_test_cyclic_north_dispatches_and_broadcasts();
@@ -716,6 +758,7 @@ int main(void)
     s_test_viewport_pan_south_dispatches();
     s_test_viewport_pan_east_dispatches();
     s_test_viewport_pan_west_dispatches();
+    s_test_viewport_goto_dispatches();
 
     return TAP_DONE();
 }

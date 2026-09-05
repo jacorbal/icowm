@@ -129,9 +129,18 @@ static const config_lint_key_td s_schema_kb_cycle[] = {
         sizeof(s_schema_prev_next) / sizeof(s_schema_prev_next[0])}
 };
 
-static const config_lint_key_td s_schema_kb_viewport_pan[] = {
+static const config_lint_key_td s_schema_viewport_go_to[] = {
+    {"page1", NULL, 0u}, {"page2", NULL, 0u}, {"page3", NULL, 0u},
+    {"page4", NULL, 0u}, {"page5", NULL, 0u}, {"page6", NULL, 0u},
+    {"page7", NULL, 0u}, {"page8", NULL, 0u}, {"page9", NULL, 0u}
+};
+
+static const config_lint_key_td s_schema_kb_viewport[] = {
     {"pan", s_schema_compass,
-        sizeof(s_schema_compass) / sizeof(s_schema_compass[0])}
+        sizeof(s_schema_compass) / sizeof(s_schema_compass[0])},
+    {"go-to", s_schema_viewport_go_to,
+        sizeof(s_schema_viewport_go_to) /
+            sizeof(s_schema_viewport_go_to[0])}
 };
 
 static const config_lint_key_td s_schema_keyboard[] = {
@@ -145,9 +154,9 @@ static const config_lint_key_td s_schema_keyboard[] = {
         sizeof(s_schema_kb_window) / sizeof(s_schema_kb_window[0])},
     {"cycle", s_schema_kb_cycle,
         sizeof(s_schema_kb_cycle) / sizeof(s_schema_kb_cycle[0])},
-    {"viewport", s_schema_kb_viewport_pan,
-        sizeof(s_schema_kb_viewport_pan) /
-            sizeof(s_schema_kb_viewport_pan[0])}
+    {"viewport", s_schema_kb_viewport,
+        sizeof(s_schema_kb_viewport) /
+            sizeof(s_schema_kb_viewport[0])}
 };
 
 static const config_lint_key_td s_schema_mouse_window[] = {

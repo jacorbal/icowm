@@ -188,3 +188,11 @@ void enact_surface_viewport_pan_west(surface_td *surface)
 {
     scmd_surface_viewport_pan_west(surface);
 }
+
+
+/* Jump the surface's current desktop viewport straight to one of its
+ * configured pages */
+void enact_surface_viewport_goto(surface_td *surface, uint32_t page)
+{
+    scmd_surface_viewport_goto(surface, page);
+}

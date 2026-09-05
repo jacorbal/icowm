@@ -208,6 +208,15 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_VIEWPORT_PAN_SOUTH:
         case KEYBIND_VIEWPORT_PAN_EAST:
         case KEYBIND_VIEWPORT_PAN_WEST:
+        case KEYBIND_VIEWPORT_GOTO_1:
+        case KEYBIND_VIEWPORT_GOTO_2:
+        case KEYBIND_VIEWPORT_GOTO_3:
+        case KEYBIND_VIEWPORT_GOTO_4:
+        case KEYBIND_VIEWPORT_GOTO_5:
+        case KEYBIND_VIEWPORT_GOTO_6:
+        case KEYBIND_VIEWPORT_GOTO_7:
+        case KEYBIND_VIEWPORT_GOTO_8:
+        case KEYBIND_VIEWPORT_GOTO_9:
         case KEYBIND_LAUNCH_TERMINAL:
         case KEYBIND_LAUNCH_LAUNCHER:
         case KEYBIND_LAUNCH_FILE_MANAGER:
@@ -441,6 +450,21 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         case KEYBIND_VIEWPORT_PAN_WEST:
             if (surface != NULL) {
                 enact_surface_viewport_pan_west(surface);
+            }
+            return;
+
+        case KEYBIND_VIEWPORT_GOTO_1:
+        case KEYBIND_VIEWPORT_GOTO_2:
+        case KEYBIND_VIEWPORT_GOTO_3:
+        case KEYBIND_VIEWPORT_GOTO_4:
+        case KEYBIND_VIEWPORT_GOTO_5:
+        case KEYBIND_VIEWPORT_GOTO_6:
+        case KEYBIND_VIEWPORT_GOTO_7:
+        case KEYBIND_VIEWPORT_GOTO_8:
+        case KEYBIND_VIEWPORT_GOTO_9:
+            if (surface != NULL) {
+                enact_surface_viewport_goto(surface,
+                        (uint32_t) (btype - KEYBIND_VIEWPORT_GOTO_1));
             }
             return;
 

@@ -496,3 +496,35 @@ void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y)
     origin.y = y;
     s_viewport_apply_origin(surface, desktop, columns, rows, origin);
 }
+
+
+/* Jump the current desktop's viewport straight to one of its
+ * configured pages, addressed by a single linear index */
+void scmd_surface_viewport_goto(surface_td *surface, uint32_t page)
+{
+    const desktop_td *desktop;
+    uint32_t columns;
+    uint32_t rows;
+    uint32_t col;
+    uint32_t row;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return;
+    }
+
+    s_surface_viewport_dims(surface, &columns, &rows);
+    if (page >= columns * rows) {
+        return;
+    }
+
+    col = page % columns;
+    row = page / columns;
+    scmd_surface_viewport_set(surface,
+            (int32_t) (col * desktop->geometry.dim.w),
+            (int32_t) (row * desktop->geometry.dim.h));
+}

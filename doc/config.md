@@ -1764,9 +1764,40 @@ changes, only where within it the physical screen is looking.
         "south": "modc+mod4+mods+Down",
         "east": "modc+mod4+mod5+Right",
         "west": "modc+mod4+mod5+Left"
+    },
+    "go-to": {
+        "page1": "modc+mod4+1",
+        "page2": "modc+mod4+2",
+        "page3": "modc+mod4+3",
+        "page4": "modc+mod4+4",
+        "page5": "modc+mod4+5",
+        "page6": "modc+mod4+6",
+        "page7": "modc+mod4+7",
+        "page8": "modc+mod4+8",
+        "page9": "modc+mod4+9"
     }
 }
 ```
+
+#### `keyboard.viewport.go-to`
+
+Jump directly to a page of the viewport grid by index (1-9), numbered
+row-major from the top-left page: `page1` is the first page of the
+first row, and each following number moves one page right until the
+row ends, then wraps to the first page of the next row.  Pages beyond
+index 9 are not reachable by these shortcuts.
+
+| Key     | Default binding | Destination                   |
+|---------|------------------|--------------------------------|
+| `page1` | `modc+mod4+1`    | Page 1 (first page, top-left). |
+| `page2` | `modc+mod4+2`    | Page 2.                        |
+| `page3` | `modc+mod4+3`    | Page 3.                        |
+| `page4` | `modc+mod4+4`    | Page 4.                        |
+| `page5` | `modc+mod4+5`    | Page 5.                        |
+| `page6` | `modc+mod4+6`    | Page 6.                        |
+| `page7` | `modc+mod4+7`    | Page 7.                        |
+| `page8` | `modc+mod4+8`    | Page 8.                        |
+| `page9` | `modc+mod4+9`    | Page 9.                        |
 
 ### 3.9. `mouse.window`
 

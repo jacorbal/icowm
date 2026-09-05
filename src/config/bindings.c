@@ -492,6 +492,7 @@ static void s_config_bindings_load_keyboard_viewport(cJSON *keyboard,
 
     if (viewport) {
         cJSON *const pan = cJSON_GetObjectItem(viewport, "pan");
+        cJSON *go_to;
 
         if (pan) {
             json_load_string(pan, "north",
@@ -506,6 +507,22 @@ static void s_config_bindings_load_keyboard_viewport(cJSON *keyboard,
             json_load_string(pan, "west",
                     config_bindings->keyboard.viewport.pan.west,
                     CONFIG_MAX_LENGTH_BINDING);
+        }
+
+        /* Direct page go-to shortcuts, keys 1-9 */
+        go_to = cJSON_GetObjectItem(viewport, "go-to");
+        if (go_to != NULL) {
+            static const char *keys[9] = {
+                "page1", "page2", "page3",
+                "page4", "page5", "page6",
+                "page7", "page8", "page9"
+            };
+            for (int gi = 0; gi < 9; ++gi) {
+                json_load_string(go_to, keys[gi],
+                    config_bindings->keyboard.viewport.go_to.
+                        page[gi],
+                        CONFIG_MAX_LENGTH_BINDING);
+            }
         }
     }
 }
@@ -755,6 +772,36 @@ void config_set_default_bindings_values(
     safe_strncpy(config_bindings->keyboard.desktop.go_to.desktop[9],
             "modc+mod1+9",
             sizeof(config_bindings->keyboard.desktop.go_to.desktop[9]));
+
+    /* Predetermined goto-page shortcuts for viewport pages 1-9 */
+    LOGGER_TRACE("Setting default viewport go-to keybindings", L_NARG);
+    safe_strncpy(config_bindings->keyboard.viewport.go_to.page[0],
+            "modc+mod4+1",
+            sizeof(config_bindings->keyboard.viewport.go_to.page[0]));
+    safe_strncpy(config_bindings->keyboard.viewport.go_to.page[1],
+            "modc+mod4+2",
+            sizeof(config_bindings->keyboard.viewport.go_to.page[1]));
+    safe_strncpy(config_bindings->keyboard.viewport.go_to.page[2],
+            "modc+mod4+3",
+            sizeof(config_bindings->keyboard.viewport.go_to.page[2]));
+    safe_strncpy(config_bindings->keyboard.viewport.go_to.page[3],
+            "modc+mod4+4",
+            sizeof(config_bindings->keyboard.viewport.go_to.page[3]));
+    safe_strncpy(config_bindings->keyboard.viewport.go_to.page[4],
+            "modc+mod4+5",
+            sizeof(config_bindings->keyboard.viewport.go_to.page[4]));
+    safe_strncpy(config_bindings->keyboard.viewport.go_to.page[5],
+            "modc+mod4+6",
+            sizeof(config_bindings->keyboard.viewport.go_to.page[5]));
+    safe_strncpy(config_bindings->keyboard.viewport.go_to.page[6],
+            "modc+mod4+7",
+            sizeof(config_bindings->keyboard.viewport.go_to.page[6]));
+    safe_strncpy(config_bindings->keyboard.viewport.go_to.page[7],
+            "modc+mod4+8",
+            sizeof(config_bindings->keyboard.viewport.go_to.page[7]));
+    safe_strncpy(config_bindings->keyboard.viewport.go_to.page[8],
+            "modc+mod4+9",
+            sizeof(config_bindings->keyboard.viewport.go_to.page[8]));
 
     /* Predetermined configuration for movement with keyboard */
     LOGGER_TRACE("Setting default movement/resizing keybindings",

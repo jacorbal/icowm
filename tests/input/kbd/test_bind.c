@@ -601,10 +601,15 @@ static void s_test_load_viewport_bindings_need_viewport(void)
     uint16_t modmask = 0;
     bool found_1x1;
     bool found_wide;
+    bool found_goto_1x1;
+    bool found_goto_wide;
 
     s_config_reset(&config);
     safe_strncpy(config.bindings.keyboard.viewport.pan.east, "ctrl+right",
             sizeof(config.bindings.keyboard.viewport.pan.east));
+    safe_strncpy(config.bindings.keyboard.viewport.go_to.page[0],
+            "modc+mod4+1",
+            sizeof(config.bindings.keyboard.viewport.go_to.page[0]));
 
     memset(&surface, 0, sizeof(surface));
     surface.config = &config;
@@ -620,6 +625,11 @@ static void s_test_load_viewport_bindings_need_viewport(void)
     found_1x1 = keyboard_find(KEYBIND_VIEWPORT_PAN_EAST, &keysym, &modmask);
     TAP_OK(!found_1x1,
             "a viewport-pan binding is absent with a 1x1 viewport");
+    found_goto_1x1 = keyboard_find(KEYBIND_VIEWPORT_GOTO_1, &keysym,
+            &modmask);
+    TAP_OK(!found_goto_1x1,
+            "a viewport-go-to-page binding is also absent with a 1x1" \
+            " viewport");
 
     config.base.screens[0].viewport.columns = 2u;
     s_reset();
@@ -628,6 +638,11 @@ static void s_test_load_viewport_bindings_need_viewport(void)
     TAP_OK(found_wide,
             "the same binding is present once a surface's viewport" \
             " has more than one column");
+    found_goto_wide = keyboard_find(KEYBIND_VIEWPORT_GOTO_1, &keysym,
+            &modmask);
+    TAP_OK(found_goto_wide,
+            "the viewport-go-to-page binding is present as well once" \
+            " a surface's viewport has more than one column");
 
     list_destroy(surfaces);
 }
@@ -712,7 +727,7 @@ int main(void)
 {
     xcb_connection_set(s_fake_connection);
 
-    TAP_PLAN(31);
+    TAP_PLAN(33);
 
     s_test_initial_state_empty();
     s_test_find_null_outputs();

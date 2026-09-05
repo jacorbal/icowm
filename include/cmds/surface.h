@@ -165,5 +165,32 @@ void scmd_surface_viewport_pan_west(surface_td *surface);
  */
 void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y);
 
+/**
+ * @brief Jump the current desktop's viewport straight to one of its
+ *        configured pages, addressed by a single linear index rather
+ *        than an X/Y origin
+ *
+ * A page's own origin is derived the same way @a scmd_surface_
+ * viewport_pan_east and its siblings already derive each one-screen
+ * step: @p page's row is its index divided by the configured column
+ * count, its column the remainder, each then multiplied by the
+ * desktop's own screen-sized dimensions to land on that page's
+ * top-left pixel, handed to @a scmd_surface_viewport_set exactly as
+ * a pager's absolute request would be.  Out of the configured
+ * @c columns * @c rows range, @p page is refused outright rather than
+ * clamped into range: unlike a pan or a pager's arbitrary pixel
+ * origin, a page index has no meaningful nearest neighbor to fall
+ * back to once it no longer names any real page at all.
+ *
+ * @param surface Pointer to the surface
+ * @param page    Zero-based page index, in row-major order across the
+ *                configured viewport grid (§2.2's @c columns first,
+ *                then @c rows)
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void scmd_surface_viewport_goto(surface_td *surface, uint32_t page);
+
 
 #endif  /* ! CMDS_SCMD_H */
