@@ -49,20 +49,21 @@
  *        height
  *
  * When the full entry list would exceed this fraction of the screen,
- * the menu window is capped at this height and a scroll viewport is
- * used so the user can reach every entry with the cycle keys.
+ * the menu window is capped at this height and only a scrolling range
+ * of rows is shown so the user can reach every entry with the cycle
+ * keys.
  */
 #define WM_CYCLE_MENU_MAX_HEIGHT_PERCENT (80)
 
 /**
- * @brief Text shown at the top of the cycle-menu viewport when there
- *        are more entries above the ones currently visible
+ * @brief Text shown at the top of the cycle menu's visible rows when
+ *        there are more entries above the ones currently visible
  */
 #define WM_CYCLE_MENU_SCROLL_UP_INDICATOR "---"
 
 /**
- * @brief Text shown at the bottom of the cycle-menu viewport when there
- *        are more entries below the ones currently visible
+ * @brief Text shown at the bottom of the cycle menu's visible rows
+ *        when there are more entries below the ones currently visible
  */
 #define WM_CYCLE_MENU_SCROLL_DOWN_INDICATOR "---"
 

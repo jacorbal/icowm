@@ -108,12 +108,12 @@ static void s_cycle_row_style(const config_td *config,
  * @brief Paint one row of the cycle menu, background through label
  *
  * Self-contained: callers need no separate clear step first, whether
- * repainting the whole viewport or just this one row on its own.
+ * repainting every visible row or just this one row on its own.
  *
  * @param connection XCB connection
  * @param i          Absolute entry index to draw, not one relative
- *                   to the viewport; must fall within the current
- *                   viewport
+ *                   to the visible rows; must fall within the current
+ *                   visible range
  * @param pad_y      Vertical padding, for this row's Y offset
  * @param style      Drawing constants from @a s_cycle_row_style
  *
@@ -564,7 +564,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
     (void) text_renderer_use_font(connection,
             config->theme.menu.unselected.font);
 
-    /* A viewport shift (scrolling) changes every row actually shown, so
+    /* A scroll shift changes every row actually shown, so
      * it still needs the full loop below.  Otherwise selection moved
      * between two rows already on screen, and only those two actually
      * changed which color/text they show, for repainting the rest would
@@ -575,7 +575,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
     if (need_full_repaint) {
         for (int i = g_cycle_menu.scroll_offset;
                 i < g_cycle_menu.scroll_offset +
-                    g_cycle_menu.viewport_rows;
+                    g_cycle_menu.visible_rows;
                 ++i) {
             s_cycle_draw_row(connection, i, pad_y, &style);
         }
@@ -584,13 +584,13 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
                         g_cycle_menu.scroll_offset
                 && g_cycle_menu.last_drawn_selected <
                         g_cycle_menu.scroll_offset +
-                    g_cycle_menu.viewport_rows) {
+                    g_cycle_menu.visible_rows) {
             s_cycle_draw_row(connection,
                     g_cycle_menu.last_drawn_selected, pad_y, &style);
         }
         if (g_cycle_menu.selected >= g_cycle_menu.scroll_offset &&
                 g_cycle_menu.selected < g_cycle_menu.scroll_offset +
-                    g_cycle_menu.viewport_rows) {
+                    g_cycle_menu.visible_rows) {
             s_cycle_draw_row(connection, g_cycle_menu.selected,
                     pad_y, &style);
         }
@@ -601,10 +601,10 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
     g_cycle_menu.has_drawn_once = true;
 
     /* Draw scroll-indicator arrows in the top/bottom padding areas when
-     * there are hidden entries above or below the viewport.  Only
+     * there are hidden entries above or below the visible rows.  Only
      * meaningful as part of a full repaint.  Their content depends
      * solely on 'scroll_offset' and 'count', neither of which changes
-     * on a same-viewport selection move.
+     * when the selection moves without scrolling.
      *
      * 'menu_draw_label' positions text by its baseline, and the
      * top/bottom padding strips are each only 'pad_y' pixels tall (the
@@ -616,10 +616,10 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
      * pixels above the window's bottom edge (see 'text_font_descent'),
      * keeping it above that edge instead. */
     if (need_full_repaint && g_cycle_menu.count >
-                g_cycle_menu.viewport_rows) {
+                g_cycle_menu.visible_rows) {
         int16_t top_baseline_y = text_font_ascent();
 
-        /* Up arrow: entries exist above the viewport */
+        /* Up arrow: entries exist above the visible rows */
         if (g_cycle_menu.scroll_offset > 0) {
             menu_draw_row_bg(connection, g_cycle_menu.window,
                     style.bg_nor, 0, (uint16_t) pad_y,
@@ -636,11 +636,11 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
                     g_cycle_menu.width);
         }
 
-        /* Down arrow: entries exist below the viewport */
-        if (g_cycle_menu.scroll_offset + g_cycle_menu.viewport_rows <
+        /* Down arrow: entries exist below the visible rows */
+        if (g_cycle_menu.scroll_offset + g_cycle_menu.visible_rows <
                 g_cycle_menu.count) {
             int16_t bot_y = (int16_t) (pad_y +
-                    g_cycle_menu.viewport_rows *
+                    g_cycle_menu.visible_rows *
                     WM_CYCLE_MENU_ROW_HEIGHT);
             menu_draw_row_bg(connection, g_cycle_menu.window,
                     style.bg_nor, bot_y, (uint16_t) pad_y,
@@ -654,7 +654,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
         } else {
             /* Clear the bottom padding area when no arrow is needed */
             int16_t bot_y = (int16_t) (pad_y +
-                    g_cycle_menu.viewport_rows *
+                    g_cycle_menu.visible_rows *
                     WM_CYCLE_MENU_ROW_HEIGHT);
             menu_draw_row_bg(connection, g_cycle_menu.window,
                     style.bg_nor, bot_y, (uint16_t) pad_y,

@@ -105,7 +105,7 @@ static struct {
     int result_count;
     int selected;
     int scroll_offset;
-    int viewport_rows;
+    int visible_rows;
     xcb_window_t prev_focus;
     uint16_t height;
     char query[WM_SEARCH_QUERY_MAX_LENGTH];
@@ -372,7 +372,7 @@ static void s_search_refilter(void)
 
 
 /**
- * @brief Recompute the widget's total window height and viewport row
+ * @brief Recompute the widget's total window height and visible row
  *        count from the current result count
  *
  * Caps visible height at @c WM_SEARCH_MAX_HEIGHT_PERCENT of the
@@ -387,24 +387,24 @@ static void s_search_compute_geometry(void)
         (uint32_t) WM_SEARCH_MAX_HEIGHT_PERCENT / 100u;
     uint32_t avail = (screen_h_pct > (uint32_t) WM_SEARCH_BAR_HEIGHT)
         ? screen_h_pct - (uint32_t) WM_SEARCH_BAR_HEIGHT : 0u;
-    int vp_rows = (int) (avail / (uint32_t) WM_SEARCH_ROW_HEIGHT);
+    int visible_rows = (int) (avail / (uint32_t) WM_SEARCH_ROW_HEIGHT);
 
-    if (vp_rows < 1) {
-        vp_rows = 1;
+    if (visible_rows < 1) {
+        visible_rows = 1;
     }
-    if (vp_rows > s_search.result_count) {
-        vp_rows = s_search.result_count;
+    if (visible_rows > s_search.result_count) {
+        visible_rows = s_search.result_count;
     }
-    s_search.viewport_rows = vp_rows;
+    s_search.visible_rows = visible_rows;
 
     s_search.height = (uint16_t) (S_SEARCH_ROWS_TOP +
-            s_search.viewport_rows * WM_SEARCH_ROW_HEIGHT +
+            s_search.visible_rows * WM_SEARCH_ROW_HEIGHT +
             WM_SEARCH_PAD_Y);
 }
 
 
 /**
- * @brief Keep the current selection inside the visible viewport,
+ * @brief Keep the current selection inside the visible rows,
  *        scrolling the minimum amount needed
  *
  * @note Complexity: @e O(1)
@@ -417,9 +417,9 @@ static void s_search_scroll_to_selection(void)
     if (s_search.selected < s_search.scroll_offset) {
         s_search.scroll_offset = s_search.selected;
     } else if (s_search.selected >=
-            s_search.scroll_offset + s_search.viewport_rows) {
+            s_search.scroll_offset + s_search.visible_rows) {
         s_search.scroll_offset =
-            s_search.selected - s_search.viewport_rows + 1;
+            s_search.selected - s_search.visible_rows + 1;
     }
 }
 
@@ -430,7 +430,8 @@ static void s_search_scroll_to_selection(void)
  *
  * @param y Pixel Y relative to the widget window
  *
- * @return Absolute result index (not viewport-relative), or @c -1
+ * @return Absolute result index (not relative to the visible rows),
+ *         or @c -1
  *
  * @note Complexity: @e O(1)
  */
@@ -449,8 +450,8 @@ static int s_search_row_at_y(int16_t y)
      * which is what '-Wstrict-overflow' reports on */
     rel_row = ((unsigned int) y - (unsigned int) S_SEARCH_ROWS_TOP) /
         (unsigned int) WM_SEARCH_ROW_HEIGHT;
-    if (s_search.viewport_rows < 0 ||
-            rel_row >= (unsigned int) s_search.viewport_rows) {
+    if (s_search.visible_rows < 0 ||
+            rel_row >= (unsigned int) s_search.visible_rows) {
         return -1;
     }
 
@@ -1006,7 +1007,7 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
     s_search_draw_bar(connection, cfg);
 
     for (int i = s_search.scroll_offset;
-            i < s_search.scroll_offset + s_search.viewport_rows &&
+            i < s_search.scroll_offset + s_search.visible_rows &&
                 i < s_search.result_count; ++i) {
         s_search_draw_row(connection, cfg, i);
     }
@@ -1015,11 +1016,11 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
      * ('menu/cycle/draw.c'): the up arrow lives in the padding strip
      * right below the query bar, the down arrow in the padding strip
      * right above the window's bottom edge, each only drawn when
-     * entries exist beyond the visible viewport on that side */
-    if (s_search.result_count > s_search.viewport_rows) {
+     * entries exist beyond the visible rows on that side */
+    if (s_search.result_count > s_search.visible_rows) {
         int16_t up_y = (int16_t) (WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT);
         int16_t down_y = (int16_t) (S_SEARCH_ROWS_TOP +
-                s_search.viewport_rows * WM_SEARCH_ROW_HEIGHT);
+                s_search.visible_rows * WM_SEARCH_ROW_HEIGHT);
 
         (void) text_renderer_use_font(connection,
                 cfg->theme.search.selected.font);
@@ -1036,7 +1037,7 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
                     WM_SEARCH_MENU_SCROLL_UP_INDICATOR);
         }
 
-        if (s_search.scroll_offset + s_search.viewport_rows <
+        if (s_search.scroll_offset + s_search.visible_rows <
                 s_search.result_count) {
             text_renderer_set_color(
                     cfg->theme.search.selected.color.foreground,

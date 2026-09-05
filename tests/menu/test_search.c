@@ -1984,10 +1984,10 @@ static void s_test_confirm_pinned_unresolvable_desktop_is_safe(void)
 }
 
 
-/* Geometry: viewport rows, scrolling, row hit-testing */
+/* Geometry: visible rows, scrolling, row hit-testing */
 
 /* With few enough results to fit without scrolling, every result is
- * one viewport row and no scroll indicators are drawn */
+ * one visible row and no scroll indicators are drawn */
 static void s_test_geometry_small_result_set_no_scroll(void)
 {
     surface_td surface;
@@ -2006,22 +2006,23 @@ static void s_test_geometry_small_result_set_no_scroll(void)
     search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
 
     /* Clicking exactly at the third (last) row's own top-left corner
-     * must still resolve to that row: if viewport_rows had been
+     * must still resolve to that row: if visible_rows had been
      * wrongly capped below the true result count, this would miss */
     search_handle_click(s_connection_stub, (list_td *) NULL, 0,
             (int16_t) (26 + 10 + 10 + 2 * 20 + 1), &cfg);
     TAP_OK(s_focus_apply_last_client == clients[2],
             "with only three results, the third row is still directly"
-            " reachable, all three fit in the viewport without"
+            " reachable, all three fit in the visible rows without"
             " scrolling");
 
     cdlist_destroy(surface.desktops);
     s_teardown();
 }
 
-/* On a very short surface, the viewport is capped at a minimum of one
- * row rather than reaching zero (which would divide the widget by an
- * empty viewport and make every row unreachable) */
+/* On a very short surface, the visible row count is capped at a
+ * minimum of one row rather than reaching zero (which would divide
+ * the widget by an empty visible range and make every row
+ * unreachable) */
 static void s_test_geometry_tiny_surface_keeps_one_row_minimum(void)
 {
     surface_td surface;
@@ -2042,7 +2043,7 @@ static void s_test_geometry_tiny_surface_keeps_one_row_minimum(void)
     }
     /* A surface only tall enough for the bar itself, well under one
      * more row's worth of height: 'avail' clamps to zero, and
-     * 's_search_compute_geometry' must still floor 'viewport_rows' at
+     * 's_search_compute_geometry' must still floor 'visible_rows' at
      * one rather than at zero */
     s_make_surface_one_desktop(&surface, desktop, clients, 5, 1024u, 40u);
     s_make_config(&cfg);
@@ -2054,7 +2055,7 @@ static void s_test_geometry_tiny_surface_keeps_one_row_minimum(void)
     TAP_OK(s_focus_apply_last_client == clients[0],
             "even on a surface too short to fit a full row's worth of"
             " extra height, the first result row is still reachable"
-            " (viewport_rows floors at one, never zero)");
+            " (visible_rows floors at one, never zero)");
 
     cdlist_destroy(surface.desktops);
     s_teardown();
@@ -2088,15 +2089,15 @@ static void s_test_row_at_y_out_of_bounds_above_and_below(void)
             (int16_t) (26 + 10 + 10 + 2 * 20 + 50), &cfg);
     TAP_EQ_INT(s_focus_apply_calls, 0,
             "a click far below the last visible row, past the"
-            " viewport entirely, also selects nothing");
+            " visible rows entirely, also selects nothing");
 
     search_destroy(s_connection_stub);
     cdlist_destroy(surface.desktops);
     s_teardown();
 }
 
-/* A scrolled-down selection (more results than fit in the viewport)
- * still resolves the right absolute candidate for a click on a
+/* A scrolled-down selection (more results than fit in the visible
+ * rows) still resolves the right absolute candidate for a click on a
  * visible row, proving scroll_offset is folded into the hit test */
 static void s_test_scroll_offset_folds_into_row_hit_test(void)
 {
@@ -2112,8 +2113,8 @@ static void s_test_scroll_offset_folds_into_row_hit_test(void)
         (void) snprintf(names[i], sizeof(names[i]), "c%02d", i);
         clients[i] = s_make_client((uint32_t) (1 + i), names[i], 0, 0);
     }
-    /* Tall enough to give a viewport of several rows, but with 40
-     * results still far more than fit, so scrolling is exercised */
+    /* Tall enough to give a visible range of several rows, but with
+     * 40 results still far more than fit, so scrolling is exercised */
     s_make_surface_one_desktop(&surface, desktop, clients, 40, 1024u,
             300u);
     s_make_config(&cfg);
@@ -2121,17 +2122,17 @@ static void s_test_scroll_offset_folds_into_row_hit_test(void)
     search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
 
     /* Move selection down far enough that scroll_to_selection must
-     * scroll the viewport to keep it visible */
+     * scroll the visible range to keep it visible */
     for (int i = 0; i < 20; ++i) {
         search_handle_keypress(s_connection_stub, (list_td *) NULL,
                 (xcb_keysym_t) 0xff54u, 0u, &cfg);
     }
-    /* Now click on whichever row is drawn last (bottom of viewport):
-     * with scrolling active, that must resolve to the client at
-     * absolute index 'scroll_offset + viewport_rows - 1', not simply
-     * 'viewport_rows - 1' as it would with no scroll_offset folded
+    /* Now click on whichever row is drawn last (bottom of the visible
+     * rows): with scrolling active, that must resolve to the client at
+     * absolute index 'scroll_offset + visible_rows - 1', not simply
+     * 'visible_rows - 1' as it would with no scroll_offset folded
      * in.  The selection is already at index 20 and clamped inside
-     * the viewport by scroll_to_selection, so clicking that same
+     * the visible range by scroll_to_selection, so clicking that same
      * bottom-most drawn row must reconfirm client index 20. */
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff0du, 0u, &cfg);
@@ -2148,8 +2149,8 @@ static void s_test_scroll_offset_folds_into_row_hit_test(void)
 
 /* search_draw: scroll indicators and icon drawing */
 
-/* With more results than fit in the viewport, search_draw paints extra
- * scroll-indicator labels beyond one per visible row */
+/* With more results than fit in the visible rows, search_draw paints
+ * extra scroll-indicator labels beyond one per visible row */
 static void s_test_draw_shows_scroll_indicators_when_overflowing(void)
 {
     surface_td surface;
@@ -2173,8 +2174,8 @@ static void s_test_draw_shows_scroll_indicators_when_overflowing(void)
     label_calls_before = s_menu_draw_label_calls;
 
     /* Scroll down once so both the up and down indicators are due:
-     * some entries are hidden above the viewport now, and far more
-     * remain hidden below it */
+     * some entries are hidden above the visible rows now, and far
+     * more remain hidden below it */
     search_handle_keypress(s_connection_stub, (list_td *) NULL,
             (xcb_keysym_t) 0xff54u, 0u, &cfg);
     for (int i = 0; i < 10; ++i) {
@@ -2193,7 +2194,7 @@ static void s_test_draw_shows_scroll_indicators_when_overflowing(void)
     s_teardown();
 }
 
-/* With every result fitting in the viewport, no extra scroll
+/* With every result fitting in the visible rows, no extra scroll
  * indicators are drawn */
 static void s_test_draw_no_scroll_indicators_when_all_fit(void)
 {
@@ -2221,7 +2222,7 @@ static void s_test_draw_no_scroll_indicators_when_all_fit(void)
      * label: two rows and one bar means exactly three label calls,
      * never more from a spurious scroll indicator */
     TAP_EQ_INT(label_calls_after - label_calls_before, 3,
-            "with both results fitting in the viewport, search_draw"
+            "with both results fitting in the visible rows, search_draw"
             " paints exactly one label per row plus the query bar,"
             " no scroll-indicator extras");
 

@@ -406,7 +406,7 @@ static void s_test_draw_full_repaint_first_call(void)
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 3;
     g_cycle_menu.selected = 0;
-    g_cycle_menu.viewport_rows = 3;
+    g_cycle_menu.visible_rows = 3;
     g_cycle_menu.scroll_offset = 0;
     g_cycle_menu.width = 200u;
     g_cycle_menu.has_drawn_once = false;
@@ -441,8 +441,8 @@ static void s_test_draw_full_repaint_first_call(void)
 
 
 /* Once has_drawn_once is true and the scroll offset has not changed,
- * a plain selection move repaints only the two affected rows, not the
- * whole viewport */
+ * a plain selection move repaints only the two affected rows, not
+ * every visible row */
 static void s_test_draw_selection_move_repaints_two_rows(void)
 {
     config_td cfg;
@@ -459,7 +459,7 @@ static void s_test_draw_selection_move_repaints_two_rows(void)
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 3;
     g_cycle_menu.selected = 1;
-    g_cycle_menu.viewport_rows = 3;
+    g_cycle_menu.visible_rows = 3;
     g_cycle_menu.scroll_offset = 0;
     g_cycle_menu.width = 200u;
     g_cycle_menu.has_drawn_once = true;
@@ -475,17 +475,17 @@ static void s_test_draw_selection_move_repaints_two_rows(void)
     cycle_draw(s_fake_connection, &cfg);
 
     TAP_EQ_INT(s_call_menu_draw_row_bg, 2,
-            "a same-viewport selection move repaints exactly two"
+            "a same-visible-range selection move repaints exactly two"
             " row backgrounds");
     TAP_EQ_INT(s_call_menu_draw_label, 2,
-            "a same-viewport selection move repaints exactly two"
+            "a same-visible-range selection move repaints exactly two"
             " labels");
     TAP_EQ_INT(g_cycle_menu.last_drawn_selected, 1,
             "last_drawn_selected tracks the new selection afterward");
 }
 
 
-/* A scroll-offset change forces the full-viewport path even though
+/* A scroll-offset change forces the full-repaint path even though
  * has_drawn_once is already true */
 static void s_test_draw_scroll_change_forces_full_repaint(void)
 {
@@ -503,7 +503,7 @@ static void s_test_draw_scroll_change_forces_full_repaint(void)
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 5;
     g_cycle_menu.selected = 2;
-    g_cycle_menu.viewport_rows = 2;
+    g_cycle_menu.visible_rows = 2;
     g_cycle_menu.scroll_offset = 1;
     g_cycle_menu.width = 200u;
     g_cycle_menu.has_drawn_once = true;
@@ -523,10 +523,10 @@ static void s_test_draw_scroll_change_forces_full_repaint(void)
     cycle_draw(s_fake_connection, &cfg);
 
     /* 2 real rows plus 2 padding-strip backgrounds, since count (5)
-     * exceeds viewport_rows (2) here too */
+     * exceeds visible_rows (2) here too */
     TAP_EQ_INT(s_call_menu_draw_row_bg, 4,
             "a scroll change repaints exactly the rows now visible"
-            " in the shifted viewport, plus both scroll-indicator"
+            " in the shifted range, plus both scroll-indicator"
             " padding strips");
     TAP_EQ_INT(g_cycle_menu.last_drawn_scroll_offset, 1,
             "last_drawn_scroll_offset tracks the new offset"
@@ -534,10 +534,10 @@ static void s_test_draw_scroll_change_forces_full_repaint(void)
 }
 
 
-/* When more entries exist than fit the viewport, a full repaint also
- * draws the scroll-indicator strips; the up arrow only once
+/* When more entries exist than fit the visible rows, a full repaint
+ * also draws the scroll-indicator strips; the up arrow only once
  * scroll_offset is past 0, and the down arrow only while entries
- * remain below the viewport */
+ * remain below the visible rows */
 static void s_test_draw_scroll_indicators(void)
 {
     config_td cfg;
@@ -555,7 +555,7 @@ static void s_test_draw_scroll_indicators(void)
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 5;
     g_cycle_menu.selected = 2;
-    g_cycle_menu.viewport_rows = 2;
+    g_cycle_menu.visible_rows = 2;
     g_cycle_menu.scroll_offset = 1;
     g_cycle_menu.width = 200u;
     g_cycle_menu.has_drawn_once = false;
@@ -577,7 +577,7 @@ static void s_test_draw_scroll_indicators(void)
     extra_bg_calls = s_call_menu_draw_row_bg - 2;
     TAP_EQ_INT(extra_bg_calls, 2,
             "both the top and bottom padding strips are painted"
-            " when entries exist on both sides of the viewport");
+            " when entries exist on both sides of the visible rows");
     TAP_EQ_INT(s_call_menu_draw_label, 2 + 2,
             "both a scroll-up and a scroll-down indicator label are"
             " drawn alongside the 2 real row labels");
@@ -605,7 +605,7 @@ static void s_test_draw_applies_preview_to_selection(void)
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 1;
     g_cycle_menu.selected = 0;
-    g_cycle_menu.viewport_rows = 1;
+    g_cycle_menu.visible_rows = 1;
     g_cycle_menu.scroll_offset = 0;
     g_cycle_menu.width = 200u;
     g_cycle_menu.has_drawn_once = false;
@@ -670,7 +670,7 @@ static void s_test_draw_preview_transitions_between_targets(void)
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 2;
     g_cycle_menu.selected = 0;
-    g_cycle_menu.viewport_rows = 2;
+    g_cycle_menu.visible_rows = 2;
     g_cycle_menu.scroll_offset = 0;
     g_cycle_menu.width = 200u;
     g_cycle_menu.has_drawn_once = false;
@@ -736,7 +736,7 @@ static void s_test_draw_icon_menu_preview_repaints_icons(void)
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 2;
     g_cycle_menu.selected = 0;
-    g_cycle_menu.viewport_rows = 2;
+    g_cycle_menu.visible_rows = 2;
     g_cycle_menu.scroll_offset = 0;
     g_cycle_menu.width = 200u;
     g_cycle_menu.has_drawn_once = false;
@@ -781,7 +781,7 @@ static void s_test_draw_preview_noop_on_same_selection(void)
     g_cycle_menu.desktop = &desktop;
     g_cycle_menu.count = 1;
     g_cycle_menu.selected = 0;
-    g_cycle_menu.viewport_rows = 1;
+    g_cycle_menu.visible_rows = 1;
     g_cycle_menu.scroll_offset = 0;
     g_cycle_menu.width = 200u;
     g_cycle_menu.has_drawn_once = false;

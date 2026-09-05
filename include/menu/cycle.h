@@ -75,26 +75,26 @@ void cycle_destroy(xcb_connection_t *connection);
 /**
  * @brief Repaint whatever changed in the menu since its last call
  *
- * Renders every row when the viewport itself shifted (scrolling) or
- * this is the first call since @a cycle_init; otherwise only the row
+ * Renders every row when the visible range itself shifted (scrolling)
+ * or this is the first call since @a cycle_init; otherwise only the row
  * that lost the selection and the one that gained it actually show
  * anything different, so only those two are redrawn.  Call
- * @a cycle_force_full_repaint first to force the full-viewport path
+ * @a cycle_force_full_repaint first to force the full-repaint path
  * regardless (e.g., after an @c Expose event, where the window's whole
  * prior content may be gone).
  *
  * @param connection XCB connection
  * @param cfg        Active configuration (for theme colors and font)
  *
- * @note Complexity: @e O(n) when repainting the full viewport (where
- *       @e n is @p viewport_rows), @e O(1) otherwise
+ * @note Complexity: @e O(n) when repainting every visible row (where
+ *       @e n is @p visible_rows), @e O(1) otherwise
  */
 void cycle_draw(xcb_connection_t *connection, const config_td *cfg);
 
 /**
- * @brief Force the next @a cycle_draw call to repaint the whole
- *        viewport, not just whatever selection change it can tell
- *        happened on its own
+ * @brief Force the next @a cycle_draw call to repaint every visible
+ *        row, not just whatever selection change it can tell happened
+ *        on its own
  *
  * For any redraw need @a cycle_draw cannot infer from its @p selected /
  * @p scroll_offset bookkeeping alone, in particular an @c Expose event.
@@ -102,7 +102,7 @@ void cycle_draw(xcb_connection_t *connection, const config_td *cfg);
  * of those changed.
  *
  * @note A no-op the menu itself already accounts for on every other
- *       path (opening it fresh, or a viewport-shifting navigation), so
+ *       path (opening it fresh, or a scroll-shifting navigation), so
  *       callers only need this for that one remaining case
  * @note Complexity: @e O(1)
  */

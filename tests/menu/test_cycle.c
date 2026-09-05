@@ -1205,7 +1205,7 @@ static void s_test_notice_client_destroyed(void)
 
 
 /* cycle_force_full_repaint clears the has-drawn-once flag so the next
- * cycle_draw call is known to repaint the whole viewport; checked
+ * cycle_draw call is known to repaint every visible row; checked
  * here through the field directly, since cycle.c owns it and
  * cycle/draw.c's own drawing is covered in its own test file */
 static void s_test_force_full_repaint_clears_flag(void)

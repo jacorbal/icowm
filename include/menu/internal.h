@@ -58,13 +58,13 @@ struct cycle_menu_state_s {
     xcb_keysym_t next_keysym;
     xcb_keysym_t prev_keysym;
     int scroll_offset;
-    int viewport_rows;
+    int visible_rows;
 
     int last_drawn_selected;        /**< @p selected as of @a cycle_draw's
                                          own most recent call, so it can
                                          redraw only the rows that
                                          actually changed selection
-                                         instead of the whole viewport
+                                         instead of every visible row
                                          when @p scroll_offset did not
                                          also change; meaningless until
                                          @p has_drawn_once */
@@ -90,8 +90,8 @@ struct cycle_menu_state_s {
                                          hold a real prior draw yet;
                                          false right after @a cycle_init
                                          so its first @a cycle_draw
-                                         always paints the whole
-                                         viewport regardless */
+                                         always paints every visible
+                                         row regardless */
 
     char labels[WM_CYCLE_MENU_MAX_ENTRIES][WM_CYCLE_MENU_ENTRY_LENGTH];
 };

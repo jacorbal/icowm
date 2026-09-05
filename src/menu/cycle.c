@@ -78,7 +78,7 @@ struct cycle_menu_state_s g_cycle_menu = {
     .preview_client = NULL,
     .config = NULL,
     .scroll_offset = 0,
-    .viewport_rows = 0,
+    .visible_rows = 0,
     .last_drawn_selected = 0,
     .last_drawn_scroll_offset = 0,
     .has_drawn_once = false,
@@ -227,20 +227,21 @@ static void s_cycle_preview_restore(xcb_connection_t *connection)
 
 
 /**
- * @brief Adjust scroll offset so the selected row stays in the viewport
+ * @brief Adjust scroll offset so the selected row stays in the visible
+ *        rows
  *
  * Ensures the currently selected row remains visible within the menu's
- * viewport by scrolling up when the selection is above the visible
- * range, or scrolling down when it falls below it.  If the viewport can
- * display every row, scrolling is disabled and the offset is reset to
- * zero.
+ * visible rows by scrolling up when the selection is above the visible
+ * range, or scrolling down when it falls below it.  If the visible rows
+ * can display every row, scrolling is disabled and the offset is reset
+ * to zero.
  *
  * @note Operates on the global @c g_cycle_menu state
  * @note Complexity: @e O(1)
  */
 static void s_cycle_scroll_to_selection(void)
 {
-    if (g_cycle_menu.viewport_rows >= g_cycle_menu.count) {
+    if (g_cycle_menu.visible_rows >= g_cycle_menu.count) {
         g_cycle_menu.scroll_offset = 0;
         return;
     }
@@ -248,9 +249,9 @@ static void s_cycle_scroll_to_selection(void)
     if (g_cycle_menu.selected < g_cycle_menu.scroll_offset) {
         g_cycle_menu.scroll_offset = g_cycle_menu.selected;
     } else if (g_cycle_menu.selected >=
-            g_cycle_menu.scroll_offset + g_cycle_menu.viewport_rows) {
+            g_cycle_menu.scroll_offset + g_cycle_menu.visible_rows) {
         g_cycle_menu.scroll_offset =
-            g_cycle_menu.selected - g_cycle_menu.viewport_rows + 1;
+            g_cycle_menu.selected - g_cycle_menu.visible_rows + 1;
     }
 }
 
@@ -322,7 +323,7 @@ void cycle_init(xcb_connection_t *connection,
     int16_t menu_x;
     int16_t menu_y;
     int active_idx = -1;
-    int vp_rows;
+    int visible_rows;
     uint16_t max_w = 200u;
     xcb_keysym_t nks;
     xcb_keysym_t pks;
@@ -489,21 +490,21 @@ void cycle_init(xcb_connection_t *connection,
         (uint32_t) WM_CYCLE_MENU_MAX_HEIGHT_PERCENT / 100u;
     pad2 = cfg->theme.menu.padding.vertical * 2u;
     avail = (screen_h_pct > pad2) ? (screen_h_pct - pad2) : 0u;
-    vp_rows = (int) (avail / (uint32_t) WM_CYCLE_MENU_ROW_HEIGHT);
+    visible_rows = (int) (avail / (uint32_t) WM_CYCLE_MENU_ROW_HEIGHT);
 
-    if (vp_rows < 1) {
-        vp_rows = 1;
+    if (visible_rows < 1) {
+        visible_rows = 1;
     }
-    if (vp_rows > g_cycle_menu.count) {
-        vp_rows = g_cycle_menu.count;
+    if (visible_rows > g_cycle_menu.count) {
+        visible_rows = g_cycle_menu.count;
     }
-    g_cycle_menu.viewport_rows = vp_rows;
+    g_cycle_menu.visible_rows = visible_rows;
     g_cycle_menu.scroll_offset = 0;
     g_cycle_menu.has_drawn_once = false;
     s_cycle_scroll_to_selection();
 
     menu_h = (uint16_t) (cfg->theme.menu.padding.vertical * 2u +
-            (uint32_t) (g_cycle_menu.viewport_rows *
+            (uint32_t) (g_cycle_menu.visible_rows *
                 WM_CYCLE_MENU_ROW_HEIGHT));
 
     g_cycle_menu.width = menu_w;
@@ -610,7 +611,7 @@ void cycle_destroy(xcb_connection_t *connection)
     g_cycle_menu.preview_client = NULL;
     g_cycle_menu.config = NULL;
     g_cycle_menu.scroll_offset = 0;
-    g_cycle_menu.viewport_rows = 0;
+    g_cycle_menu.visible_rows = 0;
 
     if (restore_focus != XCB_WINDOW_NONE) {
         xcb_set_input_focus(connection,
@@ -728,7 +729,7 @@ void cycle_navigate_to(unsigned int idx)
 }
 
 
-/* Force the next 'cycle_draw' call to repaint the whole viewport (see
+/* Force the next 'cycle_draw' call to repaint every visible row (see
  * this function's comment in 'menu/cycle.h') */
 void cycle_force_full_repaint(void)
 {

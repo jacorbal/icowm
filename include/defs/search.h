@@ -50,7 +50,7 @@
 #define WM_SEARCH_WIDTH (480)
 
 /**
- * @brief Maximum height of the results viewport as a percentage of
+ * @brief Maximum height of the results list as a percentage of
  *        screen height
  *
  * When the full match list would exceed this fraction of the screen,
@@ -86,13 +86,13 @@
 #define WM_SEARCH_NAME_MAX_WIDTH (240)
 
 /**
- * @brief Text shown at the top of the results viewport when there are
+ * @brief Text shown at the top of the results list when there are
  *        more entries above the ones currently visible
  */
 #define WM_SEARCH_MENU_SCROLL_UP_INDICATOR "---"
 
 /**
- * @brief Text shown at the bottom of the results viewport when there
+ * @brief Text shown at the bottom of the results list when there
  *        are more entries below the ones currently visible
  */
 #define WM_SEARCH_MENU_SCROLL_DOWN_INDICATOR "---"

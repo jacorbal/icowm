@@ -15,10 +15,9 @@
  * helper 's_ccmd_client_restore_one' are deliberately left untested
  * here: both reach deep into the maximize/fullscreen command set and
  * the transient-family snapshot machinery, a second, independent
- * dependency surface entirely apart from focus itself, better suited
- * to its own battery once 'cmds/client/maximize.c' and
- * 'cmds/state.c' have test coverage of their own to build on, per
- * this file's own report.
+ * dependency surface entirely apart from focus itself, better suited to
+ * its own battery once 'cmds/client/maximize.c' and 'cmds/state.c' have
+ * test coverage of their own to build on, per this file's own report.
  *
  * Every other external dependency is a test-controlled or recording
  * stand-in: 'wm_get_surface_by_id', 'wm_get_client_desktop',
@@ -26,14 +25,14 @@
  * 'focus_order_best', 'focus_order_to_top', 'focus_apply',
  * 'ccmd_client_focus_target' (identity by default),
  * 'client_theme_layout_resync', 'client_last_user_time',
- * 'xcb_connection_get', 'xcb_ewmh_connection_get', and the real
- * libxcb entry points 'xcb_send_event', 'xcb_kill_client',
+ * 'xcb_connection_get', 'xcb_ewmh_connection_get', and the real libxcb
+ * entry points 'xcb_send_event', 'xcb_kill_client',
  * 'xcb_set_input_focus', 'xcb_install_colormap',
  * 'xcb_ewmh_set_active_window', and the project's own
- * 'xcb_window_destroy'/'xcb_window_show' wrappers
- * (utils/xcb/window.h), none of which are linked against a live X
- * connection or the real libxcb.  'cctl_kill_register' is a recording
- * stand-in for the same reason.
+ * 'xcb_window_destroy'/'xcb_window_show' wrappers (utils/xcb/window.h),
+ * none of which are linked against a live X connection or the real
+ * libxcb.  'cctl_kill_register' is a recording stand-in for the same
+ * reason.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -432,9 +431,9 @@ xcb_ewmh_connection_t *xcb_ewmh_connection_get(void)
 
 
 /* Recording stand-ins for every real libxcb entry point reached: not
- * linked against the real libxcb, since none of these tests run
- * against a live X connection (the same approach test_grab.c already
- * takes for 'xcb_grab_button'/'xcb_ungrab_button') */
+ * linked against the real libxcb, since none of these tests run against
+ * a live X connection (the same approach test_grab.c already takes for
+ * 'xcb_grab_button'/'xcb_ungrab_button') */
 static int s_send_event_calls;
 static xcb_window_t s_send_event_last_window;
 static xcb_client_message_event_t s_send_event_last_event;
@@ -572,6 +571,16 @@ static client_td *s_make_client(uint32_t id)
     s_owned_clients_used++;
 
     return client;
+}
+
+
+/* The focused bit of a client, as a long for TAP_EQ_INT: read back
+ * often enough below, and from enough different clients, that spelling
+ * out the mask each time buried what the assertion was about */
+static long s_focused_bit(const client_td *client)
+{
+    return (long) (client->properties.flags &
+            (uint16_t) CLIENT_FLAG_FOCUSED);
 }
 
 
@@ -822,8 +831,7 @@ static void s_test_focus_passive_model_sets_input_focus(void)
     TAP_EQ_INT(s_send_event_calls, 0,
             "and no WM_TAKE_FOCUS message, since it never registered"
             " the protocol");
-    TAP_EQ_INT((long) (client->properties.flags &
-                (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT(s_focused_bit(client),
             (long) CLIENT_FLAG_FOCUSED,
             "the client's own focused flag is marked set");
     TAP_EQ_INT(s_active_window_calls, 1,
@@ -1018,8 +1026,7 @@ static void s_test_focus_redirects_through_focus_target(void)
             " originally named parent");
     TAP_EQ_INT((long) s_active_window_last, (long) dialog->window,
             "as does the published active window");
-    TAP_EQ_INT((long) (parent->properties.flags &
-                (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT(s_focused_bit(parent),
             0,
             "the originally named client's own focused flag is never"
             " marked");
@@ -1054,8 +1061,7 @@ static void s_test_unfocus_relinquishes_focus(void)
 
     ccmd_client_unfocus(client);
 
-    TAP_EQ_INT((long) (client->properties.flags &
-                (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT(s_focused_bit(client),
             0,
             "the client's own focused flag is cleared");
     TAP_EQ_INT(s_set_input_focus_calls, 1,
@@ -1085,8 +1091,7 @@ static void s_test_unfocus_with_no_connection_skips_wire_update(void)
 
     ccmd_client_unfocus(client);
 
-    TAP_EQ_INT((long) (client->properties.flags &
-                (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT(s_focused_bit(client),
             0,
             "the focused flag still clears locally");
     TAP_EQ_INT(s_set_input_focus_calls, 0,
@@ -1404,8 +1409,7 @@ static void
 
     client_focus_fallback(&desktop, &surface, exclude);
 
-    TAP_EQ_INT((long) (exclude->properties.flags &
-                (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT(s_focused_bit(exclude),
             0,
             "the excluded client's own focused flag is cleared by the"
             " explicit unfocus");
