@@ -31,10 +31,11 @@ values, and built-in default value.
    - [3.5. `keyboard.wm`](#35-keyboardwm)
    - [3.6. `keyboard.desktop`](#36-keyboarddesktop)
    - [3.7. `keyboard.cycle`](#37-keyboardcycle)
-   - [3.8. `mouse.window`](#38-mousewindow)
-   - [3.9. `mouse.cycle`](#39-mousecycle)
-   - [3.10. Fixed titlebar behavior](#310-fixed-titlebar-behavior)
-   - [3.11. What a modal dialog is not allowed to do](#311-what-a-modal-dialog-is-not-allowed-to-do)
+   - [3.8. `keyboard.viewport`](#38-keyboardviewport)
+   - [3.9. `mouse.window`](#39-mousewindow)
+   - [3.10. `mouse.cycle`](#310-mousecycle)
+   - [3.11. Fixed titlebar behavior](#311-fixed-titlebar-behavior)
+   - [3.12. What a modal dialog is not allowed to do](#312-what-a-modal-dialog-is-not-allowed-to-do)
 4. [`themes/<name>.json`: Theme configuration](#4-themesnamejson-theme-configuration)
    - See [`themes.md`](themes.md) for the full reference
 5. [`randr.json`: XRandR output profiles](#5-randrjson-xrandr-output-profiles)
@@ -1731,7 +1732,39 @@ Cycle through iconified (minimized) windows only.
 | `prev` | `modc+mod1+mods+Tab` | Focus the previous icon. |
 | `next` | `modc+mod1+Tab`      | Focus the next icon.     |
 
-### 3.8. `mouse.window`
+### 3.8. `keyboard.viewport`
+
+Shortcuts for panning a desktop's viewport, when its
+`topology.screens.desktops[].viewport` grid (§2.2) is wider or taller
+than one screen; see that section for how the grid itself is sized.
+
+#### `keyboard.viewport.pan`
+
+Pans the current desktop's viewport by one whole screen in the given
+direction, translating every non-sticky client the opposite way so
+their on-screen position stays put relative to the desktop's virtual
+canvas; unlike `keyboard.cycle.desktop` above, the active desktop never
+changes, only where within it the physical screen is looking.
+
+| Key     | Default binding      | Action                              |
+|---------|-----------------------|-------------------------------------|
+| `north` | `modc+mod4+mods+Up`   | Pan the viewport one screen north.  |
+| `south` | `modc+mod4+mods+Down` | Pan the viewport one screen south.  |
+| `east`  | `modc+mod4+mod5+Right`| Pan the viewport one screen east.   |
+| `west`  | `modc+mod4+mod5+Left` | Pan the viewport one screen west.   |
+
+```json
+"viewport": {
+    "pan": {
+        "north": "modc+mod4+mods+Up",
+        "south": "modc+mod4+mods+Down",
+        "east": "modc+mod4+mod5+Right",
+        "west": "modc+mod4+mod5+Left"
+    }
+}
+```
+
+### 3.9. `mouse.window`
 
 Mouse button bindings for window management.
 
@@ -1741,7 +1774,7 @@ Mouse button bindings for window management.
 | `lower`  | `mod1+button2`  | Lower the window to the bottom of the stack. |
 | `resize` | `mod1+button3`  | Click and drag to resize the window. |
 
-### 3.9. `mouse.cycle`
+### 3.10. `mouse.cycle`
 
 Mouse wheel bindings for switching virtual desktops, or (over a window's
 titlebar) shading/unshading or maximizing/restoring it instead:
@@ -1775,7 +1808,7 @@ titlebar) shading/unshading or maximizing/restoring it instead:
 }
 ```
 
-### 3.10. Fixed titlebar behavior
+### 3.11. Fixed titlebar behavior
 
 Beside the decoration buttons, a titlebar answers each mouse button on
 its own, without any binding configured for it:
@@ -1792,7 +1825,7 @@ with `mouse.window.lower` at its default of `mod1+button2`, a middle
 click with `mod1` held lowers the window from anywhere on it, and
 a plain middle click does so only over the titlebar.
 
-### 3.11. What a modal dialog is not allowed to do
+### 3.12. What a modal dialog is not allowed to do
 
 A window declaring `_NET_WM_STATE_MODAL` can neither be maximized nor
 put into fullscreen, whichever way it is asked: the titlebar button, the
