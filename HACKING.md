@@ -201,28 +201,28 @@ Tests
 make test
 ```
 
-Fifty suites under `tests/`, mirroring the directories they exercise,
-plus five at the top for the pieces that have no directory of their own.
-They run without an X server, as what they test is the logic that can be
-reached without one, which is most of the placement, the configuration
-parsing, the rules and the data structures.
+A hundred threescore and fifteen suites under `tests/`, mirroring the
+directories they exercise, plus five at the top for the pieces that have
+no directory of their own.  They run without an X server, as what they
+test is the logic that can be reached without one, which is most of the
+placement, the configuration parsing, the rules and the data structures.
 
 `tests/harness/` holds the TAP output and the assertions;
 `tests/manual/` holds what has to be driven by hand.
 
-Anything with state that survives between calls is the weak spot, and
-`tests/policy/test_placement.c` is the pattern to follow for it, for it
-stubs what the module talks to and drives the state machine directly.
-The stateful modules with no suite yet are the window list, the drag
+Anything wherein state survives between calls is the weak spot, and
+`tests/policy/test_placement.c` is the pattern to follow, for it stubs
+what the module communicates with and drives the state machine directly.
+The stateful modules with no suite as yet are the window list, the drag
 tracker, the modal keyboard state and manual placement.
 
-Methinks there ought to be more tests.
+Methinks there ought yet to be more tests.
 
 Documentation
 -------------
 
-The manual pages under `doc/man/` are `mdoc`, and `mandoc -T lint`
-checks them.  But `man --warnings` does not, on a system whose manual
+The manual pages under `doc/man/` are `mdoc`, and `mandoc -T lint` does
+check them.  But `man --warnings` does not, on a system whose manual
 pages have been stripped out, so it will report nothing and mean
 nothing.
 
