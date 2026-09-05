@@ -36,6 +36,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <cmds/surface.h>
 #include <config.h>
 #include <desktop.h>
 #include <policy/stacking.h>
@@ -544,6 +545,12 @@ static void s_search_confirm(xcb_connection_t *connection,
         enact_surface_desktop_switch(surface, desktop->id);
     }
 
+    /* This client's own page of the (possibly multi-page) viewport may
+     * not be the one the desktop happens to already be panned to, so
+     * bring it into view before focusing it; a no-op when it is already
+     * at least partly visible. */
+    scmd_surface_viewport_center_on_client(surface, client);
+
     focus_apply(surfaces, surface, desktop, client, true,
             s_search.config);
 }
@@ -620,11 +627,27 @@ static void s_search_draw_row(xcb_connection_t *connection,
      * window's own title, and the name would take width from it. */
     if (s_search.surface->desktop_count > 1u && r->desktop != NULL) {
         char desk_buf[WM_SEARCH_ENTRY_LENGTH];
+        uint32_t vp_col;
+        uint32_t vp_row;
 
         surface_desktop_label(s_search.surface, r->desktop->id,
                 r->desktop->name,
                 r->client != NULL && client_is_pinned(r->client),
                 false, desk_buf, sizeof(desk_buf));
+
+        /* The viewport page is a second, independent coordinate a
+         * client can be found at, on top of whichever desktop it is
+         * on, so it gets its own bracket pair rather than being
+         * folded into the desktop label's own '(row, col)' */
+        if (r->client != NULL &&
+                scmd_surface_viewport_client_page(s_search.surface,
+                    r->desktop, r->client, &vp_col, &vp_row)) {
+            char vp_buf[24];
+
+            (void) snprintf(vp_buf, sizeof(vp_buf), " {%u,%u}",
+                    vp_col, vp_row);
+            (void) safe_strncat(desk_buf, vp_buf, sizeof(desk_buf));
+        }
 
         if (desk_buf[0] != '\0' && text_x < safe_right) {
             menu_draw_truncate(desk_buf,

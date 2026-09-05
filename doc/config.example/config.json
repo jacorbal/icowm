@@ -78,7 +78,7 @@
     },
 
     "viewport": {
-        "move-step": 20
+        "move-step": 40
     },
 
     "icons": {

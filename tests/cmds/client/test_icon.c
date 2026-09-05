@@ -752,6 +752,36 @@ static void s_test_ensure_icon_window_reuses_free_saved_position(void)
 }
 
 
+/* A saved position with a negative component, the kind an
+ * 'icons.follow-viewport' pan can legitimately leave behind, is still
+ * reused rather than mistaken for the never-iconified sentinel of
+ * (-1, -1) */
+static void s_test_ensure_icon_window_reuses_negative_saved_position(void)
+{
+    desktop_td *desktop;
+    client_td *client;
+
+    s_reset();
+    desktop = s_make_desktop(20u);
+    client = s_make_client(31u, s_make_config());
+    client->icon_pos.x = -750;
+    client->icon_pos.y = 25;
+    s_owner_desktop = desktop;
+
+    ccmd_client_ensure_icon_window(client, 48u);
+
+    TAP_EQ_INT(s_place_icon_apply_calls, 0,
+            "a saved position with a negative X is still reused"
+            " without consulting the placement policy");
+    TAP_EQ_INT((long) s_create_window_last_x, -750,
+            "the window is created at the saved, negative X");
+    TAP_EQ_INT((long) s_create_window_last_y, 25,
+            "and the saved Y");
+
+    s_teardown();
+}
+
+
 /* A client with a saved position already claimed by another
  * iconified client's icon is sent through the placement policy
  * instead of reusing that stale spot */
@@ -889,6 +919,7 @@ int main(void)
     s_test_relocate_with_no_connection_skips_wire_update();
     s_test_ensure_icon_window_creates_fresh_window();
     s_test_ensure_icon_window_reuses_free_saved_position();
+    s_test_ensure_icon_window_reuses_negative_saved_position();
     s_test_ensure_icon_window_skips_claimed_saved_position();
     s_test_ensure_icon_window_falls_back_to_origin();
     s_test_ensure_icon_window_repositions_existing_window();

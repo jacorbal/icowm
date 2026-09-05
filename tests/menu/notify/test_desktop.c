@@ -268,6 +268,45 @@ void surface_desktop_label(const surface_td *surface, uint32_t desktop_id,
 
 
 /**
+ * @brief Link-only stand-in for @a surface_desktop_get
+ *
+ * @note Complexity: @e O(1)
+ */
+desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+{
+    (void) surface;
+    (void) desktop_id;
+
+    /* No test in this file sets up an actual desktop_td to hand back;
+     * 'scmd_surface_viewport_desktop_page' below already tolerates a
+     * NULL desktop by never being reached, since 'notify_desktop_show'
+     * itself guards on this returning NULL. */
+    return NULL;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a scmd_surface_viewport_desktop_page
+ *
+ * Never actually reached by any scenario in this file, since the
+ * @a surface_desktop_get stand-in above always reports no desktop to
+ * look the viewport page up on; kept only so this file links without
+ * pulling in the whole of 'cmds/surface.c'.
+ *
+ * @note Complexity: @e O(1)
+ */
+bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+        const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
+{
+    (void) surface;
+    (void) desktop;
+    (void) col_out;
+    (void) row_out;
+    return false;
+}
+
+
+/**
  * @brief Link-only stand-in for @a logger_msg
  *
  * Every 'LOGGER_*' macro in the codebase, 'LOGGER_TRACE' included,

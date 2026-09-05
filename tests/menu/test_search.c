@@ -108,6 +108,8 @@ static uint32_t s_desktop_switch_last_id = 0u;
 static int s_focus_apply_calls = 0;
 static client_td *s_focus_apply_last_client = NULL;
 static desktop_td *s_focus_apply_last_desktop = NULL;
+static int s_viewport_center_calls = 0;
+static client_td *s_viewport_center_last_client = NULL;
 
 /** Desktops this file's own 'surface_desktop_get' stand-in answers
  *  from, registered by 's_make_desktop', the same pattern
@@ -431,6 +433,34 @@ void surface_desktop_label(const surface_td *surface, uint32_t desktop_id,
 }
 
 
+/* 'cmds/surface.h' stand-ins */
+
+bool scmd_surface_viewport_client_page(const surface_td *surface,
+        const desktop_td *desktop, const client_td *client,
+        uint32_t *col_out, uint32_t *row_out)
+{
+    (void) surface;
+    (void) desktop;
+    (void) client;
+    (void) col_out;
+    (void) row_out;
+
+    /* The default (unconfigured, 1x1) viewport never has a second
+     * page to report, matching every test surface in this file, none
+     * of which sets up a multi-page viewport. */
+    return false;
+}
+
+void scmd_surface_viewport_center_on_client(surface_td *surface,
+        client_td *client)
+{
+    (void) surface;
+
+    s_viewport_center_calls++;
+    s_viewport_center_last_client = client;
+}
+
+
 /* 'menu/draw.h' stand-ins */
 
 void menu_draw_row_bg(xcb_connection_t *connection, xcb_window_t window,
@@ -562,6 +592,8 @@ static void s_reset(void)
     s_client_unshade_calls = 0;
     s_client_unshade_last = NULL;
     s_desktop_switch_calls = 0;
+    s_viewport_center_calls = 0;
+    s_viewport_center_last_client = NULL;
     s_desktop_switch_last_id = 0u;
     s_focus_apply_calls = 0;
     s_focus_apply_last_client = NULL;
@@ -1912,6 +1944,35 @@ static void s_test_confirm_same_desktop_never_switches(void)
     s_teardown();
 }
 
+/* Confirming a result centers the viewport on the confirmed client,
+ * after any desktop switch and before focus_apply, so the client's own
+ * viewport page (not merely its desktop) ends up on screen too */
+static void s_test_confirm_centers_viewport_on_client(void)
+{
+    surface_td surface;
+    desktop_td *desktop;
+    client_td *clients[1];
+    config_td cfg;
+
+    s_reset();
+    desktop = s_make_desktop(0u, "one");
+    clients[0] = s_make_client(1u, "alpha", 0, 0);
+    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_config(&cfg);
+
+    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+    search_handle_keypress(s_connection_stub, (list_td *) NULL,
+            (xcb_keysym_t) 0xff0du, 0u, &cfg);
+
+    TAP_EQ_INT(s_viewport_center_calls, 1,
+            "confirming a result centers the viewport exactly once");
+    TAP_OK(s_viewport_center_last_client == clients[0],
+            "the viewport is centered on the confirmed client itself");
+
+    cdlist_destroy(surface.desktops);
+    s_teardown();
+}
+
 /* Confirming with no selection at all (an empty result set) simply
  * destroys the widget without touching any enact_ or focus_apply path */
 static void s_test_confirm_no_selection_just_destroys(void)
@@ -2462,6 +2523,7 @@ int main(void)
     s_test_confirm_pinned_never_switches_desktop();
     s_test_confirm_non_pinned_other_desktop_switches();
     s_test_confirm_same_desktop_never_switches();
+    s_test_confirm_centers_viewport_on_client();
     s_test_confirm_no_selection_just_destroys();
     s_test_confirm_pinned_unresolvable_desktop_is_safe();
 

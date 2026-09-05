@@ -223,9 +223,13 @@ void scmd_surface_desktop_switch_west(surface_td *surface)
  * the flag itself is off (the default), there is no icon window at
  * all yet, that window is not currently the one on screen (@a
  * is_icon_mapped false, e.g., the client is not iconified right
- * now), or 'icon_pos' is still the unset sentinel (@c -1, @c -1):
- * exactly the same 'icon_pos' guard @a s_icon_position_choose and its
- * callers in @c cmds/client/icon.c already rely on.  Otherwise shifts
+ * now), or 'icon_pos' is still the unset sentinel (@c -1, @c -1).
+ * That sentinel check tests both components together rather than
+ * either one being negative, since a legitimately panned icon can
+ * end up with a negative 'icon_pos.x' or 'icon_pos.y' the moment it
+ * sits on a viewport page west or north of the one the desktop
+ * itself now shows; treating that as 'unset' would silently stop
+ * this same icon from following any further pan.  Otherwise shifts
  * the saved 'icon_pos' by 'delta' and reconfigures the real icon
  * window to match, mirroring how @a s_viewport_translate_visit itself
  * moves the client's own window.
@@ -241,7 +245,7 @@ static void s_viewport_translate_icon(client_td *client,
     if (client->config == NULL ||
             !client->config->base.icons.follow_viewport ||
             client->icon_window == 0u || !client->is_icon_mapped ||
-            client->icon_pos.x < 0 || client->icon_pos.y < 0) {
+            (client->icon_pos.x == -1 && client->icon_pos.y == -1)) {
         return;
     }
 
@@ -631,4 +635,123 @@ void scmd_surface_viewport_goto(surface_td *surface, uint32_t page)
     scmd_surface_viewport_set(surface,
             (int32_t) (col * desktop->geometry.dim.w),
             (int32_t) (row * desktop->geometry.dim.h));
+}
+
+
+/**
+ * @brief Convert a desktop-space (virtual-canvas) position into its
+ *        configured viewport page, the exact inverse of the per-axis
+ *        multiply @a scmd_surface_viewport_goto already does to land
+ *        on a page's own origin
+ *
+ * @param canvas_pos Position within @p desktop's virtual canvas
+ * @param desktop    Desktop whose per-page dimensions to divide by
+ * @param col_out    Resulting zero-based column, updated in place
+ * @param row_out    Resulting zero-based row, updated in place
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_viewport_page_for_canvas_pos(struct position_s canvas_pos,
+        const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
+{
+    int32_t col = canvas_pos.x / (int32_t) desktop->geometry.dim.w;
+    int32_t row = canvas_pos.y / (int32_t) desktop->geometry.dim.h;
+
+    *col_out = (col < 0) ? 0u : (uint32_t) col;
+    *row_out = (row < 0) ? 0u : (uint32_t) row;
+}
+
+
+/* Report the viewport page a client currently sits on */
+bool scmd_surface_viewport_client_page(const surface_td *surface,
+        const desktop_td *desktop, const client_td *client,
+        uint32_t *col_out, uint32_t *row_out)
+{
+    uint32_t columns;
+    uint32_t rows;
+    struct position_s canvas_pos;
+
+    if (surface == NULL || desktop == NULL || client == NULL ||
+            col_out == NULL || row_out == NULL) {
+        return false;
+    }
+
+    s_surface_viewport_dims(surface, &columns, &rows);
+    if (columns <= 1u && rows <= 1u) {
+        return false;
+    }
+
+    canvas_pos.x = client->layout.geometry.cur.pos.x +
+        desktop->viewport_origin.x;
+    canvas_pos.y = client->layout.geometry.cur.pos.y +
+        desktop->viewport_origin.y;
+    s_viewport_page_for_canvas_pos(canvas_pos, desktop, col_out, row_out);
+    return true;
+}
+
+
+/* Report the viewport page a desktop's viewport currently shows */
+bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+        const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
+{
+    uint32_t columns;
+    uint32_t rows;
+
+    if (surface == NULL || desktop == NULL ||
+            col_out == NULL || row_out == NULL) {
+        return false;
+    }
+
+    s_surface_viewport_dims(surface, &columns, &rows);
+    if (columns <= 1u && rows <= 1u) {
+        return false;
+    }
+
+    s_viewport_page_for_canvas_pos(desktop->viewport_origin, desktop,
+            col_out, row_out);
+    return true;
+}
+
+
+/* Pan the current desktop's viewport, if needed, to bring a client
+ * not currently visible into view, centered */
+void scmd_surface_viewport_center_on_client(surface_td *surface,
+        client_td *client)
+{
+    desktop_td *desktop;
+    struct geometry_s screen;
+    struct geometry_s win;
+    struct position_s canvas_pos;
+    int32_t new_x;
+    int32_t new_y;
+
+    if (surface == NULL || client == NULL) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return;
+    }
+
+    screen = desktop->geometry;
+    win = client->layout.geometry.cur;
+
+    if (win.pos.x + (int32_t) win.dim.w > screen.pos.x &&
+            win.pos.x < screen.pos.x + (int32_t) screen.dim.w &&
+            win.pos.y + (int32_t) win.dim.h > screen.pos.y &&
+            win.pos.y < screen.pos.y + (int32_t) screen.dim.h) {
+        /* Already at least partly visible on the current page: leave
+         * the viewport exactly where it is rather than nudge it just
+         * to perfect this client's centering. */
+        return;
+    }
+
+    canvas_pos.x = win.pos.x + desktop->viewport_origin.x;
+    canvas_pos.y = win.pos.y + desktop->viewport_origin.y;
+    new_x = canvas_pos.x + (int32_t) win.dim.w / 2 -
+        screen.pos.x - (int32_t) screen.dim.w / 2;
+    new_y = canvas_pos.y + (int32_t) win.dim.h / 2 -
+        screen.pos.y - (int32_t) screen.dim.h / 2;
+    scmd_surface_viewport_set(surface, new_x, new_y);
 }

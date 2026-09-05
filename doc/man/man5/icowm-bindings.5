@@ -189,10 +189,17 @@ opens one of the two menus:
 .Ss keyboard.desktop
 Acts on the desktops of the current surface.
 .Bl -tag -width Ds -compact
-.It Ic add Pq Ql modc+mod4+mods+Right
-.It Ic remove Pq Ql modc+mod4+mods+Left
+.It Ic add Pq unbound by default
+.It Ic remove Pq unbound by default
 .It Ic show Pq Ql modc+mod4+mods+d
 .El
+.Pp
+.Ic add
+and
+.Ic remove
+ship unbound, unlike every other action here, to leave the
+combination free for a person to choose without risking a collision
+with something else already using it by default.
 .Pp
 .Ic go-to
 switches straight to one desktop by number, from

@@ -83,6 +83,10 @@ static int s_call_desktop_action_client_rem;
  *  before each scenario */
 static bool s_stub_pan_available;
 
+/** Count of calls to the @a drag_pan_edge_check stand-in below, reset
+ *  to @c 0 by @a s_reset before each scenario */
+static int s_call_drag_pan_edge_check;
+
 
 /**
  * @brief Link-only stand-in for @a wm_get_surface_by_id
@@ -390,6 +394,19 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
 }
 
 
+/**
+ * @brief Recording stand-in for @a drag_pan_edge_check
+ *
+ * @note Complexity: @e O(1)
+ */
+void drag_pan_edge_check(int16_t root_x, int16_t root_y)
+{
+    (void) root_x;
+    (void) root_y;
+    s_call_drag_pan_edge_check++;
+}
+
+
 static void s_reset(void)
 {
     static client_td dragged;
@@ -424,6 +441,7 @@ static void s_reset(void)
     s_call_desktop_action_client_add = 0;
     s_call_desktop_action_client_rem = 0;
     s_stub_pan_available = false;
+    s_call_drag_pan_edge_check = 0;
 }
 
 

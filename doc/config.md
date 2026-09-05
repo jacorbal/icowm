@@ -1347,7 +1347,7 @@ command-line tool with no display, e.g., `"gvim ~/docs/my_notes.txt"` to
 always have the same notes file one toggle away, exactly as much as
 a shell would be.
 
-| Key                     | Type                | Default                    | Description |
+| Key                      | Type               | Default                    | Description |
 |--------------------------|--------------------|----------------------------|-------------|
 | `is-enabled`             | boolean            | `true`                     | Enables the toggle action; a `toggle_scratchpad` command or its keybind does nothing at all while this is `false`. |
 | `command`                | string             | `"xterm -fg black -bg ivory -cr black"` | Launched the first time the toggle runs with no scratchpad client yet.  Whatever this launches is forced to the `WM_CLASS` `"Scratchpad"` once it maps, regardless of what it sets (or fails to set) itself, so any command works here, not only ones able to pass their `-class`; see the note above on what kind of command this can be. |
@@ -1398,11 +1398,11 @@ that drag instead, unaffected by this setting.
 
 | Key         | Type    | Default | Description |
 |-------------|---------|---------|--------------|
-| `move-step` | integer | `20`    | How many pixels each viewport-pan keyboard shortcut moves the origin per press.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+| `move-step` | integer | `40`    | How many pixels each viewport-pan keyboard shortcut moves the origin per press.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
 
 ```json
 "viewport": {
-    "move-step": 20
+    "move-step": 40
 }
 ```
 
@@ -1566,7 +1566,7 @@ desktop that way, or (north/south only, on a screen with no
 `topology.screens.desktops[].layout` configured, or one with a single
 row) there is no second row to move to in the first place.
 
-| Key     | Default binding      |
+| Key     | Default binding       |
 |---------|-----------------------|
 | `north` | `modc+mod1+mods+Up`   |
 | `south` | `modc+mod1+mods+Down` |
@@ -1682,11 +1682,16 @@ not really a good fit for `keyboard.wm`'s remaining, much more disparate
 set of window-manager-lifecycle actions (`quit`, `reload`, `redraw`, and
 the like) either.
 
-| Key      | Default binding        | Action |
-|----------|------------------------|--------|
-| `add`    | `modc+mod4+mods+Right` | Add a new, empty desktop to the end of the list. |
-| `remove` | `modc+mod4+mods+Left`  | Remove the last desktop, moving any client still on it to the new last one first; refused while only one desktop remains. |
-| `show`   | `modc+mod4+mods+d`     | Hide all windows and show the empty desktop. |
+| Key      | Default binding     | Action |
+|----------|---------------------|--------|
+| `add`    | *(unbound)*         | Add a new, empty desktop to the end of the list. |
+| `remove` | *(unbound)*         | Remove the last desktop, moving any client still on it to the new last one first; refused while only one desktop remains. |
+| `show`   | `modc+mod4+mods+d`  | Hide all windows and show the empty desktop. |
+
+`add` and `remove` ship unbound, unlike every other action in this
+section, to leave the modifier combination free for a person to choose
+without risking a collision with something else already using it by
+default.
 
 `add`/`remove` always act on the surface's last desktop.  A new one is
 always appended at the end; removing one always takes the last one,
@@ -1701,8 +1706,8 @@ elsewhere in the list.
 
 ```json
 "desktop": {
-    "add": "modc+mod4+mods+Right",
-    "remove": "modc+mod4+mods+Left",
+    "add": "",
+    "remove": "",
     "show": "modc+mod4+mods+d"
 }
 ```
@@ -1832,7 +1837,7 @@ first row, and each following number moves one page right until the
 row ends, then wraps to the first page of the next row.  Pages beyond
 index 9 are not reachable by these shortcuts.
 
-| Key     | Default binding | Destination                   |
+| Key     | Default binding  | Destination                   |
 |---------|------------------|--------------------------------|
 | `page1` | `modc+mod4+1`    | Page 1 (first page, top-left). |
 | `page2` | `modc+mod4+2`    | Page 2.                        |
@@ -1848,11 +1853,11 @@ index 9 are not reachable by these shortcuts.
 
 Mouse button bindings for window management.
 
-| Key      | Default binding | Action |
-|----------|-----------------|--------|
-| `move`   | `mod1+button1`  | Click and drag to move the window. |
+| Key      | Default binding | Action                                       |
+|----------|-----------------|----------------------------------------------|
+| `move`   | `mod1+button1`  | Click and drag to move the window.           |
 | `lower`  | `mod1+button2`  | Lower the window to the bottom of the stack. |
-| `resize` | `mod1+button3`  | Click and drag to resize the window. |
+| `resize` | `mod1+button3`  | Click and drag to resize the window.         |
 
 ### 3.10. `mouse.cycle`
 
@@ -2581,7 +2586,7 @@ to whatever theme loads, unconditionally.
                         "columns": 2
                     },
                     "viewport": {
-                        "columns": 2,
+                        "columns": 1,
                         "rows": 1
                     },
                     "settings": [
@@ -2611,6 +2616,10 @@ to whatever theme loads, unconditionally.
         "pan-on-edge-hover": true,
         "wrap-at-bounds": true,
         "margins": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+    },
+
+    "viewport": {
+        "move-step": 40
     },
 
     "programs": {
@@ -2645,6 +2654,7 @@ to whatever theme loads, unconditionally.
     },
 
     "icons": {
+        "follow-viewport": false,
         "show-geom": false,
         "placement": {
             "policy": "smart"
@@ -2756,8 +2766,8 @@ to whatever theme loads, unconditionally.
         },
 
         "desktop": {
-            "add": "modc+mod4+mods+Right",
-            "remove": "modc+mod4+mods+Left",
+            "add": "",
+            "remove": "",
             "show": "modc+mod4+mods+d",
             "go-to": {
                 "desktop0": "modc+mod1+0",

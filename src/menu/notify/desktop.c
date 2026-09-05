@@ -20,10 +20,12 @@
 #include <xcb/xcb.h>
 
 /* Project includes */
+#include <cmds/surface.h>
 #include <config.h>
 #include <logger.h>
 #include <render/text.h>
 #include <surface.h>
+#include <utils/safe/safestr.h>
 
 
 /* Default initial values */
@@ -48,7 +50,10 @@ void notify_desktop_show(xcb_connection_t *connection,
         surface_td *surface, uint32_t desktop_idx,
         const char *desktop_name, const config_td *cfg)
 {
-    char text[WM_DESKTOP_MAX_LENGTH_NAME + 32];
+    char text[WM_DESKTOP_MAX_LENGTH_NAME + 64];
+    desktop_td *desktop;
+    uint32_t vp_col;
+    uint32_t vp_row;
 
     if (connection == NULL || surface == NULL || cfg == NULL ||
             surface->screen == NULL) {
@@ -65,6 +70,22 @@ void notify_desktop_show(xcb_connection_t *connection,
      * room for it and nothing else to identify the desktop by. */
     surface_desktop_label(surface, desktop_idx, desktop_name, false,
             true, text, sizeof(text));
+
+    /* Append the viewport page the desktop being switched to is
+     * panned to, the same 'nothing to add on a single-page setup'
+     * gating 'scmd_surface_viewport_desktop_page' already does on its
+     * own, so this stays silent unless a viewport is actually
+     * configured. */
+    desktop = surface_desktop_get(surface, desktop_idx);
+    if (desktop != NULL &&
+            scmd_surface_viewport_desktop_page(surface, desktop,
+                &vp_col, &vp_row)) {
+        char vp_buf[24];
+
+        (void) snprintf(vp_buf, sizeof(vp_buf), " {%u,%u}",
+                vp_col, vp_row);
+        (void) safe_strncat(text, vp_buf, sizeof(text));
+    }
 
     notify_popup_show_centered(connection, surface, &s_desktop_notify,
             text, cfg);

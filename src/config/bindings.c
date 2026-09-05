@@ -707,10 +707,10 @@ void config_set_default_bindings_values(
             "modc+mod4+mods+Down",
             sizeof(config_bindings->keyboard.viewport.pan.south));
     safe_strncpy(config_bindings->keyboard.viewport.pan.east,
-            "modc+mod4+mods+Right",
+            "modc+mod4+mod5+Right",
             sizeof(config_bindings->keyboard.viewport.pan.east));
     safe_strncpy(config_bindings->keyboard.viewport.pan.west,
-            "modc+mod4+mods+Left",
+            "modc+mod4+mod5+Left",
             sizeof(config_bindings->keyboard.viewport.pan.west));
     safe_strncpy(config_bindings->keyboard.wm.redraw,
             "modc+mod1+mods+r", sizeof(config_bindings->keyboard.wm.redraw));
@@ -736,12 +736,14 @@ void config_set_default_bindings_values(
             sizeof(config_bindings->keyboard.wm
                     .toggle_strutless_maximize));
 
+    /* Deliberately empty: no key is bound to either of these out of
+     * the box, unlike every other binding here, to avoid colliding
+     * with any other combination sharing the same modifiers by
+     * default. */
     safe_strncpy(config_bindings->keyboard.desktop.add,
-            "modc+mod4+mods+Right",
-            sizeof(config_bindings->keyboard.desktop.add));
+            "", sizeof(config_bindings->keyboard.desktop.add));
     safe_strncpy(config_bindings->keyboard.desktop.remove,
-            "modc+mod4+mods+Left",
-            sizeof(config_bindings->keyboard.desktop.remove));
+            "", sizeof(config_bindings->keyboard.desktop.remove));
     safe_strncpy(config_bindings->keyboard.desktop.show,
             "modc+mod4+mods+d",
             sizeof(config_bindings->keyboard.desktop.show));

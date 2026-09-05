@@ -137,8 +137,8 @@ static bool s_icon_slot_is_taken(const client_td *client,
     const desktop_td *desktop;
     struct s_icon_overlap_ctx_s overlap_ctx;
 
-    if (client == NULL || client->icon_pos.x < 0 ||
-            client->icon_pos.y < 0) {
+    if (client == NULL ||
+            (client->icon_pos.x == -1 && client->icon_pos.y == -1)) {
         return false;
     }
 
@@ -413,13 +413,15 @@ void ccmd_client_ensure_icon_window(client_td *client,
 
         /* Re-use the saved position when the client was already
          * iconified once (and possibly manually repositioned by the
-         * user), UNLESS another client's icon has since claimed that
-         * exact spot (e.g., it was free when this client was last
+         * user, or shifted along with a 'icons.follow-viewport' pan,
+         * which can legitimately leave either component negative),
+         * UNLESS another client's icon has since claimed that exact
+         * spot (e.g., it was free when this client was last
          * iconified, but has since been taken by a window that got
          * iconified while this one was restored).  In that case pick
          * a fresh position just like a client with no remembered one
          * at all, so the two icons never overlap. */
-        if (client->icon_pos.x >= 0 && client->icon_pos.y >= 0 &&
+        if (!(client->icon_pos.x == -1 && client->icon_pos.y == -1) &&
                 !s_icon_slot_is_taken(client, icon_dim)) {
             ix = client->icon_pos.x;
             iy = client->icon_pos.y;

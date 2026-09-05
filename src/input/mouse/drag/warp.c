@@ -57,6 +57,7 @@
 #include <input/mouse/drag/internal.h>
 #include <input/mouse/drag/overlay.h>
 #include <input/mouse/drag/outline.h>
+#include <input/mouse/drag/pan.h>
 #include <input/mouse/drag/warp.h>
 #include <utils/xcb/connection.h>
 
@@ -577,4 +578,19 @@ void drag_warp_tick(xcb_connection_t *connection)
     s_drag.last_root_y = new_root_y;
     s_drag.desktop = new_desktop;
 
+    /* 'drag_update' (drag.c) drops any 'MotionNotify' reporting the
+     * exact same root position already recorded, and 'last_root_x'/
+     * 'last_root_y' above already match the very position this warp
+     * just placed the pointer at, so the synthetic 'MotionNotify'
+     * 'xcb_warp_pointer' generates for it never reaches that
+     * function's edge re-checks at all.  Without running them here
+     * instead, a pointer left resting against the physical edge right
+     * after the warp (the common case: the same edge hold that armed
+     * this warp in the first place) would leave both
+     * 'is_warp_pending' and 'is_pan_pending' stuck false until an
+     * actual further pointer movement happened to arrive, silently
+     * stalling the drag right at the desktop boundary rather than
+     * continuing to pan or warp again on the new desktop. */
+    drag_warp_edge_check(new_root_x, new_root_y);
+    drag_pan_edge_check(new_root_x, new_root_y);
 }

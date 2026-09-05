@@ -586,6 +586,57 @@ static void s_test_pan_east_also_translates_mapped_icon(void)
 }
 
 
+/* A second pan still translates the icon even once the first pan
+ * already left its saved position negative, confirming the sentinel
+ * that guards a genuinely never-iconified icon ('icon_pos' still at
+ * (-1, -1)) is not mistaken for a legitimately off-screen one that a
+ * pan produced along the way */
+static void s_test_pan_east_twice_keeps_translating_negative_icon(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *moving = s_make_client(10, 20, false);
+    client_td *clients[1];
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 3u;
+    config.base.screens[0].viewport.rows = 1u;
+    config.base.icons.follow_viewport = true;
+    surface = s_make_surface(&config, 0u);
+
+    moving->config = &config;
+    moving->icon_window = (xcb_window_t) 7;
+    moving->is_icon_mapped = true;
+    moving->icon_pos.x = 50;
+    moving->icon_pos.y = 60;
+
+    clients[0] = moving;
+
+    s_reset();
+    s_stub_desktop = desktop;
+    s_stub_clients = clients;
+    s_stub_client_count = 1u;
+
+    scmd_surface_viewport_pan_east(surface);
+    TAP_EQ_INT((int) moving->icon_pos.x, 50 - 800,
+            "the first pan shifts the icon, leaving its saved X"
+            " negative");
+
+    scmd_surface_viewport_pan_east(surface);
+    TAP_EQ_INT((int) moving->icon_pos.x, 50 - 1600,
+            "a second pan still shifts the icon by the same delta,"
+            " even though its saved X was already negative");
+    TAP_EQ_INT(s_call_apply_geometry, 4,
+            "ccmd_client_apply_geometry runs twice per pan (window and"
+            " icon), across both pans");
+
+    free(surface);
+    free(desktop);
+    free(moving);
+}
+
+
 /* The same mapped icon is left untouched when 'icons.follow-viewport'
  * is off, the default, confirming the new behavior never engages
  * unless explicitly requested */
@@ -1038,6 +1089,7 @@ int main(void)
     s_test_pan_east_moves_and_translates_clients();
     s_test_pan_east_skips_drag_excluded_client();
     s_test_pan_east_also_translates_mapped_icon();
+    s_test_pan_east_twice_keeps_translating_negative_icon();
     s_test_pan_east_leaves_icon_when_follow_viewport_off();
     s_test_pan_east_clamped_at_edge_is_noop();
     s_test_pan_west_moves_origin_back();

@@ -234,5 +234,76 @@ void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y);
  */
 void scmd_surface_viewport_goto(surface_td *surface, uint32_t page);
 
+/**
+ * @brief Report which configured viewport page a client currently sits
+ *        on, within @p desktop's own pannable canvas
+ *
+ * The page a client's own position falls on rather than the page
+ * @p desktop's viewport currently happens to show: the two agree
+ * whenever the client is actually visible, but a client parked on a
+ * page the viewport is not currently panned to (still tracked
+ * correctly, its position simply not translated by the pan that
+ * moved everything else) needs its own answer, e.g. for a search
+ * result naming where a match actually is.
+ *
+ * @param surface   Surface @p desktop belongs to, whose configured
+ *                  viewport size the page is computed against
+ * @param desktop   Desktop @p client is on
+ * @param client    Client to report the page of
+ * @param col_out   Resulting zero-based column, updated in place only
+ *                  on a @c true return
+ * @param row_out   Resulting zero-based row, updated in place only on
+ *                  a @c true return
+ *
+ * @return @c false if @p surface, @p desktop, or @p client is
+ *         @c NULL, or if the configured viewport is a plain @c 1x1
+ *         (panning disabled, nothing meaningful to report)
+ *
+ * @note Complexity: @e O(1)
+ */
+bool scmd_surface_viewport_client_page(const surface_td *surface,
+        const desktop_td *desktop, const client_td *client,
+        uint32_t *col_out, uint32_t *row_out);
+
+/**
+ * @brief Report which configured viewport page @p desktop's viewport
+ *        is currently panned to
+ *
+ * @param surface   Surface @p desktop belongs to, whose configured
+ *                  viewport size the page is computed against
+ * @param desktop   Desktop to report the currently shown page of
+ * @param col_out   Resulting zero-based column, updated in place only
+ *                  on a @c true return
+ * @param row_out   Resulting zero-based row, updated in place only on
+ *                  a @c true return
+ *
+ * @return @c false if @p surface or @p desktop is @c NULL, or if the
+ *         configured viewport is a plain @c 1x1 (panning disabled,
+ *         nothing meaningful to report)
+ *
+ * @note Complexity: @e O(1)
+ */
+bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+        const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out);
+
+/**
+ * @brief Pan the current desktop's viewport, if needed, so a client
+ *        not currently visible ends up centered on screen
+ *
+ * A no-op, leaving the viewport exactly where it already was, when
+ * @p client's current on-screen position already intersects the
+ * visible page at all: this only ever moves the viewport to bring an
+ * otherwise-invisible match into view, never nudges one already at
+ * least partly on screen just to perfect its centering.
+ *
+ * @param surface Surface to pan
+ * @param client  Client to center the viewport on if not visible
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void scmd_surface_viewport_center_on_client(surface_td *surface,
+        client_td *client);
+
 
 #endif  /* ! CMDS_SCMD_H */
