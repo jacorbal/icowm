@@ -34,6 +34,34 @@
 #include <menu/context/ctxmenu/handle.h>
 
 
+/**
+ * @brief Whether an entry is eligible to match a typed mnemonic
+ *        character and its own first character equals @p target
+ *
+ * A separator, a label, a disabled entry, or one with an empty label
+ * never matches, regardless of what its first character happens to be
+ *
+ * @param e      Entry to test
+ * @param target Already-lowercased character typed by the user
+ *
+ * @return @c true if @p e is eligible and its own first character,
+ *         lowercased, equals @p target
+ */
+static bool s_entry_matches_typeahead(const ctxmenu_entry_td *e,
+        char target)
+{
+    unsigned char c;
+
+    if (e->is_disabled || e->type == CTXMENU_SEPARATOR ||
+            e->type == CTXMENU_LABEL || e->label[0] == '\0') {
+        return false;
+    }
+
+    c = (unsigned char) e->label[0];
+    return (char) tolower((int) c) == target;
+}
+
+
 /* Handle a key-press event while a context menu is open */
 bool ctxmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, ctxmenu_state_td *state,
@@ -98,12 +126,12 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
     if (keysym == KS_LEFT) {
         if (state->parent != NULL) {
             /* No explicit repaint needed here: submenus open clear of
-             * the parent's area (see 'sub_x' above), and on the
-             * rare occasion one gets clamped close enough to overlap
-             * it anyway, destroying it (just below) already makes the
-             * X server generate its 'Expose' for whatever area of
-             * the parent that uncovers, which
-             * 'ctxmenu_tree_redraw_window' already handles. */
+             * the parent's area (see 'sub_x' above), and on the rare
+             * occasion one gets clamped close enough to overlap it
+             * anyway, destroying it (just below) already makes the
+             * X server generate its 'Expose' for whatever area of the
+             * parent that uncovers, which 'ctxmenu_tree_redraw_window'
+             * already handles. */
             ctxmenu_close(state);
             state->parent->child = NULL;
         }
@@ -134,31 +162,38 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
         return true;
     }
 
-    /* Printable character: jump to first matching entry */
+    /* Printable character: cycle to the next entry whose own first
+     * character matches, wrapping past the end of the list, so that
+     * repeated presses of the same letter step through every entry it
+     * matches; a menu with only a single match activates it outright
+     * instead, the same as Enter does */
     if (keysym > 0xFFu || !isprint((int) keysym)) {
         return false;
     }
 
     target = (char) tolower((int) ((unsigned char) keysym));
     match_count = 0;
-    match_idx = -1;
     for (int i = 0; i < state->entry_count; ++i) {
-        const ctxmenu_entry_td *e = &state->entries[i];
-        unsigned char c;
-
-        if (e->is_disabled || e->type == CTXMENU_SEPARATOR ||
-                e->type == CTXMENU_LABEL || e->label[0] == '\0') {
-            continue;
-        }
-
-        c = (unsigned char) e->label[0];
-        if ((char) tolower((int) c) == target) {
+        if (s_entry_matches_typeahead(&state->entries[i], target)) {
             ++match_count;
-            match_idx = i;
         }
     }
 
-    if (match_count == 0 || match_idx < 0) {
+    if (match_count == 0) {
+        return false;
+    }
+
+    match_idx = -1;
+    for (int i = 1; i <= state->entry_count; ++i) {
+        int idx = (state->selected + i) % state->entry_count;
+
+        if (s_entry_matches_typeahead(&state->entries[idx], target)) {
+            match_idx = idx;
+            break;
+        }
+    }
+
+    if (match_idx < 0) {
         return false;
     }
 
@@ -170,8 +205,8 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
             /* Open submenu on a unique typed-letter match, same as
              * Enter and Right arrow already do; falling through to
              * 'ctxmenu_entry_activate' instead, which has no
-             * 'CTXMENU_SUBMENU' case of its own, would silently
-             * close the whole menu without ever opening it. */
+             * 'CTXMENU_SUBMENU' case of its own, would silently close
+             * the whole menu without ever opening it. */
             return ctxmenu_handle_keypress(connection, surface,
                     state, KS_RIGHT, config);
         }
@@ -211,9 +246,9 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
     if (state->entries[idx].type == CTXMENU_SUBMENU) {
         struct position_s sub_pos;
 
-        /* Open or re-open the child submenu to the right.
-         * The caller stores the child 'ctxmenu_state_td' pointer in the
-         * entry's 'userdata' field. */
+        /* Open or re-open the child submenu to the right.  The caller
+         * stores the child 'ctxmenu_state_td' pointer in the entry's
+         * 'userdata' field. */
         child_state =
             (ctxmenu_state_td *) state->entries[idx].userdata;
         if (child_state == NULL ||
@@ -227,13 +262,12 @@ bool ctxmenu_handle_click(xcb_connection_t *connection,
             state->child = NULL;
         }
 
-        /* Mark this entry selected (a click may land here with no
-         * prior hover over this exact row, e.g., the pointer already
-         * resting here when the menu first mapped) so it stays
-         * visibly highlighted for as long as its submenu is
-         * open, the same as the keyboard path already shows via
-         * whatever row 'state->selected' was left on by prior
-         * up/down navigation. */
+        /* Mark this entry selected (a click may land here with no prior
+         * hover over this exact row, e.g., the pointer already resting
+         * here when the menu first mapped) so it stays visibly
+         * highlighted for as long as its submenu is open, the same as
+         * the keyboard path already shows via whatever row
+         * 'state->selected' was left on by prior up/down navigation. */
         if (state->selected != idx) {
             int prev_sel = state->selected;
 
