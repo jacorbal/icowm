@@ -144,8 +144,10 @@ xcb_query_pointer_cookie_t xcb_query_pointer(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(1)
  */
-xcb_query_pointer_reply_t *xcb_query_pointer_reply(xcb_connection_t *connection,
-        xcb_query_pointer_cookie_t cookie, xcb_generic_error_t **error)
+xcb_query_pointer_reply_t
+    *xcb_query_pointer_reply(xcb_connection_t *connection,
+            xcb_query_pointer_cookie_t cookie,
+            xcb_generic_error_t **error)
 {
     xcb_query_pointer_reply_t *reply;
 

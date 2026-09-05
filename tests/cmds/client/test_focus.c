@@ -822,8 +822,8 @@ static void s_test_focus_passive_model_sets_input_focus(void)
     TAP_EQ_INT(s_send_event_calls, 0,
             "and no WM_TAKE_FOCUS message, since it never registered"
             " the protocol");
-    TAP_EQ_INT(
-            (long) (client->properties.flags & (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT((long) (client->properties.flags &
+                (uint16_t) CLIENT_FLAG_FOCUSED),
             (long) CLIENT_FLAG_FOCUSED,
             "the client's own focused flag is marked set");
     TAP_EQ_INT(s_active_window_calls, 1,
@@ -962,8 +962,8 @@ static void s_test_focus_clears_urgency(void)
 
     ccmd_client_focus(client);
 
-    TAP_EQ_INT(
-            (long) (client->properties.flags & (uint16_t) CLIENT_FLAG_URGENT),
+    TAP_EQ_INT((long) (client->properties.flags &
+            (uint16_t) CLIENT_FLAG_URGENT),
             0,
             "a client receiving real focus has its urgency hint"
             " cleared");
@@ -1018,8 +1018,8 @@ static void s_test_focus_redirects_through_focus_target(void)
             " originally named parent");
     TAP_EQ_INT((long) s_active_window_last, (long) dialog->window,
             "as does the published active window");
-    TAP_EQ_INT(
-            (long) (parent->properties.flags & (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT((long) (parent->properties.flags &
+                (uint16_t) CLIENT_FLAG_FOCUSED),
             0,
             "the originally named client's own focused flag is never"
             " marked");
@@ -1054,8 +1054,8 @@ static void s_test_unfocus_relinquishes_focus(void)
 
     ccmd_client_unfocus(client);
 
-    TAP_EQ_INT(
-            (long) (client->properties.flags & (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT((long) (client->properties.flags &
+                (uint16_t) CLIENT_FLAG_FOCUSED),
             0,
             "the client's own focused flag is cleared");
     TAP_EQ_INT(s_set_input_focus_calls, 1,
@@ -1085,8 +1085,8 @@ static void s_test_unfocus_with_no_connection_skips_wire_update(void)
 
     ccmd_client_unfocus(client);
 
-    TAP_EQ_INT(
-            (long) (client->properties.flags & (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT((long) (client->properties.flags &
+                (uint16_t) CLIENT_FLAG_FOCUSED),
             0,
             "the focused flag still clears locally");
     TAP_EQ_INT(s_set_input_focus_calls, 0,
@@ -1362,7 +1362,8 @@ static void s_test_client_focus_fallback_tries_group_first(void)
 /* client_focus_fallback: excluding a client with no group leader at
  * all skips straight to the plain MRU pass, running the search only
  * once */
-static void s_test_client_focus_fallback_skips_group_pass_without_leader(void)
+static void
+    s_test_client_focus_fallback_skips_group_pass_without_leader(void)
 {
     desktop_td desktop;
     surface_td surface;
@@ -1403,8 +1404,8 @@ static void
 
     client_focus_fallback(&desktop, &surface, exclude);
 
-    TAP_EQ_INT(
-            (long) (exclude->properties.flags & (uint16_t) CLIENT_FLAG_FOCUSED),
+    TAP_EQ_INT((long) (exclude->properties.flags &
+                (uint16_t) CLIENT_FLAG_FOCUSED),
             0,
             "the excluded client's own focused flag is cleared by the"
             " explicit unfocus");
@@ -1418,7 +1419,8 @@ static void
 /* client_focus_fallback: no candidate qualifies and no exclude was
  * even named, so real input focus is simply relinquished to
  * PointerRoot */
-static void s_test_client_focus_fallback_relinquishes_with_no_exclude(void)
+static void
+    s_test_client_focus_fallback_relinquishes_with_no_exclude(void)
 {
     desktop_td desktop;
     surface_td surface;

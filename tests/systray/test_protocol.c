@@ -1229,10 +1229,10 @@ static void s_test_selection_acquire_success(void)
     s_tray.orientation_atom = 202u;
     s_tray.visual_atom = 203u;
     s_tray.surface = &s_fixture_surface;
-    s_generate_id_return = s_tray.window;   /* selection.c's owner
-                                                check compares against
-                                                this via
-                                                xcb_get_selection_owner_reply */
+    s_generate_id_return = s_tray.window;/* 'selection.c''s owner
+                                            check compares against
+                                            this via
+                                            xcb_get_selection_owner_reply */
 
     ok = systray_protocol_selection_acquire();
     TAP_OK(ok, "acquiring on a ready window with nobody else owning it"
