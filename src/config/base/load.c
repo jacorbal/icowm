@@ -46,6 +46,7 @@ int config_load_base(const char *filename,
     cJSON *prompt;
     cJSON *scratchpad;
     cJSON *windows;
+    cJSON *viewport;
     cJSON *icons;
     cJSON *menus;
     cJSON *startup_notification_item;
@@ -216,6 +217,13 @@ int config_load_base(const char *filename,
             json_load_bool(placement, "group-related",
                     &config_base->windows.group_related);
         }
+    }
+
+    /* Load viewport base configuration */
+    viewport = cJSON_GetObjectItem(json, "viewport");
+    if (viewport) {
+        json_load_uint(viewport, "move-step",
+                &config_base->viewport.move_step);
     }
 
     /* Load icon policy configuration */

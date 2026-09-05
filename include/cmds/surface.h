@@ -167,6 +167,27 @@ void scmd_surface_viewport_pan_east(surface_td *surface);
 void scmd_surface_viewport_pan_west(surface_td *surface);
 
 /**
+ * @brief Pan the current desktop's viewport by @c viewport.move-step
+ *        pixels toward @p direction, clamped at the edges of the
+ *        pannable area
+ *
+ * Unlike @a scmd_surface_viewport_pan_north and its three siblings,
+ * which always move by a full screen and are shared with the
+ * edge-triggered drag/hover pan mechanisms, this is the keyboard-only
+ * counterpart: one press moves the viewport by a configurable pixel
+ * amount instead of jumping a whole screen, the same way
+ * @c windows.move-step already steps a selected client.
+ *
+ * @param surface   Pointer to the surface
+ * @param direction Compass direction to pan toward
+ *
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void scmd_surface_viewport_pan_step(surface_td *surface,
+        enum compass_direction_e direction);
+
+/**
  * @brief Move the current desktop's viewport straight to an absolute
  *        origin, clamped to the pannable area
  *

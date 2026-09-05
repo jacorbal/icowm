@@ -23,7 +23,7 @@
 #include <config/lint/common.h>
 
 /** How many keys @c s_schema_config holds */
-#define CONFIG_LINT_CONFIG_KEYS (13u)
+#define CONFIG_LINT_CONFIG_KEYS (14u)
 
 extern const config_lint_key_td
     s_schema_config[CONFIG_LINT_CONFIG_KEYS];

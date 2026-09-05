@@ -162,31 +162,35 @@ void enact_surface_toggle_strutless_maximize(surface_td *surface)
 }
 
 
-/* Pan the surface's current desktop viewport one screen north */
+/* Pan the surface's current desktop viewport north by one
+ * 'viewport.move-step' */
 void enact_surface_viewport_pan_north(surface_td *surface)
 {
-    scmd_surface_viewport_pan_north(surface);
+    scmd_surface_viewport_pan_step(surface, COMPASS_NORTH);
 }
 
 
-/* Pan the surface's current desktop viewport one screen south */
+/* Pan the surface's current desktop viewport south by one
+ * 'viewport.move-step' */
 void enact_surface_viewport_pan_south(surface_td *surface)
 {
-    scmd_surface_viewport_pan_south(surface);
+    scmd_surface_viewport_pan_step(surface, COMPASS_SOUTH);
 }
 
 
-/* Pan the surface's current desktop viewport one screen east */
+/* Pan the surface's current desktop viewport east by one
+ * 'viewport.move-step' */
 void enact_surface_viewport_pan_east(surface_td *surface)
 {
-    scmd_surface_viewport_pan_east(surface);
+    scmd_surface_viewport_pan_step(surface, COMPASS_EAST);
 }
 
 
-/* Pan the surface's current desktop viewport one screen west */
+/* Pan the surface's current desktop viewport west by one
+ * 'viewport.move-step' */
 void enact_surface_viewport_pan_west(surface_td *surface)
 {
-    scmd_surface_viewport_pan_west(surface);
+    scmd_surface_viewport_pan_step(surface, COMPASS_WEST);
 }
 
 

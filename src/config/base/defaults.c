@@ -166,6 +166,8 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.move_step = 10;
     /* usually overridden by hints */
     config_base->windows.resize_step = 20;
+
+    config_base->viewport.move_step = 20;
     config_base->windows.edges.snap.window = 6;
     config_base->windows.edges.snap.screen = 6;
     /* Matches Openbox's default for 'config_resist_edge'

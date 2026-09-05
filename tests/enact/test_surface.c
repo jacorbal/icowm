@@ -131,54 +131,22 @@ void scmd_surface_desktop_switch_west(surface_td *surface)
 }
 
 
-/** Call counters for each of the four 'scmd_surface_viewport_pan_*'
- *  functions */
-static int s_call_pan_north;
-static int s_call_pan_south;
-static int s_call_pan_east;
-static int s_call_pan_west;
+/** Call counter and last-seen direction for
+ *  @a scmd_surface_viewport_pan_step, shared by every one of the four
+ *  'enact_surface_viewport_pan_*' wrappers */
+static int s_call_pan_step;
+static enum compass_direction_e s_call_pan_step_direction;
 
-/** Call-counting stand-in for @a scmd_surface_viewport_pan_north
+/** Call-counting stand-in for @a scmd_surface_viewport_pan_step
  *  (cmds/surface.c)
  *  @note Complexity: @e O(1)
  */
-void scmd_surface_viewport_pan_north(surface_td *surface)
+void scmd_surface_viewport_pan_step(surface_td *surface,
+        enum compass_direction_e direction)
 {
     (void) surface;
-    s_call_pan_north++;
-}
-
-
-/** Call-counting stand-in for @a scmd_surface_viewport_pan_south
- *  (cmds/surface.c)
- *  @note Complexity: @e O(1)
- */
-void scmd_surface_viewport_pan_south(surface_td *surface)
-{
-    (void) surface;
-    s_call_pan_south++;
-}
-
-
-/** Call-counting stand-in for @a scmd_surface_viewport_pan_east
- *  (cmds/surface.c)
- *  @note Complexity: @e O(1)
- */
-void scmd_surface_viewport_pan_east(surface_td *surface)
-{
-    (void) surface;
-    s_call_pan_east++;
-}
-
-
-/** Call-counting stand-in for @a scmd_surface_viewport_pan_west
- *  (cmds/surface.c)
- *  @note Complexity: @e O(1)
- */
-void scmd_surface_viewport_pan_west(surface_td *surface)
-{
-    (void) surface;
-    s_call_pan_west++;
+    s_call_pan_step++;
+    s_call_pan_step_direction = direction;
 }
 
 
@@ -343,10 +311,8 @@ static void s_reset(void)
     s_call_switch_south = 0;
     s_call_switch_east = 0;
     s_call_switch_west = 0;
-    s_call_pan_north = 0;
-    s_call_pan_south = 0;
-    s_call_pan_east = 0;
-    s_call_pan_west = 0;
+    s_call_pan_step = 0;
+    s_call_pan_step_direction = COMPASS_NORTH;
     s_call_goto = 0;
     s_last_goto_page = 0u;
     s_action_desktop_add_result = 0;
@@ -646,11 +612,11 @@ static void s_test_viewport_pan_north_dispatches(void)
     s_reset();
 
     enact_surface_viewport_pan_north(surface);
-    TAP_EQ_INT(s_call_pan_north, 1,
-            "north dispatches to scmd_surface_viewport_pan_north"
+    TAP_EQ_INT(s_call_pan_step, 1,
+            "north dispatches to scmd_surface_viewport_pan_step"
             " exactly once");
-    TAP_EQ_INT(s_call_pan_south + s_call_pan_east + s_call_pan_west, 0,
-            "no other panning command runs for a north dispatch");
+    TAP_EQ_INT((int) s_call_pan_step_direction, (int) COMPASS_NORTH,
+            "north dispatches with COMPASS_NORTH");
     TAP_EQ_INT(s_call_broadcast, 0,
             "a viewport pan never broadcasts an event of its own");
 
@@ -665,11 +631,11 @@ static void s_test_viewport_pan_south_dispatches(void)
     s_reset();
 
     enact_surface_viewport_pan_south(surface);
-    TAP_EQ_INT(s_call_pan_south, 1,
-            "south dispatches to scmd_surface_viewport_pan_south"
+    TAP_EQ_INT(s_call_pan_step, 1,
+            "south dispatches to scmd_surface_viewport_pan_step"
             " exactly once");
-    TAP_EQ_INT(s_call_pan_north + s_call_pan_east + s_call_pan_west, 0,
-            "no other panning command runs for a south dispatch");
+    TAP_EQ_INT((int) s_call_pan_step_direction, (int) COMPASS_SOUTH,
+            "south dispatches with COMPASS_SOUTH");
     TAP_EQ_INT(s_call_broadcast, 0,
             "a viewport pan never broadcasts an event of its own");
 
@@ -684,11 +650,11 @@ static void s_test_viewport_pan_east_dispatches(void)
     s_reset();
 
     enact_surface_viewport_pan_east(surface);
-    TAP_EQ_INT(s_call_pan_east, 1,
-            "east dispatches to scmd_surface_viewport_pan_east"
+    TAP_EQ_INT(s_call_pan_step, 1,
+            "east dispatches to scmd_surface_viewport_pan_step"
             " exactly once");
-    TAP_EQ_INT(s_call_pan_north + s_call_pan_south + s_call_pan_west, 0,
-            "no other panning command runs for an east dispatch");
+    TAP_EQ_INT((int) s_call_pan_step_direction, (int) COMPASS_EAST,
+            "east dispatches with COMPASS_EAST");
     TAP_EQ_INT(s_call_broadcast, 0,
             "a viewport pan never broadcasts an event of its own");
 
@@ -703,11 +669,11 @@ static void s_test_viewport_pan_west_dispatches(void)
     s_reset();
 
     enact_surface_viewport_pan_west(surface);
-    TAP_EQ_INT(s_call_pan_west, 1,
-            "west dispatches to scmd_surface_viewport_pan_west"
+    TAP_EQ_INT(s_call_pan_step, 1,
+            "west dispatches to scmd_surface_viewport_pan_step"
             " exactly once");
-    TAP_EQ_INT(s_call_pan_north + s_call_pan_south + s_call_pan_east, 0,
-            "no other panning command runs for a west dispatch");
+    TAP_EQ_INT((int) s_call_pan_step_direction, (int) COMPASS_WEST,
+            "west dispatches with COMPASS_WEST");
     TAP_EQ_INT(s_call_broadcast, 0,
             "a viewport pan never broadcasts an event of its own");
 
@@ -727,8 +693,7 @@ static void s_test_viewport_goto_dispatches(void)
             " exactly once");
     TAP_EQ_INT((int) s_last_goto_page, 3,
             "the requested page index is passed through unchanged");
-    TAP_EQ_INT(s_call_pan_north + s_call_pan_south + s_call_pan_east +
-            s_call_pan_west, 0,
+    TAP_EQ_INT(s_call_pan_step, 0,
             "no panning command runs for a page go-to dispatch");
     TAP_EQ_INT(s_call_broadcast, 0,
             "a viewport page go-to never broadcasts an event of its"

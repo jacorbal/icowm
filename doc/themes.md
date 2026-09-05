@@ -124,7 +124,7 @@ have focus (`inactive`).  Both share the same shape:
 `border.width` need not match between `active` and `inactive`.  When
 they differ, a decorated window's frame actually grows or shrinks by the
 difference every time it gains or loses focus, so its content never has
-to resize; see `config.md` §2.13 for the one case this resizing does not
+to resize; see `config.md` §2.14 for the one case this resizing does not
 happen automatically.
 
 ## 2. `icon`

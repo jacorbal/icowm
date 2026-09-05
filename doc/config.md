@@ -22,7 +22,8 @@ values, and built-in default value.
    - [2.10. `desktops`](#210-desktops)
    - [2.11. `scratchpad`](#211-scratchpad)
    - [2.12. `prompt`](#212-prompt)
-   - [2.13. Reload behavior](#213-reload-behavior)
+   - [2.13. `viewport`](#213-viewport)
+   - [2.14. Reload behavior](#214-reload-behavior)
 3. [`bindings.json`: Keyboard and mouse bindings](#3-bindingsjson-keyboard-and-mouse-bindings)
    - [3.1. Binding syntax](#31-binding-syntax)
    - [3.2. `modifiers`](#32-modifiers)
@@ -1388,7 +1389,24 @@ necessary, and a successful one closes the box right away.
 }
 ```
 
-### 2.13. Reload behavior
+### 2.13. `viewport`
+
+Keyboard step size for panning a desktop's viewport, a sibling of
+`desktops` (§2.10) and `topology` (§2.2) at the root of `config.json`.
+A mouse drag on the desktop background pans by the exact pixel delta of
+that drag instead, unaffected by this setting.
+
+| Key         | Type    | Default | Description |
+|-------------|---------|---------|--------------|
+| `move-step` | integer | `20`    | How many pixels each viewport-pan keyboard shortcut moves the origin per press.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+
+```json
+"viewport": {
+    "move-step": 20
+}
+```
+
+### 2.14. Reload behavior
 
 Reloading the configuration (`SIGHUP`, the reload keybinding, or the
 root menu action) re-reads whichever theme file `config.json` names and
@@ -1770,18 +1788,19 @@ is this manager's own concept.
 
 #### `keyboard.viewport.pan`
 
-Pans the current desktop's viewport by one whole screen in the given
-direction, translating every non-sticky client the opposite way so
-their on-screen position stays put relative to the desktop's virtual
-canvas; unlike `keyboard.cycle.desktop` above, the active desktop never
-changes, only where within it the physical screen is looking.
+Pans the current desktop's viewport by `viewport.move-step` (§2.13)
+pixels in the given direction, translating every non-sticky client the
+opposite way so their on-screen position stays put relative to the
+desktop's virtual canvas; unlike `keyboard.cycle.desktop` above, the
+active desktop never changes, only where within it the physical screen
+is looking.
 
-| Key     | Default binding      | Action                              |
-|---------|-----------------------|-------------------------------------|
-| `north` | `modc+mod4+mods+Up`   | Pan the viewport one screen north.  |
-| `south` | `modc+mod4+mods+Down` | Pan the viewport one screen south.  |
-| `east`  | `modc+mod4+mod5+Right`| Pan the viewport one screen east.   |
-| `west`  | `modc+mod4+mod5+Left` | Pan the viewport one screen west.   |
+| Key     | Default binding      | Action                                   |
+|---------|-----------------------|--------------------------------------------|
+| `north` | `modc+mod4+mods+Up`   | Pan the viewport `move-step` pixels north.  |
+| `south` | `modc+mod4+mods+Down` | Pan the viewport `move-step` pixels south.  |
+| `east`  | `modc+mod4+mod5+Right`| Pan the viewport `move-step` pixels east.   |
+| `west`  | `modc+mod4+mod5+Left` | Pan the viewport `move-step` pixels west.   |
 
 ```json
 "viewport": {

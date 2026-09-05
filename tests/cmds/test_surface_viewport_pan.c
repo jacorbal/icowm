@@ -771,6 +771,66 @@ static void s_test_pan_north_moves_vertical_origin_back(void)
 }
 
 
+/* Unlike its whole-screen siblings, the keyboard step pan moves the
+ * origin by 'viewport.move-step' pixels alone */
+static void s_test_pan_step_east_moves_by_move_step_pixels(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    config.base.viewport.move_step = 15u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    scmd_surface_viewport_pan_step(surface, COMPASS_EAST);
+    TAP_EQ_INT(desktop->viewport_origin.x, 15,
+            "the viewport origin moves 'viewport.move-step' pixels"
+            " east, not a whole screen");
+    TAP_OK(surface->is_outdated,
+            "a real step pan marks the surface outdated");
+
+    free(surface);
+    free(desktop);
+}
+
+
+/* The keyboard step pan clamps at the pannable area's edge exactly
+ * like its whole-screen siblings, even when the configured step would
+ * otherwise overshoot it */
+static void s_test_pan_step_clamped_at_edge_is_noop(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 795, 0);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    config.base.viewport.move_step = 15u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    scmd_surface_viewport_pan_step(surface, COMPASS_EAST);
+    TAP_EQ_INT(desktop->viewport_origin.x, 800,
+            "the origin clamps at the pannable area's east edge"
+            " instead of overshooting by the full step");
+    TAP_OK(surface->is_outdated,
+            "a clamped step that still moves the origin marks the"
+            " surface outdated");
+
+    free(surface);
+    free(desktop);
+}
+
+
 /* A null surface, or one with no resolvable current desktop, is
  * refused outright by the absolute-origin setter too */
 static void s_test_set_null_surface_or_no_desktop_is_noop(void)
@@ -969,7 +1029,7 @@ static void s_test_set_clamps_and_noops_at_same_origin(void)
 
 int main(void)
 {
-    TAP_PLAN(54);
+    TAP_PLAN(58);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
@@ -984,6 +1044,8 @@ int main(void)
     s_test_pan_west_clamped_at_zero_is_noop();
     s_test_pan_south_moves_vertical_origin();
     s_test_pan_north_moves_vertical_origin_back();
+    s_test_pan_step_east_moves_by_move_step_pixels();
+    s_test_pan_step_clamped_at_edge_is_noop();
     s_test_set_null_surface_or_no_desktop_is_noop();
     s_test_set_moves_to_absolute_origin();
     s_test_set_clamps_and_noops_at_same_origin();

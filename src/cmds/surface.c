@@ -535,6 +535,49 @@ void scmd_surface_viewport_pan_west(surface_td *surface)
 }
 
 
+/* Pan the current desktop's viewport by 'viewport.move-step' pixels */
+void scmd_surface_viewport_pan_step(surface_td *surface,
+        enum compass_direction_e direction)
+{
+    desktop_td *desktop;
+    uint32_t columns;
+    uint32_t rows;
+    uint32_t step;
+    struct position_s origin;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return;
+    }
+
+    step = (surface->config != NULL) ? surface->config->base
+        .viewport.move_step : 0u;
+    s_surface_viewport_dims(surface, &columns, &rows);
+    origin = desktop->viewport_origin;
+
+    switch (direction) {
+    case COMPASS_NORTH:
+        origin.y -= (int32_t) step;
+        break;
+    case COMPASS_SOUTH:
+        origin.y += (int32_t) step;
+        break;
+    case COMPASS_EAST:
+        origin.x += (int32_t) step;
+        break;
+    case COMPASS_WEST:
+        origin.x -= (int32_t) step;
+        break;
+    }
+
+    s_viewport_apply_origin(surface, desktop, columns, rows, origin);
+}
+
+
 /* Move the current desktop's viewport straight to an absolute origin */
 void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y)
 {

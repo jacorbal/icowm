@@ -385,6 +385,19 @@ Whether moving past the last desktop comes back around to the first.
 Space, in pixels, kept clear at each edge of every desktop, on top of
 whatever panels already reserve.
 .El
+.Ss viewport
+Keyboard step size for panning a desktop's viewport.
+A sibling of
+.Ic desktops
+and
+.Ic topology .
+A mouse drag on the desktop background pans by the exact pixel delta of
+that drag instead, unaffected by this setting.
+.Bl -tag -width Ds
+.It Ic viewport.move-step Pq integer, default Ql 20
+How many pixels each viewport-pan keyboard shortcut moves the origin
+per press.
+.El
 .Ss scratchpad
 A single window kept aside, shown and hidden by its binding rather
 than living on any desktop.

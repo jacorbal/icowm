@@ -403,6 +403,16 @@ struct config_base_s {
         } focus;
     } windows;
 
+    /* General behavior of environment towards the viewport, a
+     * sibling of 'windows' above, 'desktops' (config/desktops.h),
+     * and 'topology' (this same struct's 'screens' above) */
+    struct {
+        uint32_t move_step; /**< Keyboard pan step in pixels; mouse
+                              *  dragging on the desktop background
+                              *  moves by the exact drag delta
+                              *  instead, never by this */
+    } viewport;
+
     /**
      * @brief Configuration for the scratchpad: a single dedicated
      *        client, launched on demand from @p command, toggled

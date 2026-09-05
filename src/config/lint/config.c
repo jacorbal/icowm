@@ -146,6 +146,11 @@ static const config_lint_key_td s_schema_placement_wrapper[] = {
         0, NULL, 0u, NULL}
 };
 
+static const config_lint_key_td s_schema_viewport[] = {
+    {"move-step", NULL, 0u,
+        0, NULL, 0u, NULL}
+};
+
 static const config_lint_key_td s_schema_windows[] = {
     {"move-step", NULL, 0u,
         0, NULL, 0u, NULL},
@@ -229,6 +234,9 @@ const config_lint_key_td s_schema_config[] = {
         0, NULL, 0u, NULL},
     {"windows", s_schema_windows,
         sizeof(s_schema_windows) / sizeof(s_schema_windows[0]),
+        0, NULL, 0u, NULL},
+    {"viewport", s_schema_viewport,
+        sizeof(s_schema_viewport) / sizeof(s_schema_viewport[0]),
         0, NULL, 0u, NULL},
     {"icons", s_schema_icons,
         sizeof(s_schema_icons) / sizeof(s_schema_icons[0]),
