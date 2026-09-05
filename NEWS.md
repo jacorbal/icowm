@@ -92,6 +92,10 @@ What each release brought, newest first.
 
 ### September 4, 2026
 
+- **FIXED.**  Typing a context menu shortcut letter a second time in
+  a row always landed back on the same entry instead of moving on to the
+  next one sharing that letter; a letter matching only one entry still
+  activates it right away
 - **FIXED.**  `icowm-msg` looking one directory too deep for the control
   socket when `XDG_RUNTIME_DIR` was set, since it and the window manager
   each kept their own copy of that path template and the two had quietly
