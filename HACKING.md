@@ -216,7 +216,7 @@ Tests
 make test
 ```
 
-A hundred threescore and fifteen suites under `tests/`, mirroring the
+A hundred threescore and sixteen suites under `tests/`, mirroring the
 directories they exercise, plus thirteen at the top for the pieces that
 have no directory of their own.  They run without an X server, as what
 they test is the logic that can be reached without one, which is most of
