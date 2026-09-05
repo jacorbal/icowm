@@ -183,7 +183,7 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
         surface = lookup_surface_for_root(surfaces, event->root);
         if (surface != NULL && desktop != NULL) {
             focus_apply(surfaces, surface, desktop, client, true, config);
-            im_sync_sticky_active(surface, desktop, client);
+            im_sync_pinned_active(surface, desktop, client);
         }
     }
 
@@ -437,20 +437,20 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
 
 /* Public event handlers */
 /**
- * @brief Keep a sticky client's active-window state consistent across
+ * @brief Keep a pinned client's active-window state consistent across
  *        every desktop on its surface
  *
  * @a focus_apply only updates @a client_active_id on the one @p desktop
- * passed to it.  For an ordinary client that is enough, but a sticky
+ * passed to it.  For an ordinary client that is enough, but a pinned
  * one (visible on every desktop; see @a client_is_pinned) is expected
  * to keep showing as the active window no matter which desktop the user
  * switches to next.  Without this,
- * @a surface_clients_sticky_transfer_all's "was this sticky client
+ * @a surface_clients_pinned_transfer_all's "was this pinned client
  * active on the desktop being switched away from" check (see
  * surface/actions.c) would only see the single desktop @a focus_apply
  * touched, silently dropping the active-window highlight the next time
  * the user switches through any other desktop first.  A no-op for
- * a non-sticky @p client, or when either @p surface or @p client is
+ * a non-pinned @p client, or when either @p surface or @p client is
  * null.
  *
  * @param surface Surface whose desktops are kept in sync
@@ -461,7 +461,7 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
  * @note Complexity: @e O(d), where @e d is the number of desktops on
  *       @p surface
  */
-void im_sync_sticky_active(surface_td *surface,
+void im_sync_pinned_active(surface_td *surface,
         const desktop_td *desktop, const client_td *client)
 {
     cdlist_item_td *dnode;
@@ -697,7 +697,7 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
     surface = lookup_surface_for_root(surfaces, event->root);
     if (surface != NULL && desktop != NULL) {
         focus_apply(surfaces, surface, desktop, client, true, config);
-        im_sync_sticky_active(surface, desktop, client);
+        im_sync_pinned_active(surface, desktop, client);
     }
 
     if (type == MOUSEBIND_MOVE &&

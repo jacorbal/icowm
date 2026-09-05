@@ -1,7 +1,7 @@
 /**
  * @file surface/actions/clients.c
  *
- * @brief Client show/hide, sticky transfer, and reflow for a surface
+ * @brief Client show/hide, pinned transfer, and reflow for a surface
  *
  * One of the files @c surface/actions/ is made of;
  * everything here operates on a desktop's clients directly (as
@@ -68,14 +68,14 @@ struct s_reflow_ctx_s {
 
 
 /**
- * @brief What @a s_client_sticky_visit is gathering into, shared by its
+ * @brief What @a s_client_pinned_visit is gathering into, shared by its
  *        counting and filling passes
  *
  * @c out is @c NULL during the first, counting pass (nothing to write
  * yet, @c count just accumulates a total) and points at a freshly,
  * exactly sized allocation during the second, filling pass.
  */
-struct s_sticky_ctx_s {
+struct s_pinned_ctx_s {
     client_td **out;        /**< @c NULL during the counting pass */
     int capacity;           /**< Slots @c out has (filling pass) */
     int count;              /**< How many have been put in so far */
@@ -235,34 +235,34 @@ static void s_client_restack_visit(client_td *client, void *data)
 /**
  * @brief Gather one client if it is pinned
  *
- * Shared by @a surface_clients_sticky_transfer_all's counting pass
+ * Shared by @a surface_clients_pinned_transfer_all's counting pass
  * (@c out left @c NULL, nothing to write yet, @c count just accumulates
  * a total) and its filling pass (@c out pointing at a freshly, exactly
  * sized allocation).
  *
  * @param client Client reached by the walk
- * @param data   Pointer to the @c s_sticky_ctx_s being filled
+ * @param data   Pointer to the @c s_pinned_ctx_s being filled
  *
  * @note Complexity: @e O(1)
  */
-static void s_client_sticky_visit(client_td *client, void *data)
+static void s_client_pinned_visit(client_td *client, void *data)
 {
-    struct s_sticky_ctx_s *const sticky_ctx = data;
+    struct s_pinned_ctx_s *const pinned_ctx = data;
 
-    if (client == NULL || sticky_ctx == NULL ||
+    if (client == NULL || pinned_ctx == NULL ||
             !client_is_pinned(client)) {
         return;
     }
 
-    if (sticky_ctx->out != NULL) {
-        if (sticky_ctx->count >= sticky_ctx->capacity) {
+    if (pinned_ctx->out != NULL) {
+        if (pinned_ctx->count >= pinned_ctx->capacity) {
             return;
         }
 
-        sticky_ctx->out[sticky_ctx->count] = client;
+        pinned_ctx->out[pinned_ctx->count] = client;
     }
 
-    sticky_ctx->count++;
+    pinned_ctx->count++;
 }
 
 
@@ -370,7 +370,7 @@ static void s_client_reflow_visit(client_td *client, void *data)
 }
 
 
-/* Unmap all non-sticky clients on the specified desktop */
+/* Unmap all non-pinned clients on the specified desktop */
 void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 {
     const desktop_td *desktop;
@@ -469,9 +469,9 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 }
 
 
-/* Move all sticky clients from every other desktop to the target
+/* Move all pinned clients from every other desktop to the target
  * desktop */
-void surface_clients_sticky_transfer_all(surface_td *surface,
+void surface_clients_pinned_transfer_all(surface_td *surface,
         uint32_t to_id)
 {
     cdlist_item_td *dnode;
@@ -508,24 +508,24 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
              * fixed array would drop whatever pinned windows did not
              * fit, and drop them silently, leaving some following
              * the desktop change and others left behind. */
-            struct s_sticky_ctx_s sticky_ctx;
-            client_td **sticky;
+            struct s_pinned_ctx_s pinned_ctx;
+            client_td **pinned;
             int n;
 
-            sticky_ctx.out = NULL;
-            sticky_ctx.capacity = 0;
-            sticky_ctx.count = 0;
-            stacking_walk(from_desktop, s_client_sticky_visit,
-                    &sticky_ctx);
-            n = sticky_ctx.count;
+            pinned_ctx.out = NULL;
+            pinned_ctx.capacity = 0;
+            pinned_ctx.count = 0;
+            stacking_walk(from_desktop, s_client_pinned_visit,
+                    &pinned_ctx);
+            n = pinned_ctx.count;
 
-            sticky = (n > 0) ? calloc((size_t) n, sizeof(*sticky)) : NULL;
-            if (sticky != NULL) {
-                sticky_ctx.out = sticky;
-                sticky_ctx.capacity = n;
-                sticky_ctx.count = 0;
-                stacking_walk(from_desktop, s_client_sticky_visit,
-                        &sticky_ctx);
+            pinned = (n > 0) ? calloc((size_t) n, sizeof(*pinned)) : NULL;
+            if (pinned != NULL) {
+                pinned_ctx.out = pinned;
+                pinned_ctx.capacity = n;
+                pinned_ctx.count = 0;
+                stacking_walk(from_desktop, s_client_pinned_visit,
+                        &pinned_ctx);
 
                 /* Walked from the last collected to the first, and the
                  * collection above ran from the bottom of the stack
@@ -538,15 +538,15 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                 for (int i = n - 1; i >= 0; --i) {
                     bool was_active =
                         (from_desktop->client_active_id ==
-                                sticky[i]->id);
+                                pinned[i]->id);
                     if (was_active) {
                         from_desktop->client_active_id = 0;
                         from_desktop->is_focus_dirty = true;
                     }
 
                     (void) desktop_action_client_move(from_desktop,
-                            to_desktop, sticky[i]);
-                    ccmd_publish_wm_desktop(sticky[i], to_desktop->id);
+                            to_desktop, pinned[i]);
+                    ccmd_publish_wm_desktop(pinned[i], to_desktop->id);
 
                     /* Arriving at the bottom unless it was the window
                      * being worked in.  'desktop_action_client_move'
@@ -562,10 +562,10 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                      * badly in the other direction. */
                     if (!was_active) {
                         (void) desktop_action_client_send_back(
-                                to_desktop, sticky[i]);
+                                to_desktop, pinned[i]);
                     }
 
-                    /* Preserve focus: if this sticky client was the
+                    /* Preserve focus: if this pinned client was the
                      * active window on the source desktop, make it
                      * active on the destination desktop so
                      * 'surface_clients_show' restores input focus to
@@ -578,13 +578,13 @@ void surface_clients_sticky_transfer_all(surface_td *surface,
                      * reason the order is one list rather than one per
                      * desktop. */
                     if (was_active) {
-                        to_desktop->client_active_id = sticky[i]->id;
+                        to_desktop->client_active_id = pinned[i]->id;
                         to_desktop->is_focus_dirty = true;
                     }
                 }
             }
 
-            free(sticky);
+            free(pinned);
         }
 
         dnode = cdlist_next(dnode);

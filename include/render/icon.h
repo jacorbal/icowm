@@ -89,7 +89,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
  *        corners
  *
  * A filled square in the top-left corner when @p client is
- * sticky/pinned (@c CLIENT_FLAG_PIN), drawn in the same foreground the
+ * pinned (@c CLIENT_FLAG_PIN), drawn in the same foreground the
  * state letter opposite it uses (@c icon.active.color.foreground or
  * @c icon.inactive.color.foreground, whichever the icon is currently
  * wearing): it is a state hint like the letters, only shaped rather

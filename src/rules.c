@@ -163,7 +163,7 @@ static void s_rules_load_apply(cJSON *apply_json,
 
     item = json_get_item(apply_json, "pinned");
     if (cJSON_IsBool(item)) {
-        rule->apply.has_sticky = true;
+        rule->apply.has_pinned = true;
         rule->apply.is_pinned = cJSON_IsTrue(item);
     }
 

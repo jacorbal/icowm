@@ -93,8 +93,8 @@ static int s_switch_west_calls;
 /** Stand-in return value for the next lookup_surface_for_root call */
 static surface_td *s_stub_lookup_surface;
 
-/** Recorded calls to im_sync_sticky_active and im_allow_and_flush */
-static int s_sync_sticky_calls;
+/** Recorded calls to im_sync_pinned_active and im_allow_and_flush */
+static int s_sync_pinned_calls;
 static int s_allow_and_flush_calls;
 
 
@@ -281,17 +281,17 @@ surface_td *lookup_surface_for_root(list_td *surfaces, xcb_window_t root)
 
 
 /**
- * @brief Recording stand-in for @a im_sync_sticky_active
+ * @brief Recording stand-in for @a im_sync_pinned_active
  * @note Complexity: @e O(1)
  */
-void im_sync_sticky_active(surface_td *surface, const desktop_td *desktop,
+void im_sync_pinned_active(surface_td *surface, const desktop_td *desktop,
         const client_td *client)
 {
     (void) surface;
     (void) desktop;
     (void) client;
 
-    s_sync_sticky_calls++;
+    s_sync_pinned_calls++;
 }
 
 
@@ -324,7 +324,7 @@ static void s_reset(void)
     s_switch_east_calls = 0;
     s_switch_west_calls = 0;
     s_stub_lookup_surface = NULL;
-    s_sync_sticky_calls = 0;
+    s_sync_pinned_calls = 0;
     s_allow_and_flush_calls = 0;
 }
 
@@ -483,7 +483,7 @@ static void s_test_west_on_titlebar_skips_already_shaded(void)
 
 
 /* Scroll east on a shaded client's titlebar: unshades it, and reapplies
- * focus (with a sticky sync) since it was the active client */
+ * focus (with a pinned sync) since it was the active client */
 static void s_test_east_on_titlebar_unshades_and_refocuses(void)
 {
     client_td client;

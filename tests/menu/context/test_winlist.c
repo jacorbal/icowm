@@ -711,22 +711,22 @@ static void s_test_skip_taskbar_client_is_omitted(void)
 /* A pinned client physically stored on another desktop is still
  * pulled into this one's listing, the same way it visually follows
  * every desktop switch */
-static void s_test_sticky_client_pulled_from_other_desktop(void)
+static void s_test_pinned_client_pulled_from_other_desktop(void)
 {
     surface_td surface;
     desktop_td *shown_desktop;
     desktop_td *other_desktop;
-    client_td *sticky;
-    bool sticky_seen;
+    client_td *pinned;
+    bool pinned_seen;
 
     s_reset();
     memset(&surface, 0, sizeof(surface));
 
     shown_desktop = s_make_desktop(0u);
     other_desktop = s_make_desktop(1u);
-    sticky = s_make_client(500u, 1u, XCB_WINDOW_NONE);
-    sticky->properties.flags |= CLIENT_FLAG_PIN;
-    ohtbl_insert(other_desktop->clients, sticky);
+    pinned = s_make_client(500u, 1u, XCB_WINDOW_NONE);
+    pinned->properties.flags |= CLIENT_FLAG_PIN;
+    ohtbl_insert(other_desktop->clients, pinned);
 
     surface.desktops = cdlist_init(NULL);
     cdlist_ins_next(surface.desktops, NULL, shown_desktop);
@@ -737,13 +737,13 @@ static void s_test_sticky_client_pulled_from_other_desktop(void)
     winlist_show((xcb_connection_t *) 1, &surface,
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
-    sticky_seen = false;
+    pinned_seen = false;
     for (int i = 0; i < s_captured_state->entry_count; ++i) {
-        if (s_captured_state->entries[i].icon_window == sticky->window) {
-            sticky_seen = true;
+        if (s_captured_state->entries[i].icon_window == pinned->window) {
+            pinned_seen = true;
         }
     }
-    TAP_OK(sticky_seen,
+    TAP_OK(pinned_seen,
             "a pinned client stored on another desktop still shows up"
             " in this desktop's listing");
 
@@ -792,7 +792,7 @@ int main(void)
     s_test_small_group_collapses_to_one_submenu();
     s_test_ungrouped_clients_listed_singly();
     s_test_skip_taskbar_client_is_omitted();
-    s_test_sticky_client_pulled_from_other_desktop();
+    s_test_pinned_client_pulled_from_other_desktop();
     s_test_empty_desktop_shows_placeholder();
 
     return TAP_DONE();

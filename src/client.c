@@ -529,7 +529,7 @@ static void s_client_read_struts(xcb_ewmh_connection_t *ewmh,
  *        decoration
  *
  * Dock and notification windows are additionally stripped of frame
- * extents, made sticky (dock only), excluded from taskbar/pager, and
+ * extents, made pinned (dock only), excluded from taskbar/pager, and
  * unfocusable, on top of the type itself; every other recognized type
  * only sets @c properties.type, undecorating menu/splash windows.
  * The first recognized type in @c type_reply wins; an unrecognized

@@ -208,7 +208,7 @@ static void s_scroll_titlebar_unshade(client_td *client,
 
     if (was_active && surface != NULL && desktop != NULL) {
         focus_apply(surfaces, surface, desktop, client, false, config);
-        im_sync_sticky_active(surface, desktop, client);
+        im_sync_pinned_active(surface, desktop, client);
     }
 
     if (desktop != NULL) {

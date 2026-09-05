@@ -76,7 +76,7 @@ void im_allow_and_flush(xcb_connection_t *connection, uint8_t mode,
         xcb_timestamp_t time);
 
 /**
- * @brief Keep a sticky client's active state in step across
+ * @brief Keep a pinned client's active state in step across
  *        desktops
  *
  * @param surface Surface the client belongs to
@@ -86,7 +86,7 @@ void im_allow_and_flush(xcb_connection_t *connection, uint8_t mode,
  * @note Complexity: @e O(n), where @e n is the number of desktops on
  *       @p surface
  */
-void im_sync_sticky_active(surface_td *surface,
+void im_sync_pinned_active(surface_td *surface,
         const desktop_td *desktop, const client_td *client);
 
 /**

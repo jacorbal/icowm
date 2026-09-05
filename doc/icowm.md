@@ -413,7 +413,7 @@ Read-only; take no arguments beyond what is noted.
 |-----------------|-----------------|
 | `get_version`   | `protocol_version` (an integer identifying the shape of this wire protocol itself, not an IcoWM release number; only bumped if a command's argument or response shape ever changes in a way an existing client could not already handle) |
 | `list_desktops` | `desktops`: an array of `{id, name, surface_id, current}`, one entry per desktop on every managed surface |
-| `list_clients`  | `clients`: an array of `{id, name, desktop_id, surface_id, x, y, w, h, iconified, urgent, sticky}`, one entry per focusable, non-skip-taskbar client on every desktop of every managed surface (`x`, `y`, `w`, `h` are that client's current position and size, in pixels, the same geometry `move_client`, `move_resize_client`, and `resize_client` below change) |
+| `list_clients`  | `clients`: an array of `{id, name, desktop_id, surface_id, x, y, w, h, iconified, urgent, pinned}`, one entry per focusable, non-skip-taskbar client on every desktop of every managed surface (`x`, `y`, `w`, `h` are that client's current position and size, in pixels, the same geometry `move_client`, `move_resize_client`, and `resize_client` below change) |
 | `get_focused`   | `focused`: an array of `{surface_id, client_id}`, one entry per managed surface (`client_id` is `null` when that surface currently has no active client) |
 
 #### 5.3.2. Client actions taking only `client_id`

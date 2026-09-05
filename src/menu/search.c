@@ -179,7 +179,7 @@ static int s_search_fuzzy_score(const char *restrict query,
  * a maximized window being the ordinary case, so the chain below
  * reports the outermost one alone, the same one the window is actually
  * drawn as.  Everything after it is independent, of that letter and of
- * the others: iconified, shaded, hidden, sticky and urgent each report
+ * the others: iconified, shaded, hidden, pinned and urgent each report
  * on their own, so a maximized window sitting as an icon says so twice
  * over.  The result is one comma-separated list such as @c "[p,m,!]",
  * and nothing at all when no hint applies.

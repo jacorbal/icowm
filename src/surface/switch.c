@@ -6,7 +6,7 @@
  * Implements the surface-level operations that create or destroy
  * desktops, including the fullscreen-surface toggle.  Switching the
  * current desktop itself lives in @c cmds/surface.c, alongside the
- * sticky-client transfer a real desktop switch also needs; client
+ * pinned-client transfer a real desktop switch also needs; client
  * visibility management and RandR operations live in
  * @c surface/actions.c.
  */

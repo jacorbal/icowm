@@ -420,7 +420,7 @@ static void s_wm_sync_desktop_layout(surface_td *surface)
  * the surface, publishing them via @c _NET_CLIENT_LIST in insertion
  * order and via @c _NET_CLIENT_LIST_STACKING in bottom-to-top stacking
  * order.  Also updates each client's @c _NET_WM_DESKTOP property, using
- * the special "all desktops" value for sticky clients.
+ * the special "all desktops" value for pinned clients.
  *
  * @param surface Pointer to the target surface
  *

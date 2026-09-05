@@ -338,7 +338,7 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
     is_urgent = client_is_urgent(client);
     blink_on = is_urgent && urgency_blink_is_on();
 
-    /* 'show-hints' off still hides the sticky pin and any state letter
+    /* 'show-hints' off still hides the pin indicator and any state letter
      * as documented, with one exception: an urgent client's attention
      * blink (see 'policy/urgency.h') still gets the urgent letter drawn
      * during its "on" phase, appearing and disappearing in that

@@ -75,7 +75,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/surface/test_desktop_grid \
     $(O_DIR)/tests/surface/test_monitor_direction \
     $(O_DIR)/tests/surface/test_desktop_add_remove \
-    $(O_DIR)/tests/surface/test_sticky_transfer \
+    $(O_DIR)/tests/surface/test_pinned_transfer \
     $(O_DIR)/tests/enact/test_send_to_desktop \
     $(O_DIR)/tests/desktop/test_workarea \
     $(O_DIR)/tests/menu/context/ctxmenu/test_layout \
@@ -630,8 +630,8 @@ $(O_DIR)/tests/surface/test_desktop_add_remove: \
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
-$(O_DIR)/tests/surface/test_sticky_transfer: \
-		$(TESTS_DIR)/surface/test_sticky_transfer.c \
+$(O_DIR)/tests/surface/test_pinned_transfer: \
+		$(TESTS_DIR)/surface/test_pinned_transfer.c \
 		$(S_DIR)/surface/actions/clients.c \
 		$(S_DIR)/policy/stacking.c \
 		$(S_DIR)/desktop/dfind.c \

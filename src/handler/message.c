@@ -314,7 +314,7 @@ void handler_client_message(wm_td *wm,
             /* A hidden client (e.g., minimized to systray) should be
              * restored on the current desktop, not by switching to the
              * desktop where it was originally opened.  For all other
-             * non-sticky clients on a different desktop, the
+             * non-pinned clients on a different desktop, the
              * traditional behavior of switching to that desktop is
              * preserved. */
             if (!(client->properties.flags & CLIENT_FLAG_PIN) &&

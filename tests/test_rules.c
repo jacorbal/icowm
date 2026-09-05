@@ -143,8 +143,8 @@ static void s_test_load_full_rule(void)
     TAP_OK(rule->apply.has_layer, "apply.layer is present");
     TAP_OK(rule->apply.has_focus && rule->apply.is_focused,
             "apply.focus is parsed as true");
-    TAP_OK(rule->apply.has_sticky && rule->apply.is_pinned,
-            "apply.sticky is parsed as true");
+    TAP_OK(rule->apply.has_pinned && rule->apply.is_pinned,
+            "apply.pinned is parsed as true");
     TAP_OK(rule->apply.has_decoration && !rule->apply.is_decorated,
             "apply.decoration is parsed as false");
     TAP_OK(rule->apply.has_iconified && rule->apply.is_iconified,

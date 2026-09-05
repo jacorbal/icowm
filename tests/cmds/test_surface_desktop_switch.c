@@ -14,7 +14,7 @@
  * (already switched away, selection failure, selection success) runs
  * without a real desktop list ever needing to exist.
  * 'surface_clients_hide', 'surface_clients_show', and
- * 'surface_clients_sticky_transfer_all' are call-counting stand-ins,
+ * 'surface_clients_pinned_transfer_all' are call-counting stand-ins,
  * letting each scenario assert on the exact hide/show/transfer
  * sequence the function under test is documented to follow.
  * 'xcb_connection_get' is a test-controlled stand-in too, since
@@ -225,8 +225,8 @@ static int s_call_hide;
 static uint32_t s_last_hide_id;
 static int s_call_show;
 static uint32_t s_last_show_id;
-static int s_call_sticky_transfer;
-static uint32_t s_last_sticky_transfer_id;
+static int s_call_pinned_transfer;
+static uint32_t s_last_pinned_transfer_id;
 
 /** Call-counting stand-in for @a surface_clients_hide (surface/
  *  actions/clients.c)
@@ -254,17 +254,17 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 }
 
 
-/** Call-counting stand-in for @a surface_clients_sticky_transfer_all
+/** Call-counting stand-in for @a surface_clients_pinned_transfer_all
  *  (surface/actions/clients.c)
  *  @note Complexity: @e O(1)
  */
-void surface_clients_sticky_transfer_all(surface_td *surface,
+void surface_clients_pinned_transfer_all(surface_td *surface,
         uint32_t to_id)
 {
     (void) surface;
 
-    s_call_sticky_transfer++;
-    s_last_sticky_transfer_id = to_id;
+    s_call_pinned_transfer++;
+    s_last_pinned_transfer_id = to_id;
 }
 
 
@@ -290,8 +290,8 @@ static void s_reset(void)
     s_last_hide_id = 0u;
     s_call_show = 0;
     s_last_show_id = 0u;
-    s_call_sticky_transfer = 0;
-    s_last_sticky_transfer_id = 0u;
+    s_call_pinned_transfer = 0;
+    s_last_pinned_transfer_id = 0u;
 }
 
 
@@ -362,8 +362,8 @@ static void s_test_switch_selection_fails_restores_old(void)
     TAP_EQ_INT((int) s_last_show_id, 1,
             "the desktop restored to view is the old one, not the"
             " requested target");
-    TAP_EQ_INT(s_call_sticky_transfer, 0,
-            "a failed selection never transfers sticky clients");
+    TAP_EQ_INT(s_call_pinned_transfer, 0,
+            "a failed selection never transfers pinned clients");
     TAP_EQ_INT((int) surface->desktop_cur, 1,
             "desktop_cur is left at the old value after a failed"
             " switch");
@@ -374,7 +374,7 @@ static void s_test_switch_selection_fails_restores_old(void)
 }
 
 
-/* A successful selection hides the old desktop, transfers sticky
+/* A successful selection hides the old desktop, transfers pinned
  * clients, shows the new one, and marks the surface outdated */
 static void s_test_switch_success_full_sequence(void)
 {
@@ -389,10 +389,10 @@ static void s_test_switch_success_full_sequence(void)
     TAP_EQ_INT((int) s_last_hide_id, 0, "hidden desktop is the old one");
     TAP_EQ_INT(s_call_select, 1,
             "surface_desktop_select is called exactly once");
-    TAP_EQ_INT(s_call_sticky_transfer, 1,
-            "sticky clients are transferred exactly once on success");
-    TAP_EQ_INT((int) s_last_sticky_transfer_id, 5,
-            "sticky clients are transferred to the new desktop");
+    TAP_EQ_INT(s_call_pinned_transfer, 1,
+            "pinned clients are transferred exactly once on success");
+    TAP_EQ_INT((int) s_last_pinned_transfer_id, 5,
+            "pinned clients are transferred to the new desktop");
     TAP_EQ_INT(s_call_show, 1, "the new desktop is shown exactly once");
     TAP_EQ_INT((int) s_last_show_id, 5, "the desktop shown is the new one");
     TAP_EQ_INT((int) surface->desktop_cur, 5,
@@ -439,8 +439,8 @@ static void s_test_cyclic_north_success(void)
             "no other direction's selector is ever called");
     TAP_EQ_INT((int) surface->desktop_cur, 3,
             "desktop_cur reflects the new desktop after switching north");
-    TAP_EQ_INT(s_call_sticky_transfer, 1,
-            "a successful cyclic switch transfers sticky clients");
+    TAP_EQ_INT(s_call_pinned_transfer, 1,
+            "a successful cyclic switch transfers pinned clients");
     TAP_OK(surface->is_outdated,
             "a successful cyclic switch marks the surface outdated");
 
@@ -465,8 +465,8 @@ static void s_test_cyclic_north_failure_restores(void)
             "visibility is restored on the old desktop exactly once");
     TAP_EQ_INT((int) s_last_show_id, 4,
             "the desktop restored to view is the current one");
-    TAP_EQ_INT(s_call_sticky_transfer, 0,
-            "a failed cyclic switch never transfers sticky clients");
+    TAP_EQ_INT(s_call_pinned_transfer, 0,
+            "a failed cyclic switch never transfers pinned clients");
     TAP_OK(!surface->is_outdated,
             "a failed cyclic switch never marks the surface outdated");
 

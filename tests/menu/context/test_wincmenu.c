@@ -598,10 +598,10 @@ static void s_test_show_multi_desktop_multi_monitor(void)
 
 
 /**
- * @brief Verify a sticky (pinned) client relabels the "Send to
+ * @brief Verify a pinned client relabels the "Send to
  *        desktop" submenu's trailing toggle as an un-pin action
  */
-static void s_test_show_sticky_relabels_pin_toggle(void)
+static void s_test_show_pinned_relabels_pin_toggle(void)
 {
     surface_td surface;
     desktop_td desktop_a;
@@ -633,7 +633,7 @@ static void s_test_show_sticky_relabels_pin_toggle(void)
     last = s_captured_state->entries[0].item_count - 1;
     TAP_EQ_STR(s_captured_state->entries[0].items[last].label,
             "This desktop only (unpin)",
-            "a sticky client's trailing toggle offers to unpin"
+            "a pinned client's trailing toggle offers to unpin"
             " rather than pin");
 
     s_teardown();
@@ -963,7 +963,7 @@ int main(void)
     s_test_show_guards();
     s_test_show_single_desktop_single_monitor();
     s_test_show_multi_desktop_multi_monitor();
-    s_test_show_sticky_relabels_pin_toggle();
+    s_test_show_pinned_relabels_pin_toggle();
     s_test_show_fixed_entries_plain_client();
     s_test_show_maximized_client();
     s_test_show_fullscreen_client();

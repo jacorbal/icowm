@@ -287,8 +287,8 @@ static void s_test_list_clients(void)
                     "the flagged client is reported as iconified");
             TAP_OK(cJSON_IsTrue(cJSON_GetObjectItem(entry, "urgent")),
                     "the flagged client is reported as urgent");
-            TAP_OK(cJSON_IsTrue(cJSON_GetObjectItem(entry, "sticky")),
-                    "the flagged client is reported as sticky");
+            TAP_OK(cJSON_IsTrue(cJSON_GetObjectItem(entry, "pinned")),
+                    "the flagged client is reported as pinned");
         }
     }
     TAP_OK(found_plain == 1, "the plain client is present");

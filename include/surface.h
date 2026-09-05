@@ -782,7 +782,7 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
 void surface_action_revert_randr_profiles(void);
 
 /**
- * @brief Unmap all non-sticky client windows belonging to a desktop
+ * @brief Unmap all non-pinned client windows belonging to a desktop
  *
  * Iterates the stacking list of the specified desktop and calls
  * @a xcb_unmap_window for each client that does not have the
@@ -814,7 +814,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id);
 void surface_clients_show(surface_td *surface, uint32_t desktop_id);
 
 /**
- * @brief Move all sticky clients from every other desktop to @p to_id
+ * @brief Move all pinned clients from every other desktop to @p to_id
  *
  * Iterates all desktops on the surface and relocates any client that
  * carries the @c CLIENT_FLAG_PIN flag to the desktop identified by
@@ -823,12 +823,12 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id);
  * keyboard shortcuts and focus management on the destination desktop.
  *
  * @param surface Pointer to the surface that owns all desktops
- * @param to_id   ID of the desktop to which sticky clients are moved
+ * @param to_id   ID of the desktop to which pinned clients are moved
  *
  * @note Complexity: @e O(d * n), where @e d is the number of desktops
  *       and @e n is the average number of clients per desktop
  */
-void surface_clients_sticky_transfer_all(surface_td *surface,
+void surface_clients_pinned_transfer_all(surface_td *surface,
         uint32_t to_id);
 
 /**

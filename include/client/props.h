@@ -51,7 +51,7 @@
 struct client_properties_s {
     uint16_t state;      /**< State (maximized, iconified,...) */
     uint16_t layer;      /**< Layer (above, normal, below) */
-    uint16_t flags;      /**< Flags (hidden, sticky, focusable,...) */
+    uint16_t flags;      /**< Flags (hidden, pinned, focusable,...) */
     uint16_t type;       /**< Type (normal, notification...) */
     uint16_t operation;  /**< Operation (moving, resizing...) */
     uint16_t focusing;   /**< Focusing (focused, unfocused) */

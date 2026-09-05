@@ -12,8 +12,8 @@
  * those subsystems' own test doubles a second time for no additional
  * coverage, so this file instead gives full, direct coverage to the
  * two exported entry points declared in internal.h that are genuinely
- * self-contained: @a im_sync_sticky_active (pure desktop-list
- * traversal logic over a sticky client) and @a im_allow_and_flush (a
+ * self-contained: @a im_sync_pinned_active (pure desktop-list
+ * traversal logic over a pinned client) and @a im_allow_and_flush (a
  * two-line wrapper over raw XCB calls).  Every other press.c
  * collaborator below exists purely so the translation unit links;
  * none of it is exercised by any test in this file, and each is
@@ -572,8 +572,8 @@ static void s_test_allow_and_flush_async_mode(void)
 }
 
 
-/* im_sync_sticky_active is a no-op when the surface is null */
-static void s_test_sync_sticky_null_surface_is_noop(void)
+/* im_sync_pinned_active is a no-op when the surface is null */
+static void s_test_sync_pinned_null_surface_is_noop(void)
 {
     client_td client;
     desktop_td desktop;
@@ -585,15 +585,15 @@ static void s_test_sync_sticky_null_surface_is_noop(void)
 
     /* Nothing to assert on directly beyond "does not crash"; ASan
      * would catch any null-surface dereference regardless */
-    im_sync_sticky_active(NULL, &desktop, &client);
+    im_sync_pinned_active(NULL, &desktop, &client);
 
-    TAP_OK(true, "null surface: im_sync_sticky_active returns"
+    TAP_OK(true, "null surface: im_sync_pinned_active returns"
             " without touching anything");
 }
 
 
-/* im_sync_sticky_active is a no-op when the client is null */
-static void s_test_sync_sticky_null_client_is_noop(void)
+/* im_sync_pinned_active is a no-op when the client is null */
+static void s_test_sync_pinned_null_client_is_noop(void)
 {
     surface_td surface;
     desktop_td desktop;
@@ -602,16 +602,16 @@ static void s_test_sync_sticky_null_client_is_noop(void)
     memset(&desktop, 0, sizeof(desktop));
     surface.desktops = NULL;
 
-    im_sync_sticky_active(&surface, &desktop, NULL);
+    im_sync_pinned_active(&surface, &desktop, NULL);
 
-    TAP_OK(true, "null client: im_sync_sticky_active returns without"
+    TAP_OK(true, "null client: im_sync_pinned_active returns without"
             " touching anything");
 }
 
 
-/* im_sync_sticky_active is a no-op for a non-pinned client, even with
+/* im_sync_pinned_active is a no-op for a non-pinned client, even with
  * a real desktop list behind the surface */
-static void s_test_sync_sticky_unpinned_client_is_noop(void)
+static void s_test_sync_pinned_unpinned_client_is_noop(void)
 {
     surface_td surface;
     desktop_td d1;
@@ -631,7 +631,7 @@ static void s_test_sync_sticky_unpinned_client_is_noop(void)
     cdlist_ins_next(desktops, cdlist_head(desktops), &d2);
     surface.desktops = desktops;
 
-    im_sync_sticky_active(&surface, &d1, &client);
+    im_sync_pinned_active(&surface, &d1, &client);
 
     TAP_EQ_INT((int) d1.client_active_id, 0,
             "unpinned client: the passed-in desktop is untouched");
@@ -642,9 +642,9 @@ static void s_test_sync_sticky_unpinned_client_is_noop(void)
 }
 
 
-/* im_sync_sticky_active is a no-op when the surface's desktop list
+/* im_sync_pinned_active is a no-op when the surface's desktop list
  * itself is null, even for a pinned client */
-static void s_test_sync_sticky_null_desktop_list_is_noop(void)
+static void s_test_sync_pinned_null_desktop_list_is_noop(void)
 {
     surface_td surface;
     desktop_td desktop;
@@ -657,7 +657,7 @@ static void s_test_sync_sticky_null_desktop_list_is_noop(void)
     client.id = 3u;
     surface.desktops = NULL;
 
-    im_sync_sticky_active(&surface, &desktop, &client);
+    im_sync_pinned_active(&surface, &desktop, &client);
 
     TAP_OK(true, "null desktop list on the surface: returns cleanly"
             " without dereferencing it");
@@ -667,7 +667,7 @@ static void s_test_sync_sticky_null_desktop_list_is_noop(void)
 /* A pinned client propagates its id onto every other desktop on the
  * surface, skipping only the one desktop already passed in (the one
  * focus_apply is assumed to have just updated itself) */
-static void s_test_sync_sticky_pinned_client_propagates(void)
+static void s_test_sync_pinned_pinned_client_propagates(void)
 {
     surface_td surface;
     desktop_td d1;
@@ -697,7 +697,7 @@ static void s_test_sync_sticky_pinned_client_propagates(void)
     cdlist_ins_next(desktops, cdlist_next(head), &d3);
     surface.desktops = desktops;
 
-    im_sync_sticky_active(&surface, &d1, &client);
+    im_sync_pinned_active(&surface, &d1, &client);
 
     TAP_EQ_INT((int) d1.client_active_id, 7,
             "the desktop already passed in (already handled by"
@@ -720,7 +720,7 @@ static void s_test_sync_sticky_pinned_client_propagates(void)
 
 /* A desktop already showing the pinned client as active is left with
  * is_focus_dirty untouched, since nothing about it actually changed */
-static void s_test_sync_sticky_already_correct_stays_clean(void)
+static void s_test_sync_pinned_already_correct_stays_clean(void)
 {
     surface_td surface;
     desktop_td d1;
@@ -742,7 +742,7 @@ static void s_test_sync_sticky_already_correct_stays_clean(void)
     cdlist_ins_next(desktops, cdlist_head(desktops), &d2);
     surface.desktops = desktops;
 
-    im_sync_sticky_active(&surface, &d1, &client);
+    im_sync_pinned_active(&surface, &d1, &client);
 
     TAP_OK(!d2.is_focus_dirty,
             "a desktop that already shows the pinned client active is"
@@ -754,7 +754,7 @@ static void s_test_sync_sticky_already_correct_stays_clean(void)
 
 
 /* An empty desktop list (head is null) is a no-op, not a crash */
-static void s_test_sync_sticky_empty_desktop_list_is_noop(void)
+static void s_test_sync_pinned_empty_desktop_list_is_noop(void)
 {
     surface_td surface;
     desktop_td desktop;
@@ -768,7 +768,7 @@ static void s_test_sync_sticky_empty_desktop_list_is_noop(void)
     client.id = 1u;
     surface.desktops = desktops;
 
-    im_sync_sticky_active(&surface, &desktop, &client);
+    im_sync_pinned_active(&surface, &desktop, &client);
 
     TAP_OK(true, "empty desktop list: returns cleanly without"
             " iterating anything");
@@ -783,17 +783,17 @@ int main(void)
 
     s_test_allow_and_flush_forwards_mode_and_time();
     s_test_allow_and_flush_async_mode();
-    s_test_sync_sticky_null_surface_is_noop();
-    s_test_sync_sticky_null_client_is_noop();
-    s_test_sync_sticky_unpinned_client_is_noop();
-    s_test_sync_sticky_null_desktop_list_is_noop();
-    s_test_sync_sticky_pinned_client_propagates();
-    s_test_sync_sticky_already_correct_stays_clean();
-    s_test_sync_sticky_empty_desktop_list_is_noop();
+    s_test_sync_pinned_null_surface_is_noop();
+    s_test_sync_pinned_null_client_is_noop();
+    s_test_sync_pinned_unpinned_client_is_noop();
+    s_test_sync_pinned_null_desktop_list_is_noop();
+    s_test_sync_pinned_pinned_client_propagates();
+    s_test_sync_pinned_already_correct_stays_clean();
+    s_test_sync_pinned_empty_desktop_list_is_noop();
 
     TAP_EQ_INT(s_unreached_calls, 0,
             "none of the many press.c collaborators outside"
-            " im_sync_sticky_active/im_allow_and_flush were ever"
+            " im_sync_pinned_active/im_allow_and_flush were ever"
             " actually invoked by this file");
 
     return TAP_DONE();

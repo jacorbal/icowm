@@ -773,7 +773,7 @@ static void s_test_no_layer_field_calls_nothing(void)
 
     s_reset();
     memset(&apply, 0, sizeof(apply));
-    apply.has_sticky = true;
+    apply.has_pinned = true;
     apply.is_pinned = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
@@ -787,15 +787,15 @@ static void s_test_no_layer_field_calls_nothing(void)
 }
 
 
-/* has_sticky true pins the client, false unpins it */
-static void s_test_sticky_pins_or_unpins(void)
+/* has_pinned true pins the client, false unpins it */
+static void s_test_pinned_pins_or_unpins(void)
 {
     surface_td *surface = &s_surface;
     desktop_td *desktop = &s_desktop;
     struct rules_apply_s apply;
 
     memset(&apply, 0, sizeof(apply));
-    apply.has_sticky = true;
+    apply.has_pinned = true;
 
     s_reset();
     apply.is_pinned = true;
@@ -1430,7 +1430,7 @@ static void s_test_two_rules_merge_disjoint_fields(void)
 
     s_reset();
     memset(&apply_a, 0, sizeof(apply_a));
-    apply_a.has_sticky = true;
+    apply_a.has_pinned = true;
     apply_a.is_pinned = true;
     memset(&apply_b, 0, sizeof(apply_b));
     apply_b.has_hidden = true;
@@ -1442,7 +1442,7 @@ static void s_test_two_rules_merge_disjoint_fields(void)
             RULES_TRIGGER_PROPERTY);
 
     TAP_EQ_INT(s_call_enact_client_pin, 1,
-            "the first rule's sticky field still applies");
+            "the first rule's pinned field still applies");
     TAP_EQ_INT(s_call_enact_client_hide, 1,
             "the second rule's hidden field applies too, alongside it");
 }
@@ -1488,7 +1488,7 @@ static void s_test_successful_apply_broadcasts_and_returns_true(void)
 
     s_reset();
     memset(&apply, 0, sizeof(apply));
-    apply.has_sticky = true;
+    apply.has_pinned = true;
     apply.is_pinned = true;
     s_add_rule(RULES_WHEN_BOTH, apply);
 
@@ -1516,7 +1516,7 @@ int main(void)
     s_test_when_map_only_matches_map_trigger();
     s_test_layer_dispatches_to_the_right_enact_call();
     s_test_no_layer_field_calls_nothing();
-    s_test_sticky_pins_or_unpins();
+    s_test_pinned_pins_or_unpins();
     s_test_decoration_toggles_only_on_mismatch();
     s_test_opacity_forwards_exact_values();
     s_test_map_trigger_defers_state_instead_of_enacting();

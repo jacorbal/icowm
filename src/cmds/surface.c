@@ -133,7 +133,7 @@ static void s_switch_cyclic(surface_td *surface,
     }
 
     if (surface->desktop_cur != old_id) {
-        surface_clients_sticky_transfer_all(surface,
+        surface_clients_pinned_transfer_all(surface,
                 surface->desktop_cur);
         surface_clients_show(surface, surface->desktop_cur);
         s_show_desktop_overlay(surface);
@@ -168,7 +168,7 @@ void scmd_surface_desktop_switch(surface_td *surface,
         surface_clients_show(surface, old_id);
         return;
     }
-    surface_clients_sticky_transfer_all(surface, desktop_id);
+    surface_clients_pinned_transfer_all(surface, desktop_id);
     surface_clients_show(surface, desktop_id);
 
     s_show_desktop_overlay(surface);

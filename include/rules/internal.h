@@ -96,7 +96,7 @@ struct rules_match_s {
  * @brief Actions to apply to a client when a rule entry matches
  *
  * Each field pairs with its @p has_* flag: @p has_focus,
- * @p has_position, @p has_sticky, and so on say whether the rule
+ * @p has_position, @p has_pinned, and so on say whether the rule
  * specifies a value for that action at all; the paired field itself
  * (@p is_focused, @p is_position_centered, @p is_pinned, and so on) is
  * the value to apply, meaningful only when its @p has_* flag is @c
@@ -152,7 +152,7 @@ struct rules_apply_s {
                                      @p x and @p y */
     bool has_size;              /**< @p width & @p height independent of
                                      position */
-    bool has_sticky;
+    bool has_pinned;
     bool has_decoration;
     bool has_opacity_active;
     bool has_opacity_inactive;

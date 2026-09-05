@@ -293,16 +293,16 @@ static void s_cb_focus_client(xcb_connection_t *connection,
      * 's_client_entry_append''s comment for 'did'), never
      * 'data->client->desktop_id'.  For a plain client the two agree
      * anyway, since it can only ever be listed under its desktop, but
-     * for a sticky one they routinely do not, a sticky client's
-     * 'desktop_id' being nominal at best (see the "sticky clients live
+     * for a pinned one they routinely do not, a pinned client's
+     * 'desktop_id' being nominal at best (see the "pinned clients live
      * wherever the desktop switch last put them" comment in
      * 's_build_desktop_entries') and does not track which of the (six
      * shown as its submenu here) desktops this particular entry
      * actually came from.
      *
-     * Using it instead of 'data->desktop_id' meant activating a sticky
+     * Using it instead of 'data->desktop_id' meant activating a pinned
      * client's entry under a desktop other than the current one
-     * silently did nothing: since a sticky client already stays visible
+     * silently did nothing: since a pinned client already stays visible
      * wherever the desktop switch last left it, 'target_did' would
      * resolve to that same already-current desktop regardless of which
      * desktop's submenu the entry was actually picked from. */
@@ -504,7 +504,7 @@ static void s_appgroup_label(client_td * const *members, int member_n,
  *        there is room
  *
  * Shared by @c s_build_desktop_entries' two collection passes below
- * (this desktop's clients, and sticky clients physically stored on
+ * (this desktop's clients, and pinned clients physically stored on
  * other desktops), which otherwise repeated the same bounds-checked
  * append.
  *
@@ -532,7 +532,7 @@ static void s_client_collect(client_td *client,
  * @brief Build one desktop's submenu entries
  *
  * Collects every client that belongs to @p did (physically stored
- * there, plus sticky clients stored elsewhere), then groups them by
+ * there, plus pinned clients stored elsewhere), then groups them by
  * @c client_group_leader: an application with two or more windows on
  * this desktop collapses into a single "ProgName (N)" submenu instead
  * of @e N separate rows, so a desktop with many windows from a handful
@@ -600,9 +600,9 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     }
 
     /* Collect: every client physically stored in this desktop's table
-     * (sticky ones stored here because it is the current desktop
-     * included), plus sticky clients physically stored in other
-     * desktops (sticky clients live wherever the desktop switch last
+     * (pinned ones stored here because it is the current desktop
+     * included), plus pinned clients physically stored in other
+     * desktops (pinned clients live wherever the desktop switch last
      * put them, not necessarily their nominal 'desktop_id') */
     collected_n = 0;
     if (desktop->clients != NULL) {

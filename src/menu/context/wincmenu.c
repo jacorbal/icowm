@@ -609,9 +609,9 @@ static int s_build_desk_entries(surface_td *surface,
 {
     struct s_desk_entry_ctx_s desk_ctx;
     int n;
-    bool is_sticky;
+    bool is_pinned;
 
-    is_sticky = (client->properties.flags & CLIENT_FLAG_PIN) != 0u;
+    is_pinned = (client->properties.flags & CLIENT_FLAG_PIN) != 0u;
 
     desk_ctx.client = client;
     desk_ctx.current = desktop;
@@ -630,12 +630,12 @@ static int s_build_desk_entries(surface_td *surface,
         ++n;
     }
 
-    /* "All desktops" entry for sticky support.  When the client is
-     * already sticky, relabel it as an active un-pin action instead of
-     * disabling it, since toggling stickiness on this entry already
+    /* "All desktops" entry for pin support.  When the client is
+     * already pinned, relabel it as an active un-pin action instead of
+     * disabling it, since toggling the pin flag on this entry already
      * works both ways and there is otherwise no menu entry to remove
      * a pin once set */
-    if (is_sticky) {
+    if (is_pinned) {
         safe_strncpy(s_desk_entries[n].label,
                 _(STR_WINCMENU_THIS_DESKTOP_UNPIN),
                 sizeof(s_desk_entries[n].label) - 1u);
@@ -645,9 +645,9 @@ static int s_build_desk_entries(surface_td *surface,
                 sizeof(s_desk_entries[n].label) - 1u);
     }
 
-    /* 'All desktops' entry for sticky support */
+    /* 'All desktops' entry for pin support */
     s_desk_entries[n].type = CTXMENU_COMMAND;
-    s_desk_entries[n].is_disabled = false/*is_sticky*/;
+    s_desk_entries[n].is_disabled = false/*is_pinned*/;
     s_desk_entries[n].on_activate = s_cb_send_action;
     s_desk_entries[n].userdata =
         (void *) (intptr_t) ACTION_CLIENT_TOGGLE_PIN;
@@ -791,10 +791,10 @@ void wincmenu_show(xcb_connection_t *connection,
 
     /* Build 'Send to desktop' submenu, only meaningful (and only shown
      * at all, see below) on a surface with more than one desktop; this
-     * is also where the "all desktops" sticky toggle lives, so hiding
+     * is also where the "all desktops" pin toggle lives, so hiding
      * the whole submenu on a single-desktop surface (as in
      * restricted-memory mode; see 'memguard.h') correctly hides that
-     * too, since sticking to every desktop means nothing when there is
+     * too, since pinning to every desktop means nothing when there is
      * only the one. */
     desk_count = 0;
     if (surface->desktop_count > 1u) {

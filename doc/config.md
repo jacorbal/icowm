@@ -1422,7 +1422,7 @@ Actions performed on the currently focused window.
 | `maximize`      | `modc+mod1+m`           | Toggle maximize (full work area). |
 | `fullscreen`    | `modc+mod1+f`           | Toggle true fullscreen mode. |
 | `shade`         | `modc+mod1+s`           | Roll-up / roll-down the window (shade). |
-| `pin`           | `modc+mod1+p`           | Toggle sticky mode (window appears on all desktops). |
+| `pin`           | `modc+mod1+p`           | Toggle pinned mode (window appears on all desktops). |
 | `decorate`      | `modc+mod1+d`           | Toggle window decorations (title bar). |
 | `layer`         | `modc+mod1+mods+y`      | Cycle the window stacking layer: *normal* > *above* > *below*. |
 | `info`          | `modc+mod4+mods+i`      | Show a popup with window information. |
@@ -1549,7 +1549,7 @@ desktop's name (when the surface has more than one desktop) alongside
 its index and, once `topology.screens.desktops[].layout` configures
 genuinely more than one row, its `(row,column)` position too, and any
 bracketed state hints that apply (`f`/`m`/`h`/`v` for fullscreen or one
-of the maximized variants, `s` for shaded, `p` for pinned/sticky, `!`
+of the maximized variants, `s` for shaded, `p` for pinned, `!`
 for urgent).
 
 `shortcuts` opens a dialog listing every active keyboard binding
