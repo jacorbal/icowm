@@ -225,6 +225,7 @@ void client_theme_layout_resync(client_td *client, bool is_active)
 /* Compute where every configured titlebar button goes */
 void client_titlebar_layout(const struct config_theme_s *theme,
         uint16_t frame_w, uint16_t title_h, bool hide_pin,
+        bool hide_sticky,
         struct titlebar_button_layout_s *restrict out_left,
         uint8_t *restrict out_left_n,
         struct titlebar_button_layout_s *restrict out_right,
@@ -280,11 +281,13 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     }
 
     /* A pin button dropped here (single-desktop surface, see
-     * 'hide_pin') is skipped entirely rather than drawn inert: the
-     * output index only advances for a button actually placed, so the
-     * next configured button slides into its slot and the extent below
-     * reflects the real, possibly-shorter row, the same as if the theme
-     * itself had never listed pin at all. */
+     * 'hide_pin') or a sticky button dropped here (single-cell
+     * viewport, see 'hide_sticky') is skipped entirely rather than
+     * drawn inert: the output index only advances for a button
+     * actually placed, so the next configured button slides into its
+     * slot and the extent below reflects the real, possibly-shorter
+     * row, the same as if the theme itself had never listed that
+     * button at all. */
     configured_left_n = theme->window.titlebar.buttons.left_count;
     if (configured_left_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
         configured_left_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
@@ -294,6 +297,9 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     for (uint8_t i = 0u; i < configured_left_n; ++i) {
         btn_kind = theme->window.titlebar.buttons.left[i];
         if (hide_pin && btn_kind == CONFIG_TITLEBAR_BUTTON_PIN) {
+            continue;
+        }
+        if (hide_sticky && btn_kind == CONFIG_TITLEBAR_BUTTON_STICKY) {
             continue;
         }
         out_left[left_n].button = btn_kind;
@@ -314,6 +320,9 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     for (uint8_t i = 0u; i < configured_right_n; ++i) {
         btn_kind = theme->window.titlebar.buttons.right[i];
         if (hide_pin && btn_kind == CONFIG_TITLEBAR_BUTTON_PIN) {
+            continue;
+        }
+        if (hide_sticky && btn_kind == CONFIG_TITLEBAR_BUTTON_STICKY) {
             continue;
         }
         out_right[right_n].button = btn_kind;

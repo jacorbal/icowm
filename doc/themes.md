@@ -82,14 +82,19 @@ follow, takes the same string.  §13 sets out its two accepted forms.
 | `alignment`          | string           | `"center"`         | Where the title text sits within the space its buttons leave available.  One of `"left"`, `"center"`, `"right"`.                                                                                                                                         |
 | `padding.horizontal` | integer          | `2`                | Horizontal inset, in pixels, between the frame's edge and its outermost buttons on each side, and between a button group and the title text.                                                                                                             |
 | `padding.vertical`   | integer          | `2`                | Vertical inset, in pixels, buttons are kept from the titlebar's top and bottom edge before being centered in whatever room that leaves.  If the titlebar is too short for the padding to fit a full button, this is ignored in favor of plain centering. |
-| `buttons.left`       | array of strings | `['pin', 'layer']` | Buttons drawn left-to-right starting at the frame's left edge.                                                                                                                                                                                           |
+| `buttons.left`       | array of strings | `['pin', 'sticky', 'layer']` | Buttons drawn left-to-right starting at the frame's left edge.                                                                                                                                                                                |
 | `buttons.right`      | array of strings | `['close', 'maximize', 'shade', 'iconize']` | Buttons drawn right-to-left starting at the frame's right edge.                                                                                                                                                                                          |
-| `buttons.color.on`   | string           | `"#142335"`        | Color for a button whose state is currently engaged: pinned, a non-normal layer, or simply the window being focused for every other button.                                                                                                              |
+| `buttons.color.on`   | string           | `"#142335"`        | Color for a button whose state is currently engaged: pinned, sticky, a non-normal layer, or simply the window being focused for every other button.                                                                                                     |
 | `buttons.color.off`  | string           | `"#4E6076"`        | Color for a button otherwise, i.e., not engaged.                                                                                                                                                                                                         |
 
 Accepted button names, for both `buttons.left` and `buttons.right`, are:
-`"pin"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`, `"maximize"`,
-`"fullscreen"`, `"close"`.  A button omitted from both lists is simply
+`"pin"`, `"sticky"`, `"layer"`, `"iconize"`, `"hide"`, `"shade"`,
+`"maximize"`, `"fullscreen"`, `"close"`.  The pin button is only ever
+drawn on a surface with more than one desktop, and the sticky button
+only on a surface whose desktop grid is wider or taller than a single
+cell; both stay in the theme's list either way, and simply drop out of
+the titlebar on a surface too small for them to mean anything.  A
+button omitted from both lists is simply
 never drawn and never clickable; there is no separate setting to hide
 a button.  The same name can only usefully appear once across both lists
 (whichever list is processed for it first wins its slot; putting it in
@@ -130,7 +135,7 @@ Appearance settings for iconified windows.
 |----------------|---------|---------|-------------|
 | `is-captioned` | boolean | `true`  | When `true`, the icon displays the window title below the icon graphic. |
 | `show-pixmaps` | boolean | `true`  | When `true`, draws the client's `_NET_WM_ICON` image, centered in and clipped to the icon's square graphic area, above the caption (the two never overlap).  Not every application publishes this property; one that does not simply shows no icon graphic, same as when this is `false`.  Scaled to a consistent size regardless of whichever size the application published, since these vary widely from one application to another (not currently configurable from a JSON file, only at compile time).  The built image is cached per client and only rebuilt when the application actually changes its `_NET_WM_ICON` property; every other redraw (an unrelated window on the same desktop moving, an `Expose` after a virtual terminal switch, cycling selection past it) reuses the cached one instead of re-fetching and re-processing the same image again.  Forced to `false` automatically in restricted-memory mode (see `-M`), regardless of what this file says. |
-| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's top corners.  A filled square in the top-left when the client is pinned, and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal). |
+| `show-hints`   | boolean | `true`  | When `true`, draws small state-hint indicators in the icon's corners.  A filled square in the top-left when the client is pinned, an outlined square in the bottom-left when it is sticky (so a client that is both at once still shows two distinct marks), and a single letter in the top-right for whichever state it was in right before being iconified (`f`: fullscreen; `m`: maximized; `h`: maximized horizontally; `v`: maximized vertically; none for plain normal). |
 
 #### `icon.active` / `icon.inactive`
 
@@ -806,7 +811,7 @@ file was actually read.
                     "off": "#4e6076",
                     "on": "#142335"
                 },
-                "left": [ "pin", "layer" ],
+                "left": [ "pin", "sticky", "layer" ],
                 "right": [ "close", "maximize", "shade", "iconize" ]
             },
             "height": 22,

@@ -106,6 +106,9 @@
 #define WM_ICON_HINT_MAXIMIZED_VERT 'v'
 #define WM_ICON_HINT_SHADED 's'
 #define WM_ICON_HINT_PINNED 'p'
+#define WM_ICON_HINT_STICKY 't'    /**< Not 's': already 'shaded' above,
+                                        so this one borrows from
+                                        "sTicky" instead */
 #define WM_ICON_HINT_URGENT '!'
 #define WM_ICON_HINT_ICONIFIED '_'
 #define WM_ICON_HINT_HIDDEN '~'     /**< Hidden, yet NOT iconified; an

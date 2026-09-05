@@ -293,19 +293,37 @@ static xcb_pixmap_t
 /**
  * @brief Color a single titlebar button should be drawn in
  *
- * Pin and layer buttons reflect their state (pinned or non-normal
- * layer) with the active accent color regardless of window focus; every
- * other button reflects window focus instead, the same way the titlebar
- * text itself does.  Maximize and fullscreen fall back to the
- * background color, which makes them effectively invisible, when the
- * client cannot be resized, instead of drawing a button that would do
- * nothing if clicked.
+ * Pin, sticky and layer buttons reflect their state (pinned, sticky or
+ * non-normal layer) with the active accent color regardless of window
+ * focus; every other button reflects window focus instead, the same
+ * way the titlebar text itself does.  Maximize and fullscreen fall
+ * back to the background color, which makes them effectively
+ * invisible, when the client cannot be resized, instead of drawing a
+ * button that would do nothing if clicked.
+ *
+ * @param button         Which titlebar button is being colored
+ * @param is_focused     Whether the owning client is currently focused
+ * @param is_pinned      Whether the owning client has the pin flag set
+ * @param is_sticky      Whether the owning client has the sticky flag
+ *                       set
+ * @param is_layered     Whether the client layer is above or below
+ *                       normal
+ * @param can_maximize   Whether the maximize button is enabled
+ * @param color_active   Color used when a state-reflecting button's
+ *                       state is on
+ * @param color_inactive Color used otherwise
+ * @param bg_fill        Background color used for a disabled
+ *                       maximize/fullscreen button
+ *
+ * @return The color @p button should be filled with
+ *
+ * @note Complexity: @e O(1)
  */
 static uint32_t s_titlebar_button_color(
         enum config_titlebar_button_e button, bool is_focused,
-        bool is_pinned, bool is_layered, bool can_maximize,
-        uint32_t color_active, uint32_t color_inactive,
-        uint32_t bg_fill)
+        bool is_pinned, bool is_sticky, bool is_layered,
+        bool can_maximize, uint32_t color_active,
+        uint32_t color_inactive, uint32_t bg_fill)
 {
     if (!can_maximize &&
             (button == CONFIG_TITLEBAR_BUTTON_MAXIMIZE ||
@@ -314,6 +332,9 @@ static uint32_t s_titlebar_button_color(
     }
     if (button == CONFIG_TITLEBAR_BUTTON_PIN) {
         return (is_pinned) ? color_active : color_inactive;
+    }
+    if (button == CONFIG_TITLEBAR_BUTTON_STICKY) {
+        return (is_sticky) ? color_active : color_inactive;
     }
     if (button == CONFIG_TITLEBAR_BUTTON_LAYER) {
         return (is_layered) ? color_active : color_inactive;
@@ -355,6 +376,7 @@ static uint32_t s_titlebar_button_color(
  * @param right_n      Number of entries in @p right
  * @param is_focused   Whether the owning client is currently focused
  * @param is_pinned    Whether the owning client has the pin flag set
+ * @param is_sticky    Whether the owning client has the sticky flag set
  * @param is_layered   Whether the client layer is above or below normal
  * @param can_maximize Whether the maximize button is enabled
  * @param theme        Pointer to the theme providing button colors
@@ -365,7 +387,7 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
         xcb_drawable_t target, int16_t btn_y,
         const struct titlebar_button_layout_s *left, uint8_t left_n,
         const struct titlebar_button_layout_s *right, uint8_t right_n,
-        bool is_focused, bool is_pinned, bool is_layered,
+        bool is_focused, bool is_pinned, bool is_sticky, bool is_layered,
         bool can_maximize, const struct config_theme_s *theme)
 {
     xcb_gcontext_t gc;
@@ -395,8 +417,8 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
 
     for (uint8_t i = 0u; i < left_n; ++i) {
         color = s_titlebar_button_color(left[i].button, is_focused,
-                is_pinned, is_layered, can_maximize, color_active,
-                color_inactive, bg_fill);
+                is_pinned, is_sticky, is_layered, can_maximize,
+                color_active, color_inactive, bg_fill);
         gc = xcb_generate_id(connection);
         xcb_create_gc(connection, gc, target,
                 XCB_GC_FOREGROUND, &color);
@@ -407,8 +429,8 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
 
     for (uint8_t i = 0u; i < right_n; ++i) {
         color = s_titlebar_button_color(right[i].button, is_focused,
-                is_pinned, is_layered, can_maximize, color_active,
-                color_inactive, bg_fill);
+                is_pinned, is_sticky, is_layered, can_maximize,
+                color_active, color_inactive, bg_fill);
         gc = xcb_generate_id(connection);
         xcb_create_gc(connection, gc, target,
                 XCB_GC_FOREGROUND, &color);
@@ -1002,6 +1024,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
     int16_t text_y;
     bool can_maximize;
     bool hide_pin;
+    bool hide_sticky;
     surface_td *surface;
     uint32_t bg_color;
     xcb_pixmap_t buffer;
@@ -1015,6 +1038,16 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
 
     surface = wm_get_surface_by_id(client->screen_id);
     hide_pin = surface != NULL && surface->desktop_count <= 1u;
+
+    /* See the matching comment in
+     * 'src/input/mouse/event/titlebar.c' ('s_mouse_hit_titlebar_buttons')
+     * for why this checks the desktop grid rather than 'desktop_count' */
+    hide_sticky = surface == NULL || surface->config == NULL ||
+        surface->id >= (uint32_t) CONFIG_MAX_SCREENS ||
+        (surface->config->base.screens[surface->id]
+             .desktop_layout.rows <= 1u &&
+         surface->config->base.screens[surface->id]
+             .desktop_layout.columns <= 1u);
     bg_color = (is_focused)
         ? theme->window.active.color.background
         : theme->window.inactive.color.background;
@@ -1053,8 +1086,9 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
                 : theme->window.inactive.color.foreground,
             bg_color);
 
-    client_titlebar_layout(theme, inner_w, title_h, hide_pin, left,
-            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
+    client_titlebar_layout(theme, inner_w, title_h, hide_pin,
+            hide_sticky, left, &left_n, right, &right_n, &title_x,
+            &title_w, &btn_y);
 
     /* Vertically centered against the titlebar's font ascent and
      * descent, the same way 'client_titlebar_layout' above already
@@ -1077,6 +1111,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
     s_desktop_titlebar_buttons_draw(connection, target,
             btn_y, left, left_n, right, right_n, is_focused,
             (bool) client_is_pinned(client),
+            (bool) client_is_sticky(client),
             (client->properties.layer != CLIENT_LAYER_NORMAL),
             can_maximize, theme);
 

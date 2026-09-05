@@ -773,6 +773,8 @@ struct titlebar_button_layout_s {
  *                    the row closes the gap and shifts the following
  *                    buttons over, exactly as if the theme had never
  *                    listed it, rather than leaving it in place inert
+ * @param hide_sticky Same as @p hide_pin, for the sticky button
+ *                    instead
  * @param out_left    Receives up to @c CONFIG_MAX_TITLEBAR_BUTTONS
  *                    entries for the left side, in the theme's order
  * @param out_left_n  Receives the number of entries written to
@@ -789,6 +791,7 @@ struct titlebar_button_layout_s {
  */
 void client_titlebar_layout(const struct config_theme_s *theme,
         uint16_t frame_w, uint16_t title_h, bool hide_pin,
+        bool hide_sticky,
         struct titlebar_button_layout_s *restrict out_left,
         uint8_t *restrict out_left_n,
         struct titlebar_button_layout_s *restrict out_right,

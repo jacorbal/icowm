@@ -282,6 +282,7 @@ static int16_t s_titlebar_layout_title_x = 4;
 static uint16_t s_titlebar_layout_title_w = 80u;
 static int16_t s_titlebar_layout_btn_y = 2;
 static bool s_titlebar_layout_last_hide_pin;
+static bool s_titlebar_layout_last_hide_sticky;
 
 /* client_titlebar_layout (client/geom.c) is a cross-module dependency
  * genuinely external to desktop.c: stubbed as a fully controllable
@@ -290,6 +291,7 @@ static bool s_titlebar_layout_last_hide_pin;
  * without also pulling in client/geom.c's own theme-parsing logic */
 void client_titlebar_layout(const struct config_theme_s *theme,
         uint16_t frame_w, uint16_t title_h, bool hide_pin,
+        bool hide_sticky,
         struct titlebar_button_layout_s *restrict out_left,
         uint8_t *restrict out_left_n,
         struct titlebar_button_layout_s *restrict out_right,
@@ -304,6 +306,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     (void) title_h;
     s_titlebar_layout_calls++;
     s_titlebar_layout_last_hide_pin = hide_pin;
+    s_titlebar_layout_last_hide_sticky = hide_sticky;
 
     for (i = 0u; i < s_titlebar_layout_left_n; ++i) {
         out_left[i] = s_titlebar_layout_left[i];
@@ -1597,6 +1600,67 @@ static void s_test_repaint_titlebar_shows_pin_multi_desktop(void)
             " normally");
 }
 
+static void s_test_repaint_titlebar_hide_sticky_single_cell_viewport(void)
+{
+    struct config_theme_s theme;
+    client_td client;
+    surface_td surface;
+    xcb_screen_t screen;
+    config_td config;
+
+    s_reset_fixture();
+    memset(&theme, 0, sizeof(theme));
+    memset(&client, 0, sizeof(client));
+    memset(&surface, 0, sizeof(surface));
+    memset(&screen, 0, sizeof(screen));
+    memset(&config, 0, sizeof(config));
+    surface.screen = &screen;
+    surface.id = 0u;
+    surface.config = &config;
+    config.base.screens[0].desktop_layout.rows = 1u;
+    config.base.screens[0].desktop_layout.columns = 1u;
+    client.titlebar = 0x806u;
+    s_surface_by_id_result = &surface;
+
+    desktop_repaint_titlebar_content(s_connection_stub, &client, true,
+            100u, 20u, &theme);
+
+    TAP_OK(s_titlebar_layout_last_hide_sticky,
+            "a surface whose desktop grid is a single 1x1 cell hides"
+            " the sticky button: nothing for a client to stay put"
+            " against there");
+}
+
+static void s_test_repaint_titlebar_shows_sticky_wide_viewport(void)
+{
+    struct config_theme_s theme;
+    client_td client;
+    surface_td surface;
+    xcb_screen_t screen;
+    config_td config;
+
+    s_reset_fixture();
+    memset(&theme, 0, sizeof(theme));
+    memset(&client, 0, sizeof(client));
+    memset(&surface, 0, sizeof(surface));
+    memset(&screen, 0, sizeof(screen));
+    memset(&config, 0, sizeof(config));
+    surface.screen = &screen;
+    surface.id = 0u;
+    surface.config = &config;
+    config.base.screens[0].desktop_layout.rows = 1u;
+    config.base.screens[0].desktop_layout.columns = 2u;
+    client.titlebar = 0x807u;
+    s_surface_by_id_result = &surface;
+
+    desktop_repaint_titlebar_content(s_connection_stub, &client, true,
+            100u, 20u, &theme);
+
+    TAP_OK(!s_titlebar_layout_last_hide_sticky,
+            "a surface whose desktop grid is wider than a single cell"
+            " shows the sticky button normally");
+}
+
 static void s_test_repaint_titlebar_truncates_and_draws_title(void)
 {
     struct config_theme_s theme;
@@ -1863,7 +1927,7 @@ static void s_test_repaint_frame_decoration_falls_back_without_override(
 
 int main(void)
 {
-    TAP_PLAN(92);
+    TAP_PLAN(94);
 
     s_test_property_is_bg_pixmap_none_atom_is_false();
     s_test_property_is_bg_pixmap_resolves_once();
@@ -1906,6 +1970,8 @@ int main(void)
     s_test_repaint_titlebar_fallback_when_buffer_fails();
     s_test_repaint_titlebar_hide_pin_single_desktop();
     s_test_repaint_titlebar_shows_pin_multi_desktop();
+    s_test_repaint_titlebar_hide_sticky_single_cell_viewport();
+    s_test_repaint_titlebar_shows_sticky_wide_viewport();
     s_test_repaint_titlebar_truncates_and_draws_title();
     s_test_repaint_titlebar_skips_empty_title();
     s_test_repaint_titlebar_syncs_visible_name_via_ewmh();

@@ -319,8 +319,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
 }
 
 
-/* Draw the state-hint indicators in an iconified client's top
- * corners */
+/* Draw the state-hint indicators in an iconified client's corners */
 void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
         xcb_drawable_t target, bool is_cycle_sel,
         const struct config_theme_s *theme)
@@ -385,6 +384,34 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
 
         xcb_create_gc(connection, gc, target, XCB_GC_FOREGROUND, &color);
         xcb_poly_fill_rectangle(connection, target, gc, 1, &rect);
+        xcb_free_gc(connection, gc);
+    }
+
+    if (theme->icon.show_hints &&
+            (client->properties.flags & CLIENT_FLAG_STICKY) != 0u) {
+        xcb_gcontext_t gc = xcb_generate_id(connection);
+        /* Same accent-vs-inactive color rule as the pin square above,
+         * for the same reason: a state hint, not a stray titlebar
+         * color.  Outlined rather than filled, and in the bottom-left
+         * corner rather than the top-left one, so a client that is
+         * both pinned and sticky at once shows two clearly distinct
+         * marks instead of one square that could be read as either. */
+        uint32_t color = (is_cycle_sel)
+            ? theme->icon.active.color.foreground
+            : theme->icon.inactive.color.foreground;
+
+        /* Same size as the pin square, for the same reason: it has to
+         * fit within the margin 'WM_ICON_PIXMAP_SCALE_PERCENT' already
+         * leaves free around a centered pixmap. */
+        uint16_t stick_size = (uint16_t)
+            ((WM_ICON_SQUARE_SIZE *
+              (100u - WM_ICON_PIXMAP_SCALE_PERCENT)) / 200u);
+        xcb_rectangle_t rect = { 0,
+            (int16_t) (WM_ICON_SQUARE_SIZE - stick_size),
+            stick_size, stick_size };
+
+        xcb_create_gc(connection, gc, target, XCB_GC_FOREGROUND, &color);
+        xcb_poly_rectangle(connection, target, gc, 1, &rect);
         xcb_free_gc(connection, gc);
     }
 

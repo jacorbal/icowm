@@ -2354,7 +2354,8 @@ static void s_test_unnamed_client_uses_placeholder(void)
 }
 
 /* Bracketed hint text: fullscreen takes priority over maximized, and
- * independent flags (pinned, urgent) both still show up alongside it */
+ * independent flags (pinned, sticky, urgent) all still show up
+ * alongside it */
 static void s_test_hints_fullscreen_priority_and_independent_flags(void)
 {
     surface_td surface;
@@ -2365,7 +2366,8 @@ static void s_test_hints_fullscreen_priority_and_independent_flags(void)
     s_reset();
     desktop = s_make_desktop(0u, "one");
     clients[0] = s_make_client(1u, "alpha",
-            (uint16_t) (CLIENT_FLAG_PIN | CLIENT_FLAG_URGENT),
+            (uint16_t) (CLIENT_FLAG_PIN | CLIENT_FLAG_STICKY |
+                CLIENT_FLAG_URGENT),
             (uint16_t) (CLIENT_STATE_FULLSCREEN |
                 CLIENT_STATE_MAXIMIZED));
     s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);

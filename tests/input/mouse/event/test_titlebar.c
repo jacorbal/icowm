@@ -82,6 +82,7 @@ static int s_titlebar_layout_calls;
 /** Recorded calls to each enact_client_* entry point this file
  *  exercises */
 static int s_toggle_pin_calls;
+static int s_toggle_stick_calls;
 static int s_cycle_layer_calls;
 static int s_iconify_calls;
 static int s_hide_calls;
@@ -107,6 +108,7 @@ static enum window_operation_e s_drag_start_operation;
  */
 void client_titlebar_layout(const struct config_theme_s *theme,
         uint16_t frame_w, uint16_t title_h, bool hide_pin,
+        bool hide_sticky,
         struct titlebar_button_layout_s *restrict out_left,
         uint8_t *restrict out_left_n,
         struct titlebar_button_layout_s *restrict out_right,
@@ -120,6 +122,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     (void) frame_w;
     (void) title_h;
     (void) hide_pin;
+    (void) hide_sticky;
 
     s_titlebar_layout_calls++;
 
@@ -148,6 +151,18 @@ void enact_client_toggle_pin(client_td *client)
     (void) client;
 
     s_toggle_pin_calls++;
+}
+
+
+/**
+ * @brief Recording stand-in for @a enact_client_toggle_stick
+ * @note Complexity: @e O(1)
+ */
+void enact_client_toggle_stick(client_td *client)
+{
+    (void) client;
+
+    s_toggle_stick_calls++;
 }
 
 
@@ -346,6 +361,7 @@ static void s_reset(void)
     s_titlebar_layout_calls = 0;
 
     s_toggle_pin_calls = 0;
+    s_toggle_stick_calls = 0;
     s_cycle_layer_calls = 0;
     s_iconify_calls = 0;
     s_hide_calls = 0;
@@ -428,6 +444,29 @@ static void s_test_click_on_close_button_dispatches_close(void)
             "click within the close button's range: close dispatched");
     TAP_OK(client.is_outdated,
             "the client is marked outdated after a button dispatch");
+}
+
+
+/* Sticky button, button 1 click: sticky toggled, same as pin's own
+ * click already dispatches enact_client_toggle_pin */
+static void s_test_click_on_sticky_button_dispatches_toggle_stick(void)
+{
+    client_td client;
+    xcb_button_press_event_t event = s_make_event(1, 1, 12, 5, 1000);
+
+    s_reset();
+    s_make_client(&client);
+    s_stub_left[0].button = CONFIG_TITLEBAR_BUTTON_STICKY;
+    s_stub_left[0].x = 10;
+    s_stub_left_n = 1u;
+    s_stub_btn_y = 0;
+
+    im_press_titlebar((xcb_connection_t *) 1, NULL, &event, &client,
+            NULL, NULL, NULL);
+
+    TAP_EQ_INT(s_toggle_stick_calls, 1,
+            "click within the sticky button's range: toggle_stick"
+            " dispatched");
 }
 
 
@@ -752,9 +791,10 @@ static void s_test_button_hit_suppresses_middle_click_lower(void)
 
 int main(void)
 {
-    TAP_PLAN(24);
+    TAP_PLAN(25);
 
     s_test_click_on_close_button_dispatches_close();
+    s_test_click_on_sticky_button_dispatches_toggle_stick();
     s_test_click_outside_button_range_misses();
     s_test_maximize_button_1_dispatches_full_maximize();
     s_test_maximize_button_2_dispatches_vertical();

@@ -135,13 +135,15 @@ static void s_test_button_list_deduplicates_first_wins(void)
 
 
 /* More than CONFIG_MAX_TITLEBAR_BUTTONS entries are clamped, never
- * overflowing the fixed-size destination array.  Only 8 button names
- * are recognized at all (the same as the cap itself), so any 9th
- * *valid* entry is necessarily a repeat of one already present;
- * deduplication alone would already drop it here too, but the cap
- * is what stops a list of unrecognized-then-recognized entries, or
- * one this test does not happen to construct, from writing past
- * 'dest' regardless of how many of those turn out to be repeats. */
+ * overflowing the fixed-size destination array.  9 button names are
+ * recognized in total now that 'sticky' joined the original 8, one
+ * more than the cap itself, so this test's own 9-entry list still
+ * needs a repeat (the trailing 'pin') to make any *valid* 9th entry
+ * necessarily redundant; deduplication alone would already drop it
+ * here too, but the cap is what stops a list of
+ * unrecognized-then-recognized entries, or one this test does not
+ * happen to construct, from writing past 'dest' regardless of how
+ * many of those turn out to be repeats. */
 static void s_test_button_list_clamped_to_max(void)
 {
     char path[512];
@@ -159,6 +161,29 @@ static void s_test_button_list_clamped_to_max(void)
             CONFIG_MAX_TITLEBAR_BUTTONS,
             "8 distinct names fill the cap exactly; the 9th (itself"
             " a repeat) adds nothing further either way");
+    unlink(path);
+}
+
+
+/* 'sticky' is recognized on its own, the same way every other
+ * titlebar button name already is */
+static void s_test_button_list_recognizes_sticky(void)
+{
+    char path[256];
+    struct config_theme_s theme;
+
+    memset(&theme, 0, sizeof(theme));
+    s_write_temp_file(path, sizeof(path),
+        "{\"window\": {\"titlebar\": {\"buttons\": {"
+        "\"left\": [\"sticky\"]"
+        "} } } }");
+    config_load_theme(path, &theme);
+
+    TAP_EQ_INT(theme.window.titlebar.buttons.left_count, 1,
+            "'sticky' is recognized and counted");
+    TAP_EQ_INT(theme.window.titlebar.buttons.left[0],
+            CONFIG_TITLEBAR_BUTTON_STICKY,
+            "'sticky' maps to CONFIG_TITLEBAR_BUTTON_STICKY");
     unlink(path);
 }
 
@@ -436,13 +461,14 @@ static void s_test_titlebar_height_floor(void)
 
 int main(void)
 {
-    TAP_PLAN(46);
+    TAP_PLAN(48);
 
     s_test_missing_file();
     s_test_empty_file();
     s_test_button_list_recognized_and_skipped();
     s_test_button_list_deduplicates_first_wins();
     s_test_button_list_clamped_to_max();
+    s_test_button_list_recognizes_sticky();
     s_test_titlebar_alignment();
     s_test_titlebar_height_floor();
     s_test_systray_text_valign();

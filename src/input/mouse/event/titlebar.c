@@ -166,6 +166,10 @@ static void s_titlebar_button_action(enum config_titlebar_button_e button,
         case CONFIG_TITLEBAR_BUTTON_CLOSE:
             enact_client_close(client);
             break;
+
+        case CONFIG_TITLEBAR_BUTTON_STICKY:
+            enact_client_toggle_stick(client);
+            break;
     }
 }
 
@@ -215,6 +219,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
         ? top_extent - title_h : 0;
     bool can_maximize;
     bool hide_pin;
+    bool hide_sticky;
     enum config_titlebar_button_e button;
 
     (void) connection;
@@ -249,13 +254,26 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
         (bool) client_is_maximizable(client);
     hide_pin = surface != NULL && surface->desktop_count <= 1u;
 
+    /* Same idea as 'hide_pin' above, gated on the desktop grid instead
+     * of the desktop count: a sticky client stays put across a
+     * viewport pan, so the button is pointless on a surface whose
+     * desktop grid is not even wide enough or tall enough to pan
+     * across, and a missing 'surface'/'config' answers the same as
+     * a genuinely 1x1 one, hiding the button rather than guessing. */
+    hide_sticky = surface == NULL || surface->config == NULL ||
+        surface->id >= (uint32_t) CONFIG_MAX_SCREENS ||
+        (surface->config->base.screens[surface->id]
+             .desktop_layout.rows <= 1u &&
+         surface->config->base.screens[surface->id]
+             .desktop_layout.columns <= 1u);
+
     /* Same layout the render pass just painted from, computed first
      * (not just when the click Y already looks close) since it is what
      * determines 'btn_y' now that button rows can be vertically inset
      * by 'padding.vertical', not just centered in the full titlebar
      * height. */
     client_titlebar_layout(&client->config->theme, (uint16_t) fw,
-            (uint16_t) title_h, hide_pin,
+            (uint16_t) title_h, hide_pin, hide_sticky,
             left, &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
     /* Only test buttons when the click Y is within the button row */

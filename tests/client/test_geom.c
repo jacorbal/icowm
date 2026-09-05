@@ -305,8 +305,8 @@ static void s_test_titlebar_layout_null_theme_is_empty(void)
     uint16_t title_w = 999u;
     int16_t btn_y = -1;
 
-    client_titlebar_layout(NULL, 300u, 22u, false, left, &left_n,
-            right, &right_n, &title_x, &title_w, &btn_y);
+    client_titlebar_layout(NULL, 300u, 22u, false, false, left,
+            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
     TAP_EQ_INT(left_n, 0, "a null theme reports zero left buttons");
     TAP_EQ_INT(right_n, 0, "a null theme reports zero right buttons");
@@ -335,8 +335,8 @@ static void s_test_titlebar_layout_no_buttons_full_title_width(void)
     theme.window.titlebar.padding.horizontal = 4u;
     theme.window.titlebar.padding.vertical = 4u;
 
-    client_titlebar_layout(&theme, 200u, 22u, false, left, &left_n,
-            right, &right_n, &title_x, &title_w, &btn_y);
+    client_titlebar_layout(&theme, 200u, 22u, false, false, left,
+            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
     TAP_EQ_INT(left_n, 0, "no configured buttons: zero on the left");
     TAP_EQ_INT(right_n, 0, "no configured buttons: zero on the right");
@@ -367,8 +367,8 @@ static void s_test_titlebar_layout_one_button_each_side(void)
     theme.window.titlebar.padding.horizontal = 4u;
     theme.window.titlebar.padding.vertical = 4u;
 
-    client_titlebar_layout(&theme, 200u, 22u, false, left, &left_n,
-            right, &right_n, &title_x, &title_w, &btn_y);
+    client_titlebar_layout(&theme, 200u, 22u, false, false, left,
+            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
     TAP_EQ_INT(left_n, 1, "one configured left button is placed");
     TAP_EQ_INT(left[0].button, CONFIG_TITLEBAR_BUTTON_PIN,
@@ -409,8 +409,8 @@ static void s_test_titlebar_layout_clamps_button_count(void)
             CONFIG_TITLEBAR_BUTTON_ICONIZE;
     }
 
-    client_titlebar_layout(&theme, 400u, 22u, false, left, &left_n,
-            right, &right_n, &title_x, &title_w, &btn_y);
+    client_titlebar_layout(&theme, 400u, 22u, false, false, left,
+            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
     TAP_EQ_INT(left_n, CONFIG_MAX_TITLEBAR_BUTTONS,
             "the left button count is clamped to the fixed array size,"
@@ -436,14 +436,45 @@ static void s_test_titlebar_layout_hide_pin_skips_it(void)
     theme.window.titlebar.buttons.left[0] = CONFIG_TITLEBAR_BUTTON_PIN;
     theme.window.titlebar.buttons.left[1] = CONFIG_TITLEBAR_BUTTON_LAYER;
 
-    client_titlebar_layout(&theme, 300u, 22u, true, left, &left_n,
-            right, &right_n, &title_x, &title_w, &btn_y);
+    client_titlebar_layout(&theme, 300u, 22u, true, false, left,
+            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
     TAP_EQ_INT(left_n, 1,
             "hide_pin drops the pin button, leaving only one placed");
     TAP_EQ_INT(left[0].button, CONFIG_TITLEBAR_BUTTON_LAYER,
             "the surviving button is the one after pin, shifted into"
             " pin's own slot");
+}
+
+
+/* A sticky button is skipped entirely when 'hide_sticky' is set,
+ * closing the gap for whatever follows it rather than leaving a blank
+ * slot, the same way 'hide_pin' does for the pin button */
+static void s_test_titlebar_layout_hide_sticky_skips_it(void)
+{
+    struct config_theme_s theme;
+    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
+    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
+    uint8_t left_n;
+    uint8_t right_n;
+    int16_t title_x;
+    uint16_t title_w;
+    int16_t btn_y;
+
+    memset(&theme, 0, sizeof(theme));
+    theme.window.titlebar.buttons.left_count = 2u;
+    theme.window.titlebar.buttons.left[0] = CONFIG_TITLEBAR_BUTTON_STICKY;
+    theme.window.titlebar.buttons.left[1] = CONFIG_TITLEBAR_BUTTON_LAYER;
+
+    client_titlebar_layout(&theme, 300u, 22u, false, true, left,
+            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
+
+    TAP_EQ_INT(left_n, 1,
+            "hide_sticky drops the sticky button, leaving only one"
+            " placed");
+    TAP_EQ_INT(left[0].button, CONFIG_TITLEBAR_BUTTON_LAYER,
+            "the surviving button is the one after sticky, shifted"
+            " into sticky's own slot");
 }
 
 
@@ -466,8 +497,8 @@ static void s_test_titlebar_layout_falls_back_when_padding_too_tall(void)
      * configured vertical padding, less than 'WM_DECOR_BTN_SIZE' */
     theme.window.titlebar.padding.vertical = 8u;
 
-    client_titlebar_layout(&theme, 300u, 10u, false, left, &left_n,
-            right, &right_n, &title_x, &title_w, &btn_y);
+    client_titlebar_layout(&theme, 300u, 10u, false, false, left,
+            &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
     TAP_OK(btn_y >= 0,
             "an oversized vertical padding never produces a negative"
@@ -697,13 +728,14 @@ static void s_test_aspect_ratio_clamp_null_args_are_a_no_op(void)
 
 int main(void)
 {
-    TAP_PLAN(36);
+    TAP_PLAN(38);
 
     s_test_titlebar_layout_null_theme_is_empty();
     s_test_titlebar_layout_no_buttons_full_title_width();
     s_test_titlebar_layout_one_button_each_side();
     s_test_titlebar_layout_clamps_button_count();
     s_test_titlebar_layout_hide_pin_skips_it();
+    s_test_titlebar_layout_hide_sticky_skips_it();
     s_test_titlebar_layout_falls_back_when_padding_too_tall();
     s_test_size_constrain_no_hints_passes_through();
     s_test_size_constrain_no_hints_floors_to_minimum();

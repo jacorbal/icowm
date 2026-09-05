@@ -179,10 +179,10 @@ static int s_search_fuzzy_score(const char *restrict query,
  * a maximized window being the ordinary case, so the chain below
  * reports the outermost one alone, the same one the window is actually
  * drawn as.  Everything after it is independent, of that letter and of
- * the others: iconified, shaded, hidden, pinned and urgent each report
- * on their own, so a maximized window sitting as an icon says so twice
- * over.  The result is one comma-separated list such as @c "[p,m,!]",
- * and nothing at all when no hint applies.
+ * the others: iconified, shaded, hidden, pinned, sticky and urgent
+ * each report on their own, so a maximized window sitting as an icon
+ * says so twice over.  The result is one comma-separated list such as
+ * @c "[p,t,m,!]", and nothing at all when no hint applies.
  *
  * @param client Client to inspect
  * @param out    Destination buffer
@@ -224,6 +224,9 @@ static void s_search_build_hints(const client_td *client, char *out,
     }
     if (client_is_pinned(client) && n < sizeof(letters)) {
         letters[n++] = WM_ICON_HINT_PINNED;
+    }
+    if (client_is_sticky(client) && n < sizeof(letters)) {
+        letters[n++] = WM_ICON_HINT_STICKY;
     }
     if (client_is_urgent(client) && n < sizeof(letters)) {
         letters[n++] = WM_ICON_HINT_URGENT;

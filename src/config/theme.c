@@ -63,6 +63,8 @@ static bool s_parse_titlebar_button(const char *name,
         *out = CONFIG_TITLEBAR_BUTTON_FULLSCREEN;
     } else if (safe_strcmp(name, "close") == 0) {
         *out = CONFIG_TITLEBAR_BUTTON_CLOSE;
+    } else if (safe_strcmp(name, "sticky") == 0) {
+        *out = CONFIG_TITLEBAR_BUTTON_STICKY;
     } else {
         return false;
     }
@@ -862,8 +864,10 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->window.titlebar.buttons.left[0] =
         CONFIG_TITLEBAR_BUTTON_PIN;
     theme->window.titlebar.buttons.left[1] =
+        CONFIG_TITLEBAR_BUTTON_STICKY;
+    theme->window.titlebar.buttons.left[2] =
         CONFIG_TITLEBAR_BUTTON_LAYER;
-    theme->window.titlebar.buttons.left_count = 2u;
+    theme->window.titlebar.buttons.left_count = 3u;
 
     theme->window.titlebar.buttons.right[0] =
         CONFIG_TITLEBAR_BUTTON_CLOSE;

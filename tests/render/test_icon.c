@@ -73,6 +73,7 @@ static uint16_t s_last_offscreen_height = 0u;
 
 static int s_clear_area_calls = 0;
 static int s_poly_fill_rectangle_calls = 0;
+static int s_poly_rectangle_calls = 0;
 static int s_copy_area_calls = 0;
 static int s_create_gc_calls = 0;
 static int s_free_gc_calls = 0;
@@ -328,6 +329,21 @@ xcb_void_cookie_t xcb_poly_fill_rectangle(xcb_connection_t *connection,
     return cookie;
 }
 
+xcb_void_cookie_t xcb_poly_rectangle(xcb_connection_t *connection,
+        xcb_drawable_t drawable, xcb_gcontext_t gc,
+        uint32_t rectangles_len, const xcb_rectangle_t *rectangles)
+{
+    xcb_void_cookie_t cookie = { 0u };
+
+    (void) connection;
+    (void) drawable;
+    (void) gc;
+    (void) rectangles_len;
+    (void) rectangles;
+    s_poly_rectangle_calls++;
+    return cookie;
+}
+
 xcb_void_cookie_t xcb_clear_area(xcb_connection_t *connection,
         uint8_t exposures, xcb_window_t window, int16_t x, int16_t y,
         uint16_t width, uint16_t height)
@@ -444,6 +460,7 @@ static void s_reset_fixture(void)
     s_last_offscreen_height = 0u;
     s_clear_area_calls = 0;
     s_poly_fill_rectangle_calls = 0;
+    s_poly_rectangle_calls = 0;
     s_copy_area_calls = 0;
     s_create_gc_calls = 0;
     s_free_gc_calls = 0;
@@ -1177,6 +1194,46 @@ static void s_test_hints_pin_square_not_drawn_when_unpinned(void)
 
 
 /* ==================================================================== *
+ * ri_icon_hints_draw: sticky square                                     *
+ * ==================================================================== */
+
+static void s_test_hints_sticky_square_drawn_when_sticky(void)
+{
+    struct config_theme_s theme;
+
+    memset(&theme, 0, sizeof(theme));
+    theme.icon.show_hints = true;
+
+    s_reset_fixture();
+    s_client_fixture.properties.flags = CLIENT_FLAG_STICKY;
+
+    ri_icon_hints_draw(s_connection_stub, &s_client_fixture, 1u, false,
+            &theme);
+
+    TAP_EQ_INT(s_poly_rectangle_calls, 1,
+            "a sticky client with show_hints on draws the outlined"
+            " sticky square");
+}
+
+static void s_test_hints_sticky_square_not_drawn_when_unsticky(void)
+{
+    struct config_theme_s theme;
+
+    memset(&theme, 0, sizeof(theme));
+    theme.icon.show_hints = true;
+
+    s_reset_fixture();
+    s_client_fixture.properties.flags = 0u;
+
+    ri_icon_hints_draw(s_connection_stub, &s_client_fixture, 1u, false,
+            &theme);
+
+    TAP_EQ_INT(s_poly_rectangle_calls, 0,
+            "a non-sticky client draws no sticky square");
+}
+
+
+/* ==================================================================== *
  * ri_icon_hints_draw: letter-priority chain                             *
  * ==================================================================== */
 
@@ -1321,7 +1378,7 @@ static void s_test_hints_letter_positioned_right_aligned(void)
 
 int main(void)
 {
-    TAP_PLAN(59);
+    TAP_PLAN(61);
 
     s_test_render_client_icon_null_client_is_noop();
     s_test_render_client_icon_null_connection_is_noop();
@@ -1373,6 +1430,8 @@ int main(void)
 
     s_test_hints_pin_square_drawn_when_pinned();
     s_test_hints_pin_square_not_drawn_when_unpinned();
+    s_test_hints_sticky_square_drawn_when_sticky();
+    s_test_hints_sticky_square_not_drawn_when_unsticky();
 
     s_test_hints_letter_blink_on_beats_every_state();
     s_test_hints_letter_fullscreen_beats_maximized();
