@@ -88,6 +88,11 @@ void ccmd_client_unstick(client_td *client);
  * @param client Window to toggle sticky state
  *
  * @note No-op on a locked client
+ * @note No-op on a surface whose configured viewport is a single
+ *       screen
+ * @note Nothing to actually toggle on a viewport that can never pan:
+ *       the flag holds a client still while everything else moves,
+ *       and nothing moves there
  * @note Complexity: @e O(1)
  */
 void ccmd_client_toggle_stick(client_td *client);

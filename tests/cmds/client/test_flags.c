@@ -242,19 +242,40 @@ desktop_td *wm_get_client_desktop(const client_td *client)
 
 
 /**
- * @brief Link-only stand-in for @a wm_get_surface_by_id
+ * @brief Test-controlled stand-in for @a wm_get_surface_by_id
  *
- * Reached by 'ccmd_client_unpin' and 'ccmd_client_toggle_pin'; @c NULL
- * keeps 'ccmd_client_unpin''s desktop-move branch untaken, and makes
- * 'ccmd_client_toggle_pin' fall through to its actual toggle instead
- * of returning early for a single-desktop surface.
+ * Reached by 'ccmd_client_unpin', 'ccmd_client_toggle_pin' and
+ * 'ccmd_client_toggle_stick'.  @c NULL, which 's_reset' restores, keeps
+ * 'ccmd_client_unpin''s desktop-move branch untaken and makes both
+ * toggles fall through to their actual work instead of returning early
+ * for a surface that cannot host the flag.
  *
  * @note Complexity: @e O(1)
  */
+static surface_td *s_stub_surface;
+
 surface_td *wm_get_surface_by_id(uint32_t surface_id)
 {
     (void) surface_id;
-    return NULL;
+    return s_stub_surface;
+}
+
+
+/**
+ * @brief Test-controlled stand-in for @a surface_viewport_has_room
+ *
+ * Reproduced here rather than linking surface/viewport.c for one
+ * predicate; only consulted once 's_stub_surface' above is non-null.
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_stub_viewport_has_room;
+
+bool surface_viewport_has_room(const surface_td *surface)
+{
+    (void) surface;
+
+    return s_stub_viewport_has_room;
 }
 
 
@@ -344,6 +365,8 @@ static void s_reset(void)
     s_owner_desktop = NULL;
     s_redraw_calls = 0;
     s_siblings_used = 0;
+    s_stub_surface = NULL;
+    s_stub_viewport_has_room = true;
     memset(s_siblings, 0, sizeof(s_siblings));
 }
 
@@ -684,6 +707,35 @@ static void s_test_toggle_stick_flips_both_ways(void)
 }
 
 
+/* A surface whose configured viewport is a single screen refuses the
+ * toggle outright: there is nothing for the flag to hold a client
+ * still against there, so the keyboard shortcut is cut off at the same
+ * choke point every other caller passes through */
+static void s_test_toggle_stick_single_cell_viewport_is_a_no_op(void)
+{
+    client_td *client;
+    surface_td surface;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    s_stub_surface = &surface;
+    s_stub_viewport_has_room = false;
+    client = s_make_client(56u);
+
+    ccmd_client_toggle_stick(client);
+    TAP_OK(client_is_unsticky(client),
+            "a 1x1 viewport leaves an unstuck client unstuck through"
+            " a toggle request");
+
+    s_stub_viewport_has_room = true;
+    ccmd_client_toggle_stick(client);
+    TAP_OK(client_is_sticky(client) != 0,
+            "the very same client sticks once its viewport can pan");
+
+    s_teardown();
+}
+
+
 /* A locked client's toggle never even reaches the stick/unstick
  * split: it is refused outright, same as a direct unstick request
  * would be */
@@ -852,7 +904,7 @@ static void s_test_unurge_clears_flag_and_broadcasts(void)
 
 int main(void)
 {
-    TAP_PLAN(54);
+    TAP_PLAN(56);
 
     s_test_null_client_is_a_no_op();
     s_test_pin_sets_flag_and_side_effects();
@@ -868,6 +920,7 @@ int main(void)
     s_test_unstick_clears_flag();
     s_test_unstick_locked_client_is_a_no_op();
     s_test_toggle_stick_flips_both_ways();
+    s_test_toggle_stick_single_cell_viewport_is_a_no_op();
     s_test_toggle_stick_locked_client_is_a_no_op();
     s_test_set_opacity_active_stores_value();
     s_test_set_opacity_inactive_stores_value();

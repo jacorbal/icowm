@@ -275,7 +275,22 @@ void ccmd_client_unstick(client_td *client)
 /* Toggle the client's sticky state */
 void ccmd_client_toggle_stick(client_td *client)
 {
+    const surface_td *surface;
+
     if (client == NULL || client_is_locked(client)) {
+        return;
+    }
+
+    /* Meaningless on a viewport that can never pan: the flag exists
+     * to hold a client still while everything else moves, and nothing
+     * moves on a 1x1 desktop, so there is nothing to actually toggle.
+     * The menu entry, the shortcuts row and the titlebar button for
+     * this are already hidden in that case, but the keyboard shortcut
+     * has nothing to hide behind, so it is guarded here instead, at
+     * the one place all of them ultimately call through, exactly as
+     * 'ccmd_client_toggle_pin' above guards its own case. */
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (surface != NULL && !surface_viewport_has_room(surface)) {
         return;
     }
 
