@@ -486,11 +486,15 @@ to
 .Ql 512 .
 .It Ic viewport.mesh.spacing.vertical Pq integer, default Ql 64
 Pixels between neighboring dots down, over the same range.
-.It Ic viewport.mesh.thickness Pq integer, default Ql 1
+.It Ic viewport.mesh.thickness Pq integer, default Ql 2
 Side of one square dot, in pixels, from
 .Ql 1
 to a quarter of whichever spacing is smaller.
 Validated after both spacings, since its ceiling follows them.
+A single-pixel dot is legible only at a high
+.Ic tone-shift ,
+which is why the default is not
+.Ql 1 .
 .It Ic viewport.mesh.tone-shift Pq integer, default Ql 20
 How far the dot color is pushed away from the desktop background color,
 as a percentage, from

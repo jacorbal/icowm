@@ -84,6 +84,43 @@ static void s_show_desktop_overlay(surface_td *surface)
 
 
 /**
+ * @brief Show the desktop overlay when a viewport pan actually moved
+ *        the origin
+ *
+ * The overlay's label already appends the viewport page (see
+ * @a notify_desktop_show, @c menu/notify/desktop.c), so the same one
+ * the desktop switch uses reports a page jump without any widget of
+ * its own.  Announcing only an actual move is what keeps a shortcut
+ * aimed at the page already on screen, or a selection landing on a
+ * client already visible, from flashing an overlay that says nothing
+ * changed.
+ *
+ * @param surface Surface whose current desktop was panned
+ * @param before  Viewport origin recorded before the pan
+ *
+ * @note Complexity: @e O(n), where @e n is the number of desktops on
+ *       the surface
+ */
+static void s_show_viewport_overlay_on_move(surface_td *surface,
+        struct position_s before)
+{
+    const desktop_td *desktop;
+
+    if (surface == NULL) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL || (desktop->viewport_origin.x == before.x &&
+                desktop->viewport_origin.y == before.y)) {
+        return;
+    }
+
+    s_show_desktop_overlay(surface);
+}
+
+
+/**
  * @brief Switch a surface to the desktop in a given compass direction,
  *        in cyclic order
  *
@@ -708,6 +745,7 @@ void scmd_surface_viewport_set(surface_td *surface,
 void scmd_surface_viewport_goto(surface_td *surface, uint32_t page)
 {
     const desktop_td *desktop;
+    struct position_s origin_before;
     uint32_t columns;
     uint32_t rows;
     uint32_t col;
@@ -729,9 +767,11 @@ void scmd_surface_viewport_goto(surface_td *surface, uint32_t page)
 
     col = page % columns;
     row = page / columns;
+    origin_before = desktop->viewport_origin;
     scmd_surface_viewport_set(surface,
             (int32_t) (col * desktop->geometry.dim.w),
             (int32_t) (row * desktop->geometry.dim.h));
+    s_show_viewport_overlay_on_move(surface, origin_before);
 }
 
 
@@ -796,6 +836,7 @@ void scmd_surface_viewport_center_on_client(surface_td *surface,
     struct geometry_s screen;
     struct geometry_s win;
     struct position_s canvas_pos;
+    struct position_s origin_before;
     int32_t new_x;
     int32_t new_y;
 
@@ -834,5 +875,7 @@ void scmd_surface_viewport_center_on_client(surface_td *surface,
         screen.pos.x - (int32_t) screen.dim.w / 2;
     new_y = canvas_pos.y + (int32_t) win.dim.h / 2 -
         screen.pos.y - (int32_t) screen.dim.h / 2;
+    origin_before = desktop->viewport_origin;
     scmd_surface_viewport_set(surface, new_x, new_y);
+    s_show_viewport_overlay_on_move(surface, origin_before);
 }

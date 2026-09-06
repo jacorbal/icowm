@@ -945,13 +945,15 @@ $(O_DIR)/tests/cmds/client/test_ewmh: \
 
 $(O_DIR)/tests/cmds/test_surface_desktop_switch: \
 		$(TESTS_DIR)/cmds/test_surface_desktop_switch.c \
-		$(S_DIR)/cmds/surface.c
+		$(S_DIR)/cmds/surface.c \
+		$(S_DIR)/surface/viewport.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
 
 $(O_DIR)/tests/cmds/test_surface_viewport_pan: \
 		$(TESTS_DIR)/cmds/test_surface_viewport_pan.c \
-		$(S_DIR)/cmds/surface.c
+		$(S_DIR)/cmds/surface.c \
+		$(S_DIR)/surface/viewport.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
 

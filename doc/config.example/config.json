@@ -82,7 +82,7 @@
         "mesh": {
             "is-enabled": true,
             "spacing": { "horizontal": 64, "vertical": 64 },
-            "thickness": 1,
+            "thickness": 2,
             "tone-shift": 20
         }
     },

@@ -19,7 +19,9 @@
  * hash table; 'keyboard_find' (input/kbd/bind.c) answers fixed
  * next/prev keysym pairs; 'focus_apply' (policy/focus.c),
  * 'enact_client_restore' / 'enact_client_unhide' /
- * 'enact_client_unshade' (enact.c), and 'ri_render_client_icon'
+ * 'enact_client_unshade' (enact.c),
+ * 'scmd_surface_viewport_center_on_client' (cmds/surface.c),
+ * and 'ri_render_client_icon'
  * (render/icon.c) are recording no-ops; 'mi_cycle_preview_target' /
  * 'mi_cycle_preview_apply' / 'mi_cycle_preview_style_target'
  * (menu/cycle/draw.c, covered on their own in
@@ -83,6 +85,8 @@ static int s_call_focus_apply;
 static int s_call_enact_client_restore;
 static int s_call_enact_client_unhide;
 static int s_call_enact_client_unshade;
+static int s_call_viewport_center_on_client;
+static client_td *s_last_viewport_centered;
 static int s_call_ri_render_client_icon;
 static int s_call_mi_cycle_preview_apply;
 static int s_call_mi_cycle_preview_style_target;
@@ -426,6 +430,20 @@ void enact_client_unshade(client_td *client)
 
 
 /**
+ * @brief Recording no-op stand-in for
+ *        @a scmd_surface_viewport_center_on_client
+ * @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_center_on_client(surface_td *surface,
+        client_td *client)
+{
+    (void) surface;
+    s_call_viewport_center_on_client++;
+    s_last_viewport_centered = client;
+}
+
+
+/**
  * @brief Recording no-op stand-in for @a ri_render_client_icon
  * @note Complexity: @e O(1)
  */
@@ -533,6 +551,8 @@ static void s_reset(void)
     s_call_enact_client_restore = 0;
     s_call_enact_client_unhide = 0;
     s_call_enact_client_unshade = 0;
+    s_call_viewport_center_on_client = 0;
+    s_last_viewport_centered = NULL;
     s_call_ri_render_client_icon = 0;
     s_call_mi_cycle_preview_apply = 0;
     s_call_mi_cycle_preview_style_target = 0;
@@ -1163,6 +1183,65 @@ static void s_test_confirm_shaded_client_unshades(void)
 }
 
 
+/* Confirming a selection asks the viewport to bring that very client
+ * into view, so that a target sitting on another page of a multi-page
+ * viewport is not focused while off screen */
+static void s_test_confirm_centers_viewport_on_target(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+    config_td cfg;
+
+    s_reset();
+    surface = s_make_surface(1024u, 768u);
+    desktop = s_make_desktop(XCB_WINDOW_NONE);
+    cfg = s_make_config();
+
+    s_focus_order_clients[0] = s_make_client(0, 0xe0u, "Target",
+            CLIENT_FLAG_FOCUSABLE, 0);
+    s_focus_order_count = 1;
+
+    cycle_init(s_fake_connection, &surface, &desktop, false, 0, 0,
+            &cfg);
+    cycle_confirm(s_fake_connection, NULL, &cfg);
+
+    TAP_EQ_INT(s_call_viewport_center_on_client, 1,
+            "confirming asks the viewport to center on the target"
+            " exactly once");
+    TAP_OK(s_last_viewport_centered == s_focus_order_clients[0],
+            "the client it is asked to center on is the confirmed"
+            " target, not some other one");
+}
+
+
+/* Merely walking the cycle list never pans: the viewport is only ever
+ * brought to a client on confirmation */
+static void s_test_navigate_does_not_center_viewport(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+    config_td cfg;
+
+    s_reset();
+    surface = s_make_surface(1024u, 768u);
+    desktop = s_make_desktop(XCB_WINDOW_NONE);
+    cfg = s_make_config();
+
+    s_focus_order_clients[0] = s_make_client(0, 0xe1u, "One",
+            CLIENT_FLAG_FOCUSABLE, 0);
+    s_focus_order_clients[1] = s_make_client(1, 0xe2u, "Two",
+            CLIENT_FLAG_FOCUSABLE, 0);
+    s_focus_order_count = 2;
+
+    cycle_init(s_fake_connection, &surface, &desktop, false, 1, 0,
+            &cfg);
+    cycle_navigate_to(1u);
+
+    TAP_EQ_INT(s_call_viewport_center_on_client, 0,
+            "walking the list leaves the viewport alone");
+}
+
+
 /* cycle_notice_client_destroyed forces the menu closed if the
  * destroyed client is among the collected set, and is a harmless
  * no-op otherwise */
@@ -1236,7 +1315,7 @@ static void s_test_force_full_repaint_clears_flag(void)
 
 int main(void)
 {
-    TAP_PLAN(57);
+    TAP_PLAN(60);
 
     s_test_init_null_guards();
     s_test_init_no_clients_stays_closed();
@@ -1254,6 +1333,8 @@ int main(void)
     s_test_confirm_icon_menu_restores();
     s_test_confirm_hidden_client_unhides();
     s_test_confirm_shaded_client_unshades();
+    s_test_confirm_centers_viewport_on_target();
+    s_test_navigate_does_not_center_viewport();
     s_test_notice_client_destroyed();
     s_test_force_full_repaint_clears_flag();
 

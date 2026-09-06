@@ -1427,36 +1427,37 @@ screen: every cell looks like every other one.
 something you configure here:
 
 - The screen's viewport is larger than `1x1`, as set in
-  `topology.screens.desktops[].viewport` (§2.2).  A viewport that can
-  never pan has nothing for the mesh to accompany, so none is painted.
+  `topology.screens.desktops[].viewport` (see §2.2).  A viewport that
+  can never pan has nothing for the mesh to accompany, so none is
+  painted.
 - No external tool owns the root window's pixels.  The mesh is applied
-  as the root window's background pixmap, which is the same place
-  `feh`, `nitrogen`, `hsetroot`, `xsetbg` and the like put their
-  wallpaper, and the two cannot both be there.  Whenever one of those
-  wallpapers is present it is left alone and no mesh is drawn.
+  as the root window's background pixmap, which is the same place `feh`,
+  `nitrogen`, `hsetroot`, `xsetbg` and the like put their wallpaper, and
+  the two cannot both be there.  Whenever one of those wallpapers is
+  present it is left alone and no mesh is drawn.
 
 Both conditions are re-checked on every background repaint, so setting
-or clearing a wallpaper while the manager is running, or reloading a
-configuration that switches `is-enabled`, takes effect without a
-restart.
+or clearing a wallpaper while the manager is running, or reloading
+a configuration that switches `is-enabled`, takes effect without
+a restart.
 
-| Key                   | Type    | Default | Range      | Description |
-|-----------------------|---------|---------|------------|--------------|
-| `is-enabled`          | boolean | `true`  |            | Whether to paint a mesh at all, where the two conditions above allow one. |
-| `spacing.horizontal`  | integer | `64`    | `8`–`512`  | Pixels between neighboring dots across. |
-| `spacing.vertical`    | integer | `64`    | `8`–`512`  | Pixels between neighboring dots down. |
-| `thickness`           | integer | `1`     | `1`–¼ of the smaller `spacing` | Side of one square dot, in pixels. |
-| `tone-shift`          | integer | `20`    | `10`–`100` | How far the dot color is pushed away from the desktop background color, as a percentage. |
+| Key                   | Type    | Default | Range                            | Description |
+|-----------------------|---------|---------|----------------------------------|-------------|
+| `is-enabled`          | boolean | `true`  |                                  | Whether to paint a mesh at all, where the two conditions above allow one. |
+| `spacing.horizontal`  | integer | `64`    | `8`-`512`                        | Pixels between neighboring dots across. |
+| `spacing.vertical`    | integer | `64`    | `8`-`512`                        | Pixels between neighboring dots down. |
+| `thickness`           | integer | `2`     | `1`-1/4 of the smaller `spacing` | Side of one square dot, in pixels. |
+| `tone-shift`          | integer | `20`    | `10`-`100`                       | How far the dot color is pushed away from the desktop background color, as a percentage. |
 
 The dot color is not configurable, and there is no color key here or in
 the theme for it.  It is derived from whichever background color the
 desktop actually ended up with, which is the per-desktop
 `background-color` (§2.2) when one is set and the theme's
-`desktop.color.background` otherwise.  A background whose Rec. 601 luma
-reaches 128 counts as light and its mesh is darkened, `C' = C * (100 -
-P) / 100`; a darker one gets a lightened mesh instead, `C' = C + (255 -
-C) * P / 100`.  Both are applied per channel, with `P` being
-`tone-shift`.
+`desktop.color.background` otherwise.
+A background whose Rec. 601 luma reaches 128 counts as light and its
+mesh is darkened, `C' = C * (100 - P) / 100`; a darker one gets
+a lightened mesh instead, `C' = C + (255 - C) * P / 100`.  Both are
+applied per channel, with `P` being `tone-shift` in percentage.
 
 Deriving rather than configuring is what keeps the mesh legible
 everywhere: the contrast against the background stays roughly constant
@@ -1465,8 +1466,8 @@ single fixed color can manage.  Raise `tone-shift` for a mesh that
 stands out more and lower it for one that barely registers.
 
 A key left out of `mesh` keeps its default.  A key that is present but
-outside its range is corrected to whichever bound it crossed, with a
-warning in the log naming both the value received and the one used.
+outside its range is corrected to whichever bound it crossed, with
+a warning in the log naming both the value received and the one used.
 Note that those are not the same thing for `tone-shift`: omitting it
 gives `20`, while writing `3` gives `10`.  `thickness` is validated
 after both spacings, since its ceiling follows whichever of them ended
