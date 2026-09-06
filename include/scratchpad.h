@@ -45,8 +45,10 @@
  * returns immediately; the launched client is recognized and claimed as
  * the scratchpad once it maps, not by this call itself.  With one
  * already alive, shows it (raised above whatever else is on that layer,
- * moved to @p desktop if it was on a different one) when currently
- * hidden, or hides it otherwise.
+ * moved to @p desktop if it was on a different one, repositioned fresh
+ * against its configured edge every single time, since any viewport
+ * pan since it was last shown may have shifted it away from that edge)
+ * when currently hidden, or hides it otherwise.
  *
  * @param wm      Window manager state, for its configuration
  * @param desktop Desktop to show the scratchpad on, or to launch it
@@ -55,6 +57,7 @@
  * @note Complexity: @e O(1)
  *
  * @see @a scratchpad_notice_client_created
+ * @see @a scratchpad_position
  */
 void scratchpad_toggle(const wm_td *wm, desktop_td *desktop);
 
@@ -144,6 +147,33 @@ void scratchpad_reposition(surface_td *surface);
  * @note Complexity: @e O(1)
  */
 void scratchpad_notice_client_destroyed(const client_td *client);
+
+/**
+ * @brief Hide the current scratchpad client if @p desktop, its own,
+ *        just had its viewport panned
+ *
+ * Called from @a s_viewport_apply_origin (@c cmds/surface.c) right
+ * after it actually shifts @p desktop's viewport origin, i.e., only
+ * when a real pan happened, never on a no-op request that resolved
+ * back to the same origin already in place.  A visible scratchpad is
+ * just another non-sticky client that walk already shifts along with
+ * everything else on @p desktop (see @c s_viewport_translate_visit),
+ * so left alone it would keep following the pan away from its own
+ * configured edge instead of staying anchored there; hiding it here
+ * instead avoids ever showing it drifted out of its own zone, and the
+ * next @a scratchpad_toggle repositions it fresh before showing it
+ * again.
+ *
+ * @param desktop Desktop whose viewport just panned
+ *
+ * @note A no-op with no current scratchpad client, one already
+ *       hidden, or one that belongs to a different desktop than
+ *       @p desktop
+ * @note Complexity: @e O(1)
+ *
+ * @see @a scratchpad_toggle, which repositions before showing again
+ */
+void scratchpad_notice_viewport_panned(const desktop_td *desktop);
 
 /**
  * @brief Query whether @p client is the current scratchpad client

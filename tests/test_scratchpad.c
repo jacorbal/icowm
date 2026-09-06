@@ -9,14 +9,20 @@
  * covered on its own during the earlier clang-tidy work), so it gets
  * the deepest coverage here.  scratchpad_toggle's own real behavior
  * (launching a process, sending real X focus/hide/unhide requests)
- * cannot run meaningfully without a live connection; it is only ever
- * invoked here, once, as a way to legitimately set the module's own
- * internal "awaiting a launch" flag so scratchpad_notice_client_
- * created has something real to claim afterward, not to test
- * scratchpad_toggle's own behavior.  Every non-macro function
- * scratchpad.c calls elsewhere is stubbed below purely to satisfy the
- * linker (this file links the whole of scratchpad.c as one
- * translation unit); none of those stubs simulate real behavior.
+ * cannot run meaningfully without a live connection; it is mostly
+ * invoked here just to legitimately set the module's own internal
+ * "awaiting a launch" flag so scratchpad_notice_client_created has
+ * something real to claim afterward, except for one dedicated test
+ * that also exercises its unhide branch's own fresh call to
+ * scratchpad_position, and scratchpad_notice_viewport_panned's four
+ * branches (no client claimed, already hidden, a different desktop,
+ * the panned desktop itself), both driven through call-recording
+ * stand-ins for enact_client_hide, wm_get_client_desktop and
+ * wm_get_surface_by_id rather than any live connection.  Every other
+ * non-macro function scratchpad.c calls elsewhere is stubbed below
+ * purely to satisfy the linker (this file links the whole of
+ * scratchpad.c as one translation unit); none of those remaining
+ * stubs simulate real behavior.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -122,7 +128,17 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
     return 0;
 }
 
-void enact_client_hide(client_td *client) { (void) client; }
+/* Call count and last-seen client for enact_client_hide, both reset
+ * explicitly by each test that cares about them */
+static int s_call_enact_hide;
+static client_td *s_last_hide_client;
+
+void enact_client_hide(client_td *client)
+{
+    s_call_enact_hide++;
+    s_last_hide_client = client;
+}
+
 void enact_client_unhide(client_td *client) { (void) client; }
 
 void enact_desktop_client_send(desktop_td *desktop, client_td *client,
@@ -145,16 +161,26 @@ void focus_apply(list_td *surfaces, surface_td *surface,
     (void) cfg;
 }
 
+/* Desktop pointer wm_get_client_desktop currently reports, settable
+ * per test, defaulting to NULL to match every existing scenario's
+ * own assumption */
+static desktop_td *s_stub_client_desktop = NULL;
+
 desktop_td *wm_get_client_desktop(const client_td *client)
 {
     (void) client;
-    return NULL;
+    return s_stub_client_desktop;
 }
+
+/* Surface pointer wm_get_surface_by_id currently reports, settable
+ * per test, defaulting to NULL to match every existing scenario's
+ * own assumption */
+static surface_td *s_stub_surface_by_id = NULL;
 
 surface_td *wm_get_surface_by_id(uint32_t surface_id)
 {
     (void) surface_id;
-    return NULL;
+    return s_stub_surface_by_id;
 }
 
 /* wm_config and wm_surfaces need no stand-in of their own here:
@@ -509,9 +535,166 @@ static void s_test_position_clamps_oversized_fixed_size(void)
 }
 
 
+/* scratchpad_toggle's unhide branch now recalculates the position
+ * fresh against its configured edge every time it re-shows an
+ * already-claimed client, so a client left hidden after having
+ * drifted off its edge (through accumulated viewport pans) lands
+ * back exactly where it belongs instead of wherever it drifted to */
+static void s_test_toggle_repositions_on_unhide(void)
+{
+    wm_td wm;
+    config_td config;
+    desktop_td desktop;
+    surface_td surface;
+    client_td client;
+
+    memset(&wm, 0, sizeof(wm));
+    memset(&config, 0, sizeof(config));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&surface, 0, sizeof(surface));
+    memset(&client, 0, sizeof(client));
+
+    config.base.scratchpad.is_enabled = true;
+    config.base.scratchpad.ignore_margins = true;
+    config.base.scratchpad.edge = CONFIG_SCRATCHPAD_EDGE_BOTTOM;
+    config.base.scratchpad.width.mode = CONFIG_SCRATCHPAD_SIZE_FIXED;
+    config.base.scratchpad.width.pixels = 300u;
+    config.base.scratchpad.height.mode = CONFIG_SCRATCHPAD_SIZE_FIXED;
+    config.base.scratchpad.height.pixels = 200u;
+    wm.config = &config;
+
+    surface.config = &config;
+    surface.properties.dim.w = 1000u;
+    surface.properties.dim.h = 800u;
+    s_stub_surface_by_id = &surface;
+
+    s_claim_as_scratchpad(&client);
+
+    /* Simulate the client having drifted: it is now hidden, and its
+     * own desktop already matches the one passed back in, so the
+     * unhide branch is reached without a cross-desktop transfer */
+    client.properties.flags |= (uint32_t) CLIENT_FLAG_HIDDEN;
+    client.desktop_id = desktop.id;
+
+    s_resize_called = false;
+    scratchpad_toggle(&wm, &desktop);
+
+    /* Same hand-computed BOTTOM placement as
+     * s_test_position_ignore_margins_bottom_fixed: x = (1000-300)/2
+     * = 350, y = 800-200 = 600 */
+    TAP_OK(s_resize_called, "re-showing an already-claimed client" \
+            " recalculates its position");
+    TAP_EQ_INT(s_resize_x, 350, "the recalculated position is" \
+            " horizontally centered again, not wherever it drifted to");
+    TAP_EQ_INT(s_resize_y, 600, "the recalculated position is flush" \
+            " with the bottom again, not wherever it drifted to");
+
+    s_stub_surface_by_id = NULL;
+}
+
+
+/* scratchpad_notice_viewport_panned: with no scratchpad currently
+ * claimed, it must never hide anything */
+static void s_test_notice_panned_no_client_is_noop(void)
+{
+    desktop_td desktop;
+
+    memset(&desktop, 0, sizeof(desktop));
+
+    if (s_currently_claimed != NULL) {
+        scratchpad_notice_client_destroyed(s_currently_claimed);
+        s_currently_claimed = NULL;
+    }
+
+    s_call_enact_hide = 0;
+    scratchpad_notice_viewport_panned(&desktop);
+    TAP_OK(s_call_enact_hide == 0,
+            "with no scratchpad currently claimed, nothing is hidden");
+
+    scratchpad_notice_viewport_panned(NULL);
+    TAP_OK(true, "a NULL desktop is safely ignored, no crash");
+}
+
+
+/* An already-hidden scratchpad must not be hidden again: it is not
+ * visibly "in the wrong zone" if it was never showing in the first
+ * place */
+static void s_test_notice_panned_hidden_client_is_noop(void)
+{
+    client_td client;
+    desktop_td desktop;
+
+    memset(&client, 0, sizeof(client));
+    memset(&desktop, 0, sizeof(desktop));
+
+    s_claim_as_scratchpad(&client);
+    client.properties.flags |= (uint32_t) CLIENT_FLAG_HIDDEN;
+    s_stub_client_desktop = &desktop;
+
+    s_call_enact_hide = 0;
+    scratchpad_notice_viewport_panned(&desktop);
+    TAP_OK(s_call_enact_hide == 0,
+            "an already-hidden scratchpad is never hidden again");
+
+    s_stub_client_desktop = NULL;
+}
+
+
+/* A visible scratchpad belonging to a desktop other than the one
+ * that just panned must be left alone: only the panned desktop's own
+ * view can ever show it out of zone */
+static void s_test_notice_panned_different_desktop_is_noop(void)
+{
+    client_td client;
+    desktop_td panned_desktop;
+    desktop_td other_desktop;
+
+    memset(&client, 0, sizeof(client));
+    memset(&panned_desktop, 0, sizeof(panned_desktop));
+    memset(&other_desktop, 0, sizeof(other_desktop));
+
+    s_claim_as_scratchpad(&client);
+    s_stub_client_desktop = &other_desktop;
+
+    s_call_enact_hide = 0;
+    scratchpad_notice_viewport_panned(&panned_desktop);
+    TAP_OK(s_call_enact_hide == 0,
+            "a scratchpad living on a different desktop is left alone");
+
+    s_stub_client_desktop = NULL;
+}
+
+
+/* The one real case: a visible scratchpad living on the very desktop
+ * that just panned is hidden, so it is never seen detached from its
+ * own zone */
+static void s_test_notice_panned_matching_desktop_hides(void)
+{
+    client_td client;
+    desktop_td desktop;
+
+    memset(&client, 0, sizeof(client));
+    memset(&desktop, 0, sizeof(desktop));
+
+    s_claim_as_scratchpad(&client);
+    s_stub_client_desktop = &desktop;
+
+    s_call_enact_hide = 0;
+    s_last_hide_client = NULL;
+    scratchpad_notice_viewport_panned(&desktop);
+    TAP_EQ_INT(s_call_enact_hide, 1,
+            "a visible scratchpad on the panned desktop is hidden" \
+            " exactly once");
+    TAP_OK(s_last_hide_client == &client,
+            "the client actually hidden is the scratchpad itself");
+
+    s_stub_client_desktop = NULL;
+}
+
+
 int main(void)
 {
-    TAP_PLAN(25);
+    TAP_PLAN(34);
 
     s_test_is_client_lifecycle();
     s_test_notice_created_guards();
@@ -521,6 +704,11 @@ int main(void)
     s_test_position_ignore_margins_bottom_fixed();
     s_test_position_workarea_left_max_width();
     s_test_position_clamps_oversized_fixed_size();
+    s_test_toggle_repositions_on_unhide();
+    s_test_notice_panned_no_client_is_noop();
+    s_test_notice_panned_hidden_client_is_noop();
+    s_test_notice_panned_different_desktop_is_noop();
+    s_test_notice_panned_matching_desktop_hides();
 
     return TAP_DONE();
 }

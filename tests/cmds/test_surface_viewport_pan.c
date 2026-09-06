@@ -22,7 +22,10 @@
  * ', its four directional siblings, and the three client-visibility
  * primitives are link-only stand-ins, unreachable from any panning
  * path exercised here, kept only so the rest of 'cmds/surface.c'
- * still links.
+ * still links.  'scratchpad_notice_viewport_panned' is a
+ * call-recording stand-in, letting scenarios assert that every real
+ * pan reaches it with the right desktop, and that a clamped no-op
+ * never does.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -52,6 +55,7 @@
 #include <harness/tap.h>
 #include <logger.h>
 #include <policy/stacking.h>
+#include <scratchpad.h>
 #include <surface.h>
 
 
@@ -275,6 +279,23 @@ void stacking_walk(const desktop_td *desktop, stacking_visitor_fn visit,
 }
 
 
+/** How many times @a scratchpad_notice_viewport_panned was called,
+ *  and the desktop pointer it was last called with, both reset by
+ *  's_reset' */
+static int s_call_scratchpad_panned;
+static const desktop_td *s_last_scratchpad_panned_desktop;
+
+/** Call-recording stand-in for @a scratchpad_notice_viewport_panned
+ *  (scratchpad.c)
+ *  @note Complexity: @e O(1)
+ */
+void scratchpad_notice_viewport_panned(const desktop_td *desktop)
+{
+    s_call_scratchpad_panned++;
+    s_last_scratchpad_panned_desktop = desktop;
+}
+
+
 static void s_reset(void)
 {
     s_stub_desktop = NULL;
@@ -289,6 +310,8 @@ static void s_reset(void)
     s_stub_clients = NULL;
     s_stub_client_count = 0u;
     s_call_stacking_walk = 0;
+    s_call_scratchpad_panned = 0;
+    s_last_scratchpad_panned_desktop = NULL;
 }
 
 
@@ -481,6 +504,35 @@ static void s_test_pan_east_moves_and_translates_clients(void)
     free(desktop);
     free(moving);
     free(sticky);
+}
+
+
+/* A real pan reaches 'scratchpad_notice_viewport_panned' exactly
+ * once, with the desktop that actually panned, letting the
+ * scratchpad hide itself before it can ever be seen drifted away
+ * from its own configured edge */
+static void s_test_pan_east_notifies_scratchpad_of_real_pan(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    scmd_surface_viewport_pan_east(surface);
+    TAP_EQ_INT(s_call_scratchpad_panned, 1,
+            "a real pan notifies the scratchpad exactly once");
+    TAP_OK(s_last_scratchpad_panned_desktop == desktop,
+            "the notified desktop is the one that actually panned");
+
+    free(surface);
+    free(desktop);
 }
 
 
@@ -704,6 +756,8 @@ static void s_test_pan_east_clamped_at_edge_is_noop(void)
     TAP_OK(!surface->is_outdated,
             "clamping back to the same edge never marks the surface"
             " outdated");
+    TAP_EQ_INT(s_call_scratchpad_panned, 0,
+            "a clamped no-op pan never notifies the scratchpad");
 
     free(surface);
     free(desktop);
@@ -1072,6 +1126,9 @@ static void s_test_set_clamps_and_noops_at_same_origin(void)
     TAP_OK(!surface->is_outdated,
             "requesting the origin already in effect never outdates" \
             " the surface");
+    TAP_EQ_INT(s_call_scratchpad_panned, 0,
+            "requesting the origin already in effect never notifies" \
+            " the scratchpad either");
 
     free(surface);
     free(desktop);
@@ -1194,13 +1251,14 @@ static void s_test_center_on_client_already_visible_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(74);
+    TAP_PLAN(78);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
     s_test_pan_no_config_falls_back_to_1x1();
     s_test_pan_id_past_max_screens_falls_back_to_1x1();
     s_test_pan_east_moves_and_translates_clients();
+    s_test_pan_east_notifies_scratchpad_of_real_pan();
     s_test_pan_east_skips_drag_excluded_client();
     s_test_pan_east_also_translates_mapped_icon();
     s_test_pan_east_twice_keeps_translating_negative_icon();

@@ -11,11 +11,18 @@
  * @a scmd_surface_viewport_pan_available (@c cmds/surface.h), consulted
  * by both files independently rather than through a decision made once
  * here and handed to the other, so neither has to know the other
- * exists at all.  Panning never moves the pointer itself, unlike a
- * desktop warp, so like @c input/mouse/viewport_edge.c's
- * hover-triggered version, this one re-arms its own countdown on every
- * @a drag_pan_tick instead of relying on further motion to drive it, at
- * the same @c WM_VIEWPORT_PAN_REPEAT_MS cadence that one already uses.
+ * exists at all.  Like that sibling, a pan also warps the pointer
+ * along with whatever it is dragging (@a s_pan_pointer_target below),
+ * keeping the two visually glued together instead of leaving the
+ * pointer resting at the screen edge while the window moves out from
+ * under it.  Unlike that sibling, though, panning does not rely on
+ * further motion to keep going: like @c input/mouse/viewport_edge.c's
+ * hover-triggered version, this one re-arms its own countdown
+ * unconditionally on every @a drag_pan_tick, at the same
+ * @c WM_VIEWPORT_PAN_REPEAT_MS cadence that one already uses, so a
+ * pointer held stationary against a physical screen edge (generating
+ * no further @c MotionNotify events at all) still keeps panning for as
+ * long as there is room to.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -131,16 +138,15 @@ static void s_pan_move_dragged(xcb_connection_t *connection,
         return;
     }
 
-    /* Panning never moves the pointer itself, unlike a desktop warp
-     * ('s_warp_move_dragged', drag/warp.c), so nothing here already
-     * shifts 'pointer_start_x'/'pointer_start_y' or 'last_root_x'/
-     * 'last_root_y' the way that function's own pointer jump does.
-     * Keeping the invariant linking 'client_start.pos' to those instead
-     * relies on shifting 'client_start.pos' itself by the same delta as
-     * 'client_cur.pos', rather than leaving it untouched the way the
-     * warp case correctly does. */
-    s_drag.client_start.pos.x += delta.x;
-    s_drag.client_start.pos.y += delta.y;
+    /* 'drag_pan_tick' warps the pointer by this same 'delta' right
+     * after this returns, exactly like 's_warp_move_dragged' (drag/
+     * warp.c) already does for a desktop warp, so 'pointer_start_x'/
+     * 'pointer_start_y' and 'client_start.pos' are deliberately left
+     * untouched here: the invariant linking them to 'client_cur.pos'
+     * stays correct on its own once the pointer itself has moved, the
+     * same reasoning that function's own comment lays out in full, and
+     * shifting 'client_start.pos' here too, on top of that, would
+     * double the effective delta the next real motion notify sees. */
     new_window_x = s_drag.client_cur.pos.x + delta.x;
     new_window_y = s_drag.client_cur.pos.y + delta.y;
     s_drag.client_cur.pos.x = new_window_x;
@@ -303,6 +309,63 @@ int drag_pan_ms_remaining(void)
 }
 
 
+/**
+ * @brief Work out where the pointer lands after a pan delta
+ *
+ * Keeps the pointer glued to whatever it is dragging across a
+ * viewport pan, the same way @a s_warp_pointer_target (@c drag/
+ * warp.c) keeps it glued across a desktop warp, except the pointer
+ * here always moves by the exact same @p delta the dragged client
+ * itself just moved by, rather than jumping to the opposite screen
+ * edge: a pan stays on the one same desktop, so there is no
+ * "opposite edge" of a different desktop to land near in the first
+ * place.
+ *
+ * @param delta  Pixel delta the pan just applied to the dragged
+ *               client
+ * @param out_x  Receives the root X the pointer warps to
+ * @param out_y  Receives the root Y the same
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_pan_pointer_target(struct position_s delta,
+        int16_t *out_x, int16_t *out_y)
+{
+    int32_t max_x;
+    int32_t max_y;
+    int32_t new_x;
+    int32_t new_y;
+
+    /* Clamped to at most 'INT16_MAX', matching 's_warp_pointer_target'
+     * (drag/warp.c): 'screen_w'/'screen_h' (uint32_t, no compile-time
+     * bound) are not guaranteed to fit int16_t on an extreme
+     * multi-monitor surface, and this pointer position is sent to the
+     * X server as one, via 'xcb_warp_pointer' below. */
+    max_x = ((int32_t) s_drag.screen_w - 1 > INT16_MAX)
+        ? INT16_MAX : (int32_t) s_drag.screen_w - 1;
+    max_y = ((int32_t) s_drag.screen_h - 1 > INT16_MAX)
+        ? INT16_MAX : (int32_t) s_drag.screen_h - 1;
+
+    new_x = (int32_t) s_drag.last_root_x + delta.x;
+    new_y = (int32_t) s_drag.last_root_y + delta.y;
+
+    if (new_x < 0) {
+        new_x = 0;
+    } else if (new_x > max_x) {
+        new_x = max_x;
+    }
+
+    if (new_y < 0) {
+        new_y = 0;
+    } else if (new_y > max_y) {
+        new_y = max_y;
+    }
+
+    *out_x = (int16_t) new_x;
+    *out_y = (int16_t) new_y;
+}
+
+
 /* Perform the pending edge pan, if due */
 void drag_pan_tick(xcb_connection_t *connection)
 {
@@ -310,6 +373,8 @@ void drag_pan_tick(xcb_connection_t *connection)
     desktop_td *desktop;
     struct position_s origin_before;
     struct position_s delta;
+    int16_t new_root_x;
+    int16_t new_root_y;
     bool is_icon;
 
     if (connection == NULL || !s_drag.is_pan_pending ||
@@ -333,7 +398,8 @@ void drag_pan_tick(xcb_connection_t *connection)
     is_icon = s_drag.drag_window != XCB_WINDOW_NONE;
 
     surface = wm_get_surface_by_id(s_drag.client->screen_id);
-    if (surface == NULL || surface->config == NULL ||
+    if (surface == NULL || surface->screen == NULL ||
+            surface->config == NULL ||
             !surface->config->desktops.pan_on_edge_drag ||
             !scmd_surface_viewport_pan_available(surface,
                 s_drag.pan_direction)) {
@@ -364,12 +430,35 @@ void drag_pan_tick(xcb_connection_t *connection)
     delta.y = origin_before.y - desktop->viewport_origin.y;
     s_pan_move_dragged(connection, is_icon, delta);
 
-    /* Panning the viewport never moves the pointer itself, unlike a
-     * desktop warp, so no further 'MotionNotify' is coming to re-arm
-     * this on its own; re-arming here at the shorter repeat interval
-     * is what keeps a single edge hold panning repeatedly rather than
-     * only once, exactly like 'mouse_viewport_edge_tick' (input/mouse/
-     * viewport_edge.c). */
+    /* A sticky dragged client never actually moved just above (see
+     * 's_pan_move_dragged''s own early return), so warping the
+     * pointer here too would be the one thing that pulled it away
+     * from the client instead of keeping it glued on, the exact
+     * opposite of the point of this whole step. */
+    if (!client_is_sticky(s_drag.client)) {
+        s_pan_pointer_target(delta, &new_root_x, &new_root_y);
+        xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,
+                0, 0, 0, 0, new_root_x, new_root_y);
+
+        /* Matches 'last_root_x'/'last_root_y' up with the warp just
+         * issued, exactly as 'drag_warp_tick' (drag/warp.c) does after
+         * its own pointer warp: the synthetic 'MotionNotify' this
+         * generates then reports the same position already recorded
+         * here, so 'drag_update' (drag.c) drops it as a duplicate
+         * rather than recomputing the very position this whole
+         * function just set. */
+        s_drag.last_root_x = new_root_x;
+        s_drag.last_root_y = new_root_y;
+    }
+
+    /* Panning the viewport does not rely on a further 'MotionNotify'
+     * to keep going, unlike a desktop warp: re-arming here at the
+     * shorter repeat interval unconditionally, regardless of where the
+     * pointer warp just above landed, is what keeps a single edge hold
+     * panning repeatedly for as long as there is room to, exactly like
+     * 'mouse_viewport_edge_tick' (input/mouse/viewport_edge.c), rather
+     * than stalling as soon as a stationary pointer stops generating
+     * fresh motion events of its own. */
     s_drag.is_pan_pending = true;
     if (clock_gettime(CLOCK_MONOTONIC, &s_drag.pan_due) == 0) {
         clock_add_ms(&s_drag.pan_due, WM_VIEWPORT_PAN_REPEAT_MS);

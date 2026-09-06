@@ -112,6 +112,13 @@ static uint16_t s_configure_window_last_mask;
 static int32_t s_configure_window_last_x;
 static int32_t s_configure_window_last_y;
 
+/** Count of calls to the @a xcb_warp_pointer stand-in below, and the
+ *  last X/Y it was asked to warp the pointer to, reset by @a s_reset
+ *  before each scenario */
+static int s_call_xcb_warp_pointer;
+static int16_t s_warp_pointer_last_x;
+static int16_t s_warp_pointer_last_y;
+
 
 /**
  * @brief Link-only stand-in for @a wm_get_surface_by_id
@@ -297,18 +304,49 @@ uint16_t drag_icon_height(const client_td *client)
 }
 
 
+/**
+ * @brief Recording stand-in for the raw @a xcb_warp_pointer request
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_void_cookie_t xcb_warp_pointer(xcb_connection_t *c,
+        xcb_window_t src_window, xcb_window_t dst_window,
+        int16_t src_x, int16_t src_y, uint16_t src_width,
+        uint16_t src_height, int16_t dst_x, int16_t dst_y)
+{
+    xcb_void_cookie_t cookie;
+
+    (void) c;
+    (void) src_window;
+    (void) dst_window;
+    (void) src_x;
+    (void) src_y;
+    (void) src_width;
+    (void) src_height;
+
+    memset(&cookie, 0, sizeof(cookie));
+    s_call_xcb_warp_pointer++;
+    s_warp_pointer_last_x = dst_x;
+    s_warp_pointer_last_y = dst_y;
+
+    return cookie;
+}
+
+
 static void s_reset(void)
 {
     static client_td dragged;
     static surface_td surface;
     static config_td config;
     static desktop_td desktop;
+    static xcb_screen_t screen;
 
     memset(&s_drag, 0, sizeof(s_drag));
     memset(&dragged, 0, sizeof(dragged));
     memset(&surface, 0, sizeof(surface));
     memset(&config, 0, sizeof(config));
     memset(&desktop, 0, sizeof(desktop));
+    memset(&screen, 0, sizeof(screen));
 
     s_stub_origin_override_active = false;
     s_stub_origin_override = (struct position_s) { 0, 0 };
@@ -320,6 +358,7 @@ static void s_reset(void)
     config.desktops.pan_on_edge_drag = true;
 
     surface.config = &config;
+    surface.screen = &screen;
 
     desktop.geometry.dim.w = 1920u;
     desktop.geometry.dim.h = 1080u;
@@ -342,6 +381,9 @@ static void s_reset(void)
     s_call_configure_window = 0;
     s_call_drag_outline_move = 0;
     s_call_drag_overlay_show = 0;
+    s_call_xcb_warp_pointer = 0;
+    s_warp_pointer_last_x = 0;
+    s_warp_pointer_last_y = 0;
     s_configure_window_last_window = XCB_WINDOW_NONE;
     s_configure_window_last_mask = 0u;
     s_configure_window_last_x = 0;
@@ -758,6 +800,26 @@ static void s_test_tick_due_no_surface_stops_early(void)
 }
 
 
+/* drag_pan_tick: due, moving, surface resolves but has no attached
+ * XCB screen: stops before the pan, since the pointer warp below now
+ * needs 'surface->screen->root' */
+static void s_test_tick_due_no_screen_stops_early(void)
+{
+    s_reset();
+    s_drag.is_pan_pending = true;
+    s_drag.pan_direction = COMPASS_WEST;
+    (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.pan_due);
+    s_drag.pan_due.tv_sec -= 1;
+    s_stub_surface->screen = NULL;
+
+    drag_pan_tick((xcb_connection_t *) (void *) 1);
+
+    TAP_EQ_INT(s_call_pan_west, 0,
+            "a surface with no attached XCB screen stops the tick"
+            " before the pan itself");
+}
+
+
 /* drag_pan_tick: due, moving, surface resolves but the current
  * desktop does not: stops before the pan */
 static void s_test_tick_due_no_desktop_stops_early(void)
@@ -778,10 +840,12 @@ static void s_test_tick_due_no_desktop_stops_early(void)
 
 
 /* drag_pan_tick: a due, solid, non-icon, non-sticky west pan calls
- * the matching command exactly once, shifts both client_start and
- * client_cur by the desktop's own width, never touches the icon
- * window or outline, and re-arms a fresh, shorter-interval countdown
- * rather than clearing pending entirely */
+ * the matching command exactly once, leaves client_start untouched,
+ * shifts client_cur by the desktop's own width, warps the real
+ * pointer by that same delta (clamped to stay on the physical
+ * screen) and keeps 'last_root_x'/'last_root_y' in step with it,
+ * never touches the icon window or outline, and re-arms a fresh,
+ * shorter-interval countdown rather than clearing pending entirely */
 static void s_test_tick_due_solid_west_pan_shifts_state(void)
 {
     s_reset();
@@ -793,6 +857,8 @@ static void s_test_tick_due_solid_west_pan_shifts_state(void)
     s_drag.client_start.pos.y = 200;
     s_drag.client_cur.pos.x = 110;
     s_drag.client_cur.pos.y = 210;
+    s_drag.last_root_x = 0;
+    s_drag.last_root_y = 500;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
@@ -802,12 +868,13 @@ static void s_test_tick_due_solid_west_pan_shifts_state(void)
     TAP_EQ_INT(s_call_pan_north, 0, "and none of its siblings");
     TAP_EQ_INT(s_call_pan_south, 0, "none of its siblings");
     TAP_EQ_INT(s_call_pan_east, 0, "none of its siblings");
-    TAP_EQ_INT(s_drag.client_start.pos.x, 2020,
-            "client_start.pos.x shifts by +screen width (1920) for a"
-            " west pan");
+    TAP_EQ_INT(s_drag.client_start.pos.x, 100,
+            "client_start.pos.x is left untouched by a west pan, since"
+            " the pointer warp below is what now keeps the drag"
+            " invariant correct, not a shift of the start position"
+            " itself");
     TAP_EQ_INT(s_drag.client_start.pos.y, 200,
-            "client_start.pos.y is untouched by a west (horizontal)"
-            " pan");
+            "client_start.pos.y is likewise untouched");
     TAP_EQ_INT(s_drag.client_cur.pos.x, 2030,
             "client_cur.pos.x shifts by the same +1920 delta");
     TAP_EQ_INT(s_drag.client_cur.pos.y, 210,
@@ -838,6 +905,20 @@ static void s_test_tick_due_solid_west_pan_shifts_state(void)
     TAP_EQ_INT(s_call_drag_outline_move, 0,
             "a solid drag never goes through the outline path"
             " either");
+    TAP_EQ_INT(s_call_xcb_warp_pointer, 1,
+            "a non-sticky dragged client also warps the real pointer"
+            " exactly once, keeping it glued to the window");
+    TAP_EQ_INT((int) s_warp_pointer_last_x, 1919,
+            "the pointer's own +1920 target clamps to the last valid"
+            " screen column (1919), the same as the dragged window"
+            " would if it, too, could not move past the physical"
+            " screen");
+    TAP_EQ_INT((int) s_warp_pointer_last_y, 500,
+            "a purely horizontal pan leaves the pointer's Y untouched");
+    TAP_EQ_INT((int) s_drag.last_root_x, 1919,
+            "'last_root_x' is kept in step with the warp just issued");
+    TAP_EQ_INT((int) s_drag.last_root_y, 500,
+            "'last_root_y' likewise");
     TAP_OK(s_drag.is_pan_pending,
             "a successful pan re-arms rather than clearing pending"
             " entirely");
@@ -848,9 +929,13 @@ static void s_test_tick_due_solid_west_pan_shifts_state(void)
 }
 
 
-/* An east pan shifts position by the negative of the desktop's width,
- * a north pan by the positive height, and a south pan by the negative
- * height: only the axis matching the direction's own dimension moves */
+/* An east pan shifts client_cur.pos by the negative of the desktop's
+ * width, a north pan by the positive height, and a south pan by the
+ * negative height: only the axis matching the direction's own
+ * dimension moves, client_start.pos stays untouched throughout (the
+ * pointer warp is what keeps the drag invariant now, not a shift of
+ * the start position), and the pointer itself warps by that same
+ * per-axis delta, clamped to the physical screen */
 static void s_test_tick_due_other_directions_shift_correctly(void)
 {
     s_reset();
@@ -860,12 +945,19 @@ static void s_test_tick_due_other_directions_shift_correctly(void)
     s_drag.pan_due.tv_sec -= 1;
     s_drag.client_start.pos.x = 100;
     s_drag.client_cur.pos.x = 110;
+    s_drag.last_root_x = 1919;
+    s_drag.last_root_y = 500;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
     TAP_EQ_INT(s_call_pan_east, 1, "east dispatches to its own command");
-    TAP_EQ_INT(s_drag.client_start.pos.x, -1820,
-            "an east pan shifts position X by -screen width (1920)");
+    TAP_EQ_INT(s_drag.client_start.pos.x, 100,
+            "an east pan leaves client_start.pos.x untouched");
+    TAP_EQ_INT(s_drag.client_cur.pos.x, -1810,
+            "client_cur.pos.x shifts by -screen width (1920)");
+    TAP_EQ_INT((int) s_warp_pointer_last_x, 0,
+            "the pointer's own -1920 target clamps to column 0, the"
+            " first valid one");
 
     s_reset();
     s_drag.is_pan_pending = true;
@@ -874,12 +966,19 @@ static void s_test_tick_due_other_directions_shift_correctly(void)
     s_drag.pan_due.tv_sec -= 1;
     s_drag.client_start.pos.y = 100;
     s_drag.client_cur.pos.y = 110;
+    s_drag.last_root_x = 500;
+    s_drag.last_root_y = 0;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
     TAP_EQ_INT(s_call_pan_north, 1, "north dispatches to its own command");
-    TAP_EQ_INT(s_drag.client_start.pos.y, 1180,
-            "a north pan shifts position Y by +screen height (1080)");
+    TAP_EQ_INT(s_drag.client_start.pos.y, 100,
+            "a north pan leaves client_start.pos.y untouched");
+    TAP_EQ_INT(s_drag.client_cur.pos.y, 1190,
+            "client_cur.pos.y shifts by +screen height (1080)");
+    TAP_EQ_INT((int) s_warp_pointer_last_y, 1079,
+            "the pointer's own +1080 target clamps to row 1079, the"
+            " last valid one");
 
     s_reset();
     s_drag.is_pan_pending = true;
@@ -888,12 +987,19 @@ static void s_test_tick_due_other_directions_shift_correctly(void)
     s_drag.pan_due.tv_sec -= 1;
     s_drag.client_start.pos.y = 100;
     s_drag.client_cur.pos.y = 110;
+    s_drag.last_root_x = 500;
+    s_drag.last_root_y = 1079;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
     TAP_EQ_INT(s_call_pan_south, 1, "south dispatches to its own command");
-    TAP_EQ_INT(s_drag.client_start.pos.y, -980,
-            "a south pan shifts position Y by -screen height (1080)");
+    TAP_EQ_INT(s_drag.client_start.pos.y, 100,
+            "a south pan leaves client_start.pos.y untouched");
+    TAP_EQ_INT(s_drag.client_cur.pos.y, -970,
+            "client_cur.pos.y shifts by -screen height (1080)");
+    TAP_EQ_INT((int) s_warp_pointer_last_y, 0,
+            "the pointer's own -1080 target clamps to row 0, the"
+            " first valid one");
 }
 
 
@@ -915,6 +1021,8 @@ static void s_test_tick_due_clamped_pan_uses_real_delta(void)
     s_drag.pan_due.tv_sec -= 1;
     s_drag.client_start.pos.x = 100;
     s_drag.client_cur.pos.x = 110;
+    s_drag.last_root_x = 200;
+    s_drag.last_root_y = 500;
 
     s_stub_desktop->viewport_origin.x = 500;
     s_stub_origin_override_active = true;
@@ -924,19 +1032,24 @@ static void s_test_tick_due_clamped_pan_uses_real_delta(void)
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
     TAP_EQ_INT(s_call_pan_west, 1, "west still dispatches exactly once");
-    TAP_EQ_INT(s_drag.client_start.pos.x, 600,
-            "a clamped, partial pan shifts the dragged client by the"
-            " real 500-pixel delta the viewport actually moved, not"
-            " a blindly assumed full screen width");
+    TAP_EQ_INT(s_drag.client_start.pos.x, 100,
+            "client_start.pos.x stays untouched regardless of the"
+            " real delta the pan turned out to use");
     TAP_EQ_INT(s_drag.client_cur.pos.x, 610,
-            "the client's current position tracks that same real"
-            " delta");
+            "the client's current position tracks the real 500-pixel"
+            " delta the viewport actually moved, not a blindly"
+            " assumed full screen width");
+    TAP_EQ_INT((int) s_warp_pointer_last_x, 700,
+            "the pointer follows that same real, possibly-partial"
+            " delta (200 + 500), not a blindly assumed full screen"
+            " width either");
 }
 
 
 /* A sticky dragged client is left entirely untouched by the
  * drag-state fixup, since it never visually moved on screen in the
- * first place */
+ * first place, so the pointer must not be warped either: it never
+ * moved out from under the client to begin with */
 static void s_test_tick_due_sticky_client_skips_fixup(void)
 {
     s_reset();
@@ -947,6 +1060,8 @@ static void s_test_tick_due_sticky_client_skips_fixup(void)
     s_drag.pan_due.tv_sec -= 1;
     s_drag.client_start.pos.x = 100;
     s_drag.client_cur.pos.x = 110;
+    s_drag.last_root_x = 300;
+    s_drag.last_root_y = 400;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
@@ -958,6 +1073,14 @@ static void s_test_tick_due_sticky_client_skips_fixup(void)
             " is left untouched");
     TAP_EQ_INT(s_drag.client_cur.pos.x, 110,
             "and likewise its current position");
+    TAP_EQ_INT(s_call_xcb_warp_pointer, 0,
+            "and the pointer itself is never warped for a sticky"
+            " client, or it would visually disconnect from a window"
+            " that correctly stayed put");
+    TAP_EQ_INT((int) s_drag.last_root_x, 300,
+            "'last_root_x' is likewise left untouched");
+    TAP_EQ_INT((int) s_drag.last_root_y, 400,
+            "'last_root_y' likewise");
 }
 
 
@@ -975,6 +1098,8 @@ static void s_test_tick_due_icon_drag_configures_icon_window(void)
     s_drag.pan_due.tv_sec -= 1;
     s_drag.client_cur.pos.x = 20;
     s_drag.client_cur.pos.y = 30;
+    s_drag.last_root_x = 0;
+    s_drag.last_root_y = 30;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 
@@ -990,6 +1115,12 @@ static void s_test_tick_due_icon_drag_configures_icon_window(void)
             " on X (20 + 1920)");
     TAP_EQ_INT(s_call_drag_outline_move, 0,
             "an icon drag never goes through the outline path");
+    TAP_EQ_INT(s_call_xcb_warp_pointer, 1,
+            "an icon drag also warps the pointer, exactly like a"
+            " plain window drag does");
+    TAP_EQ_INT((int) s_warp_pointer_last_x, 1919,
+            "clamped the same way a plain window drag's own pointer"
+            " warp is");
 }
 
 
@@ -1063,7 +1194,7 @@ static void s_test_tick_due_show_geom_config_shows_overlay(void)
 
 int main(void)
 {
-    TAP_PLAN(77);
+    TAP_PLAN(95);
 
     s_test_edge_check_no_client_clears_pending();
     s_test_edge_check_no_surface_is_noop();
@@ -1091,6 +1222,7 @@ int main(void)
     s_test_tick_due_config_disabled_stops_early();
     s_test_tick_due_pan_unavailable_stops_early();
     s_test_tick_due_no_surface_stops_early();
+    s_test_tick_due_no_screen_stops_early();
     s_test_tick_due_no_desktop_stops_early();
     s_test_tick_due_solid_west_pan_shifts_state();
     s_test_tick_due_other_directions_shift_correctly();

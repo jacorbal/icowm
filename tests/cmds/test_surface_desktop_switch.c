@@ -27,10 +27,11 @@
  * by any scenario below.  'notify_desktop_show' is a link-only
  * stand-in for the same reason: unreachable once 'xcb_connection_get'
  * reports 'NULL'.  'ccmd_target_win', 'ccmd_client_apply_geometry',
- * and 'stacking_walk' are link-only stand-ins too, needed only
- * because 'cmds/surface.c' now also contains viewport-panning code
- * that references them; no scenario here exercises panning, so none
- * of the three is ever actually reached
+ * 'stacking_walk', and 'scratchpad_notice_viewport_panned' are
+ * link-only stand-ins too, needed only because 'cmds/surface.c' now
+ * also contains viewport-panning code that references them; no
+ * scenario here exercises panning, so none of the four is ever
+ * actually reached
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -59,6 +60,7 @@
 #include <harness/tap.h>
 #include <logger.h>
 #include <policy/stacking.h>
+#include <scratchpad.h>
 #include <surface.h>
 
 
@@ -165,6 +167,17 @@ void stacking_walk(const desktop_td *desktop, stacking_visitor_fn visit,
     (void) desktop;
     (void) visit;
     (void) data;
+}
+
+
+/** Link-only stand-in for @a scratchpad_notice_viewport_panned
+ *  (scratchpad.c): unreachable for the same reason as
+ *  'ccmd_target_win' above
+ *  @note Complexity: @e O(1)
+ */
+void scratchpad_notice_viewport_panned(const desktop_td *desktop)
+{
+    (void) desktop;
 }
 
 

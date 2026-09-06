@@ -24,6 +24,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <lookup.h>
+#include <scratchpad.h>
 #include <surface.h>
 
 /* Utils includes */
@@ -355,7 +356,12 @@ static void s_surface_viewport_dims(const surface_td *surface,
  *
  * Shared by @a s_viewport_pan and @a scmd_surface_viewport_set, which
  * only differ in how each arrives at the requested @p origin before
- * this clamp is applied.
+ * this clamp is applied.  Also the one place, once an actual pan is
+ * confirmed, that reaches @a scratchpad_notice_viewport_panned, so
+ * every path that ever moves a viewport (an edge-hover pan, a
+ * background or window drag crossing an edge, a keybind, an IPC
+ * command) hides the scratchpad the same way, without each needing
+ * its own separate call.
  *
  * @param surface Surface owning @p desktop, marked outdated when the
  *                origin actually changes
@@ -367,6 +373,8 @@ static void s_surface_viewport_dims(const surface_td *surface,
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
+ *
+ * @see @a scratchpad_notice_viewport_panned
  */
 static void s_viewport_apply_origin(surface_td *surface,
         desktop_td *desktop, uint32_t columns, uint32_t rows,
@@ -393,6 +401,15 @@ static void s_viewport_apply_origin(surface_td *surface,
     stacking_walk(desktop, s_viewport_translate_visit, &delta);
     desktop->viewport_origin = origin;
     surface->is_outdated = true;
+
+    /* A visible scratchpad is just another non-sticky client the walk
+     * above already shifted away from its own configured edge, same
+     * as everything else on 'desktop'; hiding it here, rather than
+     * leaving it wherever that shift left it, is what keeps it from
+     * ever being seen drifted out of its own zone.  A no-op with no
+     * current scratchpad client, one already hidden, or one that
+     * belongs to some other desktop. */
+    scratchpad_notice_viewport_panned(desktop);
 }
 
 

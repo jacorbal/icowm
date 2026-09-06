@@ -165,6 +165,20 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
                         desktop);
             }
         }
+
+        surface = wm_get_surface_by_id(desktop->screen_id);
+
+        /* Recomputed fresh on every single show, rather than trusting
+         * whatever screen-relative position was last left on it: any
+         * viewport pan since the last time this was visible already
+         * shifted it right along with every other non-sticky client on
+         * its desktop (see 's_viewport_translate_visit',
+         * 'cmds/surface.c'), so re-anchoring it against its configured
+         * edge here, before it is actually shown, is what keeps it
+         * pinned to its own zone instead of wherever that drift left
+         * it. */
+        scratchpad_position(s_scratchpad_client, desktop, surface);
+
         enact_client_unhide(s_scratchpad_client);
 
         /* Actually focuses the scratchpad, not merely raising it above
@@ -181,8 +195,6 @@ void scratchpad_toggle(const wm_td *wm, desktop_td *desktop)
          * focusing this one.  Skipping it left whatever was focused
          * a moment ago with no real unfocus ever applied to it at all,
          * this client's raise just visually covering it instead. */
-        surface = wm_get_surface_by_id(desktop->screen_id);
-
         focus_apply(wm_surfaces(wm), surface, desktop,
                 s_scratchpad_client, true, config);
     } else {
@@ -413,6 +425,24 @@ void scratchpad_notice_client_destroyed(const client_td *client)
 {
     if (client != NULL && client == s_scratchpad_client) {
         s_scratchpad_client = NULL;
+    }
+}
+
+
+/* Hide the current scratchpad client, if it belongs to the desktop
+ * whose viewport just panned */
+void scratchpad_notice_viewport_panned(const desktop_td *desktop)
+{
+    const desktop_td *owner;
+
+    if (desktop == NULL || s_scratchpad_client == NULL ||
+            client_is_hidden(s_scratchpad_client)) {
+        return;
+    }
+
+    owner = wm_get_client_desktop(s_scratchpad_client);
+    if (owner == desktop) {
+        enact_client_hide(s_scratchpad_client);
     }
 }
 
