@@ -528,6 +528,24 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
 }
 
 
+/* Whether the surface's configured viewport spans more than a single
+ * screen along either axis, i.e., whether panning it, by any means,
+ * could ever actually move anything */
+bool scmd_surface_viewport_has_room(const surface_td *surface)
+{
+    uint32_t columns;
+    uint32_t rows;
+
+    if (surface == NULL) {
+        return false;
+    }
+
+    s_surface_viewport_dims(surface, &columns, &rows);
+
+    return columns > 1u || rows > 1u;
+}
+
+
 /* Pan the current desktop's viewport one screen north */
 void scmd_surface_viewport_pan_north(surface_td *surface)
 {

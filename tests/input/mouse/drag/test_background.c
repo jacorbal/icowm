@@ -18,12 +18,15 @@
  * file only asserts on the exact 'x'/'y' background.c hands it,
  * confirming the pan-follows-pointer sign convention.
  * 'lookup_find_client' and 'enact_client_unfocus' are recording
- * stand-ins for the same reason.  The raw XCB pointer-grab requests
- * and 'mouse_cursor_move' are stubbed directly, the same convention
- * tests/input/mouse/drag/test_drag.c already uses, since no live X
- * connection is used.  'logger_msg' is a link-only stand-in, reached
- * only on a grab failure this file asserts nothing about beyond the
- * resulting state.
+ * stand-ins for the same reason.  The raw XCB pointer-grab requests,
+ * 'mouse_cursor_move', and 'mouse_plain_cursor' are stubbed directly,
+ * the same convention tests/input/mouse/drag/test_drag.c already
+ * uses, since no live X connection is used.  'scmd_surface_viewport_
+ * has_room' is a controllable stand-in deciding which of those two
+ * cursors 'xcb_grab_pointer' is expected to have recorded.
+ * 'logger_msg' is a link-only stand-in, reached only on a grab
+ * failure this file asserts nothing about beyond the resulting
+ * state.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -71,6 +74,13 @@ static uint8_t s_stub_grab_status;
 static int s_grab_pointer_calls;
 static int s_ungrab_pointer_calls;
 
+/** Recorded cursor argument from the last xcb_grab_pointer call */
+static xcb_cursor_t s_grab_last_cursor;
+
+/** Controllable stand-in result for the next
+ *  scmd_surface_viewport_has_room call */
+static bool s_stub_viewport_has_room;
+
 /** Controllable stand-in result for the next lookup_current_desktop
  *  call */
 static desktop_td *s_stub_current_desktop;
@@ -113,11 +123,11 @@ xcb_grab_pointer_cookie_t xcb_grab_pointer(xcb_connection_t *c,
     (void) pointer_mode;
     (void) keyboard_mode;
     (void) confine_to;
-    (void) cursor;
     (void) time;
 
     memset(&cookie, 0, sizeof(cookie));
     s_grab_pointer_calls++;
+    s_grab_last_cursor = cursor;
 
     return cookie;
 }
@@ -181,6 +191,28 @@ xcb_void_cookie_t xcb_ungrab_pointer(xcb_connection_t *c,
 xcb_cursor_t mouse_cursor_move(void)
 {
     return 1u;
+}
+
+
+/**
+ * @brief Controllable stand-in for @a mouse_plain_cursor
+ * @note Complexity: @e O(1)
+ */
+xcb_cursor_t mouse_plain_cursor(void)
+{
+    return 2u;
+}
+
+
+/**
+ * @brief Controllable stand-in for @a scmd_surface_viewport_has_room
+ * @note Complexity: @e O(1)
+ */
+bool scmd_surface_viewport_has_room(const surface_td *surface)
+{
+    (void) surface;
+
+    return s_stub_viewport_has_room;
 }
 
 
@@ -279,6 +311,8 @@ static void s_reset(void)
     s_stub_grab_status = XCB_GRAB_STATUS_SUCCESS;
     s_grab_pointer_calls = 0;
     s_ungrab_pointer_calls = 0;
+    s_grab_last_cursor = 0u;
+    s_stub_viewport_has_room = true;
     s_stub_current_desktop = NULL;
     s_stub_desktop_get_result = NULL;
     s_viewport_set_calls = 0;
@@ -425,6 +459,60 @@ static void s_test_start_success_activates_module(void)
     /* Left active otherwise, leaking into whichever test runs next */
     drag_background_end((xcb_connection_t *) 1, NULL,
             (struct position_s) { 50, 60 });
+}
+
+
+/* A viewport with room to pan grabs the pointer with the move
+ * cursor, promising a drag that can actually go somewhere */
+static void s_test_start_with_room_grabs_move_cursor(void)
+{
+    desktop_td desktop;
+    surface_td surface;
+
+    s_reset();
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&surface, 0, sizeof(surface));
+    s_stub_current_desktop = &desktop;
+    s_stub_viewport_has_room = true;
+
+    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+            (struct position_s) { 0, 0 });
+
+    TAP_EQ_INT((int) s_grab_last_cursor, (int) mouse_cursor_move(),
+            "a viewport with room: the pointer grab uses the move"
+            " cursor");
+
+    drag_background_end((xcb_connection_t *) 1, NULL,
+            (struct position_s) { 0, 0 });
+}
+
+
+/* A plain {1,1} desktop, with no room to pan at all, grabs the
+ * pointer with the plain cursor instead, so the drag never promises
+ * a pan it could never actually deliver */
+static void s_test_start_without_room_grabs_plain_cursor(void)
+{
+    desktop_td desktop;
+    surface_td surface;
+
+    s_reset();
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&surface, 0, sizeof(surface));
+    s_stub_current_desktop = &desktop;
+    s_stub_viewport_has_room = false;
+
+    drag_background_start((xcb_connection_t *) 1, &surface, 1u, 0,
+            (struct position_s) { 0, 0 });
+
+    TAP_EQ_INT((int) s_grab_last_cursor, (int) mouse_plain_cursor(),
+            "a plain {1,1} desktop: the pointer grab uses the plain"
+            " cursor");
+    TAP_OK(drag_background_is_active(),
+            "a plain {1,1} desktop: the module still activates, so a"
+            " release still unfocuses like a plain click");
+
+    drag_background_end((xcb_connection_t *) 1, NULL,
+            (struct position_s) { 0, 0 });
 }
 
 
@@ -612,7 +700,7 @@ static void s_test_end_above_threshold_skips_unfocus(void)
 
 int main(void)
 {
-    TAP_PLAN(35);
+    TAP_PLAN(38);
 
     s_test_start_null_connection_is_noop();
     s_test_start_null_surface_is_noop();
@@ -620,6 +708,8 @@ int main(void)
     s_test_start_grab_reply_null_is_noop();
     s_test_start_grab_status_failure_is_noop();
     s_test_start_success_activates_module();
+    s_test_start_with_room_grabs_move_cursor();
+    s_test_start_without_room_grabs_plain_cursor();
     s_test_update_inactive_is_noop();
     s_test_update_pans_with_inverted_delta();
     s_test_end_inactive_is_noop();
