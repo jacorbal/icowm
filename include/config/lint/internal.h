@@ -47,7 +47,10 @@ enum config_lint_array_kind_e {
     CONFIG_LINT_ARRAY_POLYMORPHIC
 };
 
-/** One key a schema recognizes at a given nesting level */
+
+/**
+ * @brief One key a schema recognizes at a given nesting level
+ */
 typedef struct config_lint_key_s {
     const char *name;
     const struct config_lint_key_s *children; /**< 'NULL' for a leaf,
@@ -66,24 +69,30 @@ typedef struct config_lint_key_s {
                                                    three-field schema
                                                    entry keeps working
                                                    unchanged */
-    const struct config_lint_key_s *children_alt; /**< Array-element
-                                                       schema used when
-                                                       'discriminator_keys'
-                                                       is matched;
-                                                       only meaningful
-                                                       under
-                                                       'CONFIG_LINT_ARRAY_POLYMORPHIC' */
+
+    /**
+     * @brief Array-element schema used when @c discriminator_keys is
+     *        matched
+     *
+     * @note Only meaningful under @c CONFIG_LINT_ARRAY_POLYMORPHIC
+     */
+    const struct config_lint_key_s *children_alt;
+
     size_t children_alt_count;
-    const char *const *discriminator_keys; /**< 'NULL'-terminated list
-                                                of key names whose
-                                                presence in the first
-                                                array element selects
-                                                'children_alt'; only
-                                                meaningful under
-                                                'CONFIG_LINT_ARRAY_POLYMORPHIC' */
+
+    /**
+     * @brief Null-terminated list of key names whose presence in the
+     *        first array element selects @c children_alt
+     *
+     * @note Only meaningful under @c CONFIG_LINT_ARRAY_POLYMORPHIC
+     */
+    const char *const *discriminator_keys;
 } config_lint_key_td;
 
-/** One configuration file this linter knows how to check */
+
+/**
+ * @brief One configuration file this linter knows how to check
+ */
 typedef struct {
     const char *filename;
     const config_lint_key_td *schema;
@@ -92,19 +101,18 @@ typedef struct {
 } config_lint_file_spec_td;
 
 
-/**
- * @brief The size check every schema table in @c config/lint/ carries
- *
+/*
  * Each schema table has a key count declared beside it in a header, and
  * the two have to agree.  A key added to the table and not to the count
  * would leave the linter reading past the end of it.
  *
- * The declaration below is negative in that case, so the build fails at
- * the table rather than the linter running off it.  Every schema table
- * repeats this idiom under a name of its own; one line at each site
- * points back here rather than restating the reasoning sixteen times.
+ * Each such declaration below is negative in that case, so the build
+ * fails at the table rather than the linter running off it.  Every
+ * schema table repeats this idiom under a name of its own; one line at
+ * each site points back here rather than restating the reasoning
+ * sixteen times.
  *
- * @note C99 has no @c static_assert, which is what this stands in for
+ * C99 has no @c static_assert, which is what this stands in for
  */
 
 

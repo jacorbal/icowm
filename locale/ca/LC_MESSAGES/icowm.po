@@ -634,3 +634,7 @@ msgstr ""
 "install fortune-mod' (o l'encanteri que la vostra distribució demani), "
 "perquè els savis d'antany puguin novament parlar a través d'aquest humil "
 "diàleg."
+
+#: include/defs/uistr.h
+msgid "Go to viewport page 0-9"
+msgstr "Vés a la pàgina 0-9 de la vista"

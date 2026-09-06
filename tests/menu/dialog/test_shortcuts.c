@@ -59,8 +59,10 @@ static xcb_connection_t *const s_fake_connection =
  *  'dialog_shortcuts_show' 's own stack-local 'struct
  *  s_shortcuts_ctx_s', gone the instant it returns */
 static int s_call_show_pairs;
-static char s_captured_labels[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
-static char s_captured_values[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
+static char s_captured_labels
+        [DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
+static char s_captured_values
+        [DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
 static bool s_captured_has_value[DIALOG_MSG_MAX_LINES];
 static bool s_captured_has_label[DIALOG_MSG_MAX_LINES];
 static uint8_t s_captured_count;

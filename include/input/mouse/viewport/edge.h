@@ -1,5 +1,5 @@
 /**
- * @file input/mouse/viewport_edge.h
+ * @file input/mouse/viewport/edge.h
  *
  * @brief Edge-triggered viewport pan while the pointer merely rests at
  *        a screen edge, no drag in progress

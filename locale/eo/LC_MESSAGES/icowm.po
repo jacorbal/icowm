@@ -633,3 +633,7 @@ msgstr ""
 "pakaĵadministrilon per sorĉo kiel 'sudo apt install fortune-mod' (aŭ kian "
 "ajn ĉarmon via distribuo postulas), por ke la saĝuloj de la pasinteco denove "
 "povu paroli tra ĉi tiu humila dialogo."
+
+#: include/defs/uistr.h
+msgid "Go to viewport page 0-9"
+msgstr "Iri al la videja paĝo 0-9"

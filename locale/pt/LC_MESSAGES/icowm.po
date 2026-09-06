@@ -633,3 +633,7 @@ msgstr ""
 "ao vosso gestor de pacotes com um conjuro tal como 'sudo apt install fortune-"
 "mod' (ou o feitiço que a vossa distribuição exija), para que os sábios de "
 "outrora possam mais uma vez falar através deste humilde diálogo."
+
+#: include/defs/uistr.h
+msgid "Go to viewport page 0-9"
+msgstr "Ir para a página 0-9 da vista"

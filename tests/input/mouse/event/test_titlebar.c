@@ -72,9 +72,11 @@
 
 
 /** Controllable layout the next client_titlebar_layout call reports */
-static struct titlebar_button_layout_s s_stub_left[CONFIG_MAX_TITLEBAR_BUTTONS];
+static struct titlebar_button_layout_s s_stub_left
+        [CONFIG_MAX_TITLEBAR_BUTTONS];
 static uint8_t s_stub_left_n;
-static struct titlebar_button_layout_s s_stub_right[CONFIG_MAX_TITLEBAR_BUTTONS];
+static struct titlebar_button_layout_s s_stub_right
+        [CONFIG_MAX_TITLEBAR_BUTTONS];
 static uint8_t s_stub_right_n;
 static int16_t s_stub_btn_y;
 static int s_titlebar_layout_calls;

@@ -634,3 +634,7 @@ msgstr ""
 "mediante algún conjuro cual 'sudo apt install fortune-mod' (o el hechizo que "
 "vuestra distribución hubiere menester), para que las voces de los sabios de "
 "antaño tornen a hablar por medio de este humilde diálogo."
+
+#: include/defs/uistr.h
+msgid "Go to viewport page 0-9"
+msgstr "Ir a la página 0-9 de la vista"

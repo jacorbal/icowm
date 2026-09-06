@@ -40,8 +40,7 @@
  * @note A no-op, clearing any pending pan, unless the surface the drag
  *       is on has @c desktops.pan_on_edge_drag enabled and its current
  *       desktop's viewport still has room to pan toward the held edge
- *       (see @a scmd_surface_viewport_pan_available, @c cmds/
- *       surface.h)
+ *       (see @a scmd_surface_viewport_pan_available, @c cmds/surface.h)
  * @note Complexity: @e O(1)
  */
 void drag_pan_edge_check(int16_t root_x, int16_t root_y);
@@ -67,8 +66,8 @@ int drag_pan_ms_remaining(void);
  * Meant to be called on every main-loop iteration, the same way
  * @a drag_warp_tick is (see @c loop.c), so a pointer left resting
  * against a screen edge during a window or icon move still keeps
- * panning the viewport even with no further @c MotionNotify arriving
- * to drive it: unlike a desktop warp, panning never moves the pointer
+ * panning the viewport even with no further @c MotionNotify arriving to
+ * drive it: unlike a desktop warp, panning never moves the pointer
  * itself, so nothing else would otherwise wake this back up.  A no-op
  * when no pan is currently pending, its countdown has not yet elapsed,
  * the drag it belonged to is no longer a plain window or icon move,
@@ -85,7 +84,7 @@ int drag_pan_ms_remaining(void);
  * fired, immediately re-arms its own countdown at the shorter
  * @c WM_VIEWPORT_PAN_REPEAT_MS interval (@c defs/desktop.h) for as long
  * as the edge stays held, so a single edge hold pans repeatedly rather
- * than only once, exactly like @c input/mouse/viewport_edge.h's
+ * than only once, exactly like @c input/mouse/viewport/edge.h's
  * hover-triggered counterpart.
  *
  * @param connection XCB connection

@@ -636,3 +636,7 @@ msgstr ""
 "fortune-mod' (o qual sortilegio la vostra distribuzione richieda), affinché "
 "i saggi d'un tempo possano ancora una volta parlare attraverso questo umile "
 "dialogo."
+
+#: include/defs/uistr.h
+msgid "Go to viewport page 0-9"
+msgstr "Vai alla pagina 0-9 della vista"

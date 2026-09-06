@@ -31,7 +31,7 @@
 #include <input/mouse/drag/warp.h>
 #include <input/mouse/event.h>
 #include <input/mouse/hover.h>
-#include <input/mouse/viewport_edge.h>
+#include <input/mouse/viewport/edge.h>
 
 /* Menu includes */
 #include <menu/dialog/confirm.h>
@@ -158,9 +158,9 @@ int loop_timers_timeout(const loop_ctx_td *ctx)
 
     /* Shorter still while the pointer, with no drag in progress, is
      * holding against a pan-eligible screen edge (see
-     * 'mouse_viewport_edge_tick' in input/mouse/viewport_edge.h), so
-     * it still pans the viewport once its countdown elapses even with
-     * no further 'MotionNotify' arriving to drive it. */
+     * 'mouse_viewport_edge_tick' in input/mouse/viewport/edge.h), so it
+     * still pans the viewport once its countdown elapses even with no
+     * further 'MotionNotify' arriving to drive it. */
     s_loop_timers_tighten(&poll_timeout_ms,
             mouse_viewport_edge_ms_remaining());
 

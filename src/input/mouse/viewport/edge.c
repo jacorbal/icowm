@@ -1,5 +1,5 @@
 /**
- * @file input/mouse/viewport_edge.c
+ * @file input/mouse/viewport/edge.c
  *
  * @brief Viewport pan triggered by resting the pointer against a
  *        screen edge, no drag in progress
@@ -60,7 +60,7 @@
 #include <utils/time/clock.h>
 
 /* Local includes */
-#include <input/mouse/viewport_edge.h>
+#include <input/mouse/viewport/edge.h>
 
 
 /** Whether an edge hold is currently counting down toward a pan */

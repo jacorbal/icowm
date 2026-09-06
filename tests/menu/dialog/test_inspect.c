@@ -61,8 +61,10 @@ static xcb_connection_t *const s_fake_connection =
  *  s_inspect_ctx_s', file-static to inspect.c) goes out of scope the
  *  instant 'dialog_inspect_show' returns */
 static int s_call_show_pairs;
-static char s_captured_labels[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
-static char s_captured_values[DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
+static char s_captured_labels
+        [DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
+static char s_captured_values
+        [DIALOG_MSG_MAX_LINES][DIALOG_MSG_LINE_MAX_LENGTH];
 static bool s_captured_has_value[DIALOG_MSG_MAX_LINES];
 static bool s_captured_has_label[DIALOG_MSG_MAX_LINES];
 static uint8_t s_captured_count;

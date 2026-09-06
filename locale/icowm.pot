@@ -587,3 +587,6 @@ msgstr ""
 msgid "Alack!  The oracle 'fortune' abideth not upon this machine, wherefore no wisdom of the ancients may this day be divined.  Prithee, entreat thy package steward with an incantation such as 'sudo apt install fortune-mod' (or whate'er charm thy distribution demandeth), that the sages of yore might once more speak through this humble dialog."
 msgstr ""
 
+#: include/defs/uistr.h
+msgid "Go to viewport page 0-9"
+msgstr ""

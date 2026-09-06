@@ -106,12 +106,13 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
  * file) would fight that logic instead of cooperating with it: an
  * outline drag in particular parks the real window off screen for
  * the whole drag and must never have that parking spot silently
- * nudged back toward the visible screen by an unrelated pan.  Passing
- * @c NULL clears the exclusion once the drag ends or is cancelled.
+ * nudged back toward the visible screen by an unrelated pan.
  *
  * @param client Client to exclude from every future pan's translate
  *               walk until cleared, or @c NULL to clear it
  *
+ * @note Passing @c NULL clears the exclusion once the drag ends or is
+ *       cancelled
  * @note Complexity: @e O(1)
  */
 void scmd_surface_viewport_drag_exclude(client_td *client);
@@ -130,9 +131,9 @@ void scmd_surface_viewport_drag_exclude(client_td *client);
  *
  * @param surface Surface whose configured viewport size to check
  *
- * @return @c true if some drag or keybind could still pan @p
- *         surface's viewport by at least one screen in some
- *         direction, @c false if it is a plain @c {1,1} desktop
+ * @retval  true if some drag or keybind could still pan @p surface's
+ *               viewport by at least one screen in some direction
+ * @retval false if it is a plain @c {1,1} desktop
  *
  * @note Complexity: @e O(1)
  */
@@ -227,7 +228,8 @@ void scmd_surface_viewport_pan_step(surface_td *surface,
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the current desktop
  */
-void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y);
+void scmd_surface_viewport_set(surface_td *surface,
+        int32_t x, int32_t y);
 
 /**
  * @brief Jump the current desktop's viewport straight to one of its
@@ -238,13 +240,13 @@ void scmd_surface_viewport_set(surface_td *surface, int32_t x, int32_t y);
  * viewport_pan_east and its siblings already derive each one-screen
  * step: @p page's row is its index divided by the configured column
  * count, its column the remainder, each then multiplied by the
- * desktop's own screen-sized dimensions to land on that page's
- * top-left pixel, handed to @a scmd_surface_viewport_set exactly as
- * a pager's absolute request would be.  Out of the configured
- * @c columns * @c rows range, @p page is refused outright rather than
- * clamped into range: unlike a pan or a pager's arbitrary pixel
- * origin, a page index has no meaningful nearest neighbor to fall
- * back to once it no longer names any real page at all.
+ * desktop's own screen-sized dimensions to land on that page's top-left
+ * pixel, handed to @a scmd_surface_viewport_set exactly as a pager's
+ * absolute request would be.  Out of the configured
+ * @c (columns * @c rows) range, @p page is refused outright rather than
+ * clamped into range: unlike a pan or a pager's arbitrary pixel origin,
+ * a page index has no meaningful nearest neighbor to fall back to once
+ * it no longer names any real page at all.
  *
  * @param surface Pointer to the surface
  * @param page    Zero-based page index, in row-major order across the
@@ -262,11 +264,11 @@ void scmd_surface_viewport_goto(surface_td *surface, uint32_t page);
  *
  * The page a client's own position falls on rather than the page
  * @p desktop's viewport currently happens to show: the two agree
- * whenever the client is actually visible, but a client parked on a
- * page the viewport is not currently panned to (still tracked
- * correctly, its position simply not translated by the pan that
- * moved everything else) needs its own answer, e.g. for a search
- * result naming where a match actually is.
+ * whenever the client is actually visible, but a client parked on
+ * a page the viewport is not currently panned to (still tracked
+ * correctly, its position simply not translated by the pan that moved
+ * everything else) needs its own answer, e.g., for a search result
+ * naming where a match actually is.
  *
  * @param surface   Surface @p desktop belongs to, whose configured
  *                  viewport size the page is computed against
@@ -277,9 +279,9 @@ void scmd_surface_viewport_goto(surface_td *surface, uint32_t page);
  * @param row_out   Resulting zero-based row, updated in place only on
  *                  a @c true return
  *
- * @return @c false if @p surface, @p desktop, or @p client is
- *         @c NULL, or if the configured viewport is a plain @c 1x1
- *         (panning disabled, nothing meaningful to report)
+ * @retval false if @p surface, @p desktop, or @p client is @c NULL, or
+ *               if the configured viewport is a plain @c 1x1 (panning
+ *               disabled, nothing meaningful to report)
  *
  * @note Complexity: @e O(1)
  */
@@ -306,15 +308,16 @@ bool scmd_surface_viewport_client_page(const surface_td *surface,
  * @note Complexity: @e O(1)
  */
 bool scmd_surface_viewport_desktop_page(const surface_td *surface,
-        const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out);
+        const desktop_td *desktop,
+        uint32_t *col_out, uint32_t *row_out);
 
 /**
  * @brief Pan the current desktop's viewport, if needed, so a client
  *        not currently visible ends up centered on screen
  *
  * A no-op, leaving the viewport exactly where it already was, when
- * @p client's current on-screen position already intersects the
- * visible page at all: this only ever moves the viewport to bring an
+ * @p client's current on-screen position already intersects the visible
+ * page at all: this only ever moves the viewport to bring an
  * otherwise-invisible match into view, never nudges one already at
  * least partly on screen just to perfect its centering.
  *

@@ -27,7 +27,7 @@
 #include <input/mouse/drag/background.h>
 #include <input/mouse/event.h>
 #include <input/mouse/hover.h>
-#include <input/mouse/viewport_edge.h>
+#include <input/mouse/viewport/edge.h>
 
 /* Policy includes */
 #include <policy/placement/manual.h>

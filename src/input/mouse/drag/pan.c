@@ -10,19 +10,20 @@
  * the two a held edge actually means is decided by
  * @a scmd_surface_viewport_pan_available (@c cmds/surface.h), consulted
  * by both files independently rather than through a decision made once
- * here and handed to the other, so neither has to know the other
- * exists at all.  Like that sibling, a pan also warps the pointer
- * along with whatever it is dragging (@a s_pan_pointer_target below),
- * keeping the two visually glued together instead of leaving the
- * pointer resting at the screen edge while the window moves out from
- * under it.  Unlike that sibling, though, panning does not rely on
- * further motion to keep going: like @c input/mouse/viewport_edge.c's
- * hover-triggered version, this one re-arms its own countdown
- * unconditionally on every @a drag_pan_tick, at the same
- * @c WM_VIEWPORT_PAN_REPEAT_MS cadence that one already uses, so a
- * pointer held stationary against a physical screen edge (generating
- * no further @c MotionNotify events at all) still keeps panning for as
- * long as there is room to.
+ * here and handed to the other, so neither has to know the other exists
+ * at all.
+ *
+ * Like that sibling, a pan also warps the pointer along with whatever
+ * it is dragging (@a s_pan_pointer_target below), keeping the two
+ * visually glued together instead of leaving the pointer resting at the
+ * screen edge while the window moves out from under it.  Unlike that
+ * sibling, though, panning does not rely on further motion to keep
+ * going: like @c input/mouse/viewport/edge.c's hover-triggered version,
+ * this one re-arms its own countdown unconditionally on every @a
+ * drag_pan_tick, at the same @c WM_VIEWPORT_PAN_REPEAT_MS cadence that
+ * one already uses, so a pointer held stationary against a physical
+ * screen edge (generating no further @c MotionNotify events at all)
+ * still keeps panning for as long as there is room to.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -426,8 +427,8 @@ void drag_pan_tick(xcb_connection_t *connection)
             !surface->config->desktops.pan_on_edge_drag ||
             !scmd_surface_viewport_pan_available(surface,
                 s_drag.pan_direction)) {
-        /* Live re-check: the config, or the viewport's own room to
-         * pan, may have changed since this was armed. */
+        /* Live re-check: the config, or the viewport's own room to pan,
+         * may have changed since this was armed. */
         return;
     }
 
@@ -437,44 +438,43 @@ void drag_pan_tick(xcb_connection_t *connection)
     }
 
     /* Read the delta back from the origin itself, before and after,
-     * rather than assuming a full, unclamped screen step: the
-     * viewport can already sit at an unaligned origin coming from a
-     * background pan drag ('input/mouse/drag/background.c') or an
-     * EWMH '_NET_DESKTOP_VIEWPORT' request, in which case
-     * 's_viewport_apply_origin' (cmds/surface.c) clamps the requested
-     * step short of a whole screen.  Recomputing it this way instead
-     * of assuming the step always lands exactly a whole screen away
-     * keeps the dragged client in lock-step with every other client
-     * on the desktop, which that same function already moved by
-     * whatever the real, possibly-clamped delta turned out to be. */
+     * rather than assuming a full, unclamped screen step: the viewport
+     * can already sit at an unaligned origin coming from a background
+     * pan drag ('input/mouse/drag/background.c') or an EWMH
+     * '_NET_DESKTOP_VIEWPORT' request, in which case
+     * 's_viewport_apply_origin' ('cmds/surface.c') clamps the requested
+     * step short of a whole screen.  Recomputing it this way instead of
+     * assuming the step always lands exactly a whole screen away keeps
+     * the dragged client in lock-step with every other client on the
+     * desktop, which that same function already moved by whatever the
+     * real, possibly-clamped delta turned out to be. */
     origin_before = desktop->viewport_origin;
     s_pan_apply(surface, s_drag.pan_direction);
     delta.x = origin_before.x - desktop->viewport_origin.x;
     delta.y = origin_before.y - desktop->viewport_origin.y;
 
     /* A sticky dragged client never actually moves under a pan (see
-     * 's_pan_move_dragged''s own early return), so warping the
-     * pointer here too would be the one thing that pulled it away
-     * from the client instead of keeping it glued on, the exact
-     * opposite of the point of this whole step; skipping this whole
-     * block for one leaves 'last_root_x'/'last_root_y' untouched,
-     * exactly matching the pointer's own real, stationary position. */
+     * 's_pan_move_dragged''s own early return), so warping the pointer
+     * here too would be the one thing that pulled it away from the
+     * client instead of keeping it glued on, the exact opposite of the
+     * point of this whole step; skipping this whole block for one
+     * leaves 'last_root_x'/'last_root_y' untouched, exactly matching
+     * the pointer's own real, stationary position. */
     if (!client_is_sticky(s_drag.client)) {
         s_pan_pointer_target(delta, &new_root_x, &new_root_y);
 
-        /* Clamp 'delta' itself down to whatever the pointer just
-         * warped by, in place, before handing it to
-         * 's_pan_move_dragged' below: computing the pointer's own
-         * target first, rather than after moving the window, is what
-         * lets the dragged window follow the pointer's real,
-         * possibly-smaller movement instead of the raw viewport step
-         * 's_pan_apply' moved every other client by.  Once the
-         * pointer is already pinned at a physical screen edge, this
-         * makes the difference zero, so a held edge keeps panning
-         * the viewport underneath the window without dragging it any
-         * further away from the now-stationary pointer, exactly the
-         * glue a repeated hold at the edge needs and, before this,
-         * did not have. */
+        /* Clamp 'delta' itself down to whatever the pointer just warped
+         * by, in place, before handing it to 's_pan_move_dragged'
+         * below: computing the pointer's own target first, rather than
+         * after moving the window, is what lets the dragged window
+         * follow the pointer's real, possibly-smaller movement instead
+         * of the raw viewport step 's_pan_apply' moved every other
+         * client by.  Once the pointer is already pinned at a physical
+         * screen edge, this makes the difference zero, so a held edge
+         * keeps panning the viewport underneath the window without
+         * dragging it any further away from the now-stationary pointer,
+         * exactly the glue a repeated hold at the edge needs and,
+         * before this, did not have. */
         delta.x = (int32_t) new_root_x - (int32_t) s_drag.last_root_x;
         delta.y = (int32_t) new_root_y - (int32_t) s_drag.last_root_y;
         s_pan_move_dragged(connection, is_icon, delta);
@@ -483,24 +483,24 @@ void drag_pan_tick(xcb_connection_t *connection)
                 0, 0, 0, 0, new_root_x, new_root_y);
 
         /* Matches 'last_root_x'/'last_root_y' up with the warp just
-         * issued, exactly as 'drag_warp_tick' (drag/warp.c) does after
-         * its own pointer warp: the synthetic 'MotionNotify' this
+         * issued, exactly as 'drag_warp_tick' ('drag/warp.c') does
+         * after its own pointer warp: the synthetic 'MotionNotify' this
          * generates then reports the same position already recorded
          * here, so 'drag_update' (drag.c) drops it as a duplicate
-         * rather than recomputing the very position this whole
-         * function just set. */
+         * rather than recomputing the very position this whole function
+         * just set. */
         s_drag.last_root_x = new_root_x;
         s_drag.last_root_y = new_root_y;
     }
 
-    /* Panning the viewport does not rely on a further 'MotionNotify'
-     * to keep going, unlike a desktop warp: re-arming here at the
-     * shorter repeat interval unconditionally, regardless of where the
-     * pointer warp just above landed, is what keeps a single edge hold
-     * panning repeatedly for as long as there is room to, exactly like
-     * 'mouse_viewport_edge_tick' (input/mouse/viewport_edge.c), rather
-     * than stalling as soon as a stationary pointer stops generating
-     * fresh motion events of its own. */
+    /* Panning the viewport does not rely on a further 'MotionNotify' to
+     * keep going, unlike a desktop warp: re-arming here at the shorter
+     * repeat interval unconditionally, regardless of where the pointer
+     * warp just above landed, is what keeps a single edge hold panning
+     * repeatedly for as long as there is room to, exactly like
+     * 'mouse_viewport_edge_tick' (cfr. 'input/mouse/viewport/edge.c'),
+     * rather than stalling as soon as a stationary pointer stops
+     * generating fresh motion events of its own. */
     s_drag.is_pan_pending = true;
     if (clock_gettime(CLOCK_MONOTONIC, &s_drag.pan_due) == 0) {
         clock_add_ms(&s_drag.pan_due, WM_VIEWPORT_PAN_REPEAT_MS);

@@ -635,3 +635,7 @@ msgstr ""
 "anzurufen (oder welcher Zauber auch immer Eure Distribution verlange), auf "
 "dass die Weisen der Vorzeit einst wieder durch diesen bescheidenen Dialog zu "
 "Euch sprechen mögen."
+
+#: include/defs/uistr.h
+msgid "Go to viewport page 0-9"
+msgstr "Zur Ansichtsseite 0-9"
