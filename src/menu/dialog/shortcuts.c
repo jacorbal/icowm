@@ -30,6 +30,9 @@
 #include <i18n.h>
 #include <surface.h>
 
+/* CMD includes */
+#include <cmds/surface.h>
+
 /* Local includes */
 #include <menu/dialog/shortcuts.h>
 #include <menu/dialog/message.h>
@@ -506,10 +509,16 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
             config->bindings.keyboard.window.shade);
     /* Not to be confused with STR_SHORTCUTS_PIN above; see
      * CLIENT_FLAG_STICKY's comment in client/state.h for the full
-     * distinction between the two */
-    s_append_binding(&ctx,
-            _(STR_SHORTCUTS_STICKY),
-            config->bindings.keyboard.window.sticky);
+     * distinction between the two.  Gated the same way that row is
+     * gated on 'desktop_count', except against the pannable viewport
+     * size: a viewport that can never pan leaves the flag nothing to
+     * hold a client still against, so the binding is not worth
+     * listing */
+    if (scmd_surface_viewport_has_room(surface)) {
+        s_append_binding(&ctx,
+                _(STR_SHORTCUTS_STICKY),
+                config->bindings.keyboard.window.sticky);
+    }
 
     s_append_group(&ctx,
             _(STR_SHORTCUTS_MOVE_RELATIVE),

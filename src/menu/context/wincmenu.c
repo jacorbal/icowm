@@ -50,6 +50,7 @@
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/state.h>
+#include <cmds/surface.h>
 
 /* Input includes */
 /* Keyboard modal move/resize */
@@ -868,13 +869,24 @@ void wincmenu_show(xcb_connection_t *connection,
      * a submenu; unrelated to the pin support inside "Send to
      * desktop" above despite the similar-sounding name (see
      * 'CLIENT_FLAG_STICKY''s comment in 'client/state.h' for the full
-     * distinction between the two). */
-    s_entry_command(&s_entries[n],
-            (client_is_sticky(client)) ? _(STR_WINCMENU_UNSTICK)
-                : _(STR_WINCMENU_STICK),
-            s_cb_send_action,
-            (void *) (intptr_t) ACTION_CLIENT_TOGGLE_STICKY, false);
-    ++n;
+     * distinction between the two).
+     *
+     * Omitted entirely, not just disabled, on a surface whose
+     * configured viewport is a single screen: a viewport that can
+     * never pan leaves the flag nothing to hold a client still
+     * against.  This is the same condition the titlebar's sticky
+     * button already hides itself under, in 'render/desktop.c' and
+     * 'input/mouse/event/titlebar.c', so both the button and this
+     * entry appear and disappear together. */
+    if (scmd_surface_viewport_has_room(surface)) {
+        s_entry_command(&s_entries[n],
+                (client_is_sticky(client)) ? _(STR_WINCMENU_UNSTICK)
+                    : _(STR_WINCMENU_STICK),
+                s_cb_send_action,
+                (void *) (intptr_t) ACTION_CLIENT_TOGGLE_STICKY,
+                false);
+        ++n;
+    }
 
     /* Layer (submenu): disabled while fullscreen, since a focused
      * fullscreen client's stacking is always forced above everything

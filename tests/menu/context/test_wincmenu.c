@@ -17,12 +17,13 @@
  * file-static callback closure ('s_cb_move', 's_cb_resize',
  * 's_cb_send_action', etc.) that is never invoked here, since no
  * test in this file activates a built entry, only inspects it.
- * 'surface_desktops_walk' and 'surface_monitor_for_point', by
- * contrast, are test-controlled: 'wincmenu_show' calls both directly
- * while building the "Send to desktop"/"Send to monitor" submenus,
- * so this file supplies working, minimal implementations rather than
- * stubs, letting the real submenu-building logic in 'wincmenu.c'
- * genuinely run end to end.
+ * 'surface_desktops_walk', 'surface_monitor_for_point' and
+ * 'scmd_surface_viewport_has_room', by contrast, are test-controlled:
+ * 'wincmenu_show' calls all three directly while deciding the "Send
+ * to desktop"/"Send to monitor" submenus and the Sticky entry, so
+ * this file supplies working, minimal implementations rather than
+ * stubs, letting the real building logic in 'wincmenu.c' genuinely
+ * run end to end.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -48,6 +49,7 @@
 #include <client/predicates.h>
 #include <client/state.h>
 #include <cmds/client/state.h>
+#include <cmds/surface.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
@@ -374,6 +376,20 @@ void surface_desktop_label(const surface_td *surface,
 }
 
 
+/** Test-controlled stand-in for @a scmd_surface_viewport_has_room,
+ *  answering whatever this file last registered, so the Sticky entry
+ *  can be inspected both present and omitted without building a whole
+ *  configuration around a pannable viewport
+ * @note Complexity: @e O(1) */
+static bool s_viewport_has_room;
+
+bool scmd_surface_viewport_has_room(const surface_td *surface)
+{
+    (void) surface;
+    return s_viewport_has_room;
+}
+
+
 /** Test-controlled stand-in for @a surface_monitor_for_point,
  *  answering whichever monitor this file last registered as
  *  "current" via @a s_current_monitor
@@ -416,6 +432,7 @@ static void s_reset(void)
 {
     s_captured_state = NULL;
     s_desktop_count = 0;
+    s_viewport_has_room = true;
     memset(s_desktops, 0, sizeof(s_desktops));
     memset(&s_current_monitor, 0, sizeof(s_current_monitor));
 }
@@ -728,6 +745,47 @@ static void s_test_show_fixed_entries_plain_client(void)
 
 
 /**
+ * @brief Verify Sticky is omitted entirely, not merely disabled, on a
+ *        surface whose configured viewport is a single screen, the
+ *        same condition the titlebar's sticky button hides under
+ */
+static void s_test_show_single_page_viewport_omits_sticky(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+    client_td *client;
+    config_td config;
+    struct position_s pos = { 0, 0 };
+    ctxmenu_entry_td *e;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&config, 0, sizeof(config));
+    surface.desktop_count = 1u;
+    surface.monitor_count = 1u;
+    s_viewport_has_room = false;
+    client = s_make_client();
+
+    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+            pos, &config);
+
+    e = s_captured_state->entries;
+    TAP_EQ_INT(s_captured_state->entry_count, 14,
+            "a 1x1 viewport yields 14 top-level entries, one fewer"
+            " than a pannable one");
+    TAP_EQ_STR(e[0].label, "Layer",
+            "Layer takes the first slot once Sticky is omitted");
+    TAP_EQ_INT((int) e[0].type, (int) CTXMENU_SUBMENU,
+            "that first entry really is the Layer submenu");
+    TAP_EQ_STR(e[13].label, "Close",
+            "Close still ends the menu, one slot earlier");
+
+    s_teardown();
+}
+
+
+/**
  * @brief Verify a fully-maximized client disables Move, Resize, and
  *        Layer, and enables Restore instead
  */
@@ -972,13 +1030,14 @@ static void s_test_wrappers(void)
 
 int main(void)
 {
-    TAP_PLAN(72);
+    TAP_PLAN(81);
 
     s_test_show_guards();
     s_test_show_single_desktop_single_monitor();
     s_test_show_multi_desktop_multi_monitor();
     s_test_show_pinned_relabels_pin_toggle();
     s_test_show_fixed_entries_plain_client();
+    s_test_show_single_page_viewport_omits_sticky();
     s_test_show_maximized_client();
     s_test_show_fullscreen_client();
     s_test_show_modal_client_blocks_fullscreen();

@@ -73,15 +73,18 @@
  * THREE submenus (Send to desktop, Send to monitor, Layer) +
  * ONE command (Un/sticky) + ONE separator + NINE commands (Restore,
  * Move, Resize, Iconify, Hide, Maximize, Un/fullscreen, Un/shade,
- * Un/decorate) + ONE separator + ONE command (Close) = SIXTEEN total.
+ * Un/decorate) + ONE separator + TWO commands (Inspect, Close) =
+ * SEVENTEEN total.
  *
- * "Send to monitor" only actually appears on a surface with more than
- * one monitor, so this counts it as always present for a simple,
- * constant capacity bound rather than optimizing the array size for the
- * common single-monitor case.  "Send to desktop" does not appear when
- * the topology is set to just one desktop.
+ * Three of those seventeen are conditional, and this counts each as
+ * always present for a simple, constant capacity bound rather than
+ * optimizing the array size for the common case.  "Send to desktop"
+ * does not appear when the topology is set to just one desktop,
+ * "Send to monitor" only appears on a surface with more than one
+ * monitor, and Un/sticky only when the configured viewport spans
+ * more than a single screen.
  */
-#define WINCMENU_FIXED_ENTRIES (16)
+#define WINCMENU_FIXED_ENTRIES (17)
 
 /**
  * @brief Total top-level entry slots:

@@ -39,6 +39,9 @@
 #include <config.h>
 #include <surface.h>
 
+/* CMD includes */
+#include <cmds/surface.h>
+
 /* Local includes */
 #include <menu/dialog/message.h>
 #include <menu/dialog/shortcuts.h>
@@ -69,6 +72,19 @@ static uint8_t s_captured_count;
 
 static config_td s_config;
 static surface_td s_surface;
+
+/** Test-controlled stand-in for @a scmd_surface_viewport_has_room,
+ *  answering whatever a scenario last registered, so the Sticky row
+ *  can be inspected both listed and omitted without linking all of
+ *  cmds/surface.c for one predicate
+ * @note Complexity: @e O(1) */
+static bool s_viewport_has_room;
+
+bool scmd_surface_viewport_has_room(const surface_td *surface)
+{
+    (void) surface;
+    return s_viewport_has_room;
+}
 
 
 /**
@@ -117,6 +133,7 @@ static void s_reset(void)
     s_surface.id = 0u;
     s_surface.desktop_count = 1u;
     s_surface.monitor_count = 1u;
+    s_viewport_has_room = true;
 }
 
 
@@ -423,9 +440,34 @@ static void s_test_append_group_joining(void)
 }
 
 
+/**
+ * @brief The Sticky row only appears while the configured viewport
+ *        spans more than a single screen, mirroring how the Pin row
+ *        depends on there being more than one desktop
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_test_viewport_gating(void)
+{
+    s_reset();
+    s_viewport_has_room = false;
+    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    TAP_OK(!s_any_row_contains(s_config.bindings.keyboard.window.sticky),
+            "shortcuts_show: sticky row absent on a viewport that"
+            " cannot pan");
+
+    s_reset();
+    s_viewport_has_room = true;
+    dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
+    TAP_OK(s_any_row_contains(s_config.bindings.keyboard.window.sticky),
+            "shortcuts_show: sticky row present once the viewport can"
+            " pan");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(24);
+    TAP_PLAN(26);
 
     s_test_null_guards();
     s_test_basic_show();
@@ -434,6 +476,7 @@ int main(void)
     s_test_desktop_count_gating();
     s_test_monitor_count_gating();
     s_test_desktop_layout_rows_gating();
+    s_test_viewport_gating();
     s_test_feature_toggles();
     s_test_append_group_joining();
 
