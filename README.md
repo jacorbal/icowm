@@ -40,7 +40,12 @@ Basic features are:
     a configurable orientation and starting corner, so that navigation,
     the search box, and the desktop-change notification may address
     a desktop by row and column, moving north, south, east, or west,
-    rather than by index alone.
+    rather than by index alone.  Independently of that grid, any single
+    desktop's own area may likewise be configured as a virtual canvas
+    wider and taller than the physical screen, panned into view a piece
+    at a time by a mouse drag upon the desktop's background or by
+    dedicated keyboard shortcuts, whether a window is being dragged
+    along with it or not.
 
   - **Configurable focus policies.**
     Both click-to-focus (`"click"`) and follow-mouse (`"sloppy"`)
