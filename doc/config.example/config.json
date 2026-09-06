@@ -36,8 +36,11 @@
         "on-viewport-move": true
     },
 
+    "urgency": {
+        "notify-activity": true
+    },
+
     "desktops": {
-        "notify-activity": true,
         "warp-on-edge-drag": true,
         "wrap-at-bounds": true,
         "margins": { "left": 0, "top": 0, "right": 0, "bottom": 0 }

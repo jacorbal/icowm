@@ -965,6 +965,25 @@ static void s_test_mesh_above_maximum_clamped(void)
 }
 
 
+/* 'urgency' is its own top-level section, not a key inside
+ * 'desktops': one notice governs it, and what that notice names
+ * depends on the desktop and the viewport page alike */
+static void s_test_urgency_section_loads(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load_with_defaults("{\"urgency\": {\"notify-activity\": false} }",
+            &base, &desktop);
+    TAP_OK(!base.urgency.notify_activity,
+            "urgency.notify-activity loads");
+
+    s_load_with_defaults("{}", &base, &desktop);
+    TAP_OK(base.urgency.notify_activity,
+            "and defaults on when the section is absent");
+}
+
+
 /* The overlay is its own section now, one widget with two triggers,
  * rather than a flag hidden inside 'desktops' */
 static void s_test_overlay_section_loads(void)
@@ -990,7 +1009,7 @@ static void s_test_overlay_section_loads(void)
 
 int main(void)
 {
-    TAP_PLAN(121);
+    TAP_PLAN(123);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
@@ -1015,6 +1034,7 @@ int main(void)
     s_test_viewport_rows_zero_rejected();
     s_test_viewport_columns_above_max_rejected();
     s_test_missing_topology_leaves_defaults();
+    s_test_urgency_section_loads();
     s_test_overlay_section_loads();
     s_test_mesh_absent_keeps_defaults();
     s_test_mesh_valid_values_kept();

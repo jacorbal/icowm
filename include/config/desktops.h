@@ -47,19 +47,6 @@
  */
 struct config_desktop_s {
     /**
-     * @brief Whether a client becoming urgent on a desktop other than
-     *        the one currently visible on its own surface shows an
-     *        informational popup naming that desktop, so the user is
-     *        not left unaware that something needs attention off-screen
-     *
-     * A client urgent on the currently visible desktop already gets its
-     * own titlebar blink instead, which this never duplicates.
-     *
-     * @see @c policy/urgency.h
-     */
-    bool notify_activity;
-
-    /**
      * @brief Whether dragging a window past a screen edge switches
      *        desktops
      *

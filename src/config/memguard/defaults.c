@@ -52,7 +52,7 @@ void config_set_default_values_memguard(config_td *config)
      * desktop to switch to. */
     config->base.overlay.on_desktop_switch = false;
     config->base.overlay.on_viewport_move = false;
-    config->desktops.notify_activity = false;
+    config->base.urgency.notify_activity = false;
     config->desktops.warp_on_edge_drag = false;
     config->base.viewport.pan_on_edge_drag = false;
     config->base.viewport.pan_on_edge_hover = false;

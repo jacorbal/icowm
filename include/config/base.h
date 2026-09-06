@@ -403,6 +403,23 @@ struct config_base_s {
     } windows;
 
     /**
+     * @brief What the manager does when a window asks for attention
+     *
+     * Not to be confused with @c a11y.json's own @c urgency section,
+     * which holds @c sound-bell and @c blink-interval-ms: those say
+     * how the attention request is made perceptible once the
+     * accessibility mode is switched on, while this says whether the
+     * manager announces one the user cannot see at all.  Ordinary
+     * behavior, on by default, rather than something behind
+     * @c a11y.json's own opt-in.
+     *
+     * @see @a desktop_clients_recompute_urgent in @c desktop/dclient.h
+     */
+    struct {
+        bool notify_activity;
+    } urgency;
+
+    /**
      * @brief The brief popup that names where the view has just
      *        moved to
      *

@@ -10,7 +10,7 @@
     },
 
     "urgency": {
-        "sound-bell": true,
-        "blink-interval-ms": 400
+        "blink-interval-ms": 400,
+        "sound-bell": true
     }
 }

@@ -625,7 +625,7 @@ surface_td *wm_get_desktop_surface(const desktop_td *desktop);
  *         is not initialized
  *
  * @note @a desktop_action_recompute_urgent (@c desktop/dclient.c) is
- *       the first such caller, reading @p desktops.notify-activity
+ *       the first such caller, reading @p urgency.notify-activity
  * @note Complexity: @e O(1)
  *
  * @see @p client_td.config_base and @p desktop_td.config_base

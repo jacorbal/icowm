@@ -92,8 +92,6 @@ static const config_lint_key_td s_schema_topology[] = {
 };
 
 static const config_lint_key_td s_schema_desktops[] = {
-    {"notify-activity", NULL, 0u,
-        0, NULL, 0u, NULL},
     {"warp-on-edge-drag", NULL, 0u,
         0, NULL, 0u, NULL},
     {"wrap-at-bounds", NULL, 0u,
@@ -137,6 +135,11 @@ static const config_lint_key_td s_schema_windows_edges[] = {
 
 static const config_lint_key_td s_schema_placement_wrapper[] = {
     {"placement", NULL, 0u,
+        0, NULL, 0u, NULL}
+};
+
+static const config_lint_key_td s_schema_urgency[] = {
+    {"notify-activity", NULL, 0u,
         0, NULL, 0u, NULL}
 };
 
@@ -263,6 +266,9 @@ const config_lint_key_td s_schema_config[] = {
         0, NULL, 0u, NULL},
     {"windows", s_schema_windows,
         sizeof(s_schema_windows) / sizeof(s_schema_windows[0]),
+        0, NULL, 0u, NULL},
+    {"urgency", s_schema_urgency,
+        sizeof(s_schema_urgency) / sizeof(s_schema_urgency[0]),
         0, NULL, 0u, NULL},
     {"overlay", s_schema_overlay,
         sizeof(s_schema_overlay) / sizeof(s_schema_overlay[0]),

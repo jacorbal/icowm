@@ -275,7 +275,7 @@
  * 'desktop_action_recompute_urgent'): shown, via the shared message
  * dialog ('menu/dialog/message.h') at 'MENU_MSG_LEVEL_INFO', when
  * a client becomes urgent on a desktop other than the one currently
- * visible on its own surface (see 'desktops.notify-activity' in
+ * visible on its own surface (see 'urgency.notify-activity' in
  * config.json).
  *
  * TRANSLATION: keep every '%u' (a desktop's index, or, only in

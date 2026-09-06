@@ -152,6 +152,7 @@ int config_load_base(const char *filename,
     cJSON *prompt;
     cJSON *scratchpad;
     cJSON *windows;
+    cJSON *urgency;
     cJSON *overlay;
     cJSON *viewport;
     cJSON *icons;
@@ -324,6 +325,13 @@ int config_load_base(const char *filename,
             json_load_bool(placement, "group-related",
                     &config_base->windows.group_related);
         }
+    }
+
+    /* Load urgency configuration */
+    urgency = cJSON_GetObjectItem(json, "urgency");
+    if (urgency) {
+        json_load_bool(urgency, "notify-activity",
+                &config_base->urgency.notify_activity);
     }
 
     /* Load overlay configuration */

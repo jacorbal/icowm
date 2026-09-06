@@ -406,7 +406,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
         const config_td *config = wm_get_config();
 
         if (surface != NULL && desktop->id != surface->desktop_cur &&
-                config != NULL && config->desktops.notify_activity &&
+                config != NULL && config->base.urgency.notify_activity &&
                 !menu_message_dialog_is_open()) {
             const list_td *surfaces = wm_get_surfaces();
             uint32_t surface_count = (surfaces != NULL)
