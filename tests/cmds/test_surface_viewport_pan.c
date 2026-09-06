@@ -1169,6 +1169,46 @@ static void s_test_center_on_client_within_canvas_is_not_clamped(void)
 }
 
 
+/* The same, from a viewport already panned away from its origin: a
+ * client's recorded position is relative to what is on screen, so the
+ * defensive clamp has to convert to canvas coordinates before bounding
+ * it.  Bounding the screen-relative value directly would drag every
+ * client on an earlier page toward the current one, and then leave the
+ * viewport where it was because the dragged client now overlaps the
+ * screen */
+static void s_test_center_on_client_from_panned_origin(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 800, 0);
+    client_td *client = s_make_client(-800, 0, false);
+
+    client->layout.geometry.cur.dim.w = 400u;
+    client->layout.geometry.cur.dim.h = 300u;
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 3u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    scmd_surface_viewport_center_on_client(surface, client);
+    TAP_EQ_INT(client->layout.geometry.cur.pos.x, -800,
+            "a client one page west of a panned viewport is left" \
+            " exactly where it is, not dragged toward the current" \
+            " page");
+    TAP_EQ_INT(desktop->viewport_origin.x, 0,
+            "the viewport pans west to the client's own page" \
+            " instead");
+
+    free(surface);
+    free(desktop);
+    free(client);
+}
+
+
 /* A client whose recorded position ended up entirely outside the
  * desktop's own canvas (the kind of corruption a drag/pan/warp
  * calculation should never produce, but which this defensive backstop
@@ -1251,7 +1291,7 @@ static void s_test_center_on_client_already_visible_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(78);
+    TAP_PLAN(80);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
@@ -1277,6 +1317,7 @@ int main(void)
     s_test_goto_moves_to_correct_page();
     s_test_goto_out_of_range_page_is_noop();
     s_test_center_on_client_within_canvas_is_not_clamped();
+    s_test_center_on_client_from_panned_origin();
     s_test_center_on_client_outside_canvas_is_clamped();
     s_test_center_on_client_already_visible_is_noop();
 

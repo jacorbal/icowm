@@ -497,12 +497,26 @@ static void s_viewport_clamp_client_to_canvas(surface_td *surface,
     max_x = canvas_w - 1;
     max_y = canvas_h - 1;
 
-    clamped_x = client->layout.geometry.cur.pos.x;
-    clamped_y = client->layout.geometry.cur.pos.y;
+    /* Converted to canvas coordinates before being bounded, and back
+     * afterwards.  A client's recorded position is relative to what is
+     * on screen, not to the canvas: 's_viewport_translate_visit' above
+     * shifts every non-sticky one of them by the pan delta, so the same
+     * window reads a different position from every viewport origin.
+     * Bounding the screen-relative value directly against a canvas-wide
+     * limit would drag every client on some other page back toward the
+     * current one the moment the origin left zero, which is exactly
+     * what this function's own contract above says it must never
+     * do. */
+    clamped_x = client->layout.geometry.cur.pos.x +
+        desktop->viewport_origin.x;
+    clamped_y = client->layout.geometry.cur.pos.y +
+        desktop->viewport_origin.y;
     clamped_x = (clamped_x < min_x) ? min_x : clamped_x;
     clamped_x = (clamped_x > max_x) ? max_x : clamped_x;
     clamped_y = (clamped_y < min_y) ? min_y : clamped_y;
     clamped_y = (clamped_y > max_y) ? max_y : clamped_y;
+    clamped_x -= desktop->viewport_origin.x;
+    clamped_y -= desktop->viewport_origin.y;
 
     if (clamped_x == client->layout.geometry.cur.pos.x &&
             clamped_y == client->layout.geometry.cur.pos.y) {
