@@ -306,6 +306,8 @@ void dialog_inspect_show(xcb_connection_t *connection,
             sizeof(yes), "shaded");
     s_inspect_flag(client_is_pinned(client) ? yes : no,
             sizeof(yes), "pinned");
+    s_inspect_flag((client_is_sticky(client)) ? yes : no,
+            sizeof(yes), "sticky");
     s_inspect_flag(client_is_maximized(client) ? yes : no,
             sizeof(yes), "maximized");
     s_inspect_flag(client_is_fullscreen(client) ? yes : no,

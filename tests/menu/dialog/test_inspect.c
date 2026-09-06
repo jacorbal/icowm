@@ -387,6 +387,9 @@ static void s_test_state_flags_partition_is_and_is_not(void)
     TAP_OK(is_list != NULL && strstr(is_list, "iconified") != NULL,
             "inspect_show: an iconified client lists \"iconified\" in"
             " Is");
+    TAP_OK(is_not_list != NULL && strstr(is_not_list, "sticky") != NULL,
+            "inspect_show: a non-sticky client lists \"sticky\" in Is"
+            " not");
 }
 
 
@@ -465,7 +468,7 @@ static void s_test_transient_relations_rows(void)
 
 int main(void)
 {
-    TAP_PLAN(27);
+    TAP_PLAN(28);
 
     s_test_null_guards();
     s_test_identity_and_placement_rows();
