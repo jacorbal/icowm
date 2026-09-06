@@ -285,16 +285,14 @@
  * applied to the surface-suffix variant right below it.
  *
  * TRANSLATION: keep the '%s' (a desktop's name) */
-#define STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT \
-    " -- %s"
+#define STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT " -- %s"
 
 /* Appended after the base message above and, if the desktop that had
  * activity has a name of its own, the name suffix right above this
  * one too; only when more than one surface is managed (a
  * single-surface setup, by far the common case, has nothing
  * to disambiguate) */
-#define STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT \
-    " (on surface %u)"
+#define STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT " (on surface %u)"
 
 /* Battery indicator ('src/systray/battery.c') */
 #define STR_BATTERY_NOT_AVAILABLE "N/A"
