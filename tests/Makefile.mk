@@ -565,7 +565,7 @@ $(O_DIR)/tests/input/mouse/drag/test_background: \
 
 $(O_DIR)/tests/input/mouse/test_viewport_edge: \
 		$(TESTS_DIR)/input/mouse/test_viewport_edge.c \
-		$(S_DIR)/input/mouse/viewport_edge.c \
+		$(S_DIR)/input/mouse/viewport/edge.c \
 		$(S_DIR)/utils/time/clock.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)

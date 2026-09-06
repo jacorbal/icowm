@@ -363,7 +363,7 @@ static void s_reset(void)
 }
 
 
-static config_td s_make_config(bool show_overlay)
+static config_td s_make_config(bool is_shown)
 {
     config_td cfg;
 
@@ -373,8 +373,8 @@ static config_td s_make_config(bool show_overlay)
     cfg.theme.overlay.border.color = 0x222222u;
     cfg.theme.overlay.border.width = 1u;
     cfg.theme.overlay.opacity = 80u;
-    cfg.base.overlay.on_desktop_switch = show_overlay;
-    cfg.base.overlay.on_viewport_move = show_overlay;
+    cfg.base.overlay.on_desktop_switch = is_shown;
+    cfg.base.overlay.on_viewport_move = is_shown;
     return cfg;
 }
 
@@ -445,9 +445,9 @@ static void s_test_show_respects_overlay_toggle(void)
             NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
 
     TAP_EQ_INT(s_call_surface_desktop_label, 0,
-            "show_overlay=false skips formatting the label entirely");
+            "a disabled overlay skips formatting the label entirely");
     TAP_EQ_INT(s_call_xcb_create_window, 0,
-            "show_overlay=false never opens a popup window");
+            "a disabled overlay never opens a popup window");
     TAP_OK(!notify_desktop_is_open(),
             "the notification is correctly reported as not open");
 }

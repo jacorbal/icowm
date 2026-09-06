@@ -275,7 +275,7 @@ void mouse_handle_motion_hover(xcb_connection_t *connection,
 
 
 /** Link-only stand-in for mouse_viewport_edge_check
- *  (input/mouse/viewport_edge.c) */
+ *  (input/mouse/viewport/edge.c) */
 void mouse_viewport_edge_check(list_td *surfaces, xcb_window_t root,
         int16_t root_x, int16_t root_y)
 {

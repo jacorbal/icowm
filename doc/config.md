@@ -22,8 +22,9 @@ values, and built-in default value.
    - [2.10. `desktops`](#210-desktops)
    - [2.11. `scratchpad`](#211-scratchpad)
    - [2.12. `prompt`](#212-prompt)
-   - [2.13. `viewport`](#213-viewport)
-   - [2.14. Reload behavior](#214-reload-behavior)
+   - [2.13. `overlay`](#213-overlay)
+   - [2.14. `viewport`](#214-viewport)
+   - [2.15. Reload behavior](#215-reload-behavior)
 3. [`bindings.json`: Keyboard and mouse bindings](#3-bindingsjson-keyboard-and-mouse-bindings)
    - [3.1. Binding syntax](#31-binding-syntax)
    - [3.2. `modifiers`](#32-modifiers)
@@ -550,10 +551,10 @@ The exception is on `topology` parameters themselves (screen count, and
 how many desktops each screen has, along with each desktop's
 `name`/`background-color`).  Changing any of these and reloading has no
 effect on an already-running window manager.  This does not extend to
-the separate, sibling `desktops` section (`show-overlay`,
-`warp-on-edge-drag`, `wrap-at-bounds`, `margins`) despite the similar
-name.  That one describes navigation behavior and reserved space, not
-topology, and does take effect on reload, same as everything else.
+the separate, sibling `desktops` section (`warp-on-edge-drag`,
+`wrap-at-bounds`, `margins`) despite the similar name.  That one
+describes navigation behavior and reserved space, not topology, and
+does take effect on reload, same as everything else.
 Every other field in `config.json`, and every other configuration file
 (`bindings.json`, `menus.json`, `randr.json`, `rules.json`,
 `session.json`, and the active theme), does take effect on reload, as
@@ -1424,7 +1425,7 @@ Keeping the two triggers separate is deliberate: panning is far more
 frequent than switching desktops, so wanting the announcement for one
 and not the other is a reasonable preference.
 
-### 2.13. `viewport`
+### 2.14. `viewport`
 
 Keyboard step size for panning a desktop's viewport, a sibling of
 `desktops` (§2.10) and `topology` (§2.2) at the root of `config.json`.
@@ -1523,7 +1524,7 @@ gives `20`, while writing `3` gives `10`, as `10` is the minimum value
 that it allows.  `thickness` is validated after both spacings, since its
 ceiling follows whichever of them ended up smaller.
 
-### 2.14. Reload behavior
+### 2.15. Reload behavior
 
 Reloading the configuration (`SIGHUP`, the reload keybinding, or the
 root menu action) re-reads whichever theme file `config.json` names and
@@ -1910,7 +1911,7 @@ is this manager's own concept.
 
 #### `keyboard.viewport.pan`
 
-Pans the current desktop's viewport by `viewport.pan-step` (§2.13)
+Pans the current desktop's viewport by `viewport.pan-step` (§2.14)
 pixels in the given direction, translating every non-sticky client the
 opposite way so their on-screen position stays put relative to the
 desktop's virtual canvas; unlike `keyboard.cycle.desktop` above, the
@@ -1928,7 +1929,7 @@ is looking.
 
 Moves the current desktop's viewport a whole page in the given
 direction, the discrete counterpart to `keyboard.viewport.pan` above:
-where that one slides by `viewport.pan-step` (§2.13) pixels, this jumps
+where that one slides by `viewport.pan-step` (§2.14) pixels, this jumps
 straight to the neighboring page.  Clamped at the grid's own bounds
 rather than wrapping around, so it is a no-op where there is no page
 that way.  Because it is a jump rather than a slide, it raises the

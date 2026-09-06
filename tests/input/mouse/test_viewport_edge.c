@@ -56,7 +56,7 @@
 
 /* Local includes */
 #include <harness/tap.h>
-#include <input/mouse/viewport_edge.h>
+#include <input/mouse/viewport/edge.h>
 
 
 /** Non-null opaque handle standing in for a real list_td of surfaces,
@@ -165,7 +165,7 @@ void scmd_surface_viewport_pan_west(surface_td *surface)
 /**
  * @brief Link-only stand-in for @a xcb_query_pointer
  *
- * The returned cookie is never inspected by @c viewport_edge.c beyond
+ * The returned cookie is never inspected by @c viewport/edge.c beyond
  * handing it straight to @a xcb_query_pointer_reply, so a zeroed one
  * is enough
  *
@@ -187,7 +187,7 @@ xcb_query_pointer_cookie_t xcb_query_pointer(xcb_connection_t *connection,
  * @brief Controlled stand-in for @a xcb_query_pointer_reply
  *
  * Hands back a heap-allocated reply built from @c s_reply_* when
- * @c s_reply_present is set (@c viewport_edge.c frees it, so a static
+ * @c s_reply_present is set (@c viewport/edge.c frees it, so a static
  * or stack one would be an invalid free, the same reasoning
  * 'tests/input/mouse/test_hover.c' documents for its own identical
  * stand-in), or @c NULL otherwise
