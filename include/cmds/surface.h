@@ -285,6 +285,28 @@ void scmd_surface_viewport_goto(surface_td *surface, uint32_t page);
 void scmd_surface_viewport_client_send_to_page(surface_td *surface,
         client_td *client, uint32_t col, uint32_t row);
 
+/**
+ * @brief Report the viewport page a client currently sits on
+ *
+ * A window belongs to the page its own top-left corner falls in, and
+ * to that one only, whatever it overlaps.  A window straddling a
+ * boundary, or one larger than a page, would otherwise belong to
+ * several at once, which the "Send to page" submenu, the per-page
+ * rearrange and @a scmd_surface_viewport_center_on_client all need a
+ * single answer from.
+ *
+ * @param surface Surface owning @p desktop
+ * @param desktop Desktop @p client sits on
+ * @param client  Client to locate
+ * @param col_out Where the zero-based column is written
+ * @param row_out Where the zero-based row is written
+ *
+ * @retval  true when the viewport has pages to speak of
+ * @retval false on a single-page viewport, leaving both outputs
+ *               untouched
+ *
+ * @note Complexity: @e O(1)
+ */
 bool scmd_surface_viewport_client_page(const surface_td *surface,
         const desktop_td *desktop, const client_td *client,
         uint32_t *col_out, uint32_t *row_out);

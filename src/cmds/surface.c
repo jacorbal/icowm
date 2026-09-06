@@ -904,6 +904,7 @@ bool scmd_surface_viewport_client_page(const surface_td *surface,
 bool scmd_surface_viewport_desktop_page(const surface_td *surface,
         const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
 {
+    struct position_s centre;
     uint32_t columns;
     uint32_t rows;
 
@@ -917,8 +918,18 @@ bool scmd_surface_viewport_desktop_page(const surface_td *surface,
         return false;
     }
 
-    s_viewport_page_for_canvas_pos(desktop->viewport_origin, desktop,
-            col_out, row_out);
+    /* Measured from the middle of what is on screen, not from its
+     * corner.  Panning leaves the origin at any pixel, so a view
+     * straddling two pages would otherwise report whichever one holds
+     * its top-left corner even when that is the sliver and the other
+     * one fills the screen.  On an origin sitting exactly on a page,
+     * which is where every 'go-to' and whole-page move lands, the two
+     * agree: 'col * w + w / 2' divided by 'w' is 'col'. */
+    centre.x = desktop->viewport_origin.x +
+        (int32_t) desktop->geometry.dim.w / 2;
+    centre.y = desktop->viewport_origin.y +
+        (int32_t) desktop->geometry.dim.h / 2;
+    s_viewport_page_for_canvas_pos(centre, desktop, col_out, row_out);
     return true;
 }
 
@@ -933,6 +944,12 @@ void scmd_surface_viewport_center_on_client(surface_td *surface,
     struct geometry_s win;
     struct position_s canvas_pos;
     struct position_s origin_before;
+    uint32_t client_col;
+    uint32_t client_row;
+    uint32_t page_col;
+    uint32_t page_row;
+    int32_t frame_w;
+    int32_t frame_h;
     int32_t new_x;
     int32_t new_y;
 
@@ -955,21 +972,40 @@ void scmd_surface_viewport_center_on_client(surface_td *surface,
     screen = desktop->geometry;
     win = client->layout.geometry.cur;
 
-    if (win.pos.x + (int32_t) win.dim.w > screen.pos.x &&
-            win.pos.x < screen.pos.x + (int32_t) screen.dim.w &&
-            win.pos.y + (int32_t) win.dim.h > screen.pos.y &&
-            win.pos.y < screen.pos.y + (int32_t) screen.dim.h) {
-        /* Already at least partly visible on the current page: leave
-         * the viewport exactly where it is rather than nudge it just
-         * to perfect this client's centering. */
+    /* The whole window, decoration included.  'geometry.cur.pos' is
+     * already the frame's own corner ('ccmd_target_win', in
+     * cmds/client/screen.c, configures the frame for a decorated
+     * client), but 'dim' is the content's, so the titlebar and the
+     * borders have to be added back or every calculation below is off
+     * by them.  Both are zero on an undecorated client. */
+    frame_w = (int32_t) win.dim.w +
+        (int32_t) client->layout.frame_extents.left +
+        (int32_t) client->layout.frame_extents.right;
+    frame_h = (int32_t) win.dim.h +
+        (int32_t) client->layout.frame_extents.top +
+        (int32_t) client->layout.frame_extents.bottom;
+
+    /* Whether the client is on the page being shown, not whether some
+     * pixel of it happens to overlap it.  A window pressed against a
+     * page's edge shows a sliver of its frame on the neighboring page,
+     * and an overlap test would call that "already visible" and leave
+     * the viewport where it is, which is exactly the case this is
+     * asked about.  The page a window belongs to is where its own
+     * corner falls, the same rule "Send to page" and the per-page
+     * rearrange use. */
+    if (scmd_surface_viewport_client_page(surface, desktop, client,
+                &client_col, &client_row) &&
+            scmd_surface_viewport_desktop_page(surface, desktop,
+                &page_col, &page_row) &&
+            client_col == page_col && client_row == page_row) {
         return;
     }
 
     canvas_pos.x = win.pos.x + desktop->viewport_origin.x;
     canvas_pos.y = win.pos.y + desktop->viewport_origin.y;
-    new_x = canvas_pos.x + (int32_t) win.dim.w / 2 -
+    new_x = canvas_pos.x + frame_w / 2 -
         screen.pos.x - (int32_t) screen.dim.w / 2;
-    new_y = canvas_pos.y + (int32_t) win.dim.h / 2 -
+    new_y = canvas_pos.y + frame_h / 2 -
         screen.pos.y - (int32_t) screen.dim.h / 2;
     origin_before = desktop->viewport_origin;
     scmd_surface_viewport_set(surface, new_x, new_y);

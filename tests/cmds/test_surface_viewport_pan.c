@@ -1209,6 +1209,54 @@ static void s_test_center_on_client_from_panned_origin(void)
 }
 
 
+/* A decorated client pressed against a page's edge shows a sliver of
+ * its frame on the neighboring page.  An overlap test would call that
+ * "already visible" and refuse to pan; the page comparison that
+ * replaced it does not, and the centering that follows accounts for
+ * the whole frame rather than the content alone */
+static void s_test_center_on_client_touching_page_edge(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 600);
+    client_td *client = s_make_client(0, -300, false);
+
+    /* Tall enough that its lower edge pokes twenty pixels into the
+     * page now on screen, while its own corner, and so the page it
+     * belongs to, is the one above.  The overlap test this replaced
+     * saw those twenty pixels and refused to pan */
+    client->layout.geometry.cur.dim.w = 400u;
+    client->layout.geometry.cur.dim.h = 320u;
+    client->layout.frame_extents.left = 1u;
+    client->layout.frame_extents.right = 1u;
+    client->layout.frame_extents.top = 20u;
+    client->layout.frame_extents.bottom = 1u;
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 1u;
+    config.base.screens[0].viewport.rows = 2u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    scmd_surface_viewport_center_on_client(surface, client);
+    /* 341 is the frame's own height, content plus titlebar plus
+     * borders; centering the content alone would have landed on 160 */
+    TAP_EQ_INT(desktop->viewport_origin.y, 170,
+            "a client whose frame merely grazes the current page"
+            " still pans toward the page the client is actually on,"
+            " centering the whole frame rather than its content");
+    TAP_EQ_INT(client->layout.geometry.cur.pos.y, -300,
+            "and the client itself is left where it was: only the"
+            " viewport moved");
+
+    free(surface);
+    free(desktop);
+    free(client);
+}
+
+
 /* A client whose recorded position ended up entirely outside the
  * desktop's own canvas (the kind of corruption a drag/pan/warp
  * calculation should never produce, but which this defensive backstop
@@ -1291,7 +1339,7 @@ static void s_test_center_on_client_already_visible_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(80);
+    TAP_PLAN(82);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
@@ -1318,6 +1366,7 @@ int main(void)
     s_test_goto_out_of_range_page_is_noop();
     s_test_center_on_client_within_canvas_is_not_clamped();
     s_test_center_on_client_from_panned_origin();
+    s_test_center_on_client_touching_page_edge();
     s_test_center_on_client_outside_canvas_is_clamped();
     s_test_center_on_client_already_visible_is_noop();
 
