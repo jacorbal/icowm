@@ -81,13 +81,12 @@
  * @brief Number of fixed top-level entries in the window context menu
  *
  * FOUR submenus (Send to desktop, Send to page, Send to monitor,
- * Layer) +
- * ONE command (Un/sticky) + ONE separator + NINE commands (Restore,
+ * Layer) + ONE separator + NINE commands (Restore,
  * Move, Resize, Iconify, Hide, Maximize, Un/fullscreen, Un/shade,
  * Un/decorate) + ONE separator + TWO commands (Inspect, Close) =
- * EIGHTEEN total.
+ * SEVENTEEN total.
  *
- * Four of those eighteen are conditional, and this counts each as
+ * Three of those seventeen are conditional, and this counts each as
  * always present for a simple, constant capacity bound rather than
  * optimizing the array size for the common case.  "Send to desktop"
  * does not appear when the topology is set to just one desktop,
@@ -97,7 +96,7 @@
  * appears, except that a sticky client gets no "Send to page" either,
  * belonging as it does to no one page.
  */
-#define WINCMENU_FIXED_ENTRIES (18)
+#define WINCMENU_FIXED_ENTRIES (17)
 
 /**
  * @brief Total top-level entry slots:

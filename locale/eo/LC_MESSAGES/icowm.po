@@ -194,16 +194,20 @@ msgid "Send to page"
 msgstr "Sendi al paĝo"
 
 #: include/defs/uistr.h:101;
-msgid "Page %u,%u"
-msgstr "Paĝo %u,%u"
+msgid "Page {%u, %u}"
+msgstr "Paĝo {%u, %u}"
 
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
-msgstr "Alglui"
+msgstr "Glua"
+
+#: include/defs/uistr.h:100;
+msgid "All pages (sticky)"
+msgstr "Ĉiuj paĝoj (glua)"
 
 #: include/defs/uistr.h:101;
-msgid "Unsticky"
-msgstr "Malglui"
+msgid "This page only (unsticky)"
+msgstr "Nur ĉi tiu paĝo (malglua)"
 
 #: include/defs/uistr.h:103;
 msgid "Always on top"

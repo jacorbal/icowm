@@ -194,15 +194,19 @@ msgid "Send to page"
 msgstr ""
 
 #: include/defs/uistr.h:101;
-msgid "Page %u,%u"
+msgid "Page {%u, %u}"
 msgstr ""
 
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
 msgstr ""
 
+#: include/defs/uistr.h:238;
+msgid "All pages (sticky)"
+msgstr ""
+
 #: include/defs/uistr.h:101;
-msgid "Unsticky"
+msgid "This page only (unsticky)"
 msgstr ""
 
 #: include/defs/uistr.h:103;

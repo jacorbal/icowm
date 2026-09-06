@@ -194,16 +194,20 @@ msgid "Send to page"
 msgstr "An Seite senden"
 
 #: include/defs/uistr.h:101;
-msgid "Page %u,%u"
-msgstr "Seite %u,%u"
+msgid "Page {%u, %u}"
+msgstr "Seite {%u, %u}"
 
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
-msgstr "Ankleben"
+msgstr "Angeheftet"
+
+#: include/defs/uistr.h:100;
+msgid "All pages (sticky)"
+msgstr "Alle Seiten (angeheftet)"
 
 #: include/defs/uistr.h:101;
-msgid "Unsticky"
-msgstr "Loslösen"
+msgid "This page only (unsticky)"
+msgstr "Nur diese Seite (nicht angeheftet)"
 
 #: include/defs/uistr.h:103;
 msgid "Always on top"

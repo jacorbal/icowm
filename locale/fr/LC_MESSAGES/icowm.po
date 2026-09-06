@@ -194,16 +194,20 @@ msgid "Send to page"
 msgstr "Envoyer à la page"
 
 #: include/defs/uistr.h:101;
-msgid "Page %u,%u"
-msgstr "Page %u,%u"
+msgid "Page {%u, %u}"
+msgstr "Page {%u, %u}"
 
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
-msgstr "Coller"
+msgstr "Collée"
+
+#: include/defs/uistr.h:100;
+msgid "All pages (sticky)"
+msgstr "Toutes les pages (collée)"
 
 #: include/defs/uistr.h:101;
-msgid "Unsticky"
-msgstr "Décoller"
+msgid "This page only (unsticky)"
+msgstr "Cette page seulement (non collée)"
 
 #: include/defs/uistr.h:103;
 msgid "Always on top"

@@ -485,12 +485,20 @@ desktop already behaved before `viewport` existed.
 
 Once the grid holds more than one page, the window menu grows a **Send
 to page** submenu directly below `Send to desktop`, listing every page
-in row-major order and disabling the one the window already sits on.
-The two answer the same question at different scales: `Send to desktop`
-moves a window to another desktop entirely, `Send to page` only to
-another part of the desktop it is already on.  A sticky window is
-offered no page at all, since it stays on screen from every viewport
-origin and so belongs to none of them.
+in row-major order as `Page {column, row}`.  The two answer the same
+question at different scales: `Send to desktop` moves a window to
+another desktop entirely, `Send to page` only to another part of the
+desktop it is already on.
+
+Below a separator, that submenu also carries the sticky toggle, reading
+`All pages (sticky)` or `This page only (unsticky)` according to the
+window's current state, exactly the way `Send to desktop` carries the
+pin toggle.  Both submenus follow the same rule for what is selectable:
+a window that is already everywhere has nowhere left to be sent, so
+a sticky window sees every page refused and only the unsticky entry
+live, and a pinned window sees every desktop refused and only the unpin
+entry live.  Otherwise the only refused row is the page, or the desktop,
+the window already occupies.
 
 Rearranging windows, whether from the root menu or its binding, also
 works a page at a time once the grid holds more than one: only the

@@ -51,7 +51,7 @@ void notify_desktop_show(xcb_connection_t *connection,
         const char *desktop_name, const config_td *cfg)
 {
     char text[WM_DESKTOP_MAX_LENGTH_NAME + 64];
-    const desktop_td *desktop;
+    desktop_td *desktop;
     uint32_t vp_col;
     uint32_t vp_row;
 
@@ -82,7 +82,7 @@ void notify_desktop_show(xcb_connection_t *connection,
                 &vp_col, &vp_row)) {
         char vp_buf[24];
 
-        (void) snprintf(vp_buf, sizeof(vp_buf), " {%u,%u}",
+        (void) snprintf(vp_buf, sizeof(vp_buf), " {%u, %u}",
                 vp_col, vp_row);
         (void) safe_strncat(text, vp_buf, sizeof(text));
     }

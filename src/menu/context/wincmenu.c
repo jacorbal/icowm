@@ -97,7 +97,7 @@ static ctxmenu_entry_td s_desk_entries[WINCMENU_MAX_DESKTOPS + 2];
 static ctxmenu_state_td s_desk_state;
 
 /** Entries for the "Send to page" submenu */
-static ctxmenu_entry_td s_page_entries[WINCMENU_MAX_PAGES];
+static ctxmenu_entry_td s_page_entries[WINCMENU_MAX_PAGES + 2];
 
 /** State for the "Send to page" child menu */
 static ctxmenu_state_td s_page_state;
@@ -566,6 +566,7 @@ struct s_desk_entry_ctx_s {
     const surface_td *surface;      /**< Surface being offered */
     uint32_t count;                 /**< Entries built so far */
     uint32_t index;                 /**< Desktop index reached */
+    bool is_pinned;                 /**< Whether it is on all already */
 };
 
 
@@ -598,7 +599,12 @@ static void s_desktop_entry_visit(desktop_td *desktop, void *data)
             MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
 
     s_desk_entries[n].type = CTXMENU_COMMAND;
-    s_desk_entries[n].is_disabled = (desktop->id == ctx->current->id);
+    /* A pinned client is already on every desktop, so there is
+     * nowhere left to send it: every row is refused and only the
+     * unpin entry below the separator stays live.  Unpinned, only the
+     * desktop it already sits on is refused */
+    s_desk_entries[n].is_disabled = ctx->is_pinned ||
+        (desktop->id == ctx->current->id);
     s_send_data[n].client = ctx->client;
     s_send_data[n].src = ctx->current;
     s_send_data[n].dst = desktop;
@@ -663,11 +669,11 @@ static int s_build_page_entries(surface_td *surface,
     uint32_t cur_col = 0u;
     uint32_t cur_row = 0u;
     bool has_current;
+    const bool is_sticky = client_is_sticky(client);
     char label[64];
     int n = 0;
 
-    if (!surface_viewport_has_room(surface) ||
-            client_is_sticky(client)) {
+    if (!surface_viewport_has_room(surface)) {
         return 0;
     }
 
@@ -694,8 +700,12 @@ static int s_build_page_entries(surface_td *surface,
                     MENU_CONTEXT_CTXMENU_LABEL_PREFIX, label,
                     MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
             s_page_entries[n].type = CTXMENU_COMMAND;
-            s_page_entries[n].is_disabled = (has_current &&
-                    col == cur_col && row == cur_row);
+            /* A sticky client is already on every page, so there is
+             * nowhere left to send it: every row is refused and only
+             * the unsticky entry below the separator stays live.
+             * Otherwise only the page it already sits on is refused */
+            s_page_entries[n].is_disabled = is_sticky ||
+                (has_current && col == cur_col && row == cur_row);
             s_page_send_data[n].surface = surface;
             s_page_send_data[n].client = client;
             s_page_send_data[n].col = col;
@@ -705,6 +715,30 @@ static int s_build_page_entries(surface_td *surface,
             ++n;
         }
     }
+
+    /* Separates the numbered-page entries above from the
+     * sticky/unsticky one below, exactly as 's_build_desk_entries'
+     * separates its own desktops from its pin entry */
+    if (n > 0) {
+        s_page_entries[n].type = CTXMENU_SEPARATOR;
+        ++n;
+    }
+
+    /* "All pages" entry for sticky support, the direct counterpart to
+     * the pin entry in "Send to desktop": relabeled in place when the
+     * client is already sticky rather than disabled, since toggling
+     * works both ways and there would otherwise be no entry anywhere
+     * to clear the flag once set */
+    safe_strncpy(s_page_entries[n].label,
+            (is_sticky) ? _(STR_WINCMENU_THIS_PAGE_UNSTICK)
+                : _(STR_WINCMENU_ALL_PAGES_STICK),
+            sizeof(s_page_entries[n].label) - 1u);
+    s_page_entries[n].type = CTXMENU_COMMAND;
+    s_page_entries[n].is_disabled = false;
+    s_page_entries[n].on_activate = s_cb_send_action;
+    s_page_entries[n].userdata =
+        (void *) (intptr_t) ACTION_CLIENT_TOGGLE_STICKY;
+    ++n;
 
     return n;
 }
@@ -737,6 +771,7 @@ static int s_build_desk_entries(surface_td *surface,
     desk_ctx.surface = surface;
     desk_ctx.count = 0u;
     desk_ctx.index = 0u;
+    desk_ctx.is_pinned = is_pinned;
     surface_desktops_walk(surface, s_desktop_entry_visit, &desk_ctx);
     n = (int) desk_ctx.count;
 
@@ -1008,30 +1043,6 @@ void wincmenu_show(xcb_connection_t *connection,
         ++n;
     }
 
-    /* Sticky/Unsticky: fixes the client's position on screen across
-     * viewport panning.  A plain command, relabeled in place, the same
-     * way Shade/Unshade and Decorate/Undecorate are below, rather than
-     * a submenu; unrelated to the pin support inside "Send to
-     * desktop" above despite the similar-sounding name (see
-     * 'CLIENT_FLAG_STICKY''s comment in 'client/state.h' for the full
-     * distinction between the two).
-     *
-     * Omitted entirely, not just disabled, on a surface whose
-     * configured viewport is a single screen: a viewport that can
-     * never pan leaves the flag nothing to hold a client still
-     * against.  This is the same condition the titlebar's sticky
-     * button already hides itself under, in 'render/desktop.c' and
-     * 'input/mouse/event/titlebar.c', so both the button and this
-     * entry appear and disappear together. */
-    if (surface_viewport_has_room(surface)) {
-        s_entry_command(&s_entries[n],
-                (client_is_sticky(client)) ? _(STR_WINCMENU_UNSTICK)
-                    : _(STR_WINCMENU_STICK),
-                s_cb_send_action,
-                (void *) (intptr_t) ACTION_CLIENT_TOGGLE_STICKY,
-                false);
-        ++n;
-    }
 
     /* Layer (submenu): disabled while fullscreen, since a focused
      * fullscreen client's stacking is always forced above everything

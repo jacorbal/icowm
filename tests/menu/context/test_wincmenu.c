@@ -588,24 +588,19 @@ static void s_test_show_single_desktop_single_monitor(void)
 
     TAP_NOT_NULL(s_captured_state,
             "showing a valid client calls ctxmenu_show");
-    TAP_EQ_STR(s_captured_state->entries[0].label, "Sticky",
-            "with one desktop and one monitor, Sticky is the first"
-            " entry");
+    TAP_EQ_STR(s_captured_state->entries[0].label, "Layer",
+            "with one desktop, one monitor and a single-page viewport,"
+            " Layer is the first entry");
     TAP_EQ_INT((int) s_captured_state->entries[0].type,
-            (int) CTXMENU_COMMAND,
-            "Sticky is a plain command entry, not a submenu");
-    TAP_EQ_STR(s_captured_state->entries[1].label, "Layer",
-            "Layer follows Sticky");
-    TAP_EQ_INT((int) s_captured_state->entries[1].type,
             (int) CTXMENU_SUBMENU,
-            "Layer is a submenu entry");
-    TAP_EQ_INT(s_captured_state->entries[1].item_count, 3,
+            "that first entry really is the Layer submenu");
+    TAP_EQ_INT(s_captured_state->entries[0].item_count, 3,
             "the Layer submenu holds exactly the 3 fixed layer"
             " choices");
-    TAP_EQ_INT((int) s_captured_state->entries[2].type,
+    TAP_EQ_INT((int) s_captured_state->entries[1].type,
             (int) CTXMENU_SEPARATOR,
             "a separator follows the Layer submenu");
-    TAP_EQ_STR(s_captured_state->entries[3].label, "Restore",
+    TAP_EQ_STR(s_captured_state->entries[2].label, "Restore",
             "Restore is the next entry after the separator");
 
     s_teardown();
@@ -660,10 +655,9 @@ static void s_test_show_multi_desktop_multi_monitor(void)
     TAP_EQ_INT((int) s_captured_state->entries[1].type,
             (int) CTXMENU_SUBMENU,
             "the second entry is the Send to monitor submenu");
-    TAP_EQ_STR(s_captured_state->entries[2].label, "Sticky",
-            "Sticky follows both submenus");
-    TAP_EQ_STR(s_captured_state->entries[3].label, "Layer",
-            "Layer follows Sticky");
+    TAP_EQ_STR(s_captured_state->entries[2].label, "Layer",
+            "Layer follows both submenus, with no Sticky between"
+            " them: it lives inside Send to page now");
 
     /* Send to desktop submenu: one row per desktop plus a trailing
      * separator plus the pin/unpin toggle */
@@ -730,6 +724,12 @@ static void s_test_show_pinned_relabels_pin_toggle(void)
             "This desktop only (unpin)",
             "a pinned client's trailing toggle offers to unpin"
             " rather than pin");
+    TAP_OK(s_captured_state->entries[0].items[0].is_disabled &&
+            s_captured_state->entries[0].items[1].is_disabled,
+            "every desktop is refused for a pinned client: it is on"
+            " all of them already");
+    TAP_OK(!s_captured_state->entries[0].items[last].is_disabled,
+            "leaving the unpin toggle as the one entry still live");
 
     s_teardown();
 }
@@ -759,52 +759,51 @@ static void s_test_show_fixed_entries_plain_client(void)
     wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
             pos, &config);
 
-    /* Sticky, Layer, separator, Restore, Move, Resize, Iconify, Hide,
+    /* Layer, separator, Restore, Move, Resize, Iconify, Hide,
      * Maximize, Fullscreen, Shade, Decorate, separator, Inspect,
      * Close */
     e = s_captured_state->entries;
-    TAP_EQ_INT(s_captured_state->entry_count, 15,
-            "a plain client with 1 desktop and 1 monitor yields 15"
-            " top-level entries");
-    TAP_EQ_STR(e[0].label, "Sticky", "entry 0 is Sticky");
-    TAP_OK(!e[0].is_disabled, "Sticky is never disabled");
-    TAP_EQ_STR(e[3].label, "Restore", "entry 3 is Restore");
-    TAP_OK(e[3].is_disabled,
+    TAP_EQ_INT(s_captured_state->entry_count, 14,
+            "a plain client with 1 desktop, 1 monitor and a"
+            " single-page viewport yields 14 top-level entries");
+    TAP_EQ_STR(e[0].label, "Layer", "entry 0 is Layer");
+    TAP_EQ_STR(e[2].label, "Restore", "entry 2 is Restore");
+    TAP_OK(e[2].is_disabled,
             "Restore is disabled for an unmaximized, non-fullscreen"
             " client");
-    TAP_EQ_STR(e[4].label, "Move", "entry 4 is Move");
-    TAP_OK(!e[4].is_disabled, "Move is enabled for a plain client");
-    TAP_EQ_STR(e[5].label, "Resize", "entry 5 is Resize");
-    TAP_OK(!e[5].is_disabled,
+    TAP_EQ_STR(e[3].label, "Move", "entry 3 is Move");
+    TAP_OK(!e[3].is_disabled, "Move is enabled for a plain client");
+    TAP_EQ_STR(e[4].label, "Resize", "entry 4 is Resize");
+    TAP_OK(!e[4].is_disabled,
             "Resize is enabled for a resizable, unmaximized client");
-    TAP_EQ_STR(e[6].label, "Iconify", "entry 6 is Iconify");
-    TAP_OK(!e[6].is_disabled, "Iconify is never disabled");
-    TAP_EQ_STR(e[7].label, "Hide", "entry 7 is Hide");
-    TAP_OK(!e[7].is_disabled, "Hide is never disabled");
-    TAP_EQ_STR(e[8].label, "Maximize", "entry 8 is Maximize");
-    TAP_OK(!e[8].is_disabled,
+    TAP_EQ_STR(e[5].label, "Iconify", "entry 5 is Iconify");
+    TAP_OK(!e[5].is_disabled, "Iconify is never disabled");
+    TAP_EQ_STR(e[6].label, "Hide", "entry 6 is Hide");
+    TAP_OK(!e[6].is_disabled, "Hide is never disabled");
+    TAP_EQ_STR(e[7].label, "Maximize", "entry 7 is Maximize");
+    TAP_OK(!e[7].is_disabled,
             "Maximize is enabled for a maximizable, unmaximized"
             " client");
-    TAP_EQ_STR(e[9].label, "Fullscreen", "entry 9 is"
+    TAP_EQ_STR(e[8].label, "Fullscreen", "entry 8 is"
             " Fullscreen for a windowed, resizable client");
-    TAP_OK(!e[9].is_disabled,
+    TAP_OK(!e[8].is_disabled,
             "fullscreen is enabled for a resizable, non-modal"
             " client");
-    TAP_EQ_STR(e[10].label, "Shade", "entry 10 is Shade");
-    TAP_OK(!e[10].is_disabled,
+    TAP_EQ_STR(e[9].label, "Shade", "entry 9 is Shade");
+    TAP_OK(!e[9].is_disabled,
             "Shade is enabled for a decorated, non-fullscreen"
             " client");
-    TAP_EQ_STR(e[11].label, "Undecorate",
+    TAP_EQ_STR(e[10].label, "Undecorate",
             "entry 11 reads Undecorate for an already-decorated"
             " client");
-    TAP_OK(!e[11].is_disabled,
+    TAP_OK(!e[10].is_disabled,
             "Decorate/Undecorate is enabled outside fullscreen");
-    TAP_EQ_INT((int) e[12].type, (int) CTXMENU_SEPARATOR,
-            "entry 12 is the separator before Inspect/Close");
-    TAP_EQ_STR(e[13].label, "Inspect...", "entry 13 is Inspect...");
-    TAP_OK(!e[13].is_disabled, "Inspect is never disabled");
-    TAP_EQ_STR(e[14].label, "Close", "entry 14 is Close");
-    TAP_OK(!e[14].is_disabled, "Close is never disabled");
+    TAP_EQ_INT((int) e[11].type, (int) CTXMENU_SEPARATOR,
+            "entry 11 is the separator before Inspect/Close");
+    TAP_EQ_STR(e[12].label, "Inspect...", "entry 12 is Inspect...");
+    TAP_OK(!e[12].is_disabled, "Inspect is never disabled");
+    TAP_EQ_STR(e[13].label, "Close", "entry 13 is Close");
+    TAP_OK(!e[13].is_disabled, "Close is never disabled");
 
     s_teardown();
 }
@@ -854,12 +853,19 @@ static void s_test_show_send_to_page_submenu(void)
             " menu");
     TAP_EQ_INT((int) e[page_idx].type, (int) CTXMENU_SUBMENU,
             "Send to page is a submenu, not a plain command");
-    TAP_EQ_INT((int) e[page_idx].item_count, 4,
-            "a 2x2 grid lists all four of its pages");
+    TAP_EQ_INT((int) e[page_idx].item_count, 6,
+            "a 2x2 grid lists its four pages, a separator and the"
+            " sticky toggle");
     TAP_OK(e[page_idx].items[1].is_disabled,
             "the page the client already sits on is disabled");
     TAP_OK(!e[page_idx].items[0].is_disabled,
             "every other page stays selectable");
+    TAP_EQ_INT((int) e[page_idx].items[4].type,
+            (int) CTXMENU_SEPARATOR,
+            "a separator closes the page list");
+    TAP_EQ_STR(e[page_idx].items[5].label, "All pages (sticky)",
+            "the sticky toggle sits below it, the way the pin toggle"
+            " does under Send to desktop");
 
     e[page_idx].items[3].on_activate((xcb_connection_t *) 1,
             e[page_idx].items[3].userdata);
@@ -874,10 +880,11 @@ static void s_test_show_send_to_page_submenu(void)
 
 
 /**
- * @brief Verify a sticky client gets no "Send to page" submenu at all,
- *        belonging as it does to no one page
+ * @brief Verify a sticky client is offered the submenu with every page
+ *        refused, since it is on all of them already, and only the
+ *        unsticky entry left live
  */
-static void s_test_show_sticky_client_has_no_send_to_page(void)
+static void s_test_show_sticky_client_page_rows_all_disabled(void)
 {
     surface_td surface;
     desktop_td desktop;
@@ -886,7 +893,7 @@ static void s_test_show_sticky_client_has_no_send_to_page(void)
     struct position_s pos = { 0, 0 };
     ctxmenu_entry_td *e;
     int i;
-    bool found = false;
+    int page_idx = -1;
 
     s_reset();
     memset(&surface, 0, sizeof(surface));
@@ -905,12 +912,23 @@ static void s_test_show_sticky_client_has_no_send_to_page(void)
     e = s_captured_state->entries;
     for (i = 0; i < s_captured_state->entry_count; ++i) {
         if (strcmp(e[i].label, "Send to page") == 0) {
-            found = true;
+            page_idx = i;
         }
     }
 
-    TAP_OK(!found,
-            "a sticky client is offered no page to be sent to");
+    TAP_OK(page_idx >= 0,
+            "a sticky client still gets the submenu, or it could"
+            " never be made unsticky again");
+    TAP_OK(e[page_idx].items[0].is_disabled &&
+            e[page_idx].items[1].is_disabled &&
+            e[page_idx].items[2].is_disabled &&
+            e[page_idx].items[3].is_disabled,
+            "every page is refused: it is on all of them already");
+    TAP_EQ_STR(e[page_idx].items[5].label,
+            "This page only (unsticky)",
+            "the toggle reads as an unsticky action instead");
+    TAP_OK(!e[page_idx].items[5].is_disabled,
+            "and it is the one entry left live");
 
     s_teardown();
 }
@@ -983,11 +1001,11 @@ static void s_test_show_maximized_client(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(!e[3].is_disabled,
+    TAP_OK(!e[2].is_disabled,
             "Restore is enabled once the client is maximized");
-    TAP_OK(e[4].is_disabled, "Move is disabled while maximized");
-    TAP_OK(e[5].is_disabled, "Resize is disabled while maximized");
-    TAP_OK(e[8].is_disabled,
+    TAP_OK(e[3].is_disabled, "Move is disabled while maximized");
+    TAP_OK(e[4].is_disabled, "Resize is disabled while maximized");
+    TAP_OK(e[7].is_disabled,
             "Maximize itself is disabled while already maximized");
 
     s_teardown();
@@ -1021,17 +1039,17 @@ static void s_test_show_fullscreen_client(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(e[1].is_disabled,
+    TAP_OK(e[0].is_disabled,
             "the Layer submenu is disabled while fullscreen");
-    TAP_OK(e[4].is_disabled, "Move is disabled while fullscreen");
-    TAP_OK(e[5].is_disabled, "Resize is disabled while fullscreen");
-    TAP_EQ_STR(e[9].label, "Unfullscreen",
+    TAP_OK(e[3].is_disabled, "Move is disabled while fullscreen");
+    TAP_OK(e[4].is_disabled, "Resize is disabled while fullscreen");
+    TAP_EQ_STR(e[8].label, "Unfullscreen",
             "the fullscreen entry reads Unfullscreen once"
             " active");
-    TAP_OK(!e[9].is_disabled,
+    TAP_OK(!e[8].is_disabled,
             "exiting fullscreen is always enabled once active");
-    TAP_OK(e[10].is_disabled, "Shade is disabled while fullscreen");
-    TAP_OK(e[11].is_disabled,
+    TAP_OK(e[9].is_disabled, "Shade is disabled while fullscreen");
+    TAP_OK(e[10].is_disabled,
             "Decorate/Undecorate is disabled while fullscreen");
 
     s_teardown();
@@ -1064,7 +1082,7 @@ static void s_test_show_modal_client_blocks_fullscreen(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(e[9].is_disabled,
+    TAP_OK(e[8].is_disabled,
             "a modal client cannot enter fullscreen even though it"
             " is resizable");
 
@@ -1098,11 +1116,11 @@ static void s_test_show_non_resizable_client(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(e[5].is_disabled,
+    TAP_OK(e[4].is_disabled,
             "Resize is disabled for a non-resizable client");
-    TAP_OK(e[8].is_disabled,
+    TAP_OK(e[7].is_disabled,
             "Maximize is disabled for a non-resizable client");
-    TAP_OK(e[9].is_disabled,
+    TAP_OK(e[8].is_disabled,
             "fullscreen is disabled for a non-resizable client");
 
     s_teardown();
@@ -1135,9 +1153,9 @@ static void s_test_show_undecorated_client(void)
             pos, &config);
 
     e = s_captured_state->entries;
-    TAP_OK(e[10].is_disabled,
+    TAP_OK(e[9].is_disabled,
             "Shade is disabled for an undecorated client");
-    TAP_EQ_STR(e[11].label, "Decorate",
+    TAP_EQ_STR(e[10].label, "Decorate",
             "the toggle reads Decorate for an undecorated client");
 
     s_teardown();
@@ -1202,7 +1220,7 @@ static void s_test_wrappers(void)
 
 int main(void)
 {
-    TAP_PLAN(89);
+    TAP_PLAN(92);
 
     s_test_show_guards();
     s_test_show_single_desktop_single_monitor();
@@ -1210,7 +1228,7 @@ int main(void)
     s_test_show_pinned_relabels_pin_toggle();
     s_test_show_fixed_entries_plain_client();
     s_test_show_send_to_page_submenu();
-    s_test_show_sticky_client_has_no_send_to_page();
+    s_test_show_sticky_client_page_rows_all_disabled();
     s_test_show_single_page_viewport_omits_sticky();
     s_test_show_maximized_client();
     s_test_show_fullscreen_client();

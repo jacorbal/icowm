@@ -644,7 +644,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
                     r->desktop, r->client, &vp_col, &vp_row)) {
             char vp_buf[24];
 
-            (void) snprintf(vp_buf, sizeof(vp_buf), " {%u,%u}",
+            (void) snprintf(vp_buf, sizeof(vp_buf), " {%u, %u}",
                     vp_col, vp_row);
             (void) safe_strncat(desk_buf, vp_buf, sizeof(desk_buf));
         }
