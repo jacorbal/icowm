@@ -92,8 +92,6 @@ static const config_lint_key_td s_schema_topology[] = {
 };
 
 static const config_lint_key_td s_schema_desktops[] = {
-    {"show-overlay", NULL, 0u,
-        0, NULL, 0u, NULL},
     {"notify-activity", NULL, 0u,
         0, NULL, 0u, NULL},
     {"warp-on-edge-drag", NULL, 0u,
@@ -143,6 +141,13 @@ static const config_lint_key_td s_schema_windows_edges[] = {
 
 static const config_lint_key_td s_schema_placement_wrapper[] = {
     {"placement", NULL, 0u,
+        0, NULL, 0u, NULL}
+};
+
+static const config_lint_key_td s_schema_overlay[] = {
+    {"on-desktop-switch", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"on-viewport-move", NULL, 0u,
         0, NULL, 0u, NULL}
 };
 
@@ -258,6 +263,9 @@ const config_lint_key_td s_schema_config[] = {
         0, NULL, 0u, NULL},
     {"windows", s_schema_windows,
         sizeof(s_schema_windows) / sizeof(s_schema_windows[0]),
+        0, NULL, 0u, NULL},
+    {"overlay", s_schema_overlay,
+        sizeof(s_schema_overlay) / sizeof(s_schema_overlay[0]),
         0, NULL, 0u, NULL},
     {"viewport", s_schema_viewport,
         sizeof(s_schema_viewport) / sizeof(s_schema_viewport[0]),

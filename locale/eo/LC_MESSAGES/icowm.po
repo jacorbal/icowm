@@ -197,6 +197,10 @@ msgstr "Sendi al paĝo"
 msgid "Page {%u, %u}"
 msgstr "Paĝo {%u, %u}"
 
+#: include/defs/uistr.h:101;
+msgid " {%u, %u}"
+msgstr " {%u, %u}"
+
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
 msgstr "Glua"

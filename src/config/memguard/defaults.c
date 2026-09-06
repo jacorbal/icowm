@@ -50,7 +50,8 @@ void config_set_default_values_memguard(config_td *config)
      * wrap-around navigation, nor the desktop-name overlay or the
      * cross-desktop activity notification, mean anything with only one
      * desktop to switch to. */
-    config->desktops.show_overlay = false;
+    config->base.overlay.on_desktop_switch = false;
+    config->base.overlay.on_viewport_move = false;
     config->desktops.notify_activity = false;
     config->desktops.warp_on_edge_drag = false;
     config->desktops.pan_on_edge_drag = false;

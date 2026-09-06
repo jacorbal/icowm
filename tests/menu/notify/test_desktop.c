@@ -8,7 +8,7 @@
  * in 'tests/menu/test_notify.c'; both the generic 'menu/notify.c' and
  * 'menu/draw.c' are linked here for real, so this file's own
  * assertions can focus purely on desktop.c's own contribution: the
- * 'cfg->desktops.show_overlay' gate, delegating the label text to
+ * 'cfg->base.overlay' gate, delegating the label text to
  * 'surface_desktop_label', and forwarding through to the right
  * generic call with the right static state and timeout.
  * 'surface_desktop_label' itself belongs to a different module
@@ -274,35 +274,45 @@ void surface_desktop_label(const surface_td *surface, uint32_t desktop_id,
  */
 desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 {
+    /* Only ever compared against NULL: 'notify_desktop_show' passes
+     * whatever this returns straight to the viewport page lookup,
+     * whose stand-in below ignores it, and 'desktop_td' is an
+     * incomplete type here, so a placeholder address is all this can
+     * and needs to hand back */
+    static long placeholder;
+
     (void) surface;
     (void) desktop_id;
 
-    /* No test in this file sets up an actual desktop_td to hand back;
-     * 'scmd_surface_viewport_desktop_page' below already tolerates a
-     * NULL desktop by never being reached, since 'notify_desktop_show'
-     * itself guards on this returning NULL. */
-    return NULL;
+    return (desktop_td *) &placeholder;
 }
 
 
 /**
  * @brief Link-only stand-in for @a scmd_surface_viewport_desktop_page
  *
- * Never actually reached by any scenario in this file, since the
- * @a surface_desktop_get stand-in above always reports no desktop to
- * look the viewport page up on; kept only so this file links without
- * pulling in the whole of 'cmds/surface.c'.
+ * Reports whichever page a scenario last registered, or none at all,
+ * so the four combinations of desktops and pages can each be
+ * exercised without pulling in the whole of 'cmds/surface.c'.
  *
  * @note Complexity: @e O(1)
  */
+static bool s_viewport_has_page;
+static uint32_t s_viewport_col;
+static uint32_t s_viewport_row;
+
 bool scmd_surface_viewport_desktop_page(const surface_td *surface,
         const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
 {
     (void) surface;
     (void) desktop;
-    (void) col_out;
-    (void) row_out;
-    return false;
+
+    if (!s_viewport_has_page) {
+        return false;
+    }
+    *col_out = s_viewport_col;
+    *row_out = s_viewport_row;
+    return true;
 }
 
 
@@ -330,6 +340,9 @@ static void s_reset(void)
 {
     s_next_generated_id = 2000u;
     s_call_xcb_create_window = 0;
+    s_viewport_has_page = false;
+    s_viewport_col = 0u;
+    s_viewport_row = 0u;
     s_call_xcb_map_window = 0;
     s_call_xcb_window_destroy = 0;
     s_call_surface_desktop_label = 0;
@@ -360,7 +373,8 @@ static config_td s_make_config(bool show_overlay)
     cfg.theme.overlay.border.color = 0x222222u;
     cfg.theme.overlay.border.width = 1u;
     cfg.theme.overlay.opacity = 80u;
-    cfg.desktops.show_overlay = show_overlay;
+    cfg.base.overlay.on_desktop_switch = show_overlay;
+    cfg.base.overlay.on_viewport_move = show_overlay;
     return cfg;
 }
 
@@ -373,6 +387,9 @@ static surface_td s_make_surface(void)
     memset(&surface, 0, sizeof(surface));
     memset(&screen, 0, sizeof(screen));
     surface.screen = &screen;
+    /* More than one, or the overlay has no desktop worth naming and
+     * declines to show anything at all */
+    surface.desktop_count = 4u;
     surface.properties.dim.w = 1024u;
     surface.properties.dim.h = 768u;
     return surface;
@@ -390,20 +407,24 @@ static void s_test_show_null_guards(void)
     surface = s_make_surface();
     cfg = s_make_config(true);
 
-    notify_desktop_show(NULL, &surface, 2u, "Web", &cfg);
+    notify_desktop_show(NULL, &surface, 2u, "Web", 
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
     TAP_EQ_INT(s_call_surface_desktop_label, 0,
             "a null connection never even formats a label");
 
-    notify_desktop_show(s_fake_connection, NULL, 2u, "Web", &cfg);
+    notify_desktop_show(s_fake_connection, NULL, 2u, "Web", 
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
     TAP_EQ_INT(s_call_surface_desktop_label, 0,
             "a null surface never formats a label");
 
-    notify_desktop_show(s_fake_connection, &surface, 2u, "Web", NULL);
+    notify_desktop_show(s_fake_connection, &surface, 2u, "Web",
+            NOTIFY_DESKTOP_CAUSE_SWITCH, NULL);
     TAP_EQ_INT(s_call_surface_desktop_label, 0,
             "a null config never formats a label");
 
     surface.screen = NULL;
-    notify_desktop_show(s_fake_connection, &surface, 2u, "Web", &cfg);
+    notify_desktop_show(s_fake_connection, &surface, 2u, "Web", 
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
     TAP_EQ_INT(s_call_surface_desktop_label, 0,
             "a screen-less surface never formats a label");
 }
@@ -420,7 +441,8 @@ static void s_test_show_respects_overlay_toggle(void)
     surface = s_make_surface();
     cfg = s_make_config(false);
 
-    notify_desktop_show(s_fake_connection, &surface, 1u, "Mail", &cfg);
+    notify_desktop_show(s_fake_connection, &surface, 1u, "Mail", 
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
 
     TAP_EQ_INT(s_call_surface_desktop_label, 0,
             "show_overlay=false skips formatting the label entirely");
@@ -445,7 +467,8 @@ static void s_test_show_formats_and_opens_popup(void)
     s_label_reply = "Desktop 4: Terminal";
 
     notify_desktop_show(s_fake_connection, &surface, 3u, "Terminal",
-            &cfg);
+            
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
 
     TAP_EQ_INT(s_call_surface_desktop_label, 1,
             "surface_desktop_label is called exactly once");
@@ -455,8 +478,9 @@ static void s_test_show_formats_and_opens_popup(void)
             "the requested desktop name is forwarded unchanged");
     TAP_OK(!s_last_label_is_pinned,
             "the overlay always asks for an unpinned-style label");
-    TAP_OK(s_last_label_shows_name,
-            "the overlay always asks the label to show the name");
+    TAP_OK(!s_last_label_shows_name,
+            "the overlay asks the label for the bracketed part only,"
+            " prepending the desktop's own name itself");
     TAP_EQ_INT(s_call_xcb_create_window, 1,
             "exactly one popup window is created");
     TAP_EQ_INT(s_call_xcb_map_window, 1,
@@ -481,7 +505,8 @@ static void s_test_show_handles_null_name(void)
     cfg = s_make_config(true);
     s_label_reply = "Desktop 5";
 
-    notify_desktop_show(s_fake_connection, &surface, 4u, NULL, &cfg);
+    notify_desktop_show(s_fake_connection, &surface, 4u, NULL, 
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
 
     TAP_EQ_INT(s_call_surface_desktop_label, 1,
             "a null desktop_name still reaches surface_desktop_label"
@@ -507,7 +532,8 @@ static void s_test_close_closes_open_popup(void)
     cfg = s_make_config(true);
 
     notify_desktop_show(s_fake_connection, &surface, 0u, "Desktop 1",
-            &cfg);
+            
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
     TAP_OK(notify_desktop_is_open(), "the popup opens as expected");
 
     notify_desktop_close(s_fake_connection);
@@ -539,7 +565,8 @@ static void s_test_ms_remaining_reflects_state(void)
             "with nothing open, remaining time is -1");
 
     notify_desktop_show(s_fake_connection, &surface, 0u, "Desktop 1",
-            &cfg);
+            
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
     remaining = notify_desktop_ms_remaining();
     TAP_OK(remaining > 0 && remaining <= WM_DESKTOP_NOTIFY_TIMEOUT_MS,
             "right after opening, remaining time is positive and"
@@ -567,9 +594,78 @@ static void s_test_repaint_closed_is_harmless(void)
 }
 
 
+/* The four rows of the rule: what there is to name decides what is
+ * shown, and when there is nothing, no popup at all */
+static void s_test_content_follows_what_exists(void)
+{
+    config_td cfg = s_make_config(true);
+    surface_td surface = s_make_surface();
+
+    /* One desktop and a viewport that cannot pan: nothing moved that
+     * the user could not already see */
+    s_reset();
+    surface.desktop_count = 1u;
+    notify_desktop_show(s_fake_connection, &surface, 0u, "Only",
+            NOTIFY_DESKTOP_CAUSE_VIEWPORT, &cfg);
+    TAP_EQ_INT(s_call_xcb_create_window, 0,
+            "one desktop and a single-page viewport shows no popup"
+            " at all");
+    TAP_EQ_INT(s_call_surface_desktop_label, 0,
+            "and never even asks for a label");
+
+    /* One desktop but a viewport with pages: the page names itself,
+     * and the desktop label is not asked for at all */
+    s_reset();
+    surface.desktop_count = 1u;
+    s_viewport_has_page = true;
+    s_viewport_col = 1u;
+    notify_desktop_show(s_fake_connection, &surface, 0u, "Only",
+            NOTIFY_DESKTOP_CAUSE_VIEWPORT, &cfg);
+    TAP_EQ_INT(s_call_xcb_create_window, 1,
+            "one desktop with pages does show a popup");
+    TAP_EQ_INT(s_call_surface_desktop_label, 0,
+            "and names the page alone, never asking for a desktop"
+            " label that would say nothing");
+
+    /* Several desktops: the label is asked for, without the name,
+     * which the overlay prepends itself */
+    s_reset();
+    surface.desktop_count = 4u;
+    notify_desktop_show(s_fake_connection, &surface, 2u, "Web",
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
+    TAP_EQ_INT(s_call_surface_desktop_label, 1,
+            "several desktops do ask for the bracketed label");
+    TAP_OK(!s_last_label_shows_name,
+            "and ask for it without the name, which goes in front");
+}
+
+
+/* Each trigger is gated by its own setting, so panning can be silent
+ * while switching desktops is not */
+static void s_test_causes_are_gated_separately(void)
+{
+    config_td cfg = s_make_config(true);
+    surface_td surface = s_make_surface();
+
+    cfg.base.overlay.on_viewport_move = false;
+
+    s_reset();
+    notify_desktop_show(s_fake_connection, &surface, 2u, "Web",
+            NOTIFY_DESKTOP_CAUSE_VIEWPORT, &cfg);
+    TAP_EQ_INT(s_call_xcb_create_window, 0,
+            "a viewport move is silent once its own setting is off");
+
+    s_reset();
+    notify_desktop_show(s_fake_connection, &surface, 2u, "Web",
+            NOTIFY_DESKTOP_CAUSE_SWITCH, &cfg);
+    TAP_EQ_INT(s_call_xcb_create_window, 1,
+            "while a desktop switch still announces itself");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(26);
+    TAP_PLAN(34);
 
     s_test_show_null_guards();
     s_test_show_respects_overlay_toggle();
@@ -578,6 +674,9 @@ int main(void)
     s_test_close_closes_open_popup();
     s_test_ms_remaining_reflects_state();
     s_test_repaint_closed_is_harmless();
+
+    s_test_content_follows_what_exists();
+    s_test_causes_are_gated_separately();
 
     return TAP_DONE();
 }

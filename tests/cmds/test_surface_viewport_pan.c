@@ -1257,6 +1257,39 @@ static void s_test_center_on_client_touching_page_edge(void)
 }
 
 
+/* A desktop whose geometry has not been resolved yet reports page
+ * zero rather than dividing by zero, which is undefined behavior and
+ * not something a caller could recover from */
+static void s_test_page_lookup_on_zero_geometry(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(0u, 0u, 0, 0);
+    client_td *client = s_make_client(100, 100, false);
+    uint32_t col = 9u;
+    uint32_t row = 9u;
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 2u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    TAP_OK(scmd_surface_viewport_client_page(surface, desktop, client,
+                &col, &row),
+            "a zero-sized desktop still answers the client page"
+            " query");
+    TAP_OK(col == 0u && row == 0u,
+            "and answers page zero rather than dividing by zero");
+
+    free(surface);
+    free(desktop);
+    free(client);
+}
+
+
 /* A client whose recorded position ended up entirely outside the
  * desktop's own canvas (the kind of corruption a drag/pan/warp
  * calculation should never produce, but which this defensive backstop
@@ -1339,7 +1372,7 @@ static void s_test_center_on_client_already_visible_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(82);
+    TAP_PLAN(84);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
@@ -1367,6 +1400,7 @@ int main(void)
     s_test_center_on_client_within_canvas_is_not_clamped();
     s_test_center_on_client_from_panned_origin();
     s_test_center_on_client_touching_page_edge();
+    s_test_page_lookup_on_zero_geometry();
     s_test_center_on_client_outside_canvas_is_clamped();
     s_test_center_on_client_already_visible_is_noop();
 

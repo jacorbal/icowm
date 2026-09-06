@@ -1297,7 +1297,6 @@ everything here **does** take effect on a configuration reload.
 
 | Key                 | Type    | Default | Description |
 |---------------------|---------|---------|-------------|
-| `show-overlay`      | boolean | `true`  | Whether a small notification popup is displayed in the center of the screen for approximately 400 ms whenever the active virtual desktop changes.  The popup shows the desktop index and name in the format `[index] -- Name`, or just `[index]` when the desktop has no name; with a `topology.screens.desktops[].layout` genuinely more than one row configured, `(row,column)` is appended after the index the same way it is in the search box and window lists. |
 | `notify-activity`   | boolean | `true`  | Whether a client becoming urgent on a desktop other than the one currently visible on its surface shows an informational dialog naming that desktop (`Detected activity on desktop [index] -- Name`, with a surface disambiguator appended when more than one surface is managed).  A client urgent on the currently visible desktop already gets its titlebar blink instead (see `urgency.*` in `a11y.json`, §6), which this never duplicates. |
 | `warp-on-edge-drag` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge switches to the adjacent desktop in that direction (left/right always; top/bottom too, once a `layout` with more than one row is configured), cursor and dragged window or icon both carried across, after a short delay.  Deferred entirely to `pan-on-edge-drag` below for as long as the current desktop's viewport still has room to pan toward that same edge instead; only once the viewport's own bound is reached does holding the edge switch desktops.  Meaningless with only one desktop. |
 | `pan-on-edge-drag`  | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge pans the current desktop's viewport toward that edge instead, carrying the dragged window or icon along with every other non-sticky client on the desktop, after a short delay, repeating for as long as the pointer stays held there and the viewport still has room left that direction.  Takes priority over `warp-on-edge-drag` above whenever there is room to pan; once the viewport's own bound is reached, holding the edge further switches desktops instead, exactly as if this were disabled.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
@@ -1321,7 +1320,6 @@ override.
 
 ```json
 "desktops": {
-    "show-overlay": true,
     "notify-activity": true,
     "warp-on-edge-drag": true,
     "pan-on-edge-drag": true,
@@ -1408,6 +1406,38 @@ necessary, and a successful one closes the box right away.
     "is-enabled": false
 }
 ```
+
+### 2.13. `overlay`
+
+The brief popup that names where the view has just moved to, centered
+on screen for about 400 ms.  One widget with two triggers, so one
+section rather than a flag hidden inside each of the things that raise
+it; the theme sizes and colors it under the same name.
+
+| Key                 | Type    | Default | Description |
+|---------------------|---------|---------|-------------|
+| `on-desktop-switch` | boolean | `true`  | Announce a change of active desktop. |
+| `on-viewport-move`  | boolean | `true`  | Announce a whole-page viewport move, whether from `viewport.page`, `viewport.go-to`, or following a window that turned out to be on another page.  The pixel-sized steps of `viewport.pan` are never announced. |
+
+```json
+"overlay": {
+    "on-desktop-switch": true,
+    "on-viewport-move": true
+}
+```
+
+The popup names only what there is to name.  With one desktop and
+a single-page viewport nothing about the view can change, so no popup is
+shown at all.  With one desktop and a viewport of several pages it reads
+`Page {1, 0}`.  With several desktops and a single-page viewport it
+reads the desktop alone, its own name first: `Web: [2]`, or `[2]` when
+that desktop has no name, or `Work: [3 (1, 1)]` when
+`topology.screens.desktops[].layout` has more than one row.  With both,
+the page is appended after the desktop: `Web: [2] {1, 0}`.
+
+Keeping the two triggers separate is deliberate: panning is far more
+frequent than switching desktops, so wanting the announcement for one
+and not the other is a reasonable preference.
 
 ### 2.13. `viewport`
 
@@ -2731,7 +2761,6 @@ to whatever theme loads, unconditionally.
     },
 
     "desktops": {
-        "show-overlay": true,
         "notify-activity": true,
         "warp-on-edge-drag": true,
         "pan-on-edge-drag": true,

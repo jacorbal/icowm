@@ -403,6 +403,24 @@ struct config_base_s {
         } focus;
     } windows;
 
+    /**
+     * @brief The brief popup that names where the view has just
+     *        moved to
+     *
+     * One widget with two triggers, so one section rather than a flag
+     * hidden in each of the things that raise it: the theme already
+     * calls it @c overlay and sizes and colors it there.  Switching
+     * desktops and moving the viewport a whole page are announced
+     * separately because panning is much the more frequent of the
+     * two, and wanting one without the other is reasonable.
+     *
+     * @see @a notify_desktop_show in @c menu/notify/desktop.h
+     */
+    struct {
+        bool on_desktop_switch;
+        bool on_viewport_move;
+    } overlay;
+
     /* General behavior of environment towards the viewport, a
      * sibling of 'windows' above, 'desktops' (config/desktops.h),
      * and 'topology' (this same struct's 'screens' above) */

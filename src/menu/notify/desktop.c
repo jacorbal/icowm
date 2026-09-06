@@ -22,6 +22,7 @@
 /* Project includes */
 #include <cmds/surface.h>
 #include <config.h>
+#include <i18n.h>
 #include <logger.h>
 #include <render/text.h>
 #include <surface.h>
@@ -30,6 +31,7 @@
 
 /* Default initial values */
 #include <defs/desktop.h>
+#include <defs/uistr.h>
 
 /* Local includes */
 #include <menu/draw.h>
@@ -48,42 +50,76 @@ static struct notify_popup_state_s s_desktop_notify = {
 /* Show the desktop-switch notification popup, centered on screen */
 void notify_desktop_show(xcb_connection_t *connection,
         surface_td *surface, uint32_t desktop_idx,
-        const char *desktop_name, const config_td *cfg)
+        const char *desktop_name,
+        enum notify_desktop_cause_e cause, const config_td *cfg)
 {
     char text[WM_DESKTOP_MAX_LENGTH_NAME + 64];
     desktop_td *desktop;
     uint32_t vp_col;
     uint32_t vp_row;
+    bool has_page;
+    size_t used;
 
     if (connection == NULL || surface == NULL || cfg == NULL ||
             surface->screen == NULL) {
         return;
     }
 
-    if (!cfg->desktops.show_overlay) {
+    if ((cause == NOTIFY_DESKTOP_CAUSE_SWITCH &&
+                !cfg->base.overlay.on_desktop_switch) ||
+            (cause == NOTIFY_DESKTOP_CAUSE_VIEWPORT &&
+                !cfg->base.overlay.on_viewport_move)) {
         return;
+    }
+
+    text[0] = '\0';
+    desktop = surface_desktop_get(surface, desktop_idx);
+    has_page = desktop != NULL &&
+        scmd_surface_viewport_desktop_page(surface, desktop,
+                &vp_col, &vp_row);
+
+    /* Nothing worth naming: one desktop and a viewport that cannot
+     * pan means the view never moves anywhere the user could not
+     * already see, so no popup at all rather than an empty one */
+    if (surface->desktop_count <= 1u && !has_page) {
+        return;
+    }
+
+    /* Only the page, with the word spelled out, when the desktop has
+     * nothing to add: with a single desktop its index and name name
+     * the only thing there is */
+    if (surface->desktop_count <= 1u) {
+        (void) snprintf(text, sizeof(text),
+                _(STR_NOTIFY_VIEWPORT_PAGE_FMT), vp_col, vp_row);
+        notify_popup_show_centered(connection, surface,
+                &s_desktop_notify, text, cfg);
+        LOGGER_TRACE("Desktop notify shown: '%s'", text);
+        return;
+    }
+
+    /* A named desktop leads with its own name, ahead of the
+     * coordinates, since that is what the user chose and recognizes.
+     * Everything after it is appended, never inserted, so an absent
+     * name simply leaves the rest starting where it would anyway. */
+    if (desktop_name != NULL && desktop_name[0] != '\0') {
+        (void) snprintf(text, sizeof(text), "%s: ", desktop_name);
     }
 
     /* The one place that names a desktop is 'surface_desktop_label',
      * so that this overlay and every window list say it the same way.
-     * The name is wanted here: an overlay announcing a switch has
-     * room for it and nothing else to identify the desktop by. */
-    surface_desktop_label(surface, desktop_idx, desktop_name, false,
-            true, text, sizeof(text));
+     * The name is passed separately above, so it is not asked for
+     * again here. */
+    used = safe_strlen(text);
+    if (used < sizeof(text)) {
+        surface_desktop_label(surface, desktop_idx, desktop_name,
+                false, false, text + used, sizeof(text) - used);
+    }
 
-    /* Append the viewport page the desktop being switched to is
-     * panned to, the same 'nothing to add on a single-page setup'
-     * gating 'scmd_surface_viewport_desktop_page' already does on its
-     * own, so this stays silent unless a viewport is actually
-     * configured. */
-    desktop = surface_desktop_get(surface, desktop_idx);
-    if (desktop != NULL &&
-            scmd_surface_viewport_desktop_page(surface, desktop,
-                &vp_col, &vp_row)) {
+    if (has_page) {
         char vp_buf[24];
 
-        (void) snprintf(vp_buf, sizeof(vp_buf), " {%u, %u}",
-                vp_col, vp_row);
+        (void) snprintf(vp_buf, sizeof(vp_buf),
+                _(STR_PAGE_SUFFIX_FMT), vp_col, vp_row);
         (void) safe_strncat(text, vp_buf, sizeof(text));
     }
 

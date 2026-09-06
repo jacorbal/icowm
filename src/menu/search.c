@@ -630,23 +630,49 @@ static void s_search_draw_row(xcb_connection_t *connection,
         uint32_t vp_col;
         uint32_t vp_row;
 
-        surface_desktop_label(s_search.surface, r->desktop->id,
-                r->desktop->name,
-                r->client != NULL && client_is_pinned(r->client),
-                false, desk_buf, sizeof(desk_buf));
+        desk_buf[0] = '\0';
+
+        /* Only what there is to say: the desktop once the surface has
+         * more than one, the page once the grid has more than one,
+         * and nothing at all when neither, rather than a bare '[0]'
+         * repeated down every row that says the same thing */
+        if (s_search.surface != NULL &&
+                s_search.surface->desktop_count > 1u) {
+            if (r->client != NULL && client_is_pinned(r->client)) {
+                /* On every desktop, so no one desktop names it.  '*'
+                 * rather than a word: it keeps the shape of the
+                 * coordinate it stands in for, costs one character in
+                 * a row that truncates, and needs no translation,
+                 * which a word would, since "all" takes different
+                 * genders for desktops and pages in several of the
+                 * languages this ships with. */
+                (void) safe_strncat(desk_buf, "[*]", sizeof(desk_buf));
+            } else {
+                surface_desktop_label(s_search.surface, r->desktop->id,
+                        r->desktop->name, false, false, desk_buf,
+                        sizeof(desk_buf));
+            }
+        }
 
         /* The viewport page is a second, independent coordinate a
          * client can be found at, on top of whichever desktop it is
          * on, so it gets its own bracket pair rather than being
          * folded into the desktop label's own '(row, col)' */
-        if (r->client != NULL &&
+        if (r->client != NULL && client_is_sticky(r->client) &&
+                surface_viewport_has_room(s_search.surface)) {
+            (void) safe_strncat(desk_buf,
+                    (desk_buf[0] != '\0') ? " {*}" : "{*}",
+                    sizeof(desk_buf));
+        } else if (r->client != NULL &&
                 scmd_surface_viewport_client_page(s_search.surface,
                     r->desktop, r->client, &vp_col, &vp_row)) {
             char vp_buf[24];
 
-            (void) snprintf(vp_buf, sizeof(vp_buf), " {%u, %u}",
-                    vp_col, vp_row);
-            (void) safe_strncat(desk_buf, vp_buf, sizeof(desk_buf));
+            (void) snprintf(vp_buf, sizeof(vp_buf),
+                    _(STR_PAGE_SUFFIX_FMT), vp_col, vp_row);
+            (void) safe_strncat(desk_buf,
+                    (desk_buf[0] != '\0') ? vp_buf : vp_buf + 1,
+                    sizeof(desk_buf));
         }
 
         if (desk_buf[0] != '\0' && text_x < safe_right) {

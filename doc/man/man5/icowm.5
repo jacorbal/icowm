@@ -403,8 +403,6 @@ ignored.
 How switching between desktops behaves, and how much of each is left
 free.
 .Bl -tag -width Ds
-.It Ic desktops.show-overlay Pq boolean, default Ql true
-Whether switching desktops announces which one became current.
 .It Ic desktops.notify-activity Pq boolean, default Ql true
 Whether a window demanding attention on another desktop is reported.
 .It Ic desktops.warp-on-edge-drag Pq boolean, default Ql true
@@ -441,6 +439,24 @@ Whether moving past the last desktop comes back around to the first.
 .It Ic desktops.margins.left Pq integer, default Ql 0
 Space, in pixels, kept clear at each edge of every desktop, on top of
 whatever panels already reserve.
+.El
+.Ss overlay
+The brief popup naming where the view has just moved to.
+One widget with two triggers, so one section rather than a flag inside
+each of the things that raise it; the theme sizes and colors it under
+the same name.
+It names only what there is to name: nothing at all with one desktop
+and a single-page viewport, the page alone with one desktop and
+several pages, the desktop alone when the viewport has one page, and
+both when both.
+.Bl -tag -width Ds
+.It Ic overlay.on-desktop-switch Pq boolean, default Ql true
+Announce a change of active desktop.
+.It Ic overlay.on-viewport-move Pq boolean, default Ql true
+Announce a whole-page viewport move.
+The pixel-sized steps of
+.Ic viewport.pan
+are never announced.
 .El
 .Ss viewport
 Keyboard step size for panning a desktop's viewport.

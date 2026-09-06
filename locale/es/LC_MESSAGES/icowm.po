@@ -197,6 +197,10 @@ msgstr "Enviar a la página"
 msgid "Page {%u, %u}"
 msgstr "Página {%u, %u}"
 
+#: include/defs/uistr.h:101;
+msgid " {%u, %u}"
+msgstr " {%u, %u}"
+
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
 msgstr "Fija"

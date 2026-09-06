@@ -606,14 +606,12 @@ void ci_config_load_desktop_behavior(cJSON *json,
     desktop_settings = cJSON_GetObjectItem(json, "desktops");
     if (desktop_settings == NULL) {
         LOGGER_TRACE("No 'desktops' object found in '%s';" \
-                " show-overlay, notify-activity, warp-on-edge-drag," \
+                " notify-activity, warp-on-edge-drag," \
                 " pan-on-edge-drag, pan-on-edge-hover, wrap-at-bounds," \
                 " and margins keep their default values", filename);
         return;
     }
 
-    json_load_bool(desktop_settings, "show-overlay",
-            &config_desktop->show_overlay);
     json_load_bool(desktop_settings, "notify-activity",
             &config_desktop->notify_activity);
     json_load_bool(desktop_settings, "warp-on-edge-drag",

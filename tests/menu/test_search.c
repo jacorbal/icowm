@@ -433,6 +433,18 @@ void surface_desktop_label(const surface_td *surface, uint32_t desktop_id,
 }
 
 
+/* 'surface.h' stand-in: reports whether the viewport can pan, which
+ * the sticky row of a result label is gated on */
+static bool s_viewport_has_room;
+
+bool surface_viewport_has_room(const surface_td *surface)
+{
+    (void) surface;
+
+    return s_viewport_has_room;
+}
+
+
 /* 'cmds/surface.h' stand-ins */
 
 bool scmd_surface_viewport_client_page(const surface_td *surface,

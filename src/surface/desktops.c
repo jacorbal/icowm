@@ -349,10 +349,10 @@ void surface_desktop_label(const surface_td *surface,
     if (shows_name && desktop_name != NULL &&
             desktop_name[0] != '\0') {
         if (shows_row_col) {
-            (void) snprintf(out_label, length, "[%u (%u, %u)] -- %s",
+            (void) snprintf(out_label, length, "[%u (%u, %u)] %s",
                     desktop_id, row, col, desktop_name);
         } else {
-            (void) snprintf(out_label, length, "[%u] -- %s",
+            (void) snprintf(out_label, length, "[%u] %s",
                     desktop_id, desktop_name);
         }
     } else if (shows_row_col) {

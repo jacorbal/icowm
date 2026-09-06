@@ -242,6 +242,7 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
     const struct config_viewport_mesh_s *mesh;
     struct s_mesh_cache_s *slot;
     xcb_pixmap_t tile;
+    xcb_pixmap_t previous;
     xcb_gcontext_t context;
     xcb_rectangle_t dot;
     uint32_t values[2];
@@ -256,7 +257,16 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
     if (slot == NULL) {
         return XCB_NONE;
     }
-    s_cache_release(connection, slot);
+    /* Kept alive until the new tile is built and installed below.
+     * Freeing it first would leave the root window's own
+     * 'XCB_CW_BACK_PIXMAP' naming a pixmap that no longer exists for
+     * as long as it takes to create the replacement, and any repaint
+     * of the root in that window, ours or another client's, would
+     * draw from it (see 'desktop_render_background''s own note on
+     * exactly this hazard, in render/desktop.c) */
+    previous = slot->tile;
+    slot->tile = XCB_NONE;
+    slot->is_applied = false;
 
     mesh = &desktop->config->base.viewport.mesh;
     dot_color = viewport_mesh_color_from_background(
@@ -304,6 +314,10 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
     slot->thickness = mesh->thickness;
     slot->origin_x = (uint32_t) dot.x;
     slot->origin_y = (uint32_t) dot.y;
+
+    if (previous != XCB_NONE) {
+        xcb_free_pixmap(connection, previous);
+    }
 
     return tile;
 }

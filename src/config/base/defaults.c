@@ -55,7 +55,6 @@ void config_set_default_base_values(struct config_base_s *config_base,
      * one desktop for 'warp_on_edge_drag'/'wrap_at_bounds', but set
      * regardless of how many desktops end up configured, the same as
      * every other default here. */
-    config_desktop->show_overlay = true;
     config_desktop->notify_activity = true;
     config_desktop->warp_on_edge_drag = true;
     config_desktop->pan_on_edge_drag = true;
@@ -166,6 +165,9 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.move_step = 10;
     /* usually overridden by hints */
     config_base->windows.resize_step = 20;
+
+    config_base->overlay.on_desktop_switch = true;
+    config_base->overlay.on_viewport_move = true;
 
     config_base->viewport.move_step = 40;
     /* Enabled by default: the mesh only ever appears where it has

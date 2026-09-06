@@ -152,6 +152,7 @@ int config_load_base(const char *filename,
     cJSON *prompt;
     cJSON *scratchpad;
     cJSON *windows;
+    cJSON *overlay;
     cJSON *viewport;
     cJSON *icons;
     cJSON *menus;
@@ -323,6 +324,15 @@ int config_load_base(const char *filename,
             json_load_bool(placement, "group-related",
                     &config_base->windows.group_related);
         }
+    }
+
+    /* Load overlay configuration */
+    overlay = cJSON_GetObjectItem(json, "overlay");
+    if (overlay) {
+        json_load_bool(overlay, "on-desktop-switch",
+                &config_base->overlay.on_desktop_switch);
+        json_load_bool(overlay, "on-viewport-move",
+                &config_base->overlay.on_viewport_move);
     }
 
     /* Load viewport base configuration */

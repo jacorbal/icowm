@@ -29,22 +29,38 @@
 
 
 /**
- * @brief Show the desktop-switch notification popup centered on screen
+ * @brief What moved the view, and so which @c overlay setting decides
+ *        whether it is announced
+ */
+enum notify_desktop_cause_e {
+    NOTIFY_DESKTOP_CAUSE_SWITCH = 0, /**< A different desktop */
+    NOTIFY_DESKTOP_CAUSE_VIEWPORT    /**< A whole-page viewport move */
+};
+
+/**
+ * @brief Show the notification popup naming where the view has moved
+ *        to, centered on screen
  *
- * Formats a label from @p desktop_idx and @p desktop_name, then
- * delegates to the generic @c notify_popup_show_centered helper.
+ * Names only what there is to name: the desktop when the surface has
+ * more than one, the viewport page when the grid holds more than one,
+ * both when both, and nothing at all when neither, in which case no
+ * popup is shown.  A desktop that carries a name is announced by it,
+ * ahead of the coordinates.
  *
  * @param connection   XCB connection
  * @param surface      Surface on which to center the popup
- * @param desktop_idx  Zero-based index of the newly active desktop
- * @param desktop_name Name of the newly active desktop, or @c NULL
+ * @param desktop_idx  Zero-based index of the active desktop
+ * @param desktop_name Name of the active desktop, or @c NULL
+ * @param cause        What moved the view, deciding which of the two
+ *                     @c overlay settings gates this call
  * @param config       Active configuration (for theme colors and font)
  *
  * @note Complexity: @e O(1)
  */
 void notify_desktop_show(xcb_connection_t *connection,
         surface_td *surface, uint32_t desktop_idx,
-        const char *desktop_name, const config_td *config);
+        const char *desktop_name,
+        enum notify_desktop_cause_e cause, const config_td *config);
 
 /**
  * @brief Destroy the currently visible desktop-switch notification

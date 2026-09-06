@@ -63,10 +63,14 @@ static client_td *s_viewport_pan_excluded_client = NULL;
  *
  * @param surface Surface whose current desktop just became active
  *
+ * @param cause What moved the view, deciding which of the two
+ *              @c overlay settings gates the popup
+ *
  * @note Complexity: @e O(n), where @e n is the number of desktops on
  *       the surface
  */
-static void s_show_desktop_overlay(surface_td *surface)
+static void s_show_desktop_overlay(surface_td *surface,
+        enum notify_desktop_cause_e cause)
 {
     const desktop_td *desktop;
 
@@ -78,7 +82,7 @@ static void s_show_desktop_overlay(surface_td *surface)
     desktop = lookup_current_desktop(surface);
     notify_desktop_show(xcb_connection_get(), surface,
             surface->desktop_cur,
-            (desktop != NULL) ? desktop->name : "",
+            (desktop != NULL) ? desktop->name : "", cause,
             surface->config);
 }
 
@@ -116,7 +120,7 @@ static void s_show_viewport_overlay_on_move(surface_td *surface,
         return;
     }
 
-    s_show_desktop_overlay(surface);
+    s_show_desktop_overlay(surface, NOTIFY_DESKTOP_CAUSE_VIEWPORT);
 }
 
 
@@ -191,7 +195,7 @@ static void s_switch_cyclic(surface_td *surface,
         surface_clients_pinned_transfer_all(surface,
                 surface->desktop_cur);
         surface_clients_show(surface, surface->desktop_cur);
-        s_show_desktop_overlay(surface);
+        s_show_desktop_overlay(surface, NOTIFY_DESKTOP_CAUSE_SWITCH);
         surface->is_outdated = true;
     } else {
         /* No switch happened; restore visibility */
@@ -464,8 +468,21 @@ static int32_t s_positive_remainder(int32_t value, int32_t modulus)
 static void s_viewport_page_for_canvas_pos(struct position_s canvas_pos,
         const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
 {
-    int32_t col = canvas_pos.x / (int32_t) desktop->geometry.dim.w;
-    int32_t row = canvas_pos.y / (int32_t) desktop->geometry.dim.h;
+    int32_t col;
+    int32_t row;
+
+    /* A desktop whose geometry has not been resolved yet would divide
+     * by zero here, which is undefined behavior rather than a
+     * recoverable error, and every caller can do something sensible
+     * with page zero */
+    if (desktop->geometry.dim.w == 0u || desktop->geometry.dim.h == 0u) {
+        *col_out = 0u;
+        *row_out = 0u;
+        return;
+    }
+
+    col = canvas_pos.x / (int32_t) desktop->geometry.dim.w;
+    row = canvas_pos.y / (int32_t) desktop->geometry.dim.h;
 
     *col_out = (col < 0) ? 0u : (uint32_t) col;
     *row_out = (row < 0) ? 0u : (uint32_t) row;
@@ -595,7 +612,7 @@ void scmd_surface_desktop_switch(surface_td *surface,
     surface_clients_pinned_transfer_all(surface, desktop_id);
     surface_clients_show(surface, desktop_id);
 
-    s_show_desktop_overlay(surface);
+    s_show_desktop_overlay(surface, NOTIFY_DESKTOP_CAUSE_SWITCH);
 
     surface->is_outdated = true;
 }

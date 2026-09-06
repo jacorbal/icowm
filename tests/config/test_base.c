@@ -730,7 +730,7 @@ static void s_test_icons_follow_viewport_loads(void)
 }
 
 
-/* desktops.show-overlay/warp-on-edge-drag/wrap-at-bounds/margins, a
+/* desktops.warp-on-edge-drag/wrap-at-bounds/margins, a
  * sibling of 'topology' at the config root, meant to still apply on
  * every reload (unlike topology) */
 static void s_test_desktop_behavior(void)
@@ -739,13 +739,12 @@ static void s_test_desktop_behavior(void)
     struct config_desktop_s desktop;
 
     s_load(
-        "{\"desktops\": {\"show-overlay\": true,"
+        "{\"desktops\": {"
         " \"warp-on-edge-drag\": true, \"pan-on-edge-hover\": true,"
         " \"pan-on-edge-drag\": true,"
         " \"wrap-at-bounds\": true,"
         " \"margins\": {\"top\": 3, \"left\": 7}}}", &base, &desktop);
 
-    TAP_OK(desktop.show_overlay, "desktops.show-overlay");
     TAP_OK(desktop.warp_on_edge_drag, "desktops.warp-on-edge-drag");
     TAP_OK(desktop.pan_on_edge_hover, "desktops.pan-on-edge-hover");
     TAP_OK(desktop.pan_on_edge_drag, "desktops.pan-on-edge-drag");
@@ -956,9 +955,32 @@ static void s_test_mesh_above_maximum_clamped(void)
 }
 
 
+/* The overlay is its own section now, one widget with two triggers,
+ * rather than a flag hidden inside 'desktops' */
+static void s_test_overlay_section_loads(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load_with_defaults(
+        "{\"overlay\": {\"on-desktop-switch\": false,"
+        " \"on-viewport-move\": true} }", &base, &desktop);
+
+    TAP_OK(!base.overlay.on_desktop_switch,
+            "overlay.on-desktop-switch loads");
+    TAP_OK(base.overlay.on_viewport_move,
+            "overlay.on-viewport-move loads alongside it");
+
+    s_load_with_defaults("{}", &base, &desktop);
+    TAP_OK(base.overlay.on_desktop_switch &&
+            base.overlay.on_viewport_move,
+            "both default to true when the section is absent");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(117);
+    TAP_PLAN(119);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
@@ -983,6 +1005,7 @@ int main(void)
     s_test_viewport_rows_zero_rejected();
     s_test_viewport_columns_above_max_rejected();
     s_test_missing_topology_leaves_defaults();
+    s_test_overlay_section_loads();
     s_test_mesh_absent_keeps_defaults();
     s_test_mesh_valid_values_kept();
     s_test_mesh_below_minimum_clamped();

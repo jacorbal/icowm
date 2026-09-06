@@ -581,7 +581,8 @@ void drag_warp_tick(xcb_connection_t *connection)
      * warp is the one way to switch desktops that never shows which
      * one just became active. */
     notify_desktop_show(xcb_connection_get(), surface,
-            surface->desktop_cur, new_desktop->name, surface->config);
+            surface->desktop_cur, new_desktop->name,
+            NOTIFY_DESKTOP_CAUSE_SWITCH, surface->config);
 
     s_warp_pointer_target(&new_root_x, &new_root_y);
 

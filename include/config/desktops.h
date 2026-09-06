@@ -47,12 +47,6 @@
  */
 struct config_desktop_s {
     /**
-     * @brief Whether the current desktop's name briefly overlays
-     *        the screen after switching to it
-     */
-    bool show_overlay;
-
-    /**
      * @brief Whether a client becoming urgent on a desktop other than
      *        the one currently visible on its own surface shows an
      *        informational popup naming that desktop, so the user is
