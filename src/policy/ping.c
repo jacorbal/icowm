@@ -193,7 +193,8 @@ static void s_ping_probe_round(list_td *surfaces)
 
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        const surface_td *const surface =
+            (surface_td *) list_data(snode);
 
         if (surface == NULL) {
             continue;

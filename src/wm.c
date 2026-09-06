@@ -152,7 +152,8 @@ static void s_wm_release_manager_selections(void)
 
     for (list_item_td *snode = list_head(wm->surfaces);
             snode != NULL; snode = list_next(snode)) {
-        surface_td *const surface = (surface_td *) list_data(snode);
+        const surface_td *const surface =
+            (surface_td *) list_data(snode);
         xcb_atom_t selection_atom;
 
         if (surface == NULL) {

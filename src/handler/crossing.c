@@ -111,7 +111,7 @@ void handler_leave_notify(const wm_td *wm,
                                 surface->screen->root), NULL);
 
             if (pointer_reply != NULL) {
-                client_td *const entered =
+                const client_td *const entered =
                     (pointer_reply->child != XCB_WINDOW_NONE)
                         ? lookup_find_client(wm_surfaces(wm),
                                 pointer_reply->child, NULL, NULL)

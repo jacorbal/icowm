@@ -51,7 +51,7 @@ void notify_desktop_show(xcb_connection_t *connection,
         const char *desktop_name, const config_td *cfg)
 {
     char text[WM_DESKTOP_MAX_LENGTH_NAME + 64];
-    desktop_td *desktop;
+    const desktop_td *desktop;
     uint32_t vp_col;
     uint32_t vp_row;
 

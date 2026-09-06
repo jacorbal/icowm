@@ -216,7 +216,7 @@ void drag_overlay_repaint(xcb_connection_t *connection)
     int16_t ascent;
     int16_t descent;
     int16_t text_y;
-    surface_td *surface;
+    const surface_td *surface;
     xcb_pixmap_t buffer;
     xcb_drawable_t target;
     xcb_gcontext_t gc;

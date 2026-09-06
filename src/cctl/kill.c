@@ -103,7 +103,7 @@ static bool s_kill_read_start_time(pid_t pid, unsigned long long *out)
     char path[32];
     char line[512];
     FILE *f;
-    char *paren;
+    const char *paren;
     int n;
 
     n = snprintf(path, sizeof(path), "/proc/%d/stat", (int) pid);

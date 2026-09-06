@@ -117,7 +117,7 @@ static monitor_td s_reference_monitor(const wm_td *wm,
             void *elem;
 
             ohtbl_foreach(desktop->clients, elem) {
-                client_td *const active = (client_td *) elem;
+                const client_td *const active = (client_td *) elem;
 
                 if (active != NULL &&
                         active->id == desktop->client_active_id) {
