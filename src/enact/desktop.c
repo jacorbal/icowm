@@ -243,6 +243,10 @@ struct s_rearrange_ctx_s {
     /** Window manager, needed to find a transient's parent */
     const wm_td *wm;
     surface_td *surface;    /**< Surface being rearranged */
+    /** Desktop being rearranged, needed to place a client on a page */
+    const desktop_td *desktop;
+    uint32_t page_col;      /**< Column of the page panned to */
+    uint32_t page_row;      /**< Row of the page panned to */
     bool is_single_spot;    /**< Whether the policy has one spot only */
     bool is_first;          /**< Whether this is the first client */
 };
@@ -269,9 +273,29 @@ struct s_rearrange_ctx_s {
 static void s_desktop_rearrange_visit(client_td *client, void *data)
 {
     struct s_rearrange_ctx_s *const rearrange_ctx = data;
+    uint32_t client_col;
+    uint32_t client_row;
 
     if (client == NULL || rearrange_ctx == NULL ||
             client_is_locked(client)) {
+        return;
+    }
+
+    /* A client parked on some other page of a multi-page viewport is
+     * left alone.  'place_window_apply' below places into the visible
+     * workarea, which is only ever the page currently panned to, so
+     * rearranging without this check would haul every window on the
+     * whole canvas onto that one page and there would be no way to
+     * put them back.  A sticky client reports the current page from
+     * wherever it sits, since it is on screen from every origin, and
+     * so is rearranged along with the rest.  Both page lookups report
+     * false on a 1x1 viewport, where the question does not arise and
+     * every client on the desktop is rearranged as before. */
+    if (scmd_surface_viewport_client_page(rearrange_ctx->surface,
+                rearrange_ctx->desktop, client, &client_col,
+                &client_row) &&
+            (client_col != rearrange_ctx->page_col ||
+             client_row != rearrange_ctx->page_row)) {
         return;
     }
 
@@ -448,6 +472,11 @@ void enact_desktop_clients_rearrange(const wm_td *wm,
 
     rearrange_ctx.wm = wm;
     rearrange_ctx.surface = surface;
+    rearrange_ctx.desktop = desktop;
+    rearrange_ctx.page_col = 0u;
+    rearrange_ctx.page_row = 0u;
+    (void) scmd_surface_viewport_desktop_page(surface, desktop,
+            &rearrange_ctx.page_col, &rearrange_ctx.page_row);
     rearrange_ctx.is_single_spot = single_spot_policy;
     rearrange_ctx.is_first = true;
     stacking_walk(desktop, s_desktop_rearrange_visit, &rearrange_ctx);

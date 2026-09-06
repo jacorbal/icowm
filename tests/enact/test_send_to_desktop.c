@@ -287,6 +287,40 @@ void ipc_broadcast_event(uint32_t type, cJSON *fields)
 }
 
 
+/** Link-only stand-in for scmd_surface_viewport_desktop_page
+ *  (cmds/surface.c): every scenario here runs on a plain 1x1
+ *  viewport, where the real one reports false too and leaves both
+ *  outputs untouched */
+bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+        const desktop_td *desktop, uint32_t *col_out,
+        uint32_t *row_out)
+{
+    (void) surface;
+    (void) desktop;
+    (void) col_out;
+    (void) row_out;
+
+    return false;
+}
+
+
+/** Link-only stand-in for scmd_surface_viewport_client_page
+ *  (cmds/surface.c): false for the same reason as its sibling above,
+ *  so no client is ever skipped as being on another page */
+bool scmd_surface_viewport_client_page(const surface_td *surface,
+        const desktop_td *desktop, const client_td *client,
+        uint32_t *col_out, uint32_t *row_out)
+{
+    (void) surface;
+    (void) desktop;
+    (void) client;
+    (void) col_out;
+    (void) row_out;
+
+    return false;
+}
+
+
 /** Link-only stand-in for place_window_apply
  *  (policy/placement/window.c) */
 void place_window_apply(const wm_td *wm, surface_td *surface,

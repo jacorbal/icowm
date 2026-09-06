@@ -1405,8 +1405,8 @@ that drag instead, unaffected by this setting.
     "mesh": {
         "is-enabled": true,
         "spacing": { "horizontal": 64, "vertical": 64 },
-        "thickness": 1,
-        "tone-shift": 20
+        "thickness": 4,
+        "tone-shift": 15
     }
 }
 ```
@@ -1446,7 +1446,7 @@ a restart.
 | `is-enabled`          | boolean | `true`  |                                  | Whether to paint a mesh at all, where the two conditions above allow one. |
 | `spacing.horizontal`  | integer | `64`    | `8`-`512`                        | Pixels between neighboring dots across. |
 | `spacing.vertical`    | integer | `64`    | `8`-`512`                        | Pixels between neighboring dots down. |
-| `thickness`           | integer | `2`     | `1`-1/4 of the smaller `spacing` | Side of one square dot, in pixels. |
+| `thickness`           | integer | `3`     | `1`-1/4 of the smaller `spacing` | Side of one square dot, in pixels. |
 | `tone-shift`          | integer | `20`    | `10`-`100`                       | How far the dot color is pushed away from the desktop background color, as a percentage. |
 
 The dot color is not configurable, and there is no color key here or in
