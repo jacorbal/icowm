@@ -153,10 +153,15 @@ void im_press_scroll_binding(xcb_connection_t *connection,
  * @param surface    Surface the client belongs to
  * @param config     Active configuration
  *
+ * @return @c true when the click just started a move drag (an active
+ *         pointer grab is now owned by that drag), @c false for every
+ *         other outcome (button hit, double-click shade, lower, menu,
+ *         or a no-op click on a maximized/fullscreen client)
+ *
  * @note Complexity: @e O(b), where @e b is the number of configured
  *       titlebar buttons
  */
-void im_press_titlebar(xcb_connection_t *connection, list_td *surfaces,
+bool im_press_titlebar(xcb_connection_t *connection, list_td *surfaces,
         xcb_button_press_event_t *event, client_td *client,
         desktop_td *desktop, surface_td *surface,
         const config_td *config);

@@ -361,7 +361,7 @@ void im_press_scroll_binding(xcb_connection_t *connection,
  * @brief Link-only stand-in for @a im_press_titlebar, never exercised
  * @note Complexity: @e O(1)
  */
-void im_press_titlebar(xcb_connection_t *connection, list_td *surfaces,
+bool im_press_titlebar(xcb_connection_t *connection, list_td *surfaces,
         xcb_button_press_event_t *event, client_td *client,
         desktop_td *desktop, surface_td *surface,
         const config_td *config)
@@ -375,6 +375,8 @@ void im_press_titlebar(xcb_connection_t *connection, list_td *surfaces,
     (void) config;
 
     s_unreached_calls++;
+
+    return false;
 }
 
 

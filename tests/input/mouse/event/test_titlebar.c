@@ -624,13 +624,14 @@ static void s_test_single_left_click_starts_move_drag(void)
 {
     client_td client;
     xcb_button_press_event_t event = s_make_event(1, 1, 100, 5, 5000);
+    bool started;
 
     s_reset();
     s_make_client(&client);
     /* No configured buttons at all: click lands on plain drag area */
 
-    im_press_titlebar((xcb_connection_t *) 1, NULL, &event, &client,
-            NULL, NULL, NULL);
+    started = im_press_titlebar((xcb_connection_t *) 1, NULL, &event,
+            &client, NULL, NULL, NULL);
 
     TAP_EQ_INT(s_drag_start_calls, 1,
             "single left-click on drag area: drag_start dispatched"
@@ -638,6 +639,9 @@ static void s_test_single_left_click_starts_move_drag(void)
     TAP_OK(s_drag_start_operation == CLIENT_OPERATION_MOVING,
             "the drag started is a move");
     TAP_EQ_INT(s_toggle_shade_calls, 0, "not a shade toggle");
+    TAP_OK(started,
+            "reports that a move drag started, so the caller returns"
+            " immediately instead of racing the fresh grab");
 }
 
 
@@ -649,22 +653,27 @@ static void s_test_double_click_toggles_shade(void)
     xcb_button_press_event_t first = s_make_event(1, 1, 100, 5, 1000);
     xcb_button_press_event_t second = s_make_event(1, 1, 100, 5, 1100);
     config_td config;
+    bool first_started;
+    bool second_started;
 
     s_reset();
     s_make_client(&client);
     memset(&config, 0, sizeof(config));
     config.a11y.interaction.double_click_ms = 400u;
 
-    im_press_titlebar((xcb_connection_t *) 1, NULL, &first, &client,
-            NULL, NULL, &config);
-    im_press_titlebar((xcb_connection_t *) 1, NULL, &second, &client,
-            NULL, NULL, &config);
+    first_started = im_press_titlebar((xcb_connection_t *) 1, NULL,
+            &first, &client, NULL, NULL, &config);
+    second_started = im_press_titlebar((xcb_connection_t *) 1, NULL,
+            &second, &client, NULL, NULL, &config);
 
     TAP_EQ_INT(s_drag_start_calls, 1,
             "first click starts a drag, second (double-click) does not");
     TAP_EQ_INT(s_toggle_shade_calls, 1,
             "second click within the double-click window toggles"
             " shade");
+    TAP_OK(first_started, "first click reports a drag started");
+    TAP_OK(!second_started,
+            "second (double-click) reports no drag started");
 }
 
 
@@ -674,16 +683,18 @@ static void s_test_left_click_on_maximized_skips_drag(void)
 {
     client_td client;
     xcb_button_press_event_t event = s_make_event(1, 1, 100, 5, 9000);
+    bool started;
 
     s_reset();
     s_make_client(&client);
     client.properties.state = (uint16_t) CLIENT_STATE_MAXIMIZED;
 
-    im_press_titlebar((xcb_connection_t *) 1, NULL, &event, &client,
-            NULL, NULL, NULL);
+    started = im_press_titlebar((xcb_connection_t *) 1, NULL, &event,
+            &client, NULL, NULL, NULL);
 
     TAP_EQ_INT(s_drag_start_calls, 0,
             "maximized client, drag area click: no move drag started");
+    TAP_OK(!started, "maximized client: reports no drag started");
 }
 
 
@@ -693,16 +704,18 @@ static void s_test_left_click_on_fullscreen_skips_drag(void)
 {
     client_td client;
     xcb_button_press_event_t event = s_make_event(1, 1, 100, 5, 9500);
+    bool started;
 
     s_reset();
     s_make_client(&client);
     client.properties.state = (uint16_t) CLIENT_STATE_FULLSCREEN;
 
-    im_press_titlebar((xcb_connection_t *) 1, NULL, &event, &client,
-            NULL, NULL, NULL);
+    started = im_press_titlebar((xcb_connection_t *) 1, NULL, &event,
+            &client, NULL, NULL, NULL);
 
     TAP_EQ_INT(s_drag_start_calls, 0,
             "fullscreen client, drag area click: no move drag started");
+    TAP_OK(!started, "fullscreen client: reports no drag started");
 }
 
 

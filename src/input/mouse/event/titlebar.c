@@ -321,6 +321,16 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
  * - Left-click starts a move drag, or toggles shade on double-click.
  * - Right-click opens the window context menu.
  *
+ * A single left-click that starts a move drag hands the pointer off
+ * to an active grab of its own (see @c drag_start); the caller must
+ * return immediately once that happens instead of falling through to
+ * its own border-resize check and @c xcb_allow_events call, the same
+ * way the alt-click move binding in @c mouse_handle_press does.  Every
+ * other outcome here (a button hit, the double-click shade toggle,
+ * lower, the context menu, or a no-op click on a maximized/fullscreen
+ * client) never grabs the pointer, so the caller's usual fallthrough
+ * is exactly what those still need.
+ *
  * @param connection Active XCB connection
  * @param surfaces   Full surface list (for context menu)
  * @param event      Incoming button-press event
@@ -328,13 +338,17 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
  * @param desktop    Desktop owning @p client
  * @param surface    Current surface
  * @param config     Active configuration
+ *
+ * @return @c true when the click just started a move drag, @c false
+ *         otherwise
  */
-void im_press_titlebar(xcb_connection_t *connection,
+bool im_press_titlebar(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         client_td *client, desktop_td *desktop, surface_td *surface,
         const config_td *config)
 {
     bool hit_btn;
+    bool drag_started = false;
 
     hit_btn = s_mouse_hit_titlebar_buttons(connection, client, desktop,
             surface, event);
@@ -373,6 +387,7 @@ void im_press_titlebar(xcb_connection_t *connection,
                         CLIENT_OPERATION_MOVING,
                         event->time,
                         root_pos, screen_dim);
+                drag_started = true;
             }
         }
     }
@@ -399,4 +414,6 @@ void im_press_titlebar(xcb_connection_t *connection,
     }
 
     (void) surfaces;
+
+    return drag_started;
 }

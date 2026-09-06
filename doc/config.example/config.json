@@ -11,11 +11,11 @@
                 "layout": {
                     "orientation": "horizontal",
                     "corner": "top-left",
-                    "rows": 2,
-                    "columns": 2
+                    "rows": 1,
+                    "columns": 4
                 },
                 "viewport": {
-                    "columns": 2,
+                    "columns": 1,
                     "rows": 1
                 },
                 "settings": [

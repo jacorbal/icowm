@@ -617,8 +617,19 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
             /* Titlebar click */
             if (event->child == client->titlebar &&
                     client->titlebar != 0) {
-                im_press_titlebar(connection, surfaces, event,
-                        client, desktop, surface, config);
+                /* A move drag just claimed the pointer with its own
+                 * active grab; returning here (rather than falling
+                 * through to the resize check and the
+                 * 'xcb_allow_events' call below, both dead code for
+                 * a titlebar-owned 'window' anyway) keeps this click
+                 * on the exact same path the alt-click move binding
+                 * in Step 7 already takes, instead of racing that
+                 * fresh grab against a stray release of the passive
+                 * one that started it. */
+                if (im_press_titlebar(connection, surfaces, event,
+                        client, desktop, surface, config)) {
+                    return;
+                }
             }
 
             /* Border resize (decorated or undecorated) */
