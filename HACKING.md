@@ -57,6 +57,32 @@ which one a point falls on.
 to exactly one, unless it is pinned to all of them, and even then it
 keeps the one it belongs to.
 
+**Viewport** is a desktop's pannable area, sized in whole screens by
+`topology.screens.desktops[].viewport`.  At `1x1`, the default, it is
+the screen and there is nothing to pan; larger, the screen becomes
+a window onto a canvas wider or taller than itself.  Panning moves that
+window, not the desktop: the current desktop never changes, and every
+non-sticky client is translated the opposite way so it keeps its place
+on the canvas.
+
+**Page** is one screen-sized cell of that canvas, addressed `{column,
+row}` from the top-left.  A client belongs to the page its own top-left
+corner falls in, and to that one only, whatever it overlaps; a client
+larger than a page, or straddling two, would otherwise belong to several
+at once and every caller needs a single answer.  The origin, though, is
+not confined to page boundaries: `viewport.pan` slides it by pixels
+while `viewport.page` and `viewport.go-to` land on a page exactly, so
+a view can straddle two pages and is reported as whichever one holds its
+middle.
+
+**Sticky and pinned** are the two flags that make a client belong
+everywhere, one per axis, and neither implies the other.  Pinned is
+about desktops: the client follows the user to every one of them.
+Sticky is about pages: the client holds its position on the physical
+screen while the canvas scrolls under it, so it is on every page.  The
+EWMH state named `_NET_WM_STATE_STICKY` is the pinned one, a collision
+this manager inherited rather than chose.
+
 **Client** is a managed window, and it owns four X windows: the
 application's own `window`, the `frame` wrapped around it, the
 `titlebar` inside that frame, and the `icon_window` standing in for it
