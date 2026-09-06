@@ -84,6 +84,20 @@ static int s_call_pan_south;
 static int s_call_pan_east;
 static int s_call_pan_west;
 
+/** When true, every direction's recording stand-in sets the stub
+ *  desktop's @c viewport_origin straight to @a s_stub_origin_override
+ *  instead of doing its own unconditional whole-screen shift,
+ *  standing in for whatever a real, possibly boundary-clamped
+ *  'scmd_surface_viewport_pan_*' call (cmds/surface.c) would have
+ *  actually left it at; reset to @c false by @a s_reset before each
+ *  scenario */
+static bool s_stub_origin_override_active;
+
+/** Origin @a s_stub_origin_override_active switches every direction's
+ *  stand-in over to, reset to @c { 0, 0 } by @a s_reset before each
+ *  scenario */
+static struct position_s s_stub_origin_override;
+
 /** Count of every other heavy call this file only records rather than
  *  acts on, reset by @a s_reset before each scenario */
 static int s_call_configure_window;
@@ -140,12 +154,24 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
 /**
  * @brief Recording stand-in for @a scmd_surface_viewport_pan_north
  *
+ * Also shifts the stub desktop's own @c viewport_origin exactly the
+ * way the real function would, since @a drag_pan_tick now reads that
+ * field back itself (before and after this call) to work out the
+ * delta it hands the dragged client, rather than assuming a fixed
+ * whole-screen step.
+ *
  * @note Complexity: @e O(1)
  */
 void scmd_surface_viewport_pan_north(surface_td *surface)
 {
     (void) surface;
     s_call_pan_north++;
+    if (s_stub_origin_override_active) {
+        s_stub_desktop->viewport_origin = s_stub_origin_override;
+    } else {
+        s_stub_desktop->viewport_origin.y -=
+            (int32_t) s_stub_desktop->geometry.dim.h;
+    }
 }
 
 
@@ -158,6 +184,12 @@ void scmd_surface_viewport_pan_south(surface_td *surface)
 {
     (void) surface;
     s_call_pan_south++;
+    if (s_stub_origin_override_active) {
+        s_stub_desktop->viewport_origin = s_stub_origin_override;
+    } else {
+        s_stub_desktop->viewport_origin.y +=
+            (int32_t) s_stub_desktop->geometry.dim.h;
+    }
 }
 
 
@@ -170,6 +202,12 @@ void scmd_surface_viewport_pan_east(surface_td *surface)
 {
     (void) surface;
     s_call_pan_east++;
+    if (s_stub_origin_override_active) {
+        s_stub_desktop->viewport_origin = s_stub_origin_override;
+    } else {
+        s_stub_desktop->viewport_origin.x +=
+            (int32_t) s_stub_desktop->geometry.dim.w;
+    }
 }
 
 
@@ -182,6 +220,12 @@ void scmd_surface_viewport_pan_west(surface_td *surface)
 {
     (void) surface;
     s_call_pan_west++;
+    if (s_stub_origin_override_active) {
+        s_stub_desktop->viewport_origin = s_stub_origin_override;
+    } else {
+        s_stub_desktop->viewport_origin.x -=
+            (int32_t) s_stub_desktop->geometry.dim.w;
+    }
 }
 
 
@@ -265,6 +309,9 @@ static void s_reset(void)
     memset(&surface, 0, sizeof(surface));
     memset(&config, 0, sizeof(config));
     memset(&desktop, 0, sizeof(desktop));
+
+    s_stub_origin_override_active = false;
+    s_stub_origin_override = (struct position_s) { 0, 0 };
 
     dragged.id = 1u;
     dragged.screen_id = 0u;
@@ -850,6 +897,43 @@ static void s_test_tick_due_other_directions_shift_correctly(void)
 }
 
 
+/* When the viewport's origin is not aligned to a whole screen step,
+ * e.g. left over from a background-drag pan
+ * ('input/mouse/drag/background.c') or an EWMH
+ * '_NET_DESKTOP_VIEWPORT' request, a west pan can be clamped by
+ * 's_viewport_apply_origin' (cmds/surface.c) to less than a full
+ * screen width. The dragged client must follow that same, real,
+ * possibly-partial delta rather than a blindly assumed full step,
+ * otherwise it drifts away from the pointer and every other window
+ * on the desktop */
+static void s_test_tick_due_clamped_pan_uses_real_delta(void)
+{
+    s_reset();
+    s_drag.is_pan_pending = true;
+    s_drag.pan_direction = COMPASS_WEST;
+    (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.pan_due);
+    s_drag.pan_due.tv_sec -= 1;
+    s_drag.client_start.pos.x = 100;
+    s_drag.client_cur.pos.x = 110;
+
+    s_stub_desktop->viewport_origin.x = 500;
+    s_stub_origin_override_active = true;
+    s_stub_origin_override.x = 0;
+    s_stub_origin_override.y = 0;
+
+    drag_pan_tick((xcb_connection_t *) (void *) 1);
+
+    TAP_EQ_INT(s_call_pan_west, 1, "west still dispatches exactly once");
+    TAP_EQ_INT(s_drag.client_start.pos.x, 600,
+            "a clamped, partial pan shifts the dragged client by the"
+            " real 500-pixel delta the viewport actually moved, not"
+            " a blindly assumed full screen width");
+    TAP_EQ_INT(s_drag.client_cur.pos.x, 610,
+            "the client's current position tracks that same real"
+            " delta");
+}
+
+
 /* A sticky dragged client is left entirely untouched by the
  * drag-state fixup, since it never visually moved on screen in the
  * first place */
@@ -979,7 +1063,7 @@ static void s_test_tick_due_show_geom_config_shows_overlay(void)
 
 int main(void)
 {
-    TAP_PLAN(68);
+    TAP_PLAN(77);
 
     s_test_edge_check_no_client_clears_pending();
     s_test_edge_check_no_surface_is_noop();
@@ -1010,6 +1094,7 @@ int main(void)
     s_test_tick_due_no_desktop_stops_early();
     s_test_tick_due_solid_west_pan_shifts_state();
     s_test_tick_due_other_directions_shift_correctly();
+    s_test_tick_due_clamped_pan_uses_real_delta();
     s_test_tick_due_sticky_client_skips_fixup();
     s_test_tick_due_icon_drag_configures_icon_window();
     s_test_tick_due_outline_drag_moves_outline();

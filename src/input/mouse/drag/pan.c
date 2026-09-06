@@ -69,58 +69,6 @@
 
 
 /**
- * @brief Work out the screen-space delta a pan toward @p direction
- *        applies to every non-sticky client
- *
- * Mirrors @c s_viewport_pan's own switch (@c cmds/surface.c), inverted:
- * that one steps the viewport's origin by @p desktop's screen
- * dimensions in @p direction, while @c s_viewport_apply_origin then
- * derives the client-facing delta as the old origin minus the new one,
- * which is exactly what is reproduced here without needing either of
- * those static functions exported.  Always a full screen step, never a
- * partial one: @a scmd_surface_viewport_pan_available having already
- * confirmed room to pan guarantees the origin sits at least one whole
- * step away from its bound, since it only ever moves in whole-screen
- * increments to begin with.
- *
- * @param desktop   Desktop the pan happens on, for its screen
- *                  dimensions
- * @param direction Compass direction being panned toward
- *
- * @return The pixel delta every non-sticky client's position shifts by
- *
- * @note Complexity: @e O(1)
- */
-static struct position_s s_pan_delta(const desktop_td *desktop,
-        enum compass_direction_e direction)
-{
-    /* Initialized here, not left to the switch below, matching
-     * 's_warp_target_desktop' (drag/warp.c): that switch deliberately
-     * has no 'default:' so the compiler keeps checking it against
-     * every direction, which also means it cannot prove to itself that
-     * one of its cases always runs */
-    struct position_s delta = { 0, 0 };
-
-    switch (direction) {
-    case COMPASS_NORTH:
-        delta.y = (int32_t) desktop->geometry.dim.h;
-        break;
-    case COMPASS_SOUTH:
-        delta.y = -(int32_t) desktop->geometry.dim.h;
-        break;
-    case COMPASS_EAST:
-        delta.x = -(int32_t) desktop->geometry.dim.w;
-        break;
-    case COMPASS_WEST:
-        delta.x = (int32_t) desktop->geometry.dim.w;
-        break;
-    }
-
-    return delta;
-}
-
-
-/**
  * @brief Pan @p surface's current desktop one screen toward
  *        @p direction
  *
@@ -360,6 +308,7 @@ void drag_pan_tick(xcb_connection_t *connection)
 {
     surface_td *surface;
     desktop_td *desktop;
+    struct position_s origin_before;
     struct position_s delta;
     bool is_icon;
 
@@ -398,8 +347,21 @@ void drag_pan_tick(xcb_connection_t *connection)
         return;
     }
 
-    delta = s_pan_delta(desktop, s_drag.pan_direction);
+    /* Read the delta back from the origin itself, before and after,
+     * rather than assuming a full, unclamped screen step: the
+     * viewport can already sit at an unaligned origin coming from a
+     * background pan drag ('input/mouse/drag/background.c') or an
+     * EWMH '_NET_DESKTOP_VIEWPORT' request, in which case
+     * 's_viewport_apply_origin' (cmds/surface.c) clamps the requested
+     * step short of a whole screen.  Recomputing it this way instead
+     * of assuming the step always lands exactly a whole screen away
+     * keeps the dragged client in lock-step with every other client
+     * on the desktop, which that same function already moved by
+     * whatever the real, possibly-clamped delta turned out to be. */
+    origin_before = desktop->viewport_origin;
     s_pan_apply(surface, s_drag.pan_direction);
+    delta.x = origin_before.x - desktop->viewport_origin.x;
+    delta.y = origin_before.y - desktop->viewport_origin.y;
     s_pan_move_dragged(connection, is_icon, delta);
 
     /* Panning the viewport never moves the pointer itself, unlike a
