@@ -338,8 +338,14 @@ int config_load_base(const char *filename,
     /* Load viewport base configuration */
     viewport = cJSON_GetObjectItem(json, "viewport");
     if (viewport) {
-        json_load_uint(viewport, "move-step",
-                &config_base->viewport.move_step);
+        json_load_uint(viewport, "pan-step",
+                &config_base->viewport.pan_step);
+        json_load_bool(viewport, "pan-icons",
+                &config_base->viewport.pan_icons);
+        json_load_bool(viewport, "pan-on-edge-drag",
+                &config_base->viewport.pan_on_edge_drag);
+        json_load_bool(viewport, "pan-on-edge-hover",
+                &config_base->viewport.pan_on_edge_hover);
         s_config_load_viewport_mesh(viewport, config_base, filename);
     }
 
@@ -350,9 +356,7 @@ int config_load_base(const char *filename,
 
         json_load_bool(icons, "show-geom",
                 &config_base->icons.show_geom);
-        json_load_bool(icons, "follow-viewport",
-                &config_base->icons.follow_viewport);
-        placement = cJSON_GetObjectItem(icons, "placement");
+                placement = cJSON_GetObjectItem(icons, "placement");
         if (placement && cJSON_IsObject(placement)) {
             cJSON *const icon_policy_item =
                 json_get_item(placement, "policy");

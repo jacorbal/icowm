@@ -711,22 +711,35 @@ static void s_test_icons_placement_legacy_windows_location(void)
 }
 
 
-/* 'icons.follow-viewport' loads independently of 'icons.show-geom',
- * and stays off when absent, the same as any other missing bool */
-static void s_test_icons_follow_viewport_loads(void)
+/* Every 'pan-' key of the viewport section loads, and each keeps its
+ * own default when absent: they all describe panning, so they live
+ * with the viewport rather than scattered across 'icons' and
+ * 'desktops', where two of them used to sit */
+static void s_test_viewport_pan_keys_load(void)
 {
     struct config_base_s base;
     struct config_desktop_s desktop;
 
-    s_load("{\"icons\": {\"show-geom\": true,"
-        " \"follow-viewport\": true}}", &base, &desktop);
+    s_load("{\"icons\": {\"show-geom\": true},"
+        " \"viewport\": {\"pan-step\": 25, \"pan-icons\": true,"
+        " \"pan-on-edge-drag\": false,"
+        " \"pan-on-edge-hover\": false}}", &base, &desktop);
     TAP_OK(base.icons.show_geom, "icons.show-geom still loads");
-    TAP_OK(base.icons.follow_viewport,
-            "icons.follow-viewport: true loads");
+    TAP_EQ_INT((int) base.viewport.pan_step, 25,
+            "viewport.pan-step loads under its new name");
+    TAP_OK(base.viewport.pan_icons, "viewport.pan-icons loads");
+    TAP_OK(!base.viewport.pan_on_edge_drag,
+            "viewport.pan-on-edge-drag loads");
+    TAP_OK(!base.viewport.pan_on_edge_hover,
+            "viewport.pan-on-edge-hover loads");
 
-    s_load("{\"icons\": {\"show-geom\": true}}", &base, &desktop);
-    TAP_OK(!base.icons.follow_viewport,
-            "icons.follow-viewport: absent stays false");
+    s_load_with_defaults("{}", &base, &desktop);
+    TAP_OK(!base.viewport.pan_icons,
+            "pan-icons defaults off: icons stay put while the canvas"
+            " scrolls under them");
+    TAP_OK(base.viewport.pan_on_edge_drag &&
+            base.viewport.pan_on_edge_hover,
+            "both edge pans default on");
 }
 
 
@@ -740,14 +753,11 @@ static void s_test_desktop_behavior(void)
 
     s_load(
         "{\"desktops\": {"
-        " \"warp-on-edge-drag\": true, \"pan-on-edge-hover\": true,"
-        " \"pan-on-edge-drag\": true,"
+        " \"warp-on-edge-drag\": true,"
         " \"wrap-at-bounds\": true,"
         " \"margins\": {\"top\": 3, \"left\": 7}}}", &base, &desktop);
 
     TAP_OK(desktop.warp_on_edge_drag, "desktops.warp-on-edge-drag");
-    TAP_OK(desktop.pan_on_edge_hover, "desktops.pan-on-edge-hover");
-    TAP_OK(desktop.pan_on_edge_drag, "desktops.pan-on-edge-drag");
     TAP_OK(desktop.wrap_at_bounds, "desktops.wrap-at-bounds");
     TAP_EQ_INT((int) desktop.margins.top, 3, "desktops.margins.top");
     TAP_EQ_INT((int) desktop.margins.left, 7, "desktops.margins.left");
@@ -980,7 +990,7 @@ static void s_test_overlay_section_loads(void)
 
 int main(void)
 {
-    TAP_PLAN(119);
+    TAP_PLAN(121);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
@@ -1014,7 +1024,7 @@ int main(void)
     s_test_icons_placement_modern_object_form();
     s_test_icons_placement_bare_string_form();
     s_test_icons_placement_legacy_windows_location();
-    s_test_icons_follow_viewport_loads();
+    s_test_viewport_pan_keys_load();
     s_test_desktop_behavior();
     s_test_systray_representative_fields();
     s_test_systray_text_order();

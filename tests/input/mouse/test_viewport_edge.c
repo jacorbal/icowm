@@ -236,7 +236,7 @@ static void s_reset(void)
     memset(&surface, 0, sizeof(surface));
     memset(&screen, 0, sizeof(screen));
 
-    config.desktops.pan_on_edge_hover = true;
+    config.base.viewport.pan_on_edge_hover = true;
     config.base.screens[0].viewport.columns = 3u;
     config.base.screens[0].viewport.rows = 1u;
 
@@ -280,7 +280,7 @@ static void s_test_check_no_surface_is_noop(void)
 static void s_test_check_disabled_in_config_is_noop(void)
 {
     s_reset();
-    s_stub_surface->config->desktops.pan_on_edge_hover = false;
+    s_stub_surface->config->base.viewport.pan_on_edge_hover = false;
 
     mouse_viewport_edge_check(s_fake_surfaces, 1u, 0, 500);
 

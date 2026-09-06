@@ -153,7 +153,7 @@ void mouse_viewport_edge_check(list_td *surfaces, xcb_window_t root,
 
     surface = lookup_surface_for_root(surfaces, root);
     if (surface == NULL || surface->config == NULL ||
-            !surface->config->desktops.pan_on_edge_hover ||
+            !surface->config->base.viewport.pan_on_edge_hover ||
             !s_viewport_edge_is_active(surface)) {
         s_pending = false;
         return;
@@ -229,7 +229,7 @@ void mouse_viewport_edge_tick(xcb_connection_t *connection)
 
     if (drag_is_active() || s_surface == NULL ||
             s_surface->screen == NULL || s_surface->config == NULL ||
-            !s_surface->config->desktops.pan_on_edge_hover ||
+            !s_surface->config->base.viewport.pan_on_edge_hover ||
             !s_viewport_edge_is_active(s_surface)) {
         return;
     }

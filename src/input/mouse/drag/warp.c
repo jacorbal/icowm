@@ -463,7 +463,7 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
         return;
     }
 
-    if (surface->config->desktops.pan_on_edge_drag &&
+    if (surface->config->base.viewport.pan_on_edge_drag &&
             scmd_surface_viewport_pan_available(surface, direction)) {
         /* The current desktop's viewport still has room to pan toward
          * this same edge; that takes priority over a desktop switch
@@ -546,7 +546,7 @@ void drag_warp_tick(xcb_connection_t *connection)
         return;
     }
 
-    if (surface->config->desktops.pan_on_edge_drag &&
+    if (surface->config->base.viewport.pan_on_edge_drag &&
             scmd_surface_viewport_pan_available(surface,
                 s_drag.warp_direction)) {
         /* Live re-check, same reasoning as 'drag_warp_edge_check':

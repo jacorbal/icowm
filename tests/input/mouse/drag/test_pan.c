@@ -355,7 +355,7 @@ static void s_reset(void)
     dragged.screen_id = 0u;
     dragged.icon_window = 42u;
 
-    config.desktops.pan_on_edge_drag = true;
+    config.base.viewport.pan_on_edge_drag = true;
 
     surface.config = &config;
     surface.screen = &screen;
@@ -423,7 +423,7 @@ static void s_test_edge_check_no_surface_is_noop(void)
 static void s_test_edge_check_disabled_in_config_is_noop(void)
 {
     s_reset();
-    s_stub_surface->config->desktops.pan_on_edge_drag = false;
+    s_stub_surface->config->base.viewport.pan_on_edge_drag = false;
 
     drag_pan_edge_check(0, 500);
 
@@ -752,7 +752,7 @@ static void s_test_tick_due_config_disabled_stops_early(void)
     s_drag.pan_direction = COMPASS_WEST;
     (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.pan_due);
     s_drag.pan_due.tv_sec -= 1;
-    s_stub_surface->config->desktops.pan_on_edge_drag = false;
+    s_stub_surface->config->base.viewport.pan_on_edge_drag = false;
 
     drag_pan_tick((xcb_connection_t *) (void *) 1);
 

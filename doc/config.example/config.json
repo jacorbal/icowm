@@ -31,6 +31,11 @@
         }
     },
 
+    "overlay": {
+        "on-desktop-switch": true,
+        "on-viewport-move": true
+    },
+
     "desktops": {
         "notify-activity": true,
         "warp-on-edge-drag": true,
@@ -39,20 +44,16 @@
     },
 
     "viewport": {
-        "notify-activity": true,
+        "pan-step": 40,
+        "pan-icons": false,
+        "pan-on-edge-drag": true,
         "pan-on-edge-hover": true,
-        "move-step": 40,
         "mesh": {
             "is-enabled": true,
             "spacing": { "horizontal": 64, "vertical": 64 },
             "thickness": 3,
             "tone-shift": 20
         }
-    },
-
-    "overlay": {
-        "on-desktop-switch": true,
-        "on-viewport-move": true
     },
 
     "programs": {
@@ -93,7 +94,6 @@
     },
 
     "icons": {
-        "follow-viewport": true,
         "show-geom": false,
         "placement": {
             "policy": "smart"

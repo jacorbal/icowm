@@ -162,7 +162,7 @@ typedef struct {
      * @brief Whether the pointer is held against a pan-eligible screen
      *        edge, counting down to a viewport pan
      *
-     *  @note Governed by @c desktops.pan_on_edge_drag in
+     *  @note Governed by @c viewport.pan_on_edge_drag in
      *        @c config.json; see @c input/mouse/drag/pan.h
      */
     bool is_pan_pending;

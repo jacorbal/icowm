@@ -143,7 +143,6 @@ struct config_base_s {
     /* Icon placement policy settings */
     struct {
         bool show_geom;   /**< Show geometry overlay on move/resize */
-        bool follow_viewport;  /**< Pan icons along with the viewport */
         enum config_icon_placement_e {
             /** Bottom row, the default */
             CONFIG_ICON_PLACEMENT_BOTTOM = 0,
@@ -425,10 +424,63 @@ struct config_base_s {
      * sibling of 'windows' above, 'desktops' (config/desktops.h),
      * and 'topology' (this same struct's 'screens' above) */
     struct {
-        uint32_t move_step; /**< Keyboard pan step in pixels; mouse
+        uint32_t pan_step;  /**< Keyboard pan step in pixels; mouse
                               *  dragging on the desktop background
                               *  moves by the exact drag delta
                               *  instead, never by this */
+
+        /**
+         * @brief Whether panning also moves the desktop icons, rather
+         *        than leaving them fixed on the physical screen
+         *
+         * Off by default: icons sit on the desktop the way a note sits
+         * on a monitor's bezel, and most setups want them to stay put
+         * while the canvas scrolls under them.
+         *
+         * @note Meaningless on a screen whose @c viewport is @c 1x1
+         *       (no panning configured)
+         */
+        bool pan_icons;
+
+        /**
+         * @brief Whether dragging a window past a screen edge pans the
+         *        current desktop's viewport toward that edge, carrying
+         *        the dragged window along
+         *
+         * Held there past @c WM_VIEWPORT_PAN_DELAY_MS
+         * (@c defs/desktop.h), pans one screen toward the held edge,
+         * then repeats every @c WM_VIEWPORT_PAN_REPEAT_MS for as long
+         * as the drag stays held there, exactly like
+         * @c pan_on_edge_hover below except triggered by a drag rather
+         * than a plain hover.  Takes priority over
+         * @c desktops.warp_on_edge_drag for as long as the viewport
+         * still has room to pan that way; once it does not (or the
+         * screen's @c viewport is @c 1x1), a held edge falls through
+         * to that one instead.
+         *
+         * @note Meaningless on a screen whose @c viewport is @c 1x1 (no
+         *       panning configured)
+         */
+        bool pan_on_edge_drag;
+
+        /**
+         * @brief Whether resting the pointer against a screen edge, with
+         *        no drag in progress, pans the current desktop's viewport
+         *        toward that edge
+         *
+         * Held there past @c WM_VIEWPORT_PAN_DELAY_MS
+         * (@c defs/desktop.h), pans one screen toward the held edge,
+         * then repeats every @c WM_VIEWPORT_PAN_REPEAT_MS for as long
+         * as the pointer stays held there.
+         *
+         * @note Meaningless on a screen whose @c viewport is @c 1x1 (no
+         *       panning configured), or while a window or icon is being
+         *       dragged: an edge held during a drag is
+         *       @c pan_on_edge_drag and
+         *       @c desktops.warp_on_edge_drag's to answer instead,
+         *       never this one's
+         */
+        bool pan_on_edge_hover;
 
         /**
          * @brief Dot mesh painted on the root window so that panning

@@ -121,9 +121,9 @@ static void s_test_default_values_key_fields(void)
             "a single desktop by default");
     TAP_OK(!config->desktops.warp_on_edge_drag,
             "edge warp off: meaningless with 1 desktop");
-    TAP_OK(!config->desktops.pan_on_edge_hover,
+    TAP_OK(!config->base.viewport.pan_on_edge_hover,
             "edge hover pan off: meaningless with no viewport");
-    TAP_OK(!config->desktops.pan_on_edge_drag,
+    TAP_OK(!config->base.viewport.pan_on_edge_drag,
             "edge drag pan off: meaningless with no viewport");
     TAP_OK(!config->desktops.wrap_at_bounds,
             "circular switching off: meaningless with 1 desktop");
@@ -176,8 +176,7 @@ static void s_test_load_full_file(void)
         "\"desktops\": {\"margins\": {\"top\": 5}},"
         "\"windows\": {\"move-step\": 25,"
         "  \"placement\": {\"policy\": \"cascade\"}},"
-        "\"icons\": {\"placement\": {\"policy\": \"grid\"},"
-        "  \"follow-viewport\": true},"
+        "\"icons\": {\"placement\": {\"policy\": \"grid\"}},"
         "\"shutdown\": {\"enable-emergency-shortcut\": true}"
         "}");
 
@@ -189,8 +188,6 @@ static void s_test_load_full_file(void)
             "desktops.margins.top loaded");
     TAP_EQ_INT((int) config->base.windows.move_step, 25,
             "windows.move-step loaded");
-    TAP_OK(config->base.icons.follow_viewport,
-            "icons.follow-viewport loaded");
     TAP_OK(config->base.shutdown.enable_emergency_shortcut,
             "shutdown.enable-emergency-shortcut loaded");
 
@@ -326,7 +323,7 @@ static void s_test_load_memguard_also_loads_bindings(void)
 
 int main(void)
 {
-    TAP_PLAN(29);
+    TAP_PLAN(28);
 
     s_test_init_memguard();
     s_test_default_values_null_safe();

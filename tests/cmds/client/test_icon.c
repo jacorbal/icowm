@@ -753,7 +753,7 @@ static void s_test_ensure_icon_window_reuses_free_saved_position(void)
 
 
 /* A saved position with a negative component, the kind an
- * 'icons.follow-viewport' pan can legitimately leave behind, is still
+ * 'viewport.pan-icons' pan can legitimately leave behind, is still
  * reused rather than mistaken for the never-iconified sentinel of
  * (-1, -1) */
 static void s_test_ensure_icon_window_reuses_negative_saved_position(void)

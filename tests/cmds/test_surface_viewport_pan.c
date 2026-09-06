@@ -585,7 +585,7 @@ static void s_test_pan_east_skips_drag_excluded_client(void)
 }
 
 
-/* When 'icons.follow-viewport' is on and a client's icon is currently
+/* When 'viewport.pan-icons' is on and a client's icon is currently
  * mapped, panning shifts that icon's own saved position (and its
  * real window) by the exact same delta as the client itself, right
  * after the client's own window is moved */
@@ -600,7 +600,7 @@ static void s_test_pan_east_also_translates_mapped_icon(void)
     memset(&config, 0, sizeof(config));
     config.base.screens[0].viewport.columns = 2u;
     config.base.screens[0].viewport.rows = 1u;
-    config.base.icons.follow_viewport = true;
+    config.base.viewport.pan_icons = true;
     surface = s_make_surface(&config, 0u);
 
     moving->config = &config;
@@ -654,7 +654,7 @@ static void s_test_pan_east_twice_keeps_translating_negative_icon(void)
     memset(&config, 0, sizeof(config));
     config.base.screens[0].viewport.columns = 3u;
     config.base.screens[0].viewport.rows = 1u;
-    config.base.icons.follow_viewport = true;
+    config.base.viewport.pan_icons = true;
     surface = s_make_surface(&config, 0u);
 
     moving->config = &config;
@@ -689,10 +689,10 @@ static void s_test_pan_east_twice_keeps_translating_negative_icon(void)
 }
 
 
-/* The same mapped icon is left untouched when 'icons.follow-viewport'
+/* The same mapped icon is left untouched when 'viewport.pan-icons'
  * is off, the default, confirming the new behavior never engages
  * unless explicitly requested */
-static void s_test_pan_east_leaves_icon_when_follow_viewport_off(void)
+static void s_test_pan_east_leaves_icon_when_pan_icons_off(void)
 {
     config_td config;
     surface_td *surface;
@@ -877,8 +877,8 @@ static void s_test_pan_north_moves_vertical_origin_back(void)
 
 
 /* Unlike its whole-screen siblings, the keyboard step pan moves the
- * origin by 'viewport.move-step' pixels alone */
-static void s_test_pan_step_east_moves_by_move_step_pixels(void)
+ * origin by 'viewport.pan-step' pixels alone */
+static void s_test_pan_step_east_moves_by_pan_step_pixels(void)
 {
     config_td config;
     surface_td *surface;
@@ -887,7 +887,7 @@ static void s_test_pan_step_east_moves_by_move_step_pixels(void)
     memset(&config, 0, sizeof(config));
     config.base.screens[0].viewport.columns = 2u;
     config.base.screens[0].viewport.rows = 1u;
-    config.base.viewport.move_step = 15u;
+    config.base.viewport.pan_step = 15u;
     surface = s_make_surface(&config, 0u);
 
     s_reset();
@@ -895,7 +895,7 @@ static void s_test_pan_step_east_moves_by_move_step_pixels(void)
 
     scmd_surface_viewport_pan_step(surface, COMPASS_EAST);
     TAP_EQ_INT(desktop->viewport_origin.x, 15,
-            "the viewport origin moves 'viewport.move-step' pixels"
+            "the viewport origin moves 'viewport.pan-step' pixels"
             " east, not a whole screen");
     TAP_OK(surface->is_outdated,
             "a real step pan marks the surface outdated");
@@ -917,7 +917,7 @@ static void s_test_pan_step_clamped_at_edge_is_noop(void)
     memset(&config, 0, sizeof(config));
     config.base.screens[0].viewport.columns = 2u;
     config.base.screens[0].viewport.rows = 1u;
-    config.base.viewport.move_step = 15u;
+    config.base.viewport.pan_step = 15u;
     surface = s_make_surface(&config, 0u);
 
     s_reset();
@@ -1383,13 +1383,13 @@ int main(void)
     s_test_pan_east_skips_drag_excluded_client();
     s_test_pan_east_also_translates_mapped_icon();
     s_test_pan_east_twice_keeps_translating_negative_icon();
-    s_test_pan_east_leaves_icon_when_follow_viewport_off();
+    s_test_pan_east_leaves_icon_when_pan_icons_off();
     s_test_pan_east_clamped_at_edge_is_noop();
     s_test_pan_west_moves_origin_back();
     s_test_pan_west_clamped_at_zero_is_noop();
     s_test_pan_south_moves_vertical_origin();
     s_test_pan_north_moves_vertical_origin_back();
-    s_test_pan_step_east_moves_by_move_step_pixels();
+    s_test_pan_step_east_moves_by_pan_step_pixels();
     s_test_pan_step_clamped_at_edge_is_noop();
     s_test_set_null_surface_or_no_desktop_is_noop();
     s_test_set_moves_to_absolute_origin();

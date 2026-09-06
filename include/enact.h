@@ -876,7 +876,7 @@ void enact_surface_desktop_switch_west(surface_td *surface);
  *        north, clamped at the top of the pannable area
  *
  * The discrete counterpart to @a enact_surface_viewport_pan_north
- * below, which slides by @c viewport.move-step pixels instead
+ * below, which slides by @c viewport.pan-step pixels instead
  *
  * @param surface Surface whose viewport to move
  *

@@ -607,7 +607,7 @@ void ci_config_load_desktop_behavior(cJSON *json,
     if (desktop_settings == NULL) {
         LOGGER_TRACE("No 'desktops' object found in '%s';" \
                 " notify-activity, warp-on-edge-drag," \
-                " pan-on-edge-drag, pan-on-edge-hover, wrap-at-bounds," \
+                " wrap-at-bounds," \
                 " and margins keep their default values", filename);
         return;
     }
@@ -616,11 +616,7 @@ void ci_config_load_desktop_behavior(cJSON *json,
             &config_desktop->notify_activity);
     json_load_bool(desktop_settings, "warp-on-edge-drag",
             &config_desktop->warp_on_edge_drag);
-    json_load_bool(desktop_settings, "pan-on-edge-drag",
-            &config_desktop->pan_on_edge_drag);
-    json_load_bool(desktop_settings, "pan-on-edge-hover",
-            &config_desktop->pan_on_edge_hover);
-    json_load_bool(desktop_settings, "wrap-at-bounds",
+            json_load_bool(desktop_settings, "wrap-at-bounds",
             &config_desktop->wrap_at_bounds);
 
     margins = cJSON_GetObjectItem(desktop_settings, "margins");

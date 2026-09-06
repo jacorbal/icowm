@@ -271,7 +271,7 @@ void drag_pan_edge_check(int16_t root_x, int16_t root_y)
 
     surface = wm_get_surface_by_id(s_drag.client->screen_id);
     if (surface == NULL || surface->config == NULL ||
-            !surface->config->desktops.pan_on_edge_drag) {
+            !surface->config->base.viewport.pan_on_edge_drag) {
         s_drag.is_pan_pending = false;
         return;
     }
@@ -424,7 +424,7 @@ void drag_pan_tick(xcb_connection_t *connection)
     surface = wm_get_surface_by_id(s_drag.client->screen_id);
     if (surface == NULL || surface->screen == NULL ||
             surface->config == NULL ||
-            !surface->config->desktops.pan_on_edge_drag ||
+            !surface->config->base.viewport.pan_on_edge_drag ||
             !scmd_surface_viewport_pan_available(surface,
                 s_drag.pan_direction)) {
         /* Live re-check: the config, or the viewport's own room to pan,

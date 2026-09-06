@@ -337,12 +337,13 @@ void focus_order_to_top(client_td *client)
  */
 void notify_desktop_show(xcb_connection_t *connection, surface_td *surface,
         uint32_t desktop_idx, const char *desktop_name,
-        const config_td *config)
+        enum notify_desktop_cause_e cause, const config_td *config)
 {
     (void) connection;
     (void) surface;
     (void) desktop_idx;
     (void) desktop_name;
+    (void) cause;
     (void) config;
     s_call_notify_desktop_show++;
 }
@@ -670,7 +671,7 @@ static void s_test_edge_check_left_edge_arms_west(void)
 static void s_test_edge_check_pan_available_defers_to_pan(void)
 {
     s_reset();
-    s_stub_surface->config->desktops.pan_on_edge_drag = true;
+    s_stub_surface->config->base.viewport.pan_on_edge_drag = true;
     s_stub_pan_available = true;
 
     drag_warp_edge_check(0, 500);

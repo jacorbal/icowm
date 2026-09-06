@@ -96,10 +96,6 @@ static const config_lint_key_td s_schema_desktops[] = {
         0, NULL, 0u, NULL},
     {"warp-on-edge-drag", NULL, 0u,
         0, NULL, 0u, NULL},
-    {"pan-on-edge-drag", NULL, 0u,
-        0, NULL, 0u, NULL},
-    {"pan-on-edge-hover", NULL, 0u,
-        0, NULL, 0u, NULL},
     {"wrap-at-bounds", NULL, 0u,
         0, NULL, 0u, NULL},
     {"margins", s_schema_desktops_margins,
@@ -172,7 +168,13 @@ static const config_lint_key_td s_schema_viewport_mesh[] = {
 };
 
 static const config_lint_key_td s_schema_viewport[] = {
-    {"move-step", NULL, 0u,
+    {"pan-step", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"pan-icons", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"pan-on-edge-drag", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"pan-on-edge-hover", NULL, 0u,
         0, NULL, 0u, NULL},
     {"mesh", s_schema_viewport_mesh,
         sizeof(s_schema_viewport_mesh) /
@@ -210,8 +212,6 @@ static const config_lint_key_td s_schema_windows[] = {
 
 static const config_lint_key_td s_schema_icons[] = {
     {"show-geom", NULL, 0u,
-        0, NULL, 0u, NULL},
-    {"follow-viewport", NULL, 0u,
         0, NULL, 0u, NULL},
     {"placement", NULL, 0u,
         0, NULL, 0u, NULL} /* object with 'policy', or a plain string;

@@ -42,7 +42,7 @@
  * @note Also a no-op, deferring instead to @a drag_pan_edge_check
  *       (@c input/mouse/drag/pan.h), whenever the current desktop's
  *       viewport still has room to pan toward the held edge and
- *       @c desktops.pan_on_edge_drag is enabled: panning within the
+ *       @c viewport.pan_on_edge_drag is enabled: panning within the
  *       viewport always takes priority over switching desktops for as
  *       long as it remains possible
  * @note Complexity: @e O(1)

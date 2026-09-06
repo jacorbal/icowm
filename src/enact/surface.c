@@ -191,7 +191,7 @@ void enact_surface_viewport_switch_west(surface_td *surface)
 
 
 /* Pan the surface's current desktop viewport north by one
- * 'viewport.move-step' */
+ * 'viewport.pan-step' */
 void enact_surface_viewport_pan_north(surface_td *surface)
 {
     scmd_surface_viewport_pan_step(surface, COMPASS_NORTH);
@@ -199,7 +199,7 @@ void enact_surface_viewport_pan_north(surface_td *surface)
 
 
 /* Pan the surface's current desktop viewport south by one
- * 'viewport.move-step' */
+ * 'viewport.pan-step' */
 void enact_surface_viewport_pan_south(surface_td *surface)
 {
     scmd_surface_viewport_pan_step(surface, COMPASS_SOUTH);
@@ -207,7 +207,7 @@ void enact_surface_viewport_pan_south(surface_td *surface)
 
 
 /* Pan the surface's current desktop viewport east by one
- * 'viewport.move-step' */
+ * 'viewport.pan-step' */
 void enact_surface_viewport_pan_east(surface_td *surface)
 {
     scmd_surface_viewport_pan_step(surface, COMPASS_EAST);
@@ -215,7 +215,7 @@ void enact_surface_viewport_pan_east(surface_td *surface)
 
 
 /* Pan the surface's current desktop viewport west by one
- * 'viewport.move-step' */
+ * 'viewport.pan-step' */
 void enact_surface_viewport_pan_west(surface_td *surface)
 {
     scmd_surface_viewport_pan_step(surface, COMPASS_WEST);

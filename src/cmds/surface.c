@@ -206,7 +206,7 @@ static void s_switch_cyclic(surface_td *surface,
 
 /**
  * @brief Pan one already-panned client's icon window by the same delta,
- *        when @c icons.follow-viewport asks for it
+ *        when @c viewport.pan-icons asks for it
  *
  * A no-op whenever the client has no @c config to read the flag from,
  * the flag itself is off (the default), there is no icon window at
@@ -233,7 +233,7 @@ static void s_viewport_translate_icon(client_td *client,
         const struct position_s *delta)
 {
     if (client->config == NULL ||
-            !client->config->base.icons.follow_viewport ||
+            !client->config->base.viewport.pan_icons ||
             client->icon_window == 0u || !client->is_icon_mapped ||
             (client->icon_pos.x == -1 && client->icon_pos.y == -1)) {
         return;
@@ -731,7 +731,7 @@ void scmd_surface_viewport_pan_west(surface_td *surface)
 }
 
 
-/* Pan the current desktop's viewport by 'viewport.move-step' pixels */
+/* Pan the current desktop's viewport by 'viewport.pan-step' pixels */
 void scmd_surface_viewport_pan_step(surface_td *surface,
         enum compass_direction_e direction)
 {
@@ -751,7 +751,7 @@ void scmd_surface_viewport_pan_step(surface_td *surface,
     }
 
     step = (surface->config != NULL) ? surface->config->base
-        .viewport.move_step : 0u;
+        .viewport.pan_step : 0u;
     surface_viewport_dims(surface, &columns, &rows);
     origin = desktop->viewport_origin;
 

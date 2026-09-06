@@ -67,8 +67,6 @@ static const config_lint_key_td s_schema_memguard_icons_placement[] = {
 static const config_lint_key_td s_schema_memguard_icons[] = {
     {"show-geom", NULL, 0u,
         0, NULL, 0u, NULL},
-    {"follow-viewport", NULL, 0u,
-        0, NULL, 0u, NULL},
     {"placement", s_schema_memguard_icons_placement,
         sizeof(s_schema_memguard_icons_placement) /
             sizeof(s_schema_memguard_icons_placement[0]),

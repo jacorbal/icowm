@@ -168,7 +168,7 @@ void scmd_surface_viewport_pan_east(surface_td *surface);
 void scmd_surface_viewport_pan_west(surface_td *surface);
 
 /**
- * @brief Pan the current desktop's viewport by @c viewport.move-step
+ * @brief Pan the current desktop's viewport by @c viewport.pan-step
  *        pixels toward @p direction, clamped at the edges of the
  *        pannable area
  *

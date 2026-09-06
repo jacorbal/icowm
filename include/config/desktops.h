@@ -65,7 +65,7 @@ struct config_desktop_s {
      *
      * Held there past @c WM_DESKTOP_WARP_DELAY_MS (@c defs/desktop.h),
      * switches to the adjacent desktop with the drag still held.
-     * Deferred to entirely whenever @c pan_on_edge_drag below would
+     * Deferred to entirely whenever @c viewport.pan_on_edge_drag
      * still have room to pan the current desktop's viewport toward
      * that same edge instead: a desktop switch is only ever what a
      * held edge means once the viewport itself has nowhere left to
@@ -74,44 +74,6 @@ struct config_desktop_s {
      * @note Meaningless with only one desktop
      */
     bool warp_on_edge_drag;
-
-    /**
-     * @brief Whether dragging a window past a screen edge pans the
-     *        current desktop's viewport toward that edge, carrying
-     *        the dragged window along
-     *
-     * Held there past @c WM_VIEWPORT_PAN_DELAY_MS (@c defs/desktop.h),
-     * pans one screen toward the held edge, then repeats every
-     * @c WM_VIEWPORT_PAN_REPEAT_MS for as long as the drag stays held
-     * there, exactly like @c pan_on_edge_hover below except triggered
-     * by a drag rather than a plain hover.  Takes priority over
-     * @c warp_on_edge_drag above for as long as the viewport still has
-     * room to pan that way; once it does not (or the screen's
-     * @c viewport is @c 1x1), a held edge falls through to that one
-     * instead.
-     *
-     * @note Meaningless on a screen whose @c viewport is @c 1x1 (no
-     *       panning configured)
-     */
-    bool pan_on_edge_drag;
-
-    /**
-     * @brief Whether resting the pointer against a screen edge, with
-     *        no drag in progress, pans the current desktop's viewport
-     *        toward that edge
-     *
-     * Held there past @c WM_VIEWPORT_PAN_DELAY_MS (@c defs/desktop.h),
-     * pans one screen toward the held edge, then repeats every
-     * @c WM_VIEWPORT_PAN_REPEAT_MS for as long as the pointer stays
-     * held there.
-     *
-     * @note Meaningless on a screen whose @c viewport is @c 1x1 (no
-     *       panning configured), or while a window or icon is being
-     *       dragged: an edge held during a drag is @c pan_on_edge_drag
-     *       and @c warp_on_edge_drag above's to answer instead, never
-     *       this one's
-     */
-    bool pan_on_edge_hover;
 
     /** Whether switching past the first or last desktop wraps around to
      *  the other end, rather than stopping there.  Meaningless with

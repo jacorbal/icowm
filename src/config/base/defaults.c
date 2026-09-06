@@ -57,8 +57,6 @@ void config_set_default_base_values(struct config_base_s *config_base,
      * every other default here. */
     config_desktop->notify_activity = true;
     config_desktop->warp_on_edge_drag = true;
-    config_desktop->pan_on_edge_drag = true;
-    config_desktop->pan_on_edge_hover = true;
     config_desktop->wrap_at_bounds = true;
     config_desktop->margins.top = 0u;
     config_desktop->margins.right = 0u;
@@ -169,7 +167,10 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->overlay.on_desktop_switch = true;
     config_base->overlay.on_viewport_move = true;
 
-    config_base->viewport.move_step = 40;
+    config_base->viewport.pan_step = 40;
+    config_base->viewport.pan_icons = false;
+    config_base->viewport.pan_on_edge_drag = true;
+    config_base->viewport.pan_on_edge_hover = true;
     /* Enabled by default: the mesh only ever appears where it has
      * something to report, on a surface whose viewport can actually
      * pan and whose root window the manager still owns, so leaving
@@ -203,7 +204,6 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.focus.delay_ms = 250;
     config_base->icons.placement_policy = CONFIG_ICON_PLACEMENT_SMART;
     config_base->icons.show_geom = false;
-    config_base->icons.follow_viewport = false;
     config_base->shutdown.enable_emergency_shortcut = false;
     config_base->shutdown.timeout_seconds = 15u;
     config_base->fortune.is_enabled = true;

@@ -276,11 +276,6 @@ How an iconified window is represented on the desktop.
 .Bl -tag -width Ds
 .It Ic icons.show-geom Pq boolean, default Ql false
 Whether an overlay reports the position while an icon is dragged.
-.It Ic icons.follow-viewport Pq boolean, default Ql false
-Whether an already-iconified window's icon pans along with the
-desktop's viewport, the same as an ordinary window does.
-Off by default, an icon stays put on screen through a pan, exactly as
-before this key existed.
 .It Ic icons.placement.policy Pq string, default Ql \&"smart\&"
 Where a new icon is put:
 .Ql bottom ,
@@ -408,29 +403,10 @@ Whether a window demanding attention on another desktop is reported.
 .It Ic desktops.warp-on-edge-drag Pq boolean, default Ql true
 Whether dragging a window against a screen edge carries it through to
 the neighboring desktop, once
-.Ic desktops.pan-on-edge-drag
+.Ic viewport.pan-on-edge-drag
 below has no more room left to pan the current desktop's viewport
 toward that same edge instead.
 Meaningless with only one desktop.
-.It Ic desktops.pan-on-edge-drag Pq boolean, default Ql true
-Whether dragging a window against a screen edge pans the current
-desktop's viewport toward that edge instead, carrying the dragged
-window along, for as long as
-.Ic topology.screens.desktops[].viewport
-gives it room to.
-Takes priority over
-.Ic desktops.warp-on-edge-drag
-while that room lasts.
-Meaningless on a desktop with no pannable viewport configured.
-.It Ic desktops.pan-on-edge-hover Pq boolean, default Ql true
-Whether resting the pointer against a screen edge, with no drag in
-progress, pans the current desktop's viewport toward that edge.
-Meaningless on a desktop with no pannable viewport configured, or
-while a window or icon is being dragged, which
-.Ic desktops.pan-on-edge-drag
-and
-.Ic desktops.warp-on-edge-drag
-answer for instead.
 .It Ic desktops.wrap-at-bounds Pq boolean, default Ql true
 Whether moving past the last desktop comes back around to the first.
 .It Ic desktops.margins.top Pq integer, default Ql 0
@@ -467,9 +443,18 @@ and
 A mouse drag on the desktop background pans by the exact pixel delta of
 that drag instead, unaffected by this setting.
 .Bl -tag -width Ds
-.It Ic viewport.move-step Pq integer, default Ql 40
+.It Ic viewport.pan-step Pq integer, default Ql 40
 How many pixels each viewport-pan keyboard shortcut moves the origin
 per press.
+.It Ic viewport.pan-icons Pq boolean, default Ql false
+Whether panning also moves the desktop icons, rather than leaving them
+fixed on the physical screen while the canvas scrolls under them.
+.It Ic viewport.pan-on-edge-drag Pq boolean, default Ql true
+Whether dragging a window or icon against a screen edge pans the
+viewport toward it.
+.It Ic viewport.pan-on-edge-hover Pq boolean, default Ql true
+Whether merely resting the pointer against a screen edge, with no drag
+in progress, does the same.
 .It Ic viewport.mesh.is-enabled Pq boolean, default Ql true
 Whether to paint a dot mesh on the root window whose offset follows the
 viewport origin, so that panning reads as a movement rather than as a

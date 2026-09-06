@@ -67,7 +67,7 @@ enum wm_keybind_type_e {
 
     /* Move the current desktop's own viewport a whole page in each
      * compass direction, the discrete counterpart to the four above,
-     * which slide by 'viewport.move-step' pixels instead; clamped at
+     * which slide by 'viewport.pan-step' pixels instead; clamped at
      * the grid's bounds rather than wrapping, and a no-op where there
      * is no page that way */
     KEYBIND_VIEWPORT_SWITCH_NORTH,

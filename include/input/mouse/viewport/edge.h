@@ -52,7 +52,7 @@
  * @param root_y   Pointer Y position in root-window coordinates
  *
  * @note A no-op, clearing any pending pan, unless @p root resolves to a
- *       surface with @c desktops.pan_on_edge_hover enabled and a
+ *       surface with @c viewport.pan_on_edge_hover enabled and a
  *       @c viewport wider or taller than one physical screen
  * @note Complexity: @e O(1)
  */
@@ -64,7 +64,7 @@ void mouse_viewport_edge_check(list_td *surfaces, xcb_window_t root,
  *        screen edge is due to pan the viewport
  *
  * Tracked by @a mouse_viewport_edge_check as the pointer moves (see
- * @p desktops.pan_on_edge_hover in @c config.json,
+ * @p viewport.pan_on_edge_hover in @c config.json,
  * @c config_desktop_s); serviced by @a mouse_viewport_edge_tick.
  *
  * @return Milliseconds remaining (never negative), or @c -1 if the

@@ -54,8 +54,8 @@ void config_set_default_values_memguard(config_td *config)
     config->base.overlay.on_viewport_move = false;
     config->desktops.notify_activity = false;
     config->desktops.warp_on_edge_drag = false;
-    config->desktops.pan_on_edge_drag = false;
-    config->desktops.pan_on_edge_hover = false;
+    config->base.viewport.pan_on_edge_drag = false;
+    config->base.viewport.pan_on_edge_hover = false;
     config->desktops.wrap_at_bounds = false;
     config->desktops.margins.top = 0u;
     config->desktops.margins.right = 0u;
@@ -133,7 +133,7 @@ void config_set_default_values_memguard(config_td *config)
      * above), so there is never a pan to follow, but the field still
      * exists and defaults the same way as an ordinary session's for
      * consistency and to avoid leaving it uninitialized. */
-    config->base.icons.follow_viewport = false;
+    config->base.viewport.pan_icons = false;
 
     /* Moot for the same reason, and switched off rather than left
      * holding an ordinary session's inherited values: with a
@@ -141,7 +141,7 @@ void config_set_default_values_memguard(config_td *config)
      * size and nothing for the mesh to make visible, so 'memguard.json'
      * has no 'viewport' section at all and neither field is ever read
      * back from it. */
-    config->base.viewport.move_step = 0u;
+    config->base.viewport.pan_step = 0u;
     config->base.viewport.mesh.is_enabled = false;
 
     config->base.shutdown.enable_emergency_shortcut = true;

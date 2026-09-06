@@ -217,7 +217,7 @@ intervening `settings` object.  It accepts two shapes:
                 "settings": [
                     { "name": "Code", "background-color": "#c0c0c0" }
                 ]
-            }
+            
         ]
     }
 }
@@ -471,17 +471,17 @@ says.
 Optional, and only meaningful in the per-screen shape above.  Gives
 every desktop on this screen a pannable area larger than the physical
 screen itself, `columns` × `rows` screens wide, scrolled through by
-resting the pointer against a screen edge (`desktops.pan-on-edge-hover`,
+resting the pointer against a screen edge (`viewport.pan-on-edge-hover`,
 §2.10), holding it there while dragging a window or icon
-(`desktops.pan-on-edge-drag`, §2.10), or a dedicated set of keyboard
-shortcuts (`bindings.json`), with
-`_NET_DESKTOP_VIEWPORT` kept in sync for any EWMH-aware pager as the
-origin moves.  That origin is remembered independently per desktop, so
-switching to another desktop and back leaves the first one exactly
-where panning last left it.  Absent entirely, or present with both
-`columns` and `rows` left at `1`, a desktop's viewport is exactly the
-size of the physical screen: nothing to pan to, the same as every
-desktop already behaved before `viewport` existed.
+(`viewport.pan-on-edge-drag`, §2.10), or a dedicated set of keyboard
+shortcuts (`bindings.json`), with `_NET_DESKTOP_VIEWPORT` kept in sync
+for any EWMH-aware pager as the origin moves.  That origin is remembered
+independently per desktop, so switching to another desktop and back
+leaves the first one exactly where panning last left it.  Absent
+entirely, or present with both `columns` and `rows` left at `1`,
+a desktop's viewport is exactly the size of the physical screen: nothing
+to pan to, the same as every desktop already behaved before `viewport`
+existed.
 
 Once the grid holds more than one page, the window menu grows a **Send
 to page** submenu directly below `Send to desktop`, listing every page
@@ -842,17 +842,6 @@ name.
 
 When `true`, geometry when moving (mouse drag) is shown in the center of
 the icon.
-
-#### `icons.follow-viewport`
-
-| Key                     | Type    | Default |
-|-------------------------|---------|---------|
-| `icons.follow-viewport` | boolean | `false` |
-
-When `false` (the default), an icon stays fixed on screen while a viewport
-pan moves the desktop underneath it, the same way it always has. When
-`true`, an icon that is currently mapped pans together with the desktop,
-landing wherever its own window would have landed.
 
 #### `icons.placement`
 
@@ -1299,8 +1288,6 @@ everything here **does** take effect on a configuration reload.
 |---------------------|---------|---------|-------------|
 | `notify-activity`   | boolean | `true`  | Whether a client becoming urgent on a desktop other than the one currently visible on its surface shows an informational dialog naming that desktop (`Detected activity on desktop [index] -- Name`, with a surface disambiguator appended when more than one surface is managed).  A client urgent on the currently visible desktop already gets its titlebar blink instead (see `urgency.*` in `a11y.json`, §6), which this never duplicates. |
 | `warp-on-edge-drag` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge switches to the adjacent desktop in that direction (left/right always; top/bottom too, once a `layout` with more than one row is configured), cursor and dragged window or icon both carried across, after a short delay.  Deferred entirely to `pan-on-edge-drag` below for as long as the current desktop's viewport still has room to pan toward that same edge instead; only once the viewport's own bound is reached does holding the edge switch desktops.  Meaningless with only one desktop. |
-| `pan-on-edge-drag`  | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge pans the current desktop's viewport toward that edge instead, carrying the dragged window or icon along with every other non-sticky client on the desktop, after a short delay, repeating for as long as the pointer stays held there and the viewport still has room left that direction.  Takes priority over `warp-on-edge-drag` above whenever there is room to pan; once the viewport's own bound is reached, holding the edge further switches desktops instead, exactly as if this were disabled.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
-| `pan-on-edge-hover`  | boolean | `true`  | With no drag in progress, merely resting the pointer against a screen edge pans the current desktop's viewport toward that edge instead, after a short delay, repeating for as long as the pointer stays held there.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured); an edge held during a drag is `pan-on-edge-drag` or `warp-on-edge-drag` above's to answer instead, never this one's. |
 | `wrap-at-bounds`    | boolean | `true`  | Whether switching past the edge of the desktop grid, in any of the four compass directions, however triggered (keyboard binding, mouse scroll, an edge drag, or otherwise), wraps around to the other end of that same row or column, rather than stopping there.  Meaningless with only one desktop. |
 | `margins.top`       | integer | `0`     | Extra space reserved at the top of every desktop's workarea, in pixels, on every screen. |
 | `margins.right`     | integer | `0`     | Extra space reserved on the right, in pixels. |
@@ -1322,8 +1309,6 @@ override.
 "desktops": {
     "notify-activity": true,
     "warp-on-edge-drag": true,
-    "pan-on-edge-drag": true,
-    "pan-on-edge-hover": true,
     "wrap-at-bounds": true,
     "margins": {
         "top": 0,
@@ -1446,14 +1431,20 @@ Keyboard step size for panning a desktop's viewport, a sibling of
 A mouse drag on the desktop background pans by the exact pixel delta of
 that drag instead, unaffected by this setting.
 
-| Key         | Type    | Default     | Description |
-|-------------|---------|-------------|-------------|
-| `move-step` | integer | `40`        | How many pixels each viewport-pan keyboard shortcut moves the origin per press.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
-| `mesh`      | object  | *see below* | Dot pattern painted on the root window whose offset follows the viewport origin, so that a pan reads as a movement. |
+| Key                 | Type    | Default     | Description |
+|---------------------|---------|-------------|-------------|
+| `pan-icons`         | boolean | `false`     | Whether panning also moves the desktop icons, rather than leaving them fixed on the physical screen while the canvas scrolls under them.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+| `pan-on-edge-drag`  | boolean | `true`      | While dragging a window or icon to move it, holding the pointer against a screen edge pans the current desktop's viewport toward that edge instead, carrying the dragged window or icon along with every other non-sticky client on the desktop, after a short delay, repeating for as long as the pointer stays held there and the viewport still has room left that direction.  Takes priority over `warp-on-edge-drag` above whenever there is room to pan; once the viewport's own bound is reached, holding the edge further switches desktops instead, exactly as if this were disabled.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+| `pan-on-edge-hover` | boolean | `true`      | With no drag in progress, merely resting the pointer against a screen edge pans the current desktop's viewport toward that edge instead, after a short delay, repeating for as long as the pointer stays held there.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured); an edge held during a drag is `pan-on-edge-drag` or `warp-on-edge-drag` above's to answer instead, never this one's. |
+| `pan-step`          | integer | `40`        | How many pixels each viewport-pan keyboard shortcut moves the origin per press.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+| `mesh`              | object  | *see below* | Dot pattern painted on the root window whose offset follows the viewport origin, so that a pan reads as a movement. |
 
 ```json
 "viewport": {
-    "move-step": 40,
+    "pan-icons": false,
+    "pan-on-edge-drag": true,
+    "pan-on-edge-hover": true,
+    "pan-step": 40,
     "mesh": {
         "is-enabled": true,
         "spacing": { "horizontal": 64, "vertical": 64 },
@@ -1463,6 +1454,13 @@ that drag instead, unaffected by this setting.
 }
 ```
 
+#### `viewport.pan-icons`
+
+When `false`, the default, an icon stays fixed on the physical screen
+while a viewport pan moves the desktop underneath it.  When `true`, an
+icon that is currently mapped pans together with the desktop, landing
+wherever its own window would have landed.
+
 #### `viewport.mesh`
 
 Panning translates every non-sticky client at once, which on a sparse
@@ -1471,9 +1469,9 @@ set of marks that travel with the clients, so the movement is visible
 even with no window near the pointer.  It applies equally to keyboard
 panning and to a mouse drag on the desktop background.
 
-It is an aid to perception only.  It deliberately carries no
-information about how far the viewport moved or which part of it is on
-screen: every cell looks like every other one.
+It is an aid to perception only.  It deliberately carries no information
+about how far the viewport moved or which part of it is on screen: every
+cell looks like every other one.
 
 **The mesh only has an effect when both of these hold**, and neither is
 something you configure here:
@@ -1521,9 +1519,9 @@ A key left out of `mesh` keeps its default.  A key that is present but
 outside its range is corrected to whichever bound it crossed, with
 a warning in the log naming both the value received and the one used.
 Note that those are not the same thing for `tone-shift`: omitting it
-gives `20`, while writing `3` gives `10`.  `thickness` is validated
-after both spacings, since its ceiling follows whichever of them ended
-up smaller.
+gives `20`, while writing `3` gives `10`, as `10` is the minimum value
+that it allows.  `thickness` is validated after both spacings, since its
+ceiling follows whichever of them ended up smaller.
 
 ### 2.14. Reload behavior
 
@@ -1912,7 +1910,7 @@ is this manager's own concept.
 
 #### `keyboard.viewport.pan`
 
-Pans the current desktop's viewport by `viewport.move-step` (§2.13)
+Pans the current desktop's viewport by `viewport.pan-step` (§2.13)
 pixels in the given direction, translating every non-sticky client the
 opposite way so their on-screen position stays put relative to the
 desktop's virtual canvas; unlike `keyboard.cycle.desktop` above, the
@@ -1930,7 +1928,7 @@ is looking.
 
 Moves the current desktop's viewport a whole page in the given
 direction, the discrete counterpart to `keyboard.viewport.pan` above:
-where that one slides by `viewport.move-step` (§2.13) pixels, this jumps
+where that one slides by `viewport.pan-step` (§2.13) pixels, this jumps
 straight to the neighboring page.  Clamped at the grid's own bounds
 rather than wrapping around, so it is a no-op where there is no page
 that way.  Because it is a jump rather than a slide, it raises the
@@ -2659,7 +2657,6 @@ not merely refuse to act.
 | `windows.placement.monitor`              | string or integer | `"pointer"`    | Same as `config.json`'s `windows.placement.monitor`: which physical monitor a placement decision targets, on a surface with more than one. |
 | `windows.placement.group-related`        | boolean           | `false`        | Same as `config.json`'s `windows.placement.group-related`: cluster windows of the same application together. |
 | `icons.show-geom`                        | boolean           | `false`        | Same as `config.json`'s `icons.show-geom`: shows the exact size in the center of the icon while resizing. |
-| `icons.follow-viewport`                  | boolean           | `false`        | Same as `config.json`'s `icons.follow-viewport`, kept for consistency only; this mode's viewport is always a fixed 1x1, so there is never a pan for an icon to follow. |
 | `icons.placement.policy`                 | string            | `"smart"`      | Same as `config.json`'s `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
 | `systray`                                | object            | *see* §10.2    | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
 | `shutdown.enable-emergency-shortcut`     | boolean           | `false`        | Same as `config.json`'s `shutdown.enable-emergency-shortcut`. |
@@ -2770,7 +2767,7 @@ to whatever theme loads, unconditionally.
     },
 
     "viewport": {
-        "move-step": 40
+        "pan-step": 40
     },
 
     "programs": {
@@ -2805,7 +2802,6 @@ to whatever theme loads, unconditionally.
     },
 
     "icons": {
-        "follow-viewport": false,
         "show-geom": false,
         "placement": {
             "policy": "smart"

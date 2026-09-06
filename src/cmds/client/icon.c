@@ -413,7 +413,7 @@ void ccmd_client_ensure_icon_window(client_td *client,
 
         /* Re-use the saved position when the client was already
          * iconified once (and possibly manually repositioned by the
-         * user, or shifted along with a 'icons.follow-viewport' pan,
+         * user, or shifted along with a 'viewport.pan-icons' pan,
          * which can legitimately leave either component negative),
          * UNLESS another client's icon has since claimed that exact
          * spot (e.g., it was free when this client was last

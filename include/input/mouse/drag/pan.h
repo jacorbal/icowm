@@ -38,7 +38,7 @@
  * @param root_y Pointer Y position in root-window coordinates
  *
  * @note A no-op, clearing any pending pan, unless the surface the drag
- *       is on has @c desktops.pan_on_edge_drag enabled and its current
+ *       is on has @c viewport.pan_on_edge_drag enabled and its current
  *       desktop's viewport still has room to pan toward the held edge
  *       (see @a scmd_surface_viewport_pan_available, @c cmds/surface.h)
  * @note Complexity: @e O(1)
@@ -50,7 +50,7 @@ void drag_pan_edge_check(int16_t root_x, int16_t root_y);
  *        screen edge is due to pan the viewport
  *
  * Tracked by @c drag_update (@c input/mouse/drag.h) as the pointer
- * moves (see @p desktops.pan_on_edge_drag in @c config.json,
+ * moves (see @p viewport.pan_on_edge_drag in @c config.json,
  * @c config_desktop_s); serviced by @a drag_pan_tick.
  *
  * @return Milliseconds remaining (never negative), or @c -1 if the

@@ -316,7 +316,7 @@ struct config_bindings_s {
              *        direction
              *
              * The discrete counterpart to @c pan above, which slides
-             * by @c viewport.move-step pixels instead: these jump to
+             * by @c viewport.pan-step pixels instead: these jump to
              * the neighboring page outright, clamped at the grid's
              * own bounds rather than wrapping around, and a no-op
              * where there is no page that way.  Named @c page here

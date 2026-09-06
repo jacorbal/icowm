@@ -88,7 +88,7 @@
  *        with no drag in progress, before that edge's first
  *        viewport pan
  *
- * Milliseconds before @p desktops.pan_on_edge_hover (@c config.json)
+ * Milliseconds before @p viewport.pan_on_edge_hover (@c config.json)
  * pans the current desktop's viewport toward the held edge for the
  * first time.  Long enough that merely passing through the edge on
  * the way elsewhere does not trigger it.
