@@ -44,6 +44,33 @@
             }
         },
 
+        "viewport": {
+            "pan": {
+                "north": "modc+mod4+mods+Up",
+                "south": "modc+mod4+mods+Down",
+                "east": "modc+mod4+mods+Right",
+                "west": "modc+mod4+mods+Left"
+            },
+            "page": {
+                "north": "modc+mod4+Up",
+                "south": "modc+mod4+Down",
+                "east": "modc+mod4+Right",
+                "west": "modc+mod4+Left"
+            },
+            "go-to": {
+                "page0": "modc+mod4+0",
+                "page1": "modc+mod4+1",
+                "page2": "modc+mod4+2",
+                "page3": "modc+mod4+3",
+                "page4": "modc+mod4+4",
+                "page5": "modc+mod4+5",
+                "page6": "modc+mod4+6",
+                "page7": "modc+mod4+7",
+                "page8": "modc+mod4+8",
+                "page9": "modc+mod4+9"
+            }
+        },
+
         "launch": {
             "terminal": "modc+mod1+Enter",
             "launcher": "modc+mod1+r",
@@ -120,27 +147,6 @@
             "window": {
                 "prev": "mod1+mods+Tab",
                 "next": "mod1+Tab"
-            }
-        },
-
-        "viewport": {
-            "pan": {
-                "north": "modc+mod4+mods+Up",
-                "south": "modc+mod4+mods+Down",
-                "east": "modc+mod4+mods+Right",
-                "west": "modc+mod4+mods+Left"
-            },
-            "go-to": {
-                "page0": "modc+mod4+0",
-                "page1": "modc+mod4+1",
-                "page2": "modc+mod4+2",
-                "page3": "modc+mod4+3",
-                "page4": "modc+mod4+4",
-                "page5": "modc+mod4+5",
-                "page6": "modc+mod4+6",
-                "page7": "modc+mod4+7",
-                "page8": "modc+mod4+8",
-                "page9": "modc+mod4+9"
             }
         }
     },

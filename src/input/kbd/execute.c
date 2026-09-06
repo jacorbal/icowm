@@ -208,6 +208,10 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
         case KEYBIND_VIEWPORT_PAN_SOUTH:
         case KEYBIND_VIEWPORT_PAN_EAST:
         case KEYBIND_VIEWPORT_PAN_WEST:
+        case KEYBIND_VIEWPORT_SWITCH_NORTH:
+        case KEYBIND_VIEWPORT_SWITCH_SOUTH:
+        case KEYBIND_VIEWPORT_SWITCH_EAST:
+        case KEYBIND_VIEWPORT_SWITCH_WEST:
         case KEYBIND_VIEWPORT_GOTO_0:
         case KEYBIND_VIEWPORT_GOTO_1:
         case KEYBIND_VIEWPORT_GOTO_2:
@@ -458,6 +462,30 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
         case KEYBIND_VIEWPORT_PAN_WEST:
             if (surface != NULL) {
                 enact_surface_viewport_pan_west(surface);
+            }
+            return;
+
+        case KEYBIND_VIEWPORT_SWITCH_NORTH:
+            if (surface != NULL) {
+                enact_surface_viewport_switch_north(surface);
+            }
+            return;
+
+        case KEYBIND_VIEWPORT_SWITCH_SOUTH:
+            if (surface != NULL) {
+                enact_surface_viewport_switch_south(surface);
+            }
+            return;
+
+        case KEYBIND_VIEWPORT_SWITCH_EAST:
+            if (surface != NULL) {
+                enact_surface_viewport_switch_east(surface);
+            }
+            return;
+
+        case KEYBIND_VIEWPORT_SWITCH_WEST:
+            if (surface != NULL) {
+                enact_surface_viewport_switch_west(surface);
             }
             return;
 

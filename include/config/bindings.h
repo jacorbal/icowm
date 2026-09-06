@@ -312,6 +312,30 @@ struct config_bindings_s {
             } pan;
 
             /**
+             * @brief Move the viewport a whole page in each compass
+             *        direction
+             *
+             * The discrete counterpart to @c pan above, which slides
+             * by @c viewport.move-step pixels instead: these jump to
+             * the neighboring page outright, clamped at the grid's
+             * own bounds rather than wrapping around, and a no-op
+             * where there is no page that way.  Named @c page here
+             * rather than after the enumerators it feeds
+             * (@c KEYBIND_VIEWPORT_SWITCH_NORTH and its three
+             * siblings) because @c switch is a reserved word and
+             * cannot name a member.
+             *
+             * @see @a enact_surface_viewport_switch_north in
+             *      @c enact.h, and its three siblings
+             */
+            struct {
+                char north[CONFIG_MAX_LENGTH_BINDING];
+                char south[CONFIG_MAX_LENGTH_BINDING];
+                char east[CONFIG_MAX_LENGTH_BINDING];
+                char west[CONFIG_MAX_LENGTH_BINDING];
+            } page;
+
+            /**
              * @brief Direct viewport page go-to shortcuts, zero-based
              *        indices 0-9 addressing the grid's first ten
              *        pages in row-major order

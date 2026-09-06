@@ -497,6 +497,10 @@ msgstr "Icone"
 msgid "Pan"
 msgstr "Scorri"
 
+#: include/defs/uistr.h:248;
+msgid "Page"
+msgstr "Pagina"
+
 #: include/defs/uistr.h:261;
 msgid "Go to desktop 0-9"
 msgstr "Vai al desktop 0-9"

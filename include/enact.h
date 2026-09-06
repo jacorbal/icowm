@@ -851,6 +851,57 @@ void enact_surface_desktop_switch_east(surface_td *surface);
 void enact_surface_desktop_switch_west(surface_td *surface);
 
 /**
+ * @brief Move the surface's current desktop viewport a whole page
+ *        north, clamped at the top of the pannable area
+ *
+ * The discrete counterpart to @a enact_surface_viewport_pan_north
+ * below, which slides by @c viewport.move-step pixels instead
+ *
+ * @param surface Surface whose viewport to move
+ *
+ * @note A no-op where there is no page north of the current one
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void enact_surface_viewport_switch_north(surface_td *surface);
+
+/**
+ * @brief Move the surface's current desktop viewport a whole page
+ *        south, clamped at the bottom of the pannable area
+ *
+ * @param surface Surface whose viewport to move
+ *
+ * @note A no-op where there is no page south of the current one
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void enact_surface_viewport_switch_south(surface_td *surface);
+
+/**
+ * @brief Move the surface's current desktop viewport a whole page
+ *        east, clamped at the right of the pannable area
+ *
+ * @param surface Surface whose viewport to move
+ *
+ * @note A no-op where there is no page east of the current one
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void enact_surface_viewport_switch_east(surface_td *surface);
+
+/**
+ * @brief Move the surface's current desktop viewport a whole page
+ *        west, clamped at the left of the pannable area
+ *
+ * @param surface Surface whose viewport to move
+ *
+ * @note A no-op where there is no page west of the current one
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the current desktop
+ */
+void enact_surface_viewport_switch_west(surface_td *surface);
+
+/**
  * @brief Pan the surface's current desktop viewport one screen north,
  *        clamped at the top of the pannable area
  *

@@ -1874,6 +1874,25 @@ is looking.
 | `east`  | `modc+mod4+mod5+Right`| Pan the viewport `move-step` pixels east.   |
 | `west`  | `modc+mod4+mod5+Left` | Pan the viewport `move-step` pixels west.   |
 
+#### `keyboard.viewport.page`
+
+Moves the current desktop's viewport a whole page in the given
+direction, the discrete counterpart to `keyboard.viewport.pan` above:
+where that one slides by `viewport.move-step` (§2.13) pixels, this jumps
+straight to the neighboring page.  Clamped at the grid's own bounds
+rather than wrapping around, so it is a no-op where there is no page
+that way.  Because it is a jump rather than a slide, it raises the
+desktop overlay, whose label carries the page it landed on, exactly as
+switching desktops does; the pixel-sized steps of `pan` deliberately do
+not.
+
+| Key     | Default binding   | Action                                   |
+|---------|-------------------|--------------------------------------------|
+| `north` | `modc+mod4+Up`    | Move the viewport one whole page north.  |
+| `south` | `modc+mod4+Down`  | Move the viewport one whole page south.  |
+| `east`  | `modc+mod4+Right` | Move the viewport one whole page east.   |
+| `west`  | `modc+mod4+Left`  | Move the viewport one whole page west.   |
+
 ```json
 "viewport": {
     "pan": {
@@ -1881,6 +1900,12 @@ is looking.
         "south": "modc+mod4+mods+Down",
         "east": "modc+mod4+mod5+Right",
         "west": "modc+mod4+mod5+Left"
+    },
+    "page": {
+        "north": "modc+mod4+Up",
+        "south": "modc+mod4+Down",
+        "east": "modc+mod4+Right",
+        "west": "modc+mod4+Left"
     },
     "go-to": {
         "page0": "modc+mod4+0",

@@ -497,6 +497,10 @@ msgstr "Iconas"
 msgid "Pan"
 msgstr "Desprazar"
 
+#: include/defs/uistr.h:248;
+msgid "Page"
+msgstr "Páxina"
+
 #: include/defs/uistr.h:261;
 msgid "Go to desktop 0-9"
 msgstr "Ir ao escritorio 0-9"

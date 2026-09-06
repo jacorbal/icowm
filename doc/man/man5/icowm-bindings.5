@@ -257,6 +257,23 @@ desktop's virtual canvas:
 .It Ic west Pq Ql modc+mod4+mod5+Left
 .El
 .Pp
+.Ic page
+is the discrete counterpart to
+.Ic pan :
+where that one slides by pixels, this jumps straight to the
+neighboring page, clamped at the grid's own bounds rather than
+wrapping, and a no-op where there is no page that way.
+Being a jump rather than a slide, it raises the desktop overlay with
+the page it landed on, exactly as switching desktops does, which
+.Ic pan
+deliberately does not:
+.Bl -tag -width Ds -compact
+.It Ic north Pq Ql modc+mod4+Up
+.It Ic south Pq Ql modc+mod4+Down
+.It Ic east Pq Ql modc+mod4+Right
+.It Ic west Pq Ql modc+mod4+Left
+.El
+.Pp
 .Ic go-to
 jumps straight to one page of the viewport grid by index, numbered
 row-major from the top-left page, from

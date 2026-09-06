@@ -388,6 +388,7 @@ static void s_viewport_pan(surface_td *surface,
     uint32_t columns;
     uint32_t rows;
     struct position_s origin;
+    struct position_s origin_before;
 
     if (surface == NULL) {
         return;
@@ -399,6 +400,7 @@ static void s_viewport_pan(surface_td *surface,
     }
 
     surface_viewport_dims(surface, &columns, &rows);
+    origin_before = desktop->viewport_origin;
     origin = desktop->viewport_origin;
 
     switch (direction) {
@@ -417,6 +419,10 @@ static void s_viewport_pan(surface_td *surface,
     }
 
     s_viewport_apply_origin(surface, desktop, columns, rows, origin);
+    /* A whole-page move is a jump, the same kind of change a desktop
+     * switch is, so it announces itself; the pixel-sized steps of
+     * 's_viewport_pan_step' deliberately do not */
+    s_show_viewport_overlay_on_move(surface, origin_before);
 }
 
 

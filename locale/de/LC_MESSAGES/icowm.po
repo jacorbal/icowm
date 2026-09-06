@@ -497,6 +497,10 @@ msgstr "Symbole"
 msgid "Pan"
 msgstr "Schwenken"
 
+#: include/defs/uistr.h:248;
+msgid "Page"
+msgstr "Seite"
+
 #: include/defs/uistr.h:261;
 msgid "Go to desktop 0-9"
 msgstr "Zur Arbeitsfläche 0-9"

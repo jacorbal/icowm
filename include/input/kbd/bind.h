@@ -65,6 +65,16 @@ enum wm_keybind_type_e {
     KEYBIND_VIEWPORT_PAN_EAST,
     KEYBIND_VIEWPORT_PAN_WEST,
 
+    /* Move the current desktop's own viewport a whole page in each
+     * compass direction, the discrete counterpart to the four above,
+     * which slide by 'viewport.move-step' pixels instead; clamped at
+     * the grid's bounds rather than wrapping, and a no-op where there
+     * is no page that way */
+    KEYBIND_VIEWPORT_SWITCH_NORTH,
+    KEYBIND_VIEWPORT_SWITCH_SOUTH,
+    KEYBIND_VIEWPORT_SWITCH_EAST,
+    KEYBIND_VIEWPORT_SWITCH_WEST,
+
     /* Direct viewport page go-to, indices 0 to 9 addressing the first
      * ten pages of the configured grid, in row-major order; matches
      * 'KEYBIND_DESKTOP_GOTO_0' through '_9' above exactly, key '0'

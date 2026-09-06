@@ -625,6 +625,26 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                         config->bindings.keyboard.viewport.pan.west
                     }, 2u);
         }
+        if (rows > 1u) {
+            s_append_group(&ctx,
+                    _(STR_SHORTCUTS_VIEWPORT_PAGE),
+                    (const char *const [])
+                        {"north", "south", "east", "west"},
+                    (const char *const []) {
+                        config->bindings.keyboard.viewport.page.north,
+                        config->bindings.keyboard.viewport.page.south,
+                        config->bindings.keyboard.viewport.page.east,
+                        config->bindings.keyboard.viewport.page.west
+                    }, 4u);
+        } else {
+            s_append_group(&ctx,
+                    _(STR_SHORTCUTS_VIEWPORT_PAGE),
+                    (const char *const []) {"east", "west"},
+                    (const char *const []) {
+                        config->bindings.keyboard.viewport.page.east,
+                        config->bindings.keyboard.viewport.page.west
+                    }, 2u);
+        }
         s_append_goto_viewport(&ctx, config, page_count);
     }
 

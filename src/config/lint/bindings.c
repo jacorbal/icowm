@@ -223,6 +223,9 @@ static const config_lint_key_td s_schema_kb_viewport[] = {
     {"pan", s_schema_compass,
         sizeof(s_schema_compass) / sizeof(s_schema_compass[0]),
         0, NULL, 0u, NULL},
+    {"page", s_schema_compass,
+        sizeof(s_schema_compass) / sizeof(s_schema_compass[0]),
+        0, NULL, 0u, NULL},
     {"go-to", s_schema_viewport_go_to,
         sizeof(s_schema_viewport_go_to) /
             sizeof(s_schema_viewport_go_to[0]),

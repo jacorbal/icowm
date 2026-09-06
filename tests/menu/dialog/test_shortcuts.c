@@ -478,12 +478,16 @@ static void s_test_viewport_gating(void)
     TAP_OK(s_any_row_contains(s_config.bindings.keyboard.window.sticky),
             "shortcuts_show: sticky row present once the viewport can"
             " pan");
+    TAP_OK(s_any_row_contains(
+                s_config.bindings.keyboard.viewport.page.east),
+            "shortcuts_show: the whole-page viewport bindings are"
+            " listed alongside the pixel-step ones");
 }
 
 
 int main(void)
 {
-    TAP_PLAN(26);
+    TAP_PLAN(27);
 
     s_test_null_guards();
     s_test_basic_show();

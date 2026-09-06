@@ -245,6 +245,7 @@
 #define STR_SHORTCUTS_ICONS "Icons"
 #define STR_SHORTCUTS_WINDOWS "Windows"
 #define STR_SHORTCUTS_VIEWPORT_PAN "Pan"
+#define STR_SHORTCUTS_VIEWPORT_PAGE "Page"
 
 /* Deliberately NOT translated, unlike every label above: 'Right',
  * 'Left', 'Up', 'Down', 'Center', 'TopLeft', 'TopRight', 'BotLeft',

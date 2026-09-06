@@ -495,6 +495,7 @@ static void s_config_bindings_load_keyboard_viewport(cJSON *keyboard,
 
     if (viewport) {
         cJSON *const pan = cJSON_GetObjectItem(viewport, "pan");
+        cJSON *page;
         cJSON *go_to;
 
         if (pan) {
@@ -509,6 +510,22 @@ static void s_config_bindings_load_keyboard_viewport(cJSON *keyboard,
                     CONFIG_MAX_LENGTH_BINDING);
             json_load_string(pan, "west",
                     config_bindings->keyboard.viewport.pan.west,
+                    CONFIG_MAX_LENGTH_BINDING);
+        }
+
+        page = cJSON_GetObjectItem(viewport, "page");
+        if (page) {
+            json_load_string(page, "north",
+                    config_bindings->keyboard.viewport.page.north,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(page, "south",
+                    config_bindings->keyboard.viewport.page.south,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(page, "east",
+                    config_bindings->keyboard.viewport.page.east,
+                    CONFIG_MAX_LENGTH_BINDING);
+            json_load_string(page, "west",
+                    config_bindings->keyboard.viewport.page.west,
                     CONFIG_MAX_LENGTH_BINDING);
         }
 
@@ -713,6 +730,18 @@ void config_set_default_bindings_values(
     safe_strncpy(config_bindings->keyboard.viewport.pan.west,
             "modc+mod4+mods+Left",
             sizeof(config_bindings->keyboard.viewport.pan.west));
+    safe_strncpy(config_bindings->keyboard.viewport.page.north,
+            "modc+mod4+Up",
+            sizeof(config_bindings->keyboard.viewport.page.north));
+    safe_strncpy(config_bindings->keyboard.viewport.page.south,
+            "modc+mod4+Down",
+            sizeof(config_bindings->keyboard.viewport.page.south));
+    safe_strncpy(config_bindings->keyboard.viewport.page.east,
+            "modc+mod4+Right",
+            sizeof(config_bindings->keyboard.viewport.page.east));
+    safe_strncpy(config_bindings->keyboard.viewport.page.west,
+            "modc+mod4+Left",
+            sizeof(config_bindings->keyboard.viewport.page.west));
     safe_strncpy(config_bindings->keyboard.wm.redraw,
             "modc+mod1+mods+r", sizeof(config_bindings->keyboard.wm.redraw));
     safe_strncpy(config_bindings->keyboard.wm.reload,

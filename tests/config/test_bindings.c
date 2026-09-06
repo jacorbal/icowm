@@ -266,9 +266,37 @@ static void s_test_viewport_go_to_loads(void)
 }
 
 
+/* 'viewport.page' is a third sibling of 'viewport.pan' and
+ * 'viewport.go-to', loaded whether or not either of those is present
+ * in the same file; its four compass keys are the discrete
+ * counterpart to 'pan''s identically named ones */
+static void s_test_viewport_page_loads(void)
+{
+    char path[256];
+    struct config_bindings_s cb;
+
+    memset(&cb, 0, sizeof(cb));
+    s_write_temp_file(path, sizeof(path),
+            "{\"keyboard\": {\"viewport\": {\"page\": {"
+            "\"north\": \"modc+mod4+Up\","
+            "\"west\": \"modc+mod4+Left\""
+            "} } } }");
+    config_load_bindings(path, &cb);
+
+    TAP_EQ_STR(cb.keyboard.viewport.page.north, "modc+mod4+Up",
+            "'viewport.page.north' loads on its own");
+    TAP_EQ_STR(cb.keyboard.viewport.page.west, "modc+mod4+Left",
+            "'viewport.page.west' loads alongside it");
+    TAP_EQ_STR(cb.keyboard.viewport.pan.north, "",
+            "loading 'viewport.page' never writes into"
+            " 'viewport.pan'");
+    unlink(path);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(23);
+    TAP_PLAN(26);
 
     s_test_missing_file();
     s_test_empty_file();
@@ -277,6 +305,7 @@ int main(void)
     s_test_representative_fields_at_every_level();
     s_test_show_desktop_only_desktop_section_accepted();
     s_test_viewport_go_to_loads();
+    s_test_viewport_page_loads();
 
     return TAP_DONE();
 }

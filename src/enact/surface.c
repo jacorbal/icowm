@@ -162,6 +162,34 @@ void enact_surface_toggle_strutless_maximize(surface_td *surface)
 }
 
 
+/* Move the surface's current desktop viewport a whole page north */
+void enact_surface_viewport_switch_north(surface_td *surface)
+{
+    scmd_surface_viewport_pan_north(surface);
+}
+
+
+/* Move the surface's current desktop viewport a whole page south */
+void enact_surface_viewport_switch_south(surface_td *surface)
+{
+    scmd_surface_viewport_pan_south(surface);
+}
+
+
+/* Move the surface's current desktop viewport a whole page east */
+void enact_surface_viewport_switch_east(surface_td *surface)
+{
+    scmd_surface_viewport_pan_east(surface);
+}
+
+
+/* Move the surface's current desktop viewport a whole page west */
+void enact_surface_viewport_switch_west(surface_td *surface)
+{
+    scmd_surface_viewport_pan_west(surface);
+}
+
+
 /* Pan the surface's current desktop viewport north by one
  * 'viewport.move-step' */
 void enact_surface_viewport_pan_north(surface_td *surface)
