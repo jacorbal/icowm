@@ -875,8 +875,11 @@ static void s_test_tick_due_solid_west_pan_shifts_state(void)
             " itself");
     TAP_EQ_INT(s_drag.client_start.pos.y, 200,
             "client_start.pos.y is likewise untouched");
-    TAP_EQ_INT(s_drag.client_cur.pos.x, 2030,
-            "client_cur.pos.x shifts by the same +1920 delta");
+    TAP_EQ_INT(s_drag.client_cur.pos.x, 2029,
+            "client_cur.pos.x shifts by the pointer's own effective"
+            " delta (1919), clamped to the physical screen just like"
+            " the pointer warp below, not the raw, unclamped +1920"
+            " viewport step");
     TAP_EQ_INT(s_drag.client_cur.pos.y, 210,
             "client_cur.pos.y is likewise untouched");
     TAP_EQ_INT(s_call_configure_window, 1,
@@ -890,13 +893,13 @@ static void s_test_tick_due_solid_west_pan_shifts_state(void)
     TAP_EQ_INT((int) s_configure_window_last_mask,
             (int) (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y),
             "only X and Y are configured, no size change");
-    TAP_EQ_INT(s_configure_window_last_x, 2030,
+    TAP_EQ_INT(s_configure_window_last_x, 2029,
             "moved to the same shifted X the state tracking now"
             " reflects");
     TAP_EQ_INT(s_configure_window_last_y, 210,
             "moved to the same untouched Y the state tracking now"
             " reflects");
-    TAP_EQ_INT(s_drag.client->layout.geometry.cur.pos.x, 2030,
+    TAP_EQ_INT(s_drag.client->layout.geometry.cur.pos.x, 2029,
             "the client's own 'cur.pos.x' is kept in sync with the"
             " raw configure, matching what every other part of the"
             " window manager still relies on");
@@ -953,8 +956,12 @@ static void s_test_tick_due_other_directions_shift_correctly(void)
     TAP_EQ_INT(s_call_pan_east, 1, "east dispatches to its own command");
     TAP_EQ_INT(s_drag.client_start.pos.x, 100,
             "an east pan leaves client_start.pos.x untouched");
-    TAP_EQ_INT(s_drag.client_cur.pos.x, -1810,
-            "client_cur.pos.x shifts by -screen width (1920)");
+    TAP_EQ_INT(s_drag.client_cur.pos.x, -1809,
+            "client_cur.pos.x shifts by the pointer's own clamped"
+            " effective delta (-1919), not the raw -1920 viewport"
+            " step, since the pointer itself was already one pixel"
+            " short of a full screen width away from its own clamp"
+            " boundary");
     TAP_EQ_INT((int) s_warp_pointer_last_x, 0,
             "the pointer's own -1920 target clamps to column 0, the"
             " first valid one");
@@ -974,8 +981,10 @@ static void s_test_tick_due_other_directions_shift_correctly(void)
     TAP_EQ_INT(s_call_pan_north, 1, "north dispatches to its own command");
     TAP_EQ_INT(s_drag.client_start.pos.y, 100,
             "a north pan leaves client_start.pos.y untouched");
-    TAP_EQ_INT(s_drag.client_cur.pos.y, 1190,
-            "client_cur.pos.y shifts by +screen height (1080)");
+    TAP_EQ_INT(s_drag.client_cur.pos.y, 1189,
+            "client_cur.pos.y shifts by the pointer's own clamped"
+            " effective delta (1079), not the raw +1080 viewport"
+            " step");
     TAP_EQ_INT((int) s_warp_pointer_last_y, 1079,
             "the pointer's own +1080 target clamps to row 1079, the"
             " last valid one");
@@ -995,8 +1004,10 @@ static void s_test_tick_due_other_directions_shift_correctly(void)
     TAP_EQ_INT(s_call_pan_south, 1, "south dispatches to its own command");
     TAP_EQ_INT(s_drag.client_start.pos.y, 100,
             "a south pan leaves client_start.pos.y untouched");
-    TAP_EQ_INT(s_drag.client_cur.pos.y, -970,
-            "client_cur.pos.y shifts by -screen height (1080)");
+    TAP_EQ_INT(s_drag.client_cur.pos.y, -969,
+            "client_cur.pos.y shifts by the pointer's own clamped"
+            " effective delta (-1079), not the raw -1080 viewport"
+            " step");
     TAP_EQ_INT((int) s_warp_pointer_last_y, 0,
             "the pointer's own -1080 target clamps to row 0, the"
             " first valid one");
@@ -1110,9 +1121,10 @@ static void s_test_tick_due_icon_drag_configures_icon_window(void)
     TAP_EQ_INT((int) s_configure_window_last_mask,
             (int) (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y),
             "only X and Y are configured, no size change");
-    TAP_EQ_INT(s_configure_window_last_x, 1940,
-            "moved to the icon's current position plus the pan delta"
-            " on X (20 + 1920)");
+    TAP_EQ_INT(s_configure_window_last_x, 1939,
+            "moved to the icon's current position plus the pointer's"
+            " own clamped effective delta on X (20 + 1919), not the"
+            " raw, unclamped +1920 viewport step");
     TAP_EQ_INT(s_call_drag_outline_move, 0,
             "an icon drag never goes through the outline path");
     TAP_EQ_INT(s_call_xcb_warp_pointer, 1,

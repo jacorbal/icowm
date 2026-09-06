@@ -122,8 +122,10 @@ static void s_pan_apply(surface_td *surface,
  *
  * @param connection XCB connection
  * @param is_icon    Whether an icon window is being dragged
- * @param delta      Pixel delta the pan just applied to every
- *                   non-sticky client
+ * @param delta      The pointer's own effective delta for this tick,
+ *                   already clamped to the physical screen by @a
+ *                   s_pan_pointer_target, not the raw viewport step
+ *                   @a s_pan_apply just moved every other client by
  *
  * @note Complexity: @e O(1)
  */
@@ -146,9 +148,30 @@ static void s_pan_move_dragged(xcb_connection_t *connection,
      * stays correct on its own once the pointer itself has moved, the
      * same reasoning that function's own comment lays out in full, and
      * shifting 'client_start.pos' here too, on top of that, would
-     * double the effective delta the next real motion notify sees. */
-    new_window_x = s_drag.client_cur.pos.x + delta.x;
-    new_window_y = s_drag.client_cur.pos.y + delta.y;
+     * double the effective delta the next real motion notify sees.
+     *
+     * This is 'delta' clamped to whatever the pointer itself could
+     * still move by, exactly matching 's_warp_move_dragged''s own
+     * 'new_root_x - last_root_x' (drag/warp.c), not the raw, unclamped
+     * step 's_pan_apply' just moved every other client by: once the
+     * pointer is already pinned at a physical screen edge, a held edge
+     * keeps panning the viewport underneath it, but the dragged window
+     * must stop moving right along with it, or it would drift a whole
+     * screen further away from the now-stationary pointer on every
+     * repeat tick that followed, exactly the bug this replaced.  A
+     * window drag whose 'is_move_x_locked'/'is_move_y_locked' pins one
+     * axis to 'client_start.pos' (a client maximized on just that one
+     * axis; see 'drag_start''s comment, drag.c) must keep that same
+     * axis pinned here too, exactly like 's_warp_move_dragged' already
+     * does; an icon drag never sets either lock (see 'drag_start'
+     * again), so this only ever actually clamps a window drag's own
+     * locked axis. */
+    new_window_x = (!is_icon && s_drag.is_move_x_locked)
+        ? s_drag.client_cur.pos.x
+        : s_drag.client_cur.pos.x + delta.x;
+    new_window_y = (!is_icon && s_drag.is_move_y_locked)
+        ? s_drag.client_cur.pos.y
+        : s_drag.client_cur.pos.y + delta.y;
     s_drag.client_cur.pos.x = new_window_x;
     s_drag.client_cur.pos.y = new_window_y;
 
@@ -428,15 +451,32 @@ void drag_pan_tick(xcb_connection_t *connection)
     s_pan_apply(surface, s_drag.pan_direction);
     delta.x = origin_before.x - desktop->viewport_origin.x;
     delta.y = origin_before.y - desktop->viewport_origin.y;
-    s_pan_move_dragged(connection, is_icon, delta);
 
-    /* A sticky dragged client never actually moved just above (see
+    /* A sticky dragged client never actually moves under a pan (see
      * 's_pan_move_dragged''s own early return), so warping the
      * pointer here too would be the one thing that pulled it away
      * from the client instead of keeping it glued on, the exact
      * opposite of the point of this whole step. */
     if (!client_is_sticky(s_drag.client)) {
         s_pan_pointer_target(delta, &new_root_x, &new_root_y);
+
+        /* Clamp 'delta' itself down to whatever the pointer just
+         * warped by, in place, before handing it to
+         * 's_pan_move_dragged' below: computing the pointer's own
+         * target first, rather than after moving the window, is what
+         * lets the dragged window follow the pointer's real,
+         * possibly-smaller movement instead of the raw viewport step
+         * 's_pan_apply' moved every other client by.  Once the
+         * pointer is already pinned at a physical screen edge, this
+         * makes the difference zero, so a held edge keeps panning
+         * the viewport underneath the window without dragging it any
+         * further away from the now-stationary pointer, exactly the
+         * glue a repeated hold at the edge needs and, before this,
+         * did not have. */
+        delta.x = (int32_t) new_root_x - (int32_t) s_drag.last_root_x;
+        delta.y = (int32_t) new_root_y - (int32_t) s_drag.last_root_y;
+        s_pan_move_dragged(connection, is_icon, delta);
+
         xcb_warp_pointer(connection, XCB_NONE, surface->screen->root,
                 0, 0, 0, 0, new_root_x, new_root_y);
 
@@ -449,6 +489,8 @@ void drag_pan_tick(xcb_connection_t *connection)
          * function just set. */
         s_drag.last_root_x = new_root_x;
         s_drag.last_root_y = new_root_y;
+    } else {
+        s_pan_move_dragged(connection, is_icon, delta);
     }
 
     /* Panning the viewport does not rely on a further 'MotionNotify'

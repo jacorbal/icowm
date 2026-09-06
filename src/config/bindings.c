@@ -708,10 +708,10 @@ void config_set_default_bindings_values(
             "modc+mod4+mods+Down",
             sizeof(config_bindings->keyboard.viewport.pan.south));
     safe_strncpy(config_bindings->keyboard.viewport.pan.east,
-            "modc+mod4+mod5+Right",
+            "modc+mod4+mods+Right",
             sizeof(config_bindings->keyboard.viewport.pan.east));
     safe_strncpy(config_bindings->keyboard.viewport.pan.west,
-            "modc+mod4+mod5+Left",
+            "modc+mod4+mods+Left",
             sizeof(config_bindings->keyboard.viewport.pan.west));
     safe_strncpy(config_bindings->keyboard.wm.redraw,
             "modc+mod1+mods+r", sizeof(config_bindings->keyboard.wm.redraw));
