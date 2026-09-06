@@ -40,6 +40,7 @@
 #include <render/desktop.h>
 #include <render/outdate.h>
 #include <render/surface.h>
+#include <render/viewport/mesh.h>
 #include <render/wmicon.h>
 #include <surface.h>
 #include <systray.h>
@@ -111,6 +112,10 @@ void handler_property_notify(const wm_td *wm,
         if (desktop_property_is_background_pixmap(connection,
                     event->atom)) {
             desktop_background_pixmap_cache_invalidate();
+            /* An external tool just took the root window over, or
+             * just let go of it; either way whichever mesh tile is
+             * cached no longer describes what belongs on screen */
+            viewport_mesh_cache_invalidate();
             surface_render_current_desktop_repaint(s);
         }
         return;

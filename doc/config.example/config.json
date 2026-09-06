@@ -78,7 +78,13 @@
     },
 
     "viewport": {
-        "move-step": 40
+        "move-step": 40,
+        "mesh": {
+            "is-enabled": true,
+            "spacing": { "horizontal": 64, "vertical": 64 },
+            "thickness": 1,
+            "tone-shift": 20
+        }
     },
 
     "icons": {

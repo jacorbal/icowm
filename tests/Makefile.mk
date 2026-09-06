@@ -80,6 +80,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/surface/test_desktop_add_remove \
     $(O_DIR)/tests/surface/test_pinned_transfer \
     $(O_DIR)/tests/surface/test_viewport \
+    $(O_DIR)/tests/render/viewport/test_mesh \
     $(O_DIR)/tests/enact/test_send_to_desktop \
     $(O_DIR)/tests/desktop/test_workarea \
     $(O_DIR)/tests/menu/context/ctxmenu/test_layout \
@@ -670,6 +671,14 @@ $(O_DIR)/tests/surface/test_viewport: \
 		$(S_DIR)/surface/viewport.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/render/viewport/test_mesh: \
+		$(TESTS_DIR)/render/viewport/test_mesh.c \
+		$(S_DIR)/render/viewport/mesh.c \
+		$(S_DIR)/logger.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
 
 # See this test file's own top-of-file comment: 'enact/desktop.c'
 # compiles as a single translation unit, so every one of its own

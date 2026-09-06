@@ -233,15 +233,13 @@ Note that the per-screen shape's per-desktop `settings[]` array (holding
 
 Per-screen shape fields:
 
-| Key                           | Type    | Default      | Description |
-|-------------------------------|---------|--------------|-------------|
-| `count`                       | integer | `4`          | Number of virtual desktops for this screen (or `CONFIG_MAX_DESKTOPS` if that is smaller than `4`).  Maximum is `16`.  Always `1`, regardless of this value, under restricted-memory mode (`-M`); see that mode's section. |
-| `inaugural`                   | integer | `0`          | Zero-based index of the desktop shown at startup.  Values out of range fall back to `0`. |
-| `layout`                      | object  | see below    | This screen's desktop-grid arrangement; see `topology.screens.desktops[].layout` below. |
-| `settings[].name`             | string  | `"Desktop N" | Display name of desktop N. |
-| `settings[].background-color` | string  | none         | Root
-background color as a hex color `"#RRGGBB"` or `"RRGGBB"`.  Left unset,
-a desktop falls back to `theme.desktop.color.background` (`themes.md` §5). |
+| Key                           | Type    | Default        | Description |
+|-------------------------------|---------|----------------|-------------|
+| `count`                       | integer | `4`            | Number of virtual desktops for this screen (or `CONFIG_MAX_DESKTOPS` if that is smaller than `4`).  Maximum is `16`.  Always `1`, regardless of this value, under restricted-memory mode (`-M`); see that mode's section. |
+| `inaugural`                   | integer | `0`            | Zero-based index of the desktop shown at startup.  Values out of range fall back to `0`. |
+| `layout`                      | object  | *see below*    | This screen's desktop-grid arrangement; see `topology.screens.desktops[].layout` below. |
+| `settings[].name`             | string  | `"Desktop *N*" | Display name of desktop *N*. |
+| `settings[].background-color` | string  | *none*         | Root background color as a hex color `"#RRGGBB"` or `"RRGGBB"`.  Left unset, a desktop falls back to `theme.desktop.color.background` (`themes.md` §5). |
 
 #### `topology.screens.desktops[].layout`
 
@@ -1020,9 +1018,9 @@ under the pointer in that case.
 | `systray.is-enabled`    | boolean | `true`            |
 | `systray.reserve-space` | boolean | `false`           |
 | `systray.avoid-overlap` | boolean | `true`            |
-| `systray.margins`       | object  | see below         |
+| `systray.margins`       | object  | *see below*       |
 | `systray.position`      | string  | `"top-left"`      |
-| `systray.monitor`       | object  | see below         |
+| `systray.monitor`       | object  | *see below*       |
 | `systray.order`         | string  | `"left-to-right"` |
 | `systray.layer`         | string  | `"below"`         |
 
@@ -1396,15 +1394,83 @@ Keyboard step size for panning a desktop's viewport, a sibling of
 A mouse drag on the desktop background pans by the exact pixel delta of
 that drag instead, unaffected by this setting.
 
-| Key         | Type    | Default | Description |
-|-------------|---------|---------|--------------|
-| `move-step` | integer | `40`    | How many pixels each viewport-pan keyboard shortcut moves the origin per press.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+| Key         | Type    | Default     | Description |
+|-------------|---------|-------------|-------------|
+| `move-step` | integer | `40`        | How many pixels each viewport-pan keyboard shortcut moves the origin per press.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+| `mesh`      | object  | *see below* | Dot pattern painted on the root window whose offset follows the viewport origin, so that a pan reads as a movement. |
 
 ```json
 "viewport": {
-    "move-step": 40
+    "move-step": 40,
+    "mesh": {
+        "is-enabled": true,
+        "spacing": { "horizontal": 64, "vertical": 64 },
+        "thickness": 1,
+        "tone-shift": 20
+    }
 }
 ```
+
+#### `viewport.mesh`
+
+Panning translates every non-sticky client at once, which on a sparse
+desktop can look like nothing happened.  The mesh gives the eye a fixed
+set of marks that travel with the clients, so the movement is visible
+even with no window near the pointer.  It applies equally to keyboard
+panning and to a mouse drag on the desktop background.
+
+It is an aid to perception only.  It deliberately carries no
+information about how far the viewport moved or which part of it is on
+screen: every cell looks like every other one.
+
+**The mesh only has an effect when both of these hold**, and neither is
+something you configure here:
+
+- The screen's viewport is larger than `1x1`, as set in
+  `topology.screens.desktops[].viewport` (§2.2).  A viewport that can
+  never pan has nothing for the mesh to accompany, so none is painted.
+- No external tool owns the root window's pixels.  The mesh is applied
+  as the root window's background pixmap, which is the same place
+  `feh`, `nitrogen`, `hsetroot`, `xsetbg` and the like put their
+  wallpaper, and the two cannot both be there.  Whenever one of those
+  wallpapers is present it is left alone and no mesh is drawn.
+
+Both conditions are re-checked on every background repaint, so setting
+or clearing a wallpaper while the manager is running, or reloading a
+configuration that switches `is-enabled`, takes effect without a
+restart.
+
+| Key                   | Type    | Default | Range      | Description |
+|-----------------------|---------|---------|------------|--------------|
+| `is-enabled`          | boolean | `true`  |            | Whether to paint a mesh at all, where the two conditions above allow one. |
+| `spacing.horizontal`  | integer | `64`    | `8`–`512`  | Pixels between neighboring dots across. |
+| `spacing.vertical`    | integer | `64`    | `8`–`512`  | Pixels between neighboring dots down. |
+| `thickness`           | integer | `1`     | `1`–¼ of the smaller `spacing` | Side of one square dot, in pixels. |
+| `tone-shift`          | integer | `20`    | `10`–`100` | How far the dot color is pushed away from the desktop background color, as a percentage. |
+
+The dot color is not configurable, and there is no color key here or in
+the theme for it.  It is derived from whichever background color the
+desktop actually ended up with, which is the per-desktop
+`background-color` (§2.2) when one is set and the theme's
+`desktop.color.background` otherwise.  A background whose Rec. 601 luma
+reaches 128 counts as light and its mesh is darkened, `C' = C * (100 -
+P) / 100`; a darker one gets a lightened mesh instead, `C' = C + (255 -
+C) * P / 100`.  Both are applied per channel, with `P` being
+`tone-shift`.
+
+Deriving rather than configuring is what keeps the mesh legible
+everywhere: the contrast against the background stays roughly constant
+across every bundled theme and every per-desktop background, which no
+single fixed color can manage.  Raise `tone-shift` for a mesh that
+stands out more and lower it for one that barely registers.
+
+A key left out of `mesh` keeps its default.  A key that is present but
+outside its range is corrected to whichever bound it crossed, with a
+warning in the log naming both the value received and the one used.
+Note that those are not the same thing for `tone-shift`: omitting it
+gives `20`, while writing `3` gives `10`.  `thickness` is validated
+after both spacings, since its ceiling follows whichever of them ended
+up smaller.
 
 ### 2.14. Reload behavior
 
@@ -2183,7 +2249,7 @@ Each rule entry is a JSON object with the following keys:
 |---------|--------|---------|-------------|
 | `when`  | string | `"map"` | When the rule is eligible to run.  Accepted values: `"map"`, `"property"`, `"both"`. |
 | `match` | object | `{}`    | Set of window-property predicates.  Omitted or empty means the rule matches every window. |
-| `apply` | object | none    | Actions to apply when the rule matches.  If absent or not an object, the entry is ignored. |
+| `apply` | object | *none*  | Actions to apply when the rule matches.  If absent or not an object, the entry is ignored. |
 
 The `when` field controls *when* IcoWM is allowed to evaluate the rule.
 Use `"map"` for actions that should be decided only once, when the
@@ -2200,12 +2266,12 @@ fields match the current window.
 
 | Key               | Type            | Default | Description |
 |-------------------|-----------------|---------|-------------|
-| `match.instance`  | string or array | unset   | Match the first string in `WM_CLASS` (instance name). |
-| `match.class`     | string or array | unset   | Match the second string in `WM_CLASS` (class name). |
-| `match.role`      | string or array | unset   | Match `WM_WINDOW_ROLE`. |
-| `match.title`     | string or array | unset   | Match the current window title. |
-| `match.type`      | string or array | unset   | Match `_NET_WM_WINDOW_TYPE`. |
-| `match.transient` | boolean         | unset   | Match whether the window is transient for another window. |
+| `match.instance`  | string or array | *unset* | Match the first string in `WM_CLASS` (instance name). |
+| `match.class`     | string or array | *unset* | Match the second string in `WM_CLASS` (class name). |
+| `match.role`      | string or array | *unset* | Match `WM_WINDOW_ROLE`. |
+| `match.title`     | string or array | *unset* | Match the current window title. |
+| `match.type`      | string or array | *unset* | Match `_NET_WM_WINDOW_TYPE`. |
+| `match.transient` | boolean         | *unset* | Match whether the window is transient for another window. |
 
 String matches use shell-style glob patterns, so `\*` matches any
 sequence of characters and `?` matches any single character.  `[...]` is
@@ -2267,25 +2333,25 @@ matching rule for each property are applied.
 
 | Key                      | Type                 | Default | Description |
 |--------------------------|----------------------|---------|-------------|
-| `apply.desktop`          | integer              | unset   | Zero-based desktop index to move the window to.  Falls back to desktop `0` if it does not exist, logging a warning. |
-| `apply.monitor`          | integer              | unset   | Zero-based monitor index, within the window's surface, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
-| `apply.layer`            | string               | unset   | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`.  Falls back to `"normal"` if unrecognized, logging a warning. |
-| `apply.focus`            | boolean              | unset   | Whether the matched window should receive focus. |
-| `apply.pinned`           | boolean              | unset   | Whether the window should be visible on all desktops. |
-| `apply.decorated`        | boolean              | unset   | Whether the window should keep its decorations. |
-| `apply.iconified`        | boolean              | unset   | Whether the window should be iconified, turned into an actual icon on the desktop instead of a taskbar entry, the same as pressing `iconify` by hand.  Overrides the window's own `WM_HINTS` initial-state request. |
-| `apply.fullscreen`       | boolean              | unset   | Whether the window should be fullscreen.  Overrides the window's own EWMH initial-state hint, and takes precedence over `apply.maximized` when a rule asks for both, the same precedence entering fullscreen by hand already has over a maximized window. |
-| `apply.maximized`        | boolean              | unset   | Whether the window should be maximized, both horizontally and vertically together; there is no field here for maximizing only one axis.  Overrides the window's own EWMH initial-state hint. |
-| `apply.shaded`           | boolean              | unset   | Whether the window should be shaded, rolled up to just its titlebar.  Ignored, with a warning logged, if the window is not decorated, if the same rule also asks for `apply.fullscreen`, or if the same rule also asks for `apply.iconified`. |
-| `apply.hidden`           | boolean              | unset   | Whether the window should be hidden: withdrawn from the desktop and any pager or taskbar alike, without being iconified. |
-| `apply.opacity`          | integer or object    | unset   | Desired opacity, 0 to 100, published on the window through `_NET_WM_WINDOW_OPACITY`, overriding the theme's `window.active.opacity`/`window.inactive.opacity` (`themes.md` §1) for this one window; see below. |
-| `apply.opacity.active`   | integer              | unset   | Opacity while the window is focused (when `opacity` is an object). |
-| `apply.opacity.inactive` | integer              | unset   | Opacity while the window is not focused (when `opacity` is an object). |
-| `apply.position`         | object or `"center"` | unset   | Where to place the window; see below. |
-| `apply.position.x`       | integer              | unset   | X position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the surface's otherwise. |
-| `apply.position.y`       | integer              | unset   | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the surface's otherwise. |
-| `apply.size.width`       | integer              | unset   | Window width in pixels; must be greater than `0`. |
-| `apply.size.height`      | integer              | unset   | Window height in pixels; must be greater than `0`. |
+| `apply.desktop`          | integer              | *unset* | Zero-based desktop index to move the window to.  Falls back to desktop `0` if it does not exist, logging a warning. |
+| `apply.monitor`          | integer              | *unset* | Zero-based monitor index, within the window's surface, to place the window on.  Falls back to monitor `0` if it does not exist, logging a warning. |
+| `apply.layer`            | string               | *unset* | Stacking layer.  Accepted values: `"below"`, `"normal"`, `"above"`.  Falls back to `"normal"` if unrecognized, logging a warning. |
+| `apply.focus`            | boolean              | *unset* | Whether the matched window should receive focus. |
+| `apply.pinned`           | boolean              | *unset* | Whether the window should be visible on all desktops. |
+| `apply.decorated`        | boolean              | *unset* | Whether the window should keep its decorations. |
+| `apply.iconified`        | boolean              | *unset* | Whether the window should be iconified, turned into an actual icon on the desktop instead of a taskbar entry, the same as pressing `iconify` by hand.  Overrides the window's own `WM_HINTS` initial-state request. |
+| `apply.fullscreen`       | boolean              | *unset* | Whether the window should be fullscreen.  Overrides the window's own EWMH initial-state hint, and takes precedence over `apply.maximized` when a rule asks for both, the same precedence entering fullscreen by hand already has over a maximized window. |
+| `apply.maximized`        | boolean              | *unset* | Whether the window should be maximized, both horizontally and vertically together; there is no field here for maximizing only one axis.  Overrides the window's own EWMH initial-state hint. |
+| `apply.shaded`           | boolean              | *unset* | Whether the window should be shaded, rolled up to just its titlebar.  Ignored, with a warning logged, if the window is not decorated, if the same rule also asks for `apply.fullscreen`, or if the same rule also asks for `apply.iconified`. |
+| `apply.hidden`           | boolean              | *unset* | Whether the window should be hidden: withdrawn from the desktop and any pager or taskbar alike, without being iconified. |
+| `apply.opacity`          | integer or object    | *unset* | Desired opacity, 0 to 100, published on the window through `_NET_WM_WINDOW_OPACITY`, overriding the theme's `window.active.opacity`/`window.inactive.opacity` (`themes.md` §1) for this one window; see below. |
+| `apply.opacity.active`   | integer              | *unset* | Opacity while the window is focused (when `opacity` is an object). |
+| `apply.opacity.inactive` | integer              | *unset* | Opacity while the window is not focused (when `opacity` is an object). |
+| `apply.position`         | object or `"center"` | *unset* | Where to place the window; see below. |
+| `apply.position.x`       | integer              | *unset* | X position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the surface's otherwise. |
+| `apply.position.y`       | integer              | *unset* | Y position in pixels (when `position` is an object), relative to `apply.monitor`'s top-left corner if set, or to the surface's otherwise. |
+| `apply.size.width`       | integer              | *unset* | Window width in pixels; must be greater than `0`. |
+| `apply.size.height`      | integer              | *unset* | Window height in pixels; must be greater than `0`. |
 
 Position and size are applied independently.  Specifying only `position`
 moves the window without resizing it; specifying only `size` resizes it
@@ -2517,7 +2583,7 @@ not merely refuse to act.
 | `icons.show-geom`                        | boolean           | `false`        | Same as `config.json`'s `icons.show-geom`: shows the exact size in the center of the icon while resizing. |
 | `icons.follow-viewport`                  | boolean           | `false`        | Same as `config.json`'s `icons.follow-viewport`, kept for consistency only; this mode's viewport is always a fixed 1x1, so there is never a pan for an icon to follow. |
 | `icons.placement.policy`                 | string            | `"smart"`      | Same as `config.json`'s `icons.placement.policy`: `top`, `bottom`, `left`, `right`, or `smart`. |
-| `systray`                                | object            | see §10.2      | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
+| `systray`                                | object            | *see* §10.2    | The entire `systray` object, in the same shape as `config.json`'s §2.9, with the two exceptions in §10.2. |
 | `shutdown.enable-emergency-shortcut`     | boolean           | `false`        | Same as `config.json`'s `shutdown.enable-emergency-shortcut`. |
 | `shutdown.timeout-seconds`               | integer           | `15`           | Same as `config.json`'s `shutdown.timeout-seconds`. |
 
@@ -2542,6 +2608,12 @@ afterward, since restricted-memory mode never docks any icon at all
   against does not list it; see §10.1), rather than being read and then
   overridden: this mode always runs with it forced to `false`, no
   exception.
+- **The whole `viewport` object**, `move-step` and `mesh` alike, is not
+  accepted in the file either, for the same reason and by the same
+  means.  This mode's viewport is a fixed `1x1` that no setting can
+  enlarge, so there is never a pan for `move-step` to size nor anything
+  for a mesh to make visible; both are forced off outright and neither
+  is ever read back from `memguard.json`.
 
 ### 10.3. Restrictions on the active theme
 

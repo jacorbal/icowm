@@ -73,6 +73,34 @@
 #define CONFIG_VIEWPORT_MAX_PAGES (16)
 #endif
 
+/* Viewport mesh limits and defaults
+ *
+ * The mesh is the dot pattern painted on the root window so that
+ * panning a viewport larger than one screen is visibly a movement
+ * rather than a silent jump.  Every one of these is applied by
+ * 'config/base/load.c': an absent key takes the '_DEFAULT', while a
+ * present but out-of-range one is corrected to whichever bound it
+ * crossed, with a warning naming both values.
+ *
+ * The spacing minimum keeps the dots far enough apart to read as a
+ * mesh rather than as a solid tint, and its maximum keeps at least a
+ * few dots on screen at ordinary resolutions.  The thickness maximum
+ * is not a constant but a fraction of the smaller spacing, since a
+ * dot approaching its own spacing fills the tile completely;
+ * 'CONFIG_VIEWPORT_MESH_THICKNESS_DIVISOR' is that fraction.  The
+ * tone shift is a percentage away from the desktop background color,
+ * and its minimum is where the mesh stops being visible against that
+ * background at all. */
+#define CONFIG_VIEWPORT_MESH_SPACING_DEFAULT (64)
+#define CONFIG_VIEWPORT_MESH_SPACING_MIN (8)
+#define CONFIG_VIEWPORT_MESH_SPACING_MAX (512)
+#define CONFIG_VIEWPORT_MESH_THICKNESS_DEFAULT (1)
+#define CONFIG_VIEWPORT_MESH_THICKNESS_MIN (1)
+#define CONFIG_VIEWPORT_MESH_THICKNESS_DIVISOR (4)
+#define CONFIG_VIEWPORT_MESH_TONE_SHIFT_DEFAULT (20)
+#define CONFIG_VIEWPORT_MESH_TONE_SHIFT_MIN (10)
+#define CONFIG_VIEWPORT_MESH_TONE_SHIFT_MAX (100)
+
 /* XRandR output profile configuration limits
  *
  * 'CONFIG_RANDR_MAX_OUTPUTS' is also smaller under 'COMPACT', for the

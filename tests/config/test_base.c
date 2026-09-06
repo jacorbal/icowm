@@ -74,6 +74,39 @@ static int s_load(const char *content, struct config_base_s *base,
 }
 
 
+/**
+ * @brief Load a configuration the way the manager itself does, with
+ *        the defaults applied first
+ *
+ * @a s_load above deliberately starts from a zeroed structure, which
+ * is what most scenarios here want; a scenario about what an absent
+ * key leaves behind needs the real order instead, since that is where
+ * the value it expects comes from.
+ *
+ * @param content  Configuration file body to load
+ * @param base     Base configuration to load into
+ * @param desktop  Desktop behavior configuration to load into
+ *
+ * @return Whatever @a config_load_base returned
+ *
+ * @note Complexity: @e O(n) on the file size
+ */
+static int s_load_with_defaults(const char *content,
+        struct config_base_s *base, struct config_desktop_s *desktop)
+{
+    char path[256];
+    int status;
+
+    memset(base, 0, sizeof(*base));
+    memset(desktop, 0, sizeof(*desktop));
+    config_set_default_base_values(base, desktop);
+    s_write_temp_file(path, sizeof(path), content);
+    status = config_load_base(path, base, desktop);
+    unlink(path);
+    return status;
+}
+
+
 /* A missing file fails outright */
 static void s_test_missing_file(void)
 {
@@ -816,9 +849,116 @@ static void s_test_systray_text_order_no_dedup(void)
 }
 
 
+/* An absent 'mesh' object leaves every default in place, rather than
+ * zeroing the fields nobody mentioned */
+static void s_test_mesh_absent_keeps_defaults(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load_with_defaults("{\"viewport\": {\"move-step\": 40} }",
+            &base, &desktop);
+
+    TAP_OK(base.viewport.mesh.is_enabled,
+            "mesh absent: enabled by default");
+    TAP_EQ_INT((int) base.viewport.mesh.spacing_horizontal,
+            CONFIG_VIEWPORT_MESH_SPACING_DEFAULT,
+            "mesh absent: horizontal spacing keeps its default");
+    TAP_EQ_INT((int) base.viewport.mesh.spacing_vertical,
+            CONFIG_VIEWPORT_MESH_SPACING_DEFAULT,
+            "mesh absent: vertical spacing keeps its default");
+    TAP_EQ_INT((int) base.viewport.mesh.thickness,
+            CONFIG_VIEWPORT_MESH_THICKNESS_DEFAULT,
+            "mesh absent: thickness keeps its default");
+    TAP_EQ_INT((int) base.viewport.mesh.tone_shift,
+            CONFIG_VIEWPORT_MESH_TONE_SHIFT_DEFAULT,
+            "mesh absent: tone shift keeps its default");
+}
+
+
+/* Values inside every range are taken exactly as written */
+static void s_test_mesh_valid_values_kept(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"viewport\": {\"mesh\": {\"is-enabled\": false,"
+        "  \"spacing\": {\"horizontal\": 32, \"vertical\": 128},"
+        "  \"thickness\": 4, \"tone-shift\": 55} } }",
+        &base, &desktop);
+
+    TAP_OK(!base.viewport.mesh.is_enabled,
+            "mesh: an explicit false switches it off");
+    TAP_EQ_INT((int) base.viewport.mesh.spacing_horizontal, 32,
+            "mesh: a valid horizontal spacing is kept");
+    TAP_EQ_INT((int) base.viewport.mesh.spacing_vertical, 128,
+            "mesh: a valid vertical spacing is kept");
+    TAP_EQ_INT((int) base.viewport.mesh.thickness, 4,
+            "mesh: a thickness within a quarter of the spacing is"
+            " kept");
+    TAP_EQ_INT((int) base.viewport.mesh.tone_shift, 55,
+            "mesh: a valid tone shift is kept");
+}
+
+
+/* Anything below a minimum is corrected up to that minimum, which for
+ * the tone shift is deliberately not the same as its default */
+static void s_test_mesh_below_minimum_clamped(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"viewport\": {\"mesh\": {"
+        "  \"spacing\": {\"horizontal\": 2, \"vertical\": 0},"
+        "  \"thickness\": 0, \"tone-shift\": 3} } }",
+        &base, &desktop);
+
+    TAP_EQ_INT((int) base.viewport.mesh.spacing_horizontal,
+            CONFIG_VIEWPORT_MESH_SPACING_MIN,
+            "mesh: a spacing below the minimum is raised to it");
+    TAP_EQ_INT((int) base.viewport.mesh.spacing_vertical,
+            CONFIG_VIEWPORT_MESH_SPACING_MIN,
+            "mesh: a zero spacing is raised to the minimum too");
+    TAP_EQ_INT((int) base.viewport.mesh.thickness,
+            CONFIG_VIEWPORT_MESH_THICKNESS_MIN,
+            "mesh: a zero thickness is raised to the minimum");
+    TAP_EQ_INT((int) base.viewport.mesh.tone_shift,
+            CONFIG_VIEWPORT_MESH_TONE_SHIFT_MIN,
+            "mesh: too subtle a tone shift is raised to the minimum,"
+            " not to the default");
+}
+
+
+/* Anything above a maximum is corrected down to it, and the thickness
+ * ceiling follows whichever spacing ended up smaller */
+static void s_test_mesh_above_maximum_clamped(void)
+{
+    struct config_base_s base;
+    struct config_desktop_s desktop;
+
+    s_load(
+        "{\"viewport\": {\"mesh\": {"
+        "  \"spacing\": {\"horizontal\": 9999, \"vertical\": 32},"
+        "  \"thickness\": 999, \"tone-shift\": 400} } }",
+        &base, &desktop);
+
+    TAP_EQ_INT((int) base.viewport.mesh.spacing_horizontal,
+            CONFIG_VIEWPORT_MESH_SPACING_MAX,
+            "mesh: a spacing above the maximum is lowered to it");
+    TAP_EQ_INT((int) base.viewport.mesh.thickness, 32 / 4,
+            "mesh: the thickness ceiling follows the smaller of the"
+            " two spacings, once both have settled");
+    TAP_EQ_INT((int) base.viewport.mesh.tone_shift,
+            CONFIG_VIEWPORT_MESH_TONE_SHIFT_MAX,
+            "mesh: a tone shift above 100 is lowered to 100");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(100);
+    TAP_PLAN(117);
 
     s_test_missing_file();
     s_test_screens_flat_shape();
@@ -843,6 +983,10 @@ int main(void)
     s_test_viewport_rows_zero_rejected();
     s_test_viewport_columns_above_max_rejected();
     s_test_missing_topology_leaves_defaults();
+    s_test_mesh_absent_keeps_defaults();
+    s_test_mesh_valid_values_kept();
+    s_test_mesh_below_minimum_clamped();
+    s_test_mesh_above_maximum_clamped();
     s_test_representative_fields();
     s_test_icons_placement_modern_object_form();
     s_test_icons_placement_bare_string_form();

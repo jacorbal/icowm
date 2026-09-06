@@ -516,9 +516,9 @@ broken rather than merely deferred.
 
 | Command         | Arguments | What it does |
 |-----------------|-----------|--------------|
-| `reload_config` | none      | Reloads every configuration file, the same as sending IcoWM `SIGHUP` |
-| `restart_wm`    | none      | Requests that IcoWM stop and restart itself in place, keeping every managed client open |
-| `exit_wm`       | none      | Requests that IcoWM stop and exit, the same as its quit shortcut |
+| `reload_config` | *none*    | Reloads every configuration file, the same as sending IcoWM `SIGHUP` |
+| `restart_wm`    | *none*    | Requests that IcoWM stop and restart itself in place, keeping every managed client open |
+| `exit_wm`       | *none*    | Requests that IcoWM stop and exit, the same as its quit shortcut |
 
 ### 5.4. The `icowm-msg` tool
 
@@ -621,7 +621,7 @@ Every event type:
 | `desktop_background_changed` | `desktop_id`, `surface_id`: that desktop's solid background color was just set |
 | `desktop_shown`              | `desktop_id`, `surface_id`: every client on that desktop was just shown at once |
 | `desktop_hidden`             | `desktop_id`, `surface_id`: every client on that desktop was just hidden at once |
-| `config_reloaded`            | none: every configuration file was just reloaded |
+| `config_reloaded`            | *none*: every configuration file was just reloaded |
 | `stacking_changed`           | `client_id`, `desktop_id`, `surface_id`: that client's position within its layer's stacking order just changed |
 
 A subscription lasts only as long as the connection itself: closing the

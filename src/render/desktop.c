@@ -49,6 +49,7 @@
 #include <client.h>
 #include <logger.h>
 #include <render/text.h>
+#include <render/viewport/mesh.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -1270,6 +1271,20 @@ int desktop_render_background(desktop_td *desktop)
                 " desktop %u ('%s')", desktop->id, desktop->name);
         return 0;
     }
+
+    /* The mesh takes over the very background pixmap the color path
+     * below would clear, so it is asked first and, where it applies,
+     * owns the root window instead.  Its own cache decides whether
+     * anything actually gets repainted, exactly as the color one
+     * does; and 's_root_bg_applied_once' is cleared so that the color
+     * path always re-applies at least once should the mesh later stop
+     * applying, rather than leaving a stale mesh on screen under the
+     * belief that the color was already correct. */
+    if (viewport_mesh_is_visible(desktop)) {
+        s_root_bg_applied_once[desktop->screen_id] = false;
+        return viewport_mesh_render(xcb_connection_get(), desktop);
+    }
+    viewport_mesh_cache_invalidate();
 
     /* No external background detected and the window manager owns the
      * background: apply the configured color and clear the root window

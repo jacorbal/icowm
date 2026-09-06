@@ -146,8 +146,32 @@ static const config_lint_key_td s_schema_placement_wrapper[] = {
         0, NULL, 0u, NULL}
 };
 
+static const config_lint_key_td s_schema_viewport_mesh_spacing[] = {
+    {"horizontal", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"vertical", NULL, 0u,
+        0, NULL, 0u, NULL}
+};
+
+static const config_lint_key_td s_schema_viewport_mesh[] = {
+    {"is-enabled", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"spacing", s_schema_viewport_mesh_spacing,
+        sizeof(s_schema_viewport_mesh_spacing) /
+            sizeof(s_schema_viewport_mesh_spacing[0]),
+        0, NULL, 0u, NULL},
+    {"thickness", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"tone-shift", NULL, 0u,
+        0, NULL, 0u, NULL}
+};
+
 static const config_lint_key_td s_schema_viewport[] = {
     {"move-step", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"mesh", s_schema_viewport_mesh,
+        sizeof(s_schema_viewport_mesh) /
+            sizeof(s_schema_viewport_mesh[0]),
         0, NULL, 0u, NULL}
 };
 

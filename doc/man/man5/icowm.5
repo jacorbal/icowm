@@ -454,6 +454,74 @@ that drag instead, unaffected by this setting.
 .It Ic viewport.move-step Pq integer, default Ql 40
 How many pixels each viewport-pan keyboard shortcut moves the origin
 per press.
+.It Ic viewport.mesh.is-enabled Pq boolean, default Ql true
+Whether to paint a dot mesh on the root window whose offset follows the
+viewport origin, so that panning reads as a movement rather than as a
+silent jump.
+It applies to keyboard panning and to a mouse drag on the desktop
+background alike, and is an aid to perception only: every cell of the
+mesh looks like every other one, so it says nothing about how far the
+viewport moved or which part of it is on screen.
+.Pp
+A mesh is only ever painted where two further conditions hold, neither
+of them configured here.
+The screen's viewport must be larger than
+.Ql 1x1
+in
+.Ic topology.screens.desktops[].viewport ,
+since a viewport that can never pan has nothing for a mesh to
+accompany.
+And no external tool may own the root window's pixels: the mesh is
+applied as the root window's background pixmap, the same place
+.Xr feh 1 ,
+.Xr xsetroot 1
+and the like put a wallpaper, so wherever such a wallpaper is present
+it is left alone and no mesh is drawn.
+Both are re-checked on every background repaint, so setting or clearing
+a wallpaper while the manager runs takes effect without a restart.
+.It Ic viewport.mesh.spacing.horizontal Pq integer, default Ql 64
+Pixels between neighboring dots across, from
+.Ql 8
+to
+.Ql 512 .
+.It Ic viewport.mesh.spacing.vertical Pq integer, default Ql 64
+Pixels between neighboring dots down, over the same range.
+.It Ic viewport.mesh.thickness Pq integer, default Ql 1
+Side of one square dot, in pixels, from
+.Ql 1
+to a quarter of whichever spacing is smaller.
+Validated after both spacings, since its ceiling follows them.
+.It Ic viewport.mesh.tone-shift Pq integer, default Ql 20
+How far the dot color is pushed away from the desktop background color,
+as a percentage, from
+.Ql 10
+to
+.Ql 100 .
+.Pp
+The dot color itself is not configurable and has no key here or in the
+theme.
+It is derived from whichever background color the desktop actually
+ended up with, that is, the per-desktop
+.Ic background-color
+where one is set and the theme's
+.Ic desktop.color.background
+otherwise.
+A background whose Rec.\& 601 luma reaches 128 counts as light and its
+mesh is darkened; a darker one gets a lightened mesh instead.
+Deriving rather than configuring keeps the contrast against the
+background roughly constant across every theme and every per-desktop
+background, which no single fixed color can manage.
+.Pp
+A key left out keeps its default, while one present but out of range is
+corrected to the bound it crossed, with a warning naming both values.
+Those are not the same for
+.Ic tone-shift :
+omitting it gives
+.Ql 20 ,
+while writing
+.Ql 3
+gives
+.Ql 10 .
 .El
 .Ss scratchpad
 A single window kept aside, shown and hidden by its binding rather

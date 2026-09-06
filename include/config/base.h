@@ -411,6 +411,42 @@ struct config_base_s {
                               *  dragging on the desktop background
                               *  moves by the exact drag delta
                               *  instead, never by this */
+
+        /**
+         * @brief Dot mesh painted on the root window so that panning
+         *        the viewport reads as a movement
+         *
+         * A viewport pan translates every non-sticky client at once,
+         * which on an empty desktop can look like nothing happened.
+         * The mesh gives the eye a fixed set of marks that travel with
+         * the clients, so the movement is visible even with no window
+         * near the pointer.  It is an aid to perception only, and
+         * deliberately carries no information about how far the
+         * viewport moved or where in it the current page sits.
+         *
+         * @p is_enabled alone does not decide whether anything is
+         * painted: a mesh is only ever drawn on a surface whose
+         * viewport can actually pan, and never while an external tool
+         * owns the root window's pixels (@a viewport_mesh_is_visible,
+         * @c render/viewport/mesh.c).
+         *
+         * @p spacing is the distance between neighboring dots along
+         * each axis, in pixels, and doubles as the tile size.
+         * @p thickness is the side of one square dot, also in pixels.
+         * @p tone_shift is how far the dot color is pushed away from
+         * the desktop background color, as a percentage, away from
+         * black on a light background and away from white on a dark
+         * one.
+         *
+         * @see @a viewport_mesh_color_from_background
+         */
+        struct config_viewport_mesh_s {
+            uint32_t spacing_horizontal;
+            uint32_t spacing_vertical;
+            uint32_t thickness;
+            uint32_t tone_shift;
+            bool is_enabled;
+        } mesh;
     } viewport;
 
     /**

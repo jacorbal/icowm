@@ -21,6 +21,11 @@
 
 /* System includes */
 #include <stdbool.h>
+#include <stddef.h>     /* NULL */
+#include <stdint.h>
+
+/* Defs includes */
+#include <defs/config.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -34,6 +39,107 @@
 /* Local includes */
 #include <config.h>
 #include <config/internal.h>
+
+
+/**
+ * @brief Correct one loaded value that falls outside its valid range
+ *
+ * Both bounds are inclusive, and a value crossing either is corrected
+ * to the bound it crossed rather than to the field's default, which is
+ * how @c topology.screens.count and @c topology.screens.desktops[].count
+ * already behave.  A key left out of the file never reaches here at
+ * all, and so keeps whatever @a config_set_default_base_values put
+ * there.
+ *
+ * @param value       Value to check and, where needed, correct
+ * @param minimum     Lowest value accepted
+ * @param maximum     Highest value accepted
+ * @param field_label Fully qualified key name, for the log message
+ * @param filename    Path the value was loaded from, for the log
+ *                    message only
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_config_clamp_range(uint32_t *value, uint32_t minimum,
+        uint32_t maximum, const char *restrict field_label,
+        const char *restrict filename)
+{
+    if (*value >= minimum && *value <= maximum) {
+        return;
+    }
+
+    LOGGER_WARNING("'%s' in '%s' is %u, outside the valid range" \
+            " %u to %u; using %u instead",
+            field_label, filename, *value, minimum, maximum,
+            (*value < minimum) ? minimum : maximum);
+    *value = (*value < minimum) ? minimum : maximum;
+}
+
+
+/**
+ * @brief Load and validate the viewport mesh settings
+ *
+ * @p thickness is validated last on purpose: its upper bound is a
+ * fraction of the smaller spacing, so both spacings have to have
+ * settled on their final values before it can be checked against
+ * them.
+ *
+ * @param viewport    @c viewport object the @c mesh object sits in
+ * @param config_base Base configuration to load into
+ * @param filename    Path the values were loaded from, for the log
+ *                    messages only
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_config_load_viewport_mesh(cJSON *viewport,
+        struct config_base_s *config_base,
+        const char *restrict filename)
+{
+    struct config_viewport_mesh_s *const mesh =
+        &config_base->viewport.mesh;
+    cJSON *const mesh_item = cJSON_GetObjectItem(viewport, "mesh");
+    cJSON *spacing;
+    uint32_t thickness_max;
+
+    if (mesh_item == NULL) {
+        return;
+    }
+
+    json_load_bool(mesh_item, "is-enabled", &mesh->is_enabled);
+
+    spacing = cJSON_GetObjectItem(mesh_item, "spacing");
+    if (spacing != NULL) {
+        json_load_uint(spacing, "horizontal",
+                &mesh->spacing_horizontal);
+        json_load_uint(spacing, "vertical", &mesh->spacing_vertical);
+        s_config_clamp_range(&mesh->spacing_horizontal,
+                CONFIG_VIEWPORT_MESH_SPACING_MIN,
+                CONFIG_VIEWPORT_MESH_SPACING_MAX,
+                "viewport.mesh.spacing.horizontal", filename);
+        s_config_clamp_range(&mesh->spacing_vertical,
+                CONFIG_VIEWPORT_MESH_SPACING_MIN,
+                CONFIG_VIEWPORT_MESH_SPACING_MAX,
+                "viewport.mesh.spacing.vertical", filename);
+    }
+
+    json_load_uint(mesh_item, "tone-shift", &mesh->tone_shift);
+    s_config_clamp_range(&mesh->tone_shift,
+            CONFIG_VIEWPORT_MESH_TONE_SHIFT_MIN,
+            CONFIG_VIEWPORT_MESH_TONE_SHIFT_MAX,
+            "viewport.mesh.tone-shift", filename);
+
+    json_load_uint(mesh_item, "thickness", &mesh->thickness);
+    thickness_max = ((mesh->spacing_horizontal < mesh->spacing_vertical)
+            ? mesh->spacing_horizontal
+            : mesh->spacing_vertical) /
+        CONFIG_VIEWPORT_MESH_THICKNESS_DIVISOR;
+    if (thickness_max < CONFIG_VIEWPORT_MESH_THICKNESS_MIN) {
+        thickness_max = CONFIG_VIEWPORT_MESH_THICKNESS_MIN;
+    }
+    s_config_clamp_range(&mesh->thickness,
+            CONFIG_VIEWPORT_MESH_THICKNESS_MIN, thickness_max,
+            "viewport.mesh.thickness", filename);
+}
 
 
 /* Load base configuration settings from a JSON file */
@@ -224,6 +330,7 @@ int config_load_base(const char *filename,
     if (viewport) {
         json_load_uint(viewport, "move-step",
                 &config_base->viewport.move_step);
+        s_config_load_viewport_mesh(viewport, config_base, filename);
     }
 
     /* Load icon policy configuration */

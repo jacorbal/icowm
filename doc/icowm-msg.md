@@ -238,10 +238,10 @@ response field means, is in [`icowm.md`](icowm.md) §5.3.
 
 | Command                        | Arguments                                | Description |
 |--------------------------------|------------------------------------------|-------------|
-| `get_version`                  | none                                     | Reports the wire protocol version |
-| `list_desktops`                | none                                     | Lists every desktop on every managed surface |
-| `list_clients`                 | none                                     | Lists every managed client, with geometry and state flags |
-| `get_focused`                  | none                                     | Reports the active client of every managed surface |
+| `get_version`                  | *none*                                   | Reports the wire protocol version |
+| `list_desktops`                | *none*                                   | Lists every desktop on every managed surface |
+| `list_clients`                 | *none*                                   | Lists every managed client, with geometry and state flags |
+| `get_focused`                  | *none*                                   | Reports the active client of every managed surface |
 | `close_client`                 | `client_id`                              | Closes the client politely, or destroys its window |
 | `kill_client`                  | `client_id`                              | Forcibly terminates the client's X connection |
 | `focus_client`                 | `client_id`                              | Moves input focus to the client (does not raise it) |
@@ -301,9 +301,9 @@ response field means, is in [`icowm.md`](icowm.md) §5.3.
 | `remove_desktop`               | [`surface_id`]                           | Removes the resolved surface's last desktop, moving any client still on it to the one before it, switching the current view there too if it was the one removed.  Shrinks the grid layout back down if that was its last member.  Refused, with an error, while only one desktop remains |
 | `toggle_scratchpad`            | [`desktop_id`] [`surface_id`]            | Launches the scratchpad, or shows/hides it if already running |
 | `toggle_strutless_maximize`    | [`surface_id`]                           | Toggles whether panel and tray struts are set aside when computing that surface's work areas |
-| `reload_config`                | none                                     | Reloads every configuration file |
-| `restart_wm`                   | none                                     | Requests that IcoWM stop and restart itself in place, keeping every managed client open |
-| `exit_wm`                      | none                                     | Requests that IcoWM stop and exit |
+| `reload_config`                | *none*                                   | Reloads every configuration file |
+| `restart_wm`                   | *none*                                   | Requests that IcoWM stop and restart itself in place, keeping every managed client open |
+| `exit_wm`                      | *none*                                   | Requests that IcoWM stop and exit |
 
 ## 9. Watching for events
 
@@ -359,7 +359,7 @@ error, since it has nothing to count events for.
 | `desktop_shown`              | `desktop_id`, `surface_id`: every client on that desktop was just shown at once |
 | `desktop_hidden`             | `desktop_id`, `surface_id`: every client on that desktop was just hidden at once |
 | `stacking_changed`           | `client_id`, `desktop_id`, `surface_id`: that client's position within its layer's stacking order just changed |
-| `config_reloaded`            | none: every configuration file was just reloaded |
+| `config_reloaded`            | *none*: every configuration file was just reloaded |
 
 Every event line also carries its `"event"` field naming which one it
 is, the same as every other field name above; there is no separate

@@ -62,6 +62,9 @@
 #include <menu/context/rootmenu.h>
 #include <menu/dialog/rrsafe.h>
 
+/* Render includes */
+#include <render/viewport/mesh.h>
+
 /* Local includes */
 #include <wm.h>
 #include <wm/internal.h>
@@ -198,6 +201,12 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
                 ? wm_get_config()->theme.desktop.color.background
                 : new_color;
         }
+
+        /* The just-reloaded 'config.json' may have switched the mesh
+         * off, resized it, or restyled it, and the background color
+         * resolved just above is what its dots are derived from, so
+         * whichever tile is cached was built against stale inputs */
+        viewport_mesh_cache_invalidate();
 
         /* Resize every already-decorated client's frame to match
          * whatever 'window.titlebar.height' and border width the

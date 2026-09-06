@@ -168,6 +168,19 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->windows.resize_step = 20;
 
     config_base->viewport.move_step = 40;
+    /* Enabled by default: the mesh only ever appears where it has
+     * something to report, on a surface whose viewport can actually
+     * pan and whose root window the manager still owns, so leaving
+     * it on costs a plain single-screen desktop nothing */
+    config_base->viewport.mesh.is_enabled = true;
+    config_base->viewport.mesh.spacing_horizontal =
+        CONFIG_VIEWPORT_MESH_SPACING_DEFAULT;
+    config_base->viewport.mesh.spacing_vertical =
+        CONFIG_VIEWPORT_MESH_SPACING_DEFAULT;
+    config_base->viewport.mesh.thickness =
+        CONFIG_VIEWPORT_MESH_THICKNESS_DEFAULT;
+    config_base->viewport.mesh.tone_shift =
+        CONFIG_VIEWPORT_MESH_TONE_SHIFT_DEFAULT;
     config_base->windows.edges.snap.window = 6;
     config_base->windows.edges.snap.screen = 6;
     /* Matches Openbox's default for 'config_resist_edge'

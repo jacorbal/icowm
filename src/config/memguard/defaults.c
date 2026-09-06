@@ -134,6 +134,15 @@ void config_set_default_values_memguard(config_td *config)
      * consistency and to avoid leaving it uninitialized. */
     config->base.icons.follow_viewport = false;
 
+    /* Moot for the same reason, and switched off rather than left
+     * holding an ordinary session's inherited values: with a
+     * permanently 1x1 viewport there is no pan for 'move_step' to
+     * size and nothing for the mesh to make visible, so 'memguard.json'
+     * has no 'viewport' section at all and neither field is ever read
+     * back from it. */
+    config->base.viewport.move_step = 0u;
+    config->base.viewport.mesh.is_enabled = false;
+
     config->base.shutdown.enable_emergency_shortcut = true;
     config->base.shutdown.timeout_seconds = 15u;
     config->base.fortune.is_enabled = false;

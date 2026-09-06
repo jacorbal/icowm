@@ -109,6 +109,20 @@ is true; it simply accepts no docked application icon.
 .Ic windows.solid-drag
 is different again: it is not accepted in the file at all, rather than
 read and overridden, since this mode always runs with it off.
+.Pp
+The whole
+.Ic viewport
+object,
+.Ic move-step
+and
+.Ic mesh
+alike, is likewise not accepted in the file.
+This mode's viewport is a fixed
+.Ql 1x1
+that no setting can enlarge, so there is never a pan for
+.Ic move-step
+to size nor anything for a mesh to make visible; both are forced off
+and neither is read back from the file.
 .Sh FILES
 .Bl -tag -width Ds
 .It Pa ${XDG_CONFIG_HOME}/icowm/memguard.json

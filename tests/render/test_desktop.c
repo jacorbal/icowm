@@ -467,6 +467,35 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 }
 
 
+/* render/viewport/mesh.c
+ *
+ * Link-only: the scenarios below all leave 'viewport.mesh.is-enabled'
+ * false in their configuration, so the visibility stand-in reports
+ * false and the two painting entries are never reached.  The mesh has
+ * its own battery, tests/render/viewport/test_mesh.c. */
+bool viewport_mesh_is_visible(const desktop_td *desktop)
+{
+    (void) desktop;
+
+    return false;
+}
+
+
+int viewport_mesh_render(xcb_connection_t *connection,
+        const desktop_td *desktop)
+{
+    (void) connection;
+    (void) desktop;
+
+    return 0;
+}
+
+
+void viewport_mesh_cache_invalidate(void)
+{
+}
+
+
 /* surface/viewport.c
  *
  * Reproduced here rather than linking that whole (separately tested)
