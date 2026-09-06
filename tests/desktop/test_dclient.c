@@ -263,6 +263,59 @@ static config_td *s_wm_config_answer;
 static list_td *s_wm_surfaces_answer;
 
 
+/** Viewport page a scenario wants reported for the urgent client and
+ *  for the page the desktop is showing, so the three branches of the
+ *  notice can each be reached; @c s_viewport_has_pages false is the
+ *  single-page case, where neither is reported at all */
+static bool s_viewport_has_pages;
+static uint32_t s_client_page_col;
+static uint32_t s_client_page_row;
+static uint32_t s_shown_page_col;
+static uint32_t s_shown_page_row;
+
+
+/**
+ * @brief Test-controlled stand-in for
+ *        @a scmd_surface_viewport_client_page
+ * @note Complexity: @e O(1)
+ */
+bool scmd_surface_viewport_client_page(const surface_td *surface,
+        const desktop_td *desktop, const client_td *client,
+        uint32_t *col_out, uint32_t *row_out)
+{
+    (void) surface;
+    (void) desktop;
+    (void) client;
+
+    if (!s_viewport_has_pages) {
+        return false;
+    }
+    *col_out = s_client_page_col;
+    *row_out = s_client_page_row;
+    return true;
+}
+
+
+/**
+ * @brief Test-controlled stand-in for
+ *        @a scmd_surface_viewport_desktop_page
+ * @note Complexity: @e O(1)
+ */
+bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+        const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
+{
+    (void) surface;
+    (void) desktop;
+
+    if (!s_viewport_has_pages) {
+        return false;
+    }
+    *col_out = s_shown_page_col;
+    *row_out = s_shown_page_row;
+    return true;
+}
+
+
 /**
  * @brief Test-controlled stand-in for @a wm_get_desktop_surface
  * @note Complexity: @e O(1)
@@ -536,6 +589,11 @@ static void s_reset(void)
     s_wm_surfaces_answer = NULL;
     s_call_message_dialog_show = 0;
     s_message_dialog_is_open_answer = false;
+    s_viewport_has_pages = false;
+    s_client_page_col = 0u;
+    s_client_page_row = 0u;
+    s_shown_page_col = 0u;
+    s_shown_page_row = 0u;
     s_call_spawn_command = 0;
     memset(&s_last_spawn_opts, 0, sizeof(s_last_spawn_opts));
     s_last_spawn_startup_id[0] = '\0';
@@ -897,7 +955,7 @@ static void s_test_recompute_urgent_transition_notifies(void)
 
     s_surface.desktop_cur = s_desktop_b.id; /* a different desktop is
                                                 currently shown */
-    s_config.desktops.notify_activity = true;
+    s_config.base.urgency.notify_activity = true;
     s_wm_desktop_surface_answer = &s_surface;
     s_wm_config_answer = &s_config;
     s_message_dialog_is_open_answer = false;
@@ -912,6 +970,81 @@ static void s_test_recompute_urgent_transition_notifies(void)
             " the one currently shown, with notifications enabled" \
             " and no dialog already open, shows exactly one" \
             " notification");
+
+    s_destroy_desktop(&s_desktop_a);
+    s_destroy_desktop(&s_desktop_b);
+}
+
+
+/* On the very desktop being shown, but on a viewport page that is
+ * not, the notice does appear: the titlebar blink that covers the
+ * same-desktop case is off screen along with the window */
+static void s_test_recompute_urgent_other_page_notifies(void)
+{
+    client_td client;
+
+    s_reset();
+    s_make_client(&client, 100u, "term");
+    client.properties.flags |= CLIENT_FLAG_URGENT;
+    (void) desktop_action_client_add(&s_desktop_a, &client);
+    s_desktop_a.is_urgent = false;
+
+    s_surface.desktop_cur = s_desktop_a.id;
+    s_viewport_has_pages = true;
+    s_client_page_col = 1u;
+    s_shown_page_col = 0u;
+    s_config.base.urgency.notify_activity = true;
+    s_wm_desktop_surface_answer = &s_surface;
+    s_wm_config_answer = &s_config;
+
+    desktop_action_recompute_urgent(&s_desktop_a);
+
+    TAP_EQ_INT(s_call_message_dialog_show, 1,
+            "a client urgent on another page of the desktop being"
+            " shown does raise the notice");
+    TAP_EQ_INT((int) s_desktop_a.urgent_page.x, 1,
+            "and the page it came from is recorded");
+
+    s_destroy_desktop(&s_desktop_a);
+    s_destroy_desktop(&s_desktop_b);
+}
+
+
+/* Urgency moving from one page to another is a fresh request even
+ * though 'is_urgent' never went back to false in between */
+static void s_test_recompute_urgent_page_change_notifies_again(void)
+{
+    client_td client;
+
+    s_reset();
+    s_make_client(&client, 100u, "term");
+    client.properties.flags |= CLIENT_FLAG_URGENT;
+    (void) desktop_action_client_add(&s_desktop_a, &client);
+    s_desktop_a.is_urgent = false;
+    s_desktop_a.has_urgent_page = false;
+
+    s_surface.desktop_cur = s_desktop_a.id;
+    s_viewport_has_pages = true;
+    s_shown_page_col = 0u;
+    s_config.base.urgency.notify_activity = true;
+    s_wm_desktop_surface_answer = &s_surface;
+    s_wm_config_answer = &s_config;
+
+    s_client_page_col = 1u;
+    desktop_action_recompute_urgent(&s_desktop_a);
+    TAP_EQ_INT(s_call_message_dialog_show, 1,
+            "the first request on page 1 is announced");
+
+    desktop_action_recompute_urgent(&s_desktop_a);
+    TAP_EQ_INT(s_call_message_dialog_show, 1,
+            "recomputing with nothing changed announces nothing"
+            " further");
+
+    s_client_page_col = 2u;
+    desktop_action_recompute_urgent(&s_desktop_a);
+    TAP_EQ_INT(s_call_message_dialog_show, 2,
+            "but the request moving to page 2 is announced again,"
+            " which is_urgent alone could never tell apart");
 
     s_destroy_desktop(&s_desktop_a);
     s_destroy_desktop(&s_desktop_b);
@@ -933,7 +1066,7 @@ static void s_test_recompute_urgent_current_desktop_no_dialog(void)
 
     s_surface.desktop_cur = s_desktop_a.id; /* this desktop itself is
                                                 the one shown */
-    s_config.desktops.notify_activity = true;
+    s_config.base.urgency.notify_activity = true;
     s_wm_desktop_surface_answer = &s_surface;
     s_wm_config_answer = &s_config;
 
@@ -962,7 +1095,7 @@ static void s_test_recompute_urgent_already_true_no_dialog(void)
     s_desktop_a.is_urgent = true; /* already urgent before this call */
 
     s_surface.desktop_cur = s_desktop_b.id;
-    s_config.desktops.notify_activity = true;
+    s_config.base.urgency.notify_activity = true;
     s_wm_desktop_surface_answer = &s_surface;
     s_wm_config_answer = &s_config;
 
@@ -1361,7 +1494,7 @@ static void s_test_launch_null_and_empty_guards(void)
 
 int main(void)
 {
-    TAP_PLAN(73);
+    TAP_PLAN(78);
 
     s_test_add_inserts_into_table_and_stacking();
     s_test_add_null_guards();
@@ -1375,6 +1508,8 @@ int main(void)
     s_test_move_null_guards();
     s_test_recompute_urgent_none_found();
     s_test_recompute_urgent_transition_notifies();
+    s_test_recompute_urgent_other_page_notifies();
+    s_test_recompute_urgent_page_change_notifies_again();
     s_test_recompute_urgent_current_desktop_no_dialog();
     s_test_recompute_urgent_already_true_no_dialog();
     s_test_recompute_urgent_null_guards();

@@ -537,6 +537,10 @@ msgstr "Iri al la videja paĝo %u"
 msgid "Detected activity on desktop [%u]"
 msgstr "Detektita agado en labortablo [%u]"
 
+#: include/defs/uistr.h:302;
+msgid "Detected activity on page {%u, %u}"
+msgstr "Aktiveco detektita en paĝo {%u, %u}"
+
 #: include/defs/uistr.h:289;
 msgid " -- %s"
 msgstr " -- %s"

@@ -537,6 +537,10 @@ msgstr "Aller à la page %u de la vue"
 msgid "Detected activity on desktop [%u]"
 msgstr "Activité détectée sur le bureau [%u]"
 
+#: include/defs/uistr.h:302;
+msgid "Detected activity on page {%u, %u}"
+msgstr "Activité détectée sur la page {%u, %u}"
+
 #: include/defs/uistr.h:289;
 msgid " -- %s"
 msgstr " -- %s"

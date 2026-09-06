@@ -537,6 +537,10 @@ msgstr "Vés a la pàgina %u de la vista"
 msgid "Detected activity on desktop [%u]"
 msgstr "Detectada activitat a l'escriptori [%u]"
 
+#: include/defs/uistr.h:302;
+msgid "Detected activity on page {%u, %u}"
+msgstr "Activitat detectada a la pàgina {%u, %u}"
+
 #: include/defs/uistr.h:289;
 msgid " -- %s"
 msgstr " -- %s"

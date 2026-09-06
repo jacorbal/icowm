@@ -85,7 +85,10 @@ client_td *desktop_find_client_by_id(const desktop_td *desktop,
 void ipc_broadcast_event(uint32_t type, cJSON *fields)
 {
     (void) type;
-    (void) fields;
+
+    /* The real one takes ownership of the payload its caller built;
+     * a stand-in that merely ignored it would leak on every focus */
+    cJSON_Delete(fields);
 }
 
 client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
@@ -97,6 +100,22 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
     (void) out_desktop;
     return NULL;
 }
+
+/** Recording stand-in for @a scmd_surface_viewport_center_on_client
+ *  (cmds/surface.c): 'focus_apply' brings the client into view before
+ *  handing it the keyboard, and this file has no viewport to pan */
+static int s_call_viewport_center;
+static client_td *s_last_centered;
+
+void scmd_surface_viewport_center_on_client(surface_td *surface,
+        client_td *client)
+{
+    (void) surface;
+
+    s_call_viewport_center++;
+    s_last_centered = client;
+}
+
 
 /** For a client with no transient parent of its own, its own top
  *  parent (the redirect target) is always itself, the same as the
@@ -143,12 +162,43 @@ static void s_test_reflects_configured_policy(void)
 }
 
 
+/* Every "focus this client" path in the manager funnels through
+ * focus_apply, so bringing the client into view belongs here rather
+ * than in each caller: the window list, the cycle menu, the search
+ * box and the '_NET_ACTIVE_WINDOW' handler all get it at once */
+static void s_test_apply_brings_the_client_into_view(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+    client_td client;
+
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&client, 0, sizeof(client));
+    /* ICCCM input model: focus_apply refuses a client that could
+     * never take real keyboard focus, before ever reaching the pan */
+    client.hints_icccm.hints.accepts_input = true;
+
+    s_call_viewport_center = 0;
+    s_last_centered = NULL;
+    focus_apply(NULL, &surface, &desktop, &client, false, NULL);
+
+    TAP_EQ_INT(s_call_viewport_center, 1,
+            "focusing a client asks the viewport to bring it into"
+            " view exactly once");
+    TAP_OK(s_last_centered == &client,
+            "and the client panned to is the one being focused");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(3);
+    TAP_PLAN(5);
 
     s_test_null_config_is_not_sloppy();
     s_test_reflects_configured_policy();
+
+    s_test_apply_brings_the_client_into_view();
 
     return TAP_DONE();
 }

@@ -38,8 +38,6 @@
 /* Focus includes */
 #include <policy/focus.h>
 
-/* Command includes */
-#include <cmds/surface.h>
 
 /* Default initial values */
 #include <defs/ctxmenu.h>
@@ -704,15 +702,6 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
         enact_client_unshade(target);
     }
 
-    /* The selection may sit on a page of a multi-page viewport other
-     * than the one currently panned to, in which case focusing it
-     * alone would hand the keyboard to a window nowhere on screen.
-     * Done here rather than while cycling, so that walking the list
-     * does not pan on every step, and after the restore/unhide/unshade
-     * above, so the geometry this reads is the final one.  A no-op,
-     * overlay included, when the target is already at least partly
-     * visible; the search menu reaches the same call the same way. */
-    scmd_surface_viewport_center_on_client(surface, target);
 
     focus_apply(surfaces, surface, desktop, target, true, cfg);
 }

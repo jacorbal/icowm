@@ -32,6 +32,7 @@
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/transient.h>
+#include <cmds/surface.h>
 #include <policy/focus.h>
 
 
@@ -376,6 +377,20 @@ void focus_apply(list_td *surfaces, surface_td *surface,
     if (!client_accepts_input_focus(client)) {
         return;
     }
+
+    /* Bring the client into view before handing it the keyboard.  On
+     * a multi-page viewport it may be parked on a page other than the
+     * one on screen, and focusing it there would put the keyboard in
+     * a window nowhere to be seen.  Done here rather than in each of
+     * the callers ('winlist.c', 'cycle.c', 'search.c' and the
+     * '_NET_ACTIVE_WINDOW' handler in 'handler/message.c') because
+     * this is the one point all of them pass through, and any future
+     * one will too; done after the transient redirection just above,
+     * so it is the client actually receiving focus that gets panned
+     * to rather than the one originally named.  A no-op on a
+     * single-page viewport and on a client already on the page
+     * shown. */
+    scmd_surface_viewport_center_on_client(surface, client);
 
     /* Unfocus the previous active client, and focus this one,
      * synchronously and in that exact order, rather than through the

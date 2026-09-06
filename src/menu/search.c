@@ -545,11 +545,6 @@ static void s_search_confirm(xcb_connection_t *connection,
         enact_surface_desktop_switch(surface, desktop->id);
     }
 
-    /* This client's own page of the (possibly multi-page) viewport may
-     * not be the one the desktop happens to already be panned to, so
-     * bring it into view before focusing it; a no-op when it is already
-     * at least partly visible. */
-    scmd_surface_viewport_center_on_client(surface, client);
 
     focus_apply(surfaces, surface, desktop, client, true,
             s_search.config);

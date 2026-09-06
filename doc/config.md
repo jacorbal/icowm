@@ -22,9 +22,10 @@ values, and built-in default value.
    - [2.10. `desktops`](#210-desktops)
    - [2.11. `scratchpad`](#211-scratchpad)
    - [2.12. `prompt`](#212-prompt)
-   - [2.13. `overlay`](#213-overlay)
-   - [2.14. `viewport`](#214-viewport)
-   - [2.15. Reload behavior](#215-reload-behavior)
+   - [2.13. `urgency`](#213-urgency)
+   - [2.14. `overlay`](#214-overlay)
+   - [2.15. `viewport`](#215-viewport)
+   - [2.16. Reload behavior](#216-reload-behavior)
 3. [`bindings.json`: Keyboard and mouse bindings](#3-bindingsjson-keyboard-and-mouse-bindings)
    - [3.1. Binding syntax](#31-binding-syntax)
    - [3.2. `modifiers`](#32-modifiers)
@@ -1287,7 +1288,6 @@ everything here **does** take effect on a configuration reload.
 
 | Key                 | Type    | Default | Description |
 |---------------------|---------|---------|-------------|
-| `notify-activity`   | boolean | `true`  | Whether a client becoming urgent on a desktop other than the one currently visible on its surface shows an informational dialog naming that desktop (`Detected activity on desktop [index] -- Name`, with a surface disambiguator appended when more than one surface is managed).  A client urgent on the currently visible desktop already gets its titlebar blink instead (see `urgency.*` in `a11y.json`, §6), which this never duplicates. |
 | `warp-on-edge-drag` | boolean | `true`  | While dragging a window or icon to move it, holding the pointer against a screen edge switches to the adjacent desktop in that direction (left/right always; top/bottom too, once a `layout` with more than one row is configured), cursor and dragged window or icon both carried across, after a short delay.  Deferred entirely to `pan-on-edge-drag` below for as long as the current desktop's viewport still has room to pan toward that same edge instead; only once the viewport's own bound is reached does holding the edge switch desktops.  Meaningless with only one desktop. |
 | `wrap-at-bounds`    | boolean | `true`  | Whether switching past the edge of the desktop grid, in any of the four compass directions, however triggered (keyboard binding, mouse scroll, an edge drag, or otherwise), wraps around to the other end of that same row or column, rather than stopping there.  Meaningless with only one desktop. |
 | `margins.top`       | integer | `0`     | Extra space reserved at the top of every desktop's workarea, in pixels, on every screen. |
@@ -1308,7 +1308,6 @@ override.
 
 ```json
 "desktops": {
-    "notify-activity": true,
     "warp-on-edge-drag": true,
     "wrap-at-bounds": true,
     "margins": {
@@ -1393,7 +1392,41 @@ necessary, and a successful one closes the box right away.
 }
 ```
 
-### 2.13. `overlay`
+### 2.13. `urgency`
+
+What the manager does when a window asks for attention.  Not to be
+confused with `a11y.json`'s own `urgency` object (§6), which holds
+`sound-bell` and `blink-interval-ms`: those say how the request is
+made perceptible once the accessibility mode is switched on, while
+this says whether one the user cannot see at all is announced.
+
+| Key               | Type    | Default | Description |
+|-------------------|---------|---------|--------------|
+| `notify-activity` | boolean | `true`  | Whether a window turning urgent somewhere the user is not looking raises an informational dialog saying where. |
+
+```json
+"urgency": {
+    "notify-activity": true
+}
+```
+
+One dialog, naming whatever the user would still have to do to reach
+the window.  A different desktop is named: `Detected activity on
+desktop [2] -- Web`, with a surface disambiguator appended when more
+than one surface is managed.  A viewport page other than the one that
+desktop is panned to is named too, appended as ` {column, row}`, since
+switching desktops alone would land on the page that desktop was left
+on and the window would still be off screen.  When only the page
+differs, because the window is on the desktop already shown, the page
+names itself alone: `Detected activity on page {1, 0}`.
+
+Nothing is announced when neither differs: the window is on screen and
+already has its titlebar blink, which this never duplicates.  Nor is
+anything announced twice for the same request, though a request moving
+to a different page counts as a new one, since it is a fresh call for
+attention somewhere the user still is not looking.
+
+### 2.14. `overlay`
 
 The brief popup that names where the view has just moved to, centered
 on screen for about 400 ms.  One widget with two triggers, so one
@@ -1425,7 +1458,7 @@ Keeping the two triggers separate is deliberate: panning is far more
 frequent than switching desktops, so wanting the announcement for one
 and not the other is a reasonable preference.
 
-### 2.14. `viewport`
+### 2.15. `viewport`
 
 Keyboard step size for panning a desktop's viewport, a sibling of
 `desktops` (§2.10) and `topology` (§2.2) at the root of `config.json`.
@@ -1524,7 +1557,7 @@ gives `20`, while writing `3` gives `10`, as `10` is the minimum value
 that it allows.  `thickness` is validated after both spacings, since its
 ceiling follows whichever of them ended up smaller.
 
-### 2.15. Reload behavior
+### 2.16. Reload behavior
 
 Reloading the configuration (`SIGHUP`, the reload keybinding, or the
 root menu action) re-reads whichever theme file `config.json` names and
@@ -1911,7 +1944,7 @@ is this manager's own concept.
 
 #### `keyboard.viewport.pan`
 
-Pans the current desktop's viewport by `viewport.pan-step` (§2.14)
+Pans the current desktop's viewport by `viewport.pan-step` (§2.15)
 pixels in the given direction, translating every non-sticky client the
 opposite way so their on-screen position stays put relative to the
 desktop's virtual canvas; unlike `keyboard.cycle.desktop` above, the
@@ -1929,7 +1962,7 @@ is looking.
 
 Moves the current desktop's viewport a whole page in the given
 direction, the discrete counterpart to `keyboard.viewport.pan` above:
-where that one slides by `viewport.pan-step` (§2.14) pixels, this jumps
+where that one slides by `viewport.pan-step` (§2.15) pixels, this jumps
 straight to the neighboring page.  Clamped at the grid's own bounds
 rather than wrapping around, so it is a no-op where there is no page
 that way.  Because it is a jump rather than a slide, it raises the
@@ -2759,7 +2792,6 @@ to whatever theme loads, unconditionally.
     },
 
     "desktops": {
-        "notify-activity": true,
         "warp-on-edge-drag": true,
         "pan-on-edge-drag": true,
         "pan-on-edge-hover": true,

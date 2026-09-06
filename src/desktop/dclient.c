@@ -34,6 +34,7 @@
 
 /* Command includes */
 #include <cmds/client/layer.h>
+#include <cmds/surface.h>
 #include <cmds/client/transient.h>
 
 /* Project includes */
@@ -371,12 +372,133 @@ int desktop_action_client_move(desktop_td *from, desktop_td *to,
 }
 
 
+/**
+ * @brief Announce a fresh attention request the user cannot see
+ *
+ * Raised on a genuinely new request only: a desktop that was already
+ * urgent stays quiet unless the request has moved to a different
+ * viewport page, which @p is_urgent alone cannot tell apart from the
+ * one already known.
+ *
+ * What the notice names is what the user would still have to do to
+ * reach the window.  A different desktop is named; a page other than
+ * the one that desktop is panned to is named; both are named when
+ * both differ, since switching desktops alone would land on the page
+ * that desktop was left on and the window would still be off screen.
+ * Neither differing means the window is on screen already, with its
+ * own titlebar blink (@c policy/urgency.c), and a dialog would only
+ * repeat what is in front of the user.
+ *
+ * @param desktop      Desktop just recomputed
+ * @param surface      Surface owning it, or @c NULL
+ * @param was_urgent   Whether it held an urgent client before
+ * @param had_page     Whether @p was_page holds a page at all
+ * @param was_page     Page the previous request sat on
+ * @param is_urgent    Whether it holds one now
+ * @param has_page     Whether @p page holds a page at all
+ * @param page         Page the current request sits on
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+static void s_notify_urgency(const desktop_td *desktop,
+        surface_td *surface, bool was_urgent, bool had_page,
+        struct position_s was_page, bool is_urgent, bool has_page,
+        struct position_s page)
+{
+    const config_td *config = wm_get_config();
+    const list_td *surfaces;
+    uint32_t surface_count;
+    uint32_t shown_col;
+    uint32_t shown_row;
+    char text[WM_DESKTOP_MAX_LENGTH_NAME + 64];
+    size_t used;
+    bool other_desktop;
+    bool other_page;
+    bool is_fresh;
+
+    if (!is_urgent || surface == NULL || config == NULL ||
+            !config->base.urgency.notify_activity ||
+            menu_message_dialog_is_open()) {
+        return;
+    }
+
+    is_fresh = !was_urgent || (has_page && (!had_page ||
+                page.x != was_page.x || page.y != was_page.y));
+    if (!is_fresh) {
+        return;
+    }
+
+    other_desktop = (desktop->id != surface->desktop_cur);
+    other_page = has_page &&
+        scmd_surface_viewport_desktop_page(surface, desktop,
+                &shown_col, &shown_row) &&
+        (page.x != (int32_t) shown_col || page.y != (int32_t) shown_row);
+
+    if (!other_desktop && !other_page) {
+        return;
+    }
+
+    /* With only the page to report, the desktop names nothing: it is
+     * the one already on screen */
+    if (!other_desktop) {
+        (void) snprintf(text, sizeof(text), _(STR_PAGE_ACTIVITY_FMT),
+                (unsigned int) page.x, (unsigned int) page.y);
+        menu_message_dialog_show(xcb_connection_get(), surface, config,
+                text, MENU_MSG_LEVEL_INFO);
+        return;
+    }
+
+    (void) snprintf(text, sizeof(text),
+            _(STR_DESKTOP_ACTIVITY_UNNAMED_FMT),
+            (unsigned int) desktop->id);
+
+    if (desktop->name[0] != '\0') {
+        used = safe_strlen(text);
+        if (used < sizeof(text)) {
+            (void) snprintf(text + used, sizeof(text) - used,
+                    _(STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT),
+                    desktop->name);
+        }
+    }
+
+    if (other_page) {
+        used = safe_strlen(text);
+        if (used < sizeof(text)) {
+            (void) snprintf(text + used, sizeof(text) - used,
+                    _(STR_PAGE_SUFFIX_FMT),
+                    (unsigned int) page.x, (unsigned int) page.y);
+        }
+    }
+
+    surfaces = wm_get_surfaces();
+    surface_count = (surfaces != NULL)
+        ? (uint32_t) list_size(surfaces) : 0u;
+    if (surface_count > 1u) {
+        used = safe_strlen(text);
+        if (used < sizeof(text)) {
+            (void) snprintf(text + used, sizeof(text) - used,
+                    _(STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT),
+                    (unsigned int) surface->id);
+        }
+    }
+
+    menu_message_dialog_show(xcb_connection_get(), surface, config,
+            text, MENU_MSG_LEVEL_INFO);
+}
+
+
 /* Recompute whether any client on the desktop currently has its
  * urgency hint set */
 void desktop_action_recompute_urgent(desktop_td *desktop)
 {
     void *elem;
+    surface_td *surface;
+    client_td *urgent = NULL;
+    struct position_s page = { 0, 0 };
     bool was_urgent;
+    bool had_page;
+    bool has_page = false;
+    struct position_s was_page;
     bool found = false;
 
     if (desktop == NULL || desktop->clients == NULL) {
@@ -384,62 +506,41 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
     }
 
     was_urgent = desktop->is_urgent;
+    had_page = desktop->has_urgent_page;
+    was_page = desktop->urgent_page;
+    surface = wm_get_desktop_surface(desktop);
 
     ohtbl_foreach(desktop->clients, elem) {
-        const client_td *c = (client_td *) elem;
+        client_td *c = (client_td *) elem;
 
         if (c != NULL && client_is_urgent(c)) {
             found = true;
+            urgent = c;
             break;
         }
     }
 
-    desktop->is_urgent = found;
+    /* The page the request came from, not merely that one came: with
+     * several pages, urgency moving from one to another never clears
+     * 'is_urgent', so that flag alone would swallow the second
+     * request entirely.  Only the first urgent client found is
+     * located, the same one the loop above already settled on. */
+    if (found && urgent != NULL) {
+        uint32_t col;
+        uint32_t row;
 
-    /* Only on the actual false-to-true transition, and only when this
-     * is not the desktop currently visible on its own surface.  That
-     * case already gets its titlebar blink (policy/urgency.c),
-     * so a dialog here would only duplicate what is already on
-     * screen. */
-    if (!was_urgent && found) {
-        surface_td *const surface = wm_get_desktop_surface(desktop);
-        const config_td *config = wm_get_config();
-
-        if (surface != NULL && desktop->id != surface->desktop_cur &&
-                config != NULL && config->base.urgency.notify_activity &&
-                !menu_message_dialog_is_open()) {
-            const list_td *surfaces = wm_get_surfaces();
-            uint32_t surface_count = (surfaces != NULL)
-                ? (uint32_t) list_size(surfaces) : 0u;
-            char text[WM_DESKTOP_MAX_LENGTH_NAME + 48];
-            size_t used;
-
-            (void) snprintf(text, sizeof(text),
-                    _(STR_DESKTOP_ACTIVITY_UNNAMED_FMT),
-                    (unsigned int) desktop->id);
-
-            if (desktop->name[0] != '\0') {
-                used = safe_strlen(text);
-                if (used < sizeof(text)) {
-                    (void) snprintf(text + used, sizeof(text) - used,
-                            _(STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT),
-                            desktop->name);
-                }
-            }
-
-            if (surface_count > 1u) {
-                used = safe_strlen(text);
-                if (used < sizeof(text)) {
-                    (void) snprintf(text + used, sizeof(text) - used,
-                            _(STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT),
-                            (unsigned int) surface->id);
-                }
-            }
-
-            menu_message_dialog_show(xcb_connection_get(), surface,
-                    config, text, MENU_MSG_LEVEL_INFO);
-        }
+        has_page = scmd_surface_viewport_client_page(surface, desktop,
+                urgent, &col, &row);
+        page.x = (int32_t) col;
+        page.y = (int32_t) row;
     }
+
+    desktop->is_urgent = found;
+    desktop->has_urgent_page = has_page;
+    desktop->urgent_page = page;
+
+    s_notify_urgency(desktop, surface, was_urgent, had_page, was_page,
+            found, has_page, page);
 }
 
 

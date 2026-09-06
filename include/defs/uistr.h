@@ -299,6 +299,15 @@
  * to disambiguate) */
 #define STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT " (on surface %u)"
 
+/* Whole message for a client that turned urgent on the very desktop
+ * already on screen, but on a viewport page that is not: there is no
+ * desktop to name, since it is the one being looked at, only the page
+ * to pan to.
+ *
+ * TRANSLATION: keep both '%u' (a viewport page's column and row) */
+#define STR_PAGE_ACTIVITY_FMT \
+    "Detected activity on page {%u, %u}"
+
 /* Battery indicator ('src/systray/battery.c') */
 #define STR_BATTERY_NOT_AVAILABLE "N/A"
 #define STR_BATTERY_FULL_AC "Full, AC"

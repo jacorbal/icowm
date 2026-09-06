@@ -398,8 +398,6 @@ ignored.
 How switching between desktops behaves, and how much of each is left
 free.
 .Bl -tag -width Ds
-.It Ic desktops.notify-activity Pq boolean, default Ql true
-Whether a window demanding attention on another desktop is reported.
 .It Ic desktops.warp-on-edge-drag Pq boolean, default Ql true
 Whether dragging a window against a screen edge carries it through to
 the neighboring desktop, once
@@ -415,6 +413,30 @@ Whether moving past the last desktop comes back around to the first.
 .It Ic desktops.margins.left Pq integer, default Ql 0
 Space, in pixels, kept clear at each edge of every desktop, on top of
 whatever panels already reserve.
+.El
+.Ss urgency
+What the manager does when a window asks for attention.
+Not to be confused with
+.Xr icowm-a11y 5 Ns 's
+own
+.Ic urgency
+object, which holds
+.Ic sound-bell
+and
+.Ic blink-interval-ms :
+those say how the request is made perceptible once the accessibility
+mode is switched on, while this says whether one the user cannot see
+at all is announced.
+.Bl -tag -width Ds
+.It Ic urgency.notify-activity Pq boolean, default Ql true
+Whether a window turning urgent somewhere the user is not looking
+raises an informational dialog saying where.
+One dialog, naming whatever the user would still have to do to reach
+the window: a different desktop, a viewport page other than the one
+that desktop is panned to, or both.
+Nothing is announced when neither differs, since the window is on
+screen and already has its titlebar blink.
+A request moving to a different page counts as a new one.
 .El
 .Ss overlay
 The brief popup naming where the view has just moved to.

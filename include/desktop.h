@@ -252,6 +252,26 @@ struct desktop_s {
      */
     bool is_urgent;
 
+    /**
+     * @brief Whether @p urgent_page below holds a page at all
+     *
+     * A viewport that cannot pan has no page to record, and neither
+     * has a desktop with nothing urgent on it.
+     */
+    bool has_urgent_page;
+
+    /**
+     * @brief Viewport page the urgent client found by the most recent
+     *        recompute sits on
+     *
+     * Kept alongside @p is_urgent because that flag alone cannot tell
+     * a new attention request apart from the one already known when
+     * both are on the same desktop: urgency moving from one page to
+     * another never clears the flag, yet it is a fresh request in a
+     * place the user is not looking.
+     */
+    struct position_s urgent_page;
+
     char name[WM_DESKTOP_MAX_LENGTH_NAME];  /**< Desktop name */
 };
 
