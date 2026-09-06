@@ -263,6 +263,28 @@ void scmd_surface_viewport_goto(surface_td *surface, uint32_t page);
  *
  * @note Complexity: @e O(1)
  */
+/**
+ * @brief Move @p client to a given page of the current desktop's
+ *        viewport
+ *
+ * The client's offset within whichever page it sits on now is kept, so
+ * a window near one page's top-left corner lands near the new page's
+ * top-left corner rather than being re-placed by the placement policy.
+ *
+ * @param surface Surface whose current desktop owns @p client
+ * @param client  Client to move
+ * @param col     Zero-based destination column
+ * @param row     Zero-based destination row
+ *
+ * @note A no-op on a sticky client, which is on screen from every
+ *       origin and so belongs to no one page
+ * @note Marks @p surface outdated, leaving the repaint to the caller's
+ *       own render pass
+ * @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_client_send_to_page(surface_td *surface,
+        client_td *client, uint32_t col, uint32_t row);
+
 bool scmd_surface_viewport_client_page(const surface_td *surface,
         const desktop_td *desktop, const client_td *client,
         uint32_t *col_out, uint32_t *row_out);

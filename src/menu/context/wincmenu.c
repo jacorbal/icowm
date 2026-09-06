@@ -50,6 +50,7 @@
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/state.h>
+#include <cmds/surface.h>
 
 /* Input includes */
 /* Keyboard modal move/resize */
@@ -94,6 +95,20 @@ static ctxmenu_entry_td s_desk_entries[WINCMENU_MAX_DESKTOPS + 2];
 
 /** State for the "Send to desktop" child menu */
 static ctxmenu_state_td s_desk_state;
+
+/** Entries for the "Send to page" submenu */
+static ctxmenu_entry_td s_page_entries[WINCMENU_MAX_PAGES];
+
+/** State for the "Send to page" child menu */
+static ctxmenu_state_td s_page_state;
+
+/** Per-page userdata pool for "Send to page" callbacks */
+static struct s_page_send_s {
+    surface_td *surface;
+    client_td *client;
+    uint32_t col;
+    uint32_t row;
+} s_page_send_data[WINCMENU_MAX_PAGES];
 
 /** Entries for the "Send to monitor" submenu */
 static ctxmenu_entry_td s_monitor_entries[WINCMENU_MAX_MONITORS];
@@ -595,6 +610,107 @@ static void s_desktop_entry_visit(desktop_td *desktop, void *data)
 
 
 /**
+ * @brief Send the target client to the page one "Send to page" entry
+ *        names
+ *
+ * @param connection Unused; the move needs no connection of its own
+ * @param userdata   Pointer to this entry's own @c s_page_send_s
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_cb_send_to_page(xcb_connection_t *connection,
+        void *userdata)
+{
+    const struct s_page_send_s *const send = userdata;
+
+    (void) connection;
+
+    if (send == NULL || send->client == NULL ||
+            send->surface == NULL) {
+        return;
+    }
+
+    enact_client_send_to_page(send->surface, send->client,
+            send->col, send->row);
+}
+
+
+/**
+ * @brief Build the "Send to page" submenu entries, one per page of the
+ *        configured viewport grid
+ *
+ * Parallels @a s_build_desk_entries below, which sends a client to a
+ * different desktop entirely; this only moves it within the current
+ * desktop's own pannable canvas, so it carries no counterpart to that
+ * one's pin entry: a client cannot be on every page at once, which is
+ * what the sticky flag, on the top-level menu, is for instead.
+ *
+ * @param surface Surface whose viewport grid to enumerate
+ * @param desktop Currently active desktop
+ * @param client  Target client
+ *
+ * @return Number of entries filled in @a s_page_entries
+ *
+ * @note Reports zero on a viewport that cannot pan, and for a sticky
+ *       client, which belongs to no one page
+ * @note Complexity: @e O(n), where @e n is the number of pages
+ */
+static int s_build_page_entries(surface_td *surface,
+        desktop_td *desktop, client_td *client)
+{
+    uint32_t columns;
+    uint32_t rows;
+    uint32_t cur_col = 0u;
+    uint32_t cur_row = 0u;
+    bool has_current;
+    char label[64];
+    int n = 0;
+
+    if (!surface_viewport_has_room(surface) ||
+            client_is_sticky(client)) {
+        return 0;
+    }
+
+    surface_viewport_dims(surface, &columns, &rows);
+    /* A grid of one page has nowhere to send anything, so it gets no
+     * submenu even where the room check above somehow said otherwise */
+    if (columns * rows <= 1u) {
+        return 0;
+    }
+
+    has_current = scmd_surface_viewport_client_page(surface, desktop,
+            client, &cur_col, &cur_row);
+
+    for (uint32_t row = 0u; row < rows; ++row) {
+        for (uint32_t col = 0u; col < columns; ++col) {
+            if (n >= (int) WINCMENU_MAX_PAGES) {
+                return n;
+            }
+
+            (void) snprintf(label, sizeof(label),
+                    _(STR_WINCMENU_PAGE), col, row);
+            (void) snprintf(s_page_entries[n].label,
+                    sizeof(s_page_entries[n].label), "%s%s%s",
+                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX, label,
+                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
+            s_page_entries[n].type = CTXMENU_COMMAND;
+            s_page_entries[n].is_disabled = (has_current &&
+                    col == cur_col && row == cur_row);
+            s_page_send_data[n].surface = surface;
+            s_page_send_data[n].client = client;
+            s_page_send_data[n].col = col;
+            s_page_send_data[n].row = row;
+            s_page_entries[n].on_activate = s_cb_send_to_page;
+            s_page_entries[n].userdata = &s_page_send_data[n];
+            ++n;
+        }
+    }
+
+    return n;
+}
+
+
+/**
  * @brief Build the "Send to desktop" submenu entries
  *
  * @param surface Surface that owns the desktops
@@ -752,6 +868,7 @@ void wincmenu_show(xcb_connection_t *connection,
 {
     int n;
     int desk_count;
+    int page_count;
     int monitor_count;
     bool can_restore;
     bool can_move;
@@ -799,6 +916,17 @@ void wincmenu_show(xcb_connection_t *connection,
      * restricted-memory mode; see 'memguard.h') correctly hides that
      * too, since pinning to every desktop means nothing when there is
      * only the one. */
+    /* Build "Send to page" submenu, only meaningful (and only shown at
+     * all, see below) on a viewport that can actually pan */
+    memset(s_page_entries, 0, sizeof(s_page_entries));
+    page_count = s_build_page_entries(surface, desktop, client);
+    if (page_count > 0) {
+        memset(&s_page_state, 0, sizeof(s_page_state));
+        s_page_state.window = XCB_WINDOW_NONE;
+        s_page_state.entries = s_page_entries;
+        s_page_state.entry_count = page_count;
+    }
+
     desk_count = 0;
     if (surface->desktop_count > 1u) {
         memset(s_desk_entries, 0, sizeof(s_desk_entries));
@@ -846,6 +974,24 @@ void wincmenu_show(xcb_connection_t *connection,
         s_entries[n].items = s_desk_entries;
         s_entries[n].item_count = desk_count;
         s_entries[n].userdata = &s_desk_state;
+        ++n;
+    }
+
+    /* Send to page (submenu); omitted entirely on a viewport that
+     * cannot pan, and for a sticky client, which is on screen from
+     * every origin and so belongs to no one page.  Sits right below
+     * "Send to desktop" because the two answer the same question at
+     * different scales: that one moves the client to another desktop,
+     * this one only to another part of the desktop it is already
+     * on. */
+    if (page_count > 0) {
+        s_entries[n].type = CTXMENU_SUBMENU;
+        safe_strncpy(s_entries[n].label,
+                _(STR_WINCMENU_SEND_TO_PAGE),
+                sizeof(s_entries[n].label) - 1u);
+        s_entries[n].items = s_page_entries;
+        s_entries[n].item_count = page_count;
+        s_entries[n].userdata = &s_page_state;
         ++n;
     }
 

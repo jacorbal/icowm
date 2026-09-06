@@ -480,6 +480,27 @@ void enact_client_unstick(client_td *client);
 void enact_client_toggle_stick(client_td *client);
 
 /**
+ * @brief Move a client to a given page of its desktop's viewport
+ *
+ * Not to be confused with @a enact_client_send_to_desktop, which moves
+ * a client to a different desktop entirely; this only moves it within
+ * the current desktop's own pannable canvas.
+ *
+ * @param surface Surface whose current desktop owns @p client
+ * @param client  Client to move
+ * @param col     Zero-based destination column
+ * @param row     Zero-based destination row
+ *
+ * @note A no-op on a sticky client, which is on screen from every
+ *       origin and so belongs to no one page
+ * @note Does not broadcast an IPC event, for the same reason
+ *       @a enact_client_toggle_stick does not
+ * @note Complexity: @e O(1)
+ */
+void enact_client_send_to_page(surface_td *surface, client_td *client,
+        uint32_t col, uint32_t row);
+
+/**
  * @brief Set the client to full screen mode
  *
  * @param client Client to make full screen

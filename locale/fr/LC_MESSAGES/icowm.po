@@ -189,6 +189,14 @@ msgstr "Envoyer vers le bureau"
 msgid "Send to monitor"
 msgstr "Envoyer vers l'écran"
 
+#: include/defs/uistr.h:100;
+msgid "Send to page"
+msgstr "Envoyer à la page"
+
+#: include/defs/uistr.h:101;
+msgid "Page %u,%u"
+msgstr "Page %u,%u"
+
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
 msgstr "Coller"

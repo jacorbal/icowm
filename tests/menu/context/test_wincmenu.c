@@ -375,6 +375,67 @@ void surface_desktop_label(const surface_td *surface,
 }
 
 
+/** Test-controlled viewport grid the stand-ins below report, so the
+ *  "Send to page" submenu can be inspected at any size
+ * @note Complexity: @e O(1) */
+static uint32_t s_viewport_columns = 1u;
+static uint32_t s_viewport_rows = 1u;
+
+/** Test-controlled stand-in for @a surface_viewport_dims
+ * @note Complexity: @e O(1) */
+void surface_viewport_dims(const surface_td *surface,
+        uint32_t *columns_out, uint32_t *rows_out)
+{
+    (void) surface;
+
+    *columns_out = s_viewport_columns;
+    *rows_out = s_viewport_rows;
+}
+
+
+/** Test-controlled stand-in for @a scmd_surface_viewport_client_page,
+ *  reporting whichever page a scenario last registered as the target
+ *  client's own, or none at all
+ * @note Complexity: @e O(1) */
+static bool s_client_page_known;
+static uint32_t s_client_page_col;
+static uint32_t s_client_page_row;
+
+bool scmd_surface_viewport_client_page(const surface_td *surface,
+        const desktop_td *desktop, const client_td *client,
+        uint32_t *col_out, uint32_t *row_out)
+{
+    (void) surface;
+    (void) desktop;
+    (void) client;
+
+    if (!s_client_page_known) {
+        return false;
+    }
+    *col_out = s_client_page_col;
+    *row_out = s_client_page_row;
+    return true;
+}
+
+
+/** Recording stand-in for @a enact_client_send_to_page
+ * @note Complexity: @e O(1) */
+static int s_call_send_to_page;
+static uint32_t s_last_sent_col;
+static uint32_t s_last_sent_row;
+
+void enact_client_send_to_page(surface_td *surface, client_td *client,
+        uint32_t col, uint32_t row)
+{
+    (void) surface;
+    (void) client;
+
+    s_call_send_to_page++;
+    s_last_sent_col = col;
+    s_last_sent_row = row;
+}
+
+
 /** Test-controlled stand-in for @a surface_viewport_has_room,
  *  answering whatever this file last registered, so the Sticky entry
  *  can be inspected both present and omitted without building a whole
@@ -432,6 +493,12 @@ static void s_reset(void)
     s_captured_state = NULL;
     s_desktop_count = 0;
     s_viewport_has_room = true;
+    s_viewport_columns = 1u;
+    s_viewport_rows = 1u;
+    s_client_page_known = false;
+    s_client_page_col = 0u;
+    s_client_page_row = 0u;
+    s_call_send_to_page = 0;
     memset(s_desktops, 0, sizeof(s_desktops));
     memset(&s_current_monitor, 0, sizeof(s_current_monitor));
 }
@@ -744,6 +811,112 @@ static void s_test_show_fixed_entries_plain_client(void)
 
 
 /**
+ * @brief Verify the "Send to page" submenu appears once the viewport
+ *        grid holds more than one page, lists every page, disables the
+ *        one the client already sits on, and sends to the page picked
+ */
+static void s_test_show_send_to_page_submenu(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+    client_td *client;
+    config_td config;
+    struct position_s pos = { 0, 0 };
+    ctxmenu_entry_td *e;
+    int i;
+    int page_idx = -1;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&config, 0, sizeof(config));
+    surface.desktop_count = 1u;
+    surface.monitor_count = 1u;
+    s_viewport_columns = 2u;
+    s_viewport_rows = 2u;
+    s_client_page_known = true;
+    s_client_page_col = 1u;
+    s_client_page_row = 0u;
+    client = s_make_client();
+
+    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+            pos, &config);
+
+    e = s_captured_state->entries;
+    for (i = 0; i < s_captured_state->entry_count; ++i) {
+        if (strcmp(e[i].label, "Send to page") == 0) {
+            page_idx = i;
+        }
+    }
+
+    TAP_OK(page_idx >= 0,
+            "a 2x2 viewport grid puts a Send to page entry in the"
+            " menu");
+    TAP_EQ_INT((int) e[page_idx].type, (int) CTXMENU_SUBMENU,
+            "Send to page is a submenu, not a plain command");
+    TAP_EQ_INT((int) e[page_idx].item_count, 4,
+            "a 2x2 grid lists all four of its pages");
+    TAP_OK(e[page_idx].items[1].is_disabled,
+            "the page the client already sits on is disabled");
+    TAP_OK(!e[page_idx].items[0].is_disabled,
+            "every other page stays selectable");
+
+    e[page_idx].items[3].on_activate((xcb_connection_t *) 1,
+            e[page_idx].items[3].userdata);
+    TAP_EQ_INT(s_call_send_to_page, 1,
+            "activating a page entry sends the client exactly once");
+    TAP_OK(s_last_sent_col == 1u && s_last_sent_row == 1u,
+            "the page it is sent to is the one that entry names, in"
+            " row-major order");
+
+    s_teardown();
+}
+
+
+/**
+ * @brief Verify a sticky client gets no "Send to page" submenu at all,
+ *        belonging as it does to no one page
+ */
+static void s_test_show_sticky_client_has_no_send_to_page(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+    client_td *client;
+    config_td config;
+    struct position_s pos = { 0, 0 };
+    ctxmenu_entry_td *e;
+    int i;
+    bool found = false;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&config, 0, sizeof(config));
+    surface.desktop_count = 1u;
+    surface.monitor_count = 1u;
+    s_viewport_columns = 2u;
+    s_viewport_rows = 2u;
+    client = s_make_client();
+    client->properties.flags |= (uint16_t) CLIENT_FLAG_STICKY;
+
+    wincmenu_show((xcb_connection_t *) 1, &surface, &desktop, client,
+            pos, &config);
+
+    e = s_captured_state->entries;
+    for (i = 0; i < s_captured_state->entry_count; ++i) {
+        if (strcmp(e[i].label, "Send to page") == 0) {
+            found = true;
+        }
+    }
+
+    TAP_OK(!found,
+            "a sticky client is offered no page to be sent to");
+
+    s_teardown();
+}
+
+
+/**
  * @brief Verify Sticky is omitted entirely, not merely disabled, on a
  *        surface whose configured viewport is a single screen, the
  *        same condition the titlebar's sticky button hides under
@@ -1029,13 +1202,15 @@ static void s_test_wrappers(void)
 
 int main(void)
 {
-    TAP_PLAN(81);
+    TAP_PLAN(89);
 
     s_test_show_guards();
     s_test_show_single_desktop_single_monitor();
     s_test_show_multi_desktop_multi_monitor();
     s_test_show_pinned_relabels_pin_toggle();
     s_test_show_fixed_entries_plain_client();
+    s_test_show_send_to_page_submenu();
+    s_test_show_sticky_client_has_no_send_to_page();
     s_test_show_single_page_viewport_omits_sticky();
     s_test_show_maximized_client();
     s_test_show_fullscreen_client();

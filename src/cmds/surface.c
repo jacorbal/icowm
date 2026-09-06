@@ -427,6 +427,28 @@ static void s_viewport_pan(surface_td *surface,
 
 
 /**
+ * @brief Remainder of @p value over @p modulus, always in
+ *        @c [0, @p modulus)
+ *
+ * C's @c % truncates toward zero, so a negative @p value yields a
+ * negative remainder; one modulus added back folds it forward.
+ *
+ * @param value   Value to reduce; may be negative
+ * @param modulus Modulus to reduce it by; never zero
+ *
+ * @return Remainder in @c [0, @p modulus)
+ *
+ * @note Complexity: @e O(1)
+ */
+static int32_t s_positive_remainder(int32_t value, int32_t modulus)
+{
+    const int32_t remainder = value % modulus;
+
+    return (remainder < 0) ? remainder + modulus : remainder;
+}
+
+
+/**
  * @brief Convert a desktop-space (virtual-canvas) position into its
  *        configured viewport page, the exact inverse of the per-axis
  *        multiply @a scmd_surface_viewport_goto already does to land
@@ -792,6 +814,60 @@ void scmd_surface_viewport_goto(surface_td *surface, uint32_t page)
             (int32_t) (col * desktop->geometry.dim.w),
             (int32_t) (row * desktop->geometry.dim.h));
     s_show_viewport_overlay_on_move(surface, origin_before);
+}
+
+
+/* Move a client to a given page of the current desktop's viewport,
+ * keeping its position within that page */
+void scmd_surface_viewport_client_send_to_page(surface_td *surface,
+        client_td *client, uint32_t col, uint32_t row)
+{
+    desktop_td *desktop;
+    struct position_s canvas_pos;
+    int32_t page_w;
+    int32_t page_h;
+    int32_t new_x;
+    int32_t new_y;
+    xcb_window_t target;
+
+    if (surface == NULL || client == NULL || client_is_sticky(client)) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return;
+    }
+
+    page_w = (int32_t) desktop->geometry.dim.w;
+    page_h = (int32_t) desktop->geometry.dim.h;
+    if (page_w <= 0 || page_h <= 0) {
+        return;
+    }
+
+    /* The offset within whichever page the client sits on now is kept
+     * as it is, so a window near a page's top-left corner lands near
+     * the new page's top-left corner rather than being re-placed */
+    canvas_pos.x = client->layout.geometry.cur.pos.x +
+        desktop->viewport_origin.x;
+    canvas_pos.y = client->layout.geometry.cur.pos.y +
+        desktop->viewport_origin.y;
+    new_x = (int32_t) col * page_w + s_positive_remainder(canvas_pos.x,
+            page_w) - desktop->viewport_origin.x;
+    new_y = (int32_t) row * page_h + s_positive_remainder(canvas_pos.y,
+            page_h) - desktop->viewport_origin.y;
+
+    client->layout.geometry.cur.pos.x = new_x;
+    client->layout.geometry.cur.pos.y = new_y;
+    client->layout.geometry.old.pos.x = new_x;
+    client->layout.geometry.old.pos.y = new_y;
+
+    target = ccmd_target_win(client);
+    ccmd_client_apply_geometry(client, target,
+            (uint16_t) XCB_CONFIG_WINDOW_X |
+                (uint16_t) XCB_CONFIG_WINDOW_Y,
+            new_x, new_y, 0u, 0u, 0u);
+    surface->is_outdated = true;
 }
 
 

@@ -483,6 +483,20 @@ where panning last left it.  Absent entirely, or present with both
 size of the physical screen: nothing to pan to, the same as every
 desktop already behaved before `viewport` existed.
 
+Once the grid holds more than one page, the window menu grows a **Send
+to page** submenu directly below `Send to desktop`, listing every page
+in row-major order and disabling the one the window already sits on.
+The two answer the same question at different scales: `Send to desktop`
+moves a window to another desktop entirely, `Send to page` only to
+another part of the desktop it is already on.  A sticky window is
+offered no page at all, since it stays on screen from every viewport
+origin and so belongs to none of them.
+
+Rearranging windows, whether from the root menu or its binding, also
+works a page at a time once the grid holds more than one: only the
+windows on the page currently shown are re-placed, so the ones parked on
+other pages stay where they are.
+
 ```json
 "topology": {
     "screens": {

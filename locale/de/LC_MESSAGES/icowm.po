@@ -189,6 +189,14 @@ msgstr "An Arbeitsfläche senden"
 msgid "Send to monitor"
 msgstr "An Monitor senden"
 
+#: include/defs/uistr.h:100;
+msgid "Send to page"
+msgstr "An Seite senden"
+
+#: include/defs/uistr.h:101;
+msgid "Page %u,%u"
+msgstr "Seite %u,%u"
+
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
 msgstr "Ankleben"

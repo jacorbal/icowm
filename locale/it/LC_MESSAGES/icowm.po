@@ -189,6 +189,14 @@ msgstr "Invia al desktop"
 msgid "Send to monitor"
 msgstr "Invia al monitor"
 
+#: include/defs/uistr.h:100;
+msgid "Send to page"
+msgstr "Invia alla pagina"
+
+#: include/defs/uistr.h:101;
+msgid "Page %u,%u"
+msgstr "Pagina %u,%u"
+
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
 msgstr "Attacca"

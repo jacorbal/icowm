@@ -50,6 +50,7 @@
 #include <cmds/client/move.h>
 #include <cmds/client/resize.h>
 #include <cmds/client/state.h>
+#include <cmds/surface.h>
 #include <cmds/client/visibility.h>
 
 /* Local includes */
@@ -580,6 +581,15 @@ void enact_client_unstick(client_td *client)
 void enact_client_toggle_stick(client_td *client)
 {
     ccmd_client_toggle_stick(client);
+}
+
+
+/* Move the client to a given page of its desktop's viewport */
+void enact_client_send_to_page(surface_td *surface, client_td *client,
+        uint32_t col, uint32_t row)
+{
+    scmd_surface_viewport_client_send_to_page(surface, client, col,
+            row);
 }
 
 

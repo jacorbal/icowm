@@ -189,6 +189,14 @@ msgstr "Sendi al labortablo"
 msgid "Send to monitor"
 msgstr "Sendi al ekrano"
 
+#: include/defs/uistr.h:100;
+msgid "Send to page"
+msgstr "Sendi al paĝo"
+
+#: include/defs/uistr.h:101;
+msgid "Page %u,%u"
+msgstr "Paĝo %u,%u"
+
 #: include/defs/uistr.h:100; include/defs/uistr.h:236;
 msgid "Sticky"
 msgstr "Alglui"

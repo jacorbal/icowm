@@ -63,6 +63,16 @@
 #define WINCMENU_MAX_MONITORS (WM_SURFACE_MAX_MONITORS)
 
 /**
+ * @brief Most pages the "Send to page" submenu ever lists
+ *
+ * The configured viewport grid is capped per axis by
+ * @c CONFIG_VIEWPORT_MAX_PAGES (@c defs/config.h), so their product
+ * is the most a submenu could ever need.
+ */
+#define WINCMENU_MAX_PAGES \
+    (CONFIG_VIEWPORT_MAX_PAGES * CONFIG_VIEWPORT_MAX_PAGES)
+
+/**
  * @brief Number of fixed entries in the "Layer" submenu
  */
 #define WINCMENU_LAYER_COUNT (3)
@@ -70,21 +80,24 @@
 /**
  * @brief Number of fixed top-level entries in the window context menu
  *
- * THREE submenus (Send to desktop, Send to monitor, Layer) +
+ * FOUR submenus (Send to desktop, Send to page, Send to monitor,
+ * Layer) +
  * ONE command (Un/sticky) + ONE separator + NINE commands (Restore,
  * Move, Resize, Iconify, Hide, Maximize, Un/fullscreen, Un/shade,
  * Un/decorate) + ONE separator + TWO commands (Inspect, Close) =
- * SEVENTEEN total.
+ * EIGHTEEN total.
  *
- * Three of those seventeen are conditional, and this counts each as
+ * Four of those eighteen are conditional, and this counts each as
  * always present for a simple, constant capacity bound rather than
  * optimizing the array size for the common case.  "Send to desktop"
  * does not appear when the topology is set to just one desktop,
  * "Send to monitor" only appears on a surface with more than one
  * monitor, and Un/sticky only when the configured viewport spans
- * more than a single screen.
+ * more than a single screen, which is also when "Send to page"
+ * appears, except that a sticky client gets no "Send to page" either,
+ * belonging as it does to no one page.
  */
-#define WINCMENU_FIXED_ENTRIES (17)
+#define WINCMENU_FIXED_ENTRIES (18)
 
 /**
  * @brief Total top-level entry slots:
