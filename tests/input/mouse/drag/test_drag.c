@@ -921,6 +921,11 @@ static void s_test_start_failed_grab_status_rolls_back(void)
             " inactive");
     TAP_OK(s_logger_msg_calls > 0,
             "a warning is logged for the failed grab");
+    TAP_OK(s_drag.client == NULL,
+            "client pointer cleared too, not left dangling");
+    TAP_OK(s_viewport_drag_exclude_last_client == NULL,
+            "viewport-pan exclusion cleared, not left stuck on a"
+            " client no drag is actually holding");
 }
 
 
@@ -941,6 +946,11 @@ static void s_test_start_null_grab_reply_rolls_back(void)
     TAP_OK(!s_drag.is_active,
             "null grab reply: rolled back to inactive, not left"
             " active with a dangling status read");
+    TAP_OK(s_drag.client == NULL,
+            "client pointer cleared too, not left dangling");
+    TAP_OK(s_viewport_drag_exclude_last_client == NULL,
+            "viewport-pan exclusion cleared, not left stuck on a"
+            " client no drag is actually holding");
 }
 
 
@@ -1668,7 +1678,7 @@ static void s_test_client_returns_attached_client(void)
 
 int main(void)
 {
-    TAP_PLAN(114);
+    TAP_PLAN(118);
 
     s_test_start_null_guards_are_noop();
     s_test_start_move_success_populates_state();

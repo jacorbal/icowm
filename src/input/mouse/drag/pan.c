@@ -456,7 +456,9 @@ void drag_pan_tick(xcb_connection_t *connection)
      * 's_pan_move_dragged''s own early return), so warping the
      * pointer here too would be the one thing that pulled it away
      * from the client instead of keeping it glued on, the exact
-     * opposite of the point of this whole step. */
+     * opposite of the point of this whole step; skipping this whole
+     * block for one leaves 'last_root_x'/'last_root_y' untouched,
+     * exactly matching the pointer's own real, stationary position. */
     if (!client_is_sticky(s_drag.client)) {
         s_pan_pointer_target(delta, &new_root_x, &new_root_y);
 
@@ -489,8 +491,6 @@ void drag_pan_tick(xcb_connection_t *connection)
          * function just set. */
         s_drag.last_root_x = new_root_x;
         s_drag.last_root_y = new_root_y;
-    } else {
-        s_pan_move_dragged(connection, is_icon, delta);
     }
 
     /* Panning the viewport does not rely on a further 'MotionNotify'

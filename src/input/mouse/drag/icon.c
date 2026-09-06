@@ -113,6 +113,8 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
                 (grab_reply != NULL) ? (int) grab_reply->status : -1);
         free(grab_reply);
         s_drag.is_active = false;
+        s_drag.client = NULL;
+        scmd_surface_viewport_drag_exclude(NULL);
         return;
     }
     free(grab_reply);

@@ -700,6 +700,8 @@ void drag_start(xcb_connection_t *connection, xcb_window_t root,
             drag_outline_end(connection);
         }
         s_drag.is_active = false;
+        s_drag.client = NULL;
+        scmd_surface_viewport_drag_exclude(NULL);
         return;
     }
     free(grab_reply);

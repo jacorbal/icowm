@@ -342,6 +342,11 @@ static void s_test_failed_grab_status_deactivates(void)
     TAP_OK(!s_drag.is_active,
             "grab reports a non-success status: drag is deactivated"
             " again");
+    TAP_OK(s_drag.client == NULL,
+            "client pointer cleared too, not left dangling");
+    TAP_OK(s_viewport_drag_exclude_last_client == NULL,
+            "viewport-pan exclusion cleared, not left stuck on a"
+            " client no drag is actually holding");
 }
 
 
@@ -366,6 +371,11 @@ static void s_test_null_grab_reply_deactivates(void)
     TAP_OK(!s_drag.is_active,
             "null grab reply: drag is deactivated, not left active"
             " with a dangling status read");
+    TAP_OK(s_drag.client == NULL,
+            "client pointer cleared too, not left dangling");
+    TAP_OK(s_viewport_drag_exclude_last_client == NULL,
+            "viewport-pan exclusion cleared, not left stuck on a"
+            " client no drag is actually holding");
 }
 
 
@@ -480,7 +490,7 @@ static void s_test_icon_height_uncaptioned_omits_caption(void)
 
 int main(void)
 {
-    TAP_PLAN(37);
+    TAP_PLAN(41);
 
     s_test_null_connection_is_noop();
     s_test_null_client_is_noop();
