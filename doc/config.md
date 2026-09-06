@@ -1816,6 +1816,7 @@ is looking.
         "west": "modc+mod4+mod5+Left"
     },
     "go-to": {
+        "page0": "modc+mod4+0",
         "page1": "modc+mod4+1",
         "page2": "modc+mod4+2",
         "page3": "modc+mod4+3",
@@ -1831,15 +1832,16 @@ is looking.
 
 #### `keyboard.viewport.go-to`
 
-Jump directly to a page of the viewport grid by index (1-9), numbered
-row-major from the top-left page: `page1` is the first page of the
+Jump directly to a page of the viewport grid by index (0-9), numbered
+row-major from the top-left page: `page0` is the first page of the
 first row, and each following number moves one page right until the
 row ends, then wraps to the first page of the next row.  Pages beyond
 index 9 are not reachable by these shortcuts.
 
-| Key     | Default binding  | Destination                   |
+| Key     | Default binding  | Destination                    |
 |---------|------------------|--------------------------------|
-| `page1` | `modc+mod4+1`    | Page 1 (first page, top-left). |
+| `page0` | `modc+mod4+0`    | Page 0 (first page, top-left). |
+| `page1` | `modc+mod4+1`    | Page 1.                        |
 | `page2` | `modc+mod4+2`    | Page 2.                        |
 | `page3` | `modc+mod4+3`    | Page 3.                        |
 | `page4` | `modc+mod4+4`    | Page 4.                        |

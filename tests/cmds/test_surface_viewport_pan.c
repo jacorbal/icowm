@@ -1078,9 +1078,123 @@ static void s_test_set_clamps_and_noops_at_same_origin(void)
 }
 
 
+/* A client already sitting within the desktop's own canvas, but off
+ * the currently panned-to page, is left exactly where it is by the
+ * defensive clamp: only the viewport itself moves, to bring it into
+ * view */
+static void s_test_center_on_client_within_canvas_is_not_clamped(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *client = s_make_client(1600, 0, false);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 3u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    scmd_surface_viewport_center_on_client(surface, client);
+    TAP_EQ_INT(client->layout.geometry.cur.pos.x, 1600,
+            "a client already inside the desktop's canvas is never" \
+            " moved by the defensive clamp");
+    TAP_EQ_INT(desktop->viewport_origin.x, 1200,
+            "the viewport itself pans to bring the off-page client" \
+            " into view instead, centered (client X 1600 minus half" \
+            " the 800-wide screen)");
+
+    free(surface);
+    free(desktop);
+    free(client);
+}
+
+
+/* A client whose recorded position ended up entirely outside the
+ * desktop's own canvas (the kind of corruption a drag/pan/warp
+ * calculation should never produce, but which this defensive backstop
+ * does not rely on never happening) is clamped back inside the canvas
+ * before the centering math runs, so it is guaranteed to land on some
+ * real, reachable viewport page */
+static void s_test_center_on_client_outside_canvas_is_clamped(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *client = s_make_client(50000, -50000, false);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 2u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    scmd_surface_viewport_center_on_client(surface, client);
+    TAP_OK(client->layout.geometry.cur.pos.x >= 0 &&
+            client->layout.geometry.cur.pos.x < 1600,
+            "the clamped X now sits inside the 2-column canvas" \
+            " (0 <= x < 1600)");
+    TAP_OK(client->layout.geometry.cur.pos.y >= 0 &&
+            client->layout.geometry.cur.pos.y < 1200,
+            "the clamped Y now sits inside the 2-row canvas" \
+            " (0 <= y < 1200)");
+    TAP_EQ_INT(client->layout.geometry.cur.pos.x,
+            client->layout.geometry.old.pos.x,
+            "'old.pos' is kept in sync with the clamp too, matching" \
+            " every other part of the window manager that still" \
+            " relies on it");
+    TAP_OK(s_call_apply_geometry > 0,
+            "the clamp applies the corrected position to the real" \
+            " window, not just the stored geometry");
+    TAP_OK(surface->is_outdated,
+            "bringing an out-of-canvas client back in view marks the" \
+            " surface outdated");
+
+    free(surface);
+    free(desktop);
+    free(client);
+}
+
+
+/* A client already at least partly visible on the current page is
+ * left alone entirely: neither the defensive clamp (already inside
+ * the canvas by construction) nor the centering pan itself have
+ * anything to do */
+static void s_test_center_on_client_already_visible_is_noop(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *client = s_make_client(100, 100, false);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+
+    scmd_surface_viewport_center_on_client(surface, client);
+    TAP_EQ_INT(desktop->viewport_origin.x, 0,
+            "a client already visible on the current page never" \
+            " causes a pan");
+    TAP_OK(!surface->is_outdated,
+            "and never marks the surface outdated either");
+
+    free(surface);
+    free(desktop);
+    free(client);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(58);
+    TAP_PLAN(74);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
@@ -1104,6 +1218,9 @@ int main(void)
     s_test_goto_null_surface_or_no_desktop_is_noop();
     s_test_goto_moves_to_correct_page();
     s_test_goto_out_of_range_page_is_noop();
+    s_test_center_on_client_within_canvas_is_not_clamped();
+    s_test_center_on_client_outside_canvas_is_clamped();
+    s_test_center_on_client_already_visible_is_noop();
 
     return TAP_DONE();
 }

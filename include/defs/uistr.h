@@ -262,9 +262,8 @@
 #define STR_SHORTCUTS_GOTO_DESKTOP_FMT "Go to desktop %u"
 
 /* TRANSLATION: same placeholder rules as the desktop pair above,
- * just for the viewport's own 1-9 page range instead of a desktop's
- * 0-9 one */
-#define STR_SHORTCUTS_GOTO_VIEWPORT_RANGE "Go to viewport page 1-9"
+ * just for the viewport's own page range instead of a desktop's */
+#define STR_SHORTCUTS_GOTO_VIEWPORT_RANGE "Go to viewport page 0-9"
 #define STR_SHORTCUTS_GOTO_VIEWPORT_FMT "Go to viewport page %u"
 
 /* Cross-desktop urgency notification ('src/desktop/dclient.c',

@@ -24,6 +24,7 @@
 
 /* Input includes */
 #include <input/mouse/drag.h>
+#include <input/mouse/drag/background.h>
 #include <input/mouse/event.h>
 #include <input/mouse/hover.h>
 #include <input/mouse/viewport_edge.h>
@@ -125,7 +126,7 @@ static enum s_loop_event_motion_target_e s_loop_event_motion_target(
                 me->child == search_window())) {
         return S_MOTION_TARGET_SEARCH;
     }
-    if (drag_is_active()) {
+    if (drag_is_active() || drag_background_is_active()) {
         return S_MOTION_TARGET_NONE;
     }
 
@@ -149,6 +150,8 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
     /* Fed the newest position unconditionally, before deciding who else
      * gets it: an inactive drag ignores it anyway */
     drag_update(xcb_connection_get(),
+            (struct position_s) { me->root_x, me->root_y });
+    drag_background_update(xcb_connection_get(),
             (struct position_s) { me->root_x, me->root_y });
 
     switch (s_loop_event_motion_target(me)) {

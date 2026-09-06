@@ -965,9 +965,9 @@ static void s_test_viewport_pan_north_null_surface_is_noop(void)
 }
 
 
-/* KEYBIND_VIEWPORT_GOTO_1..9: jump the surface's current desktop
- * viewport straight to one of its configured pages, one-based key
- * to zero-based page index */
+/* KEYBIND_VIEWPORT_GOTO_0..9: jump the surface's current desktop
+ * viewport straight to one of its configured pages, matching
+ * KEYBIND_DESKTOP_GOTO_0..9 exactly, key index equal to page index */
 
 static void s_test_viewport_goto_n_passes_correct_page(void)
 {
@@ -976,22 +976,22 @@ static void s_test_viewport_goto_n_passes_correct_page(void)
     s_reset();
     memset(&surface, 0, sizeof(surface));
 
-    ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_GOTO_1, 0, 0, &surface,
+    ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_GOTO_0, 0, 0, &surface,
             NULL, NULL);
     TAP_EQ_INT((int) s_last_viewport_goto_page, 0,
-            "KEYBIND_VIEWPORT_GOTO_1 passes page index 0 to" \
+            "KEYBIND_VIEWPORT_GOTO_0 passes page index 0 to" \
             " enact_surface_viewport_goto");
 
     ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_GOTO_5, 0, 0, &surface,
             NULL, NULL);
-    TAP_EQ_INT((int) s_last_viewport_goto_page, 4,
-            "KEYBIND_VIEWPORT_GOTO_5 passes page index 4 to" \
+    TAP_EQ_INT((int) s_last_viewport_goto_page, 5,
+            "KEYBIND_VIEWPORT_GOTO_5 passes page index 5 to" \
             " enact_surface_viewport_goto");
 
     ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_GOTO_9, 0, 0, &surface,
             NULL, NULL);
-    TAP_EQ_INT((int) s_last_viewport_goto_page, 8,
-            "KEYBIND_VIEWPORT_GOTO_9 passes page index 8 to" \
+    TAP_EQ_INT((int) s_last_viewport_goto_page, 9,
+            "KEYBIND_VIEWPORT_GOTO_9 passes page index 9 to" \
             " enact_surface_viewport_goto");
 
     TAP_EQ_INT(s_call_enact_surface_viewport_goto, 3,
@@ -1000,15 +1000,15 @@ static void s_test_viewport_goto_n_passes_correct_page(void)
 }
 
 
-static void s_test_viewport_goto_1_null_surface_is_noop(void)
+static void s_test_viewport_goto_0_null_surface_is_noop(void)
 {
     s_reset();
 
-    ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_GOTO_1, 0, 0, NULL,
+    ik_execute_binding(s_fake_wm, KEYBIND_VIEWPORT_GOTO_0, 0, 0, NULL,
             NULL, NULL);
 
     TAP_EQ_INT(s_call_enact_surface_viewport_goto, 0,
-            "a null surface guards KEYBIND_VIEWPORT_GOTO_1 from" \
+            "a null surface guards KEYBIND_VIEWPORT_GOTO_0 from" \
             " reaching enact_surface_viewport_goto");
 }
 
@@ -1938,7 +1938,7 @@ int main(void)
     s_test_viewport_pan_north_south_east_west();
     s_test_viewport_pan_north_null_surface_is_noop();
     s_test_viewport_goto_n_passes_correct_page();
-    s_test_viewport_goto_1_null_surface_is_noop();
+    s_test_viewport_goto_0_null_surface_is_noop();
     s_test_desktop_show_toggles_the_flag();
     s_test_scratchpad_toggle_needs_a_surface();
     s_test_desktop_clients_iconify_deiconify_rearrange();

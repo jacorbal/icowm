@@ -229,9 +229,9 @@ static void s_append_goto_desktop(struct s_shortcuts_ctx_s *ctx,
  * @param config     Active configuration
  * @param page_count Number of viewport pages actually laid out
  *                   (@c columns times @c rows), capped by the caller
- *                   to the 9 bindings that exist at all
+ *                   to the 10 bindings that exist at all
  *
- * @note Complexity: @e O(1), at most nine fixed-size string
+ * @note Complexity: @e O(1), at most ten fixed-size string
  *       comparisons
  */
 static void s_append_goto_viewport(struct s_shortcuts_ctx_s *ctx,
@@ -245,7 +245,7 @@ static void s_append_goto_viewport(struct s_shortcuts_ctx_s *ctx,
     if (shared_prefix) {
         prefix_len = safe_strlen(page[0]) - 1u;
         for (uint32_t i = 0u; i < page_count; ++i) {
-            char expect_digit = (char) ('1' + i);
+            char expect_digit = (char) ('0' + i);
 
             if (safe_strlen(page[i]) != prefix_len + 1u ||
                     page[i][prefix_len] != expect_digit ||
@@ -258,7 +258,7 @@ static void s_append_goto_viewport(struct s_shortcuts_ctx_s *ctx,
 
     if (shared_prefix) {
         s_append_pair_fmt(ctx, _(STR_SHORTCUTS_GOTO_VIEWPORT_RANGE),
-                "%.*s<1-9>", (int) prefix_len, page[0]);
+                "%.*s<0-9>", (int) prefix_len, page[0]);
         return;
     }
 
@@ -270,7 +270,7 @@ static void s_append_goto_viewport(struct s_shortcuts_ctx_s *ctx,
         }
 
         (void) snprintf(label, sizeof(label),
-                _(STR_SHORTCUTS_GOTO_VIEWPORT_FMT), i + 1u);
+                _(STR_SHORTCUTS_GOTO_VIEWPORT_FMT), i);
         s_append_pair_fmt(ctx, label, "%s", page[i]);
     }
 }
@@ -594,8 +594,8 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
         if (viewport->columns > 1u || viewport->rows > 1u) {
             uint32_t page_count = viewport->columns * viewport->rows;
 
-            if (page_count > 9u) {
-                page_count = 9u;
+            if (page_count > 10u) {
+                page_count = 10u;
             }
             dialog_pair_append_blank(ctx.pairs, &ctx.count);
             s_append_line(&ctx, "[%s]",

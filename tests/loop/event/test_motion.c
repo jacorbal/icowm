@@ -11,11 +11,12 @@
  * draining loop are all genuine, file-local logic worth exercising in
  * their own right; none of place_manual_is_active, wincmenu_is_open,
  * rootmenu_is_open, winlist_is_open, search_is_open/search_window,
- * drag_is_active/drag_update, or any of the seven per-target handler
- * functions belongs to loop/event/motion.c itself, so every one is a
- * link-only, call-recording stand-in below, and xcb_poll_for_event
- * itself is stood in too, handing back a scenario-queued sequence of
- * fake events one at a time exactly as libxcb's own real queue would,
+ * drag_is_active/drag_update, drag_background_is_active/_update, or
+ * any of the seven per-target handler functions belongs to
+ * loop/event/motion.c itself, so every one is a link-only,
+ * call-recording stand-in below, and xcb_poll_for_event itself is
+ * stood in too, handing back a scenario-queued sequence of fake
+ * events one at a time exactly as libxcb's own real queue would,
  * without needing a live X connection to actually queue anything on.
  */
 /*
@@ -40,6 +41,7 @@
 
 /* Local includes */
 #include <harness/tap.h>
+#include <input/mouse/drag/background.h>
 #include <loop/event.h>
 
 
@@ -51,6 +53,7 @@ static bool s_winlist_is_open;
 static bool s_search_is_open;
 static xcb_window_t s_search_window;
 static bool s_drag_is_active;
+static bool s_drag_background_is_active;
 
 /* Recording for the per-target handler stand-ins below */
 static int s_place_manual_handle_motion_calls;
@@ -62,6 +65,8 @@ static int s_mouse_handle_motion_hover_calls;
 static int s_mouse_viewport_edge_check_calls;
 static int s_drag_update_calls;
 static struct position_s s_drag_update_last_position;
+static int s_drag_background_update_calls;
+static struct position_s s_drag_background_update_last_position;
 
 /* A scenario-queued sequence of fake events for xcb_poll_for_event to
  * hand back one at a time, and how many were consumed */
@@ -80,6 +85,7 @@ static void s_reset(void)
     s_search_is_open = false;
     s_search_window = 0;
     s_drag_is_active = false;
+    s_drag_background_is_active = false;
     s_place_manual_handle_motion_calls = 0;
     s_wincmenu_handle_motion_calls = 0;
     s_rootmenu_handle_motion_calls = 0;
@@ -90,6 +96,9 @@ static void s_reset(void)
     s_drag_update_calls = 0;
     s_drag_update_last_position.x = 0;
     s_drag_update_last_position.y = 0;
+    s_drag_background_update_calls = 0;
+    s_drag_background_update_last_position.x = 0;
+    s_drag_background_update_last_position.y = 0;
     memset(s_poll_queue, 0, sizeof(s_poll_queue));
     s_poll_queue_len = 0;
     s_poll_queue_next = 0;
@@ -234,6 +243,25 @@ void drag_update(xcb_connection_t *connection, struct position_s pos)
 }
 
 
+/** Link-only stand-in for drag_background_is_active
+ *  (input/mouse/drag/background.c) */
+bool drag_background_is_active(void)
+{
+    return s_drag_background_is_active;
+}
+
+
+/** Link-only stand-in for drag_background_update
+ *  (input/mouse/drag/background.c) */
+void drag_background_update(xcb_connection_t *connection,
+        struct position_s pos)
+{
+    (void) connection;
+    s_drag_background_update_calls++;
+    s_drag_background_update_last_position = pos;
+}
+
+
 /** Link-only stand-in for mouse_handle_motion_hover
  *  (input/mouse/hover.c) */
 void mouse_handle_motion_hover(xcb_connection_t *connection,
@@ -356,6 +384,9 @@ static void s_test_no_queued_events_falls_to_hover(void)
             " plain hover tracking exactly once");
     TAP_EQ_INT(s_mouse_viewport_edge_check_calls, 1,
             "and the edge-pan check runs alongside it, exactly once");
+    TAP_EQ_INT(s_drag_background_update_calls, 1,
+            "the background-pan position is also fed unconditionally,"
+            " exactly once, alongside the plain drag's own");
 
     free(event);
 }
@@ -651,9 +682,36 @@ static void s_test_target_priority_drag_claims_none(void)
 }
 
 
+/* With every menu closed and search either closed or unmatched, an
+ * active background pan also claims the event as S_MOTION_TARGET_NONE
+ * on its own, even with the plain drag flag left off, since the two
+ * are checked with a plain 'or' */
+static void s_test_target_priority_background_drag_claims_none(void)
+{
+    loop_ctx_td ctx = s_make_ctx();
+    xcb_generic_event_t *event = s_make_motion_event(5, 6);
+
+    s_reset();
+    s_drag_background_is_active = true;
+
+    loop_event_motion_notify(&ctx, &event);
+
+    TAP_EQ_INT(s_drag_background_update_calls, 1,
+            "an active background pan still receives the position"
+            " through the unconditional drag_background_update call");
+    TAP_EQ_INT(s_mouse_handle_motion_hover_calls, 0,
+            "an active background pan claiming the event means hover"
+            " tracking is never separately called");
+    TAP_EQ_INT(s_mouse_viewport_edge_check_calls, 0,
+            "nor is the edge-pan check, hover's own sibling call");
+
+    free(event);
+}
+
+
 int main(void)
 {
-    TAP_PLAN(31);
+    TAP_PLAN(35);
 
     s_test_null_guards();
     s_test_no_queued_events_falls_to_hover();
@@ -666,6 +724,7 @@ int main(void)
     s_test_target_priority_winlist_wins_rest();
     s_test_target_priority_search_requires_window_match();
     s_test_target_priority_drag_claims_none();
+    s_test_target_priority_background_drag_claims_none();
 
     return TAP_DONE();
 }

@@ -40,6 +40,7 @@
 /* Local includes */
 #include <input/mouse/event.h>
 #include <input/mouse/drag.h>
+#include <input/mouse/drag/background.h>
 
 
 /* Handle a button-release event to end a drag */
@@ -54,13 +55,18 @@ void mouse_handle_release(xcb_connection_t *connection,
 
     (void) config;
 
-    if (!drag_is_active()) {
-        return;
-    }
-
     if (event != NULL) {
         root_pos.x = event->root_x;
         root_pos.y = event->root_y;
+    }
+
+    if (drag_background_is_active()) {
+        drag_background_end(connection, surfaces, root_pos);
+        return;
+    }
+
+    if (!drag_is_active()) {
+        return;
     }
 
     client = drag_client();

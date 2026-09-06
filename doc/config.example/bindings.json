@@ -131,6 +131,7 @@
                 "west": "modc+mod4+mod5+Left"
             },
             "go-to": {
+                "page0": "modc+mod4+0",
                 "page1": "modc+mod4+1",
                 "page2": "modc+mod4+2",
                 "page3": "modc+mod4+3",

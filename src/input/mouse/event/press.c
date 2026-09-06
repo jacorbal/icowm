@@ -77,6 +77,7 @@
 #include <input/mouse/bind.h>
 #include <input/mouse/bounds.h>
 #include <input/mouse/drag.h>
+#include <input/mouse/drag/background.h>
 #include <input/mouse/drag/icon.h>
 #include <input/mouse/event.h>
 #include <input/mouse/internal.h>
@@ -327,7 +328,10 @@ static void s_mouse_start_border_resize(xcb_connection_t *connection,
  * @brief Handle a button press on the root (desktop) window
  *
  * Right-click opens the root desktop menu; middle-click opens the
- * window list.
+ * window list.  Left-press starts a background-pan drag right away
+ * (see @c input/mouse/drag/background.h): dragging pans the viewport,
+ * while a release with no real movement still unfocuses the active
+ * client exactly like a plain background click always has.
  *
  * @param wm         Window manager instance, for the root menu
  * @param connection Active XCB connection
@@ -357,22 +361,14 @@ static void s_mouse_handle_root_press(wm_td *wm,
     }
 
     if ((xcb_button_index_t) event->detail == XCB_BUTTON_INDEX_1) {
-        /* Left-click on the empty desktop: unfocus the active client so
-         * all windows lose their selection highlight */
-        desktop_td *const desktop =
-            surface_desktop_get(surface, surface->desktop_cur);
-
-        if (desktop != NULL && desktop->client_active_id != 0) {
-            client_td *const active = lookup_find_client(surfaces,
-                    desktop->client_active_id, NULL, NULL);
-            if (active != NULL) {
-                enact_client_unfocus(active);
-            }
-            desktop->client_active_id = 0;
-            desktop->is_focus_dirty = true;
-            desktop->is_outdated = true;
-            surface->is_outdated = true;
-        }
+        /* Left-press on the empty desktop: start a background-pan
+         * drag right away.  'drag_background_end' (called from
+         * 'mouse_handle_release') still unfocuses the active client,
+         * exactly like this always did, whenever the drag turns out
+         * to never have really moved. */
+        drag_background_start(connection, surface, event->root,
+                event->time,
+                (struct position_s) { event->root_x, event->root_y });
         im_allow_and_flush(connection, XCB_ALLOW_ASYNC_POINTER,
                 event->time);
         return;

@@ -4,16 +4,20 @@
  * @brief Test battery for mouse_handle_release
  *
  * mouse_handle_release (input/mouse/event/release.c) is a thin
- * dispatcher: bail out early when no drag is active, otherwise resolve
- * the dragged client's owning surface/desktop (when both a client and
- * a surface list are available) and hand everything to drag_end.
+ * dispatcher: an active background-pan drag is finished first and
+ * always wins, otherwise it bails out early when no client drag is
+ * active, otherwise it resolves the dragged client's owning
+ * surface/desktop (when both a client and a surface list are
+ * available) and hands everything to drag_end.  drag_background_is_
+ * active, drag_background_end (input/mouse/drag/background.h),
  * drag_is_active, drag_client, drag_end (input/mouse/drag.h) and
  * lookup_find_client (lookup.h) are all genuinely external,
  * cross-module entry points this file has no interest in re-testing
  * (drag.c's own state machine is covered by
- * tests/input/mouse/drag/test_drag.c, and lookup_find_client's search
- * logic is a lookup.c concern), so all four are recording/return-value
- * stand-ins defined locally.
+ * tests/input/mouse/drag/test_drag.c, background.c's own is covered
+ * by tests/input/mouse/drag/test_background.c, and
+ * lookup_find_client's search logic is a lookup.c concern), so all
+ * six are recording/return-value stand-ins defined locally.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -45,8 +49,18 @@
 /* Local includes */
 #include <harness/tap.h>
 #include <input/mouse/drag.h>
+#include <input/mouse/drag/background.h>
 #include <input/mouse/event.h>
 
+
+/** Stand-in return value for the next drag_background_is_active call */
+static bool s_stub_background_is_active;
+
+/** Recorded arguments from the last drag_background_end call */
+static int s_drag_background_end_calls;
+static xcb_connection_t *s_drag_background_end_connection;
+static list_td *s_drag_background_end_surfaces;
+static struct position_s s_drag_background_end_root_pos;
 
 /** Stand-in return value for the next drag_is_active call */
 static bool s_stub_is_active;
@@ -67,6 +81,31 @@ static xcb_connection_t *s_drag_end_connection;
 static surface_td *s_drag_end_surface;
 static desktop_td *s_drag_end_desktop;
 static struct position_s s_drag_end_root_pos;
+
+
+/**
+ * @brief Stand-in for @a drag_background_is_active, returning a
+ *        test-controlled value
+ * @note Complexity: @e O(1)
+ */
+bool drag_background_is_active(void)
+{
+    return s_stub_background_is_active;
+}
+
+
+/**
+ * @brief Recording stand-in for @a drag_background_end
+ * @note Complexity: @e O(1)
+ */
+void drag_background_end(xcb_connection_t *connection, list_td *surfaces,
+        struct position_s root_pos)
+{
+    s_drag_background_end_calls++;
+    s_drag_background_end_connection = connection;
+    s_drag_background_end_surfaces = surfaces;
+    s_drag_background_end_root_pos = root_pos;
+}
 
 
 /**
@@ -130,6 +169,12 @@ void drag_end(xcb_connection_t *connection, surface_td *surface,
 
 static void s_reset(void)
 {
+    s_stub_background_is_active = false;
+    s_drag_background_end_calls = 0;
+    s_drag_background_end_connection = NULL;
+    s_drag_background_end_surfaces = NULL;
+    memset(&s_drag_background_end_root_pos, 0,
+            sizeof(s_drag_background_end_root_pos));
     s_stub_is_active = false;
     s_stub_client = NULL;
     s_lookup_calls = 0;
@@ -292,10 +337,42 @@ static void s_test_valid_client_and_surfaces_looks_up_and_forwards(void)
 }
 
 
+/* An active background-pan drag wins over everything else: it is
+ * finished via drag_background_end, and neither drag_is_active nor
+ * drag_end is ever consulted */
+static void s_test_active_background_drag_ends_and_skips_client_drag(void)
+{
+    xcb_button_release_event_t event;
+
+    s_reset();
+    memset(&event, 0, sizeof(event));
+    event.root_x = 12;
+    event.root_y = 34;
+    s_stub_background_is_active = true;
+    s_stub_is_active = true;
+
+    mouse_handle_release((xcb_connection_t *) 1, NULL, &event, NULL);
+
+    TAP_EQ_INT(s_drag_background_end_calls, 1,
+            "an active background drag is finished once");
+    TAP_OK(s_drag_background_end_connection == (xcb_connection_t *) 1,
+            "the connection reaches drag_background_end unchanged");
+    TAP_OK(s_drag_background_end_surfaces == NULL,
+            "the surfaces list reaches drag_background_end unchanged");
+    TAP_EQ_INT(s_drag_background_end_root_pos.x, 12,
+            "root_pos.x reaches drag_background_end");
+    TAP_EQ_INT(s_drag_background_end_root_pos.y, 34,
+            "root_pos.y reaches drag_background_end");
+    TAP_EQ_INT(s_drag_end_calls, 0,
+            "an active background drag skips drag_end entirely");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(18);
+    TAP_PLAN(24);
 
+    s_test_active_background_drag_ends_and_skips_client_drag();
     s_test_no_active_drag_is_a_no_op();
     s_test_active_drag_copies_root_position();
     s_test_active_drag_null_event_defaults_position();

@@ -202,16 +202,19 @@ static const config_lint_key_td s_schema_kb_cycle[] = {
 };
 
 static const config_lint_key_td s_schema_viewport_go_to[] = {
-    {"page1", NULL, 0u,
-        0, NULL, 0u, NULL}, {"page2", NULL, 0u,
+    {"page0", NULL, 0u,
+        0, NULL, 0u, NULL}, {"page1", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"page2", NULL, 0u,
         0, NULL, 0u, NULL}, {"page3", NULL, 0u,
         0, NULL, 0u, NULL},
     {"page4", NULL, 0u,
         0, NULL, 0u, NULL}, {"page5", NULL, 0u,
-        0, NULL, 0u, NULL}, {"page6", NULL, 0u,
         0, NULL, 0u, NULL},
-    {"page7", NULL, 0u,
-        0, NULL, 0u, NULL}, {"page8", NULL, 0u,
+    {"page6", NULL, 0u,
+        0, NULL, 0u, NULL}, {"page7", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"page8", NULL, 0u,
         0, NULL, 0u, NULL}, {"page9", NULL, 0u,
         0, NULL, 0u, NULL}
 };

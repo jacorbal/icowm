@@ -78,6 +78,7 @@
 #include <harness/tap.h>
 #include <input/mouse/bounds.h>
 #include <input/mouse/drag.h>
+#include <input/mouse/drag/background.h>
 #include <input/mouse/drag/icon.h>
 #include <input/mouse/event.h>
 #include <input/mouse/internal.h>
@@ -169,6 +170,25 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
     (void) event_time;
     (void) root_pos;
     (void) screen_dim;
+
+    s_unreached_calls++;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a drag_background_start, never
+ *        exercised
+ * @note Complexity: @e O(1)
+ */
+void drag_background_start(xcb_connection_t *connection,
+        surface_td *surface, xcb_window_t root,
+        xcb_timestamp_t event_time, struct position_s root_pos)
+{
+    (void) connection;
+    (void) surface;
+    (void) root;
+    (void) event_time;
+    (void) root_pos;
 
     s_unreached_calls++;
 }

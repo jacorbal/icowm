@@ -713,6 +713,88 @@ bool scmd_surface_viewport_desktop_page(const surface_td *surface,
 }
 
 
+/**
+ * @brief Guarantee a client's own recorded position sits within its
+ *        desktop's actual pannable canvas, moving it back in if not
+ *
+ * A defensive backstop, not a normal code path: nothing here is
+ * supposed to ever leave a client's @c layout.geometry.cur.pos outside
+ * @p desktop's virtual canvas (@c columns times @c rows whole
+ * screens), but relying solely on every drag/pan/warp calculation
+ * always being perfect would leave a client permanently unreachable,
+ * even via the search menu, the moment any one of them is not.  Only
+ * ever moves @p client when it is genuinely outside the whole
+ * canvas, never merely off the currently panned-to page, so a client
+ * legitimately sitting on some other, valid page is left exactly
+ * where it is for @a scmd_surface_viewport_center_on_client to pan to
+ * instead.
+ *
+ * @param surface Surface owning @p desktop
+ * @param desktop Desktop whose pannable canvas @p client must sit
+ *                within
+ * @param client  Client whose recorded position is clamped in place
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_viewport_clamp_client_to_canvas(surface_td *surface,
+        const desktop_td *desktop, client_td *client)
+{
+    uint32_t columns;
+    uint32_t rows;
+    int32_t canvas_w;
+    int32_t canvas_h;
+    int32_t min_x;
+    int32_t min_y;
+    int32_t max_x;
+    int32_t max_y;
+    int32_t clamped_x;
+    int32_t clamped_y;
+    xcb_window_t target;
+
+    s_surface_viewport_dims(surface, &columns, &rows);
+    canvas_w = (int32_t) columns * (int32_t) desktop->geometry.dim.w;
+    canvas_h = (int32_t) rows * (int32_t) desktop->geometry.dim.h;
+
+    /* A client is allowed to sit anywhere its own top-left corner
+     * still leaves at least one pixel of it inside the canvas, on
+     * either axis, rather than requiring the whole window to fit: the
+     * canvas bound itself is the only thing being enforced here, not
+     * a re-centering. */
+    min_x = -(int32_t) client->layout.geometry.cur.dim.w + 1;
+    min_y = -(int32_t) client->layout.geometry.cur.dim.h + 1;
+    max_x = canvas_w - 1;
+    max_y = canvas_h - 1;
+
+    clamped_x = client->layout.geometry.cur.pos.x;
+    clamped_y = client->layout.geometry.cur.pos.y;
+    clamped_x = (clamped_x < min_x) ? min_x : clamped_x;
+    clamped_x = (clamped_x > max_x) ? max_x : clamped_x;
+    clamped_y = (clamped_y < min_y) ? min_y : clamped_y;
+    clamped_y = (clamped_y > max_y) ? max_y : clamped_y;
+
+    if (clamped_x == client->layout.geometry.cur.pos.x &&
+            clamped_y == client->layout.geometry.cur.pos.y) {
+        return;     /* Already within the canvas: nothing to recover */
+    }
+
+    LOGGER_WARNING("Client 0x%08x ('%s') sat outside desktop %u's" \
+            " canvas at %d,%d; clamped back to %d,%d",
+            client->id, client->info.name, desktop->id,
+            client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y, clamped_x, clamped_y);
+
+    client->layout.geometry.cur.pos.x = clamped_x;
+    client->layout.geometry.cur.pos.y = clamped_y;
+    client->layout.geometry.old.pos.x = clamped_x;
+    client->layout.geometry.old.pos.y = clamped_y;
+
+    target = ccmd_target_win(client);
+    ccmd_client_apply_geometry(client, target,
+            (uint16_t) XCB_CONFIG_WINDOW_X | (uint16_t) XCB_CONFIG_WINDOW_Y,
+            clamped_x, clamped_y, 0u, 0u, 0u);
+}
+
+
 /* Pan the current desktop's viewport, if needed, to bring a client
  * not currently visible into view, centered */
 void scmd_surface_viewport_center_on_client(surface_td *surface,
@@ -733,6 +815,13 @@ void scmd_surface_viewport_center_on_client(surface_td *surface,
     if (desktop == NULL) {
         return;
     }
+
+    /* See this function's own doc comment on
+     * 's_viewport_clamp_client_to_canvas': guarantees 'client' is
+     * reachable by panning at all before the centering math below
+     * ever runs, rather than relying solely on every drag/pan/warp
+     * calculation elsewhere always being perfect. */
+    s_viewport_clamp_client_to_canvas(surface, desktop, client);
 
     screen = desktop->geometry;
     win = client->layout.geometry.cur;

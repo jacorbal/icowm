@@ -70,6 +70,10 @@ static surface_td *s_stub_surface;
 /** Count of every heavy call this file only records rather than acts
  *  on, reset by @a s_reset before each scenario */
 static int s_call_enact_client_move;
+
+/** Last position @a enact_client_move was asked to move to, for
+ *  scenarios that check a locked move axis is really left untouched */
+static struct position_s s_enact_client_move_last_pos;
 static int s_call_surface_clients_hide;
 static int s_call_surface_clients_show;
 static int s_call_notify_desktop_show;
@@ -86,6 +90,28 @@ static bool s_stub_pan_available;
 /** Count of calls to the @a drag_pan_edge_check stand-in below, reset
  *  to @c 0 by @a s_reset before each scenario */
 static int s_call_drag_pan_edge_check;
+
+/** Desktop @a surface_desktop_east and @a surface_desktop_north hand
+ *  back, @c NULL to make the lookup itself fail; the scenarios
+ *  exercising a full @a drag_warp_tick switch point this at a real
+ *  desktop instead */
+static desktop_td *s_stub_desktop_target;
+
+/** Count of calls to the @a xcb_warp_pointer stand-in below, and the
+ *  last X/Y it was asked to warp the pointer to, reset by @a s_reset
+ *  before each scenario */
+static int s_call_xcb_warp_pointer;
+static int16_t s_warp_pointer_last_x;
+static int16_t s_warp_pointer_last_y;
+
+/** Last window, mask, and X/Y values handed to the
+ *  @a xcb_configure_window stand-in below, for scenarios that check an
+ *  icon drag really gets repositioned to the expected spot */
+static int s_call_configure_window;
+static xcb_window_t s_configure_window_last_window;
+static uint16_t s_configure_window_last_mask;
+static int32_t s_configure_window_last_x;
+static int32_t s_configure_window_last_y;
 
 
 /**
@@ -127,21 +153,6 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_north
- *
- * @note Complexity: @e O(1)
- */
-desktop_td *surface_desktop_north(surface_td *surface,
-        uint32_t desktop_id, bool cycle)
-{
-    (void) surface;
-    (void) desktop_id;
-    (void) cycle;
-    return NULL;
-}
-
-
-/**
  * @brief Link-only stand-in for @a surface_desktop_south
  *
  * @note Complexity: @e O(1)
@@ -157,7 +168,11 @@ desktop_td *surface_desktop_south(surface_td *surface,
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktop_east
+ * @brief Controllable stand-in for @a surface_desktop_east
+ *
+ * @c NULL by default (the same as every other direction below), but
+ * the scenarios exercising a full @a drag_warp_tick switch point
+ * @a s_stub_desktop_target at a real desktop instead.
  *
  * @note Complexity: @e O(1)
  */
@@ -167,7 +182,27 @@ desktop_td *surface_desktop_east(surface_td *surface,
     (void) surface;
     (void) desktop_id;
     (void) cycle;
-    return NULL;
+    return s_stub_desktop_target;
+}
+
+
+/**
+ * @brief Controllable stand-in for @a surface_desktop_north
+ *
+ * @c NULL by default (the same as every other direction below), but
+ * the scenario exercising a full north @a drag_warp_tick switch points
+ * @a s_stub_desktop_target at a real desktop instead, exactly like
+ * @a surface_desktop_east above.
+ *
+ * @note Complexity: @e O(1)
+ */
+desktop_td *surface_desktop_north(surface_td *surface,
+        uint32_t desktop_id, bool cycle)
+{
+    (void) surface;
+    (void) desktop_id;
+    (void) cycle;
+    return s_stub_desktop_target;
 }
 
 
@@ -333,8 +368,64 @@ xcb_connection_t *xcb_connection_get(void)
 void enact_client_move(client_td *client, struct position_s pos)
 {
     (void) client;
-    (void) pos;
+    s_enact_client_move_last_pos = pos;
     s_call_enact_client_move++;
+}
+
+
+/**
+ * @brief Recording stand-in for the raw @a xcb_warp_pointer request
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_void_cookie_t xcb_warp_pointer(xcb_connection_t *c,
+        xcb_window_t src_window, xcb_window_t dst_window,
+        int16_t src_x, int16_t src_y, uint16_t src_width,
+        uint16_t src_height, int16_t dst_x, int16_t dst_y)
+{
+    xcb_void_cookie_t cookie;
+
+    (void) c;
+    (void) src_window;
+    (void) dst_window;
+    (void) src_x;
+    (void) src_y;
+    (void) src_width;
+    (void) src_height;
+
+    memset(&cookie, 0, sizeof(cookie));
+    s_call_xcb_warp_pointer++;
+    s_warp_pointer_last_x = dst_x;
+    s_warp_pointer_last_y = dst_y;
+
+    return cookie;
+}
+
+
+/**
+ * @brief Recording stand-in for the raw @a xcb_configure_window
+ *        request
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_void_cookie_t xcb_configure_window(xcb_connection_t *c,
+        xcb_window_t window, uint16_t value_mask, const void *value_list)
+{
+    xcb_void_cookie_t cookie;
+    const uint32_t *vals;
+
+    (void) c;
+
+    memset(&cookie, 0, sizeof(cookie));
+    s_call_configure_window++;
+    s_configure_window_last_window = window;
+    s_configure_window_last_mask = value_mask;
+
+    vals = value_list;
+    s_configure_window_last_x = (int32_t) vals[0];
+    s_configure_window_last_y = (int32_t) vals[1];
+
+    return cookie;
 }
 
 
@@ -412,27 +503,35 @@ static void s_reset(void)
     static client_td dragged;
     static surface_td surface;
     static config_td config;
+    static xcb_screen_t screen;
 
     memset(&s_drag, 0, sizeof(s_drag));
     memset(&dragged, 0, sizeof(dragged));
     memset(&surface, 0, sizeof(surface));
     memset(&config, 0, sizeof(config));
+    memset(&screen, 0, sizeof(screen));
 
     dragged.id = 1u;
     dragged.screen_id = 0u;
+    dragged.icon_window = 42u;
 
     config.desktops.warp_on_edge_drag = true;
 
     surface.config = &config;
     surface.desktop_count = 4u;
+    surface.desktop_cur = 0u;
+    surface.screen = &screen;
 
     s_drag.client = &dragged;
     s_drag.screen_w = 1920u;
     s_drag.screen_h = 1080u;
 
     s_stub_surface = &surface;
+    s_stub_desktop_target = NULL;
 
     s_call_enact_client_move = 0;
+    s_enact_client_move_last_pos.x = 0;
+    s_enact_client_move_last_pos.y = 0;
     s_call_surface_clients_hide = 0;
     s_call_surface_clients_show = 0;
     s_call_notify_desktop_show = 0;
@@ -442,6 +541,46 @@ static void s_reset(void)
     s_call_desktop_action_client_rem = 0;
     s_stub_pan_available = false;
     s_call_drag_pan_edge_check = 0;
+    s_call_xcb_warp_pointer = 0;
+    s_warp_pointer_last_x = 0;
+    s_warp_pointer_last_y = 0;
+    s_call_configure_window = 0;
+    s_configure_window_last_window = XCB_WINDOW_NONE;
+    s_configure_window_last_mask = 0u;
+    s_configure_window_last_x = 0;
+    s_configure_window_last_y = 0;
+}
+
+
+/**
+ * @brief Shared setup for a scenario that runs a full
+ *        @a drag_warp_tick east switch, to exercise
+ *        @a s_warp_move_dragged
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_reset_for_full_east_switch(void)
+{
+    static desktop_td desktop_east;
+
+    s_reset();
+    memset(&desktop_east, 0, sizeof(desktop_east));
+    desktop_east.id = 1u;
+    s_stub_desktop_target = &desktop_east;
+
+    s_drag.is_warp_pending = true;
+    s_drag.warp_direction = COMPASS_EAST;
+    (void) clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due);
+    s_drag.warp_due.tv_sec -= 1;
+    s_drag.operation = CLIENT_OPERATION_MOVING;
+    s_drag.drag_window = XCB_WINDOW_NONE;
+    s_drag.is_solid_drag = true;
+    s_drag.last_root_x = 1919;
+    s_drag.last_root_y = 500;
+    s_drag.client_start.pos.x = 100;
+    s_drag.client_start.pos.y = 200;
+    s_drag.client_cur.pos.x = 110;
+    s_drag.client_cur.pos.y = 210;
 }
 
 
@@ -891,9 +1030,95 @@ static void s_test_tick_due_no_surface_stops_early(void)
 }
 
 
+/* drag_warp_tick: a full east switch on an ordinary (unlocked) move
+ * drag shifts the dragged client's position by the pointer's own
+ * warp delta, exactly like an ordinary move would */
+static void s_test_tick_full_switch_unlocked_axis_moves(void)
+{
+    s_reset_for_full_east_switch();
+
+    drag_warp_tick((xcb_connection_t *) (void *) 1);
+
+    TAP_EQ_INT(s_call_xcb_warp_pointer, 1,
+            "an east warp that actually switches desktops warps the"
+            " pointer exactly once");
+    TAP_EQ_INT(s_warp_pointer_last_x, 1,
+            "the pointer lands one pixel in from the opposite (west)"
+            " edge");
+    TAP_EQ_INT(s_drag.client_cur.pos.x, -1808,
+            "client_cur.pos.x shifts by the same delta the pointer"
+            " itself just jumped (110 + (1 - 1919) = -1808)");
+    TAP_EQ_INT(s_drag.client_cur.pos.y, 210,
+            "client_cur.pos.y is untouched by a purely horizontal"
+            " warp, whose Y pointer coordinate passes through"
+            " unchanged");
+    TAP_EQ_INT(s_call_enact_client_move, 1,
+            "a solid, unlocked move drag repositions the real window"
+            " exactly once");
+    TAP_EQ_INT(s_enact_client_move_last_pos.x, -1808,
+            "moved to the same shifted X the state tracking now"
+            " reflects, since neither move axis is locked");
+}
+
+
+/* drag_warp_tick: a full east switch on a horizontally-maximized move
+ * drag (X locked) must leave the locked X axis exactly where it was,
+ * the same invariant 's_drag_update_move' already enforces on every
+ * ordinary motion notify; regression test for the desync where
+ * 's_warp_move_dragged' ignored 'is_move_x_locked'/'is_move_y_locked'
+ * entirely */
+static void s_test_tick_full_switch_locked_x_axis_stays_put(void)
+{
+    s_reset_for_full_east_switch();
+    s_drag.is_move_x_locked = true;
+
+    drag_warp_tick((xcb_connection_t *) (void *) 1);
+
+    TAP_EQ_INT(s_call_xcb_warp_pointer, 1,
+            "the pointer itself still warps across even though the"
+            " client's X is locked: only the client's own position is"
+            " pinned, never the pointer");
+    TAP_EQ_INT(s_drag.client_cur.pos.x, 110,
+            "client_cur.pos.x stays exactly at its pre-warp value: a"
+            " locked move axis must never shift just because a warp"
+            " fired instead of an ordinary motion update");
+    TAP_EQ_INT(s_drag.client_cur.pos.y, 210,
+            "the unlocked Y axis is untouched by a purely horizontal"
+            " warp either way, locked or not");
+    TAP_EQ_INT(s_enact_client_move_last_pos.x, 110,
+            "the real window is likewise moved back to, never past,"
+            " its locked X");
+}
+
+
+/* The same locked-axis regression, on the orthogonal (Y) axis, using a
+ * north warp instead of east, so the locked axis is the one the warp
+ * itself is actually along */
+static void s_test_tick_full_switch_locked_y_axis_stays_put(void)
+{
+    s_reset_for_full_east_switch();
+    s_drag.warp_direction = COMPASS_NORTH;
+    s_drag.last_root_x = 500;
+    s_drag.last_root_y = 0;
+    s_drag.is_move_y_locked = true;
+
+    drag_warp_tick((xcb_connection_t *) (void *) 1);
+
+    TAP_EQ_INT(s_call_xcb_warp_pointer, 1,
+            "a north warp still moves the pointer across regardless"
+            " of the client's own Y lock");
+    TAP_EQ_INT(s_drag.client_cur.pos.y, 210,
+            "client_cur.pos.y stays exactly at its pre-warp value when"
+            " the warp itself is along the locked axis");
+    TAP_EQ_INT(s_drag.client_cur.pos.x, 110,
+            "the orthogonal, unlocked X axis is untouched by a north"
+            " warp either way, locked or not");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(39);
+    TAP_PLAN(52);
 
     s_test_edge_check_no_client_clears_pending();
     s_test_edge_check_no_surface_is_noop();
@@ -923,6 +1148,9 @@ int main(void)
     s_test_tick_due_single_desktop_stops_early();
     s_test_tick_due_config_disabled_stops_early();
     s_test_tick_due_no_surface_stops_early();
+    s_test_tick_full_switch_unlocked_axis_moves();
+    s_test_tick_full_switch_locked_x_axis_stays_put();
+    s_test_tick_full_switch_locked_y_axis_stays_put();
 
     return TAP_DONE();
 }

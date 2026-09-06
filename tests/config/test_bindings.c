@@ -244,7 +244,8 @@ static void s_test_show_desktop_only_desktop_section_accepted(void)
 
 /* 'viewport.go-to' is a sibling of 'viewport.pan', loaded whether
  * or not 'pan' is present in the same file; its keys are the
- * one-based 'page1'..'page9', mapped to zero-based array slots */
+ * zero-based 'page0'..'page9', mapped one-to-one to zero-based array
+ * slots, exactly like 'desktop.go-to' */
 static void s_test_viewport_go_to_loads(void)
 {
     char path[256];
@@ -253,13 +254,13 @@ static void s_test_viewport_go_to_loads(void)
     memset(&cb, 0, sizeof(cb));
     s_write_temp_file(path, sizeof(path),
             "{\"keyboard\": {\"viewport\": {\"go-to\": {"
-            "\"page1\": \"modc+mod4+1\", \"page9\": \"modc+mod4+9\""
+            "\"page0\": \"modc+mod4+0\", \"page9\": \"modc+mod4+9\""
             "} } } }");
     config_load_bindings(path, &cb);
 
-    TAP_EQ_STR(cb.keyboard.viewport.go_to.page[0], "modc+mod4+1",
-            "'viewport.go-to.page1' loads into the first array slot");
-    TAP_EQ_STR(cb.keyboard.viewport.go_to.page[8], "modc+mod4+9",
+    TAP_EQ_STR(cb.keyboard.viewport.go_to.page[0], "modc+mod4+0",
+            "'viewport.go-to.page0' loads into the first array slot");
+    TAP_EQ_STR(cb.keyboard.viewport.go_to.page[9], "modc+mod4+9",
             "'viewport.go-to.page9' loads into the last array slot");
     unlink(path);
 }

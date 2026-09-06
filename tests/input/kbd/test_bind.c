@@ -625,7 +625,7 @@ static void s_test_load_viewport_bindings_need_viewport(void)
     found_1x1 = keyboard_find(KEYBIND_VIEWPORT_PAN_EAST, &keysym, &modmask);
     TAP_OK(!found_1x1,
             "a viewport-pan binding is absent with a 1x1 viewport");
-    found_goto_1x1 = keyboard_find(KEYBIND_VIEWPORT_GOTO_1, &keysym,
+    found_goto_1x1 = keyboard_find(KEYBIND_VIEWPORT_GOTO_0, &keysym,
             &modmask);
     TAP_OK(!found_goto_1x1,
             "a viewport-go-to-page binding is also absent with a 1x1" \
@@ -638,7 +638,7 @@ static void s_test_load_viewport_bindings_need_viewport(void)
     TAP_OK(found_wide,
             "the same binding is present once a surface's viewport" \
             " has more than one column");
-    found_goto_wide = keyboard_find(KEYBIND_VIEWPORT_GOTO_1, &keysym,
+    found_goto_wide = keyboard_find(KEYBIND_VIEWPORT_GOTO_0, &keysym,
             &modmask);
     TAP_OK(found_goto_wide,
             "the viewport-go-to-page binding is present as well once" \

@@ -329,11 +329,27 @@ static void s_warp_move_dragged(xcb_connection_t *connection,
      * 'last_root_x' and 'last_root_y' on that axis, so this same
      * pair of assignments is correct
      * unconditionally, without needing its 'is_horizontal' branch
-     * too. */
-    new_window_x = s_drag.client_cur.pos.x +
-        ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
-    new_window_y = s_drag.client_cur.pos.y +
-        ((int32_t) new_root_y - (int32_t) s_drag.last_root_y);
+     * too.
+     *
+     * A window drag whose 'is_move_x_locked'/'is_move_y_locked' pins
+     * one axis to 'client_start.pos' (a client maximized on just that
+     * one axis; see 'drag_start''s comment, drag.c) must keep that
+     * same axis pinned here too, exactly like 's_drag_update_move'
+     * already does on every real motion notify: the pointer reaching a
+     * warp-eligible screen edge is entirely about 'root_x'/'root_y',
+     * independent of the dragged client's own, possibly-locked,
+     * position, so a locked axis must not silently move just because
+     * this fires instead of an ordinary motion update.  An icon drag
+     * never sets either lock (see 'drag_start' again), so this only
+     * ever actually clamps a window drag's own locked axis. */
+    new_window_x = (!is_icon && s_drag.is_move_x_locked)
+        ? s_drag.client_cur.pos.x
+        : s_drag.client_cur.pos.x +
+            ((int32_t) new_root_x - (int32_t) s_drag.last_root_x);
+    new_window_y = (!is_icon && s_drag.is_move_y_locked)
+        ? s_drag.client_cur.pos.y
+        : s_drag.client_cur.pos.y +
+            ((int32_t) new_root_y - (int32_t) s_drag.last_root_y);
 
     s_drag.client_cur.pos.x = new_window_x;
     s_drag.client_cur.pos.y = new_window_y;

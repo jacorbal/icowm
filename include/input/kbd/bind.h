@@ -65,13 +65,11 @@ enum wm_keybind_type_e {
     KEYBIND_VIEWPORT_PAN_EAST,
     KEYBIND_VIEWPORT_PAN_WEST,
 
-    /* Direct viewport page go-to, keys 1 to 9 addressing the first
-     * nine pages of the configured grid, in row-major order; unlike
-     * 'KEYBIND_DESKTOP_GOTO_0' through '_9' above, the key itself is
-     * one-based (key '1' reaches the very first page, index 0) so
-     * every one of the nine digit keys names a real page instead of
-     * key '0' being spent on the page already showing most of the
-     * time */
+    /* Direct viewport page go-to, indices 0 to 9 addressing the first
+     * ten pages of the configured grid, in row-major order; matches
+     * 'KEYBIND_DESKTOP_GOTO_0' through '_9' above exactly, key '0'
+     * reaching page index 0 */
+    KEYBIND_VIEWPORT_GOTO_0,
     KEYBIND_VIEWPORT_GOTO_1,
     KEYBIND_VIEWPORT_GOTO_2,
     KEYBIND_VIEWPORT_GOTO_3,
