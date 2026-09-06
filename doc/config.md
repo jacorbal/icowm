@@ -1467,7 +1467,7 @@ that drag instead, unaffected by this setting.
 
 | Key                 | Type    | Default     | Description |
 |---------------------|---------|-------------|-------------|
-| `pan-icons`         | boolean | `false`     | Whether panning also moves the desktop icons, rather than leaving them fixed on the physical screen while the canvas scrolls under them.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
+| `pan-icons`         | boolean | `true`      | Whether panning also moves the desktop icons, rather than leaving them fixed on the physical screen while the canvas scrolls under them.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
 | `pan-on-edge-drag`  | boolean | `true`      | While dragging a window or icon to move it, holding the pointer against a screen edge pans the current desktop's viewport toward that edge instead, carrying the dragged window or icon along with every other non-sticky client on the desktop, after a short delay, repeating for as long as the pointer stays held there and the viewport still has room left that direction.  Takes priority over `warp-on-edge-drag` above whenever there is room to pan; once the viewport's own bound is reached, holding the edge further switches desktops instead, exactly as if this were disabled.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
 | `pan-on-edge-hover` | boolean | `true`      | With no drag in progress, merely resting the pointer against a screen edge pans the current desktop's viewport toward that edge instead, after a short delay, repeating for as long as the pointer stays held there.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured); an edge held during a drag is `pan-on-edge-drag` or `warp-on-edge-drag` above's to answer instead, never this one's. |
 | `pan-step`          | integer | `40`        | How many pixels each viewport-pan keyboard shortcut moves the origin per press.  Meaningless on a screen whose `topology.screens.desktops[].viewport` is `1x1` (panning not configured). |
@@ -1475,7 +1475,7 @@ that drag instead, unaffected by this setting.
 
 ```json
 "viewport": {
-    "pan-icons": false,
+    "pan-icons": true,
     "pan-on-edge-drag": true,
     "pan-on-edge-hover": true,
     "pan-step": 40,
@@ -1490,10 +1490,10 @@ that drag instead, unaffected by this setting.
 
 #### `viewport.pan-icons`
 
-When `false`, the default, an icon stays fixed on the physical screen
-while a viewport pan moves the desktop underneath it.  When `true`, an
-icon that is currently mapped pans together with the desktop, landing
-wherever its own window would have landed.
+When `true`, the default, an icon that is currently mapped pans
+together with the desktop, landing wherever its own window would have
+landed.  When `false`, it stays fixed on the physical screen while the
+desktop moves underneath it.
 
 #### `viewport.mesh`
 

@@ -721,22 +721,22 @@ static void s_test_viewport_pan_keys_load(void)
     struct config_desktop_s desktop;
 
     s_load("{\"icons\": {\"show-geom\": true},"
-        " \"viewport\": {\"pan-step\": 25, \"pan-icons\": true,"
+        " \"viewport\": {\"pan-step\": 25, \"pan-icons\": false,"
         " \"pan-on-edge-drag\": false,"
         " \"pan-on-edge-hover\": false}}", &base, &desktop);
     TAP_OK(base.icons.show_geom, "icons.show-geom still loads");
     TAP_EQ_INT((int) base.viewport.pan_step, 25,
             "viewport.pan-step loads under its new name");
-    TAP_OK(base.viewport.pan_icons, "viewport.pan-icons loads");
+    TAP_OK(!base.viewport.pan_icons, "viewport.pan-icons loads");
     TAP_OK(!base.viewport.pan_on_edge_drag,
             "viewport.pan-on-edge-drag loads");
     TAP_OK(!base.viewport.pan_on_edge_hover,
             "viewport.pan-on-edge-hover loads");
 
     s_load_with_defaults("{}", &base, &desktop);
-    TAP_OK(!base.viewport.pan_icons,
-            "pan-icons defaults off: icons stay put while the canvas"
-            " scrolls under them");
+    TAP_OK(base.viewport.pan_icons,
+            "pan-icons defaults on: an icon travels with the desktop"
+            " it sits on, like every window does");
     TAP_OK(base.viewport.pan_on_edge_drag &&
             base.viewport.pan_on_edge_hover,
             "both edge pans default on");

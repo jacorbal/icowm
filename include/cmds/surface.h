@@ -237,33 +237,6 @@ void scmd_surface_viewport_set(surface_td *surface,
 void scmd_surface_viewport_goto(surface_td *surface, uint32_t page);
 
 /**
- * @brief Report which configured viewport page a client currently sits
- *        on, within @p desktop's own pannable canvas
- *
- * The page a client's own position falls on rather than the page
- * @p desktop's viewport currently happens to show: the two agree
- * whenever the client is actually visible, but a client parked on
- * a page the viewport is not currently panned to (still tracked
- * correctly, its position simply not translated by the pan that moved
- * everything else) needs its own answer, e.g., for a search result
- * naming where a match actually is.
- *
- * @param surface   Surface @p desktop belongs to, whose configured
- *                  viewport size the page is computed against
- * @param desktop   Desktop @p client is on
- * @param client    Client to report the page of
- * @param col_out   Resulting zero-based column, updated in place only
- *                  on a @c true return
- * @param row_out   Resulting zero-based row, updated in place only on
- *                  a @c true return
- *
- * @retval false if @p surface, @p desktop, or @p client is @c NULL, or
- *               if the configured viewport is a plain @c 1x1 (panning
- *               disabled, nothing meaningful to report)
- *
- * @note Complexity: @e O(1)
- */
-/**
  * @brief Move @p client to a given page of the current desktop's
  *        viewport
  *

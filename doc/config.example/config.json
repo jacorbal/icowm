@@ -48,7 +48,7 @@
 
     "viewport": {
         "pan-step": 40,
-        "pan-icons": false,
+        "pan-icons": true,
         "pan-on-edge-drag": true,
         "pan-on-edge-hover": true,
         "mesh": {

@@ -169,7 +169,7 @@ void config_set_default_base_values(struct config_base_s *config_base,
     config_base->overlay.on_viewport_move = true;
 
     config_base->viewport.pan_step = 40;
-    config_base->viewport.pan_icons = false;
+    config_base->viewport.pan_icons = true;
     config_base->viewport.pan_on_edge_drag = true;
     config_base->viewport.pan_on_edge_hover = true;
     /* Enabled by default: the mesh only ever appears where it has

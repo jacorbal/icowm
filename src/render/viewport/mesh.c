@@ -296,10 +296,15 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
     values[0] = dot_color;
     xcb_change_gc(connection, context, XCB_GC_FOREGROUND, values);
 
+    /* Negated: the canvas scrolls the opposite way to the origin.
+     * Panning east raises the origin and carries every client west,
+     * so a mesh whose dots followed the origin would travel against
+     * everything else on screen.  'viewport_mesh_tile_origin' folds
+     * the negative back into the tile. */
     dot.x = (int16_t) viewport_mesh_tile_origin(
-            desktop->viewport_origin.x, mesh->spacing_horizontal);
+            -desktop->viewport_origin.x, mesh->spacing_horizontal);
     dot.y = (int16_t) viewport_mesh_tile_origin(
-            desktop->viewport_origin.y, mesh->spacing_vertical);
+            -desktop->viewport_origin.y, mesh->spacing_vertical);
     dot.width = (uint16_t) mesh->thickness;
     dot.height = (uint16_t) mesh->thickness;
     xcb_poly_fill_rectangle(connection, tile, context, 1u, &dot);
@@ -345,9 +350,9 @@ int viewport_mesh_render(xcb_connection_t *connection,
     }
 
     mesh = &desktop->config->base.viewport.mesh;
-    origin_x = viewport_mesh_tile_origin(desktop->viewport_origin.x,
+    origin_x = viewport_mesh_tile_origin(-desktop->viewport_origin.x,
             mesh->spacing_horizontal);
-    origin_y = viewport_mesh_tile_origin(desktop->viewport_origin.y,
+    origin_y = viewport_mesh_tile_origin(-desktop->viewport_origin.y,
             mesh->spacing_vertical);
     dot_color = viewport_mesh_color_from_background(
             desktop->background.bg.color, mesh->tone_shift);
