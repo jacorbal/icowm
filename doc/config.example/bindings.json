@@ -127,8 +127,8 @@
             "pan": {
                 "north": "modc+mod4+mods+Up",
                 "south": "modc+mod4+mods+Down",
-                "east": "modc+mod4+mod5+Right",
-                "west": "modc+mod4+mod5+Left"
+                "east": "modc+mod4+mods+Right",
+                "west": "modc+mod4+mods+Left"
             },
             "go-to": {
                 "page0": "modc+mod4+0",
