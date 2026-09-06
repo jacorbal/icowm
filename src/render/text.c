@@ -161,6 +161,9 @@ static const struct s_ascii_fallback_s s_ascii_fallbacks[] = {
     { "/",   0x2044u },     /* fraction slash */
     { "/",   0x2215u },     /* division slash */
 
+    /* Currency */
+    { "EUR", 0x20ACu },     /* Euro sign */
+
     /* Arrows */
     { "<-",  0x2190u },     /* leftwards arrow */
     { "->",  0x2192u },     /* rightwards arrow */
