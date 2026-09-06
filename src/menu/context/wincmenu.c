@@ -50,7 +50,6 @@
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/state.h>
-#include <cmds/surface.h>
 
 /* Input includes */
 /* Keyboard modal move/resize */
@@ -878,7 +877,7 @@ void wincmenu_show(xcb_connection_t *connection,
      * button already hides itself under, in 'render/desktop.c' and
      * 'input/mouse/event/titlebar.c', so both the button and this
      * entry appear and disappear together. */
-    if (scmd_surface_viewport_has_room(surface)) {
+    if (surface_viewport_has_room(surface)) {
         s_entry_command(&s_entries[n],
                 (client_is_sticky(client)) ? _(STR_WINCMENU_UNSTICK)
                     : _(STR_WINCMENU_STICK),

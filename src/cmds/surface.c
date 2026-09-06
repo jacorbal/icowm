@@ -40,9 +40,6 @@
 /* Policy includes */
 #include <policy/stacking.h>
 
-/* Defs includes */
-#include <defs/config.h>  /* CONFIG_MAX_SCREENS */
-
 /* Local includes */
 #include <cmds/surface.h>
 
@@ -264,38 +261,6 @@ static void s_viewport_translate_visit(client_td *client, void *data)
 
 
 /**
- * @brief Read the configured viewport size for @p surface's screen
- *
- * A surface with no @c config, or an @c id past
- * @c CONFIG_MAX_SCREENS, reports the physical screen size back (a 1x1
- * viewport), the same fallback every other reader of this field already
- * falls back to.
- *
- * @param surface     Surface to read the viewport size for
- * @param columns_out Where the configured viewport width, in whole
- *                    screens, is written; never null
- * @param rows_out    Where the configured viewport height, in whole
- *                    screens, is written; never null
- *
- * @note Complexity: @e O(1)
- */
-static void s_surface_viewport_dims(const surface_td *surface,
-        uint32_t *columns_out, uint32_t *rows_out)
-{
-    *columns_out = 1u;
-    *rows_out = 1u;
-
-    if (surface->config != NULL &&
-            surface->id < (uint32_t) CONFIG_MAX_SCREENS) {
-        *columns_out = surface->config->base.screens[surface->id]
-            .viewport.columns;
-        *rows_out = surface->config->base.screens[surface->id]
-            .viewport.rows;
-    }
-}
-
-
-/**
  * @brief Clamp a requested viewport origin to the pannable area and,
  *        if it differs from the current one, translate every
  *        non-sticky client on @p desktop by the resulting delta
@@ -396,7 +361,7 @@ static void s_viewport_pan(surface_td *surface,
         return;
     }
 
-    s_surface_viewport_dims(surface, &columns, &rows);
+    surface_viewport_dims(surface, &columns, &rows);
     origin = desktop->viewport_origin;
 
     switch (direction) {
@@ -481,7 +446,7 @@ static void s_viewport_clamp_client_to_canvas(surface_td *surface,
     int32_t clamped_y;
     xcb_window_t target;
 
-    s_surface_viewport_dims(surface, &columns, &rows);
+    surface_viewport_dims(surface, &columns, &rows);
     canvas_w = (int32_t) columns * (int32_t) desktop->geometry.dim.w;
     canvas_h = (int32_t) rows * (int32_t) desktop->geometry.dim.h;
 
@@ -619,7 +584,7 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
         return false;
     }
 
-    s_surface_viewport_dims(surface, &columns, &rows);
+    surface_viewport_dims(surface, &columns, &rows);
     max_x = (int32_t) (columns - 1u) * (int32_t) desktop->geometry.dim.w;
     max_y = (int32_t) (rows - 1u) * (int32_t) desktop->geometry.dim.h;
 
@@ -639,24 +604,6 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
     }
 
     return available;
-}
-
-
-/* Whether the surface's configured viewport spans more than a single
- * screen along either axis, i.e., whether panning it, by any means,
- * could ever actually move anything */
-bool scmd_surface_viewport_has_room(const surface_td *surface)
-{
-    uint32_t columns;
-    uint32_t rows;
-
-    if (surface == NULL) {
-        return false;
-    }
-
-    s_surface_viewport_dims(surface, &columns, &rows);
-
-    return columns > 1u || rows > 1u;
 }
 
 
@@ -709,7 +656,7 @@ void scmd_surface_viewport_pan_step(surface_td *surface,
 
     step = (surface->config != NULL) ? surface->config->base
         .viewport.move_step : 0u;
-    s_surface_viewport_dims(surface, &columns, &rows);
+    surface_viewport_dims(surface, &columns, &rows);
     origin = desktop->viewport_origin;
 
     switch (direction) {
@@ -749,7 +696,7 @@ void scmd_surface_viewport_set(surface_td *surface,
         return;
     }
 
-    s_surface_viewport_dims(surface, &columns, &rows);
+    surface_viewport_dims(surface, &columns, &rows);
     origin.x = x;
     origin.y = y;
     s_viewport_apply_origin(surface, desktop, columns, rows, origin);
@@ -775,7 +722,7 @@ void scmd_surface_viewport_goto(surface_td *surface, uint32_t page)
         return;
     }
 
-    s_surface_viewport_dims(surface, &columns, &rows);
+    surface_viewport_dims(surface, &columns, &rows);
     if (page >= columns * rows) {
         return;
     }
@@ -802,7 +749,7 @@ bool scmd_surface_viewport_client_page(const surface_td *surface,
         return false;
     }
 
-    s_surface_viewport_dims(surface, &columns, &rows);
+    surface_viewport_dims(surface, &columns, &rows);
     if (columns <= 1u && rows <= 1u) {
         return false;
     }
@@ -829,7 +776,7 @@ bool scmd_surface_viewport_desktop_page(const surface_td *surface,
         return false;
     }
 
-    s_surface_viewport_dims(surface, &columns, &rows);
+    surface_viewport_dims(surface, &columns, &rows);
     if (columns <= 1u && rows <= 1u) {
         return false;
     }

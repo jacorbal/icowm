@@ -118,28 +118,6 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
 void scmd_surface_viewport_drag_exclude(client_td *client);
 
 /**
- * @brief Whether @p surface's configured viewport spans more than a
- *        single screen along either axis
- *
- * A background-pan drag (@c input/mouse/drag/background.c) grabs the
- * pointer for as long as the button stays down regardless of where
- * the viewport's origin currently sits, unlike
- * @a scmd_surface_viewport_pan_available, so it needs this instead: a
- * plain @c {1,1} desktop can never be panned by any amount, in any
- * direction, from any origin, which that per-direction, per-origin
- * check alone cannot rule out on its own before the drag even starts.
- *
- * @param surface Surface whose configured viewport size to check
- *
- * @retval  true if some drag or keybind could still pan @p surface's
- *               viewport by at least one screen in some direction
- * @retval false if it is a plain @c {1,1} desktop
- *
- * @note Complexity: @e O(1)
- */
-bool scmd_surface_viewport_has_room(const surface_td *surface);
-
-/**
  * @brief Pan the current desktop's viewport one screen north, clamped
  *        at the top of the pannable area
  *

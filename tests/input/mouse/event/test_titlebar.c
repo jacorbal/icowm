@@ -105,6 +105,23 @@ static enum window_operation_e s_drag_start_operation;
 
 
 /**
+ * @brief Link-only stand-in for @a surface_viewport_has_room
+ *
+ * Only ever reaches @a client_titlebar_layout above as its
+ * @c hide_sticky argument, which that stand-in ignores, so no
+ * scenario here depends on the answer
+ *
+ * @note Complexity: @e O(1)
+ */
+bool surface_viewport_has_room(const surface_td *surface)
+{
+    (void) surface;
+
+    return false;
+}
+
+
+/**
  * @brief Controllable stand-in for @a client_titlebar_layout
  * @note Complexity: @e O(1)
  */

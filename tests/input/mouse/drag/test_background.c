@@ -78,7 +78,7 @@ static int s_ungrab_pointer_calls;
 static xcb_cursor_t s_grab_last_cursor;
 
 /** Controllable stand-in result for the next
- *  scmd_surface_viewport_has_room call */
+ *  surface_viewport_has_room call */
 static bool s_stub_viewport_has_room;
 
 /** Controllable stand-in result for the next lookup_current_desktop
@@ -205,10 +205,10 @@ xcb_cursor_t mouse_plain_cursor(void)
 
 
 /**
- * @brief Controllable stand-in for @a scmd_surface_viewport_has_room
+ * @brief Controllable stand-in for @a surface_viewport_has_room
  * @note Complexity: @e O(1)
  */
-bool scmd_surface_viewport_has_room(const surface_td *surface)
+bool surface_viewport_has_room(const surface_td *surface)
 {
     (void) surface;
 

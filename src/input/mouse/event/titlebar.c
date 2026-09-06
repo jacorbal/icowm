@@ -260,12 +260,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
      * whose viewport is not even wide enough or tall enough to pan
      * across, and a missing 'surface'/'config' answers the same as
      * a genuinely 1x1 one, hiding the button rather than guessing. */
-    hide_sticky = surface == NULL || surface->config == NULL ||
-        surface->id >= (uint32_t) CONFIG_MAX_SCREENS ||
-        (surface->config->base.screens[surface->id]
-             .viewport.columns <= 1u &&
-         surface->config->base.screens[surface->id]
-             .viewport.rows <= 1u);
+    hide_sticky = !surface_viewport_has_room(surface);
 
     /* Same layout the render pass just painted from, computed first
      * (not just when the click Y already looks close) since it is what

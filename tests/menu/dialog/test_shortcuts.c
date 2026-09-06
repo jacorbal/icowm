@@ -30,6 +30,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 /* XCB includes */
@@ -73,17 +74,32 @@ static uint8_t s_captured_count;
 static config_td s_config;
 static surface_td s_surface;
 
-/** Test-controlled stand-in for @a scmd_surface_viewport_has_room,
- *  answering whatever a scenario last registered, so the Sticky row
- *  can be inspected both listed and omitted without linking all of
- *  cmds/surface.c for one predicate
- * @note Complexity: @e O(1) */
-static bool s_viewport_has_room;
+/** Configured viewport size a scenario wants reported back, driving
+ *  both stand-ins below the exact way production derives one from the
+ *  other, so the Sticky row can be inspected listed and omitted
+ *  without linking all of surface/viewport.c for two readers */
+static uint32_t s_viewport_columns;
+static uint32_t s_viewport_rows;
 
-bool scmd_surface_viewport_has_room(const surface_td *surface)
+/** Test-controlled stand-in for @a surface_viewport_dims
+ * @note Complexity: @e O(1) */
+void surface_viewport_dims(const surface_td *surface,
+        uint32_t *columns_out, uint32_t *rows_out)
 {
     (void) surface;
-    return s_viewport_has_room;
+
+    *columns_out = s_viewport_columns;
+    *rows_out = s_viewport_rows;
+}
+
+
+/** Test-controlled stand-in for @a surface_viewport_has_room
+ * @note Complexity: @e O(1) */
+bool surface_viewport_has_room(const surface_td *surface)
+{
+    (void) surface;
+
+    return s_viewport_columns > 1u || s_viewport_rows > 1u;
 }
 
 
@@ -133,7 +149,8 @@ static void s_reset(void)
     s_surface.id = 0u;
     s_surface.desktop_count = 1u;
     s_surface.monitor_count = 1u;
-    s_viewport_has_room = true;
+    s_viewport_columns = 1u;
+    s_viewport_rows = 1u;
 }
 
 
@@ -450,14 +467,13 @@ static void s_test_append_group_joining(void)
 static void s_test_viewport_gating(void)
 {
     s_reset();
-    s_viewport_has_room = false;
     dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
     TAP_OK(!s_any_row_contains(s_config.bindings.keyboard.window.sticky),
             "shortcuts_show: sticky row absent on a viewport that"
             " cannot pan");
 
     s_reset();
-    s_viewport_has_room = true;
+    s_viewport_columns = 2u;
     dialog_shortcuts_show(s_fake_connection, &s_surface, &s_config);
     TAP_OK(s_any_row_contains(s_config.bindings.keyboard.window.sticky),
             "shortcuts_show: sticky row present once the viewport can"

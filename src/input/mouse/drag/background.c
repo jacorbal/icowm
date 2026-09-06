@@ -88,13 +88,13 @@ void drag_background_start(xcb_connection_t *connection,
     }
 
     /* A plain '{1,1}' desktop can never actually be panned (see
-     * 'scmd_surface_viewport_has_room', cmds/surface.c), so showing
+     * 'surface_viewport_has_room', surface/viewport.c), so showing
      * the move cursor for the whole button hold would promise a pan
      * this drag can never deliver; the state below is still armed
      * exactly the same either way, so a release with no real movement
      * keeps unfocusing the active client like a plain background
      * click always has. */
-    drag_cursor = scmd_surface_viewport_has_room(surface)
+    drag_cursor = (surface_viewport_has_room(surface))
         ? mouse_cursor_move()
         : mouse_plain_cursor();
 

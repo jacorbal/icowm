@@ -18,7 +18,7 @@
  * 's_cb_send_action', etc.) that is never invoked here, since no
  * test in this file activates a built entry, only inspects it.
  * 'surface_desktops_walk', 'surface_monitor_for_point' and
- * 'scmd_surface_viewport_has_room', by contrast, are test-controlled:
+ * 'surface_viewport_has_room', by contrast, are test-controlled:
  * 'wincmenu_show' calls all three directly while deciding the "Send
  * to desktop"/"Send to monitor" submenus and the Sticky entry, so
  * this file supplies working, minimal implementations rather than
@@ -49,7 +49,6 @@
 #include <client/predicates.h>
 #include <client/state.h>
 #include <cmds/client/state.h>
-#include <cmds/surface.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
@@ -376,14 +375,14 @@ void surface_desktop_label(const surface_td *surface,
 }
 
 
-/** Test-controlled stand-in for @a scmd_surface_viewport_has_room,
+/** Test-controlled stand-in for @a surface_viewport_has_room,
  *  answering whatever this file last registered, so the Sticky entry
  *  can be inspected both present and omitted without building a whole
  *  configuration around a pannable viewport
  * @note Complexity: @e O(1) */
 static bool s_viewport_has_room;
 
-bool scmd_surface_viewport_has_room(const surface_td *surface)
+bool surface_viewport_has_room(const surface_td *surface)
 {
     (void) surface;
     return s_viewport_has_room;

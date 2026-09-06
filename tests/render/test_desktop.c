@@ -467,6 +467,27 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 }
 
 
+/* surface/viewport.c
+ *
+ * Reproduced here rather than linking that whole (separately tested)
+ * file for one two-line predicate, the same way
+ * tests/menu/dialog/test_confirm.c reproduces 'dlgutil_u16max'.  The
+ * scenarios below drive it through a real 'config' on the surface,
+ * exactly as production reaches it. */
+bool surface_viewport_has_room(const surface_td *surface)
+{
+    if (surface == NULL || surface->config == NULL ||
+            surface->id >= (uint32_t) CONFIG_MAX_SCREENS) {
+        return false;
+    }
+
+    return surface->config->base.screens[surface->id]
+               .viewport.columns > 1u ||
+           surface->config->base.screens[surface->id]
+               .viewport.rows > 1u;
+}
+
+
 /* Raw XCB calls */
 static int s_get_property_calls;
 static bool s_get_property_reply_should_fail = true;

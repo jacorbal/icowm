@@ -79,6 +79,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/surface/test_monitor_direction \
     $(O_DIR)/tests/surface/test_desktop_add_remove \
     $(O_DIR)/tests/surface/test_pinned_transfer \
+    $(O_DIR)/tests/surface/test_viewport \
     $(O_DIR)/tests/enact/test_send_to_desktop \
     $(O_DIR)/tests/desktop/test_workarea \
     $(O_DIR)/tests/menu/context/ctxmenu/test_layout \
@@ -661,6 +662,12 @@ $(O_DIR)/tests/surface/test_pinned_transfer: \
 		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/adt/cdlist.c \
 		$(S_DIR)/adt/ohtbl.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/surface/test_viewport: \
+		$(TESTS_DIR)/surface/test_viewport.c \
+		$(S_DIR)/surface/viewport.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

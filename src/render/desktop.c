@@ -1043,12 +1043,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
      * 'src/input/mouse/event/titlebar.c' ('s_mouse_hit_titlebar_buttons')
      * for why this checks the pannable viewport size rather than
      * 'desktop_count' */
-    hide_sticky = surface == NULL || surface->config == NULL ||
-        surface->id >= (uint32_t) CONFIG_MAX_SCREENS ||
-        (surface->config->base.screens[surface->id]
-             .viewport.columns <= 1u &&
-         surface->config->base.screens[surface->id]
-             .viewport.rows <= 1u);
+    hide_sticky = !surface_viewport_has_room(surface);
     bg_color = (is_focused)
         ? theme->window.active.color.background
         : theme->window.inactive.color.background;

@@ -30,9 +30,6 @@
 #include <i18n.h>
 #include <surface.h>
 
-/* CMD includes */
-#include <cmds/surface.h>
-
 /* Local includes */
 #include <menu/dialog/shortcuts.h>
 #include <menu/dialog/message.h>
@@ -514,7 +511,7 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
      * size: a viewport that can never pan leaves the flag nothing to
      * hold a client still against, so the binding is not worth
      * listing */
-    if (scmd_surface_viewport_has_room(surface)) {
+    if (surface_viewport_has_room(surface)) {
         s_append_binding(&ctx,
                 _(STR_SHORTCUTS_STICKY),
                 config->bindings.keyboard.window.sticky);
@@ -595,42 +592,40 @@ void dialog_shortcuts_show(xcb_connection_t *connection,
                 config->bindings.keyboard.cycle.window.next
             }, 2u);
 
-    if (surface->config != NULL &&
-            surface->id < (uint32_t) CONFIG_MAX_SCREENS) {
-        const struct config_viewport_s *const viewport =
-            &surface->config->base.screens[surface->id].viewport;
+    if (surface_viewport_has_room(surface)) {
+        uint32_t columns;
+        uint32_t rows;
+        uint32_t page_count;
 
-        if (viewport->columns > 1u || viewport->rows > 1u) {
-            uint32_t page_count = viewport->columns * viewport->rows;
-
-            if (page_count > 10u) {
-                page_count = 10u;
-            }
-            dialog_pair_append_blank(ctx.pairs, &ctx.count);
-            s_append_line(&ctx, "[%s]",
-                    _(STR_SHORTCUTS_HEADER_VIEWPORT));
-            if (viewport->rows > 1u) {
-                s_append_group(&ctx,
-                        _(STR_SHORTCUTS_VIEWPORT_PAN),
-                        (const char *const [])
-                            {"north", "south", "east", "west"},
-                        (const char *const []) {
-                            config->bindings.keyboard.viewport.pan.north,
-                            config->bindings.keyboard.viewport.pan.south,
-                            config->bindings.keyboard.viewport.pan.east,
-                            config->bindings.keyboard.viewport.pan.west
-                        }, 4u);
-            } else {
-                s_append_group(&ctx,
-                        _(STR_SHORTCUTS_VIEWPORT_PAN),
-                        (const char *const []) {"east", "west"},
-                        (const char *const []) {
-                            config->bindings.keyboard.viewport.pan.east,
-                            config->bindings.keyboard.viewport.pan.west
-                        }, 2u);
-            }
-            s_append_goto_viewport(&ctx, config, page_count);
+        surface_viewport_dims(surface, &columns, &rows);
+        page_count = columns * rows;
+        if (page_count > 10u) {
+            page_count = 10u;
         }
+        dialog_pair_append_blank(ctx.pairs, &ctx.count);
+        s_append_line(&ctx, "[%s]",
+                _(STR_SHORTCUTS_HEADER_VIEWPORT));
+        if (rows > 1u) {
+            s_append_group(&ctx,
+                    _(STR_SHORTCUTS_VIEWPORT_PAN),
+                    (const char *const [])
+                        {"north", "south", "east", "west"},
+                    (const char *const []) {
+                        config->bindings.keyboard.viewport.pan.north,
+                        config->bindings.keyboard.viewport.pan.south,
+                        config->bindings.keyboard.viewport.pan.east,
+                        config->bindings.keyboard.viewport.pan.west
+                    }, 4u);
+        } else {
+            s_append_group(&ctx,
+                    _(STR_SHORTCUTS_VIEWPORT_PAN),
+                    (const char *const []) {"east", "west"},
+                    (const char *const []) {
+                        config->bindings.keyboard.viewport.pan.east,
+                        config->bindings.keyboard.viewport.pan.west
+                    }, 2u);
+        }
+        s_append_goto_viewport(&ctx, config, page_count);
     }
 
     menu_message_dialog_show_pairs(connection, surface, config,
