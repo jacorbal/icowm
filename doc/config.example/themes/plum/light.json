@@ -49,7 +49,7 @@
                     "off": "#63526A",
                     "on": "#2A1B2E"
                 },
-                "left": [ "sticky", "pin", "layer" ],
+                "left": [ "sticky", "pin" ],
                 "right": [ "close", "maximize", "shade", "iconize" ]
             },
             "height": 22,
