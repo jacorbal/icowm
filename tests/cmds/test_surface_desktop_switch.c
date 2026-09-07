@@ -107,6 +107,18 @@ desktop_td *lookup_current_desktop(surface_td *surface)
 }
 
 
+/** Link-only stand-in for @a wm_get_client_desktop: reached only from
+ *  the centring this file never exercises, whose own current-desktop
+ *  lookup above already answers @c NULL
+ *  @note Complexity: @e O(1) */
+desktop_td *wm_get_client_desktop(const client_td *client)
+{
+    (void) client;
+
+    return NULL;
+}
+
+
 /** Link-only stand-in for @a notify_desktop_show (menu/notify/
  *  desktop.c): unreachable for the same reason as
  *  'lookup_current_desktop' above

@@ -860,7 +860,9 @@ static void s_test_notify_stale_position_refused(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    /* Where the manager has just put it, and what it asked for */
+    /* Where the manager has just put it, and what it asked for: the
+     * two agreeing is what tells the handler its own request is the
+     * last word on this client's position */
     client.layout.geometry.cur.pos.x = 400;
     client.layout.geometry.cur.pos.y = 300;
     client.layout.requested_pos.x = 400;
@@ -886,10 +888,63 @@ static void s_test_notify_stale_position_refused(void)
     /* The very same event, once it is what was asked for, is taken */
     client.layout.requested_pos.x = 100;
     client.layout.requested_pos.y = 100;
+    client.layout.geometry.cur.pos.x = 100;
+    client.layout.geometry.cur.pos.y = 100;
     handler_configure_notify(connection, &surfaces, &event);
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 100,
             "while an echo confirming the last request is believed");
+}
+
+
+/* A path that moves the window by writing the stored geometry and
+ * configuring the server itself, without recording what it asked for,
+ * leaves the two disagreeing; the refusal must not engage there, or
+ * that path's own notify would be thrown away */
+static void s_test_notify_unrecorded_move_still_taken(void)
+{
+    client_td client;
+    surface_td surface;
+    desktop_td desktop;
+    xcb_configure_notify_event_t event;
+    list_td surfaces;
+    xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
+
+    s_test_reset_state();
+    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_decorated_client(&client);
+    s_lookup_result = &client;
+    s_lookup_surface_out = &surface;
+    s_lookup_desktop_out = &desktop;
+
+    /* Some earlier request of the manager's own */
+    client.layout.requested_pos.x = 400;
+    client.layout.requested_pos.y = 300;
+    client.layout.has_requested_pos = true;
+
+    /* And a later move by one of those other paths, which wrote the
+     * stored geometry without recording a request */
+    client.layout.geometry.cur.pos.x = 50;
+    client.layout.geometry.cur.pos.y = 60;
+
+    memset(&event, 0, sizeof(event));
+    event.response_type = XCB_CONFIGURE_NOTIFY;
+    event.event = client.frame;
+    event.window = client.frame;
+    event.x = 55;
+    event.y = 66;
+    event.width = (uint16_t) client.layout.geometry.cur.dim.w;
+    event.height = (uint16_t) client.layout.geometry.cur.dim.h;
+
+    handler_configure_notify(connection, &surfaces, &event);
+
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, 55,
+            "a notify for a move the manager never recorded is still"
+            " believed");
+    TAP_EQ_INT(client.layout.geometry.cur.pos.y, 66,
+            "on both axes");
 }
 
 
@@ -1005,7 +1060,7 @@ static void s_test_notify_inner_window_already_correct(void)
 
 int main(void)
 {
-    TAP_PLAN(44);
+    TAP_PLAN(46);
 
     s_test_request_null_event();
     s_test_request_systray_enforced();
@@ -1025,6 +1080,7 @@ int main(void)
     s_test_notify_structure_move_only();
     s_test_notify_stale_position_refused();
     s_test_notify_unrequested_position_taken();
+    s_test_notify_unrecorded_move_still_taken();
     s_test_notify_inner_window_snapped_back();
     s_test_notify_inner_window_already_correct();
 

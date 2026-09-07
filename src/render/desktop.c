@@ -1293,7 +1293,13 @@ int desktop_render_background(desktop_td *desktop)
         s_root_bg_applied_once[desktop->screen_id] = false;
         return viewport_mesh_render(xcb_connection_get(), desktop);
     }
-    viewport_mesh_cache_invalidate();
+    /* Deliberately not invalidated here.  Dropping the tile frees it
+     * while the root's own 'XCB_CW_BACK_PIXMAP' still names it, and
+     * the early return just below, taken whenever the color has not
+     * changed, would leave the attribute pointing at a freed pixmap
+     * for as long as it stays unchanged.  The tile is dropped after
+     * the attribute has been pointed away from it instead, at the end
+     * of this function. */
 
     /* No external background detected and the window manager owns the
      * background: apply the configured color and clear the root window
@@ -1325,6 +1331,13 @@ int desktop_render_background(desktop_td *desktop)
     s_root_bg_applied_once[desktop->screen_id] = true;
     s_root_bg_color_applied[desktop->screen_id] =
         desktop->background.bg.color;
+
+    /* Only now: 'XCB_BACK_PIXMAP_NONE' above is what stopped the root
+     * from naming whichever mesh tile was cached, so this is the
+     * first moment at which freeing it cannot leave the attribute
+     * pointing at a pixmap the server no longer has */
+    viewport_mesh_cache_invalidate();
+    viewport_mesh_cache_release_retired(xcb_connection_get());
 
     LOGGER_TRACE("Background rendered for desktop %u ('%s')",
             desktop->id, desktop->name);

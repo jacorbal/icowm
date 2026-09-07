@@ -660,13 +660,26 @@ static void s_search_draw_row(xcb_connection_t *connection,
         } else if (r->client != NULL &&
                 scmd_surface_viewport_client_page(s_search.surface,
                     r->desktop, r->client, &vp_col, &vp_row)) {
-            char vp_buf[24];
+            char vp_buf[32];
+            const char *vp_text = vp_buf;
 
             (void) snprintf(vp_buf, sizeof(vp_buf),
                     _(STR_PAGE_SUFFIX_FMT), vp_col, vp_row);
-            (void) safe_strncat(desk_buf,
-                    (desk_buf[0] != '\0') ? vp_buf : vp_buf + 1,
-                    sizeof(desk_buf));
+
+            /* The format is a suffix, so it leads with the separator
+             * that joins it to whatever came before.  With nothing
+             * before it, that separator is skipped by walking past
+             * the leading blanks rather than by assuming there is
+             * exactly one: the string is translated, and a catalogue
+             * that spelled the separator differently, or dropped it,
+             * would otherwise have a real character eaten here. */
+            if (desk_buf[0] == '\0') {
+                while (*vp_text == ' ' || *vp_text == '\t') {
+                    vp_text++;
+                }
+            }
+
+            (void) safe_strncat(desk_buf, vp_text, sizeof(desk_buf));
         }
 
         if (desk_buf[0] != '\0' && text_x < safe_right) {

@@ -181,5 +181,22 @@ int viewport_mesh_render(xcb_connection_t *connection,
  */
 void viewport_mesh_cache_invalidate(void);
 
+/**
+ * @brief Free every tile the root window has already been pointed
+ *        away from
+ *
+ * @a viewport_mesh_cache_invalidate only sets a tile aside, because
+ * the root's own @c XCB_CW_BACK_PIXMAP may still name it.  Whatever
+ * points that attribute elsewhere, by installing a new tile or by
+ * setting @c XCB_BACK_PIXMAP_NONE, calls this straight afterwards.
+ *
+ * @param connection Connection the pixmaps live on
+ *
+ * @note A no-op with nothing set aside, so it is safe to call after
+ *       any background change rather than only after a mesh one
+ * @note Complexity: @e O(n), where @e n is the number of screens
+ */
+void viewport_mesh_cache_release_retired(xcb_connection_t *connection);
+
 
 #endif  /* ICOWM_RENDER_VIEWPORT_MESH_H_ */

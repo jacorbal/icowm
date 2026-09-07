@@ -70,6 +70,10 @@
  */
 struct s_mesh_cache_s {
     xcb_pixmap_t tile;
+    xcb_pixmap_t retired;   /**< The tile this one replaced, still
+                              *  named by the root's own
+                              *  @c XCB_CW_BACK_PIXMAP until the
+                              *  caller installs the new one */
     uint32_t background;
     uint32_t dot;
     uint32_t spacing_horizontal;
@@ -147,20 +151,30 @@ static struct s_mesh_cache_s *s_cache_slot(uint32_t screen_id)
 
 
 /**
- * @brief Release a screen's cached tile pixmap, if it holds one
+ * @brief Set a screen's cached tile aside, without freeing it
  *
- * @param connection Connection the pixmap lives on
- * @param slot       Cache slot to release
+ * The root window's own @c XCB_CW_BACK_PIXMAP may still name that
+ * tile, and goes on naming it until something points the attribute
+ * elsewhere, so freeing it here would leave the root drawing from a
+ * pixmap the server no longer has.  Whoever points the attribute away
+ * calls @a viewport_mesh_cache_release_retired afterwards.
  *
+ * @param connection Connection the pixmap lives on, or @c NULL when
+ *                   there is none left to free anything on
+ * @param slot       Cache slot to set aside
+ *
+ * @note An older retired tile, if one is somehow still held, is freed
+ *       here: the root cannot be naming two at once
  * @note Complexity: @e O(1)
  */
-static void s_cache_release(xcb_connection_t *connection,
+static void s_cache_retire(xcb_connection_t *connection,
         struct s_mesh_cache_s *slot)
 {
-    if (slot->tile != XCB_NONE) {
-        xcb_free_pixmap(connection, slot->tile);
-        slot->tile = XCB_NONE;
+    if (connection != NULL && slot->retired != XCB_NONE) {
+        xcb_free_pixmap(connection, slot->retired);
     }
+    slot->retired = slot->tile;
+    slot->tile = XCB_NONE;
     slot->is_applied = false;
 }
 
@@ -242,7 +256,6 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
     const struct config_viewport_mesh_s *mesh;
     struct s_mesh_cache_s *slot;
     xcb_pixmap_t tile;
-    xcb_pixmap_t previous;
     xcb_gcontext_t context;
     xcb_rectangle_t dot;
     uint32_t values[2];
@@ -257,16 +270,17 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
     if (slot == NULL) {
         return XCB_NONE;
     }
-    /* Kept alive until the new tile is built and installed below.
-     * Freeing it first would leave the root window's own
-     * 'XCB_CW_BACK_PIXMAP' naming a pixmap that no longer exists for
-     * as long as it takes to create the replacement, and any repaint
-     * of the root in that window, ours or another client's, would
-     * draw from it (see 'desktop_render_background''s own note on
-     * exactly this hazard, in render/desktop.c) */
-    previous = slot->tile;
-    slot->tile = XCB_NONE;
-    slot->is_applied = false;
+    /* Retired rather than freed.  The root's own
+     * 'XCB_CW_BACK_PIXMAP' still names it, and goes on naming it
+     * until 'viewport_mesh_render' installs the tile built here, so
+     * freeing it anywhere before that would leave the attribute
+     * pointing at a pixmap the server no longer has: any repaint of
+     * the root in between, ours or another client's, would draw from
+     * it (see 'desktop_render_background''s own note on exactly this
+     * hazard, in render/desktop.c).  Whoever installs the new tile
+     * frees it, and 's_cache_release' covers the case where nobody
+     * ever does. */
+    s_cache_retire(connection, slot);
 
     mesh = &desktop->config->base.viewport.mesh;
     dot_color = viewport_mesh_color_from_background(
@@ -319,10 +333,6 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
     slot->thickness = mesh->thickness;
     slot->origin_x = (uint32_t) dot.x;
     slot->origin_y = (uint32_t) dot.y;
-
-    if (previous != XCB_NONE) {
-        xcb_free_pixmap(connection, previous);
-    }
 
     return tile;
 }
@@ -387,6 +397,14 @@ int viewport_mesh_render(xcb_connection_t *connection,
             desktop->screen->height_in_pixels);
     slot->is_applied = true;
 
+    /* Only now: the attribute above named the old tile right up to
+     * this point, so this is the first moment at which nothing can
+     * still be drawn from it */
+    if (slot->retired != XCB_NONE) {
+        xcb_free_pixmap(connection, slot->retired);
+        slot->retired = XCB_NONE;
+    }
+
     LOGGER_TRACE("Viewport mesh painted on screen %u at tile" \
             " offset %u,%u", desktop->screen_id, origin_x, origin_y);
 
@@ -400,11 +418,22 @@ void viewport_mesh_cache_invalidate(void)
     xcb_connection_t *const connection = xcb_connection_get();
 
     for (uint32_t i = 0u; i < (uint32_t) CONFIG_MAX_SCREENS; ++i) {
-        if (connection != NULL) {
-            s_cache_release(connection, &s_cache[i]);
-        } else {
-            s_cache[i].tile = XCB_NONE;
-            s_cache[i].is_applied = false;
+        s_cache_retire(connection, &s_cache[i]);
+    }
+}
+
+
+/* Free every tile the root window has already been pointed away from */
+void viewport_mesh_cache_release_retired(xcb_connection_t *connection)
+{
+    if (connection == NULL) {
+        return;
+    }
+
+    for (uint32_t i = 0u; i < (uint32_t) CONFIG_MAX_SCREENS; ++i) {
+        if (s_cache[i].retired != XCB_NONE) {
+            xcb_free_pixmap(connection, s_cache[i].retired);
+            s_cache[i].retired = XCB_NONE;
         }
     }
 }

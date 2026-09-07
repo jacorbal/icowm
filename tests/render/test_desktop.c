@@ -496,6 +496,20 @@ void viewport_mesh_cache_invalidate(void)
 }
 
 
+/** Recording stand-in for @a viewport_mesh_cache_release_retired: the
+ *  root has just been pointed away from whatever tile was cached, so
+ *  this is where the real one frees it
+ *  @note Complexity: @e O(1) */
+static int s_call_mesh_release_retired;
+
+void viewport_mesh_cache_release_retired(xcb_connection_t *connection)
+{
+    (void) connection;
+
+    s_call_mesh_release_retired++;
+}
+
+
 /* surface/viewport.c
  *
  * Reproduced here rather than linking that whole (separately tested)

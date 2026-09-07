@@ -95,6 +95,202 @@ xcb_connection_t *xcb_connection_get(void)
 }
 
 
+/** Ordered log of the X requests the lifecycle scenarios care about,
+ *  so that "freed before the root stopped naming it" is a thing a
+ *  test can actually see rather than only a thing to read for */
+enum s_xreq_e {
+    S_XREQ_CREATE_PIXMAP = 0,   /**< A tile was built */
+    S_XREQ_SET_BACK_PIXMAP,     /**< The root was pointed at one */
+    S_XREQ_FREE_PIXMAP          /**< A tile was released */
+};
+
+static enum s_xreq_e s_xlog[32];
+static uint32_t s_xlog_pixmap[32];
+static uint32_t s_xlog_count;
+
+/** Identifiers 'xcb_generate_id' hands out, one higher each call, so
+ *  that each tile in a scenario is told apart from the last */
+static uint32_t s_next_id;
+
+
+/**
+ * @brief Record one request, dropping anything past the log's end
+ *
+ * @param kind   What was asked of the server
+ * @param pixmap Pixmap the request names
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_xlog_add(enum s_xreq_e kind, uint32_t pixmap)
+{
+    if (s_xlog_count >= (uint32_t) (sizeof(s_xlog) /
+                sizeof(s_xlog[0]))) {
+        return;
+    }
+    s_xlog[s_xlog_count] = kind;
+    s_xlog_pixmap[s_xlog_count] = pixmap;
+    s_xlog_count++;
+}
+
+
+/**
+ * @brief Whether the log ever frees a pixmap while the root still
+ *        names it
+ *
+ * Walks the log keeping track of which pixmap the root's own
+ * @c XCB_CW_BACK_PIXMAP names, and answers @c true the moment a free
+ * arrives for that very one.
+ *
+ * @note Complexity: @e O(n), where @e n is the length of the log
+ */
+static bool s_xlog_frees_named_pixmap(void)
+{
+    uint32_t named = 0u;
+
+    for (uint32_t i = 0u; i < s_xlog_count; ++i) {
+        if (s_xlog[i] == S_XREQ_SET_BACK_PIXMAP) {
+            named = s_xlog_pixmap[i];
+        } else if (s_xlog[i] == S_XREQ_FREE_PIXMAP &&
+                named != 0u && s_xlog_pixmap[i] == named) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+uint32_t xcb_generate_id(xcb_connection_t *connection)
+{
+    (void) connection;
+
+    s_next_id++;
+    return s_next_id;
+}
+
+
+xcb_void_cookie_t xcb_create_pixmap(xcb_connection_t *connection,
+        uint8_t depth, xcb_pixmap_t pid, xcb_drawable_t drawable,
+        uint16_t width, uint16_t height)
+{
+    xcb_void_cookie_t cookie = {0};
+
+    (void) connection;
+    (void) depth;
+    (void) drawable;
+    (void) width;
+    (void) height;
+
+    s_xlog_add(S_XREQ_CREATE_PIXMAP, pid);
+    return cookie;
+}
+
+
+xcb_void_cookie_t xcb_free_pixmap(xcb_connection_t *connection,
+        xcb_pixmap_t pixmap)
+{
+    xcb_void_cookie_t cookie = {0};
+
+    (void) connection;
+
+    s_xlog_add(S_XREQ_FREE_PIXMAP, pixmap);
+    return cookie;
+}
+
+
+xcb_void_cookie_t xcb_change_window_attributes(
+        xcb_connection_t *connection, xcb_window_t window,
+        uint32_t value_mask, const void *value_list)
+{
+    xcb_void_cookie_t cookie = {0};
+
+    (void) connection;
+    (void) window;
+
+    if ((value_mask & (uint32_t) XCB_CW_BACK_PIXMAP) != 0u) {
+        s_xlog_add(S_XREQ_SET_BACK_PIXMAP,
+                ((const uint32_t *) value_list)[0]);
+    }
+    return cookie;
+}
+
+
+xcb_void_cookie_t xcb_create_gc(xcb_connection_t *connection,
+        xcb_gcontext_t cid, xcb_drawable_t drawable,
+        uint32_t value_mask, const void *value_list)
+{
+    xcb_void_cookie_t cookie = {0};
+
+    (void) connection;
+    (void) cid;
+    (void) drawable;
+    (void) value_mask;
+    (void) value_list;
+
+    return cookie;
+}
+
+
+xcb_void_cookie_t xcb_change_gc(xcb_connection_t *connection,
+        xcb_gcontext_t gc, uint32_t value_mask, const void *value_list)
+{
+    xcb_void_cookie_t cookie = {0};
+
+    (void) connection;
+    (void) gc;
+    (void) value_mask;
+    (void) value_list;
+
+    return cookie;
+}
+
+
+xcb_void_cookie_t xcb_free_gc(xcb_connection_t *connection,
+        xcb_gcontext_t gc)
+{
+    xcb_void_cookie_t cookie = {0};
+
+    (void) connection;
+    (void) gc;
+
+    return cookie;
+}
+
+
+xcb_void_cookie_t xcb_poly_fill_rectangle(xcb_connection_t *connection,
+        xcb_drawable_t drawable, xcb_gcontext_t gc,
+        uint32_t rectangles_len, const xcb_rectangle_t *rectangles)
+{
+    xcb_void_cookie_t cookie = {0};
+
+    (void) connection;
+    (void) drawable;
+    (void) gc;
+    (void) rectangles_len;
+    (void) rectangles;
+
+    return cookie;
+}
+
+
+xcb_void_cookie_t xcb_clear_area(xcb_connection_t *connection,
+        uint8_t exposures, xcb_window_t window, int16_t x, int16_t y,
+        uint16_t width, uint16_t height)
+{
+    xcb_void_cookie_t cookie = {0};
+
+    (void) connection;
+    (void) exposures;
+    (void) window;
+    (void) x;
+    (void) y;
+    (void) width;
+    (void) height;
+
+    return cookie;
+}
+
+
 /**
  * @brief Point a zeroed desktop at a zeroed configuration and screen,
  *        with the mesh enabled and the viewport pannable, so that each
@@ -119,6 +315,11 @@ static void s_reset(void)
     s_config.base.viewport.mesh.thickness = 1u;
     s_config.base.viewport.mesh.tone_shift = 20u;
     s_viewport_has_room = true;
+    s_xlog_count = 0u;
+    s_next_id = 0u;
+    viewport_mesh_cache_invalidate();
+    viewport_mesh_cache_release_retired((xcb_connection_t *) 1);
+    s_xlog_count = 0u;
 }
 
 
@@ -258,14 +459,80 @@ static void s_test_is_visible_conditions(void)
 }
 
 
+/* Building a replacement tile never frees the one the root is still
+ * naming: the root goes on naming it until 'viewport_mesh_render'
+ * installs the new one, so a free before that would leave the
+ * attribute pointing at a pixmap the server no longer has */
+static void s_test_render_frees_only_after_installing(void)
+{
+    xcb_connection_t *const connection = (xcb_connection_t *) 1;
+
+    s_reset();
+    s_desktop.background.bg.color = 0x202020u;
+
+    TAP_EQ_INT(viewport_mesh_render(connection, &s_desktop), 0,
+            "the first render builds and installs a tile");
+
+    /* A pan: same everything but the origin, so the tile is rebuilt */
+    s_desktop.viewport_origin.x = 32;
+    TAP_EQ_INT(viewport_mesh_render(connection, &s_desktop), 0,
+            "and a pan rebuilds it");
+
+    TAP_OK(!s_xlog_frees_named_pixmap(),
+            "no tile is ever freed while the root still names it");
+    TAP_EQ_INT((int) s_xlog[s_xlog_count - 1u],
+            (int) S_XREQ_FREE_PIXMAP,
+            "the old tile is released last of all, once the new one"
+            " is installed");
+}
+
+
+/* Invalidating the cache alone frees nothing, since the root is still
+ * naming whatever was cached; the release that follows a change of
+ * attribute is what frees it */
+static void s_test_invalidate_defers_the_free(void)
+{
+    xcb_connection_t *const connection = (xcb_connection_t *) 1;
+    uint32_t frees = 0u;
+
+    s_reset();
+    s_desktop.background.bg.color = 0x202020u;
+    (void) viewport_mesh_render(connection, &s_desktop);
+
+    s_xlog_count = 0u;
+    viewport_mesh_cache_invalidate();
+    for (uint32_t i = 0u; i < s_xlog_count; ++i) {
+        if (s_xlog[i] == S_XREQ_FREE_PIXMAP) {
+            frees++;
+        }
+    }
+    TAP_EQ_INT((int) frees, 0,
+            "invalidating on its own frees nothing");
+
+    viewport_mesh_cache_release_retired(connection);
+    frees = 0u;
+    for (uint32_t i = 0u; i < s_xlog_count; ++i) {
+        if (s_xlog[i] == S_XREQ_FREE_PIXMAP) {
+            frees++;
+        }
+    }
+    TAP_EQ_INT((int) frees, 1,
+            "and the release that follows frees the one tile there"
+            " was");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(20);
+    TAP_PLAN(26);
 
     s_test_color_shifts_away_from_background();
     s_test_color_threshold_uses_luma();
     s_test_tile_origin_folds_into_range();
     s_test_is_visible_conditions();
+
+    s_test_render_frees_only_after_installing();
+    s_test_invalidate_defers_the_free();
 
     return TAP_DONE();
 }

@@ -858,6 +858,8 @@ void handler_configure_notify(xcb_connection_t *connection,
         if (is_frame) {
             bool geom_changed;
             bool size_changed;
+            bool in_sync;
+            bool is_stale_echo;
             bool is_focused = (desktop != NULL) &&
                 (desktop->client_active_id == client->id);
 
@@ -914,24 +916,40 @@ void handler_configure_notify(xcb_connection_t *connection,
                 client->layout.geometry.cur.dim.h !=
                     (uint32_t) event->height;
 
-            /* The position is believed only when it confirms what
-             * the manager last asked for.  Every configure it issues
-             * comes back as an echo, and during a burst, a viewport
-             * pan drag above all, the echo of an earlier request
-             * routinely lands after a later one was already sent.
-             * Taking that stale position would leave the stored
-             * geometry a step behind, and a pan, which adds its delta
-             * to whatever is stored, would carry the error forward
-             * for good instead of correcting it on the next step.
+            /* Every configure the manager issues comes back as an
+             * echo, and during a burst, a viewport pan drag above
+             * all, the echo of an earlier request routinely lands
+             * after a later one was already sent.  Taking that stale
+             * position would leave the stored geometry a step behind,
+             * and a pan, which adds its delta to whatever is stored,
+             * would carry the error forward for good rather than
+             * correct it on the next step.
+             *
+             * So a position that contradicts the last one asked for
+             * is refused, but only while the stored geometry still
+             * agrees with that request.  That second condition is
+             * what makes this safe to leave in place: any path that
+             * moves the window by writing 'geometry.cur' and
+             * configuring the server itself, without going through
+             * 'ccmd_client_apply_geometry' or the render pass (the
+             * '_NET_MOVERESIZE_WINDOW' and 'ConfigureRequest'
+             * handlers both do), leaves the two disagreeing, and the
+             * refusal simply does not engage for it.  A client never
+             * placed yet has nothing to compare against either.
+             *
              * The size is taken either way: it is the client's own to
              * ask for, and no burst of the manager's own makes it
-             * stale.  A client never placed yet has nothing to
-             * confirm against and is taken as it comes. */
-            if (!client->layout.has_requested_pos ||
-                    (client->layout.requested_pos.x ==
-                        (int32_t) event->x &&
-                     client->layout.requested_pos.y ==
-                        (int32_t) event->y)) {
+             * stale. */
+            in_sync = client->layout.has_requested_pos &&
+                client->layout.geometry.cur.pos.x ==
+                    client->layout.requested_pos.x &&
+                client->layout.geometry.cur.pos.y ==
+                    client->layout.requested_pos.y;
+            is_stale_echo = in_sync &&
+                (client->layout.requested_pos.x != (int32_t) event->x ||
+                 client->layout.requested_pos.y != (int32_t) event->y);
+
+            if (!is_stale_echo) {
                 client->layout.geometry.cur.pos.x = event->x;
                 client->layout.geometry.cur.pos.y = event->y;
             } else {

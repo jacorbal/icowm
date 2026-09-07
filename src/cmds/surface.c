@@ -26,6 +26,7 @@
 #include <lookup.h>
 #include <scratchpad.h>
 #include <surface.h>
+#include <wm.h>
 
 /* Utils includes */
 #include <utils/xcb/connection.h>
@@ -907,6 +908,16 @@ bool scmd_surface_viewport_client_page(const surface_td *surface,
         return false;
     }
 
+    /* A sticky client belongs to no one page: it is excluded from the
+     * pan translation ('s_viewport_translate_visit' above), so its
+     * stored position is where it sits on screen rather than a point
+     * on the canvas, and it is in view from every origin.  Answering
+     * with the page its corner happens to land on would have callers
+     * send the user somewhere for a window already in front of them. */
+    if (client_is_sticky(client)) {
+        return false;
+    }
+
     canvas_pos.x = client->layout.geometry.cur.pos.x +
         desktop->viewport_origin.x;
     canvas_pos.y = client->layout.geometry.cur.pos.y +
@@ -979,6 +990,23 @@ void scmd_surface_viewport_center_on_client(surface_td *surface,
         return;
     }
 
+    /* Every calculation below reads 'client' position against this
+     * desktop's own viewport origin, which only means anything for a
+     * client that is on this desktop.  A client belonging to another
+     * one has its position expressed against that desktop's origin
+     * instead, so the arithmetic would pan somewhere arbitrary and,
+     * worse, the clamp just below would write a corrected position
+     * back onto a window this desktop has no business moving.
+     *
+     * Callers that switch desktops before asking, the search box and
+     * the cycle menu among them, satisfy this by construction.
+     * 'focus_apply' (policy/focus.c) does not: the window list and
+     * the '_NET_ACTIVE_WINDOW' handler both reach it with a client
+     * that may still be elsewhere. */
+    if (wm_get_client_desktop(client) != desktop) {
+        return;
+    }
+
     /* See this function's own doc comment on
      * 's_viewport_clamp_client_to_canvas': guarantees 'client' is
      * reachable by panning at all before the centering math below
@@ -1010,6 +1038,14 @@ void scmd_surface_viewport_center_on_client(surface_td *surface,
      * asked about.  The page a window belongs to is where its own
      * corner falls, the same rule "Send to page" and the per-page
      * rearrange use. */
+    /* A sticky client is on screen from every origin, so there is
+     * never anywhere to pan to for it.  Asked separately because the
+     * page lookup below now reports no page at all for one, and a
+     * missing page must not read as "somewhere else". */
+    if (client_is_sticky(client)) {
+        return;
+    }
+
     if (scmd_surface_viewport_client_page(surface, desktop, client,
                 &client_col, &client_row) &&
             scmd_surface_viewport_desktop_page(surface, desktop,

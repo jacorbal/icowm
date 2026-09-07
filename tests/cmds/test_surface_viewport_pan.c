@@ -201,6 +201,25 @@ desktop_td *lookup_current_desktop(surface_td *surface)
 }
 
 
+/** Desktop the stand-in below reports a client as belonging to, so
+ *  that a scenario can present one that is on another; left pointing
+ *  at the current desktop by @a s_reset, which is what every scenario
+ *  but that one wants */
+static desktop_td *s_client_desktop;
+
+/**
+ * @brief Test-controlled stand-in for @a wm_get_client_desktop
+ *
+ * @note Complexity: @e O(1)
+ */
+desktop_td *wm_get_client_desktop(const client_td *client)
+{
+    (void) client;
+
+    return s_client_desktop;
+}
+
+
 /** Fixed window every scenario's 'ccmd_target_win' stand-in answers
  *  with, and the call count and last-seen client pointer, all reset
  *  by 's_reset' */
@@ -299,6 +318,7 @@ void scratchpad_notice_viewport_panned(const desktop_td *desktop)
 static void s_reset(void)
 {
     s_stub_desktop = NULL;
+    s_client_desktop = NULL;
     s_call_lookup = 0;
     s_call_target_win = 0;
     s_last_target_win_client = NULL;
@@ -400,6 +420,7 @@ static void s_test_pan_no_config_falls_back_to_1x1(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_east(surface);
     TAP_EQ_INT(s_call_stacking_walk, 0,
@@ -430,6 +451,7 @@ static void s_test_pan_id_past_max_screens_falls_back_to_1x1(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_east(surface);
     TAP_EQ_INT(s_call_stacking_walk, 0,
@@ -464,6 +486,7 @@ static void s_test_pan_east_moves_and_translates_clients(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
     s_stub_clients = clients;
     s_stub_client_count = 2u;
 
@@ -524,6 +547,7 @@ static void s_test_pan_east_notifies_scratchpad_of_real_pan(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_east(surface);
     TAP_EQ_INT(s_call_scratchpad_panned, 1,
@@ -560,6 +584,7 @@ static void s_test_pan_east_skips_drag_excluded_client(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
     s_stub_clients = clients;
     s_stub_client_count = 2u;
 
@@ -613,6 +638,7 @@ static void s_test_pan_east_also_translates_mapped_icon(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
     s_stub_clients = clients;
     s_stub_client_count = 1u;
 
@@ -667,6 +693,7 @@ static void s_test_pan_east_twice_keeps_translating_negative_icon(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
     s_stub_clients = clients;
     s_stub_client_count = 1u;
 
@@ -715,6 +742,7 @@ static void s_test_pan_east_leaves_icon_when_pan_icons_off(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
     s_stub_clients = clients;
     s_stub_client_count = 1u;
 
@@ -746,6 +774,7 @@ static void s_test_pan_east_clamped_at_edge_is_noop(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_east(surface);
     TAP_EQ_INT(desktop->viewport_origin.x, 800,
@@ -779,6 +808,7 @@ static void s_test_pan_west_moves_origin_back(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_west(surface);
     TAP_EQ_INT(desktop->viewport_origin.x, 0,
@@ -807,6 +837,7 @@ static void s_test_pan_west_clamped_at_zero_is_noop(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_west(surface);
     TAP_EQ_INT(desktop->viewport_origin.x, 0,
@@ -834,6 +865,7 @@ static void s_test_pan_south_moves_vertical_origin(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_south(surface);
     TAP_EQ_INT(desktop->viewport_origin.y, 600,
@@ -863,6 +895,7 @@ static void s_test_pan_north_moves_vertical_origin_back(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_north(surface);
     TAP_EQ_INT(desktop->viewport_origin.y, 0,
@@ -892,6 +925,7 @@ static void s_test_pan_step_east_moves_by_pan_step_pixels(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_step(surface, COMPASS_EAST);
     TAP_EQ_INT(desktop->viewport_origin.x, 15,
@@ -922,6 +956,7 @@ static void s_test_pan_step_clamped_at_edge_is_noop(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_pan_step(surface, COMPASS_EAST);
     TAP_EQ_INT(desktop->viewport_origin.x, 800,
@@ -980,6 +1015,7 @@ static void s_test_set_moves_to_absolute_origin(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
     s_stub_clients = clients;
     s_stub_client_count = 1u;
 
@@ -1042,6 +1078,7 @@ static void s_test_goto_moves_to_correct_page(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     /* Page 4 (zero-based), 3 columns wide: row 1, column 1 */
     scmd_surface_viewport_goto(surface, 4u);
@@ -1076,6 +1113,7 @@ static void s_test_goto_out_of_range_page_is_noop(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_goto(surface, 4u);
 
@@ -1107,6 +1145,7 @@ static void s_test_set_clamps_and_noops_at_same_origin(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_set(surface, 5000, -5000);
     TAP_EQ_INT(desktop->viewport_origin.x, 800,
@@ -1117,6 +1156,7 @@ static void s_test_set_clamps_and_noops_at_same_origin(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
     surface->is_outdated = false;
 
     scmd_surface_viewport_set(surface, 800, 0);
@@ -1153,6 +1193,7 @@ static void s_test_center_on_client_within_canvas_is_not_clamped(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_center_on_client(surface, client);
     TAP_EQ_INT(client->layout.geometry.cur.pos.x, 1600,
@@ -1193,6 +1234,7 @@ static void s_test_center_on_client_from_panned_origin(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_center_on_client(surface, client);
     TAP_EQ_INT(client->layout.geometry.cur.pos.x, -800,
@@ -1239,6 +1281,7 @@ static void s_test_center_on_client_touching_page_edge(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_center_on_client(surface, client);
     /* 341 is the frame's own height, content plus titlebar plus
@@ -1253,6 +1296,116 @@ static void s_test_center_on_client_touching_page_edge(void)
 
     free(surface);
     free(desktop);
+    free(client);
+}
+
+
+/* A sticky client belongs to no page at all: it is excluded from the
+ * pan translation, so its stored position is where it sits on screen
+ * rather than a point on the canvas, and it is in view from every
+ * origin.  Reporting the page its corner lands on would have callers
+ * send the user somewhere for a window already in front of them */
+static void s_test_sticky_client_belongs_to_no_page(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(1920u, 1080u, 1920, 0);
+    client_td *sticky = s_make_client(100, 100, true);
+    client_td *plain = s_make_client(100, 100, false);
+    uint32_t col = 9u;
+    uint32_t row = 9u;
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 2u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+    s_client_desktop = desktop;
+
+    TAP_OK(!scmd_surface_viewport_client_page(surface, desktop, sticky,
+                &col, &row),
+            "a sticky client is reported as belonging to no page");
+    TAP_OK(col == 9u && row == 9u,
+            "and neither output is touched");
+
+    TAP_OK(scmd_surface_viewport_client_page(surface, desktop, plain,
+                &col, &row),
+            "while a plain client in the very same spot does report"
+            " one");
+
+    free(surface);
+    free(desktop);
+    free(sticky);
+    free(plain);
+}
+
+
+/* And centring never pans for one, since there is nowhere it could be
+ * brought into view from */
+static void s_test_center_on_sticky_never_pans(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(1920u, 1080u, 1920, 0);
+    client_td *sticky = s_make_client(100, 100, true);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 2u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+    s_client_desktop = desktop;
+
+    scmd_surface_viewport_center_on_client(surface, sticky);
+
+    TAP_EQ_INT((int) desktop->viewport_origin.x, 1920,
+            "centring on a sticky client leaves the origin exactly"
+            " where it was");
+
+    free(surface);
+    free(desktop);
+    free(sticky);
+}
+
+
+/* Centring reads a client's position against the current desktop's
+ * own viewport origin, which means nothing for a client belonging to
+ * another desktop: the pan would land somewhere arbitrary and the
+ * clamp would write a corrected position onto a window this desktop
+ * has no business moving.  'focus_apply' reaches here with exactly
+ * such a client from the window list and the '_NET_ACTIVE_WINDOW'
+ * handler, neither of which switches desktops first */
+static void s_test_center_on_client_of_another_desktop(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(1920u, 1080u, 1920, 0);
+    desktop_td *elsewhere = s_make_desktop(1920u, 1080u, 0, 0);
+    client_td *client = s_make_client(-4000, 100, false);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 2u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    s_stub_desktop = desktop;
+    s_client_desktop = elsewhere;
+
+    scmd_surface_viewport_center_on_client(surface, client);
+
+    TAP_EQ_INT((int) desktop->viewport_origin.x, 1920,
+            "a client on another desktop never pans this one");
+    TAP_EQ_INT((int) client->layout.geometry.cur.pos.x, -4000,
+            "and its position is left untouched, clamp included");
+
+    free(surface);
+    free(desktop);
+    free(elsewhere);
     free(client);
 }
 
@@ -1276,6 +1429,7 @@ static void s_test_page_lookup_on_zero_geometry(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     TAP_OK(scmd_surface_viewport_client_page(surface, desktop, client,
                 &col, &row),
@@ -1310,6 +1464,7 @@ static void s_test_center_on_client_outside_canvas_is_clamped(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_center_on_client(surface, client);
     TAP_OK(client->layout.geometry.cur.pos.x >= 0 &&
@@ -1356,6 +1511,7 @@ static void s_test_center_on_client_already_visible_is_noop(void)
 
     s_reset();
     s_stub_desktop = desktop;
+    s_client_desktop = desktop;
 
     scmd_surface_viewport_center_on_client(surface, client);
     TAP_EQ_INT(desktop->viewport_origin.x, 0,
@@ -1372,7 +1528,7 @@ static void s_test_center_on_client_already_visible_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(84);
+    TAP_PLAN(90);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
@@ -1400,6 +1556,9 @@ int main(void)
     s_test_center_on_client_within_canvas_is_not_clamped();
     s_test_center_on_client_from_panned_origin();
     s_test_center_on_client_touching_page_edge();
+    s_test_center_on_client_of_another_desktop();
+    s_test_sticky_client_belongs_to_no_page();
+    s_test_center_on_sticky_never_pans();
     s_test_page_lookup_on_zero_geometry();
     s_test_center_on_client_outside_canvas_is_clamped();
     s_test_center_on_client_already_visible_is_noop();

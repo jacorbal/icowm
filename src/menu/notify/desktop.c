@@ -53,7 +53,13 @@ void notify_desktop_show(xcb_connection_t *connection,
         const char *desktop_name,
         enum notify_desktop_cause_e cause, const config_td *cfg)
 {
-    char text[WM_DESKTOP_MAX_LENGTH_NAME + 64];
+    /* The name, plus every fixed part that can be appended to it,
+     * each sized for a 'uint32_t' spelled out in full: the base
+     * message, the ' {column, row}' page suffix and the
+     * ' (on surface n)' one.  Sized rather than trimmed because a
+     * truncation here would cut a coordinate in half and leave the
+     * notice naming a page that does not exist. */
+    char text[WM_DESKTOP_MAX_LENGTH_NAME + 96];
     desktop_td *desktop;
     uint32_t vp_col;
     uint32_t vp_row;
@@ -116,7 +122,7 @@ void notify_desktop_show(xcb_connection_t *connection,
     }
 
     if (has_page) {
-        char vp_buf[24];
+        char vp_buf[32];
 
         (void) snprintf(vp_buf, sizeof(vp_buf),
                 _(STR_PAGE_SUFFIX_FMT), vp_col, vp_row);

@@ -200,6 +200,127 @@ static void s_desktop_transients_raise(desktop_td *desktop,
 }
 
 
+/**
+ * @brief Announce a fresh attention request the user cannot see
+ *
+ * Raised on a genuinely new request only: a desktop that was already
+ * urgent stays quiet unless the request has moved to a different
+ * viewport page, which @p is_urgent alone cannot tell apart from the
+ * one already known.
+ *
+ * What the notice names is what the user would still have to do to
+ * reach the window.  A different desktop is named; a page other than
+ * the one that desktop is panned to is named; both are named when
+ * both differ, since switching desktops alone would land on the page
+ * that desktop was left on and the window would still be off screen.
+ * Neither differing means the window is on screen already, with its
+ * own titlebar blink (@c policy/urgency.c), and a dialog would only
+ * repeat what is in front of the user.
+ *
+ * @param desktop      Desktop just recomputed
+ * @param surface      Surface owning it, or @c NULL
+ * @param was_urgent   Whether it held an urgent client before
+ * @param had_page     Whether @p was_page holds a page at all
+ * @param was_page     Page the previous request sat on
+ * @param is_urgent    Whether it holds one now
+ * @param has_page     Whether @p page holds a page at all
+ * @param page         Page the current request sits on
+ *
+ * @note Complexity: @e O(n), where @e n is the number of surfaces
+ */
+static void s_notify_urgency(const desktop_td *desktop,
+        surface_td *surface, bool was_urgent, bool had_page,
+        struct position_s was_page, bool is_urgent, bool has_page,
+        struct position_s page)
+{
+    const config_td *config = wm_get_config();
+    const list_td *surfaces;
+    uint32_t surface_count;
+    uint32_t shown_col;
+    uint32_t shown_row;
+    /* The name, plus every fixed part that can be appended to it,
+     * each sized for a 'uint32_t' spelled out in full: the base
+     * message, the ' {column, row}' page suffix and the
+     * ' (on surface n)' one.  Sized rather than trimmed because a
+     * truncation here would cut a coordinate in half and leave the
+     * notice naming a page that does not exist. */
+    char text[WM_DESKTOP_MAX_LENGTH_NAME + 96];
+    size_t used;
+    bool other_desktop;
+    bool other_page;
+    bool is_fresh;
+
+    if (!is_urgent || surface == NULL || config == NULL ||
+            !config->base.urgency.notify_activity ||
+            menu_message_dialog_is_open()) {
+        return;
+    }
+
+    is_fresh = !was_urgent || (has_page && (!had_page ||
+                page.x != was_page.x || page.y != was_page.y));
+    if (!is_fresh) {
+        return;
+    }
+
+    other_desktop = (desktop->id != surface->desktop_cur);
+    other_page = has_page &&
+        scmd_surface_viewport_desktop_page(surface, desktop,
+                &shown_col, &shown_row) &&
+        (page.x != (int32_t) shown_col || page.y != (int32_t) shown_row);
+
+    if (!other_desktop && !other_page) {
+        return;
+    }
+
+    /* With only the page to report, the desktop names nothing: it is
+     * the one already on screen */
+    if (!other_desktop) {
+        (void) snprintf(text, sizeof(text), _(STR_PAGE_ACTIVITY_FMT),
+                (unsigned int) page.x, (unsigned int) page.y);
+        menu_message_dialog_show(xcb_connection_get(), surface, config,
+                text, MENU_MSG_LEVEL_INFO);
+        return;
+    }
+
+    (void) snprintf(text, sizeof(text),
+            _(STR_DESKTOP_ACTIVITY_UNNAMED_FMT),
+            (unsigned int) desktop->id);
+
+    if (desktop->name[0] != '\0') {
+        used = safe_strlen(text);
+        if (used < sizeof(text)) {
+            (void) snprintf(text + used, sizeof(text) - used,
+                    _(STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT),
+                    desktop->name);
+        }
+    }
+
+    if (other_page) {
+        used = safe_strlen(text);
+        if (used < sizeof(text)) {
+            (void) snprintf(text + used, sizeof(text) - used,
+                    _(STR_PAGE_SUFFIX_FMT),
+                    (unsigned int) page.x, (unsigned int) page.y);
+        }
+    }
+
+    surfaces = wm_get_surfaces();
+    surface_count = (surfaces != NULL)
+        ? (uint32_t) list_size(surfaces) : 0u;
+    if (surface_count > 1u) {
+        used = safe_strlen(text);
+        if (used < sizeof(text)) {
+            (void) snprintf(text + used, sizeof(text) - used,
+                    _(STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT),
+                    (unsigned int) surface->id);
+        }
+    }
+
+    menu_message_dialog_show(xcb_connection_get(), surface, config,
+            text, MENU_MSG_LEVEL_INFO);
+}
+
+
 /* Add a previously allocated client in the desktop */
 int desktop_action_client_add(desktop_td *desktop, client_td *client)
 {
@@ -369,121 +490,6 @@ int desktop_action_client_move(desktop_td *from, desktop_td *to,
     client->desktop_id = to->id;
 
     return 0;
-}
-
-
-/**
- * @brief Announce a fresh attention request the user cannot see
- *
- * Raised on a genuinely new request only: a desktop that was already
- * urgent stays quiet unless the request has moved to a different
- * viewport page, which @p is_urgent alone cannot tell apart from the
- * one already known.
- *
- * What the notice names is what the user would still have to do to
- * reach the window.  A different desktop is named; a page other than
- * the one that desktop is panned to is named; both are named when
- * both differ, since switching desktops alone would land on the page
- * that desktop was left on and the window would still be off screen.
- * Neither differing means the window is on screen already, with its
- * own titlebar blink (@c policy/urgency.c), and a dialog would only
- * repeat what is in front of the user.
- *
- * @param desktop      Desktop just recomputed
- * @param surface      Surface owning it, or @c NULL
- * @param was_urgent   Whether it held an urgent client before
- * @param had_page     Whether @p was_page holds a page at all
- * @param was_page     Page the previous request sat on
- * @param is_urgent    Whether it holds one now
- * @param has_page     Whether @p page holds a page at all
- * @param page         Page the current request sits on
- *
- * @note Complexity: @e O(n), where @e n is the number of surfaces
- */
-static void s_notify_urgency(const desktop_td *desktop,
-        surface_td *surface, bool was_urgent, bool had_page,
-        struct position_s was_page, bool is_urgent, bool has_page,
-        struct position_s page)
-{
-    const config_td *config = wm_get_config();
-    const list_td *surfaces;
-    uint32_t surface_count;
-    uint32_t shown_col;
-    uint32_t shown_row;
-    char text[WM_DESKTOP_MAX_LENGTH_NAME + 64];
-    size_t used;
-    bool other_desktop;
-    bool other_page;
-    bool is_fresh;
-
-    if (!is_urgent || surface == NULL || config == NULL ||
-            !config->base.urgency.notify_activity ||
-            menu_message_dialog_is_open()) {
-        return;
-    }
-
-    is_fresh = !was_urgent || (has_page && (!had_page ||
-                page.x != was_page.x || page.y != was_page.y));
-    if (!is_fresh) {
-        return;
-    }
-
-    other_desktop = (desktop->id != surface->desktop_cur);
-    other_page = has_page &&
-        scmd_surface_viewport_desktop_page(surface, desktop,
-                &shown_col, &shown_row) &&
-        (page.x != (int32_t) shown_col || page.y != (int32_t) shown_row);
-
-    if (!other_desktop && !other_page) {
-        return;
-    }
-
-    /* With only the page to report, the desktop names nothing: it is
-     * the one already on screen */
-    if (!other_desktop) {
-        (void) snprintf(text, sizeof(text), _(STR_PAGE_ACTIVITY_FMT),
-                (unsigned int) page.x, (unsigned int) page.y);
-        menu_message_dialog_show(xcb_connection_get(), surface, config,
-                text, MENU_MSG_LEVEL_INFO);
-        return;
-    }
-
-    (void) snprintf(text, sizeof(text),
-            _(STR_DESKTOP_ACTIVITY_UNNAMED_FMT),
-            (unsigned int) desktop->id);
-
-    if (desktop->name[0] != '\0') {
-        used = safe_strlen(text);
-        if (used < sizeof(text)) {
-            (void) snprintf(text + used, sizeof(text) - used,
-                    _(STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT),
-                    desktop->name);
-        }
-    }
-
-    if (other_page) {
-        used = safe_strlen(text);
-        if (used < sizeof(text)) {
-            (void) snprintf(text + used, sizeof(text) - used,
-                    _(STR_PAGE_SUFFIX_FMT),
-                    (unsigned int) page.x, (unsigned int) page.y);
-        }
-    }
-
-    surfaces = wm_get_surfaces();
-    surface_count = (surfaces != NULL)
-        ? (uint32_t) list_size(surfaces) : 0u;
-    if (surface_count > 1u) {
-        used = safe_strlen(text);
-        if (used < sizeof(text)) {
-            (void) snprintf(text + used, sizeof(text) - used,
-                    _(STR_DESKTOP_ACTIVITY_SURFACE_SUFFIX_FMT),
-                    (unsigned int) surface->id);
-        }
-    }
-
-    menu_message_dialog_show(xcb_connection_get(), surface, config,
-            text, MENU_MSG_LEVEL_INFO);
 }
 
 

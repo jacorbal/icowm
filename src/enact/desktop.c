@@ -286,11 +286,12 @@ static void s_desktop_rearrange_visit(client_td *client, void *data)
      * workarea, which is only ever the page currently panned to, so
      * rearranging without this check would haul every window on the
      * whole canvas onto that one page and there would be no way to
-     * put them back.  A sticky client reports the current page from
-     * wherever it sits, since it is on screen from every origin, and
-     * so is rearranged along with the rest.  Both page lookups report
-     * false on a 1x1 viewport, where the question does not arise and
-     * every client on the desktop is rearranged as before. */
+     * put them back.  A sticky client is reported as belonging to no
+     * page at all, since it is on screen from every origin, so it
+     * fails this test and is rearranged along with the rest, which is
+     * what it should be.  Both page lookups report false on a 1x1
+     * viewport too, where the question does not arise and every
+     * client on the desktop is rearranged as before. */
     if (scmd_surface_viewport_client_page(rearrange_ctx->surface,
                 rearrange_ctx->desktop, client, &client_col,
                 &client_row) &&

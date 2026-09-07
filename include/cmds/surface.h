@@ -274,9 +274,11 @@ void scmd_surface_viewport_client_send_to_page(surface_td *surface,
  * @param col_out Where the zero-based column is written
  * @param row_out Where the zero-based row is written
  *
- * @retval  true when the viewport has pages to speak of
- * @retval false on a single-page viewport, leaving both outputs
- *               untouched
+ * @retval  true when the viewport has pages and @p client belongs to
+ *               one of them
+ * @retval false on a single-page viewport, and for a sticky client,
+ *               which is on screen from every origin and so belongs
+ *               to no one page; both outputs are left untouched
  *
  * @note Complexity: @e O(1)
  */
@@ -311,14 +313,19 @@ bool scmd_surface_viewport_desktop_page(const surface_td *surface,
  *        not currently visible ends up centered on screen
  *
  * A no-op, leaving the viewport exactly where it already was, when
- * @p client's current on-screen position already intersects the visible
- * page at all: this only ever moves the viewport to bring an
- * otherwise-invisible match into view, never nudges one already at
- * least partly on screen just to perfect its centering.
+ * @p client is already on the page being shown: this only ever moves
+ * the viewport to bring an otherwise-invisible client into view,
+ * never nudges one already on screen just to perfect its centering.
  *
  * @param surface Surface to pan
  * @param client  Client to center the viewport on if not visible
  *
+ * @note A no-op on a sticky client, which is on screen from every
+ *       origin
+ * @note A no-op on a client belonging to any desktop other than the
+ *       one being shown, whose position is expressed against that
+ *       desktop's own viewport origin and means nothing against this
+ *       one's
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the current desktop
  */
