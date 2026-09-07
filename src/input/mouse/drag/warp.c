@@ -42,6 +42,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <enact.h>
+#include <lookup.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -104,6 +105,71 @@ static desktop_td *s_warp_target_desktop(surface_td *surface,
     }
 
     return new_desktop;
+}
+
+
+/**
+ * @brief Put the desktop just warped to on the page the movement was
+ *        heading for, rather than wherever it was last left
+ *
+ * A warp only ever happens once the viewport has no room left to pan
+ * that way, so it is the continuation of a movement across the canvas,
+ * not a plain desktop switch.  Continuing it means entering the new
+ * desktop by the edge opposite the one just left, keeping the other
+ * axis: leaving by the west edge arrives at the easternmost column of
+ * the same row, and so on around.  Landing on whichever page that
+ * desktop happened to be left on would break the movement in two.
+ *
+ * Applied after the switch has settled, so that
+ * @a scmd_surface_viewport_set acts on the desktop that is now
+ * current and translates its own clients along with the origin, which
+ * writing the origin straight into the desktop would not do.
+ *
+ * @param surface   Surface whose current desktop was just changed
+ * @param old_page  Page the desktop just left was showing
+ * @param direction Compass direction the warp went in
+ *
+ * @note A no-op on a viewport with a single page, where there is no
+ *       edge to arrive by
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       the desktop entered
+ */
+static void s_warp_enter_page(surface_td *surface,
+        struct position_s old_page, enum compass_direction_e direction)
+{
+    const desktop_td *desktop;
+    uint32_t columns;
+    uint32_t rows;
+    struct position_s page = old_page;
+
+    surface_viewport_dims(surface, &columns, &rows);
+    if (columns <= 1u && rows <= 1u) {
+        return;
+    }
+
+    desktop = lookup_current_desktop(surface);
+    if (desktop == NULL) {
+        return;
+    }
+
+    switch (direction) {
+    case COMPASS_WEST:
+        page.x = (int32_t) columns - 1;
+        break;
+    case COMPASS_EAST:
+        page.x = 0;
+        break;
+    case COMPASS_NORTH:
+        page.y = (int32_t) rows - 1;
+        break;
+    case COMPASS_SOUTH:
+        page.y = 0;
+        break;
+    }
+
+    scmd_surface_viewport_set(surface,
+            page.x * (int32_t) desktop->geometry.dim.w,
+            page.y * (int32_t) desktop->geometry.dim.h);
 }
 
 
@@ -558,6 +624,8 @@ void drag_warp_tick(xcb_connection_t *connection)
         return;
     }
 
+    struct position_s old_page;
+
     old_desktop_id = surface->desktop_cur;
     old_desktop = surface_desktop_get(surface, old_desktop_id);
     cycle = surface->config->desktops.wrap_at_bounds;
@@ -568,12 +636,29 @@ void drag_warp_tick(xcb_connection_t *connection)
         return;
     }
 
+    /* Read before the switch, since it is the page being left that
+     * says which row or column the movement was travelling along */
+    old_page.x = 0;
+    old_page.y = 0;
+    if (old_desktop != NULL) {
+        uint32_t col;
+        uint32_t row;
+
+        if (scmd_surface_viewport_desktop_page(surface, old_desktop,
+                    &col, &row)) {
+            old_page.x = (int32_t) col;
+            old_page.y = (int32_t) row;
+        }
+    }
+
     s_warp_move_family(old_desktop, new_desktop);
 
     surface->desktop_cur = new_desktop->id;
     surface_clients_hide(surface, old_desktop_id);
     surface_clients_show(surface, new_desktop->id);
     surface->is_outdated = true;
+
+    s_warp_enter_page(surface, old_page, s_drag.warp_direction);
 
     /* Same desktop-switch notification a normal (non-warp) switch
      * shows (see 's_show_desktop_overlay' in cmds/surface.c, whose

@@ -139,6 +139,11 @@ desktop_td *wm_get_client_desktop(const client_td *client)
 }
 
 
+/** Desktop every desktop-returning stand-in in this file answers
+ *  with, @c NULL until a scenario supplies one */
+static desktop_td *s_current_desktop;
+
+
 /**
  * @brief Link-only stand-in for @a surface_desktop_get
  *
@@ -148,7 +153,10 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
     (void) desktop_id;
-    return NULL;
+
+    /* The desktop being left, which the warp reads the page it was
+     * travelling along from; @c NULL until a scenario supplies one */
+    return s_current_desktop;
 }
 
 
@@ -335,6 +343,73 @@ void focus_order_to_top(client_td *client)
  *
  * @note Complexity: @e O(1)
  */
+/** Test-controlled stand-in for @a surface_viewport_dims
+ * @note Complexity: @e O(1) */
+static uint32_t s_viewport_columns = 1u;
+static uint32_t s_viewport_rows = 1u;
+
+void surface_viewport_dims(const surface_td *surface,
+        uint32_t *columns_out, uint32_t *rows_out)
+{
+    (void) surface;
+
+    *columns_out = s_viewport_columns;
+    *rows_out = s_viewport_rows;
+}
+
+
+/** Link-only stand-in for @a lookup_current_desktop, answering the
+ *  same desktop every other stand-in here hands back
+ * @note Complexity: @e O(1) */
+desktop_td *lookup_current_desktop(const surface_td *surface)
+{
+    (void) surface;
+
+    return s_current_desktop;
+}
+
+
+/** Recording stand-in for @a scmd_surface_viewport_set: this file has
+ *  no viewport, so the warp's own "enter by the opposite edge" step
+ *  is observed rather than performed
+ * @note Complexity: @e O(1) */
+static int s_call_viewport_set;
+static int32_t s_last_viewport_x;
+static int32_t s_last_viewport_y;
+
+void scmd_surface_viewport_set(surface_td *surface, int32_t x,
+        int32_t y)
+{
+    (void) surface;
+
+    s_call_viewport_set++;
+    s_last_viewport_x = x;
+    s_last_viewport_y = y;
+}
+
+
+/** Test-controlled stand-in for
+ *  @a scmd_surface_viewport_desktop_page
+ * @note Complexity: @e O(1) */
+static bool s_page_known;
+static uint32_t s_page_col;
+static uint32_t s_page_row;
+
+bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+        const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
+{
+    (void) surface;
+    (void) desktop;
+
+    if (!s_page_known) {
+        return false;
+    }
+    *col_out = s_page_col;
+    *row_out = s_page_row;
+    return true;
+}
+
+
 void notify_desktop_show(xcb_connection_t *connection, surface_td *surface,
         uint32_t desktop_idx, const char *desktop_name,
         enum notify_desktop_cause_e cause, const config_td *config)
@@ -1062,6 +1137,61 @@ static void s_test_tick_full_switch_unlocked_axis_moves(void)
 }
 
 
+/* drag_warp_tick: a warp only happens once the viewport has no room
+ * left that way, so it continues the movement rather than restarting
+ * it: the desktop entered is put on the page opposite the edge just
+ * left, keeping the other axis, instead of wherever it was last */
+static void s_test_tick_full_switch_enters_opposite_page(void)
+{
+    desktop_td desktop;
+
+    s_reset_for_full_east_switch();
+    memset(&desktop, 0, sizeof(desktop));
+    desktop.geometry.dim.w = 1920u;
+    desktop.geometry.dim.h = 1080u;
+    s_current_desktop = &desktop;
+    s_viewport_columns = 3u;
+    s_viewport_rows = 2u;
+    s_page_known = true;
+    s_page_col = 2u;    /* the east edge, which is why it warped */
+    s_page_row = 1u;
+    s_call_viewport_set = 0;
+
+    drag_warp_tick((xcb_connection_t *) (void *) 1);
+
+    TAP_EQ_INT(s_call_viewport_set, 1,
+            "an east warp puts the desktop entered on a page of its"
+            " own exactly once");
+    TAP_EQ_INT(s_last_viewport_x, 0,
+            "leaving by the east edge arrives at column 0, the west"
+            " edge of the new desktop");
+    TAP_EQ_INT(s_last_viewport_y, 1080,
+            "and keeps the row it was travelling along, row 1");
+}
+
+
+/* The same warp on a single-page viewport has no edge to arrive by,
+ * so the desktop entered is left exactly where it was */
+static void s_test_tick_full_switch_single_page_untouched(void)
+{
+    desktop_td desktop;
+
+    s_reset_for_full_east_switch();
+    memset(&desktop, 0, sizeof(desktop));
+    desktop.geometry.dim.w = 1920u;
+    desktop.geometry.dim.h = 1080u;
+    s_current_desktop = &desktop;
+    s_viewport_columns = 1u;
+    s_viewport_rows = 1u;
+    s_call_viewport_set = 0;
+
+    drag_warp_tick((xcb_connection_t *) (void *) 1);
+
+    TAP_EQ_INT(s_call_viewport_set, 0,
+            "a single-page viewport is never repositioned by a warp");
+}
+
+
 /* drag_warp_tick: a full east switch on a horizontally-maximized move
  * drag (X locked) must leave the locked X axis exactly where it was,
  * the same invariant 's_drag_update_move' already enforces on every
@@ -1119,7 +1249,7 @@ static void s_test_tick_full_switch_locked_y_axis_stays_put(void)
 
 int main(void)
 {
-    TAP_PLAN(52);
+    TAP_PLAN(56);
 
     s_test_edge_check_no_client_clears_pending();
     s_test_edge_check_no_surface_is_noop();
@@ -1150,6 +1280,8 @@ int main(void)
     s_test_tick_due_config_disabled_stops_early();
     s_test_tick_due_no_surface_stops_early();
     s_test_tick_full_switch_unlocked_axis_moves();
+    s_test_tick_full_switch_enters_opposite_page();
+    s_test_tick_full_switch_single_page_untouched();
     s_test_tick_full_switch_locked_x_axis_stays_put();
     s_test_tick_full_switch_locked_y_axis_stays_put();
 
