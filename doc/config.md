@@ -485,6 +485,66 @@ a desktop's viewport is exactly the size of the physical screen: nothing
 to pan to, the same as every desktop already behaved before `viewport`
 existed.
 
+A `3` × `2` grid lays its pages out like this, addressed `{column,
+row}` from the top left:
+
+```
+  {0,0} {1,0} {2,0}
+  {0,1} {1,1} {2,1}
+```
+
+Note the two notations side by side.  A desktop is an index in square
+brackets, `[3]`; a viewport page is a pair in braces, `{1, 0}`.  Both
+appear together wherever the manager names a place, as in the overlay's
+`Work: [3 (1, 1)] {1, 0}`: the parenthesised pair there is the
+desktop's own row and column within `layout` above, and the braced one
+is the viewport page.
+
+**The screen is a window onto the canvas.**  Panning moves that window,
+not the desktop underneath it, and the origin is not confined to the
+grid.  `viewport.pan-step` (§2.15) slides it by pixels, while
+`viewport.page` and `viewport.go-to` (`bindings.json`) land on a page
+exactly:
+
+```
+   origin on a page, after a go-to      origin between pages, after
+                                        panning by pixels
+
+   +-------+-------+-------+            +-------+-------+-------+
+   |       |#######|       |            |    ###|####   |       |
+   |       |# seen#|       |            |    # s|een#   |       |
+   |       |#######|       |            |    ###|####   |       |
+   +-------+-------+-------+            +-------+-------+-------+
+   |       |       |       |            |       |       |       |
+   |       |       |       |            |       |       |       |
+   |       |       |       |            |       |       |       |
+   +-------+-------+-------+            +-------+-------+-------+
+```
+
+A view left between pages is reported by whichever page holds its
+middle, so the overlay names the one actually filling the screen rather
+than the sliver its top-left corner happens to fall in.
+
+**A window belongs to one page only.**  Whichever page its own top-left
+corner falls in, whatever else it overlaps:
+
+```
+   +-------+-------+
+   |       |       |     window A is seen on both {0,0} and {1,0}
+   |    +--+--+    |     but belongs to {0,0}, the page its own
+   |    | A|  |    |     top-left corner falls in
+   +----+--+--+----+
+   |    +--+--+    |
+   |       |       |
+   +-------+-------+
+```
+
+A window straddling a boundary, or one larger than a page, would
+otherwise belong to several at once, and the **Send to page** submenu,
+the per-page rearrange and the urgency notice each need a single
+answer.  Sticky windows are the deliberate exception: they are on every
+page at once, which is what the flag is for.
+
 Once the grid holds more than one page, the window menu grows a **Send
 to page** submenu directly below `Send to desktop`, listing every page
 in row-major order as `Page {column, row}`.  The two answer the same
@@ -1295,6 +1355,29 @@ everything here **does** take effect on a configuration reload.
 | `margins.bottom`    | integer | `0`     | Extra space reserved at the bottom, in pixels. |
 | `margins.left`      | integer | `0`     | Extra space reserved on the left, in pixels. |
 
+**Where an edge warp lands.**  A warp only fires once the viewport has
+no room left to pan that way, so it continues the movement across the
+canvas rather than restarting it: the desktop entered is put on the
+page opposite the edge just left, keeping the other axis.  Leaving
+desktop `0` by its east edge from page `{2, 1}` enters desktop `1` at
+`{0, 1}`, not wherever that desktop was last left:
+
+```
+          desktop 0                       desktop 1
+   +-------+-------+-------+       +-------+-------+-------+
+   |       |       |       |       |       |       |       |
+   +-------+-------+-------+  -->  +-------+-------+-------+
+   |       |       |#######|       |#######|       |       |
+   +-------+-------+-------+       +-------+-------+-------+
+                     {2,1}          {0,1}
+```
+
+Leaving by the west edge arrives at the easternmost column instead, by
+the north edge at the bottom row, and by the south edge at the top row,
+each keeping the other coordinate.  On a single-page viewport there is
+no edge to arrive by and the desktop entered is left exactly where it
+was.
+
 `margins` adds on top of whatever space a client already reserves for
 itself via `_NET_WM_STRUT`/`_NET_WM_STRUT_PARTIAL` (a panel or dock,
 say) rather than overriding it: the two are meant to coexist, not
@@ -1616,7 +1699,7 @@ a modifier uses one of these aliases.
 | `modl` | `Caps_Lock`     | Caps Lock                       |
 | `mod1` | `Alt`           | Alt / Meta key                  |
 | `mod2` | `Num_Lock`      | Num Lock                        |
-| `mod3` | `""`            | *Unassigned* (empty by default) |
+| `mod3` | `""`            | *unassigned* (empty by default) |
 | `mod4` | `Super`         | Super / Windows key             |
 | `mod5` | `Hyper`         | Hyper key                       |
 
@@ -1738,7 +1821,7 @@ westmost one still on the same row?), so no attempt is made to invent
 one.  A no-op on a surface with one monitor or none, or when no monitor
 lies in that direction at all.
 
-| Key     | Default binding           |
+| Key     | Default binding            |
 |---------|----------------------------|
 | `north` | `modc+mod1+mod4+mods+Up`   |
 | `south` | `modc+mod1+mod4+mods+Down` |
