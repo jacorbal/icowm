@@ -33,19 +33,19 @@ Basic features are:
     as defined within `bindings.json`.
 
   - **Virtual desktops.**
-    The organization of open applications into discrete workspaces, so
-    as to minimize visual clutter; each screen may be furnished with its
-    independent set of virtual desktops.  These may, optionally, be
-    arranged as a two-dimensional grid rather than a flat list, with
-    a configurable orientation and starting corner, so that navigation,
-    the search box, and the desktop-change notification may address
-    a desktop by row and column, moving north, south, east, or west,
-    rather than by index alone.  Independently of that grid, any single
-    desktop's own area may likewise be configured as a virtual canvas
-    wider and taller than the physical screen, panned into view a piece
-    at a time by a mouse drag upon the desktop's background or by
-    dedicated keyboard shortcuts, whether a window is being dragged
-    along with it or not.
+    Discrete worksapces that may, optionally, be arranged as
+    a two-dimensional grid rather than a flat list, with a configurable
+    orientation and starting corner, so that navigation, the search box,
+    and the desktop-change notification may address a desktop by row and
+    column, moving north, south, east, or west, rather than by index
+    alone.
+
+  - **Viewport.**
+    A desktop may be given an area larger than the screen, divided into
+    pages of which one is shown at a time.  The view is moved by
+    dragging the desktop's background, by keyboard shortcut, or by
+    dragging a window against a screen edge.  A window belongs to the
+    page its top-left corner falls in, and may be sent to another.
 
   - **Configurable focus policies.**
     Both click-to-focus (`"click"`) and follow-mouse (`"sloppy"`)
@@ -64,11 +64,6 @@ Basic features are:
     Windows snap, during interactive movement, to the edges of the
     screen and to the borders of other windows alike, governed by
     a configurable snap threshold.
-
-  - **Fullscreen support.**
-    Windows may be toggled into and out of fullscreen mode at will, with
-    the corresponding `_NET_WM_STATE_FULLSCREEN` EWMH state properly
-    advertised and maintained throughout.
 
   - **Theming.**
     The visual appearance of the environment, namely colors, border
