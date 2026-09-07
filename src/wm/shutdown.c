@@ -17,6 +17,7 @@
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>     /* malloc, free */
 #include <time.h>       /* clock_gettime, struct timespec */
 
 /* XCB includes */
@@ -54,32 +55,75 @@ static struct timespec s_shutdown_deadline;
 
 
 /**
- * @brief Bring one client to the desktop and viewport page the user
- *        is looking at, so that anything it says on the way out is
- *        said in front of them
- *
- * Each axis is handled on its own, because being everywhere on one
- * says nothing about the other: a pinned client is already on every
- * desktop but may sit on a page that is not the one shown, and a
- * sticky one is on every page but may belong to another desktop.
- *
- * Nothing about placement changes.  A dialog a closing application
- * puts up is still centered over its parent, ICCCM §4.1.2.6 as
- * before; it is the parent that has been brought here, so the dialog
- * lands in view without the placement policy needing a special case
- * for it.
- *
- * @param client Client to bring over
- *
- * @note Only ever acts within the surface currently being looked at;
- *       a client on another surface is left where it is
- * @note Complexity: @e O(n), where @e n is the size of the client's
- *       transient family
+ * @brief What @a s_shutdown_gather_collect is filling in
  */
-static void s_shutdown_gather_visit(client_td *client, void *userdata)
+struct s_gather_ctx_s {
+    client_td **clients;    /**< Room for @p capacity pointers */
+    uint32_t capacity;      /**< How many @p clients can hold */
+    uint32_t count;         /**< How many it holds so far */
+};
+
+
+/**
+ * @brief Record one client, rather than acting on it there and then
+ *
+ * @a wm_for_each_client walks each desktop's own client table live, and
+ * bringing a client over moves it from one of those tables to another,
+ * which would reorder the very table being walked underneath it: with
+ * open addressing that skips entries and revisits others, so some
+ * clients would never be asked to close and the shutdown would sit out
+ * its whole timeout waiting for them.  The pointers are collected first
+ * and acted on afterwards, once the walk is over.
+ *
+ * @param client   Client to record
+ * @param userdata The @c s_gather_ctx_s being filled
+ *
+ * @note Silently drops anything past @p capacity, which cannot happen
+ *       while the caller sizes the array from the same walk
+ * @note Complexity: @e O(1)
+ */
+static void s_shutdown_gather_collect(client_td *client, void *userdata)
+{
+    struct s_gather_ctx_s *const ctx = userdata;
+
+    if (ctx == NULL || client == NULL || ctx->count >= ctx->capacity) {
+        return;
+    }
+
+    ctx->clients[ctx->count] = client;
+    ctx->count++;
+}
+
+
+/**
+ * @brief Adapts @c ccmd_client_close to @c wm_for_each_client's
+ *        action signature
+ *
+ * @param client   Client to close
+ * @param userdata Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_shutdown_close_client(client_td *client, void *userdata)
 {
     (void) userdata;
-    wm_shutdown_gather_client(client);
+    ccmd_client_close(client);
+}
+
+
+/**
+ * @brief Adapts @c ccmd_client_kill to @c wm_for_each_client's
+ *        action signature
+ *
+ * @param client   Client to kill
+ * @param userdata Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_shutdown_kill_client(client_td *client, void *userdata)
+{
+    (void) userdata;
+    ccmd_client_kill(client);
 }
 
 
@@ -127,41 +171,11 @@ void wm_shutdown_gather_client(client_td *client)
 }
 
 
-/**
- * @brief Adapts @c ccmd_client_close to @c wm_for_each_client's
- *        action signature
- *
- * @param client   Client to close
- * @param userdata Unused
- *
- * @note Complexity: @e O(1)
- */
-static void s_shutdown_close_client(client_td *client, void *userdata)
-{
-    (void) userdata;
-    ccmd_client_close(client);
-}
-
-
-/**
- * @brief Adapts @c ccmd_client_kill to @c wm_for_each_client's
- *        action signature
- *
- * @param client   Client to kill
- * @param userdata Unused
- *
- * @note Complexity: @e O(1)
- */
-static void s_shutdown_kill_client(client_td *client, void *userdata)
-{
-    (void) userdata;
-    ccmd_client_kill(client);
-}
-
-
 /* Begin a coordinated shutdown */
 void wm_shutdown_begin(const wm_td *wm)
 {
+    struct s_gather_ctx_s ctx;
+    uint32_t client_count;
     uint32_t timeout_seconds;
     config_td *config;
 
@@ -169,7 +183,8 @@ void wm_shutdown_begin(const wm_td *wm)
         return;
     }
 
-    if (wm_for_each_client(wm, NULL, NULL) == 0u) {
+    client_count = wm_for_each_client(wm, NULL, NULL);
+    if (client_count == 0u) {
         LOGGER_DEBUG("No managed clients to wait for;" \
                 " stopping right away", L_NARG);
         (void) wm_request_stop();
@@ -181,8 +196,27 @@ void wm_shutdown_begin(const wm_td *wm)
 
     /* Gathered before anything is asked to close, so that a client
      * putting up a "save your work?" dialog does so with its own
-     * window already in front of the user */
-    (void) wm_for_each_client(wm, s_shutdown_gather_visit, NULL);
+     * window already in front of the user.  In two passes, since the
+     * gathering moves clients between the very tables the walk reads;
+     * see 's_shutdown_gather_collect'.  A failed allocation skips the
+     * gathering alone: the shutdown itself still proceeds, with
+     * whatever is off screen staying there, which is what it did
+     * before any of this existed. */
+    ctx.clients = malloc(client_count * sizeof(*ctx.clients));
+    if (ctx.clients != NULL) {
+        ctx.capacity = client_count;
+        ctx.count = 0u;
+        (void) wm_for_each_client(wm, s_shutdown_gather_collect, &ctx);
+        for (uint32_t i = 0u; i < ctx.count; ++i) {
+            wm_shutdown_gather_client(ctx.clients[i]);
+        }
+        free(ctx.clients);
+    } else {
+        LOGGER_WARNING("Out of memory gathering %u client(s) before" \
+                " shutdown; closing them where they are",
+                client_count);
+    }
+
     (void) wm_for_each_client(wm, s_shutdown_close_client, NULL);
 
     config = wm_config(wm);

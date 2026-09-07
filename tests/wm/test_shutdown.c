@@ -61,6 +61,10 @@ static int s_request_stop_calls;
  *  s_stub_action runs on each of them */
 static uint32_t s_remaining_clients;
 
+/** Clients the walk stand-in hands over, one per reported client, so
+ *  that an action collecting them has something distinct to collect */
+static client_td s_walk_clients[8];
+
 /** Which action wm_shutdown_begin/wm_shutdown_tick last asked
  *  wm_for_each_client to run: 0 none, 1 close, 2 kill */
 static int s_last_action_kind;
@@ -117,7 +121,16 @@ uint32_t wm_for_each_client(const wm_td *wm_param,
      * wm_for_each_client invocation, kind identified by which
      * adapter ran, is enough to prove which close-vs-kill path
      * shutdown.c chose without reimplementing a real walk */
-    action((client_td *) NULL, userdata);
+    /* Every client the walk reports, handed over one by one, so that
+     * a collecting action really does receive each of them.  The
+     * gathering pass moves clients between the tables the real walk
+     * reads, which is why 'wm_shutdown_begin' collects first and acts
+     * afterwards, and why this hands over more than one. */
+    for (uint32_t i = 0u; i < s_remaining_clients &&
+            i < (uint32_t) (sizeof(s_walk_clients) /
+                sizeof(s_walk_clients[0])); ++i) {
+        action(&s_walk_clients[i], userdata);
+    }
 
     return s_remaining_clients;
 }
@@ -360,9 +373,9 @@ static void s_test_begin_with_clients_starts_countdown(void)
 
     wm_shutdown_begin(wm);
 
-    TAP_EQ_INT(s_close_calls, 1,
+    TAP_EQ_INT(s_close_calls, 2,
             "every managed client is asked to close through the"
-            " real ccmd_client_close seam");
+            " real ccmd_client_close seam, one call each");
     TAP_EQ_INT(s_last_action_kind, 1,
             "specifically the close action, not the kill one");
     TAP_OK(wm->is_running,
@@ -540,9 +553,9 @@ static void s_test_tick_timeout_elapsed_force_kills(void)
 
     wm_shutdown_tick(wm);
 
-    TAP_EQ_INT(s_kill_calls, 1,
+    TAP_EQ_INT(s_kill_calls, 3,
             "a client still open past the deadline is force-killed"
-            " through the real ccmd_client_kill seam");
+            " through the real ccmd_client_kill seam, one call each");
     TAP_EQ_INT(s_last_action_kind, 2,
             "specifically the kill action, not another close");
     TAP_OK(!wm->is_running,
@@ -581,9 +594,39 @@ static void s_test_begin_null_config_uses_default_timeout(void)
 }
 
 
+/* The gathering runs as its own pass, collecting every client before
+ * any of them is moved: bringing one over relocates it between the
+ * very tables 'wm_for_each_client' walks, and acting during the walk
+ * would reorder it underneath itself */
+static void s_test_gather_reaches_every_client(void)
+{
+    wm_td local_wm;
+    config_td config;
+
+    s_reset();
+    memset(&local_wm, 0, sizeof(local_wm));
+    memset(&config, 0, sizeof(config));
+    config.base.shutdown.timeout_seconds = 30u;
+    local_wm.config = &config;
+    local_wm.is_running = true;
+    wm = &local_wm;
+    s_remaining_clients = 4u;
+
+    wm_shutdown_begin(wm);
+
+    TAP_EQ_INT(s_gather_restore_calls + s_gather_desktop_calls +
+            s_gather_page_calls, 0,
+            "with nothing iconified and no desktop to move between,"
+            " the gathering asks for no move at all");
+    TAP_EQ_INT(s_close_calls, 4,
+            "and every one of the four clients is still asked to"
+            " close, none skipped by the walk");
+}
+
+
 int main(void)
 {
-    TAP_PLAN(24);
+    TAP_PLAN(26);
 
     s_test_begin_no_clients_stops_immediately();
     s_test_begin_with_clients_starts_countdown();
@@ -593,6 +636,8 @@ int main(void)
     s_test_tick_all_clients_closed_stops();
     s_test_tick_timeout_elapsed_force_kills();
     s_test_begin_null_config_uses_default_timeout();
+
+    s_test_gather_reaches_every_client();
 
     return TAP_DONE();
 }
