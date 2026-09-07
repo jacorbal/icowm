@@ -135,15 +135,12 @@ static void s_test_button_list_deduplicates_first_wins(void)
 
 
 /* More than CONFIG_MAX_TITLEBAR_BUTTONS entries are clamped, never
- * overflowing the fixed-size destination array.  9 button names are
- * recognized in total now that 'sticky' joined the original 8, one
- * more than the cap itself, so this test's own 9-entry list still
- * needs a repeat (the trailing 'pin') to make any *valid* 9th entry
- * necessarily redundant; deduplication alone would already drop it
- * here too, but the cap is what stops a list of
- * unrecognized-then-recognized entries, or one this test does not
- * happen to construct, from writing past 'dest' regardless of how
- * many of those turn out to be repeats. */
+ * overflowing the fixed-size destination array.  The nine recognized
+ * names fill it exactly, so the tenth entry here is a repeat (the
+ * trailing 'pin'); deduplication alone would already drop it, but the
+ * cap is what stops a list of unrecognized-then-recognized entries,
+ * or one this test does not happen to construct, from writing past
+ * 'dest' regardless of how many of those turn out to be repeats. */
 static void s_test_button_list_clamped_to_max(void)
 {
     char path[512];
@@ -153,13 +150,14 @@ static void s_test_button_list_clamped_to_max(void)
     s_write_temp_file(path, sizeof(path),
         "{\"window\": {\"titlebar\": {\"buttons\": {"
         "\"right\": [\"pin\", \"layer\", \"iconize\", \"hide\","
-        " \"shade\", \"maximize\", \"fullscreen\", \"close\", \"pin\"]"
-        "} } } }");  /* 9 entries; max is 8 */
+        " \"shade\", \"maximize\", \"fullscreen\", \"close\","
+        " \"sticky\", \"pin\"]"
+        "} } } }");  /* 10 entries; max is 9 */
     config_load_theme(path, &theme);
 
     TAP_EQ_INT(theme.window.titlebar.buttons.right_count,
             CONFIG_MAX_TITLEBAR_BUTTONS,
-            "8 distinct names fill the cap exactly; the 9th (itself"
+            "9 distinct names fill the cap exactly; the 10th (itself"
             " a repeat) adds nothing further either way");
     unlink(path);
 }

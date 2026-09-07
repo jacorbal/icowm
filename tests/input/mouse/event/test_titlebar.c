@@ -122,6 +122,25 @@ bool surface_viewport_has_room(const surface_td *surface)
 
 
 /**
+ * @brief Stand-in for @a client_titlebar_button_size
+ *
+ * The hit test measures a click against the very side the drawing
+ * used, so this answers the size every scenario here lays its entries
+ * out with.
+ *
+ * @note Complexity: @e O(1)
+ */
+uint16_t client_titlebar_button_size(const struct config_theme_s *theme,
+        uint16_t title_h)
+{
+    (void) theme;
+    (void) title_h;
+
+    return (uint16_t) WM_DECOR_BTN_SIZE_DEFAULT;
+}
+
+
+/**
  * @brief Controllable stand-in for @a client_titlebar_layout
  * @note Complexity: @e O(1)
  */
@@ -496,7 +515,7 @@ static void s_test_click_outside_button_range_misses(void)
 {
     client_td client;
     xcb_button_press_event_t event = s_make_event(1, 1,
-            10 + 2 + (int16_t) WM_DECOR_BTN_SIZE, 5, 1000);
+            10 + 2 + (int16_t) WM_DECOR_BTN_SIZE_DEFAULT, 5, 1000);
 
     s_reset();
     s_make_client(&client);

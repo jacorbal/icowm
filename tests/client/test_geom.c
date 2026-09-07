@@ -502,9 +502,9 @@ static void s_test_titlebar_button_size_comes_from_theme(void)
             " leaves a pixel of bar above and below it");
 
     theme.window.titlebar.buttons.size = 1u;
-    TAP_EQ_INT((int) client_titlebar_button_size(&theme, 40u), 4,
-            "and never below the smallest size a pointer can usefully"
-            " hit");
+    TAP_EQ_INT((int) client_titlebar_button_size(&theme, 40u), 6,
+            "and never below six, under which the inset and the"
+            " stroke leave nothing between them");
 
     theme.window.titlebar.buttons.size = 21u;
     TAP_EQ_INT((int) client_titlebar_button_size(&theme, 40u) % 2, 0,
@@ -751,7 +751,7 @@ static void s_test_titlebar_layout_falls_back_when_padding_too_tall(void)
 
     memset(&theme, 0, sizeof(theme));
     /* 'title_h' of 10 leaves only 10 - 2*8 = -6 once inset by the
-     * configured vertical padding, less than 'WM_DECOR_BTN_SIZE' */
+     * configured vertical padding, less than 'WM_DECOR_BTN_SIZE_DEFAULT' */
     theme.window.titlebar.padding.vertical = 8u;
 
     client_titlebar_layout(&theme, 300u, 10u, false, false, left,
