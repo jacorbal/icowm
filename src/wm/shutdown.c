@@ -29,8 +29,10 @@
 /* Project includes */
 #include <client.h>
 #include <cmds/client/focus.h>
+#include <cmds/surface.h>
 #include <config.h>
 #include <desktop.h>
+#include <enact.h>
 #include <logger.h>
 #include <surface.h>
 #include <wm.h>
@@ -49,6 +51,80 @@ static bool s_shutdown_in_progress = false;
 /** Absolute deadline (@c CLOCK_MONOTONIC) past which remaining clients
  * are force-closed regardless */
 static struct timespec s_shutdown_deadline;
+
+
+/**
+ * @brief Bring one client to the desktop and viewport page the user
+ *        is looking at, so that anything it says on the way out is
+ *        said in front of them
+ *
+ * Each axis is handled on its own, because being everywhere on one
+ * says nothing about the other: a pinned client is already on every
+ * desktop but may sit on a page that is not the one shown, and a
+ * sticky one is on every page but may belong to another desktop.
+ *
+ * Nothing about placement changes.  A dialog a closing application
+ * puts up is still centered over its parent, ICCCM §4.1.2.6 as
+ * before; it is the parent that has been brought here, so the dialog
+ * lands in view without the placement policy needing a special case
+ * for it.
+ *
+ * @param client Client to bring over
+ *
+ * @note Only ever acts within the surface currently being looked at;
+ *       a client on another surface is left where it is
+ * @note Complexity: @e O(n), where @e n is the size of the client's
+ *       transient family
+ */
+static void s_shutdown_gather_visit(client_td *client, void *userdata)
+{
+    (void) userdata;
+    wm_shutdown_gather_client(client);
+}
+
+
+/* Bring one client to the desktop and viewport page being looked at */
+void wm_shutdown_gather_client(client_td *client)
+{
+    surface_td *surface;
+    desktop_td *desktop;
+    uint32_t col;
+    uint32_t row;
+
+    if (client == NULL) {
+        return;
+    }
+
+    surface = wm_get_surface_by_id(client->screen_id);
+    if (surface == NULL) {
+        return;
+    }
+
+    desktop = surface_desktop_get(surface, surface->desktop_cur);
+    if (desktop == NULL) {
+        return;
+    }
+
+    /* An iconified client shows nothing at all, dialog included, so
+     * it is put back on screen before being asked to close */
+    if (client_is_iconified(client)) {
+        enact_client_restore(client);
+    }
+
+    if (!client_is_pinned(client)) {
+        desktop_td *const from = wm_get_client_desktop(client);
+
+        if (from != NULL && from != desktop) {
+            enact_desktop_client_send(from, client, desktop);
+        }
+    }
+
+    if (!client_is_sticky(client) &&
+            scmd_surface_viewport_desktop_page(surface, desktop,
+                &col, &row)) {
+        enact_client_send_to_page(surface, client, col, row);
+    }
+}
 
 
 /**
@@ -102,6 +178,11 @@ void wm_shutdown_begin(const wm_td *wm)
 
     LOGGER_INFO("Coordinated shutdown started;" \
             " asking every managed client to close", L_NARG);
+
+    /* Gathered before anything is asked to close, so that a client
+     * putting up a "save your work?" dialog does so with its own
+     * window already in front of the user */
+    (void) wm_for_each_client(wm, s_shutdown_gather_visit, NULL);
     (void) wm_for_each_client(wm, s_shutdown_close_client, NULL);
 
     config = wm_config(wm);
@@ -111,6 +192,13 @@ void wm_shutdown_begin(const wm_td *wm)
     s_shutdown_in_progress = true;
     (void) clock_gettime(CLOCK_MONOTONIC, &s_shutdown_deadline);
     s_shutdown_deadline.tv_sec += (time_t) timeout_seconds;
+}
+
+
+/* Whether a coordinated shutdown is under way */
+bool wm_shutdown_is_in_progress(void)
+{
+    return s_shutdown_in_progress;
 }
 
 

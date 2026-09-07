@@ -53,6 +53,7 @@
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
+#include <wm/shutdown.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
@@ -215,6 +216,16 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
         }
 
         client_unhide(client);
+
+        /* A client mapping while everything is closing is almost
+         * always an application asking whether to save.  Its parent
+         * was already brought over by 'wm_shutdown_begin', so this
+         * only has to cover the dialog itself, which was placed
+         * centered over that parent before any of this ran and could
+         * still belong to another desktop or page of its own. */
+        if (wm_shutdown_is_in_progress()) {
+            wm_shutdown_gather_client(client);
+        }
 
         if (wm_config(wm)->base.windows.focus.focus_new &&
                 client_is_focusable(client)) {

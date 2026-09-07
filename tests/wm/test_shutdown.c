@@ -145,6 +145,83 @@ void ccmd_client_close(client_td *client)
 }
 
 
+/** Link-only stand-ins for the two desktop lookups the gathering
+ *  step makes; @c NULL leaves it with nothing to move between
+ * @note Complexity: O(1) */
+surface_td *wm_get_surface_by_id(uint32_t surface_id)
+{
+    (void) surface_id;
+
+    return NULL;
+}
+
+
+desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
+{
+    (void) surface;
+    (void) desktop_id;
+
+    return NULL;
+}
+
+
+desktop_td *wm_get_client_desktop(const client_td *client)
+{
+    (void) client;
+
+    return NULL;
+}
+
+
+/** Recording stand-ins for the gathering step: this file has no
+ *  desktops or viewport of its own, so what is recorded is that the
+ *  gather asked for each move, and on which client
+ * @note Complexity: O(1) */
+static int s_gather_restore_calls;
+static int s_gather_desktop_calls;
+static int s_gather_page_calls;
+
+void enact_client_restore(client_td *client)
+{
+    (void) client;
+    s_gather_restore_calls++;
+}
+
+
+void enact_desktop_client_send(const desktop_td *desktop,
+        client_td *client, desktop_td *target)
+{
+    (void) desktop;
+    (void) client;
+    (void) target;
+    s_gather_desktop_calls++;
+}
+
+
+void enact_client_send_to_page(surface_td *surface, client_td *client,
+        uint32_t col, uint32_t row)
+{
+    (void) surface;
+    (void) client;
+    (void) col;
+    (void) row;
+    s_gather_page_calls++;
+}
+
+
+bool scmd_surface_viewport_desktop_page(const surface_td *surface,
+        const desktop_td *desktop, uint32_t *col_out, uint32_t *row_out)
+{
+    (void) surface;
+    (void) desktop;
+    (void) col_out;
+    (void) row_out;
+
+    /* No viewport in this file: the page move is never asked for */
+    return false;
+}
+
+
 /**
  * @brief Link-only stand-in for ccmd_client_kill
  *

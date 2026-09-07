@@ -691,6 +691,27 @@ void ipc_broadcast_event(uint32_t type, cJSON *fields)
 
 
 /** Link-only stand-in for wm_request_client_redraw */
+/** Test-controlled stand-ins for the shutdown gathering: a client
+ *  mapping while everything is closing is brought to the desktop and
+ *  page being looked at, which this file records rather than performs
+ * @note Complexity: @e O(1) */
+static bool s_shutdown_in_progress;
+static int s_call_shutdown_gather;
+
+bool wm_shutdown_is_in_progress(void)
+{
+    return s_shutdown_in_progress;
+}
+
+
+void wm_shutdown_gather_client(client_td *client)
+{
+    (void) client;
+
+    s_call_shutdown_gather++;
+}
+
+
 void wm_request_client_redraw(client_td *client)
 {
     (void) client;

@@ -76,6 +76,43 @@ void wm_shutdown_begin(const wm_td *wm);
  *
  * @see @a loop_run, obviously located in @c loop.c
  */
+/**
+ * @brief Bring one client to the desktop and viewport page the user
+ *        is looking at
+ *
+ * Each axis on its own: being on every desktop, as a pinned client
+ * is, says nothing about which page it sits on, and being on every
+ * page, as a sticky one is, says nothing about its desktop.  An
+ * iconified client is restored first, since a window showing nothing
+ * cannot show a dialog either.
+ *
+ * Placement is untouched.  A dialog is still centered over its
+ * parent, ICCCM §4.1.2.6 as before; bringing the parent over is what
+ * puts the dialog in view.
+ *
+ * @param client Client to bring over
+ *
+ * @note Complexity: @e O(n), where @e n is the size of the client's
+ *       transient family
+ */
+void wm_shutdown_gather_client(client_td *client);
+
+/**
+ * @brief Whether a coordinated shutdown is under way
+ *
+ * Read by @a handler_map_notify so that a client mapping while
+ * everything is closing, a "save your work?" dialog above all, is
+ * brought to the desktop and viewport page being looked at instead of
+ * appearing wherever its parent used to be.
+ *
+ * @retval  true between @a wm_shutdown_begin and the moment the last
+ *               client closes or the timeout elapses
+ * @retval false at any other time
+ *
+ * @note Complexity: @e O(1)
+ */
+bool wm_shutdown_is_in_progress(void);
+
 int wm_shutdown_ms_remaining(void);
 
 /**
