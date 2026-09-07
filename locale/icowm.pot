@@ -636,4 +636,3 @@ msgid ""
 "fortune-mod' (or whate'er charm thy distribution demandeth), that the "
 "sages of yore might once more speak through this humble dialog."
 msgstr ""
-
