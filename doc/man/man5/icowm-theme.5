@@ -140,6 +140,55 @@ having
 and
 .Ic off
 for pressed and idle.
+Both lists take the same nine names, in the order they are to be drawn,
+outwards from their own edge of the titlebar:
+.Bl -tag -width Ds -compact
+.It Ql pin
+Keep the window on every desktop.
+.It Ql sticky
+Keep the window on every viewport page.
+.It Ql layer
+Move the window between the below, normal and above layers.
+.It Ql shade
+Roll the window up into its own titlebar.
+.It Ql iconize
+Send the window to its desktop icon.
+.It Ql hide
+Take the window out of view without iconifying it.
+.It Ql maximize
+Grow the window to fill its work area.
+.It Ql fullscreen
+Grow the window to fill the whole screen, decorations included.
+.It Ql close
+Ask the window to close.
+.El
+A name the list does not recognize is ignored, and a list may hold at
+most
+.Dv CONFIG_MAX_TITLEBAR_BUTTONS
+entries.
+A button whose action makes no sense for the surface it is on is left
+out on its own: the
+.Ql pin
+button on a single-desktop surface, the
+.Ql sticky
+button where the viewport has one page.
+.Ic buttons.size
+is the side of one button in pixels, chosen here rather than derived
+from
+.Ic height :
+making the titlebar taller is a decision about the bar and does not
+resize the buttons in it.
+It is held to at least six pixels, to at most the titlebar height less
+two, and rounded down to an even number.
+.Ic buttons.use-symbols
+decides whether each button draws the symbol of its own action,
+crossed diagonals for
+.Ic close
+and so on, or whether every button is the plain filled square that
+.Ic pin , Ic sticky
+and
+.Ic layer
+are either way.
 .Ic is-decorated
 decides whether a window is framed at all by default.
 .It Ic icon

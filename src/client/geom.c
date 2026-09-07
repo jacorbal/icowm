@@ -96,15 +96,15 @@ static const enum config_titlebar_button_e s_titlebar_button_giveup[] = {
  * @param avail_w Width of the titlebar
  * @param pad_h   Horizontal padding the theme asks for
  * @param gap     Gap kept between adjacent buttons
+ * @param btn     Side of one button
  * @param left_n  Buttons placed on the left
  * @param right_n Buttons placed on the right
  *
  * @note Complexity: @e O(1)
  */
 static bool s_titlebar_buttons_fit(uint16_t avail_w, uint16_t pad_h,
-        uint16_t gap, uint8_t left_n, uint8_t right_n)
+        uint16_t gap, uint16_t btn, uint8_t left_n, uint8_t right_n)
 {
-    uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
     int32_t needed = 2 * (int32_t) pad_h;
 
     if (left_n > 0u) {
@@ -233,6 +233,51 @@ static bool s_titlebar_button_is_placed(
 
 
 
+
+
+/* Button side the theme asks for, held to what the titlebar can hold */
+uint16_t client_titlebar_button_size(const struct config_theme_s *theme,
+        uint16_t title_h)
+{
+    uint32_t side;
+    uint32_t ceiling;
+
+    if (theme == NULL) {
+        return (uint16_t) WM_DECOR_BTN_SIZE_DEFAULT;
+    }
+
+    side = (uint32_t) theme->window.titlebar.buttons.size;
+    if (side < (uint32_t) WM_DECOR_BTN_SIZE_MIN) {
+        side = (uint32_t) WM_DECOR_BTN_SIZE_MIN;
+    }
+
+    /* Two pixels less than the bar, so a button always leaves a pixel
+     * of titlebar above and below it rather than filling the bar edge
+     * to edge */
+    ceiling = (title_h > 2u) ? (uint32_t) title_h - 2u
+        : (uint32_t) WM_DECOR_BTN_SIZE_MIN;
+    if (side > ceiling) {
+        side = ceiling;
+    }
+    if (side < (uint32_t) WM_DECOR_BTN_SIZE_MIN) {
+        side = (uint32_t) WM_DECOR_BTN_SIZE_MIN;
+    }
+
+    /* Even, so a stroke of an even width lands centered in the box:
+     * on an odd side the diagonals fall on half pixels and the shape
+     * rasterizes with a dirty edge */
+    return (uint16_t) (side - (side % 2u));
+}
+
+
+/* Inset and stroke width for a button of the given side */
+uint16_t client_titlebar_button_shape_unit(uint16_t btn_size)
+{
+    uint16_t unit = (uint16_t) (btn_size / WM_DECOR_BTN_SHAPE_DIV);
+
+    return (unit < (uint16_t) WM_DECOR_BTN_SHAPE_MIN)
+        ? (uint16_t) WM_DECOR_BTN_SHAPE_MIN : unit;
+}
 
 
 /* Allocate and zero all heap string buffers for a client */
@@ -423,8 +468,8 @@ void client_titlebar_layout(const struct config_theme_s *theme,
         int16_t *restrict out_title_x, uint16_t *restrict out_title_w,
         int16_t *restrict out_btn_y)
 {
-    uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
     uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
+    uint16_t btn;
     uint16_t pad_h;
     uint16_t pad_v;
     enum config_titlebar_button_e
@@ -457,6 +502,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
 
     pad_h = (uint16_t) theme->window.titlebar.padding.horizontal;
     pad_v = (uint16_t) theme->window.titlebar.padding.vertical;
+    btn = client_titlebar_button_size(theme, title_h);
 
     /* Vertically center every button as a group: inset top and bottom
      * by 'padding.vertical' first, then center within whatever room
@@ -497,7 +543,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
      * for not applying at all are already gone by the time this runs
      * and are never reconsidered here. */
     dropped_n = 0u;
-    while (!s_titlebar_buttons_fit(titlebar_w, pad_h, gap,
+    while (!s_titlebar_buttons_fit(titlebar_w, pad_h, gap, btn,
                 s_titlebar_side_count(
                     theme->window.titlebar.buttons.left,
                     configured_left_n, dropped, dropped_n),

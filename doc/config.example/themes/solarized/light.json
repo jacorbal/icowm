@@ -47,11 +47,13 @@
         "titlebar": {
             "alignment": "center",
             "buttons": {
+                "size": 12,
+                "use-symbols": true,
                 "color": {
                     "off": "#073642",
                     "on": "#fdf6e3"
                 },
-                "left": [ "pin", "layer" ],
+                "left": [ "sticky", "pin", "layer" ],
                 "right": [ "close", "maximize", "shade", "iconize" ]
             },
             "height": 22,

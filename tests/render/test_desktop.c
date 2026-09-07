@@ -289,6 +289,48 @@ static bool s_titlebar_layout_last_hide_sticky;
  * stand-in rather than linked for real, matching every other stub in
  * this file, so a scenario can steer exactly which buttons land where
  * without also pulling in client/geom.c's own theme-parsing logic */
+/** Real implementations, small enough to carry rather than stand in
+ *  for: the drawing derives the button side and its stroke from the
+ *  titlebar height through these, and a stand-in would only restate
+ *  the same arithmetic
+ *  @note Complexity: @e O(1) */
+uint16_t client_titlebar_button_size(const struct config_theme_s *theme,
+        uint16_t title_h)
+{
+    uint32_t side;
+    uint32_t ceiling;
+
+    if (theme == NULL) {
+        return (uint16_t) WM_DECOR_BTN_SIZE_DEFAULT;
+    }
+
+    side = (uint32_t) theme->window.titlebar.buttons.size;
+    if (side < (uint32_t) WM_DECOR_BTN_SIZE_MIN) {
+        side = (uint32_t) WM_DECOR_BTN_SIZE_MIN;
+    }
+
+    ceiling = (title_h > 2u) ? (uint32_t) title_h - 2u
+        : (uint32_t) WM_DECOR_BTN_SIZE_MIN;
+    if (side > ceiling) {
+        side = ceiling;
+    }
+    if (side < (uint32_t) WM_DECOR_BTN_SIZE_MIN) {
+        side = (uint32_t) WM_DECOR_BTN_SIZE_MIN;
+    }
+
+    return (uint16_t) (side - (side % 2u));
+}
+
+
+uint16_t client_titlebar_button_shape_unit(uint16_t btn_size)
+{
+    uint16_t unit = (uint16_t) (btn_size / WM_DECOR_BTN_SHAPE_DIV);
+
+    return (unit < (uint16_t) WM_DECOR_BTN_SHAPE_MIN)
+        ? (uint16_t) WM_DECOR_BTN_SHAPE_MIN : unit;
+}
+
+
 void client_titlebar_layout(const struct config_theme_s *theme,
         uint16_t titlebar_w, uint16_t title_h, bool hide_pin,
         bool hide_sticky,
@@ -648,6 +690,55 @@ xcb_void_cookie_t xcb_create_gc(xcb_connection_t *connection,
 
 static int s_poly_fill_rectangle_calls;
 
+/** Shapes the button drawing emits, counted so a scenario can tell
+ *  one button's outline from another's without a display */
+static int s_poly_segment_calls;
+static int s_poly_rectangle_calls;
+static int s_change_gc_calls;
+
+xcb_void_cookie_t xcb_poly_segment(xcb_connection_t *connection,
+        xcb_drawable_t drawable, xcb_gcontext_t gc, uint32_t segs_len,
+        const xcb_segment_t *segs)
+{
+    xcb_void_cookie_t cookie = {0};
+    (void) connection;
+    (void) drawable;
+    (void) gc;
+    (void) segs_len;
+    (void) segs;
+    s_poly_segment_calls++;
+    return cookie;
+}
+
+
+xcb_void_cookie_t xcb_poly_rectangle(xcb_connection_t *connection,
+        xcb_drawable_t drawable, xcb_gcontext_t gc, uint32_t rects_len,
+        const xcb_rectangle_t *rects)
+{
+    xcb_void_cookie_t cookie = {0};
+    (void) connection;
+    (void) drawable;
+    (void) gc;
+    (void) rects_len;
+    (void) rects;
+    s_poly_rectangle_calls++;
+    return cookie;
+}
+
+
+xcb_void_cookie_t xcb_change_gc(xcb_connection_t *connection,
+        xcb_gcontext_t gc, uint32_t value_mask, const void *value_list)
+{
+    xcb_void_cookie_t cookie = {0};
+    (void) connection;
+    (void) gc;
+    (void) value_mask;
+    (void) value_list;
+    s_change_gc_calls++;
+    return cookie;
+}
+
+
 xcb_void_cookie_t xcb_poly_fill_rectangle(xcb_connection_t *connection,
         xcb_drawable_t drawable, xcb_gcontext_t gc, uint32_t rects_len,
         const xcb_rectangle_t *rects)
@@ -767,6 +858,9 @@ static void s_reset_fixture(void)
     s_clear_area_calls = 0;
     s_create_gc_calls = 0;
     s_poly_fill_rectangle_calls = 0;
+    s_poly_segment_calls = 0;
+    s_poly_rectangle_calls = 0;
+    s_change_gc_calls = 0;
     s_free_gc_calls = 0;
     s_copy_area_calls = 0;
     s_free_pixmap_calls = 0;
@@ -1826,6 +1920,9 @@ static void s_test_repaint_titlebar_draws_configured_buttons(void)
     client.titlebar = 0x809u;
     theme.window.titlebar.buttons.color.on = 0x00ff00u;
     theme.window.titlebar.buttons.color.off = 0xff0000u;
+    theme.window.titlebar.buttons.size =
+        (uint16_t) WM_DECOR_BTN_SIZE_DEFAULT;
+    theme.window.titlebar.buttons.use_symbols = true;
     s_titlebar_layout_left[0].button = CONFIG_TITLEBAR_BUTTON_CLOSE;
     s_titlebar_layout_left[0].x = 4;
     s_titlebar_layout_left_n = 1u;
@@ -1837,11 +1934,53 @@ static void s_test_repaint_titlebar_draws_configured_buttons(void)
     desktop_repaint_titlebar_content(s_connection_stub, &client, true,
             300u, 24u, &theme);
 
-    TAP_OK(s_poly_fill_rectangle_calls >= 2,
-            "both the one configured left button and the one"
-            " configured right button are each drawn as their own"
-            " filled rectangle");
+    /* Each button draws its own shape rather than the same filled
+     * square: 'close' is a pair of segments and 'maximize' an
+     * outline, so neither adds to the fill count and the two show up
+     * on their own primitives */
+    TAP_OK(s_poly_segment_calls >= 1,
+            "the close button is drawn as segments, its two diagonals");
+    TAP_OK(s_poly_rectangle_calls >= 1,
+            "and the maximize button as an outline");
+    TAP_EQ_INT(s_change_gc_calls, 2,
+            "one color change per button, the context itself being"
+            " created once for both rather than per button");
 }
+
+/* With 'window.titlebar.buttons.use-symbols' off, every button falls
+ * back to the plain filled square the state-reporting ones always
+ * were: no segments, no outlines */
+static void s_test_repaint_titlebar_without_symbols_draws_squares(void)
+{
+    struct config_theme_s theme;
+    client_td client;
+
+    s_reset_fixture();
+    memset(&theme, 0, sizeof(theme));
+    memset(&client, 0, sizeof(client));
+    client.titlebar = 0x809u;
+    theme.window.titlebar.buttons.size =
+        (uint16_t) WM_DECOR_BTN_SIZE_DEFAULT;
+    theme.window.titlebar.buttons.use_symbols = false;
+    s_titlebar_layout_left[0].button = CONFIG_TITLEBAR_BUTTON_CLOSE;
+    s_titlebar_layout_left[0].x = 4;
+    s_titlebar_layout_left_n = 1u;
+    s_titlebar_layout_right[0].button =
+        CONFIG_TITLEBAR_BUTTON_MAXIMIZE;
+    s_titlebar_layout_right[0].x = 280;
+    s_titlebar_layout_right_n = 1u;
+
+    desktop_repaint_titlebar_content(s_connection_stub, &client, true,
+            300u, 24u, &theme);
+
+    TAP_EQ_INT(s_poly_segment_calls, 0,
+            "close draws no diagonals with symbols turned off");
+    TAP_EQ_INT(s_poly_rectangle_calls, 0,
+            "and maximize no outline");
+    TAP_OK(s_poly_fill_rectangle_calls >= 2,
+            "both are the plain filled square instead");
+}
+
 
 static void s_test_repaint_titlebar_maximize_disabled_when_not_maximizable(
         void)
@@ -1995,7 +2134,7 @@ static void s_test_repaint_frame_decoration_falls_back_without_override(
 
 int main(void)
 {
-    TAP_PLAN(94);
+    TAP_PLAN(99);
 
     s_test_property_is_bg_pixmap_none_atom_is_false();
     s_test_property_is_bg_pixmap_resolves_once();
@@ -2045,6 +2184,7 @@ int main(void)
     s_test_repaint_titlebar_syncs_visible_name_via_ewmh();
     s_test_repaint_titlebar_no_sync_without_ewmh();
     s_test_repaint_titlebar_draws_configured_buttons();
+    s_test_repaint_titlebar_without_symbols_draws_squares();
     s_test_repaint_titlebar_maximize_disabled_when_not_maximizable();
 
     s_test_repaint_frame_decoration_guard_clauses();

@@ -739,6 +739,44 @@ struct titlebar_button_layout_s {
 };
 
 /**
+ * @brief Side of one titlebar button
+ *
+ * Whatever @c window.titlebar.buttons.size asks for, held to what the
+ * bar can hold: never below @c WM_DECOR_BTN_SIZE_MIN, never above the
+ * titlebar height less two, and rounded down to an even number.
+ *
+ * Deliberately not derived from the titlebar height: making the bar
+ * taller is a decision about the bar, and a theme that wanted larger
+ * buttons with it would have had them appear without asking.
+ *
+ * @param theme   Theme asking for a size, or @c NULL for the default
+ * @param title_h Titlebar height in pixels, which caps the answer
+ *
+ * @return Side of one button, in pixels
+ *
+ * @note Complexity: @e O(1)
+ */
+uint16_t client_titlebar_button_size(const struct config_theme_s *theme,
+        uint16_t title_h);
+
+/**
+ * @brief Inset and stroke width for a button of the given side
+ *
+ * One value for both: the shapes are drawn inset by it and stroked
+ * with it, which is what keeps their proportions as the button grows.
+ *
+ * @param btn_size Side of one button, from
+ *                 @a client_titlebar_button_size
+ *
+ * @return Pixels to inset by and to stroke with
+ *
+ * @note Never below @c WM_DECOR_BTN_SHAPE_MIN, a single pixel line
+ *       being all but invisible against a patterned titlebar
+ * @note Complexity: @e O(1)
+ */
+uint16_t client_titlebar_button_shape_unit(uint16_t btn_size);
+
+/**
  * @brief Compute where every configured titlebar button goes, and the
  *        horizontal span left over for the title text
  *

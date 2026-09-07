@@ -71,14 +71,46 @@
 #define WM_TITLEBAR_DEFAULT_HEIGHT (22u)
 
 /**
- * @brief Decoration button side pixels
+ * @brief Decoration button side a theme gets without asking, in pixels
+ *
+ * The size the shapes were drawn for, the one @c config/theme.c
+ * floors the titlebar height to, and the one @c render/icon.c
+ * measures itself against.
  */
-#define WM_DECOR_BTN_SIZE (12u)
+#define WM_DECOR_BTN_SIZE_DEFAULT (12u)
+
+/**
+ * @brief Smallest decoration button side a theme may ask for
+ *
+ * Four pixels leaves nothing but a dot, which is as small as a target
+ * the pointer has to hit can usefully be.  A shape drawn this small
+ * says nothing, so @c window.titlebar.buttons.use-symbols is what a
+ * theme going this low should be turning off.
+ */
+#define WM_DECOR_BTN_SIZE_MIN (6u)
 
 /**
  * @brief Gap between buttons
  */
 #define WM_DECOR_BTN_GAP (2u)
+
+/**
+ * @brief Fraction of a button's side left clear around its shape, and
+ *        used as its stroke width
+ *
+ * A sixth of the side each way: at the smallest size that is the two
+ * pixels the shapes were drawn for, and it holds the same proportions
+ * as the button grows with the titlebar.
+ */
+#define WM_DECOR_BTN_SHAPE_DIV (6u)
+
+/**
+ * @brief Smallest inset and stroke, in pixels
+ *
+ * @note A single pixel line all but disappears against a titlebar
+ *       carrying a background pixmap
+ */
+#define WM_DECOR_BTN_SHAPE_MIN (2u)
 
 /**
  * @brief Maximum consecutive interactive-resize steps to wait for

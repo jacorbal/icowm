@@ -81,6 +81,10 @@ static const config_lint_key_td s_schema_titlebar_buttons_color[] = {
 };
 
 static const config_lint_key_td s_schema_titlebar_buttons[] = {
+    {"size", NULL, 0u,
+        0, NULL, 0u, NULL},
+    {"use-symbols", NULL, 0u,
+        0, NULL, 0u, NULL},
     {"color", s_schema_titlebar_buttons_color,
         sizeof(s_schema_titlebar_buttons_color) /
             sizeof(s_schema_titlebar_buttons_color[0]),

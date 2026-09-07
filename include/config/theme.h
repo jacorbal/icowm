@@ -154,6 +154,41 @@ struct config_theme_s {
                     right[CONFIG_MAX_TITLEBAR_BUTTONS];
                 uint8_t left_count;
                 uint8_t right_count;
+
+                /**
+                 * @brief Side of one button, in pixels
+                 *
+                 * Chosen by the theme rather than derived from the
+                 * titlebar height: making the bar taller is a
+                 * decision about the bar, and should not silently
+                 * resize the buttons in it.
+                 *
+                 * @see @c WM_DECOR_BTN_SIZE_DEFAULT and
+                 *      @c WM_DECOR_BTN_SIZE_MIN (@c defs/client.h)
+                 *      for the default and the floor; the ceiling is
+                 *      the titlebar height less two, so a button
+                 *      always leaves a pixel of bar above and below
+                 *      it
+                 */
+                uint16_t size;
+
+                /**
+                 * @brief Whether each button draws the symbol of its
+                 *        own action
+                 *
+                 * Crossed diagonals for @c close, a hollow square for
+                 * @c maximize, and so on.  With this off every button
+                 * is the plain filled square the state-reporting ones
+                 * always were, which is what a theme wants when its
+                 * own colors are doing the telling apart, or at a
+                 * @p size too small for a symbol to survive.
+                 *
+                 * @note @c pin, @c sticky and @c layer stay plain
+                 *       squares either way: their color already
+                 *       reports their state, and a symbol on top of
+                 *       that would compete with it
+                 */
+                bool use_symbols;
             } buttons;
         } titlebar;
 

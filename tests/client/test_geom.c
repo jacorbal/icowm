@@ -412,6 +412,8 @@ static void s_layout_six(uint16_t titlebar_w,
     memset(&theme, 0, sizeof(theme));
     theme.window.titlebar.padding.horizontal = 4u;
     theme.window.titlebar.padding.vertical = 4u;
+    theme.window.titlebar.buttons.size =
+        (uint16_t) WM_DECOR_BTN_SIZE_DEFAULT;
     theme.window.titlebar.buttons.left_count = 3u;
     theme.window.titlebar.buttons.left[0] = CONFIG_TITLEBAR_BUTTON_LAYER;
     theme.window.titlebar.buttons.left[1] = CONFIG_TITLEBAR_BUTTON_PIN;
@@ -458,7 +460,7 @@ static void s_test_titlebar_layout_groups_never_overlap(void)
          * the gap kept between adjacent buttons reads as a mistake */
         if (left_n > 0u && right_n > 0u) {
             int32_t left_end = left[left_n - 1u].x +
-                (int32_t) WM_DECOR_BTN_SIZE;
+                (int32_t) WM_DECOR_BTN_SIZE_DEFAULT;
             int32_t right_start = right[right_n - 1u].x;
 
             if (right_start - left_end < (int32_t) WM_DECOR_BTN_GAP) {
@@ -471,6 +473,62 @@ static void s_test_titlebar_layout_groups_never_overlap(void)
             "at no width from 1 to 300 does a button sit off the left"
             " edge, reach into the other group, or come closer to it"
             " than the gap between adjacent buttons");
+}
+
+
+/* The size comes from the theme, not from the titlebar height:
+ * making the bar taller is a decision about the bar, and a theme that
+ * wanted larger buttons with it would have had them appear without
+ * asking for them */
+static void s_test_titlebar_button_size_comes_from_theme(void)
+{
+    struct config_theme_s theme;
+
+    memset(&theme, 0, sizeof(theme));
+    theme.window.titlebar.buttons.size =
+        (uint16_t) WM_DECOR_BTN_SIZE_DEFAULT;
+
+    TAP_EQ_INT((int) client_titlebar_button_size(&theme, 22u), 12,
+            "a theme asking for twelve gets twelve");
+    TAP_EQ_INT((int) client_titlebar_button_size(&theme, 60u), 12,
+            "and still twelve on a titlebar nearly three times as"
+            " tall, the height having no say in it");
+
+    theme.window.titlebar.buttons.size = 20u;
+    TAP_EQ_INT((int) client_titlebar_button_size(&theme, 40u), 20,
+            "a theme asking for twenty gets twenty");
+    TAP_EQ_INT((int) client_titlebar_button_size(&theme, 16u), 14,
+            "held to two less than the titlebar, so a button always"
+            " leaves a pixel of bar above and below it");
+
+    theme.window.titlebar.buttons.size = 1u;
+    TAP_EQ_INT((int) client_titlebar_button_size(&theme, 40u), 4,
+            "and never below the smallest size a pointer can usefully"
+            " hit");
+
+    theme.window.titlebar.buttons.size = 21u;
+    TAP_EQ_INT((int) client_titlebar_button_size(&theme, 40u) % 2, 0,
+            "the side is always even, so an even stroke lands"
+            " centered rather than on half pixels");
+
+    TAP_EQ_INT((int) client_titlebar_button_size(NULL, 40u), 12,
+            "with no theme at all the default is what comes back");
+}
+
+
+/* Inset and stroke keep their proportion to the button as it grows:
+ * a two pixel stroke on a twenty-four pixel button would look thin
+ * where it looks right on a twelve pixel one */
+static void s_test_titlebar_button_shape_unit_scales(void)
+{
+    TAP_EQ_INT((int) client_titlebar_button_shape_unit(12u), 2,
+            "the default button keeps the two pixels the shapes were"
+            " drawn for");
+    TAP_EQ_INT((int) client_titlebar_button_shape_unit(24u), 4,
+            "twice the button gives twice the stroke");
+    TAP_EQ_INT((int) client_titlebar_button_shape_unit(6u), 2,
+            "and nothing ever falls to a single pixel, which all but"
+            " disappears against a patterned titlebar");
 }
 
 
@@ -493,6 +551,8 @@ static void s_test_titlebar_layout_uneven_split_stays_apart(void)
     memset(&theme, 0, sizeof(theme));
     theme.window.titlebar.padding.horizontal = 4u;
     theme.window.titlebar.padding.vertical = 4u;
+    theme.window.titlebar.buttons.size =
+        (uint16_t) WM_DECOR_BTN_SIZE_DEFAULT;
     theme.window.titlebar.buttons.left_count = 1u;
     theme.window.titlebar.buttons.left[0] = CONFIG_TITLEBAR_BUTTON_LAYER;
     theme.window.titlebar.buttons.right_count = 4u;
@@ -509,7 +569,7 @@ static void s_test_titlebar_layout_uneven_split_stays_apart(void)
 
         if (left_n > 0u && right_n > 0u) {
             int32_t left_end = left[left_n - 1u].x +
-                (int32_t) WM_DECOR_BTN_SIZE;
+                (int32_t) WM_DECOR_BTN_SIZE_DEFAULT;
 
             if (right[right_n - 1u].x - left_end <
                     (int32_t) WM_DECOR_BTN_GAP) {
@@ -925,11 +985,13 @@ static void s_test_aspect_ratio_clamp_null_args_are_a_no_op(void)
 
 int main(void)
 {
-    TAP_PLAN(48);
+    TAP_PLAN(58);
 
     s_test_titlebar_layout_null_theme_is_empty();
     s_test_titlebar_layout_no_buttons_full_title_width();
     s_test_titlebar_layout_one_button_each_side();
+    s_test_titlebar_button_size_comes_from_theme();
+    s_test_titlebar_button_shape_unit_scales();
     s_test_titlebar_layout_groups_never_overlap();
     s_test_titlebar_layout_uneven_split_stays_apart();
     s_test_titlebar_layout_gives_up_least_valuable_first();

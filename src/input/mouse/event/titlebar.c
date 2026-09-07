@@ -89,7 +89,8 @@ static void s_mark_outdated(client_td *client, desktop_td *desktop,
  */
 static bool s_titlebar_button_at(
         const struct titlebar_button_layout_s *entries, uint8_t count,
-        int16_t x, enum config_titlebar_button_e *out)
+        int16_t x, uint16_t btn_size,
+        enum config_titlebar_button_e *out)
 {
     for (uint8_t i = 0u; i < count; ++i) {
         /* Measured as a distance from the button's left edge:
@@ -97,7 +98,7 @@ static bool s_titlebar_button_at(
          * never overflows */
         if (x >= entries[i].x &&
                 (unsigned int) (x - entries[i].x) <
-                    (unsigned int) WM_DECOR_BTN_SIZE) {
+                    (unsigned int) btn_size) {
             *out = entries[i].button;
             return true;
         }
@@ -206,6 +207,7 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
     int16_t title_x;
     uint16_t title_w;
     int16_t btn_y;
+    uint16_t btn_size;
     int ex = (int) event->event_x;
     int ey = (int) event->event_y;
     int left_extent = (int) client->layout.frame_extents.left;
@@ -271,12 +273,19 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
             (uint16_t) title_h, hide_pin, hide_sticky,
             left, &left_n, right, &right_n, &title_x, &title_w, &btn_y);
 
+    /* Same side the drawing used, derived from the very titlebar
+     * height passed to the layout above, so the area that answers a
+     * click is exactly the area that was drawn */
+    btn_size = client_titlebar_button_size(&client->config->theme,
+            (uint16_t) title_h);
+
     /* Only test buttons when the click Y is within the button row */
     if (ey >= btn_y && (unsigned int) (ey - btn_y) <
-            (unsigned int) WM_DECOR_BTN_SIZE) {
-        if (s_titlebar_button_at(left, left_n, (int16_t) ex, &button) ||
+            (unsigned int) btn_size) {
+        if (s_titlebar_button_at(left, left_n, (int16_t) ex, btn_size,
+                    &button) ||
                 s_titlebar_button_at(right, right_n,
-                    (int16_t) ex, &button)) {
+                    (int16_t) ex, btn_size, &button)) {
             s_titlebar_button_action(button, client,
                     can_maximize, event);
             s_mark_outdated(client, desktop, surface);

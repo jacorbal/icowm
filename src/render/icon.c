@@ -368,7 +368,7 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
 
         /* Sized from 'WM_ICON_SQUARE_SIZE' and
          * 'WM_ICON_PIXMAP_SCALE_PERCENT' rather than picked by eye or
-         * reusing 'WM_DECOR_BTN_SIZE' (the titlebar buttons' size, too
+         * reusing 'WM_DECOR_BTN_SIZE_MIN' (the smallest titlebar button, too
          * large here relative to a 48px icon).
          *
          * When 'theme.icon.show-pixmaps' is on, the client's pixmap is

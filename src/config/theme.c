@@ -332,7 +332,8 @@ static void s_config_theme_load_window(cJSON *json,
              * unless 'height' is 0, which disables the titlebar
              * entirely and is left alone. */
             if (config_theme->window.titlebar.height != 0u) {
-                uint32_t btn_floor = (uint32_t) WM_DECOR_BTN_SIZE +
+                uint32_t btn_floor =
+                    (uint32_t) WM_DECOR_BTN_SIZE_DEFAULT +
                     2u * config_theme->window.titlebar.padding.vertical;
 
                 if (config_theme->window.titlebar.height < btn_floor) {
@@ -343,6 +344,7 @@ static void s_config_theme_load_window(cJSON *json,
             buttons = cJSON_GetObjectItem(titlebar, "buttons");
             if (buttons) {
                 cJSON *btn_color;
+                unsigned int btn_size;
 
                 s_load_button_list(buttons, "left",
                         config_theme->window.titlebar.buttons.left,
@@ -350,6 +352,15 @@ static void s_config_theme_load_window(cJSON *json,
                 s_load_button_list(buttons, "right",
                         config_theme->window.titlebar.buttons.right,
                         &config_theme->window.titlebar.buttons.right_count);
+
+                btn_size = (unsigned int)
+                    config_theme->window.titlebar.buttons.size;
+                json_load_uint(buttons, "size", &btn_size);
+                config_theme->window.titlebar.buttons.size =
+                    (uint16_t) btn_size;
+                json_load_bool(buttons, "use-symbols",
+                        &config_theme->window.titlebar.buttons
+                            .use_symbols);
 
                 btn_color = cJSON_GetObjectItem(buttons, "color");
                 if (btn_color) {
@@ -878,6 +889,10 @@ void config_set_default_theme_values(struct config_theme_s *theme)
     theme->window.titlebar.buttons.right[3] =
         CONFIG_TITLEBAR_BUTTON_ICONIZE;
     theme->window.titlebar.buttons.right_count = 4u;
+
+    theme->window.titlebar.buttons.size =
+        (uint16_t) WM_DECOR_BTN_SIZE_DEFAULT;
+    theme->window.titlebar.buttons.use_symbols = true;
 
     theme->window.titlebar.buttons.color.on =
         json_hex2uint32("142335");

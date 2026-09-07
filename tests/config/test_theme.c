@@ -402,7 +402,7 @@ static void s_test_titlebar_height_floor(void)
     /* Below the floor, no padding block in the file, so
      * padding.vertical stays at whatever the caller's own struct
      * already held (0 here, freshly zeroed): raised to
-     * WM_DECOR_BTN_SIZE (12) + 2 * 0 = 12 */
+     * WM_DECOR_BTN_SIZE_MIN (12) + 2 * 0 = 12 */
     memset(&theme, 0, sizeof(theme));
     s_write_temp_file(path, sizeof(path),
         "{\"window\": {\"titlebar\": {\"height\": 1} } }");

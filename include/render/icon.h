@@ -96,7 +96,7 @@ void ri_render_client_icon(client_td *client, bool is_current,
  * than lettered, and reads as one of them rather than as a piece of
  * titlebar borrowed onto the icon.  Sized from @c WM_ICON_SQUARE_SIZE
  * and @c WM_ICON_PIXMAP_SCALE_PERCENT rather than reusing the
- * titlebar's @c WM_DECOR_BTN_SIZE, too large here relative to a 48px
+ * titlebar's @c WM_DECOR_BTN_SIZE_MIN, too large here relative to a 48px
  * icon.
  *
  * A single letter in the top-right corner for whichever maximize or

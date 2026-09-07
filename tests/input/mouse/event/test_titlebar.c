@@ -446,7 +446,7 @@ static void s_test_click_on_close_button_dispatches_close(void)
     /* ex -= left_extent (2), ey -= title_y (0 here, since
      * top_extent (24) > title_h (24) is false, so title_y = 0):
      * button at frame-relative x=10 needs event_x = 10 + 2 = 12; btn_y
-     * of 0 needs event_y within [0, WM_DECOR_BTN_SIZE) */
+     * of 0 needs event_y within [0, WM_DECOR_BTN_SIZE_MIN) */
     xcb_button_press_event_t event = s_make_event(1, 1, 12, 5, 1000);
 
     s_reset();
@@ -489,7 +489,7 @@ static void s_test_click_on_sticky_button_dispatches_toggle_stick(void)
 }
 
 
-/* A click just outside a button's WM_DECOR_BTN_SIZE-wide range misses
+/* A click just outside a button's WM_DECOR_BTN_SIZE_MIN-wide range misses
  * it entirely; since no other button matches and it is not button 1,
  * nothing at all is dispatched */
 static void s_test_click_outside_button_range_misses(void)
