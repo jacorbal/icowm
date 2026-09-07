@@ -263,11 +263,11 @@ xcb_void_cookie_t xcb_ewmh_set_wm_visible_name_checked(
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
         uint32_t strings_len, const char *strings)
 {
+    xcb_void_cookie_t cookie = {0};
     (void) ewmh;
     (void) window;
     (void) strings_len;
     (void) strings;
-    xcb_void_cookie_t cookie = {0};
     return cookie;
 }
 
@@ -528,6 +528,7 @@ xcb_get_property_cookie_t xcb_get_property(xcb_connection_t *connection,
         uint8_t _delete, xcb_window_t window, xcb_atom_t property,
         xcb_atom_t type, uint32_t long_offset, uint32_t long_length)
 {
+    xcb_get_property_cookie_t cookie = {0};
     (void) connection;
     (void) _delete;
     (void) window;
@@ -535,7 +536,6 @@ xcb_get_property_cookie_t xcb_get_property(xcb_connection_t *connection,
     (void) type;
     (void) long_offset;
     (void) long_length;
-    xcb_get_property_cookie_t cookie = {0};
     s_get_property_calls++;
     return cookie;
 }
@@ -581,12 +581,12 @@ xcb_void_cookie_t xcb_change_window_attributes(
         xcb_connection_t *connection, xcb_window_t window,
         uint32_t value_mask, const void *value_list)
 {
+    xcb_void_cookie_t cookie = {0};
     (void) connection;
     (void) window;
     (void) value_mask;
     (void) value_list;
     s_change_window_attributes_calls++;
-    xcb_void_cookie_t cookie = {0};
     return cookie;
 }
 
@@ -596,6 +596,7 @@ xcb_void_cookie_t xcb_clear_area(xcb_connection_t *connection,
         uint8_t exposures, xcb_window_t window, int16_t x, int16_t y,
         uint16_t width, uint16_t height)
 {
+    xcb_void_cookie_t cookie = {0};
     (void) connection;
     (void) exposures;
     (void) window;
@@ -604,7 +605,6 @@ xcb_void_cookie_t xcb_clear_area(xcb_connection_t *connection,
     (void) width;
     (void) height;
     s_clear_area_calls++;
-    xcb_void_cookie_t cookie = {0};
     return cookie;
 }
 
@@ -622,13 +622,13 @@ xcb_void_cookie_t xcb_create_gc(xcb_connection_t *connection,
         xcb_gcontext_t gc, xcb_drawable_t drawable, uint32_t value_mask,
         const void *value_list)
 {
+    xcb_void_cookie_t cookie = {0};
     (void) connection;
     (void) gc;
     (void) drawable;
     (void) value_mask;
     (void) value_list;
     s_create_gc_calls++;
-    xcb_void_cookie_t cookie = {0};
     return cookie;
 }
 
@@ -638,13 +638,13 @@ xcb_void_cookie_t xcb_poly_fill_rectangle(xcb_connection_t *connection,
         xcb_drawable_t drawable, xcb_gcontext_t gc, uint32_t rects_len,
         const xcb_rectangle_t *rects)
 {
+    xcb_void_cookie_t cookie = {0};
     (void) connection;
     (void) drawable;
     (void) gc;
     (void) rects_len;
     (void) rects;
     s_poly_fill_rectangle_calls++;
-    xcb_void_cookie_t cookie = {0};
     return cookie;
 }
 
@@ -653,10 +653,10 @@ static int s_free_gc_calls;
 xcb_void_cookie_t xcb_free_gc(xcb_connection_t *connection,
         xcb_gcontext_t gc)
 {
+    xcb_void_cookie_t cookie = {0};
     (void) connection;
     (void) gc;
     s_free_gc_calls++;
-    xcb_void_cookie_t cookie = {0};
     return cookie;
 }
 
@@ -667,6 +667,7 @@ xcb_void_cookie_t xcb_copy_area(xcb_connection_t *connection,
         xcb_gcontext_t gc, int16_t src_x, int16_t src_y, int16_t dst_x,
         int16_t dst_y, uint16_t width, uint16_t height)
 {
+    xcb_void_cookie_t cookie = {0};
     (void) connection;
     (void) src_drawable;
     (void) dst_drawable;
@@ -678,7 +679,6 @@ xcb_void_cookie_t xcb_copy_area(xcb_connection_t *connection,
     (void) width;
     (void) height;
     s_copy_area_calls++;
-    xcb_void_cookie_t cookie = {0};
     return cookie;
 }
 
@@ -687,10 +687,10 @@ static int s_free_pixmap_calls;
 xcb_void_cookie_t xcb_free_pixmap(xcb_connection_t *connection,
         xcb_pixmap_t pixmap)
 {
+    xcb_void_cookie_t cookie = {0};
     (void) connection;
     (void) pixmap;
     s_free_pixmap_calls++;
-    xcb_void_cookie_t cookie = {0};
     return cookie;
 }
 
@@ -859,6 +859,7 @@ static void s_test_property_is_bg_pixmap_matches_resolved_atom(void)
 
 static void s_test_cache_invalidate_forces_pixmap_reresolution(void)
 {
+    int calls_before;
     struct s_desktop_fixture_s fx;
 
     s_reset_fixture();
@@ -870,7 +871,7 @@ static void s_test_cache_invalidate_forces_pixmap_reresolution(void)
             "before any cache exists, rendering a background queries"
             " the root window's candidate pixmap properties");
 
-    int calls_before = s_get_property_calls;
+    calls_before = s_get_property_calls;
 
     (void) desktop_render_background(&fx.desktop);
     TAP_EQ_INT(s_get_property_calls, calls_before,
@@ -994,6 +995,8 @@ static void s_test_render_background_paints_color_first_time(void)
 
 static void s_test_render_background_skips_unchanged_color(void)
 {
+    int clears_before;
+    int changes_before;
     struct s_desktop_fixture_s fx;
 
     s_reset_fixture();
@@ -1002,8 +1005,8 @@ static void s_test_render_background_skips_unchanged_color(void)
     fx.desktop.background.bg.color = 0xaabbccu;
 
     (void) desktop_render_background(&fx.desktop);
-    int changes_before = s_change_window_attributes_calls;
-    int clears_before = s_clear_area_calls;
+    changes_before = s_change_window_attributes_calls;
+    clears_before = s_clear_area_calls;
 
     TAP_EQ_INT(desktop_render_background(&fx.desktop), 0,
             "rendering again with the exact same configured color"
@@ -1017,6 +1020,7 @@ static void s_test_render_background_skips_unchanged_color(void)
 
 static void s_test_render_background_repaints_on_color_change(void)
 {
+    int changes_before;
     struct s_desktop_fixture_s fx;
 
     s_reset_fixture();
@@ -1027,7 +1031,7 @@ static void s_test_render_background_repaints_on_color_change(void)
     (void) desktop_render_background(&fx.desktop);
 
     fx.desktop.background.bg.color = 0x222222u;
-    int changes_before = s_change_window_attributes_calls;
+    changes_before = s_change_window_attributes_calls;
 
     TAP_EQ_INT(desktop_render_background(&fx.desktop), 0,
             "a genuinely different configured color succeeds");
@@ -1396,6 +1400,7 @@ static void s_test_render_one_client_hides_mapped_icon_when_current(
 
 static void s_test_render_one_client_shaded_skips_content_remap(void)
 {
+    int shows_before;
     struct s_desktop_fixture_s fx;
     client_td client;
 
@@ -1406,7 +1411,6 @@ static void s_test_render_one_client_shaded_skips_content_remap(void)
             CLIENT_FLAG_SHADED);
     client.frame = 0x610u;
 
-    int shows_before;
 
     desktop_render_one_client(&fx.desktop, &client, true);
     shows_before = s_window_show_calls;

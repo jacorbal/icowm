@@ -163,9 +163,8 @@ static void s_run_attempt_launch(xcb_connection_t *connection)
  */
 static void s_run_erase_at(unsigned int at)
 {
-    unsigned int i;
 
-    for (i = at; i + 1u <= s_run.command_len; ++i) {
+    for (unsigned int i = at; i + 1u <= s_run.command_len; ++i) {
         s_run.command[i] = s_run.command[i + 1u];
     }
     s_run.command_len--;
@@ -186,9 +185,8 @@ static void s_run_erase_at(unsigned int at)
  */
 static void s_run_insert_at(unsigned int at, char ch)
 {
-    unsigned int i;
 
-    for (i = s_run.command_len; i > at; --i) {
+    for (unsigned int i = s_run.command_len; i > at; --i) {
         s_run.command[i] = s_run.command[i - 1u];
     }
     s_run.command[at] = ch;

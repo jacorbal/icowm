@@ -11,15 +11,15 @@
                 "layout": {
                     "orientation": "horizontal",
                     "corner": "top-left",
-                    "rows": 1,
-                    "columns": 4
+                    "rows": 2,
+                    "columns": 2
                 },
                 "viewport": {
-                    "columns": 1,
-                    "rows": 1
+                    "columns": 2,
+                    "rows": 2
                 },
                 "settings": [
-                    { "-background-color": "#5f7187", "name": "Desktop 0" },
+                    { "-background-color": "#5f7187", "name": "" },
                     { "background-color": "#85648d", "name": "Desktop 1" },
                     { "background-color": "#4d767d", "name": "Desktop 2" },
                     { "background-color": "#936459", "name": "Desktop 3" },
@@ -31,15 +31,6 @@
         }
     },
 
-    "overlay": {
-        "on-desktop-switch": true,
-        "on-viewport-move": true
-    },
-
-    "urgency": {
-        "notify-activity": true
-    },
-
     "desktops": {
         "warp-on-edge-drag": true,
         "wrap-at-bounds": true,
@@ -47,16 +38,25 @@
     },
 
     "viewport": {
-        "pan-step": 40,
         "pan-icons": true,
         "pan-on-edge-drag": true,
         "pan-on-edge-hover": true,
+        "pan-step": 40,
         "mesh": {
             "is-enabled": true,
             "spacing": { "horizontal": 64, "vertical": 64 },
             "thickness": 3,
             "tone-shift": 20
         }
+    },
+
+    "overlay": {
+        "on-desktop-switch": true,
+        "on-viewport-move": true
+    },
+
+    "urgency": {
+        "notify-activity": true
     },
 
     "programs": {

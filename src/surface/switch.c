@@ -282,7 +282,6 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
 {
     client_td *clients[SWITCH_EVACUATE_MAX_CLIENTS];
     struct s_evacuate_ctx_s evacuate_ctx;
-    int index;
     bool made_progress;
 
     if (from_desktop == NULL || to_desktop == NULL) {
@@ -298,7 +297,7 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
                 &evacuate_ctx);
 
         made_progress = false;
-        for (index = 0; index < evacuate_ctx.count; ++index) {
+        for (int index = 0; index < evacuate_ctx.count; ++index) {
             client_td *const client = clients[index];
 
             if (client == NULL) {

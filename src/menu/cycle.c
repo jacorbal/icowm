@@ -635,13 +635,12 @@ void cycle_destroy(xcb_connection_t *connection)
 /* Notice that a client is about to be destroyed */
 void cycle_notice_client_destroyed(const client_td *client)
 {
-    int i;
 
     if (client == NULL || !cycle_is_open()) {
         return;
     }
 
-    for (i = 0; i < g_cycle_menu.count; ++i) {
+    for (int i = 0; i < g_cycle_menu.count; ++i) {
         if (g_cycle_menu.clients[i] == client) {
             cycle_destroy(xcb_connection_get());
             return;

@@ -232,7 +232,6 @@ void placement_free_rect_grow(const desktop_td *desktop,
 {
     int32_t right = bound_x;
     int32_t bottom = bound_y;
-    uint32_t guard;
     uint32_t guard_max;
 
     if (out_w == NULL || out_h == NULL) {
@@ -250,7 +249,7 @@ void placement_free_rect_grow(const desktop_td *desktop,
         guard_max += 1u;
     }
 
-    for (guard = 0u; guard < guard_max; ++guard) {
+    for (uint32_t guard = 0u; guard < guard_max; ++guard) {
         struct s_shrink_ctx_s shrink_ctx;
         bool shrunk;
 

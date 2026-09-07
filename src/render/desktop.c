@@ -452,6 +452,8 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
  * with @c _NET_WM_VISIBLE_NAME via @a client_sync_visible_name, so
  * a pager showing the same title has a way to know it no longer matches
  * @c _NET_WM_NAME verbatim.
+ *
+ * @note Complexity: @e O(n), where @e n is the length of @p text
  */
 static void s_titlebar_draw_title(xcb_connection_t *connection,
         client_td *client, xcb_drawable_t target, int16_t title_x,

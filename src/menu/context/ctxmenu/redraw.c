@@ -3,8 +3,7 @@
  *
  * @brief Painting a context menu's rows
  *
- * One of the files
- * @c menu/context/ctxmenu/ is made of.
+ * One of the files @c menu/context/ctxmenu/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -175,8 +174,9 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
             icon_pos.x = text_x;
             icon_pos.y = icon_y;
-            wmicon_draw_at(conn, xcb_ewmh_connection_get(), e->icon_window,
-                    state->window, icon_pos, icon_size,
+            wmicon_draw_at(conn, xcb_ewmh_connection_get(),
+                    e->icon_window, state->window,
+                    icon_pos, icon_size,
                     fg, bg, e->icon_cache);
         }
         text_x = (int16_t) (text_x + icon_size +
@@ -192,9 +192,10 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
                 : state->config->theme.menu.unselected.font);
     text_renderer_set_color(fg, bg);
     menu_draw_label(conn, state->window,
-            (struct position_s) { text_x,
-                top_y + WM_CTXMENU_ROW_HEIGHT - 5 },
-            label_buf);
+            (struct position_s) {
+                text_x,
+                top_y + WM_CTXMENU_ROW_HEIGHT - 5
+            }, label_buf);
 
     if (e->type == CTXMENU_SUBMENU) {
         arrow_w = menu_draw_measure(MENU_CONTEXT_CTXMENU_SUBMENU_ARROW);
@@ -202,9 +203,10 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
                 (uint16_t) state->config->theme.menu.padding.horizontal -
                 arrow_w);
         menu_draw_label(conn, state->window,
-                (struct position_s) { arrow_x,
-                    top_y + WM_CTXMENU_ROW_HEIGHT - 5 },
-                MENU_CONTEXT_CTXMENU_SUBMENU_ARROW);
+                (struct position_s) {
+                    arrow_x,
+                    top_y + WM_CTXMENU_ROW_HEIGHT - 5
+                }, MENU_CONTEXT_CTXMENU_SUBMENU_ARROW);
     }
 }
 

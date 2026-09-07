@@ -905,7 +905,6 @@ void menu_message_dialog_show_pairs(xcb_connection_t *connection,
     for (size_t i = 0u; i < pair_count &&
             count < (uint8_t) DIALOG_MSG_MAX_LINES; ++i) {
         uint8_t used;
-        uint8_t k;
 
         if (pairs[i].label == NULL && pairs[i].value == NULL) {
             labels[count][0] = '\0';
@@ -925,7 +924,7 @@ void menu_message_dialog_show_pairs(xcb_connection_t *connection,
         used = s_message_wrap_value(pairs[i].value, avail,
                 &values[count],
                 (uint8_t) ((uint8_t) DIALOG_MSG_MAX_LINES - count));
-        for (k = 0u; k < used; ++k) {
+        for (uint8_t k = 0u; k < used; ++k) {
             if (k == 0u && pairs[i].label != NULL) {
                 (void) safe_strncpy(labels[count + k], pairs[i].label,
                         (size_t) DIALOG_MSG_LINE_MAX_LENGTH - 1u);

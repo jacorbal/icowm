@@ -373,7 +373,7 @@ client_td *client_group_transient_anchor(const client_td *client)
          * group-transient dialogs sharing the same group could resolve
          * to each other (whichever 'ohtbl_foreach' happens to visit
          * first), and every caller walking from an anchor back into the
-         * family ('s_enforce_layer_place_family¡,
+         * family ('s_enforce_layer_place_family',
          * 'cmds/client/layer.c'; 's_desktop_transients_raise',
          * 'desktop/dclient.c') would recurse into that same pair of
          * dialogs endlessly. */

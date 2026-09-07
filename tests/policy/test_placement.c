@@ -101,6 +101,8 @@ xcb_query_pointer_cookie_t xcb_query_pointer(xcb_connection_t *c,
 xcb_query_pointer_reply_t *xcb_query_pointer_reply(xcb_connection_t *c,
         xcb_query_pointer_cookie_t cookie, xcb_generic_error_t **e)
 {
+    xcb_query_pointer_reply_t *copy;
+
     (void) c;
     (void) cookie;
     (void) e;
@@ -111,8 +113,7 @@ xcb_query_pointer_reply_t *xcb_query_pointer_reply(xcb_connection_t *c,
     /* The real reply is malloc'd and free()'d by the caller; this
      * stand-in returns a fresh heap copy each time for the same
      * reason, so a caller's own free() is always valid */
-    xcb_query_pointer_reply_t *copy =
-        malloc(sizeof(xcb_query_pointer_reply_t));
+    copy = malloc(sizeof(xcb_query_pointer_reply_t));
     *copy = *s_pointer_reply;
     return copy;
 }
@@ -134,6 +135,8 @@ xcb_get_geometry_cookie_t xcb_get_geometry(xcb_connection_t *c,
 xcb_get_geometry_reply_t *xcb_get_geometry_reply(xcb_connection_t *c,
         xcb_get_geometry_cookie_t cookie, xcb_generic_error_t **e)
 {
+    xcb_get_geometry_reply_t *copy;
+
     (void) c;
     (void) cookie;
     (void) e;
@@ -141,8 +144,7 @@ xcb_get_geometry_reply_t *xcb_get_geometry_reply(xcb_connection_t *c,
     if (s_geometry_reply == NULL) {
         return NULL;
     }
-    xcb_get_geometry_reply_t *copy =
-        malloc(sizeof(xcb_get_geometry_reply_t));
+    copy = malloc(sizeof(xcb_get_geometry_reply_t));
     *copy = *s_geometry_reply;
     return copy;
 }

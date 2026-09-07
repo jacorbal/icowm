@@ -231,13 +231,12 @@ uint32_t wm_for_each_client(const wm_td *wm,
 void wm_all_clients_unmanage(const wm_td *wm)
 {
     list_td *const surfaces = wm_surfaces(wm);
-    list_item_td *snode;
 
     if (surfaces == NULL) {
         return;
     }
 
-    for (snode = list_head(surfaces); snode != NULL;
+    for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
         surface_td *const surface = (surface_td *) list_data(snode);
         cdlist_item_td *dnode;

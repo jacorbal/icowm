@@ -308,6 +308,7 @@ void focus_order_destroy(void)
 }
 
 
+/* Whether the configured focus policy follows the pointer */
 bool focus_is_sloppy(const config_td *cfg)
 {
     if (cfg == NULL) {

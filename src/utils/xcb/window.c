@@ -205,6 +205,6 @@ void xcb_window_save_set(xcb_window_t window, bool insert)
     }
 
     xcb_change_save_set(xcb_connection_get(),
-            insert ? XCB_SET_MODE_INSERT : XCB_SET_MODE_DELETE,
+            (insert) ? XCB_SET_MODE_INSERT : XCB_SET_MODE_DELETE,
             window);
 }

@@ -975,7 +975,7 @@ xcb_keysym_t keyboard_keysym_for_state(xcb_key_symbols_t *keysyms,
 
     /* The group 'AltGr' selects, then 'Shift' within it: X lays the
      * four out as plain, shifted, alternate and shifted alternate */
-    column = (has_altgr ? 2 : 0) + (has_shift ? 1 : 0);
+    column = ((has_altgr) ? 2 : 0) + ((has_shift) ? 1 : 0);
 
     /* 'Caps_Lock' uppercases letters and leaves everything else alone,
      * so it cannot simply be treated as another 'Shift'.  Whether this
@@ -983,15 +983,15 @@ xcb_keysym_t keyboard_keysym_for_state(xcb_key_symbols_t *keysyms,
      * its two columns differ only in case. */
     if (has_lock) {
         plain = xcb_key_symbols_get_keysym(keysyms, keycode,
-                has_altgr ? 2 : 0);
+                (has_altgr) ? 2 : 0);
         shifted = xcb_key_symbols_get_keysym(keysyms, keycode,
-                has_altgr ? 3 : 1);
+                (has_altgr) ? 3 : 1);
         if (plain >= (xcb_keysym_t) 'a' &&
                 plain <= (xcb_keysym_t) 'z' &&
                 shifted == plain - 0x20u) {
             /* The lock inverts the case rather than forcing it, so
              * holding 'Shift' with it typed lowercase again */
-            column = (has_altgr ? 2 : 0) + (has_shift ? 0 : 1);
+            column = ((has_altgr) ? 2 : 0) + ((has_shift) ? 0 : 1);
         }
     }
 

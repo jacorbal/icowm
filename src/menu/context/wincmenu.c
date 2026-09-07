@@ -147,6 +147,8 @@ static const config_td *s_config = NULL;
  *
  * @param connection XCB connection (unused)
  * @param userdata   Pointer to @c wincmenu_send_data_td
+ *
+ * @note Complexity: @e O(1)
  */
 static void s_cb_send_to_desktop(xcb_connection_t *connection,
         void *userdata)
@@ -172,6 +174,8 @@ static void s_cb_send_to_desktop(xcb_connection_t *connection,
  *
  * @param connection XCB connection (unused)
  * @param userdata   Pointer to @c wincmenu_send_monitor_data_td
+ *
+ * @note Complexity: @e O(1)
  */
 static void s_cb_send_to_monitor(xcb_connection_t *connection,
         void *userdata)
@@ -204,6 +208,8 @@ static void s_cb_send_to_monitor(xcb_connection_t *connection,
  * - Activated with the mouse (a click on the entry).  Warps the pointer
  *   to the window's center and starts a pointer-driven move drag, so
  *   the window then follows the mouse until the button is released.
+ *
+ * @note Complexity: @e O(1)
  */
 static void s_cb_move(xcb_connection_t *connection,
         void *userdata)
@@ -332,6 +338,8 @@ static void s_resize_corner_grab(const client_td *client,
  *   always the corner furthest from the screen edge the window is
  *   closest to (and thus always reachable without the pointer having to
  *   leave the screen).  See @c s_resize_corner_grab.
+ *
+ * @note Complexity: @e O(1)
  */
 static void s_cb_resize(xcb_connection_t *connection, void *userdata)
 {
@@ -404,6 +412,8 @@ static void s_cb_resize(xcb_connection_t *connection, void *userdata)
  * @param connection Unused; kept for the callback's required signature
  * @param userdata   The @c enum @c action_client_e to send, cast to
  *                   @c void*
+ *
+ * @note Complexity: @e O(1)
  */
 static void s_cb_send_action(xcb_connection_t *connection,
         void *userdata)
@@ -519,6 +529,8 @@ static void s_cb_inspect(xcb_connection_t *connection, void *userdata)
  * A rolled-up (shaded) window must be unrolled before its decoration
  * can be toggled, because the decorated titlebar is what keeps the
  * shade state meaningful.
+ *
+ * @note Complexity: @e O(1)
  */
 static void s_cb_decorate(xcb_connection_t *connection,
         void *userdata)
@@ -543,6 +555,8 @@ static void s_cb_decorate(xcb_connection_t *connection,
  * @param cb          Callback to invoke on activation (may be null)
  * @param userdata    Passed to @p cb
  * @param is_disabled Whether the entry is grayed out
+ *
+ * @note Complexity: @e O(1)
  */
 static void s_entry_command(ctxmenu_entry_td *e, const char *label,
         void (*cb)(xcb_connection_t *, void *), void *userdata,
@@ -868,6 +882,8 @@ static int s_build_monitor_entries(surface_td *surface,
  * @brief Build the @c Layer submenu entries
  *
  * @param client Target client (used to disable the current layer)
+ *
+ * @note Complexity: @e O(1), the layer count being fixed
  */
 static void s_build_layer_entries(const client_td *client)
 {

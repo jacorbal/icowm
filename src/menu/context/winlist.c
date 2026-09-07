@@ -762,7 +762,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
  * mode (see that function's comment), accumulating the total so @c
  * s_appgroup_entries and @c s_appgroup_state can be sized to it before
  * either actually exists, rather than to the fixed worst case
- * @¢ WINLIST_MAX_APPGROUPS would otherwise always need to cover
+ * @c WINLIST_MAX_APPGROUPS would otherwise always need to cover
  * regardless of how many groups this desktop count and these clients
  * actually produce.
  *

@@ -76,6 +76,8 @@ void wm_shutdown_begin(const wm_td *wm);
  *
  * @see @a loop_run, obviously located in @c loop.c
  */
+int wm_shutdown_ms_remaining(void);
+
 /**
  * @brief Bring one client to the desktop and viewport page the user
  *        is looking at
@@ -112,8 +114,6 @@ void wm_shutdown_gather_client(client_td *client);
  * @note Complexity: @e O(1)
  */
 bool wm_shutdown_is_in_progress(void);
-
-int wm_shutdown_ms_remaining(void);
 
 /**
  * @brief Advance the shutdown state machine

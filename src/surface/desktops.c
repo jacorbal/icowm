@@ -79,9 +79,9 @@ static void s_layout_row_col(uint32_t index,
 {
     bool horz = (layout->orientation ==
             CONFIG_DESKTOP_ORIENTATION_HORIZONTAL);
-    uint32_t primary = horz ? layout->columns : layout->rows;
-    uint32_t r = horz ? index / primary : index % primary;
-    uint32_t c = horz ? index % primary : index / primary;
+    uint32_t primary = (horz) ? layout->columns : layout->rows;
+    uint32_t r = (horz) ? index / primary : index % primary;
+    uint32_t c = (horz) ? index % primary : index / primary;
 
     switch (layout->corner) {
     case CONFIG_DESKTOP_CORNER_TOP_LEFT:
@@ -165,7 +165,7 @@ static bool s_layout_index(int64_t row, int64_t col,
         break;
     }
 
-    *index_out = horz ? (r * layout->columns + c)
+    *index_out = (horz) ? (r * layout->columns + c)
         : (c * layout->rows + r);
     return true;
 }

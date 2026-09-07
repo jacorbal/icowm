@@ -590,13 +590,13 @@ static void s_test_viewport_columns_above_max_rejected(void)
  * rather than crashing or zeroing anything */
 static void s_test_missing_topology_leaves_defaults(void)
 {
+    char path[256];
     struct config_base_s base;
     struct config_desktop_s desktop;
 
     base.screen_count = 42u;  /* a sentinel, pre-set before loading */
     memset(&desktop, 0, sizeof(desktop));
 
-    char path[256];
     s_write_temp_file(path, sizeof(path), "{}");
     config_load_base(path, &base, &desktop);
     unlink(path);

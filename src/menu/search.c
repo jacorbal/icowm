@@ -135,7 +135,6 @@ static int s_search_fuzzy_score(const char *restrict query,
         const char *restrict text)
 {
     size_t qi = 0;
-    size_t ti = 0;
     size_t qlen = safe_strlen(query);
     size_t tlen = safe_strlen(text);
     int score = 0;
@@ -145,7 +144,7 @@ static int s_search_fuzzy_score(const char *restrict query,
         return -1;
     }
 
-    for (ti = 0; ti < tlen && qi < qlen; ++ti) {
+    for (size_t ti = 0; ti < tlen && qi < qlen; ++ti) {
         if (tolower((unsigned char) text[ti]) ==
                 tolower((unsigned char) query[qi])) {
             score += (ti == 0) ? 3 : 1;

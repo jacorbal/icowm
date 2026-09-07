@@ -578,6 +578,7 @@ void drag_warp_tick(xcb_connection_t *connection)
     surface_td *surface;
     desktop_td *old_desktop;
     desktop_td *new_desktop;
+    struct position_s old_page;
     uint32_t old_desktop_id;
     int16_t new_root_x;
     int16_t new_root_y;
@@ -623,8 +624,6 @@ void drag_warp_tick(xcb_connection_t *connection)
          * start. */
         return;
     }
-
-    struct position_s old_page;
 
     old_desktop_id = surface->desktop_cur;
     old_desktop = surface_desktop_get(surface, old_desktop_id);
