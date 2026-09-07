@@ -563,6 +563,13 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
             client->layout.geometry.cur.pos.x,
             client->layout.geometry.cur.pos.y);
 
+    /* Same bookkeeping 'ccmd_client_apply_geometry' does, since this
+     * places the very same window without going through it; see
+     * 'requested_pos' in client/layout.h */
+    client->layout.requested_pos.x = client->layout.geometry.cur.pos.x;
+    client->layout.requested_pos.y = client->layout.geometry.cur.pos.y;
+    client->layout.has_requested_pos = true;
+
     xcb_window_place(target,
             client->layout.geometry.cur.pos.x,
             client->layout.geometry.cur.pos.y,
@@ -1001,7 +1008,7 @@ void desktop_render_one_client(desktop_td *desktop,
     }
 
     LOGGER_TRACE("Rendered client 0x%08x with" \
-                 " geometry (%ux%u%+u%+u)",
+                 " geometry (%ux%u%+d%+d)",
             client->id,
             client->layout.geometry.cur.dim.w,
             client->layout.geometry.cur.dim.h,

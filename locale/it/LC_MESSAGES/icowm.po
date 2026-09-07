@@ -542,8 +542,8 @@ msgid "Detected activity on page {%u, %u}"
 msgstr "Attività rilevata nella pagina {%u, %u}"
 
 #: include/defs/uistr.h:289;
-msgid " -- %s"
-msgstr " -- %s"
+msgid " %s"
+msgstr " %s"
 
 #: include/defs/uistr.h:297;
 msgid " (on surface %u)"

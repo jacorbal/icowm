@@ -540,7 +540,7 @@ msgid "Detected activity on page {%u, %u}"
 msgstr ""
 
 #: include/defs/uistr.h:289;
-msgid " -- %s"
+msgid " %s"
 msgstr ""
 
 #: include/defs/uistr.h:297;

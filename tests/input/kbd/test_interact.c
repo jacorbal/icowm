@@ -315,7 +315,7 @@ void client_aspect_ratio_clamp(const client_td *client, uint32_t width,
 }
 
 
-void ccmd_client_apply_geometry(const client_td *client,
+void ccmd_client_apply_geometry(client_td *client,
         xcb_window_t win, uint16_t mask, int32_t x, int32_t y,
         uint32_t w, uint32_t h, uint32_t border_width)
 {

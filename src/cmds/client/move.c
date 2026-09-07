@@ -98,7 +98,7 @@ static void s_move_to_monitor_toward(client_td *client,
 
 
 /* Apply a client's geometry to its target window in a single XCB call */
-void ccmd_client_apply_geometry(const client_td *client,
+void ccmd_client_apply_geometry(client_td *client,
         xcb_window_t target, uint16_t mask,
         int32_t x, int32_t y, uint32_t w, uint32_t h,
         uint32_t border_width)
@@ -125,6 +125,18 @@ void ccmd_client_apply_geometry(const client_td *client,
     }
     if (mask & (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH) {
         values[num++] = border_width;
+    }
+
+    /* Recorded so 'handler_configure_notify' can tell the server's
+     * echo of this very request apart from the echo of an earlier one
+     * that arrived late; see 'requested_pos' in client/layout.h */
+    if (mask & (uint16_t) XCB_CONFIG_WINDOW_X) {
+        client->layout.requested_pos.x = x;
+        client->layout.has_requested_pos = true;
+    }
+    if (mask & (uint16_t) XCB_CONFIG_WINDOW_Y) {
+        client->layout.requested_pos.y = y;
+        client->layout.has_requested_pos = true;
     }
 
     xcb_configure_window(xcb_connection_get(), target, mask, values);

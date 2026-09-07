@@ -914,8 +914,29 @@ void handler_configure_notify(xcb_connection_t *connection,
                 client->layout.geometry.cur.dim.h !=
                     (uint32_t) event->height;
 
-            client->layout.geometry.cur.pos.x = event->x;
-            client->layout.geometry.cur.pos.y = event->y;
+            /* The position is believed only when it confirms what
+             * the manager last asked for.  Every configure it issues
+             * comes back as an echo, and during a burst, a viewport
+             * pan drag above all, the echo of an earlier request
+             * routinely lands after a later one was already sent.
+             * Taking that stale position would leave the stored
+             * geometry a step behind, and a pan, which adds its delta
+             * to whatever is stored, would carry the error forward
+             * for good instead of correcting it on the next step.
+             * The size is taken either way: it is the client's own to
+             * ask for, and no burst of the manager's own makes it
+             * stale.  A client never placed yet has nothing to
+             * confirm against and is taken as it comes. */
+            if (!client->layout.has_requested_pos ||
+                    (client->layout.requested_pos.x ==
+                        (int32_t) event->x &&
+                     client->layout.requested_pos.y ==
+                        (int32_t) event->y)) {
+                client->layout.geometry.cur.pos.x = event->x;
+                client->layout.geometry.cur.pos.y = event->y;
+            } else {
+                geom_changed = size_changed;
+            }
             client->layout.geometry.cur.dim.w = event->width;
             client->layout.geometry.cur.dim.h = event->height;
 

@@ -50,6 +50,26 @@ struct client_layout_s {
     } geometry;
 
     /**
+     * @brief Position most recently asked of the X server for this
+     *        client's own target window
+     *
+     * A @c ConfigureNotify is believed only when it confirms this.
+     * The server echoes one back for every configure the manager
+     * issues, and during a burst, a viewport pan drag being the
+     * clearest case, an echo for an earlier request routinely arrives
+     * after a later one has already been sent.  Writing that stale
+     * position into @p geometry.cur would leave the manager's own
+     * idea of where the client sits one step behind, and since a pan
+     * adds its delta to whatever is stored, the error is kept for
+     * good rather than corrected by the next step.
+     *
+     * @p has_requested_pos starts false, so a client the manager has
+     * not placed yet still takes the position the server reports.
+     */
+    struct position_s requested_pos;
+    bool has_requested_pos;
+
+    /**
      * @brief Area where the client exist on the screen, plus the area
      *        are marked off-bounds for client placement
      *

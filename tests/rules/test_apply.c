@@ -438,7 +438,7 @@ void enact_client_restore(client_td *client)
  *
  * @note Complexity: @e O(1)
  */
-void ccmd_client_apply_geometry(const client_td *client,
+void ccmd_client_apply_geometry(client_td *client,
         xcb_window_t target, uint16_t mask,
         int32_t x, int32_t y, uint32_t w, uint32_t h,
         uint32_t border_width)

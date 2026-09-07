@@ -290,7 +290,7 @@
  * applied to the surface-suffix variant right below it.
  *
  * TRANSLATION: keep the '%s' (a desktop's name) */
-#define STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT " -- %s"
+#define STR_DESKTOP_ACTIVITY_NAME_SUFFIX_FMT " %s"
 
 /* Appended after the base message above and, if the desktop that had
  * activity has a name of its own, the name suffix right above this

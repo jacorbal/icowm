@@ -837,6 +837,100 @@ static void s_test_notify_structure_move_only(void)
 }
 
 
+/* A ConfigureNotify carrying a position other than the one last asked
+ * for is the server echoing an earlier request that arrived late, and
+ * its position is refused: taking it would leave the stored geometry
+ * a step behind, and a viewport pan, which adds its delta to whatever
+ * is stored, would then carry that error forward for good */
+static void s_test_notify_stale_position_refused(void)
+{
+    client_td client;
+    surface_td surface;
+    desktop_td desktop;
+    xcb_configure_notify_event_t event;
+    list_td surfaces;
+    xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
+
+    s_test_reset_state();
+    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_decorated_client(&client);
+    s_lookup_result = &client;
+    s_lookup_surface_out = &surface;
+    s_lookup_desktop_out = &desktop;
+
+    /* Where the manager has just put it, and what it asked for */
+    client.layout.geometry.cur.pos.x = 400;
+    client.layout.geometry.cur.pos.y = 300;
+    client.layout.requested_pos.x = 400;
+    client.layout.requested_pos.y = 300;
+    client.layout.has_requested_pos = true;
+
+    memset(&event, 0, sizeof(event));
+    event.response_type = XCB_CONFIGURE_NOTIFY;
+    event.event = client.frame;
+    event.window = client.frame;
+    event.x = 100;      /* the previous step, echoed late */
+    event.y = 100;
+    event.width = (uint16_t) client.layout.geometry.cur.dim.w;
+    event.height = (uint16_t) client.layout.geometry.cur.dim.h;
+
+    handler_configure_notify(connection, &surfaces, &event);
+
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, 400,
+            "a stale echo never drags the stored X backwards");
+    TAP_EQ_INT(client.layout.geometry.cur.pos.y, 300,
+            "nor the stored Y");
+
+    /* The very same event, once it is what was asked for, is taken */
+    client.layout.requested_pos.x = 100;
+    client.layout.requested_pos.y = 100;
+    handler_configure_notify(connection, &surfaces, &event);
+
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, 100,
+            "while an echo confirming the last request is believed");
+}
+
+
+/* A client the manager has not placed yet has nothing to confirm
+ * against, so whatever position the server reports is taken */
+static void s_test_notify_unrequested_position_taken(void)
+{
+    client_td client;
+    surface_td surface;
+    desktop_td desktop;
+    xcb_configure_notify_event_t event;
+    list_td surfaces;
+    xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
+
+    s_test_reset_state();
+    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_decorated_client(&client);
+    s_lookup_result = &client;
+    s_lookup_surface_out = &surface;
+    s_lookup_desktop_out = &desktop;
+    client.layout.has_requested_pos = false;
+
+    memset(&event, 0, sizeof(event));
+    event.response_type = XCB_CONFIGURE_NOTIFY;
+    event.event = client.frame;
+    event.window = client.frame;
+    event.x = 777;
+    event.y = 555;
+    event.width = (uint16_t) client.layout.geometry.cur.dim.w;
+    event.height = (uint16_t) client.layout.geometry.cur.dim.h;
+
+    handler_configure_notify(connection, &surfaces, &event);
+
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, 777,
+            "a client with nothing requested yet takes the reported"
+            " position");
+}
+
+
 /* A ConfigureNotify for the inner content window of a decorated,
  * non-fullscreen client, arriving at the wrong position within the
  * frame, is snapped back via a layout sync */
@@ -911,7 +1005,7 @@ static void s_test_notify_inner_window_already_correct(void)
 
 int main(void)
 {
-    TAP_PLAN(40);
+    TAP_PLAN(44);
 
     s_test_request_null_event();
     s_test_request_systray_enforced();
@@ -929,6 +1023,8 @@ int main(void)
     s_test_notify_substructure_ignored();
     s_test_notify_structure_size_changed();
     s_test_notify_structure_move_only();
+    s_test_notify_stale_position_refused();
+    s_test_notify_unrequested_position_taken();
     s_test_notify_inner_window_snapped_back();
     s_test_notify_inner_window_already_correct();
 

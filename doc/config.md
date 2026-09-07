@@ -1412,7 +1412,7 @@ this says whether one the user cannot see at all is announced.
 
 One dialog, naming whatever the user would still have to do to reach
 the window.  A different desktop is named: `Detected activity on
-desktop [2] -- Web`, with a surface disambiguator appended when more
+desktop [2] Web`, with a surface disambiguator appended when more
 than one surface is managed.  A viewport page other than the one that
 desktop is panned to is named too, appended as ` {column, row}`, since
 switching desktops alone would land on the page that desktop was left
