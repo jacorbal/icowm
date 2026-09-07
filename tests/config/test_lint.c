@@ -232,18 +232,30 @@ static void s_test_nested_unrecognized_key_found(void)
 }
 
 
-/* The new 'pan-on-edge-drag' desktops key is itself recognized by
- * the schema, not merely tolerated as a side effect of some other
- * key's presence */
-static void s_test_pan_on_edge_drag_key_recognized(void)
+/* Every key of the 'viewport' section is recognized by the schema in
+ * its own right, not merely tolerated as a side effect of some other
+ * key's presence, and the two edge pans are no longer accepted under
+ * 'desktops', where they used to live before every panning setting
+ * was gathered in one place */
+static void s_test_viewport_pan_keys_recognized(void)
 {
     char dir[300];
 
     s_make_temp_config_dir(dir, sizeof(dir));
     s_write_file(dir, "config.json",
-            "{\"desktops\": {\"pan-on-edge-drag\": true}}");
+            "{\"viewport\": {\"pan-step\": 40, \"pan-icons\": true,"
+            " \"pan-on-edge-drag\": true,"
+            " \"pan-on-edge-hover\": true}}");
     TAP_EQ_INT(s_lint_quietly(dir), 0,
-            "'pan-on-edge-drag' is a recognized desktops key");
+            "every 'pan-' key is a recognized viewport key");
+    s_remove_temp_dir(dir);
+
+    s_make_temp_config_dir(dir, sizeof(dir));
+    s_write_file(dir, "config.json",
+            "{\"desktops\": {\"pan-on-edge-drag\": true}}");
+    TAP_OK(s_lint_quietly(dir) != 0,
+            "and is refused under 'desktops', where it no longer"
+            " belongs");
     s_remove_temp_dir(dir);
 }
 
@@ -514,7 +526,7 @@ static void s_test_desktops_settings_nested_unknown_key_flagged(void)
 
 int main(void)
 {
-    TAP_PLAN(26);
+    TAP_PLAN(27);
 
     s_test_null_dir();
     s_test_missing_dir();
@@ -526,7 +538,7 @@ int main(void)
     s_test_findings_summed_across_files();
     s_test_malformed_json_not_counted();
     s_test_nested_unrecognized_key_found();
-    s_test_pan_on_edge_drag_key_recognized();
+    s_test_viewport_pan_keys_recognized();
     s_test_theme_files_checked();
     s_test_non_json_theme_file_ignored();
     s_test_missing_themes_dir_not_an_error();

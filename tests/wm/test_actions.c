@@ -124,6 +124,14 @@ void enact_desktop_clients_rearrange(const wm_td *wm, surface_td *surface,
  * links at all */
 
 /** Link-only stand-in for cctl_sn_set_timeout_seconds (cctl/sn.c) */
+/** Link-only stand-in for @a viewport_mesh_cache_invalidate: the mesh
+ *  is dropped whenever the desktop background may have changed under
+ *  it, which this file has no mesh to drop */
+void viewport_mesh_cache_invalidate(void)
+{
+}
+
+
 void cctl_sn_set_timeout_seconds(uint32_t seconds)
 {
     (void) seconds;

@@ -184,9 +184,9 @@ static inline void s_show_help(FILE *fp)
                 " is free\n", (unsigned int) MEMGUARD_MIN_CEILING_MIB);
 #else
     fprintf(fp, "Restricted-memory mode is off unless '-M <mib>'" \
-                " turns it on, and while on,\n" \
-                "   IcoWM refuses to start when less than <mib> of" \
-                " system memory is free\n");
+                " turns it on; while on, IcoWM\n"
+                "   refuses to start when less than '<mib>' of system" \
+                " memory is free\n");
 #endif  /* ! COMPACT */
 
     /* Show default logging information */
@@ -458,10 +458,10 @@ int main(int argc, char *const argv[])
                 if (mib >= (long) MEMGUARD_MIN_CEILING_MIB) {
                     restricted_memory_mib = (uint32_t) mib;
                 } else {
-                    fprintf(stderr, "Invalid memory ceiling" \
-                            " for '-M': must be at least %u" \
-                            " mebibytes; IcoWM cannot realistically" \
-                            " run in less than that\n",
+                    fprintf(stderr, "Invalid memory ceiling for '-M':" \
+                            " must be at least %u mebibytes;\n" \
+                            "IcoWM cannot realistically run in less" \
+                            " than that\n",
                             (unsigned int) MEMGUARD_MIN_CEILING_MIB);
                     s_deallocate_buffers(&log_filename,
                             &display_name, &config_dir);

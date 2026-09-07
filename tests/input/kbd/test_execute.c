@@ -499,6 +499,41 @@ void ccmd_client_unshade(client_td *client)
 
 /* Stand-ins: enact.h surface/desktop-switch actions */
 
+/** Call counters for the four whole-page viewport moves, which the
+ *  'keyboard.viewport.page.*' bindings reach */
+static int s_call_enact_surface_viewport_switch_north;
+static int s_call_enact_surface_viewport_switch_south;
+static int s_call_enact_surface_viewport_switch_east;
+static int s_call_enact_surface_viewport_switch_west;
+
+void enact_surface_viewport_switch_north(surface_td *surface)
+{
+    (void) surface;
+    s_call_enact_surface_viewport_switch_north++;
+}
+
+
+void enact_surface_viewport_switch_south(surface_td *surface)
+{
+    (void) surface;
+    s_call_enact_surface_viewport_switch_south++;
+}
+
+
+void enact_surface_viewport_switch_east(surface_td *surface)
+{
+    (void) surface;
+    s_call_enact_surface_viewport_switch_east++;
+}
+
+
+void enact_surface_viewport_switch_west(surface_td *surface)
+{
+    (void) surface;
+    s_call_enact_surface_viewport_switch_west++;
+}
+
+
 void enact_surface_desktop_switch_north(surface_td *surface)
 {
     (void) surface;

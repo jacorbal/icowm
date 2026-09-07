@@ -194,6 +194,14 @@ void desktop_background_pixmap_cache_invalidate(void)
 
 
 /** Link-only stand-in for surface_render_current_desktop_repaint */
+/** Link-only stand-in for @a viewport_mesh_cache_invalidate: the mesh
+ *  is dropped whenever the desktop background may have changed under
+ *  it, which this file has no mesh to drop */
+void viewport_mesh_cache_invalidate(void)
+{
+}
+
+
 void surface_render_current_desktop_repaint(surface_td *surface)
 {
     (void) surface;

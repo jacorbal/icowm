@@ -126,6 +126,24 @@ static char s_last_rerole_role[64];
 static char s_last_rename_name[64];
 static char s_last_set_icon_name[64];
 
+/** Call counter and last-seen page for
+ *  @a scmd_surface_viewport_client_send_to_page, which
+ *  @a enact_client_send_to_page is the thin wrapper over */
+static int s_call_send_to_page;
+static uint32_t s_last_page_col;
+static uint32_t s_last_page_row;
+
+void scmd_surface_viewport_client_send_to_page(surface_td *surface,
+        client_td *client, uint32_t col, uint32_t row)
+{
+    (void) surface;
+    (void) client;
+
+    s_call_send_to_page++;
+    s_last_page_col = col;
+    s_last_page_row = row;
+}
+
 void ccmd_client_close(client_td *client)
 { (void) client; s_calls.close++; }
 

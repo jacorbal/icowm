@@ -150,6 +150,58 @@ void scmd_surface_viewport_pan_step(surface_td *surface,
 }
 
 
+/** Call counters for the four whole-page pan commands, one each, so
+ *  a scenario can tell which of the 'enact_surface_viewport_switch_*'
+ *  wrappers reached which */
+static int s_call_pan_north;
+static int s_call_pan_south;
+static int s_call_pan_east;
+static int s_call_pan_west;
+
+/** Call-counting stand-in for @a scmd_surface_viewport_pan_north
+ *  (cmds/surface.c)
+ *  @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_pan_north(surface_td *surface)
+{
+    (void) surface;
+    s_call_pan_north++;
+}
+
+
+/** Call-counting stand-in for @a scmd_surface_viewport_pan_south
+ *  (cmds/surface.c)
+ *  @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_pan_south(surface_td *surface)
+{
+    (void) surface;
+    s_call_pan_south++;
+}
+
+
+/** Call-counting stand-in for @a scmd_surface_viewport_pan_east
+ *  (cmds/surface.c)
+ *  @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_pan_east(surface_td *surface)
+{
+    (void) surface;
+    s_call_pan_east++;
+}
+
+
+/** Call-counting stand-in for @a scmd_surface_viewport_pan_west
+ *  (cmds/surface.c)
+ *  @note Complexity: @e O(1)
+ */
+void scmd_surface_viewport_pan_west(surface_td *surface)
+{
+    (void) surface;
+    s_call_pan_west++;
+}
+
+
 /** Call counter and last-seen argument for @a scmd_surface_viewport_
  *  goto */
 static int s_call_goto;
@@ -313,6 +365,10 @@ static void s_reset(void)
     s_call_switch_west = 0;
     s_call_pan_step = 0;
     s_call_pan_step_direction = COMPASS_NORTH;
+    s_call_pan_north = 0;
+    s_call_pan_south = 0;
+    s_call_pan_east = 0;
+    s_call_pan_west = 0;
     s_call_goto = 0;
     s_last_goto_page = 0u;
     s_action_desktop_add_result = 0;
@@ -603,6 +659,38 @@ static void s_test_toggle_strutless_failure_does_not_broadcast(void)
 }
 
 
+/* Each of the four whole-page wrappers dispatches to the command that
+ * moves a whole page, never to the pixel-sized step its similarly
+ * named sibling uses, and never broadcasts an event of its own */
+static void s_test_viewport_switch_dispatches(void)
+{
+    surface_td *surface = s_make_surface(0u, 0u);
+
+    s_reset();
+
+    enact_surface_viewport_switch_north(surface);
+    TAP_EQ_INT(s_call_pan_north, 1,
+            "switch north dispatches to scmd_surface_viewport_pan_"
+            "north exactly once");
+    TAP_EQ_INT(s_call_pan_step, 0,
+            "and never to the pixel-sized step");
+
+    enact_surface_viewport_switch_south(surface);
+    TAP_EQ_INT(s_call_pan_south, 1, "switch south dispatches south");
+
+    enact_surface_viewport_switch_east(surface);
+    TAP_EQ_INT(s_call_pan_east, 1, "switch east dispatches east");
+
+    enact_surface_viewport_switch_west(surface);
+    TAP_EQ_INT(s_call_pan_west, 1, "switch west dispatches west");
+
+    TAP_EQ_INT(s_call_broadcast, 0,
+            "a whole-page move never broadcasts an event of its own");
+
+    free(surface);
+}
+
+
 /* Each of the four viewport-pan wrappers dispatches to its own
  * command alone, and never broadcasts an IPC event of its own */
 static void s_test_viewport_pan_north_dispatches(void)
@@ -705,7 +793,7 @@ static void s_test_viewport_goto_dispatches(void)
 
 int main(void)
 {
-    TAP_PLAN(52);
+    TAP_PLAN(58);
 
     s_test_desktop_switch_dispatches_and_broadcasts();
     s_test_cyclic_north_dispatches_and_broadcasts();
@@ -719,6 +807,7 @@ int main(void)
     s_test_desktop_remove_failure_does_neither();
     s_test_toggle_strutless_success_broadcasts_only();
     s_test_toggle_strutless_failure_does_not_broadcast();
+    s_test_viewport_switch_dispatches();
     s_test_viewport_pan_north_dispatches();
     s_test_viewport_pan_south_dispatches();
     s_test_viewport_pan_east_dispatches();
