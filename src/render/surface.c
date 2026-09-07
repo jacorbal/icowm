@@ -120,7 +120,8 @@ int surface_render_all_desktops(surface_td *surface)
 
     /* Iterate through all desktops (circular list) */
     do {
-        desktop_td *const desktop = (desktop_td *) cdlist_data(desktop_node);
+        desktop_td *const desktop =
+            (desktop_td *) cdlist_data(desktop_node);
 
         if (desktop == NULL) {
             LOGGER_WARNING("Desktop in list at position %u is null",
@@ -130,11 +131,10 @@ int surface_render_all_desktops(surface_td *surface)
             continue;
         }
 
-        /* Checking is cheap and happens for every desktop regardless
-         * of outcome, so this logs unconditionally; only the work
-         * inside the 'is_outdated' branch below is actually expensive,
-         * and 'desktop_render_full' logs its specifics once that
-         * runs. */
+        /* Checking is cheap and happens for every desktop regardless of
+         * outcome, so this logs unconditionally; only the work inside
+         * the 'is_outdated' branch below is actually expensive, and
+         * 'desktop_render_full' logs its specifics once that runs. */
         LOGGER_DEBUG("Assessing whether desktop %u ('%s') needs" \
                 " rendering", rendered_count,
                 (desktop->name[0] != '\0') ? desktop->name : "unnamed");
@@ -143,7 +143,7 @@ int surface_render_all_desktops(surface_td *surface)
         /* Pass wether this is the surface's currently displayed desktop
          * so that 'desktop_render_full()' never (re-)maps clients that
          * belong to a desktop the user is not currently looking at.
-         * See 'desktop_render_clients' if you want. */
+         * See 'desktop_render_clients' if that's what you really want. */
         if (desktop->is_outdated) {
             if (desktop_render_full(desktop,
                         rendered_count == surface->desktop_cur) != 0) {

@@ -67,6 +67,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdio.h>      /* FILE */

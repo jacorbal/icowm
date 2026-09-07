@@ -32,6 +32,7 @@
 #ifndef SYSTRAY_H
 #define SYSTRAY_H
 
+
 /* System includes */
 #include <stdbool.h>
 

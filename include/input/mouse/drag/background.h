@@ -52,8 +52,7 @@
  * Records the viewport origin @p surface's current desktop starts at
  * and installs a pointer grab so that motion and release events are
  * delivered reliably, exactly like @a drag_start does for a client
- * drag.  A no-op (no grab installed, nothing recorded) when @p surface
- * has no resolvable current desktop.
+ * drag.
  *
  * @param connection XCB connection
  * @param surface    Surface whose current desktop's viewport pans
@@ -61,6 +60,8 @@
  * @param event_time Timestamp from the triggering button-press event
  * @param root_pos   Root-relative position of the pointer at press time
  *
+ * @note A no-op (no grab installed, nothing recorded) when @p surface
+ *       has no resolvable current desktop
  * @note Complexity: @e O(1)
  */
 void drag_background_start(xcb_connection_t *connection,
@@ -73,11 +74,12 @@ void drag_background_start(xcb_connection_t *connection,
  *
  * Moves the viewport straight to the origin it started this drag at,
  * offset by the pointer's accumulated delta since the press, the
- * opposite way; a no-op when no background-pan drag is active.
+ * opposite way.
  *
  * @param connection XCB connection
  * @param root_pos   Current root-relative position of the pointer
  *
+ * @note A no-op when no background-pan drag is active
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       the panned desktop (see @a scmd_surface_viewport_set)
  */
@@ -90,16 +92,16 @@ void drag_background_update(xcb_connection_t *connection,
  * When the pointer never moved past the same click-vs-drag threshold
  * an icon drag uses (see @c WM_ICON_DRAG_THRESHOLD), this is treated as
  * the plain background click it always was: the active client, if any,
- * is unfocused.  Releases the pointer grab in either case.  A no-op
- * when no background-pan drag is active.
+ * is unfocused.  Releases the pointer grab in either case.
  *
  * @param connection XCB connection
  * @param surfaces   Surface list, to resolve the active client to
- *                   unfocus on a plain click (may be @c NULL, which
- *                   just skips that lookup)
+ *                   unfocus on a plain click (may be null, which just
+ *                   skips that lookup)
  * @param root_pos   Root-relative position of the pointer at release
  *                   time
  *
+ * @note A no-op when no background-pan drag is active
  * @note Complexity: @e O(1)
  */
 void drag_background_end(xcb_connection_t *connection,

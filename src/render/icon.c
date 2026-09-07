@@ -67,11 +67,11 @@
  * The pixmap, the caption and the hint indicators are drawn into an
  * off-screen buffer first and copied onto the icon window in a single
  * request only once every one of them is already on it, rather than
- * drawn straight onto the icon window across several separate
- * requests the way this function used to: an urgent client's
- * attention blink repaints its icon on every phase change, and each of
- * those used to show the icon blank for the moment between the old
- * clear and the last of the old draw calls.
+ * drawn straight onto the icon window across several separate requests
+ * the way this function used to: an urgent client's attention blink
+ * repaints its icon on every phase change, and each of those used to
+ * show the icon blank for the moment between the old clear and the last
+ * of the old draw calls.
  *
  * @param client     The iconified client to render; its theme and
  *                   connection are what this draws with
@@ -114,28 +114,27 @@ void ri_render_client_icon(client_td *client, bool is_current,
 
     /* An icon draws in its selected colors while it is the one the
      * cycle menu has picked, and equally while it is the one being
-     * dragged: in both the user has hold of it and expects it to
-     * look that way.
+     * dragged: in both the user has hold of it and expects it to look
+     * that way.
      *
      * Asked here rather than repainted from the drag itself, which is
-     * what once happened and did not hold.  This render pass runs
-     * after a warp finishes, so anything the warp drew was painted
-     * over a moment later by the ordinary path drawing the icon
-     * unselected.  Deciding it here means every repaint agrees,
-     * whatever triggered it. */
+     * what once happened and did not hold.  This render pass runs after
+     * a warp finishes, so anything the warp drew was painted over
+     * a moment later by the ordinary path drawing the icon unselected.
+     * Deciding it here means every repaint agrees, whatever triggered
+     * it. */
     is_cycle_sel = (cycle_is_open() &&
             cycle_get_selected_client() == client) ||
         (drag_is_icon_drag() && drag_client() == client);
 
     /* Nothing about this icon changed since its last render (no
      * geometry/decoration change on the client itself, and its
-     * cycle-selection styling is unchanged), so this skips
-     * re-sending every X request below.  This desktop's outdated
-     * flag can be set by an entirely unrelated client (cfr.
-     * 'wm_request_client_redraw' marking the whole desktop), so
-     * without this check every iconified client on it would
-     * otherwise repeat this same work on every such render pass
-     * regardless of whether it, itself, changed at all.
+     * cycle-selection styling is unchanged), so this skips re-sending
+     * every X request below.  This desktop's outdated flag can be set
+     * by an entirely unrelated client (cfr.  'wm_request_client_redraw'
+     * marking the whole desktop), so without this check every iconified
+     * client on it would otherwise repeat this same work on every such
+     * render pass regardless of whether it, itself, changed at all.
      *
      * This is the same needless-repaint reasoning already applied to
      * normal windows in 's_desktop_render_one_client'
@@ -144,10 +143,10 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * window, say) still repaints correctly on its own via
      * 'handler_expose', independent of this.  An urgent client is the
      * one exception.  Its attention blink (cfr. 'policy/urgency.h')
-     * alternates this icon's colors (and 'ri_icon_hints_draw''s
-     * hint letter) between active and inactive, nothing this function's
-     * own skip-check tracks, so an urgent client always falls through
-     * and repaints in full on every blink phase change regardless of
+     * alternates this icon's colors (and 'ri_icon_hints_draw''s hint
+     * letter) between active and inactive, nothing this function's own
+     * skip-check tracks, so an urgent client always falls through and
+     * repaints in full on every blink phase change regardless of
      * whether either tracked reason actually changed. */
     if (!force && !client->is_outdated &&
             is_cycle_sel == client->was_icon_cycle_selected &&
@@ -179,10 +178,10 @@ void ri_render_client_icon(client_td *client, bool is_current,
             client->icon_window,
             XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
             (const uint32_t[]) {
-        bg_color,
-        (display_active)
-            ? client->config->theme.icon.active.border.color
-            : client->config->theme.icon.inactive.border.color
+                bg_color,
+                (display_active)
+                    ? client->config->theme.icon.active.border.color
+                    : client->config->theme.icon.inactive.border.color
             });
 
     border_width = (display_active)
@@ -241,8 +240,8 @@ void ri_render_client_icon(client_td *client, bool is_current,
      *
      * Tested against 'is_cycle_sel' and not 'display_active': the
      * latter carries the urgency blink's swap, and a blinking client
-     * would otherwise have its pixmap appear and vanish on every
-     * phase rather than simply changing color. */
+     * would otherwise have its pixmap appear and vanish on every phase
+     * rather than simply changing color. */
     if (client->config->theme.icon.show_pixmaps && !is_cycle_sel) {
         wmicon_draw(xcb_connection_get(), ewmh,
                 client->window,
@@ -261,8 +260,8 @@ void ri_render_client_icon(client_td *client, bool is_current,
         char caption[CONFIG_MAX_LENGTH_NAME];
 
         /* The picked-up icon takes the active font as well as the
-         * active colors: drawn in the inactive one it read as a
-         * different icon from the one the user had hold of. */
+         * active colors: drawn in the inactive one it read as
+         * a different icon from the one the user had hold of. */
         (void) text_renderer_use_font(xcb_connection_get(),
                 (is_cycle_sel)
                     ? client->config->theme.icon.active.font
@@ -289,10 +288,10 @@ void ri_render_client_icon(client_td *client, bool is_current,
         if (caption[0] != '\0') {
             text_draw_string(xcb_connection_get(),
                     target, XCB_NONE,
-                    (struct position_s) { 2,
-                        WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
-                            2u },
-                    caption);
+                    (struct position_s) {
+                        2,
+                        WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT - 2u
+                    }, caption);
         }
     }
 
@@ -337,14 +336,14 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
     is_urgent = client_is_urgent(client);
     blink_on = is_urgent && urgency_blink_is_on();
 
-    /* 'show-hints' off still hides the pin indicator and any state letter
-     * as documented, with one exception: an urgent client's attention
-     * blink (see 'policy/urgency.h') still gets the urgent letter drawn
-     * during its "on" phase, appearing and disappearing in that
-     * corner every 'WM_URGENCY_BLINK_INTERVAL_ MS' regardless of this
-     * setting, since drawing the user's attention to it is the entire
-     * point and should not be silenceable by a setting aimed at the
-     * unrelated state-letter feature. */
+    /* 'show-hints' off still hides the pin indicator and any state
+     * letter as documented, with one exception: an urgent client's
+     * attention blink (see 'policy/urgency.h') still gets the urgent
+     * letter drawn during its "on" phase, appearing and disappearing in
+     * that corner every 'WM_URGENCY_BLINK_INTERVAL_MS' regardless of
+     * this setting, since drawing the user's attention to it is the
+     * entire point and should not be silenceable by a setting aimed at
+     * the unrelated state-letter feature. */
     if (!theme->icon.show_hints) {
         if (!blink_on) {
             return;
@@ -358,25 +357,26 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
         /* The same foreground the state letter in the opposite corner
          * is drawn in, and for the same reason it uses that one.  This
          * square is a state hint like 'f', 'm' or 'v', only shaped
-         * rather than lettered, so it has to read as one of them
-         * rather than as a stray piece of titlebar borrowed onto the
-         * icon.  It used the titlebar buttons' color before,
-         * which is a different palette answering a different question
-         * and left the two hints on one icon looking unrelated. */
+         * rather than lettered, so it has to read as one of them rather
+         * than as a stray piece of titlebar borrowed onto the icon.  It
+         * used the titlebar buttons' color before, which is a different
+         * palette answering a different question and left the two hints
+         * on one icon looking unrelated. */
         uint32_t color = (is_cycle_sel)
             ? theme->icon.active.color.foreground
             : theme->icon.inactive.color.foreground;
 
         /* Sized from 'WM_ICON_SQUARE_SIZE' and
          * 'WM_ICON_PIXMAP_SCALE_PERCENT' rather than picked by eye or
-         * reusing 'WM_DECOR_BTN_SIZE' (the titlebar buttons' size,
-         * too large here relative to a 48px icon).  When
-         * 'theme.icon.show-pixmaps' is on, the client's pixmap is
+         * reusing 'WM_DECOR_BTN_SIZE' (the titlebar buttons' size, too
+         * large here relative to a 48px icon).
+         *
+         * When 'theme.icon.show-pixmaps' is on, the client's pixmap is
          * centered and scaled to 'WM_ICON_PIXMAP_SCALE_PERCENT' of the
          * icon square, leaving an equal margin free on all four sides,
-         * 6 pixels at the built-in theme's defaults, and that
-         * margin is exactly the space available in this corner before
-         * the square would start covering the pixmap itself. */
+         * 6 pixels at the built-in theme's defaults, and that margin is
+         * exactly the space available in this corner before the square
+         * would start covering the pixmap itself. */
         uint16_t pin_size = (uint16_t)
             ((WM_ICON_SQUARE_SIZE *
               (100u - WM_ICON_PIXMAP_SCALE_PERCENT)) / 200u);
@@ -393,9 +393,9 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
         /* Same accent-vs-inactive color rule as the pin square above,
          * for the same reason: a state hint, not a stray titlebar
          * color.  Outlined rather than filled, and in the bottom-left
-         * corner rather than the top-left one, so a client that is
-         * both pinned and sticky at once shows two clearly distinct
-         * marks instead of one square that could be read as either. */
+         * corner rather than the top-left one, so a client that is both
+         * pinned and sticky at once shows two clearly distinct marks
+         * instead of one square that could be read as either. */
         uint32_t color = (is_cycle_sel)
             ? theme->icon.active.color.foreground
             : theme->icon.inactive.color.foreground;
@@ -456,6 +456,6 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
     text_draw_string(connection, target, XCB_NONE,
             (struct position_s) {
                 (int32_t) WM_ICON_SQUARE_SIZE - (int32_t) letter_w - 2,
-                2 + text_font_ascent() },
-            letter);
+                2 + text_font_ascent()
+            }, letter);
 }

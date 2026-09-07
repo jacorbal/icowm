@@ -130,12 +130,12 @@ static s_glyph_font_td *s_glyph_current(void)
  * @brief Resolve @p font_name through fontconfig to a font file, face
  *        index, and pixel size
  *
- * @param font_name       Fontconfig pattern string, or a plain family
- *                        name
- * @param out_file        Buffer to receive the matched font file path
- * @param out_file_size   Size of @p out_file
- * @param out_face_index  Receives the face index within the file
- * @param out_pixel_size  Receives the matched pixel size
+ * @param font_name      Fontconfig pattern string, or a plain family
+ *                       name
+ * @param out_file       Buffer to receive the matched font file path
+ * @param out_file_size  Size of @p out_file
+ * @param out_face_index Receives the face index within the file
+ * @param out_pixel_size Receives the matched pixel size
  *
  * @return @c true if a font was matched and a file path recovered
  *
@@ -221,7 +221,8 @@ static void s_render_objects_free(void)
     }
 
     if (s_glyph.fg_picture != 0) {
-        xcb_render_free_picture(xcb_connection_get(), s_glyph.fg_picture);
+        xcb_render_free_picture(xcb_connection_get(),
+                s_glyph.fg_picture);
         s_glyph.fg_picture = 0;
     }
 }
@@ -241,7 +242,8 @@ static void s_glyph_font_free(s_glyph_font_td *font)
     }
 
     if (font->glyphset != 0 && xcb_connection_get() != NULL) {
-        xcb_render_free_glyph_set(xcb_connection_get(), font->glyphset);
+        xcb_render_free_glyph_set(xcb_connection_get(),
+                font->glyphset);
     }
     if (s_glyph.ft_ready) {
         FT_Done_Face(font->ft_face);
@@ -258,12 +260,11 @@ static void s_glyph_font_free(s_glyph_font_td *font)
 
 /**
  * @brief Look up @p codepoint's cached advance, rasterizing and
- *        uploading it to the glyph set first if this is the first
- *        time it is needed
+ *        uploading it to the glyph set first if this is the first time
+ *        it is needed
  *
- * @param codepoint  Unicode codepoint to look up
- * @param out_advance Receives the glyph's horizontal advance in
- *                    pixels
+ * @param codepoint   Unicode codepoint to look up
+ * @param out_advance Receives the glyph's horizontal advance in pixels
  *
  * @return @c true if the glyph is now cached and usable; @c false if
  *         rasterization failed (a blank space-width advance is still
@@ -503,10 +504,10 @@ static bool s_glyph_shared_ready(xcb_connection_t *connection)
 /**
  * @brief Decode the next UTF-8 codepoint from @p text
  *
- * Malformed sequences are treated permissively: an invalid leading
- * byte is returned as its Latin-1 codepoint rather than rejecting
- * the whole string, since this draws UI text, not untrusted input,
- * and a best-effort result reads better than nothing at all.
+ * Malformed sequences are treated permissively: an invalid leading byte
+ * is returned as its Latin-1 codepoint rather than rejecting the whole
+ * string, since this draws UI text, not untrusted input, and
+ * a best-effort result reads better than nothing at all.
  *
  * @param text   Null-terminated UTF-8 string
  * @param index  Byte offset to start decoding from; advanced past the
@@ -590,7 +591,7 @@ int glyph_renderer_init(xcb_connection_t *connection,
         return -1;
     }
 
-    /* A free slot is guaranteed by the caller: render/text.c releases
+    /* A free slot is guaranteed by the caller: 'render/text.c' releases
      * the least recently used font before ever asking for a new one,
      * which is what keeps this array bounded */
     index = WM_TEXT_FONT_CACHE_MAX_GLYPH;
@@ -619,13 +620,13 @@ int glyph_renderer_init(xcb_connection_t *connection,
 
     font->ascent = (int16_t) (font->ft_face->size->metrics.ascender
             / 64);
-    /* Negated after the division, not before: distributing a
-     * negation across a signed division is a transformation the
-     * optimizer may only make by assuming the operand never
-     * overflows, which is what '-Wstrict-overflow' reports on.  Both
-     * forms agree for every value, since C truncates toward zero. */
-    font->descent = (int16_t) -(font->ft_face->size->metrics.descender
-            / 64);
+    /* Negated after the division, not before: distributing a negation
+     * across a signed division is a transformation the optimizer may
+     * only make by assuming the operand never overflows, which is what
+     * '-Wstrict-overflow' reports on.  Both forms agree for every
+     * value, since C truncates toward zero. */
+    font->descent =
+        (int16_t) -(font->ft_face->size->metrics.descender / 64);
 
     font->glyphset = xcb_generate_id(connection);
     (void) xcb_render_create_glyph_set_checked(connection,
@@ -696,7 +697,8 @@ void glyph_renderer_set_color(uint32_t fg, uint32_t bg)
     }
 
     if (s_glyph.fg_picture != 0) {
-        xcb_render_free_picture(xcb_connection_get(), s_glyph.fg_picture);
+        xcb_render_free_picture(xcb_connection_get(),
+                s_glyph.fg_picture);
     }
 
     color.red = (uint16_t) (((fg >> 16) & 0xffu) * 257u);
@@ -711,7 +713,8 @@ void glyph_renderer_set_color(uint32_t fg, uint32_t bg)
 
 /* Draw a UTF-8 string at the specified baseline position */
 void glyph_draw_string(xcb_connection_t *connection,
-        xcb_drawable_t drawable, struct position_s pos, const char *text)
+        xcb_drawable_t drawable, struct position_s pos,
+        const char *text)
 {
     const s_glyph_font_td *const font = s_glyph_current();
     uint32_t codepoints[WM_TEXT_GLYPH_MAX_STRING_LENGTH];
@@ -751,8 +754,8 @@ void glyph_draw_string(xcb_connection_t *connection,
         xcb_render_util_glyphs_32(stream, (int16_t) pos.x,
                 (int16_t) pos.y, len, codepoints);
         xcb_render_util_composite_text(connection,
-                XCB_RENDER_PICT_OP_OVER, s_glyph.fg_picture, dst_picture,
-                0u, 0, 0, stream);
+                XCB_RENDER_PICT_OP_OVER, s_glyph.fg_picture,
+                dst_picture, 0u, 0, 0, stream);
         xcb_render_util_composite_text_free(stream);
     }
 

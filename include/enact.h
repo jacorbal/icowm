@@ -27,6 +27,7 @@
 #ifndef ENACT_H
 #define ENACT_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stdint.h>
@@ -37,6 +38,7 @@
 /* Type includes */
 #include <types/handles.h>
 #include <types/pair.h>
+
 
 /* 'action_client_e' */
 

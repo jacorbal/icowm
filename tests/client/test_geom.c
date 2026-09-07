@@ -385,6 +385,203 @@ static void s_test_titlebar_layout_one_button_each_side(void)
 }
 
 
+/**
+ * @brief Lay out a six-button titlebar of the given width
+ *
+ * The same theme every narrowing scenario below uses: the three
+ * state buttons on the left, the three that act on the window on the
+ * right, which is how a titlebar is usually arranged.
+ *
+ * @param titlebar_w Width to lay the row out in
+ * @param left       Receives the left row
+ * @param left_n     Receives its length
+ * @param right      Receives the right row
+ * @param right_n    Receives its length
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_layout_six(uint16_t titlebar_w,
+        struct titlebar_button_layout_s *left, uint8_t *left_n,
+        struct titlebar_button_layout_s *right, uint8_t *right_n)
+{
+    struct config_theme_s theme;
+    int16_t title_x;
+    uint16_t title_w;
+    int16_t btn_y;
+
+    memset(&theme, 0, sizeof(theme));
+    theme.window.titlebar.padding.horizontal = 4u;
+    theme.window.titlebar.padding.vertical = 4u;
+    theme.window.titlebar.buttons.left_count = 3u;
+    theme.window.titlebar.buttons.left[0] = CONFIG_TITLEBAR_BUTTON_LAYER;
+    theme.window.titlebar.buttons.left[1] = CONFIG_TITLEBAR_BUTTON_PIN;
+    theme.window.titlebar.buttons.left[2] = CONFIG_TITLEBAR_BUTTON_SHADE;
+    theme.window.titlebar.buttons.right_count = 3u;
+    theme.window.titlebar.buttons.right[0] =
+        CONFIG_TITLEBAR_BUTTON_ICONIZE;
+    theme.window.titlebar.buttons.right[1] =
+        CONFIG_TITLEBAR_BUTTON_MAXIMIZE;
+    theme.window.titlebar.buttons.right[2] = CONFIG_TITLEBAR_BUTTON_CLOSE;
+
+    client_titlebar_layout(&theme, titlebar_w, 22u, false, false,
+            left, left_n, right, right_n, &title_x, &title_w, &btn_y);
+}
+
+
+/* Whatever the width, the two button groups never reach into each
+ * other: before this they simply overlapped, the right group walking
+ * back past the left one and, on a narrow enough titlebar, past its
+ * left edge entirely */
+static void s_test_titlebar_layout_groups_never_overlap(void)
+{
+    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
+    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
+    uint8_t left_n;
+    uint8_t right_n;
+    bool all_clear = true;
+
+    for (uint16_t w = 1u; w <= 300u; ++w) {
+        s_layout_six(w, left, &left_n, right, &right_n);
+
+        for (uint8_t i = 0u; i < left_n; ++i) {
+            if (left[i].x < 0) {
+                all_clear = false;
+            }
+        }
+        for (uint8_t i = 0u; i < right_n; ++i) {
+            if (right[i].x < 0) {
+                all_clear = false;
+            }
+        }
+        /* Not merely non-overlapping: two groups meeting at the
+         * same pixel read as one row, and any separation short of
+         * the gap kept between adjacent buttons reads as a mistake */
+        if (left_n > 0u && right_n > 0u) {
+            int32_t left_end = left[left_n - 1u].x +
+                (int32_t) WM_DECOR_BTN_SIZE;
+            int32_t right_start = right[right_n - 1u].x;
+
+            if (right_start - left_end < (int32_t) WM_DECOR_BTN_GAP) {
+                all_clear = false;
+            }
+        }
+    }
+
+    TAP_OK(all_clear,
+            "at no width from 1 to 300 does a button sit off the left"
+            " edge, reach into the other group, or come closer to it"
+            " than the gap between adjacent buttons");
+}
+
+
+/* An uneven split is where the two groups came closest: with one
+ * button on the left and four on the right they met at the very same
+ * pixel, the fit test counting them as fitting the moment they
+ * touched */
+static void s_test_titlebar_layout_uneven_split_stays_apart(void)
+{
+    struct config_theme_s theme;
+    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
+    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
+    uint8_t left_n;
+    uint8_t right_n;
+    int16_t title_x;
+    uint16_t title_w;
+    int16_t btn_y;
+    bool all_clear = true;
+
+    memset(&theme, 0, sizeof(theme));
+    theme.window.titlebar.padding.horizontal = 4u;
+    theme.window.titlebar.padding.vertical = 4u;
+    theme.window.titlebar.buttons.left_count = 1u;
+    theme.window.titlebar.buttons.left[0] = CONFIG_TITLEBAR_BUTTON_LAYER;
+    theme.window.titlebar.buttons.right_count = 4u;
+    theme.window.titlebar.buttons.right[0] =
+        CONFIG_TITLEBAR_BUTTON_ICONIZE;
+    theme.window.titlebar.buttons.right[1] = CONFIG_TITLEBAR_BUTTON_SHADE;
+    theme.window.titlebar.buttons.right[2] =
+        CONFIG_TITLEBAR_BUTTON_MAXIMIZE;
+    theme.window.titlebar.buttons.right[3] = CONFIG_TITLEBAR_BUTTON_CLOSE;
+
+    for (uint16_t w = 1u; w <= 300u; ++w) {
+        client_titlebar_layout(&theme, w, 22u, false, false, left,
+                &left_n, right, &right_n, &title_x, &title_w, &btn_y);
+
+        if (left_n > 0u && right_n > 0u) {
+            int32_t left_end = left[left_n - 1u].x +
+                (int32_t) WM_DECOR_BTN_SIZE;
+
+            if (right[right_n - 1u].x - left_end <
+                    (int32_t) WM_DECOR_BTN_GAP) {
+                all_clear = false;
+            }
+        }
+    }
+
+    TAP_OK(all_clear,
+            "one button against four keeps the two groups apart at"
+            " every width");
+}
+
+
+/* Buttons are given up least valuable first, and close outlives every
+ * other one however narrow the titlebar gets */
+static void s_test_titlebar_layout_gives_up_least_valuable_first(void)
+{
+    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
+    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
+    uint8_t left_n;
+    uint8_t right_n;
+
+    s_layout_six(200u, left, &left_n, right, &right_n);
+    TAP_EQ_INT(left_n + right_n, 6,
+            "a wide titlebar keeps every configured button");
+
+    /* Room for five: 'layer' is the first to go, and it is on the
+     * left, so the left row is the one that shortens */
+    s_layout_six(92u, left, &left_n, right, &right_n);
+    TAP_EQ_INT(left_n, 2, "the first button given up comes off the left");
+    TAP_EQ_INT(left[0].button, CONFIG_TITLEBAR_BUTTON_PIN,
+            "and it is 'layer', the least valuable of the six");
+
+    /* Room for one: only 'close' is left, on the right, even though
+     * the left row had buttons of its own */
+    s_layout_six(24u, left, &left_n, right, &right_n);
+    TAP_EQ_INT(left_n, 0, "a titlebar with room for one keeps no left"
+            " button");
+    TAP_EQ_INT(right_n, 1, "and exactly one on the right");
+    TAP_EQ_INT(right[0].button, CONFIG_TITLEBAR_BUTTON_CLOSE,
+            "which is 'close', outliving every button on either side");
+}
+
+
+/* Widening brings them back, in the reverse order they went: the
+ * layout is a function of the width alone, with nothing remembered */
+static void s_test_titlebar_layout_restores_on_widening(void)
+{
+    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
+    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
+    uint8_t left_n;
+    uint8_t right_n;
+    uint8_t narrow_total;
+    uint8_t wide_total;
+
+    s_layout_six(40u, left, &left_n, right, &right_n);
+    narrow_total = (uint8_t) (left_n + right_n);
+
+    s_layout_six(200u, left, &left_n, right, &right_n);
+    wide_total = (uint8_t) (left_n + right_n);
+
+    TAP_OK(narrow_total < wide_total,
+            "a narrow titlebar holds fewer buttons than a wide one");
+
+    s_layout_six(40u, left, &left_n, right, &right_n);
+    TAP_EQ_INT(left_n + right_n, (int) narrow_total,
+            "and narrowing again gives exactly the same row back,"
+            " nothing having been remembered in between");
+}
+
+
 /* A theme claiming more buttons than 'CONFIG_MAX_TITLEBAR_BUTTONS'
  * on one side is clamped rather than reading past its own fixed
  * array */
@@ -728,11 +925,15 @@ static void s_test_aspect_ratio_clamp_null_args_are_a_no_op(void)
 
 int main(void)
 {
-    TAP_PLAN(38);
+    TAP_PLAN(48);
 
     s_test_titlebar_layout_null_theme_is_empty();
     s_test_titlebar_layout_no_buttons_full_title_width();
     s_test_titlebar_layout_one_button_each_side();
+    s_test_titlebar_layout_groups_never_overlap();
+    s_test_titlebar_layout_uneven_split_stays_apart();
+    s_test_titlebar_layout_gives_up_least_valuable_first();
+    s_test_titlebar_layout_restores_on_widening();
     s_test_titlebar_layout_clamps_button_count();
     s_test_titlebar_layout_hide_pin_skips_it();
     s_test_titlebar_layout_hide_sticky_skips_it();

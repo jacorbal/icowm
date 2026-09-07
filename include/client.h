@@ -763,9 +763,20 @@ struct titlebar_button_layout_s {
  * just the edge padding if there are none) and ends immediately before
  * the right buttons (symmetrically), clamped to never go negative.
  *
+ * Buttons are given up, least valuable first, until the row fits the
+ * width available: the three that only report state go first, then
+ * @c shade, which a double click on the titlebar already does, then
+ * @c fullscreen, then @c hide ahead of @c iconize, since an iconified
+ * window is recovered by clicking its icon and a hidden one is not,
+ * and @c close last of all.  The order is by button, not by side, so
+ * a @c close on the right outlives a @c layer on the left.  Nothing
+ * is remembered between calls: widening the titlebar brings the
+ * buttons back in the reverse order they went.
+ *
  * @param theme       Theme providing the button lists and padding;
  *                    a @c NULL theme produces an empty layout
- * @param frame_w     Total frame width in pixels
+ * @param titlebar_w  Width of the titlebar in pixels, the frame width
+ *                    less its left and right borders
  * @param title_h     Titlebar height in pixels, used to vertically
  *                    center the buttons
  * @param hide_pin    When @c true, the pin button (if configured) is
@@ -790,7 +801,7 @@ struct titlebar_button_layout_s {
  * @note Complexity: @e O(1)
  */
 void client_titlebar_layout(const struct config_theme_s *theme,
-        uint16_t frame_w, uint16_t title_h, bool hide_pin,
+        uint16_t titlebar_w, uint16_t title_h, bool hide_pin,
         bool hide_sticky,
         struct titlebar_button_layout_s *restrict out_left,
         uint8_t *restrict out_left_n,

@@ -54,7 +54,7 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y);
  *        screen edge is due to switch desktops
  *
  * Tracked by @c drag_update (@c input/mouse/drag.h) as the pointer
- * moves (see @p desktops.warp_on_edge_drag in @c config.json,
+ * moves (see @c desktops.warp_on_edge_drag in @c config.json,
  * @c config_desktop_s); serviced by @a drag_warp_tick.
  *
  * @return Milliseconds remaining (never negative), or @c -1 if the
@@ -71,13 +71,7 @@ int drag_warp_ms_remaining(void);
  * @a menu_confirm_dialog_tick is (see @c loop.c), so a pointer left
  * resting against a screen edge during a window or icon move still
  * switches desktops even with no further @c MotionNotify arriving to
- * drive it.  A no-op when no warp is currently pending, its countdown
- * has not yet elapsed, the drag it belonged to is no longer a plain
- * window or icon move, warping is disabled, there is only one desktop,
- * or (with @p desktops.wrap_at_bounds off) the edge held is already the
- * first or last desktop.  Also a no-op, deferring to a pan instead (see
- * @a drag_warp_edge_check's own note), if the viewport gained room to
- * pan the held edge after the warp was armed.
+ * drive it.
  *
  * Moves the dragged client to the adjacent desktop without unmapping it
  * at any point (it must stay visible throughout), switches the
@@ -88,6 +82,14 @@ int drag_warp_ms_remaining(void);
  *
  * @param connection XCB connection
  *
+ * @note A no-op when no warp is currently pending, its countdown has
+ *       not yet elapsed, the drag it belonged to is no longer a plain
+ *       window or icon move, warping is disabled, there is only one
+ *       desktop, or (with @c desktops.wrap_at_bounds off) the edge held
+ *       is already the first or last desktop
+ * @note Also a no-op, deferring to a pan instead (see
+ *       @a drag_warp_edge_check's own note), if the viewport gained
+ *       room to pan the held edge after the warp was armed
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       either desktop involved (from @a surface_clients_hide /
  *       @a surface_clients_show)

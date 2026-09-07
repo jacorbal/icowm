@@ -159,16 +159,16 @@ static uint32_t s_premultiply(uint32_t argb)
  * rather than stretched, and every icon ends up the same size on screen
  * regardless of whatever size the source image happened to be.
  *
- * @param connection  XCB connection
- * @param picture     Already created Picture to set the transform and
- *                    filter on
- * @param src_dim     Source width/height, in pixels, @p picture was
- *                    built from
- * @param draw_size   Side length of the box the image is scaled to fit
- *                    within
+ * @param connection   XCB connection
+ * @param picture      Already created Picture to set the transform and
+ *                     filter on
+ * @param src_dim      Source width/height, in pixels, @p picture was
+ *                     built from
+ * @param draw_size    Side length of the box the image is scaled to fit
+ *                     within
  * @param out_dest_dim Receives the actual scaled width/height, after
- *                    fitting @p src_dim's aspect ratio within
- *                    @p draw_size
+ *                     fitting @p src_dim's aspect ratio within
+ *                     @p draw_size
  *
  * @note Complexity: @e O(1)
  */
@@ -222,10 +222,10 @@ static void s_icon_scale_apply(xcb_connection_t *connection,
  *        scaled, transform-ready Picture
  *
  * Scaled to fit within a @p draw_size by @p draw_size box, preserving
- * its aspect ratio (so a non-square source is letterboxed rather
- * than stretched).  @p draw_size smaller than the icon-graphic area it
- * will later be centered and clipped within is what leaves the small
- * margin around every icon (@c WM_ICON_PIXMAP_SCALE_PERCENT in
+ * its aspect ratio (so a non-square source is letterboxed rather than
+ * stretched).  @p draw_size smaller than the icon-graphic area it will
+ * later be centered and clipped within is what leaves the small margin
+ * around every icon (@c WM_ICON_PIXMAP_SCALE_PERCENT in
  * @c defs/icon.h), and is also what makes every icon the same size on
  * screen regardless of whatever size the source image happened to be.
  *
@@ -514,8 +514,8 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
 
 
 /**
- * @brief Composite an already built icon Picture onto a square area
- *        of @p drawable, centered and clipped
+ * @brief Composite an already built icon Picture onto a square area of
+ *        @p drawable, centered and clipped
  *
  * @param connection   XCB connection
  * @param src_picture  Already built @c Picture, from
@@ -528,7 +528,7 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
  * @param dest_dim     Width/height @p src_picture was built to draw at
  * @param drawable     Drawable to composite onto
  * @param offset_pos   Position, within @p drawable, of the square
- *                      area's top-left corner
+ *                     area's top-left corner
  * @param area_size    Side length of the square area to center in and
  *                     clip to
  *
@@ -860,11 +860,10 @@ void wmicon_draw_at(xcb_connection_t *connection,
         xcb_ewmh_get_wm_icon_reply_wipe(&reply);
     }
 
-    /* No '_NET_WM_ICON' at all, or one present but with no usable
-     * entry in it.  Fall back to the older ICCCM 'WM_HINTS' icon hint
-     * rather than drawing nothing, since a number of still-common
-     * applications (see 's_build_icccm_icon_picture') only ever publish
-     * that one. */
+    /* No '_NET_WM_ICON' at all, or one present but with no usable entry
+     * in it.  Fall back to the older ICCCM 'WM_HINTS' icon hint rather
+     * than drawing nothing, since a number of still-common applications
+     * (see 's_build_icccm_icon_picture') only ever publish that one. */
     if (built == XCB_NONE) {
         s_icccm_icon_td icccm_icon = s_build_icccm_icon_picture(
                 connection, window, draw_size, &dest_w, &dest_h);
@@ -875,9 +874,9 @@ void wmicon_draw_at(xcb_connection_t *connection,
 
     if (built == XCB_NONE) {
         /* Neither property gave a usable icon.  Cache that fact (see
-         * 'has_no_icon''s comment in 'render/wmicon.h') before
-         * drawing the default icon, so the next call redraws it
-         * straight away instead of repeating both fetches. */
+         * 'has_no_icon''s comment in 'render/wmicon.h') before drawing
+         * the default icon, so the next call redraws it straight away
+         * instead of repeating both fetches. */
         wmicon_invalidate(connection, cache);
         cache->draw_size = draw_size;
         cache->has_no_icon = true;

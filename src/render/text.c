@@ -226,8 +226,8 @@ static const struct s_ascii_fallback_s s_ascii_fallbacks[] = {
  *
  * @return Its ASCII reading, or @c NULL when it has none
  *
- * @note Complexity: @e O(n), where @e n is the size of the table
- *       above, which is a fixed handful
+ * @note Complexity: @e O(n), where @e n is the size of the table above,
+ *       which is a fixed handful
  */
 static const char *s_ascii_fallback_for(uint32_t codepoint)
 {
@@ -287,18 +287,18 @@ static size_t s_font_config_tokenize(const char *restrict input,
  * @brief Split off the trailing charset-spec token, if present, into
  *        its registry and encoding parts
  *
- * The last token is a charset spec when it contains a hyphen and is
- * not one of the style keywords ('bold'/'italic'/'oblique'); it is
- * then removed from @p tokens (via @p ntok) and split at its
- * last hyphen into @p registry and @p encoding.
+ * The last token is a charset spec when it contains a hyphen and is not
+ * one of the style keywords ('bold'/'italic'/'oblique'); it is then
+ * removed from @p tokens (via @p ntok) and split at its last hyphen
+ * into @p registry and @p encoding.
  *
- * @param tokens         Tokens produced by @a s_font_config_tokenize
- * @param ntok           Token count; decremented if a charset spec
- *                        was found and removed
- * @param registry       Destination for the registry part
- * @param registry_size  Size of @p registry, in bytes
- * @param encoding       Destination for the encoding part
- * @param encoding_size  Size of @p encoding, in bytes
+ * @param tokens        Tokens produced by @a s_font_config_tokenize
+ * @param ntok          Token count; decremented if a charset spec was
+ *                      found and removed
+ * @param registry      Destination for the registry part
+ * @param registry_size Size of @p registry, in bytes
+ * @param encoding      Destination for the encoding part
+ * @param encoding_size Size of @p encoding, in bytes
  *
  * @note @p registry and @p encoding are left empty if no charset
  *       spec was found
@@ -353,19 +353,17 @@ static void s_font_config_extract_charset(
  * @brief Split off the trailing pixel-size token, if present
  *
  * The last remaining token is a pixel size when every one of its
- * characters is a digit and it parses as an integer in
- * @e (0, 999].
+ * characters is a digit and it parses as an integer in @e (0, 999].
  *
- * @param tokens Tokens remaining after
- *               @a s_font_config_extract_charset
- * @param ntok   Token count; decremented if a size token was found
- *               and removed
+ * @param tokens Tokens remaining after @a s_font_config_extract_charset
+ * @param ntok   Token count; decremented if a size token was found and
+ *               removed
  *
- * @return The parsed pixel size, or @c 0 if the last token was not a
- *         valid one
+ * @return The parsed pixel size, or @c 0 if the last token was not
+ *         a valid one
  *
- * @note Complexity: @e O(k), where @e k is the length of the last
- *       token in @p tokens
+ * @note Complexity: @e O(k), where @e k is the length of the last token
+ *       in @p tokens
  */
 static int s_font_config_extract_size(
         const char tokens[][WM_TEXT_FONT_TOKEN_LENGTH], size_t *ntok)
@@ -480,20 +478,20 @@ static void s_font_config_build_family(
  * combination is rendered as an XLFD wildcard pattern, with @c '*'
  * standing in for whichever fields were not specified.
  *
- * @param family   Font family, from @a s_font_config_build_family
- * @param size     Pixel size, from @a s_font_config_extract_size
- *                 (@c 0 for unspecified)
- * @param is_bold  Whether the 'bold' keyword was found
- * @param is_italic Whether the 'italic' keyword was found
+ * @param family     Font family, from @a s_font_config_build_family
+ * @param size       Pixel size, from @a s_font_config_extract_size
+ *                   (@c 0 for unspecified)
+ * @param is_bold    Whether the 'bold' keyword was found
+ * @param is_italic  Whether the 'italic' keyword was found
  * @param is_oblique Whether the 'oblique' keyword was found
- * @param registry Charset registry, from
- *                 @a s_font_config_extract_charset (empty if
- *                 unspecified)
- * @param encoding Charset encoding, from
- *                 @a s_font_config_extract_charset (empty if
- *                 unspecified)
- * @param output   Buffer for the resulting XLFD pattern
- * @param outsize  Size of @p output in bytes
+ * @param registry   Charset registry, from
+ *                   @a s_font_config_extract_charset (empty if
+ *                   unspecified)
+ * @param encoding   Charset encoding, from
+ *                   @a s_font_config_extract_charset (empty if
+ *                   unspecified)
+ * @param output     Buffer for the resulting XLFD pattern
+ * @param outsize    Size of @p output in bytes
  *
  * @note Complexity: @e O(1)
  */
@@ -695,8 +693,7 @@ static size_t s_utf8_to_latin1(const char *restrict text,
             continue;
         }
 
-        /* Written whole or not at all: half of "--" reads as a hyphen
-         * the text never had, which is worse than stopping here */
+        /* Written whole or not at all */
         replacement_len = strlen(replacement);
         if (out_len + replacement_len > out_size - 1u) {
             break;
@@ -715,9 +712,8 @@ static size_t s_utf8_to_latin1(const char *restrict text,
  *
  * @param connection Pointer to the XCB connection
  * @param xlfd       XLFD pattern to open
- *
- * @param entry      Cache entry the font, its graphics context and
- *                   its metrics are stored in
+ * @param entry      Cache entry the font, its graphics context and its
+ *                   metrics are stored in
  *
  * @return @c true if the font opened and its metrics could be read
  *
@@ -846,22 +842,20 @@ static uint32_t s_text_cache_find(const char *key)
 /**
  * @brief Reserve a cache slot for a font about to be opened
  *
- * A free slot is used when there is one.  Otherwise the least
- * recently used entry is released to make room, which is what bounds
- * the cache: it never grows, it only replaces.
+ * A free slot is used when there is one.  Otherwise the least recently
+ * used entry is released to make room, which is what bounds the cache:
+ * it never grows, it only replaces.
  *
  * The glyph backend has a quota of its own,
- * @c WM_TEXT_FONT_CACHE_MAX_GLYPH, so a glyph font never crowds out
- * the cheap X core fonts.  Once that quota is met, the least recently
- * used glyph entry is the one released, whatever the global order
- * says.
+ * @c WM_TEXT_FONT_CACHE_MAX_GLYPH, so a glyph font never crowds out the
+ * cheap X core fonts.  Once that quota is met, the least recently used
+ * glyph entry is the one released, whatever the global order says.
  *
  * @param backend Backend the new font will use
  *
  * @return Index of a slot ready to be filled in
  *
- * @note Complexity: @e O(n), where @e n is
- *       @c WM_TEXT_FONT_CACHE_MAX
+ * @note Complexity: @e O(n), where @e n is @c WM_TEXT_FONT_CACHE_MAX
  */
 static uint32_t s_text_cache_claim(enum s_text_backend_e backend)
 {
@@ -1188,12 +1182,12 @@ uint16_t text_string_measure(const char *text)
         return 0u;
     }
 
-    /* Counting decoded codepoints, not 'safe_strlen's UTF-8 byte
-     * count: 's_utf8_to_latin1' always draws exactly one glyph per
-     * codepoint (the Latin-1 byte itself, or a '?' substitute for
-     * anything further out), so a multi-byte accented character
-     * measures as the one character cell it actually occupies once
-     * drawn, not the two UTF-8 bytes it takes on the wire. */
+    /* Counting decoded codepoints, not 'safe_strlen's UTF-8 byte count:
+     * 's_utf8_to_latin1' always draws exactly one glyph per codepoint
+     * (the Latin-1 byte itself, or a '?' substitute for anything
+     * further out), so a multi-byte accented character measures as the
+     * one character cell it actually occupies once drawn, not the two
+     * UTF-8 bytes it takes on the wire. */
     while (glyph_utf8_next(text, &byte_index) != 0u) {
         char_count += 1u;
     }

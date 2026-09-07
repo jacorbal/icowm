@@ -1,12 +1,11 @@
 /**
  * @file render/outline.c
  *
- * @brief Outline stand-in windows, shared by any caller needing to
- *        show a rectangle around a target without touching the
- *        target's geometry
+ * @brief Outline stand-in windows, shared by any caller needing to show
+ *        a rectangle around a target without touching the target's
+ *        geometry
  *
- * The strip-window mechanism itself, with no drag-specific state of
- * its.
+ * Strip-window mechanism itself, with no drag-specific state of its.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -36,13 +35,13 @@
 
 
 /**
- * @brief Create or reconfigure the 4 outline strip windows around
+ * @brief Create or reconfigure the four outline strip windows around
  *        a rectangle
  *
- * Computes each strip's position and size (top, bottom, left,
- * right, in that fixed order) from the target rectangle, then either
- * creates and maps all 4 (@p create true) or reconfigures the
- * already-existing ones (@p create false) to match.
+ * Computes each strip's position and size (top, bottom, left, right, in
+ * that fixed order) from the target rectangle, then either creates and
+ * maps all four (@p create true) or reconfigures the already-existing
+ * ones (@p create false) to match.
  *
  * @param connection   XCB connection used to create or reconfigure
  *                     the strip windows
@@ -71,8 +70,8 @@ static void s_render_outline_place(xcb_connection_t *connection,
     uint32_t bw = border_width;
     /* Each strip's (x, y, w, h), in 'windows''s fixed
      * top/bottom/left/right order; width/height floored at 1, since
-     * 'xcb_create_window'/'xcb_configure_window' both reject a
-     * genuinely zero-sized window outright, which a resize shrinking
+     * 'xcb_create_window'/'xcb_configure_window' both reject
+     * a genuinely zero-sized window outright, which a resize shrinking
      * past the border's thickness would otherwise hand them. */
     uint32_t strip_x[4];
     uint32_t strip_y[4];
@@ -131,23 +130,23 @@ static void s_render_outline_place(xcb_connection_t *connection,
             xcb_map_window(connection, windows[i]);
 
             /* A strip is a solid-color rectangle repainted on every
-             * geometry change of whatever it outlines, several
-             * times a second during a drag; asking a compositor to
-             * leave it out of its own redirected rendering keeps
-             * that repainting cheap and free of the one-frame lag
-             * compositing would otherwise add. */
+             * geometry change of whatever it outlines, several times
+             * a second during a drag; asking a compositor to leave it
+             * out of its own redirected rendering keeps that repainting
+             * cheap and free of the one-frame lag compositing would
+             * otherwise add. */
             atom_set_window_bypass_compositor(connection, windows[i]);
         } else if (windows[i] != XCB_WINDOW_NONE) {
             xcb_window_place(windows[i], (int32_t) strip_x[i],
                     (int32_t) strip_y[i], strip_w[i], strip_h[i]);
         }
 
-        /* Re-asserted on every create and every move, not just once
-         * at creation: a strip window is otherwise free to end up
-         * above whatever 'stack_below' names the moment anything
-         * else on screen gets raised in between, this call's
-         * only guarantee being where the strip sits relative to that
-         * one window, not that it never moves again afterward. */
+        /* Re-asserted on every create and every move, not just once at
+         * creation: a strip window is otherwise free to end up above
+         * whatever 'stack_below' names the moment anything else on
+         * screen gets raised in between, this call's only guarantee
+         * being where the strip sits relative to that one window, not
+         * that it never moves again afterward. */
         if (windows[i] != XCB_WINDOW_NONE &&
                 stack_below != XCB_WINDOW_NONE) {
             xcb_window_stack_below(windows[i], stack_below);
@@ -157,7 +156,8 @@ static void s_render_outline_place(xcb_connection_t *connection,
 
 
 /* Create and map the initial 4 strip windows outlining a rectangle */
-void render_outline_show(xcb_connection_t *connection, xcb_window_t root,
+void render_outline_show(xcb_connection_t *connection,
+        xcb_window_t root,
         struct geometry_s geom, uint32_t border_width, uint32_t color,
         xcb_window_t stack_below, xcb_window_t windows[4])
 {

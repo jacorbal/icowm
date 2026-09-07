@@ -290,7 +290,7 @@ static bool s_titlebar_layout_last_hide_sticky;
  * this file, so a scenario can steer exactly which buttons land where
  * without also pulling in client/geom.c's own theme-parsing logic */
 void client_titlebar_layout(const struct config_theme_s *theme,
-        uint16_t frame_w, uint16_t title_h, bool hide_pin,
+        uint16_t titlebar_w, uint16_t title_h, bool hide_pin,
         bool hide_sticky,
         struct titlebar_button_layout_s *restrict out_left,
         uint8_t *restrict out_left_n,
@@ -302,7 +302,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     uint8_t i;
 
     (void) theme;
-    (void) frame_w;
+    (void) titlebar_w;
     (void) title_h;
     s_titlebar_layout_calls++;
     s_titlebar_layout_last_hide_pin = hide_pin;

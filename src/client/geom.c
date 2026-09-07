@@ -45,6 +45,196 @@
 #include <client/internal.h>
 
 
+/**
+ * @brief Titlebar buttons in the order they are given up when the
+ *        titlebar is too narrow to hold them all
+ *
+ * Ordered by how much is lost with the button gone, least first.  The
+ * three leading ones report state that the window itself, its label
+ * and the window menu all show anyway; @c shade duplicates what a
+ * double click on the titlebar already does; @c fullscreen is a
+ * deliberate act with a binding of its own; @c hide is given up ahead
+ * of @c iconize because an iconified window is recovered by clicking
+ * its icon while a hidden one is not; and @c close goes last, being
+ * the only one whose absence leaves no obvious way out.
+ *
+ * Global rather than per side on purpose: what a button is worth does
+ * not depend on which side the theme puts it on, so a @c close on the
+ * right outlives a @c layer on the left.  A button the theme does not
+ * list is simply never found and costs nothing.
+ */
+static const enum config_titlebar_button_e s_titlebar_button_giveup[] = {
+    CONFIG_TITLEBAR_BUTTON_LAYER,
+    CONFIG_TITLEBAR_BUTTON_PIN,
+    CONFIG_TITLEBAR_BUTTON_STICKY,
+    CONFIG_TITLEBAR_BUTTON_SHADE,
+    CONFIG_TITLEBAR_BUTTON_FULLSCREEN,
+    CONFIG_TITLEBAR_BUTTON_HIDE,
+    CONFIG_TITLEBAR_BUTTON_ICONIZE,
+    CONFIG_TITLEBAR_BUTTON_MAXIMIZE,
+    CONFIG_TITLEBAR_BUTTON_CLOSE
+};
+
+
+/**
+ * @brief Whether a button row of the given sizes fits the titlebar
+ *
+ * The two groups grow towards each other from their own edges, so
+ * they fit only while the padding and both extents still come to no
+ * more than the width available.  Without this the two groups simply
+ * overlap: the right group's positions walk back past the left
+ * group's, and on a narrow enough titlebar past its left edge
+ * entirely.
+ *
+ * With buttons on both sides they must also stay apart by what the
+ * title span keeps clear of each of them, @c pad_h plus @c gap on
+ * each side.  Merely not overlapping is not enough: two groups that
+ * end and begin at the same pixel read as one row of buttons, and one
+ * separated by less than the gap between adjacent buttons reads as a
+ * mistake.
+ *
+ * @param avail_w Width of the titlebar
+ * @param pad_h   Horizontal padding the theme asks for
+ * @param gap     Gap kept between adjacent buttons
+ * @param left_n  Buttons placed on the left
+ * @param right_n Buttons placed on the right
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_titlebar_buttons_fit(uint16_t avail_w, uint16_t pad_h,
+        uint16_t gap, uint8_t left_n, uint8_t right_n)
+{
+    uint16_t btn = (uint16_t) WM_DECOR_BTN_SIZE;
+    int32_t needed = 2 * (int32_t) pad_h;
+
+    if (left_n > 0u) {
+        needed += (int32_t) (left_n * btn + (left_n - 1u) * gap);
+    }
+    if (right_n > 0u) {
+        needed += (int32_t) (right_n * btn + (right_n - 1u) * gap);
+    }
+    if (left_n > 0u && right_n > 0u) {
+        needed += 2 * (int32_t) (pad_h + gap);
+    }
+
+    return needed <= (int32_t) avail_w;
+}
+
+
+/**
+ * @brief Whether a button has already been given up
+ *
+ * @param button   Button to look for
+ * @param dropped  Buttons given up so far
+ * @param dropped_n How many @p dropped holds
+ *
+ * @note Complexity: @e O(n), where @e n is @p dropped_n
+ */
+static bool s_titlebar_button_is_dropped(
+        enum config_titlebar_button_e button,
+        const enum config_titlebar_button_e *dropped, uint8_t dropped_n)
+{
+    for (uint8_t i = 0u; i < dropped_n; ++i) {
+        if (dropped[i] == button) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/**
+ * @brief Count how many of a side's configured buttons are placed,
+ *        given what has already been given up
+ *
+ * @param list     The side's configured buttons, in the theme's order
+ * @param count    How many @p list holds
+ * @param dropped  Buttons given up so far, or @c NULL for none
+ * @param dropped_n How many @p dropped holds
+ *
+ * @return Number of buttons that would be placed
+ *
+ * @note Complexity: @e O(n * m), both bounded by
+ *       @c CONFIG_MAX_TITLEBAR_BUTTONS
+ */
+static uint8_t s_titlebar_side_count(
+        const enum config_titlebar_button_e *list, uint8_t count,
+        const enum config_titlebar_button_e *dropped, uint8_t dropped_n)
+{
+    uint8_t placed = 0u;
+
+    for (uint8_t i = 0u; i < count; ++i) {
+        bool is_dropped = false;
+
+        for (uint8_t d = 0u; d < dropped_n; ++d) {
+            if (dropped[d] == list[i]) {
+                is_dropped = true;
+                break;
+            }
+        }
+        if (!is_dropped) {
+            ++placed;
+        }
+    }
+
+    return placed;
+}
+
+
+/**
+ * @brief Whether a button is currently on the titlebar, and so is
+ *        available to be given up
+ *
+ * A button the theme does not list, or one already dropped for not
+ * applying to this window at all, is not there to give up: the search
+ * must move on to the next candidate rather than believe it has freed
+ * any room.
+ *
+ * @param theme       Theme providing the two button lists
+ * @param button      Button to look for
+ * @param hide_pin    Whether the pin button applies at all
+ * @param hide_sticky Whether the sticky button applies at all
+ * @param dropped     Buttons given up so far
+ * @param dropped_n   How many @p dropped holds
+ *
+ * @note Complexity: @e O(n), where @e n is the number of configured
+ *       buttons
+ */
+static bool s_titlebar_button_is_placed(
+        const struct config_theme_s *theme,
+        enum config_titlebar_button_e button, bool hide_pin,
+        bool hide_sticky,
+        const enum config_titlebar_button_e *dropped, uint8_t dropped_n)
+{
+    if ((hide_pin && button == CONFIG_TITLEBAR_BUTTON_PIN) ||
+            (hide_sticky && button == CONFIG_TITLEBAR_BUTTON_STICKY) ||
+            s_titlebar_button_is_dropped(button, dropped, dropped_n)) {
+        return false;
+    }
+
+    for (uint8_t i = 0u; i < theme->window.titlebar.buttons.left_count &&
+            i < (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS; ++i) {
+        if (theme->window.titlebar.buttons.left[i] == button) {
+            return true;
+        }
+    }
+    for (uint8_t i = 0u; i < theme->window.titlebar.buttons.right_count &&
+            i < (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS; ++i) {
+        if (theme->window.titlebar.buttons.right[i] == button) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+
+
+
+
+
 /* Allocate and zero all heap string buffers for a client */
 int ci_alloc_strings(client_td *client)
 {
@@ -224,7 +414,7 @@ void client_theme_layout_resync(client_td *client, bool is_active)
 
 /* Compute where every configured titlebar button goes */
 void client_titlebar_layout(const struct config_theme_s *theme,
-        uint16_t frame_w, uint16_t title_h, bool hide_pin,
+        uint16_t titlebar_w, uint16_t title_h, bool hide_pin,
         bool hide_sticky,
         struct titlebar_button_layout_s *restrict out_left,
         uint8_t *restrict out_left_n,
@@ -237,6 +427,9 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     uint16_t gap = (uint16_t) WM_DECOR_BTN_GAP;
     uint16_t pad_h;
     uint16_t pad_v;
+    enum config_titlebar_button_e
+        dropped[CONFIG_MAX_TITLEBAR_BUTTONS * 2u];
+    uint8_t dropped_n;
     uint8_t configured_left_n;
     uint8_t configured_right_n;
     uint8_t left_n;
@@ -292,6 +485,47 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     if (configured_left_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
         configured_left_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
     }
+    configured_right_n = theme->window.titlebar.buttons.right_count;
+    if (configured_right_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
+        configured_right_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
+    }
+
+    /* Give buttons up, least valuable first, until the row fits the
+     * titlebar.  Purely a function of the width, so nothing is
+     * remembered between calls and widening the window brings them
+     * back in the reverse order they went.  The buttons dropped above
+     * for not applying at all are already gone by the time this runs
+     * and are never reconsidered here. */
+    dropped_n = 0u;
+    while (!s_titlebar_buttons_fit(titlebar_w, pad_h, gap,
+                s_titlebar_side_count(
+                    theme->window.titlebar.buttons.left,
+                    configured_left_n, dropped, dropped_n),
+                s_titlebar_side_count(
+                    theme->window.titlebar.buttons.right,
+                    configured_right_n, dropped, dropped_n))) {
+        bool gave_one_up = false;
+
+        for (uint8_t g = 0u; g < (uint8_t) (sizeof(
+                        s_titlebar_button_giveup) /
+                    sizeof(s_titlebar_button_giveup[0])); ++g) {
+            if (s_titlebar_button_is_placed(theme,
+                        s_titlebar_button_giveup[g], hide_pin,
+                        hide_sticky, dropped, dropped_n)) {
+                dropped[dropped_n] = s_titlebar_button_giveup[g];
+                ++dropped_n;
+                gave_one_up = true;
+                break;
+            }
+        }
+
+        /* Nothing left to give up: a titlebar too narrow even for one
+         * button, where the row below places none at all */
+        if (!gave_one_up) {
+            break;
+        }
+    }
+
     x = (int32_t) pad_h;
     left_n = 0u;
     for (uint8_t i = 0u; i < configured_left_n; ++i) {
@@ -300,6 +534,10 @@ void client_titlebar_layout(const struct config_theme_s *theme,
             continue;
         }
         if (hide_sticky && btn_kind == CONFIG_TITLEBAR_BUTTON_STICKY) {
+            continue;
+        }
+        if (s_titlebar_button_is_dropped(btn_kind, dropped,
+                    dropped_n)) {
             continue;
         }
         out_left[left_n].button = btn_kind;
@@ -311,11 +549,7 @@ void client_titlebar_layout(const struct config_theme_s *theme,
     left_extent = (left_n == 0u) ? 0
         : (int32_t) (left_n * btn + (left_n - 1u) * gap);
 
-    configured_right_n = theme->window.titlebar.buttons.right_count;
-    if (configured_right_n > (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS) {
-        configured_right_n = (uint8_t) CONFIG_MAX_TITLEBAR_BUTTONS;
-    }
-    x = (int32_t) frame_w - (int32_t) pad_h - (int32_t) btn;
+    x = (int32_t) titlebar_w - (int32_t) pad_h - (int32_t) btn;
     right_n = 0u;
     for (uint8_t i = 0u; i < configured_right_n; ++i) {
         btn_kind = theme->window.titlebar.buttons.right[i];
@@ -323,6 +557,10 @@ void client_titlebar_layout(const struct config_theme_s *theme,
             continue;
         }
         if (hide_sticky && btn_kind == CONFIG_TITLEBAR_BUTTON_STICKY) {
+            continue;
+        }
+        if (s_titlebar_button_is_dropped(btn_kind, dropped,
+                    dropped_n)) {
             continue;
         }
         out_right[right_n].button = btn_kind;
@@ -340,7 +578,8 @@ void client_titlebar_layout(const struct config_theme_s *theme,
      * are spaced from each other. */
     title_x = (int32_t) pad_h + left_extent + ((left_n > 0u)
         ? (int32_t) (pad_h + gap) : 0);
-    title_right = (int32_t) frame_w - (int32_t) pad_h - right_extent -
+    title_right = (int32_t) titlebar_w - (int32_t) pad_h -
+        right_extent -
         ((right_n > 0u) ? (int32_t) (pad_h + gap) : 0);
 
     *out_title_x = (int16_t) title_x;
