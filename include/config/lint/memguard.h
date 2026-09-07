@@ -18,14 +18,18 @@
 #ifndef CONFIG_LINT_MEMGUARD_H
 #define CONFIG_LINT_MEMGUARD_H
 
+
 /* Local includes */
 #include <config/lint/internal.h>
 #include <config/lint/common.h>
 
+
 /** How many keys @c s_schema_memguard holds */
 #define CONFIG_LINT_MEMGUARD_KEYS (8u)
 
+
 extern const config_lint_key_td
     s_schema_memguard[CONFIG_LINT_MEMGUARD_KEYS];
+
 
 #endif  /* ! CONFIG_LINT_MEMGUARD_H */

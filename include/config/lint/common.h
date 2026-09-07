@@ -18,8 +18,10 @@
 #ifndef CONFIG_LINT_COMMON_H
 #define CONFIG_LINT_COMMON_H
 
+
 /* Local includes */
 #include <config/lint/internal.h>
+
 
 /** How many keys @c s_schema_desktops_margins holds */
 #define CONFIG_LINT_DESKTOPS_MARGINS_KEYS (4u)
@@ -62,5 +64,6 @@ extern const config_lint_key_td
 
 extern const config_lint_key_td
     s_schema_windows_placement[CONFIG_LINT_WINDOWS_PLACEMENT_KEYS];
+
 
 #endif  /* ! CONFIG_LINT_COMMON_H */

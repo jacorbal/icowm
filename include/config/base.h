@@ -30,6 +30,7 @@
 /* Default initial values */
 #include <defs/config.h>
 
+
 /* Theme-related configuration structure */
 /**
  * @brief Where a menu appears when it is opened by a means that has no

@@ -22,8 +22,10 @@
 /* Local includes */
 #include <config/lint/internal.h>
 
+
 /** How many keys @c s_schema_a11y holds */
 #define CONFIG_LINT_A11Y_KEYS (4u)
+
 
 extern const config_lint_key_td
     s_schema_a11y[CONFIG_LINT_A11Y_KEYS];

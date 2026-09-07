@@ -18,13 +18,17 @@
 #ifndef CONFIG_LINT_THEME_H
 #define CONFIG_LINT_THEME_H
 
+
 /* Local includes */
 #include <config/lint/internal.h>
+
 
 /** How many keys @c s_schema_theme holds */
 #define CONFIG_LINT_THEME_KEYS (13u)
 
+
 extern const config_lint_key_td
     s_schema_theme[CONFIG_LINT_THEME_KEYS];
+
 
 #endif  /* ! CONFIG_LINT_THEME_H */

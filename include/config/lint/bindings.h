@@ -18,13 +18,17 @@
 #ifndef CONFIG_LINT_BINDINGS_H
 #define CONFIG_LINT_BINDINGS_H
 
+
 /* Local includes */
 #include <config/lint/internal.h>
+
 
 /** How many keys @c s_schema_bindings holds */
 #define CONFIG_LINT_BINDINGS_KEYS (3u)
 
+
 extern const config_lint_key_td
     s_schema_bindings[CONFIG_LINT_BINDINGS_KEYS];
+
 
 #endif  /* ! CONFIG_LINT_BINDINGS_H */

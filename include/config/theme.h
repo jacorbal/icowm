@@ -28,14 +28,16 @@
 /* Default initial values */
 #include <defs/config.h>
 
+
 /* Theme-related configuration structure */
 /**
  * @brief Maximum titlebar buttons on one side (left or right)
  *
- * Headroom over the eight buttons the built-in default theme uses
- * across both sides combined.
+ * One per button kind, so that a theme may put every one of them on the
+ * same side if it likes.  Repeats never take a slot, the loader
+ * dropping a name it has already seen. 
  */
-#define CONFIG_MAX_TITLEBAR_BUTTONS (8u)
+#define CONFIG_MAX_TITLEBAR_BUTTONS (9u)
 
 
 /**

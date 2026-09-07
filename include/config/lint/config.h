@@ -18,14 +18,18 @@
 #ifndef CONFIG_LINT_CONFIG_H
 #define CONFIG_LINT_CONFIG_H
 
+
 /* Local includes */
 #include <config/lint/internal.h>
 #include <config/lint/common.h>
 
+
 /** How many keys @c s_schema_config holds */
 #define CONFIG_LINT_CONFIG_KEYS (16u)
 
+
 extern const config_lint_key_td
     s_schema_config[CONFIG_LINT_CONFIG_KEYS];
+
 
 #endif  /* ! CONFIG_LINT_CONFIG_H */

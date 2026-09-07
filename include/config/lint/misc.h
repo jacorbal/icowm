@@ -18,8 +18,10 @@
 #ifndef CONFIG_LINT_MISC_H
 #define CONFIG_LINT_MISC_H
 
+
 /* Local includes */
 #include <config/lint/internal.h>
+
 
 /** How many keys @c s_schema_menu holds */
 #define CONFIG_LINT_MENU_KEYS (1u)
@@ -44,5 +46,6 @@ extern const config_lint_key_td
 
 extern const config_lint_key_td
     s_schema_session[CONFIG_LINT_SESSION_KEYS];
+
 
 #endif  /* ! CONFIG_LINT_MISC_H */

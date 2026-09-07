@@ -18,6 +18,7 @@
 #ifndef CONFIG_LINT_INTERNAL_H
 #define CONFIG_LINT_INTERNAL_H
 
+
 /* System includes */
 #include <stdbool.h>
 #include <stddef.h>
