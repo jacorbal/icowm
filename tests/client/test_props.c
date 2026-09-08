@@ -802,5 +802,6 @@ int main(void)
     s_test_wm_class_null_inst_buf_is_optional();
     s_test_wm_class_truncates_both_names();
 
+
     return TAP_DONE();
 }

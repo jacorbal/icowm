@@ -331,6 +331,15 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
         client->layout.geometry.cur.dim.w = (uint16_t) inner_w;
         client->layout.geometry.cur.dim.h = (uint16_t) inner_h;
 
+        /* The window was just reparented out of a frame that no longer
+         * exists, so the server is about to place it against the root
+         * and report where it landed.  The position asked for above
+         * describes the old arrangement and must stop standing as the
+         * last word, or 'handler_configure_notify' would take those
+         * reports for stale echoes of it and throw them away, leaving
+         * what is stored here disagreeing with what is on screen. */
+        client->layout.has_requested_pos = false;
+
         /* Keeps 'client_border_color_apply' (client.c) from seeing
          * a stale 'last_border_width' the moment focus is reapplied
          * a few lines below (via 'ccmd_client_focus'): without this,
@@ -444,6 +453,12 @@ static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
         client->layout.geometry.cur.pos.y = frame.pos.y;
         client->layout.geometry.cur.dim.w = (uint16_t) frame_w;
         client->layout.geometry.cur.dim.h = (uint16_t) frame_h;
+
+        /* Same reason as when the decoration came off: the window has
+         * just been reparented into a frame built here, and what the
+         * server reports next describes that new arrangement rather
+         * than any request made before it */
+        client->layout.has_requested_pos = false;
         client->layout.frame_extents.left = bw;
         client->layout.frame_extents.right = bw;
         client->layout.frame_extents.top = bw + th;

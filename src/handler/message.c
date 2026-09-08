@@ -453,13 +453,30 @@ void handler_client_message(wm_td *wm,
         client = lookup_find_client(surfaces, ping_window,
                 &surface, &desktop);
         if (client != NULL) {
+            const bool was_unresponsive =
+                (bool) client_is_unresponsive(client);
+
             client->hints_ewmh.ping.last_reply = event->data.data32[1];
             client->hints_ewmh.ping.is_waiting = false;
             client->hints_ewmh.ping.pending_ticks = 0u;
             client_mark_responsive(client);
-            wm_outdate_client(client);
-            wm_outdate_surface(surface);
-            wm_outdate_desktop(desktop);
+
+            /* Only when the client was being shown as unresponsive
+             * and no longer is.  A pong on its own changes nothing
+             * that is drawn: it updates three fields nobody paints
+             * from, and every ping-capable client answers one every
+             * 'WM_EWMH_PING_INTERVAL_SECONDS'.  Marking outdated
+             * regardless had the render pass redraw every desktop on
+             * that interval, and a decorated client is cleared with
+             * exposures on each pass ('s_render_apply_geometry',
+             * render/desktop.c), so its window was blanked and left
+             * for the application to paint back, once every five
+             * seconds, for as long as it was open. */
+            if (was_unresponsive) {
+                wm_outdate_client(client);
+                wm_outdate_surface(surface);
+                wm_outdate_desktop(desktop);
+            }
         }
         return;
     }

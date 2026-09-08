@@ -1579,6 +1579,58 @@ static void s_test_wm_ping_pong_updates_client(void)
 }
 
 
+/* A pong from a client already known to be responsive changes nothing
+ * that is drawn, so nothing is marked outdated: every ping-capable
+ * client answers one every interval, and outdating on each had the
+ * render pass redraw every desktop that often, clearing each
+ * decorated client's window with exposures as it went */
+static void s_test_wm_ping_pong_responsive_does_not_outdate(void)
+{
+    xcb_ewmh_connection_t ewmh;
+    list_td *surfaces;
+    config_td config;
+    client_td client;
+    surface_td surface;
+    desktop_td desktop;
+    xcb_client_message_event_t event;
+    wm_td wm;
+
+    s_test_reset_state();
+    memset(&ewmh, 0, sizeof(ewmh));
+    ewmh.WM_PROTOCOLS = (xcb_atom_t) 900;
+    ewmh._NET_WM_PING = (xcb_atom_t) 901;
+    surfaces = list_init(NULL);
+    memset(&config, 0, sizeof(config));
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_wm(&wm, &ewmh, surfaces, &config);
+    s_test_build_client(&client, 0xb01);
+    client.hints_ewmh.ping.is_waiting = true;
+    client.hints_ewmh.ping.pending_ticks = 1u;
+    client.properties.flags = 0u;    /* already responsive */
+    s_test_build_event(&event, 0x1, ewmh.WM_PROTOCOLS);
+    event.data.data32[0] = (uint32_t) ewmh._NET_WM_PING;
+    event.data.data32[1] = 54321u;
+    event.data.data32[2] = 0xb01;
+    s_lookup_result = &client;
+    s_lookup_surface_out = &surface;
+    s_lookup_desktop_out = &desktop;
+
+    handler_client_message(&wm, &event);
+
+    TAP_EQ_INT((int) client.hints_ewmh.ping.last_reply, 54321,
+            "the reply timestamp is still recorded");
+    TAP_OK(!client.hints_ewmh.ping.is_waiting,
+            "and the is_waiting flag still cleared");
+    TAP_OK(!client.is_outdated && !surface.is_outdated &&
+            !desktop.is_outdated,
+            "but nothing is outdated, the client having been"
+            " responsive all along");
+
+    list_destroy(surfaces);
+}
+
+
 /* WM_CHANGE_STATE to IconicState iconifies the matching client */
 static void s_test_wm_change_state_iconic(void)
 {
@@ -1656,7 +1708,7 @@ static void s_test_wm_change_state_non_iconic_ignored(void)
 
 int main(void)
 {
-    TAP_PLAN(46);
+    TAP_PLAN(49);
 
     s_test_null_wm();
     s_test_null_event();
@@ -1685,6 +1737,7 @@ int main(void)
     s_test_request_frame_extents_no_client();
     s_test_showing_desktop_walks_all_surfaces();
     s_test_wm_ping_pong_updates_client();
+    s_test_wm_ping_pong_responsive_does_not_outdate();
     s_test_wm_change_state_iconic();
     s_test_wm_change_state_non_iconic_ignored();
 
