@@ -243,17 +243,27 @@ void client_props_refresh_normal_hints(client_td *client)
 }
 
 
+/** Whether the two name stand-ins report a change, so a scenario can
+ *  drive the repaint the handler now gates on */
+static bool s_refresh_name_changed = true;
+static bool s_refresh_icon_name_changed = true;
+
+
 /** Link-only stand-in for client_props_refresh_name */
-void client_props_refresh_name(client_td *client)
+bool client_props_refresh_name(client_td *client)
 {
     (void) client;
+
+    return s_refresh_name_changed;
 }
 
 
 /** Link-only stand-in for client_props_refresh_icon_name */
-void client_props_refresh_icon_name(client_td *client)
+bool client_props_refresh_icon_name(client_td *client)
 {
     (void) client;
+
+    return s_refresh_icon_name_changed;
 }
 
 

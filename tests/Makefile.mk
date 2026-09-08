@@ -454,7 +454,8 @@ $(O_DIR)/tests/client/test_geom: \
 
 $(O_DIR)/tests/client/test_props: \
 		$(TESTS_DIR)/client/test_props.c \
-		$(S_DIR)/client/props.c
+		$(S_DIR)/client/props.c \
+		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

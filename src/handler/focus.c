@@ -160,11 +160,23 @@ void handler_property_notify(const wm_td *wm,
     if (event->atom == XCB_ATOM_WM_NAME ||
             (ewmh != NULL &&
              event->atom == ewmh->_NET_WM_NAME)) {
-        client_props_refresh_name(client);
+        const bool name_changed = client_props_refresh_name(client);
+        bool rule_acted = false;
 
         if (surface != NULL && desktop != NULL) {
-            (void) rules_apply(wm, client, &surface, &desktop,
+            rule_acted = rules_apply(wm, client, &surface, &desktop,
                     RULES_TRIGGER_PROPERTY);
+        }
+
+        /* Either reason is enough on its own.  Without the first, a
+         * client rewriting the very same title, which some do every
+         * few seconds, has its whole titlebar cleared and drawn again
+         * to arrive at the text already on it, and the clear is seen;
+         * without the second, a rule that moved the client on this
+         * very notify would leave the screen showing where it used to
+         * be. */
+        if (!name_changed && !rule_acted) {
+            return;
         }
 
         /* The client's titlebar text is what actually changed:
@@ -184,7 +196,13 @@ void handler_property_notify(const wm_td *wm,
     if (event->atom == XCB_ATOM_WM_ICON_NAME ||
             (ewmh != NULL &&
              event->atom == ewmh->_NET_WM_ICON_NAME)) {
-        client_props_refresh_icon_name(client);
+        /* Rewritten in the same breath as the title by the clients
+         * that rewrite it at all, so it needs the same guard: an icon
+         * name that has not moved is nothing to redraw for */
+        if (!client_props_refresh_icon_name(client)) {
+            return;
+        }
+
         wm_outdate_client(client);
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);

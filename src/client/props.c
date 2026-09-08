@@ -27,6 +27,7 @@
 #include <xcb/xcb_icccm.h>
 
 /* Utils includes */
+#include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
 
@@ -221,15 +222,21 @@ int client_props_get_wm_class(xcb_connection_t *connection,
 
 
 /* Update a managed client's icon name from the X server */
-void client_props_refresh_icon_name(client_td *client)
+bool client_props_refresh_icon_name(client_td *client)
 {
     xcb_ewmh_get_utf8_strings_reply_t net_reply;
     xcb_ewmh_connection_t *const ewmh =
         xcb_ewmh_connection_get();
+    char previous[CONFIG_MAX_LENGTH_NAME];
 
     if (client == NULL) {
-        return;
+        return false;
     }
+
+    /* Same reason as in the sibling above: this one is rewritten in
+     * the same breath as the title by the clients that do it */
+    (void) safe_strncpy(previous, client->icon_info.visible_icon_name,
+            sizeof(previous));
 
     /* Prefer '_NET_WM_ICON_NAME', which is UTF-8, over
      * 'WM_ICON_NAME', which is Latin-1 */
@@ -247,25 +254,37 @@ void client_props_refresh_icon_name(client_td *client)
         memcpy(client->icon_info.visible_icon_name, net_reply.strings, len);
         client->icon_info.visible_icon_name[len] = '\0';
         xcb_ewmh_get_utf8_strings_reply_wipe(&net_reply);
-        return;
+        return safe_strcmp(previous,
+                client->icon_info.visible_icon_name) != 0;
     }
 
     /* Fall back to 'WM_ICON_NAME' */
     s_client_read_legacy_name_prop(client, XCB_ATOM_WM_ICON_NAME,
             client->icon_info.visible_icon_name, NULL, true);
+
+    return safe_strcmp(previous,
+            client->icon_info.visible_icon_name) != 0;
 }
 
 
 /* Update a managed client's name from the X server */
-void client_props_refresh_name(client_td *client)
+bool client_props_refresh_name(client_td *client)
 {
     xcb_ewmh_get_utf8_strings_reply_t net_reply;
     xcb_ewmh_connection_t *const ewmh =
         xcb_ewmh_connection_get();
+    char previous[CONFIG_MAX_LENGTH_NAME];
 
     if (client == NULL) {
-        return;
+        return false;
     }
+
+    /* Kept so the answer can say whether the title actually changed.
+     * Some clients rewrite the very same one every few seconds, and
+     * the caller repaints on a change: repainting to arrive at the
+     * text already on the bar clears the client's window for nothing,
+     * which is seen. */
+    (void) safe_strncpy(previous, client->info.name, sizeof(previous));
 
     /* Prefer '_NET_WM_NAME' (UTF-8) over 'WM_NAME' (Latin-1) */
     memset(&net_reply, 0, sizeof(net_reply));
@@ -284,7 +303,7 @@ void client_props_refresh_name(client_td *client)
         client->info.name[len] = '\0';
         client->info.visible_name[len] = '\0';
         xcb_ewmh_get_utf8_strings_reply_wipe(&net_reply);
-        return;
+        return safe_strcmp(previous, client->info.name) != 0;
     }
 
     /* Fall back to 'WM_NAME'; a transient removal of both properties
@@ -292,6 +311,8 @@ void client_props_refresh_name(client_td *client)
      * here when the property is absent or empty. */
     s_client_read_legacy_name_prop(client, XCB_ATOM_WM_NAME,
             client->info.name, client->info.visible_name, false);
+
+    return safe_strcmp(previous, client->info.name) != 0;
 }
 
 

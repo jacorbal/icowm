@@ -779,9 +779,58 @@ static void s_test_wm_class_truncates_both_names(void)
 }
 
 
+/* The two name refreshes answer whether the value actually moved.
+ * Some clients rewrite the very same title and icon name every few
+ * seconds; the caller repaints on a change, and repainting to arrive
+ * at what is already drawn clears the client's window for nothing */
+static void s_test_name_refreshes_report_only_real_changes(void)
+{
+    client_td client;
+    char name[CONFIG_MAX_LENGTH_NAME];
+    char visible[CONFIG_MAX_LENGTH_NAME];
+    char icon_name[CONFIG_MAX_LENGTH_NAME];
+
+    memset(&client, 0, sizeof(client));
+    client.info.name = name;
+    client.info.visible_name = visible;
+    client.icon_info.visible_icon_name = icon_name;
+    name[0] = '\0';
+    visible[0] = '\0';
+    icon_name[0] = '\0';
+
+    /* The EWMH stand-in answers NULL, so both take their legacy
+     * 'WM_NAME'/'WM_ICON_NAME' path, fed by the property stub */
+    s_fake_prop_value = "Inbox";
+    s_fake_prop_value_len = 5u;
+
+    TAP_OK(client_props_refresh_name(&client),
+            "a first title is reported as a change");
+    TAP_EQ_STR(client.info.name, "Inbox", "and is the one stored");
+    TAP_OK(!client_props_refresh_name(&client),
+            "the very same title again is reported as no change");
+
+    TAP_OK(client_props_refresh_icon_name(&client),
+            "a first icon name is reported as a change");
+    TAP_OK(!client_props_refresh_icon_name(&client),
+            "and the very same one again is not");
+
+    s_fake_prop_value = "Inbox (1)";
+    s_fake_prop_value_len = 9u;
+    TAP_OK(client_props_refresh_name(&client),
+            "a different title is reported as a change");
+    TAP_EQ_STR(client.info.name, "Inbox (1)",
+            "and replaces what was stored");
+    TAP_OK(client_props_refresh_icon_name(&client),
+            "and so is a different icon name");
+
+    s_fake_prop_value = NULL;
+    s_fake_prop_value_len = 0u;
+}
+
+
 int main(void)
 {
-    TAP_PLAN(33);
+    TAP_PLAN(41);
 
     s_test_wm_name_null_buffer_returns_zero();
     s_test_wm_name_zero_size_returns_zero();
@@ -802,6 +851,8 @@ int main(void)
     s_test_wm_class_null_inst_buf_is_optional();
     s_test_wm_class_truncates_both_names();
 
+
+    s_test_name_refreshes_report_only_real_changes();
 
     return TAP_DONE();
 }

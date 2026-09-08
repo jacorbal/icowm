@@ -953,7 +953,7 @@ client_td *client_init(xcb_connection_t *connection,
  *
  * @note Complexity: @e O(n), where @e n is the length of the name
  */
-void client_props_refresh_name(client_td *client);
+bool client_props_refresh_name(client_td *client);
 
 /**
  * @brief Keep a cached, possibly-truncated display name and its
@@ -1020,7 +1020,7 @@ void client_props_refresh_role(client_td *client);
  *
  * @note Complexity: @e O(n), where @e n is the length of the name
  */
-void client_props_refresh_icon_name(client_td *client);
+bool client_props_refresh_icon_name(client_td *client);
 
 /**
  * @brief Refresh @c WM_NORMAL_HINTS size-constraints from X11
