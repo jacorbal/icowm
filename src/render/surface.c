@@ -22,6 +22,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <render/desktop.h>
+#include <render/desktop/background.h>
 
 /* Utils includes */
 #include <utils/xcb/connection.h>
@@ -169,7 +170,7 @@ int surface_render_all_desktops(surface_td *surface)
      * would otherwise overwrite it. */
     cur = surface_desktop_get(surface, surface->desktop_cur);
     if (cur != NULL) {
-        if (desktop_render_background(cur) != 0) {
+        if (render_desktop_background_render(cur) != 0) {
             LOGGER_ERROR("Failed to re-apply background for current" \
                     " desktop '%s'", cur->name);
         }

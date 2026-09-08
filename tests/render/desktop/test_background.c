@@ -1,58 +1,40 @@
 /**
- * @file tests/render/test_desktop.c
+ * @file tests/render/desktop/test_background.c
  *
- * @brief Test battery for the desktop render pass orchestration
- *        (render/desktop.c)
+ * @brief Test battery for desktop root window background rendering
+ *        (render/desktop/background.c)
  *
- * Covers, through the two public entry points render/desktop.h
- * exposes, every branch of desktop.c's own real logic:
- * desktop_render_full's guard and dispatch to background-plus-
- * clients, and desktop_render_one_client's rich branch tree
- * (urgency-blink is_focused flip, hide_decoration for a fullscreen
- * client that used to be decorated, titlebar_visible, the border_width
- * decision among dock/notification, fullscreen, framed, and plain
- * cases, the border_width/border_color change-skip, is_current mapping
- * including the icon-window-hide and shaded-content-window-skip
- * cases, and the outdated-geometry-vs-focus-only-refresh dispatch,
- * each reached through their own static helper).
+ * Covers, through the three public entry points
+ * render/desktop/background.h exposes, every branch of
+ * background.c's own real logic: render_desktop_background_render
+ * (null desktop, out-of-range screen_id, null screen,
+ * external-pixmap-detected, preserve-previous-external,
+ * color-unchanged skip, and the actual paint path), and the atom-set
+ * resolution and once-cached lookup
+ * render_desktop_background_property_is_pixmap and
+ * render_desktop_background_cache_invalidate share with it
+ * (s_resolve_bg_atoms, s_get_root_background_pixmap, the per-screen
+ * caches).
  *
- * Every XCB entry point desktop.c calls (xcb_window_hide,
- * xcb_window_place, xcb_window_set_border, xcb_window_show,
- * xcb_clear_area) and every cross-module project symbol it reaches
- * (client_border_color_apply, client_send_synthetic_configure_notify,
- * logger_msg, render_client_decoration_repaint_frame_unless_hidden,
- * render_client_titlebar_repaint_content,
- * render_desktop_background_render, ri_render_client_icon,
- * stacking_count, stacking_walk, urgency_blink_is_on,
- * xcb_connection_get) is a link-only, call-recording stand-in defined
- * below, following the pattern already established by
- * tests/render/test_icon.c and tests/render/test_wmicon.c: no real
- * XCB library, and no real .c file besides src/render/desktop.c
- * itself, is linked at all.  client_is_decorated, client_is_
- * fullscreen, client_is_shaded, client_is_urgent, client_is_pinned,
- * client_is_maximizable (through client_is_resizable and client_is_
- * modal), client_is_iconified, and wm_validate_client/
- * wm_validate_desktop are real inline functions or macros pulled in
- * from the real headers, exercised for real rather than stubbed, the
- * same way test_icon.c already relies on the real inline
- * wm_validate_client from include/render/outdate.h.
- *
- * The titlebar, frame decoration, and desktop background rendering
- * this file used to also cover directly (back when all of it lived in
- * one render/desktop.c translation unit) moved out to their own
- * modules and their own batteries: tests/render/client/test_titlebar.c,
- * tests/render/client/test_decoration.c, and
- * tests/render/desktop/test_background.c.  The three real functions
- * those modules export are stubbed below purely as call-recording
- * stand-ins, the same as every other cross-module symbol this file
- * reaches, not exercised for their own logic here.
+ * Every XCB entry point background.c calls (xcb_get_property,
+ * xcb_get_property_reply, xcb_get_property_value, xcb_change_window_
+ * attributes, xcb_clear_area) and every cross-module project symbol
+ * it reaches (atom_intern, logger_msg, viewport_mesh_is_visible,
+ * viewport_mesh_render, viewport_mesh_cache_invalidate,
+ * viewport_mesh_cache_release_retired, xcb_connection_get) is
+ * a link-only, call-recording stand-in defined below, following the
+ * pattern already established by tests/render/test_icon.c and
+ * tests/render/test_wmicon.c: no real XCB library, and no real .c
+ * file besides src/render/desktop/background.c itself, is linked at
+ * all.
  *
  * A handful of stand-ins this file's own scenarios never reach
- * (client_titlebar_layout and the pixmap/atom-opacity family, among
- * others) are still defined below, copied verbatim from the shared
- * stub arsenal this file split off from; an unreachable stub with
- * external linkage costs nothing and keeps every test file in this
- * split self-contained rather than reaching across to one another.
+ * (client_titlebar_layout and the titlebar/decoration/window/atom-
+ * opacity family, among others) are still defined below, copied
+ * verbatim from the shared stub arsenal this file split off from
+ * (tests/render/test_desktop.c); an unreachable stub with external
+ * linkage costs nothing and keeps every test file in this split
+ * self-contained rather than reaching across to one another.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -82,7 +64,7 @@
 #include <harness/tap.h>
 #include <logger.h>
 #include <policy/stacking.h>
-#include <render/desktop.h>
+#include <render/desktop/background.h>
 #include <surface.h>
 
 
@@ -805,54 +787,6 @@ xcb_void_cookie_t xcb_free_pixmap(xcb_connection_t *connection,
 }
 
 
-/* render/desktop/background.h, render/client/decoration.h,
- * render/client/titlebar.h: the three modules the render pass
- * dispatches into, each with its own battery
- * (tests/render/desktop/test_background.c,
- * tests/render/client/test_decoration.c,
- * tests/render/client/test_titlebar.c) covering its own logic; only
- * call-recording stand-ins here, the same as every other cross-module
- * symbol above */
-static int s_render_background_calls;
-
-int render_desktop_background_render(desktop_td *desktop)
-{
-    (void) desktop;
-    s_render_background_calls++;
-    return 0;
-}
-
-static int s_repaint_frame_unless_hidden_calls;
-
-void render_client_decoration_repaint_frame_unless_hidden(
-        xcb_connection_t *connection, client_td *client,
-        bool is_focused, bool hide_decoration,
-        const struct config_theme_s *theme)
-{
-    (void) connection;
-    (void) client;
-    (void) is_focused;
-    (void) hide_decoration;
-    (void) theme;
-    s_repaint_frame_unless_hidden_calls++;
-}
-
-static int s_repaint_titlebar_content_calls;
-
-void render_client_titlebar_repaint_content(xcb_connection_t *connection,
-        client_td *client, bool is_focused, uint16_t inner_w,
-        uint16_t title_h, const struct config_theme_s *theme)
-{
-    (void) connection;
-    (void) client;
-    (void) is_focused;
-    (void) inner_w;
-    (void) title_h;
-    (void) theme;
-    s_repaint_titlebar_content_calls++;
-}
-
-
 /* ==================================================================== *
  * Fixture helpers
  * ==================================================================== */
@@ -920,9 +854,6 @@ static void s_reset_fixture(void)
     s_free_gc_calls = 0;
     s_copy_area_calls = 0;
     s_free_pixmap_calls = 0;
-    s_render_background_calls = 0;
-    s_repaint_frame_unless_hidden_calls = 0;
-    s_repaint_titlebar_content_calls = 0;
     s_ewmh_stub = NULL;
 }
 
@@ -952,548 +883,269 @@ static void s_desktop_fixture_init(struct s_desktop_fixture_s *fx,
     strncpy(fx->desktop.name, "test", sizeof(fx->desktop.name) - 1u);
 }
 
-static void s_client_fixture_init(client_td *client, config_td *config,
-        xcb_window_t window)
+
+/* ==================================================================== *
+ * render_desktop_background_cache_invalidate /
+ * render_desktop_background_property_is_pixmap
+ * ==================================================================== */
+
+static void s_test_property_is_bg_pixmap_none_atom_is_false(void)
 {
-    memset(client, 0, sizeof(*client));
-    client->config = config;
-    client->window = window;
-    client->id = window;
+    s_reset_fixture();
+
+    TAP_OK(!render_desktop_background_property_is_pixmap(s_connection_stub,
+                XCB_ATOM_NONE),
+            "XCB_ATOM_NONE is never recognized as a background"
+            " pixmap property, without even trying to resolve the"
+            " candidate atom set first");
+    TAP_EQ_INT(s_atom_intern_calls, 0,
+            "...short-circuiting before ever calling atom_intern");
+}
+
+static void s_test_property_is_bg_pixmap_resolves_once(void)
+{
+    s_reset_fixture();
+    s_atom_intern_result = 777u;
+
+    (void) render_desktop_background_property_is_pixmap(s_connection_stub,
+            123u);
+    TAP_EQ_INT(s_atom_intern_calls, 3,
+            "the first call with a real atom resolves all three"
+            " candidate property names in one pass");
+
+    (void) render_desktop_background_property_is_pixmap(s_connection_stub,
+            123u);
+    TAP_EQ_INT(s_atom_intern_calls, 3,
+            "...and a second call reuses the cached atoms rather"
+            " than re-resolving them, since none of the three were"
+            " left unresolved");
+}
+
+/* Exercises the "resolved atom matches" and "different atom does not
+ * match" branches using the exact same 777u every candidate name
+ * resolved to just above: 's_bg_atoms' is a module-static cache that,
+ * once resolved, is permanent for the rest of this test binary's
+ * process lifetime (matching the real s_resolve_bg_atoms's own
+ * documented contract that a successful resolution never expires), so
+ * a later scenario cannot force a fresh atom_intern_result of its own
+ * to take effect here; asserting against 777u directly, immediately
+ * after the scenario that resolved it, keeps this test from silently
+ * depending on run order for its expected value */
+static void s_test_property_is_bg_pixmap_matches_resolved_atom(void)
+{
+    TAP_OK(render_desktop_background_property_is_pixmap(s_connection_stub,
+                777u),
+            "an atom equal to whatever every candidate name"
+            " resolved to (all three, here, since atom_intern"
+            " returns the same stub value for each) is recognized"
+            " as a background pixmap property");
+    TAP_OK(!render_desktop_background_property_is_pixmap(s_connection_stub,
+                778u),
+            "a different atom is not");
+}
+
+static void s_test_cache_invalidate_forces_pixmap_reresolution(void)
+{
+    int calls_before;
+    struct s_desktop_fixture_s fx;
+
+    s_reset_fixture();
+    s_desktop_fixture_init(&fx, 0u, 0u);
+    s_get_property_reply_should_fail = true;
+
+    (void) render_desktop_background_render(&fx.desktop);
+    TAP_OK(s_get_property_calls > 0,
+            "before any cache exists, rendering a background queries"
+            " the root window's candidate pixmap properties");
+
+    calls_before = s_get_property_calls;
+
+    (void) render_desktop_background_render(&fx.desktop);
+    TAP_EQ_INT(s_get_property_calls, calls_before,
+            "a second render on the same screen hits the resolved-"
+            "pixmap cache and issues no further property queries"
+            " at all");
+
+    render_desktop_background_cache_invalidate();
+    (void) render_desktop_background_render(&fx.desktop);
+    TAP_OK(s_get_property_calls > calls_before,
+            "invalidating the cache makes the next render query the"
+            " candidate properties again instead of trusting the"
+            " stale cached answer");
 }
 
 
 /* ==================================================================== *
- * desktop_render_full
+ * render_desktop_background_render
  * ==================================================================== */
 
-static void s_test_render_full_null_desktop(void)
+static void s_test_render_background_null_desktop(void)
 {
     s_reset_fixture();
-    TAP_EQ_INT(desktop_render_full(NULL, true), 1,
-            "a null desktop pointer fails outright");
+    TAP_EQ_INT(render_desktop_background_render(NULL), 1,
+            "a null desktop pointer fails outright rather than"
+            " dereferencing it");
 }
 
-static void s_test_render_full_current_paints_background(void)
-{
-    struct s_desktop_fixture_s fx;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 1u, 2u);
-    s_stacking_count_result = 0u;
-    fx.desktop.is_outdated = true;
-    fx.desktop.is_focus_dirty = true;
-
-    TAP_EQ_INT(desktop_render_full(&fx.desktop, true), 0,
-            "a full render of the currently displayed desktop"
-            " succeeds");
-    TAP_EQ_INT(s_render_background_calls, 1,
-            "...and actually dispatches to the background module,"
-            " since is_current is true");
-    TAP_OK(!fx.desktop.is_outdated,
-            "...clearing is_outdated via the real inline"
-            " wm_validate_desktop");
-    TAP_OK(!fx.desktop.is_focus_dirty,
-            "...and clearing is_focus_dirty directly, so the next"
-            " render pass does not re-trigger every client's"
-            " focus-only decoration refresh for no reason");
-}
-
-static void s_test_render_full_non_current_skips_background(void)
+static void s_test_render_background_screen_id_out_of_range(void)
 {
     struct s_desktop_fixture_s fx;
 
     s_reset_fixture();
-    s_desktop_fixture_init(&fx, 2u, 3u);
-    s_stacking_count_result = 0u;
+    s_desktop_fixture_init(&fx, 0u, 0u);
+    fx.desktop.screen_id = (uint32_t) CONFIG_MAX_SCREENS;
 
-    TAP_EQ_INT(desktop_render_full(&fx.desktop, false), 0,
-            "a full render of a desktop that is not currently"
-            " displayed still succeeds");
-    TAP_EQ_INT(s_render_background_calls, 0,
-            "...but never dispatches to the background module for"
-            " a desktop nobody can see");
+    TAP_EQ_INT(render_desktop_background_render(&fx.desktop), 1,
+            "a screen_id at or beyond CONFIG_MAX_SCREENS fails"
+            " rather than indexing the per-screen caches"
+            " out of bounds");
 }
 
-static void s_test_render_full_visits_every_stacked_client(void)
+static void s_test_render_background_null_screen(void)
 {
     struct s_desktop_fixture_s fx;
-    client_td client_a;
-    client_td client_b;
 
     s_reset_fixture();
-    s_desktop_fixture_init(&fx, 3u, 4u);
-    s_client_fixture_init(&client_a, &fx.config, 0x201u);
-    s_client_fixture_init(&client_b, &fx.config, 0x202u);
-    client_a.properties.flags = (uint16_t) CLIENT_FLAG_HIDDEN;
-    client_b.properties.flags = 0u;
-    /* Without is_outdated set, desktop_render_one_client takes
-     * neither the geometry-apply nor the focus-only-refresh path at
-     * all (is_focus_dirty is also left false here), so no geometry
-     * would ever be placed regardless of is_current */
-    client_b.is_outdated = true;
-    s_stacking_walk_clients[0] = &client_a;
-    s_stacking_walk_clients[1] = &client_b;
-    s_stacking_walk_client_count = 2u;
-    /* stacking_count gates s_desktop_render_clients's own early-out
-     * before it ever calls stacking_walk at all: it must agree with
-     * however many clients the walk stand-in below is actually going
-     * to visit, or the walk is skipped outright */
-    s_stacking_count_result = 2u;
+    s_desktop_fixture_init(&fx, 1u, 0u);
+    fx.desktop.screen = NULL;
 
-    TAP_EQ_INT(desktop_render_full(&fx.desktop, false), 0,
-            "a full render walking two stacked clients succeeds");
-    TAP_EQ_INT(s_render_client_icon_calls, 0,
-            "the hidden-but-not-iconified client is skipped"
-            " entirely, drawn neither as a window nor as an icon");
-    TAP_OK(s_window_show_calls == 0 && s_window_place_calls >= 1,
-            "the plain visible client has its geometry placed;"
-            " nothing is mapped since is_current is false here");
+    TAP_EQ_INT(render_desktop_background_render(&fx.desktop), 1,
+            "a desktop whose cached screen pointer is null fails"
+            " rather than dereferencing it for root/width/height");
 }
 
-/* Rendering a decorated client whose content ends up exactly where it
- * already was must not clear its window: this pass runs for any
- * reason at all, a changed title among them, and clearing blanks the
- * client until it paints itself back */
-static void s_test_render_full_clears_only_when_content_moves(void)
+static void s_test_render_background_external_pixmap_detected(void)
 {
     struct s_desktop_fixture_s fx;
-    client_td client;
-    int clears_after_first;
 
     s_reset_fixture();
-    s_desktop_fixture_init(&fx, 4u, 6u);
-    s_client_fixture_init(&client, &fx.config, 0x401u);
-    client.frame = 0x9001u;
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
-    client.layout.geometry.cur.dim.w = 400u;
-    client.layout.geometry.cur.dim.h = 300u;
-    client.layout.frame_extents.left = 2;
-    client.layout.frame_extents.right = 2;
-    client.layout.frame_extents.top = 22;
-    client.layout.frame_extents.bottom = 2;
-    client.is_outdated = true;
-    s_clear_area_watched_window = client.window;
-    s_stacking_walk_clients[0] = &client;
-    s_stacking_walk_client_count = 1u;
-    s_stacking_count_result = 1u;
+    s_desktop_fixture_init(&fx, 2u, 0u);
+    s_get_property_reply_should_fail = false;
+    s_get_property_pixmap_value = 999u;
+    fx.desktop.background.use_root_pixmap = false;
 
-    (void) desktop_render_full(&fx.desktop, true);
-    clears_after_first = s_clear_area_watched_calls;
-    TAP_OK(clears_after_first > 0,
-            "a client's first render clears its own window, nothing"
-            " being known yet about where its content sat");
-
-    client.is_outdated = true;
-    (void) desktop_render_full(&fx.desktop, true);
-    TAP_EQ_INT(s_clear_area_watched_calls, clears_after_first,
-            "rendering it again with the same geometry clears"
-            " nothing further");
-
-    client.is_outdated = true;
-    client.layout.geometry.cur.dim.w =
-        (uint16_t) (client.layout.geometry.cur.dim.w + 40u);
-    (void) desktop_render_full(&fx.desktop, true);
-    TAP_OK(s_clear_area_watched_calls > clears_after_first,
-            "but a real change of size clears it again, so a toolkit"
-            " redrawing on Expose alone still follows the frame");
+    TAP_EQ_INT(render_desktop_background_render(&fx.desktop), 0,
+            "an external wallpaper tool's pixmap property being"
+            " found succeeds without ever touching"
+            " xcb_change_window_attributes");
+    TAP_OK(fx.desktop.background.use_root_pixmap,
+            "...and records that the root window's background is"
+            " now externally owned");
+    TAP_EQ_INT(s_change_window_attributes_calls, 0,
+            "...never overwriting the external wallpaper with the"
+            " desktop's own configured color");
 }
 
-
-static void s_test_render_full_iconified_hidden_client_draws_icon(
+static void s_test_render_background_preserves_previous_external(
         void)
 {
     struct s_desktop_fixture_s fx;
-    client_td client;
 
     s_reset_fixture();
-    s_desktop_fixture_init(&fx, 4u, 5u);
-    s_client_fixture_init(&client, &fx.config, 0x301u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_HIDDEN;
-    client.properties.state = (uint16_t) CLIENT_STATE_ICONIFIED;
-    s_stacking_walk_clients[0] = &client;
-    s_stacking_walk_client_count = 1u;
-    s_stacking_count_result = 1u;
+    s_desktop_fixture_init(&fx, 3u, 0u);
+    s_get_property_reply_should_fail = true;
+    fx.desktop.background.use_root_pixmap = true;
 
-    (void) desktop_render_full(&fx.desktop, true);
-
-    TAP_EQ_INT(s_render_client_icon_calls, 1,
-            "a hidden client that is also iconified is drawn as its"
-            " icon placeholder instead of being skipped outright");
-    TAP_OK(s_render_client_icon_last_client == &client,
-            "...for that exact client");
-    TAP_OK(s_render_client_icon_last_is_current,
-            "...forwarding the walk's own is_current, unmodified");
+    TAP_EQ_INT(render_desktop_background_render(&fx.desktop), 0,
+            "no external pixmap property found this time, but one"
+            " was previously in effect: succeeds while leaving the"
+            " root window untouched");
+    TAP_EQ_INT(s_change_window_attributes_calls, 0,
+            "...still never repainting over what the external tool"
+            " last drew");
+    TAP_OK(fx.desktop.background.use_root_pixmap,
+            "...and the external-ownership flag stays set, since"
+            " nothing here has any reason to believe the WM has"
+            " taken the background back");
 }
 
-
-/* ==================================================================== *
- * desktop_render_one_client
- * ==================================================================== */
-
-static void s_test_render_one_client_urgency_blink_flips_focus(void)
+static void s_test_render_background_paints_color_first_time(void)
 {
     struct s_desktop_fixture_s fx;
-    client_td client;
 
     s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x401u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_URGENT;
-    fx.desktop.client_active_id = client.id;
-    s_urgency_blink_is_on_result = true;
+    s_desktop_fixture_init(&fx, 4u, 0u);
+    s_get_property_reply_should_fail = true;
+    fx.desktop.background.use_root_pixmap = false;
+    fx.desktop.background.bg.color = 0x112233u;
 
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_EQ_INT(s_border_color_apply_calls, 1,
-            "an urgent client mid-blink still gets its border color"
-            " applied (it is undecorated here, frame == 0)");
-    TAP_OK(!s_border_color_apply_last_focused,
-            "...but with is_focused flipped to false even though"
-            " client_active_id actually names this very client,"
-            " since the blink is mid-cycle");
+    TAP_EQ_INT(render_desktop_background_render(&fx.desktop), 0,
+            "with no external pixmap and no prior applied color for"
+            " this screen, the desktop's configured color is"
+            " painted onto the root window");
+    TAP_EQ_INT(s_change_window_attributes_calls, 1,
+            "...via exactly one xcb_change_window_attributes call");
+    TAP_EQ_INT(s_clear_area_calls, 1,
+            "...followed by exactly one xcb_clear_area covering the"
+            " whole root window");
 }
 
-static void s_test_render_one_client_urgent_not_blinking_keeps_focus(
-        void)
+static void s_test_render_background_skips_unchanged_color(void)
 {
+    int clears_before;
+    int changes_before;
     struct s_desktop_fixture_s fx;
-    client_td client;
 
     s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x402u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_URGENT;
-    fx.desktop.client_active_id = client.id;
-    s_urgency_blink_is_on_result = false;
+    s_desktop_fixture_init(&fx, 5u, 0u);
+    s_get_property_reply_should_fail = true;
+    fx.desktop.background.bg.color = 0xaabbccu;
 
-    desktop_render_one_client(&fx.desktop, &client, false);
+    (void) render_desktop_background_render(&fx.desktop);
+    changes_before = s_change_window_attributes_calls;
+    clears_before = s_clear_area_calls;
 
-    TAP_OK(s_border_color_apply_last_focused,
-            "the other half of the blink cycle leaves is_focused as"
-            " client_active_id alone would already say (focused)");
+    TAP_EQ_INT(render_desktop_background_render(&fx.desktop), 0,
+            "rendering again with the exact same configured color"
+            " still succeeds");
+    TAP_EQ_INT(s_change_window_attributes_calls, changes_before,
+            "...but repaints nothing further, since this screen's"
+            " root window already shows that same color");
+    TAP_EQ_INT(s_clear_area_calls, clears_before,
+            "...not even the clear-area call");
 }
 
-static void s_test_render_one_client_hide_decoration_fullscreen(void)
+static void s_test_render_background_repaints_on_color_change(void)
 {
+    int changes_before;
     struct s_desktop_fixture_s fx;
-    client_td client;
 
     s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x403u);
-    client.properties.state = (uint16_t) CLIENT_STATE_FULLSCREEN;
-    client.was_decorated_fullscreen = true;
-    client.titlebar = 0x500u;
-    client.is_outdated = true;
+    s_desktop_fixture_init(&fx, 0u, 1u);
+    render_desktop_background_cache_invalidate();
+    s_get_property_reply_should_fail = true;
+    fx.desktop.background.bg.color = 0x111111u;
+    (void) render_desktop_background_render(&fx.desktop);
 
-    /* is_current must be true here: the titlebar-hide/show dispatch
-     * this scenario targets only runs inside desktop_render_one_
-     * client's own 'if (is_current)' block, never as part of the
-     * outdated-geometry-apply path exercised elsewhere in this file */
-    desktop_render_one_client(&fx.desktop, &client, true);
+    fx.desktop.background.bg.color = 0x222222u;
+    changes_before = s_change_window_attributes_calls;
 
-    TAP_EQ_INT(s_window_hide_calls, 1,
-            "a fullscreen client that used to be decorated has its"
-            " titlebar hidden rather than repainted, since"
-            " decoration is currently forced off");
-    TAP_EQ_INT(s_window_set_border_last_width, 0u,
-            "...and takes the fullscreen border_width == 0 branch"
-            " outright, regardless of whatever the theme's regular"
-            " border width would otherwise be");
-}
-
-static void s_test_render_one_client_border_width_dock(void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x404u);
-    client.properties.type = (uint16_t) CLIENT_TYPE_DOCK;
-    client.last_border_width = 5u;
-
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_EQ_INT(s_window_set_border_calls, 1,
-            "a dock client's border width changes from its prior 5"
-            " to 0, so xcb_window_set_border is actually called");
-    TAP_EQ_INT(s_window_set_border_last_width, 0u,
-            "...a dock window is never given a WM border");
-}
-
-static void s_test_render_one_client_border_width_notification(void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x405u);
-    client.properties.type = (uint16_t) CLIENT_TYPE_NOTIFICATION;
-    client.last_border_width = 5u;
-
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_EQ_INT(s_window_set_border_last_width, 0u,
-            "a notification client is likewise never given a"
-            " WM border");
-}
-
-static void s_test_render_one_client_border_width_framed_is_zero(
-        void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x406u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
-    client.frame = 0x600u;
-    client.last_border_width = 3u;
-
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_EQ_INT(s_window_set_border_last_width, 0u,
-            "a decorated client with a real frame gets no X11"
-            " border of its own: its themed margin is the frame's"
-            " own background instead");
-    TAP_EQ_INT(s_border_color_apply_calls, 0,
-            "...and client_border_color_apply is never called for"
-            " it either, since a framed client shows focus through"
-            " the frame repaint instead of this border");
-}
-
-static void s_test_render_one_client_border_width_plain_uses_theme(
-        void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x407u);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_RESIZABLE;
-    fx.config.theme.window.active.border.width = 7u;
-    fx.config.theme.window.inactive.border.width = 2u;
-    fx.desktop.client_active_id = client.id;
-
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_EQ_INT(s_window_set_border_last_width, 7u,
-            "a plain undecorated, non-fullscreen, non-dock client"
-            " uses client_border_width's real theme lookup, here"
-            " the focused client so the active width applies");
-    TAP_EQ_INT(s_border_color_apply_calls, 1,
-            "...and does get client_border_color_apply called,"
-            " unlike the framed case above");
-}
-
-static void s_test_render_one_client_border_width_unchanged_skips_set(
-        void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x408u);
-    client.properties.type = (uint16_t) CLIENT_TYPE_DOCK;
-    client.last_border_width = 0u;
-
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_EQ_INT(s_window_set_border_calls, 0,
-            "a dock client whose border width was already 0 has no"
-            " xcb_window_set_border call at all, since the computed"
-            " width did not actually change");
-}
-
-static void s_test_render_one_client_maps_when_current(void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x409u);
-
-    desktop_render_one_client(&fx.desktop, &client, true);
-
-    TAP_OK(s_window_show_calls >= 1,
-            "when this desktop is the currently displayed one, the"
-            " client's target window is actually mapped");
-}
-
-static void s_test_render_one_client_does_not_map_when_not_current(
-        void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x40au);
-
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_EQ_INT(s_window_show_calls, 0,
-            "when this desktop is not the one currently shown, no"
-            " window is (re-)mapped at all, so a prior explicit"
-            " surface_clients_hide is never raced against");
-}
-
-static void s_test_render_one_client_hides_mapped_icon_when_current(
-        void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x40bu);
-    client.icon_window = 0x700u;
-    client.is_icon_mapped = true;
-
-    desktop_render_one_client(&fx.desktop, &client, true);
-
-    TAP_OK(s_window_hide_last_window == 0x700u ||
-            s_window_hide_calls >= 1,
-            "a client whose icon placeholder is still mapped has it"
-            " hidden as part of becoming a real, drawn window again");
-    TAP_OK(!client.is_icon_mapped,
-            "...and the is_icon_mapped flag is cleared to match");
-}
-
-static void s_test_render_one_client_shaded_skips_content_remap(void)
-{
-    int shows_before;
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x40cu);
-    client.properties.flags = (uint16_t) (CLIENT_FLAG_DECORATED |
-            CLIENT_FLAG_SHADED);
-    client.frame = 0x610u;
-
-
-    desktop_render_one_client(&fx.desktop, &client, true);
-    shows_before = s_window_show_calls;
-
-    TAP_OK(s_window_show_last_window != client.window ||
-            shows_before >= 1,
-            "a shaded, decorated client still has its frame shown");
-    /* The exact assertion this scenario exists for: content window
-     * (client.window) itself must never appear as an
-     * xcb_window_show target while shaded */
-    TAP_OK(s_window_show_last_window == client.frame ||
-            s_window_show_last_window != client.window,
-            "...but the content window itself is never (re-)mapped"
-            " while shaded, which would otherwise visibly undo the"
-            " shade operation");
-}
-
-static void s_test_render_one_client_outdated_applies_geometry(void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x40du);
-    client.is_outdated = true;
-    client.layout.geometry.cur.dim.w = 400u;
-    client.layout.geometry.cur.dim.h = 300u;
-
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_OK(!client.is_outdated,
-            "an outdated client takes the full geometry-apply path,"
-            " which clears is_outdated via the real inline"
-            " wm_validate_client at the end");
-    TAP_OK(s_window_place_calls >= 1,
-            "...actually placing the target window's geometry");
-}
-
-static void s_test_render_one_client_focus_dirty_refreshes_decoration(
-        void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x40eu);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
-    client.frame = 0x620u;
-    client.is_outdated = false;
-    fx.desktop.is_focus_dirty = true;
-
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_OK(s_window_place_calls == 0,
-            "a client that is not outdated, but whose desktop just"
-            " had a focus change, takes the lighter refresh-only"
-            " path: geometry is never re-applied");
-}
-
-static void s_test_render_one_client_neither_dirty_nor_outdated_noop(
-        void)
-{
-    struct s_desktop_fixture_s fx;
-    client_td client;
-
-    s_reset_fixture();
-    s_desktop_fixture_init(&fx, 0u, 0u);
-    s_client_fixture_init(&client, &fx.config, 0x40fu);
-    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
-    client.frame = 0x630u;
-    client.is_outdated = false;
-    fx.desktop.is_focus_dirty = false;
-
-    desktop_render_one_client(&fx.desktop, &client, false);
-
-    TAP_EQ_INT(s_window_place_calls, 0,
-            "an up-to-date client on a desktop with no focus change"
-            " and no urgency is repainted nowhere at all: neither"
-            " the geometry-apply nor the decoration-refresh path"
-            " runs");
-    TAP_EQ_INT(s_border_color_apply_calls, 0,
-            "...its framed border-color path is also untouched,"
-            " since client_is_decorated && frame != 0 skips that"
-            " branch outright regardless of is_outdated");
+    TAP_EQ_INT(render_desktop_background_render(&fx.desktop), 0,
+            "a genuinely different configured color succeeds");
+    TAP_OK(s_change_window_attributes_calls > changes_before,
+            "...and actually repaints this time, since the color"
+            " showing on screen no longer matches what is now"
+            " configured");
 }
 
 
 int main(void)
 {
-    TAP_PLAN(40);
+    TAP_PLAN(26);
 
-    s_test_render_full_null_desktop();
-    s_test_render_full_current_paints_background();
-    s_test_render_full_non_current_skips_background();
-    s_test_render_full_visits_every_stacked_client();
-    s_test_render_full_clears_only_when_content_moves();
-    s_test_render_full_iconified_hidden_client_draws_icon();
+    s_test_property_is_bg_pixmap_none_atom_is_false();
+    s_test_property_is_bg_pixmap_resolves_once();
+    s_test_property_is_bg_pixmap_matches_resolved_atom();
+    s_test_cache_invalidate_forces_pixmap_reresolution();
 
-    s_test_render_one_client_urgency_blink_flips_focus();
-    s_test_render_one_client_urgent_not_blinking_keeps_focus();
-    s_test_render_one_client_hide_decoration_fullscreen();
-    s_test_render_one_client_border_width_dock();
-    s_test_render_one_client_border_width_notification();
-    s_test_render_one_client_border_width_framed_is_zero();
-    s_test_render_one_client_border_width_plain_uses_theme();
-    s_test_render_one_client_border_width_unchanged_skips_set();
-    s_test_render_one_client_maps_when_current();
-    s_test_render_one_client_does_not_map_when_not_current();
-    s_test_render_one_client_hides_mapped_icon_when_current();
-    s_test_render_one_client_shaded_skips_content_remap();
-    s_test_render_one_client_outdated_applies_geometry();
-    s_test_render_one_client_focus_dirty_refreshes_decoration();
-    s_test_render_one_client_neither_dirty_nor_outdated_noop();
+    s_test_render_background_null_desktop();
+    s_test_render_background_screen_id_out_of_range();
+    s_test_render_background_null_screen();
+    s_test_render_background_external_pixmap_detected();
+    s_test_render_background_preserves_previous_external();
+    s_test_render_background_paints_color_first_time();
+    s_test_render_background_skips_unchanged_color();
+    s_test_render_background_repaints_on_color_change();
 
     return TAP_DONE();
 }

@@ -212,6 +212,9 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/loop/test_refresh \
     $(O_DIR)/tests/loop/test_signals \
     $(O_DIR)/tests/loop/test_timers \
+    $(O_DIR)/tests/render/client/test_decoration \
+    $(O_DIR)/tests/render/client/test_titlebar \
+    $(O_DIR)/tests/render/desktop/test_background \
     $(O_DIR)/tests/render/test_desktop \
     $(O_DIR)/tests/render/test_glyph \
     $(O_DIR)/tests/render/test_icon \
@@ -1774,6 +1777,24 @@ $(O_DIR)/tests/loop/test_timers: \
 		$(TESTS_DIR)/loop/test_timers.c \
 		$(S_DIR)/adt/list.c \
 		$(S_DIR)/loop/timers.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/render/client/test_decoration: \
+		$(TESTS_DIR)/render/client/test_decoration.c \
+		$(S_DIR)/render/client/decoration.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/render/client/test_titlebar: \
+		$(TESTS_DIR)/render/client/test_titlebar.c \
+		$(S_DIR)/render/client/titlebar.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/render/desktop/test_background: \
+		$(TESTS_DIR)/render/desktop/test_background.c \
+		$(S_DIR)/render/desktop/background.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

@@ -47,7 +47,8 @@
  * @brief Mark every one of a surface's desktops, and every
  *        client on each of them, as outdated
  *
- * @c desktop_repaint_titlebar_content (render/desktop.c) recomputes
+ * @c render_client_titlebar_repaint_content
+ * (render/client/titlebar.c) recomputes
  * whether the pin button belongs on a client's titlebar
  * (@c hide_pin) fresh every time it runs, from @p surface's
  * current @c desktop_count, but reaching it takes clearing two

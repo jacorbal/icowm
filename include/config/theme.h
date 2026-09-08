@@ -311,7 +311,8 @@ struct config_theme_s {
      * @p background.color, even though a desktop has no corresponding
      * foreground to pair it with today.
      *
-     * @see @a desktop_render_background in @c render/desktop.c
+     * @see @a render_desktop_background_render in
+     *      @c render/desktop/background.c
      */
     struct {
         struct {

@@ -276,8 +276,9 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
      * freeing it anywhere before that would leave the attribute
      * pointing at a pixmap the server no longer has: any repaint of
      * the root in between, ours or another client's, would draw from
-     * it (see 'desktop_render_background''s own note on exactly this
-     * hazard, in render/desktop.c).  Whoever installs the new tile
+     * it (see 'render_desktop_background_render''s own note on
+     * exactly this hazard, in render/desktop/background.c).  Whoever
+     * installs the new tile
      * frees it, and 's_cache_release' covers the case where nobody
      * ever does. */
     s_cache_retire(connection, slot);

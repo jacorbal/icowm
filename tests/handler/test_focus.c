@@ -23,7 +23,7 @@
  * file covers its cleanly separable, side-effect-visible guard
  * clauses: the null-event guard, the PROPERTY_DELETE short-circuit,
  * the root-window background-pixmap path (via
- * desktop_property_is_background_pixmap and
+ * render_desktop_background_property_is_pixmap and
  * surface_render_current_desktop_repaint stand-ins), the unconditional
  * systray_handle_property_notify call, and the no-managed-client-found
  * early return.  The deeper per-atom refresh branches
@@ -59,6 +59,7 @@
 #include <rules.h>
 
 /* Render includes */
+#include <render/desktop/background.h>
 #include <render/wmicon.h>
 
 /* Utils includes */
@@ -175,9 +176,10 @@ void systray_handle_property_notify(const wm_td *wm,
 }
 
 
-/** Controlled stand-in for desktop_property_is_background_pixmap */
-bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
-        xcb_atom_t atom)
+/** Controlled stand-in for
+ *  render_desktop_background_property_is_pixmap */
+bool render_desktop_background_property_is_pixmap(
+        xcb_connection_t *connection, xcb_atom_t atom)
 {
     (void) connection;
     (void) atom;
@@ -186,8 +188,8 @@ bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
 }
 
 
-/** Link-only stand-in for desktop_background_pixmap_cache_invalidate */
-void desktop_background_pixmap_cache_invalidate(void)
+/** Link-only stand-in for render_desktop_background_cache_invalidate */
+void render_desktop_background_cache_invalidate(void)
 {
     s_call_bg_pixmap_invalidate++;
 }

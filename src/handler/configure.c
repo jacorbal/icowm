@@ -29,7 +29,7 @@
 #include <cmds/client/layer.h>
 
 /* Render includes */
-#include <render/desktop.h>
+#include <render/client/decoration.h>
 #include <render/outdate.h>
 
 /* Default initial values */
@@ -980,8 +980,8 @@ void handler_configure_notify(xcb_connection_t *connection,
                  * a move never actually needed. */
                 if (!(client_is_fullscreen(client) &&
                             client->was_decorated_fullscreen)) {
-                    desktop_repaint_frame_decoration(connection, client,
-                            is_focused,
+                    render_client_decoration_repaint_frame(connection,
+                            client, is_focused,
                             (desktop != NULL)
                                 ? &desktop->config->theme
                                 : ((client->config != NULL)

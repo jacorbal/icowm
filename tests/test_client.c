@@ -257,9 +257,10 @@ void client_props_refresh_colormap_windows(client_td *client)
  *
  * @note Complexity: @e O(1)
  */
-void client_props_refresh_icon_name(client_td *client)
+bool client_props_refresh_icon_name(client_td *client)
 {
     (void) client;
+    return false;
 }
 
 

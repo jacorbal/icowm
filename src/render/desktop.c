@@ -1,11 +1,14 @@
 /**
  * @file render/desktop.c
  *
- * @brief Desktop rendering implementation
+ * @brief Desktop render pass orchestration
  *
- * @note Decoration constants come from @c defs/client.h, icon constants
- *       from @c defs/icon.h; button colors come from the theme passed
- *       to @c s_desktop_titlebar_buttons_draw
+ * @note Decoration constants come from @c defs/client.h; the actual
+ *       painting of a client's titlebar, frame decoration, and the
+ *       desktop background lives in @c render/client/titlebar.c,
+ *       @c render/client/decoration.c, and
+ *       @c render/desktop/background.c respectively, this file only
+ *       decides when each of them runs
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -16,68 +19,38 @@
  */
 
 /* System includes */
-#include <stdlib.h>     /* free, NULL */
 #include <stdbool.h>
 #include <stdint.h>
 
 /* XCB includes */
 #include <xcb/xcb.h>
-#include <xcb/xcb_ewmh.h>
 
 /* Default initial values */
 #include <defs/client.h>
-#include <defs/icon.h>
-
-/* ADT includes */
-#include <adt/cdlist.h> /* Doubly linked circular list */
-#include <adt/ohtbl.h>  /* Hash table for clients */
-
-/* Menu includes */
-#include <menu/cycle.h>
 
 /* Policy includes */
 #include <policy/stacking.h>
 #include <policy/urgency.h>
 
 /* Utils includes */
-#include <utils/safe/safestr.h>
-#include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
-#include <utils/xcb/pixmap.h>
 #include <utils/xcb/window.h>
-#include <policy/stacking.h>
 
 /* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
-#include <render/text.h>
 #include <surface.h>
 #include <wm.h>
 
 /* Local includes */
+#include <render/client/decoration.h>
+#include <render/client/titlebar.h>
 #include <render/desktop.h>
+#include <render/desktop/background.h>
 #include <render/icon.h>
 #include <render/outdate.h>
-#include <render/viewport/mesh.h>
-
-
-/* Per-screen (not per-desktop) cache of the root window's last
- * solid-color fill, indexed by 'screen_id'.  Every virtual desktop on
- * a given screen shares that one same root window as an X resource, so
- * whether it still shows a particular desktop's configured color has to
- * be tracked per screen too, not per desktop.
- *
- * A field on 'desktop_td' itself would instead let each desktop believe
- * its color remains applied purely because it was the last one THAT
- * desktop painted, even after some other desktop sharing the same root
- * window repainted over it with a different one; and, since a config
- * reload does not reset any of this, leaves that other, now-stale color
- * on screen indefinitely, with no further repaint ever believing there
- * is anything left to fix. */
-static bool s_root_bg_applied_once[CONFIG_MAX_SCREENS];
-static uint32_t s_root_bg_color_applied[CONFIG_MAX_SCREENS];
 
 
 /**
@@ -85,8 +58,8 @@ static uint32_t s_root_bg_color_applied[CONFIG_MAX_SCREENS];
  *
  * Gathered so the two paths below, applying an outdated geometry and
  * refreshing decoration colors alone, can each be a function rather
- * than another hundred lines inside @a desktop_render_one_client.  Only
- * what both paths need before they start is carried, for the frame
+ * than another hundred lines inside @a desktop_render_one_client.
+ * Only what both paths need before they start is carried, for the frame
  * extents and the titlebar height are worked out inside each of them,
  * and the theme is reached through @p desktop.
  */
@@ -100,745 +73,14 @@ struct s_render_ctx_s {
 };
 
 
-/* Draw all clients on a desktop */
 /**
- * @brief Property names a wallpaper-setting tool might publish its own
- *        root window background pixmap under
- *
- * - @c ESETROOT_PMAP_ID: legacy 'Esetroot' alias, also used by @c feh
- * - @c _XROOTPMAP_ID: set by @c Esetroot, @c feh, @c nitrogen,
- *   @c hsetroot, and others
- * - @c _XSETROOT_ID: set by @c xsetroot and @c xsetbg
- *
- * Shared between @c s_get_root_background_pixmap, which checks each in
- * turn for a pixmap value, and
- * @c desktop_property_is_background_pixmap, which the @c PropertyNotify
- * handler in handler/focus.c uses to recognize a change to one of them
- * on the root window.
+ * @brief What @a s_desktop_render_client_visit needs beyond the client
  */
-static const char *const s_bg_prop_names[3] = {
-    "_XROOTPMAP_ID", "ESETROOT_PMAP_ID", "_XSETROOT_ID"
+struct s_desktop_render_ctx_s {
+    desktop_td *desktop;    /**< Desktop being rendered */
+    int client_count;       /**< How many have been rendered */
+    bool is_current;        /**< Whether it is the visible one */
 };
-
-
-/**
- * @brief Cached, once-resolved atoms for @c s_bg_prop_names
- *
- * None of these ever changes once interned (an atom, once assigned by
- * the X server, is permanent for the life of the connection), so
- * resolving them again on every lookup would be pure waste; resolved
- * lazily by @a s_resolve_bg_atoms on first use, retried on any later
- * call for whichever of the three are still unresolved.
- *
- * @see @a s_resolve_bg_atoms's comment for why a resolution failure,
- *      unlike a success, is not permanent here
- */
-static xcb_atom_t s_bg_atoms[3] = {
-    XCB_ATOM_NONE, XCB_ATOM_NONE, XCB_ATOM_NONE
-};
-
-
-/**
- * @brief Cached resolution of the root window's background pixmap
- *
- * A well-behaved system sets this once (a wallpaper tool such as feh,
- * nitrogen, or hsetroot runs once at session start) and essentially
- * never changes it again during a normal session, so resolving it fresh
- * on every @a s_get_root_background_pixmap call (up to three property
- * fetches, each a round trip to the X server) would be paying that cost
- * repeatedly for something that stays the same almost every single
- * time.
- *
- * @note Cached here instead, and only re-resolved once
- *       @a desktop_background_pixmap_cache_invalidate says the
- *       underlying property actually changed
- */
-static bool s_bg_pixmap_resolved[CONFIG_MAX_SCREENS];
-static xcb_pixmap_t s_bg_pixmap_cache[CONFIG_MAX_SCREENS];
-
-
-/**
- * @brief Resolve @c s_bg_prop_names into @c s_bg_atoms, once
- *
- * @param connection XCB connection used to intern any atom not already
- *                   resolved from a previous call
- *
- * @note Complexity: @e O(1) once resolved; @e O(n) in the number of
- *       candidate properties the first time
- */
-static void s_resolve_bg_atoms(xcb_connection_t *connection)
-{
-    bool any_unresolved = false;
-
-    /* Re-attempts only whichever of the three atoms are still
-     * 'XCB_ATOM_NONE', rather than giving up on all three permanently
-     * the moment any single attempt is made.
-     *
-     * 'only_if_exists=true' in 'atom_intern' means a name that does not
-     * exist yet on the X server resolves to none, which is correct at
-     * that moment, but unlike a successful resolution (an atom, once it
-     * exists, is permanent for the life of the connection) that failure
-     * is not itself permanent.
-     *
-     * A wallpaper tool run for the first time after this module's first
-     * lookup, before any of these three names had ever been interned by
-     * anyone, would otherwise be watched for forever using an atom id
-     * that was cached as none before it ever existed. */
-    for (size_t i = 0; i < 3u; ++i) {
-        if (s_bg_atoms[i] == XCB_ATOM_NONE) {
-            any_unresolved = true;
-            break;
-        }
-    }
-
-    if (!any_unresolved) {
-        return;
-    }
-
-    for (size_t i = 0; i < 3u; ++i) {
-        if (s_bg_atoms[i] == XCB_ATOM_NONE) {
-            s_bg_atoms[i] = atom_intern(connection, s_bg_prop_names[i],
-                    true);
-        }
-    }
-}
-
-
-/**
- * @brief Retrieve the root window background pixmap if set
- *
- * Queries the root window for one of the standard background pixmap
- * properties (@c _XROOTPMAP_ID, @c ESETROOT_PMAP_ID, @c _XSETROOT_ID)
- * and returns the first non-@c XCB_NONE pixmap found, or @c XCB_NONE if
- * no valid pixmap is present.
- *
- * A cache hit costs nothing beyond returning the cached value, in
- * contrast to a miss, which pays for up to three property fetches, each
- * its round trip to the X server.
- *
- * @param connection XCB connection to the X server
- * @param root       Root window to query for background pixmap
- * @param screen_id  Screen the cache entry belongs to, one entry per
- *                   managed screen
- *
- * @return Root background pixmap, or @c XCB_NONE where none is
- *         available
- *
- * @note Resolved once and cached from then on
- * @note Complexity: @e O(1) on a cache hit; @e O(n) in the number of
- *       candidate properties on a cache miss
- *
- * @see @a s_bg_pixmap_resolved above
- */
-static xcb_pixmap_t
-    s_get_root_background_pixmap(xcb_connection_t *connection,
-            xcb_window_t root, uint32_t screen_id)
-{
-    if (screen_id >= (uint32_t) CONFIG_MAX_SCREENS) {
-        return XCB_NONE;
-    }
-
-    if (s_bg_pixmap_resolved[screen_id]) {
-        LOGGER_TRACE("Root background pixmap cache hit for screen" \
-                " %u: 0x%x", screen_id, s_bg_pixmap_cache[screen_id]);
-        return s_bg_pixmap_cache[screen_id];
-    }
-
-    if (connection == NULL || root == XCB_WINDOW_NONE) {
-        return XCB_NONE;
-    }
-
-    s_resolve_bg_atoms(connection);
-
-    for (size_t i = 0; i < 3u; ++i) {
-        xcb_get_property_reply_t *reply;
-        xcb_pixmap_t pixmap = XCB_NONE;
-
-        if (s_bg_atoms[i] == XCB_ATOM_NONE) {
-            continue;
-        }
-
-        reply = xcb_get_property_reply(connection,
-                xcb_get_property(connection, 0, root, s_bg_atoms[i],
-                    XCB_ATOM_PIXMAP, 0, 1), NULL);
-        if (reply == NULL) {
-            continue;
-        }
-
-        if (reply->format == 32 && reply->value_len >= 1 &&
-                xcb_get_property_value(reply) != NULL) {
-            pixmap = *((xcb_pixmap_t *) xcb_get_property_value(reply));
-        }
-        free(reply);
-
-        if (pixmap != XCB_NONE) {
-            s_bg_pixmap_cache[screen_id] = pixmap;
-            s_bg_pixmap_resolved[screen_id] = true;
-            return pixmap;
-        }
-    }
-
-    /* No wallpaper tool has set any of the candidate properties; that
-     * is itself a stable outcome worth caching too, not just
-     * a successful resolution, so a desktop with no such tool running
-     * does not keep paying for this same negative lookup either */
-    LOGGER_TRACE("No external root pixmap property found for screen" \
-            " %u (checked atoms 0x%x, 0x%x, 0x%x); using configured" \
-            " color", screen_id, s_bg_atoms[0], s_bg_atoms[1],
-            s_bg_atoms[2]);
-    s_bg_pixmap_cache[screen_id] = XCB_NONE;
-    s_bg_pixmap_resolved[screen_id] = true;
-    return XCB_NONE;
-}
-
-
-/**
- * @brief Color a single titlebar button should be drawn in
- *
- * Pin, sticky and layer buttons reflect their state (pinned, sticky or
- * non-normal layer) with the active accent color regardless of window
- * focus; every other button reflects window focus instead, the same way
- * the titlebar text itself does.  Maximize and fullscreen fall back to
- * the background color, which makes them effectively invisible, when
- * the client cannot be resized, instead of drawing a button that would
- * do nothing if clicked.
- *
- * @param button         Which titlebar button is being colored
- * @param is_focused     Whether the owning client is currently focused
- * @param is_pinned      Whether the owning client has the pin flag set
- * @param is_sticky      Whether the owning client has the sticky flag
- *                       set
- * @param is_layered     Whether the client layer is above or below
- *                       normal
- * @param can_maximize   Whether the maximize button is enabled
- * @param color_active   Color used when a state-reflecting button's
- *                       state is on
- * @param color_inactive Color used otherwise
- * @param bg_fill        Background color used for a disabled
- *                       maximize/fullscreen button
- *
- * @return The color @p button should be filled with
- *
- * @note Complexity: @e O(1)
- */
-static uint32_t s_titlebar_button_color(
-        enum config_titlebar_button_e button, bool is_focused,
-        bool is_pinned, bool is_sticky, bool is_layered,
-        bool can_maximize, uint32_t color_active,
-        uint32_t color_inactive, uint32_t bg_fill)
-{
-    if (!can_maximize &&
-            (button == CONFIG_TITLEBAR_BUTTON_MAXIMIZE ||
-             button == CONFIG_TITLEBAR_BUTTON_FULLSCREEN)) {
-        return bg_fill;
-    }
-    if (button == CONFIG_TITLEBAR_BUTTON_PIN) {
-        return (is_pinned) ? color_active : color_inactive;
-    }
-    if (button == CONFIG_TITLEBAR_BUTTON_STICKY) {
-        return (is_sticky) ? color_active : color_inactive;
-    }
-    if (button == CONFIG_TITLEBAR_BUTTON_LAYER) {
-        return (is_layered) ? color_active : color_inactive;
-    }
-
-    return (is_focused) ? color_active : color_inactive;
-}
-
-
-/**
- * @brief Geometry every button shape is drawn from
- *
- * Worked out once per button and handed to the shape functions, so
- * none of them repeats the same six subtractions.
- */
-struct s_btn_box_s {
-    int16_t lo;         /**< Left edge of the drawable area */
-    int16_t to;         /**< Top edge of the drawable area */
-    int16_t hi;         /**< Right edge of the drawable area */
-    int16_t bo;         /**< Bottom edge of the drawable area */
-    int16_t in;         /**< Inset, and the stroke width in use */
-    uint16_t span;      /**< Width and height of the drawable area */
-    int16_t x;          /**< Left edge of the whole box */
-    int16_t y;          /**< Top edge of the whole box */
-    uint16_t side;      /**< Side of the whole box */
-};
-
-
-/**
- * @brief Draw the plain filled square
- *
- * What every button looked like before each got a shape, what the
- * three state-reporting ones still look like, since their color is
- * already saying whether the state is on, and what every button falls
- * back to when @c window.titlebar.buttons.use-symbols is off.
- *
- * @param connection Active XCB connection
- * @param target     Drawable the button lands on
- * @param gc         Context already set to the button's color
- * @param box        Geometry of the button
- *
- * @note Complexity: @e O(1)
- */
-static void s_btn_shape_square(xcb_connection_t *connection,
-        xcb_drawable_t target, xcb_gcontext_t gc,
-        const struct s_btn_box_s *box)
-{
-    xcb_rectangle_t rect = { box->x, box->y, box->side, box->side };
-
-    xcb_poly_fill_rectangle(connection, target, gc, 1u, &rect);
-}
-
-
-/**
- * @brief Draw the close button: two crossed diagonals
- *
- * @param connection Active XCB connection
- * @param target     Drawable the button lands on
- * @param gc         Context already set to the button's color
- * @param box        Geometry of the button
- *
- * @note The one shape a user recognizes without being told, which is
- *       why it is the button that survives every narrowing
- * @note Complexity: @e O(1)
- */
-static void s_btn_shape_close(xcb_connection_t *connection,
-        xcb_drawable_t target, xcb_gcontext_t gc,
-        const struct s_btn_box_s *box)
-{
-    xcb_segment_t seg[2];
-
-    seg[0] = (xcb_segment_t) { box->lo, box->to, box->hi, box->bo };
-    seg[1] = (xcb_segment_t) { box->hi, box->to, box->lo, box->bo };
-    xcb_poly_segment(connection, target, gc, 2u, seg);
-}
-
-
-/**
- * @brief Draw the maximize button: a hollow square
- *
- * @param connection Active XCB connection
- * @param target     Drawable the button lands on
- * @param gc         Context already set to the button's color
- * @param box        Geometry of the button
- *
- * @note The outline of a window grown to fill its space
- * @note Complexity: @e O(1)
- */
-static void s_btn_shape_maximize(xcb_connection_t *connection,
-        xcb_drawable_t target, xcb_gcontext_t gc,
-        const struct s_btn_box_s *box)
-{
-    xcb_rectangle_t rect = { box->lo, box->to,
-        (uint16_t) (box->span - 1u), (uint16_t) (box->span - 1u) };
-
-    xcb_poly_rectangle(connection, target, gc, 1u, &rect);
-}
-
-
-/**
- * @brief Draw the fullscreen button: four corners, no frame
- *
- * @param connection Active XCB connection
- * @param target     Drawable the button lands on
- * @param gc         Context already set to the button's color
- * @param box        Geometry of the button
- *
- * @note Corners pushing outwards with nothing between them: the
- *       window leaving its own edges behind, and what tells this
- *       apart from the closed outline of maximize
- * @note Complexity: @e O(1)
- */
-static void s_btn_shape_fullscreen(xcb_connection_t *connection,
-        xcb_drawable_t target, xcb_gcontext_t gc,
-        const struct s_btn_box_s *box)
-{
-    const int16_t arm = box->in;
-    xcb_segment_t seg[8];
-
-    seg[0] = (xcb_segment_t) { box->lo, box->to,
-        (int16_t) (box->lo + arm), box->to };
-    seg[1] = (xcb_segment_t) { box->lo, box->to, box->lo,
-        (int16_t) (box->to + arm) };
-    seg[2] = (xcb_segment_t) { box->hi, box->to,
-        (int16_t) (box->hi - arm), box->to };
-    seg[3] = (xcb_segment_t) { box->hi, box->to, box->hi,
-        (int16_t) (box->to + arm) };
-    seg[4] = (xcb_segment_t) { box->lo, box->bo,
-        (int16_t) (box->lo + arm), box->bo };
-    seg[5] = (xcb_segment_t) { box->lo, box->bo, box->lo,
-        (int16_t) (box->bo - arm) };
-    seg[6] = (xcb_segment_t) { box->hi, box->bo,
-        (int16_t) (box->hi - arm), box->bo };
-    seg[7] = (xcb_segment_t) { box->hi, box->bo, box->hi,
-        (int16_t) (box->bo - arm) };
-    xcb_poly_segment(connection, target, gc, 8u, seg);
-}
-
-
-/**
- * @brief Draw the iconize button: a bar along the bottom
- *
- * @param connection Active XCB connection
- * @param target     Drawable the button lands on
- * @param gc         Context already set to the button's color
- * @param box        Geometry of the button
- *
- * @note The window coming to rest down there, where its icon goes
- * @note Complexity: @e O(1)
- */
-static void s_btn_shape_iconize(xcb_connection_t *connection,
-        xcb_drawable_t target, xcb_gcontext_t gc,
-        const struct s_btn_box_s *box)
-{
-    xcb_rectangle_t rect = { box->lo,
-        (int16_t) (box->bo - box->in + 1), box->span,
-        (uint16_t) box->in };
-
-    xcb_poly_fill_rectangle(connection, target, gc, 1u, &rect);
-}
-
-
-/**
- * @brief Draw the shade button: a bar along the top
- *
- * @param connection Active XCB connection
- * @param target     Drawable the button lands on
- * @param gc         Context already set to the button's color
- * @param box        Geometry of the button
- *
- * @note The mirror of iconize: the window rolling up into its own
- *       titlebar
- * @note Complexity: @e O(1)
- */
-static void s_btn_shape_shade(xcb_connection_t *connection,
-        xcb_drawable_t target, xcb_gcontext_t gc,
-        const struct s_btn_box_s *box)
-{
-    xcb_rectangle_t rect = { box->lo, box->to, box->span,
-        (uint16_t) box->in };
-
-    xcb_poly_fill_rectangle(connection, target, gc, 1u, &rect);
-}
-
-
-/**
- * @brief Draw the hide button: a hollow square struck through
- *
- * @param connection Active XCB connection
- * @param target     Drawable the button lands on
- * @param gc         Context already set to the button's color
- * @param box        Geometry of the button
- *
- * @note A window that is still there and simply not being shown,
- *       which is what the stroke over the outline says
- * @note Complexity: @e O(1)
- */
-static void s_btn_shape_hide(xcb_connection_t *connection,
-        xcb_drawable_t target, xcb_gcontext_t gc,
-        const struct s_btn_box_s *box)
-{
-    xcb_rectangle_t rect = { box->lo, box->to,
-        (uint16_t) (box->span - 1u), (uint16_t) (box->span - 1u) };
-    xcb_segment_t seg[1];
-
-    xcb_poly_rectangle(connection, target, gc, 1u, &rect);
-    seg[0] = (xcb_segment_t) { box->lo, box->bo, box->hi, box->to };
-    xcb_poly_segment(connection, target, gc, 1u, seg);
-}
-
-
-/**
- * @brief Send one button to the function that draws its shape
- *
- * @param connection Active XCB connection
- * @param target     Drawable the button lands on
- * @param gc         Context already set to the button's color, with a
- *                   line width matching the box's inset
- * @param button     Which button is being drawn
- * @param box        Geometry of the button
- * @param use_symbols Whether @c window.titlebar.buttons.use-symbols
- *                   is on
- *
- * @note The three state-reporting buttons take the plain square
- *       whatever @p use_symbols says: their color is already
- *       carrying
- *       the state, and a shape would compete with it
- * @note Complexity: @e O(1)
- */
-static void s_desktop_titlebar_button_shape(
-        xcb_connection_t *connection, xcb_drawable_t target,
-        xcb_gcontext_t gc, enum config_titlebar_button_e button,
-        const struct s_btn_box_s *box, bool use_symbols)
-{
-    if (!use_symbols) {
-        s_btn_shape_square(connection, target, gc, box);
-        return;
-    }
-
-    switch (button) {
-    case CONFIG_TITLEBAR_BUTTON_CLOSE:
-        s_btn_shape_close(connection, target, gc, box);
-        break;
-    case CONFIG_TITLEBAR_BUTTON_MAXIMIZE:
-        s_btn_shape_maximize(connection, target, gc, box);
-        break;
-    case CONFIG_TITLEBAR_BUTTON_FULLSCREEN:
-        s_btn_shape_fullscreen(connection, target, gc, box);
-        break;
-    case CONFIG_TITLEBAR_BUTTON_ICONIZE:
-        s_btn_shape_iconize(connection, target, gc, box);
-        break;
-    case CONFIG_TITLEBAR_BUTTON_SHADE:
-        s_btn_shape_shade(connection, target, gc, box);
-        break;
-    case CONFIG_TITLEBAR_BUTTON_HIDE:
-        s_btn_shape_hide(connection, target, gc, box);
-        break;
-    case CONFIG_TITLEBAR_BUTTON_PIN:
-    case CONFIG_TITLEBAR_BUTTON_STICKY:
-    case CONFIG_TITLEBAR_BUTTON_LAYER:
-        s_btn_shape_square(connection, target, gc, box);
-        break;
-    }
-}
-
-
-/**
- * @brief Work out one button's drawing geometry
- *
- * @param x        Left edge of the button's box
- * @param y        Top edge of the button's box
- * @param side     Side of the box
- *
- * @return The geometry every shape function reads
- *
- * @note Complexity: @e O(1)
- */
-static struct s_btn_box_s s_desktop_titlebar_button_box(int16_t x,
-        int16_t y, uint16_t side)
-{
-    struct s_btn_box_s box;
-
-    box.x = x;
-    box.y = y;
-    box.side = side;
-    box.in = (int16_t) client_titlebar_button_shape_unit(side);
-    box.lo = (int16_t) (x + box.in);
-    box.to = (int16_t) (y + box.in);
-    box.hi = (int16_t) (x + (int16_t) side - box.in - 1);
-    box.bo = (int16_t) (y + (int16_t) side - box.in - 1);
-    box.span = (uint16_t) ((int16_t) side - 2 * box.in);
-
-    return box;
-}
-
-
-/**
- * @brief Draw the buttons configured in @c window.titlebar.buttons on
- *        a titlebar window or an off-screen buffer standing in for one
- *
- * Draws exactly the buttons in @p left (before the window title) and
- * @p right (after the window title), at the positions
- * @c client_titlebar_layout already computed for them.
- *
- * The position is never recomputed on by this function on its own, so
- * it can never disagree with the click hit-test, which uses the same
- * computed layout.  The fill color for most buttons is taken from
- * @p theme: @c window.active.color.foreground when @p is_focused is
- * @c true, @c window.inactive.color.foreground otherwise; the pin and
- * layer buttons instead reflect their state (pinned/non-normal layer)
- * regardless of focus; maximize and fullscreen fall back to the
- * background color when @p can_maximize is @c false.
- *
- * @param connection   Active XCB connection
- * @param target       Drawable the buttons land on: the titlebar
- *                     window itself, or an off-screen buffer
- *                     @c desktop_repaint_titlebar_content copies onto
- *                     it in one piece once every button is drawn
- * @param btn_y        Y position every button shares, from
- *                     @c client_titlebar_layout
- * @param title_h      Titlebar height, which the button side is
- *                     derived from
- * @param left         Left-side button layout from
- *                     @c client_titlebar_layout
- * @param left_n       Number of entries in @p left
- * @param right        Right-side button layout from
- *                     @c client_titlebar_layout
- * @param right_n      Number of entries in @p right
- * @param is_focused   Whether the owning client is currently focused
- * @param is_pinned    Whether the owning client has the pin flag set
- * @param is_sticky    Whether the owning client has the sticky flag set
- * @param is_layered   Whether the client layer is above or below normal
- * @param can_maximize Whether the maximize button is enabled
- * @param theme        Pointer to the theme providing button colors
- *
- * @note Complexity: @e O(n), where @e n is @p left_n + @p right_n
- */
-static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
-        xcb_drawable_t target, int16_t btn_y, uint16_t title_h,
-        const struct titlebar_button_layout_s *left, uint8_t left_n,
-        const struct titlebar_button_layout_s *right, uint8_t right_n,
-        bool is_focused, bool is_pinned, bool is_sticky, bool is_layered,
-        bool can_maximize, const struct config_theme_s *theme)
-{
-    xcb_gcontext_t gc;
-    uint32_t color;
-    uint32_t gc_values[4];
-    uint16_t btn_size;
-    bool use_symbols;
-    struct s_btn_box_s box;
-
-    /* Button colors have their dedicated theme entry, independent of
-     * the titlebar text foreground, so a theme can style one without
-     * the other changing to match.
-     * Cfr. 'window.titlebar.buttons.color'. */
-    uint32_t color_active = (theme != NULL)
-        ? theme->window.titlebar.buttons.color.on
-        : 0x000000u;
-    uint32_t color_inactive = (theme != NULL)
-        ? theme->window.titlebar.buttons.color.off
-        : 0xFFFFFFu;
-    uint32_t bg_fill = (theme != NULL)
-        ? ((is_focused)
-            ? theme->window.active.color.background
-            : theme->window.inactive.color.background)
-        : color_active;
-
-    if (connection == NULL || target == XCB_NONE) {
-        return;
-    }
-
-    /* One context for every button, rather than one created and
-     * destroyed per button as before: only the foreground changes
-     * between them, and a round trip each way per button is a poor
-     * price for that.  The line width and joins are set once here,
-     * being the same for every shape. */
-    btn_size = client_titlebar_button_size(theme, title_h);
-    use_symbols = (theme != NULL)
-        ? theme->window.titlebar.buttons.use_symbols : true;
-    gc_values[0] = color_active;
-    gc_values[1] = (uint32_t) client_titlebar_button_shape_unit(
-            btn_size);
-    gc_values[2] = XCB_CAP_STYLE_ROUND;
-    gc_values[3] = XCB_JOIN_STYLE_ROUND;
-    gc = xcb_generate_id(connection);
-    xcb_create_gc(connection, gc, target,
-            XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH |
-            XCB_GC_CAP_STYLE | XCB_GC_JOIN_STYLE, gc_values);
-
-    for (uint8_t i = 0u; i < left_n; ++i) {
-        color = s_titlebar_button_color(left[i].button, is_focused,
-                is_pinned, is_sticky, is_layered, can_maximize,
-                color_active, color_inactive, bg_fill);
-        xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, &color);
-        box = s_desktop_titlebar_button_box(left[i].x, btn_y,
-                btn_size);
-        s_desktop_titlebar_button_shape(connection, target, gc,
-                left[i].button, &box, use_symbols);
-    }
-
-    for (uint8_t i = 0u; i < right_n; ++i) {
-        color = s_titlebar_button_color(right[i].button, is_focused,
-                is_pinned, is_sticky, is_layered, can_maximize,
-                color_active, color_inactive, bg_fill);
-        xcb_change_gc(connection, gc, XCB_GC_FOREGROUND, &color);
-        box = s_desktop_titlebar_button_box(right[i].x, btn_y,
-                btn_size);
-        s_desktop_titlebar_button_shape(connection, target, gc,
-                right[i].button, &box, use_symbols);
-    }
-
-    xcb_free_gc(connection, gc);
-}
-
-
-/**
- * @brief Draw a titlebar's text, clipped to the space the buttons leave
- *        available, honoring the theme's chosen alignment
- *
- * A title too wide for the available space is truncated one character
- * at a time until it fits, rather than letting it draw underneath the
- * right-hand buttons.  Whatever ends up actually drawn is kept in sync
- * with @c _NET_WM_VISIBLE_NAME via @a client_sync_visible_name, so
- * a pager showing the same title has a way to know it no longer matches
- * @c _NET_WM_NAME verbatim.
- *
- * @note Complexity: @e O(n), where @e n is the length of @p text
- */
-static void s_titlebar_draw_title(xcb_connection_t *connection,
-        client_td *client, xcb_drawable_t target, int16_t title_x,
-        uint16_t title_w, int16_t text_y, const char *text,
-        enum config_titlebar_alignment_e alignment)
-{
-    char buf[CONFIG_MAX_LENGTH_NAME];
-    uint16_t text_w;
-    int16_t draw_x;
-    bool can_sync;
-
-    if (connection == NULL || text == NULL || text[0] == '\0' ||
-            title_w == 0u) {
-        return;
-    }
-
-    can_sync = (client != NULL && xcb_ewmh_connection_get() != NULL);
-
-    text_truncate_to_width(buf, sizeof(buf), text, title_w);
-    text_w = text_string_measure(buf);
-
-    if (can_sync) {
-        client_sync_visible_name(client, client->info.visible_name,
-                text, buf, xcb_ewmh_set_wm_visible_name_checked,
-                xcb_ewmh_connection_get()->_NET_WM_VISIBLE_NAME);
-    }
-
-    if (buf[0] == '\0') {
-        return;
-    }
-
-    draw_x = title_x;
-    if (alignment == CONFIG_TITLEBAR_ALIGN_CENTER && text_w < title_w) {
-        draw_x = (int16_t) (title_x + (title_w - text_w) / 2);
-    } else if (alignment == CONFIG_TITLEBAR_ALIGN_RIGHT &&
-            text_w < title_w) {
-        draw_x = (int16_t) (title_x + (title_w - text_w));
-    }
-
-    text_draw_string(connection, target, XCB_NONE,
-            (struct position_s) { draw_x, text_y }, buf);
-}
-
-
-/**
- * @brief Repaint a client's frame decoration, unless it is currently
- *        forced hidden
- *
- * Shared by @c desktop_render_one_client's full-repaint and
- * focus-only-repaint branches, which otherwise each repeat the exact
- * same @c hide_decoration guard around the same call (see that
- * function's @c hide_decoration for what forces this.  Currently only
- * a fullscreen client that was decorated before going fullscreen).
- *
- * @param connection      XCB connection
- * @param client          Client whose frame decoration to repaint
- * @param is_focused      Whether to use the active or inactive color
- *                        set
- * @param hide_decoration Whether decoration is currently suppressed
- *                        entirely; a no-op when @c true
- * @param theme           Active theme
- *
- * @note Complexity: @e O(1)
- */
-static void s_repaint_frame_decoration_unless_hidden(
-        xcb_connection_t *connection, client_td *client,
-        bool is_focused, bool hide_decoration,
-        const struct config_theme_s *theme)
-{
-    if (!hide_decoration) {
-        desktop_repaint_frame_decoration(connection, client, is_focused,
-                theme);
-    }
-}
 
 
 /**
@@ -903,11 +145,11 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
          * otherwise leave stuck at whatever theme padding
          * 'frame_extents' happened to hold, showing the frame's own
          * background (set to the theme's border color by
-         * 'desktop_repaint_frame_decoration') through the gap left
-         * along the content window's top and left edges.  Visually
-         * indistinguishable from a real border (almost), though neither
-         * an X11 border nor that repaint function was ever actually
-         * involved. */
+         * 'render_client_decoration_repaint_frame') through the gap
+         * left along the content window's top and left edges.
+         * Visually indistinguishable from a real border (almost),
+         * though neither an X11 border nor that repaint function was
+         * ever actually involved. */
         if (hide_decoration) {
             left = 0;
             right = 0;
@@ -998,15 +240,15 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
                         client->window, 0, 0, 0, 0);
             }
         }
-        s_repaint_frame_decoration_unless_hidden(xcb_connection_get(),
-                client, is_focused, hide_decoration,
-                &desktop->config->theme);
+        render_client_decoration_repaint_frame_unless_hidden(
+                xcb_connection_get(), client, is_focused,
+                hide_decoration, &desktop->config->theme);
 
         if (titlebar_visible) {
             xcb_window_place(client->titlebar, left,
                     (top > title_h) ? top - title_h : 0,
                     inner_w, title_h);
-            desktop_repaint_titlebar_content(
+            render_client_titlebar_repaint_content(
                     xcb_connection_get(), client, is_focused,
                     inner_w, title_h, &desktop->config->theme);
         } else if (client->titlebar != 0) {
@@ -1067,28 +309,18 @@ static void s_render_refresh_decoration(struct s_render_ctx_s *ctx)
      * paint one back in over fullscreen content just because this
      * lighter branch only meant to refresh existing colors, not decide
      * from scratch whether a border belongs here at all. */
-    s_repaint_frame_decoration_unless_hidden(xcb_connection_get(),
+    render_client_decoration_repaint_frame_unless_hidden(xcb_connection_get(),
             client, is_focused, hide_decoration,
             &desktop->config->theme);
 
     if (titlebar_visible) {
-        desktop_repaint_titlebar_content(xcb_connection_get(),
+        render_client_titlebar_repaint_content(xcb_connection_get(),
                 client, is_focused, inner_w, title_h,
                 &desktop->config->theme);
     } else if (client->titlebar != 0) {
         xcb_window_hide(client->titlebar);
     }
 }
-
-
-/**
- * @brief What @a s_desktop_render_client_visit needs beyond the client
- */
-struct s_desktop_render_ctx_s {
-    desktop_td *desktop;    /**< Desktop being rendered */
-    int client_count;       /**< How many have been rendered */
-    bool is_current;        /**< Whether it is the visible one */
-};
 
 
 /**
@@ -1358,351 +590,6 @@ void desktop_render_one_client(desktop_td *desktop,
 }
 
 
-/* Repaint a titlebar's background, text and buttons */
-void desktop_repaint_titlebar_content(xcb_connection_t *connection,
-        client_td *client, bool is_focused, uint16_t inner_w,
-        uint16_t title_h, const struct config_theme_s *theme)
-{
-    struct titlebar_button_layout_s left[CONFIG_MAX_TITLEBAR_BUTTONS];
-    struct titlebar_button_layout_s right[CONFIG_MAX_TITLEBAR_BUTTONS];
-    uint8_t left_n;
-    uint8_t right_n;
-    int16_t title_x;
-    uint16_t title_w;
-    int16_t btn_y;
-    int16_t text_y;
-    bool can_maximize;
-    bool hide_pin;
-    bool hide_sticky;
-    surface_td *surface;
-    uint32_t bg_color;
-    xcb_pixmap_t buffer;
-    xcb_drawable_t target;
-    xcb_gcontext_t gc;
-
-    if (connection == NULL || client == NULL || theme == NULL ||
-            client->titlebar == 0) {
-        return;
-    }
-
-    surface = wm_get_surface_by_id(client->screen_id);
-    hide_pin = surface != NULL && surface->desktop_count <= 1u;
-
-    /* See the matching comment in 'src/input/mouse/event/titlebar.c'
-     * ('s_mouse_hit_titlebar_buttons') for why this checks the pannable
-     * viewport size rather than 'desktop_count' */
-    hide_sticky = !surface_viewport_has_room(surface);
-    bg_color = (is_focused)
-        ? theme->window.active.color.background
-        : theme->window.inactive.color.background;
-
-    /* Only when the color just chosen is not the one already set.
-     * Changing a window's background makes the server discard what is
-     * on it, and this repaint runs on every title change: a client
-     * that renames itself as the user moves about, which a browser
-     * does on each page, would have its titlebar dropped and redrawn
-     * each time for a color that never moved. */
-    if (!client->layout.has_titlebar_bg ||
-            client->layout.titlebar_bg != bg_color) {
-        client->layout.titlebar_bg = bg_color;
-        client->layout.has_titlebar_bg = true;
-        xcb_change_window_attributes(connection,
-                client->titlebar, XCB_CW_BACK_PIXEL,
-                (const uint32_t[]) { bg_color });
-    }
-
-    buffer = (surface != NULL)
-        ? xcb_offscreen_buffer_create(connection,
-                surface->screen->root_depth, client->titlebar,
-                inner_w, title_h)
-        : XCB_NONE;
-    target = (buffer != XCB_NONE) ? buffer : client->titlebar;
-
-    if (buffer != XCB_NONE) {
-        gc = xcb_generate_id(connection);
-        xcb_create_gc(connection, gc, buffer, XCB_GC_FOREGROUND,
-                &bg_color);
-        xcb_poly_fill_rectangle(connection, buffer, gc, 1,
-                (const xcb_rectangle_t[]) {
-                    { 0, 0, inner_w, title_h }
-                });
-        xcb_free_gc(connection, gc);
-    } else {
-        xcb_clear_area(connection, 0, client->titlebar, 0, 0, 0, 0);
-    }
-
-    (void) text_renderer_use_font(connection,
-            (is_focused)
-                ? theme->window.active.font
-                : theme->window.inactive.font);
-    text_renderer_set_color(
-            (is_focused)
-                ? theme->window.active.color.foreground
-                : theme->window.inactive.color.foreground,
-            bg_color);
-
-    client_titlebar_layout(theme, inner_w, title_h, hide_pin,
-            hide_sticky, left, &left_n, right, &right_n, &title_x,
-            &title_w, &btn_y);
-
-    /* Vertically centered against the titlebar's font ascent and
-     * descent, the same way 'client_titlebar_layout' above already
-     * centers 'btn_y' against the button size, rather than a fixed
-     * pixel offset from the bottom: a fixed offset only happens to look
-     * centered for whichever font it was tuned against, and drifts
-     * visibly off-center for any other (a restricted-memory session's
-     * plain X core font included, since that swap changes the font's
-     * ascent/descent without this titlebar's own height changing to
-     * match). */
-    text_y = (int16_t) (((int16_t) title_h -
-                (int16_t) (text_font_ascent() +
-                    text_font_descent())) / 2 + text_font_ascent());
-    s_titlebar_draw_title(connection, client, target,
-            title_x, title_w, text_y, client->info.name,
-            theme->window.titlebar.alignment);
-
-    can_maximize = !client_is_fullscreen(client) &&
-        (bool) client_is_maximizable(client);
-    s_desktop_titlebar_buttons_draw(connection, target,
-            btn_y, title_h, left, left_n, right, right_n, is_focused,
-            (bool) client_is_pinned(client),
-            (bool) client_is_sticky(client),
-            (client->properties.layer != CLIENT_LAYER_NORMAL),
-            can_maximize, theme);
-
-    if (buffer != XCB_NONE) {
-        gc = xcb_generate_id(connection);
-        xcb_create_gc(connection, gc, client->titlebar, 0u, NULL);
-        xcb_copy_area(connection, buffer, client->titlebar, gc,
-                0, 0, 0, 0, inner_w, title_h);
-        xcb_free_gc(connection, gc);
-        xcb_free_pixmap(connection, buffer);
-    }
-}
-
-
-/* Repaint the frame background, border and corner resize grips */
-void desktop_repaint_frame_decoration(xcb_connection_t *connection,
-        client_td *client, bool use_active_style,
-        const struct config_theme_s *theme)
-{
-    uint8_t opacity_percent;
-    uint32_t frame_bg;
-    bool bg_changed;
-
-    if (connection == NULL || client == NULL || client->frame == 0 ||
-            theme == NULL || !client_is_decorated(client)) {
-        return;
-    }
-
-    frame_bg = (use_active_style)
-        ? theme->window.active.border.color
-        : theme->window.inactive.border.color;
-    bg_changed = !client->layout.has_frame_bg ||
-        client->layout.frame_bg != frame_bg;
-    client->layout.frame_bg = frame_bg;
-    client->layout.has_frame_bg = true;
-
-    if (bg_changed) {
-        xcb_change_window_attributes(connection, client->frame,
-                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-                (const uint32_t[]) { frame_bg, frame_bg });
-    }
-
-    if (use_active_style) {
-        opacity_percent = (client->opacity_override.is_set_active)
-            ? client->opacity_override.active
-            : theme->window.active.opacity;
-    } else {
-        opacity_percent = (client->opacity_override.is_set_inactive)
-            ? client->opacity_override.inactive
-            : theme->window.inactive.opacity;
-    }
-    atom_set_window_opacity(connection, client->frame,
-            config_theme_opacity_to_raw(opacity_percent));
-
-    /* Only when the color just set is not the one already showing.
-     * The frame is the content window's parent, so clearing it paints
-     * over the content's own area until the client draws itself
-     * again; doing that to show a color identical to the one already
-     * there blanks the window for nothing, and this repaint runs for
-     * any reason at all, not only a focus change. */
-    if (bg_changed) {
-        xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
-    }
-}
-
-
-/* Invalidate the cached root window background pixmap on every screen */
-void desktop_background_pixmap_cache_invalidate(void)
-{
-    for (size_t i = 0; i < (size_t) CONFIG_MAX_SCREENS; ++i) {
-        s_bg_pixmap_resolved[i] = false;
-        s_bg_pixmap_cache[i] = XCB_NONE;
-    }
-}
-
-
-/* Recognize whether an atom is one of the background pixmap properties
- * this module watches */
-bool desktop_property_is_background_pixmap(xcb_connection_t *connection,
-        xcb_atom_t atom)
-{
-    if (atom == XCB_ATOM_NONE) {
-        return false;
-    }
-
-    s_resolve_bg_atoms(connection);
-
-    for (size_t i = 0; i < 3u; ++i) {
-        if (s_bg_atoms[i] != XCB_ATOM_NONE && s_bg_atoms[i] == atom) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
-/* Draw the background of a desktop */
-int desktop_render_background(desktop_td *desktop)
-{
-    xcb_screen_t *screen;
-    uint32_t values[2];
-    xcb_pixmap_t root_pixmap;
-
-    if (desktop == NULL) {
-        LOGGER_ERROR("Received null desktop pointer", L_NARG);
-        return 1;
-    }
-
-    if (desktop->screen_id >= (uint32_t) CONFIG_MAX_SCREENS) {
-        LOGGER_ERROR("Desktop %u ('%s') has an out-of-range screen_id" \
-                " %u; cannot render its background",
-                desktop->id, desktop->name, desktop->screen_id);
-        return 1;
-    }
-
-    LOGGER_TRACE("Rendering background for desktop %u ('%s')" \
-            " with color #%06x",
-            desktop->id, desktop->name, desktop->background.bg.color);
-
-    /* O(1): reuses the pointer 'desktop_init' (desktop.c) already
-     * resolved once for this desktop, rather than re-walking every
-     * screen from scratch (O(n)) on every single repaint */
-    screen = desktop->screen;
-    if (screen == NULL) {
-        LOGGER_ERROR("Could not get screen for background rendering",
-                L_NARG);
-        return 1;
-    }
-
-    root_pixmap = s_get_root_background_pixmap(xcb_connection_get(),
-            screen->root, desktop->screen_id);
-    if (root_pixmap != XCB_NONE) {
-        /* An external tool ('xsetbg', 'xsetroot', 'nitrogen', 'feh',
-         * &c.) painted the root window and recorded the pixmap ID in
-         * a well-known atom.  Record that fact so that subsequent
-         * repaints do not overwrite the wallpaper with our color.
-         */
-        /* NOTE: Deliberately do NOT set 'XCB_CW_BACK_PIXMAP' on the
-         *       root window to this pixmap.  Many setters free the
-         *       pixmap after drawing (the pixels persist in the root
-         *       drawable), so referencing it via 'XCB_CW_BACK_PIXMAP'
-         *       would cause X to use a freed resource on the next
-         *       'xcb_clear_area', and leading to a 'BadPixmap' or
-         *       'BadDrawable' X error and an abrupt crash. */
-        desktop->background.use_root_pixmap = true;
-        /* So that if the WM ever owns the background again later (the
-         * external pixmap atom disappears), the solid-color path below
-         * always re-applies at least once even if that color happens to
-         * equal whatever it last applied before this external pixmap
-         * appeared.  Otherwise this screen's shared root window would
-         * be left showing the stale external wallpaper under the
-         * mistaken belief that the WM's color was already correctly in
-         * place. */
-        s_root_bg_applied_once[desktop->screen_id] = false;
-        LOGGER_TRACE("External root pixmap 0x%x detected for" \
-                " desktop %u ('%s'); skipping color fill",
-                root_pixmap, desktop->id, desktop->name);
-        return 0;
-    }
-
-    if (desktop->background.use_root_pixmap) {
-        /* No pixmap atom found this time, but an external tool
-         * previously painted the root window.  The pixels are still
-         * there; leave the root window untouched so the wallpaper
-         * remains visible. */
-        LOGGER_TRACE("Preserving previous external background for" \
-                " desktop %u ('%s')", desktop->id, desktop->name);
-        return 0;
-    }
-
-    /* The mesh takes over the very background pixmap the color path
-     * below would clear, so it is asked first and, where it applies,
-     * owns the root window instead.  Its own cache decides whether
-     * anything actually gets repainted, exactly as the color one
-     * does; and 's_root_bg_applied_once' is cleared so that the color
-     * path always re-applies at least once should the mesh later stop
-     * applying, rather than leaving a stale mesh on screen under the
-     * belief that the color was already correct. */
-    if (viewport_mesh_is_visible(desktop)) {
-        s_root_bg_applied_once[desktop->screen_id] = false;
-        return viewport_mesh_render(xcb_connection_get(), desktop);
-    }
-    /* Deliberately not invalidated here.  Dropping the tile frees it
-     * while the root's own 'XCB_CW_BACK_PIXMAP' still names it, and
-     * the early return just below, taken whenever the color has not
-     * changed, would leave the attribute pointing at a freed pixmap
-     * for as long as it stays unchanged.  The tile is dropped after
-     * the attribute has been pointed away from it instead, at the end
-     * of this function. */
-
-    /* No external background detected and the window manager owns the
-     * background: apply the configured color and clear the root window
-     * to make it visible.  Only actually do so when the color changed
-     * since the last time this ran, or on the very first pass.  This
-     * function runs on every 'is_current' full-desktop render (every
-     * client gaining focus marks its desktop 'is_outdated', not just an
-     * actual background change), so without this check every such
-     * render would repeat the same full-screen
-     * 'xcb_change_window_attributes' + 'xcb_clear_area' for a color
-     * that never actually changed.  Checked and updated per screen (see
-     * 's_root_bg_applied_once' above), not per desktop.  Every desktop
-     * sharing this screen's one root window can otherwise repaint over
-     * whichever color another one on the same screen applied, without
-     * either ever detecting that the color actually showing has changed
-     * since its last render. */
-    if (s_root_bg_applied_once[desktop->screen_id] &&
-            s_root_bg_color_applied[desktop->screen_id] ==
-                desktop->background.bg.color) {
-        return 0;
-    }
-
-    values[0] = XCB_BACK_PIXMAP_NONE;
-    values[1] = desktop->background.bg.color;
-    xcb_change_window_attributes(xcb_connection_get(), screen->root,
-            XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL, values);
-    xcb_clear_area(xcb_connection_get(), 0, screen->root, 0, 0,
-            screen->width_in_pixels, screen->height_in_pixels);
-    s_root_bg_applied_once[desktop->screen_id] = true;
-    s_root_bg_color_applied[desktop->screen_id] =
-        desktop->background.bg.color;
-
-    /* Only now: 'XCB_BACK_PIXMAP_NONE' above is what stopped the root
-     * from naming whichever mesh tile was cached, so this is the
-     * first moment at which freeing it cannot leave the attribute
-     * pointing at a pixmap the server no longer has */
-    viewport_mesh_cache_invalidate();
-    viewport_mesh_cache_release_retired(xcb_connection_get());
-
-    LOGGER_TRACE("Background rendered for desktop %u ('%s')",
-            desktop->id, desktop->name);
-
-    return 0;
-}
-
-
 /* Full desktop render */
 int desktop_render_full(desktop_td *desktop, bool is_current)
 {
@@ -1721,9 +608,9 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
      * again right after every desktop in the list has been rendered,
      * specifically because earlier ones painting theirs would otherwise
      * overwrite it on the one shared root window), so painting it here
-     * for a desktop nobody can see would
-     * just be work immediately thrown away. */
-    if (is_current && desktop_render_background(desktop) != 0) {
+     * for a desktop nobody can see would just be work immediately
+     * thrown away. */
+    if (is_current && render_desktop_background_render(desktop) != 0) {
         LOGGER_ERROR("Failed to render background on" \
                  " desktop %u ('%s')", desktop->id, desktop->name);
         return 1;

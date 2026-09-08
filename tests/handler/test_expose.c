@@ -27,7 +27,8 @@
  * xcb_create_gc, xcb_poly_fill_rectangle, xcb_copy_area,
  * xcb_offscreen_buffer_create, wmicon_draw, text_renderer_use_font/
  * _set_color, text_draw_string, ri_icon_hints_draw,
- * desktop_repaint_frame_decoration, desktop_repaint_titlebar_content),
+ * render_client_decoration_repaint_frame,
+ * render_client_titlebar_repaint_content),
  * so testing them meaningfully would mean re-implementing a fake XCB
  * connection just to observe what those already-tested-elsewhere
  * rendering helpers were asked to draw, rather than exercising
@@ -73,7 +74,8 @@
 #include <wm.h>
 
 /* Render includes */
-#include <render/desktop.h>
+#include <render/client/decoration.h>
+#include <render/client/titlebar.h>
 #include <render/icon.h>
 #include <render/text.h>
 #include <render/wmicon.h>
@@ -671,7 +673,7 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
 }
 
 
-void desktop_repaint_frame_decoration(xcb_connection_t *connection,
+void render_client_decoration_repaint_frame(xcb_connection_t *connection,
         client_td *client, bool use_active_style,
         const struct config_theme_s *theme)
 {
@@ -682,7 +684,7 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
 }
 
 
-void desktop_repaint_titlebar_content(xcb_connection_t *connection,
+void render_client_titlebar_repaint_content(xcb_connection_t *connection,
         client_td *client, bool is_focused, uint16_t inner_w,
         uint16_t title_h, const struct config_theme_s *theme)
 {

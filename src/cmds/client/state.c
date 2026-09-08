@@ -875,7 +875,8 @@ void ccmd_client_fullscreen(client_td *client)
      * timing sensitivity) could catch that intermediate geometry and
      * paint a frame reflecting it, leaving the frame's background (set
      * to the theme's border color by
-     * 'desktop_repaint_frame_decoration', 'render/desktop.c') visible
+     * 'render_client_decoration_repaint_frame',
+     * 'render/client/decoration.c') visible
      * through the gap along the content's top and left edges until its
      * next redraw happened to catch up (visually indistinguishable from
      * a real border, though neither an X11 border nor that repaint

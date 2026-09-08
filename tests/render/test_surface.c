@@ -3,7 +3,8 @@
  *
  * @brief Test battery for surface rendering orchestration
  *
- * desktop_render_full and desktop_render_background (render/desktop.c,
+ * desktop_render_full (render/desktop.c) and
+ * render_desktop_background_render (render/desktop/background.c,
  * both XCB-backed), surface_desktop_get (surface.c), and
  * desktop_mark_outdated (desktop.c) are stubbed below as controllable,
  * call-recording stand-ins; xcb_flush itself is linked for real, the
@@ -31,6 +32,7 @@
 #include <surface.h>
 #include <config.h>
 #include <harness/tap.h>
+#include <render/desktop/background.h>
 #include <render/surface.h>
 #include <utils/xcb/connection.h>
 
@@ -51,7 +53,7 @@ int desktop_render_full(desktop_td *desktop, bool is_current)
 
 static int s_render_background_calls;
 
-int desktop_render_background(desktop_td *desktop)
+int render_desktop_background_render(desktop_td *desktop)
 {
     (void) desktop;
     s_render_background_calls++;

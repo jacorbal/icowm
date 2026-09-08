@@ -121,7 +121,8 @@ struct desktop_s {
      * @a xcb_setup_roots_iterator walk already needed there to read
      * this screen's pixel dimensions; kept here afterward so every
      * later caller that needs this desktop's screen (e.g.,
-     * @a desktop_render_background, @c render/desktop.c) reads this
+     * @a render_desktop_background_render,
+     * @c render/desktop/background.c) reads this
      * field directly instead of repeating that same @e O(n) walk again
      * from scratch, an @e O(1) lookup either way.
      */

@@ -21,8 +21,10 @@
  * arithmetic, not a stand-in's guess at it.  Every other collaborator
  * that only records that it happened, or that talks to a real X server
  * (systray_icon_size_enforce, ccmd_desktop_enforce_layers,
- * client_send_synthetic_configure_notify, client_decoration_layout_sync,
- * desktop_repaint_frame_decoration, xcb_configure_window, logger_msg),
+ * client_send_synthetic_configure_notify,
+ * client_decoration_layout_sync,
+ * render_client_decoration_repaint_frame, xcb_configure_window,
+ * logger_msg),
  * is a link-only stand-in defined below.
  *
  * Deliberately out of scope: the @c XCB_CONFIG_WINDOW_SIBLING
@@ -72,6 +74,7 @@
 /* Local includes */
 #include <handler.h>
 #include <harness/tap.h>
+#include <render/client/decoration.h>
 
 
 /* What lookup_find_client should hand back for the next call, and to
@@ -182,9 +185,9 @@ void client_decoration_layout_sync(client_td *client)
 }
 
 
-/** Link-only stand-in for desktop_repaint_frame_decoration; records
- *  whether it was asked to use the active (focused) style */
-void desktop_repaint_frame_decoration(xcb_connection_t *connection,
+/** Link-only stand-in for render_client_decoration_repaint_frame;
+ *  records whether it was asked to use the active (focused) style */
+void render_client_decoration_repaint_frame(xcb_connection_t *connection,
         client_td *client, bool use_active_style,
         const struct config_theme_s *theme)
 {

@@ -31,7 +31,8 @@
 #include <wm.h>
 
 /* Render includes */
-#include <render/desktop.h>
+#include <render/client/decoration.h>
+#include <render/client/titlebar.h>
 #include <render/icon.h>
 #include <render/text.h>
 #include <render/wmicon.h>
@@ -333,7 +334,7 @@ void handler_expose(xcb_connection_t *connection,
          * uses for its 'hide_decoration'. */
         if (!(client_is_fullscreen(client) &&
                     client->was_decorated_fullscreen)) {
-            desktop_repaint_frame_decoration(connection, client,
+            render_client_decoration_repaint_frame(connection, client,
                     use_active_style, &cfg->theme);
         }
         return;
@@ -350,6 +351,6 @@ void handler_expose(xcb_connection_t *connection,
         ? (uint16_t) (client->layout.geometry.cur.dim.w - left - right)
         : 1u;
 
-    desktop_repaint_titlebar_content(connection, client,
+    render_client_titlebar_repaint_content(connection, client,
             use_active_style, inner_w, title_h, &cfg->theme);
 }

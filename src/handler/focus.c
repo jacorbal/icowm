@@ -37,7 +37,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
-#include <render/desktop.h>
+#include <render/desktop/background.h>
 #include <render/outdate.h>
 #include <render/surface.h>
 #include <render/viewport/mesh.h>
@@ -92,15 +92,16 @@ void handler_property_notify(const wm_td *wm,
     }
 
     /* A root window's property changing, not a managed client's:
-     * 'lookup_find_client' below would never find one for it, so this
-     * has to be checked first, before that early return discards the
-     * event.  Recognizes only the specific properties a wallpaper tool
-     * might set (see 'desktop_property_is_background_pixmap' in
-     * render/desktop.c), rather than invalidating the cached
-     * background pixmap on every root property change regardless of
-     * which one it was; many of those, including ones icowm's
-     * EWMH state syncing writes to the root window itself, have
-     * nothing to do with the background pixmap at all. */
+     * 'lookup_find_client' below would never find one for it, so
+     * this has to be checked first, before that early return
+     * discards the event.  Recognizes only the specific properties
+     * a wallpaper tool might set (see
+     * 'render_desktop_background_property_is_pixmap' in
+     * render/desktop/background.c), rather than invalidating the
+     * cached background pixmap on every root property change
+     * regardless of which one it was; many of those, including ones
+     * icowm's EWMH state syncing writes to the root window itself,
+     * have nothing to do with the background pixmap at all. */
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
         surface_td *const s = (surface_td *) list_data(snode);
@@ -109,9 +110,9 @@ void handler_property_notify(const wm_td *wm,
                 event->window != s->screen->root) {
             continue;
         }
-        if (desktop_property_is_background_pixmap(connection,
+        if (render_desktop_background_property_is_pixmap(connection,
                     event->atom)) {
-            desktop_background_pixmap_cache_invalidate();
+            render_desktop_background_cache_invalidate();
             /* An external tool just took the root window over, or
              * just let go of it; either way whichever mesh tile is
              * cached no longer describes what belongs on screen */
