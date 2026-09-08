@@ -648,6 +648,12 @@ xcb_void_cookie_t xcb_change_window_attributes(
 
 static int s_clear_area_calls;
 
+/** The titlebar and the frame are cleared on every pass by design, so
+ *  a scenario watching the content window counts only its own */
+static xcb_window_t s_clear_area_last_window;
+static xcb_window_t s_clear_area_watched_window;
+static int s_clear_area_watched_calls;
+
 xcb_void_cookie_t xcb_clear_area(xcb_connection_t *connection,
         uint8_t exposures, xcb_window_t window, int16_t x, int16_t y,
         uint16_t width, uint16_t height)
@@ -655,12 +661,15 @@ xcb_void_cookie_t xcb_clear_area(xcb_connection_t *connection,
     xcb_void_cookie_t cookie = {0};
     (void) connection;
     (void) exposures;
-    (void) window;
     (void) x;
     (void) y;
     (void) width;
     (void) height;
     s_clear_area_calls++;
+    s_clear_area_last_window = window;
+    if (window == s_clear_area_watched_window) {
+        s_clear_area_watched_calls++;
+    }
     return cookie;
 }
 
@@ -856,6 +865,9 @@ static void s_reset_fixture(void)
     s_get_property_reply_value_len = 1u;
     s_change_window_attributes_calls = 0;
     s_clear_area_calls = 0;
+    s_clear_area_last_window = 0u;
+    s_clear_area_watched_window = 0u;
+    s_clear_area_watched_calls = 0;
     s_create_gc_calls = 0;
     s_poly_fill_rectangle_calls = 0;
     s_poly_segment_calls = 0;
@@ -1238,6 +1250,55 @@ static void s_test_render_full_visits_every_stacked_client(void)
             "the plain visible client has its geometry placed;"
             " nothing is mapped since is_current is false here");
 }
+
+/* Rendering a decorated client whose content ends up exactly where it
+ * already was must not clear its window: this pass runs for any
+ * reason at all, a changed title among them, and clearing blanks the
+ * client until it paints itself back */
+static void s_test_render_full_clears_only_when_content_moves(void)
+{
+    struct s_desktop_fixture_s fx;
+    client_td client;
+    int clears_after_first;
+
+    s_reset_fixture();
+    s_desktop_fixture_init(&fx, 4u, 6u);
+    s_client_fixture_init(&client, &fx.config, 0x401u);
+    client.frame = 0x9001u;
+    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    client.layout.geometry.cur.dim.w = 400u;
+    client.layout.geometry.cur.dim.h = 300u;
+    client.layout.frame_extents.left = 2;
+    client.layout.frame_extents.right = 2;
+    client.layout.frame_extents.top = 22;
+    client.layout.frame_extents.bottom = 2;
+    client.is_outdated = true;
+    s_clear_area_watched_window = client.window;
+    s_stacking_walk_clients[0] = &client;
+    s_stacking_walk_client_count = 1u;
+    s_stacking_count_result = 1u;
+
+    (void) desktop_render_full(&fx.desktop, true);
+    clears_after_first = s_clear_area_watched_calls;
+    TAP_OK(clears_after_first > 0,
+            "a client's first render clears its own window, nothing"
+            " being known yet about where its content sat");
+
+    client.is_outdated = true;
+    (void) desktop_render_full(&fx.desktop, true);
+    TAP_EQ_INT(s_clear_area_watched_calls, clears_after_first,
+            "rendering it again with the same geometry clears"
+            " nothing further");
+
+    client.is_outdated = true;
+    client.layout.geometry.cur.dim.w =
+        (uint16_t) (client.layout.geometry.cur.dim.w + 40u);
+    (void) desktop_render_full(&fx.desktop, true);
+    TAP_OK(s_clear_area_watched_calls > clears_after_first,
+            "but a real change of size clears it again, so a toolkit"
+            " redrawing on Expose alone still follows the frame");
+}
+
 
 static void s_test_render_full_iconified_hidden_client_draws_icon(
         void)
@@ -2134,7 +2195,7 @@ static void s_test_repaint_frame_decoration_falls_back_without_override(
 
 int main(void)
 {
-    TAP_PLAN(99);
+    TAP_PLAN(102);
 
     s_test_property_is_bg_pixmap_none_atom_is_false();
     s_test_property_is_bg_pixmap_resolves_once();
@@ -2154,6 +2215,7 @@ int main(void)
     s_test_render_full_current_paints_background();
     s_test_render_full_non_current_skips_background();
     s_test_render_full_visits_every_stacked_client();
+    s_test_render_full_clears_only_when_content_moves();
     s_test_render_full_iconified_hidden_client_draws_icon();
 
     s_test_render_one_client_urgency_blink_flips_focus();

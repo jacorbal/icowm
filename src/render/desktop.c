@@ -896,6 +896,7 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
         uint16_t inner_h;
         uint16_t inner_w;
         uint16_t title_h;
+        bool inner_moved;
 
         /* Forced to zero outright for a fullscreen client, rather than
          * trusting 'frame_extents' to already be zero.  This is the
@@ -939,6 +940,17 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
          * computed above either way, are still needed below this whole
          * 'if' to position the titlebar correctly even while shaded. */
         if (!client_is_shaded(client)) {
+            inner_moved = !client->layout.has_placed_inner ||
+                client->layout.placed_inner.pos.x != (int32_t) left ||
+                client->layout.placed_inner.pos.y != (int32_t) top ||
+                client->layout.placed_inner.dim.w != inner_w ||
+                client->layout.placed_inner.dim.h != inner_h;
+            client->layout.placed_inner.pos.x = (int32_t) left;
+            client->layout.placed_inner.pos.y = (int32_t) top;
+            client->layout.placed_inner.dim.w = inner_w;
+            client->layout.placed_inner.dim.h = inner_h;
+            client->layout.has_placed_inner = true;
+
             xcb_window_place(client->window, left, top,
                     inner_w, inner_h);
 
@@ -967,8 +979,17 @@ static void s_render_apply_geometry(struct s_render_ctx_s *ctx)
              * X server to generate an 'Expose' event, which arrives in
              * the client's queue after both the 'xcb_configure_window'
              * and the synthetic 'ConfigureNotify' above. */
-            xcb_clear_area(xcb_connection_get(), 1,
-                    client->window, 0, 0, 0, 0);
+            /* Only when the content window really did move or
+             * resize.  This pass runs for any reason at all, a
+             * changed title among them, and the titlebar is a window
+             * of its own: clearing the content to redraw the bar
+             * blanks the client and waits for it to paint itself back
+             * for nothing, which is seen on any application that does
+             * not answer 'Expose' immediately. */
+            if (inner_moved) {
+                xcb_clear_area(xcb_connection_get(), 1,
+                        client->window, 0, 0, 0, 0);
+            }
         }
         s_repaint_frame_decoration_unless_hidden(xcb_connection_get(),
                 client, is_focused, hide_decoration,

@@ -70,6 +70,23 @@ struct client_layout_s {
     bool has_requested_pos;
 
     /**
+     * @brief Inner-window geometry the render pass last placed
+     *
+     * The pass ends by clearing the content window with exposures
+     * turned on, so a toolkit that redraws on @c Expose alone follows
+     * the frame when the content is moved or resized under it.  The
+     * pass itself runs for any reason at all, a changed title among
+     * them, and the titlebar is a window of its own: redrawing it
+     * never needs the content blanked.  Kept here so the clear can be
+     * left to the case it was written for.
+     *
+     * @note @p has_placed_inner starts false, so a client's first
+     *       pass always clears
+     */
+    struct geometry_s placed_inner;
+    bool has_placed_inner;
+
+    /**
      * @brief Area where the client exist on the screen, plus the area
      *        are marked off-bounds for client placement
      *
