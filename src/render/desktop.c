@@ -830,7 +830,7 @@ static void s_titlebar_draw_title(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 static void s_repaint_frame_decoration_unless_hidden(
-        xcb_connection_t *connection, const client_td *client,
+        xcb_connection_t *connection, client_td *client,
         bool is_focused, bool hide_decoration,
         const struct config_theme_s *theme)
 {
@@ -1389,9 +1389,20 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
         ? theme->window.active.color.background
         : theme->window.inactive.color.background;
 
-    xcb_change_window_attributes(connection,
-            client->titlebar, XCB_CW_BACK_PIXEL,
-            (const uint32_t[]) { bg_color });
+    /* Only when the color just chosen is not the one already set.
+     * Changing a window's background makes the server discard what is
+     * on it, and this repaint runs on every title change: a client
+     * that renames itself as the user moves about, which a browser
+     * does on each page, would have its titlebar dropped and redrawn
+     * each time for a color that never moved. */
+    if (!client->layout.has_titlebar_bg ||
+            client->layout.titlebar_bg != bg_color) {
+        client->layout.titlebar_bg = bg_color;
+        client->layout.has_titlebar_bg = true;
+        xcb_change_window_attributes(connection,
+                client->titlebar, XCB_CW_BACK_PIXEL,
+                (const uint32_t[]) { bg_color });
+    }
 
     buffer = (surface != NULL)
         ? xcb_offscreen_buffer_create(connection,
@@ -1465,26 +1476,31 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
 
 /* Repaint the frame background, border and corner resize grips */
 void desktop_repaint_frame_decoration(xcb_connection_t *connection,
-        const client_td *client, bool use_active_style,
+        client_td *client, bool use_active_style,
         const struct config_theme_s *theme)
 {
     uint8_t opacity_percent;
+    uint32_t frame_bg;
+    bool bg_changed;
 
     if (connection == NULL || client == NULL || client->frame == 0 ||
             theme == NULL || !client_is_decorated(client)) {
         return;
     }
 
-    xcb_change_window_attributes(connection, client->frame,
-            XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-            (const uint32_t[]) {
-                (use_active_style)
-                    ? theme->window.active.border.color
-                    : theme->window.inactive.border.color,
-                (use_active_style)
-                    ? theme->window.active.border.color
-                    : theme->window.inactive.border.color
-            });
+    frame_bg = (use_active_style)
+        ? theme->window.active.border.color
+        : theme->window.inactive.border.color;
+    bg_changed = !client->layout.has_frame_bg ||
+        client->layout.frame_bg != frame_bg;
+    client->layout.frame_bg = frame_bg;
+    client->layout.has_frame_bg = true;
+
+    if (bg_changed) {
+        xcb_change_window_attributes(connection, client->frame,
+                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
+                (const uint32_t[]) { frame_bg, frame_bg });
+    }
 
     if (use_active_style) {
         opacity_percent = (client->opacity_override.is_set_active)
@@ -1497,7 +1513,16 @@ void desktop_repaint_frame_decoration(xcb_connection_t *connection,
     }
     atom_set_window_opacity(connection, client->frame,
             config_theme_opacity_to_raw(opacity_percent));
-    xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
+
+    /* Only when the color just set is not the one already showing.
+     * The frame is the content window's parent, so clearing it paints
+     * over the content's own area until the client draws itself
+     * again; doing that to show a color identical to the one already
+     * there blanks the window for nothing, and this repaint runs for
+     * any reason at all, not only a focus change. */
+    if (bg_changed) {
+        xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
+    }
 }
 
 

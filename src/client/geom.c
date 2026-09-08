@@ -79,7 +79,7 @@ static const enum config_titlebar_button_e s_titlebar_button_giveup[] = {
 /**
  * @brief Whether a button row of the given sizes fits the titlebar
  *
- * The two groups grow towards each other from their own edges, so
+ * The two groups grow toward each other from their own edges, so
  * they fit only while the padding and both extents still come to no
  * more than the width available.  Without this the two groups simply
  * overlap: the right group's positions walk back past the left

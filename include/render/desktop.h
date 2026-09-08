@@ -205,6 +205,12 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
  * grips when they are supposed to be visible for the current client
  * state.
  *
+ * The frame is only cleared when the color just set is not the one
+ * already showing, which is on a focus change.  Clearing it paints
+ * over the content window's own area, that window being its child,
+ * until the client draws itself again, and this repaint runs for any
+ * reason at all.
+ *
  * @param connection       Active XCB connection
  * @param client           Client whose frame decoration will be
  *                         repainted
@@ -214,7 +220,7 @@ void desktop_repaint_titlebar_content(xcb_connection_t *connection,
  * @note Complexity: @e O(1)
  */
 void desktop_repaint_frame_decoration(xcb_connection_t *connection,
-        const client_td *client, bool use_active_style,
+        client_td *client, bool use_active_style,
         const struct config_theme_s *theme);
 
 

@@ -87,6 +87,39 @@ struct client_layout_s {
     bool has_placed_inner;
 
     /**
+     * @brief Frame background color the decoration repaint last set
+     *
+     * The repaint sets the frame's background and clears it so the
+     * new color shows.  The frame is the content window's parent, so
+     * that clear paints over the area the content occupies until the
+     * client draws itself again, which is seen on any application
+     * that is not immediate about it.  The color only ever changes
+     * on a focus change, while the repaint runs for any reason at
+     * all, a changed title among them, so the two are kept apart
+     * here.
+     *
+     * @note @p has_frame_bg starts false, so a client's first repaint
+     *       always clears
+     */
+    uint32_t frame_bg;
+    bool has_frame_bg;
+
+    /**
+     * @brief Titlebar background color the decoration repaint last set
+     *
+     * Setting a window's background makes the server discard what is
+     * drawn on it, and the titlebar repaint runs on every title
+     * change, so a client that renames itself as the user moves about
+     * would have its bar dropped and redrawn for a color that never
+     * moved.
+     *
+     * @note @p has_titlebar_bg starts false, so a client's first
+     *       repaint always sets it
+     */
+    uint32_t titlebar_bg;
+    bool has_titlebar_bg;
+
+    /**
      * @brief Area where the client exist on the screen, plus the area
      *        are marked off-bounds for client placement
      *

@@ -185,7 +185,7 @@ void client_decoration_layout_sync(client_td *client)
 /** Link-only stand-in for desktop_repaint_frame_decoration; records
  *  whether it was asked to use the active (focused) style */
 void desktop_repaint_frame_decoration(xcb_connection_t *connection,
-        const client_td *client, bool use_active_style,
+        client_td *client, bool use_active_style,
         const struct config_theme_s *theme)
 {
     (void) connection;

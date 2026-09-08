@@ -2077,6 +2077,45 @@ static void s_test_repaint_titlebar_maximize_disabled_when_not_maximizable(
             " never skipped outright");
 }
 
+/* The frame is the content window's parent, so clearing it paints
+ * over the content's own area until the client draws itself again.
+ * This repaint runs for any reason at all, so it must only clear when
+ * the color it just set is not the one already showing */
+static void s_test_repaint_frame_clears_only_on_color_change(void)
+{
+    struct config_theme_s theme;
+    client_td client;
+    int clears_after_first;
+
+    s_reset_fixture();
+    memset(&theme, 0, sizeof(theme));
+    memset(&client, 0, sizeof(client));
+    client.frame = 0x900u;
+    client.properties.flags = (uint16_t) CLIENT_FLAG_DECORATED;
+    theme.window.active.border.color = 0x0000ffu;
+    theme.window.inactive.border.color = 0x808080u;
+
+    desktop_repaint_frame_decoration(s_connection_stub, &client, true,
+            &theme);
+    clears_after_first = s_clear_area_calls;
+    TAP_OK(clears_after_first > 0,
+            "the first repaint clears, no color being known yet");
+
+    desktop_repaint_frame_decoration(s_connection_stub, &client, true,
+            &theme);
+    TAP_EQ_INT(s_clear_area_calls, clears_after_first,
+            "repainting again with the same color clears nothing"
+            " further, so the client is not blanked for a repaint it"
+            " has no part in");
+
+    desktop_repaint_frame_decoration(s_connection_stub, &client, false,
+            &theme);
+    TAP_OK(s_clear_area_calls > clears_after_first,
+            "but losing focus changes the color and does clear, so"
+            " the new border is actually shown");
+}
+
+
 static void s_test_repaint_frame_decoration_guard_clauses(void)
 {
     struct config_theme_s theme;
@@ -2195,7 +2234,7 @@ static void s_test_repaint_frame_decoration_falls_back_without_override(
 
 int main(void)
 {
-    TAP_PLAN(102);
+    TAP_PLAN(105);
 
     s_test_property_is_bg_pixmap_none_atom_is_false();
     s_test_property_is_bg_pixmap_resolves_once();
@@ -2249,6 +2288,7 @@ int main(void)
     s_test_repaint_titlebar_without_symbols_draws_squares();
     s_test_repaint_titlebar_maximize_disabled_when_not_maximizable();
 
+    s_test_repaint_frame_clears_only_on_color_change();
     s_test_repaint_frame_decoration_guard_clauses();
     s_test_repaint_frame_decoration_active_style();
     s_test_repaint_frame_decoration_opacity_override();

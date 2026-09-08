@@ -672,7 +672,7 @@ void ri_icon_hints_draw(xcb_connection_t *connection, client_td *client,
 
 
 void desktop_repaint_frame_decoration(xcb_connection_t *connection,
-        const client_td *client, bool use_active_style,
+        client_td *client, bool use_active_style,
         const struct config_theme_s *theme)
 {
     (void) connection;
