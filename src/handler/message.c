@@ -437,9 +437,19 @@ void handler_client_message(wm_td *wm,
             if (surf == NULL) {
                 continue;
             }
+
+            /* Not published here: 'hi_handle_net_showing_desktop' can
+             * decide there is nothing to show (an empty desktop, or
+             * every client already hidden) and leave 'surf->
+             * is_showing_desktop' at its previous value regardless of
+             * what 'show' asked for, so publishing the raw request
+             * here would tell every pager and taskbar the opposite of
+             * what actually happened.  'wm_outdate_surface'/
+             * '_desktop', which that function already calls, get
+             * 'wm_ewmh_sync' to publish the real value on the next
+             * refresh instead, the same as every other message type
+             * in this dispatcher already relies on it for. */
             hi_handle_net_showing_desktop(surf, show);
-            xcb_ewmh_set_showing_desktop(ewmh,
-                    (int) surf->id, (show) ? 1u : 0u);
         }
 
         return;

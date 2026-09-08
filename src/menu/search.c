@@ -311,13 +311,13 @@ static void s_search_collect_candidates(void)
 
 /**
  * @brief Re-filter and re-rank @c s_search.results from
- *        @c s_searchcandidates against the current @c s_search.query
+ *        @c s_search.candidates against the current @c s_search.query
  *
  * An empty query matches every candidate, in collection order (most
  * recently focused first, since candidates were collected tail to
  * head).  Resets the selection and scroll position to the top.
  *
- * @note Complexity: @e O(n log n), where @e n is
+ * @note Complexity: @e O(n*log(n)), where @e n is
  *       @c s_search.candidate_count
  */
 static void s_search_refilter(void)
@@ -407,8 +407,8 @@ static void s_search_compute_geometry(void)
 
 
 /**
- * @brief Keep the current selection inside the visible rows,
- *        scrolling the minimum amount needed
+ * @brief Keep the current selection inside the visible rows, scrolling
+ *        the minimum amount needed
  *
  * @note Complexity: @e O(1)
  */
@@ -613,13 +613,14 @@ static void s_search_draw_row(xcb_connection_t *connection,
     /* The desktop label comes first and the window title after it,
      * rather than the other way round.  A title is as long as the
      * application cares to make it, so with the title leading, the
-     * label lands at a different offset on every row and cannot be read
-     * down the list; at the front the labels line up in a column.
+     * label lands at a different offset on every row and cannot be
+     * read down the list; at the front the labels line up in a column.
      *
      * That is also why the label leaves out the desktop's own name
      * here: what identifies an entry in a list of windows is the
      * window's own title, and the name would take width from it. */
-    if (s_search.surface->desktop_count > 1u && r->desktop != NULL) {
+    if (s_search.surface != NULL &&
+            s_search.surface->desktop_count > 1u && r->desktop != NULL) {
         char desk_buf[WM_SEARCH_ENTRY_LENGTH];
         uint32_t vp_col;
         uint32_t vp_row;
@@ -627,25 +628,21 @@ static void s_search_draw_row(xcb_connection_t *connection,
         desk_buf[0] = '\0';
 
         /* Only what there is to say: the desktop once the surface has
-         * more than one, the page once the grid has more than one,
-         * and nothing at all when neither, rather than a bare '[0]'
+         * more than one, the page once the grid has more than one, and
+         * nothing at all when neither, rather than a bare '[0]'
          * repeated down every row that says the same thing */
-        if (s_search.surface != NULL &&
-                s_search.surface->desktop_count > 1u) {
-            if (r->client != NULL && client_is_pinned(r->client)) {
-                /* On every desktop, so no one desktop names it.  '*'
-                 * rather than a word: it keeps the shape of the
-                 * coordinate it stands in for, costs one character in
-                 * a row that truncates, and needs no translation,
-                 * which a word would, since "all" takes different
-                 * genders for desktops and pages in several of the
-                 * languages this ships with. */
-                (void) safe_strncat(desk_buf, "[*]", sizeof(desk_buf));
-            } else {
-                surface_desktop_label(s_search.surface, r->desktop->id,
-                        r->desktop->name, false, false, desk_buf,
-                        sizeof(desk_buf));
-            }
+        if (r->client != NULL && client_is_pinned(r->client)) {
+            /* On every desktop, so no one desktop names it.  '*' rather
+             * than a word: it keeps the shape of the coordinate it
+             * stands in for, costs one character in a row that
+             * truncates, and needs no translation, which a word would,
+             * since "all" takes different genders for desktops and
+             * pages in several of the languages this ships with. */
+            (void) safe_strncat(desk_buf, "[*]", sizeof(desk_buf));
+        } else {
+            surface_desktop_label(s_search.surface, r->desktop->id,
+                    r->desktop->name, false, false, desk_buf,
+                    sizeof(desk_buf));
         }
 
         /* The viewport page is a second, independent coordinate a
@@ -753,8 +750,7 @@ static void s_search_draw_bar(xcb_connection_t *connection,
             (struct position_s) {
                 WM_SEARCH_PAD_X,
                 WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT - 7
-            },
-            shown);
+            }, shown);
 }
 
 
@@ -1092,8 +1088,7 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
                     (struct position_s) {
                         WM_SEARCH_WIDTH / 2 - 4,
                         up_y + text_font_ascent()
-                    },
-                    WM_SEARCH_MENU_SCROLL_UP_INDICATOR);
+                    }, WM_SEARCH_MENU_SCROLL_UP_INDICATOR);
         }
 
         if (s_search.scroll_offset + s_search.visible_rows <
@@ -1105,8 +1100,7 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
                     (struct position_s) {
                         WM_SEARCH_WIDTH / 2 - 4,
                         down_y + WM_SEARCH_PAD_Y - text_font_descent()
-                    },
-                    WM_SEARCH_MENU_SCROLL_DOWN_INDICATOR);
+                    }, WM_SEARCH_MENU_SCROLL_DOWN_INDICATOR);
         }
     }
 }

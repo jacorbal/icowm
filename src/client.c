@@ -16,6 +16,9 @@
  * Read the 'LICENSE' file in the root of this repository for details.
  */
 
+#define _POSIX_C_SOURCE 200112L /* gethostname */
+
+
 /* System includes */
 #include <limits.h>
 #include <stdbool.h>
@@ -1355,16 +1358,21 @@ client_td *client_init(xcb_connection_t *connection,
         ccmd_client_grab_buttons(client);
     }
 
-    /* Initialize '_NET_WM_STATE' to an empty list for newly adopted
-     * windows so taskbars and pagers always see a clean state even if
-     * the application left a stale property from a previous session. */
+    /* Publish the state actually read above (layer, skip-taskbar,
+     * skip-pager, demands-attention), rather than leaving it blank:
+     * a plain 'xcb_ewmh_set_wm_state(ewmh, client->window, 0, NULL)'
+     * here previously wiped whatever 's_client_read_pre_existing_
+     * state' had just recorded internally, and nothing later in this
+     * function's own path (nor 's_map_finish', handler/map.c) is
+     * guaranteed to republish it: only a client that also happens to
+     * end up fullscreen, maximized, shaded, hidden, or focused takes
+     * a path that calls 'ccmd_client_sync_states' on its own. */
     if (client->properties.type == (uint16_t) CLIENT_TYPE_NORMAL ||
             client->properties.type == (uint16_t) CLIENT_TYPE_DIALOG ||
             client->properties.type == (uint16_t) CLIENT_TYPE_TOOLBAR ||
             client->properties.type == (uint16_t) CLIENT_TYPE_UTILITY) {
         if (ewmh != NULL) {
-            xcb_ewmh_set_wm_state(ewmh,
-                    client->window, 0, NULL);
+            ccmd_client_sync_states(client);
         }
     }
 

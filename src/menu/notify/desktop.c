@@ -60,7 +60,7 @@ void notify_desktop_show(xcb_connection_t *connection,
      * truncation here would cut a coordinate in half and leave the
      * notice naming a page that does not exist. */
     char text[WM_DESKTOP_MAX_LENGTH_NAME + 96];
-    desktop_td *desktop;
+    const desktop_td *desktop;
     uint32_t vp_col;
     uint32_t vp_row;
     bool has_page;

@@ -269,6 +269,7 @@ static void s_handle_wm_state_atom(client_td *client,
         } else {
             client_unskip_taskbar(client);
         }
+        ccmd_client_sync_states(client);
         return;
     }
 
@@ -280,6 +281,7 @@ static void s_handle_wm_state_atom(client_td *client,
         } else {
             client_unskip_pager(client);
         }
+        ccmd_client_sync_states(client);
         return;
     }
 
@@ -785,7 +787,7 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
         stacking_walk(desktop, s_client_unhide_visit,
                 &changed_hidden_state);
         surface_clients_show(surface, surface->desktop_cur);
-    } else {
+    } else if (show) {
         /* Unmap the windows first, then mark them hidden.
          * 'surface_clients_hide' skips clients that already have
          * 'CLIENT_FLAG_HIDDEN' set, so the flag must be applied only
@@ -802,7 +804,20 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
                 : (uint32_t) XCB_CURRENT_TIME);
     }
 
-    surface->is_showing_desktop = show && changed_hidden_state;
+    /* Not 'show && changed_hidden_state': whether the surface is now
+     * showing the desktop follows from 'show' alone (already adjusted
+     * above for the nothing-visible case), not from whether this one
+     * call happened to change any individual client's hidden flag.
+     * Tying it to 'changed_hidden_state' left a redundant "show" request
+     * (every client already hidden from a previous one, so nothing
+     * changes this time) recording 'is_showing_desktop' as false while
+     * every client stayed hidden, after which a later restore request
+     * found 'is_showing_desktop' already false and, before the 'else
+     * if' just above, fell into the same unconditional 'else' this
+     * comment's block replaces and hid everything again instead of
+     * restoring it: no request left able to bring the clients back. */
+    surface->is_showing_desktop = show;
+
     wm_outdate_surface(surface);
     wm_outdate_desktop(desktop);
 }

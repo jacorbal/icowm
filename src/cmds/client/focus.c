@@ -154,13 +154,12 @@ static bool s_focus_fallback_valid_same_group(const client_td *candidate,
  * @brief Restore exactly this one client to its normal state, ignoring
  *        any transient family it may belong to
  *
- * Holds the single-client half of @a ccmd_client_restore, so
- * that function can redirect to, and cascade across, a transient
- * family (see its comment) while still sharing this single
- * client's worth of state-restoration logic with the top-level,
- * family-unaware call sites that only ever operate on one already-
- * resolved client and have no family to cascade to in the first
- * place.
+ * Holds the single-client half of @a ccmd_client_restore, so that
+ * function can redirect to, and cascade across, a transient family (see
+ * its comment) while still sharing this single client's worth of
+ * state-restoration logic with the top-level, family-unaware call sites
+ * that only ever operate on one already- resolved client and have no
+ * family to cascade to in the first place.
  *
  * @param client Client to restore; must be non-null
  *
@@ -215,9 +214,9 @@ static void s_ccmd_client_restore_one(client_td *client)
 
     client_unhide(client);
 
-    /* Only the iconified bit is cleared: whatever maximization or
-     * full screen the window held before being iconified it holds
-     * still, never having asked for that to be forgotten. */
+    /* Only the iconified bit is cleared: whatever maximization or full
+     * screen the window held before being iconified it holds still,
+     * never having asked for that to be forgotten. */
     client->properties.state &= (uint16_t) ~CLIENT_STATE_ICONIFIED;
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
@@ -230,9 +229,9 @@ static void s_ccmd_client_restore_one(client_td *client)
 
     ccmd_client_sync_states(client);
 
-    /* Put the geometry every state bit still standing calls for back
-     * on the window.  The bits themselves survived being iconified,
-     * so nothing had to be remembered anywhere; what is left to do is
+    /* Put the geometry every state bit still standing calls for back on
+     * the window.  The bits themselves survived being iconified, so
+     * nothing had to be remembered anywhere; what is left to do is
      * re-apply the geometry each one implies, computed fresh against
      * the workarea as it is now, the screen layout having possibly
      * changed while the client sat as an icon.
@@ -241,17 +240,15 @@ static void s_ccmd_client_restore_one(client_td *client)
      * rather than through the maximize command, since that one toggles
      * and would have to have its bits cleared first, which would in
      * turn let its 'client_geometry_save' fire on a window whose
-     * current geometry is the maximized one, burying the true
-     * original.
+     * current geometry is the maximized one, burying the true original.
      *
      * Full screen does go through its command, the window having
      * genuinely left that state when it was iconified (see
-     * 'ccmd_client_iconify'), so there is real work to redo.  Only
-     * its bit is cleared first, so that the command re-enters
-     * rather than toggling out; the maximize bits stay standing
-     * throughout, which is exactly what makes that command's
-     * 'client_geometry_save' skip a maximized window and leave
-     * 'layout.geometry.old' alone.
+     * 'ccmd_client_iconify'), so there is real work to redo.  Only its
+     * bit is cleared first, so that the command re-enters rather than
+     * toggling out; the maximize bits stay standing throughout, which
+     * is exactly what makes that command's 'client_geometry_save' skip
+     * a maximized window and leave 'layout.geometry.old' alone.
      *
      * Maximization is re-applied first so that a client holding both
      * ends up full screen over a maximized window, as it went away. */
@@ -274,9 +271,8 @@ static void s_ccmd_client_restore_one(client_td *client)
 }
 
 
-/* Transfer focus away from a client that is leaving the current
- * visible focus chain; see cmds/client/internal.h for the full
- * doc comment */
+/* Transfer focus away from a client that is leaving the current visible
+ * focus chain; see cmds/client/internal.h for the full comment */
 void ccmd_client_focus_fallback(client_td *client)
 {
     surface_td *surface;
@@ -288,13 +284,13 @@ void ccmd_client_focus_fallback(client_td *client)
 
     /* Resolved to the desktop this client actually lives on, not to
      * whichever one happens to be showing.  A client can lose focus
-     * while the user is looking elsewhere, the scratchpad being
-     * hidden from another desktop is the ordinary case, and asking
-     * the current desktop then compares this client's id against a
-     * different desktop's active client, finds no match, and hands
-     * focus to nobody.  The desktop it left is then holding an
-     * active id that names a client no longer eligible, which is
-     * only noticed on switching back to it.
+     * while the user is looking elsewhere, the scratchpad being hidden
+     * from another desktop is the ordinary case, and asking the current
+     * desktop then compares this client's id against a different
+     * desktop's active client, finds no match, and hands focus to
+     * nobody.  The desktop it left is then holding an active id that
+     * names a client no longer eligible, which is only noticed on
+     * switching back to it.
      *
      * This is what the destroy path in 'handler/map.c' already does,
      * and for the same reason. */
@@ -309,10 +305,10 @@ void ccmd_client_focus_fallback(client_td *client)
 }
 
 
-/* Transfer input focus away from a client leaving the current
- * visible focus chain to the most recently used other visible,
- * focusable client on the same desktop, or to 'PointerRoot' if
- * none qualifies; see the full criteria in the header */
+/* Transfer input focus away from a client leaving the current visible
+ * focus chain to the most recently used other visible, focusable client
+ * on the same desktop, or to 'PointerRoot' if none qualifies; see the
+ * full criteria in the header */
 void client_focus_fallback(desktop_td *desktop, surface_td *surface,
         client_td *exclude)
 {
@@ -328,15 +324,15 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     desktop->is_focus_dirty = true;
 
     /* A window left behind by 'exclude' from the same application
-     * (sharing its 'WM_CLIENT_LEADER', ICCCM 4.1.2.5) is a more
-     * natural fallback than an unrelated one equally close in MRU
-     * order, the same reasoning 'place_window_apply'
-     * (policy/placement/window.c) already applies when placing a new
-     * sibling window near its group; mirrors how Openbox's
-     * 'focus_valid_target' (focus.c) weighs group membership when
-     * picking a focus target.  Tried first and only as a preference,
-     * not a requirement: falls through to the plain MRU search below,
-     * unchanged from before, whenever no such sibling qualifies. */
+     * (sharing its 'WM_CLIENT_LEADER', ICCCM 4.1.2.5) is a more natural
+     * fallback than an unrelated one equally close in MRU order, the
+     * same reasoning 'place_window_apply' (policy/placement/window.c)
+     * already applies when placing a new sibling window near its group;
+     * mirrors how Openbox's 'focus_valid_target' (focus.c) weighs group
+     * membership when picking a focus target.  Tried first and only as
+     * a preference, not a requirement: falls through to the plain MRU
+     * search below, unchanged from before, whenever no such sibling
+     * qualifies. */
     exclude_leader = (exclude != NULL)
         ? client_group_leader(exclude) : XCB_WINDOW_NONE;
 
@@ -356,10 +352,10 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
     if (next_focus != NULL) {
         desktop->client_active_id = next_focus->id;
         desktop->is_focus_dirty = true;
-        /* Recorded in the focus order, not moved in the stacking
-         * list: this client is now the most recently focused one, and
-         * saying so must not also raise it over whatever the user
-         * had deliberately placed above it */
+        /* Recorded in the focus order, not moved in the stacking list:
+         * this client is now the most recently focused one, and saying
+         * so must not also raise it over whatever the user had
+         * deliberately placed above it */
         focus_order_to_top(next_focus);
         ccmd_client_focus(next_focus);
     } else if (exclude != NULL) {
@@ -372,10 +368,10 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
          * focus below would. */
         ccmd_client_unfocus(exclude);
     } else if (xcb_connection_get() != NULL) {
-        /* Same timestamp every other focus call in this file uses,
-         * so that relinquishing here cannot record a last focus
-         * change later than a subsequent request carries and have
-         * the server discard that request */
+        /* Same timestamp every other focus call in this file uses, so
+         * that relinquishing here cannot record a last focus change
+         * later than a subsequent request carries and have the server
+         * discard that request */
         const uint32_t relinquish_time =
             (client_last_user_time() != 0u)
                 ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
@@ -415,8 +411,8 @@ void ccmd_client_close(client_td *client)
         xcb_send_event(xcb_connection_get(), 0, client->window,
                 XCB_EVENT_MASK_NO_EVENT, (const char *) &ev);
     } else {
-        /* The client does not support 'WM_DELETE_WINDOW', so
-         * destroy it directly */
+        /* The client does not support 'WM_DELETE_WINDOW', so destroy it
+         * directly */
         xcb_window_destroy(client->window);
     }
 }
@@ -435,22 +431,21 @@ void ccmd_client_kill(client_td *client)
      * unresponsive clients that ignore a normal close request. */
     xcb_kill_client(xcb_connection_get(), client->window);
 
-    /* Enough for the common case: losing its X connection is
-     * normally fatal to whatever toolkit the client is built on, so
-     * the process exits on its own shortly after.  A genuinely
-     * unresponsive client, stuck in some loop that never processes
-     * its X connection at all, never notices that loss and keeps
-     * running regardless; 'cctl_kill_register' watches for exactly
-     * that and sends a real 'SIGKILL' if it is still alive once its
-     * own bounded window elapses.  See cctl/kill.h's comment
-     * for the full reasoning.
+    /* Enough for the common case: losing its X connection is normally
+     * fatal to whatever toolkit the client is built on, so the process
+     * exits on its own shortly after.  A genuinely unresponsive client,
+     * stuck in some loop that never processes its X connection at all,
+     * never notices that loss and keeps running regardless;
+     * 'cctl_kill_register' watches for exactly that and sends a real
+     * 'SIGKILL' if it is still alive once its own bounded window
+     * elapses.  See cctl/kill.h's comment for the full reasoning.
      *
      * Skipped for a client whose 'WM_CLIENT_MACHINE' names another
-     * host, or names none at all: its 'process.pid' is meaningful
-     * only on the host that set it, and this window manager has no
-     * business sending a real signal to whatever local process
-     * happens to reuse that same number.  'xcb_kill_client' above,
-     * being a request the X server itself routes to the right place,
+     * host, or names none at all: its 'process.pid' is meaningful only
+     * on the host that set it, and this window manager has no business
+     * sending a real signal to whatever local process happens to reuse
+     * that same number.  'xcb_kill_client' above, being a request the
+     * X server itself routes to the right place,
      * is already the whole answer for a remote client. */
     if (client->process.pid_is_local) {
         cctl_kill_register(client->process.pid);
@@ -475,14 +470,13 @@ void ccmd_client_restore(client_td *client)
         return;
     }
 
-    /* Every other family member still iconified is restored before
-     * the top parent's restore below, not after.  That restore's
-     * own focus-granting step (inside 's_ccmd_client_restore_one',
-     * gated on 'client_is_focusable') redirects
-     * through 'ccmd_client_focus_target' to whichever transient
-     * dialog should actually end up focused, as
-     * 'ccmd_client_focus''s comment describes, which only finds that
-     * dialog if it
+    /* Every other family member still iconified is restored before the
+     * top parent's restore below, not after.  That restore's own
+     * focus-granting step (inside 's_ccmd_client_restore_one', gated on
+     * 'client_is_focusable') redirects through
+     * 'ccmd_client_focus_target' to whichever transient dialog should
+     * actually end up focused, as 'ccmd_client_focus''s comment
+     * describes, which only finds that dialog if it
      * is already mapped by the time this reaches that step. */
     siblings = ccmd_client_transient_family_snapshot_anywhere(top,
             &count);
@@ -504,105 +498,86 @@ void ccmd_client_restore(client_td *client)
 /* Focus a client */
 void ccmd_client_focus(client_td *client)
 {
-    /* The timestamp both the focus request and the 'WM_TAKE_FOCUS'
-     * message further down carry.  They deliberately carry the same
-     * one: the request below records it as the server's last focus
-     * change, and X ignores a 'SetInputFocus' whose time is *earlier*
-     * than that, so an equal one still lets the client's answer
-     * to the message through.  Handing the message an older
-     * timestamp than the request would get that answer discarded.
-     *
-     * 'XCB_CURRENT_TIME' only when nothing has happened yet: ICCCM
-     * §4.1.7 forbids it in the message, but a window manager that has
-     * seen no input at all has no real timestamp to offer. */
     const uint32_t focus_time = (client_last_user_time() != 0u)
         ? client_last_user_time() : (uint32_t) XCB_CURRENT_TIME;
     xcb_ewmh_connection_t *const ewmh = xcb_ewmh_connection_get();
 
-    /* The timestamp both the focus request and the 'WM_TAKE_FOCUS'
-     * message further down carry.  'XCB_CURRENT_TIME' only when
-     * nothing has happened yet and there is genuinely nothing better:
-     * ICCCM forbids it for the message, but a window manager that has
-     * seen no input at all has no real timestamp to offer. */
     if (client == NULL) {
         return;
     }
 
     /* Deliberately no 'ccmd_client_bring_family' call here, unlike
-     * 'focus_apply' (policy/focus.c): this function is also reached
-     * from purely automatic, internal focus restoration that has
-     * nothing to do with someone actually interacting with 'client'
-     * right now (foremost 'surface_clients_show''s "restore
-     * whichever client was last active on this desktop" step,
+     * 'focus_apply' (in 'policy/focus.c'): this function is also
+     * reached from purely automatic, internal focus restoration that
+     * has nothing to do with someone actually interacting with 'client'
+     * right now (foremost 'surface_clients_show''s "restore whichever
+     * client was last active on this desktop" step,
      * surface/actions/clients.c, which runs on every single desktop
      * switch).  Calling it unconditionally here dragged a transient
      * family across onto whatever desktop merely happened to be
-     * switched to, the moment its pinned parent's
-     * 'client_active_id' from some earlier, unrelated visit to that
-     * desktop
-     * was restored, leaving the family effectively "chasing" every
-     * desktop the parent had ever been focused on, indistinguishable
-     * from actually being pinned even though nothing pinned it.
-     * 'focus_apply' itself already covers every genuine, deliberate
-     * focus request (a plain click, sloppy focus, and the like) with
-     * its separate call, for the same reason it needs its
-     * separate redirect to 'ccmd_client_focus_target' right below
-     * (see that call's comment). */
+     * switched to, the moment its pinned parent's 'client_active_id'
+     * from some earlier, unrelated visit to that desktop was restored,
+     * leaving the family effectively "chasing" every desktop the parent
+     * had ever been focused on, indistinguishable from actually being
+     * pinned even though nothing pinned it.  'focus_apply' itself
+     * already covers every genuine, deliberate focus request (a plain
+     * click, sloppy focus, and the like) with its separate call, for
+     * the same reason it needs its separate redirect to
+     * 'ccmd_client_focus_target' right below (see that call's
+     * comment). */
 
-    /* Redirect to whichever mapped transient descendant should
-     * actually receive focus in this client's place (a "save
-     * changes?" prompt still sitting open on top of it, say); see
-     * 'ccmd_client_focus_target''s comment for the full
-     * reasoning.  Applied here, at the one place every real focus-
-     * granting path already converges on (the comment just below),
-     * so every one of them redirects the same way regardless of
-     * which specific window they originally asked for by name. */
+    /* Redirect to whichever mapped transient descendant should actually
+     * receive focus in this client's place (a "save changes?" prompt
+     * still sitting open on top of it, say); see
+     * 'ccmd_client_focus_target''s comment for the full reasoning.
+     * Applied here, at the one place every real focus- granting path
+     * already converges on (the comment just below), so every one of
+     * them redirects the same way regardless of which specific window
+     * they originally asked for by name. */
     client = ccmd_client_focus_target(client);
 
     /* A client receiving real input focus has, by definition, gotten
      * the user's attention it was asking for.  Clear any pending
      * urgency hint here, at the one place every real focus-granting
      * path (a plain click via 'focus_apply', restoring an iconified
-     * client, focus recovery when the previously active client
-     * closes, and the rest) already converges on, rather than at
-     * each of those call sites individually. */
+     * client, focus recovery when the previously active client closes,
+     * and the rest) already converges on, rather than at each of those
+     * call sites individually. */
     if (client_is_urgent(client)) {
         ccmd_client_unurge(client);
     }
 
     /* ICCCM §4.1.7: 'SetInputFocus' is called only for a client whose
-     * input model actually wants it, meaning one whose 'WM_HINTS'
-     * input field is true and that does not register 'WM_TAKE_FOCUS'.
-     * That is the Passive model, and it is the only one where the
-     * window manager sets the focus itself.
+     * input model actually wants it, meaning one whose 'WM_HINTS' input
+     * field is true and that does not register 'WM_TAKE_FOCUS'.  That
+     * is the Passive model, and it is the only one where the window
+     * manager sets the focus itself.
      *
-     * A client registering 'WM_TAKE_FOCUS' sets its focus, on
-     * receiving the message sent further down, whatever its input
-     * field says: with the field false that is the Globally Active
-     * model and with it true the Locally Active one, and §4.1.7
-     * describes both as the client doing the setting.  Doing both, as
-     * this once did for a Locally Active client, is not merely
-     * redundant but actively breaks it: the timestamp is spent here
-     * first, and X ignores a 'SetInputFocus' whose time is not later
-     * than the last focus change, so the client's call with that
-     * same timestamp is discarded.  The frame took the focus and lit
-     * its titlebar while the application's focus stayed wherever
-     * it had been, which is what cycling with a key binding looked
-     * like.
+     * A client registering 'WM_TAKE_FOCUS' sets its focus, on receiving
+     * the message sent further down, whatever its input field says:
+     * with the field false that is the Globally Active model and with
+     * it true the Locally Active one, and §4.1.7 describes both as the
+     * client doing the setting.  Doing both, as this once did for
+     * a Locally Active client, is not merely redundant but actively
+     * breaks it: the timestamp is spent here first, and X ignores
+     * a 'SetInputFocus' whose time is not later than the last focus
+     * change, so the client's call with that same timestamp is
+     * discarded.  The frame took the focus and lit its titlebar while
+     * the application's focus stayed wherever it had been, which is
+     * what cycling with a key binding looked like.
      *
      * Target 'client->window' itself, except while shaded.  Content is
      * unmapped then (that is the entire point of shading), and ICCCM
      * §4.1.7/X11 both require a 'SetInputFocus' target to be viewable,
-     * so a shaded client's frame (still mapped, just visually
-     * collapsed to its titlebar) stands in for it instead.  Without
-     * this, a shaded client could never legitimately hold real input
-     * focus at all: 's_client_focus_fallback_valid' (this same file)
-     * and 'surface_clients_show' (surface/actions/clients.c) both
-     * relied on simply excluding a shaded client from ever being
-     * offered here, over actually making this call safe for one,
-     * which left nothing to give a desktop's keyboard focus
-     * anywhere valid once its only client was shaded and the desktop
-     * was left and returned to. */
+     * so a shaded client's frame (still mapped, just visually collapsed
+     * to its titlebar) stands in for it instead.  Without this,
+     * a shaded client could never legitimately hold real input focus at
+     * all: 's_client_focus_fallback_valid' (this same file) and
+     * 'surface_clients_show' (surface/actions/clients.c) both relied on
+     * simply excluding a shaded client from ever being offered here,
+     * over actually making this call safe for one, which left nothing
+     * to give a desktop's keyboard focus anywhere valid once its only
+     * client was shaded and the desktop was left and returned to. */
     if (client->hints_icccm.hints.accepts_input) {
         xcb_window_t focus_win = (client_is_shaded(client) &&
                 client->frame != 0) ? client->frame : client->window;
@@ -635,13 +610,13 @@ void ccmd_client_focus(client_td *client)
      * above, precisely so that the timestamp below is still unspent
      * when the client answers with one of its own.
      *
-     * The timestamp is the real one, never 'CurrentTime', which
-     * §4.1.7 forbids here in as many words.  The client is to echo
-     * this value back in its 'SetInputFocus', and is itself
-     * forbidden from using 'CurrentTime' there, so sending it one
-     * leaves it with nothing valid to answer with.  A Locally or
-     * Globally Active client handed 'CurrentTime' may simply decline
-     * to take focus, which looks from the outside like a titlebar
+     * The timestamp is the real one, never 'CurrentTime', which §4.1.7
+     * forbids here in as many words.  The client is to echo this value
+     * back in its 'SetInputFocus', and is itself forbidden from using
+     * 'CurrentTime' there, so sending it one leaves it with nothing
+     * valid to answer with.  A Locally or Globally Active client handed
+     * 'CurrentTime' may simply decline to take focus, which looks from
+     * the outside like a titlebar
      * that lights up while the keyboard goes elsewhere. */
     if (client->hints_icccm.protocols.has_take_focus &&
             ewmh != NULL) {
@@ -661,33 +636,24 @@ void ccmd_client_focus(client_td *client)
     client_focus_mark(client);
     ccmd_client_sync_states(client);
 
-    /* Never re-map the content window for a shaded client.  Shading
-     * explicitly unmapped it (see 'ccmd_client_shade',
-     * cmds/client/state.c), and this function runs on every single
-     * click via 'focus_apply' (policy/focus.c), including one that
-     * lands on a titlebar button rather than starting a genuine
-     * unshade.  Without this guard, clicking pin, cycle-layer, or
-     * anything else that re-focuses an already-shaded client mapped
-     * the content back while the frame stayed collapsed to its
-     * titlebar height, showing a sliver of content through the gap
-     * even though 'properties.state' never left
-     * 'CLIENT_STATE_SHADED'.  Matches the identical guard
-     * 'desktop_render_one_client' (render/desktop.c) already applies
-     * to this same window for the same reason. */
+    /* Same as the matching block in 'ccmd_client_unfocus' just below.
+     * An undecorated client's border follows from the render pass now,
+     * so only a framed one has anything to resync here. */    
     if (!client_is_shaded(client)) {
         xcb_window_show(client->window);
     }
+
     /* 'client_border_color_apply' ('client.h') preserves this same
      * condition (undecorated-or-frameless, never fullscreen), and
      * additionally honors 'border_override' for a client that themes
-     * its border independently of 'theme->window.active/inactive'
-     * (the scratchpad, 'scratchpad.c', is the only one that does so
-     * today) unconditionally applying the theme's real border width
-     * here on every single focus change (this function runs on every
-     * click, via 'focus_apply') would undo the zero width
-     * 'ccmd_client_fullscreen' ('cmds/state.c') has already set,
-     * putting a real, visible border back on an undecorated fullscreen
-     * client's window; confirmed directly from runtime diagnostics.
+     * its border independently of 'theme->window.active/inactive' (the
+     * scratchpad, 'scratchpad.c', is the only one that does so today)
+     * unconditionally applying the theme's real border width here on
+     * every single focus change (this function runs on every click, via
+     * 'focus_apply') would undo the zero width 'ccmd_client_fullscreen'
+     * ('cmds/state.c') has already set, putting a real, visible border
+     * back on an undecorated fullscreen client's window; confirmed
+     * directly from runtime diagnostics.
      *
      * An undecorated client (e.g., 'mpv', which requests no decoration
      * of its own from the very start, so 'client_is_decorated' is
@@ -727,24 +693,24 @@ void ccmd_client_unfocus(client_td *client)
     client_unfocus(client);
 
     /* Actually redirect the X server's real input focus away from this
-     * client, not just the window manager's bookkeeping of which
-     * client looks focused.  Without this, a client that keeps
+     * client, not just the window manager's bookkeeping of which client
+     * looks focused.  Without this, a client that keeps
      * 'WM_HINTS.input=true' (the default) still receives every
      * 'KeyPress'/'KeyRelease' after being visually unfocused (e.g., by
-     * clicking the empty desktop), since nothing ever told the X
-     * server to stop delivering keyboard events to its window.
-     * The timestamp is the same one 'ccmd_client_focus' uses, and
-     * that matters more than it looks.  A caller unfocusing this
-     * client only to focus another a moment later, which is what
-     * 'focus_apply' does on every focus change, was once said to
-     * override this harmlessly; that was true only while both calls
-     * carried 'CurrentTime', which the server replaces with the
-     * current time on each one.  With a real timestamp, relinquishing
-     * here with 'CurrentTime' records a last focus change later than
-     * the one the next call carries, and X ignores a 'SetInputFocus'
-     * older than the last focus change: the new window would light
-     * its titlebar while the keyboard went nowhere, following the
-     * pointer instead. */
+     * clicking the empty desktop), since nothing ever told the X server
+     * to stop delivering keyboard events to its window.
+     *
+     * The timestamp is the same one 'ccmd_client_focus' uses, and that
+     * matters more than it looks.  A caller unfocusing this client only
+     * to focus another a moment later, which is what 'focus_apply' does
+     * on every focus change, was once said to override this harmlessly;
+     * that was true only while both calls carried 'CurrentTime', which
+     * the server replaces with the current time on each one.  With
+     * a real timestamp, relinquishing here with 'CurrentTime' records
+     * a last focus change later than the one the next call carries, and
+     * X ignores a 'SetInputFocus' older than the last focus change: the
+     * new window would light its titlebar while the keyboard went
+     * nowhere, following the pointer instead. */
     if (xcb_connection_get() != NULL) {
         const uint32_t relinquish_time =
             (client_last_user_time() != 0u)
@@ -756,9 +722,9 @@ void ccmd_client_unfocus(client_td *client)
                 relinquish_time);
     }
 
-    /* Same as the matching block in 'ccmd_client_focus' just above.  An
-     * undecorated client's border follows from the render pass now, so
-     * only a framed one has anything to resync here. */
+    /* Same as the matching block in 'ccmd_client_focus' just above.
+     * An undecorated client's border follows from the render pass now,
+     * so only a framed one has anything to resync here. */
     if (client_is_decorated(client) && client->frame != 0) {
         client_theme_layout_resync(client, false);
     }
@@ -789,13 +755,13 @@ void ccmd_client_make_active(client_td *client)
     }
 
     /* Delegates to the same central path 'focus_apply'
-     * (policy/focus.c) already gives every other focus-granting
-     * call site, rather than reimplementing its unfocus-previous,
-     * activate, and raise steps by hand here.  Raised unconditionally
-     * ('raise' true regardless of the user's raise-on-focus setting),
-     * matching what this function's own raise call did on its own
-     * before, since a window arriving back from an icon or otherwise
-     * being made the active one is meant to actually be seen */
+     * ('policy/focus.c') already gives every other focus-granting call
+     * site, rather than reimplementing its unfocus-previous, activate,
+     * and raise steps by hand here.  Raised unconditionally ('raise'
+     * true regardless of the user's raise-on-focus setting), matching
+     * what this function's own raise call did on its own before, since
+     * a window arriving back from an icon or otherwise being made the
+     * active one is meant to actually be seen */
     focus_apply(wm_get_surfaces(), surface, desktop, client, true,
             wm_get_config());
 }

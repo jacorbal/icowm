@@ -522,17 +522,31 @@ uint32_t stacking_count(const desktop_td *desktop)
 }
 
 
-/** Link-only stand-in for stacking_walk; does not actually walk any
- *  clients (no real stack list is fixtured), only records the call so
+/** Fixture clients 'stacking_walk' below actually visits, so a
+ *  scenario testing 'hi_handle_net_showing_desktop' can make the
+ *  real 's_any_visible_visit' it walks with see one; empty by
+ *  default, so every other scenario's walk stays a no-op exactly as
+ *  before */
+static client_td *s_stacking_walk_clients[4];
+static uint8_t s_stacking_walk_client_count = 0u;
+
+/** Link-only stand-in for stacking_walk; invokes @p visit against
+ *  whichever fixture clients a scenario populated in
+ *  's_stacking_walk_clients' beforehand, exactly as the real function
+ *  would against a live stacking list, and always records the call so
  *  a scenario can prove the walk phase was reached */
 void stacking_walk(const desktop_td *desktop, stacking_visitor_fn visit,
         void *data)
 {
     (void) desktop;
-    (void) visit;
-    (void) data;
 
     s_call_stacking_walk++;
+    if (visit == NULL) {
+        return;
+    }
+    for (uint8_t i = 0u; i < s_stacking_walk_client_count; ++i) {
+        visit(s_stacking_walk_clients[i], data);
+    }
 }
 
 
@@ -706,6 +720,7 @@ static void s_test_reset_state(void)
     s_call_lookup_current_desktop = 0u;
     s_call_stacking_count = 0u;
     s_call_stacking_walk = 0u;
+    s_stacking_walk_client_count = 0u;
     s_call_surface_clients_show = 0u;
     s_call_surface_clients_hide = 0u;
     s_call_set_input_focus = 0u;
@@ -1589,14 +1604,18 @@ static void s_test_showing_desktop_hides(void)
 {
     surface_td surface;
     desktop_td desktop;
+    client_td client;
 
     s_test_reset_state();
     memset(&surface, 0, sizeof(surface));
     memset(&desktop, 0, sizeof(desktop));
+    s_test_build_client(&client, 0x100);
     surface.is_showing_desktop = false;
     surface.desktop_cur = 2u;
     s_lookup_current_desktop_result = &desktop;
     s_stacking_count_result = 1u;
+    s_stacking_walk_clients[0] = &client;
+    s_stacking_walk_client_count = 1u;
 
     hi_handle_net_showing_desktop(&surface, true);
 
@@ -1634,6 +1653,69 @@ static void s_test_showing_desktop_unhides(void)
             " exactly once");
     TAP_OK(s_call_set_input_focus == 0u,
             "un-showing the desktop never repositions input focus");
+}
+
+
+/* hi_handle_net_showing_desktop: a redundant show request, issued
+ * while the surface already reports showing the desktop and every
+ * client is already hidden from that earlier request, leaves
+ * 'is_showing_desktop' true rather than resetting it to false */
+static void s_test_showing_desktop_redundant_show_stays_showing(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+    client_td client;
+
+    s_test_reset_state();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_client(&client, 0x100);
+    client.properties.flags = CLIENT_FLAG_HIDDEN;
+    surface.is_showing_desktop = true;
+    surface.desktop_cur = 2u;
+    s_lookup_current_desktop_result = &desktop;
+    s_stacking_count_result = 1u;
+    s_stacking_walk_clients[0] = &client;
+    s_stacking_walk_client_count = 1u;
+
+    hi_handle_net_showing_desktop(&surface, true);
+
+    TAP_OK(surface.is_showing_desktop,
+            "a redundant show request leaves 'is_showing_desktop'" \
+            " true instead of resetting it to false");
+}
+
+
+/* hi_handle_net_showing_desktop: a redundant restore request, issued
+ * while the surface already reports not showing the desktop, neither
+ * hides nor unhides anything */
+static void s_test_showing_desktop_redundant_restore_is_noop(void)
+{
+    surface_td surface;
+    desktop_td desktop;
+    client_td client;
+
+    s_test_reset_state();
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_client(&client, 0x100);
+    surface.is_showing_desktop = false;
+    surface.desktop_cur = 2u;
+    s_lookup_current_desktop_result = &desktop;
+    s_stacking_count_result = 1u;
+    s_stacking_walk_clients[0] = &client;
+    s_stacking_walk_client_count = 1u;
+
+    hi_handle_net_showing_desktop(&surface, false);
+
+    TAP_OK(s_call_surface_clients_hide == 0u,
+            "a redundant restore request never hides the surface's" \
+            " clients");
+    TAP_OK(s_call_surface_clients_show == 0u,
+            "...nor does it restore them, since there is nothing to" \
+            " restore");
+    TAP_OK(!surface.is_showing_desktop,
+            "...and 'is_showing_desktop' stays false");
 }
 
 
@@ -2078,7 +2160,7 @@ static void s_test_wm_moveresize_resize_starts_directed_drag(void)
 
 int main(void)
 {
-    TAP_PLAN(67);
+    TAP_PLAN(71);
 
     s_test_wm_state_null_guards();
     s_test_wm_state_fullscreen_add();
@@ -2107,6 +2189,8 @@ int main(void)
     s_test_showing_desktop_empty_desktop();
     s_test_showing_desktop_hides();
     s_test_showing_desktop_unhides();
+    s_test_showing_desktop_redundant_show_stays_showing();
+    s_test_showing_desktop_redundant_restore_is_noop();
     s_test_restack_window_null_guards();
     s_test_restack_window_with_sibling();
     s_test_restack_window_unknown_detail_defaults_above();

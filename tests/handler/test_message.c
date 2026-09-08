@@ -22,8 +22,7 @@
  * separate translation unit this file is not testing), the
  * notification-startup, systray, EWMH-state-mutation, desktop-move,
  * focus, visibility, and responsiveness collaborators, and the real
- * xcb_change_property/xcb_ewmh_set_showing_desktop calls this
- * dispatcher itself makes directly.
+ * xcb_change_property calls this dispatcher itself makes directly.
  *
  * Deliberately out of scope: the exact internals of every
  * @c hi_handle_net_* handler (each gets its own test file when
@@ -1485,7 +1484,11 @@ static void s_test_request_frame_extents_no_client(void)
 
 
 /* _NET_SHOWING_DESKTOP walks every surface, applying the request to
- * each one and publishing the resulting state */
+ * each one; publishing the resulting state is left to 'wm_ewmh_sync'
+ * on the next refresh, not done here directly, since
+ * 'hi_handle_net_showing_desktop' can decide there is nothing to show
+ * and leave a surface's actual state different from what was asked
+ * for */
 static void s_test_showing_desktop_walks_all_surfaces(void)
 {
     xcb_ewmh_connection_t ewmh;
@@ -1516,9 +1519,9 @@ static void s_test_showing_desktop_walks_all_surfaces(void)
     TAP_OK(s_call_hi_showing_desktop == 2u,
             "_NET_SHOWING_DESKTOP applies to every surface in the" \
             " list");
-    TAP_OK(s_call_ewmh_set_showing_desktop == 2u,
-            "_NET_SHOWING_DESKTOP publishes the resulting state for" \
-            " every surface in the list");
+    TAP_OK(s_call_ewmh_set_showing_desktop == 0u,
+            "...without publishing the state directly itself, since" \
+            " a later refresh does that from the real result");
 
     list_destroy(surfaces);
 }

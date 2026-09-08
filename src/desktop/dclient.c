@@ -499,7 +499,7 @@ void desktop_action_recompute_urgent(desktop_td *desktop)
 {
     void *elem;
     surface_td *surface;
-    client_td *urgent = NULL;
+    const client_td *urgent = NULL;
     struct position_s page = { 0, 0 };
     bool was_urgent;
     bool had_page;

@@ -156,7 +156,7 @@ void wm_shutdown_gather_client(client_td *client)
     }
 
     if (!client_is_pinned(client)) {
-        desktop_td *const from = wm_get_client_desktop(client);
+        const desktop_td *const from = wm_get_client_desktop(client);
 
         if (from != NULL && from != desktop) {
             enact_desktop_client_send(from, client, desktop);

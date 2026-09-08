@@ -570,7 +570,7 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
     bool can_maximize;
     bool hide_pin;
     bool hide_sticky;
-    surface_td *surface;
+    const surface_td *surface;
     uint32_t bg_color;
     xcb_pixmap_t buffer;
     xcb_drawable_t target;
