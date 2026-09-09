@@ -105,10 +105,10 @@ static void s_icon_overlap_visit(client_td *client, void *data)
 /**
  * @brief Whether a remembered icon position is already occupied
  *
- * Checks @p client's saved @c icon_pos against every other
- * iconified client on the same desktop, so @c ccmd_client_iconify can
- * tell a genuinely free remembered spot from one that another window's
- * icon has since claimed (e.g., because that other window was iconified
+ * Checks @p client's saved @c icon_pos against every other iconified
+ * client on the same desktop, so @c ccmd_client_iconify can tell
+ * a genuinely free remembered spot from one that another window's icon
+ * has since claimed (e.g., because that other window was iconified
  * while @p client was still restored, and happened to land where
  * @p client's icon last was).
  *
@@ -120,16 +120,15 @@ static void s_icon_overlap_visit(client_td *client, void *data)
  * relying on it here would report every slot on a non-current desktop
  * as free regardless of how many icons already actually occupy it.
  *
- * @param client   Client about to be iconified; its @p icon_window
- *                 may still be non-zero from a previous iconify, in
- *                 which case it is skipped so it never collides with
- *                 itself
+ * @param client   Client about to be iconified; its @p icon_window may
+ *                 still be non-zero from a previous iconify, in which
+ *                 case it is skipped so it never collides with itself
  * @param icon_dim Icon width/height, in pixels
  *
  * @return @c true if another icon already overlaps that position
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop
  */
 static bool s_icon_slot_is_taken(const client_td *client,
         struct dimensions_s icon_dim)
@@ -162,8 +161,8 @@ static bool s_icon_slot_is_taken(const client_td *client,
  * Everything a fresh icon position needs, in one place.  The monitor
  * @p client sits on rather than the whole combined screen, that
  * monitor's origin, @c desktops.margins and the tray's reserved strut
- * shifting the origin inward and shrinking the room, and the
- * configured placement policy.
+ * shifting the origin inward and shrinking the room, and the configured
+ * placement policy.
  *
  * Shared by @a ccmd_client_ensure_icon_window and
  * @a ccmd_client_relocate_icon_if_taken, so that the two can never
@@ -178,10 +177,10 @@ static bool s_icon_slot_is_taken(const client_td *client,
  * @note Answers @c false only for a client with no configuration
  *       attached, which has no placement policy to apply
  * @note The result is not clamped to @c int16_t here; both callers
- *       store it into @c client_td's 16-bit @p icon_pos, which is
- *       what the X protocol takes for a window position anyway
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop, from the overlap search this hands on to
+ *       store it into @c client_td's 16-bit @p icon_pos, which is what
+ *       the X protocol takes for a window position anyway
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop, from the overlap search this hands on to
  */
 static bool s_icon_position_choose(client_td *client,
         struct dimensions_s icon_dim,
@@ -313,10 +312,12 @@ static bool s_icon_position_choose(client_td *client,
  * @a s_systray_strut_update, @c systray/layout.c).  The tray still
  * visually occupies real screen space either way, so this check
  * against its actual current rectangle catches what that coarser
- * shrink alone misses.  A tray docked in a corner, reaching only
- * partway along an edge, is the case that shrink cannot express at
- * all: it only ever knows the tray's side widths, nothing about how
- * far along that edge it actually reaches.
+ * shrink alone misses.
+ *
+ * A tray docked in a corner, reaching only partway along an edge, is
+ * the case that shrink cannot express at all: it only ever knows the
+ * tray's side widths, nothing about how far along that edge it actually
+ * reaches.
  *
  * @param client   Client whose icon is being positioned
  * @param icon_dim Icon width/height, in pixels
@@ -395,11 +396,14 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
 
 
 /* Create the client's icon window if it does not exist yet, or
- * reposition the existing one at its saved coordinates; see
- * 'cmds/client/internal.h' for the full comment */
+ * reposition the existing one at its saved coordinates */
 void ccmd_client_ensure_icon_window(client_td *client,
         uint16_t icon_h_out)
 {
+    if (client == NULL) {
+        return;
+    }
+
     if (client->icon_window == 0) {
         struct dimensions_s icon_dim;
         struct position_s icon_pos;
@@ -425,7 +429,8 @@ void ccmd_client_ensure_icon_window(client_td *client,
                 !s_icon_slot_is_taken(client, icon_dim)) {
             ix = client->icon_pos.x;
             iy = client->icon_pos.y;
-        } else if (s_icon_position_choose(client, icon_dim, &icon_pos)) {
+        } else if (s_icon_position_choose(client,
+                    icon_dim, &icon_pos)) {
             ix = (int16_t) icon_pos.x;
             iy = (int16_t) icon_pos.y;
         } else {

@@ -68,7 +68,7 @@
  * @param b_start Start of the second range
  * @param b_end   End of the second range
  *
- * @return @c true if the ranges overlap, otherwise @c false
+ * @return @c true if the ranges overlap
  *
  * @note Complexity: @e O(1)
  */
@@ -167,8 +167,8 @@ static void s_fold_strut(const struct strut_partial_s *strut,
 /**
  * @brief What @a s_strut_fold_visit needs beyond the client itself
  *
- * Handed through @a stacking_walk's opaque pointer, that walk
- * taking a visitor of one client and nothing else.
+ * Handed through @a stacking_walk's opaque pointer, that walk taking
+ * a visitor of one client and nothing else.
  */
 struct s_strut_fold_ctx_s {
     int32_t region_min_x;       /**< Region's left edge */
@@ -261,12 +261,6 @@ static size_t s_h2(const void *data)
      * non-zero to guarantee a valid step size in double hashing. */
     hash2 = (hash2 == 0u) ? 1u : hash2;
 
-    /* Internal invariant, not external input validation that verifies
-     * this function's documented postcondition (never zero) holds after
-     * the line just above, so a future edit to that forcing logic that
-     * accidentally breaks it is caught immediately in a debug build
-     * rather than silently producing an invalid double-hashing step
-     * size. */
     assert(hash2 != 0u);
 
     return hash2;
@@ -294,16 +288,6 @@ static bool s_client_match(const void *key1, const void *key2)
     const client_td *client1 = (const client_td *) key1;
     const client_td *client2 = (const client_td *) key2;
 
-    /* Internal invariant, not external input validation.  This is an
-     * ohtbl comparator, called only by 'ohtbl.c''s internals with
-     * entries already stored in the table, never with
-     * attacker-controlled or user-controlled input.
-     *
-     * Catches a future bug in that internal calling logic immediately
-     * in a debug build instead of the bare, unexplained segfault the
-     * dereferences just below would otherwise produce.
-     *
-     * Compiled out entirely in the default release build ('NDEBUG'). */
     assert(key1 != NULL);
     assert(key2 != NULL);
 
@@ -605,6 +589,8 @@ desktop_td *desktop_init(xcb_connection_t *connection,
     desktop->is_outdated = true;
     desktop->is_focus_dirty = true;
     desktop->is_urgent = false;
+    desktop->has_urgent_page = false;
+    desktop->urgent_page = (struct position_s) {.x = 0, .y = 0};
 
     LOGGER_TRACE("Initialized desktop %u ('%s') on screen %u" \
             " with geometry %ux%u",

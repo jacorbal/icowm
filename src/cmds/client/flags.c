@@ -63,12 +63,11 @@
 
 
 /**
- * @brief Pin exactly this one client, ignoring any transient family
- *        it may belong to
+ * @brief Pin exactly this one client, ignoring any transient family it
+ *        may belong to
  *
- * Holds the single-client half of @a ccmd_client_pin, so
- * that function can redirect to, and cascade across, a transient
- * family (see its comment).
+ * Holds the single-client half of @a ccmd_client_pin, so that function
+ * can redirect to, and cascade across, a transient family.
  *
  * @param client Client to pin; must be non-null
  *
@@ -106,9 +105,8 @@ static void s_ccmd_client_pin_visit(client_td *member, void *ctx)
  * @brief Unpin exactly this one client, ignoring any transient family
  *        it may belong to
  *
- * Holds the single-client half of @a ccmd_client_unpin, so
- * that function can redirect to, and cascade across, a transient
- * family (see its comment).
+ * Holds the single-client half of @a ccmd_client_unpin, so that
+ * function can redirect to, and cascade across, a transient family.
  *
  * @param client Client to unpin; must be non-null and unlocked
  *
@@ -136,9 +134,10 @@ static void s_ccmd_client_unpin_one(client_td *client)
 
         /* Account for the 'UnmapNotify' events that
          * 'handler_unmap_notify' must skip.  Two events arrive for the
-         * unmapped target ('SubstructureNotify' on parent
-         * + 'StructureNotify' on target) and one additional event for
-         * the titlebar via the frame's 'SubstructureNotify'. */
+         * unmapped target
+         * ('SubstructureNotify' on parent + 'StructureNotify' on
+         * target) and one additional event for the titlebar via the
+         * frame's 'SubstructureNotify'. */
         ccmd_client_unmap_decorated(client, target);
 
         if (client->icon_window != 0 && client->is_icon_mapped) {
@@ -169,6 +168,58 @@ static void s_ccmd_client_unpin_visit(client_td *member, void *ctx)
 
     if (client_is_pinned(member) && !client_is_locked(member)) {
         s_ccmd_client_unpin_one(member);
+    }
+}
+
+
+static void s_ccmd_client_stick_one(client_td *client)
+{
+    client_stick(client);
+    ccmd_client_sync_states(client);
+    wm_request_client_redraw(client);
+}
+
+
+/**
+ * @brief Stick one transient family member
+ *
+ * @param member Family member to act on
+ * @param ctx    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_stick_visit(client_td *member, void *ctx)
+{
+    (void) ctx;
+
+    if (!client_is_sticky(member) && !client_is_locked(member)) {
+        s_ccmd_client_stick_one(member);
+    }
+}
+
+
+static void s_ccmd_client_unstick_one(client_td *client)
+{
+    client_unstick(client);
+    ccmd_client_sync_states(client);
+    wm_request_client_redraw(client);
+}
+
+
+/**
+ * @brief Unstick one transient family member
+ *
+ * @param member Family member to act on
+ * @param ctx    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_unstick_visit(client_td *member, void *ctx)
+{
+    (void) ctx;
+
+    if (client_is_sticky(member) && !client_is_locked(member)) {
+        s_ccmd_client_unstick_one(member);
     }
 }
 
@@ -253,22 +304,45 @@ void ccmd_client_toggle_pin(client_td *client)
  * panning */
 void ccmd_client_stick(client_td *client)
 {
+    client_td *top;
+
     if (client == NULL || client_is_locked(client)) {
         return;
     }
 
-    client_stick(client);
+    top = ccmd_client_transient_top_parent(client);
+    if (top == NULL) {
+        return;
+    }
+
+    if (!client_is_sticky(top) && !client_is_locked(top)) {
+        s_ccmd_client_stick_one(top);
+    }
+
+    ccmd_client_family_apply(top, s_ccmd_client_stick_visit, NULL);
+
 }
 
 
 /* Unstick the client */
 void ccmd_client_unstick(client_td *client)
 {
+    client_td *top;
+    
     if (client == NULL || client_is_locked(client)) {
         return;
     }
 
-    client_unstick(client);
+    top = ccmd_client_transient_top_parent(client);
+    if (top == NULL) {
+        return;
+    }
+
+    if (client_is_sticky(top) && !client_is_locked(top)) {
+        s_ccmd_client_unstick_one(top);
+    }
+
+    ccmd_client_family_apply(top, s_ccmd_client_unstick_visit, NULL);
 }
 
 

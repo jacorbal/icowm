@@ -36,7 +36,14 @@
 /* Rename the client window */
 void ccmd_client_rename(client_td *client, const char *name)
 {
+    char *new_name;
+
     if (client == NULL || name == NULL) {
+        return;
+    }
+
+    new_name = safe_strdup(name);
+    if (new_name == NULL) {
         return;
     }
 
@@ -44,7 +51,7 @@ void ccmd_client_rename(client_td *client, const char *name)
             client->window, name);
 
     free(client->info.name);
-    client->info.name = safe_strdup(name);
+    client->info.name = new_name;
 
     xcb_change_property(xcb_connection_get(),
             XCB_PROP_MODE_REPLACE,
@@ -55,7 +62,8 @@ void ccmd_client_rename(client_td *client, const char *name)
             (uint32_t) safe_strlen(client->info.name),
             client->info.name);
 
-    xcb_ewmh_set_wm_name(xcb_ewmh_connection_get(), client->window,
+    xcb_ewmh_set_wm_name(xcb_ewmh_connection_get(),
+            client->window,
             (uint32_t) safe_strlen(client->info.name),
             client->info.name);
 }
@@ -70,9 +78,19 @@ void ccmd_client_reclass(client_td *client,
     size_t wm_class_combined_len;
     size_t len0;
     size_t len1;
+    char *new_class;
+    char *new_instance;
 
     if (client == NULL ||
             class_name == NULL || instance_name == NULL) {
+        return;
+    }
+
+    new_class = safe_strdup(class_name);
+    new_instance = safe_strdup(instance_name);
+    if (new_class == NULL || new_instance == NULL) {
+        free(new_class);
+        free(new_instance);
         return;
     }
 
@@ -81,8 +99,8 @@ void ccmd_client_reclass(client_td *client,
 
     free(client->info.class_name[0]);
     free(client->info.class_name[1]);
-    client->info.class_name[0] = safe_strdup(class_name);
-    client->info.class_name[1] = safe_strdup(instance_name);
+    client->info.class_name[0] = new_class;
+    client->info.class_name[1] = new_instance;
 
     /* The 'WM_CLASS' property contains two consecutive null-terminated
      * strings (ICCCM v 2.0, §4.1.2.5).  A single buffer is built
@@ -113,8 +131,14 @@ void ccmd_client_reclass(client_td *client,
 void ccmd_client_rerole(client_td *client, const char *role)
 {
     xcb_atom_t role_atom;
+    char *new_role;
 
     if (client == NULL || role == NULL) {
+        return;
+    }
+
+    new_role = safe_strdup(role);
+    if (new_role == NULL) {
         return;
     }
 
@@ -122,7 +146,7 @@ void ccmd_client_rerole(client_td *client, const char *role)
             " '%s'", client->window, role);
 
     free(client->info.role_name);
-    client->info.role_name = safe_strdup(role);
+    client->info.role_name = new_role;
 
     role_atom = atom_intern(xcb_connection_get(),
             "WM_WINDOW_ROLE", false);
@@ -160,7 +184,8 @@ void ccmd_client_set_icon(client_td *client, const char *icon_name)
             (uint32_t) safe_strlen(icon_name),
             icon_name);
 
-    xcb_ewmh_set_wm_icon_name(xcb_ewmh_connection_get(), client->window,
+    xcb_ewmh_set_wm_icon_name(xcb_ewmh_connection_get(),
+            client->window,
             (uint32_t) safe_strlen(icon_name),
             icon_name);
 }

@@ -161,6 +161,7 @@ void ccmd_client_move(client_td *client, struct position_s pos)
     client->layout.geometry.cur.pos.x = pos.x;
     client->layout.geometry.cur.pos.y = pos.y;
     client->has_rule_position_locked = false;
+    wm_request_client_redraw(client);
 }
 
 
@@ -211,6 +212,7 @@ void ccmd_client_center(client_td *client)
     client->layout.geometry.cur.pos.x = x;
     client->layout.geometry.cur.pos.y = y;
     client->has_rule_position_locked = false;
+    wm_request_client_redraw(client);
 }
 
 

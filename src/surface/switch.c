@@ -26,6 +26,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -40,36 +43,35 @@
 #include <cmds/client/flags.h>
 #include <cmds/client/icon.h>
 #include <cmds/client/maximize.h>
-#include <utils/xcb/connection.h>
 
 
 /**
- * @brief Mark every one of a surface's desktops, and every
- *        client on each of them, as outdated
+ * @brief Mark every one of a surface's desktops, and every client on
+ *        each of them, as outdated
  *
  * @c render_client_titlebar_repaint_content
- * (render/client/titlebar.c) recomputes
- * whether the pin button belongs on a client's titlebar
- * (@c hide_pin) fresh every time it runs, from @p surface's
- * current @c desktop_count, but reaching it takes clearing two
- * separate gates, not one: @a desktop_render_full only actually
- * renders a desktop whose @c is_outdated is set
- * (@a surface_render_current_desktop, render/surface.c), and, once
+ * (@c render/client/titlebar.c) recomputes whether the pin button
+ * belongs on a client's titlebar (@c hide_pin) fresh every time it
+ * runs, from @p surface's current @c desktop_count, but reaching it
+ * takes clearing two separate gates, not one: @a desktop_render_full
+ * only actually renders a desktop whose @c is_outdated is set
+ * (@a surface_render_current_desktop, @c render/surface.c), and, once
  * inside, @a desktop_render_one_client only repaints a client's
  * titlebar content when that client's @c is_outdated is
- * @e also set (render/desktop.c).  @a surface_action_desktop_add /
- * @c _remove used to mark only @p surface itself, leaving every
- * existing client's pin button stale (present or missing) until
- * some unrelated event (a focus change, in practice, which marks
- * both the one desktop involved and its one client) happened to
- * clear both gates for it on its own.
+ * @e also set (@c render/desktop.c).
  *
- * @param surface Surface whose desktops and clients should all
- *                be marked outdated
+ * @a surface_action_desktop_add / @a _remove used to mark only
+ * @p surface itself, leaving every existing client's pin button stale
+ * (present or missing) until some unrelated event (a focus change, in
+ * practice, which marks both the one desktop involved and its one
+ * client) happened to clear both gates for it on its own.
+ *
+ * @param surface Surface whose desktops and clients should all be
+ *                marked outdated
  *
  * @note No-op if @p surface or its desktop list is @c NULL
- * @note Complexity: @e O(n), where @e n is the total number of
- *       clients across every one of @p surface's desktops
+ * @note Complexity: @e O(n), where @e n is the total number of clients
+ *       across every one of @p surface's desktops
  */
 static void s_surface_mark_all_desktops_outdated(surface_td *surface)
 {
@@ -94,32 +96,33 @@ static void s_surface_mark_all_desktops_outdated(surface_td *surface)
 
 
 /**
- * @brief Grow this surface's configured desktop-grid layout by
- *        exactly one row or column, whichever @c orientation treats
- *        as the non-primary axis, so it can hold one more desktop
- *        than its @c rows @c * @c columns currently can
+ * @brief Grow this surface's configured desktop-grid layout by exactly
+ *        one row or column, whichever @c orientation treats as the
+ *        non-primary axis, so it can hold one more desktop than its
+ *        @c rows @c * @c columns currently can
  *
  * Growing the non-primary axis, never the primary one @c orientation
  * itself fills first (@c columns for @c horizontal, @c rows for
- * @c vertical), is what keeps every desktop already placed in the
- * grid exactly where it already was: that primary axis is the
- * divisor @a s_layout_row_col (surface/desktops.c) itself uses to
- * translate a flat index into its row/column, so changing it
- * reflows every index past the first row (or column) into a whole
- * new position, while growing the other axis instead only ever
- * opens up an entirely new, previously nonexistent row (or column)
- * beyond the last one, leaving every existing index's division
- * and remainder, and so its translated position, completely
- * unaffected.  A no-op when there is already enough spare capacity
- * (@c rows @c * @c columns already exceeds the desktop count about
- * to exist) to just fill a desktop-less gap cell instead, the
- * common case once a screen has been through more than one add and
- * remove cycle.  Never switches the surface's currently viewed
- * desktop, whether it grows anything or not, and whichever row or
- * column that view happens to already be on.  Adding a desktop is
- * purely a "create it" action here, the exact same as it was before
- * a grid layout existed at all, regardless of which one, if any,
- * the user doing the adding happens to be looking at right now.
+ * @c vertical), is what keeps every desktop already placed in the grid
+ * exactly where it already was: that primary axis is the divisor
+ * @a s_layout_row_col (@c surface/desktops.c) itself uses to translate
+ * a flat index into its row/column, so changing it reflows every index
+ * past the first row (or column) into a whole new position, while
+ * growing the other axis instead only ever opens up an entirely new,
+ * previously nonexistent row (or column) beyond the last one, leaving
+ * every existing index's division and remainder, and so its translated
+ * position, completely unaffected.
+ *
+ * A no-op when there is already enough spare capacity
+ * (@c rows @c * @c columns already exceeds the desktop count about to
+ * exist) to just fill a desktop-less gap cell instead, the common case
+ * once a screen has been through more than one add and remove cycle.
+ * Never switches the surface's currently viewed desktop, whether it
+ * grows anything or not, and whichever row or column that view happens
+ * to already be on.  Adding a desktop is purely a "create it" action
+ * here, the exact same as it was before a grid layout existed at all,
+ * regardless of which one, if any, the user doing the adding happens to
+ * be looking at right now.
  *
  * @param surface     Surface whose layout to grow
  * @param new_count   The desktop count this surface is about to have
@@ -155,23 +158,23 @@ static void s_surface_layout_grow_for(surface_td *surface,
 
 /**
  * @brief Shrink this surface's configured desktop-grid layout by
- *        exactly one row or column, whichever @c orientation treats
- *        as the non-primary axis, if the desktop just removed was
- *        that axis' last remaining member
+ *        exactly one row or column, whichever @c orientation treats as
+ *        the non-primary axis, if the desktop just removed was that
+ *        axis' last remaining member
  *
  * The exact inverse of @a s_surface_layout_grow_for.  Since @c remove
- * only ever takes the highest-numbered desktop, and fill order
- * always places that one in the last row (or column) that has any
- * member at all, removing it leaves that same row (or column)
- * genuinely empty only when it was that row's (or column's) sole
- * occupant to begin with, in which case shrinking the non-primary
- * axis back by one restores exactly the shape
- * @a s_surface_layout_grow_for last grew it from.  A no-op
- * otherwise (that row or
- * column still has another real desktop left in it), and a no-op
- * once the non-primary axis is already down to a single row or
- * column, so this never shrinks a surface's layout below @c 1
- * on either axis.
+ * only ever takes the highest-numbered desktop, and fill order always
+ * places that one in the last row (or column) that has any member at
+ * all, removing it leaves that same row (or column) genuinely empty
+ * only when it was that row's (or column's) sole occupant to begin
+ * with, in which case shrinking the non-primary axis back by one
+ * restores exactly the shape @a s_surface_layout_grow_for last grew it
+ * from.
+ *
+ * A no-op otherwise (that row or column still has another real desktop
+ * left in it), and a no-op once the non-primary axis is already down to
+ * a single row or column, so this never shrinks a surface's layout
+ * below @c 1 on either axis.
  *
  * @param surface   Surface whose layout to shrink
  * @param new_count The desktop count this surface now has, after the
@@ -211,8 +214,9 @@ static void s_surface_layout_shrink_after(surface_td *surface,
  *        batch
  *
  * A desktop holding more than this is drained one batch at a time
- * instead of needing an array sized for the worst case up front;
- * see @a s_surface_desktop_evacuate's comment.
+ * instead of needing an array sized for the worst case up front.
+ *
+ * @see @a s_surface_desktop_evacuate's comment
  */
 #define SWITCH_EVACUATE_MAX_CLIENTS (256)
 
@@ -249,32 +253,32 @@ static void s_client_evacuate_visit(client_td *client, void *data)
 
 
 /**
- * @brief Move every client still on @p from_desktop to
- *        @p to_desktop, updating EWMH @c _NET_WM_DESKTOP along
- *        the way
+ * @brief Move every client still on @p from_desktop to @p to_desktop,
+ *        updating EWMH @c _NET_WM_DESKTOP along the way
  *
  * Gathers up to @c SWITCH_EVACUATE_MAX_CLIENTS clients before moving
  * any of them, rather than repeatedly taking whichever client the
- * desktop holds first: moving one takes it off @p from_desktop, so a
- * walk that moved as it went would be reading a set it was itself
- * changing.  A desktop holding more than one batch's worth simply
- * runs another gather-and-move round, since a client that this round
- * already moved no longer shows up under @p from_desktop for the
- * next one to find; @p from_desktop ends up fully drained regardless
- * of how many clients it started with, rather than silently keeping
- * whatever did not fit in a single fixed-size array.  A round is only
- * repeated after one that both filled its batch and actually moved
- * at least one client in it, so a client that keeps failing to move
- * (@a desktop_action_client_move refusing every attempt, most likely
- * because @p to_desktop itself is somehow out of room) is retried
- * exactly once more and then left in place rather than retried
- * forever.
+ * desktop holds first: moving one takes it off @p from_desktop, so
+ * a walk that moved as it went would be reading a set it was itself
+ * changing.  A desktop holding more than one batch's worth simply runs
+ * another gather-and-move round, since a client that this round already
+ * moved no longer shows up under @p from_desktop for the next one to
+ * find; @p from_desktop ends up fully drained regardless of how many
+ * clients it started with, rather than silently keeping whatever did
+ * not fit in a single fixed-size array.
+ *
+ * A round is only repeated after one that both filled its batch and
+ * actually moved at least one client in it, so a client that keeps
+ * failing to move (@a desktop_action_client_move refusing every
+ * attempt, most likely because @p to_desktop itself is somehow out of
+ * room) is retried exactly once more and then left in place rather than
+ * retried forever.
  *
  * @param from_desktop Desktop being emptied
  * @param to_desktop   Desktop every client moves to
  *
- * @note No-op if either desktop is @c NULL, or if @p from_desktop
- *       has no clients to begin with
+ * @note No-op if either desktop is @c NULL, or if @p from_desktop has
+ *       no clients to begin with
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p from_desktop
  */
@@ -308,21 +312,21 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
             if (desktop_action_client_move(from_desktop, to_desktop,
                     client) == 0) {
                 made_progress = true;
+
+                /* An iconified client keeps the icon position it
+                 * already had on 'from_desktop'; that exact spot is
+                 * only a coincidence on 'to_desktop', which may already
+                 * have an icon of its own sitting right there.
+                 * Relocated to a free spot, the same way a client
+                 * repositions its icon (or gets a fresh one) whenever
+                 * a saved position turns out already claimed; see
+                 * 'ccmd_client_relocate_icon_if_taken' (see
+                 * 'cmds/client/basic.h') for the exact same 'unless
+                 * claimed' logic applied to a freshly (re-)iconified
+                 * client. */
+                ccmd_client_relocate_icon_if_taken(client);
+                ccmd_publish_wm_desktop(client, to_desktop->id);
             }
-
-            /* An iconified client keeps the icon position it already
-             * had on 'from_desktop'; that exact spot is only a
-             * coincidence on 'to_desktop', which may already have an
-             * icon of its own sitting right there.  Relocated to a
-             * free spot, the same way a client repositions its icon
-             * (or gets a fresh one) whenever a saved position turns
-             * out already claimed; see
-             * 'ccmd_client_relocate_icon_if_taken' (cmds/client/
-             * basic.h) for the exact same 'unless claimed' logic
-             * applied to a freshly (re-)iconified client. */
-            ccmd_client_relocate_icon_if_taken(client);
-
-            ccmd_publish_wm_desktop(client, to_desktop->id);
         }
     } while (made_progress &&
             evacuate_ctx.count == evacuate_ctx.capacity);

@@ -243,6 +243,10 @@ void surface_destroy(surface_td *surface)
 void surface_resize(surface_td *surface,
         uint32_t width, uint32_t height)
 {
+    if (surface == NULL) {
+        return;
+    }
+
     surface->properties.dim.w = width;
     surface->properties.dim.h = height;
 

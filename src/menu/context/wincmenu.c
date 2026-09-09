@@ -815,7 +815,7 @@ static int s_build_desk_entries(surface_td *surface,
 
     /* 'All desktops' entry for pin support */
     s_desk_entries[n].type = CTXMENU_COMMAND;
-    s_desk_entries[n].is_disabled = false/*is_pinned*/;
+    s_desk_entries[n].is_disabled = false;
     s_desk_entries[n].on_activate = s_cb_send_action;
     s_desk_entries[n].userdata =
         (void *) (intptr_t) ACTION_CLIENT_TOGGLE_PIN;

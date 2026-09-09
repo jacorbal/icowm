@@ -33,6 +33,10 @@
 void surface_viewport_dims(const surface_td *surface,
         uint32_t *columns_out, uint32_t *rows_out)
 {
+    if (columns_out == NULL || rows_out == NULL) {
+        return;
+    }
+
     *columns_out = 1u;
     *rows_out = 1u;
 

@@ -516,10 +516,10 @@ static void s_ccmd_decorate_remaximize(client_td *client)
             xcb_window_t target = ccmd_target_win(client);
             bool touch_x = !client_is_maximized_vert(client);
             bool touch_y = !client_is_maximized_horz(client);
-            /* This function always ends by focusing 'client' (see
-             * 'keep_focus' below), so its border width right after this
-             * toggle is always the active one, regardless of whichever
-             * one it had a moment ago. */
+            /* 'ccmd_client_toggle_decorate' always ends by focusing
+             * 'client' once this function returns, so its border width
+             * right after this toggle is always the active one,
+             * regardless of whichever one it had a moment ago. */
             /* 'ignore_frame=false': by this point the decorate/
              * undecorate branch above has already settled, so
              * 'client->frame' now correctly reflects whether one
@@ -556,8 +556,8 @@ static void s_ccmd_decorate_remaximize(client_td *client)
             if (client->frame != 0) {
                 client_decoration_layout_sync(client);
             }
-        }
-    }
+        } /* ! if (ccmd_client_resolve_workarea) */
+    } /* ! if (client_is_maximized_any) */
 }
 
 
@@ -721,18 +721,18 @@ void ccmd_client_unshade(client_td *client)
 
     /* The content window's real on-screen size was never actually
      * touched while shaded (see 'client_decoration_layout_sync',
-     * client/geom.c, which now deliberately skips resizing it for
+     * 'client/geom.c', which now deliberately skips resizing it for
      * a shaded client, matching Openbox's 'frame_adjust_area',
-     * frame.c): it already holds its true, correct size, restored with
-     * nothing further needed for the common case.  Called here anyway,
-     * now that 'client_unshade' just above has genuinely cleared the
-     * shaded state, purely as a safety net for the edge case of
-     * 'frame_extents' having changed while this client sat shaded (a
-     * theme reload changing the border/titlebar size, most plausibly):
-     * without this, the content would stay positioned and sized for the
-     * frame extents that were in effect before that change, out of sync
-     * with the ones actually in force now that the frame is visible
-     * again. */
+     * 'frame.c'): it already holds its true, correct size, restored
+     * with nothing further needed for the common case.  Called here
+     * anyway, now that 'client_unshade' just above has genuinely
+     * cleared the shaded state, purely as a safety net for the edge
+     * case of 'frame_extents' having changed while this client sat
+     * shaded (a theme reload changing the border/titlebar size, most
+     * plausibly): without this, the content would stay positioned and
+     * sized for the frame extents that were in effect before that
+     * change, out of sync with the ones actually in force now that the
+     * frame is visible again. */
     client_decoration_layout_sync(client);
 
     (void) clock_gettime(CLOCK_MONOTONIC, &client->shade_transition_time);
@@ -740,7 +740,7 @@ void ccmd_client_unshade(client_td *client)
     ccmd_client_sync_states(client);
 
     /* Real X input focus stayed on the frame while shaded (see
-     * 'ccmd_client_focus''s doc comment, cmds/client/focus.c, for why):
+     * 'ccmd_client_focus''s comment, 'cmds/client/focus.c', for why):
      * the content window just remapped above is a genuinely different,
      * now-focusable window, and nothing else here moves focus onto it.
      * A client relying on 'WM_HINTS' input=true plus 'WM_TAKE_FOCUS' to
@@ -796,8 +796,7 @@ void ccmd_client_fullscreen(client_td *client)
     /* Restore first if iconified, the same reasoning as
      * 'ccmd_client_shade''s identical guard just above.  An iconified
      * client's target window is unmapped, and entering fullscreen here
-     * would map it back while the icon window is
-     * still up. */
+     * would map it back while the icon window is still up. */
     if (client_is_iconified(client)) {
         ccmd_client_restore(client);
     }
@@ -815,8 +814,8 @@ void ccmd_client_fullscreen(client_td *client)
     /* A modal is refused all the same, for a reason of its own rather
      * than anything to do with size hints: it exists to be answered
      * while the window it belongs to stays in view, and filling the
-     * screen puts that window out of sight with no way back to it
-     * that does not go through the modal first */
+     * screen puts that window out of sight with no way back to it that
+     * does not go through the modal first */
     if (client_is_modal(client)) {
         return;
     }
@@ -850,8 +849,7 @@ void ccmd_client_fullscreen(client_td *client)
      * current (maximized) geometry instead, permanently losing the true
      * original size a later 'unmaximize' needs.  The equivalent case
      * for shade is already handled above, via the 'ccmd_client_unshade'
-     * call this function already makes
-     * before ever reaching here. */
+     * call this function already makes before ever reaching here. */
     if (!client_is_maximized_any(client)) {
         client_geometry_save(client);
     }
@@ -876,13 +874,13 @@ void ccmd_client_fullscreen(client_td *client)
      * paint a frame reflecting it, leaving the frame's background (set
      * to the theme's border color by
      * 'render_client_decoration_repaint_frame',
-     * 'render/client/decoration.c') visible
-     * through the gap along the content's top and left edges until its
-     * next redraw happened to catch up (visually indistinguishable from
-     * a real border, though neither an X11 border nor that repaint
-     * function was ever actually involved).  Configuring the parent
-     * first removes the gap outright: the child is never given a size
-     * its parent does not already accommodate, however briefly. */
+     * 'render/client/decoration.c') visible through the gap along the
+     * content's top and left edges until its next redraw happened to
+     * catch up (visually indistinguishable from a real border, though
+     * neither an X11 border nor that repaint function was ever actually
+     * involved).  Configuring the parent first removes the gap
+     * outright: the child is never given a size its parent does not
+     * already accommodate, however briefly. */
     ccmd_client_apply_geometry(client, target,
             (uint16_t) XCB_CONFIG_WINDOW_X |
                 (uint16_t) XCB_CONFIG_WINDOW_Y |
@@ -916,17 +914,18 @@ void ccmd_client_fullscreen(client_td *client)
     /* ICCCM §4.2.3: applications that render via GL/Vulkan (e.g.,
      * 'mplayer', 'mpv') generally wait for a 'ConfigureNotify' before
      * resizing their rendering surface/viewport, and it must carry the
-     * true screen-relative geometry.  The real 'ConfigureNotify' the
-     * X server sends for the frame/window configure above already
-     * carries that geometry (including the monitor's origin, not
-     * necessarily (0,0), on a surface made of more than one monitor),
-     * so this was not strictly required for the client's OWN
-     * 'ConfigureNotify'; but the frame reparenting above still delivers
-     * one relative to the *frame*, and without an explicit synthetic
-     * one afterward some clients only apply the next size they are told
-     * about relative to their last known good state, which can
-     * otherwise show as a blank frame until an unrelated event forces
-     * a fresh redraw. */
+     * true screen-relative geometry.
+     *
+     * The real 'ConfigureNotify' the X server sends for the
+     * frame/window configure above already carries that geometry
+     * (including the monitor's origin, not necessarily (0,0), on
+     * a surface made of more than one monitor), so this was not
+     * strictly required for the client's OWN 'ConfigureNotify'; but the
+     * frame reparenting above still delivers one relative to the
+     * *frame*, and without an explicit synthetic one afterward some
+     * clients only apply the next size they are told about relative to
+     * their last known good state, which can otherwise show as a blank
+     * frame until an unrelated event forces a fresh redraw. */
     client_send_synthetic_configure_notify(xcb_connection_get(), client);
 
     client->properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
@@ -996,8 +995,8 @@ void ccmd_client_unfullscreen(client_td *client)
      * below to the frame's full size and 'frame_extents.left'/'.right'
      * to 0 right along with it.  The border theme color never
      * disappears, there is simply no frame pixel width left for it to
-     * occupy, the client's content
-     * drawn flush against the frame's outer edge instead. */
+     * occupy, the client's content drawn flush against the frame's
+     * outer edge instead. */
     border_width = client_border_width(client, true, true);
 
     /* Configured BEFORE the frame/target itself shrinks further down,
@@ -1012,8 +1011,7 @@ void ccmd_client_unfullscreen(client_td *client)
      * at all, so configuring the child first here removes that gap
      * outright, the same as configuring the parent first does for the
      * opposite (shrinking a parent that would otherwise still be
-     * smaller than an as-yet-unshrunk
-     * child) case there. */
+     * smaller than an as-yet-unshrunk child) case there. */
     if (client->was_decorated_fullscreen && client->frame != 0) {
         uint16_t title_height;
         uint16_t inner_w;
@@ -1042,8 +1040,8 @@ void ccmd_client_unfullscreen(client_td *client)
          * render/desktop.c, which enforces exactly that).  The visible
          * border comes from the frame's size and background color (see
          * 'frame_extents' above), and not from an X11-native border.
-         * A non-zero value here would add an unwanted one on
-         * top of that until the next full repaint reset it back. */
+         * A non-zero value here would add an unwanted one on top of
+         * that until the next full repaint reset it back. */
         ccmd_client_apply_geometry(client, client->frame,
                 (uint16_t) XCB_CONFIG_WINDOW_BORDER_WIDTH,
                 0, 0, 0u, 0u, 0u);
@@ -1093,7 +1091,8 @@ void ccmd_client_unfullscreen(client_td *client)
      * position, not just (0,0), where a decorated client's real
      * 'ConfigureNotify' from the frame reparenting above would be
      * frame-relative instead. */
-    client_send_synthetic_configure_notify(xcb_connection_get(), client);
+    client_send_synthetic_configure_notify(xcb_connection_get(),
+            client);
 
     /* Only the full screen bit is cleared.  EWMH keeps
      * '_NET_WM_STATE_FULLSCREEN' independent of the maximized states,
@@ -1162,7 +1161,6 @@ void ccmd_client_toggle_decorate(client_td *client)
     int32_t bw;
     int32_t th;
     desktop_td *desktop;
-    bool keep_focus;
 
     if (client == NULL || client_is_fullscreen(client) ||
             client_is_locked(client)) {
@@ -1197,7 +1195,6 @@ void ccmd_client_toggle_decorate(client_td *client)
     bw = (int32_t) client_border_width(client, true, true);
     th = (int32_t) client->title_height;
     desktop = wm_get_client_desktop(client);
-    keep_focus = true;
 
     s_client_unshade_if_needed(client);
 
@@ -1209,17 +1206,15 @@ void ccmd_client_toggle_decorate(client_td *client)
 
     s_ccmd_decorate_remaximize(client);
 
-    if (keep_focus) {
-        if (desktop != NULL) {
-            desktop->client_active_id = client->id;
-            desktop->is_focus_dirty = true;
-            (void) desktop_action_client_send_front(desktop, client);
-            desktop->is_outdated = true;
-        }
-
-        ccmd_client_raise(client);
-        ccmd_client_focus(client);
+    if (desktop != NULL) {
+        desktop->client_active_id = client->id;
+        desktop->is_focus_dirty = true;
+        (void) desktop_action_client_send_front(desktop, client);
+        desktop->is_outdated = true;
     }
+
+    ccmd_client_raise(client);
+    ccmd_client_focus(client);
 
     /* Toggling decoration changes whether resize/move/decoration
      * actions actually make sense (an undecorated client's border

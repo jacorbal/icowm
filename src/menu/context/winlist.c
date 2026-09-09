@@ -37,6 +37,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <logger.h>
 #include <memguard.h>
 #include <surface.h>
 #include <wm.h>
@@ -438,6 +439,8 @@ static void s_client_entry_append(client_td *client, uint32_t did,
 
     data = s_alloc_entry_data();
     if (data == NULL) {
+        LOGGER_ERROR("Window list ran out of entry-data slots;" \
+                " a client entry was silently dropped", L_NARG);
         return;
     }
 
@@ -857,8 +860,7 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
          * plus one: a signed sum tested against a constant lets the
          * optimizer assume the sum never overflows */
         int shift_count = (desktop_n > 0 &&
-                desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP - 1)
-            ? 2 : 1;
+                desktop_n < WINLIST_MAX_ENTRIES_PER_DESKTOP - 1) ? 2 : 1;
 
         entry_data = s_alloc_entry_data();
         if (entry_data != NULL) {
@@ -899,7 +901,11 @@ static void s_desktop_submenu_visit(desktop_td *desktop, void *data)
             }
 
             desktop_n += shift_count;
-        }
+        } else {
+            LOGGER_ERROR("Window list ran out of entry-data slots;" \
+                    " desktop %u's \"Go there...\" entry was" \
+                    " silently dropped", did);
+        }            
     }
 
     if (desktop_n == 0) {

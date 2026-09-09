@@ -230,11 +230,6 @@ static bool s_titlebar_button_is_placed(
 }
 
 
-
-
-
-
-
 /* Button side the theme asks for, held to what the titlebar can hold */
 uint16_t client_titlebar_button_size(const struct config_theme_s *theme,
         uint16_t title_h)
@@ -957,18 +952,18 @@ int ci_create_decorations(client_td *client)
     values[0] = client->config->theme.window.inactive.border.color;
     values[1] = client->config->theme.window.inactive.border.color;
     /* 'XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT' is essential here, not
-     * optional: once the client's top-level window is reparented
-     * into this frame, its *parent* for X11 purposes becomes the frame
+     * optional: once the client's top-level window is reparented into
+     * this frame, its *parent* for X11 purposes becomes the frame
      * instead of the root.
      *
      * A client's attempt to reconfigure itself is delivered as
      * a 'ConfigureRequest' to whichever client selected
      * substructure-redirect on its *parent*; if that is only ever
      * selected on the root window (needed for top-level 'MapRequest's)
-     * and not on every frame the window manager itself
-     * creates, the server has nothing to redirect a reparented client's
-     * own resize to, and simply performs it directly with no
-     * 'ConfigureRequest' ever generated at all. */
+     * and not on every frame the window manager itself creates, the
+     * server has nothing to redirect a reparented client's own resize
+     * to, and simply performs it directly with no 'ConfigureRequest'
+     * ever generated at all. */
     values[2] = XCB_EVENT_MASK_EXPOSURE             |
                 XCB_EVENT_MASK_BUTTON_PRESS         |
                 XCB_EVENT_MASK_ENTER_WINDOW         |
@@ -1069,7 +1064,6 @@ int ci_create_decorations(client_td *client)
                 client->window, xcb_ewmh_connection_get()->_NET_FRAME_EXTENTS,
                 XCB_ATOM_CARDINAL, 32, 4, extents);
     }
-
 
     return 0;
 }
