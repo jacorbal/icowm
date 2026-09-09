@@ -12,12 +12,12 @@
  * systray_owns_window, popup_is_open, dialog_info_is_open,
  * notify_desktop_is_open, cycle_is_open, search_is_open,
  * run_owns_window, menu_confirm_dialog_is_open, wincmenu_owns_window,
- * rootmenu_owns_window, winlist_owns_window) is a link-only stand-in
- * below, independently controllable per scenario, together with a
- * shared 's_last_repaint' trace recording which of the matching
- * repaint functions actually ran, so both "the right early return
- * fired" and "nothing later in the chain also ran" can be checked in
- * one assertion each.
+ * rootmenu_owns_window, winlist_owns_window, iconmenu_owns_window) is
+ * a link-only stand-in below, independently controllable per
+ * scenario, together with a shared 's_last_repaint' trace recording
+ * which of the matching repaint functions actually ran, so both
+ * "the right early return fired" and "nothing later in the chain
+ * also ran" can be checked in one assertion each.
  *
  * The much larger tail of handler_expose, reached only once a real
  * managed client is found (the icon-window caption repaint, the
@@ -105,7 +105,8 @@ enum s_repaint_e {
     S_REPAINT_CONFIRM,
     S_REPAINT_WINCMENU,
     S_REPAINT_ROOTMENU,
-    S_REPAINT_WINLIST
+    S_REPAINT_WINLIST,
+    S_REPAINT_ICONMENU
 };
 
 
@@ -133,6 +134,7 @@ static xcb_window_t s_confirm_win;
 static bool s_wincmenu_owns;
 static bool s_rootmenu_owns;
 static bool s_winlist_owns;
+static bool s_iconmenu_owns;
 static client_td *s_lookup_result;
 
 
@@ -157,6 +159,7 @@ static void s_reset(void)
     s_wincmenu_owns = false;
     s_rootmenu_owns = false;
     s_winlist_owns = false;
+    s_iconmenu_owns = false;
     s_lookup_result = NULL;
 }
 
@@ -409,6 +412,22 @@ void winlist_repaint(xcb_window_t win)
     (void) win;
 
     s_last_repaint = S_REPAINT_WINLIST;
+}
+
+
+bool iconmenu_owns_window(xcb_window_t win)
+{
+    (void) win;
+
+    return s_iconmenu_owns;
+}
+
+
+void iconmenu_repaint(xcb_window_t win)
+{
+    (void) win;
+
+    s_last_repaint = S_REPAINT_ICONMENU;
 }
 
 
@@ -706,7 +725,7 @@ int main(void)
     list_td *surfaces = &surfaces_storage;
     client_td client;
 
-    TAP_PLAN(19);
+    TAP_PLAN(20);
 
     memset(&config, 0, sizeof(config));
     memset(&client, 0, sizeof(client));
@@ -848,6 +867,14 @@ int main(void)
     handler_expose(connection, surfaces, &event, &config);
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_WINLIST,
             "a winlist-owned window is repainted");
+
+    /* Icon context menu repaint */
+    s_reset();
+    s_iconmenu_owns = true;
+    event.window = 0x5bu;
+    handler_expose(connection, surfaces, &event, &config);
+    TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_ICONMENU,
+            "an iconmenu-owned window is repainted");
 
     /* Once every special-window check fails, no managed client owns
      * the window either: falls through to nothing, no repaint at all */

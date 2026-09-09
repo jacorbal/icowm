@@ -885,6 +885,40 @@ void scmd_surface_viewport_client_send_to_page(surface_td *surface,
             (uint16_t) XCB_CONFIG_WINDOW_X |
                 (uint16_t) XCB_CONFIG_WINDOW_Y,
             new_x, new_y, 0u, 0u, 0u);
+
+    /* The move above repositions the content window, invisibly for an
+     * iconified client: unmapped, it is the icon window alone that is
+     * actually on screen, tracking its own separate on-screen position
+     * ('icon_pos') rather than 'layout.geometry.cur.pos'.  Left
+     * untouched, the icon would stay exactly where it was regardless
+     * of which page it was just sent to, the same "nothing visibly
+     * happened" gap 's_viewport_translate_icon' already exists to
+     * avoid for an actual pan; this follows its exact same math,
+     * moved by the destination page instead of a pan delta. */
+    if (client->is_icon_mapped && client->icon_window != 0) {
+        struct position_s icon_canvas_pos;
+        int32_t new_icon_x;
+        int32_t new_icon_y;
+
+        icon_canvas_pos.x = client->icon_pos.x +
+            desktop->viewport_origin.x;
+        icon_canvas_pos.y = client->icon_pos.y +
+            desktop->viewport_origin.y;
+        new_icon_x = (int32_t) col * page_w +
+            s_positive_remainder(icon_canvas_pos.x, page_w) -
+            desktop->viewport_origin.x;
+        new_icon_y = (int32_t) row * page_h +
+            s_positive_remainder(icon_canvas_pos.y, page_h) -
+            desktop->viewport_origin.y;
+
+        client->icon_pos.x = (int16_t) new_icon_x;
+        client->icon_pos.y = (int16_t) new_icon_y;
+        ccmd_client_apply_geometry(client, client->icon_window,
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y,
+                new_icon_x, new_icon_y, 0u, 0u, 0u);
+    }
+
     surface->is_outdated = true;
 }
 

@@ -38,6 +38,7 @@
 #include <render/wmicon.h>
 
 /* Menu includes */
+#include <menu/context/iconmenu.h>
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
@@ -177,6 +178,12 @@ void handler_expose(xcb_connection_t *connection,
     /* Window list menu repaint */
     if (winlist_owns_window(event->window)) {
         winlist_repaint(event->window);
+        return;
+    }
+
+    /* Icon context menu repaint */
+    if (iconmenu_owns_window(event->window)) {
+        iconmenu_repaint(event->window);
         return;
     }
 

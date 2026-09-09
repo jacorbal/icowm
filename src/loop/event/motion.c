@@ -33,6 +33,7 @@
 #include <policy/placement/manual.h>
 
 /* Menu includes */
+#include <menu/context/iconmenu.h>
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
@@ -49,6 +50,7 @@ enum s_loop_event_motion_target_e {
     S_MOTION_TARGET_WINCMENU,   /**< Window context menu is open */
     S_MOTION_TARGET_ROOTMENU,   /**< Root menu is open */
     S_MOTION_TARGET_WINLIST,    /**< Window list is open */
+    S_MOTION_TARGET_ICONMENU,   /**< Icon context menu is open */
     S_MOTION_TARGET_SEARCH,     /**< Search widget has the pointer */
     S_MOTION_TARGET_HOVER,      /**< Nobody: plain hover tracking */
     S_MOTION_TARGET_NONE        /**< A drag wants it all to itself */
@@ -122,6 +124,9 @@ static enum s_loop_event_motion_target_e s_loop_event_motion_target(
     if (winlist_is_open()) {
         return S_MOTION_TARGET_WINLIST;
     }
+    if (iconmenu_is_open()) {
+        return S_MOTION_TARGET_ICONMENU;
+    }
     if (search_is_open() && (me->event == search_window() ||
                 me->child == search_window())) {
         return S_MOTION_TARGET_SEARCH;
@@ -170,6 +175,11 @@ void loop_event_motion_notify(loop_ctx_td *ctx,
 
         case S_MOTION_TARGET_WINLIST:
             winlist_handle_motion(me->event, me->event_x, me->event_y);
+            break;
+
+        case S_MOTION_TARGET_ICONMENU:
+            iconmenu_handle_motion(me->event, me->event_x,
+                    me->event_y);
             break;
 
         case S_MOTION_TARGET_SEARCH:

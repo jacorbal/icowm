@@ -293,6 +293,28 @@ static void s_ccmd_client_iconify_visit(client_td *member, void *ctx)
 
 
 /**
+ * @brief Whether hiding @p client would still do anything
+ *
+ * A plain hidden client (no icon, nothing mapped at all) has nothing
+ * left for a further hide request to affect.  An iconified client
+ * counts as already hidden too (see @a s_ccmd_client_iconify_one,
+ * which calls @a client_hide as part of iconifying), yet still shows
+ * an icon on screen; hiding it further means removing that icon, so
+ * a hide request still has real work to do for it.
+ *
+ * @param client Client to test
+ *
+ * @return @c true if a hide request against @p client is not a no-op
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_client_hide_still_applies(const client_td *client)
+{
+    return !client_is_hidden(client) || client_is_iconified(client);
+}
+
+
+/**
  * @brief Hide exactly this one client (minimize, but not iconify),
  *        ignoring any transient family it may belong to
  *
@@ -308,6 +330,27 @@ static void s_ccmd_client_hide_one(client_td *client)
 {
     xcb_window_t target;
     surface_td *surface;
+
+    /* An iconified client is already hidden by way of being
+     * iconified (see 's_ccmd_client_iconify_one', which calls
+     * 'client_hide' itself), with no content mapped for the general
+     * path below to unmap; its icon is the only thing on screen, and
+     * hiding it further means removing that instead, leaving it
+     * hidden outright with no representation at all. */
+    if (client_is_iconified(client)) {
+        if (client->icon_window != 0 && client->is_icon_mapped) {
+            xcb_window_hide(client->icon_window);
+            client->is_icon_mapped = false;
+        }
+
+        client->properties.state &=
+            (uint16_t) ~(uint16_t) CLIENT_STATE_ICONIFIED;
+
+        ccmd_set_wm_state(client, CCMD_WM_STATE_ICONIC, XCB_NONE);
+        ccmd_client_sync_states(client);
+        wm_request_client_redraw(client);
+        return;
+    }
 
     surface = wm_get_surface_by_id(client->screen_id);
     if (surface != NULL && surface->is_showing_desktop) {
@@ -351,7 +394,8 @@ static void s_ccmd_client_hide_visit(client_td *member, void *ctx)
 {
     (void) ctx;
 
-    if (!client_is_hidden(member) && !client_is_locked(member)) {
+    if (s_client_hide_still_applies(member) &&
+            !client_is_locked(member)) {
         s_ccmd_client_hide_one(member);
     }
 }
@@ -482,7 +526,7 @@ void ccmd_client_hide(client_td *client)
         return;
     }
 
-    if (!client_is_hidden(top)) {
+    if (s_client_hide_still_applies(top)) {
         s_ccmd_client_hide_one(top);
     }
 

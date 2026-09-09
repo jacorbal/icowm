@@ -63,16 +63,8 @@
 #include <menu/context/ctxmenu/tree.h>
 #include <menu/dialog/inspect.h>
 #include <menu/context/wincmenu.h>
-
-
-/**
- * @brief Userdata structure passed to the "Send to desktop" callbacks
- */
-typedef struct {
-    client_td *client;      /**< Target client */
-    desktop_td *src;        /**< Source desktop */
-    desktop_td *dst;        /**< Destination desktop */
-} wincmenu_send_data_td;
+#include <menu/context/submenu/desktop.h>
+#include <menu/context/submenu/page.h>
 
 
 /**
@@ -90,26 +82,6 @@ static ctxmenu_state_td s_root;
 /** Entries for the top-level window context menu */
 static ctxmenu_entry_td s_entries[WINCMENU_TOTAL_ENTRIES];
 
-/** Entries for the "Send to desktop" submenu */
-static ctxmenu_entry_td s_desk_entries[WINCMENU_MAX_DESKTOPS + 2];
-
-/** State for the "Send to desktop" child menu */
-static ctxmenu_state_td s_desk_state;
-
-/** Entries for the "Send to page" submenu */
-static ctxmenu_entry_td s_page_entries[WINCMENU_MAX_PAGES + 2];
-
-/** State for the "Send to page" child menu */
-static ctxmenu_state_td s_page_state;
-
-/** Per-page userdata pool for "Send to page" callbacks */
-static struct s_page_send_s {
-    surface_td *surface;
-    client_td *client;
-    uint32_t col;
-    uint32_t row;
-} s_page_send_data[WINCMENU_MAX_PAGES];
-
 /** Entries for the "Send to monitor" submenu */
 static ctxmenu_entry_td s_monitor_entries[WINCMENU_MAX_MONITORS];
 
@@ -121,9 +93,6 @@ static ctxmenu_entry_td s_layer_entries[WINCMENU_LAYER_COUNT];
 
 /** State for the "Layer" child menu */
 static ctxmenu_state_td s_layer_state;
-
-/** Per-desktop userdata pool for "Send to desktop" callbacks */
-static wincmenu_send_data_td s_send_data[WINCMENU_MAX_DESKTOPS + 1];
 
 /** Per-monitor userdata pool for "Send to monitor" callbacks */
 static wincmenu_send_monitor_data_td
@@ -140,33 +109,6 @@ static desktop_td *s_desktop = NULL;
 
 /** Active configuration (valid while the menu is open) */
 static const config_td *s_config = NULL;
-
-
-/**
- * @brief Callback: send client to a specific desktop
- *
- * @param connection XCB connection (unused)
- * @param userdata   Pointer to @c wincmenu_send_data_td
- *
- * @note Complexity: @e O(1)
- */
-static void s_cb_send_to_desktop(xcb_connection_t *connection,
-        void *userdata)
-{
-    wincmenu_send_data_td *d;
-
-    (void) connection;
-
-    if (userdata == NULL) {
-        return;
-    }
-    d = (wincmenu_send_data_td *) userdata;
-    if (d->client == NULL || d->src == NULL || d->dst == NULL) {
-        return;
-    }
-
-    enact_desktop_client_send(d->src, d->client, d->dst);
-}
 
 
 /**
@@ -572,260 +514,6 @@ static void s_entry_command(ctxmenu_entry_td *e, const char *label,
 
 
 /**
- * @brief What @a s_desktop_entry_visit is building
- */
-struct s_desk_entry_ctx_s {
-    client_td *client;              /**< Client the entries send */
-    desktop_td *current;            /**< Desktop it is on already */
-    const surface_td *surface;      /**< Surface being offered */
-    uint32_t count;                 /**< Entries built so far */
-    uint32_t index;                 /**< Desktop index reached */
-    bool is_pinned;                 /**< Whether it is on all already */
-};
-
-
-/**
- * @brief Build one desktop's "send there" entry
- *
- * @param desktop Desktop reached by the walk
- * @param data    The @c s_desk_entry_ctx_s being built
- *
- * @note Stops building once the menu is full, the whole walk still
- *       running: a visitor has no way to end one
- * @note Complexity: @e O(1)
- */
-static void s_desktop_entry_visit(desktop_td *desktop, void *data)
-{
-    struct s_desk_entry_ctx_s *const ctx = data;
-    char label[WM_DESKTOP_MAX_LENGTH_NAME + 64];
-    uint32_t n;
-
-    if (ctx == NULL || ctx->count >= WINCMENU_MAX_DESKTOPS) {
-        return;
-    }
-
-    n = ctx->count;
-    surface_desktop_label(ctx->surface, ctx->index, desktop->name,
-            false, true, label, sizeof(label));
-    (void) snprintf(s_desk_entries[n].label,
-            sizeof(s_desk_entries[n].label), "%s%s%s",
-            MENU_CONTEXT_CTXMENU_LABEL_PREFIX, label,
-            MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-
-    s_desk_entries[n].type = CTXMENU_COMMAND;
-    /* A pinned client is already on every desktop, so there is
-     * nowhere left to send it: every row is refused and only the
-     * unpin entry below the separator stays live.  Unpinned, only the
-     * desktop it already sits on is refused */
-    s_desk_entries[n].is_disabled = ctx->is_pinned ||
-        (desktop->id == ctx->current->id);
-    s_send_data[n].client = ctx->client;
-    s_send_data[n].src = ctx->current;
-    s_send_data[n].dst = desktop;
-    s_desk_entries[n].on_activate = s_cb_send_to_desktop;
-    s_desk_entries[n].userdata = &s_send_data[n];
-    ctx->count++;
-    ctx->index++;
-}
-
-
-/**
- * @brief Send the target client to the page one "Send to page" entry
- *        names
- *
- * @param connection Unused; the move needs no connection of its own
- * @param userdata   Pointer to this entry's own @c s_page_send_s
- *
- * @note Complexity: @e O(1)
- */
-static void s_cb_send_to_page(xcb_connection_t *connection,
-        void *userdata)
-{
-    const struct s_page_send_s *const send = userdata;
-
-    (void) connection;
-
-    if (send == NULL || send->client == NULL ||
-            send->surface == NULL) {
-        return;
-    }
-
-    enact_client_send_to_page(send->surface, send->client,
-            send->col, send->row);
-}
-
-
-/**
- * @brief Build the "Send to page" submenu entries, one per page of the
- *        configured viewport grid
- *
- * Parallels @a s_build_desk_entries below, which sends a client to a
- * different desktop entirely; this only moves it within the current
- * desktop's own pannable canvas, so it carries no counterpart to that
- * one's pin entry: a client cannot be on every page at once, which is
- * what the sticky flag, on the top-level menu, is for instead.
- *
- * @param surface Surface whose viewport grid to enumerate
- * @param desktop Currently active desktop
- * @param client  Target client
- *
- * @return Number of entries filled in @a s_page_entries
- *
- * @note Reports zero on a viewport that cannot pan, and for a sticky
- *       client, which belongs to no one page
- * @note Complexity: @e O(n), where @e n is the number of pages
- */
-static int s_build_page_entries(surface_td *surface,
-        desktop_td *desktop, client_td *client)
-{
-    uint32_t columns;
-    uint32_t rows;
-    uint32_t cur_col = 0u;
-    uint32_t cur_row = 0u;
-    bool has_current;
-    const bool is_sticky = client_is_sticky(client);
-    char label[64];
-    int n = 0;
-
-    if (!surface_viewport_has_room(surface)) {
-        return 0;
-    }
-
-    surface_viewport_dims(surface, &columns, &rows);
-    /* A grid of one page has nowhere to send anything, so it gets no
-     * submenu even where the room check above somehow said otherwise */
-    if (columns * rows <= 1u) {
-        return 0;
-    }
-
-    has_current = scmd_surface_viewport_client_page(surface, desktop,
-            client, &cur_col, &cur_row);
-
-    for (uint32_t row = 0u; row < rows; ++row) {
-        for (uint32_t col = 0u; col < columns; ++col) {
-            if (n >= (int) WINCMENU_MAX_PAGES) {
-                return n;
-            }
-
-            (void) snprintf(label, sizeof(label),
-                    _(STR_WINCMENU_PAGE), col, row);
-            (void) snprintf(s_page_entries[n].label,
-                    sizeof(s_page_entries[n].label), "%s%s%s",
-                    MENU_CONTEXT_CTXMENU_LABEL_PREFIX, label,
-                    MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
-            s_page_entries[n].type = CTXMENU_COMMAND;
-            /* A sticky client is already on every page, so there is
-             * nowhere left to send it: every row is refused and only
-             * the unsticky entry below the separator stays live.
-             * Otherwise only the page it already sits on is refused */
-            s_page_entries[n].is_disabled = is_sticky ||
-                (has_current && col == cur_col && row == cur_row);
-            s_page_send_data[n].surface = surface;
-            s_page_send_data[n].client = client;
-            s_page_send_data[n].col = col;
-            s_page_send_data[n].row = row;
-            s_page_entries[n].on_activate = s_cb_send_to_page;
-            s_page_entries[n].userdata = &s_page_send_data[n];
-            ++n;
-        }
-    }
-
-    /* Separates the numbered-page entries above from the
-     * sticky/unsticky one below, exactly as 's_build_desk_entries'
-     * separates its own desktops from its pin entry */
-    if (n > 0) {
-        s_page_entries[n].type = CTXMENU_SEPARATOR;
-        ++n;
-    }
-
-    /* "All pages" entry for sticky support, the direct counterpart to
-     * the pin entry in "Send to desktop": relabeled in place when the
-     * client is already sticky rather than disabled, since toggling
-     * works both ways and there would otherwise be no entry anywhere
-     * to clear the flag once set */
-    safe_strncpy(s_page_entries[n].label,
-            (is_sticky) ? _(STR_WINCMENU_THIS_PAGE_UNSTICK)
-                : _(STR_WINCMENU_ALL_PAGES_STICK),
-            sizeof(s_page_entries[n].label) - 1u);
-    s_page_entries[n].type = CTXMENU_COMMAND;
-    s_page_entries[n].is_disabled = false;
-    s_page_entries[n].on_activate = s_cb_send_action;
-    s_page_entries[n].userdata =
-        (void *) (intptr_t) ACTION_CLIENT_TOGGLE_STICKY;
-    ++n;
-
-    return n;
-}
-
-
-/**
- * @brief Build the "Send to desktop" submenu entries
- *
- * @param surface Surface that owns the desktops
- * @param desktop Currently active desktop
- * @param client  Target client
- *
- * @return Number of entries filled in @a s_desk_entries
- *
- * @note Complexity: @e O(n), where @e n is the number of desktops (a
- *       single walk of the surface's circular desktop list, not one
- *       lookup per index)
- */
-static int s_build_desk_entries(surface_td *surface,
-        desktop_td *desktop, client_td *client)
-{
-    struct s_desk_entry_ctx_s desk_ctx;
-    int n;
-    bool is_pinned;
-
-    is_pinned = (client->properties.flags & CLIENT_FLAG_PIN) != 0u;
-
-    desk_ctx.client = client;
-    desk_ctx.current = desktop;
-    desk_ctx.surface = surface;
-    desk_ctx.count = 0u;
-    desk_ctx.index = 0u;
-    desk_ctx.is_pinned = is_pinned;
-    surface_desktops_walk(surface, s_desktop_entry_visit, &desk_ctx);
-    n = (int) desk_ctx.count;
-
-    /* Separates the numbered-desktop entries above from the pin/unpin
-     * one below, only when there actually are any.  With none (an empty
-     * or single-surface edge case), a bare separator would lead
-     * nowhere. */
-    if (n > 0) {
-        s_desk_entries[n].type = CTXMENU_SEPARATOR;
-        ++n;
-    }
-
-    /* "All desktops" entry for pin support.  When the client is
-     * already pinned, relabel it as an active un-pin action instead of
-     * disabling it, since toggling the pin flag on this entry already
-     * works both ways and there is otherwise no menu entry to remove
-     * a pin once set */
-    if (is_pinned) {
-        safe_strncpy(s_desk_entries[n].label,
-                _(STR_WINCMENU_THIS_DESKTOP_UNPIN),
-                sizeof(s_desk_entries[n].label) - 1u);
-    } else {
-        safe_strncpy(s_desk_entries[n].label,
-                _(STR_WINCMENU_ALL_DESKTOPS_PIN),
-                sizeof(s_desk_entries[n].label) - 1u);
-    }
-
-    /* 'All desktops' entry for pin support */
-    s_desk_entries[n].type = CTXMENU_COMMAND;
-    s_desk_entries[n].is_disabled = false;
-    s_desk_entries[n].on_activate = s_cb_send_action;
-    s_desk_entries[n].userdata =
-        (void *) (intptr_t) ACTION_CLIENT_TOGGLE_PIN;
-    ++n;
-
-    return n;
-}
-
-
-/**
  * @brief Build the "Send to monitor" submenu entries
  *
  * @param surface Surface that owns the monitors
@@ -921,6 +609,10 @@ void wincmenu_show(xcb_connection_t *connection,
     int desk_count;
     int page_count;
     int monitor_count;
+    ctxmenu_entry_td *desk_entries = NULL;
+    ctxmenu_state_td *desk_state = NULL;
+    ctxmenu_entry_td *page_entries = NULL;
+    ctxmenu_state_td *page_state = NULL;
     bool can_restore;
     bool can_move;
     bool can_resize;
@@ -969,25 +661,11 @@ void wincmenu_show(xcb_connection_t *connection,
      * only the one. */
     /* Build "Send to page" submenu, only meaningful (and only shown at
      * all, see below) on a viewport that can actually pan */
-    memset(s_page_entries, 0, sizeof(s_page_entries));
-    page_count = s_build_page_entries(surface, desktop, client);
-    if (page_count > 0) {
-        memset(&s_page_state, 0, sizeof(s_page_state));
-        s_page_state.window = XCB_WINDOW_NONE;
-        s_page_state.entries = s_page_entries;
-        s_page_state.entry_count = page_count;
-    }
+    page_count = ctxmenu_submenu_page_build(surface, desktop, client,
+            &page_entries, &page_state);
 
-    desk_count = 0;
-    if (surface->desktop_count > 1u) {
-        memset(s_desk_entries, 0, sizeof(s_desk_entries));
-        desk_count = s_build_desk_entries(surface, desktop, client);
-
-        memset(&s_desk_state, 0, sizeof(s_desk_state));
-        s_desk_state.window = XCB_WINDOW_NONE;
-        s_desk_state.entries = s_desk_entries;
-        s_desk_state.entry_count = desk_count;
-    }
+    desk_count = ctxmenu_submenu_desktop_build(surface, desktop, client,
+            &desk_entries, &desk_state);
 
     /* Build "Send to monitor" submenu, only meaningful (and only shown
      * at all, see below) on a surface with more than one monitor */
@@ -1022,9 +700,9 @@ void wincmenu_show(xcb_connection_t *connection,
         safe_strncpy(s_entries[n].label,
                 _(STR_WINCMENU_SEND_TO_DESKTOP),
                 sizeof(s_entries[n].label) - 1u);
-        s_entries[n].items = s_desk_entries;
+        s_entries[n].items = desk_entries;
         s_entries[n].item_count = desk_count;
-        s_entries[n].userdata = &s_desk_state;
+        s_entries[n].userdata = desk_state;
         ++n;
     }
 
@@ -1040,9 +718,9 @@ void wincmenu_show(xcb_connection_t *connection,
         safe_strncpy(s_entries[n].label,
                 _(STR_WINCMENU_SEND_TO_PAGE),
                 sizeof(s_entries[n].label) - 1u);
-        s_entries[n].items = s_page_entries;
+        s_entries[n].items = page_entries;
         s_entries[n].item_count = page_count;
-        s_entries[n].userdata = &s_page_state;
+        s_entries[n].userdata = page_state;
         ++n;
     }
 

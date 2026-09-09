@@ -124,20 +124,29 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
 
     /* If the client is currently visible on the active desktop, unmap
      * it immediately so it disappears from the source desktop without
-     * waiting for the user to switch away */
-    if (surface != NULL &&
-            desktop->id == surface->desktop_cur &&
+     * waiting for the user to switch away.  Content and icon are two
+     * independent things to check, not one gating the other: an
+     * iconified client has no content mapped for the first half to
+     * touch, but very much has an icon mapped for the second half to,
+     * and skipping that half whenever the first one does not apply
+     * (as a single, shared guard covering both used to) left an
+     * iconified client's icon sitting in the old desktop's spot,
+     * visible from every desktop, until some later, unrelated event
+     * happened to hide it. */
+    if (surface != NULL && desktop->id == surface->desktop_cur &&
             !(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
             !client_is_iconified(client)) {
         win_target = (client_is_decorated(client) && client->frame != 0)
             ? client->frame : client->window;
         ccmd_client_unmap_decorated(client, win_target);
         unmapped_main = true;
-        if (client->icon_window != 0 && client->is_icon_mapped) {
-            xcb_window_hide(client->icon_window);
-            client->is_icon_mapped = false;
-            unmapped_icon = true;
-        }
+    }
+
+    if (surface != NULL && desktop->id == surface->desktop_cur &&
+            client->icon_window != 0 && client->is_icon_mapped) {
+        xcb_window_hide(client->icon_window);
+        client->is_icon_mapped = false;
+        unmapped_icon = true;
     }
 
     /* Moved to 'target' before the fallback call just below, not
@@ -172,10 +181,10 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
             if (win_target != client->window) {
                 xcb_window_show(client->window);
             }
-            if (unmapped_icon) {
-                xcb_window_show(client->icon_window);
-                client->is_icon_mapped = true;
-            }
+        }
+        if (unmapped_icon) {
+            xcb_window_show(client->icon_window);
+            client->is_icon_mapped = true;
         }
         return;
     }

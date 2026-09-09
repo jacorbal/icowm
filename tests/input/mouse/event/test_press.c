@@ -53,6 +53,7 @@
 #include <policy/placement/manual.h>
 
 /* Menu includes */
+#include <menu/context/iconmenu.h>
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
@@ -261,6 +262,25 @@ void enact_client_lower(client_td *client)
 void enact_client_restore(client_td *client)
 {
     (void) client;
+
+    s_unreached_calls++;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a iconmenu_show, never exercised
+ * @note Complexity: @e O(1)
+ */
+void iconmenu_show(xcb_connection_t *connection, surface_td *surface,
+        desktop_td *desktop, client_td *client, struct position_s pos,
+        const config_td *config)
+{
+    (void) connection;
+    (void) surface;
+    (void) desktop;
+    (void) client;
+    (void) pos;
+    (void) config;
 
     s_unreached_calls++;
 }

@@ -50,6 +50,7 @@ static bool s_place_manual_is_active;
 static bool s_wincmenu_is_open;
 static bool s_rootmenu_is_open;
 static bool s_winlist_is_open;
+static bool s_iconmenu_is_open;
 static bool s_search_is_open;
 static xcb_window_t s_search_window;
 static bool s_drag_is_active;
@@ -60,6 +61,7 @@ static int s_place_manual_handle_motion_calls;
 static int s_wincmenu_handle_motion_calls;
 static int s_rootmenu_handle_motion_calls;
 static int s_winlist_handle_motion_calls;
+static int s_iconmenu_handle_motion_calls;
 static int s_search_handle_motion_calls;
 static int s_mouse_handle_motion_hover_calls;
 static int s_mouse_viewport_edge_check_calls;
@@ -82,6 +84,7 @@ static void s_reset(void)
     s_wincmenu_is_open = false;
     s_rootmenu_is_open = false;
     s_winlist_is_open = false;
+    s_iconmenu_is_open = false;
     s_search_is_open = false;
     s_search_window = 0;
     s_drag_is_active = false;
@@ -90,6 +93,7 @@ static void s_reset(void)
     s_wincmenu_handle_motion_calls = 0;
     s_rootmenu_handle_motion_calls = 0;
     s_winlist_handle_motion_calls = 0;
+    s_iconmenu_handle_motion_calls = 0;
     s_search_handle_motion_calls = 0;
     s_mouse_handle_motion_hover_calls = 0;
     s_mouse_viewport_edge_check_calls = 0;
@@ -201,6 +205,24 @@ void winlist_handle_motion(xcb_window_t win, int x, int y)
     (void) x;
     (void) y;
     s_winlist_handle_motion_calls++;
+}
+
+
+/** Link-only stand-in for iconmenu_is_open (menu/context/iconmenu.c) */
+bool iconmenu_is_open(void)
+{
+    return s_iconmenu_is_open;
+}
+
+
+/** Link-only stand-in for iconmenu_handle_motion
+ *  (menu/context/iconmenu.c) */
+void iconmenu_handle_motion(xcb_window_t win, int x, int y)
+{
+    (void) win;
+    (void) x;
+    (void) y;
+    s_iconmenu_handle_motion_calls++;
 }
 
 
@@ -591,6 +613,46 @@ static void s_test_target_priority_winlist_wins_rest(void)
 }
 
 
+/* Priority order: the icon menu wins over search and drag, but the
+ * window list still wins over the icon menu */
+static void s_test_target_priority_iconmenu_wins_rest(void)
+{
+    loop_ctx_td ctx = s_make_ctx();
+    xcb_generic_event_t *event = s_make_motion_event(0, 0);
+
+    s_reset();
+    s_winlist_is_open = true;
+    s_iconmenu_is_open = true;
+
+    loop_event_motion_notify(&ctx, &event);
+
+    TAP_EQ_INT(s_winlist_handle_motion_calls, 1,
+            "the window list takes the event ahead of the icon menu");
+    TAP_EQ_INT(s_iconmenu_handle_motion_calls, 0,
+            "the icon menu never sees the event while the window"
+            " list is open");
+
+    free(event);
+
+    s_reset();
+    event = s_make_motion_event(0, 0);
+    s_iconmenu_is_open = true;
+    s_search_is_open = true;
+    s_drag_is_active = true;
+
+    loop_event_motion_notify(&ctx, &event);
+
+    TAP_EQ_INT(s_iconmenu_handle_motion_calls, 1,
+            "the icon menu takes the event ahead of search and drag,"
+            " once the window list is closed");
+    TAP_EQ_INT(s_search_handle_motion_calls, 0,
+            "search never sees the event while the icon menu is"
+            " open");
+
+    free(event);
+}
+
+
 /* Search only wins if it is open AND the event actually names its own
  * window, either as the event field or as the child field; open
  * search with neither match falls through to drag instead */
@@ -711,7 +773,7 @@ static void s_test_target_priority_background_drag_claims_none(void)
 
 int main(void)
 {
-    TAP_PLAN(35);
+    TAP_PLAN(39);
 
     s_test_null_guards();
     s_test_no_queued_events_falls_to_hover();
@@ -722,6 +784,7 @@ int main(void)
     s_test_target_priority_wincmenu_wins_rest();
     s_test_target_priority_rootmenu_wins_rest();
     s_test_target_priority_winlist_wins_rest();
+    s_test_target_priority_iconmenu_wins_rest();
     s_test_target_priority_search_requires_window_match();
     s_test_target_priority_drag_claims_none();
     s_test_target_priority_background_drag_claims_none();

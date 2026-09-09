@@ -46,6 +46,7 @@
 #include <policy/placement/manual.h>
 
 /* Menu includes */
+#include <menu/context/iconmenu.h>
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
@@ -131,8 +132,9 @@ static bool s_mouse_near_edge(const client_td *client,
 /**
  * @brief Handle a button press on an iconified client's icon window
  *
- * Left-click starts a drag for the icon; any other button restores the
- * client and focuses it.
+ * Left-click starts a drag for the icon; right-click opens the icon
+ * context menu; any other button (the middle one, in practice)
+ * restores the client and focuses it.
  *
  * @param connection Active XCB connection
  * @param surfaces   Surface list (for focus)
@@ -177,8 +179,19 @@ static void s_mouse_handle_icon(xcb_connection_t *connection,
         screen_dim.h = (surface != NULL) ? surface->properties.dim.h : 0u;
         drag_icon_start(connection, event->root, client, desktop,
                 icon_pos, event->time, root_pos, screen_dim);
+    } else if ((xcb_button_index_t) event->detail ==
+            XCB_BUTTON_INDEX_3) {
+        /* Right-click: open the icon context menu */
+        surface_td *surface;
+        struct position_s pos;
+
+        surface = lookup_surface_for_root(surfaces, event->root);
+        pos.x = event->root_x;
+        pos.y = event->root_y;
+        iconmenu_show(connection, surface, desktop, client, pos,
+                config);
     } else {
-        /* Non-left-click: restore and focus */
+        /* Any other button (e.g., the middle one): restore and focus */
         surface_td *surface;
 
         enact_client_restore(client);

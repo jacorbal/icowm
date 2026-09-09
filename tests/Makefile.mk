@@ -160,6 +160,8 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/menu/context/test_menujson \
     $(O_DIR)/tests/menu/context/test_rootmenu \
     $(O_DIR)/tests/menu/context/test_wincmenu \
+    $(O_DIR)/tests/menu/context/submenu/test_desktop \
+    $(O_DIR)/tests/menu/context/submenu/test_page \
     $(O_DIR)/tests/menu/cycle/test_draw \
     $(O_DIR)/tests/menu/dialog/test_fortune \
     $(O_DIR)/tests/menu/dialog/test_info \
@@ -1391,9 +1393,25 @@ $(O_DIR)/tests/menu/context/test_rootmenu: \
 $(O_DIR)/tests/menu/context/test_wincmenu: \
 		$(TESTS_DIR)/menu/context/test_wincmenu.c \
 		$(S_DIR)/menu/context/wincmenu.c \
+		$(S_DIR)/menu/context/submenu/desktop.c \
+		$(S_DIR)/menu/context/submenu/page.c \
 		$(S_DIR)/utils/safe/safestr.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS) $(XCB_LFLAGS)
+
+$(O_DIR)/tests/menu/context/submenu/test_desktop: \
+		$(TESTS_DIR)/menu/context/submenu/test_desktop.c \
+		$(S_DIR)/menu/context/submenu/desktop.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/menu/context/submenu/test_page: \
+		$(TESTS_DIR)/menu/context/submenu/test_page.c \
+		$(S_DIR)/menu/context/submenu/page.c \
+		$(S_DIR)/utils/safe/safestr.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
 $(O_DIR)/tests/menu/cycle/test_draw: \
 		$(TESTS_DIR)/menu/cycle/test_draw.c \

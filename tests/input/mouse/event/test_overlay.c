@@ -106,6 +106,11 @@ static int s_winlist_owns_calls;
 static xcb_window_t s_winlist_owned_window;
 static int s_winlist_handle_click_calls;
 static int s_winlist_close_calls;
+static bool s_iconmenu_open;
+static int s_iconmenu_owns_calls;
+static xcb_window_t s_iconmenu_owned_window;
+static int s_iconmenu_handle_click_calls;
+static int s_iconmenu_close_calls;
 
 /** Controllable return value for the next lookup_surface_for_root */
 static surface_td *s_stub_lookup_surface;
@@ -516,6 +521,58 @@ void winlist_close(void)
 }
 
 
+/**
+ * @brief Controllable stand-in for @a iconmenu_is_open
+ * @note Complexity: @e O(1)
+ */
+bool iconmenu_is_open(void)
+{
+    return s_iconmenu_open;
+}
+
+
+/**
+ * @brief Recording stand-in for @a iconmenu_owns_window
+ * @note Complexity: @e O(1)
+ */
+bool iconmenu_owns_window(xcb_window_t win)
+{
+    s_iconmenu_owns_calls++;
+
+    return win == s_iconmenu_owned_window && win != XCB_NONE;
+}
+
+
+/**
+ * @brief Recording stand-in for @a iconmenu_handle_click
+ * @note Complexity: @e O(1)
+ */
+bool iconmenu_handle_click(xcb_connection_t *connection,
+        surface_td *surface, xcb_window_t win, int root_y,
+        const config_td *config)
+{
+    (void) connection;
+    (void) surface;
+    (void) win;
+    (void) root_y;
+    (void) config;
+
+    s_iconmenu_handle_click_calls++;
+
+    return true;
+}
+
+
+/**
+ * @brief Recording stand-in for @a iconmenu_close
+ * @note Complexity: @e O(1)
+ */
+void iconmenu_close(void)
+{
+    s_iconmenu_close_calls++;
+}
+
+
 static void s_reset(void)
 {
     s_popup_open = false;
@@ -562,6 +619,12 @@ static void s_reset(void)
     s_winlist_owned_window = XCB_NONE;
     s_winlist_handle_click_calls = 0;
     s_winlist_close_calls = 0;
+
+    s_iconmenu_open = false;
+    s_iconmenu_owns_calls = 0;
+    s_iconmenu_owned_window = XCB_NONE;
+    s_iconmenu_handle_click_calls = 0;
+    s_iconmenu_close_calls = 0;
 
     s_stub_lookup_surface = NULL;
     s_allow_and_flush_calls = 0;
@@ -978,6 +1041,27 @@ static void s_test_winlist_click_on_window_forwards(void)
 }
 
 
+/* Icon menu open, click on its own window: forwards the click */
+static void s_test_iconmenu_click_on_window_forwards(void)
+{
+    xcb_button_press_event_t event = s_make_event(77, 0, 3, 4, 4, 88,
+            1);
+    bool consumed;
+
+    s_reset();
+    s_iconmenu_open = true;
+    s_iconmenu_owned_window = 77;
+
+    consumed = im_press_close_overlays((xcb_connection_t *) 1, NULL,
+            &event, NULL);
+
+    TAP_OK(consumed, "iconmenu open, click on its window: event"
+            " consumed");
+    TAP_EQ_INT(s_iconmenu_handle_click_calls, 1,
+            "the click is forwarded to the icon menu");
+}
+
+
 /* Priority order: when both the confirm dialog and the cycle menu
  * would otherwise report open, the confirm dialog wins, since it is
  * checked first */
@@ -1009,7 +1093,7 @@ static void s_test_confirm_dialog_takes_priority_over_cycle(void)
 
 int main(void)
 {
-    TAP_PLAN(57);
+    TAP_PLAN(59);
 
     s_test_no_overlay_open_returns_false();
     s_test_popup_always_closes_and_lets_click_through();
@@ -1029,6 +1113,7 @@ int main(void)
     s_test_wincmenu_click_neither_window_closes();
     s_test_rootmenu_click_neither_window_closes();
     s_test_winlist_click_on_window_forwards();
+    s_test_iconmenu_click_on_window_forwards();
     s_test_confirm_dialog_takes_priority_over_cycle();
 
     return TAP_DONE();

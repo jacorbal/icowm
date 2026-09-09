@@ -24,6 +24,7 @@
 #include <adt/list.h>
 
 /* Menu includes */
+#include <menu/context/iconmenu.h>
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
@@ -208,7 +209,7 @@ bool im_press_close_overlays(xcb_connection_t *connection,
         return true;
     }
 
-    /* Context menus: window menu, root menu, window list */
+    /* Context menus: window menu, root menu, window list, icon menu */
     if (wincmenu_is_open()) {
         s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
                 config, wincmenu_owns_window, wincmenu_handle_click,
@@ -227,6 +228,13 @@ bool im_press_close_overlays(xcb_connection_t *connection,
         s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
                 config, winlist_owns_window, winlist_handle_click,
                 winlist_close);
+        return true;
+    }
+
+    if (iconmenu_is_open()) {
+        s_mouse_handle_open_ctxmenu_click(connection, surfaces, event,
+                config, iconmenu_owns_window, iconmenu_handle_click,
+                iconmenu_close);
         return true;
     }
 

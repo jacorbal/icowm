@@ -26,6 +26,7 @@
 #include <adt/list.h>
 
 /* Menu includes */
+#include <menu/context/iconmenu.h>
 #include <menu/context/rootmenu.h>
 #include <menu/context/wincmenu.h>
 #include <menu/context/winlist.h>
@@ -191,10 +192,10 @@ static void s_handle_menu_confirm_dialog_key(xcb_keysym_t keysym,
 /**
  * @brief Dispatch a key-press event to the currently open context menu
  *
- * Checks each of the three context menus (window menu, root menu,
- * window list) in order and forwards the key event to whichever is
- * currently visible.  Navigation (arrows), activation (@c Enter), and
- * cancellation (@c Escape) are all handled by
+ * Checks each of the four context menus (window menu, root menu,
+ * window list, icon menu) in order and forwards the key event to
+ * whichever is currently visible.  Navigation (arrows), activation
+ * (@c Enter), and cancellation (@c Escape) are all handled by
  * @c ctxmenu_handle_keypress via the per-menu wrapper.
  *
  * @param keysym     Keysym of the pressed key
@@ -220,6 +221,11 @@ static bool s_dispatch_open_menu_key(xcb_keysym_t keysym,
 
     if (winlist_is_open()) {
         winlist_handle_keypress(connection, surface, keysym, config);
+        return true;
+    }
+
+    if (iconmenu_is_open()) {
+        iconmenu_handle_keypress(connection, surface, keysym, config);
         return true;
     }
 

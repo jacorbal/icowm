@@ -102,6 +102,7 @@ static bool s_flag_message_open;
 static bool s_flag_wincmenu_open;
 static bool s_flag_rootmenu_open;
 static bool s_flag_winlist_open;
+static bool s_flag_iconmenu_open;
 
 /** Every handler's call counter, reset by s_reset before each
  *  scenario, plus the last keysym a handler that takes one was
@@ -124,6 +125,7 @@ static int s_call_menu_message_dialog_scroll;
 static int s_call_wincmenu_handle_keypress;
 static int s_call_rootmenu_handle_keypress;
 static int s_call_winlist_handle_keypress;
+static int s_call_iconmenu_handle_keypress;
 
 /** cycle_next_keysym/cycle_next_modmask and their prev counterparts,
  *  each independently settable so 's_handle_cycle_key's two
@@ -159,6 +161,7 @@ static void s_reset(void)
     s_flag_wincmenu_open = false;
     s_flag_rootmenu_open = false;
     s_flag_winlist_open = false;
+    s_flag_iconmenu_open = false;
 
     s_call_place_manual_handle_keypress = 0;
     s_call_kbd_modal_handle_keypress = 0;
@@ -178,6 +181,7 @@ static void s_reset(void)
     s_call_wincmenu_handle_keypress = 0;
     s_call_rootmenu_handle_keypress = 0;
     s_call_winlist_handle_keypress = 0;
+    s_call_iconmenu_handle_keypress = 0;
 
     s_cycle_next_keysym_val = XCB_NO_SYMBOL;
     s_cycle_next_modmask_val = 0;
@@ -484,6 +488,24 @@ bool winlist_handle_keypress(xcb_connection_t *connection,
     (void) keysym;
     (void) config;
     s_call_winlist_handle_keypress++;
+    return true;
+}
+
+
+bool iconmenu_is_open(void)
+{
+    return s_flag_iconmenu_open;
+}
+
+
+bool iconmenu_handle_keypress(xcb_connection_t *connection,
+        surface_td *surface, xcb_keysym_t keysym, const config_td *config)
+{
+    (void) connection;
+    (void) surface;
+    (void) keysym;
+    (void) config;
+    s_call_iconmenu_handle_keypress++;
     return true;
 }
 
@@ -872,13 +894,15 @@ static void s_test_message_dialog_enter_escape(void)
 }
 
 
-/* Each of the three context menus consumes a key while open, checked
- * strictly in order: window menu, then root menu, then window list */
+/* Each of the four context menus consumes a key while open, checked
+ * strictly in order: window menu, then root menu, then window list,
+ * then icon menu */
 static void s_test_context_menus_priority_order(void)
 {
     bool consumed_wincmenu;
     bool consumed_rootmenu;
     bool consumed_winlist;
+    bool consumed_iconmenu;
 
     s_reset();
     s_flag_wincmenu_open = true;
@@ -910,6 +934,23 @@ static void s_test_context_menus_priority_order(void)
             "the window list menu consumes the key press on its own");
     TAP_EQ_INT(s_call_winlist_handle_keypress, 1,
             "the window list menu's own handler runs exactly once");
+
+    s_reset();
+    s_flag_winlist_open = true;
+    s_flag_iconmenu_open = true;
+    (void) ik_intercept_keypress((xcb_keysym_t) 'a',
+            (xcb_keysym_t) 'a', 0, &s_fake_surface, NULL, NULL);
+    TAP_EQ_INT(s_call_iconmenu_handle_keypress, 0,
+            "the window list menu takes priority over the icon menu");
+
+    s_reset();
+    s_flag_iconmenu_open = true;
+    consumed_iconmenu = ik_intercept_keypress((xcb_keysym_t) 'a',
+            (xcb_keysym_t) 'a', 0, &s_fake_surface, NULL, NULL);
+    TAP_OK(consumed_iconmenu,
+            "the icon menu consumes the key press on its own");
+    TAP_EQ_INT(s_call_iconmenu_handle_keypress, 1,
+            "the icon menu's own handler runs exactly once");
 }
 
 
@@ -918,7 +959,7 @@ int main(void)
     xcb_connection_set(s_fake_connection);
     memset(&s_fake_surface, 0, sizeof(s_fake_surface));
 
-    TAP_PLAN(43);
+    TAP_PLAN(46);
 
     s_test_no_guard_active_falls_through();
     s_test_place_manual_active_wins_priority();
