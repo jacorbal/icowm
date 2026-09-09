@@ -2,9 +2,6 @@
  * @file menu/context/ctxmenu/tree.c
  *
  * @brief Dispatch across a context menu's submenu window tree
- *
- * One of the files
- * @c menu/context/ctxmenu/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -24,9 +21,11 @@
 /* Project includes */
 #include <config.h>
 
-/* Local includes */
+/* Menu includes */
 #include <menu/context/ctxmenu/handle.h>
 #include <menu/context/ctxmenu/redraw.h>
+
+/* Local includes */
 #include <menu/context/ctxmenu/tree.h>
 
 

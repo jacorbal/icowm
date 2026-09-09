@@ -126,13 +126,13 @@ static bool s_enforce_layer_is_top_level(const client_td *client,
  * transient for, not wherever it happens to fall in whatever order the
  * rest of the desktop's clients are otherwise sorted in.
  *
- * Recurses depth-first through @p top's @c transients (see its comment,
- * @c client.h), each child placed immediately after its parent and
+ * Recurses depth-first through @p top's @c transients (see its comment
+ * in @c client.h), each child placed immediately after its parent and
  * before the parent's next sibling, so a whole family clusters together
  * as one contiguous block within its shared layer; a child in
  * a different layer than @p top is left for that other layer's pass
- * instead (see @a s_enforce_layer_is_top_level), matching Openbox's
- * identical @c ch->layer @c == @c selected->layer condition.
+ * instead (see @a s_enforce_layer_is_top_level), matching the condition
+ * @c (ch->layer == selected->layer).
  *
  * @param top         Client to place, then recurse from
  * @param desktop     Desktop this layer pass is placing; only
@@ -232,9 +232,9 @@ static void s_enforce_layer_place_family(client_td *top,
 
     /* A client transient for its whole group (ICCCM §4.1.2.6) has no
      * 'transient_parent' to appear in 'top->transients' above; found
-     * here instead by checking whether 'top' is currently the one @a
-     * client_group_transient_anchor (@c cmds/client/transient.c)
-     * resolves it to, the same check @a s_enforce_layer_is_top_level
+     * here instead by checking whether 'top' is currently the one
+     * 'client_group_transient_anchor' (in 'cmds/client/transient.c')
+     * resolves it to, the same check 's_enforce_layer_is_top_level'
      * already made to keep it from also being placed as a second,
      * separate entry point earlier in this same pass. */
     if (top->desktop_id == desktop->id && desktop->clients != NULL) {

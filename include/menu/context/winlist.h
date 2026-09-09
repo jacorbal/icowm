@@ -33,7 +33,7 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
 #include <types/pair.h>
 
@@ -242,6 +242,8 @@ bool winlist_handle_keypress(xcb_connection_t *connection,
  *            has a single-state hierarchy)
  * @param x   Pointer X relative to the menu window
  * @param y   Pointer Y relative to the menu window
+ *
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
  */
 void winlist_handle_motion(xcb_window_t win, int x, int y);
 

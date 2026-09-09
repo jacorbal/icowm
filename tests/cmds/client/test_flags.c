@@ -1,3 +1,4 @@
+
 /**
  * @file tests/cmds/client/test_flags.c
  *
@@ -6,21 +7,22 @@
  *
  * Exercises 'ccmd_client_pin', 'ccmd_client_unpin',
  * 'ccmd_client_toggle_pin', 'ccmd_client_set_opacity_active',
- * 'ccmd_client_set_opacity_inactive', 'ccmd_client_set_border_override',
- * 'ccmd_client_urge', and 'ccmd_client_unurge' (cmds/client/flags.c)
- * linked against the real flag mutators ('utils/safe/safeflg.c'), so
- * the exact bit twiddling behind 'client_pin'/'client_unpin'/
- * 'client_urge'/'client_unurge' runs for real.  Everything else the
- * file under test calls (transient-family lookups, EWMH state sync,
- * focus fallback, IPC broadcasting, and the X server itself) is a
- * link-only or recording stand-in, so what actually gets exercised
- * here is this file's own flag-toggling and cascading logic, not the
- * rest of the window manager.
+ * 'ccmd_client_set_opacity_inactive',
+ * 'ccmd_client_set_border_override', 'ccmd_client_urge', and
+ * 'ccmd_client_unurge' (cmds/client/flags.c) linked against the real
+ * flag mutators ('utils/safe/safeflg.c'), so the exact bit twiddling
+ * behind 'client_pin'/'client_unpin'/ 'client_urge'/'client_unurge'
+ * runs for real.  Everything else the file under test calls
+ * (transient-family lookups, EWMH state sync, focus fallback, IPC
+ * broadcasting, and the X server itself) is a link-only or recording
+ * stand-in, so what actually gets exercised here is this file's own
+ * flag-toggling and cascading logic, not the rest of the window
+ * manager.
  *
  * 'ccmd_client_update_allowed_actions' is deliberately left untested:
- * its only observable effect is an 'xcb_change_property' call this
- * file would have to capture and decode by hand, which would test
- * this stand-in's own bookkeeping far more than the function itself.
+ * its only observable effect is an 'xcb_change_property' call this file
+ * would have to capture and decode by hand, which would test this
+ * stand-in's own bookkeeping far more than the function itself.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -116,6 +118,7 @@ client_td *ccmd_client_transient_top_parent(client_td *client)
  *       siblings
  */
 #define MAX_TEST_SIBLINGS (4)
+
 static client_td *s_siblings[MAX_TEST_SIBLINGS];
 static int s_siblings_used;
 
@@ -144,13 +147,14 @@ void ccmd_client_unmap_decorated(client_td *client, xcb_window_t target)
 }
 
 
+static int s_publish_calls;
+static uint32_t s_publish_last_desktop;
+
+
 /**
  * @brief Recording stand-in for @a ccmd_publish_wm_desktop
  * @note Complexity: @e O(1)
  */
-static int s_publish_calls;
-static uint32_t s_publish_last_desktop;
-
 void ccmd_publish_wm_desktop(client_td *client, uint32_t desktop_id)
 {
     (void) client;
@@ -602,11 +606,11 @@ static void s_test_toggle_pin_locked_client_is_a_no_op(void)
 }
 
 
-/* Sticking an unstuck client sets its own sticky flag; unlike pin,
- * sticky has no transient family, no EWMH state to sync, and no
- * desktop-changed ping to publish, so none of those side-effect
- * counters ever move */
-static void s_test_stick_sets_flag_with_no_side_effects(void)
+/* Sticking an unstuck client with no transient family sets its own
+ * sticky flag and runs the same side effects pin does: state synced,
+ * a redraw requested.  Unlike pin, no desktop-changed ping, sticky
+ * never moving a client between desktops. */
+static void s_test_stick_sets_flag_and_side_effects(void)
 {
     client_td *client;
 
@@ -617,12 +621,37 @@ static void s_test_stick_sets_flag_with_no_side_effects(void)
 
     TAP_OK(client_is_sticky(client) != 0,
             "sticking an unstuck client sets its sticky flag");
-    TAP_EQ_INT(s_sync_states_calls, 0,
-            "sticky has no EWMH counterpart to sync state for");
+    TAP_EQ_INT(s_sync_states_calls, 1,
+            "state is synced exactly once for the one client stuck");
     TAP_EQ_INT(s_publish_calls, 0,
             "sticky does not move the client between desktops");
-    TAP_EQ_INT(s_redraw_calls, 0,
-            "sticky has no visual indicator yet to redraw for");
+    TAP_EQ_INT(s_redraw_calls, 1, "a redraw is requested once");
+
+    s_teardown();
+}
+
+
+/* Sticking one member of a transient family sticks every other
+ * member still unstuck too, cascading through the recording
+ * family-apply stand-in, the same as pin does */
+static void s_test_stick_cascades_to_family(void)
+{
+    client_td *top;
+    client_td *sibling;
+
+    s_reset();
+    top = s_make_client(58u);
+    sibling = s_make_client(59u);
+    s_siblings[0] = sibling;
+    s_siblings_used = 1;
+
+    ccmd_client_stick(top);
+
+    TAP_OK(client_is_sticky(top) != 0, "the top parent is stuck");
+    TAP_OK(client_is_sticky(sibling) != 0,
+            "and its family member is stuck along with it");
+    TAP_EQ_INT(s_sync_states_calls, 2,
+            "state is synced once for each of the two clients stuck");
 
     s_teardown();
 }
@@ -642,13 +671,16 @@ static void s_test_stick_locked_client_is_a_no_op(void)
     TAP_OK(client_is_unsticky(client),
             "a locked client stays unstuck regardless of a stick"
             " request");
+    TAP_EQ_INT(s_sync_states_calls, 0,
+            "no state sync fires for a locked client");
 
     s_teardown();
 }
 
 
-/* Unsticking a stuck, unlocked client clears its own sticky flag */
-static void s_test_unstick_clears_flag(void)
+/* Unsticking a stuck, unlocked client clears its own sticky flag and
+ * runs the same side effects stick does */
+static void s_test_unstick_clears_flag_and_side_effects(void)
 {
     client_td *client;
 
@@ -660,6 +692,42 @@ static void s_test_unstick_clears_flag(void)
 
     TAP_OK(client_is_unsticky(client),
             "unsticking a stuck client clears its sticky flag");
+    TAP_EQ_INT(s_sync_states_calls, 1,
+            "state is synced exactly once for the one client"
+            " unstuck");
+    TAP_EQ_INT(s_redraw_calls, 1, "a redraw is requested once");
+
+    s_teardown();
+}
+
+
+/* Unsticking cascades to every other stuck, unlocked family member,
+ * but skips one that is locked */
+static void s_test_unstick_cascades_but_skips_locked(void)
+{
+    client_td *top;
+    client_td *unlocked_sibling;
+    client_td *locked_sibling;
+
+    s_reset();
+    top = s_make_client(60u);
+    unlocked_sibling = s_make_client(61u);
+    locked_sibling = s_make_client(62u);
+    client_stick(top);
+    client_stick(unlocked_sibling);
+    client_stick(locked_sibling);
+    locked_sibling->properties.flags |= CLIENT_FLAG_LOCKED;
+    s_siblings[0] = unlocked_sibling;
+    s_siblings[1] = locked_sibling;
+    s_siblings_used = 2;
+
+    ccmd_client_unstick(top);
+
+    TAP_OK(client_is_unsticky(top), "the top parent is unstuck");
+    TAP_OK(client_is_unsticky(unlocked_sibling),
+            "the unlocked family member is unstuck along with it");
+    TAP_OK(client_is_sticky(locked_sibling) != 0,
+            "but the locked family member stays stuck");
 
     s_teardown();
 }
@@ -681,6 +749,8 @@ static void s_test_unstick_locked_client_is_a_no_op(void)
     TAP_OK(client_is_sticky(client) != 0,
             "a locked client stays stuck regardless of an unstick"
             " request");
+    TAP_EQ_INT(s_sync_states_calls, 0,
+            "no state sync fires for a locked client");
 
     s_teardown();
 }
@@ -904,7 +974,7 @@ static void s_test_unurge_clears_flag_and_broadcasts(void)
 
 int main(void)
 {
-    TAP_PLAN(56);
+    TAP_PLAN(66);
 
     s_test_null_client_is_a_no_op();
     s_test_pin_sets_flag_and_side_effects();
@@ -915,9 +985,11 @@ int main(void)
     s_test_unpin_cascades_but_skips_locked();
     s_test_toggle_pin_flips_both_ways();
     s_test_toggle_pin_locked_client_is_a_no_op();
-    s_test_stick_sets_flag_with_no_side_effects();
+    s_test_stick_sets_flag_and_side_effects();
+    s_test_stick_cascades_to_family();
     s_test_stick_locked_client_is_a_no_op();
-    s_test_unstick_clears_flag();
+    s_test_unstick_clears_flag_and_side_effects();
+    s_test_unstick_cascades_but_skips_locked();
     s_test_unstick_locked_client_is_a_no_op();
     s_test_toggle_stick_flips_both_ways();
     s_test_toggle_stick_single_cell_viewport_is_a_no_op();

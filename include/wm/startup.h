@@ -46,6 +46,8 @@
  *       the extension is present at all
  * @note The extension data itself belongs to the connection and goes
  *       with @a xcb_disconnect
+ * @note Complexity: @e O(s*k), where @e s is the amount of surfaces,
+ *       and @e k is the amount of CRTCs per surface
  */
 int wm_startup_randr_init(wm_td *wm);
 
@@ -68,6 +70,7 @@ int wm_startup_randr_init(wm_td *wm);
  *       @a wm_startup_randr_init above
  * @note Its one reply is freed here, and the extension data belongs to
  *       the connection
+ * @note Complexity: @e O(1)
  */
 int wm_startup_sync_init(wm_td *wm);
 

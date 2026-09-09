@@ -410,6 +410,10 @@ const char *handler_connection_error_string(int error_code);
  *
  * @param wm    Window manager state
  * @param event Raw XCB event from the main loop
+ *
+ * @note Complexity: @e O(b * s * k), where @e b is the number of key
+ *       bindings, @e s is the number of surfaces, and @e k is the
+ *       number of keycodes per keysym
  */
 void handler_randr_event(wm_td *wm, xcb_generic_event_t *event);
 
@@ -423,6 +427,9 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event);
  *
  * @param wm    Window manager state
  * @param event Raw XCB event from the main loop
+ *
+ * @note Complexity: @e O(n), where @e n is the total number of managed
+ *       clients across every desktop and surface
  *
  * @see @c ccmd_client_resize_flush_pending
  */

@@ -35,17 +35,6 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
-/* Project includes */
-#include <action.h>
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <enact.h>
-#include <logger.h>
-#include <lookup.h>
-#include <surface.h>
-#include <wm.h>
-
 /* CMD includes */
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
@@ -57,15 +46,27 @@
 #include <input/kbd/modal.h>
 #include <input/mouse/drag.h>
 
+/* Project includes */
+#include <action.h>
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
+#include <enact.h>
+#include <logger.h>
+#include <lookup.h>
+#include <surface.h>
+#include <wm.h>
+
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/select.h>
 #include <menu/context/ctxmenu/tree.h>
 #include <menu/dialog/inspect.h>
-#include <menu/context/wincmenu.h>
 #include <menu/context/submenu/desktop.h>
 #include <menu/context/submenu/page.h>
 
+/* Local includes */
+#include <menu/context/wincmenu.h>
 
 /**
  * @brief Userdata structure passed to the "Send to monitor" callbacks

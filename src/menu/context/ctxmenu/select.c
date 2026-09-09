@@ -2,9 +2,6 @@
  * @file menu/context/ctxmenu/select.c
  *
  * @brief Selection and activation of a context menu's entries
- *
- * One of the files
- * @c menu/context/ctxmenu/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -20,25 +17,31 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
+/* Control includes */
 #include <cctl/launch.h>
+
+/* Project includes */
 #include <surface.h>
 
-/* Local includes */
+/* Menu includes */
 #include <menu/context/ctxmenu/redraw.h>
+
+/* Local includes */
 #include <menu/context/ctxmenu/select.h>
-#include <utils/xcb/connection.h>
 
 
 /**
  * @brief Records whether the most recently activated entry was
- *        triggered by the keyboard (@c Return / @c KP_Enter or a
- *        printable-character shortcut) or by a mouse click
+ *        triggered by the keyboard (@c Return / @c KP_Enter or
+ *        a printable-character shortcut) or by a mouse click
  *
  * Set by @c ctxmenu_entry_activate itself from its @p by_keyboard
  * parameter, so that an entry's @c on_activate callback can query
- * @c ctxmenu_last_activation_was_keyboard to decide between a
- * keyboard-driven and a pointer-driven interaction (e.g., window move
+ * @c ctxmenu_last_activation_was_keyboard to decide between
+ * a keyboard-driven and a pointer-driven interaction (e.g., window move
  * or resize).
  */
 static bool s_activated_by_keyboard = false;
@@ -94,12 +97,11 @@ bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
  *        separators, labels, and disabled entries
  *
  * Shared by the Up and Down arrow handling in
- * @a ctxmenu_handle_keypress, which only differ in @p step's sign
- * and where an
- * initially-unselected state (@c selected @c < @c 0) starts scanning
- * from; everything else (wrapping around either end of the entry
- * list, skipping unselectable entries, repainting once a valid one is
- * found) is identical between the two.
+ * @a ctxmenu_handle_keypress, which only differ in @p step's sign and
+ * where an initially-unselected state (@c selected @c < @c 0) starts
+ * scanning from; everything else (wrapping around either end of the
+ * entry list, skipping unselectable entries, repainting once a valid
+ * one is found) is identical between the two.
  *
  * @param state Menu state whose selection to move
  * @param step  @c +1 to move down/forward, @c -1 to move up/backward

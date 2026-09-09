@@ -2,8 +2,6 @@
  * @file menu/context/ctxmenu/redraw.c
  *
  * @brief Painting a context menu's rows
- *
- * One of the files @c menu/context/ctxmenu/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -21,19 +19,24 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
-#include <menu/draw.h>
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
+/* Render includes */
 #include <render/text.h>
 #include <render/wmicon.h>
 
+/* Project includes */
 #include <config.h>
 #include <client.h>
 #include <surface.h>
 
-/* Local includes */
+/* Menu includes */
 #include <menu/context/ctxmenu/layout.h>
+#include <menu/draw.h>
+
+/* Local includes */
 #include <menu/context/ctxmenu/redraw.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -110,12 +113,12 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
     menu_draw_row_bg(conn, state->window, bg,
             (int16_t) top_y, (uint16_t) row_h, state->width);
 
-    /* Every style's 'border' is drawn if 'border.width' is
-     * greater than 0; the built-in default theme sets it to a subtle
-     * 1px for 'unselected'/'selected' and to 0 for 'label', so
-     * heading rows stay plain by default.  This is separate from
-     * 'menu.border', the menu window's outer frame, entries
-     * aside; see that field's comment in 'config.h'. */
+    /* Every style's 'border' is drawn if 'border.width' is greater than
+     * zero; the built-in default theme sets it to a subtle 1px for
+     * 'unselected'/'selected' and to 0 for 'label', so heading rows
+     * stay plain by default.  This is separate from 'menu.border', the
+     * menu window's outer frame, entries aside; see that field's
+     * comment in 'config.h'. */
     if (e->type != CTXMENU_SEPARATOR && border_width > 0u) {
         xcb_gcontext_t border_gc = xcb_generate_id(conn);
         xcb_rectangle_t border_rect;
@@ -152,11 +155,11 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
     text_x = (int16_t) state->config->theme.menu.padding.horizontal;
 
-    /* An entry with an associated client (see 'icon_window''s 
-     * comment in 'ctxmenu.h') reserves this same square of space
-     * whether or not a real icon is actually drawn into it.  A client
-     * with no icon of its own to draw still leaves every row's text
-     * aligned in the same column. */
+    /* An entry with an associated client (see 'icon_window''s comment
+     * in 'ctxmenu.h') reserves this same square of space whether or not
+     * a real icon is actually drawn into it.  A client with no icon of
+     * its own to draw still leaves every row's text aligned in the same
+     * column. */
     if (draw_icon) {
         /* '#if' and not a ternary; see 'WM_MENU_ICON_INSET' in
          * 'defs/ctxmenu.h' for why */
@@ -212,15 +215,15 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 
 
 /**
- * @brief Repaint only the given one or two entry indices, not the
- *        whole menu
+ * @brief Repaint only the given one or two entry indices, not the whole
+ *        menu
  *
- * @c s_draw_entry already paints its row's full background before
- * its label (see its body), so redrawing just the row(s) that
- * actually changed selection is self-contained.  No separate clear
- * step is needed first, and nothing else in the menu window is
- * touched.  A single deselect (e.g., the pointer leaving every entry)
- * passes @c -1 for @p idx_b.
+ * @c s_draw_entry already paints its row's full background before its
+ * label (see its body), so redrawing just the row(s) that actually
+ * changed selection is self-contained.  No separate clear step is
+ * needed first, and nothing else in the menu window is touched.
+ * A single deselect (e.g., the pointer leaving every entry) passes
+ * @c -1 for @p idx_b.
  *
  * @param state Menu state the entries belong to
  * @param idx_a First index to redraw, or @c -1 for none
@@ -263,5 +266,4 @@ void ctxmenu_redraw(ctxmenu_state_td *state)
     for (int i = 0; i < state->entry_count; ++i) {
         s_draw_entry(state, i);
     }
-
 }

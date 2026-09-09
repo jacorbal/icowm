@@ -259,12 +259,14 @@ cJSON *ipc_action_get_focused(const wm_td *wm, const cJSON *args)
         if (entry == NULL) {
             continue;
         }
-        cJSON_AddNumberToObject(entry, "surface_id", (double) surface->id);
+        cJSON_AddNumberToObject(entry, "surface_id",
+                (double) surface->id);
         if (desktop->client_active_id != XCB_WINDOW_NONE) {
             cJSON_AddNumberToObject(entry, "client_id",
                     (double) desktop->client_active_id);
         } else {
-            cJSON_AddItemToObject(entry, "client_id", cJSON_CreateNull());
+            cJSON_AddItemToObject(entry, "client_id",
+                    cJSON_CreateNull());
         }
         cJSON_AddItemToArray(array, entry);
     }

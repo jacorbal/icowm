@@ -51,6 +51,8 @@
  *                  (e.g., @c 1u << @p max_flags)
  *
  * @return @c true if the @p flag is valid
+ *
+ * @note Complexity: @e O(1)
  */
 bool safeflg_is_valid(uint32_t flag, uint32_t max_flags);
 
@@ -70,6 +72,8 @@ bool safeflg_is_valid(uint32_t flag, uint32_t max_flags);
  *
  * @note A validity check is performed on the flag to ensure that it is
  *       a valid single bit flag and does not exceed the maximum allowed
+ * @note Complexity: @e O(1)
+ *
  * @see @a safeflg_is_valid
  */
 int safeflg_set(uint32_t *flags, uint32_t flag, uint32_t max_flags);
@@ -90,6 +94,8 @@ int safeflg_set(uint32_t *flags, uint32_t flag, uint32_t max_flags);
  *
  * @note A validity check is performed on the flag to ensure that it is
  *       a valid single bit flag and does not exceed the maximum allowed
+ * @note Complexity: @e O(1)
+ *
  * @see @a safeflg_is_valid
  */
 int safeflg_unset(uint32_t *flags, uint32_t flag, uint32_t max_flags);
@@ -110,6 +116,8 @@ int safeflg_unset(uint32_t *flags, uint32_t flag, uint32_t max_flags);
  *
  * @note A validity check is performed on the flag to ensure that it is
  *       a valid single bit flag and does not exceed the maximum allowed
+ * @note Complexity: @e O(1)
+ *
  * @see @a safeflg_is_valid
  */
 int safeflg_toggle(uint32_t *flags, uint32_t flag, uint32_t max_flags);

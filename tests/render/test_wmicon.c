@@ -429,7 +429,7 @@ xcb_render_pictvisual_t *xcb_render_util_find_visual_format(
 {
     (void) formats;
     (void) visual;
-    return s_find_visual_format_fails ? NULL : &s_root_visual_info;
+    return (s_find_visual_format_fails) ? NULL : &s_root_visual_info;
 }
 
 

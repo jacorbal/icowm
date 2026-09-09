@@ -41,10 +41,13 @@
 #include <menu/context/submenu/desktop.h>
 
 
-/** Most desktops this submenu ever lists, tied to @c CONFIG_MAX_DESKTOPS
- *  itself, the one real source of truth for how many a surface can
- *  ever have, rather than an independent number of its own that could
- *  silently drift out of step with it */
+/**
+ * @brief Most desktops this submenu ever lists
+ *
+ * Tied to @c CONFIG_MAX_DESKTOPS itself, the one real source of truth
+ * for how many a surface can ever have, rather than an independent
+ * number of its own that could silently drift out of step with it.
+ */
 #define S_MAX_DESKTOPS CONFIG_MAX_DESKTOPS
 
 
@@ -52,9 +55,9 @@
  * @brief Userdata structure passed to the "Send to desktop" callback
  */
 typedef struct {
-    client_td *client;      /**< Target client */
-    desktop_td *src;        /**< Source desktop */
-    desktop_td *dst;        /**< Destination desktop */
+    client_td *client;          /**< Target client */
+    desktop_td *src;            /**< Source desktop */
+    desktop_td *dst;            /**< Destination desktop */
 } s_send_data_td;
 
 
@@ -72,12 +75,12 @@ static s_send_data_td s_send_data[S_MAX_DESKTOPS + 1];
  * @brief Context threaded through @a s_desktop_entry_visit
  */
 struct s_desk_entry_ctx_s {
-    client_td *client;              /**< Client the entries send */
-    desktop_td *current;            /**< Desktop it is on already */
-    const surface_td *surface;      /**< Surface being offered */
-    uint32_t count;                 /**< Entries built so far */
-    uint32_t index;                 /**< Desktop index reached */
-    bool is_pinned;                 /**< Whether it is on all already */
+    client_td *client;          /**< Client the entries send */
+    desktop_td *current;        /**< Desktop it is on already */
+    const surface_td *surface;  /**< Surface being offered */
+    uint32_t count;             /**< Entries built so far */
+    uint32_t index;             /**< Desktop index reached */
+    bool is_pinned;             /**< Whether it is on all already */
 };
 
 
@@ -109,8 +112,8 @@ static void s_cb_send_to_desktop(xcb_connection_t *connection,
 
 
 /**
- * @brief Callback: toggle whether the target client is pinned to
- *        every desktop
+ * @brief Callback: toggle whether the target client is pinned to every
+ *        desktop
  *
  * @param connection XCB connection (unused)
  * @param userdata   Target @c client_td
@@ -158,10 +161,10 @@ static void s_desktop_entry_visit(desktop_td *desktop, void *data)
             MENU_CONTEXT_CTXMENU_LABEL_SUFFIX);
 
     s_desk_entries[n].type = CTXMENU_COMMAND;
-    /* A pinned client is already on every desktop, so there is
-     * nowhere left to send it: every row is refused and only the
-     * unpin entry below the separator stays live.  Unpinned, only the
-     * desktop it already sits on is refused */
+    /* A pinned client is already on every desktop, so there is nowhere
+     * left to send it: every row is refused and only the unpin entry
+     * below the separator stays live.  Unpinned, only the desktop it
+     * already sits on is refused */
     s_desk_entries[n].is_disabled = ctx->is_pinned ||
         (desktop->id == ctx->current->id);
     s_send_data[n].client = ctx->client;
@@ -174,6 +177,7 @@ static void s_desktop_entry_visit(desktop_td *desktop, void *data)
 }
 
 
+/* Build the "Send to desktop" submenu entries for 'client' */
 int ctxmenu_submenu_desktop_build(surface_td *surface,
         desktop_td *desktop, client_td *client,
         ctxmenu_entry_td **out_entries, ctxmenu_state_td **out_state)

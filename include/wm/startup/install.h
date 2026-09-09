@@ -26,6 +26,8 @@
  *
  * @retval  0 on success
  * @retval -1 if any @c sigaction call fails
+ *
+ * @note Complexity: @e O(1)
  */
 int wm_startup_install_signals(void);
 
@@ -40,6 +42,8 @@ int wm_startup_install_signals(void);
  *
  * @retval  0 on success
  * @retval -1 if any @c sigaction call fails
+ *
+ * @note Complexity: @e O(1)
  */
 int wm_startup_install_crash_handlers(void);
 

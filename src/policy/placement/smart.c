@@ -101,8 +101,8 @@ struct s_place_window_smart_ctx_s {
  *                 untouched otherwise
  *
  * @return @p out_geom, or @c NULL when @c systray.avoid-overlap does
- *         not apply (see its doc comment, config.h), or the systray has
- *         no on-screen rectangle to report right now
+ *         not apply, or the systray has no on-screen rectangle to
+ *         report right now
  *
  * @note Complexity: @e O(1)
  */
@@ -352,17 +352,19 @@ bool place_window_smart(const wm_td *wm,
      * systray's edges when 'systray.avoid-overlap' applies (see
      * 'ctx.tray_rect''s comment,
      * 's_place_window_smart_resolve_tray_rect'), then every edge of
-     * every visible client already on this desktop.  A genuinely free
-     * rectangle, whenever one exists, always has at least one edge
-     * touching either another obstacle's edge or the workarea's
-     * boundary, so these candidates are enough to find it without
-     * testing a whole grid of positions in between two obstacles where
-     * nothing changes.  Each candidate keeps whichever free rectangle
-     * found so far is largest ('s_place_window_smart_test_candidate'):
-     * the window ends up centered inside that real free space, not
-     * pinned to whichever corner happened to be tried first, so the
-     * breathing room around it comes from the free space itself rather
-     * than from any fixed margin. */
+     * every visible client already on this desktop.
+     *
+     * A genuinely free rectangle, whenever one exists, always has at
+     * least one edge touching either another obstacle's edge or the
+     * workarea's boundary, so these candidates are enough to find it
+     * without testing a whole grid of positions in between two
+     * obstacles where nothing changes.  Each candidate keeps whichever
+     * free rectangle found so far is largest
+     * ('s_place_window_smart_test_candidate'): the window ends up
+     * centered inside that real free space, not pinned to whichever
+     * corner happened to be tried first, so the breathing room around
+     * it comes from the free space itself rather than from any fixed
+     * margin. */
     s_place_window_smart_test_candidate(&ctx,
             ctx.center_x - (int32_t) (ctx.fw / 2u),
             ctx.center_y - (int32_t) (ctx.fh / 2u));

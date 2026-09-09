@@ -3,9 +3,6 @@
  *
  * @brief Raw keyboard, click, and motion event handling for a single
  *        context menu window
- *
- * One of the files
- * @c menu/context/ctxmenu/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -27,10 +24,12 @@
 /* Default initial values */
 #include <defs/kbd.h>
 
-/* Local includes */
+/* Menu includes */
 #include <menu/context/ctxmenu/layout.h>
 #include <menu/context/ctxmenu/redraw.h>
 #include <menu/context/ctxmenu/select.h>
+
+/* Local includes */
 #include <menu/context/ctxmenu/handle.h>
 
 
@@ -108,7 +107,8 @@ bool ctxmenu_handle_keypress(xcb_connection_t *connection,
                     state->child = NULL;
                 }
                 child_state->entries = state->entries[sel].items;
-                child_state->entry_count = state->entries[sel].item_count;
+                child_state->entry_count =
+                    state->entries[sel].item_count;
                 child_state->parent = state;
                 child_state->child = NULL;
                 sub_pos.x = state->origin_x + (int32_t) state->width;

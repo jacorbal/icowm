@@ -33,8 +33,10 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Project includes */
+/* Type includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <config.h>
 
 
@@ -179,6 +181,8 @@ bool iconmenu_handle_keypress(xcb_connection_t *connection,
  * @param win Window that received the motion event
  * @param x   Pointer X relative to @p win
  * @param y   Pointer Y relative to @p win
+ *
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
  */
 void iconmenu_handle_motion(xcb_window_t win, int x, int y);
 

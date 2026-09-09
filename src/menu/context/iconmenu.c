@@ -28,20 +28,20 @@
 
 /* Default initial values */
 #include <defs/uistr.h>
-#include <i18n.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+
+/* Render includes */
+#include <render/icon.h>
 
 /* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <i18n.h>
 #include <surface.h>
-
-/* Render includes */
-#include <render/icon.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -49,6 +49,8 @@
 #include <menu/context/submenu/desktop.h>
 #include <menu/context/submenu/page.h>
 #include <menu/dialog/inspect.h>
+
+/* Local includes */
 #include <menu/context/iconmenu.h>
 
 

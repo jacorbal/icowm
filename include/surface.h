@@ -310,6 +310,8 @@ monitor_td surface_monitor_direction(const surface_td *surface,
  * @retval  0 Success
  * @retval  1 Failed to insert the desktop to the list
  * @retval -1 Invalid surface
+ *
+ * @note Complexity: @e O(1)
  */
 int surface_desktop_add(surface_td *surface, desktop_td *desktop);
 
@@ -324,6 +326,8 @@ int surface_desktop_add(surface_td *surface, desktop_td *desktop);
  * @retval  1 Failed to remove the desktop from the list
  * @retval  2 Could not find the desktop matching that ID
  * @retval -1 Invalid surface or no desktops
+ *
+ * note Complexity: @e O(d), where @e d is @p surface's desktop count
  */
 int surface_desktop_rem(surface_td *surface, uint32_t desktop_id);
 
@@ -429,6 +433,9 @@ void surface_desktop_label(const surface_td *surface,
  * @return Pointer to the desktop toward the north, or @c NULL if none
  *         exists in that direction
  *
+ * @note Complexity: @e O(m), where @e m is @p layout's
+ *       @c rows @c * @c columns
+ *
  * @see @c ci_config_load_screens's comment, @c config/base/desktops.c
  */
 desktop_td *surface_desktop_north(surface_td *surface,
@@ -448,6 +455,9 @@ desktop_td *surface_desktop_north(surface_td *surface,
  * @param desktop_id ID of the current desktop
  * @param cycle      If @c true, wraps to the top row of the same column
  *                   when already at the bottom
+ *
+ * @note Complexity: @e O(m), where @e m is @p layout's
+ *       @c rows @c * @c columns
  *
  * @return Pointer to the desktop toward the south, or @c NULL if none
  *         exists in that direction
@@ -477,6 +487,9 @@ desktop_td *surface_desktop_south(surface_td *surface,
  * @param cycle      If @c true, wraps to the eastmost desktop in the
  *                   same row when already at the westmost
  *
+ * @note Complexity: @e O(m), where @e m is @p layout's
+ *       @c rows @c * @c columns
+ *
  * @return Pointer to the desktop toward the west, or @c NULL if not
  *         found or not valid
  */
@@ -492,15 +505,18 @@ desktop_td *surface_desktop_west(surface_td *surface,
  * @c topology.screens.desktops layout configured (the common case,
  * still the default), the desktop one cell east along the configured
  * grid otherwise (see @a surface_desktop_west's doc comment for the
- * fuller reasoning on why this is not simply "@c desktop_id @c +
- * @c 1"), skipping past any desktop-less gap cell along the way.  If
- * the current desktop is the eastmost in its row, and cycling is
- * enabled, wraps to the westmost desktop in that same row.
+ * fuller reasoning on why this is not simply @c (desktop_id + 1),
+ * skipping past any desktop-less gap cell along the way.  If the
+ * current desktop is the eastmost in its row, and cycling is enabled,
+ * wraps to the westmost desktop in that same row.
  *
  * @param surface    Pointer to the surface structure
  * @param desktop_id ID of the current desktop
  * @param cycle      If @c true, wraps to the westmost desktop in the
  *                   same row when already at the eastmost
+ *
+ * @note Complexity: @e O(m), where @e m is @p layout's
+ *       @c rows @c * @c columns
  *
  * @return Pointer to the desktop toward the east, or @c NULL if not
  *         found or not valid
@@ -523,6 +539,9 @@ desktop_td *surface_desktop_east(surface_td *surface,
  * @retval  0 Success
  * @retval  1 No desktop to the north found
  * @retval -1 Invalid surface or no desktops
+ *
+ * @note Complexity: @e O(m), where @e m is @p layout's
+ *       @c rows @c * @c columns
  */
 int surface_desktop_select_north(surface_td *surface, bool cycle);
 
@@ -541,6 +560,9 @@ int surface_desktop_select_north(surface_td *surface, bool cycle);
  * @retval  0 Success
  * @retval  1 No desktop to the south found
  * @retval -1 Invalid surface or no desktops
+ *
+ * @note Complexity: @e O(m), where @e m is @p layout's
+ *       @c rows @c * @c columns
  */
 int surface_desktop_select_south(surface_td *surface, bool cycle);
 
@@ -562,6 +584,9 @@ int surface_desktop_select_south(surface_td *surface, bool cycle);
  * @retval  0 Success
  * @retval  1 No desktop to the west found
  * @retval -1 Invalid surface or no desktops
+ *
+ * @note Complexity: @e O(m), where @e m is @p layout's
+ *       @c rows @c * @c columns
  */
 int surface_desktop_select_west(surface_td *surface, bool cycle);
 
@@ -583,6 +608,9 @@ int surface_desktop_select_west(surface_td *surface, bool cycle);
  * @retval  0 Success
  * @retval  1 No desktop to the east found
  * @retval -1 Invalid surface or no desktops
+ *
+ * @note Complexity: @e O(m), where @e m is @p layout's
+ *       @c rows @c * @c columns
  */
 int surface_desktop_select_east(surface_td *surface, bool cycle);
 
@@ -601,6 +629,8 @@ int surface_desktop_select_east(surface_td *surface, bool cycle);
  * @retval  0 Success
  * @retval  1 No next desktop found
  * @retval -1 Invalid surface or no desktops
+ *
+ * @note Complexity: @e O(d), where @e d is @p surface's desktop count
  */
 int surface_desktop_select(surface_td *surface, uint32_t desktop_id);
 

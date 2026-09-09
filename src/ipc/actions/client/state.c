@@ -27,8 +27,8 @@
 
 
 /**
- * @brief Shade the client, per @c ipc_client_action_fn's own
- *        contract
+ * @brief Shade the client, per
+ *        @c ipc_client_action_fn's own contract
  *
  * @note Complexity: @e O(1)
  */
@@ -41,8 +41,8 @@ static void s_shade(const wm_td *wm, client_td *client,
 
 
 /**
- * @brief Unshade the client, per @c ipc_client_action_fn's own
- *        contract
+ * @brief Unshade the client, per
+ *        @c ipc_client_action_fn's own contract
  *
  * @note Complexity: @e O(1)
  */

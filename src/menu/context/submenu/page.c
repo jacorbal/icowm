@@ -121,9 +121,10 @@ static void s_cb_toggle_sticky(xcb_connection_t *connection,
 }
 
 
-int ctxmenu_submenu_page_build(surface_td *surface, desktop_td *desktop,
-        client_td *client, ctxmenu_entry_td **out_entries,
-        ctxmenu_state_td **out_state)
+/* Build the "Send to page" submenu entries for 'client' */
+int ctxmenu_submenu_page_build(surface_td *surface,
+        desktop_td *desktop, client_td *client,
+        ctxmenu_entry_td **out_entries, ctxmenu_state_td **out_state)
 {
     uint32_t columns;
     uint32_t rows;

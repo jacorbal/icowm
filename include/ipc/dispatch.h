@@ -33,7 +33,6 @@
 #include <cjson/cJSON.h>
 
 
-
 /**
  * @brief One client action's function pointer shape
  *
@@ -51,8 +50,8 @@ typedef void (*ipc_client_action_fn)(const wm_td *wm, client_td *client,
 
 
 /**
- * @brief Resolve a request's @c client_id, run one action on it,
- *        and report the outcome
+ * @brief Resolve a request's @c client_id, run one action on it, and
+ *        report the outcome
  *
  * @param wm     Window manager instance
  * @param args   The request object; must have a numeric @p client_id
@@ -63,7 +62,10 @@ typedef void (*ipc_client_action_fn)(const wm_td *wm, client_td *client,
  * @see @p ipc_resolve_client in @c ipc/resolve.h for the failure
  *      wording when @p client_id is missing or names no current client
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(s * d * c), where @e s is the number of
+ *       surfaces, @e d the number of desktops per surface, and @e c the
+ *       hash-table lookup cost per desktop; inherited from
+ *       @a ip_resolve_client in @c ipc/resolve.h
  */
 cJSON *ipc_dispatch_client_action(const wm_td *wm, const cJSON *args,
         ipc_client_action_fn action);

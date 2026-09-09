@@ -43,8 +43,8 @@ static void s_make_client(client_td *client, const char *instance,
     client->info.role_name = (char *) role;
     client->info.name = (char *) title;
     client->properties.type = (uint16_t) type;
-    client->transient_for = is_transient ? (xcb_window_t) 42u
-        : XCB_WINDOW_NONE;
+    client->transient_for =
+        (is_transient) ? (xcb_window_t) 42u : XCB_WINDOW_NONE;
 }
 
 

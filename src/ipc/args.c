@@ -29,7 +29,8 @@ bool ipc_args_get_uint(const cJSON *args, const char *field,
 {
     cJSON *const item = cJSON_GetObjectItem(args, field);
 
-    if (item == NULL || !cJSON_IsNumber(item) || item->valuedouble < 0.0) {
+    if (item == NULL || !cJSON_IsNumber(item) ||
+            item->valuedouble < 0.0) {
         return false;
     }
     *out = (uint32_t) item->valuedouble;

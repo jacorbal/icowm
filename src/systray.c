@@ -5,7 +5,7 @@
  *        dispatchers, and configuration-driven lifecycle
  *
  * The @p s_tray state every file @ *.c in @c src/systray/ shares is
- * defined here (see @c systray/internal.h), along with the public entry
+ * defined here (@c systray/internal.h), along with the public entry
  * points every other subsystem calls into (init/shutdown/reload, and
  * every event handler).   The actual work of reading clock/battery
  * text, positioning and drawing the tray, and speaking the systray
@@ -128,10 +128,9 @@ static void s_systray_config_apply(const wm_td *wm)
  *        @p pixmap.size
  *
  * A docked icon's size is otherwise only ever set once, at dock
- * time (see @a systray_protocol_dock in @c systray/protocol.c).
- * Reparent, resize, only then map, the icon is never actually visible
- * at its old size in the first place, so it never needs to redraw
- * itself to fit a new one either.  Nothing about reloading the
+ * time.  Reparent, resize, only then map, the icon is never actually
+ * visible at its old size in the first place, so it never needs to
+ * redraw itself to fit a new one either.  Nothing about reloading the
  * configuration on its own revisits an icon that was already docked
  * (and already mapped, already painted once) under a previous, possibly
  * different @p pixmap.size.
@@ -145,8 +144,9 @@ static void s_systray_config_apply(const wm_td *wm)
  * icon in place while still mapped and already painted: many minimal
  * XEmbed tray-icon implementations paint themselves once at whatever
  * size they were first mapped at and never repaint in response to a
- * later live @c ConfigureNotify the way a full GTK/Qt widget would;
- * an in-place resize left the icon showing as a blank square in at
+ * later live @c ConfigureNotify the way a full GTK/Qt widget would.
+ *
+ * An in-place resize left the icon showing as a blank square in at
  * least one real client, not a correctly rescaled one, since nothing
  * in that client ever repainted it.  Briefly unmapping first, so the
  * icon is invisible precisely while it does not yet have its new
@@ -156,6 +156,8 @@ static void s_systray_config_apply(const wm_td *wm)
  * client could still fail to repaint correctly here too.
  *
  * @note Complexity: @e O(n), where @e n is the number of docked icons
+ *
+ * @see @a systray_protocol_dock in @c systray/protocol.c
  */
 static void s_systray_icons_resize(void)
 {

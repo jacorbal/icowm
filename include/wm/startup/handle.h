@@ -34,6 +34,8 @@
  * @c wm_startup_requested_stop.
  *
  * @param signum Number of the received signal
+ *
+ * @note Complexity: @e O(1)
  */
 void wm_startup_handle_signal(int signum);
 
@@ -45,6 +47,8 @@ void wm_startup_handle_signal(int signum);
  * without async-signal-safety constraints.
  *
  * @param signum Number of the received signal (always @c SIGHUP)
+ *
+ * @note Complexity: @e O(1)
  */
 void wm_startup_handle_reload(int signum);
 
@@ -56,6 +60,8 @@ void wm_startup_handle_reload(int signum);
  * from a virtual-terminal switch.
  *
  * @param signum Number of the received signal (always @c SIGCONT)
+ *
+ * @note Complexity: @e O(1)
  */
 void wm_startup_handle_resume(int signum);
 
@@ -66,6 +72,8 @@ void wm_startup_handle_resume(int signum);
  * normal execution context.
  *
  * @param signum Number of the received signal (always @c SIGCHLD)
+ *
+ * @note Complexity: @e O(1)
  */
 void wm_startup_handle_child(int signum);
 
@@ -78,6 +86,8 @@ void wm_startup_handle_child(int signum);
  * what POSIX guarantees is safe from within a signal handler.
  *
  * @param signum Number of the received fatal signal
+ *
+ * @note Complexity: @e O(1)
  */
 void wm_startup_handle_crash(int signum);
 
@@ -86,6 +96,8 @@ void wm_startup_handle_crash(int signum);
  *
  * @return @c true once a termination signal (SIGINT, SIGQUIT, SIGTERM)
  *         has been received
+ *
+ * @note Complexity: @e O(1)
  */
 bool wm_startup_requested_stop(void);
 
@@ -95,6 +107,8 @@ bool wm_startup_requested_stop(void);
  *
  * @return @c true exactly once per @c SIGHUP received, clearing the
  *         flag on each call that returns @c true
+ *
+ * @note Complexity: @e O(1)
  */
 bool wm_startup_requested_reload(void);
 
@@ -103,6 +117,8 @@ bool wm_startup_requested_reload(void);
  *
  * @return @c true exactly once per @c SIGCONT received, clearing the
  *         flag on each call that returns @c true
+ *
+ * @note Complexity: @e O(1)
  */
 bool wm_startup_requested_resume(void);
 
@@ -111,6 +127,8 @@ bool wm_startup_requested_resume(void);
  *
  * @return @c true exactly once per @c SIGCHLD received, clearing the
  *         flag on each call that returns @c true
+ *
+ * @note Complexity: @e O(1)
  */
 bool wm_startup_requested_child_reap(void);
 

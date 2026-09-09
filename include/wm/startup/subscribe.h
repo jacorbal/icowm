@@ -28,6 +28,8 @@
  *
  * @retval  0 on success (including when XRandR is unavailable)
  * @retval -1 if @p wm or its members are null
+ *
+ * @note Complexity: @e O(n), where @e n is the amount of surfaces
  */
 int wm_startup_subscribe_randr_events(const wm_td *wm);
 
@@ -41,6 +43,8 @@ int wm_startup_subscribe_randr_events(const wm_td *wm);
  * @retval  0 on success
  * @retval -1 if @p wm or its members are null, or if another window
  *            manager already holds the root event subscription
+ *
+ * @note Complexity: @e O(n), where @e n is the amount of surfaces
  *
  * @see Implementation's comment for why the left-pointer lives here
  */

@@ -208,7 +208,12 @@ struct systray_state_s {
     char clock_format[CONFIG_MAX_LENGTH_NAME];
 };
 
+
+/**
+ * @brief Global systray state
+ */
 extern struct systray_state_s s_tray;
+
 
 /* 'systray/text.c' */
 
@@ -218,6 +223,7 @@ extern struct systray_state_s s_tray;
  * @note A no-op when the clock is disabled
  * @note Called once up front and again every time @a systray_clock_tick
  *       observes the second has changed
+ * @note Complexity: @e O(1)
  */
 void systray_text_refresh_clock(void);
 
@@ -226,6 +232,8 @@ void systray_text_refresh_clock(void);
  *        @a s_tray.battery_text
  *
  * @note A no-op when the battery status is disabled
+ *
+ * @note Complexity: @e O(1)
  *
  * @see @a battery_status_read for what the formatted text can look like
  */
@@ -237,6 +245,9 @@ void systray_text_refresh_battery(void);
  *
  * @return @c 0 when nothing in @p systray.text.order is both listed and
  *         enabled with non-empty text
+ *
+ * @note Complexity: @e O(k), where @e k is the amount of configured
+ *       items
  */
 uint16_t systray_text_width(void);
 
@@ -259,6 +270,9 @@ const char *systray_text_for_item(enum config_systray_text_item_e item,
  *
  * @note Safe to call whenever the tray's stacking might need
  *       reconsidering
+ *
+ * @note Complexity: @e O(n), where @e n is the amount of managed
+ *       clients
  */
 void systray_layout_restack(void);
 
@@ -274,6 +288,7 @@ void systray_layout_restack(void);
  * @note Does not acquire the selection
  * @note Idempotent; does nothing (beyond returning success) if
  *       @p s_tray.is_window_ready is already @c true
+ * @note Complexity: @e O(1)
  *
  * @see @p systray_protocol_selection_acquire
  */
@@ -286,6 +301,8 @@ bool systray_protocol_window_ensure(const wm_td *wm);
  * @retval  true if ownership was acquired (or already held),
  * @retval false if another tray manager already owns the selection or
  *               the window is not ready yet
+ *
+ * @note Complexity: @e O(1)
  */
 bool systray_protocol_selection_acquire(void);
 
@@ -296,6 +313,7 @@ bool systray_protocol_selection_acquire(void);
  * they are, just hidden.
  *
  * @note Safe to call when the selection is not currently owned
+ * @note Complexity: @e O(n), where @e n is the amount of docked icons
  */
 void systray_protocol_selection_release(void);
 
@@ -304,6 +322,9 @@ void systray_protocol_selection_release(void);
  *
  * @param icon Icon window named by a @c SYSTEM_TRAY_REQUEST_DOCK
  *             request
+ *
+ * @note Complexity: @e O(k), where @e k is the amount of already-docked
+ *       icons
  */
 void systray_protocol_dock(xcb_window_t icon);
 
@@ -317,6 +338,8 @@ void systray_protocol_dock(xcb_window_t icon);
  *       a currently docked icon, in which case the icon is shown or
  *       hidden to match its @c XEMBED_MAPPED flag bit, as read fresh
  *       from the window
+ *
+ * @note Complexity: @e O(n), where @e n is the amount of docked icons
  */
 void systray_protocol_property_changed(xcb_window_t window,
         xcb_atom_t atom);
@@ -338,6 +361,9 @@ void systray_protocol_property_changed(xcb_window_t window,
  *       @c XEMBED_MAPPED flag bit, exactly as
  *       @a systray_protocol_property_changed already does for a later
  *       @c _XEMBED_INFO change
+ *
+ * @note Complexity: @e O(k), where @e k is the amount of already-docked
+ *       icons
  */
 bool systray_protocol_map_request(xcb_window_t window);
 
@@ -347,6 +373,7 @@ bool systray_protocol_map_request(xcb_window_t window);
  *
  * @note A no-op if the window does not exist yet or there is no theme
  *       to read from
+ * @note Complexity: @e O(1)
  */
 void systray_protocol_apply_theme_style(void);
 
@@ -356,6 +383,8 @@ void systray_protocol_apply_theme_style(void);
  *
  * @note A no-op for @c CONFIG_SYSTRAY_ORDER_LEFT_TO_RIGHT and
  *       @c CONFIG_SYSTRAY_ORDER_RIGHT_TO_LEFT
+ *
+ * @note Complexity: @e O(k^2), where @e k is the number of docked icons
  */
 void systray_protocol_resort(void);
 

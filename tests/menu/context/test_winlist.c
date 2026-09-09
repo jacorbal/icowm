@@ -50,6 +50,7 @@
 #include <desktop.h>
 #include <enact.h>
 #include <harness/tap.h>
+#include <logger.h>
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/tree.h>
 #include <menu/context/winlist.h>
@@ -78,6 +79,26 @@ void ctxmenu_show(xcb_connection_t *connection, surface_td *surface,
     (void) config;
 
     s_captured_state = state;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a logger_msg
+ *
+ * Reached only on the defensive @c WINLIST_MAX_ENTRY_DATA exhaustion
+ * path, which no scenario in this file drives the pool small enough
+ * to hit.
+ *
+ * @note Complexity: @e O(1)
+ */
+int logger_msg(enum logger_level_e level, const char *restrict prefix,
+        const char *restrict fmt, ...)
+{
+    (void) level;
+    (void) prefix;
+    (void) fmt;
+
+    return 0;
 }
 
 

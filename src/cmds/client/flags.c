@@ -172,6 +172,13 @@ static void s_ccmd_client_unpin_visit(client_td *member, void *ctx)
 }
 
 
+/**
+ * @brief Stick a single client, without touching its transient family
+ *
+ * @param client Client to stick
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_ccmd_client_stick_one(client_td *client)
 {
     client_stick(client);
@@ -198,6 +205,13 @@ static void s_ccmd_client_stick_visit(client_td *member, void *ctx)
 }
 
 
+/**
+ * @brief Unstick a single client, without touching its transient family
+ *
+ * @param client Client to unstick
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_ccmd_client_unstick_one(client_td *client)
 {
     client_unstick(client);

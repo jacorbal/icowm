@@ -22,17 +22,20 @@
 #include <xcb/xcb.h>
 
 /* Utils includes */
+#include <utils/config/json.h>
+#include <utils/safe/safemem.h>
 #include <utils/safe/safestr.h>
+
+/* Default initial values */
+#include <defs/config.h>
 
 /* Project includes */
 #include <logger.h>
-#include <utils/config/json.h>
-#include <utils/safe/safemem.h>
 
-#include <defs/config.h>
+/* Menu includes */
+#include <menu/context/ctxmenu.h>
 
 /* Local includes */
-#include <menu/context/ctxmenu.h>
 #include <menu/context/menujson.h>
 
 

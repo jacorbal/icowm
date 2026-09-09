@@ -34,7 +34,8 @@
 #include <ipc/actions/desktop.h>
 
 
-cJSON *ipc_action_set_desktop_background(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_set_desktop_background(const wm_td *wm,
+        const cJSON *args)
 {
     uint32_t color;
     surface_td *surface = NULL;
@@ -76,7 +77,8 @@ cJSON *ipc_action_show_desktop(const wm_td *wm, const cJSON *args)
 }
 
 
-cJSON *ipc_action_send_client_to_desktop(const wm_td *wm, const cJSON *args)
+cJSON *ipc_action_send_client_to_desktop(const wm_td *wm,
+        const cJSON *args)
 {
     uint32_t target_desktop_id;
     client_td *client;
@@ -85,7 +87,8 @@ cJSON *ipc_action_send_client_to_desktop(const wm_td *wm, const cJSON *args)
     desktop_td *target;
     cJSON *error = NULL;
 
-    if (!ipc_args_get_uint(args, "target_desktop_id", &target_desktop_id)) {
+    if (!ipc_args_get_uint(args,
+                "target_desktop_id", &target_desktop_id)) {
         return ipc_response_error("missing or invalid 'target_desktop_id'");
     }
 

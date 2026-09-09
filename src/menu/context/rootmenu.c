@@ -24,27 +24,29 @@
 /* Default initial values */
 #include <defs/ctxmenu.h>
 #include <defs/uistr.h>
-#include <i18n.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
+/* Def includes */
+#include <defs/config.h>
+
 /* Project includes */
 #include <config.h>
 #include <enact.h>
+#include <i18n.h>
 #include <logger.h>
 #include <surface.h>
 #include <wm.h>
-
-/* Def includes */
-#include <defs/config.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/tree.h>
 #include <menu/context/menujson.h>
-#include <menu/context/rootmenu.h>
 #include <menu/dialog/quit.h>
+
+/* Local includes */
+#include <menu/context/rootmenu.h>
 
 
 /** Surface stored at open time (needed by the exit callback) */

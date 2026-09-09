@@ -40,6 +40,8 @@
  * @return Status of the operation
  * @retval  0 on success
  * @retval -1 on allocation failure
+ *
+ * @note Complexity: @e O(1)
  */
 int ci_alloc_strings(client_td *client);
 
@@ -51,6 +53,8 @@ int ci_alloc_strings(client_td *client);
  * undecorated when @p client->config is @c NULL.
  *
  * @param client Client to update
+ *
+ * @note Complexity: @e O(1)
  */
 void ci_set_decoration_defaults(client_td *client);
 
@@ -62,6 +66,8 @@ void ci_set_decoration_defaults(client_td *client);
  * @return Status of the operation
  * @retval     0 on success or when decoration creation is skipped
  * @retval non-0 on X11 failure
+ *
+ * @note Complexity: @e O(1)
  */
 int ci_create_decorations(client_td *client);
 

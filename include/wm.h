@@ -424,6 +424,8 @@ int wm_stop(void);
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 If the window manager singleton is not initialized
+ *
+ * @note Complexity: @e O(1)
  */
 int wm_request_stop(void);
 
@@ -467,6 +469,8 @@ void wm_request_graceful_stop(void);
  * @return Status of the operation
  * @retval  0 Success
  * @retval  1 If the window manager singleton is not initialized
+ *
+ * @note Complexity: @e O(1)
  *
  * @see @a wm_restart_requested, consulted by @c main.c once
  *      @a wm_stop returns, to tell a restart apart from an ordinary
@@ -518,6 +522,8 @@ int wm_action_config_reload(const wm_td *wm);
  * @param surface Surface whose current desktop to rearrange
  *
  * @note No-op if @p surface is null or has no current desktop
+ * @note Complexity: @e O(n), where @e n is the total number of managed
+ *       clients in the current desktop
  */
 void wm_action_rearrange(const wm_td *wm, surface_td *surface);
 
@@ -675,6 +681,8 @@ void wm_request_full_redraw(void);
 
 /**
  * @brief Set the emergency exit flag to @c true
+ *
+ * @note Complexity: @e O(1)
  */
 void wm_emergency_exit_enable(void);
 

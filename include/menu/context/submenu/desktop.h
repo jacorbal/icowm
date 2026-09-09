@@ -38,13 +38,12 @@
  * @param desktop     Desktop @p client is currently on
  * @param client      Target client
  * @param out_entries Set, on success, to this module's own entry
- *                     storage; valid until the next call to this
- *                     function
+ *                    storage; valid until the next call to this
+ *                    function
  * @param out_state   Set, on success, to this module's own submenu
- *                     state; valid until the next call to this
- *                     function
+ *                    state; valid until the next call to this function
  *
- * @return Number of entries built, or 0 when @p surface has only one
+ * @return Number of entries built, or @c 0 when @p surface has only one
  *         desktop, in which case @p out_entries and @p out_state are
  *         left untouched
  *

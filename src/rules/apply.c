@@ -3,7 +3,7 @@
  *
  * @brief Applies a merged rule action descriptor to a client
  *
- * Kept apart from @c rules.c: @c rules_apply and its per-field helpers
+ * Kept apart from @c rules.c: @a rules_apply and its per-field helpers
  * form one coherent responsibility (mutating a client to match a rule's
  * merged action set) that is independent from loading and parsing the
  * rules table itself, and shares no file-scope state with @c rules.c
@@ -33,13 +33,15 @@
 #include <cmds/client/move.h>
 #include <cmds/client/state.h>
 
+/* Policy includes */
+#include <policy/focus.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <enact.h>
 #include <ipc.h>
 #include <logger.h>
-#include <policy/focus.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -59,11 +61,12 @@
  * instead.
  *
  * @param client Client the event is about
- * @param type   IPC event bitmask (a single @c IPC_EVENT_* value; see
- *               @c ipc.h)
+ * @param type   IPC event bitmask (a single @c IPC_EVENT_* value)
  *
  * @note No-op if @p client is @c NULL
  * @note Complexity: @e O(1)
+ *
+ * @see @c ipc.h
  */
 static void s_rules_broadcast_client_event(client_td *client,
         uint32_t type)

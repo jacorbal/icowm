@@ -50,7 +50,6 @@
 #include <defs/ctxmenu.h>
 
 
-
 /**
  * @brief Number of fixed footer entries appended after the JSON
  *        entries: <separator>, "Strutless maximization"/"Strutted
@@ -214,6 +213,8 @@ bool rootmenu_handle_keypress(xcb_connection_t *connection,
  * @param win Window that received the motion event
  * @param x   Pointer X relative to @p win
  * @param y   Pointer Y relative to @p win
+ *
+ * @note Complexity: @e O(d), where @e d is the submenu nesting depth
  */
 void rootmenu_handle_motion(xcb_window_t win, int x, int y);
 

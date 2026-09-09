@@ -32,6 +32,15 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 
+/* Command includes */
+#include <cmds/surface.h>
+
+/* Policy includes */
+#include <policy/focus.h>
+
+/* Initial definition values */
+#include <defs/ctxmenu.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -42,24 +51,16 @@
 #include <surface.h>
 #include <wm.h>
 
-/* Command includes */
-#include <cmds/surface.h>
-
-/* Policy includes */
-#include <policy/focus.h>
-
-/* Initial definition values */
-#include <defs/ctxmenu.h>
+/* Render includes */
+#include <render/text.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/tree.h>
-#include <menu/context/winlist.h>
 #include <menu/draw.h>
 
-/* Render includes */
-#include <render/text.h>
-
+/* Local includes */
+#include <menu/context/winlist.h>
 
 /**
  * @brief Singleton root menu state, one @c CTXMENU_SUBMENU per desktop

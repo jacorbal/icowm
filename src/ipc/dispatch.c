@@ -30,8 +30,8 @@
 #include <ipc/dispatch.h>
 
 
-/* Resolve a request's client_id, run one action on it, and
- * report the outcome */
+/* Resolve a request's client_id, run one action on it, and report the
+ * outcome */
 cJSON *ipc_dispatch_client_action(const wm_td *wm, const cJSON *args,
         ipc_client_action_fn action)
 {
