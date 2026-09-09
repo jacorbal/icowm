@@ -215,6 +215,8 @@ void enact_client_restore(client_td *client)
 /** Startup-notification stand-ins' call counters and canned answers */
 static int s_call_sn_begin;
 static int s_call_sn_cancel;
+static int s_call_sn_associate_pid;
+static pid_t s_last_associated_pid;
 static bool s_sn_begin_answer = true;
 static char s_sn_begin_id[128] = "startup-id-42";
 
@@ -253,6 +255,19 @@ void cctl_sn_cancel(xcb_connection_t *connection, list_td *surfaces,
     (void) surfaces;
     (void) id;
     s_call_sn_cancel++;
+}
+
+
+/**
+ * @brief Recording stand-in for @a cctl_sn_associate_pid
+ * @note Complexity: @e O(1)
+ */
+void cctl_sn_associate_pid(const char *id, pid_t pid)
+{
+    (void) id;
+
+    s_call_sn_associate_pid++;
+    s_last_associated_pid = pid;
 }
 
 
@@ -581,6 +596,8 @@ static void s_reset(void)
     s_last_enact_client = NULL;
     s_call_sn_begin = 0;
     s_call_sn_cancel = 0;
+    s_call_sn_associate_pid = 0;
+    s_last_associated_pid = 0;
     s_sn_begin_answer = true;
     (void) safe_strncpy(s_sn_begin_id, "startup-id-42",
             sizeof(s_sn_begin_id));

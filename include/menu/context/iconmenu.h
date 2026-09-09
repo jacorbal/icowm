@@ -106,6 +106,24 @@ bool iconmenu_handle_click(xcb_connection_t *connection,
 bool iconmenu_is_open(void);
 
 /**
+ * @brief Query whether the icon context menu is currently open for
+ *        @p client specifically
+ *
+ * With several icons stacked or otherwise close together, this is
+ * what lets the one the open menu actually concerns be drawn as
+ * selected, so it stays identifiable regardless of which one that
+ * is.
+ *
+ * @param client Client to test
+ *
+ * @return @c true when the menu is open and @p client is the one it
+ *         was raised over
+ *
+ * @note Complexity: @e O(1)
+ */
+bool iconmenu_target_is(const client_td *client);
+
+/**
  * @brief Check whether @p win belongs to the icon context menu
  *        hierarchy
  *
@@ -116,6 +134,21 @@ bool iconmenu_is_open(void);
  * @note Complexity: @e O(d)
  */
 bool iconmenu_owns_window(xcb_window_t win);
+
+/**
+ * @brief Close the icon context menu if it is currently open for
+ *        @p client
+ *
+ * A client can be destroyed (e.g., the application crashes or is
+ * killed) while its own icon context menu is still open; without
+ * this, the menu would go on referencing it, a now-dangling pointer,
+ * until the user dismissed it by hand.
+ *
+ * @param client Client that was just destroyed
+ *
+ * @note Complexity: @e O(1)
+ */
+void iconmenu_notice_client_destroyed(const client_td *client);
 
 /**
  * @brief Handle a key-press event while the icon context menu is open

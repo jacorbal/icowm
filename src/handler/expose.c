@@ -22,6 +22,14 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Project includes */
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
+#include <logger.h>
+#include <surface.h>
+#include <wm.h>
+
 /* Render includes */
 #include <render/client/decoration.h>
 #include <render/client/titlebar.h>
@@ -55,14 +63,8 @@
 #include <defs/icon.h>
 
 /* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <logger.h>
 #include <lookup.h>
-#include <surface.h>
 #include <systray.h>
-#include <wm.h>
 
 /* Local includes */
 #include <handler.h>
@@ -212,9 +214,20 @@ void handler_expose(xcb_connection_t *connection,
          * would fall back to the inactive styling for the rest of the
          * drag, well after it visually cleared whatever it had passed
          * behind, since being-dragged is not otherwise part of what
-         * decides active vs. inactive here. */
+         * decides active vs. inactive here.
+         *
+         * 'iconmenu_target_is' folds in the third and last reason an
+         * icon draws active: its own icon context menu being open.
+         * Raising the icon (its own render pass; see
+         * 'ri_render_client_icon' in 'render/icon.c') is what exposes
+         * it in the first place when it was previously stacked behind
+         * another one, generating the very 'Expose' this handles;
+         * without this check, that repaint would immediately overwrite
+         * the correct active styling 'ri_render_client_icon' had only
+         * just applied moments before, with this same inactive
+         * fallback, right as the icon reached the front. */
         is_active_visual = (cycle_is_open() && cycle_client == client) ||
-            is_icon_dragging;
+            is_icon_dragging || iconmenu_target_is(client);
 
         if (!(client->properties.flags & CLIENT_FLAG_HIDDEN)) {
             return;
@@ -262,11 +275,12 @@ void handler_expose(xcb_connection_t *connection,
         /* Deliberately skipped while this same icon is either being
          * dragged ('drag_icon_sync_active_visual' in
          * 'input/mouse/drag/icon.c' clears the icon window without
-         * drawing its pixmap when the drag starts, on purpose) or
-         * currently selected in the icon cycle menu
-         * ('ri_render_client_icon' in 'render/icon.c' draws either case
-         * the same way, asking about both itself), both already folded
-         * into 'is_active_visual' above.
+         * drawing its pixmap when the drag starts, on purpose),
+         * currently selected in the icon cycle menu, or showing its
+         * own icon context menu ('ri_render_client_icon' in
+         * 'render/icon.c' draws every one of the three the same way,
+         * asking about all of them), all already folded into
+         * 'is_active_visual' above.
          *
          * Without this check, an 'Expose' from passing behind another
          * window (or the cycle menu's floating window happening to

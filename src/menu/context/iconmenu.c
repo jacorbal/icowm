@@ -26,18 +26,21 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Default initial values */
-#include <defs/uistr.h>
-#include <i18n.h>
-
 /* Utils includes */
 #include <utils/safe/safestr.h>
+
+/* Render includes */
+#include <render/icon.h>
+
+/* Default initial values */
+#include <defs/uistr.h>
 
 /* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <i18n.h>
 #include <surface.h>
 
 /* Menu includes */
@@ -49,10 +52,12 @@
 #include <menu/context/iconmenu.h>
 
 
-/** Top-level entry slots: at most "Send to desktop" and "Send to
- *  page" (each a submenu), a separator between them and the fixed
- *  entries below, Restore, Hide, a second separator, Inspect, and
- *  Close */
+/**
+ * @brief Top-level entry slots: at most "Send to desktop" and "Send to
+ *        page" (each a submenu), a separator between them and the fixed
+ *        entries below, "Restore", "Hide", a second separator,
+ *        "Inspect", and "Close"
+ */
 #define S_MAX_ENTRIES (8)
 
 
@@ -67,6 +72,9 @@ static surface_td *s_surface = NULL;
 
 /** Active configuration (valid while the menu is open) */
 static const config_td *s_config = NULL;
+
+/** Client the menu is currently showing, or NULL when closed */
+static client_td *s_target_client = NULL;
 
 
 /**
@@ -197,6 +205,7 @@ void iconmenu_show(xcb_connection_t *connection,
 
     s_surface = surface;
     s_config = config;
+    s_target_client = client;
 
     page_count = ctxmenu_submenu_page_build(surface, desktop, client,
             &page_entries, &page_state);
@@ -233,8 +242,8 @@ void iconmenu_show(xcb_connection_t *connection,
         ++n;
     }
 
-    /* Separator before Restore/Hide, only when at least one of the two
-     * submenus above is actually present */
+    /* Separator before "Restore"/"Hide", only when at least one of the
+     * two submenus above is actually present */
     if (n > 0) {
         s_entries[n].type = CTXMENU_SEPARATOR;
         ++n;
@@ -266,15 +275,30 @@ void iconmenu_show(xcb_connection_t *connection,
     s_root.entry_count = n;
 
     ctxmenu_show(connection, surface, &s_root, pos, config);
+
+    /* Without this the icon would go on showing whatever it last
+     * displayed until some unrelated event happened to repaint it */
+    ri_render_client_icon(client, true, true);
 }
 
 
 /* Close the icon context menu */
 void iconmenu_close(void)
 {
+    client_td *const was_target = s_target_client;
+
     ctxmenu_close(&s_root);
     s_surface = NULL;
     s_config = NULL;
+    s_target_client = NULL;
+
+    /* The same forced repaint 'iconmenu_show' above gives it on the way
+     * in, or its icon would go on showing selected styling for a menu
+     * that no longer exists, until some unrelated event happened to
+     * notice. */
+    if (was_target != NULL) {
+        ri_render_client_icon(was_target, true, true);
+    }
 }
 
 
@@ -302,10 +326,34 @@ bool iconmenu_is_open(void)
 }
 
 
+/* Query whether the icon context menu is currently open for 'client' */
+bool iconmenu_target_is(const client_td *client)
+{
+    return client != NULL && client == s_target_client &&
+        ctxmenu_is_open(&s_root);
+}
+
+
 /* Check whether 'win' belongs to the icon context menu hierarchy */
 bool iconmenu_owns_window(xcb_window_t win)
 {
     return ctxmenu_tree_state_find_for_window(&s_root, win) != NULL;
+}
+
+
+/* Close the icon context menu if it is currently open for 'client' */
+void iconmenu_notice_client_destroyed(const client_td *client)
+{
+    if (client == NULL || s_target_client != client) {
+        return;
+    }
+
+    /* Not 'iconmenu_close()' that also repaints 'client's icon to
+     * confirm the menu no longer applies to it, wasted work */
+    ctxmenu_close(&s_root);
+    s_surface = NULL;
+    s_config = NULL;
+    s_target_client = NULL;
 }
 
 

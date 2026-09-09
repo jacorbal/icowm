@@ -290,7 +290,19 @@ client_td *mouse_resize_cursor_update(xcb_connection_t *connection,
     }
 
     client = lookup_find_client(surfaces, window, &surface, &desktop);
-    if (client == NULL || !client_is_resizable(client)) {
+    if (client == NULL || !client_is_resizable(client) ||
+            window == client->icon_window) {
+        /* 'lookup_find_client' also matches a client by its own icon
+         * window (see 's_lookup_client_matches_window',
+         * 'lookup.c'), which this needs to explicitly rule back out:
+         * an icon is never resized by dragging its border, so a
+         * resize cursor has nothing to do there, and computing one
+         * anyway would compare 'root_pos', somewhere within the
+         * icon's own small box, against 'client''s real frame
+         * geometry (via 'im_bounds_resize' below), wherever that
+         * happens to sit on screen while iconified: essentially
+         * arbitrary, and different for every icon depending on
+         * nothing but the coincidence of the two. */
         LOGGER_TRACE("No resizable client for resize cursor" \
                 " (window=0x%x, root=%+d%+d, client=%p)",
                 window, root_pos.x, root_pos.y, (void *) client);

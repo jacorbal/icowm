@@ -199,6 +199,23 @@ bool winlist_is_open(void);
 bool winlist_owns_window(xcb_window_t win);
 
 /**
+ * @brief Close the window list if it is currently open, since it
+ *        might be showing @p client among its many entries
+ *
+ * A client can be destroyed (e.g., the application crashes or is
+ * killed) while the window list is open; without this, an entry for
+ * it would go on referencing it, a now-dangling pointer, until the
+ * user dismissed the list by hand.  The whole list is closed rather
+ * than that one entry alone being picked out, since it is rebuilt
+ * fresh from live client data every time it is opened anyway.
+ *
+ * @param client Client that was just destroyed
+ *
+ * @note Complexity: @e O(1)
+ */
+void winlist_notice_client_destroyed(const client_td *client);
+
+/**
  * @brief Handle a key-press event while the window list menu is open
  *
  * Forwards the key event to the window list menu context.

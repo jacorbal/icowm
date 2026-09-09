@@ -672,8 +672,7 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
     /* Cleared so that 'cycle_destroy' below does not hand focus back to
      * whatever held it before the menu opened.  That restore is for the
      * cancel path, where nothing else will set the focus; on this path
-     * 'focus_apply' is about to, and the restore does real harm rather
-     * than merely wasted work.
+     * 'focus_apply', called below, already has.
      *
      * It sets the focus with 'CurrentTime', which the X server replaces
      * with the current server time and records as the last focus
@@ -684,25 +683,33 @@ void cycle_confirm(xcb_connection_t *connection, list_td *surfaces,
      * the user had just cycled away from. */
     g_cycle_menu.prev_focus = XCB_WINDOW_NONE;
 
+    if (target != NULL && surface != NULL && desktop != NULL) {
+        if (is_icon) {
+            enact_client_restore(target);
+        } else if (target->properties.flags & CLIENT_FLAG_HIDDEN) {
+            /* Hidden (non-iconified) window: unhide before focusing */
+            enact_client_unhide(target);
+        }
+
+        if (!is_icon && client_is_shaded(target)) {
+            enact_client_unshade(target);
+        }
+
+        /* Ahead of 'cycle_destroy' below, not after: that call restores
+         * every still-listed client's border from 'desktop->
+         * client_active_id' as it stands at the time, direct XCB
+         * writes bypassing the render pass entirely (see
+         * 's_cycle_preview_restore''s own comment).  Left for after,
+         * 'client_active_id' would still name whatever was active
+         * before this selection, so the very client about to become
+         * active would be restored in its inactive colors first,
+         * relying entirely on this same 'focus_apply' call to still
+         * happen to repaint it correctly afterward instead of ever
+         * being painted right the first time. */
+        focus_apply(surfaces, surface, desktop, target, true, cfg);
+    }
+
     cycle_destroy(connection);
-
-    if (target == NULL || surface == NULL || desktop == NULL) {
-        return;
-    }
-
-    if (is_icon) {
-        enact_client_restore(target);
-    } else if (target->properties.flags & CLIENT_FLAG_HIDDEN) {
-        /* Hidden (non-iconified) window: unhide before focusing */
-        enact_client_unhide(target);
-    }
-
-    if (!is_icon && client_is_shaded(target)) {
-        enact_client_unshade(target);
-    }
-
-
-    focus_apply(surfaces, surface, desktop, target, true, cfg);
 }
 
 

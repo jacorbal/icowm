@@ -63,6 +63,9 @@
 #include <render/wmicon.h>
 #include <policy/focus.h>
 #include <policy/stacking.h>
+#include <menu/context/iconmenu.h>
+#include <menu/context/wincmenu.h>
+#include <menu/context/winlist.h>
 #include <menu/cycle.h>
 #include <scratchpad.h>
 #include <wm.h>
@@ -943,6 +946,9 @@ void client_destroy(client_td *client)
 
     cycle_notice_client_destroyed(client);
     scratchpad_notice_client_destroyed(client);
+    wincmenu_notice_client_destroyed(client);
+    winlist_notice_client_destroyed(client);
+    iconmenu_notice_client_destroyed(client);
 
     LOGGER_DEBUG("Destroying client %p (window %#x, name '%s')",
             (void *) client, client->window, client->info.name);

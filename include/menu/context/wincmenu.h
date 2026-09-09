@@ -189,6 +189,21 @@ bool wincmenu_is_open(void);
 bool wincmenu_owns_window(xcb_window_t win);
 
 /**
+ * @brief Close the window context menu if it is currently open for
+ *        @p client
+ *
+ * A client can be destroyed (e.g., the application crashes or is
+ * killed) while its own window context menu is still open; without
+ * this, the menu would go on referencing it, a now-dangling pointer,
+ * until the user dismissed it by hand.
+ *
+ * @param client Client that was just destroyed
+ *
+ * @note Complexity: @e O(1)
+ */
+void wincmenu_notice_client_destroyed(const client_td *client);
+
+/**
  * @brief Handle a key-press event while the window context menu is open
  *
  * Forwards the key event to the deepest open menu level in the window

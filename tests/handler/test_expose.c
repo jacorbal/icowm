@@ -135,6 +135,7 @@ static bool s_wincmenu_owns;
 static bool s_rootmenu_owns;
 static bool s_winlist_owns;
 static bool s_iconmenu_owns;
+static bool s_iconmenu_target_is_answer;
 static client_td *s_lookup_result;
 
 
@@ -160,6 +161,7 @@ static void s_reset(void)
     s_rootmenu_owns = false;
     s_winlist_owns = false;
     s_iconmenu_owns = false;
+    s_iconmenu_target_is_answer = false;
     s_lookup_result = NULL;
 }
 
@@ -428,6 +430,15 @@ void iconmenu_repaint(xcb_window_t win)
     (void) win;
 
     s_last_repaint = S_REPAINT_ICONMENU;
+}
+
+
+/** Controllable stand-in for iconmenu_target_is */
+bool iconmenu_target_is(const client_td *client)
+{
+    (void) client;
+
+    return s_iconmenu_target_is_answer;
 }
 
 

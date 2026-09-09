@@ -235,6 +235,21 @@ bool cctl_sn_desktop_for_window(xcb_connection_t *connection,
 }
 
 
+/** Link-only stand-in for cctl_sn_complete_for_pid */
+static unsigned int s_call_cctl_sn_complete_for_pid = 0u;
+
+bool cctl_sn_complete_for_pid(xcb_connection_t *connection,
+        list_td *surfaces, xcb_window_t window)
+{
+    (void) connection;
+    (void) surfaces;
+    (void) window;
+
+    s_call_cctl_sn_complete_for_pid++;
+    return false;
+}
+
+
 /** Link-only stand-in for memguard_max_clients */
 uint32_t memguard_max_clients(void)
 {
@@ -931,6 +946,7 @@ static void s_test_reset_state(void)
     s_call_systray_icon_map_request = 0u;
     s_call_systray_handle_destroy = 0u;
     s_call_cctl_sn_desktop_for_window = 0u;
+    s_call_cctl_sn_complete_for_pid = 0u;
     s_call_memguard_max_clients = 0u;
     s_call_memguard_warn_client_cap = 0u;
     s_call_client_init = 0u;

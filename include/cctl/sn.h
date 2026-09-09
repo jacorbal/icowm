@@ -14,14 +14,18 @@
  *
  * While any launch is pending, every managed root window shows a busy
  * (watch) cursor.  The sequence ends, and the cursor is restored, as
- * soon as either the launched application itself broadcasts a
- * @c ("remove:" message) (most GTK and Qt applications do this
- * automatically once their main window is ready), or a fixed timeout
- * elapses, whichever comes first; not every application is
- * startup-notification aware, so the timeout is what keeps
- * a non-conforming one from leaving the busy cursor on indefinitely.
+ * soon as any one of three things happens, whichever comes first: the
+ * launched application itself broadcasts a @c ("remove:" message)
+ * (most GTK and Qt applications do this automatically once their main
+ * window is ready); a newly mapped window's own @c _NET_WM_PID names
+ * the very process this window manager launched
+ * (@a cctl_sn_complete_for_pid), which most X11 applications publish
+ * whether or not they know anything about this protocol, xterm among
+ * them; or a fixed timeout elapses, which is what keeps an application
+ * answering to neither of those two from leaving the busy cursor on
+ * indefinitely.
  *
- * @note Window association exists only for initial desktop placement:
+ * @note Window association exists for initial desktop placement:
  *       @a cctl_sn_desktop_for_window matches a newly mapped window's
  *       own @c _NET_STARTUP_ID back to the pending sequence that
  *       produced it, so a slow-starting application lands on the
@@ -30,9 +34,13 @@
  * @note That association does not follow @c WM_CLIENT_LEADER the way
  *       the specification allows for a group's other windows, and it
  *       plays no part in any focus decision
- * @note Ending the busy cursor still depends only on the
- *       @c ("remove:" message) or the timeout, neither of which needs
- *       window association at all
+ * @note Ending the busy cursor by @c _NET_WM_PID
+ *       (@a cctl_sn_complete_for_pid) needs no @c _NET_STARTUP_ID
+ *       association at all, unlike desktop placement above; it only
+ *       needs @a cctl_sn_associate_pid to have recorded the launched
+ *       process's own PID first, which
+ *       @a desktop_action_process_launch_with_class
+ *       (@c desktop/dclient.c) does right after a successful spawn
  *
  * @ingroup wm
  */
@@ -52,6 +60,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/types.h>  /* pid_t */
 
 /* XCB includes */
 #include <xcb/xcb.h>
@@ -114,6 +123,27 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
         char *restrict out_id, size_t out_id_size);
 
 /**
+ * @brief Record the PID of the process a pending sequence actually
+ *        launched
+ *
+ * Called once, right after a successful spawn;
+ * @a cctl_sn_complete_for_pid is what later reads this back, matching
+ * it against a newly mapped window's own @c _NET_WM_PID to end the
+ * sequence even when the launched application never broadcasts a
+ * @c ("remove:" message) of its own.
+ *
+ * @param id  Startup ID @a cctl_sn_begin returned for this sequence
+ * @param pid PID of the process actually launched for it
+ *
+ * @note A no-op if @p id no longer names a pending sequence (already
+ *       completed, canceled, or timed out) by the time the spawn
+ *       finishes
+ * @note Complexity: @e O(p), where @e p is the number of currently
+ *       pending sequences
+ */
+void cctl_sn_associate_pid(const char *id, pid_t pid);
+
+/**
  * @brief Look up the desktop a newly mapped window's startup sequence
  *        was launched from
  *
@@ -144,6 +174,34 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
  */
 bool cctl_sn_desktop_for_window(xcb_connection_t *connection,
         xcb_window_t window, uint32_t *out_desktop);
+
+/**
+ * @brief End the pending sequence, if any, that launched the process
+ *        owning a newly mapped window
+ *
+ * A fallback completion path for an application that never broadcasts
+ * a @c ("remove:" message) of its own (xterm and most other classic X11
+ * applications, as opposed to most GTK and Qt ones): @p window's own
+ * @c _NET_WM_PID, which the X server or the toolkit publishes
+ * independently of any startup-notification awareness, is matched
+ * against whichever PID @a cctl_sn_associate_pid recorded for each
+ * still-pending sequence.
+ *
+ * Unlike @a cctl_sn_desktop_for_window, this call is consuming: a match
+ * ends the sequence outright (the same as the @c ("remove:" message)
+ * would), clearing the busy cursor once no sequence remains pending.
+ *
+ * @param connection XCB connection
+ * @param surfaces   Every managed surface, to clear the busy cursor on
+ * @param window     Newly mapped window to check
+ *
+ * @return Whether a pending sequence was matched and ended
+ *
+ * @note Complexity: @e O(p), where @e p is the number of currently
+ *       pending sequences
+ */
+bool cctl_sn_complete_for_pid(xcb_connection_t *connection,
+        list_td *surfaces, xcb_window_t window);
 
 /**
  * @brief Handle a @c _NET_STARTUP_INFO_BEGIN or @c _NET_STARTUP_INFO

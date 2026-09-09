@@ -893,6 +893,17 @@ bool wincmenu_owns_window(xcb_window_t win)
 }
 
 
+/* Close the window context menu if it is currently open for 'client' */
+void wincmenu_notice_client_destroyed(const client_td *client)
+{
+    if (client == NULL || s_target_client != client) {
+        return;
+    }
+
+    wincmenu_close();
+}
+
+
 /* Handle a key-press event while the window context menu is open */
 bool wincmenu_handle_keypress(xcb_connection_t *connection,
         surface_td *surface, xcb_keysym_t keysym,

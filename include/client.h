@@ -415,10 +415,12 @@ struct client_s {
                                     same reason as @c has_rule_iconified */
     bool is_rule_hidden;       /**< Value that rule asked for */
 
-    bool was_icon_cycle_selected;   /**< Whether the icon window was
-                                         drawn with cycle-selection
-                                         styling on its own most recent
-                                         render, so
+    bool was_icon_selected;         /**< Whether the icon window was
+                                         drawn with selected styling
+                                         (cycle-selected, being
+                                         dragged, or its own icon
+                                         context menu open) on its own
+                                         most recent render, so
                                          @a ri_render_client_icon can
                                          skip its own work (window
                                          attributes, border, caption,

@@ -318,6 +318,45 @@ void cycle_notice_client_destroyed(const client_td *client)
 
 
 /**
+ * @brief Link-only stand-in for @a wincmenu_notice_client_destroyed
+ *
+ * Reached only by client teardown, which nothing here calls.
+ *
+ * @note Complexity: @e O(1)
+ */
+void wincmenu_notice_client_destroyed(const client_td *client)
+{
+    (void) client;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a winlist_notice_client_destroyed
+ *
+ * Reached only by client teardown, which nothing here calls.
+ *
+ * @note Complexity: @e O(1)
+ */
+void winlist_notice_client_destroyed(const client_td *client)
+{
+    (void) client;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a iconmenu_notice_client_destroyed
+ *
+ * Reached only by client teardown, which nothing here calls.
+ *
+ * @note Complexity: @e O(1)
+ */
+void iconmenu_notice_client_destroyed(const client_td *client)
+{
+    (void) client;
+}
+
+
+/**
  * @brief Link-only stand-in for @a focus_order_add
  *
  * Reached only by client creation, which nothing here calls.

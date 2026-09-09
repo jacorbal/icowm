@@ -45,15 +45,23 @@
 #include <cctl/sn.h>
 
 
-/** One launch sequence this window manager started and is waiting on */
+/**
+ * @brief One launch sequence this window manager started and is
+ *        waiting on
+ */
 typedef struct {
     char id[SN_ID_MAX_LEN];
     struct timespec started_at;
     uint32_t desktop_id;
+    pid_t pid;              /**< 0 until 'cctl_sn_associate_pid' sets
+                                 it; the process this sequence
+                                 actually launched */
 } s_pending_td;
 
 
-/** One in-progress reassembly of an incoming chunked text message */
+/**
+ * @brief One in-progress reassembly of an incoming chunked text message
+ */
 typedef struct {
     size_t len;
     xcb_window_t window;
@@ -73,6 +81,7 @@ static xcb_atom_t s_atom_begin = XCB_ATOM_NONE;
 static xcb_atom_t s_atom_info = XCB_ATOM_NONE;
 static xcb_atom_t s_atom_startup_id = XCB_ATOM_NONE;
 static xcb_atom_t s_atom_utf8_string = XCB_ATOM_NONE;
+static xcb_atom_t s_atom_wm_pid = XCB_ATOM_NONE;
 
 
 /**
@@ -151,7 +160,7 @@ static void s_set_busy_cursor(xcb_connection_t *connection,
 
 /**
  * @brief Broadcast one startup-notification text message, splitting it
- *        into @c SN_CHUNK_LEN byte format-8 @c ClientMessage chunks per
+ *        into @c SN_CHUNK_LEN byte format-8 'ClientMessage' chunks per
  *        the protocol
  *
  * The first chunk uses @c _NET_STARTUP_INFO_BEGIN as its message type.
@@ -213,8 +222,7 @@ static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
             memcpy(ev.data.data8, text + sent, chunk_len);
 
             xcb_send_event(connection, 0, surface->screen->root,
-                    XCB_EVENT_MASK_STRUCTURE_NOTIFY,
-                    (const char *) &ev);
+                    XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char *) &ev);
 
             sent += chunk_len;
             first_chunk = false;
@@ -268,6 +276,31 @@ static s_reassembly_td *s_reassembly_for(xcb_window_t window)
 
 
 /**
+ * @brief Remove pending sequence @p i outright, clearing the busy
+ *        cursor once none remain
+ *
+ * @param connection XCB connection
+ * @param surfaces   Every managed surface, to clear the busy cursor on
+ * @param i          Index into @c s_pending to remove
+ * @param reason     Logged alongside the sequence's own ID, past
+ *                   tense (e.g., @c "completed by application")
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_complete_at(xcb_connection_t *connection,
+        list_td *surfaces, uint8_t i, const char *restrict reason)
+{
+    LOGGER_DEBUG("Startup-notification sequence '%s' %s",
+            s_pending[i].id, reason);
+    s_pending[i] = s_pending[s_pending_count - 1u];
+    --s_pending_count;
+    if (s_pending_count == 0u && s_cursor_busy) {
+        s_set_busy_cursor(connection, surfaces, false);
+    }
+}
+
+
+/**
  * @brief Remove a pending sequence by ID, if still pending, and restore
  *        the normal cursor once none remain
  *
@@ -286,13 +319,7 @@ static void s_complete_by_id(xcb_connection_t *connection,
 {
     for (uint8_t i = 0u; i < s_pending_count; ++i) {
         if (safe_strcmp(s_pending[i].id, id) == 0) {
-            LOGGER_DEBUG("Startup-notification sequence '%s' %s",
-                    id, reason);
-            s_pending[i] = s_pending[s_pending_count - 1u];
-            --s_pending_count;
-            if (s_pending_count == 0u && s_cursor_busy) {
-                s_set_busy_cursor(connection, surfaces, false);
-            }
+            s_complete_at(connection, surfaces, i, reason);
             return;
         }
     }
@@ -399,6 +426,7 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
             sizeof(s_pending[s_pending_count].id) - 1u] = '\0';
         s_pending[s_pending_count].started_at = now;
         s_pending[s_pending_count].desktop_id = origin_desktop;
+        s_pending[s_pending_count].pid = 0;
         ++s_pending_count;
     }
 
@@ -410,6 +438,22 @@ bool cctl_sn_begin(xcb_connection_t *connection, list_td *surfaces,
     }
 
     return true;
+}
+
+
+/* Record the PID of the process a pending sequence actually launched */
+void cctl_sn_associate_pid(const char *id, pid_t pid)
+{
+    if (id == NULL) {
+        return;
+    }
+
+    for (uint8_t i = 0u; i < s_pending_count; ++i) {
+        if (safe_strcmp(s_pending[i].id, id) == 0) {
+            s_pending[i].pid = pid;
+            return;
+        }
+    }
 }
 
 
@@ -459,6 +503,53 @@ bool cctl_sn_desktop_for_window(xcb_connection_t *connection,
     for (uint8_t i = 0u; i < s_pending_count; ++i) {
         if (safe_strcmp(s_pending[i].id, id) == 0) {
             *out_desktop = s_pending[i].desktop_id;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/* End the pending sequence, if any, whose PID matches a newly mapped
+ * window's own '_NET_WM_PID' */
+bool cctl_sn_complete_for_pid(xcb_connection_t *connection,
+        list_td *surfaces, xcb_window_t window)
+{
+    xcb_get_property_cookie_t cookie;
+    xcb_get_property_reply_t *reply;
+    pid_t window_pid;
+
+    if (connection == NULL || surfaces == NULL ||
+            window == XCB_WINDOW_NONE || s_pending_count == 0u) {
+        return false;
+    }
+
+    if (s_atom_wm_pid == XCB_ATOM_NONE) {
+        s_atom_wm_pid = atom_intern(connection, "_NET_WM_PID", false);
+    }
+    if (s_atom_wm_pid == XCB_ATOM_NONE) {
+        return false;
+    }
+
+    cookie = xcb_get_property(connection, 0, window, s_atom_wm_pid,
+            XCB_ATOM_CARDINAL, 0, 1);
+    reply = xcb_get_property_reply(connection, cookie, NULL);
+    if (reply == NULL) {
+        return false;
+    }
+    if (reply->value_len == 0u || reply->format != 32u) {
+        free(reply);
+        return false;
+    }
+
+    window_pid = (pid_t) *(uint32_t *) xcb_get_property_value(reply);
+    free(reply);
+
+    for (uint8_t i = 0u; i < s_pending_count; ++i) {
+        if (s_pending[i].pid != 0 && s_pending[i].pid == window_pid) {
+            s_complete_at(connection, surfaces, i,
+                    "completed by matching _NET_WM_PID");
             return true;
         }
     }

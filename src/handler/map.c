@@ -24,10 +24,6 @@
 /* Default initial values */
 #include <defs/desktop.h>
 
-/* Utils includes */
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
-
 /* ADT includes */
 #include <adt/cdlist.h>
 #include <adt/list.h>
@@ -47,6 +43,18 @@
 /* Render includes */
 #include <render/outdate.h>
 
+/* Project includes */
+#include <cctl/sn.h>
+#include <client.h>
+#include <desktop.h>
+#include <logger.h>
+#include <memguard.h>
+#include <scratchpad.h>
+#include <surface.h>
+#include <systray.h>
+#include <wm.h>
+#include <wm/shutdown.h>
+
 /* JSON includes */
 #include <cjson/cJSON.h>
 
@@ -65,21 +73,14 @@
 #include <ipc.h>
 
 /* Project includes */
-#include <cctl/sn.h>
-#include <client.h>
-#include <desktop.h>
-#include <logger.h>
 #include <lookup.h>
-#include <memguard.h>
-#include <scratchpad.h>
-#include <surface.h>
-#include <systray.h>
 #include <utils/xcb/atom.h>
-#include <wm.h>
-#include <wm/shutdown.h>
+#include <surface.h>
 
 /* Local includes */
 #include <handler.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 
 /**
@@ -471,6 +472,16 @@ void handler_map_request(const wm_td *wm,
             desktop = origin_desktop;
         }
     }
+
+    /* A fallback completion path for a window whose own application
+     * never broadcasts a ("remove:" message) of its own (xterm and
+     * most other classic X11 applications, unlike most GTK and Qt
+     * ones): matched by '_NET_WM_PID' instead, which is independent
+     * of the '_NET_STARTUP_ID' placement lookup just above and of
+     * whether that one found anything at all, so it runs
+     * unconditionally.  See 'cctl_sn_complete_for_pid''s own comment
+     * (cctl/sn.h) for the full reasoning. */
+    (void) cctl_sn_complete_for_pid(connection, surfaces, event->window);
 
     /* Checked before 'client_init' does any of its own (comparatively
      * expensive) setup work, so a client refused here never pays for

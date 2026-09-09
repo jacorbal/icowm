@@ -56,6 +56,7 @@ static bool s_cycle_is_open = false;
 static client_td *s_cycle_selected_client = NULL;
 static bool s_drag_is_icon_drag = false;
 static client_td *s_drag_client = NULL;
+static client_td *s_iconmenu_target = NULL;
 static surface_td *s_surface_for_screen = NULL;
 
 static int s_change_window_attributes_calls = 0;
@@ -133,6 +134,11 @@ bool drag_is_icon_drag(void)
 client_td *drag_client(void)
 {
     return s_drag_client;
+}
+
+bool iconmenu_target_is(const client_td *client)
+{
+    return client != NULL && client == s_iconmenu_target;
 }
 
 surface_td *wm_get_surface_by_id(uint32_t surface_id)
@@ -446,6 +452,7 @@ static void s_reset_fixture(void)
     s_cycle_selected_client = NULL;
     s_drag_is_icon_drag = false;
     s_drag_client = NULL;
+    s_iconmenu_target = NULL;
     s_surface_for_screen = NULL;
     s_change_window_attributes_calls = 0;
     s_last_bg_pixel = 0u;
@@ -491,7 +498,7 @@ static void s_reset_fixture(void)
     s_client_fixture.window = 43u;
     s_client_fixture.screen_id = 0u;
     s_client_fixture.is_outdated = true;
-    s_client_fixture.was_icon_cycle_selected = false;
+    s_client_fixture.was_icon_selected = false;
 }
 
 
@@ -571,7 +578,7 @@ static void s_test_render_client_icon_skips_when_nothing_changed(void)
 {
     s_reset_fixture();
     s_client_fixture.is_outdated = false;
-    s_client_fixture.was_icon_cycle_selected = false;
+    s_client_fixture.was_icon_selected = false;
     s_client_fixture.properties.flags = 0u; /* not urgent */
 
     ri_render_client_icon(&s_client_fixture, true, false);
@@ -587,7 +594,7 @@ static void s_test_render_client_icon_force_always_renders(void)
 {
     s_reset_fixture();
     s_client_fixture.is_outdated = false;
-    s_client_fixture.was_icon_cycle_selected = false;
+    s_client_fixture.was_icon_selected = false;
     s_client_fixture.properties.flags = 0u;
 
     ri_render_client_icon(&s_client_fixture, true, true);
@@ -602,7 +609,7 @@ static void s_test_render_client_icon_outdated_always_renders(void)
 {
     s_reset_fixture();
     s_client_fixture.is_outdated = true;
-    s_client_fixture.was_icon_cycle_selected = false;
+    s_client_fixture.was_icon_selected = false;
     s_client_fixture.properties.flags = 0u;
 
     ri_render_client_icon(&s_client_fixture, true, false);
@@ -618,7 +625,7 @@ static void s_test_render_client_icon_urgent_always_renders(void)
 {
     s_reset_fixture();
     s_client_fixture.is_outdated = false;
-    s_client_fixture.was_icon_cycle_selected = false;
+    s_client_fixture.was_icon_selected = false;
     s_client_fixture.properties.flags = CLIENT_FLAG_URGENT;
 
     ri_render_client_icon(&s_client_fixture, true, false);
@@ -628,13 +635,13 @@ static void s_test_render_client_icon_urgent_always_renders(void)
             " check entirely");
 }
 
-/* A cycle-selection change (was_icon_cycle_selected disagreeing with
+/* A cycle-selection change (was_icon_selected disagreeing with
  * the freshly computed is_cycle_sel) also always renders */
 static void s_test_render_client_icon_cycle_sel_change_renders(void)
 {
     s_reset_fixture();
     s_client_fixture.is_outdated = false;
-    s_client_fixture.was_icon_cycle_selected = false;
+    s_client_fixture.was_icon_selected = false;
     s_client_fixture.properties.flags = 0u;
     s_cycle_is_open = true;
     s_cycle_selected_client = &s_client_fixture; /* is_cycle_sel now true */
@@ -644,7 +651,7 @@ static void s_test_render_client_icon_cycle_sel_change_renders(void)
     TAP_EQ_INT(s_change_window_attributes_calls, 1,
             "a cycle-selection state change from last render always"
             " renders");
-    TAP_OK(s_client_fixture.was_icon_cycle_selected,
+    TAP_OK(s_client_fixture.was_icon_selected,
             "...and the freshly computed selection state is stored"
             " back for next time's comparison");
 }
@@ -662,7 +669,7 @@ static void s_test_render_client_icon_cycle_sel_from_cycle_menu(void)
 
     ri_render_client_icon(&s_client_fixture, true, true);
 
-    TAP_OK(s_client_fixture.was_icon_cycle_selected,
+    TAP_OK(s_client_fixture.was_icon_selected,
             "being the cycle menu's selected client makes"
             " is_cycle_sel true");
 }
@@ -675,7 +682,7 @@ static void s_test_render_client_icon_cycle_sel_from_icon_drag(void)
 
     ri_render_client_icon(&s_client_fixture, true, true);
 
-    TAP_OK(s_client_fixture.was_icon_cycle_selected,
+    TAP_OK(s_client_fixture.was_icon_selected,
             "being the icon currently being dragged also makes"
             " is_cycle_sel true");
 }
@@ -686,7 +693,7 @@ static void s_test_render_client_icon_cycle_sel_false_by_default(void)
 
     ri_render_client_icon(&s_client_fixture, true, true);
 
-    TAP_OK(!s_client_fixture.was_icon_cycle_selected,
+    TAP_OK(!s_client_fixture.was_icon_selected,
             "neither the cycle menu nor an icon drag holding this"
             " client: is_cycle_sel is false");
 }
@@ -706,9 +713,39 @@ static void s_test_render_client_icon_cycle_sel_ignores_other_client(void)
 
     ri_render_client_icon(&s_client_fixture, true, true);
 
-    TAP_OK(!s_client_fixture.was_icon_cycle_selected,
+    TAP_OK(!s_client_fixture.was_icon_selected,
             "another client being selected or dragged does not select"
             " this one");
+}
+
+static void s_test_render_client_icon_cycle_sel_from_iconmenu(void)
+{
+    s_reset_fixture();
+    s_iconmenu_target = &s_client_fixture;
+
+    ri_render_client_icon(&s_client_fixture, true, true);
+
+    TAP_OK(s_client_fixture.was_icon_selected,
+            "its own icon context menu being open also makes"
+            " is_cycle_sel true, so several stacked icons still show"
+            " which one a menu belongs to");
+}
+
+/* The icon context menu being open for a DIFFERENT client does not
+ * make this one selected either */
+static void s_test_render_client_icon_cycle_sel_ignores_other_iconmenu(void)
+{
+    client_td other_client;
+
+    memset(&other_client, 0, sizeof(other_client));
+    s_reset_fixture();
+    s_iconmenu_target = &other_client;
+
+    ri_render_client_icon(&s_client_fixture, true, true);
+
+    TAP_OK(!s_client_fixture.was_icon_selected,
+            "an icon context menu open for another client does not"
+            " select this one");
 }
 
 
@@ -1378,7 +1415,7 @@ static void s_test_hints_letter_positioned_right_aligned(void)
 
 int main(void)
 {
-    TAP_PLAN(61);
+    TAP_PLAN(63);
 
     s_test_render_client_icon_null_client_is_noop();
     s_test_render_client_icon_null_connection_is_noop();
@@ -1397,6 +1434,8 @@ int main(void)
     s_test_render_client_icon_cycle_sel_from_icon_drag();
     s_test_render_client_icon_cycle_sel_false_by_default();
     s_test_render_client_icon_cycle_sel_ignores_other_client();
+    s_test_render_client_icon_cycle_sel_from_iconmenu();
+    s_test_render_client_icon_cycle_sel_ignores_other_iconmenu();
 
     s_test_render_client_icon_blink_on_swaps_display_active();
     s_test_render_client_icon_blink_off_no_swap();

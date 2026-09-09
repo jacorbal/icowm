@@ -31,7 +31,6 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 #include <utils/spawn.h>
-#include <utils/xcb/connection.h>
 
 /* Command includes */
 #include <cmds/client/layer.h>
@@ -58,7 +57,7 @@
 /* Local includes */
 #include <desktop.h>
 #include <policy/stacking.h>
-
+#include <utils/xcb/connection.h>
 
 /**
  * @brief Move a client to the front or back of the desktop's window
@@ -679,6 +678,10 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
                     startup_id);
         }
         return spawn_result;
+    }
+
+    if (have_startup_id) {
+        cctl_sn_associate_pid(startup_id, pid);
     }
 
     if (out_pid != NULL) {

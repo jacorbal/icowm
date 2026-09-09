@@ -27,6 +27,7 @@
 /* Menu includes */
 #include <input/mouse/drag.h>
 #include <input/mouse/drag/icon.h>
+#include <menu/context/iconmenu.h>
 #include <menu/cycle.h>
 
 /* Policy includes */
@@ -113,9 +114,12 @@ void ri_render_client_icon(client_td *client, bool is_current,
     }
 
     /* An icon draws in its selected colors while it is the one the
-     * cycle menu has picked, and equally while it is the one being
-     * dragged: in both the user has hold of it and expects it to look
-     * that way.
+     * cycle menu has picked, equally while it is the one being
+     * dragged, and equally while its own icon context menu is open:
+     * in every case the user has hold of it, one way or another, and
+     * expects it to look that way.  The menu case also doubles as the
+     * only way to tell which icon a right-click menu actually belongs
+     * to when several sit stacked close together on screen.
      *
      * Asked here rather than repainted from the drag itself, which is
      * what once happened and did not hold.  This render pass runs after
@@ -125,20 +129,21 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * it. */
     is_cycle_sel = (cycle_is_open() &&
             cycle_get_selected_client() == client) ||
-        (drag_is_icon_drag() && drag_client() == client);
+        (drag_is_icon_drag() && drag_client() == client) ||
+        iconmenu_target_is(client);
 
     /* Nothing about this icon changed since its last render (no
      * geometry/decoration change on the client itself, and its
-     * cycle-selection styling is unchanged), so this skips re-sending
+     * selection styling is unchanged), so this skips re-sending
      * every X request below.  This desktop's outdated flag can be set
-     * by an entirely unrelated client (cfr. 'wm_request_client_redraw'
+     * by an entirely unrelated client (cfr.  'wm_request_client_redraw'
      * marking the whole desktop), so without this check every iconified
      * client on it would otherwise repeat this same work on every such
      * render pass regardless of whether it, itself, changed at all.
      *
      * This is the same needless-repaint reasoning already applied to
-     * normal windows in 's_desktop_render_one_client' (in
-     * 'render/desktop.c'), just not previously extended to icons.
+     * normal windows in 's_desktop_render_one_client'
+     * (render/desktop.c), just not previously extended to icons.
      * A genuinely damaged icon (covered and uncovered by another
      * window, say) still repaints correctly on its own via
      * 'handler_expose', independent of this.  An urgent client is the
@@ -149,21 +154,21 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * repaints in full on every blink phase change regardless of
      * whether either tracked reason actually changed. */
     if (!force && !client->is_outdated &&
-            is_cycle_sel == client->was_icon_cycle_selected &&
+            is_cycle_sel == client->was_icon_selected &&
             !client_is_urgent(client)) {
         return;
     }
-    client->was_icon_cycle_selected = is_cycle_sel;
+    client->was_icon_selected = is_cycle_sel;
 
     /* What to actually display this frame.  The icon's real
-     * cycle-selection state, except during an urgent client's "on"
+     * selection state, except during an urgent client's "on"
      * blink phase, which swaps it to the opposite of whatever it would
      * otherwise be; the same active/inactive swap
      * 's_desktop_render_one_client' (in 'render/desktop.c') already
      * applies to a titlebar for the same reason.  Kept separate from
      * 'is_cycle_sel' itself (used above for the skip-check and
-     * 'was_icon_cycle_selected' tracking) so a transient blink flip is
-     * never mistaken for a real change in cycle-selection once the
+     * 'was_icon_selected' tracking) so a transient blink flip is
+     * never mistaken for a real change in selection once the
      * client stops being urgent. */
     display_active = is_cycle_sel;
 
@@ -219,19 +224,6 @@ void ri_render_client_icon(client_td *client, bool is_current,
                 client->icon_window, 0, 0, 0, 0);
     }
     xcb_window_show(client->icon_window);
-
-    /* Icons stay lower than the tray even within the shared 'below'
-     * layer, "stuck to the desktop".
-     *
-     * See 'ccmd_client_iconify' for the fuller explanation of why an
-     * unqualified 'below' with no sibling is not enough to guarantee
-     * that on its own. */
-    tray_below = systray_below_window();
-    if (tray_below != XCB_WINDOW_NONE) {
-        xcb_window_stack_below(client->icon_window, tray_below);
-    } else {
-        xcb_window_lower(client->icon_window);
-    }
 
     /* The pixmap is left out while this icon is the picked one.  The
      * caption and the hint letters read against the plain selected
@@ -306,6 +298,31 @@ void ri_render_client_icon(client_td *client, bool is_current,
                 gc, 0, 0, 0, 0, (uint16_t) WM_ICON_SQUARE_SIZE, icon_h);
         xcb_free_gc(xcb_connection_get(), gc);
         xcb_free_pixmap(xcb_connection_get(), buffer);
+    }
+
+    /* Deliberately last, after every draw above (including the final
+     * buffer-to-window copy just above, when a buffer was used at
+     * all): restacking the window is what actually exposes it,
+     * uncovering the icon's own newly-visible interior and border to
+     * the screen, so its full, final content must already be the
+     * correct one by the time that happens.  Done any earlier, as it
+     * once was, the icon still displayed whatever it looked like
+     * before this render pass began for however long the drawing
+     * above took to finish, an already-selected icon (raised, so
+     * visibly at the front) yet to show a color to match, or an
+     * icon otherwise mid-repaint however briefly exposed.
+     *
+     * Icons stay lower than the tray even within the shared 'below'
+     * layer, "stuck to the desktop".
+     *
+     * See 'ccmd_client_iconify' for the fuller explanation of why an
+     * unqualified 'below' with no sibling is not enough to guarantee
+     * that on its own. */
+    tray_below = systray_below_window();
+    if (tray_below != XCB_WINDOW_NONE) {
+        xcb_window_stack_below(client->icon_window, tray_below);
+    } else {
+        xcb_window_lower(client->icon_window);
     }
 
     /* This is not reset anywhere else for a hidden/iconified client.
