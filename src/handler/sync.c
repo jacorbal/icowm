@@ -47,7 +47,7 @@
  * skipped immediately via their zeroed @p hints_ewmh.sync.alarm.
  *
  * @param surfaces List of managed surfaces
- * @param alarm    XSync alarm XID from the 'AlarmNotify' event
+ * @param alarm    XSync alarm XID from the @c AlarmNotify event
  *
  * @return The owning client, or @c NULL if none matches
  *
@@ -81,7 +81,8 @@ static client_td *s_find_client_by_alarm(list_td *surfaces,
         }
 
         do {
-            desktop_td *const desktop = (desktop_td *) cdlist_data(dnode);
+            desktop_td *const desktop =
+                (desktop_td *) cdlist_data(dnode);
 
             if (desktop != NULL && desktop->clients != NULL) {
                 void *elem;

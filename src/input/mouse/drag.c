@@ -34,6 +34,7 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+#include <utils/xcb/window.h>
 
 /* Types includes */
 #include <types/pair.h>
@@ -71,7 +72,6 @@
 #include <input/mouse/drag/outline.h>
 #include <input/mouse/drag/pan.h>
 #include <input/mouse/drag/warp.h>
-#include <utils/xcb/window.h>
 
 
 drag_state_td s_drag = {

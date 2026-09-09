@@ -54,7 +54,7 @@ void handler_leave_notify(const wm_td *wm,
     }
 
     /* Independent of focus-follows-mouse below: a resize-cursor poll
-     * target (see 'mouse_hover_poll_tick' in input/mouse/hover.h)
+     * target (see 'mouse_hover_poll_tick' in 'input/mouse/hover.h')
      * tracked for this window must stop being polled once the pointer
      * has actually left it, regardless of whether hover also affects
      * focus. */
@@ -68,15 +68,15 @@ void handler_leave_notify(const wm_td *wm,
     mouse_enter_focus_cancel(event->event);
 
     /* Same reasoning as 'mouse_handle_enter''s own 'cycle_is_open'
-     * guard (input/mouse/event/enter.c): the cycle menu's own
-     * navigation restacks the newly selected client just under
-     * itself (see 'mi_cycle_preview_apply', 'menu/cycle/draw.c'),
-     * which can cover whatever the pointer happens to be resting on
-     * and raise a perfectly genuine 'LeaveNotify' for it without the
-     * pointer itself having moved.  Relinquishing real focus to the
-     * pointer root below would steal it away from the cycle menu's
-     * own window the same way a stolen 'EnterNotify' would, leaving
-     * nothing for the modifier's eventual release to reach. */
+     * guard ('input/mouse/event/enter.c'): the cycle menu's own
+     * navigation restacks the newly selected client just under itself
+     * (see 'mi_cycle_preview_apply', 'menu/cycle/draw.c'), which can
+     * cover whatever the pointer happens to be resting on and raise
+     * a perfectly genuine 'LeaveNotify' for it without the pointer
+     * itself having moved.  Relinquishing real focus to the pointer
+     * root below would steal it away from the cycle menu's own window
+     * the same way a stolen 'EnterNotify' would, leaving nothing for
+     * the modifier's eventual release to reach. */
     if (cycle_is_open()) {
         return;
     }
@@ -91,17 +91,16 @@ void handler_leave_notify(const wm_td *wm,
                 desktop->client_active_id, NULL, NULL);
 
         /* A 'NONLINEAR' crossing raised by one of the active client's
-         * own sub-windows (its content and titlebar are siblings
-         * under the frame, so moving between them is never
-         * 'INFERIOR') is not the pointer actually leaving that
-         * client, only passing through their shared parent; unfocusing
-         * here would just be undone by 'mouse_handle_enter' focusing
-         * the same client back a moment later, with nothing in
-         * between but a redundant repaint.  'event->child' names
-         * nothing useful for a 'NONLINEAR' leave (ICCCM has no window
-         * to put there), so only a fresh 'QueryPointer' on the root
-         * reveals whether the destination frame still belongs to
-         * 'active'. */
+         * own sub-windows (its content and titlebar are siblings under
+         * the frame, so moving between them is never 'INFERIOR') is not
+         * the pointer actually leaving that client, only passing
+         * through their shared parent; unfocusing here would just be
+         * undone by 'mouse_handle_enter' focusing the same client back
+         * a moment later, with nothing in between but a redundant
+         * repaint.  'event->child' names nothing useful for
+         * a 'NONLINEAR' leave (ICCCM has no window to put there), so
+         * only a fresh 'QueryPointer' on the root reveals whether the
+         * destination frame still belongs to 'active'. */
         if (event->detail == XCB_NOTIFY_DETAIL_NONLINEAR &&
                 active != NULL && surface != NULL &&
                 surface->screen != NULL) {
@@ -127,10 +126,10 @@ void handler_leave_notify(const wm_td *wm,
 
         /* Pointer left a managed window; release focus the same way
          * clicking the empty desktop background does (see
-         * 'mouse_handle_press', input/mouse/event/press.c), through
-         * 'enact_client_unfocus' rather than by hand, so the EWMH
-         * '_NET_WM_STATE_FOCUSED' mark, '_NET_ACTIVE_WINDOW', and the
-         * client's own decoration all stay in sync with the real
+         * 'mouse_handle_press', in 'input/mouse/event/press.c'),
+         * through 'enact_client_unfocus' rather than by hand, so the
+         * EWMH '_NET_WM_STATE_FOCUSED' mark, '_NET_ACTIVE_WINDOW', and
+         * the client's own decoration all stay in sync with the real
          * input focus this already redirects to the pointer root */
         if (active != NULL) {
             enact_client_unfocus(active);

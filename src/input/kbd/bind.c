@@ -30,6 +30,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Default initial values */
 #include <defs/input.h>
 #include <defs/kbd.h>
@@ -48,7 +51,6 @@
 /* Local includes */
 #include <input/kbd/bind.h>
 #include <input/modifier.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -134,41 +136,42 @@ static xcb_keysym_t s_parse_keysym_token(const char *token)
 
     /* Named keys */
     if (strcasecmp(token, "return") == 0 ||
-            strcasecmp(token, "enter") == 0)  { return KS_RETURN; }
-    if (strcasecmp(token, "space") == 0)      { return KS_SPACE; }
-    if (strcasecmp(token, "tab") == 0)        { return KS_TAB; }
+            strcasecmp(token, "enter") == 0)    { return KS_RETURN; }
+    if (strcasecmp(token, "space") == 0)        { return KS_SPACE; }
+    if (strcasecmp(token, "tab") == 0)          { return KS_TAB; }
     if (strcasecmp(token, "escape") == 0 ||
-            strcasecmp(token, "esc") == 0)    { return KS_ESCAPE; }
-    if (strcasecmp(token, "backspace") == 0)  { return KS_BACKSPACE; }
+            strcasecmp(token, "esc") == 0)      { return KS_ESCAPE; }
+    if (strcasecmp(token, "backspace") == 0)    { return KS_BACKSPACE; }
     if (strcasecmp(token, "delete") == 0 ||
-            strcasecmp(token, "del") == 0)    { return KS_DELETE; }
+            strcasecmp(token, "del") == 0)      { return KS_DELETE; }
     if (strcasecmp(token, "insert") == 0 ||
-            strcasecmp(token, "ins") == 0)    { return KS_INSERT; }
-    if (strcasecmp(token, "left") == 0)       { return KS_LEFT; }
-    if (strcasecmp(token, "up") == 0)         { return KS_UP; }
-    if (strcasecmp(token, "right") == 0)      { return KS_RIGHT; }
-    if (strcasecmp(token, "down") == 0)       { return KS_DOWN; }
-    if (strcasecmp(token, "home") == 0)       { return KS_HOME; }
-    if (strcasecmp(token, "end") == 0)        { return KS_END; }
+            strcasecmp(token, "ins") == 0)      { return KS_INSERT; }
+    if (strcasecmp(token, "left") == 0)         { return KS_LEFT; }
+    if (strcasecmp(token, "up") == 0)           { return KS_UP; }
+    if (strcasecmp(token, "right") == 0)        { return KS_RIGHT; }
+    if (strcasecmp(token, "down") == 0)         { return KS_DOWN; }
+    if (strcasecmp(token, "home") == 0)         { return KS_HOME; }
+    if (strcasecmp(token, "end") == 0)          { return KS_END; }
     if (strcasecmp(token, "pageup") == 0 ||
             strcasecmp(token, "pgup") == 0 ||
             strcasecmp(token, "prior") == 0 ||
             strcasecmp(token, "previous") == 0 ||
-            strcasecmp(token, "prev") == 0)   { return KS_PAGE_UP; }
+            strcasecmp(token, "prev") == 0)     { return KS_PAGE_UP; }
     if (strcasecmp(token, "pagedown") == 0 ||
             strcasecmp(token, "pgdn") == 0 ||
-            strcasecmp(token, "next") == 0)   { return KS_PAGE_DOWN; }
-    if (strcasecmp(token, "pause") == 0)      { return KS_PAUSE; }
+            strcasecmp(token, "next") == 0)     { return KS_PAGE_DOWN; }
+    if (strcasecmp(token, "pause") == 0)        { return KS_PAUSE; }
     if (strcasecmp(token, "sysreq") == 0 ||
-            strcasecmp(token, "sysrq") == 0)  { return KS_SYS_REQ; }
-    if (strcasecmp(token, "break") == 0)      { return KS_BREAK; }
+            strcasecmp(token, "sysrq") == 0)    { return KS_SYS_REQ; }
+    if (strcasecmp(token, "break") == 0)        { return KS_BREAK; }
     if (strcasecmp(token, "print") == 0 ||
-            strcasecmp(token, "prntscr") == 0 ||
+            strcasecmp(token, "printscreen") == 0 ||
+            strcasecmp(token, "printscrn") == 0 ||
             strcasecmp(token, "prntscrn") == 0 ||
-            strcasecmp(token, "prtsc") == 0 ||
-            strcasecmp(token, "prtscn") == 0 ||
+            strcasecmp(token, "prntscr") == 0 ||
             strcasecmp(token, "prtscrn") == 0 ||
-            strcasecmp(token, "ps") == 0)     { return KS_PRINT; }
+            strcasecmp(token, "prtscn") == 0 ||
+            strcasecmp(token, "prtsc") == 0)    { return KS_PRINT; }
 
     return XCB_NO_SYMBOL;
 }
@@ -177,7 +180,7 @@ static xcb_keysym_t s_parse_keysym_token(const char *token)
 /**
  * @brief Parse a binding string such as @c Mod1+Shift+F9
  *
- * Splits on '+' and classifies each token as a modifier (all but the
+ * Splits on @c '+' and classifies each token as a modifier (all but the
  * last) or the key (last token).
  *
  * @param config  Configuration for alias resolution
@@ -539,9 +542,9 @@ static size_t s_keyboard_binding_defs(const config_td *config,
          * matching the common desktop-environment convention for this
          * exact key combination, the same way 'Ctrl+Mod1+Backspace'
          * below is a fixed emergency-exit shortcut.  Unrelated to
-         * either 'keyboard.wm.menus.root' or '.windows': those two
-         * open the desktop menu and the all-desktops window list; this
-         * opens the context menu of one specific window. */
+         * either 'keyboard.wm.menus.root' or '.windows': those two open
+         * the desktop menu and the all-desktops window list; this opens
+         * the context menu of one specific window. */
         { "Mod1+space", KEYBIND_CLIENT_WINDOW_MENU },
         /* Fortune easter egg (grabbed only if enabled); default mirrors
          * emergency exit's combination below but with 'Mod4' in place

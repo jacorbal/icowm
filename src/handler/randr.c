@@ -123,21 +123,20 @@ static void s_randr_notify_apply(list_td *surfaces,
                 XCB_RANDR_NOTIFY_OUTPUT_PROPERTY) {
 
         /* For 'CRTC_CHANGE' events, update the surface'->randr'
-         * fields for the matching surface so
-         * 'set_resolution'/'set_orientation' always have new CRTC
-         * metadata */
+         * fields for the matching surface so 'set_resolution'
+         * or 'set_orientation' always have new CRTC metadata */
         if (event->subCode == XCB_RANDR_NOTIFY_CRTC_CHANGE) {
             s_randr_crtc_change_note(surfaces,
                     &event->u.cc);
         }
 
         /* Only for 'OUTPUT_CHANGE' (an output actually connected,
-         * disconnected, or otherwise changed identity), not for
-         * every 'CRTC_CHANGE': applying a profile itself issues
-         * 'xcb_randr_set_crtc_config', which raises a CRTC_CHANGE
-         * of its own, so reacting to CRTC_CHANGE here too would
-         * risk retriggering itself.  Lets a profile for an output
-         * that was not yet connected at startup still get applied
+         * disconnected, or otherwise changed identity), not for every
+         * 'CRTC_CHANGE': applying a profile itself issues
+         * 'xcb_randr_set_crtc_config', which raises a 'CRTC_CHANGE' of
+         * its own, so reacting to 'CRTC_CHANGE' here too would risk
+         * retriggering itself.  Lets a profile for an output that was
+         * not yet connected at startup still get applied
          * once it is (e.g., a docked laptop's external monitor). */
         if (event->subCode == XCB_RANDR_NOTIFY_OUTPUT_CHANGE) {
             for (list_item_td *node = list_head(surfaces);
@@ -213,5 +212,5 @@ void handler_randr_event(wm_td *wm, xcb_generic_event_t *event)
     if (event_type == notify_type) {
         s_randr_notify_apply(surfaces, keysyms, config,
                 (const xcb_randr_notify_event_t *) event);
-    } /* ! if (event_type) */
+    }
 }

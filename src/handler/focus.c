@@ -92,15 +92,14 @@ void handler_property_notify(const wm_td *wm,
     }
 
     /* A root window's property changing, not a managed client's:
-     * 'lookup_find_client' below would never find one for it, so
-     * this has to be checked first, before that early return
-     * discards the event.  Recognizes only the specific properties
-     * a wallpaper tool might set (see
-     * 'render_desktop_background_property_is_pixmap' in
-     * render/desktop/background.c), rather than invalidating the
-     * cached background pixmap on every root property change
-     * regardless of which one it was; many of those, including ones
-     * icowm's EWMH state syncing writes to the root window itself,
+     * 'lookup_find_client' below would never find one for it, so this
+     * has to be checked first, before that early return discards the
+     * event.  Recognizes only the specific properties a wallpaper tool
+     * might set (see 'render_desktop_background_property_is_pixmap' in
+     * render/desktop/background.c), rather than invalidating the cached
+     * background pixmap on every root property change regardless of
+     * which one it was; many of those, including ones icowm's EWMH
+     * state syncing writes to the root window itself,
      * have nothing to do with the background pixmap at all. */
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {
@@ -113,27 +112,27 @@ void handler_property_notify(const wm_td *wm,
         if (render_desktop_background_property_is_pixmap(connection,
                     event->atom)) {
             render_desktop_background_cache_invalidate();
-            /* An external tool just took the root window over, or
-             * just let go of it; either way whichever mesh tile is
-             * cached no longer describes what belongs on screen */
+            /* An external tool just took the root window over, or just
+             * let go of it; either way whichever mesh tile is cached no
+             * longer describes what belongs on screen */
             viewport_mesh_cache_invalidate();
             surface_render_current_desktop_repaint(s);
         }
         return;
     }
 
-    /* Before the managed-client lookup below, and unconditionally,
-     * for the same reason 'systray_handle_destroy' is in
-     * 'handler_destroy_notify': a docked systray icon is never a
-     * managed client, so that lookup would never find one for it.
+    /* Before the managed-client lookup below, and unconditionally, for
+     * the same reason 'systray_handle_destroy' is in
+     * 'handler_destroy_notify': a docked systray icon is never
+     * a managed client, so that lookup would never find one for it.
      * The property actually changes on the icon's own window, not on
      * the tray window, since 'systray_protocol_dock' sets
-     * 'XCB_EVENT_MASK_PROPERTY_CHANGE' on the icon itself rather
-     * than on 's_tray.window'; checking 'systray_owns_window' here,
-     * as the client-message and expose handlers correctly do for
-     * events addressed to the tray window itself, would never match.
-     * 'systray_handle_property_notify' is a no-op for any window
-     * that is not currently docked. */
+     * 'XCB_EVENT_MASK_PROPERTY_CHANGE' on the icon itself rather than
+     * on 's_tray.window'; checking 'systray_owns_window' here, as the
+     * client-message and expose handlers correctly do for events
+     * addressed to the tray window itself, would never match.
+     * 'systray_handle_property_notify' is a no-op for any window that
+     * is not currently docked. */
     systray_handle_property_notify(wm, event);
 
     desktop = NULL;
@@ -169,20 +168,19 @@ void handler_property_notify(const wm_td *wm,
                     RULES_TRIGGER_PROPERTY);
         }
 
-        /* Either reason is enough on its own.  Without the first, a
-         * client rewriting the very same title, which some do every
+        /* Either reason is enough on its own.  Without the first,
+         * a client rewriting the very same title, which some do every
          * few seconds, has its whole titlebar cleared and drawn again
          * to arrive at the text already on it, and the clear is seen;
-         * without the second, a rule that moved the client on this
-         * very notify would leave the screen showing where it used to
-         * be. */
+         * without the second, a rule that moved the client on this very
+         * notify would leave the screen showing where it used to be. */
         if (!name_changed && !rule_acted) {
             return;
         }
 
-        /* The client's titlebar text is what actually changed:
-         * without marking the client itself outdated too, the render
-         * pass's per-client skip check ('client->is_outdated' in
+        /* The client's titlebar text is what actually changed: without
+         * marking the client itself outdated too, the render pass's
+         * per-client skip check ('client->is_outdated' in
          * 's_desktop_render_one_client', render/desktop.c) means its
          * titlebar keeps showing the old title until some unrelated
          * event (focus change, move, resize...) happens to mark that
@@ -197,9 +195,9 @@ void handler_property_notify(const wm_td *wm,
     if (event->atom == XCB_ATOM_WM_ICON_NAME ||
             (ewmh != NULL &&
              event->atom == ewmh->_NET_WM_ICON_NAME)) {
-        /* Rewritten in the same breath as the title by the clients
-         * that rewrite it at all, so it needs the same guard: an icon
-         * name that has not moved is nothing to redraw for */
+        /* Rewritten in the same breath as the title by the clients that
+         * rewrite it at all, so it needs the same guard: an icon name
+         * that has not moved is nothing to redraw for */
         if (!client_props_refresh_icon_name(client)) {
             return;
         }
@@ -218,8 +216,8 @@ void handler_property_notify(const wm_td *wm,
      * old value, which would otherwise keep being reused (that is the
      * entire point of the cache) even though it no longer matches what
      * the application just published.  'WM_HINTS' is included here too:
-     * 'wmicon_draw' falls back to its 'icon_pixmap'/ 'icon_mask'
-     * fields when '_NET_WM_ICON' is absent (see 'render/wmicon.c'), so
+     * 'wmicon_draw' falls back to its 'icon_pixmap'/ 'icon_mask' fields
+     * when '_NET_WM_ICON' is absent (see 'render/wmicon.c'), so
      * a client updating those at runtime needs the exact same cache
      * invalidation, even though most of 'WM_HINTS' otherwise unrelated
      * to icons (input model, urgency, window group) is not itself
@@ -234,8 +232,8 @@ void handler_property_notify(const wm_td *wm,
         return;
     }
 
-    wm_window_role = atom_intern(xcb_connection_get(), "WM_WINDOW_ROLE",
-            true);
+    wm_window_role = atom_intern(xcb_connection_get(),
+            "WM_WINDOW_ROLE", true);
 
     if (event->atom == XCB_ATOM_WM_CLASS ||
             event->atom == wm_window_role) {
@@ -258,8 +256,8 @@ void handler_property_notify(const wm_td *wm,
      * de-facto hint 'client_init' already reads once at initial map
      * time (see there for the field layout), just applied live here
      * whenever it actually changes. */
-    motif_hints_atom = atom_intern(xcb_connection_get(), "_MOTIF_WM_HINTS",
-            true);
+    motif_hints_atom = atom_intern(xcb_connection_get(),
+            "_MOTIF_WM_HINTS", true);
     if (motif_hints_atom != XCB_ATOM_NONE &&
             event->atom == motif_hints_atom) {
         xcb_get_property_reply_t *motif_r;
@@ -357,11 +355,11 @@ void handler_property_notify(const wm_td *wm,
         return;
     }
 
-    /* ICCCM §4.1.8: the client changed its priority list of
-     * subwindows wanting their colormap installed on colormap focus;
-     * re-read it and re-subscribe 'ColormapChangeMask' on whichever
-     * set it names now (a window dropped from the list keeps
-     * whatever mask it already had, since nothing else in this
+    /* ICCCM §4.1.8: the client changed its priority list of subwindows
+     * wanting their colormap installed on colormap focus; re-read it
+     * and re-subscribe 'ColormapChangeMask' on whichever set it names
+     * now (a window dropped from the list keeps whatever mask it
+     * already had, since nothing else in this
      * project relies on it being cleared again afterward). */
     colormap_windows_atom = atom_intern(xcb_connection_get(),
             "WM_COLORMAP_WINDOWS", true);

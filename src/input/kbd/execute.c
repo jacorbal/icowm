@@ -23,6 +23,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Render includes */
 #include <render/surface.h>
 
@@ -63,7 +66,6 @@
 /* Local includes */
 #include <input/kbd/bind.h>
 #include <input/kbd/internal.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -136,7 +138,8 @@ static void s_menu_position_resolve(surface_td *surface,
     if (position == CONFIG_MENU_POSITION_UNDER_MOUSE &&
             surface->screen != NULL) {
         xcb_query_pointer_cookie_t qc =
-            xcb_query_pointer(xcb_connection_get(), surface->screen->root);
+            xcb_query_pointer(xcb_connection_get(),
+                    surface->screen->root);
         xcb_query_pointer_reply_t *const qr =
             xcb_query_pointer_reply(xcb_connection_get(), qc, NULL);
         if (qr != NULL) {
@@ -360,8 +363,8 @@ static void s_dispatch_client_action(enum wm_keybind_type_e btype,
             return;
 
         /* Not to be confused with KEYBIND_CLIENT_PIN above; see
-         * CLIENT_FLAG_STICKY's comment in client/state.h for the
-         * full distinction between the two */
+         * CLIENT_FLAG_STICKY's comment in client/state.h for the full
+         * distinction between the two */
         case KEYBIND_CLIENT_STICKY:
             enact_client_toggle_stick(client);
             return;

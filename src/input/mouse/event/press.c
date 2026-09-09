@@ -56,6 +56,9 @@
 #include <menu/popup.h>
 #include <menu/search.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Default initial values */
 #include <defs/client.h>
 
@@ -81,11 +84,9 @@
 #include <input/mouse/drag/icon.h>
 #include <input/mouse/event.h>
 #include <input/mouse/internal.h>
-#include <utils/xcb/connection.h>
 
 
 /* Small utilities */
-
 
 /**
  * @brief Check whether a pointer position is near the edge of a client

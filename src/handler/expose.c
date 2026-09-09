@@ -68,6 +68,7 @@
 /* Local includes */
 #include <handler.h>
 
+
 /* Handle an 'EXPOSE' event for decoration repaints */
 void handler_expose(xcb_connection_t *connection,
         list_td *surfaces, xcb_expose_event_t *event,
@@ -242,7 +243,10 @@ void handler_expose(xcb_connection_t *connection,
                     XCB_GC_FOREGROUND, &bg_color);
             xcb_poly_fill_rectangle(connection, buffer, gc, 1,
                     (const xcb_rectangle_t[]) {
-                        { 0, 0, (uint16_t) WM_ICON_SQUARE_SIZE, icon_h }
+                        {
+                            0, 0,
+                            (uint16_t) WM_ICON_SQUARE_SIZE, icon_h
+                        }
                     });
             xcb_free_gc(connection, gc);
         } else {
@@ -269,7 +273,8 @@ void handler_expose(xcb_connection_t *connection,
              * 'is_active_visual': this whole block is already gated on
              * '!is_active_visual' above, so it is always false by the
              * time this runs */
-            wmicon_draw(connection, xcb_ewmh_connection_get(), client->window,
+            wmicon_draw(connection, xcb_ewmh_connection_get(),
+                    client->window,
                     target, WM_ICON_SQUARE_SIZE,
                     cfg->theme.icon.inactive.color.foreground,
                     cfg->theme.icon.inactive.color.background,
@@ -296,10 +301,10 @@ void handler_expose(xcb_connection_t *connection,
                         ? cfg->theme.icon.active.color.background
                         : cfg->theme.icon.inactive.color.background);
             text_draw_string(connection, target, XCB_NONE,
-                    (struct position_s) { 2,
-                        WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT -
-                            2u },
-                    caption);
+                    (struct position_s) {
+                        2,
+                        WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT - 2u
+                    }, caption);
         }
 
         ri_icon_hints_draw(connection, client, target, is_active_visual,

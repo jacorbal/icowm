@@ -35,6 +35,19 @@
 
 
 /**
+ * @brief What @a s_colormap_update_visit is looking for and doing
+ */
+struct s_colormap_ctx_s {
+    const xcb_colormap_notify_event_t *event;   /**< Notification being
+                                                     acted on */
+    xcb_connection_t *connection;               /**< Connection to
+                                                     install over */
+    bool is_done;                               /**< Whether the owning
+                                                     client was found */
+};
+
+
+/**
  * @brief Find whether @p window is one of a client's tracked
  *        @c WM_COLORMAP_WINDOWS entries
  *
@@ -58,17 +71,6 @@ static int32_t s_client_colormap_window_index(const client_td *client,
 
     return -1;
 }
-
-
-/**
- * @brief What @a s_colormap_update_visit is looking for and doing
- */
-struct s_colormap_ctx_s {
-    const xcb_colormap_notify_event_t *event;
-                            /**< Notification being acted on */
-    xcb_connection_t *connection;   /**< Connection to install over */
-    bool is_done;           /**< Whether the owning client was found */
-};
 
 
 /**
@@ -110,14 +112,14 @@ static void s_colormap_update_visit(desktop_td *desktop, void *data)
             ? ctx->event->colormap : (xcb_colormap_t) XCB_NONE;
         client->colormap_windows.colormap_ids[idx] = new_id;
 
-        /* Only the currently focused client's colormaps are
-         * actually installed anywhere ('ccmd_client_focus',
-         * cmds/client/focus.c); for any other client this cached
+        /* Only the currently focused client's colormaps are actually
+         * installed anywhere ('ccmd_client_focus', in
+         * 'cmds/client/focus.c'); for any other client this cached
          * update is all there is to do until it is focused again.
          * Installs the single updated one directly here rather than
          * calling that function again, which would also re-send
-         * 'WM_TAKE_FOCUS' and clear urgency, neither warranted by a
-         * colormap attribute change alone. */
+         * 'WM_TAKE_FOCUS' and clear urgency, neither warranted by
+         * a colormap attribute change alone. */
         if (client_is_focused(client) &&
                 new_id != (xcb_colormap_t) XCB_NONE) {
             xcb_install_colormap(ctx->connection, new_id);
@@ -147,10 +149,10 @@ void handler_colormap_notify(xcb_connection_t *connection,
             (unsigned int) event->colormap, (unsigned int) event->_new,
             (unsigned int) event->state);
 
-    /* Not this project's root/support windows, and rare enough
-     * (see 'client_props_refresh_colormap_windows', client/props.c,
-     * for why) that a plain walk over every managed client, rather
-     * than a dedicated lookup table keyed on colormap-list windows
+    /* Not this project's root/support windows, and rare enough (see
+     * 'client_props_refresh_colormap_windows', client/props.c, for why)
+     * that a plain walk over every managed client, rather than
+     * a dedicated lookup table keyed on colormap-list windows
      * specifically, costs nothing worth avoiding. */
     for (list_item_td *snode = list_head(surfaces); snode != NULL;
             snode = list_next(snode)) {

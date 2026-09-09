@@ -48,6 +48,7 @@
 
 /* Utils includes */
 #include <utils/time/clock.h>
+#include <utils/xcb/connection.h>
 
 /* Menu includes */
 #include <menu/notify/desktop.h>
@@ -60,7 +61,6 @@
 #include <input/mouse/drag/outline.h>
 #include <input/mouse/drag/pan.h>
 #include <input/mouse/drag/warp.h>
-#include <utils/xcb/connection.h>
 
 
 /**

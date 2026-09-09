@@ -66,6 +66,7 @@
 
 /* Utils includes */
 #include <utils/time/clock.h>
+#include <utils/xcb/connection.h>
 
 /* Local includes */
 #include <input/mouse/drag/icon.h>
@@ -73,7 +74,6 @@
 #include <input/mouse/drag/outline.h>
 #include <input/mouse/drag/overlay.h>
 #include <input/mouse/drag/pan.h>
-#include <utils/xcb/connection.h>
 
 
 /**

@@ -41,6 +41,7 @@
 /* Utils includes */
 #include <utils/geom.h>
 #include <utils/time/clock.h>
+#include <utils/xcb/connection.h>
 
 /* Default initial values */
 #include <defs/kbd.h>
@@ -65,7 +66,6 @@
 
 /* Local includes */
 #include <input/kbd/internal.h>
-#include <utils/xcb/connection.h>
 
 
 /**

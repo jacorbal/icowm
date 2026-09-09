@@ -97,31 +97,8 @@ static void s_dispatch_to_client_handler(wm_td *wm,
 }
 
 
-/**
- * @brief Dispatch a @c ClientMessage event to the appropriate handler
- *
- * Interprets an incoming @c ClientMessage according to EWMH/WM
- * protocols and forwards it to the specific handler function for the
- * target client, surface, or desktop.
- *
- * Recognized messages include:
- * @c _NET_WM_STATE, @c _NET_RESTACK_WINDOW,
- * @c _NET_WM_FULLSCREEN_MONITORS, @c _NET_WM_MOVERESIZE,
- * @c _NET_ACTIVE_WINDOW,
- * @c _NET_CLOSE_WINDOW, @c _NET_WM_DESKTOP,
- * @c _NET_CURRENT_DESKTOP, @c _NET_DESKTOP_VIEWPORT,
- * @c _NET_MOVERESIZE_WINDOW,
- * @c _NET_REQUEST_FRAME_EXTENTS, @c _NET_SHOWING_DESKTOP,
- * @c _NET_WM_PING, and @c WM_CHANGE_STATE.
- *
- * @param wm    Window manager state
- * @param event Raw @c ClientMessage event received from XCB
- *
- * @note Complexity: @e O(1) for dispatch, excluding the cost of any
- *       delegated handler
- */
-void handler_client_message(wm_td *wm,
-        xcb_client_message_event_t *event)
+/* Dispatch a 'ClientMessage' event to the appropriate handler */
+void handler_client_message(wm_td *wm, xcb_client_message_event_t *event)
 {
     client_td *client;
     surface_td *surface;
@@ -143,12 +120,12 @@ void handler_client_message(wm_td *wm,
             event->window, event->type);
 
     /* Startup-notification messages are broadcast on a root window by
-     * whichever application is signaling its launch progress, not
-     * tied to any window this window manager itself owns or manages,
-     * so this is checked unconditionally rather than gated behind an
-     * ownership check the way the systray dispatch below is; the
-     * function itself is cheap to call when the message type does not
-     * match, since it just compares two already-interned atoms and
+     * whichever application is signaling its launch progress, not tied
+     * to any window this window manager itself owns or manages, so this
+     * is checked unconditionally rather than gated behind an ownership
+     * check the way the systray dispatch below is; the function itself
+     * is cheap to call when the message type does not match, since it
+     * just compares two already-interned atoms and
      * returns. */
     cctl_sn_handle_client_message(connection, surfaces, event);
 
@@ -199,45 +176,42 @@ void handler_client_message(wm_td *wm,
             const desktop_td *const active_desktop =
                 lookup_current_desktop(surface);
 
-            /* EWMH's focus-stealing prevention: a client asking
-             * for '_NET_ACTIVE_WINDOW' does not automatically deserve
-             * real keyboard focus just because it asked.  Its
-             * claim is weighed against whichever client already
-             * holds focus on the desktop the user is actually
-             * looking at right now, comparing each side's
-             * 'user_time', kept genuinely current by
-             * 'client_update_user_time' (client.c) every time a real,
-             * non-synthetic 'KeyPress'/'ButtonPress' actually reaches
-             * it, not the one-time '_NET_WM_USER_TIME' snapshot read
-             * back when it first mapped.
+            /* EWMH's focus-stealing prevention: a client asking for
+             * '_NET_ACTIVE_WINDOW' does not automatically deserve real
+             * keyboard focus just because it asked.  Its claim is
+             * weighed against whichever client already holds focus on
+             * the desktop the user is actually looking at right now,
+             * comparing each side's 'user_time', kept genuinely current
+             * by 'client_update_user_time' (client.c) every time
+             * a real, non-synthetic 'KeyPress'/'ButtonPress' actually
+             * reaches it, not the one-time '_NET_WM_USER_TIME' snapshot
+             * read back when it first mapped.
              *
-             * A requesting client whose most recent genuine
-             * interaction is not newer than the one already focused
-             * has a weaker claim on the user's attention at this
-             * exact moment, e.g., an application that finished some
-             * background task and is trying to jump to the front on
-             * its, unprompted, minutes after the user last
-             * touched it: it is marked urgent instead of stealing
-             * focus outright, the same non-intrusive path already
-             * used for a client's pre-existing
-             * '_NET_WM_STATE_DEMANDS_ATTENTION' announcement (see
-             * 's_client_read_pre_existing_state', client.c), and the
-             * request is not honored any further; whatever already
-             * had focus keeps it undisturbed.
+             * A requesting client whose most recent genuine interaction
+             * is not newer than the one already focused has a weaker
+             * claim on the user's attention at this exact moment, e.g.,
+             * an application that finished some background task and is
+             * trying to jump to the front on its, unprompted, minutes
+             * after the user last touched it: it is marked urgent
+             * instead of stealing focus outright, the same
+             * non-intrusive path already used for a client's
+             * pre-existing '_NET_WM_STATE_DEMANDS_ATTENTION'
+             * announcement (see 's_client_read_pre_existing_state',
+             * client.c), and the request is not honored any further;
+             * whatever already had focus keeps it undisturbed.
              *
              * Skipped entirely when nobody has genuinely focused
-             * anything on the current desktop yet
-             * ('client_active_id' still 0), or when the requesting
-             * client already is the one currently focused, since
-             * neither case has an actual rival claim to weigh this
-             * one against.
+             * anything on the current desktop yet ('client_active_id'
+             * still 0), or when the requesting client already is the
+             * one currently focused, since neither case has an actual
+             * rival claim to weigh this one against.
              *
-             * Skipped as well when the message declares itself to
-             * come from the user rather than from the program.
-             * EWMH §2.12 has the sender state a source indication,
-             * and 'WM_SOURCE_USER' is a pager, a taskbar or a
-             * notification passing on a click; weighing that against
-             * anything would be second-guessing an instruction
+             * Skipped as well when the message declares itself to come
+             * from the user rather than from the program.  EWMH §2.12
+             * has the sender state a source indication, and
+             * 'WM_SOURCE_USER' is a pager, a taskbar or a notification
+             * passing on a click; weighing that against anything would
+             * be second-guessing an instruction
              * already given. */
             if (event->data.data32[0] != (uint32_t) WM_SOURCE_USER &&
                     active_desktop != NULL &&
@@ -246,50 +220,48 @@ void handler_client_message(wm_td *wm,
                 const client_td *const active =
                     desktop_find_client_by_id( active_desktop,
                         active_desktop->client_active_id);
-
-                /* The timestamp that decides this is the one inside
-                 * the message, which EWMH §3 defines as the
-                 * requesting client's last user activity at the
-                 * moment it asked, and not this window's tracked
-                 * 'user_time'.  They are different things, and the
-                 * difference is the whole mechanism: a notification
-                 * daemon passing on a click has just been interacted
-                 * with and sends a current timestamp, while an
-                 * application raising itself unbidden sends the stale
-                 * one it has carried since the user last touched
-                 * it.
+                /* The timestamp that decides this is the one inside the
+                 * message, which EWMH §3 defines as the requesting
+                 * client's last user activity at the moment it asked,
+                 * and not this window's tracked 'user_time'.  They are
+                 * different things, and the difference is the whole
+                 * mechanism: a notification daemon passing on a click
+                 * has just been interacted with and sends a current
+                 * timestamp, while an application raising itself
+                 * unbidden sends the stale one it has carried since the
+                 * user last touched it.
                  *
-                 * Weighing this window's instead, as this did,
-                 * asked the wrong question.  An iconified window has
-                 * by definition not been touched lately, so it lost
-                 * every comparison it was ever put through and could
-                 * never be activated by anything at all, click or no
-                 * click: the request was refused and the window left
-                 * sitting as an icon, merely marked urgent.
+                 * Weighing this window's instead, as this did, asked
+                 * the wrong question.  An iconified window has by
+                 * definition not been touched lately, so it lost every
+                 * comparison it was ever put through and could never be
+                 * activated by anything at all, click or no click: the
+                 * request was refused and the window left sitting as an
+                 * icon, merely marked urgent.
                  *
                  * A zero means a client too old to fill the field in,
-                 * which §3 says to ignore, so this window's is
-                 * used then as before. */
+                 * which §3 says to ignore, so this window's is used
+                 * then as before. */
                 const uint32_t asked_at = event->data.data32[1];
                 const xcb_window_t asker_active =
                     (xcb_window_t) event->data.data32[2];
                 bool hands_over_from_active;
 
-                /* The third field is the requesting client's
-                 * currently active toplevel, and EWMH §3 says the
-                 * window manager may be likelier to obey when
-                 * honoring the request would mean handing focus from
-                 * one active window to another.  It is read for
-                 * exactly that: an asker naming an active window of
-                 * its is a program the user is already working
-                 * in, asking to bring a second window of its own
-                 * forward, which is what the field exists to mark out
-                 * from a background program trying to jump the queue.
+                /* The third field is the requesting client's currently
+                 * active toplevel, and EWMH §3 says the window manager
+                 * may be likelier to obey when honoring the request
+                 * would mean handing focus from one active window to
+                 * another.  It is read for exactly that: an asker
+                 * naming an active window of its is a program the user
+                 * is already working in, asking to bring a second
+                 * window of its own forward, which is what the field
+                 * exists to mark out from a background program trying
+                 * to jump the queue.
                  *
                  * Honored only when the window it names really is the
-                 * one holding focus here.  Taken on trust, it would
-                 * be a way around the prevention altogether.  Any
-                 * client could name the focused window and be let
+                 * one holding focus here.  Taken on trust, it would be
+                 * a way around the prevention altogether.  Any client
+                 * could name the focused window and be let
                  * through. */
                 hands_over_from_active = (active != NULL &&
                         asker_active != XCB_WINDOW_NONE &&
@@ -300,11 +272,11 @@ void handler_client_message(wm_td *wm,
                             (asked_at != 0u)
                                 ? asked_at : client->user_time,
                             active->user_time)) {
-                    /* 'ccmd_client_urge' (cmds/client/flags.c) already
-                     * covers the EWMH state publish and the IPC
+                    /* 'ccmd_client_urge' ('cmds/client/flags.c')
+                     * already covers the EWMH state publish and the IPC
                      * broadcast that setting the flag and recomputing
-                     * urgency alone would leave out, on top of now
-                     * also covering 'wm_outdate_client' itself. */
+                     * urgency alone would leave out, on top of now also
+                     * covering 'wm_outdate_client' itself. */
                     ccmd_client_urge(client);
                     wm_outdate_desktop(desktop);
                     wm_outdate_surface(surface);
@@ -342,12 +314,12 @@ void handler_client_message(wm_td *wm,
 
             if (client_is_iconified(client)) {
                 /* An iconified client on another desktop is reached by
-                 * going to that desktop, the same as a visible one:
-                 * the icon lives there, and being iconified is not a
-                 * reason to move a window out from under the desktop
-                 * it belongs to.  It once was brought here instead,
-                 * which meant the same request did opposite things
-                 * depending on a state the user had not asked about.
+                 * going to that desktop, the same as a visible one: the
+                 * icon lives there, and being iconified is not a reason
+                 * to move a window out from under the desktop it
+                 * belongs to.  It once was brought here instead, which
+                 * meant the same request did opposite things depending
+                 * on a state the user had not asked about.
                  *
                  * A pinned client needs none of this: it is on every
                  * desktop already, so it is on this one, and there is
@@ -406,8 +378,8 @@ void handler_client_message(wm_td *wm,
         return;
     }
 
-    /* EWMH §5.3: pre-map frame-extents request; reply immediately
-     * so the application can size itself before mapping */
+    /* EWMH §5.3: pre-map frame-extents request; reply immediately so
+     * the application can size itself before mapping */
     if (event->type == ewmh->_NET_REQUEST_FRAME_EXTENTS) {
         client = lookup_find_client(surfaces, event->window,
                 &surface, &desktop);
@@ -442,12 +414,12 @@ void handler_client_message(wm_td *wm,
              * decide there is nothing to show (an empty desktop, or
              * every client already hidden) and leave 'surf->
              * is_showing_desktop' at its previous value regardless of
-             * what 'show' asked for, so publishing the raw request
-             * here would tell every pager and taskbar the opposite of
-             * what actually happened.  'wm_outdate_surface'/
-             * '_desktop', which that function already calls, get
-             * 'wm_ewmh_sync' to publish the real value on the next
-             * refresh instead, the same as every other message type
+             * what 'show' asked for, so publishing the raw request here
+             * would tell every pager and taskbar the opposite of what
+             * actually happened.  'wm_outdate_surface'/ '_desktop',
+             * which that function already calls, get 'wm_ewmh_sync' to
+             * publish the real value on the next refresh instead, the
+             * same as every other message type
              * in this dispatcher already relies on it for. */
             hi_handle_net_showing_desktop(surf, show);
         }
@@ -471,15 +443,15 @@ void handler_client_message(wm_td *wm,
             client->hints_ewmh.ping.pending_ticks = 0u;
             client_mark_responsive(client);
 
-            /* Only when the client was being shown as unresponsive
-             * and no longer is.  A pong on its own changes nothing
-             * that is drawn: it updates three fields nobody paints
-             * from, and every ping-capable client answers one every
+            /* Only when the client was being shown as unresponsive and
+             * no longer is.  A pong on its own changes nothing that is
+             * drawn: it updates three fields nobody paints from, and
+             * every ping-capable client answers one every
              * 'WM_EWMH_PING_INTERVAL_SECONDS'.  Marking outdated
              * regardless had the render pass redraw every desktop on
              * that interval, and a decorated client is cleared with
              * exposures on each pass ('s_render_apply_geometry',
-             * render/desktop.c), so its window was blanked and left
+             * 'render/desktop.c'), so its window was blanked and left
              * for the application to paint back, once every five
              * seconds, for as long as it was open. */
             if (was_unresponsive) {

@@ -21,6 +21,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* ADT includes */
 #include <adt/list.h>
 
@@ -41,7 +44,6 @@
 #include <input/kbd/bind.h>
 #include <input/kbd/event.h>
 #include <input/kbd/internal.h>
-#include <utils/xcb/connection.h>
 
 
 /* Surface lookup */

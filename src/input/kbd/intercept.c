@@ -19,6 +19,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* ADT includes */
 #include <adt/list.h>
 
@@ -52,7 +55,6 @@
 /* Local includes */
 #include <input/kbd/internal.h>
 #include <input/kbd/modal.h>
-#include <utils/xcb/connection.h>
 
 
 /**

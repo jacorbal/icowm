@@ -570,28 +570,8 @@ void hi_handle_net_desktop_viewport(const wm_td *wm,
 }
 
 
-/**
- * @brief Handle a @c _NET_WM_DESKTOP client message, taking the
- *        requested client's whole transient family along with it
- *
- * The EWMH counterpart to @a ccmd_client_iconify's transient-family
- * cascade (see its comment in @c cmds/client/visibility.c, for the
- * full reasoning).  Redirects to the family's top-most ancestor
- * first, moving it exactly as this handler always has, then moves
- * every other member of that same family too, so a "save changes?"
- * prompt (or any other transient dialog) never ends up left behind on
- * the old desktop when a pager or taskbar asks to move its parent,
- * stranded apart from the window it belongs to.
- *
- * @param wm          Window manager instance
- * @param event       The @c _NET_WM_DESKTOP client message event
- * @param client      Client the message named
- * @param surface     Client's surface
- * @param src_desktop Client's current desktop
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's desktop
- */
+/* Handle a '_NET_WM_DESKTOP' client message, taking the requested
+ * client's whole transient family along with it */
 void hi_handle_net_wm_desktop(const wm_td *wm,
         xcb_client_message_event_t *event,
         client_td *client, surface_td *surface,
@@ -665,12 +645,12 @@ void hi_handle_net_moveresize_window(const wm_td *wm,
 
     /* Unlike 'ccmd_client_shade'/'ccmd_client_fullscreen'/
      * 'ccmd_client_maximize', which restore an iconified client
-     * automatically because entering any of those states is itself
-     * the visible change being asked for, a plain geometry request
-     * has no visible effect on a client that is not currently mapped
-     * to begin with; silently un-iconifying it would be a surprising
-     * side effect of a request that leaves every other client's
-     * visibility untouched. */
+     * automatically because entering any of those states is itself the
+     * visible change being asked for, a plain geometry request has no
+     * visible effect on a client that is not currently mapped to begin
+     * with; silently un-iconifying it would be a surprising side effect
+     * of a request that leaves every other client's visibility
+     * untouched. */
     if (client_is_iconified(client)) {
         return;
     }
@@ -808,14 +788,15 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
      * showing the desktop follows from 'show' alone (already adjusted
      * above for the nothing-visible case), not from whether this one
      * call happened to change any individual client's hidden flag.
-     * Tying it to 'changed_hidden_state' left a redundant "show" request
-     * (every client already hidden from a previous one, so nothing
-     * changes this time) recording 'is_showing_desktop' as false while
-     * every client stayed hidden, after which a later restore request
-     * found 'is_showing_desktop' already false and, before the 'else
-     * if' just above, fell into the same unconditional 'else' this
-     * comment's block replaces and hid everything again instead of
-     * restoring it: no request left able to bring the clients back. */
+     * Tying it to 'changed_hidden_state' left a redundant "show"
+     * request (every client already hidden from a previous one, so
+     * nothing changes this time) recording 'is_showing_desktop' as
+     * false while every client stayed hidden, after which a later
+     * restore request found 'is_showing_desktop' already false and,
+     * before the 'else if' just above, fell into the same unconditional
+     * 'else' this comment's block replaces and hid everything again
+     * instead of restoring it: no request left able to bring the
+     * clients back. */
     surface->is_showing_desktop = show;
 
     wm_outdate_surface(surface);

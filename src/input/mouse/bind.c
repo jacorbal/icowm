@@ -37,6 +37,7 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/connection.h>
 
 /* Project includes */
 #include <config.h>
@@ -46,7 +47,6 @@
 /* Local includes */
 #include <input/modifier.h>
 #include <input/mouse/bind.h>
-#include <utils/xcb/connection.h>
 
 
 /* Module state */

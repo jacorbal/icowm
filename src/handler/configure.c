@@ -51,36 +51,13 @@
 
 
 /**
- * @brief Send a synthetic @c ConfigureNotify event to a client window
- *
- * Emits an ICCCM-compliant synthetic @c ConfigureNotify event for
- * reparented clients so they can track their geometry relative to the
- * root window.
- *
- * @param connection XCB connection handle
- * @param client     Target client containing window and geometry data
- *
- * @note No action is taken if @p connection or @p client is null or if
- *       the client window is invalid
- * @note Geometry accounts for frame extents and enforces a minimum
- *       window size (@c WM_MIN_WINDOW_DIMENSION)
- * @note Complexity: @e O(1)
- */
-static void s_handler_send_synthetic_configure_notify(
-        xcb_connection_t *connection, const client_td *client)
-{
-    client_send_synthetic_configure_notify(connection, client);
-}
-
-
-/**
  * @brief What building one @c ConfigureRequest reply needs
  *
- * Gathered so the per-field work and the gravity adjustment can each
- * be a function of its own rather than another hundred lines inside
- * @a handler_configure_request.  @p values and @p count are the
- * value list @c xcb_configure_window is handed, filled in ascending
- * mask-bit order as X itself requires.
+ * Gathered so the per-field work and the gravity adjustment can each be
+ * a function of its own rather than another hundred lines inside
+ * @a handler_configure_request.  @p values and @p count are the value
+ * list @c xcb_configure_window is handed, filled in ascending mask-bit
+ * order as X itself requires.
  */
 struct s_configure_ctx_s {
     client_td *client;
@@ -109,18 +86,40 @@ struct s_configure_ctx_s {
 
 
 /**
+ * @brief Send a synthetic @c ConfigureNotify event to a client window
+ *
+ * Emits an ICCCM-compliant synthetic @c ConfigureNotify event for
+ * reparented clients so they can track their geometry relative to the
+ * root window.
+ *
+ * @param connection XCB connection handle
+ * @param client     Target client containing window and geometry data
+ *
+ * @note No action is taken if @p connection or @p client is null or if
+ *       the client window is invalid
+ * @note Geometry accounts for frame extents and enforces a minimum
+ *       window size (@c WM_MIN_WINDOW_DIMENSION)
+ * @note Complexity: @e O(1)
+ */
+static void s_handler_send_synthetic_configure_notify(
+        xcb_connection_t *connection, const client_td *client)
+{
+    client_send_synthetic_configure_notify(connection, client);
+}
+
+
+/**
  * @brief Acknowledge a request this handler decided to ignore
  *
- * ICCCM asks a window manager that does not honor a
- * @c ConfigureRequest to say so, by sending the client a synthetic
- * @c ConfigureNotify carrying the geometry the window actually has.
- * A client waiting on the reply to a silently dropped request would
- * otherwise wait forever.
+ * ICCCM asks a window manager that does not honor a @c ConfigureRequest
+ * to say so, by sending the client a synthetic @c ConfigureNotify
+ * carrying the geometry the window actually has.  A client waiting on
+ * the reply to a silently dropped request would otherwise wait forever.
  *
  * @param connection    XCB connection; may be @c NULL
  * @param client        Client whose request was ignored
- * @param is_reparented Whether the client sits inside a frame, the
- *                      only case the notify is needed in
+ * @param is_reparented Whether the client sits inside a frame, the only
+ *                      case the notify is needed in
  *
  * @note Complexity: @e O(1)
  */
@@ -141,8 +140,8 @@ static void s_handler_configure_acknowledge(
  *        manage
  *
  * Every field the client asked for passes through untouched, since
- * there is no frame, no size hint and no policy of ours to reconcile
- * it against.
+ * there is no frame, no size hint and no policy of ours to reconcile it
+ * against.
  *
  * @param connection XCB connection; may be @c NULL
  * @param event      The request as it arrived
@@ -204,8 +203,8 @@ static void s_handler_configure_forward(xcb_connection_t *connection,
  *
  * @param ctx What the request is being built into
  *
- * @note A position fixed by a rule is kept, the request
- *       answered with a synthetic notify rather than obeyed
+ * @note A position fixed by a rule is kept, the request answered with
+ *       a synthetic notify rather than obeyed
  * @note Complexity: @e O(1)
  */
 static void s_configure_build_x(struct s_configure_ctx_s *ctx)
@@ -243,8 +242,8 @@ if (ctx->mask & XCB_CONFIG_WINDOW_X) {
  *
  * @param ctx What the request is being built into
  *
- * @note A position fixed by a rule is kept, the request
- *       answered with a synthetic notify rather than obeyed
+ * @note A position fixed by a rule is kept, the request answered with
+ *       a synthetic notify rather than obeyed
  * @note Complexity: @e O(1)
  */
 static void s_configure_build_y(struct s_configure_ctx_s *ctx)
@@ -290,8 +289,8 @@ if (ctx->mask & XCB_CONFIG_WINDOW_Y) {
  * @brief Turn each requested field into a value for the reply
  *
  * Walks the mask in ascending bit order, which is the order X expects
- * the value list in, translating a request aimed at the content
- * window into frame coordinates where the client is reparented.
+ * the value list in, translating a request aimed at the content window
+ * into frame coordinates where the client is reparented.
  *
  * @param ctx State of the request being built
  *
@@ -420,16 +419,15 @@ static void s_handler_configure_gravity(
 
 /**
  * @brief Strip WIDTH and/or HEIGHT from @p mask when the requested
- *        value exactly matches @p cur_dim, regardless of any
- *        transition or cooldown
+ *        value exactly matches @p cur_dim, regardless of any transition
+ *        or cooldown
  *
  * Requesting a dimension the window itself already has right now is
- * a true no-op: applying it changes nothing, so absorbing it carries
- * no risk no matter how much time has passed since anything last
- * happened to this client.  Called once, unconditionally, ahead of
- * either transition-specific cooldown below, since this same
- * reasoning holds regardless of which one (if either) might also
- * apply.
+ * a true no-op: applying it changes nothing, so absorbing it carries no
+ * risk no matter how much time has passed since anything last happened
+ * to this client.  Called once, unconditionally, ahead of either
+ * transition-specific cooldown below, since this same reasoning holds
+ * regardless of which one (if either) might also apply.
  *
  * @param event         Requested geometry to compare
  * @param mask          Value mask bits still under consideration
@@ -479,36 +477,35 @@ static uint16_t s_handler_configure_wh_matches_current(
 
 /**
  * @brief Strip whatever bits of @p transition_mask overlap @p mask,
- *        when @p transition_time is still within @p cooldown_ms of
- *        now
+ *        when @p transition_time is still within @p cooldown_ms of now
  *
  * Shared by both of @a handler_configure_request's post-transition
  * checks (shade/unshade, and entering/leaving fullscreen).  A client
  * that reacts to the @c ConfigureNotify sequence a window-manager-
- * forced transition just sent it with a delayed @c ConfigureRequest
- * of its own, once it catches up processing that sequence, is far
- * more likely to be a stale echo of whatever geometry (or border
- * width) it had a moment before than an independent request it
- * genuinely wants honored now.
+ * forced transition just sent it with a delayed @c ConfigureRequest of
+ * its own, once it catches up processing that sequence, is far more
+ * likely to be a stale echo of whatever geometry (or border width) it
+ * had a moment before than an independent request it genuinely wants
+ * honored now.
  *
  * WIDTH and HEIGHT specifically are only ever stripped here when the
  * request's value, once adjusted the same way
  * @a s_handler_configure_wh_matches_current already is, also matches
- * @p old_dim (the client's dimensions right before this
- * transition): a request for some other, genuinely different size
- * arriving within the same cooldown window is let through rather
- * than blanket-suppressed, since only a value already known to be
- * suspicious (either the imposed one, checked unconditionally by
+ * @p old_dim (the client's dimensions right before this transition):
+ * a request for some other, genuinely different size arriving within
+ * the same cooldown window is let through rather than
+ * blanket-suppressed, since only a value already known to be suspicious
+ * (either the imposed one, checked unconditionally by
  * @a s_handler_configure_wh_matches_current already, or the client's
- * own prior one, checked here) has any real chance of being this
- * exact kind of stale echo to begin with.  Every other bit
- * @p transition_mask carries (X, Y, and, for fullscreen,
- * @c XCB_CONFIG_WINDOW_BORDER_WIDTH) has no comparable "old" value
- * of its own worth checking against, so those stay exactly as
- * content-blind as before: stripped whenever @p mask overlaps them
- * at all, for as long as the cooldown itself is still active.
+ * own prior one, checked here) has any real chance of being this exact
+ * kind of stale echo to begin with.  Every other bit @p transition_mask
+ * carries (X, Y, and, for fullscreen,
+ * @c XCB_CONFIG_WINDOW_BORDER_WIDTH) has no comparable "old" value of
+ * its own worth checking against, so those stay exactly as
+ * content-blind as before: stripped whenever @p mask overlaps them at
+ * all, for as long as the cooldown itself is still active.
  *
- * @param event           The 'ConfigureRequest' event itself, for the
+ * @param event           The @c ConfigureRequest event itself, for the
  *                        same WIDTH/HEIGHT comparison
  * @param mask            Value mask bits still under consideration
  * @param transition_mask Bits this particular transition's
@@ -529,10 +526,10 @@ static uint16_t s_handler_configure_wh_matches_current(
  *                        ("shade" or "fullscreen"), for the same log
  *                        line
  *
- * @return @p mask, with @p transition_mask's bits cleared as
- *         described above if the cooldown is still active; @p mask
- *         unchanged otherwise, including when @p mask does not
- *         overlap @p transition_mask to begin with
+ * @return @p mask, with @p transition_mask's bits cleared as described
+ *         above if the cooldown is still active; @p mask unchanged
+ *         otherwise, including when @p mask does not overlap
+ *         @p transition_mask to begin with
  *
  * @note Complexity: @e O(1)
  */
@@ -558,9 +555,8 @@ static uint16_t s_handler_configure_cooldown_mask(
 
     /* Every bit 'transition_mask' carries other than WIDTH/HEIGHT
      * (X, Y, and, for fullscreen, BORDER_WIDTH) stays exactly as
-     * content-blind as before; only WIDTH/HEIGHT additionally
-     * require matching 'old_dim' once found within the window
-     * at all. */
+     * content-blind as before; only WIDTH/HEIGHT additionally require
+     * matching 'old_dim' once found within the window at all. */
     strip_mask = (uint16_t) (transition_mask &
             ~(XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT));
 
@@ -632,8 +628,8 @@ void handler_configure_request(xcb_connection_t *connection,
 
     /* A docked systray icon is not a managed client, so it would
      * otherwise fall through to the generic "forward the request
-     * unmodified" path below, undoing the fixed size the tray forces
-     * on every icon at dock time; see 'systray_icon_size_enforce'. */
+     * unmodified" path below, undoing the fixed size the tray forces on
+     * every icon at dock time; see 'systray_icon_size_enforce'. */
     if (client == NULL && systray_icon_size_enforce(event->window)) {
         return;
     }
@@ -673,19 +669,18 @@ void handler_configure_request(xcb_connection_t *connection,
             XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT;
 
-        /* Ignored the same way, and for the same reason, whether the
-         * WM itself is actively moving/resizing this client right
-         * now, or the client is in fullscreen.  Either way, ITS OWN
-         * request for a different position/size is a stale echo of
-         * whatever geometry it would rather have, not something to
-         * honor, since the WM (not the client) owns this window's
-         * geometry for as long as either holds.  Without this,
-         * a client that fixes its size in WM_NORMAL_HINTS (e.g.,
-         * 'min_width' == 'max_width') and reacts to being forced into
-         * fullscreen by re-requesting its preferred size right
-         * back would immediately shrink back down, undoing
-         * 'ccmd_client_fullscreen''s deliberate choice (see its
-         * comment in cmds/client/state.c) to bypass every one
+        /* Ignored the same way, and for the same reason, whether the WM
+         * itself is actively moving/resizing this client right now, or
+         * the client is in fullscreen.  Either way, ITS OWN request for
+         * a different position/size is a stale echo of whatever
+         * geometry it would rather have, not something to honor, since
+         * the WM (not the client) owns this window's geometry for as
+         * long as either holds.  Without this, a client that fixes its
+         * size in WM_NORMAL_HINTS (e.g., 'min_width' == 'max_width')
+         * and reacts to being forced into fullscreen by re-requesting
+         * its preferred size right back would immediately shrink back
+         * down, undoing 'ccmd_client_fullscreen''s deliberate choice
+         * (see its comment in cmds/client/state.c) to bypass every one
          * of the client's size hints while fullscreen. */
         wm_owns_geometry =
             client->properties.operation == CLIENT_OPERATION_MOVING ||
@@ -700,10 +695,10 @@ void handler_configure_request(xcb_connection_t *connection,
             }
         }
 
-        /* A request for a dimension the client already has right now
-         * is a true no-op regardless of any transition or cooldown;
-         * see 's_handler_configure_wh_matches_current' itself for
-         * why this alone is always safe. */
+        /* A request for a dimension the client already has right now is
+         * a true no-op regardless of any transition or cooldown; see
+         * 's_handler_configure_wh_matches_current' itself for why this
+         * alone is always safe. */
         mask = s_handler_configure_wh_matches_current(event, mask,
                 client->layout.geometry.cur.dim,
                 is_reparented, on_inner, client->layout.frame_extents);
@@ -713,12 +708,12 @@ void handler_configure_request(xcb_connection_t *connection,
             return;
         }
 
-        /* Ignore a geometry request that lands shortly after the
-         * window manager itself just shaded or unshaded this client:
-         * see 'WM_SHADE_CONFIGURE_COOLDOWN_MS' for why such a request
-         * is far more likely to be the client's delayed, stale
-         * reaction to that transition than an independent resize it
-         * actually wants. */
+        /* Ignore a geometry request that lands shortly after the window
+         * manager itself just shaded or unshaded this client: see
+         * 'WM_SHADE_CONFIGURE_COOLDOWN_MS' for why such a request is
+         * far more likely to be the client's delayed, stale reaction to
+         * that transition than an independent resize it actually
+         * wants. */
         mask = s_handler_configure_cooldown_mask(event, mask, geom_mask,
                 client->layout.geometry.old.dim,
                 is_reparented, on_inner, client->layout.frame_extents,
@@ -735,12 +730,11 @@ void handler_configure_request(xcb_connection_t *connection,
          * after entering or leaving fullscreen instead of a shade or
          * unshade; also covers 'XCB_CONFIG_WINDOW_BORDER_WIDTH', not
          * just 'geom_mask', since 'ccmd_client_unfullscreen' restores
-         * the client's border width as part of the same
-         * transition this guards, and a stale echo touching only
-         * that field would otherwise slip through 'geom_mask' alone
-         * and silently undo it, well after the point in this
-         * function that already applies every other bit in 'mask'
-         * unconditionally. */
+         * the client's border width as part of the same transition this
+         * guards, and a stale echo touching only that field would
+         * otherwise slip through 'geom_mask' alone and silently undo
+         * it, well after the point in this function that already
+         * applies every other bit in 'mask' unconditionally. */
         mask = s_handler_configure_cooldown_mask(event, mask,
                 (uint16_t) (geom_mask | XCB_CONFIG_WINDOW_BORDER_WIDTH),
                 client->layout.geometry.old.dim,
@@ -863,27 +857,27 @@ void handler_configure_notify(xcb_connection_t *connection,
             bool is_focused = (desktop != NULL) &&
                 (desktop->client_active_id == client->id);
 
-            /* For undecorated clients the window is its frame and
-             * lives as a direct root child.  The X server delivers
+            /* For undecorated clients the window is its frame and lives
+             * as a direct root child.  The X server delivers
              * 'ConfigureNotify' events via two routes:
              *
              *  - 'StructureNotify' ('event->event == window'):
              *    reliable, reflects the position the window manager
              *    last configured.
-             *  - 'SubStructureNotify' on root ('event->event !=
-             *    window'): also generated for every 'ConfigureWindow'
-             *    the window manager issued on the client, including the
-             *    border-width adjustment that happens before placement
-             *    in 'client_init'.  That pre-placement event carries
-             *    the application's initial position, often (0,0), which
-             *    can arrive late (after 'place_window_apply' already
-             *    stored the centered coordinates) and corrupt the
-             *    stored position.  When the subsequent render uses the
-             *    corrupted coordinates the window is moved to the
-             *    wrong position, which in turn queues another stale
-             *    'SubStructureNotify', creating a render loop that
-             *    manifests as continuous flickering until the window is
-             *    iconified/restored.
+             *  - 'SubStructureNotify' on root
+             *    ('event->event != window'): also generated for every
+             *    'ConfigureWindow' the window manager issued on the
+             *    client, including the border-width adjustment that
+             *    happens before placement in 'client_init'.  That
+             *    pre-placement event carries the application's initial
+             *    position, often (0,0), which can arrive late (after
+             *    'place_window_apply' already stored the centered
+             *    coordinates) and corrupt the stored position.  When
+             *    the subsequent render uses the corrupted coordinates
+             *    the window is moved to the wrong position, which in
+             *    turn queues another stale 'SubStructureNotify',
+             *    creating a render loop that manifests as continuous
+             *    flickering until the window is iconified/restored.
              *
              * Ignore 'SubStructureNotify'-delivered 'ConfigureNotify'
              * events for all managed clients (decorated and undecorated
@@ -916,26 +910,26 @@ void handler_configure_notify(xcb_connection_t *connection,
                 client->layout.geometry.cur.dim.h !=
                     (uint32_t) event->height;
 
-            /* Every configure the manager issues comes back as an
-             * echo, and during a burst, a viewport pan drag above
-             * all, the echo of an earlier request routinely lands
-             * after a later one was already sent.  Taking that stale
-             * position would leave the stored geometry a step behind,
-             * and a pan, which adds its delta to whatever is stored,
-             * would carry the error forward for good rather than
-             * correct it on the next step.
+            /* Every configure the manager issues comes back as an echo,
+             * and during a burst, a viewport pan drag above all, the
+             * echo of an earlier request routinely lands after a later
+             * one was already sent.  Taking that stale position would
+             * leave the stored geometry a step behind, and a pan, which
+             * adds its delta to whatever is stored, would carry the
+             * error forward for good rather than correct it on the next
+             * step.
              *
-             * So a position that contradicts the last one asked for
-             * is refused, but only while the stored geometry still
-             * agrees with that request.  That second condition is
-             * what makes this safe to leave in place: any path that
-             * moves the window by writing 'geometry.cur' and
-             * configuring the server itself, without going through
+             * So a position that contradicts the last one asked for is
+             * refused, but only while the stored geometry still agrees
+             * with that request.  That second condition is what makes
+             * this safe to leave in place: any path that moves the
+             * window by writing 'geometry.cur' and configuring the
+             * server itself, without going through
              * 'ccmd_client_apply_geometry' or the render pass (the
-             * '_NET_MOVERESIZE_WINDOW' and 'ConfigureRequest'
-             * handlers both do), leaves the two disagreeing, and the
-             * refusal simply does not engage for it.  A client never
-             * placed yet has nothing to compare against either.
+             * '_NET_MOVERESIZE_WINDOW' and 'ConfigureRequest' handlers
+             * both do), leaves the two disagreeing, and the refusal
+             * simply does not engage for it.  A client never placed yet
+             * has nothing to compare against either.
              *
              * The size is taken either way: it is the client's own to
              * ask for, and no burst of the manager's own makes it
