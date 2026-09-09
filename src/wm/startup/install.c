@@ -2,8 +2,6 @@
  * @file wm/startup/install.c
  *
  * @brief Registering signal handlers with the OS
- *
- * One of the files @c wm/startup/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

@@ -29,8 +29,6 @@
 /* Types includes */
 #include <types/pair.h>
 
-/* Session includes */
-
 /* Rules includes */
 #include <rules.h>
 

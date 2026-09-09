@@ -3,14 +3,13 @@
  *
  * @brief Per-desktop work-area recomputation for a surface
  *
- * One of the files @c surface/ is made of; see
- * @c surface.c's comment for why.  Its single function
- * today, kept separate from @c surface/desktops.c regardless: work
- * area is a rendering/placement concern, not desktop-list navigation,
- * and giving it its file now means anything that grows this
- * concern later (a dedicated per-monitor refresh entry point, say)
- * already has the right home to grow into instead of first needing
- * its split.
+ * One of the files @c surface/ is made of (see @c surface.c's comment
+ * for why).  Its single function today, kept separate from
+ * @c surface/desktops.c regardless: work area is a rendering/placement
+ * concern, not desktop-list navigation, and giving it its file now
+ * means anything that grows this concern later (a dedicated per-monitor
+ * refresh entry point, say) already has the right home to grow into
+ * instead of first needing its split.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -29,9 +28,9 @@
 /* Project includes */
 #include <desktop.h>
 #include <systray.h>
+#include <scratchpad.h>
 
 /* Local includes */
-#include <scratchpad.h>
 #include <surface.h>
 
 
@@ -70,12 +69,12 @@ void surface_refresh_workareas(surface_td *surface)
 
     surface_desktops_walk(surface, s_workarea_update_visit, surface);
 
-    /* Every path that recomputes a surface's work areas (an
-     * XRandR resolution change, a dock or panel appearing or
-     * disappearing, and every other one) needs to reach this too:
-     * without it, the scratchpad stayed positioned against whatever
-     * work area was in effect when it was last placed, however that
-     * later changed, until the underlying process happened to exit
+    /* Every path that recomputes a surface's work areas (an XRandR
+     * resolution change, a dock or panel appearing or disappearing, and
+     * every other one) needs to reach this too: without it, the
+     * scratchpad stayed positioned against whatever work area was in
+     * effect when it was last placed, however that later changed, until
+     * the underlying process happened to exit
      * on its own. */
     scratchpad_reposition(surface);
 }

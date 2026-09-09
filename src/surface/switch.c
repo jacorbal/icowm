@@ -29,20 +29,24 @@
 /* Utils includes */
 #include <utils/xcb/connection.h>
 
-/* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
+/* Policy includes */
 #include <policy/stacking.h>
-#include <logger.h>
-#include <memguard.h>
-#include <surface.h>
 
-/* Local includes */
+/* Command includes */
 #include <cmds/client/ewmh.h>
 #include <cmds/client/flags.h>
 #include <cmds/client/icon.h>
 #include <cmds/client/maximize.h>
+
+/* Project includes */
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
+#include <logger.h>
+#include <memguard.h>
+
+/* Local includes */
+#include <surface.h>
 
 
 /**

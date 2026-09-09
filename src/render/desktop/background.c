@@ -19,15 +19,15 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
+
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
 #include <render/viewport/mesh.h>
-
-/* Utils includes */
-#include <utils/xcb/atom.h>
-#include <utils/xcb/connection.h>
 
 /* Local includes */
 #include <render/desktop/background.h>

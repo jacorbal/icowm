@@ -50,18 +50,18 @@ struct systray_state_s s_tray;
 
 
 /**
- * @brief Copy every systray setting from @p wm's configuration
- *        into @p s_tray,
- *        and refresh the clock/battery text for the values just copied
+ * @brief Copy every systray setting from @p wm's configuration into
+ *        @c s_tray, and refresh the clock/battery text for the values
+ *        just copied
  *
  * The part @a systray_init and @a systray_reload both need identically
- * (every field @c config.json's @p systray object can set, plus
+ * (every field @c config.json's @c systray object can set, plus
  * re-rendering the clock and battery text so a changed format or
  * threshold takes effect immediately rather than waiting for the next
  * scheduled tick).  What differs between the two callers is only what
  * happens before and after this, not this copy itself.
  *
- * @param wm Window manager state, for its current @p config
+ * @param wm Window manager state, for its current @c config
  *
  * @note Complexity: @e O(1)
  */
@@ -218,10 +218,10 @@ void systray_shutdown(wm_td *wm)
         /* Destroying the tray window implicitly reparents any
          * still-docked icons back to the root window; each icon's
          * application is responsible for re-docking if a tray reappears
-         * later, exactly as with every other systray.
-         * This full teardown is only for the window manager itself
-         * exiting; toggling 'is-enabled' off goes through
-         * 'systray_reload', which keeps the window and icons alive via
+         * later, exactly as with every other systray.  This full
+         * teardown is only for the window manager itself exiting;
+         * toggling 'is-enabled' off goes through 'systray_reload',
+         * which keeps the window and icons alive via
          * 'systray_protocol_selection_release' instead. */
         xcb_window_destroy(s_tray.window);
         xcb_flush(xcb_connection_get());
@@ -291,11 +291,10 @@ bool systray_get_geometry(const surface_td *surface,
         return false;
     }
 
-    /* 'reply->x'/'reply->y' are relative to the tray window's
-     * parent, the same root every other top-level window this project
-     * creates (icon windows included) shares, so directly comparable
-     * against an icon's root-relative position with no extra
-     * translation needed */
+    /* 'reply->x'/'reply->y' are relative to the tray window's parent,
+     * the same root every other top-level window this project creates
+     * (icon windows included) shares, so directly comparable against an
+     * icon's root-relative position with no extra translation needed */
     out_tray->pos.x = (int32_t) reply->x;
     out_tray->pos.y = (int32_t) reply->y;
     out_tray->dim.w = reply->width;
@@ -330,8 +329,8 @@ bool systray_icon_size_enforce(xcb_window_t window)
 }
 
 
-/* Query whether 'window' is a currently docked icon that just
- * requested to map itself, and if so, grant or refuse the request */
+/* Query whether 'window' is a currently docked icon that just requested
+ * to map itself, and if so, grant or refuse the request */
 bool systray_icon_map_request(xcb_window_t window)
 {
     return systray_protocol_map_request(window);
@@ -372,11 +371,11 @@ void systray_handle_destroy(wm_td *wm, xcb_window_t window)
     }
 
     /* Scans the whole array rather than stopping at the first match:
-     * defense in depth against ever ending up with more than one
-     * entry for the same window (the dock path itself now refuses a
-     * duplicate outright, see 'systray_protocol_dock', but nothing
-     * about this cleanup path should have to assume that always
-     * holds to stay safe) */
+     * defense in depth against ever ending up with more than one entry
+     * for the same window (the dock path itself now refuses a duplicate
+     * outright, see 'systray_protocol_dock', but nothing about this
+     * cleanup path should have to assume that always holds to stay
+     * safe) */
     for (uint16_t i = 0u; i < s_tray.icon_count; /* incremented below */) {
         if (s_tray.icons[i].window != window) {
             ++i;
@@ -484,9 +483,8 @@ void systray_reload(const wm_td *wm)
 
         /* Selection acquisition only even attempted, let alone required
          * for success here, when embedding is actually allowed; with it
-         * disabled the window alone (already showing its
-         * clock/battery text via 's_systray_config_apply' above) is
-         * enough on its own */
+         * disabled the window alone (already showing its clock/battery
+         * text via 's_systray_config_apply' above) is enough on its own */
         if (ready && config->base.systray.is_embedding_enabled) {
             (void) systray_protocol_selection_acquire();
         }

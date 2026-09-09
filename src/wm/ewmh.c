@@ -25,6 +25,7 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 
 /* Default initial values */
 #include <defs/ewmh.h>
@@ -44,7 +45,6 @@
 #include <wm/ewmh.h>
 #include <wm/ewmh.h>
 #include <wm/internal.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -95,10 +95,10 @@ struct s_name_write_ctx_s {
  * @brief What @a s_client_list_visit is filling in
  */
 struct s_client_list_ctx_s {
-    xcb_window_t *out;      /**< Array of window IDs being built */
-    size_t capacity;        /**< How many it holds */
-    size_t count;           /**< How many have been put in so far */
-    uint32_t desktop_id;    /**< Desktop the walk is now on */
+    xcb_window_t *out;          /**< Array of window IDs being built */
+    size_t capacity;            /**< How many it holds */
+    size_t count;               /**< How many have been put in so far */
+    uint32_t desktop_id;        /**< Desktop the walk is now on */
 };
 
 
@@ -230,9 +230,9 @@ static void s_stacking_collect_visit(desktop_td *desktop, void *data)
  * @param data    The @c s_workarea_ctx_s being filled
  *
  * @note Never writes past @p data's capacity, the array being sized
- *       from @c surface->desktop_count while the walk that reaches
- *       here iterates the desktop list itself, which is a separate
- *       count that nothing here can prove equal
+ *       from @c surface->desktop_count while the walk that reaches here
+ *       iterates the desktop list itself, which is a separate count
+ *       that nothing here can prove equal
  * @note Complexity: @e O(1)
  */
 static void s_workarea_collect_visit(desktop_td *desktop, void *data)
@@ -366,8 +366,8 @@ static void s_wm_sync_workarea(surface_td *surface)
             &workarea_ctx);
 
     /* One geometry per desktop, as many as '_NET_NUMBER_OF_DESKTOPS'
-     * says there are and not merely as many as the walk reached: a
-     * pager reads this array up to that count, so publishing fewer
+     * says there are and not merely as many as the walk reached:
+     * a pager reads this array up to that count, so publishing fewer
      * would send it off the end of what it was given.  The 'calloc'
      * above is what makes that safe, a desktop the walk misses being
      * a zeroed rectangle rather than whatever the heap held. */
@@ -380,7 +380,7 @@ static void s_wm_sync_workarea(surface_td *surface)
 /**
  * @brief Compute and publish @c _NET_DESKTOP_LAYOUT for one surface
  *
- * Builds a fixed 4-element layout descriptor (orientation, columns,
+ * Builds a fixed four-element layout descriptor (orientation, columns,
  * rows, starting corner) describing the desktops as a single horizontal
  * row, and writes it to the @c _NET_DESKTOP_LAYOUT root property.
  *
@@ -664,9 +664,9 @@ int wm_ewmh_init(const wm_td *wm)
     supported_atoms[n_supported++] = net_wm_icon_geometry;
 
     /* Implemented all along but never announced: a pager consulting
-     * this list to learn whether the visible-name pair is worth
-     * reading concluded it was not, and fell back to the untruncated
-     * title even though the truncated form was there. */
+     * this list to learn whether the visible-name pair is worth reading
+     * concluded it was not, and fell back to the untruncated title even
+     * though the truncated form was there. */
     supported_atoms[n_supported++] = ewmh->_NET_WM_VISIBLE_NAME;
     supported_atoms[n_supported++] = ewmh->_NET_WM_VISIBLE_ICON_NAME;
     supported_atoms[n_supported++] = ewmh->_NET_WM_PID;
@@ -727,11 +727,11 @@ void wm_ewmh_sync(wm_td *wm)
         }
 
         /* The pannable area can be wider and/or taller than the
-         * physical screen by this many whole screens; a surface with
-         * no 'config', or an 'id' past 'CONFIG_MAX_SCREENS', simply
+         * physical screen by this many whole screens; a surface with no
+         * 'config', or an 'id' past 'CONFIG_MAX_SCREENS', simply
          * reports the physical screen size back, the same 1x1
-         * 'config_viewport_s' fallback every other reader of this
-         * field already falls back to. */
+         * 'config_viewport_s' fallback every other reader of this field
+         * already falls back to. */
         if (surface->config != NULL &&
                 surface->id < (uint32_t) CONFIG_MAX_SCREENS) {
             viewport_columns = surface->config->base

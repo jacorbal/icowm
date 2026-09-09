@@ -8,7 +8,9 @@
  * battery state into @a s_tray.clock_text / @a s_tray.battery_text, and
  * measuring how much pixel width the currently enabled items need.
  * Actually drawing that text on screen is part of the tray's overall
- * visual layout instead; see @c systray/layout.c.
+ * visual layout instead.
+ *
+ * @see @c systray/layout.c
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -23,18 +25,21 @@
 #include <stdint.h>
 #include <time.h>       /* strftime, localtime, time, NULL */
 
+/* XCB includes */
+#include <xcb/xcb_ewmh.h>
+
 /* Default initial values */
 #include <defs/loop.h>
 
-/* Project includes */
-#include <render/text.h>
+/* Utils includes */
+#include <utils/xcb/connection.h>
 
-#include <xcb/xcb_ewmh.h>
+/* Render includes */
+#include <render/text.h>
 
 /* Local includes */
 #include <systray/battery.h>
 #include <systray/internal.h>
-#include <utils/xcb/connection.h>
 
 
 /* Format the current local time into 's_tray.clock_text' */
@@ -55,13 +60,13 @@ void systray_text_refresh_clock(void)
         return;
     }
 
-    /* The format comes from the configuration, so it cannot be a
-     * string literal here and the compiler cannot check it.  That is
-     * deliberate: the whole point of the setting is that a user
-     * writes their.  'strftime' takes no variadic arguments, so
-     * a wrong format produces wrong text, never a wrong read; and a
-     * result of zero, which the guard below catches, is how a format
-     * that did not fit reports itself. */
+    /* The format comes from the configuration, so it cannot be a string
+     * literal here and the compiler cannot check it.  That is
+     * deliberate: the whole point of the setting is that a user writes
+     * their.  'strftime' takes no variadic arguments, so a wrong format
+     * produces wrong text, never a wrong read; and a result of zero,
+     * which the guard below catches, is how a format that did not fit
+     * reports itself. */
     if (strftime(s_tray.clock_text, sizeof(s_tray.clock_text),
             s_tray.clock_format, local) == 0u) {
         s_tray.clock_text[0] = '\0';

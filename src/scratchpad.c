@@ -79,8 +79,8 @@ static bool s_awaiting_scratchpad = false;
 static pid_t s_awaiting_scratchpad_pid = (pid_t) -1;
 
 /**
- * @brief When the currently in-progress @a s_awaiting_scratchpad
- *        launch was started
+ * @brief When the currently in-progress @a s_awaiting_scratchpad launch
+ *        was started
  *
  * Only meaningful while @a s_awaiting_scratchpad itself is @c true;
  * checked in @a scratchpad_toggle to give up on a launch that never
@@ -215,15 +215,16 @@ void scratchpad_notice_client_created(client_td *client)
      * is provably some other, unrelated window finishing client_init
      * while the real launch is still starting; left alone, so a
      * later client that does match still gets the chance to claim
-     * this instead.  A client whose '_NET_WM_PID' the launched
-     * application never set (client->process.pid still client_init's
-     * own -1 default) cannot be disproven this way, so it still gets
-     * claimed here rather than left waiting forever: for an
-     * application that never reports its PID, this is the same
-     * "claim whoever's next" behavior scratchpad support already had,
-     * not a new risk introduced here, and the alternative (refusing
-     * to ever claim such an application at all) would break the
-     * scratchpad outright for it. */
+     * this instead.
+     *
+     * A client whose '_NET_WM_PID' the launched application never set
+     * (client->process.pid still client_init's own -1 default) cannot
+     * be disproven this way, so it still gets claimed here rather than
+     * left waiting forever: for an application that never reports its
+     * PID, this is the same "claim whoever's next" behavior scratchpad
+     * support already had, not a new risk introduced here, and the
+     * alternative (refusing to ever claim such an application at all)
+     * would break the scratchpad outright for it. */
     if (client->process.pid != (pid_t) -1 &&
             s_awaiting_scratchpad_pid != (pid_t) -1 &&
             client->process.pid != s_awaiting_scratchpad_pid) {
@@ -401,8 +402,8 @@ void scratchpad_position(client_td *client,
 }
 
 
-/* Reposition the current scratchpad client, if its desktop
- * belongs to the given surface */
+/* Reposition the current scratchpad client, if its desktop belongs to
+ * the given surface */
 void scratchpad_reposition(surface_td *surface)
 {
     const desktop_td *desktop;

@@ -24,13 +24,15 @@
 /* Type includes */
 #include <types/pair.h>
 
+/* Default initial values */
+#include <defs/placement.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <policy/stacking.h>
 
 /* Local includes */
-#include <defs/placement.h>
 #include <policy/placement/score.h>
 
 

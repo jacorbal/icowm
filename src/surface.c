@@ -30,13 +30,13 @@
 /* ADT includes */
 #include <adt/cdlist.h> /* Doubly linked circular list */
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Project includes */
 #include <config.h>
 #include <desktop.h>
 #include <logger.h>
-
-/* Utils includes */
-#include <utils/xcb/connection.h>
 
 /* Local includes */
 #include <surface.h>

@@ -71,10 +71,10 @@ void render_client_decoration_repaint_frame(xcb_connection_t *connection,
 
     /* Only when the color just set is not the one already showing.
      * The frame is the content window's parent, so clearing it paints
-     * over the content's own area until the client draws itself
-     * again; doing that to show a color identical to the one already
-     * there blanks the window for nothing, and this repaint runs for
-     * any reason at all, not only a focus change. */
+     * over the content's own area until the client draws itself again;
+     * doing that to show a color identical to the one already there
+     * blanks the window for nothing, and this repaint runs for any
+     * reason at all, not only a focus change. */
     if (bg_changed) {
         xcb_clear_area(connection, 0, client->frame, 0, 0, 0, 0);
     }

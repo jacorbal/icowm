@@ -25,6 +25,12 @@
 /* Default initial values */
 #include <defs/desktop.h>
 
+/* Render includes */
+#include <render/outdate.h>
+
+/* Utils includes */
+#include <utils/xcb/reply.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -33,12 +39,6 @@
 #include <rules.h>
 #include <surface.h>
 #include <wm.h>
-
-/* Render includes */
-#include <render/outdate.h>
-
-/* Utils includes */
-#include <utils/xcb/reply.h>
 
 /* Local includes */
 #include <cctl/adopt.h>
@@ -49,16 +49,15 @@
  *
  * Everything a window mapped after this window manager started would
  * already have gone through, done here for one that was open before
- * it: the client is created, put on the surface's current desktop,
+ * it.  The client is created, put on the surface's current desktop,
  * told which desktop that is, and run past the rules.
  *
  * @param wm      Window manager instance
  * @param surface Surface the window is on
  * @param window  Window to adopt
  *
- * @note The nested checks are early returns here rather than one
- *       deeper level each, which is the whole reason this is its
- *       function
+ * @note The nested checks are early returns here rather than one deeper
+ *       level each, which is the whole reason this is its function
  * @note Complexity: @e O(n), where @e n is the number of rules
  */
 static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
@@ -99,12 +98,12 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
     }
 
     /* Apply the same rules a client mapped after this window manager
-     * started would already get ('handler_map_notify', handler/map.c):
-     * without this, a rule assigning a desktop, geometry, layer, or
-     * flag to some client only ever took effect for one launched
-     * fresh, silently skipping any window still open from before this
-     * window manager's restart, e.g., surviving a crash or an
-     * intentional reload via 'exec'. */
+     * started would already get ('handler_map_notify',
+     * 'handler/map.c'): without this, a rule assigning a desktop,
+     * geometry, layer, or flag to some client only ever took effect for
+     * one launched fresh, silently skipping any window still open from
+     * before this window manager's restart, e.g., surviving a crash or
+     * an intentional reload via 'exec'. */
     if (rules_apply(wm, client, &surface, &desktop,
                 RULES_TRIGGER_MAP)) {
         wm_outdate_surface(surface);
@@ -175,15 +174,14 @@ static void s_adopt_scan_surface(const wm_td *wm, surface_td *surface)
     /* Every child's attributes are asked for before any answer is
      * awaited, so that the whole scan costs one round trip to the
      * server rather than one per window already on the screen.
-     * A session being adopted holds as many windows as the user
-     * had open, and over a remote display that difference is the
-     * whole of the startup delay.
+     * A session being adopted holds as many windows as the user had
+     * open, and over a remote display that difference is the whole of
+     * the startup delay.
      *
-     * Allocated rather than kept on the stack: 'nchildren' is
-     * whatever the root window happens to hold, which is not a
-     * number this can bound.  Failing to allocate is not fatal,
-     * only slower, so the scan falls back to asking one at a
-     * time. */
+     * Allocated rather than kept on the stack: 'nchildren' is whatever
+     * the root window happens to hold, which is not a number this can
+     * bound.  Failing to allocate is not fatal, only slower, so the
+     * scan falls back to asking one at a time. */
     cookies = calloc((size_t) nchildren, sizeof(*cookies));
     if (cookies != NULL) {
         for (int i = 0; i < nchildren; ++i) {

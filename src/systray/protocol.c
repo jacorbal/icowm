@@ -9,7 +9,9 @@
  * releasing the @c _NET_SYSTEM_TRAY_Sn selection per the ICCCM
  * manager-selection convention, and reparenting/embedding an icon
  * window that requests to dock.  Where the tray and its icons end up on
- * screen is a separate concern; see @c systray/layout.c.
+ * screen is a separate concern.
+ *
+ * @see @c systray/layout.c
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -109,9 +111,7 @@ static void s_systray_icon_sort_key_fetch(xcb_window_t icon,
  * @c _XEMBED_INFO (format 32, two @c CARD32: version and flags) with
  * the @c XEMBED_MAPPED flag bit still clear while it finishes its own
  * initialization, and expects the tray manager to honor that rather
- * than mapping it regardless.  A window with no such property at all
- * predates the convention, so it is mapped unconditionally, exactly as
- * icowm already did before this check existed.
+ * than mapping it regardless.
  *
  * @param icon Icon window to query
  *

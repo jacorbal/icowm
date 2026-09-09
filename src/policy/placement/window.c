@@ -24,12 +24,16 @@
 
 /* Utils includes */
 #include <utils/geom.h>
+#include <utils/xcb/window.h>
 
 /* Type includes */
 #include <types/pair.h>
 
 /* Command includes */
 #include <cmds/client/transient.h>
+
+/* Default initial values */
+#include <defs/placement.h>
 
 /* Project includes */
 #include <client.h>
@@ -42,14 +46,12 @@
 #include <wm.h>
 
 /* Local includes */
-#include <defs/placement.h>
 #include <policy/placement/manual.h>
 #include <policy/placement/monitor.h>
 #include <policy/placement/rect.h>
 #include <policy/placement/score.h>
 #include <policy/placement/smart.h>
 #include <policy/placement/window.h>
-#include <utils/xcb/window.h>
 
 
 /* Where the cascade put the last window it placed, as an offset from

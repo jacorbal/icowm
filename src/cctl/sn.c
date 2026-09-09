@@ -151,7 +151,7 @@ static void s_set_busy_cursor(xcb_connection_t *connection,
 
 /**
  * @brief Broadcast one startup-notification text message, splitting it
- *        into @c SN_CHUNK_LEN byte format-8 'ClientMessage' chunks per
+ *        into @c SN_CHUNK_LEN byte format-8 @c ClientMessage chunks per
  *        the protocol
  *
  * The first chunk uses @c _NET_STARTUP_INFO_BEGIN as its message type.
@@ -176,7 +176,8 @@ static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
     bool first_chunk;
 
     if (connection == NULL || surfaces == NULL || text == NULL ||
-            s_atom_begin == XCB_ATOM_NONE || s_atom_info == XCB_ATOM_NONE) {
+            s_atom_begin == XCB_ATOM_NONE ||
+            s_atom_info == XCB_ATOM_NONE) {
         return;
     }
 
@@ -212,7 +213,8 @@ static void s_broadcast(xcb_connection_t *connection, list_td *surfaces,
             memcpy(ev.data.data8, text + sent, chunk_len);
 
             xcb_send_event(connection, 0, surface->screen->root,
-                    XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char *) &ev);
+                    XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                    (const char *) &ev);
 
             sent += chunk_len;
             first_chunk = false;

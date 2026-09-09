@@ -36,8 +36,8 @@
 
 
 /* Build and enqueue a launch event for a desktop */
-void cctl_launch_dispatch(surface_td *surface, const char *restrict prog,
-        const char *restrict class_name)
+void cctl_launch_dispatch(surface_td *surface,
+        const char *restrict prog, const char *restrict class_name)
 {
     desktop_td *desktop;
     int result;

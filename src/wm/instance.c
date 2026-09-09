@@ -2,11 +2,6 @@
  * @file wm/instance.c
  *
  * @brief Narrow field accessors for the opaque @c wm_td singleton
- *
- * @c wm_td is opaque everywhere outside @c wm.c and this file; every
- * other file in the project reaches its fields only through the
- * functions declared in @c wm.h and implemented here, never through
- * direct member access.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

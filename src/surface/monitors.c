@@ -28,6 +28,7 @@
 /* Utils includes */
 #include <utils/xcb/atom.h>
 #include <utils/xcb/reply.h>
+#include <utils/xcb/connection.h>
 
 /* Type includes */
 #include <types/direction.h>
@@ -38,7 +39,6 @@
 
 /* Local includes */
 #include <surface.h>
-#include <utils/xcb/connection.h>
 
 
 /**

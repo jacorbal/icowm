@@ -48,12 +48,14 @@
 
 /* Utils includes */
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 
 /* Render includes */
 #include <render/outdate.h>
 
 /* Default initial values */
 #include <defs/client.h>
+#include <defs/ewmh.h>
 
 /* Project includes */
 #include <client.h>
@@ -64,10 +66,6 @@
 #include <lookup.h>
 #include <surface.h>
 #include <wm.h>
-
-/* Default initial values */
-#include <defs/ewmh.h>
-#include <utils/xcb/connection.h>
 
 
 /**

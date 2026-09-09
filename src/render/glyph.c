@@ -24,8 +24,8 @@
 
 /* FreeType includes */
 /* 'ft2build.h' declares no FreeType functions itself; it only defines
- * macros like 'FT_FREETYPE_H' that expand to the real header path
- * (@c <freetype/freetype.h> on this system), so client code stays
+ * macros like 'FT_FREETYPE_H' that expand to the real header path (@c
+ * <freetype/freetype.h> on this system), so client code stays
  * unaffected if that internal layout ever changes between versions */
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -80,10 +80,9 @@ typedef struct {
  * @brief State the X Render glyph renderer shares across every font
  *
  * @p fonts holds every open font and @p current indexes whichever one
- * drawing goes through, or equals @c WM_TEXT_FONT_CACHE_MAX_GLYPH
- * when none is selected.  The FreeType library and the picture
- * formats are opened once for the life of the connection, not once
- * per font.
+ * drawing goes through, or equals @c WM_TEXT_FONT_CACHE_MAX_GLYPH when
+ * none is selected.  The FreeType library and the picture formats are
+ * opened once for the life of the connection, not once per font.
  */
 static struct {
     FT_Library ft_library;
@@ -139,8 +138,8 @@ static s_glyph_font_td *s_glyph_current(void)
  *
  * @return @c true if a font was matched and a file path recovered
  *
- * @note Complexity: @e O(1), aside from fontconfig's internal
- *       matching cost
+ * @note Complexity: @e O(1), aside from fontconfig's internal matching
+ *       cost
  */
 static bool s_resolve_font(const char *restrict font_name,
         char *restrict out_file,
@@ -266,15 +265,16 @@ static void s_glyph_font_free(s_glyph_font_td *font)
  * @param codepoint   Unicode codepoint to look up
  * @param out_advance Receives the glyph's horizontal advance in pixels
  *
- * @return @c true if the glyph is now cached and usable; @c false if
- *         rasterization failed (a blank space-width advance is still
- *         written to @p out_advance in that case, so a missing glyph
- *         does not throw off the layout of the rest of the string)
+ * @retval  true if the glyph is now cached and usable
+ * @retval false if rasterization failed (a blank space-width advance is
+ *               still written to @p out_advance in that case, so
+ *               a missing glyph does not throw off the layout of the
+ *               rest of the string)
  *
- * @note Complexity: @e O(c), where @e c is
- *       @c WM_TEXT_GLYPH_CACHE_MAX, for the linear cache lookup;
- *       @e O(1) amortized in practice since the cache is small and
- *       lookups cluster around a stable alphabet
+ * @note Complexity: @e O(c), where @e c is @c WM_TEXT_GLYPH_CACHE_MAX,
+ *       for the linear cache lookup; @e O(1) amortized in practice
+ *       since the cache is small and lookups cluster around a stable
+ *       alphabet
  */
 static bool s_glyph_ensure(uint32_t codepoint, int16_t *out_advance)
 {

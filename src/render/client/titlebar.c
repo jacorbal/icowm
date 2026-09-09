@@ -49,10 +49,9 @@
  * do nothing if clicked.
  *
  * @param button         Which titlebar button is being colored
- * @param is_focused     Whether the owning client is currently focused
- * @param is_pinned      Whether the owning client has the pin flag set
- * @param is_sticky      Whether the owning client has the sticky flag
- *                       set
+ * @param is_focused     Whether owning client is currently focused
+ * @param is_pinned      Whether owning client has the pin flag set
+ * @param is_sticky      Whether owning client has the sticky flag set
  * @param is_layered     Whether the client layer is above or below
  *                       normal
  * @param can_maximize   Whether the maximize button is enabled
@@ -296,18 +295,17 @@ static void s_btn_shape_hide(xcb_connection_t *connection,
 /**
  * @brief Send one button to the function that draws its shape
  *
- * @param connection Active XCB connection
- * @param target     Drawable the button lands on
- * @param gc         Context already set to the button's color, with a
- *                   line width matching the box's inset
- * @param button     Which button is being drawn
- * @param box        Geometry of the button
+ * @param connection  Active XCB connection
+ * @param target      Drawable the button lands on
+ * @param gc          Context already set to the button's color, with
+ *                    a line width matching the box's inset
+ * @param button      Which button is being drawn
+ * @param box         Geometry of the button
  * @param use_symbols Whether @c window.titlebar.buttons.use-symbols
- *                   is on
+ *                    is on
  *
  * @note The three state-reporting buttons take the plain square
- *       whatever @p use_symbols says: their color is already
- *       carrying
+ *       whatever @p use_symbols says: their color is already carrying
  *       the state, and a shape would compete with it
  * @note Complexity: @e O(1)
  */
@@ -352,9 +350,9 @@ static void s_desktop_titlebar_button_shape(
 /**
  * @brief Work out one button's drawing geometry
  *
- * @param x        Left edge of the button's box
- * @param y        Top edge of the button's box
- * @param side     Side of the box
+ * @param x    Left edge of the button's box
+ * @param y    Top edge of the button's box
+ * @param side Side of the box
  *
  * @return The geometry every shape function reads
  *
@@ -512,9 +510,9 @@ static void s_desktop_titlebar_buttons_draw(xcb_connection_t *connection,
  * @note Complexity: @e O(n), where @e n is the length of @p text
  */
 static void s_titlebar_draw_title(xcb_connection_t *connection,
-        client_td *client, xcb_drawable_t target, int16_t title_x,
-        uint16_t title_w, int16_t text_y, const char *text,
-        enum config_titlebar_alignment_e alignment)
+        client_td *client, xcb_drawable_t target,
+        int16_t title_x, uint16_t title_w, int16_t text_y,
+        const char *text, enum config_titlebar_alignment_e alignment)
 {
     char buf[CONFIG_MAX_LENGTH_NAME];
     uint16_t text_w;
@@ -594,10 +592,10 @@ void render_client_titlebar_repaint_content(xcb_connection_t *connection,
 
     /* Only when the color just chosen is not the one already set.
      * Changing a window's background makes the server discard what is
-     * on it, and this repaint runs on every title change: a client
-     * that renames itself as the user moves about, which a browser
-     * does on each page, would have its titlebar dropped and redrawn
-     * each time for a color that never moved. */
+     * on it, and this repaint runs on every title change: a client that
+     * renames itself as the user moves about, which a browser does on
+     * each page, would have its titlebar dropped and redrawn each time
+     * for a color that never moved. */
     if (!client->layout.has_titlebar_bg ||
             client->layout.titlebar_bg != bg_color) {
         client->layout.titlebar_bg = bg_color;

@@ -24,15 +24,15 @@
 #include <adt/list.h>
 #include <adt/ohtbl.h>
 
+/* Command includes */
+#include <cmds/client/resize.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
 #include <wm.h>
-
-/* Command includes */
-#include <cmds/client/resize.h>
 
 /* Local includes */
 #include <handler.h>

@@ -23,9 +23,12 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/render.h>
 #include <xcb/xcb_renderutil.h>
+#include <defs/icon.h>
+
+/* Default initial values */
+#include <defs/icon.h>
 
 /* Local includes */
-#include <defs/icon.h>
 #include <render/wmicon.h>
 
 

@@ -46,49 +46,65 @@
 #include <ipc/commands.h>
 
 
-/** One connected client's read state */
+/**
+ * @brief One connected client's read state
+ */
 struct s_ipc_client_s {
     size_t buf_len;                    /**< Bytes currently buffered,
                                             not yet a complete line */
     int fd;                            /**< -1 when this slot is free */
+
     /** Bitmask of 'enum ipc_event_type_e'; 0 means none, which is
-     *  correctly the same as this static array's
-     *  zero-initialized default */
+     *  correctly the same as this static array's zero-initialized
+     *  default */
     uint32_t subscribed_events;
+
     char buf[IPC_MSG_MAX_LENGTH];
 };
+
 
 /** Every currently connected client, indexed by slot */
 static struct s_ipc_client_s s_clients[IPC_MAX_CLIENTS];
 
-/** Whether 's_clients' has had every slot's 'fd' set to -1 yet.
- *  Needed because static storage only zero-initializes it by
- *  default, and 0 is itself a valid, real file descriptor (stdin);
- *  every "is this slot free" check in this file relies on -1
- *  specifically meaning free, so every slot must be set to that
- *  explicitly, once, before any of those checks run for the first
- *  time. */
+/**
+ * @brief Whether @c s_clients has had every slot's @c fd set to -1 yet
+ *
+ * Needed because static storage only zero-initializes it by default,
+ * and @c 0 is itself a valid, real file descriptor (@c stdin); every
+ * "is this slot free" check in this file relies on @c -1 specifically
+ * meaning free, so every slot must be set to that explicitly, once,
+ * before any of those checks run for the first time.
+ */
 static bool s_clients_initialized = false;
 
 
 /** Listening socket descriptor, or -1 when not up */
 static int s_ipc_fd = -1;
 
+
 /** Full path of the socket file currently bound, for 'ipc_destroy' to
  *  unlink; empty when not up */
 static char s_ipc_socket_path[CONFIG_MAX_LENGTH_PATH_BASE] = { 0 };
 
-/** One event type's name and bit, shared by both directions of
- *  the name-to-bit mapping below (subscribing reads a name off the
- *  wire and needs its bit; broadcasting has a bit and needs to write
- *  its name back out), so the two stay in step by construction
- *  rather than by two lists someone has to remember to edit
- *  together. */
+
+/**
+ * @brief One event type's name and bit, shared by both directions of
+ *        the name-to-bit mapping below
+ *
+ * Subscribing reads a name off the wire and needs its bit; broadcasting
+ * has a bit and needs to write its name back out, so the two stay in
+ * step by construction rather than by two lists someone has to remember
+ * to edit together.
+ */
 struct s_ipc_event_def_s {
     const char *name;
     uint32_t bit;
 };
 
+
+/**
+ * @brief Event structure
+ */
 static const struct s_ipc_event_def_s s_event_defs[] = {
     { "window_mapped",    IPC_EVENT_WINDOW_MAPPED },
     { "window_closed",    IPC_EVENT_WINDOW_CLOSED },
@@ -125,20 +141,18 @@ static const struct s_ipc_event_def_s s_event_defs[] = {
 };
 
 
-
 /**
  * @brief Ensure the runtime directory exists, belongs to the calling
  *        user, and has exactly 'IPC_RUNTIME_DIR_MODE' permissions
  *
- * Creates it fresh when nothing is there yet.  When something
- * already is (most commonly '$XDG_RUNTIME_DIR' itself, already
- * created by the session; occasionally a leftover subdirectory of
- * ours from a previous run), verifies it is actually a directory
- * this user owns before trusting it, since the '/tmp' fallback path
- * is a location other users on the same system can also write to,
- * and re-applies the mode regardless of whether it already matched,
- * rather than assuming a pre-existing directory's permissions were
- * already correct.
+ * Creates it fresh when nothing is there yet.  When something already
+ * is (most commonly @c XDG_RUNTIME_DIR itself, already created by the
+ * session; occasionally a leftover subdirectory of ours from a previous
+ * run), verifies it is actually a directory this user owns before
+ * trusting it, since the '/tmp' fallback path is a location other users
+ * on the same system can also write to, and re-applies the mode
+ * regardless of whether it already matched, rather than assuming
+ * a pre-existing directory's permissions were already correct.
  *
  * @param dir Path to the runtime directory
  *
@@ -189,8 +203,7 @@ static int s_runtime_dir_ensure(const char *dir)
 
 
 /**
- * @brief Close one connected client's descriptor and free its
- *        slot
+ * @brief Close one connected client's descriptor and free its slot
  *
  * @param idx Index into 's_clients'
  *
@@ -218,8 +231,8 @@ static void s_client_close(int idx)
  * @param name Event name, as given on the wire
  *
  * @return The matching bit, or @c 0 (no @c enum @c ipc_event_type_e
- *         value is ever itself @c 0) when @p name is not a
- *         recognized event
+ *         value is ever itself @c 0) when @p name is not a recognized
+ *         event
  *
  * @note Complexity: @e O(1) (a handful of entries, checked linearly)
  */
@@ -239,8 +252,8 @@ static uint32_t s_event_name_to_bit(const char *name)
  *
  * @param type The event type
  *
- * @return Its name, or @c NULL when @p type does not match any
- *         known single event bit
+ * @return Its name, or @c NULL when @p type does not match any known
+ *         single event bit
  *
  * @note Complexity: @e O(1) (a handful of entries, checked linearly)
  */
@@ -259,19 +272,20 @@ static const char *s_event_bit_to_name(uint32_t type)
  * @brief Whether an 'errno' value from a non-blocking socket call
  *        means "nothing ready right now", not a real error
  *
- * POSIX allows 'EAGAIN' and 'EWOULDBLOCK' to be either the same or
+ * POSIX allows @c EAGAIN and @c EWOULDBLOCK to be either the same or
  * two distinct values, depending on the platform; checking both by
  * name, unconditionally, is the traditional portable idiom for that
- * reason.  On glibc/Linux they are defined to the exact same number,
- * which turns that same traditional check into a comparison against
- * itself twice, something GCC's '-Wlogical-op' rightly flags.
- * The '#if' below only compares against 'EWOULDBLOCK' separately
- * when it is actually a distinct value in the first place, so this
- * stays the fully portable check on every POSIX system, while never
- * tripping that warning on the one where the two would already be
- * redundant.
+ * reason.
  *
- * @param err The 'errno' value to check
+ * On glibc/Linux they are defined to the exact same number, which turns
+ * that same traditional check into a comparison against itself twice,
+ * something GCC's '-Wlogical-op' rightly flags.
+ * The '#if' below only compares against @c EWOULDBLOCK separately when
+ * it is actually a distinct value in the first place, so this stays the
+ * fully portable check on every POSIX system, while never tripping that
+ * warning on the one where the two would already be redundant.
+ *
+ * @param err The @c errno value to check
  *
  * @return @c true when @p err indicates the call would have blocked
  *
@@ -290,11 +304,11 @@ static bool s_errno_is_would_block(int err)
 /**
  * @brief Accept one pending connection on the listening socket
  *
- * Dropped immediately, with a logged reason, when either accepting
- * it or making it non-blocking fails outright, or when every slot
- * in 's_clients' is already in use.
+ * Dropped immediately, with a logged reason, when either accepting it
+ * or making it non-blocking fails outright, or when every slot in
+ * @c s_clients is already in use.
  *
- * @note Complexity: @e O(n), where @e n is 'IPC_MAX_CLIENTS' (the
+ * @note Complexity: @e O(n), where @e n is @c IPC_MAX_CLIENTS (the
  *       free-slot scan)
  */
 static void s_new_client_accept(void)
@@ -311,12 +325,11 @@ static void s_new_client_accept(void)
         return;
     }
 
-    /* 'accept' does not inherit the listening socket's
-     * 'SOCK_NONBLOCK' flag onto the connection it hands back, so
-     * every accepted client is made non-blocking here, the POSIX
-     * way ('fcntl'/'F_SETFL'/'O_NONBLOCK'), rather than the Linux-
-     * only 'accept4' shortcut this project's POSIX version
-     * target does not cover. */
+    /* 'accept' does not inherit the listening socket's 'SOCK_NONBLOCK'
+     * flag onto the connection it hands back, so every accepted client
+     * is made non-blocking here, the POSIX way ('fcntl' / 'F_SETFL' /
+     * 'O_NONBLOCK'), rather than the Linux-only 'accept4' shortcut this
+     * project's POSIX version target does not cover. */
     flags = fcntl(fd, F_GETFL, 0);
     if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
         LOGGER_WARNING("Failed to make an accepted IPC connection" \
@@ -345,24 +358,24 @@ static void s_new_client_accept(void)
 
 
 /**
- * @brief Read whatever is currently available from one connected
- *        client and dispatch every complete line it contains
+ * @brief Read whatever is currently available from one connected client
+ *        and dispatch every complete line it contains
  *
- * @param wm  Window manager instance, passed through to each
- *            dispatched command
- * @param idx Index into 's_clients'
+ * @param wm  Window manager instance, passed through to each dispatched
+ *            command
+ * @param idx Index into @c s_clients
  *
- * @note Complexity: @e O(n), where @e n is the number of complete
- *       lines found in this one read
+ * @note Complexity: @e O(n), where @e n is the number of complete lines
+ *       found in this one read
  */
 static void s_handle_client_data(wm_td *wm, int idx)
 {
     struct s_ipc_client_s *const c = &s_clients[idx];
     ssize_t n;
 
-    /* Room for at least one more byte plus the buffer's null
-     * terminator is always kept free, so a line that exactly fills
-     * the rest of 'buf' is still safe to null-terminate below. */
+    /* Room for at least one more byte plus the buffer's null terminator
+     * is always kept free, so a line that exactly fills the rest of
+     * 'buf' is still safe to null-terminate below. */
     n = read(c->fd, c->buf + c->buf_len,
             sizeof(c->buf) - c->buf_len - 1u);
 
@@ -383,10 +396,10 @@ static void s_handle_client_data(wm_td *wm, int idx)
 
     /* Every complete ('\n'-terminated) line currently buffered is
      * dispatched in this same call, not just the first one.  A fast
-     * client (or one that simply queued several requests before
-     * this descriptor was next polled) can have more than one ready
-     * at once, and leaving the rest for a future 'poll' wakeup would
-     * delay them for no reason. */
+     * client (or one that simply queued several requests before this
+     * descriptor was next polled) can have more than one ready at once,
+     * and leaving the rest for a future 'poll' wakeup would delay them
+     * for no reason. */
     for (;;) {
         char *newline = memchr(c->buf, '\n', c->buf_len);
         char *response;
@@ -410,17 +423,16 @@ static void s_handle_client_data(wm_td *wm, int idx)
 
             if (written < 0 || (size_t) written != resp_len ||
                     nl_written != 1) {
-                /* A short or failed write here means the client
-                 * either is not reading its responses or has
-                 * gone away; either way, the connection is no
-                 * longer usable and the simplest correct response
-                 * is to drop it rather than track a partial-write
-                 * backlog for what is meant to stay a small local
-                 * control socket, not a general-purpose one.  This
-                 * also covers the response writing fully but the
-                 * trailing newline not: a client that only ever
-                 * sees a line without its terminator can never
-                 * tell the response actually ended there. */
+                /* A short or failed write here means the client either
+                 * is not reading its responses or has gone away; either
+                 * way, the connection is no longer usable and the
+                 * simplest correct response is to drop it rather than
+                 * track a partial-write backlog for what is meant to
+                 * stay a small local control socket, not
+                 * a general-purpose one.  This also covers the response
+                 * writing fully but the trailing newline not: a client
+                 * that only ever sees a line without its terminator can
+                 * never tell the response actually ended there. */
                 LOGGER_WARNING("Short write to an IPC client;" \
                         " dropping its connection", L_NARG);
                 free(response);
@@ -430,10 +442,10 @@ static void s_handle_client_data(wm_td *wm, int idx)
             free(response);
         }
 
-        /* Shift whatever came after this line (the start of the
-         * next one, or nothing yet) down to the front of the
-         * buffer, so the next loop iteration (or the next 'read'
-         * call entirely) sees it at offset 0 again. */
+        /* Shift whatever came after this line (the start of the next
+         * one, or nothing yet) down to the front of the buffer, so the
+         * next loop iteration (or the next 'read' call entirely) sees
+         * it at offset 0 again. */
         line_len = (size_t) (newline - c->buf) + 1u;
         remaining = c->buf_len - line_len;
         memmove(c->buf, c->buf + line_len, remaining);
@@ -486,17 +498,16 @@ int ipc_init(void)
      * 'snprintf("%s/%s", ...)' on purpose.  Both take the full
      * destination size and truncate safely against it, exactly like
      * 'snprintf' does, but neither is a 'printf'-family call, so
-     * neither one gives GCC's '-Wformat-truncation' anything to
-     * reason about in the first place.  That checker judges a '%s'
-     * argument by its source array's declared capacity, not by
-     * what a function like 'xdg_resolve_dir' actually promises to
-     * leave in it, so composing same-sized path buffers through it
-     * always reads as a possible overflow to the compiler even when
-     * it can never really happen; growing the destination past its
-     * neighbors only relocates the same mismatch to whichever
-     * buffer receives it next (as happened here, into
-     * 's_ipc_socket_path' below, previously copied via that same
-     * 'snprintf ("%s", ...)' pattern). */
+     * neither one gives GCC's '-Wformat-truncation' anything to reason
+     * about in the first place.  That checker judges a '%s' argument by
+     * its source array's declared capacity, not by what a function like
+     * 'xdg_resolve_dir' actually promises to leave in it, so composing
+     * same-sized path buffers through it always reads as a possible
+     * overflow to the compiler even when it can never really happen;
+     * growing the destination past its neighbors only relocates the
+     * same mismatch to whichever buffer receives it next (as happened
+     * here, into 's_ipc_socket_path' below, previously copied via that
+     * same 'snprintf ("%s", ...)' pattern). */
     safe_strncpy(socket_path, runtime_dir, sizeof(socket_path));
     safe_strncat(socket_path, "/", sizeof(socket_path));
     safe_strncat(socket_path, IPC_SOCKET_FILENAME, sizeof(socket_path));
@@ -508,9 +519,9 @@ int ipc_init(void)
         return -1;
     }
 
-    /* A leftover file from a run that did not shut down cleanly
-     * (crash, 'SIGKILL') rather than a second live instance; see
-     * this function's comment in 'ipc.h' for why that is the only
+    /* A leftover file from a run that did not shut down cleanly (crash,
+     * 'SIGKILL') rather than a second live instance; see this
+     * function's comment in 'ipc.h' for why that is the only
      * possibility left by the time this ever runs.
      *
      * 'unlink' failing only because there was nothing there to remove
@@ -671,12 +682,11 @@ cJSON *ipc_client_unsubscribe(int client_idx, const cJSON *args)
                 return resp;
             }
             bit = s_event_name_to_bit(item->valuestring);
-            /* An unrecognized name here is not an error the way it
-             * is for 'subscribe': the caller could not have been
-             * subscribed to it in the first place, so there is
-             * nothing to undo, the same as unsubscribing from an
-             * event never subscribed to at all is not an error
-             * either. */
+            /* An unrecognized name here is not an error the way it is
+             * for 'subscribe': the caller could not have been
+             * subscribed to it in the first place, so there is nothing
+             * to undo, the same as unsubscribing from an event never
+             * subscribed to at all is not an error either. */
             s_clients[client_idx].subscribed_events &= ~(uint32_t) bit;
         }
     }

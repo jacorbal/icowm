@@ -24,6 +24,10 @@
 /* Default initial values */
 #include <defs/desktop.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
+
 /* ADT includes */
 #include <adt/cdlist.h>
 #include <adt/list.h>
@@ -43,18 +47,6 @@
 /* Render includes */
 #include <render/outdate.h>
 
-/* Project includes */
-#include <cctl/sn.h>
-#include <client.h>
-#include <desktop.h>
-#include <logger.h>
-#include <memguard.h>
-#include <scratchpad.h>
-#include <surface.h>
-#include <systray.h>
-#include <wm.h>
-#include <wm/shutdown.h>
-
 /* JSON includes */
 #include <cjson/cJSON.h>
 
@@ -73,14 +65,21 @@
 #include <ipc.h>
 
 /* Project includes */
+#include <cctl/sn.h>
+#include <client.h>
+#include <desktop.h>
+#include <logger.h>
 #include <lookup.h>
-#include <utils/xcb/atom.h>
+#include <memguard.h>
+#include <scratchpad.h>
 #include <surface.h>
+#include <systray.h>
+#include <utils/xcb/atom.h>
+#include <wm.h>
+#include <wm/shutdown.h>
 
 /* Local includes */
 #include <handler.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**

@@ -31,6 +31,7 @@
 /* Utils includes */
 #include <utils/safe/safestr.h>
 #include <utils/spawn.h>
+#include <utils/xcb/connection.h>
 
 /* Command includes */
 #include <cmds/client/layer.h>
@@ -57,7 +58,7 @@
 /* Local includes */
 #include <desktop.h>
 #include <policy/stacking.h>
-#include <utils/xcb/connection.h>
+
 
 /**
  * @brief Move a client to the front or back of the desktop's window

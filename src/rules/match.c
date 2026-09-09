@@ -26,10 +26,12 @@
 #include <stddef.h>     /* NULL */
 #include <stdint.h>
 
+/* Utils includes */
+#include <utils/safe/safestr.h>
+
 /* Project includes */
 #include <client.h>
 #include <logger.h>
-#include <utils/safe/safestr.h>
 
 /* Local includes */
 #include <rules/internal.h>
@@ -203,15 +205,18 @@ bool ri_client_matches(const struct rules_match_s *match,
         return false;
     }
     if (match->has_class &&
-            !s_match_str_list(match->klass, match->class_count, klass)) {
+            !s_match_str_list(match->klass, match->class_count,
+                klass)) {
         return false;
     }
     if (match->has_role &&
-            !s_match_str_list(match->role, match->role_count, role)) {
+            !s_match_str_list(match->role, match->role_count,
+                role)) {
         return false;
     }
     if (match->has_title &&
-            !s_match_str_list(match->title, match->title_count, title)) {
+            !s_match_str_list(match->title, match->title_count,
+                title)) {
         return false;
     }
     if (match->has_type &&
@@ -220,7 +225,8 @@ bool ri_client_matches(const struct rules_match_s *match,
         return false;
     }
     if (match->has_transient) {
-        bool client_is_transient = client->transient_for != XCB_WINDOW_NONE;
+        bool client_is_transient =
+            client->transient_for != XCB_WINDOW_NONE;
 
         if (client_is_transient != match->is_transient) {
             return false;

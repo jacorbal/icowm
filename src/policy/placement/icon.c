@@ -46,6 +46,7 @@
 
 /* Default initial values */
 #include <defs/icon.h>
+#include <defs/placement.h>
 
 /* Project includes */
 #include <client.h>
@@ -55,7 +56,6 @@
 #include <logger.h>
 
 /* Local includes */
-#include <defs/placement.h>
 #include <policy/placement/icon.h>
 #include <policy/placement/score.h>
 

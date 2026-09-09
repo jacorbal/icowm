@@ -21,6 +21,9 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* ADT includes */
 #include <adt/cdlist.h>
 #include <adt/list.h>
@@ -40,7 +43,6 @@
 
 /* Local includes */
 #include <policy/urgency.h>
-#include <utils/xcb/connection.h>
 
 
 /** Current blink phase: @c true during the "swapped colors" half */

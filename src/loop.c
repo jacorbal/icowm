@@ -87,8 +87,7 @@ void loop_run(wm_td *wm)
      * adopted by 'cctl_adopt_scan'.  The earlier 'wm_ewmh_sync' call in
      * 'wm_start' ran before any clients were managed, leaving the list
      * empty; 'loop_refresh_full' then cleared 'is_outdated', so the
-     * first main-loop iteration would never trigger a sync on its
-     * own. */
+     * first main-loop iteration would never trigger a sync on its own. */
     wm_ewmh_sync(wm);
 
     LOGGER_DEBUG("Entering main event loop", L_NARG);
@@ -122,8 +121,8 @@ void loop_run(wm_td *wm)
          * until something sends it, and nothing that ran above could
          * know whether more were coming after it: flushing where the
          * work is done means a turn that moves ten windows can reach
-         * the socket ten times, and the intermediate states go
-         * out with it. */
+         * the socket ten times, and the intermediate states go out with
+         * it. */
         xcb_flush(xcb_connection_get());
     }
 

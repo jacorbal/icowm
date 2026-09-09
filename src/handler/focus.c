@@ -31,35 +31,35 @@
 
 /* Utils includes */
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 
-/* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <logger.h>
-#include <render/desktop/background.h>
-#include <render/outdate.h>
-#include <render/surface.h>
-#include <render/viewport/mesh.h>
-#include <render/wmicon.h>
-#include <surface.h>
-#include <systray.h>
+/* Command includes */
+#include <cmds/client/state.h>
 
 /* Input includes */
 #include <input/kbd/bind.h>
 #include <input/mouse/bind.h>
 #include <input/mouse/event.h>
 
-/* Command includes */
-#include <cmds/client/state.h>
+/* Render includes */
+#include <render/desktop/background.h>
+#include <render/outdate.h>
+#include <render/surface.h>
+#include <render/viewport/mesh.h>
+#include <render/wmicon.h>
 
 /* Project includes */
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
+#include <logger.h>
 #include <lookup.h>
+#include <surface.h>
+#include <systray.h>
 #include <wm.h>
 
 /* Local includes */
 #include <handler.h>
-#include <utils/xcb/connection.h>
 
 
 /* Handle a 'PROPERTY_NOTIFY' event */

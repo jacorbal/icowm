@@ -28,11 +28,13 @@
 /* IPC includes */
 #include <ipc.h>
 
-/* Local includes */
+/* Command includes */
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/transient.h>
 #include <cmds/surface.h>
+
+/* Local includes */
 #include <policy/focus.h>
 
 

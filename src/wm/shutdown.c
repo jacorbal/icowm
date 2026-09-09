@@ -46,11 +46,15 @@
 #include <wm/shutdown.h>
 
 
-/** Whether a coordinated shutdown is currently in progress */
+/**
+ * @brief Whether a coordinated shutdown is currently in progress
+ */
 static bool s_shutdown_in_progress = false;
 
-/** Absolute deadline (@c CLOCK_MONOTONIC) past which remaining clients
- * are force-closed regardless */
+/**
+ * @brief Absolute deadline (@c CLOCK_MONOTONIC) past which remaining
+ *        clients are force-closed regardless
+ */
 static struct timespec s_shutdown_deadline;
 
 
@@ -69,8 +73,8 @@ struct s_gather_ctx_s {
  *
  * @a wm_for_each_client walks each desktop's own client table live, and
  * bringing a client over moves it from one of those tables to another,
- * which would reorder the very table being walked underneath it: with
- * open addressing that skips entries and revisits others, so some
+ * which would reorder the very table being walked underneath it.
+ * With open addressing that skips entries and revisits others, so some
  * clients would never be asked to close and the shutdown would sit out
  * its whole timeout waiting for them.  The pointers are collected first
  * and acted on afterwards, once the walk is over.
@@ -96,8 +100,8 @@ static void s_shutdown_gather_collect(client_td *client, void *userdata)
 
 
 /**
- * @brief Adapts @c ccmd_client_close to @c wm_for_each_client's
- *        action signature
+ * @brief Adapts @c ccmd_client_close to @c wm_for_each_client's action
+ *        signature
  *
  * @param client   Client to close
  * @param userdata Unused
@@ -112,8 +116,8 @@ static void s_shutdown_close_client(client_td *client, void *userdata)
 
 
 /**
- * @brief Adapts @c ccmd_client_kill to @c wm_for_each_client's
- *        action signature
+ * @brief Adapts @c ccmd_client_kill to @c wm_for_each_client's action
+ *        signature
  *
  * @param client   Client to kill
  * @param userdata Unused
@@ -195,13 +199,13 @@ void wm_shutdown_begin(const wm_td *wm)
             " asking every managed client to close", L_NARG);
 
     /* Gathered before anything is asked to close, so that a client
-     * putting up a "save your work?" dialog does so with its own
-     * window already in front of the user.  In two passes, since the
-     * gathering moves clients between the very tables the walk reads;
-     * see 's_shutdown_gather_collect'.  A failed allocation skips the
+     * putting up a "save your work?" dialog does so with its own window
+     * already in front of the user.  In two passes, since the gathering
+     * moves clients between the very tables the walk reads; see
+     * 's_shutdown_gather_collect'.  A failed allocation skips the
      * gathering alone: the shutdown itself still proceeds, with
-     * whatever is off screen staying there, which is what it did
-     * before any of this existed. */
+     * whatever is off screen staying there, which is what it did before
+      any of this existed. */
     ctx.clients = malloc(client_count * sizeof(*ctx.clients));
     if (ctx.clients != NULL) {
         ctx.capacity = client_count;

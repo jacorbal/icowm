@@ -1,14 +1,13 @@
 /**
  * @file surface/actions/randr.c
  *
- * @brief RandR output, CRTC, mode, and profile management for a
- *        surface
+ * @brief RandR output, CRTC, mode, and profile management for a surface
  *
- * One of the files @c surface/actions/ is made of;
- * everything here revolves around the RandR extension itself (output
- * lookup, CRTC allocation, mode matching, profile snapshot/apply/
- * revert), as opposed to @c surface/actions/clients.c's client
- * show/hide/reflow concerns, which never touch RandR directly.
+ * One of the files @c surface/actions/ is made of; everything here
+ * revolves around the RandR extension itself (output lookup, CRTC
+ * allocation, mode matching, profile snapshot/apply/ revert), as
+ * opposed to @c surface/actions/clients.c's client show/hide/reflow
+ * concerns, which never touch RandR directly.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -32,13 +31,16 @@
 /* Utils includes */
 #include <utils/geom.h>
 #include <utils/xcb/reply.h>
+#include <utils/xcb/connection.h>
 
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <logger.h>
+
+/* Local includes */
 #include <surface.h>
-#include <utils/xcb/connection.h>
+
 
 /**
  * @brief One CRTC's state, as it was immediately before
@@ -113,19 +115,7 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
     int output_count;
     xcb_randr_output_t *outputs;
     /* Declared once here, outside the loop, rather than once per
-     * iteration inside it: '-fanalyzer' traced two separate
-     * iterations reaching a loop-scoped declaration of this same
-     * array (see this function's history for the two prior,
-     * differently-structured attempts at silencing it, both zeroing
-     * the array at its declaration point, that made no
-     * difference at all) before reporting a "use of uninitialized
-     * value" with no source location at all for the read itself,
-     * which is a strong sign of a known class of '-fanalyzer' false
-     * positive around a fixed array declared inside a loop with an
-     * early 'continue', rather than a real, traceable read of
-     * anything actually uninitialized.  A single declaration, reached
-     * only once regardless of how many times the loop runs, removes
-     * that whole shape entirely. */
+     * iteration inside it. */
     char output_name[CONFIG_RANDR_OUTPUT_NAME_LENGTH] = {0};
 
     output_count =
@@ -155,8 +145,8 @@ s_surface_randr_find_output_by_name(xcb_connection_t *connection,
         if ((size_t) name_len >= sizeof(output_name)) {
             name_len = (int) sizeof(output_name) - 1;
         }
-        /* Re-zeroed on every iteration reusing this same array, so a
-         * shorter name this time around can never leave a longer
+        /* Re-zeroed on every iteration reusing this same array, so
+         * a shorter name this time around can never leave a longer
          * previous iteration's trailing bytes still in place past
          * 'name_len'. */
         memset(output_name, 0, sizeof(output_name));
@@ -232,8 +222,8 @@ static xcb_randr_crtc_t s_surface_randr_find_free_crtc(
  * @brief Find a RandR mode matching a given resolution
  *
  * Same lookup @a surface_action_set_resolution does against the
- * screen's mode list, extracted here so applying a per-output
- * profile can reuse the exact same technique.
+ * screen's mode list, extracted here so applying a per-output profile
+ * can reuse the exact same technique.
  *
  * @param res_reply  Already-fetched current screen resources
  * @param resolution Resolution to match; either dimension @c 0 always
@@ -427,29 +417,30 @@ static int16_t s_surface_randr_clamp_position(int32_t value,
  *        matching, currently-connected output
  *
  * Reuses the output's current CRTC if it already has one, or claims
- * a free compatible one otherwise (see
- * 's_surface_randr_find_free_crtc').  Resolution is taken from the
- * profile if configured and a matching mode exists; otherwise the
- * CRTC's already-active mode is kept, falling back to the
- * output's first preferred mode if it had none (a freshly-claimed
- * CRTC on an output with no prior mode of its own).  Position and
- * rotation always come straight from the profile.  'is_primary' is
- * applied as a separate, independent request afterward, since RandR
- * has no way to bundle it into the same one.
+ * a free compatible one otherwise.
  *
- * @param surface   Surface the output belongs to, for its connection
- *                  and for logging
- * @param res_reply Already-fetched current screen resources, shared
- *                  across every profile one call batch applies
- * @param output_id Output this profile matched by name
- * @param info      That output's info, already fetched
- * @param profile   Configured profile to apply
+ * Resolution is taken from the profile if configured and a matching
+ * mode exists; otherwise the CRTC's already-active mode is kept,
+ * falling back to the output's first preferred mode if it had none (a
+ * freshly-claimed CRTC on an output with no prior mode of its own).
+ * Position and rotation always come straight from the profile.
+ * 'is_primary' is applied as a separate, independent request afterward,
+ * since RandR has no way to bundle it into the same one.
+ *
+ * @param surface         Surface the output belongs to, for its
+ *                        connection and for logging
+ * @param res_reply       Already-fetched current screen resources,
+ *                        shared across every profile one call batch
+ *                        applies
+ * @param output_id       Output this profile matched by name
+ * @param info            That output's info, already fetched
+ * @param profile         Configured profile to apply
  * @param current_primary Output the X server currently calls primary,
- *                  so that a profile asking to be primary only issues
- *                  the request where it is not already
- * @param take_snapshot Whether to save the CRTC's prior state first,
- *                  so @a surface_action_revert_randr_profiles can put
- *                  it back exactly as it was
+ *                        so that a profile asking to be primary only
+ *                        issues the request where it is not already
+ * @param take_snapshot   Whether to save the CRTC's prior state first,
+ *                        so @a surface_action_revert_randr_profiles can
+ *                        put it back exactly as it was
  *
  * @note Complexity: @e O(c), where @e c is the number of CRTCs
  *       compatible with this output, only when it has none active yet
@@ -486,20 +477,20 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
 
     /* Fetched once up front, regardless of whether a resolution was
      * even configured: needed both for the "keep whatever mode is
-     * already active" fallback below and, more importantly, to
-     * compare the profile's desired state against this CRTC's actual
-     * current one, so an already-matching profile issues no XRandR
-     * write at all (see 'crtc_matches_current' below) rather than
-     * reasserting an identical configuration on every reload. */
+     * already active" fallback below and, more importantly, to compare
+     * the profile's desired state against this CRTC's actual current
+     * one, so an already-matching profile issues no XRandR write at all
+     * (see 'crtc_matches_current' below) rather than reasserting an
+     * identical configuration on every reload. */
     ci_cookie = xcb_randr_get_crtc_info(xcb_connection_get(), crtc,
             res_reply->config_timestamp);
     ci_reply = xcb_randr_get_crtc_info_reply(xcb_connection_get(),
             ci_cookie, NULL);
 
     mode = s_surface_randr_find_mode(res_reply, profile->preferred_res);
-    /* Whether the profile itself actually resolved to a specific
-     * mode, as opposed to the "keep whatever is already active"
-     * fallback taken below.
+    /* Whether the profile itself actually resolved to a specific mode,
+     * as opposed to the "keep whatever is already active" fallback
+     * taken below.
      *
      * 'crtc_matches_current' needs to know this, since deliberately
      * mirroring 'ci_reply->mode' back into 'mode' just below would
@@ -541,8 +532,8 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
             profile->name);
 
     /* Only meaningful when this CRTC was already driving this same
-     * output before this call (a freshly claimed, previously-free
-     * CRTC is by definition a real change.
+     * output before this call (a freshly claimed, previously-free CRTC
+     * is by definition a real change.
      *
      * It was driving nothing at all); comparing mode (only when the
      * profile actually configured one; see 'mode_was_configured'
@@ -653,10 +644,10 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
      * checked.
      *
      * The primary output is fetched once up front and shared by every
-     * profile below (see 's_surface_randr_apply_profile'), so an
-     * output already marked primary skips
-     * 'xcb_randr_set_output_primary' instead of reissuing it every
-     * reload regardless of whether it would change anything. */
+     * profile below (see 's_surface_randr_apply_profile'), so an output
+     * already marked primary skips 'xcb_randr_set_output_primary'
+     * instead of reissuing it every reload regardless of whether it
+     * would change anything. */
     res_cookie = xcb_randr_get_screen_resources_current(
             xcb_connection_get(), surface->screen->root);
     primary_cookie = xcb_randr_get_output_primary(xcb_connection_get(),

@@ -20,11 +20,11 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Defs includes */
-#include <defs/config.h>
-
 /* Utils includes */
 #include <utils/xcb/connection.h>
+
+/* Initial default values */
+#include <defs/config.h>
 
 /* Project includes */
 #include <config.h>
@@ -102,7 +102,8 @@ static uint32_t s_luma_rec601(uint32_t color)
     const uint32_t green = (color >> 8) & 0xFFu;
     const uint32_t blue = color & 0xFFu;
 
-    return (S_LUMA_WEIGHT_RED * red + S_LUMA_WEIGHT_GREEN * green +
+    return (S_LUMA_WEIGHT_RED * red +
+            S_LUMA_WEIGHT_GREEN * green +
             S_LUMA_WEIGHT_BLUE * blue) / S_LUMA_DIVISOR;
 }
 
@@ -135,8 +136,8 @@ static uint32_t s_shift_channel(uint32_t channel, uint32_t tone_shift,
  *
  * @param screen_id Screen to look the slot up for
  *
- * @return Slot for @p screen_id, or @c NULL where that screen is out
- *         of range
+ * @return Slot for @p screen_id, or @c NULL where that screen is out of
+ *         range
  *
  * @note Complexity: @e O(1)
  */
@@ -153,11 +154,11 @@ static struct s_mesh_cache_s *s_cache_slot(uint32_t screen_id)
 /**
  * @brief Set a screen's cached tile aside, without freeing it
  *
- * The root window's own @c XCB_CW_BACK_PIXMAP may still name that
- * tile, and goes on naming it until something points the attribute
- * elsewhere, so freeing it here would leave the root drawing from a
- * pixmap the server no longer has.  Whoever points the attribute away
- * calls @a viewport_mesh_cache_release_retired afterwards.
+ * The root window's own @c XCB_CW_BACK_PIXMAP may still name that tile,
+ * and goes on naming it until something points the attribute elsewhere,
+ * so freeing it here would leave the root drawing from a pixmap the
+ * server no longer has.  Whoever points the attribute away calls
+ * @a viewport_mesh_cache_release_retired afterwards.
  *
  * @param connection Connection the pixmap lives on, or @c NULL when
  *                   there is none left to free anything on
@@ -213,8 +214,8 @@ uint32_t viewport_mesh_tile_origin(int32_t origin, uint32_t spacing)
         return 0u;
     }
 
-    /* C's '%' truncates toward zero, so a negative origin yields a
-     * negative remainder that would place the dot outside the tile;
+    /* C's '%' truncates toward zero, so a negative origin yields
+     * a negative remainder that would place the dot outside the tile;
      * one spacing added back folds it into '[0, spacing)' */
     remainder = origin % (int32_t) spacing;
     if (remainder < 0) {
@@ -237,8 +238,8 @@ bool viewport_mesh_is_visible(const desktop_td *desktop)
     }
 
     /* An external tool owns the root window's pixels, and the mesh
-     * would have to take over the very background pixmap holding
-     * them; leave that wallpaper alone instead */
+     * would have to take over the very background pixmap holding them;
+     * leave that wallpaper alone instead */
     if (desktop->background.use_root_pixmap) {
         return false;
     }
@@ -248,8 +249,7 @@ bool viewport_mesh_is_visible(const desktop_td *desktop)
 }
 
 
-/* Build the mesh tile pixmap for a desktop's current viewport
- * origin */
+/* Build the mesh tile pixmap for a desktop's current viewport origin */
 xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
         const desktop_td *desktop)
 {
@@ -270,17 +270,16 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
     if (slot == NULL) {
         return XCB_NONE;
     }
-    /* Retired rather than freed.  The root's own
-     * 'XCB_CW_BACK_PIXMAP' still names it, and goes on naming it
-     * until 'viewport_mesh_render' installs the tile built here, so
-     * freeing it anywhere before that would leave the attribute
-     * pointing at a pixmap the server no longer has: any repaint of
-     * the root in between, ours or another client's, would draw from
-     * it (see 'render_desktop_background_render''s own note on
-     * exactly this hazard, in render/desktop/background.c).  Whoever
-     * installs the new tile
-     * frees it, and 's_cache_release' covers the case where nobody
-     * ever does. */
+    /* Retired rather than freed.  The root's own 'XCB_CW_BACK_PIXMAP'
+     * still names it, and goes on naming it until
+     * 'viewport_mesh_render' installs the tile built here, so freeing
+     * it anywhere before that would leave the attribute pointing at
+     * a pixmap the server no longer has: any repaint of the root in
+     * between, ours or another client's, would draw from it (see
+     * 'render_desktop_background_render''s own note on exactly this
+     * hazard, in render/desktop/background.c).  Whoever installs the
+     * new tile frees it, and 's_cache_release' covers the case where
+     * nobody ever does. */
     s_cache_retire(connection, slot);
 
     mesh = &desktop->config->base.viewport.mesh;
@@ -312,10 +311,10 @@ xcb_pixmap_t viewport_mesh_tile_create(xcb_connection_t *connection,
     xcb_change_gc(connection, context, XCB_GC_FOREGROUND, values);
 
     /* Negated: the canvas scrolls the opposite way to the origin.
-     * Panning east raises the origin and carries every client west,
-     * so a mesh whose dots followed the origin would travel against
-     * everything else on screen.  'viewport_mesh_tile_origin' folds
-     * the negative back into the tile. */
+     * Panning east raises the origin and carries every client west, so
+     * a mesh whose dots followed the origin would travel against
+     * everything else on screen.  'viewport_mesh_tile_origin' folds the
+     * negative back into the tile. */
     dot.x = (int16_t) viewport_mesh_tile_origin(
             -desktop->viewport_origin.x, mesh->spacing_horizontal);
     dot.y = (int16_t) viewport_mesh_tile_origin(
@@ -368,11 +367,11 @@ int viewport_mesh_render(xcb_connection_t *connection,
     dot_color = viewport_mesh_color_from_background(
             desktop->background.bg.color, mesh->tone_shift);
 
-    /* Every input the tile was built from, so that a pan, a
-     * background color change and a reloaded mesh setting each
-     * repaint while an ordinary full-desktop render does not.  The
-     * derived dot color is compared rather than 'tone_shift' itself,
-     * since that is what actually reaches the tile */
+    /* Every input the tile was built from, so that a pan, a background
+     * color change and a reloaded mesh setting each repaint while an
+     * ordinary full-desktop render does not.  The derived dot color is
+     * compared rather than 'tone_shift' itself, since that is what
+     * actually reaches the tile */
     if (slot->is_applied && slot->tile != XCB_NONE &&
             slot->background == desktop->background.bg.color &&
             slot->dot == dot_color &&
@@ -398,9 +397,9 @@ int viewport_mesh_render(xcb_connection_t *connection,
             desktop->screen->height_in_pixels);
     slot->is_applied = true;
 
-    /* Only now: the attribute above named the old tile right up to
-     * this point, so this is the first moment at which nothing can
-     * still be drawn from it */
+    /* Only now: the attribute above named the old tile right up to this
+     * point, so this is the first moment at which nothing can still be
+     * drawn from it */
     if (slot->retired != XCB_NONE) {
         xcb_free_pixmap(connection, slot->retired);
         slot->retired = XCB_NONE;

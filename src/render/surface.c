@@ -18,14 +18,16 @@
 /* ADT includes */
 #include <adt/cdlist.h>
 
-/* Project includes */
-#include <desktop.h>
-#include <logger.h>
+/* Render includes */
 #include <render/desktop.h>
 #include <render/desktop/background.h>
 
 /* Utils includes */
 #include <utils/xcb/connection.h>
+
+/* Project includes */
+#include <desktop.h>
+#include <logger.h>
 
 /* Local includes */
 #include <render/outdate.h>

@@ -3,26 +3,26 @@
  *
  * @brief Desktop-list membership and grid navigation for a surface
  *
- * One of the files @c surface/ is made of; see
- * @c surface.c's comment for why.  @c _prev/@c _next are now
- * @c _west and @c _east, joined by @c _north and @c _south:
- * a flat desktop list has no genuine "previous" or "next" of
- * its, only a configured @c topology.screens.desktops layout's
- * own reading order does, and that same order runs one of two ways
- * depending on @c orientation, so a name tied to whichever axis a
- * one-row (or one-column) surface happens to default to would mean
- * the opposite of itself the moment a real 2-D layout is configured.
- * A compass direction has no such ambiguity: @c _west is the exact
- * same desktop @c _prev always was, @c _east the exact same as
- * @c _next, on every surface that never configures a layout at all
- * (the common case, still the default, @c _north/@c _south then
- * finding nothing at all to move to, the one direction that never
- * existed before this), and the same names keep meaning exactly what
- * they say, visually, once a layout is configured, regardless of
- * which corner @c desktop_id @c 0 itself starts counting from (see
- * @a s_layout_row_col's comment for why a naive "list-
- * previous"/"list-next" is not enough on its own to guarantee that
- * once @c corner is anything other than top-left).
+ * One of the files @c surface/ is made of; see @c surface.c's comment
+ * for why.  @c _prev/@c _next are now @c _west and @c _east, joined by
+ * @c _north and @c _south: a flat desktop list has no genuine
+ * "previous" or "next" of its, only a configured
+ * @c topology.screens.desktops layout's own reading order does, and
+ * that same order runs one of two ways depending on @c orientation, so
+ * a name tied to whichever axis a one-row (or one-column) surface
+ * happens to default to would mean the opposite of itself the moment
+ * a real 2-D layout is configured.
+ *
+ * A compass direction has no such ambiguity: @c _west is the exact same
+ * desktop @c _prev always was, @c _east the exact same as @c _next, on
+ * every surface that never configures a layout at all (the common case,
+ * still the default, @c _north / @c _south then finding nothing at all
+ * to move to, the one direction that never existed before this), and
+ * the same names keep meaning exactly what they say, visually, once
+ * a layout is configured, regardless of which corner @c desktop_id
+ * @c 0 itself starts counting from (see @a s_layout_row_col's comment
+ * for why a naive "list-previous"/"list-next" is not enough on its own
+ * to guarantee that once @c corner is anything other than top-left).
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -41,6 +41,9 @@
 /* ADT includes */
 #include <adt/cdlist.h>
 
+/* Default initial values */
+#include <defs/uistr.h>
+
 /* Project includes */
 #include <config.h>
 #include <i18n.h>
@@ -48,28 +51,35 @@
 
 /* Local includes */
 #include <surface.h>
-#include <defs/uistr.h>
 
 
 /**
- * @brief Convert a flat desktop index into its row/column
- *        position within a configured layout
+ * @brief One compass direction a desktop grid can be stepped in
+ */
+enum s_grid_direction_e {
+    S_GRID_NORTH,
+    S_GRID_SOUTH,
+    S_GRID_EAST,
+    S_GRID_WEST
+};
+
+
+/**
+ * @brief Convert a flat desktop index into its row/column position
+ *        within a configured layout
  *
  * The @c orientation and @c corner math is not evaluated as eight
- * separate cases, one per combination, the way Openbox's
- * equivalent (@c get_row_col, screen.c) does: every corner reduces to
- * the same top-left computation for whichever axis @c orientation
- * treats as primary, then a single, independent flip per axis
- * (mirroring @c row within @c rows, @c col within @c columns) for
- * whichever half of @c corner names that side, confirmed against
- * Openbox's eight-case version, index by index, across every
- * shape/orientation/corner combination before this replaced it.
+ * separate cases, one per combination: every corner reduces to the same
+ * top-left computation for whichever axis @c orientation treats as
+ * primary, then a single, independent flip per axis (mirroring @c row
+ * within @c rows, @c col within @c columns) for whichever half of @c
+ * corner names that side.
  *
- * @param index    Flat desktop index; assumed to already fall within
- *                 @p layout's @c rows @c * @c columns extent
- * @param layout   Layout to interpret @p index against
- * @param row_out  Resulting row, updated in place
- * @param col_out  Resulting column, updated in place
+ * @param index   Flat desktop index; assumed to already fall within
+ *                @p layout's @c rows @c * @c columns extent
+ * @param layout  Layout to interpret @p index against
+ * @param row_out Resulting row, updated in place
+ * @param col_out Resulting column, updated in place
  *
  * @note Complexity: @e O(1)
  */
@@ -104,31 +114,30 @@ static void s_layout_row_col(uint32_t index,
 
 
 /**
- * @brief Convert a row/column position back into its flat
- *        desktop index within a configured layout
+ * @brief Convert a row/column position back into its flat desktop index
+ *        within a configured layout
  *
  * The exact inverse of @a s_layout_row_col: the same per-axis corner
- * flip, applied to @p row/@p col before combining them, undoes
- * itself correctly since mirroring within a fixed extent twice is
- * always the identity.  @p row/@p col are taken as @c int64_t,
- * rather than @c uint32_t the way a valid position always ends up
- * being, specifically so a caller mid-step, namely
- * @a s_surface_desktop_direction below, can pass a tentative,
- * possibly negative
- * one-past-the-edge position straight through without checking for
- * unsigned underflow itself first; this function's bounds check
+ * flip, applied to @p row/@p col before combining them, undoes itself
+ * correctly since mirroring within a fixed extent twice is always the
+ * identity.  @p row / @p col are taken as @c int64_t, rather than
+ * @c uint32_t the way a valid position always ends up being,
+ * specifically so a caller mid-step, namely
+ * @a s_surface_desktop_direction below, can pass a tentative, possibly
+ * negative one-past-the-edge position straight through without checking
+ * for unsigned underflow itself first; this function's bounds check
  * catches that either way.
  *
- * @param row      Row to convert; a null result if negative or
- *                 @c >= @p layout's @c rows
- * @param col      Column to convert; a null result if negative or
- *                 @c >= @p layout's @c columns
- * @param layout   Layout to interpret @p row/@p col against
+ * @param row       Row to convert; a null result if negative or
+ *                  @c >= @p layout's @c rows
+ * @param col       Column to convert; a null result if negative or
+ *                  @c >= @p layout's @c columns
+ * @param layout    Layout to interpret @p row/@p col against
  * @param index_out Resulting flat index, updated in place only on a
- *                 @c true return
+ *                  @c true return
  *
- * @return @c false if @p row/@p col falls outside @p layout's
- *         @c rows/@c columns extent at all
+ * @return @c false if @p row / @p col falls outside @p layout's
+ *         @c rows / @c columns extent at all
  *
  * @note Complexity: @e O(1)
  */
@@ -172,30 +181,13 @@ static bool s_layout_index(int64_t row, int64_t col,
 
 
 /**
- * @brief One compass direction a desktop grid can be stepped in
- */
-enum s_grid_direction_e {
-    S_GRID_NORTH,
-    S_GRID_SOUTH,
-    S_GRID_EAST,
-    S_GRID_WEST
-};
-
-
-/**
- * @brief Step from one desktop to its grid neighbor in a given
- *        compass direction, skipping past any desktop-less gap cell
- *        a configured layout's @c rows @c * @c columns may
- *        legitimately exceed the real desktop count with (see
- *        @c ci_config_load_screens's comment, config/base/
- *        desktops.c, for why a gap like that is accepted rather
- *        than rejected outright)
+ * @brief Step from one desktop to its grid neighbor in a given compass
+ *        direction, skipping past any desktop-less gap cell
+ *        a configured layout's @c rows @c * @c columns may legitimately
+ *        exceed the real desktop count with
  *
- * Unlike Openbox's equivalent (@c screen_find_desktop, screen.c),
- * whose single, crude nudge forward on landing in a gap cell does
- * not reliably clear more than one gap cell in a row, this steps
- * again, in the same direction, for as long as landing in a gap cell
- * keeps happening, up to the grid's full cell count before
+ * This steps again, in the same direction, for as long as landing in
+ * a gap cell keeps happening, up to the grid's full cell count before
  * giving up: a genuinely bounded search, not a fixed one-step
  * allowance.
  *
@@ -206,13 +198,13 @@ enum s_grid_direction_e {
  *                   around to the opposite edge on that same axis,
  *                   rather than stopping
  *
- * @return The neighboring desktop, or @c NULL if @p surface/its
+ * @return The neighboring desktop, or @c NULL if @p surface / its
  *         configuration is unavailable, or if no desktop exists in
- *         @p direction at all (either the grid's edge, not
- *         cycling, or every remaining cell that way is a gap)
+ *         @p direction at all (either the grid's edge, not cycling, or
+ *         every remaining cell that way is a gap)
  *
- * @note Complexity: @e O(m), where @e m is @p layout's @c rows
- *       @c * @c columns
+ * @note Complexity: @e O(m), where @e m is @p layout's
+ *       @c rows @c * @c columns
  */
 static desktop_td *s_surface_desktop_direction(surface_td *surface,
         uint32_t desktop_id, enum s_grid_direction_e direction,
@@ -265,10 +257,9 @@ static desktop_td *s_surface_desktop_direction(surface_td *surface,
             }
             /* '((x % n) + n) % n', not a plain 'x % n': C's '%'
              * can return a negative result for a negative left-hand
-             * side (e.g., '-1 % 2' is '-1', not '1'), which a raw
-             * cast back to 'uint32_t' would turn into a huge,
-             * genuinely wrong value rather than the intended
-             * wraparound one. */
+             * side (e.g., '-1 % 2' is '-1', not '1'), which a raw cast
+             * back to 'uint32_t' would turn into a huge, genuinely
+             * wrong value rather than the intended wraparound one. */
             next_row = ((next_row % (int64_t) layout->rows) +
                     (int64_t) layout->rows) % (int64_t) layout->rows;
             next_col = ((next_col % (int64_t) layout->columns) +
@@ -288,8 +279,8 @@ static desktop_td *s_surface_desktop_direction(surface_td *surface,
 }
 
 
-/* Get a desktop's row/column position in its surface's
- * configured layout */
+/* Get a desktop's row/column position in its surface's configured
+ * layout */
 bool surface_desktop_row_col(const surface_td *surface,
         uint32_t desktop_id, uint32_t *row_out, uint32_t *col_out)
 {
@@ -334,11 +325,11 @@ void surface_desktop_label(const surface_td *surface,
         return;
     }
 
-    /* Only worth showing the coordinate once the grid is genuinely
-     * more than the one row a desktop's ID already fully describes
-     * on its own; see 'surface_desktop_row_col' above for what "row 0"
-     * always means on a linear (or unconfigured) layout, the exact
-     * case this excludes. */
+    /* Only worth showing the coordinate once the grid is genuinely more
+     * than the one row a desktop's ID already fully describes on its
+     * own; see 'surface_desktop_row_col' above for what "row 0" always
+     * means on a linear (or unconfigured) layout, the exact case this
+     * excludes. */
     has_row_col = surface_desktop_row_col(surface, desktop_id,
             &row, &col);
     shows_row_col = has_row_col && surface->config != NULL &&
@@ -399,7 +390,8 @@ int surface_desktop_rem(surface_td *surface, uint32_t desktop_id)
     for (size_t i = 0;
             i < surface->desktop_count && current_item != NULL;
             ++i) {
-        desktop_td *const desktop = (desktop_td *) cdlist_data(current_item);
+        desktop_td *const desktop =
+            (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
             void *removed_desktop = NULL;
             /* Remove the desktop */
@@ -436,9 +428,11 @@ desktop_td *surface_desktop_get(surface_td *surface,
     }
 
     current_item = cdlist_head(surface->desktops);
-    for (size_t i = 0; i < surface->desktop_count && current_item != NULL;
+    for (size_t i = 0;
+            i < surface->desktop_count && current_item != NULL;
             ++i) {
-        desktop_td *const desktop = (desktop_td *) cdlist_data(current_item);
+        desktop_td *const desktop =
+            (desktop_td *) cdlist_data(current_item);
         if (desktop->id == desktop_id) {
             return desktop;
         }
@@ -450,8 +444,8 @@ desktop_td *surface_desktop_get(surface_td *surface,
 }
 
 
-/* Get the desktop toward the north in the configured layout,
- * optionally cycling */
+/* Get the desktop toward the north in the configured layout, optionally
+ * cycling */
 desktop_td *surface_desktop_north(surface_td *surface,
         uint32_t desktop_id, bool cycle)
 {
@@ -460,8 +454,8 @@ desktop_td *surface_desktop_north(surface_td *surface,
 }
 
 
-/* Get the desktop toward the south in the configured layout,
- * optionally cycling */
+/* Get the desktop toward the south in the configured layout, optionally
+ * cycling */
 desktop_td *surface_desktop_south(surface_td *surface,
         uint32_t desktop_id, bool cycle)
 {
@@ -470,8 +464,8 @@ desktop_td *surface_desktop_south(surface_td *surface,
 }
 
 
-/* Get the desktop toward the west in the configured layout,
- * optionally cycling */
+/* Get the desktop toward the west in the configured layout, optionally
+ * cycling */
 desktop_td *surface_desktop_west(surface_td *surface,
         uint32_t desktop_id, bool cycle)
 {
@@ -480,8 +474,8 @@ desktop_td *surface_desktop_west(surface_td *surface,
 }
 
 
-/* Get the desktop toward the east in the configured layout,
- * optionally cycling */
+/* Get the desktop toward the east in the configured layout, optionally
+ * cycling */
 desktop_td *surface_desktop_east(surface_td *surface,
         uint32_t desktop_id, bool cycle)
 {
@@ -513,8 +507,7 @@ int surface_desktop_select_west(surface_td *surface, bool cycle)
 }
 
 
-/* Select the desktop toward the east (list-next), optionally
- * cycling */
+/* Select the desktop toward the east (list-next), optionally cycling */
 int surface_desktop_select_east(surface_td *surface, bool cycle)
 {
     const desktop_td *east_desktop;

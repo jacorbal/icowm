@@ -28,12 +28,6 @@
 #include <defs/dialog.h>
 #include <defs/memguard.h>
 #include <defs/uistr.h>
-#include <i18n.h>
-
-/* Project includes */
-#include <config.h>
-#include <logger.h>
-#include <surface.h>
 
 /* Utils includes */
 #include <utils/sysmem.h>
@@ -41,6 +35,12 @@
 
 /* Menu includes */
 #include <menu/dialog/message.h>
+
+/* Project includes */
+#include <config.h>
+#include <i18n.h>
+#include <logger.h>
+#include <surface.h>
 
 /* Local includes */
 #include <memguard.h>

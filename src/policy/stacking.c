@@ -22,6 +22,8 @@
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
+
+/* Local includes */
 #include <policy/stacking.h>
 
 

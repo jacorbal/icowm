@@ -41,23 +41,22 @@
  * @brief Read a legacy Latin-1 ICCCM string property into up to two
  *        destination buffers
  *
- * Shared fallback path for @c client_props_refresh_icon_name and
- * @c client_props_refresh_name: both first try the UTF-8 EWMH
- * property (@c _NET_WM_ICON_NAME or @c _NET_WM_NAME) and only fall
- * back to this ICCCM one (@c WM_ICON_NAME or @c WM_NAME) when that
- * fails.
+ * Shared fallback path for @a client_props_refresh_icon_name and
+ * @a client_props_refresh_name: both first try the UTF-8 EWMH property
+ * (@c _NET_WM_ICON_NAME or @c _NET_WM_NAME) and only fall back to this
+ * ICCCM one (@c WM_ICON_NAME or @c WM_NAME) when that fails.
  *
  * @param client         Client whose window property is read
  * @param atom           ICCCM atom to read
  * @param dest1          First destination buffer (always written when
- *                        the property is present; at least 255 bytes)
+ *                       the property is present; at least 255 bytes)
  * @param dest2          Second destination buffer kept in sync with
- *                        @p dest1, or @c NULL when there is only one
+ *                       @p dest1, or @c NULL when there is only one
  * @param clear_on_empty When @c true, an empty or missing property
- *                        clears @p dest1 to an empty string; when
- *                        @c false, @p dest1 (and @p dest2) are left
- *                        unchanged so a transient property removal
- *                        does not blank an already-known name
+ *                       clears @p dest1 to an empty string; when
+ *                       @c false, @p dest1 (and @p dest2) are left
+ *                       unchanged so a transient property removal does
+ *                       not blank an already-known name
  *
  * @note Complexity: @e O(1), a single round trip
  */
@@ -178,7 +177,8 @@ int client_props_get_wm_class(xcb_connection_t *connection,
     }
 
     if (reply != NULL && reply->value_len > 0) {
-        char *const value = (char *) xcb_get_property_value(reply);
+        const char *const value =
+            (char *) xcb_get_property_value(reply);
         size_t value_len = reply->value_len;
         size_t inst_len = 0;
         size_t class_off = 0;
@@ -204,14 +204,13 @@ int client_props_get_wm_class(xcb_connection_t *connection,
             inst_buf[copy_len] = '\0';
         }
 
-        /* Copy the class name.  With a separator, it starts right
-         * after the instance name found above.  Without one, a
-         * non-compliant client sent a single unseparated string
-         * instead of the two ICCCM expects; reading the whole thing
-         * as the class, with the instance left empty, degrades more
-         * usefully than refusing it outright, since the class is
-         * generally the more load-bearing of the two for matching
-         * rules and picking an icon. */
+        /* Copy the class name.  With a separator, it starts right after
+         * the instance name found above.  Without one, a non-compliant
+         * client sent a single unseparated string instead of the two
+         * ICCCM expects; reading the whole thing as the class, with the
+         * instance left empty, degrades more usefully than refusing it
+         * outright, since the class is generally the more load-bearing
+         * of the two for matching rules and picking an icon. */
         if (separator_found) {
             class_off = inst_len + 1u;
             class_len = (inst_len + 1u < value_len)
@@ -248,13 +247,13 @@ bool client_props_refresh_icon_name(client_td *client)
         return false;
     }
 
-    /* Same reason as in the sibling above: this one is rewritten in
-     * the same breath as the title by the clients that do it */
+    /* Same reason as in the sibling above: this one is rewritten in the
+     * same breath as the title by the clients that do it */
     (void) safe_strncpy(previous, client->icon_info.visible_icon_name,
             sizeof(previous));
 
-    /* Prefer '_NET_WM_ICON_NAME', which is UTF-8, over
-     * 'WM_ICON_NAME', which is Latin-1 */
+    /* Prefer '_NET_WM_ICON_NAME', which is UTF-8, over 'WM_ICON_NAME',
+     * which is Latin-1 */
     memset(&net_reply, 0, sizeof(net_reply));
     if (ewmh != NULL &&
             xcb_ewmh_get_wm_icon_name_reply(ewmh,
@@ -266,7 +265,8 @@ bool client_props_refresh_icon_name(client_td *client)
             ? net_reply.strings_len
             : (CONFIG_MAX_LENGTH_NAME - 1u);
 
-        memcpy(client->icon_info.visible_icon_name, net_reply.strings, len);
+        memcpy(client->icon_info.visible_icon_name,
+                net_reply.strings, len);
         client->icon_info.visible_icon_name[len] = '\0';
         xcb_ewmh_get_utf8_strings_reply_wipe(&net_reply);
         return safe_strcmp(previous,
@@ -295,10 +295,10 @@ bool client_props_refresh_name(client_td *client)
     }
 
     /* Kept so the answer can say whether the title actually changed.
-     * Some clients rewrite the very same one every few seconds, and
-     * the caller repaints on a change: repainting to arrive at the
-     * text already on the bar clears the client's window for nothing,
-     * which is seen. */
+     * Some clients rewrite the very same one every few seconds, and the
+     * caller repaints on a change: repainting to arrive at the text
+     * already on the bar clears the client's window for nothing, which
+     * is seen. */
     (void) safe_strncpy(previous, client->info.name, sizeof(previous));
 
     /* Prefer '_NET_WM_NAME' (UTF-8) over 'WM_NAME' (Latin-1) */
@@ -340,7 +340,8 @@ void client_props_refresh_role(client_td *client)
         return;
     }
 
-    role_atom = atom_intern(xcb_connection_get(), "WM_WINDOW_ROLE", true);
+    role_atom = atom_intern(xcb_connection_get(),
+            "WM_WINDOW_ROLE", true);
     if (role_atom == XCB_ATOM_NONE) {
         client->info.role_name[0] = '\0';
         return;
@@ -371,12 +372,12 @@ void client_props_refresh_normal_hints(client_td *client)
 
     client->hints_icccm.size.is_valid = true;
 
-    /* ICCCM 4.1.2.3: a client that sets 'USPosition' or 'PPosition'
-     * is making a specific, deliberate request for where it wants to
+    /* ICCCM 4.1.2.3: a client that sets 'USPosition' or 'PPosition' is
+     * making a specific, deliberate request for where it wants to
      * appear, not leaving the decision to this window manager's
      * placement policy; both flags are honored the same way, since
-     * ICCCM itself does not require distinguishing a user's
-     * explicit choice (US) from a program's default (P) here. */
+     * ICCCM itself does not require distinguishing a user's explicit
+     * choice (US) from a program's default (P) here. */
     if (hints.flags & (XCB_ICCCM_SIZE_HINT_US_POSITION |
                 XCB_ICCCM_SIZE_HINT_P_POSITION)) {
         client->hints_icccm.size.has_position = true;
@@ -406,11 +407,11 @@ void client_props_refresh_normal_hints(client_td *client)
 
     /* A client whose declared minimum and maximum are the same size
      * cannot be resized at all, and saying otherwise in
-     * '_NET_WM_ALLOWED_ACTIONS' advertises a move, a resize and a
-     * maximize that its 'WM_NORMAL_HINTS' forbids.  The flag is
-     * kept in step with the hints on every update, in both
-     * directions: a client is free to drop its maximum later and
-     * become resizable again.
+     * '_NET_WM_ALLOWED_ACTIONS' advertises a move, a resize and
+     * a maximize that its 'WM_NORMAL_HINTS' forbids.  The flag is kept
+     * in step with the hints on every update, in both directions:
+     * a client is free to drop its maximum later and become resizable
+     * again.
      *
      * Both axes have to be pinned for this.  One fixed axis leaves
      * the other free, which is still a resizable window. */
@@ -428,9 +429,9 @@ void client_props_refresh_normal_hints(client_td *client)
 
     /* Always wins over 'windows.gravity' in 'config.json' ('client.h',
      * 'layout.gravity' itself), including on a later hint update like
-     * this one, per ICCCM's "MUST honor" mandate; that config field
-     * is a fallback for a client that never states its gravity, not
-     * an override for one that does. */
+     * this one, per ICCCM's "MUST honor" mandate; that config field is
+     * a fallback for a client that never states its gravity, not an
+     * override for one that does. */
     if (hints.flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) {
         client->layout.gravity = (uint16_t) hints.win_gravity;
     }
@@ -476,9 +477,9 @@ void client_props_refresh_colormap_windows(client_td *client)
         return;
     }
 
-    /* ICCCM §4.1.8: the list is in the client's priority order;
-     * entries past 'WM_COLORMAP_WINDOWS_MAX' are already its
-     * lowest-priority ones, so simply not tracking them is the
+    /* ICCCM §4.1.8: the list is in the client's priority order; entries
+     * past 'WM_COLORMAP_WINDOWS_MAX' are already its lowest-priority
+     * ones, so simply not tracking them is the
      * correct degradation, not an arbitrary truncation. */
     n = (reply.windows_len < WM_COLORMAP_WINDOWS_MAX)
         ? (uint32_t) reply.windows_len
@@ -486,8 +487,8 @@ void client_props_refresh_colormap_windows(client_td *client)
 
     /* Every window's attributes are asked for before any answer is
      * awaited, so the list costs one round trip to the server rather
-     * than one per window it names.  The array is on the stack
-     * because 'WM_COLORMAP_WINDOWS_MAX' bounds the loop already. */
+     * than one per window it names.  The array is on the stack because
+     * 'WM_COLORMAP_WINDOWS_MAX' bounds the loop already. */
     for (uint32_t i = 0u; i < n; ++i) {
         cookies[i] = xcb_get_window_attributes(xcb_connection_get(),
                 reply.windows[i]);

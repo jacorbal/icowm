@@ -3,10 +3,10 @@
  *
  * @brief Client show/hide, pinned transfer, and reflow for a surface
  *
- * One of the files @c surface/actions/ is made of;
- * everything here operates on a desktop's clients directly (as
- * opposed to @c surface/actions/randr.c's RandR output/CRTC/mode
- * concerns, which never touch client visibility directly).
+ * One of the files @c surface/actions/ is made of; everything here
+ * operates on a desktop's clients directly (as opposed to
+ * @c surface/actions/randr.c's RandR output/CRTC/mode concerns, which
+ * never touch client visibility directly).
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -31,21 +31,23 @@
 #include <utils/xcb/window.h>
 
 /* Commands includes */
+#include <cmds/client/ewmh.h>
+#include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
+#include <cmds/client/state.h>
+#include <cmds/client/visibility.h>
+
+/* Policy includes */
+#include <policy/stacking.h>
+#include <policy/focus.h>
 
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <policy/stacking.h>
-#include <policy/focus.h>
-#include <surface.h>
 #include <systray.h>
 
-/* Command includes */
-#include <cmds/client/ewmh.h>
-#include <cmds/client/focus.h>
-#include <cmds/client/state.h>
-#include <cmds/client/visibility.h>
+/* Surface includes */
+#include <surface.h>
 
 
 /**
@@ -504,10 +506,10 @@ void surface_clients_pinned_transfer_all(surface_td *surface,
              * would be reading a set it was itself changing.  Counted
              * first, then gathered into an allocation sized to the
              * count: the same two passes 's_family_snapshot' makes
-             * (cmds/client/transient.c), and for the same reason.  A
-             * fixed array would drop whatever pinned windows did not
-             * fit, and drop them silently, leaving some following
-             * the desktop change and others left behind. */
+             * ('cmds/client/transient.c'), and for the same reason.
+             * A fixed array would drop whatever pinned windows did not
+             * fit, and drop them silently, leaving some following the
+             * desktop change and others left behind. */
             struct s_pinned_ctx_s pinned_ctx;
             client_td **pinned;
             int n;

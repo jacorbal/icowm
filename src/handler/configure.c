@@ -25,6 +25,9 @@
 /* ADT includes */
 #include <adt/list.h>
 
+/* Utils includes */
+#include <utils/time/clock.h>
+
 /* Command includes */
 #include <cmds/client/layer.h>
 
@@ -42,9 +45,6 @@
 #include <surface.h>
 #include <systray.h>
 #include <lookup.h>
-
-/* Utils includes */
-#include <utils/time/clock.h>
 
 /* Local includes */
 #include <handler.h>

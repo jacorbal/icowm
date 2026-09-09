@@ -155,7 +155,7 @@ static void s_render_outline_place(xcb_connection_t *connection,
 }
 
 
-/* Create and map the initial 4 strip windows outlining a rectangle */
+/* Create and map the initial four strip windows outlining a rectangle */
 void render_outline_show(xcb_connection_t *connection,
         xcb_window_t root,
         struct geometry_s geom, uint32_t border_width, uint32_t color,
@@ -166,7 +166,7 @@ void render_outline_show(xcb_connection_t *connection,
 }
 
 
-/* Move the 4 strip windows to outline a new rectangle */
+/* Move the four strip windows to outline a new rectangle */
 void render_outline_move(xcb_connection_t *connection,
         struct geometry_s geom, uint32_t border_width,
         xcb_window_t stack_below, xcb_window_t windows[4])
@@ -176,7 +176,8 @@ void render_outline_move(xcb_connection_t *connection,
 }
 
 
-/* Destroy the 4 strip windows and reset 'windows' to XCB_WINDOW_NONE */
+/* Destroy the four strip windows and reset 'windows' to
+ * 'XCB_WINDOW_NONE' */
 void render_outline_hide(xcb_connection_t *connection,
         xcb_window_t windows[4])
 {

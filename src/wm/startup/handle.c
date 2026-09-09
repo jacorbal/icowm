@@ -3,8 +3,6 @@
  *
  * @brief Signal handlers and the flags they set, queried back by the
  *        main loop
- *
- * One of the files @c wm/startup/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -18,13 +16,15 @@
 
 
 /* System includes */
-#include <signal.h>
+#include <signal.h>     /* sigaction, sigemptyset */
 #include <stdbool.h>
 #include <string.h>     /* memset */
 #include <unistd.h>     /* write */
 
-/* Local includes */
+/* Project includes */
 #include <logger.h>
+
+/* Local includes */
 #include <wm/startup/handle.h>
 
 
@@ -36,7 +36,7 @@ static volatile sig_atomic_t s_stop_signal_received = 0;
 
 /**
  * @brief Flag written by @c SIGCONT (VT resume) to re-establish input
- * grabs
+ *        grabs
  */
 static volatile sig_atomic_t s_resume_signal_received = 0;
 
@@ -86,10 +86,9 @@ void wm_startup_handle_reload(int signum)
 /**
  * @brief Signal handler for @c SIGCONT (VT resume)
  *
- * Sets a flag consumed by @a wm_startup_requested_resume so that
- * the main loop can re-establish keyboard and mouse grabs after
- * returning from
- * a virtual-terminal switch.
+ * Sets a flag consumed by @a wm_startup_requested_resume so that the
+ * main loop can re-establish keyboard and mouse grabs after returning
+ * from a virtual-terminal switch.
  *
  * @param signum Number of the received signal (always @c SIGCONT)
  */
@@ -118,24 +117,23 @@ void wm_startup_handle_child(int signum)
 /**
  * @brief Async-signal-safe handler for fatal signals
  *
- * See @a wm_startup_install_crash_handlers in
- * @c wm/startup/install.h for the full reasoning: this cannot
- * recover and keep running, only make sure
- * dying is not silent.  Every operation here is restricted to what
- * POSIX guarantees is safe from within a signal handler: the @c write
- * syscall directly to standard error, a hand-rolled digit-by-digit
- * conversion of the signal number (never @c snprintf or similar,
- * which are not on the guaranteed-safe list), @c sigaction to restore
- * the signal's default disposition, and @c raise to re-deliver it so
- * the process actually terminates through the normal mechanism
+ * See @a wm_startup_install_crash_handlers in @c wm/startup/install.h
+ * for the full reasoning: this cannot recover and keep running, only
+ * make sure dying is not silent.  Every operation here is restricted to
+ * what POSIX guarantees is safe from within a signal handler.
+ * The @c write syscall directly to standard error, a hand-rolled
+ * digit-by-digit conversion of the signal number (never @c snprintf or
+ * similar, which are not on the guaranteed-safe list), @c sigaction to
+ * restore the signal's default disposition, and @c raise to re-deliver
+ * it so the process actually terminates through the normal mechanism
  * afterward.
  *
- * @a logger_emergency_flush is called too, which is the one thing
- * here that touches the logger at all.  It goes nowhere near that
- * module's ordinary buffered, allocating path: it writes the pending
- * messages out with @c write and returns, leaving the buffer as it
- * found it.  Without it the messages leading up to a crash die with
- * the process, which are the ones worth reading afterwards.
+ * @a logger_emergency_flush is called too, which is the one thing here
+ * that touches the logger at all.  It goes nowhere near that module's
+ * ordinary buffered, allocating path: it writes the pending messages
+ * out with @c write and returns, leaving the buffer as it found it.
+ * Without it the messages leading up to a crash die with the process,
+ * which are the ones worth reading afterwards.
  *
  * @param signum Number of the received fatal signal
  */
@@ -154,12 +152,12 @@ void wm_startup_handle_crash(int signum)
 
     /* Every 'write' result below is deliberately unchecked: this
      * handler is already on its way to re-raising 'signum' with its
-     * default disposition right after, terminating the process
-     * either way, so there is no meaningful recovery available if
+     * default disposition right after, terminating the process either
+     * way, so there is no meaningful recovery available if
      * any one of them fails too.  Each captured in a real variable
-     * rather than cast to 'void' directly on the call, since GCC's
-     * own 'warn_unused_result' on 'write' does not treat a bare
-     * '(void)' cast as acknowledging it. */
+     * rather than cast to 'void' directly on the call, since GCC's own
+     * 'warn_unused_result' on 'write' does not treat a bare '(void)'
+     * cast as acknowledging it. */
     write_result = write(STDERR_FILENO, s_prefix, sizeof(s_prefix) - 1u);
     (void) write_result;
 
@@ -183,11 +181,11 @@ void wm_startup_handle_crash(int signum)
 
     /* Whatever the logger still holds goes out here, before the signal
      * is re-raised.  Its ordinary flush runs through 'fprintf' and
-     * 'fflush', neither async-signal-safe, so without this the
-     * messages leading up to a crash die with the process: the ones
-     * most worth having.  'logger_emergency_flush' writes them with
-     * 'write' and takes no lock; see its note on why that is
-     * sound here and nowhere else. */
+     * 'fflush', neither async-signal-safe, so without this the messages
+     * leading up to a crash die with the process: the ones most worth
+     * having.  'logger_emergency_flush' writes them with 'write' and
+     * takes no lock; see its note on why that is sound here and nowhere
+     * else. */
     logger_emergency_flush();
 
     memset(&sa, 0, sizeof(sa));

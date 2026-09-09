@@ -1,8 +1,7 @@
 /**
  * @file wm/startup/selection.c
  *
- * @brief Acquiring the ICCCM manager selection for every managed
- *        screen
+ * @brief Acquiring the ICCCM manager selection for every managed screen
  *
  * The window this creates is later reused by @a wm_ewmh_init
  * (@c wm/ewmh.c) as the @c _NET_SUPPORTING_WM_CHECK window, rather than
@@ -35,23 +34,23 @@
 /* ADT includes */
 #include <adt/list.h>
 
-/* EWMH-related constants */
+/* Default initial values*/
 #include <defs/ewmh.h>
-
-/* Project includes */
-#include <logger.h>
-#include <surface.h>
-#include <wm.h>
 
 /* Utils includes */
 #include <utils/time/clock.h>
 #include <utils/xcb/atom.h>
 #include <utils/xcb/reply.h>
 #include <utils/xcb/wait.h>
+#include <utils/xcb/window.h>
+
+/* Project includes */
+#include <logger.h>
+#include <surface.h>
+#include <wm.h>
 
 /* Local includes */
 #include <wm/startup/selection.h>
-#include <utils/xcb/window.h>
 
 
 /**
@@ -59,9 +58,9 @@
  *        @c DestroyNotify on @p previous_owner
  *
  * Any other event that arrives on @p connection while waiting is
- * discarded outright: this runs before the main event loop starts,
- * so nothing else is watching the connection yet to hand such an
- * event off to.
+ * discarded outright: this runs before the main event loop starts, so
+ * nothing else is watching the connection yet to hand such an event off
+ * to.
  *
  * @param connection     XCB connection
  * @param previous_owner Window to wait for a @c DestroyNotify on
@@ -110,12 +109,12 @@ static bool s_wait_for_relinquish(xcb_connection_t *connection,
 
 
 /**
- * @brief Acquire @p surface's @c WM_S<n> selection with
- *        @p support, replacing a previous owner if asked to
+ * @brief Acquire @p surface's @c WM_S<n> selection with @p support,
+ *        replacing a previous owner if asked to
  *
  * @param connection        XCB connection
  * @param support           Window to make the new selection owner
- * @param surface            Surface whose selection is acquired
+ * @param surface           Surface whose selection is acquired
  * @param replace_requested Whether to wait out and replace a previous
  *                          owner instead of refusing outright
  * @param manager_atom      Interned @c MANAGER atom, or
@@ -123,13 +122,13 @@ static bool s_wait_for_relinquish(xcb_connection_t *connection,
  *                          (the announcement is then skipped, this
  *                          function's success is unaffected)
  *
- * @return 0 on success, -1 if @p surface has no owned selection to
- *         acquire, is already owned and @p replace_requested is
- *         @c false, or the previous owner does not relinquish it in
- *         time
+ * @retval  0 on success
+ * @retval -1 if @p surface has no owned selection to acquire, is
+ *            already owned and @p replace_requested is @c false, or the
+ *            previous owner does not relinquish it in time
  *
- * @note Complexity: @e O(1), aside from @a s_wait_for_relinquish's
- *       own cost when a previous owner must be waited out
+ * @note Complexity: @e O(1), aside from @a s_wait_for_relinquish's own
+ *       cost when a previous owner must be waited out
  */
 static int s_acquire_one_screen(xcb_connection_t *connection,
         xcb_window_t support, const surface_td *surface,
@@ -179,13 +178,13 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
                 XCB_CW_EVENT_MASK, values);
 
         /* ICCCM §2.8: the previous owner may have relinquished the
-         * selection, or been destroyed outright, in the gap between
-         * the very first check above and this subscription taking
-         * effect, so a 'DestroyNotify' for it may already have come
-         * and gone before anything here was watching for one.  Asking
-         * again now, while still the only thing on this connection,
-         * catches that race: an owner that no longer matches means
-         * there is nothing left to wait out below. */
+         * selection, or been destroyed outright, in the gap between the
+         * very first check above and this subscription taking effect,
+         * so a 'DestroyNotify' for it may already have come and gone
+         * before anything here was watching for one.  Asking again now,
+         * while still the only thing on this connection, catches that
+         * race: an owner that no longer matches means there is nothing
+         * left to wait out below. */
         owner_reply = xcb_get_selection_owner_reply(connection,
                 xcb_get_selection_owner(connection, selection_atom),
                 &owner_error);
@@ -238,9 +237,8 @@ static int s_acquire_one_screen(xcb_connection_t *connection,
 }
 
 
-/* Acquire the 'WM_Sn' manager selection on every managed screen,
- * taking over an already-running window manager's ownership when
- * asked to */
+/* Acquire the 'WM_Sn' manager selection on every managed screen, taking
+ * over an already-running window manager's ownership when asked to */
 int wm_startup_acquire_selection(wm_td *wm, bool replace_requested)
 {
     xcb_connection_t *connection = wm_connection(wm);

@@ -31,6 +31,9 @@
 /* Command includes */
 #include <cmds/client/transient.h>
 
+/* Default initial values */
+#include <defs/placement.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -43,7 +46,6 @@
 #include <wm.h>
 
 /* Local includes */
-#include <defs/placement.h>
 #include <policy/placement/score.h>
 #include <policy/placement/window.h>
 #include <policy/placement/monitor.h>

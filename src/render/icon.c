@@ -131,14 +131,14 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * geometry/decoration change on the client itself, and its
      * cycle-selection styling is unchanged), so this skips re-sending
      * every X request below.  This desktop's outdated flag can be set
-     * by an entirely unrelated client (cfr.  'wm_request_client_redraw'
+     * by an entirely unrelated client (cfr. 'wm_request_client_redraw'
      * marking the whole desktop), so without this check every iconified
      * client on it would otherwise repeat this same work on every such
      * render pass regardless of whether it, itself, changed at all.
      *
      * This is the same needless-repaint reasoning already applied to
-     * normal windows in 's_desktop_render_one_client'
-     * (render/desktop.c), just not previously extended to icons.
+     * normal windows in 's_desktop_render_one_client' (in
+     * 'render/desktop.c'), just not previously extended to icons.
      * A genuinely damaged icon (covered and uncovered by another
      * window, say) still repaints correctly on its own via
      * 'handler_expose', independent of this.  An urgent client is the

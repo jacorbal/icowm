@@ -22,14 +22,6 @@
 /* ADT includes */
 #include <adt/list.h>
 
-/* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <logger.h>
-#include <surface.h>
-#include <wm.h>
-
 /* Render includes */
 #include <render/client/decoration.h>
 #include <render/client/titlebar.h>
@@ -63,8 +55,14 @@
 #include <defs/icon.h>
 
 /* Project includes */
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
+#include <logger.h>
 #include <lookup.h>
+#include <surface.h>
 #include <systray.h>
+#include <wm.h>
 
 /* Local includes */
 #include <handler.h>

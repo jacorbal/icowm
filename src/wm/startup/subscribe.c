@@ -2,8 +2,6 @@
  * @file wm/startup/subscribe.c
  *
  * @brief Subscribing to X server events on every managed surface
- *
- * One of the files @c wm/startup/ is made of.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.

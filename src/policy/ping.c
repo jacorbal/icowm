@@ -26,6 +26,9 @@
 /* Default initial values */
 #include <defs/ewmh.h>
 
+/* Utils includes */
+#include <utils/time/clock.h>
+
 /* Project includes */
 #include <client.h>
 #include <cmds/client/ewmh.h>
@@ -34,7 +37,6 @@
 
 /* Local includes */
 #include <policy/ping.h>
-#include <utils/time/clock.h>
 
 
 /** When the most recent probing round happened, @c CLOCK_MONOTONIC */

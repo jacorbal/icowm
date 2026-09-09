@@ -25,6 +25,9 @@
 /* Render includes */
 #include <render/outdate.h>
 
+/* Input includes */
+#include <input/kbd/bind.h>
+
 /* Project includes */
 #include <logger.h>
 #include <lookup.h>
@@ -34,7 +37,6 @@
 
 /* Local includes */
 #include <handler.h>
-#include <input/kbd/bind.h>
 
 
 /**
