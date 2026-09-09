@@ -447,11 +447,13 @@ void scmd_surface_viewport_center_on_client(surface_td *surface,
  * @brief Recording no-op stand-in for @a ri_render_client_icon
  * @note Complexity: @e O(1)
  */
-void ri_render_client_icon(client_td *client, bool is_current, bool force)
+void ri_render_client_icon(client_td *client, bool is_current,
+        bool force, bool restack)
 {
     (void) client;
     (void) is_current;
     (void) force;
+    (void) restack;
     s_call_ri_render_client_icon++;
 }
 

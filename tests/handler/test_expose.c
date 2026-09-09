@@ -106,7 +106,8 @@ enum s_repaint_e {
     S_REPAINT_WINCMENU,
     S_REPAINT_ROOTMENU,
     S_REPAINT_WINLIST,
-    S_REPAINT_ICONMENU
+    S_REPAINT_ICONMENU,
+    S_REPAINT_ICON
 };
 
 
@@ -433,6 +434,19 @@ void iconmenu_repaint(xcb_window_t win)
 }
 
 
+/** Recording stand-in for ri_render_client_icon */
+void ri_render_client_icon(client_td *client, bool is_current,
+        bool force, bool restack)
+{
+    (void) client;
+    (void) is_current;
+    (void) force;
+    (void) restack;
+
+    s_last_repaint = S_REPAINT_ICON;
+}
+
+
 /** Controllable stand-in for iconmenu_target_is */
 bool iconmenu_target_is(const client_td *client)
 {
@@ -736,7 +750,7 @@ int main(void)
     list_td *surfaces = &surfaces_storage;
     client_td client;
 
-    TAP_PLAN(20);
+    TAP_PLAN(21);
 
     memset(&config, 0, sizeof(config));
     memset(&client, 0, sizeof(client));
@@ -896,6 +910,21 @@ int main(void)
     TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_NONE,
             "an event for a window nothing recognizes triggers no" \
             " repaint at all");
+
+    /* The icon window itself: dispatches straight to
+     * 'ri_render_client_icon', the same shared drawing function every
+     * other place an icon gets (re)drawn already uses, rather than a
+     * separate reimplementation of its own */
+    s_reset();
+    client.icon_window = 0x111u;
+    client.frame = 0x112u;
+    client.titlebar = 0x113u;
+    client.info.name = "some client";
+    s_lookup_result = &client;
+    event.window = 0x111u;
+    handler_expose(connection, surfaces, &event, &config);
+    TAP_EQ_INT((int) s_last_repaint, (int) S_REPAINT_ICON,
+            "the icon window dispatches to ri_render_client_icon");
 
     /* A managed client is found, but it is neither the icon window,
      * the frame, nor the titlebar (e.g., some other client subwindow):

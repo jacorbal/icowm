@@ -21,9 +21,6 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Utils includes */
-#include <utils/xcb/connection.h>
-
 /* ADT includes */
 #include <adt/cdlist.h>
 #include <adt/list.h>
@@ -43,6 +40,7 @@
 
 /* Local includes */
 #include <policy/urgency.h>
+#include <utils/xcb/connection.h>
 
 
 /** Current blink phase: @c true during the "swapped colors" half */
@@ -230,7 +228,7 @@ static void s_repaint_urgent_clients(list_td *surfaces)
 
             if (c->properties.flags & CLIENT_FLAG_HIDDEN) {
                 if (client_is_iconified(c)) {
-                    ri_render_client_icon(c, true, false);
+                    ri_render_client_icon(c, true, false, true);
                     repainted_any = true;
                 }
                 continue;

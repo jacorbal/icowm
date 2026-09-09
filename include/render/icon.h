@@ -76,13 +76,15 @@
  * @param force      Render even when nothing about the icon changed
  *                   since its last one, for a caller that needs the
  *                   window repainted now rather than on the next pass
+ * @param restack    Whether to also restack the icon window (just below
+ *                   the tray, or lowest of all if there is none) after
+ *                   drawing it.
  *
  * @note No-op when @p client has no icon window or is not icon-mapped
- * @note Implemented in @c render/icon.c
  * @note Complexity: @e O(1)
  */
 void ri_render_client_icon(client_td *client, bool is_current,
-        bool force);
+        bool force, bool restack);
 
 /**
  * @brief Draw the state-hint indicators in an iconified client's top

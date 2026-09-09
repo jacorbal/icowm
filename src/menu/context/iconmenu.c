@@ -26,22 +26,22 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Utils includes */
-#include <utils/safe/safestr.h>
-
-/* Render includes */
-#include <render/icon.h>
-
 /* Default initial values */
 #include <defs/uistr.h>
+#include <i18n.h>
+
+/* Utils includes */
+#include <utils/safe/safestr.h>
 
 /* Project includes */
 #include <client.h>
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
-#include <i18n.h>
 #include <surface.h>
+
+/* Render includes */
+#include <render/icon.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -52,12 +52,10 @@
 #include <menu/context/iconmenu.h>
 
 
-/**
- * @brief Top-level entry slots: at most "Send to desktop" and "Send to
- *        page" (each a submenu), a separator between them and the fixed
- *        entries below, "Restore", "Hide", a second separator,
- *        "Inspect", and "Close"
- */
+/** Top-level entry slots: at most "Send to desktop" and "Send to
+ *  page" (each a submenu), a separator between them and the fixed
+ *  entries below, Restore, Hide, a second separator, Inspect, and
+ *  Close */
 #define S_MAX_ENTRIES (8)
 
 
@@ -242,8 +240,8 @@ void iconmenu_show(xcb_connection_t *connection,
         ++n;
     }
 
-    /* Separator before "Restore"/"Hide", only when at least one of the
-     * two submenus above is actually present */
+    /* Separator before Restore/Hide, only when at least one of the two
+     * submenus above is actually present */
     if (n > 0) {
         s_entries[n].type = CTXMENU_SEPARATOR;
         ++n;
@@ -276,9 +274,19 @@ void iconmenu_show(xcb_connection_t *connection,
 
     ctxmenu_show(connection, surface, &s_root, pos, config);
 
-    /* Without this the icon would go on showing whatever it last
-     * displayed until some unrelated event happened to repaint it */
-    ri_render_client_icon(client, true, true);
+    /* Nothing else marks 'client' outdated or otherwise revisits its
+     * icon on its own here, so without this the icon would go on
+     * showing whatever it last displayed until some unrelated event
+     * happened to repaint it, the exact same "menu itself does not
+     * draw until the pointer happens to cross it" gap 'handler_expose'
+     * (menu/context/iconmenu.h wiring, handler/expose.c) already
+     * exists to close for the menu window, just not previously
+     * extended to the icon's own selected styling.  'force' is true:
+     * nothing about the icon's own geometry or decoration actually
+     * changed, only which icon 'iconmenu_target_is' now answers for,
+     * which the skip-check inside 'ri_render_client_icon' has no way
+     * to know without this. */
+    ri_render_client_icon(client, true, true, true);
 }
 
 
@@ -292,12 +300,12 @@ void iconmenu_close(void)
     s_config = NULL;
     s_target_client = NULL;
 
-    /* The same forced repaint 'iconmenu_show' above gives it on the way
-     * in, or its icon would go on showing selected styling for a menu
-     * that no longer exists, until some unrelated event happened to
-     * notice. */
+    /* The client whose menu just closed needs the same forced repaint
+     * 'iconmenu_show' above gives it on the way in, or its icon would
+     * go on showing selected styling for a menu that no longer
+     * exists, until some unrelated event happened to notice. */
     if (was_target != NULL) {
-        ri_render_client_icon(was_target, true, true);
+        ri_render_client_icon(was_target, true, true, true);
     }
 }
 
@@ -348,8 +356,11 @@ void iconmenu_notice_client_destroyed(const client_td *client)
         return;
     }
 
-    /* Not 'iconmenu_close()' that also repaints 'client's icon to
-     * confirm the menu no longer applies to it, wasted work */
+    /* Not 'iconmenu_close()': that also repaints 'client's icon to
+     * confirm the menu no longer applies to it, wasted work, on a
+     * client already on its way out, and one whose fields nothing
+     * here promises are still consistent enough mid-teardown for
+     * that repaint to read safely. */
     ctxmenu_close(&s_root);
     s_surface = NULL;
     s_config = NULL;

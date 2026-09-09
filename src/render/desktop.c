@@ -348,7 +348,7 @@ static void s_desktop_render_client_visit(client_td *client, void *data)
     if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
         if (client_is_iconified(client)) {
             ri_render_client_icon(client, render_ctx->is_current,
-                    false);
+                    false, true);
         }
         return;
     }

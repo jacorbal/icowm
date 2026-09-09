@@ -88,7 +88,7 @@
  *      @p theme.icon.show-pixmaps
  */
 void ri_render_client_icon(client_td *client, bool is_current,
-        bool force)
+        bool force, bool restack)
 {
     bool is_cycle_sel;
     uint32_t border_width;
@@ -312,17 +312,22 @@ void ri_render_client_icon(client_td *client, bool is_current,
      * visibly at the front) yet to show a color to match, or an
      * icon otherwise mid-repaint however briefly exposed.
      *
+     * Skipped outright when 'restack' says so; see its own comment
+     * (render/icon.h) for why a caller would ask for that.
+     *
      * Icons stay lower than the tray even within the shared 'below'
      * layer, "stuck to the desktop".
      *
      * See 'ccmd_client_iconify' for the fuller explanation of why an
      * unqualified 'below' with no sibling is not enough to guarantee
      * that on its own. */
-    tray_below = systray_below_window();
-    if (tray_below != XCB_WINDOW_NONE) {
-        xcb_window_stack_below(client->icon_window, tray_below);
-    } else {
-        xcb_window_lower(client->icon_window);
+    if (restack) {
+        tray_below = systray_below_window();
+        if (tray_below != XCB_WINDOW_NONE) {
+            xcb_window_stack_below(client->icon_window, tray_below);
+        } else {
+            xcb_window_lower(client->icon_window);
+        }
     }
 
     /* This is not reset anywhere else for a hidden/iconified client.

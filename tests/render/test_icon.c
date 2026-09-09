@@ -509,7 +509,7 @@ static void s_reset_fixture(void)
 static void s_test_render_client_icon_null_client_is_noop(void)
 {
     s_reset_fixture();
-    ri_render_client_icon(NULL, true, true);
+    ri_render_client_icon(NULL, true, true, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 0,
             "a NULL client is a no-op");
@@ -519,7 +519,7 @@ static void s_test_render_client_icon_null_connection_is_noop(void)
 {
     s_reset_fixture();
     s_connection_stub = NULL;
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
     s_connection_stub = (xcb_connection_t *) 1;
 
     TAP_EQ_INT(s_change_window_attributes_calls, 0,
@@ -530,7 +530,7 @@ static void s_test_render_client_icon_null_config_is_noop(void)
 {
     s_reset_fixture();
     s_client_fixture.config = NULL;
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 0,
             "a client with no config is a no-op");
@@ -539,7 +539,7 @@ static void s_test_render_client_icon_null_config_is_noop(void)
 static void s_test_render_client_icon_not_current_is_noop(void)
 {
     s_reset_fixture();
-    ri_render_client_icon(&s_client_fixture, false, true);
+    ri_render_client_icon(&s_client_fixture, false, true, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 0,
             "a client whose desktop is not the current one is a"
@@ -550,7 +550,7 @@ static void s_test_render_client_icon_not_mapped_is_noop(void)
 {
     s_reset_fixture();
     s_client_fixture.is_icon_mapped = false;
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 0,
             "a client not icon-mapped is a no-op");
@@ -560,7 +560,7 @@ static void s_test_render_client_icon_no_icon_window_is_noop(void)
 {
     s_reset_fixture();
     s_client_fixture.icon_window = 0u;
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 0,
             "a client with icon_window 0 is a no-op");
@@ -581,7 +581,7 @@ static void s_test_render_client_icon_skips_when_nothing_changed(void)
     s_client_fixture.was_icon_selected = false;
     s_client_fixture.properties.flags = 0u; /* not urgent */
 
-    ri_render_client_icon(&s_client_fixture, true, false);
+    ri_render_client_icon(&s_client_fixture, true, false, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 0,
             "nothing tracked changed and force is false: render is"
@@ -597,7 +597,7 @@ static void s_test_render_client_icon_force_always_renders(void)
     s_client_fixture.was_icon_selected = false;
     s_client_fixture.properties.flags = 0u;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 1,
             "force = true always renders, regardless of the skip"
@@ -612,7 +612,7 @@ static void s_test_render_client_icon_outdated_always_renders(void)
     s_client_fixture.was_icon_selected = false;
     s_client_fixture.properties.flags = 0u;
 
-    ri_render_client_icon(&s_client_fixture, true, false);
+    ri_render_client_icon(&s_client_fixture, true, false, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 1,
             "is_outdated alone is enough to render, without force");
@@ -628,7 +628,7 @@ static void s_test_render_client_icon_urgent_always_renders(void)
     s_client_fixture.was_icon_selected = false;
     s_client_fixture.properties.flags = CLIENT_FLAG_URGENT;
 
-    ri_render_client_icon(&s_client_fixture, true, false);
+    ri_render_client_icon(&s_client_fixture, true, false, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 1,
             "an urgent client always renders, bypassing the skip"
@@ -646,7 +646,7 @@ static void s_test_render_client_icon_cycle_sel_change_renders(void)
     s_cycle_is_open = true;
     s_cycle_selected_client = &s_client_fixture; /* is_cycle_sel now true */
 
-    ri_render_client_icon(&s_client_fixture, true, false);
+    ri_render_client_icon(&s_client_fixture, true, false, true);
 
     TAP_EQ_INT(s_change_window_attributes_calls, 1,
             "a cycle-selection state change from last render always"
@@ -667,7 +667,7 @@ static void s_test_render_client_icon_cycle_sel_from_cycle_menu(void)
     s_cycle_is_open = true;
     s_cycle_selected_client = &s_client_fixture;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_OK(s_client_fixture.was_icon_selected,
             "being the cycle menu's selected client makes"
@@ -680,7 +680,7 @@ static void s_test_render_client_icon_cycle_sel_from_icon_drag(void)
     s_drag_is_icon_drag = true;
     s_drag_client = &s_client_fixture;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_OK(s_client_fixture.was_icon_selected,
             "being the icon currently being dragged also makes"
@@ -691,7 +691,7 @@ static void s_test_render_client_icon_cycle_sel_false_by_default(void)
 {
     s_reset_fixture();
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_OK(!s_client_fixture.was_icon_selected,
             "neither the cycle menu nor an icon drag holding this"
@@ -711,7 +711,7 @@ static void s_test_render_client_icon_cycle_sel_ignores_other_client(void)
     s_drag_is_icon_drag = true;
     s_drag_client = &other_client;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_OK(!s_client_fixture.was_icon_selected,
             "another client being selected or dragged does not select"
@@ -723,7 +723,7 @@ static void s_test_render_client_icon_cycle_sel_from_iconmenu(void)
     s_reset_fixture();
     s_iconmenu_target = &s_client_fixture;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_OK(s_client_fixture.was_icon_selected,
             "its own icon context menu being open also makes"
@@ -741,7 +741,7 @@ static void s_test_render_client_icon_cycle_sel_ignores_other_iconmenu(void)
     s_reset_fixture();
     s_iconmenu_target = &other_client;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_OK(!s_client_fixture.was_icon_selected,
             "an icon context menu open for another client does not"
@@ -766,7 +766,7 @@ static void s_test_render_client_icon_blink_on_swaps_display_active(void)
     s_config_fixture.theme.icon.active.color.background = 0x111111u;
     s_config_fixture.theme.icon.inactive.color.background = 0x222222u;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT((long) s_last_bg_pixel, 0x111111,
             "an urgent client's 'on' blink phase swaps display_active"
@@ -784,7 +784,7 @@ static void s_test_render_client_icon_blink_off_no_swap(void)
     s_config_fixture.theme.icon.active.color.background = 0x111111u;
     s_config_fixture.theme.icon.inactive.color.background = 0x222222u;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT((long) s_last_bg_pixel, 0x222222,
             "the blink's 'off' phase applies the inactive background,"
@@ -805,7 +805,7 @@ static void s_test_render_client_icon_no_surface_draws_direct(void)
     s_reset_fixture();
     s_surface_for_screen = NULL;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_offscreen_buffer_create_calls, 0,
             "no surface resolvable for this screen_id: no offscreen"
@@ -833,7 +833,7 @@ static void s_test_render_client_icon_buffer_creation_failure_direct(void)
     s_surface_for_screen = &surface;
     s_offscreen_buffer_result = XCB_NONE;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_offscreen_buffer_create_calls, 1,
             "a resolvable surface does request an offscreen buffer");
@@ -860,7 +860,7 @@ static void s_test_render_client_icon_buffer_success_copies_and_frees(void)
     s_client_fixture.config->theme.icon.is_captioned
         ? (void) 0 : (void) 0; /* silence unused-field-path warnings */
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_poly_fill_rectangle_calls, 1,
             "a successfully created buffer is filled with the"
@@ -890,7 +890,7 @@ static void s_test_render_client_icon_h_grows_when_captioned(void)
     s_offscreen_buffer_result = 999u;
     s_config_fixture.theme.icon.is_captioned = true;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT((long) s_last_offscreen_height,
             (long) (WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT),
@@ -912,7 +912,7 @@ static void s_test_render_client_icon_h_stays_square_uncaptioned(void)
     s_offscreen_buffer_result = 999u;
     s_config_fixture.theme.icon.is_captioned = false;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT((long) s_last_offscreen_height, (long) WM_ICON_SQUARE_SIZE,
             "an uncaptioned theme leaves the buffer's height at just"
@@ -929,7 +929,7 @@ static void s_test_render_client_icon_stacks_below_tray_when_present(void)
     s_reset_fixture();
     s_systray_below_window_result = 77u;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_window_stack_below_calls, 1,
             "a present systray-below window stacks the icon below it");
@@ -942,12 +942,45 @@ static void s_test_render_client_icon_lowers_when_no_tray(void)
     s_reset_fixture();
     s_systray_below_window_result = XCB_WINDOW_NONE;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_window_lower_calls, 1,
             "no systray-below window: falls back to a plain lower");
     TAP_EQ_INT(s_window_stack_below_calls, 0,
             "...instead of stacking below anything");
+}
+
+
+/* restack=false skips both stacking calls outright, whether or not a
+ * systray-below window is present; handler_expose (handler/expose.c)
+ * is the one caller that asks for this, an 'Expose' from being merely
+ * uncovered being no reason to shuffle the icon against its siblings */
+static void s_test_render_client_icon_no_restack_skips_stacking_with_tray(
+        void)
+{
+    s_reset_fixture();
+    s_systray_below_window_result = 77u;
+
+    ri_render_client_icon(&s_client_fixture, true, true, false);
+
+    TAP_EQ_INT(s_window_stack_below_calls, 0,
+            "restack=false skips stacking below the tray");
+    TAP_EQ_INT(s_window_lower_calls, 0,
+            "...and skips the plain lower fallback too");
+}
+
+static void s_test_render_client_icon_no_restack_skips_stacking_no_tray(
+        void)
+{
+    s_reset_fixture();
+    s_systray_below_window_result = XCB_WINDOW_NONE;
+
+    ri_render_client_icon(&s_client_fixture, true, true, false);
+
+    TAP_EQ_INT(s_window_lower_calls, 0,
+            "restack=false skips the plain lower even with no tray");
+    TAP_EQ_INT(s_window_stack_below_calls, 0,
+            "...and skips stacking below anything either way");
 }
 
 
@@ -961,7 +994,7 @@ static void s_test_render_client_icon_draws_pixmap_when_shown_unselected(
     s_reset_fixture();
     s_config_fixture.theme.icon.show_pixmaps = true;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_wmicon_draw_calls, 1,
             "show_pixmaps on, and this icon is not the cycle"
@@ -973,7 +1006,7 @@ static void s_test_render_client_icon_hides_pixmap_when_show_off(void)
     s_reset_fixture();
     s_config_fixture.theme.icon.show_pixmaps = false;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_wmicon_draw_calls, 0,
             "show_pixmaps off: the pixmap is never drawn");
@@ -989,7 +1022,7 @@ static void s_test_render_client_icon_hides_pixmap_when_cycle_selected(void)
     s_cycle_is_open = true;
     s_cycle_selected_client = &s_client_fixture;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_wmicon_draw_calls, 0,
             "show_pixmaps on, but this icon is the cycle selection:"
@@ -1007,7 +1040,7 @@ static void s_test_render_client_icon_no_caption_when_uncaptioned(void)
     s_config_fixture.theme.icon.is_captioned = false;
     s_client_fixture.info.name = (char *) "a window";
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_text_draw_string_calls, 0,
             "an uncaptioned theme never draws a caption, even with a"
@@ -1020,7 +1053,7 @@ static void s_test_render_client_icon_no_caption_when_name_null(void)
     s_config_fixture.theme.icon.is_captioned = true;
     s_client_fixture.info.name = NULL;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_text_draw_string_calls, 0,
             "a captioned theme with a NULL client name draws no"
@@ -1035,7 +1068,7 @@ static void s_test_render_client_icon_draws_nonempty_caption(void)
     strncpy(s_text_truncate_output, "a window",
             sizeof(s_text_truncate_output) - 1u);
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_text_draw_string_calls, 1,
             "a captioned theme with a nonempty truncated caption"
@@ -1053,7 +1086,7 @@ static void s_test_render_client_icon_skips_empty_truncated_caption(void)
     s_client_fixture.info.name = (char *) "a window";
     s_text_truncate_output[0] = '\0'; /* truncated down to nothing */
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_text_draw_string_calls, 0,
             "a caption truncated down to an empty string is not"
@@ -1071,7 +1104,7 @@ static void s_test_render_client_icon_syncs_visible_name_with_ewmh(void)
             sizeof(s_text_truncate_output) - 1u);
     s_ewmh_stub = &s_ewmh_fixture;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_client_sync_visible_name_calls, 1,
             "a live EWMH connection triggers a visible-name sync"
@@ -1087,7 +1120,7 @@ static void s_test_render_client_icon_skips_sync_without_ewmh(void)
             sizeof(s_text_truncate_output) - 1u);
     s_ewmh_stub = NULL;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_EQ_INT(s_client_sync_visible_name_calls, 0,
             "no EWMH connection: the visible-name sync is skipped");
@@ -1103,7 +1136,7 @@ static void s_test_render_client_icon_clears_outdated_flag(void)
     s_reset_fixture();
     s_client_fixture.is_outdated = true;
 
-    ri_render_client_icon(&s_client_fixture, true, true);
+    ri_render_client_icon(&s_client_fixture, true, true, true);
 
     TAP_OK(!s_client_fixture.is_outdated,
             "a completed render clears the client's is_outdated flag");
@@ -1415,7 +1448,7 @@ static void s_test_hints_letter_positioned_right_aligned(void)
 
 int main(void)
 {
-    TAP_PLAN(63);
+    TAP_PLAN(67);
 
     s_test_render_client_icon_null_client_is_noop();
     s_test_render_client_icon_null_connection_is_noop();
@@ -1448,6 +1481,8 @@ int main(void)
 
     s_test_render_client_icon_stacks_below_tray_when_present();
     s_test_render_client_icon_lowers_when_no_tray();
+    s_test_render_client_icon_no_restack_skips_stacking_with_tray();
+    s_test_render_client_icon_no_restack_skips_stacking_no_tray();
 
     s_test_render_client_icon_draws_pixmap_when_shown_unselected();
     s_test_render_client_icon_hides_pixmap_when_show_off();

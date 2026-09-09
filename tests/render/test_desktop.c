@@ -413,9 +413,10 @@ static client_td *s_render_client_icon_last_client;
 static bool s_render_client_icon_last_is_current;
 
 void ri_render_client_icon(client_td *client, bool is_current,
-        bool force)
+        bool force, bool restack)
 {
     (void) force;
+    (void) restack;
     s_render_client_icon_calls++;
     s_render_client_icon_last_client = client;
     s_render_client_icon_last_is_current = is_current;

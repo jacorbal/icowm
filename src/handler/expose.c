@@ -22,20 +22,19 @@
 /* ADT includes */
 #include <adt/list.h>
 
-/* Project includes */
-#include <client.h>
-#include <config.h>
-#include <desktop.h>
-#include <logger.h>
-#include <surface.h>
-#include <wm.h>
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
+/* Input includes */
+#include <input/mouse/drag/overlay.h>
+
+/* Default initial values */
+#include <defs/icon.h>
 
 /* Render includes */
 #include <render/client/decoration.h>
 #include <render/client/titlebar.h>
 #include <render/icon.h>
-#include <render/text.h>
-#include <render/wmicon.h>
 
 /* Menu includes */
 #include <menu/context/iconmenu.h>
@@ -50,21 +49,15 @@
 #include <menu/dialog/run.h>
 #include <menu/search.h>
 
-/* Input includes */
-#include <input/mouse/drag.h>
-#include <input/mouse/drag/icon.h>
-#include <input/mouse/drag/overlay.h>
-
-/* Utils includes */
-#include <utils/xcb/connection.h>
-#include <utils/xcb/pixmap.h>
-
-/* Default initial values */
-#include <defs/icon.h>
-
 /* Project includes */
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
+#include <logger.h>
 #include <lookup.h>
+#include <surface.h>
 #include <systray.h>
+#include <wm.h>
 
 /* Local includes */
 #include <handler.h>
@@ -193,151 +186,24 @@ void handler_expose(xcb_connection_t *connection,
         return;
     }
 
-    /* Icon window: repaint caption */
+    /* Icon window: full repaint, via the same shared function every
+     * other place an icon needs one already uses (drag start, a cycle
+     * or icon-menu selection change, the routine per-desktop render
+     * pass; see 'ri_render_client_icon''s own callers).  This one used
+     * to carry a separate, inline reimplementation of the same
+     * drawing instead, and that duplication is exactly how it drifted
+     * out of sync with the shared one, missing the icon-menu-open
+     * case until that gap was found and fixed by hand here without
+     * ever fixing the copy this ran from.
+     *
+     * 'restack' is false: unlike every other caller, an 'Expose' here
+     * is not itself a change in the icon's own selection state, only
+     * possibly a redraw the window itself is asking for (uncovered
+     * after passing behind another window, say), so restacking it
+     * below the tray on every one of those would shuffle it against
+     * unrelated sibling icons for no reason a user asked for. */
     if (client->icon_window == event->window) {
-        bool is_icon_dragging;
-        uint32_t bg_color;
-        uint16_t icon_h;
-        surface_td *surface;
-        xcb_pixmap_t buffer;
-        xcb_drawable_t target;
-        xcb_gcontext_t gc;
-
-        cycle_client = cycle_get_selected_client();
-        is_icon_dragging = drag_is_active() && drag_is_icon_drag() &&
-            drag_client() == client;
-        /* The icon's drag ('drag_icon_start' in
-         * 'input/mouse/drag/icon.c') sets the active styling once, at
-         * the start of the drag, and nothing re-applies it afterward;
-         * an icon passing behind another window mid-drag gets exposed
-         * again once it re-emerges, and without this check that repaint
-         * would fall back to the inactive styling for the rest of the
-         * drag, well after it visually cleared whatever it had passed
-         * behind, since being-dragged is not otherwise part of what
-         * decides active vs. inactive here.
-         *
-         * 'iconmenu_target_is' folds in the third and last reason an
-         * icon draws active: its own icon context menu being open.
-         * Raising the icon (its own render pass; see
-         * 'ri_render_client_icon' in 'render/icon.c') is what exposes
-         * it in the first place when it was previously stacked behind
-         * another one, generating the very 'Expose' this handles;
-         * without this check, that repaint would immediately overwrite
-         * the correct active styling 'ri_render_client_icon' had only
-         * just applied moments before, with this same inactive
-         * fallback, right as the icon reached the front. */
-        is_active_visual = (cycle_is_open() && cycle_client == client) ||
-            is_icon_dragging || iconmenu_target_is(client);
-
-        if (!(client->properties.flags & CLIENT_FLAG_HIDDEN)) {
-            return;
-        }
-        bg_color = (is_active_visual)
-            ? cfg->theme.icon.active.color.background
-            : cfg->theme.icon.inactive.color.background;
-        xcb_change_window_attributes(connection, client->icon_window,
-                XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL,
-                (const uint32_t[]) {
-                    bg_color,
-                    (is_active_visual)
-                        ? cfg->theme.icon.active.border.color
-                        : cfg->theme.icon.inactive.border.color
-                });
-
-        icon_h = (uint16_t) (WM_ICON_SQUARE_SIZE +
-                ((cfg->theme.icon.is_captioned)
-                    ? WM_ICON_CAPTION_HEIGHT : 0u));
-        surface = wm_get_surface_by_id(client->screen_id);
-        buffer = (surface != NULL)
-            ? xcb_offscreen_buffer_create(connection,
-                    surface->screen->root_depth, client->icon_window,
-                    (uint16_t) WM_ICON_SQUARE_SIZE, icon_h)
-            : XCB_NONE;
-        target = (buffer != XCB_NONE) ? buffer : client->icon_window;
-
-        if (buffer != XCB_NONE) {
-            gc = xcb_generate_id(connection);
-            xcb_create_gc(connection, gc, buffer,
-                    XCB_GC_FOREGROUND, &bg_color);
-            xcb_poly_fill_rectangle(connection, buffer, gc, 1,
-                    (const xcb_rectangle_t[]) {
-                        {
-                            0, 0,
-                            (uint16_t) WM_ICON_SQUARE_SIZE, icon_h
-                        }
-                    });
-            xcb_free_gc(connection, gc);
-        } else {
-            xcb_clear_area(connection, 0, client->icon_window,
-                    0, 0, 0, 0);
-        }
-
-        /* Deliberately skipped while this same icon is either being
-         * dragged ('drag_icon_sync_active_visual' in
-         * 'input/mouse/drag/icon.c' clears the icon window without
-         * drawing its pixmap when the drag starts, on purpose),
-         * currently selected in the icon cycle menu, or showing its
-         * own icon context menu ('ri_render_client_icon' in
-         * 'render/icon.c' draws every one of the three the same way,
-         * asking about all of them), all already folded into
-         * 'is_active_visual' above.
-         *
-         * Without this check, an 'Expose' from passing behind another
-         * window (or the cycle menu's floating window happening to
-         * overlap it) mid-drag or mid-selection would redraw the pixmap
-         * this same repaint just cleared, bringing it back despite
-         * neither one ever wanting it shown in the first place. */
-        if (cfg->theme.icon.show_pixmaps && !is_active_visual) {
-            /* Always 'inactive' here, never a ternary against
-             * 'is_active_visual': this whole block is already gated on
-             * '!is_active_visual' above, so it is always false by the
-             * time this runs */
-            wmicon_draw(connection, xcb_ewmh_connection_get(),
-                    client->window,
-                    target, WM_ICON_SQUARE_SIZE,
-                    cfg->theme.icon.inactive.color.foreground,
-                    cfg->theme.icon.inactive.color.background,
-                    &client->icon_pixmap_cache);
-        }
-
-        if (cfg->theme.icon.is_captioned &&
-                client->info.name != NULL) {
-            const char *caption =
-                (client->icon_info.visible_icon_name != NULL &&
-                 client->icon_info.visible_icon_name[0] != '\0')
-                    ? client->icon_info.visible_icon_name
-                    : client->info.name;
-
-            (void) text_renderer_use_font(connection,
-                (is_active_visual)
-                    ? cfg->theme.icon.active.font
-                    : cfg->theme.icon.inactive.font);
-            text_renderer_set_color(
-                    (is_active_visual)
-                        ? cfg->theme.icon.active.color.foreground
-                        : cfg->theme.icon.inactive.color.foreground,
-                    (is_active_visual)
-                        ? cfg->theme.icon.active.color.background
-                        : cfg->theme.icon.inactive.color.background);
-            text_draw_string(connection, target, XCB_NONE,
-                    (struct position_s) {
-                        2,
-                        WM_ICON_SQUARE_SIZE + WM_ICON_CAPTION_HEIGHT - 2u
-                    }, caption);
-        }
-
-        ri_icon_hints_draw(connection, client, target, is_active_visual,
-                &cfg->theme);
-
-        if (buffer != XCB_NONE) {
-            gc = xcb_generate_id(connection);
-            xcb_create_gc(connection, gc, client->icon_window, 0u, NULL);
-            xcb_copy_area(connection, buffer, client->icon_window, gc,
-                    0, 0, 0, 0, (uint16_t) WM_ICON_SQUARE_SIZE, icon_h);
-            xcb_free_gc(connection, gc);
-            xcb_free_pixmap(connection, buffer);
-        }
-
+        ri_render_client_icon(client, true, true, false);
         return;
     }
 

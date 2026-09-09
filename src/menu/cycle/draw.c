@@ -484,7 +484,7 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                  * first place
                  * (this one never learned to omit the pixmap for a
                  * newly *selected* icon, below). */
-                ri_render_client_icon(previous, true, true);
+                ri_render_client_icon(previous, true, true, true);
             } /* ! if (g_cycle_menu.is_icon_menu) */
         } /* ! if (previous_target) */
     }
@@ -503,8 +503,14 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
          * all included, deliberately just the pixmap left out,
          * rather than this function's separate, previously
          * duplicated implementation, which (unlike that shared one)
-         * never learned to omit the pixmap here at all. */
-        ri_render_client_icon(selected, true, true);
+         * never learned to omit the pixmap here at all.
+         *
+         * 'restack' is false: the explicit 'xcb_window_stack_below'
+         * two lines down already puts it exactly where it needs to
+         * be, below the cycle menu's own floating window rather than
+         * merely below the tray, so restacking it below the tray
+         * here first would be work this immediately throws away. */
+        ri_render_client_icon(selected, true, true, false);
     }
 
     xcb_window_stack_below(selected_target, g_cycle_menu.window);

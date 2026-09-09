@@ -304,7 +304,7 @@ static void s_cycle_repaint_icon(client_td *client)
         return;
     }
 
-    ri_render_client_icon(client, true, true);
+    ri_render_client_icon(client, true, true, true);
 }
 
 

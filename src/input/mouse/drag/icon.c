@@ -92,7 +92,7 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
     /* Repainted at once, and forced: the icon has just become the
      * picked-up one, and waiting for the next render pass would show
      * it unselected for a frame first. */
-    ri_render_client_icon(client, true, true);
+    ri_render_client_icon(client, true, true, true);
 
     grab_cookie = xcb_grab_pointer(connection,
             0,
