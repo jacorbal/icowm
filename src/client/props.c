@@ -181,6 +181,9 @@ int client_props_get_wm_class(xcb_connection_t *connection,
         char *const value = (char *) xcb_get_property_value(reply);
         size_t value_len = reply->value_len;
         size_t inst_len = 0;
+        size_t class_off = 0;
+        size_t class_len = value_len;
+        bool separator_found = false;
         size_t copy_len;
 
         /* 'WM_CLASS' format: "instance\0class\0"
@@ -188,24 +191,36 @@ int client_props_get_wm_class(xcb_connection_t *connection,
         for (size_t i = 0; i < value_len; ++i) {
             if (value[i] == '\0') {
                 inst_len = i;
+                separator_found = true;
                 break;
             }
         }
 
         /* Copy instance name to the destination buffer if provided */
-        if (inst_buf != NULL && inst_len > 0) {
+        if (inst_buf != NULL && separator_found && inst_len > 0) {
             copy_len = (inst_len < inst_sz - 1) ?
                 inst_len : inst_sz - 1;
             memcpy(inst_buf, value, copy_len);
             inst_buf[copy_len] = '\0';
         }
 
-        /* Copy class name; class starts after 'instance_name + 1' */
-        if (inst_len + 1 < value_len) {
-            size_t class_len = value_len - inst_len - 1;
+        /* Copy the class name.  With a separator, it starts right
+         * after the instance name found above.  Without one, a
+         * non-compliant client sent a single unseparated string
+         * instead of the two ICCCM expects; reading the whole thing
+         * as the class, with the instance left empty, degrades more
+         * usefully than refusing it outright, since the class is
+         * generally the more load-bearing of the two for matching
+         * rules and picking an icon. */
+        if (separator_found) {
+            class_off = inst_len + 1u;
+            class_len = (inst_len + 1u < value_len)
+                ? value_len - inst_len - 1u : 0u;
+        }
+        if (class_len > 0u) {
             copy_len = (class_len < class_sz - 1) ?
                 class_len : class_sz - 1;
-            memcpy(class_buf, value + inst_len + 1, copy_len);
+            memcpy(class_buf, value + class_off, copy_len);
             class_buf[copy_len] = '\0';
         }
 
@@ -247,9 +262,9 @@ bool client_props_refresh_icon_name(client_td *client)
                         client->window),
                 &net_reply, NULL) &&
             net_reply.strings_len > 0) {
-        size_t len = (net_reply.strings_len < (CONFIG_MAX_LENGTH_NAME - 1u))
+        size_t len = (net_reply.strings_len < CONFIG_MAX_LENGTH_NAME)
             ? net_reply.strings_len
-            : (CONFIG_MAX_LENGTH_NAME - 2u);
+            : (CONFIG_MAX_LENGTH_NAME - 1u);
 
         memcpy(client->icon_info.visible_icon_name, net_reply.strings, len);
         client->icon_info.visible_icon_name[len] = '\0';
@@ -294,9 +309,9 @@ bool client_props_refresh_name(client_td *client)
                         client->window),
                 &net_reply, NULL) &&
             net_reply.strings_len > 0) {
-        size_t len = (net_reply.strings_len < (CONFIG_MAX_LENGTH_NAME - 1u))
+        size_t len = (net_reply.strings_len < CONFIG_MAX_LENGTH_NAME)
             ? net_reply.strings_len
-            : (CONFIG_MAX_LENGTH_NAME - 2u);
+            : (CONFIG_MAX_LENGTH_NAME - 1u);
 
         memcpy(client->info.name, net_reply.strings, len);
         memcpy(client->info.visible_name, net_reply.strings, len);
@@ -429,22 +444,6 @@ void client_props_refresh_normal_hints(client_td *client)
             (int32_t) hints.max_aspect_num;
         client->hints_icccm.size.aspect.max.den =
             (int32_t) hints.max_aspect_den;
-    }
-
-    /* ICCCM §4.1.2.3: a fixed-size window has min == max in at least
-     * one axis.  Some applications (e.g., gmrun) constrain only height,
-     * leaving width free; the window is still effectively non-resizable
-     * from the window manager's perspective and must not be
-     * maximized or resized. */
-    if ((hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) &&
-            (hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
-        bool fixed_w = (hints.min_width > 0 &&
-                hints.min_width == hints.max_width);
-        bool fixed_h = (hints.min_height > 0 &&
-                hints.min_height == hints.max_height);
-        if (fixed_w || fixed_h) {
-            client_forbid_resize(client);
-        }
     }
 }
 

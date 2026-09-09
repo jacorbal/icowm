@@ -734,6 +734,9 @@ static void s_test_wm_class_no_separator_is_all_class(void)
     TAP_EQ_STR(inst_buf, "",
             "with no separator, the whole value has no instance"
             " name at all, so it stays empty");
+    TAP_EQ_STR(class_buf, "nosplit",
+            "...and the whole value is read as the class, not a"
+            " substring missing its first byte");
 }
 
 
