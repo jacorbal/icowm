@@ -44,12 +44,13 @@ This puts, under `/usr/local` by default:
 | `bin/icowm`, `bin/icowm-msg`       | the two programs                |
 | `share/man/man1`, `share/man/man5` | the manual pages                |
 | `share/xsessions/icowm.desktop`    | the session entry a display manager reads to offer IcoWM at login |
+| `share/applications/icowm.desktop` | lets GNOME-style tooling discover IcoWM as an available window manager; never shown in an application launcher itself |
 | `share/locale/<lang>`              | the compiled message catalogues |
 | `share/icons/hicolor`              | the application icon, scalable and symbolic |
 | `share/icowm`                      | a configuration to copy from    |
 | `share/doc/icowm`                  | `README.md`, `LICENSE`, `COMPLIANCE.md` & the four guides under `doc/` |
 
-Somewhere other than `/usr/local`:
+To install somewhere other than `/usr/local`:
 
 ```sh
 make PREFIX=/usr
