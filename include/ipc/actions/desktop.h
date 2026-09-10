@@ -2,7 +2,7 @@
  * @file ipc/actions/desktop.h
  *
  * @brief IPC commands mirroring @c enact.h's @c enact_desktop_* and
- *        @s enact_client_*-on-a-desktop actions
+ *        @a enact_client_*-(on-a-desktop) actions
  *
  * @a enact_desktop_client_add and @a enact_desktop_client_remove are
  * deliberately not exposed here since they are internal bookkeeping
