@@ -308,7 +308,6 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
 
     s_clamp_to_size_hints(client, &sw, &sh);
 
-
     /* Complete this single axis to full maximize.  The other axis is
      * already the one currently maximized, so fold this one in from the
      * workarea without disturbing it.
@@ -401,7 +400,9 @@ static void s_ccmd_client_maximize_dir(client_td *client, int dir)
 
 /* Re-fill an already-maximized client's geometry against its current
  * workarea */
-void ccmd_client_refill_maximized(client_td *client)
+/* Compute an already-maximized client's geometry fresh against its
+ * current workarea, writing only 'layout.geometry.cur' */
+bool ccmd_client_refill_maximized_geometry(client_td *client)
 {
     int32_t mx = 0;
     int32_t my = 0;
@@ -409,52 +410,68 @@ void ccmd_client_refill_maximized(client_td *client)
     uint16_t sh;
     const desktop_td *own_desktop;
     bool is_active;
-    xcb_window_t target;
     bool touch_x;
     bool touch_y;
     uint32_t border;
-    uint16_t mask;
 
     if (client == NULL || !client_is_maximized_any(client)) {
-        return;
+        return false;
     }
 
     if (!ccmd_client_resolve_workarea(client, &mx, &my, &sw, &sh)) {
-        return;
+        return false;
     }
 
     own_desktop = wm_get_client_desktop(client);
     is_active = own_desktop != NULL &&
         own_desktop->client_active_id == client->id;
 
-    target = ccmd_target_win(client);
     touch_x = client_is_maximized_horz(client);
     touch_y = client_is_maximized_vert(client);
     border = 2u * client_border_width(client, is_active, false);
-    mask = 0u;
 
     sw = (uint16_t) ((sw > border) ? sw - border : 0u);
     sh = (uint16_t) ((sh > border) ? sh - border : 0u);
     s_clamp_to_size_hints(client, &sw, &sh);
 
     if (touch_x) {
-        mask |= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_WIDTH;
         client->layout.geometry.cur.pos.x = mx;
         client->layout.geometry.cur.dim.w = sw;
     }
     if (touch_y) {
-        mask |= XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_HEIGHT;
         client->layout.geometry.cur.pos.y = my;
         client->layout.geometry.cur.dim.h = sh;
     }
 
-    if (mask != 0u) {
-        ccmd_client_apply_geometry(client, target, mask,
-                client->layout.geometry.cur.pos.x,
-                client->layout.geometry.cur.pos.y,
-                client->layout.geometry.cur.dim.w,
-                client->layout.geometry.cur.dim.h, 0u);
+    return touch_x || touch_y;
+}
+
+
+void ccmd_client_refill_maximized(client_td *client)
+{
+    xcb_window_t target;
+    uint16_t mask;
+
+    if (!ccmd_client_refill_maximized_geometry(client)) {
+        return;
     }
+
+    target = ccmd_target_win(client);
+    mask = 0u;
+    if (client_is_maximized_horz(client)) {
+        mask |= (uint16_t) XCB_CONFIG_WINDOW_X |
+            (uint16_t) XCB_CONFIG_WINDOW_WIDTH;
+    }
+    if (client_is_maximized_vert(client)) {
+        mask |= (uint16_t) XCB_CONFIG_WINDOW_Y |
+            (uint16_t) XCB_CONFIG_WINDOW_HEIGHT;
+    }
+
+    ccmd_client_apply_geometry(client, target, mask,
+            client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y,
+            client->layout.geometry.cur.dim.w,
+            client->layout.geometry.cur.dim.h, 0u);
 
     if (client->frame != 0) {
         client_decoration_layout_sync(client);

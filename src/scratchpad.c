@@ -21,18 +21,25 @@
 #include <sys/types.h>  /* pid_t */
 #include <time.h>       /* clock_gettime, struct timespec, NULL */
 
+/* XCB includes */
+#include <xcb/xcb.h>
+
 /* Type includes */
 #include <types/pair.h>
 
 /* Command includes */
+#include <cmds/client/ewmh.h>
 #include <cmds/client/flags.h>
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
 #include <cmds/client/meta.h>
+#include <cmds/client/move.h>
+#include <cmds/client/screen.h>
 #include <cmds/client/state.h>
 
 /* Utils includes */
 #include <utils/time/clock.h>
+#include <utils/xcb/connection.h>
 
 /* Policy includes */
 #include <policy/focus.h>
@@ -298,10 +305,10 @@ void scratchpad_notice_client_created(client_td *client)
     client_lock(client);
 
     /* Never a valid fallback focus target on its own, e.g., after some
-     * other client on the same desktop shades or hides.  Its
-     * visibility is managed entirely by 'scratchpad_toggle', not by
-     * anything that picks a next client to focus generically; see
-     * 'CLIENT_FLAG_NO_FOCUS_FALLBACK' (client.h) */
+     * other client on the same desktop shades or hides.  Its visibility
+     * is managed entirely by 'scratchpad_toggle', not by anything that
+     * picks a next client to focus generically;
+     * see 'CLIENT_FLAG_NO_FOCUS_FALLBACK' (in 'client.h') */
     client_set_no_focus_fallback(client);
 
     LOGGER_TRACE("Claimed client %#x as the scratchpad",
@@ -309,8 +316,8 @@ void scratchpad_notice_client_created(client_td *client)
 }
 
 
-/* Position the current scratchpad client against its configured
- * edge, size, and desktop */
+/* Position the current scratchpad client against its configured edge,
+ * size, and desktop */
 void scratchpad_position(client_td *client,
         const desktop_td *desktop, surface_td *surface)
 {
@@ -321,6 +328,10 @@ void scratchpad_position(client_td *client,
     uint32_t avail_h;
     uint32_t width;
     uint32_t height;
+    bool is_max_w;
+    bool is_max_h;
+    bool state_changed;
+    uint16_t new_state;
     int32_t x = 0;
     int32_t y = 0;
 
@@ -348,23 +359,24 @@ void scratchpad_position(client_td *client,
      * that much here, before 'width'/'height' are ever resolved against
      * 'area.dim.w'/'area.dim.h' below (rather than only afterward,
      * e.g., by shrinking a "max" result in place), keeps that full
-     * footprint within the configured edge's area on every side,
-     * not just flush against whichever edge 'x'/'y' themselves already
-     * sit on.
+     * footprint within the configured edge's area on every side, not
+     * just flush against whichever edge 'x'/'y' themselves already sit
+     * on.
      *
      * An unadjusted "max" width, say, already flush with the left edge
-     * at 'x == area.pos.x', would otherwise still run its
-     * right-hand border '2 * border' past 'area.pos.x + area.dim.w' on
-     * the right, off whatever the configured edge's area was ever
-     * meant to stay within. */
-    /* 'client_border_width' ('client.h') already reflects both
+     * at 'x == area.pos.x', would otherwise still run its right-hand
+     * border '2 * border' past 'area.pos.x + area.dim.w' on the right,
+     * off whatever the configured edge's area was ever meant to stay
+     * within.
+     *
+     * 'client_border_width' ('client.h') already reflects both
      * 'border_override' set just above in
      * 'scratchpad_notice_client_created' and any
-     * 'a11y.focus-indicator.min-border-width'
-     * floor over it, the exact width the render pass itself will
-     * actually draw, rather than 'border_override.width' alone, which
-     * could be narrower than what a11y ends up enforcing and so reserve
-     * too little room here for it. */
+     * 'a11y.focus-indicator.min-border-width' floor over it, the exact
+     * width the render pass itself will actually draw, rather than
+     * 'border_override.width' alone, which could be narrower than what
+     * a11y ends up enforcing and so reserve too little room here for
+     * it. */
     border = client_border_width(client, true, false);
     avail_w = (area.dim.w > 2u * border) ? area.dim.w - 2u * border : 0u;
     avail_h = (area.dim.h > 2u * border) ? area.dim.h - 2u * border : 0u;
@@ -397,8 +409,82 @@ void scratchpad_position(client_td *client,
         break;
     }
 
-    enact_client_resize_force(client,
-            (struct geometry_s) { { x, y }, { width, height } });
+    /* Written before either geometry path runs, not after: the ordinary
+     * resize path below ('enact_client_resize_force', for whichever
+     * axis is not "max") refuses outright when 'client_is_maximized' is
+     * still true ('s_ccmd_resize_allowed', 'cmds/client/resize.c').
+     * A client previously "max" on both axes whose configuration
+     * changes to fixed on both would otherwise be asked to resize while
+     * still reporting the old, fully-maximized state, and that resize
+     * would be silently refused. */
+    is_max_w = config->base.scratchpad.width.mode ==
+        CONFIG_SCRATCHPAD_SIZE_MAX;
+    is_max_h = config->base.scratchpad.height.mode ==
+        CONFIG_SCRATCHPAD_SIZE_MAX;
+
+    new_state = (uint16_t) (client->properties.state &
+            (uint16_t) ~CLIENT_STATE_MAXIMIZED);
+    if (is_max_w) {
+        new_state |= (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+    }
+    if (is_max_h) {
+        new_state |= (uint16_t) CLIENT_STATE_MAXIMIZED_VERT;
+    }
+    state_changed = new_state != client->properties.state;
+    client->properties.state = new_state;
+
+    /* An axis configured "max" is meant to actually be a maximized one,
+     * not merely a plain resize that happens to land on the workarea
+     * edge: 'client_is_maximized_horz'/'_vert' have to agree, both for
+     * whatever reads them back (EWMH, IPC, a pager) and for the
+     * drag-lock check in 'input/mouse/drag.c' that already refuses to
+     * move a maximized axis, on top of this client's own 'client_lock'
+     * below ever letting a drag start on it at all. */
+    if (is_max_w || is_max_h) {
+        uint32_t apply_w = width;
+        uint32_t apply_h = height;
+
+        /* A fixed axis paired with a "max" one still respects the
+         * client's own 'WM_NORMAL_HINTS' (resize increment, min/max,
+         * aspect ratio) exactly as it always has, via the same
+         * 'client_size_constrain' the ordinary resize path below would
+         * have run; only the "max" axis itself is forced back to the
+         * workarea edge afterward, overriding whatever that just
+         * rounded it to, the same as 'ccmd_client_maximize_horz' /
+         * 'ccmd_client_maximize_vert' already do for the one axis they
+         * maximize. */
+        client_size_constrain(client, &apply_w, &apply_h);
+        if (is_max_w) {
+            apply_w = width;
+        }
+        if (is_max_h) {
+            apply_h = height;
+        }
+
+        /* Applied directly, the same way 'ccmd_client_maximize_horz'/
+         * '_vert' apply theirs (cmds/client/maximize.c), rather than
+         * through 'enact_client_resize_force': a "max" axis has to
+         * reach the workarea edge exactly, which the constrain step
+         * just above deliberately does not touch for it. */
+        ccmd_client_apply_geometry(client, ccmd_target_win(client),
+                (uint16_t) XCB_CONFIG_WINDOW_X |
+                    (uint16_t) XCB_CONFIG_WINDOW_Y |
+                    (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                    (uint16_t) XCB_CONFIG_WINDOW_HEIGHT,
+                x, y, apply_w, apply_h, 0u);
+        client->layout.geometry.cur =
+            (struct geometry_s) { { x, y }, { apply_w, apply_h } };
+        client_send_synthetic_configure_notify(xcb_connection_get(),
+                client);
+        wm_request_client_redraw(client);
+    } else {
+        enact_client_resize_force(client,
+                (struct geometry_s) { { x, y }, { width, height } });
+    }
+
+    if (state_changed) {
+        ccmd_client_sync_states(client);
+    }
 }
 
 

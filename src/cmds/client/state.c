@@ -300,8 +300,8 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
 
         /* Reparenting generates a synthetic 'UnmapNotify' for the
          * content window.  Absorb it so 'handler_unmap_notify' does not
-         * mistake the event for a voluntary hide and does not
-         * steal focus from the window. */
+         * mistake the event for a voluntary hide and does not steal
+         * focus from the window. */
         client->ignore.unmap += 2u;
         client->ignore.focus_unmap++;
         xcb_window_reparent(client->window,
@@ -406,8 +406,7 @@ static void s_ccmd_decorate_restore(client_td *client, int32_t bw,
          * 'CLIENT_GRAVITY_NORTH_WEST'/'STATIC'; any other gravity gets
          * whatever further displacement keeps its anchor fixed instead,
          * now going from this content's own undecorated size up to the
-         * restored frame's,
-         * larger one. */
+         * restored frame's, larger one. */
         client_gravity_adjust_pos(&frame.pos.x, &frame.pos.y,
                 client->layout.geometry.cur.dim.w,
                 client->layout.geometry.cur.dim.h,
@@ -926,7 +925,8 @@ void ccmd_client_fullscreen(client_td *client)
      * clients only apply the next size they are told about relative to
      * their last known good state, which can otherwise show as a blank
      * frame until an unrelated event forces a fresh redraw. */
-    client_send_synthetic_configure_notify(xcb_connection_get(), client);
+    client_send_synthetic_configure_notify(xcb_connection_get(),
+            client);
 
     client->properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
     (void) clock_gettime(CLOCK_MONOTONIC,
@@ -983,6 +983,21 @@ void ccmd_client_unfullscreen(client_td *client)
 
     target = ccmd_target_win(client);
     client_geometry_restore(client);
+
+    /* Folds any still-maximized axis into 'layout.geometry.cur' right
+     * now, before anything below ever applies it for real: without
+     * this, the block below would configure the client to the restored
+     * (pre-maximize) geometry the line above just set, tell it so with
+     * a synthetic 'ConfigureNotify', and then, further down, correct
+     * that with a second real configure and a second synthetic notify
+     * for whichever axis is still maximized, once
+     * 'ccmd_client_refill_maximized' used to run.  Two contradictory
+     * geometries and two notifications for what is a single logical
+     * change is wasted work at best, and at worst a visible flicker to
+     * the restored, un-maximized size for one frame before snapping to
+     * the correct one, which every client below configures against and
+     * gets told about exactly once now instead. */
+    (void) ccmd_client_refill_maximized_geometry(client);
 
     /* 'ignore_frame=true': 'client->frame' is already non-zero here (it
      * persists across the whole fullscreen cycle, never destroyed or
@@ -1106,10 +1121,9 @@ void ccmd_client_unfullscreen(client_td *client)
     /* The workarea may well have moved while the client was covering
      * it, a panel having appeared or a monitor changed, so a restored
      * maximization is measured against the workarea as it is now rather
-     * than the geometry saved on the way in */
-    if (client_is_maximized_any(client)) {
-        ccmd_client_refill_maximized(client);
-    }
+     * than the geometry saved on the way in.  Already folded into
+     * 'layout.geometry.cur' and applied for real, once, right after
+     * 'client_geometry_restore' above: nothing left to do here. */
 
     ccmd_publish_frame_extents(client,
             (uint32_t) client->layout.frame_extents.left,
