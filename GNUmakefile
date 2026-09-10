@@ -57,6 +57,7 @@ BINDIR ?= $(PREFIX)/bin
 DATADIR ?= $(PREFIX)/share
 LOCALEDIR ?= $(DATADIR)/locale
 XSESSIONSDIR ?= $(DATADIR)/xsessions
+APPLICATIONSDIR ?= $(DATADIR)/applications
 DOCDIR ?= $(DATADIR)/doc/$(PROJECT_NAME_PROG)
 EXAMPLEDIR ?= $(DATADIR)/$(PROJECT_NAME_PROG)
 # Icon themes are searched by this exact layout, so the two files go
@@ -430,8 +431,11 @@ install:
 	$(INSTALL_DATA) doc/man/man1/*.1 $(DESTDIR)$(MANDIR)/man1
 	$(INSTALL_DATA) doc/man/man5/*.5 $(DESTDIR)$(MANDIR)/man5
 	$(INSTALL_DIR) $(DESTDIR)$(XSESSIONSDIR)
-	$(INSTALL_DATA) doc/$(PROJECT_NAME_PROG).desktop \
+	$(INSTALL_DATA) doc/desktop/xsessions/$(PROJECT_NAME_PROG).desktop \
 	    $(DESTDIR)$(XSESSIONSDIR)
+	$(INSTALL_DIR) $(DESTDIR)$(APPLICATIONSDIR)
+	$(INSTALL_DATA) doc/desktop/applications/$(PROJECT_NAME_PROG).desktop \
+	    $(DESTDIR)$(APPLICATIONSDIR)
 	$(INSTALL_DIR) $(DESTDIR)$(DOCDIR)
 	$(INSTALL_DATA) README.md LICENSE COMPLIANCE.md $(DESTDIR)$(DOCDIR)
 	$(INSTALL_DATA) doc/config.md doc/themes.md doc/icowm.md \
@@ -472,6 +476,7 @@ uninstall:
 	    rm -f "$(DESTDIR)$(MANDIR)/man5/$$(basename $$page)"; \
 	done
 	rm -f $(DESTDIR)$(XSESSIONSDIR)/$(PROJECT_NAME_PROG).desktop
+	rm -f $(DESTDIR)$(APPLICATIONSDIR)/$(PROJECT_NAME_PROG).desktop
 	rm -f $(DESTDIR)$(ICON_SCALABLE)/$(PROJECT_NAME_PROG).svg
 	rm -f $(DESTDIR)$(ICON_SYMBOLIC)/$(PROJECT_NAME_PROG)-symbolic.svg
 	@find locale -name '*.mo' | while read mo; do \

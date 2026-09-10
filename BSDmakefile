@@ -113,6 +113,7 @@ BINDIR ?= ${PREFIX}/bin
 DATADIR ?= ${PREFIX}/share
 LOCALEDIR ?= ${DATADIR}/locale
 XSESSIONSDIR ?= ${DATADIR}/xsessions
+APPLICATIONSDIR ?= ${DATADIR}/applications
 DOCDIR ?= ${DATADIR}/doc/${PROJECT_NAME_PROG}
 EXAMPLEDIR ?= ${DATADIR}/${PROJECT_NAME_PROG}
 # Icon themes are searched by this exact layout, so the two files go
@@ -496,8 +497,11 @@ install:
 	${INSTALL_DATA} ${PWD}/doc/man/man1/*.1 ${DESTDIR}${MANDIR}/man1
 	${INSTALL_DATA} ${PWD}/doc/man/man5/*.5 ${DESTDIR}${MANDIR}/man5
 	${INSTALL_DIR} ${DESTDIR}${XSESSIONSDIR}
-	${INSTALL_DATA} ${PWD}/doc/${PROJECT_NAME_PROG}.desktop \
+	${INSTALL_DATA} ${PWD}/doc/desktop/xsessions/${PROJECT_NAME_PROG}.desktop \
 	    ${DESTDIR}${XSESSIONSDIR}
+	${INSTALL_DIR} ${DESTDIR}${APPLICATIONSDIR}
+	${INSTALL_DATA} ${PWD}/doc/desktop/applications/${PROJECT_NAME_PROG}.desktop \
+	    ${DESTDIR}${APPLICATIONSDIR}
 	${INSTALL_DIR} ${DESTDIR}${DOCDIR}
 	${INSTALL_DATA} ${PWD}/README.md ${PWD}/LICENSE ${PWD}/COMPLIANCE.md \
 	    ${DESTDIR}${DOCDIR}
@@ -539,6 +543,7 @@ uninstall:
 	    rm -f "${DESTDIR}${MANDIR}/man5/$$(basename $$page)"; \
 	done
 	rm -f ${DESTDIR}${XSESSIONSDIR}/${PROJECT_NAME_PROG}.desktop
+	rm -f ${DESTDIR}${APPLICATIONSDIR}/${PROJECT_NAME_PROG}.desktop
 	rm -f ${DESTDIR}${ICON_SCALABLE}/${PROJECT_NAME_PROG}.svg
 	rm -f ${DESTDIR}${ICON_SYMBOLIC}/${PROJECT_NAME_PROG}-symbolic.svg
 	@cd ${PWD} && find locale -name '*.mo' | while read mo; do \
