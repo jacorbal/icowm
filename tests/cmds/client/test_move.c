@@ -24,6 +24,11 @@
  * toward' without a real surface list.  'surface_monitor_direction'
  * is a test-controlled stand-in too, answering whichever single
  * monitor a test registers as the neighbor in that direction.
+ * 'ccmd_client_refill_maximized_geometry' is a test-controlled
+ * stand-in as well (the real one lives in cmds/client/maximize.c,
+ * not this file), false and untouched by default, so a test
+ * exercising a maximized client's move-to-monitor refold can make
+ * it write fixed sentinel values instead.
  * 'ccmd_target_win', 'xcb_connection_get', and 'wm_request_client_
  * redraw' are link-only stand-ins: side effects this file's
  * assertions do not need to observe directly, the geometry changes
@@ -96,6 +101,35 @@ bool ccmd_client_resolve_workarea(client_td *client,
     *out_w = s_wa_w;
     *out_h = s_wa_h;
 
+    return true;
+}
+
+
+/**
+ * @brief Configurable stand-in for
+ *        @a ccmd_client_refill_maximized_geometry
+ *
+ * Defaults to @c false, untouched, matching every test here except
+ * the one exercising a maximized client's move-to-monitor; that one
+ * sets @c s_refill_should_touch and the four output values first.
+ *
+ * @note Complexity: @e O(1)
+ */
+static bool s_refill_should_touch;
+static int32_t s_refill_x;
+static int32_t s_refill_y;
+static uint32_t s_refill_w;
+static uint32_t s_refill_h;
+
+bool ccmd_client_refill_maximized_geometry(client_td *client)
+{
+    if (!s_refill_should_touch) {
+        return false;
+    }
+    client->layout.geometry.cur.pos.x = s_refill_x;
+    client->layout.geometry.cur.pos.y = s_refill_y;
+    client->layout.geometry.cur.dim.w = s_refill_w;
+    client->layout.geometry.cur.dim.h = s_refill_h;
     return true;
 }
 
@@ -326,6 +360,11 @@ static void s_reset(void)
     s_cw_window = XCB_WINDOW_NONE;
     s_cw_mask = 0u;
     s_cw_count = 0;
+    s_refill_should_touch = false;
+    s_refill_x = 0;
+    s_refill_y = 0;
+    s_refill_w = 0u;
+    s_refill_h = 0u;
 }
 
 
@@ -671,6 +710,84 @@ static void s_test_move_to_monitor_translates_offset(void)
     TAP_OK(!client.has_rule_position_locked,
             "moving to another monitor clears the position-locked"
             " rule flag");
+}
+
+
+/* A fullscreen client is refused outright, the same as
+ * ccmd_client_move already refuses one; there is no free axis to
+ * translate at all */
+static void s_test_move_to_monitor_fullscreen_refused(void)
+{
+    surface_td surface;
+    client_td client;
+    monitor_td cur_mon = {.x = 0, .y = 0, .w = 800u, .h = 600u};
+    monitor_td target_mon = {.x = 800, .y = 0, .w = 800u, .h = 600u};
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    surface.monitor_count = 2u;
+    surface.monitors[0] = cur_mon;
+    surface.monitors[1] = target_mon;
+    memset(&client, 0, sizeof(client));
+    client.properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
+    client.layout.geometry.cur.pos.x = 50;
+    client.layout.geometry.cur.pos.y = 60;
+    s_set_client_monitor(&surface, cur_mon);
+
+    ccmd_client_move_to_monitor(&client, 1u);
+
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, 50,
+            "a fullscreen client's x is left untouched");
+    TAP_EQ_INT(s_redraw_count, 0,
+            "and no redraw is requested for a refused move");
+}
+
+
+/* A maximized client's axis is refolded fresh against the target
+ * monitor's own workarea instead of translated, and the final apply
+ * carries its new width/height too, not just its position */
+static void s_test_move_to_monitor_maximized_refolds_against_target(
+        void)
+{
+    surface_td surface;
+    client_td client;
+    monitor_td cur_mon = {.x = 0, .y = 0, .w = 800u, .h = 600u};
+    monitor_td target_mon = {.x = 800, .y = 0, .w = 1024u, .h = 768u};
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    surface.monitor_count = 2u;
+    surface.monitors[0] = cur_mon;
+    surface.monitors[1] = target_mon;
+    memset(&client, 0, sizeof(client));
+    client.properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED;
+    client.layout.geometry.cur.pos.x = 50;
+    client.layout.geometry.cur.pos.y = 60;
+    client.layout.geometry.cur.dim.w = 200u;
+    client.layout.geometry.cur.dim.h = 100u;
+    s_set_client_monitor(&surface, cur_mon);
+    s_refill_should_touch = true;
+    s_refill_x = 800;
+    s_refill_y = 0;
+    s_refill_w = 1024u;
+    s_refill_h = 768u;
+
+    ccmd_client_move_to_monitor(&client, 1u);
+
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, 800,
+            "the maximized client's x is refolded against the"
+            " target monitor, not just translated");
+    TAP_EQ_INT((long) client.layout.geometry.cur.dim.w, 1024,
+            "and its width fills the target monitor exactly");
+    TAP_EQ_INT((long) client.layout.geometry.cur.dim.h, 768,
+            "same for height");
+    TAP_EQ_INT(s_cw_mask,
+            (long) ((uint16_t) XCB_CONFIG_WINDOW_X |
+                (uint16_t) XCB_CONFIG_WINDOW_Y |
+                (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                (uint16_t) XCB_CONFIG_WINDOW_HEIGHT),
+            "the one real apply carries width/height too, not just"
+            " position");
 }
 
 
@@ -1047,7 +1164,7 @@ static void s_test_apply_geometry_full_mask_is_safe(void)
 
 int main(void)
 {
-    TAP_PLAN(47);
+    TAP_PLAN(53);
 
     s_test_null_client_is_noop();
     s_test_move_plain_client();
@@ -1063,6 +1180,8 @@ int main(void)
     s_test_center_maximized_horz_only_locks_x();
     s_test_move_to_monitor_same_is_noop();
     s_test_move_to_monitor_translates_offset();
+    s_test_move_to_monitor_fullscreen_refused();
+    s_test_move_to_monitor_maximized_refolds_against_target();
     s_test_move_to_monitor_out_of_range_falls_back();
     s_test_move_to_monitor_zero_monitors_refused();
     s_test_move_to_monitor_unresolved_surface_is_noop();

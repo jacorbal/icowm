@@ -89,10 +89,16 @@ void ccmd_client_center(client_td *client);
  * @brief Move the client to a specific monitor on its own surface
  *
  * Keeps the client's offset from its current monitor's top-left
- * corner (not a resize, not a re-centering), translated onto the target
- * monitor's top-left corner instead, then clamped so the window
- * stays fully on that monitor even if it is smaller than the one the
- * client came from.
+ * corner (not a resize, not a re-centering), translated onto the
+ * target monitor's top-left corner instead, then clamped so the
+ * window stays fully on that monitor even if it is smaller than the
+ * one the client came from.  A client maximized on some axis is the
+ * one exception: that axis is instead refolded fresh against the
+ * target monitor's own workarea, the same as
+ * @a ccmd_client_refill_maximized_geometry already does after a
+ * workarea change, rather than translated and clamped like the rest
+ * of a non-maximized client's geometry, so it still exactly fills
+ * the monitor it lands on.
  *
  * @param client        Window to move
  * @param monitor_index Zero-based index into the client's surface's
@@ -100,6 +106,7 @@ void ccmd_client_center(client_td *client);
  *                      monitor with index 0, logging a warning
  *
  * @note A no-op if @p client is already on the target monitor
+ * @note A fullscreen client is refused outright
  * @note Complexity: @e O(n), where @e n is the number of surfaces
  */
 void ccmd_client_move_to_monitor(client_td *client,

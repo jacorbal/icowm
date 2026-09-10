@@ -39,6 +39,7 @@
 #include <wm.h>
 
 /* Local includes */
+#include <cmds/client/maximize.h>
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/workarea.h>
@@ -58,6 +59,8 @@
  * @param client    Client to move; may be null
  * @param direction Which way to look for a neighboring monitor
  *
+ * @note A fullscreen client is refused outright, the same as
+ *       @a ccmd_client_move_to_monitor itself already refuses one
  * @note Complexity: @e O(n), where @e n is the number of monitors on
  *       the client's surface, scanned to turn the neighbor's
  *       coordinates back into the index @a ccmd_client_move_to_monitor
@@ -70,7 +73,7 @@ static void s_move_to_monitor_toward(client_td *client,
     monitor_td cur_monitor;
     monitor_td target_monitor;
 
-    if (client == NULL) {
+    if (client == NULL || client_is_fullscreen(client)) {
         return;
     }
 
@@ -251,8 +254,10 @@ void ccmd_client_move_to_monitor(client_td *client,
     int32_t new_x;
     int32_t new_y;
     uint32_t idx;
+    uint16_t mask;
+    bool refilled;
 
-    if (client == NULL) {
+    if (client == NULL || client_is_fullscreen(client)) {
         return;
     }
 
@@ -302,13 +307,29 @@ void ccmd_client_move_to_monitor(client_td *client,
             : target_monitor.y;
     }
 
-    target = ccmd_target_win(client);
-    ccmd_client_apply_geometry(client, target,
-            (uint16_t) XCB_CONFIG_WINDOW_X |
-                (uint16_t) XCB_CONFIG_WINDOW_Y,
-            new_x, new_y, 0u, 0u, 0u);
     client->layout.geometry.cur.pos.x = new_x;
     client->layout.geometry.cur.pos.y = new_y;
+
+    /* A maximized axis (full, or just one) is refolded fresh against
+     * the target monitor's own workarea, resolved from the position
+     * just written above, rather than left at whatever size/position
+     * it filled on the monitor the client is leaving; a non-maximized
+     * client leaves this call a no-op and keeps the translated,
+     * clamped position/size computed above instead. */
+    refilled = ccmd_client_refill_maximized_geometry(client);
+
+    target = ccmd_target_win(client);
+    mask = (uint16_t) XCB_CONFIG_WINDOW_X |
+        (uint16_t) XCB_CONFIG_WINDOW_Y;
+    if (refilled) {
+        mask |= (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+            (uint16_t) XCB_CONFIG_WINDOW_HEIGHT;
+    }
+    ccmd_client_apply_geometry(client, target, mask,
+            client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y,
+            client->layout.geometry.cur.dim.w,
+            client->layout.geometry.cur.dim.h, 0u);
     client->has_rule_position_locked = false;
     wm_request_client_redraw(client);
 }
