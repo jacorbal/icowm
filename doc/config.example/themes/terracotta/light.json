@@ -4,17 +4,20 @@
     "-creation-date": "Tue Aug 25 21:21:00 UTC 2026",
     "-modified-date": "Tue Aug 25 21:21:00 UTC 2026",
     "-notes": "Clay and sand: a mid-toned earthen desktop, warm sand window surfaces and a burnt-orange cycling frame.  Text Lc 8.9:1 on active and 7.7:1 on inactive, window frames 5.0:1 and the cycling frame 4.0:1 on the desktop.",
+
     "desktop": {
         "color": {
             "background": "#A88774"
         }
     },
+
     "cycle": {
         "border": {
             "color": "#5C1A08",
             "width": 4
         }
     },
+
     "window": {
         "is-decorated": true,
         "active": {
@@ -59,6 +62,7 @@
             }
         }
     },
+    
     "icon": {
         "is-captioned": true,
         "show-hints": true,
@@ -88,6 +92,7 @@
             "font": "fixed"
         }
     },
+    
     "menu": {
         "opacity": 100,
         "show-pixmaps": true,
@@ -141,6 +146,7 @@
             "font": "fixed"
         }
     },
+    
     "dialog": {
         "opacity": 100,
         "border": {
@@ -190,6 +196,7 @@
             }
         }
     },
+
     "overlay": {
         "opacity": 100,
         "font": "fixed",
@@ -202,6 +209,7 @@
             "foreground": "#5C4033"
         }
     },
+    
     "systray": {
         "opacity": 100,
         "font": "fixed bold",
@@ -223,6 +231,7 @@
             "valign": "center"
         }
     },
+
     "search": {
         "input": {
             "font": "fixed bold",
@@ -250,6 +259,7 @@
             "width": 2
         }
     },
+
     "prompt": {
         "label": {
             "font": "fixed bold",
@@ -270,12 +280,14 @@
             "width": 2
         }
     },
+
     "scratchpad": {
         "border": {
             "color": "#2E1B12",
             "width": 2
         }
     },
+
     "xsettings": {
         "dpi": 96,
         "is-enabled": false,

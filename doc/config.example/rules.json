@@ -11,6 +11,23 @@
             }
     },
     {
+        "when": "both",
+        "match": {
+            "class": [ "Conky" ],
+            "role": [ "desktop-widget" ],
+            "type": [ "utility" ]
+        },
+        "apply": {
+            "monitor": 0,
+            "sticky": true,
+            "focus": false,
+            "layer": "below",
+            "opacity": { "active": 90, "inactive": 60 },
+            "position": { "x": 20, "y": 20 },
+            "size": { "width": 200, "height": 100 }
+        }
+    },
+    {
         "when": "map",
         "match": {
             "instance": [ "gmrun" ]
@@ -26,7 +43,7 @@
     {
         "when": "map",
         "match": {
-            "title": [ "*mpv", "*mplayer", "*VLC media player" ]
+            "class": [ "mpv", "MPlayer", "Vlc" ]
         },
         "apply": {
             "decorated": false,
@@ -37,27 +54,11 @@
     {
         "when": "map",
         "match": {
-            "class": [ "Firefox", "Chromium" ]
+            "class": [ "firefox-esr", "Chromium" ]
         },
         "apply": {
+            "iconified": false,
             "maximized": true
-        }
-    },
-    {
-        "when": "both",
-        "match": {
-            "class": [ "Conky" ],
-            "role": [ "desktop-widget" ],
-            "type": [ "utility" ]
-        },
-        "apply": {
-            "sticky": true,
-            "focus": false,
-            "layer": "below",
-            "monitor": 0,
-            "opacity": { "active": 90, "inactive": 60 },
-            "position": { "x": 20, "y": 20 },
-            "size": { "width": 200, "height": 100 }
         }
     },
     {
@@ -68,35 +69,10 @@
             "transient": false
         },
         "apply": {
-            "desktop": 2,
+            "desktop": 1,
+            "sticky": false,
+            "iconified": false,
             "fullscreen": true
-        }
-    },
-    {
-        "when": "map",
-        "match": {
-            "type": [ "splash" ]
-        },
-        "apply": {
-            "hidden": true
-        }
-    },
-    {
-        "when": "map",
-        "match": {
-            "instance": [ "syncthing-gtk" ]
-        },
-        "apply": {
-            "iconified": true
-        }
-    },
-    {
-        "when": "map",
-        "match": {
-            "class": [ "Xfce4-notes" ]
-        },
-        "apply": {
-            "shaded": true
         }
     }
     ]
