@@ -421,7 +421,9 @@ static void s_test_move_fullscreen_refused(void)
  * axis bits are set together, so a client maximized on one axis
  * alone is still movable, unlike a fully maximized or fullscreen
  * one */
-static void s_test_move_maximized_horz_only_allowed(void)
+/* A client maximized horizontally only keeps that axis pinned to
+ * where it already is; the still-free vertical axis moves normally */
+static void s_test_move_maximized_horz_only_locks_x(void)
 {
     client_td client;
     struct position_s pos = {.x = 1, .y = 1};
@@ -434,9 +436,37 @@ static void s_test_move_maximized_horz_only_allowed(void)
 
     ccmd_client_move(&client, pos);
 
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, 7,
+            "the horizontally maximized axis stays pinned to its"
+            " own workarea edge, not wherever the request asked"
+            " for");
+    TAP_EQ_INT(client.layout.geometry.cur.pos.y, 1,
+            "the still-free vertical axis moves to the requested"
+            " position");
+}
+
+
+/* A client maximized vertically only keeps that axis pinned; the
+ * still-free horizontal axis moves normally */
+static void s_test_move_maximized_vert_only_locks_y(void)
+{
+    client_td client;
+    struct position_s pos = {.x = 1, .y = 1};
+
+    s_reset();
+    memset(&client, 0, sizeof(client));
+    client.properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED_VERT;
+    client.layout.geometry.cur.pos.x = 7;
+    client.layout.geometry.cur.pos.y = 8;
+
+    ccmd_client_move(&client, pos);
+
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 1,
-            "a client maximized on only one axis is still movable,"
-            " since client_is_maximized requires both bits");
+            "the still-free horizontal axis moves to the requested"
+            " position");
+    TAP_EQ_INT(client.layout.geometry.cur.pos.y, 8,
+            "the vertically maximized axis stays pinned to its own"
+            " workarea edge, not wherever the request asked for");
 }
 
 
@@ -550,6 +580,32 @@ static void s_test_center_maximized_refused(void)
 
     TAP_EQ_INT(client.layout.geometry.cur.pos.x, 5,
             "a maximized client is never centered");
+}
+
+
+/* Centering a client maximized horizontally only keeps that axis
+ * pinned to its own workarea edge; the still-free vertical axis
+ * centers normally */
+static void s_test_center_maximized_horz_only_locks_x(void)
+{
+    client_td client;
+
+    s_reset();
+    memset(&client, 0, sizeof(client));
+    client.properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+    client.layout.geometry.cur.pos.x = 7;
+    client.layout.geometry.cur.pos.y = 8;
+    client.layout.geometry.cur.dim.w = 200u;
+    client.layout.geometry.cur.dim.h = 100u;
+    s_set_workarea(0, 0, 800, 600);
+
+    ccmd_client_center(&client);
+
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, 7,
+            "the horizontally maximized axis stays pinned to its"
+            " own workarea edge, not centered");
+    TAP_EQ_INT(client.layout.geometry.cur.pos.y, 250,
+            "the still-free vertical axis centers normally");
 }
 
 
@@ -991,18 +1047,20 @@ static void s_test_apply_geometry_full_mask_is_safe(void)
 
 int main(void)
 {
-    TAP_PLAN(42);
+    TAP_PLAN(47);
 
     s_test_null_client_is_noop();
     s_test_move_plain_client();
     s_test_move_maximized_refused();
     s_test_move_fullscreen_refused();
-    s_test_move_maximized_horz_only_allowed();
+    s_test_move_maximized_horz_only_locks_x();
+    s_test_move_maximized_vert_only_locks_y();
     s_test_center_plain();
     s_test_center_offset_workarea();
     s_test_center_oversized_client_clamped();
     s_test_center_no_workarea_no_fallback_is_noop();
     s_test_center_maximized_refused();
+    s_test_center_maximized_horz_only_locks_x();
     s_test_move_to_monitor_same_is_noop();
     s_test_move_to_monitor_translates_offset();
     s_test_move_to_monitor_out_of_range_falls_back();

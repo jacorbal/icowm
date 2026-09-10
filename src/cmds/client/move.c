@@ -153,6 +153,19 @@ void ccmd_client_move(client_td *client, struct position_s pos)
         return;
     }
 
+    /* A client maximized on just one axis keeps that axis pinned to
+     * the workarea edge it already fills; only the other, still-free
+     * axis actually moves, the same way a mouse drag-move already
+     * keeps a locked axis fixed at its starting value (see
+     * 'is_move_x_locked'/'is_move_y_locked' in
+     * 'input/mouse/drag.c'). */
+    if (client_is_maximized_horz(client)) {
+        pos.x = client->layout.geometry.cur.pos.x;
+    }
+    if (client_is_maximized_vert(client)) {
+        pos.y = client->layout.geometry.cur.pos.y;
+    }
+
     target = ccmd_target_win(client);
     ccmd_client_apply_geometry(client, target,
             (uint16_t) XCB_CONFIG_WINDOW_X |
@@ -204,6 +217,17 @@ void ccmd_client_center(client_td *client)
     }
     x += mx;
     y += my;
+
+    /* Same reasoning as 'ccmd_client_move''s identical clamp: a
+     * client maximized on just one axis keeps that axis pinned to
+     * the workarea edge, only the still-free axis actually
+     * re-centers. */
+    if (client_is_maximized_horz(client)) {
+        x = client->layout.geometry.cur.pos.x;
+    }
+    if (client_is_maximized_vert(client)) {
+        y = client->layout.geometry.cur.pos.y;
+    }
 
     ccmd_client_apply_geometry(client, target,
             (uint16_t) XCB_CONFIG_WINDOW_X |
