@@ -40,6 +40,30 @@
 #include <config.h>
 
 
+/**
+ * @brief Number of fixed top-level entries in the icon context menu
+ *
+ * THREE submenus ("Send to desktop", "Send to page", "Send to monitor")
+ * + ONE separator
+ * + TWO commands ("Restore", "Hide")
+ * + ONE separator
+ * + TWO commands ("Inspect", "Close") = NINE total.
+ *
+ * All three submenus are conditional, and this counts each as always
+ * present for a simple, constant capacity bound rather than optimizing
+ * the array size for the common case, the exact same reasoning
+ * @c WINCMENU_FIXED_ENTRIES (@c menu/context/wincmenu.h) already
+ * applies to the same three conditions on that menu's own copies of
+ * these submenus: "Send to desktop" does not appear when the topology
+ * is set to just one desktop, "Send to monitor" only appears on
+ * a surface with more than one monitor, and "Send to page" only when
+ * the configured viewport spans more than a single screen, except that
+ * a sticky client gets none of that either, belonging as it does to no
+ * one page.
+ */
+#define ICONMENU_FIXED_ENTRIES (9)
+
+
 /* Public interface */
 /**
  * @brief Open the icon context menu for a client

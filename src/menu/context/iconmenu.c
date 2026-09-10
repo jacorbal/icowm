@@ -6,9 +6,10 @@
  * Builds and manages the right-click context menu for an iconified
  * client's icon.  Actions are dispatched by calling the matching
  * @c enact function directly, taking effect at once.  "Send to
- * desktop" and "Send to page" are built through the same shared
- * submodules the window context menu uses, so the two menus can never
- * drift apart on what those submenus offer or how they behave.
+ * desktop", "Send to page", and "Send to monitor" are built through
+ * the same shared submodules the window context menu uses, so the
+ * two menus can never drift apart on what those submenus offer or
+ * how they behave.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -47,6 +48,7 @@
 #include <menu/context/ctxmenu.h>
 #include <menu/context/ctxmenu/tree.h>
 #include <menu/context/submenu/desktop.h>
+#include <menu/context/submenu/monitor.h>
 #include <menu/context/submenu/page.h>
 #include <menu/dialog/inspect.h>
 
@@ -54,18 +56,11 @@
 #include <menu/context/iconmenu.h>
 
 
-/** Top-level entry slots: at most "Send to desktop" and "Send to
- *  page" (each a submenu), a separator between them and the fixed
- *  entries below, Restore, Hide, a second separator, Inspect, and
- *  Close */
-#define S_MAX_ENTRIES (8)
-
-
 /** Singleton root menu state */
 static ctxmenu_state_td s_root;
 
 /** Entries for the top-level icon context menu */
-static ctxmenu_entry_td s_entries[S_MAX_ENTRIES];
+static ctxmenu_entry_td s_entries[ICONMENU_FIXED_ENTRIES];
 
 /** Pointer to the surface (valid while the menu is open) */
 static surface_td *s_surface = NULL;
@@ -80,10 +75,10 @@ static client_td *s_target_client = NULL;
 /**
  * @brief Fill in one plain command entry
  *
- * @param e          Entry to fill
- * @param label      Entry label, already translated
- * @param cb         Activation callback
- * @param userdata   Passed through to @p cb unchanged
+ * @param e           Entry to fill
+ * @param label       Entry label, already translated
+ * @param cb          Activation callback
+ * @param userdata    Passed through to @p cb unchanged
  * @param is_disabled Whether the entry starts disabled
  *
  * @note Complexity: @e O(1)
@@ -189,10 +184,13 @@ void iconmenu_show(xcb_connection_t *connection,
     int n;
     int desk_count;
     int page_count;
+    int monitor_count;
     ctxmenu_entry_td *desk_entries = NULL;
     ctxmenu_state_td *desk_state = NULL;
     ctxmenu_entry_td *page_entries = NULL;
     ctxmenu_state_td *page_state = NULL;
+    ctxmenu_entry_td *monitor_entries = NULL;
+    ctxmenu_state_td *monitor_state = NULL;
 
     if (connection == NULL || surface == NULL || desktop == NULL ||
             client == NULL || config == NULL ||
@@ -211,6 +209,11 @@ void iconmenu_show(xcb_connection_t *connection,
             &page_entries, &page_state);
     desk_count = ctxmenu_submenu_desktop_build(surface, desktop, client,
             &desk_entries, &desk_state);
+
+    /* Build "Send to monitor" submenu, only meaningful (and only shown
+     * at all, see below) on a surface with more than one monitor */
+    monitor_count = ctxmenu_submenu_monitor_build(surface, desktop,
+            client, &monitor_entries, &monitor_state);
 
     memset(s_entries, 0, sizeof(s_entries));
     n = 0;
@@ -242,8 +245,21 @@ void iconmenu_show(xcb_connection_t *connection,
         ++n;
     }
 
-    /* Separator before Restore/Hide, only when at least one of the two
-     * submenus above is actually present */
+    /* Send to monitor (submenu); omitted entirely, not just disabled,
+     * on a surface with only one monitor */
+    if (monitor_count > 0) {
+        s_entries[n].type = CTXMENU_SUBMENU;
+        safe_strncpy(s_entries[n].label,
+                _(STR_WINCMENU_SEND_TO_MONITOR),
+                sizeof(s_entries[n].label) - 1u);
+        s_entries[n].items = monitor_entries;
+        s_entries[n].item_count = monitor_count;
+        s_entries[n].userdata = monitor_state;
+        ++n;
+    }
+
+    /* Separator before Restore/Hide, only when at least one of the
+     * three submenus above is actually present */
     if (n > 0) {
         s_entries[n].type = CTXMENU_SEPARATOR;
         ++n;
@@ -279,15 +295,15 @@ void iconmenu_show(xcb_connection_t *connection,
     /* Nothing else marks 'client' outdated or otherwise revisits its
      * icon on its own here, so without this the icon would go on
      * showing whatever it last displayed until some unrelated event
-     * happened to repaint it, the exact same "menu itself does not
-     * draw until the pointer happens to cross it" gap 'handler_expose'
-     * (menu/context/iconmenu.h wiring, handler/expose.c) already
-     * exists to close for the menu window, just not previously
-     * extended to the icon's own selected styling.  'force' is true:
-     * nothing about the icon's own geometry or decoration actually
-     * changed, only which icon 'iconmenu_target_is' now answers for,
-     * which the skip-check inside 'ri_render_client_icon' has no way
-     * to know without this. */
+     * happened to repaint it, the exact same "menu itself does not draw
+     * until the pointer happens to cross it" gap 'handler_expose'
+     * ('menu/context/iconmenu.h' wiring, 'handler/expose.c') already
+     * exists to close for the menu window, just not previously extended
+     * to the icon's own selected styling.  'force' is true: nothing
+     * about the icon's own geometry or decoration actually changed,
+     * only which icon 'iconmenu_target_is' now answers for, which the
+     * skip-check inside 'ri_render_client_icon' has no way to know
+     * without this. */
     ri_render_client_icon(client, true, true, true);
 }
 
@@ -304,8 +320,8 @@ void iconmenu_close(void)
 
     /* The client whose menu just closed needs the same forced repaint
      * 'iconmenu_show' above gives it on the way in, or its icon would
-     * go on showing selected styling for a menu that no longer
-     * exists, until some unrelated event happened to notice. */
+     * go on showing selected styling for a menu that no longer exists,
+     * until some unrelated event happened to notice. */
     if (was_target != NULL) {
         ri_render_client_icon(was_target, true, true, true);
     }
@@ -358,11 +374,11 @@ void iconmenu_notice_client_destroyed(const client_td *client)
         return;
     }
 
-    /* Not 'iconmenu_close()': that also repaints 'client's icon to
-     * confirm the menu no longer applies to it, wasted work, on a
-     * client already on its way out, and one whose fields nothing
-     * here promises are still consistent enough mid-teardown for
-     * that repaint to read safely. */
+    /* Not 'iconmenu_close': that also repaints 'client's icon to
+     * confirm the menu no longer applies to it, wasted work, on
+     * a client already on its way out, and one whose fields nothing
+     * here promises are still consistent enough mid-teardown for that
+     * repaint to read safely. */
     ctxmenu_close(&s_root);
     s_surface = NULL;
     s_config = NULL;

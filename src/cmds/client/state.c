@@ -42,6 +42,9 @@
 #include <utils/xcb/connection.h>
 #include <utils/xcb/window.h>
 
+/* Input includes */
+#include <input/mouse/hover.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -49,9 +52,6 @@
 #include <systray.h>
 #include <utils/geom.h>
 #include <wm.h>
-
-/* Input includes */
-#include <input/mouse/hover.h>
 
 /* Local includes */
 #include <cmds/client/ewmh.h>
@@ -152,6 +152,18 @@ static void s_client_enable_decoration(client_td *client,
             XCB_COPY_FROM_PARENT,
             mask, values);
 
+    /* A brand-new window, painted with 'border_color' above (always
+     * the inactive one, corrected to the active one if warranted by
+     * the redraw pass this function's own caller ends with); these
+     * two, though, still hold whatever this same client's previous
+     * frame (just destroyed, if it had one) last had them set to.
+     * Left alone, that stale, coincidentally-matching cache would
+     * make 'render_client_decoration_repaint_frame'
+     * (render/client/decoration.c) believe this new window already
+     * shows the right color and skip painting it for real. */
+    client->layout.has_frame_bg = false;
+    client->layout.has_titlebar_bg = false;
+
     client->titlebar = xcb_generate_id(xcb_connection_get());
     mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     values[0] = bg_color;
@@ -171,8 +183,8 @@ static void s_client_enable_decoration(client_td *client,
     /* Reparenting to an unmapped frame makes the content window
      * non-viewable, which emits two synthetic 'UnmapNotify' events:
      *
-     *  1. From root's SubstructureNotify (event=root, window=content)
-     *  2. From the content window's StructureNotify (event=window,
+     *  1. From root's 'SubstructureNotify' (event=root, window=content)
+     *  2. From the content window's 'StructureNotify' (event=window,
      *     window=content)
      *
      * Absorb both so focus is not stolen from the active window. */
@@ -513,8 +525,8 @@ static void s_ccmd_decorate_remaximize(client_td *client)
 
         if (ccmd_client_resolve_workarea(client, &mx, &my, &sw, &sh)) {
             xcb_window_t target = ccmd_target_win(client);
-            bool touch_x = !client_is_maximized_vert(client);
-            bool touch_y = !client_is_maximized_horz(client);
+            bool touch_x = client_is_maximized_horz(client);
+            bool touch_y = client_is_maximized_vert(client);
             /* 'ccmd_client_toggle_decorate' always ends by focusing
              * 'client' once this function returns, so its border width
              * right after this toggle is always the active one,
@@ -523,9 +535,9 @@ static void s_ccmd_decorate_remaximize(client_td *client)
              * undecorate branch above has already settled, so
              * 'client->frame' now correctly reflects whether one
              * exists; for a now-decorated client this correctly stays
-             * 0, since the frame's size (not an additional border atop
-             * it) already fills the workarea, matching 'target' being
-             * the frame itself just below. */
+             * zero, since the frame's size (not an additional border
+             * atop it) already fills the workarea, matching 'target'
+             * being the frame itself just below. */
             uint32_t border = 2u * client_border_width(client, true,
                     false);
             uint16_t mask = 0u;
@@ -925,8 +937,7 @@ void ccmd_client_fullscreen(client_td *client)
      * clients only apply the next size they are told about relative to
      * their last known good state, which can otherwise show as a blank
      * frame until an unrelated event forces a fresh redraw. */
-    client_send_synthetic_configure_notify(xcb_connection_get(),
-            client);
+    client_send_synthetic_configure_notify(xcb_connection_get(), client);
 
     client->properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN;
     (void) clock_gettime(CLOCK_MONOTONIC,
@@ -1120,10 +1131,10 @@ void ccmd_client_unfullscreen(client_td *client)
 
     /* The workarea may well have moved while the client was covering
      * it, a panel having appeared or a monitor changed, so a restored
-     * maximization is measured against the workarea as it is now rather
-     * than the geometry saved on the way in.  Already folded into
-     * 'layout.geometry.cur' and applied for real, once, right after
-     * 'client_geometry_restore' above: nothing left to do here. */
+     * maximization is measured against the workarea as it is now
+     * rather than the geometry saved on the way in.  Already folded
+     * into 'layout.geometry.cur' and applied for real, once, right
+     * after 'client_geometry_restore' above: nothing left to do here. */
 
     ccmd_publish_frame_extents(client,
             (uint32_t) client->layout.frame_extents.left,

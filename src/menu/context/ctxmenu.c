@@ -215,7 +215,8 @@ void ctxmenu_close(ctxmenu_state_td *state)
         state->child = NULL;
     }
 
-    if (xcb_connection_get() != NULL && state->window != XCB_WINDOW_NONE) {
+    if (xcb_connection_get() != NULL &&
+            state->window != XCB_WINDOW_NONE) {
         xcb_window_destroy(state->window);
     }
 
