@@ -18,5 +18,4 @@ X-GNOME-WMName=IcoWM
 X-GNOME-Autostart-Phase=Applications
 X-GNOME-Autostart-Notify=true
 X-GNOME-Provides=windowmanager
-X-Ubuntu-Gettext-Domain=icowm
 Keywords=wm;windowmanager;window;manager;
