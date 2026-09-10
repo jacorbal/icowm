@@ -648,7 +648,7 @@ void handler_configure_request(xcb_connection_t *connection,
 
     geom_changed = false;
     if (client != NULL) {
-        bool wm_owns_geometry;
+        uint16_t owned_mask;
         bool is_reparented = (client->frame != 0) &&
             client_is_decorated(client);
         bool on_inner = (event->window == client->window);
@@ -681,13 +681,36 @@ void handler_configure_request(xcb_connection_t *connection,
          * its preferred size right back would immediately shrink back
          * down, undoing 'ccmd_client_fullscreen''s deliberate choice
          * (see its comment in cmds/client/state.c) to bypass every one
-         * of the client's size hints while fullscreen. */
-        wm_owns_geometry =
-            client->properties.operation == CLIENT_OPERATION_MOVING ||
-            client->properties.operation == CLIENT_OPERATION_RESIZING ||
-            client_is_fullscreen(client);
-        if (wm_owns_geometry && (mask & geom_mask)) {
-            mask = (uint16_t) (mask & ~geom_mask);
+         * of the client's size hints while fullscreen.
+         *
+         * A maximized axis is owned the same way, but only that axis:
+         * unlike a drag in progress or fullscreen, which own the whole
+         * window, a client maximized on just one axis still genuinely
+         * owns the other, free one, the same distinction
+         * 'ccmd_client_move'/'_center' (cmds/client/move.c) already
+         * draw.  Without stripping the maximized axis's own X/Y and
+         * width/height here, the exact same 'min_width' == 'max_width'
+         * client reacting to being forced past its own preferred size
+         * would silently shrink a maximized axis right back down too,
+         * leaving 'CLIENT_STATE_MAXIMIZED_HORZ'/'_VERT' standing over
+         * geometry that no longer actually fills the workarea. */
+        owned_mask = 0u;
+        if (client->properties.operation == CLIENT_OPERATION_MOVING ||
+                client->properties.operation ==
+                    CLIENT_OPERATION_RESIZING ||
+                client_is_fullscreen(client)) {
+            owned_mask |= geom_mask;
+        }
+        if (client_is_maximized_horz(client)) {
+            owned_mask |= (uint16_t) XCB_CONFIG_WINDOW_X |
+                (uint16_t) XCB_CONFIG_WINDOW_WIDTH;
+        }
+        if (client_is_maximized_vert(client)) {
+            owned_mask |= (uint16_t) XCB_CONFIG_WINDOW_Y |
+                (uint16_t) XCB_CONFIG_WINDOW_HEIGHT;
+        }
+        if (owned_mask != 0u && (mask & owned_mask)) {
+            mask = (uint16_t) (mask & ~owned_mask);
             if (mask == 0) {
                 s_handler_configure_acknowledge(connection, client,
                         is_reparented);

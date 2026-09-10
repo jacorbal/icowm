@@ -469,6 +469,90 @@ static void s_test_request_wm_owns_geometry(void)
 }
 
 
+/* A client maximized horizontally only has its own X/width request
+ * ignored, since that axis is owned by the window manager, while its
+ * still-free Y is honored normally */
+static void s_test_request_maximized_horz_ignores_x_honors_y(void)
+{
+    client_td client;
+    surface_td surface;
+    desktop_td desktop;
+    xcb_configure_request_event_t event;
+    list_td surfaces;
+    xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
+    int32_t original_x;
+    uint32_t original_w;
+
+    s_test_reset_state();
+    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_plain_client(&client);
+    client.properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+    original_x = client.layout.geometry.cur.pos.x;
+    original_w = client.layout.geometry.cur.dim.w;
+    s_lookup_result = &client;
+    s_lookup_surface_out = &surface;
+    s_lookup_desktop_out = &desktop;
+    s_test_build_request_event(&event, client.window,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                XCB_CONFIG_WINDOW_WIDTH,
+            999, 555, 400u, 0u);
+
+    handler_configure_request(connection, &surfaces, &event);
+
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, original_x,
+            "a horizontally maximized client's X stays put," \
+            " ignoring its own request");
+    TAP_EQ_INT((long) client.layout.geometry.cur.dim.w,
+            (long) original_w,
+            "and so does its width");
+    TAP_EQ_INT(client.layout.geometry.cur.pos.y, 555,
+            "but its still-free Y is honored normally");
+}
+
+
+/* A fully maximized client has its entire geometry request ignored,
+ * the same as a fullscreen one already is */
+static void s_test_request_maximized_full_ignores_everything(void)
+{
+    client_td client;
+    surface_td surface;
+    desktop_td desktop;
+    xcb_configure_request_event_t event;
+    list_td surfaces;
+    xcb_connection_t *connection = (xcb_connection_t *) 0x1234;
+    int32_t original_x;
+    int32_t original_y;
+
+    s_test_reset_state();
+    memset(&surfaces, 0, sizeof(surfaces));
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_plain_client(&client);
+    client.properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED;
+    original_x = client.layout.geometry.cur.pos.x;
+    original_y = client.layout.geometry.cur.pos.y;
+    s_lookup_result = &client;
+    s_lookup_surface_out = &surface;
+    s_lookup_desktop_out = &desktop;
+    s_test_build_request_event(&event, client.window,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, 999, 999,
+            0u, 0u);
+
+    handler_configure_request(connection, &surfaces, &event);
+
+    TAP_EQ_INT(client.layout.geometry.cur.pos.x, original_x,
+            "a fully maximized client's X stays put too");
+    TAP_EQ_INT(client.layout.geometry.cur.pos.y, original_y,
+            "and so does its Y, both axes owned by the window" \
+            " manager");
+    TAP_OK(s_call_configure_window == 0u,
+            "a fully-suppressed request never reaches" \
+            " xcb_configure_window");
+}
+
+
 /* A request for the exact width/height a client already has is
  * a true no-op: no xcb_configure_window call, no outdating */
 static void s_test_request_wh_matches_current(void)
@@ -1063,13 +1147,15 @@ static void s_test_notify_inner_window_already_correct(void)
 
 int main(void)
 {
-    TAP_PLAN(46);
+    TAP_PLAN(52);
 
     s_test_request_null_event();
     s_test_request_systray_enforced();
     s_test_request_unmanaged_forwarded();
     s_test_request_plain_client_move();
     s_test_request_wm_owns_geometry();
+    s_test_request_maximized_horz_ignores_x_honors_y();
+    s_test_request_maximized_full_ignores_everything();
     s_test_request_wh_matches_current();
     s_test_request_shade_cooldown_suppresses();
     s_test_request_shade_cooldown_expired_honors();
