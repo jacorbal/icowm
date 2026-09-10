@@ -945,17 +945,22 @@ void ccmd_client_fullscreen(client_td *client)
 
     ccmd_publish_frame_extents(client, 0u, 0u, 0u, 0u);
 
-    /* Retain focus: keep this client active on its desktop and give it
-     * input focus so the window is not lost from the active window
-     * tracking when going fullscreen. */
+    /* Only for the client already active on its desktop, the same rule
+     * 'ccmd_client_unshade''s identical guard already documents: going
+     * fullscreen on a client that was not the active one should not
+     * steal focus from whichever client actually still holds it.
+     * For the common case, an already-active client keeping real input
+     * focus here is what keeps it from being lost from the
+     * active window tracking as it goes fullscreen. */
     desktop = wm_get_client_desktop(client);
     if (desktop != NULL) {
-        desktop->client_active_id = client->id;
         desktop->is_focus_dirty = true;
         (void) desktop_action_client_send_front(desktop, client);
         desktop->is_outdated = true;
+        if (desktop->client_active_id == client->id) {
+            ccmd_client_focus(client);
+        }
     }
-    ccmd_client_focus(client);
 
     ccmd_client_sync_states(client);
 
@@ -1232,14 +1237,21 @@ void ccmd_client_toggle_decorate(client_td *client)
     s_ccmd_decorate_remaximize(client);
 
     if (desktop != NULL) {
-        desktop->client_active_id = client->id;
         desktop->is_focus_dirty = true;
         (void) desktop_action_client_send_front(desktop, client);
         desktop->is_outdated = true;
     }
 
     ccmd_client_raise(client);
-    ccmd_client_focus(client);
+
+    /* Only for the client already active on its desktop, the same rule
+     * 'ccmd_client_unshade''s identical guard already documents and
+     * applies: toggling decoration on a client that was not the active
+     * one should not steal focus from whichever client actually still
+     * holds it. */
+    if (desktop != NULL && desktop->client_active_id == client->id) {
+        ccmd_client_focus(client);
+    }
 
     /* Toggling decoration changes whether resize/move/decoration
      * actions actually make sense (an undecorated client's border

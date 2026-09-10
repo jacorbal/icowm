@@ -70,6 +70,7 @@
 static int s_apply_geometry_calls;
 static uint32_t s_last_apply_w;
 static uint32_t s_last_apply_h;
+static uint16_t s_last_apply_mask;
 
 void ccmd_client_apply_geometry(client_td *client,
         xcb_window_t target, uint16_t mask,
@@ -78,13 +79,13 @@ void ccmd_client_apply_geometry(client_td *client,
 {
     (void) client;
     (void) target;
-    (void) mask;
     (void) x;
     (void) y;
     (void) border_width;
     s_apply_geometry_calls++;
     s_last_apply_w = w;
     s_last_apply_h = h;
+    s_last_apply_mask = mask;
 }
 
 
@@ -191,16 +192,22 @@ void ccmd_client_refill_maximized(client_td *client)
 
 
 /**
- * @brief Link-only stand-in for @a ccmd_client_resolve_workarea
+ * @brief Configurable stand-in for @a ccmd_client_resolve_workarea
  *
- * Reached only by 'ccmd_client_shade'/'_unshade' (through
- * 'ccmd_client_toggle_shade', never exercised past its own guard
- * clauses here) and by 's_ccmd_decorate_remaximize' (through
- * 'ccmd_client_toggle_decorate', reached only for a client already
- * maximized, which no test here sets up).
+ * Defaults to failing (returning @c false, every output zeroed),
+ * matching what every test here except the one exercising
+ * @a s_ccmd_decorate_remaximize actually needs; that one test sets
+ * @c s_resolve_workarea_should_succeed and the four output values
+ * first.
  *
  * @note Complexity: @e O(1)
  */
+static bool s_resolve_workarea_should_succeed;
+static int32_t s_resolve_workarea_x;
+static int32_t s_resolve_workarea_y;
+static uint16_t s_resolve_workarea_w;
+static uint16_t s_resolve_workarea_h;
+
 bool ccmd_client_resolve_workarea(client_td *client,
         int32_t *out_x, int32_t *out_y,
         uint16_t *out_w, uint16_t *out_h)
@@ -208,19 +215,23 @@ bool ccmd_client_resolve_workarea(client_td *client,
     (void) client;
 
     if (out_x != NULL) {
-        *out_x = 0;
+        *out_x = s_resolve_workarea_should_succeed
+            ? s_resolve_workarea_x : 0;
     }
     if (out_y != NULL) {
-        *out_y = 0;
+        *out_y = s_resolve_workarea_should_succeed
+            ? s_resolve_workarea_y : 0;
     }
     if (out_w != NULL) {
-        *out_w = 0u;
+        *out_w = s_resolve_workarea_should_succeed
+            ? s_resolve_workarea_w : 0u;
     }
     if (out_h != NULL) {
-        *out_h = 0u;
+        *out_h = s_resolve_workarea_should_succeed
+            ? s_resolve_workarea_h : 0u;
     }
 
-    return false;
+    return s_resolve_workarea_should_succeed;
 }
 
 
@@ -611,8 +622,14 @@ static void s_reset(void)
     s_apply_geometry_calls = 0;
     s_last_apply_w = 0u;
     s_last_apply_h = 0u;
+    s_last_apply_mask = 0u;
     s_synthetic_notify_calls = 0;
     s_refill_geometry_should_touch = false;
+    s_resolve_workarea_should_succeed = false;
+    s_resolve_workarea_x = 0;
+    s_resolve_workarea_y = 0;
+    s_resolve_workarea_w = 0u;
+    s_resolve_workarea_h = 0u;
 }
 
 
@@ -752,9 +769,11 @@ static void s_test_fullscreen_restores_iconified_first(void)
 
 
 /* An ordinary, non-modal client entering fullscreen ends up with the
- * fullscreen state bit set, keeps focus on its own desktop, and
- * enforces that desktop's layer ordering right away */
-static void s_test_fullscreen_sets_state_and_keeps_focus(void)
+ * fullscreen state bit set and enforces its desktop's layer ordering
+ * right away, but does not steal focus or desktop activity from
+ * whichever client actually held them, not having been the active
+ * one itself */
+static void s_test_fullscreen_sets_state_and_enforces_layer(void)
 {
     client_td *client;
     desktop_td owner;
@@ -768,15 +787,42 @@ static void s_test_fullscreen_sets_state_and_keeps_focus(void)
 
     TAP_OK(client_is_fullscreen(client) != 0,
             "the client ends up marked fullscreen");
-    TAP_EQ_INT((long) owner.client_active_id, (long) client->id,
-            "the owning desktop's active client becomes this one");
+    TAP_OK((long) owner.client_active_id != (long) client->id,
+            "a client that was not already active does not become"
+            " the desktop's active one");
     TAP_OK(owner.is_focus_dirty,
-            "the owning desktop is marked to refresh focus decoration");
-    TAP_EQ_INT(s_focus_calls, 1, "the client is given real input focus");
+            "the owning desktop is marked to refresh focus decoration"
+            " regardless");
+    TAP_EQ_INT(s_focus_calls, 0,
+            "real input focus is not stolen from whichever client"
+            " actually held it");
     TAP_EQ_INT(s_enforce_layers_calls, 1,
             "layer ordering is enforced once right away");
     TAP_EQ_INT(s_systray_restack_calls, 1,
             "the systray is let reconsider its own stacking");
+
+    s_teardown();
+}
+
+
+/* A client that was already the active one on its desktop keeps real
+ * input focus after entering fullscreen, so it is not lost from the
+ * active window tracking as it goes fullscreen */
+static void s_test_fullscreen_already_active_keeps_focus(void)
+{
+    client_td *client;
+    desktop_td owner;
+
+    s_reset();
+    client = s_make_client(13u);
+    memset(&owner, 0, sizeof(owner));
+    owner.client_active_id = 13u;
+    s_owner_desktop = &owner;
+
+    ccmd_client_fullscreen(client);
+
+    TAP_EQ_INT(s_focus_calls, 1,
+            "the already-active client is given real input focus");
 
     s_teardown();
 }
@@ -910,8 +956,9 @@ static void s_test_toggle_decorate_locked_is_a_no_op(void)
 
 
 /* Toggling decoration on an ordinary, undecorated client republishes
- * its allowed actions, raises and refocuses it on its own desktop,
- * and requests a redraw */
+ * its allowed actions, raises it and requests a redraw, but does not
+ * steal focus or desktop activity from whichever client actually held
+ * them, not having been the active one itself */
 static void s_test_toggle_decorate_plain_client_runs_side_effects(void)
 {
     client_td *client;
@@ -924,10 +971,13 @@ static void s_test_toggle_decorate_plain_client_runs_side_effects(void)
 
     ccmd_client_toggle_decorate(client);
 
-    TAP_EQ_INT((long) owner.client_active_id, (long) client->id,
-            "the owning desktop's active client becomes this one");
+    TAP_OK((long) owner.client_active_id != (long) client->id,
+            "a client that was not already active does not become"
+            " the desktop's active one");
     TAP_EQ_INT(s_raise_calls, 1, "the client is raised once");
-    TAP_EQ_INT(s_focus_calls, 1, "the client is refocused once");
+    TAP_EQ_INT(s_focus_calls, 0,
+            "real input focus is not stolen from whichever client"
+            " actually held it");
     TAP_EQ_INT(s_update_allowed_actions_calls, 1,
             "its allowed actions are republished exactly once");
     TAP_EQ_INT(s_redraw_calls, 1, "a redraw is requested once");
@@ -936,9 +986,68 @@ static void s_test_toggle_decorate_plain_client_runs_side_effects(void)
 }
 
 
+/* A client that was already the active one on its desktop keeps real
+ * input focus after its decoration is toggled */
+static void s_test_toggle_decorate_already_active_keeps_focus(void)
+{
+    client_td *client;
+    desktop_td owner;
+
+    s_reset();
+    client = s_make_client(24u);
+    memset(&owner, 0, sizeof(owner));
+    owner.client_active_id = 24u;
+    s_owner_desktop = &owner;
+
+    ccmd_client_toggle_decorate(client);
+
+    TAP_EQ_INT(s_focus_calls, 1,
+            "the already-active client is given real input focus");
+
+    s_teardown();
+}
+
+
+/* A fully maximized client's geometry is remaximized on both axes
+ * after a decoration toggle, not left untouched on either one */
+static void s_test_toggle_decorate_maximized_remaximizes_both_axes(
+        void)
+{
+    client_td *client;
+    desktop_td owner;
+
+    s_reset();
+    client = s_make_client(23u);
+    client->properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED;
+    memset(&owner, 0, sizeof(owner));
+    s_owner_desktop = &owner;
+    s_resolve_workarea_should_succeed = true;
+    s_resolve_workarea_x = 0;
+    s_resolve_workarea_y = 0;
+    s_resolve_workarea_w = 800u;
+    s_resolve_workarea_h = 600u;
+
+    ccmd_client_toggle_decorate(client);
+
+    TAP_EQ_INT(s_last_apply_mask,
+            (long) ((uint16_t) XCB_CONFIG_WINDOW_X |
+                (uint16_t) XCB_CONFIG_WINDOW_Y |
+                (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                (uint16_t) XCB_CONFIG_WINDOW_HEIGHT),
+            "remaximizing a fully maximized client after a" \
+            " decoration toggle touches both axes, not neither");
+    TAP_EQ_INT((long) s_last_apply_w, 800,
+            "the remaximized width matches the resolved workarea");
+    TAP_EQ_INT((long) s_last_apply_h, 600,
+            "the remaximized height matches the resolved workarea");
+
+    s_teardown();
+}
+
+
 int main(void)
 {
-    TAP_PLAN(34);
+    TAP_PLAN(39);
 
     s_test_null_client_is_a_no_op();
     s_test_toggle_shade_undecorated_is_a_no_op();
@@ -946,13 +1055,16 @@ int main(void)
     s_test_toggle_shade_already_shaded_unshades();
     s_test_fullscreen_modal_is_a_no_op();
     s_test_fullscreen_restores_iconified_first();
-    s_test_fullscreen_sets_state_and_keeps_focus();
+    s_test_fullscreen_sets_state_and_enforces_layer();
+    s_test_fullscreen_already_active_keeps_focus();
     s_test_unfullscreen_clears_state();
     s_test_unfullscreen_maximized_applies_geometry_once();
     s_test_toggle_fullscreen_flips_both_ways();
     s_test_toggle_decorate_fullscreen_is_a_no_op();
     s_test_toggle_decorate_locked_is_a_no_op();
     s_test_toggle_decorate_plain_client_runs_side_effects();
+    s_test_toggle_decorate_already_active_keeps_focus();
+    s_test_toggle_decorate_maximized_remaximizes_both_axes();
 
     return TAP_DONE();
 }
