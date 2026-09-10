@@ -96,6 +96,15 @@ void scratchpad_notice_client_created(client_td *client);
  * @a scratchpad_reposition, whenever @p surface's work areas are
  * recomputed for any other reason.
  *
+ * An axis configured @c "max" is maximized, not merely resized to the
+ * workarea's edge: it sets @c CLIENT_STATE_MAXIMIZED_HORZ /
+ * @c CLIENT_STATE_MAXIMIZED_VERT (both, under
+ * @c CLIENT_STATE_MAXIMIZED, when both axes are @c "max") and reaches
+ * that edge exactly, ignoring @c WM_NORMAL_HINTS resize increments the
+ * way @a ccmd_client_maximize_horz / @a _vert already do.  Everything
+ * else about the scratchpad (its fixed edge anchoring, never being
+ * draggable, hiding through @a enact_client_hide) is unaffected.
+ *
  * @param client  Client to position
  * @param desktop Desktop @p client was just added to
  * @param surface Surface @p desktop belongs to
@@ -166,9 +175,8 @@ void scratchpad_notice_client_destroyed(const client_td *client);
  *
  * @param desktop Desktop whose viewport just panned
  *
- * @note A no-op with no current scratchpad client, one already
- *       hidden, or one that belongs to a different desktop than
- *       @p desktop
+ * @note A no-op with no current scratchpad client, one already hidden,
+ *       or one that belongs to a different desktop than @p desktop
  * @note Complexity: @e O(1)
  *
  * @see @a scratchpad_toggle, which repositions before showing again

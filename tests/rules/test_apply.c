@@ -1430,6 +1430,65 @@ static void s_test_fullscreen_client_skips_geometry(void)
 }
 
 
+/* A fully maximized client's geometry is left untouched too, the
+ * same as a fullscreen one, rather than a re-evaluated rule
+ * silently un-maximizing it */
+static void s_test_maximized_client_skips_geometry(void)
+{
+    surface_td *surface = &s_surface;
+    desktop_td *desktop = &s_desktop;
+    struct rules_apply_s apply;
+
+    s_reset();
+    s_client.properties.state |= (uint16_t) CLIENT_STATE_MAXIMIZED;
+    memset(&apply, 0, sizeof(apply));
+    apply.has_position = true;
+    apply.x = 10;
+    apply.y = 10;
+    apply.has_size = true;
+    apply.w = 50u;
+    apply.h = 50u;
+    s_add_rule(RULES_WHEN_BOTH, apply);
+
+    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+            RULES_TRIGGER_PROPERTY);
+
+    TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 0,
+            "a fully maximized client's geometry request is skipped"
+            " entirely");
+}
+
+
+/* A client maximized on just one axis skips its geometry request
+ * too: the rule cannot tell which axis a "position"/"size" is meant
+ * for, so both stay skipped rather than only the free one */
+static void s_test_maximized_horz_client_skips_geometry(void)
+{
+    surface_td *surface = &s_surface;
+    desktop_td *desktop = &s_desktop;
+    struct rules_apply_s apply;
+
+    s_reset();
+    s_client.properties.state |=
+        (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+    memset(&apply, 0, sizeof(apply));
+    apply.has_position = true;
+    apply.x = 10;
+    apply.y = 10;
+    apply.has_size = true;
+    apply.w = 50u;
+    apply.h = 50u;
+    s_add_rule(RULES_WHEN_BOTH, apply);
+
+    (void) rules_apply(s_fake_wm, &s_client, &surface, &desktop,
+            RULES_TRIGGER_PROPERTY);
+
+    TAP_EQ_INT(s_call_ccmd_client_apply_geometry, 0,
+            "a horizontally maximized client's geometry request is"
+            " skipped entirely too");
+}
+
+
 /* has_focus true with is_focused true on a focusable client calls
  * focus_apply exactly once */
 static void s_test_focus_applies_when_focusable(void)
@@ -1564,7 +1623,7 @@ static void s_test_successful_apply_broadcasts_and_returns_true(void)
 
 int main(void)
 {
-    TAP_PLAN(69);
+    TAP_PLAN(71);
 
     s_test_null_wm_returns_false();
     s_test_null_client_returns_false();
@@ -1596,6 +1655,8 @@ int main(void)
     s_test_monitor_alone_centers_by_default();
     s_test_monitor_out_of_range_falls_back_to_zero();
     s_test_fullscreen_client_skips_geometry();
+    s_test_maximized_client_skips_geometry();
+    s_test_maximized_horz_client_skips_geometry();
     s_test_focus_applies_when_focusable();
     s_test_focus_skips_unfocusable_client();
     s_test_two_rules_merge_disjoint_fields();

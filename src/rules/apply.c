@@ -220,6 +220,8 @@ static void s_rules_apply_layer(client_td *client,
  *
  * @note The function is a no-op when none of @p apply->has_position,
  *       @p apply->has_size, or @p apply->has_monitor is @c true
+ * @note Position and size are also skipped, silently, for
+ *       a fullscreen or maximized client
  * @note Negative Y values in @p apply are clamped to zero
  * @note Complexity: @e O(1)
  */
@@ -241,23 +243,25 @@ static void s_rules_apply_geometry(const surface_td *surface,
         return;
     }
 
-    /* Fullscreen is a WM-forced override of the client's preferred
-     * geometry (see 'ccmd_client_fullscreen''s comment,
-     * cmds/client/state.c), and every source that might otherwise
-     * change position/size while it holds respects that already
-     * ('handler_configure_request', handler/configure.c, for the
-     * client's attempts).
+    /* Fullscreen and any maximized state (full, or just one axis)
+     * are both WM-forced overrides of the client's preferred
+     * geometry (see 'ccmd_client_fullscreen'/'ccmd_client_maximize'
+     * and friends, cmds/client/state.c and maximize.c), and every
+     * source that might otherwise change position/size while either
+     * holds respects that already ('handler_configure_request',
+     * handler/configure.c, for the client's own attempts).
      *
      * A rule is no different: 'rules_apply' itself re-runs on any
      * property change this client's window happens to generate while
-     * fullscreen (not just its initial map), via the generic fallback
-     * at the end of 'handler_property_notify' (handler/focus.c), so
-     * without this a rule with its 'apply.size'/'apply.position' would
-     * silently undo fullscreen the next time that client touched some
-     * unrelated property of its own.  Every other rule effect (desktop,
-     * layer, flags) still applies regardless; only geometry itself is
-     * skipped here. */
-    if (client_is_fullscreen(client)) {
+     * fullscreen or maximized (not just its initial map), via the
+     * generic fallback at the end of 'handler_property_notify'
+     * (handler/focus.c), so without this a rule with its
+     * 'apply.size'/'apply.position' would silently undo either state
+     * the next time that client touched some unrelated property of
+     * its own.  Every other rule effect (desktop, layer, flags)
+     * still applies regardless; only geometry itself is skipped
+     * here. */
+    if (client_is_fullscreen(client) || client_is_maximized_any(client)) {
         return;
     }
 

@@ -47,8 +47,9 @@
 #include <wm/internal.h>
 
 
-/* Captures the arguments of the one real call scratchpad_position
- * itself makes, so tests can assert on them */
+/* Captures the arguments of the one real resize call
+ * scratchpad_position makes for an axis that is not "max"
+ * (enact_client_resize_force), so tests can assert on them */
 static bool s_resize_called;
 static int32_t s_resize_x;
 static int32_t s_resize_y;
@@ -77,6 +78,33 @@ void enact_client_resize_force(client_td *client, struct geometry_s geom)
 }
 
 
+/* Captures the arguments of the one real call scratchpad_position
+ * makes instead of the above, for an axis that is "max"
+ * (ccmd_client_apply_geometry), so tests can assert on them the same
+ * way */
+static bool s_apply_geom_called;
+static int32_t s_apply_geom_x;
+static int32_t s_apply_geom_y;
+static uint32_t s_apply_geom_w;
+static uint32_t s_apply_geom_h;
+
+void ccmd_client_apply_geometry(client_td *client,
+        xcb_window_t target, uint16_t mask,
+        int32_t x, int32_t y, uint32_t w, uint32_t h,
+        uint32_t border_width)
+{
+    (void) client;
+    (void) target;
+    (void) mask;
+    (void) border_width;
+    s_apply_geom_called = true;
+    s_apply_geom_x = x;
+    s_apply_geom_y = y;
+    s_apply_geom_w = w;
+    s_apply_geom_h = h;
+}
+
+
 /** Link-only stand-ins: nothing here simulates real behavior, except
  *  desktop_action_process_launch_with_class, whose success (return
  *  0) is what legitimately arms scratchpad_toggle's own "awaiting a
@@ -101,6 +129,61 @@ void ccmd_client_set_border_override(client_td *client, uint32_t color,
     (void) color;
     (void) width;
 }
+
+/* A distinguishable stand-in, not a plain pass-through: returning
+ * fixed sentinel values (rather than leaving width/height untouched,
+ * which the real function would also do for every client this file
+ * constructs, all with 'hints_icccm.size.is_valid' false) lets tests
+ * tell apart a fixed axis that genuinely went through this call from
+ * a "max" one that was overridden back to its own ideal value
+ * afterward, regardless of what this returns */
+#define S_CONSTRAIN_SENTINEL_W 777u
+#define S_CONSTRAIN_SENTINEL_H 888u
+static bool s_constrain_called;
+
+void client_size_constrain(const client_td *client,
+        uint32_t *restrict width, uint32_t *restrict height)
+{
+    (void) client;
+    s_constrain_called = true;
+    if (width != NULL) {
+        *width = S_CONSTRAIN_SENTINEL_W;
+    }
+    if (height != NULL) {
+        *height = S_CONSTRAIN_SENTINEL_H;
+    }
+}
+
+xcb_window_t ccmd_target_win(client_td *client)
+{
+    return (client != NULL) ? client->window : XCB_WINDOW_NONE;
+}
+
+/* Call count for ccmd_client_sync_states, reset explicitly by each
+ * test that cares about it: scratchpad_position only calls this when
+ * the "max" state it computes actually differs from what the client
+ * already had */
+static int s_call_sync_states;
+
+void ccmd_client_sync_states(client_td *client)
+{
+    (void) client;
+    s_call_sync_states++;
+}
+
+void client_send_synthetic_configure_notify(xcb_connection_t *connection,
+        const client_td *client)
+{
+    (void) connection;
+    (void) client;
+}
+
+xcb_connection_t *xcb_connection_get(void)
+{
+    return NULL;
+}
+
+void wm_request_client_redraw(client_td *client) { (void) client; }
 
 void client_border_apply(client_td *client, bool use_active_style)
 {
@@ -482,19 +565,96 @@ static void s_test_position_workarea_left_max_width(void)
     config.base.scratchpad.height.pixels = 100u;
 
     s_resize_called = false;
+    s_apply_geom_called = false;
+    s_constrain_called = false;
+    s_call_sync_states = 0;
     scratchpad_position(&client, &desktop, &surface);
 
     /* area = workarea (50,20,500,400), no border.  width = "max" =
      * avail_w = 500.  LEFT: x = area_x = 50,
      * y = area_y + (avail_h - height) / 2 = 20 + (400-100)/2 = 20+150
      * = 170 */
-    TAP_EQ_INT(s_resize_x, 50, "LEFT edge: x is flush with the" \
+    TAP_OK(!s_resize_called, "a \"max\" width takes the direct-apply" \
+            " path, not the ordinary resize one");
+    TAP_OK(s_apply_geom_called, "a \"max\" width is applied directly," \
+            " bypassing 'WM_NORMAL_HINTS' resize increments");
+    TAP_EQ_INT(s_apply_geom_x, 50, "LEFT edge: x is flush with the" \
             " workarea's own left");
-    TAP_EQ_INT(s_resize_y, 170, "LEFT edge: y is vertically centered" \
-            " within the workarea");
-    TAP_EQ_INT((long) s_resize_w, 500,
-            "a \"max\" width resolves to the full available width");
-    TAP_EQ_INT((long) s_resize_h, 100, "fixed height is used as-is");
+    TAP_EQ_INT(s_apply_geom_y, 170, "LEFT edge: y is vertically" \
+            " centered within the workarea");
+    TAP_OK(s_constrain_called, "the fixed height paired with a" \
+            " \"max\" width still goes through 'WM_NORMAL_HINTS'" \
+            " constraining");
+    TAP_EQ_INT((long) s_apply_geom_w, 500,
+            "the \"max\" width itself is overridden back to the full" \
+            " available width, ignoring whatever constraining just" \
+            " produced for it");
+    TAP_EQ_INT((long) s_apply_geom_h, (long) S_CONSTRAIN_SENTINEL_H,
+            "the fixed height is left at whatever constraining" \
+            " produced, unlike the \"max\" axis");
+    TAP_OK(client_is_maximized_horz(&client),
+            "a \"max\" width is genuinely marked maximized horizontally");
+    TAP_OK(!client_is_maximized_vert(&client),
+            "a fixed height is not marked maximized vertically");
+    TAP_EQ_INT(s_call_sync_states, 1,
+            "becoming maximized republishes the client's EWMH state" \
+            " once");
+}
+
+
+/* scratchpad_position: with both axes configured "max", the client
+ * ends up fully maximized (both CLIENT_STATE_MAXIMIZED_HORZ and
+ * _VERT), and a second call with the same config never re-publishes
+ * EWMH state it already holds */
+static void s_test_position_both_axes_max(void)
+{
+    client_td client;
+    desktop_td desktop;
+    surface_td surface;
+    config_td config;
+
+    memset(&client, 0, sizeof(client));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&surface, 0, sizeof(surface));
+    memset(&config, 0, sizeof(config));
+
+    s_claim_as_scratchpad(&client);
+
+    surface.config = &config;
+    surface.properties.dim.w = 640u;
+    surface.properties.dim.h = 480u;
+
+    config.base.scratchpad.ignore_margins = true;
+    config.base.scratchpad.edge = CONFIG_SCRATCHPAD_EDGE_TOP;
+    config.base.scratchpad.width.mode = CONFIG_SCRATCHPAD_SIZE_MAX;
+    config.base.scratchpad.height.mode = CONFIG_SCRATCHPAD_SIZE_MAX;
+
+    s_apply_geom_called = false;
+    s_call_sync_states = 0;
+    scratchpad_position(&client, &desktop, &surface);
+
+    TAP_OK(s_apply_geom_called,
+            "both axes \"max\" also takes the direct-apply path");
+    TAP_EQ_INT(s_apply_geom_x, 0, "both axes \"max\": x is flush" \
+            " with the surface's own left");
+    TAP_EQ_INT(s_apply_geom_y, 0, "both axes \"max\": y is flush" \
+            " with the surface's own top");
+    TAP_EQ_INT((long) s_apply_geom_w, 640,
+            "both axes \"max\": width fills the whole surface");
+    TAP_EQ_INT((long) s_apply_geom_h, 480,
+            "both axes \"max\": height fills the whole surface");
+    TAP_OK(client_is_maximized(&client),
+            "both axes \"max\" leaves the client fully maximized");
+    TAP_EQ_INT(s_call_sync_states, 1,
+            "becoming fully maximized republishes EWMH state once");
+
+    s_apply_geom_called = false;
+    scratchpad_position(&client, &desktop, &surface);
+    TAP_OK(s_apply_geom_called,
+            "repositioning again reapplies the geometry regardless");
+    TAP_EQ_INT(s_call_sync_states, 1,
+            "repositioning again with the same \"max\" config does not" \
+            " republish EWMH state a second time");
 }
 
 
@@ -694,7 +854,7 @@ static void s_test_notice_panned_matching_desktop_hides(void)
 
 int main(void)
 {
-    TAP_PLAN(34);
+    TAP_PLAN(49);
 
     s_test_is_client_lifecycle();
     s_test_notice_created_guards();
@@ -703,6 +863,7 @@ int main(void)
     s_test_position_guards();
     s_test_position_ignore_margins_bottom_fixed();
     s_test_position_workarea_left_max_width();
+    s_test_position_both_axes_max();
     s_test_position_clamps_oversized_fixed_size();
     s_test_toggle_repositions_on_unhide();
     s_test_notice_panned_no_client_is_noop();

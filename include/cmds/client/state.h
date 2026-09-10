@@ -72,10 +72,10 @@ void ccmd_client_toggle_shade(client_td *client);
  *
  * Saves the current geometry, removes decoration, and resizes the
  * client to cover the full screen.  Sets @c CLIENT_STATE_FULLSCREEN
- * and synchronizes EWMH @c _NET_WM_STATE.  Also grants @p client
- * focus (see this function's implementation comment on why) and,
- * now genuinely fullscreen and focused both, stacks it above every
- * other client on its own desktop via @a ccmd_desktop_enforce_layers.
+ * and synchronizes EWMH @c _NET_WM_STATE.  Also grants @p client focus
+ * (see this function's implementation comment on why) and, now
+ * genuinely fullscreen and focused both, stacks it above every other
+ * client on its own desktop via @a ccmd_desktop_enforce_layers.
  *
  * @param client Window to set to fullscreen
  *
@@ -90,11 +90,10 @@ void ccmd_client_fullscreen(client_td *client);
  * Restores the saved pre-fullscreen geometry and decoration state.
  * Clears @c CLIENT_STATE_FULLSCREEN and synchronizes EWMH
  * @c _NET_WM_STATE.  No longer fullscreen, @p client also stops being
- * forced above every other client regardless of focus; re-enforces
- * its desktop's layer stacking via @a ccmd_desktop_enforce_layers
- * right away so it settles back into its real layer immediately,
- * rather than on whatever future stacking-order pass happens to run
- * next.
+ * forced above every other client regardless of focus; re-enforces its
+ * desktop's layer stacking via @a ccmd_desktop_enforce_layers right
+ * away so it settles back into its real layer immediately, rather than
+ * on whatever future stacking-order pass happens to run next.
  *
  * @param client Window to unfullscreen
  *

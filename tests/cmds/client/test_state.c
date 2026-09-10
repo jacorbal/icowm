@@ -57,15 +57,20 @@
 
 
 /**
- * @brief Link-only stand-in for @a ccmd_client_apply_geometry
+ * @brief Recording stand-in for @a ccmd_client_apply_geometry
  *
- * Every geometry math call this file's tested paths reach is a
- * downstream detail of the X server round trips already unreachable
- * without a live connection, so this never needs to record anything
- * a test here actually checks.
+ * Counts calls and remembers the width/height of the last one, so
+ * a test can confirm 'ccmd_client_unfullscreen' folds a still-
+ * maximized axis into 'layout.geometry.cur' before this, its one
+ * real geometry-applying call, rather than applying the restored
+ * (pre-maximize) size here and only fixing it up afterward
  *
  * @note Complexity: @e O(1)
  */
+static int s_apply_geometry_calls;
+static uint32_t s_last_apply_w;
+static uint32_t s_last_apply_h;
+
 void ccmd_client_apply_geometry(client_td *client,
         xcb_window_t target, uint16_t mask,
         int32_t x, int32_t y, uint32_t w, uint32_t h,
@@ -76,9 +81,10 @@ void ccmd_client_apply_geometry(client_td *client,
     (void) mask;
     (void) x;
     (void) y;
-    (void) w;
-    (void) h;
     (void) border_width;
+    s_apply_geometry_calls++;
+    s_last_apply_w = w;
+    s_last_apply_h = h;
 }
 
 
@@ -138,6 +144,35 @@ void ccmd_client_raise(client_td *client)
 {
     (void) client;
     s_raise_calls++;
+}
+
+
+/**
+ * @brief Configurable stand-in for
+ *        @a ccmd_client_refill_maximized_geometry
+ *
+ * Defaults to @c false, untouched, matching what the real function
+ * does for a client maximized on neither axis, which is every client
+ * every other test here ever sets up.  A test exercising the one
+ * still-maximized case sets @c s_refill_geometry_should_touch first,
+ * so this writes deterministic sentinel dimensions to
+ * @c layout.geometry.cur the same way the real function would write
+ * its own freshly resolved ones, and returns @c true.
+ *
+ * @note Complexity: @e O(1)
+ */
+#define S_REFILL_SENTINEL_W (777u)
+#define S_REFILL_SENTINEL_H (888u)
+static bool s_refill_geometry_should_touch;
+
+bool ccmd_client_refill_maximized_geometry(client_td *client)
+{
+    if (!s_refill_geometry_should_touch) {
+        return false;
+    }
+    client->layout.geometry.cur.dim.w = S_REFILL_SENTINEL_W;
+    client->layout.geometry.cur.dim.h = S_REFILL_SENTINEL_H;
+    return true;
 }
 
 
@@ -347,14 +382,17 @@ void client_gravity_adjust_pos(int32_t *out_x, int32_t *out_y,
 
 
 /**
- * @brief Link-only stand-in for @a client_send_synthetic_configure_notify
+ * @brief Recording stand-in for @a client_send_synthetic_configure_notify
  * @note Complexity: @e O(1)
  */
+static int s_synthetic_notify_calls;
+
 void client_send_synthetic_configure_notify(
         xcb_connection_t *connection, const client_td *client)
 {
     (void) connection;
     (void) client;
+    s_synthetic_notify_calls++;
 }
 
 
@@ -570,6 +608,11 @@ static void s_reset(void)
     s_systray_restack_calls = 0;
     s_owner_desktop = NULL;
     s_redraw_calls = 0;
+    s_apply_geometry_calls = 0;
+    s_last_apply_w = 0u;
+    s_last_apply_h = 0u;
+    s_synthetic_notify_calls = 0;
+    s_refill_geometry_should_touch = false;
 }
 
 
@@ -766,6 +809,46 @@ static void s_test_unfullscreen_clears_state(void)
 }
 
 
+/* A client still maximized (on one axis, the common partial case)
+ * when it leaves fullscreen has that axis folded into
+ * 'layout.geometry.cur' before the one real geometry-applying call
+ * this function makes, rather than applying the restored
+ * (pre-maximize) geometry for real first and correcting it with
+ * a second real apply and a second synthetic notify moments later */
+static void s_test_unfullscreen_maximized_applies_geometry_once(void)
+{
+    client_td *client;
+    desktop_td owner;
+
+    s_reset();
+    client = s_make_client(15u);
+    client->properties.state |= (uint16_t) CLIENT_STATE_FULLSCREEN |
+        (uint16_t) CLIENT_STATE_MAXIMIZED_HORZ;
+    memset(&owner, 0, sizeof(owner));
+    s_owner_desktop = &owner;
+    s_refill_geometry_should_touch = true;
+
+    ccmd_client_unfullscreen(client);
+
+    TAP_OK(!client_is_fullscreen(client),
+            "leaving fullscreen clears the fullscreen state bit");
+    TAP_OK(client_is_maximized_horz(client),
+            "the maximized-horizontal state bit survives leaving" \
+            " fullscreen, unaffected by any of this");
+    TAP_EQ_INT(s_synthetic_notify_calls, 1,
+            "the client is told its geometry exactly once, not once" \
+            " for the restored size and again for the corrected one");
+    TAP_EQ_INT((long) s_last_apply_w, (long) S_REFILL_SENTINEL_W,
+            "the one real geometry apply already carries the" \
+            " refilled maximized width, not the pre-maximize one" \
+            " 'client_geometry_restore' set moments earlier");
+    TAP_EQ_INT((long) s_last_apply_h, (long) S_REFILL_SENTINEL_H,
+            "same for height");
+
+    s_teardown();
+}
+
+
 /* Toggling fullscreen on a plain client enters it, and toggling again
  * on the very same client leaves it */
 static void s_test_toggle_fullscreen_flips_both_ways(void)
@@ -855,7 +938,7 @@ static void s_test_toggle_decorate_plain_client_runs_side_effects(void)
 
 int main(void)
 {
-    TAP_PLAN(29);
+    TAP_PLAN(34);
 
     s_test_null_client_is_a_no_op();
     s_test_toggle_shade_undecorated_is_a_no_op();
@@ -865,6 +948,7 @@ int main(void)
     s_test_fullscreen_restores_iconified_first();
     s_test_fullscreen_sets_state_and_keeps_focus();
     s_test_unfullscreen_clears_state();
+    s_test_unfullscreen_maximized_applies_geometry_once();
     s_test_toggle_fullscreen_flips_both_ways();
     s_test_toggle_decorate_fullscreen_is_a_no_op();
     s_test_toggle_decorate_locked_is_a_no_op();
