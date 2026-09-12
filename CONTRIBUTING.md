@@ -75,7 +75,10 @@ so that it cannot be mistaken for a nested block:
             &anchor, &icon_pos);
 ```
 
-Code lines stop at 75-78 columns.  Comment lines stop at 72 if possible, and following the Vim format `:set tw=72 cpo+=J fo+=rj1np1`.  Rare exceptions are used, for example if it prevents new line by just one character, or in a line that cannot be broken.
+Code lines stop at 75-78 columns.  Comment lines stop at 72 if possible,
+and following the Vim format `:set tw=72 cpo+=J fo=tcqrjnp1`.  Rare
+exceptions are used, for example if it prevents new line by just one
+character, or in a line that cannot be broken.
 
 One space in a declaration or an assignment, never several to line
 something up.  A ternary has its condition in parentheses even when that
@@ -94,13 +97,13 @@ A loop counter used nowhere outside its loop is declared inside it:
     for (int i = 0; i < n; ++i) {
 ```
 
-About compound blocks, no bare `{ ... }` block opened purely to hold a
-declaration partway through a function.  The only place such a block is
-admitted is inside a `case`, and only where it cannot be avoided.
+About compound blocks, no bare `{ ... }` block opened purely to hold
+a declaration partway through a function.  The only place such a block
+is admitted is inside a `case`, and only where it cannot be avoided.
 
-No forward declarations unless there's no other way.  A static function is
-defined before the first function that calls it, which means a file reads
-bottom-up, from its smallest pieces to its public ones.
+No forward declarations unless there's no other way.  A static function
+is defined before the first function that calls it, which means a file
+reads bottom-up, from its smallest pieces to its public ones.
 
 A `.c` file is ordered: its includes, then any type it declares for
 itself, then its file-scope variables, then its static functions, then
@@ -208,10 +211,10 @@ same spirit as the rest of the project.
 
 **Functions** read anchor, then object, then action:
 
-    place_manual_enqueue      place  + manual  + enqueue
-    ccmd_client_iconify       ccmd   + client  + iconify
-    ctxmenu_tree_handle_click ctxmenu + tree   + handle_click
-    wm_startup_randr_init     wm_startup + randr + init
+    place_manual_enqueue      place      + manual + enqueue
+    ccmd_client_iconify       ccmd       + client + iconify
+    ctxmenu_tree_handle_click ctxmenu    + tree   + handle_click
+    wm_startup_randr_init     wm_startup + randr  + init
 
 The anchor comes from the path, but contracted to whatever identifies
 the module rather than joined together mechanically.  `cmds/client/`
