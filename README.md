@@ -248,22 +248,20 @@ link line naming that self-same set of libraries).
 Upon Debian and Ubuntu, the following installs the whole of the above:
 
 ```sh
-sudo apt install build-essential pkg-config \
-    libxcb1-dev libxcb-keysyms1-dev libxcb-util-dev \
-    libxcb-icccm4-dev libxcb-ewmh-dev libxcb-randr0-dev \
-    libxcb-sync-dev libxcb-cursor-dev libxcb-render0-dev \
-    libxcb-render-util0-dev libfreetype-dev libfontconfig-dev \
-    libcjson-dev
+sudo apt install pkg-config libxcb1-dev libxcb-keysyms1-dev \
+    libxcb-util-dev libxcb-icccm4-dev libxcb-ewmh-dev \
+    libxcb-randr0-dev libxcb-sync-dev libxcb-cursor-dev \
+    libxcb-render0-dev libxcb-render-util0-dev \
+    libfreetype-dev libfontconfig-dev libcjson-dev
 ```
 
 or, upon Gentoo:
 
 ```sh
-sudo emerge -anv dev-build/make virtual/pkgconfig x11-libs/libxcb \
-    x11-libs/xcb-util x11-libs/xcb-util-cursor \
-    x11-libs/xcb-util-keysyms x11-libs/xcb-util-renderutil \
-    x11-libs/xcb-util-wm media-libs/freetype media-libs/fontconfig \
-    dev-libs/cJSON
+sudo emerge -anv virtual/pkgconfig x11-libs/libxcb x11-libs/xcb-util \
+    x11-libs/xcb-util-cursor x11-libs/xcb-util-keysyms \
+    x11-libs/xcb-util-renderutil x11-libs/xcb-util-wm \
+    media-libs/freetype media-libs/fontconfig dev-libs/cJSON
 ```
 
 Other distributions furnish equivalent packages, ordinarily under
