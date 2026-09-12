@@ -1,4 +1,5 @@
-# Hacking on IcoWM
+Hacking on IcoWM
+================
 
 Herein is the map for one who would alter the code, rather than build it
 or send a patch thereunto.  [`INSTALL.md`](INSTALL.md) sets forth how it
@@ -178,7 +179,7 @@ window, not as a follow-up.  The one deliberate exception is
 semantic of its own, and `xsettings.c`'s selection-owner window, which
 is never mapped at all.
 
-**A restart is a fresh execvp, not a config reload.**  `restart_wm`
+**A restart is a fresh `execvp`, not a config reload.**  `restart_wm`
 (over IPC, or `icowm-msg restart_wm` from a terminal) sets a flag `main`
 checks once `wm_start` returns, then re-executes this very binary with
 the same `argv`.  Every managed client is already back under bare X by
