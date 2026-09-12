@@ -16,7 +16,7 @@ What each release brought, newest first.
 - **DOCUMENTATION.**  Wiki page on GitHub:
   <https://github.com/jacorbal/icowm/wiki>
 
-- **PROMOTED.**  From `1.0.1-rc.3` to stable (codename: "'ovelya")
+- **PROMOTED.**  From `1.0.1-rc.3` to stable
 
 
 `icowm_1.0.1-rc.3`
