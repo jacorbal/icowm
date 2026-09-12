@@ -9,8 +9,9 @@ What each release brought, newest first.
 
 ### September 23, 2026
 
-- **RELEASED.**  Version 1.0.1 (codename: "'ovelya") released as the Autumnal
-  Equinox raises its head above the horizon at precisely 00:05:38 UTC
+- **RELEASED.**  Version 1.0.1 (codename: "'ovelya") released as the
+  Autumnal Equinox raises its head above the horizon at precisely
+  00:05:38 UTC
 
 - **DOCUMENTATION.**  Wiki page on GitHub:
   <https://github.com/jacorbal/icowm/wiki>
