@@ -9,11 +9,13 @@ What each release brought, newest first.
 
 ### September 23, 2026
 
-- **RELEASED.**  From `1.0.1-rc.3` to stable (codename: "'ovelya") as
-  the Autumnal Equinox raises its head above the horizon at precisely
-  00:05:38 UTC
+- **RELEASED.**  Version 1.0.1 (codename: "'ovelya") released as the Autumnal
+  Equinox raises its head above the horizon at precisely 00:05:38 UTC
+
 - **DOCUMENTATION.**  Wiki page on GitHub:
   <https://github.com/jacorbal/icowm/wiki>
+
+- **PROMOTED.**  From `1.0.1-rc.3` to stable (codename: "'ovelya")
 
 
 `icowm_1.0.1-rc.3`
@@ -139,6 +141,7 @@ What each release brought, newest first.
 
 ### August 29, 2026
 
+- **IMPROVED.**  Viewport desktops memory management
 - **IMPROVED.**  Workareas are computed only when the strut changed
 - **IMPROVED.**  System tray remembers what it was last stacked
 

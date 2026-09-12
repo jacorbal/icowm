@@ -15,8 +15,8 @@
                     "columns": 2
                 },
                 "viewport": {
-                    "columns": 2,
-                    "rows": 2
+                    "columns": 1,
+                    "rows": 1
                 },
                 "settings": [
                     { "-background-color": "#5f7187", "name": "" },

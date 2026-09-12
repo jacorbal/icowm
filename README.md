@@ -223,10 +223,10 @@ Dependencies
 ------------
 
 The construction of IcoWM requires, at the outset, a C99 compiler,
-either GNU Make or BSD make, and `pkg-config` (this last being employed
-to locate the libraries enumerated below; should it be wanting, the
-build reverts, without complaint, to a fixed link line naming that
-self-same set of libraries).
+a `make` utility of either the GNU or the BSD lineage, and `pkg-config`
+(this last being employed to locate the libraries enumerated below;
+should it be wanting, the build reverts, without complaint, to a fixed
+link line naming that self-same set of libraries).
 
   - **libxcb**, together with the following extension libraries:
     `xcb-keysyms`, `xcb-util`, `xcb-icccm`, `xcb-ewmh`, `xcb-randr`,
@@ -236,7 +236,7 @@ self-same set of libraries).
     OpenType text rendering whensoever a theme's font fails to resolve
     to an X core font (as, for instance, `"DejaVu Sans Mono:size=8"`, in
     contradistinction to an X bitmap font description such as `"fixed
-    bold 13"`; the font format note in section 10 of `doc/themes.md`
+    bold 13"`; the font format note in section 13 of `doc/themes.md`
     sets out the full syntax of both).
 
   - **cJSON**, by whose offices every JSON configuration file is read.
@@ -256,9 +256,19 @@ sudo apt install build-essential pkg-config \
     libcjson-dev
 ```
 
+or, upon Gentoo:
+
+```sh
+sudo emerge -anv dev-build/make virtual/pkgconfig x11-libs/libxcb \
+    x11-libs/xcb-util x11-libs/xcb-util-cursor \
+    x11-libs/xcb-util-keysyms x11-libs/xcb-util-renderutil \
+    x11-libs/xcb-util-wm media-libs/freetype media-libs/fontconfig \
+    dev-libs/cJSON
+```
+
 Other distributions furnish equivalent packages, ordinarily under
-similarly-named `xcb-util-*`/`xcb-util-*-devel` or `libxcb-*-dev`
-packages, together with a `cjson`/`libcjson` development package; one's
+similarly-named `xcb-util-*`/`xcb-util-*-devel` or `libxcb-*-dev`,
+together with a `cjson`/`libcjson` development package; one's
 distribution's package search ought to be consulted for the precise
 names in use.
 
