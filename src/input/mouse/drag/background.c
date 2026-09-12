@@ -59,7 +59,9 @@ typedef struct {
 } bg_drag_state_td;
 
 
-/** Singleton background-pan drag state */
+/**
+ * @brief Singleton background-pan drag state
+ */
 static bg_drag_state_td s_bg = {
     .is_active = false,
     .surface = NULL,
@@ -69,6 +71,7 @@ static bg_drag_state_td s_bg = {
 };
 
 
+/* Begin a background-pan drag */
 void drag_background_start(xcb_connection_t *connection,
         surface_td *surface, xcb_window_t root,
         xcb_timestamp_t event_time, struct position_s root_pos)
@@ -88,12 +91,12 @@ void drag_background_start(xcb_connection_t *connection,
     }
 
     /* A plain '{1,1}' desktop can never actually be panned (see
-     * 'surface_viewport_has_room', surface/viewport.c), so showing
+     * 'surface_viewport_has_room', 'surface/viewport.c'), so showing
      * the move cursor for the whole button hold would promise a pan
      * this drag can never deliver; the state below is still armed
      * exactly the same either way, so a release with no real movement
-     * keeps unfocusing the active client like a plain background
-     * click always has. */
+     * keeps unfocusing the active client like a plain background click
+     * always has. */
     drag_cursor = (surface_viewport_has_room(surface))
         ? mouse_cursor_move()
         : mouse_plain_cursor();
@@ -128,6 +131,7 @@ void drag_background_start(xcb_connection_t *connection,
 }
 
 
+/* Update the in-progress background-pan drag on a motion-notify event */
 void drag_background_update(xcb_connection_t *connection,
         struct position_s root_pos)
 {
@@ -148,6 +152,7 @@ void drag_background_update(xcb_connection_t *connection,
 }
 
 
+/* Finish the background-pan drag on a button-release event */
 void drag_background_end(xcb_connection_t *connection,
         list_td *surfaces, struct position_s root_pos)
 {
@@ -164,7 +169,8 @@ void drag_background_end(xcb_connection_t *connection,
     /* Never moved past the click threshold: treat exactly like the
      * plain background click this always was, unfocusing the active
      * client so every window loses its selection highlight */
-    if (dx * dx + dy * dy < WM_ICON_DRAG_THRESHOLD && s_bg.surface != NULL) {
+    if (dx * dx + dy * dy < WM_ICON_DRAG_THRESHOLD &&
+            s_bg.surface != NULL) {
         surface_td *const surface = s_bg.surface;
         desktop_td *const desktop = surface_desktop_get(surface,
                 surface->desktop_cur);
@@ -189,6 +195,7 @@ void drag_background_end(xcb_connection_t *connection,
 }
 
 
+/* Query whether a background-pan drag is currently active */
 bool drag_background_is_active(void)
 {
     return s_bg.is_active;

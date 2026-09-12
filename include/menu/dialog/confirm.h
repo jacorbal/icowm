@@ -41,6 +41,13 @@
 
 
 /**
+ * @brief Vertical gap, in pixels, between the prompt and the countdown
+ *        line beneath it, when a timeout is running
+ */
+#define DIALOG_CONFIRM_TIMEOUT_LINE_GAP (6)
+
+
+/**
  * @brief Open the confirm dialog centered on the screen
  *
  * Creates and maps a modal dialog window with @p prompt, a cancel

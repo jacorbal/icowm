@@ -48,10 +48,6 @@
 #include <input/mouse/internal.h>
 
 
-/** How often @a s_hover_window, while set, gets re-evaluated */
-#define MOUSE_HOVER_POLL_INTERVAL_MS (100)
-
-
 /**
  * @brief Undecorated client whose resize cursor
  *        @a mouse_hover_poll_tick should keep re-evaluating, or

@@ -35,10 +35,6 @@
 #include <utils/xcb/connection.h>
 
 
-/** Exit status of a child that never managed to execute anything */
-#define S_SPAWN_EXIT_NOEXEC (127)
-
-
 /**
  * @brief Replace the child image with the requested program
  *
@@ -96,7 +92,7 @@ static void s_spawn_child(char **argv, const spawn_opts_td *opts,
             sizeof(child_errno));
     (void) write_result;
 
-    _exit(S_SPAWN_EXIT_NOEXEC);
+    _exit(SPAWN_EXIT_NOEXEC);
 }
 
 

@@ -106,38 +106,38 @@ struct s_ipc_event_def_s {
  * @brief Event structure
  */
 static const struct s_ipc_event_def_s s_event_defs[] = {
-    { "window_mapped",    IPC_EVENT_WINDOW_MAPPED },
-    { "window_closed",    IPC_EVENT_WINDOW_CLOSED },
-    { "desktop_switched", IPC_EVENT_DESKTOP_SWITCHED },
-    { "focus_changed",    IPC_EVENT_FOCUS_CHANGED },
-    { "urgency_set",      IPC_EVENT_URGENCY_SET },
-    { "urgency_cleared",  IPC_EVENT_URGENCY_CLEARED },
-    { "window_moved",     IPC_EVENT_WINDOW_MOVED },
-    { "window_resized",   IPC_EVENT_WINDOW_RESIZED },
-    { "rule_applied",     IPC_EVENT_RULE_APPLIED },
-    { "pin_set",              IPC_EVENT_PIN_SET },
-    { "pin_cleared",          IPC_EVENT_PIN_CLEARED },
-    { "fullscreen_set",       IPC_EVENT_FULLSCREEN_SET },
-    { "fullscreen_cleared",   IPC_EVENT_FULLSCREEN_CLEARED },
-    { "shade_set",            IPC_EVENT_SHADE_SET },
-    { "shade_cleared",        IPC_EVENT_SHADE_CLEARED },
-    { "hide_set",             IPC_EVENT_HIDE_SET },
-    { "hide_cleared",         IPC_EVENT_HIDE_CLEARED },
-    { "decoration_set",       IPC_EVENT_DECORATION_SET },
-    { "decoration_cleared",   IPC_EVENT_DECORATION_CLEARED },
-    { "client_iconified",     IPC_EVENT_CLIENT_ICONIFIED },
-    { "client_deiconified",   IPC_EVENT_CLIENT_DEICONIFIED },
-    { "layer_changed",        IPC_EVENT_LAYER_CHANGED },
-    { "client_desktop_changed", IPC_EVENT_CLIENT_DESKTOP_CHANGED },
-    { "client_renamed",       IPC_EVENT_CLIENT_RENAMED },
-    { "client_reclassed",     IPC_EVENT_CLIENT_RECLASSED },
-    { "client_reroled",       IPC_EVENT_CLIENT_REROLED },
-    { "client_icon_changed",  IPC_EVENT_CLIENT_ICON_CHANGED },
+    { "window_mapped",              IPC_EVENT_WINDOW_MAPPED },
+    { "window_closed",              IPC_EVENT_WINDOW_CLOSED },
+    { "desktop_switched",           IPC_EVENT_DESKTOP_SWITCHED },
+    { "focus_changed",              IPC_EVENT_FOCUS_CHANGED },
+    { "urgency_set",                IPC_EVENT_URGENCY_SET },
+    { "urgency_cleared",            IPC_EVENT_URGENCY_CLEARED },
+    { "window_moved",               IPC_EVENT_WINDOW_MOVED },
+    { "window_resized",             IPC_EVENT_WINDOW_RESIZED },
+    { "rule_applied",               IPC_EVENT_RULE_APPLIED },
+    { "pin_set",                    IPC_EVENT_PIN_SET },
+    { "pin_cleared",                IPC_EVENT_PIN_CLEARED },
+    { "fullscreen_set",             IPC_EVENT_FULLSCREEN_SET },
+    { "fullscreen_cleared",         IPC_EVENT_FULLSCREEN_CLEARED },
+    { "shade_set",                  IPC_EVENT_SHADE_SET },
+    { "shade_cleared",              IPC_EVENT_SHADE_CLEARED },
+    { "hide_set",                   IPC_EVENT_HIDE_SET },
+    { "hide_cleared",               IPC_EVENT_HIDE_CLEARED },
+    { "decoration_set",             IPC_EVENT_DECORATION_SET },
+    { "decoration_cleared",         IPC_EVENT_DECORATION_CLEARED },
+    { "client_iconified",           IPC_EVENT_CLIENT_ICONIFIED },
+    { "client_deiconified",         IPC_EVENT_CLIENT_DEICONIFIED },
+    { "layer_changed",              IPC_EVENT_LAYER_CHANGED },
+    { "client_desktop_changed",     IPC_EVENT_CLIENT_DESKTOP_CHANGED },
+    { "client_renamed",             IPC_EVENT_CLIENT_RENAMED },
+    { "client_reclassed",           IPC_EVENT_CLIENT_RECLASSED },
+    { "client_reroled",             IPC_EVENT_CLIENT_REROLED },
+    { "client_icon_changed",        IPC_EVENT_CLIENT_ICON_CHANGED },
     { "desktop_background_changed", IPC_EVENT_DESKTOP_BACKGROUND_CHANGED },
-    { "desktop_shown",        IPC_EVENT_DESKTOP_SHOWN },
-    { "desktop_hidden",       IPC_EVENT_DESKTOP_HIDDEN },
-    { "config_reloaded",      IPC_EVENT_CONFIG_RELOADED },
-    { "stacking_changed",     IPC_EVENT_STACKING_CHANGED },
+    { "desktop_shown",              IPC_EVENT_DESKTOP_SHOWN },
+    { "desktop_hidden",             IPC_EVENT_DESKTOP_HIDDEN },
+    { "config_reloaded",            IPC_EVENT_CONFIG_RELOADED },
+    { "stacking_changed",           IPC_EVENT_STACKING_CHANGED },
 };
 
 
@@ -221,6 +221,9 @@ static void s_client_close(int idx)
 }
 
 
+/**
+ * @brief Number of entries in @c s_event_defs
+ */
 #define S_IPC_EVENT_COUNT \
     (sizeof(s_event_defs) / sizeof(s_event_defs[0]))
 

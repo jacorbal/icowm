@@ -33,6 +33,33 @@
 
 
 /**
+ * @brief Longest atom name @a atom_intern's cache stores in full
+ *
+ * The longest name any call site in this project actually passes today
+ * (@c _NET_WM_STATE_DEMANDS_ATTENTION) is 32 bytes including the
+ * terminator; this leaves comfortable headroom for a longer one added
+ * later without needing to revisit this constant.  A name longer than
+ * this is simply never cached (see @a s_atom_cache_find), which only
+ * costs that one call site the speedup, not correctness.
+ */
+#define ATOM_CACHE_NAME_MAX_LENGTH (64)
+
+/**
+ * @brief How many distinct name and only-if-exists pairs
+ *        @a atom_intern's cache holds at once
+ *
+ * A window manager only ever interns a fixed, small set of well-known
+ * EWMH/ICCCM atom names over its lifetime, entirely independent of
+ * how many client windows or desktops it manages; this project's
+ * call sites currently name around thirty distinct ones between them.
+ * Sized well above that so ordinary use never fills the cache, since a
+ * full cache does not overflow (see @a s_atom_cache_find), it just
+ * stops caching further distinct names.
+ */
+#define ATOM_CACHE_CAPACITY (64)
+
+
+/**
  * @brief Intern an X atom by its string name
  *
  * Cached internally by (@p name, @p only_if_exists): a name already

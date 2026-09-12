@@ -35,16 +35,8 @@
 
 
 /**
- * @brief How many entries the dispatch table holds
- *
- * An X event's type occupies the low seven bits of its response
- * type, the eighth being the synthetic marker, so this covers every
- * value one can carry.
+ * @brief Signature every entry of the dispatch table has
  */
-#define S_LOOP_DISPATCH_TABLE_SIZE (128)
-
-
-/** Signature every entry of the dispatch table has */
 typedef void (*s_loop_dispatch_fn)(loop_ctx_td *ctx,
         xcb_generic_event_t **event);
 
@@ -53,11 +45,11 @@ typedef void (*s_loop_dispatch_fn)(loop_ctx_td *ctx,
  * @brief Handle an event that is deliberately ignored
  *
  * Reparenting is the window manager's doing, and its spurious
- * @c UnmapNotify is already absorbed through @c ignore_unmap; a
- * created window, in turn, is adopted on @c MAP_REQUEST rather than
- * on creation, since one may well never be mapped at all.  Both are
- * routed here rather than left out of the table, so that neither is
- * reported as unhandled.
+ * @c UnmapNotify is already absorbed through @c ignore_unmap; a created
+ * window, in turn, is adopted on @c MAP_REQUEST rather than on
+ * creation, since one may well never be mapped at all.  Both are routed
+ * here rather than left out of the table, so that neither is reported
+ * as unhandled.
  *
  * @param ctx   Main loop context, unused
  * @param event Event to ignore
@@ -440,7 +432,7 @@ static bool s_loop_dispatch_extension(loop_ctx_td *ctx,
  * all but a protocol error, which is why it has an entry of its own.
  */
 static const s_loop_dispatch_fn
-        s_loop_dispatch_table[S_LOOP_DISPATCH_TABLE_SIZE] = {
+        s_loop_dispatch_table[LOOP_DISPATCH_TABLE_SIZE] = {
     [0] = s_loop_dispatch_protocol_error,
     [XCB_KEY_PRESS] = loop_event_key_press,
     [XCB_KEY_RELEASE] = loop_event_key_release,

@@ -56,15 +56,15 @@
  *
  * @param wm   Window manager instance
  * @param args The request object itself (its other fields besides
- *             @c "cmd" are this command's arguments); never
- *             @c NULL, though it may have no fields of its own for
- *             a command that takes none
+ *             @c "cmd" are this command's arguments); never null,
+ *             though it may have no fields of its own for a command
+ *             that takes none
  *
  * @return A newly allocated JSON object to use as the full response
- *         (including its @c "ok" field), or @c NULL to have the
- *         caller (see @c ipc_commands_dispatch) fall back to a
- *         generic failure response, when the handler could not build
- *         one of its own (allocation failure)
+ *         (including its @c "ok" field), or @c NULL to have the caller
+ *         (see @c ipc_commands_dispatch) fall back to a generic failure
+ *         response, when the handler could not build one of its own
+ *         (allocation failure)
  */
 typedef cJSON *(*s_ipc_cmd_fn)(const wm_td *wm, const cJSON *args);
 
@@ -124,7 +124,7 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
         ipc_action_move_client_to_monitor_east },
     { "move_client_to_monitor_west",
         ipc_action_move_client_to_monitor_west },
-    { "move_resize_client",        ipc_action_move_resize_client },
+    { "move_resize_client",       ipc_action_move_resize_client },
     { "resize_client",            ipc_action_resize_client },
     { "maximize_client_horz",     ipc_action_maximize_client_horz },
     { "maximize_client_vert",     ipc_action_maximize_client_vert },
@@ -182,13 +182,17 @@ static const struct s_ipc_cmd_def_s s_commands[] = {
     { "toggle_scratchpad",        ipc_action_toggle_scratchpad },
 };
 
-/** Number of entries in 's_commands' */
+
+/**
+ * @brief Number of entries in @c s_commands
+ */
 #define S_IPC_COMMAND_COUNT \
     (sizeof(s_commands) / sizeof(s_commands[0]))
 
 
 /* Handle one complete IPC request line and produce a response */
-char *ipc_commands_dispatch(wm_td *wm, const char *request, int client_idx)
+char *ipc_commands_dispatch(wm_td *wm, const char *request,
+        int client_idx)
 {
     cJSON *parsed;
     cJSON *cmd_item;
@@ -214,10 +218,10 @@ char *ipc_commands_dispatch(wm_td *wm, const char *request, int client_idx)
         return out;
     }
 
-    /* 'subscribe'/'unsubscribe' ahead of the ordinary table: the
-     * only two commands whose effect belongs to this specific
-     * connection (see 'ipc.h''s comment on each) rather than to 'wm',
-     * so neither one fits the table's handler shape at all */
+    /* 'subscribe'/'unsubscribe' ahead of the ordinary table: the only
+     * two commands whose effect belongs to this specific connection
+     * (see 'ipc.h''s comment on each) rather than to 'wm', so neither
+     * one fits the table's handler shape at all */
     if (safe_strcmp(cmd_item->valuestring, "subscribe") == 0) {
         found = true;
         resp = ipc_client_subscribe(client_idx, parsed);
@@ -236,13 +240,12 @@ char *ipc_commands_dispatch(wm_td *wm, const char *request, int client_idx)
     }
 
     if (!found) {
-        /* No entry in 's_commands' matched 'cmd' at all, as opposed
-         * to matching one whose handler returned null from an
-         * allocation failure (the 'resp == NULL' case just below).
-         * That second case keeps a more specific message, since a
-         * handler whose request DID match a real command is a
-         * different failure than the request never matching one at
-         * all. */
+        /* No entry in 's_commands' matched 'cmd' at all, as opposed to
+         * matching one whose handler returned null from an allocation
+         * failure (the 'resp == NULL' case just below).  That second
+         * case keeps a more specific message, since a handler whose
+         * request DID match a real command is a different failure than
+         * the request never matching one at all. */
         resp = ipc_response_error("unknown command");
     } else if (resp == NULL) {
         resp = ipc_response_error("internal error building the response");

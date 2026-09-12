@@ -29,6 +29,16 @@
 #include <loop/context.h>
 
 
+/**
+ * @brief How many entries the dispatch table holds
+ *
+ * An X event's type occupies the low seven bits of its response type,
+ * the eighth being the synthetic marker, so this covers every value one
+ * can carry.
+ */
+#define LOOP_DISPATCH_TABLE_SIZE (128)
+
+
 /* Public interface */
 /**
  * @brief Hand one X event to its handler

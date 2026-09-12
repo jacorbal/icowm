@@ -31,8 +31,8 @@
 #include <input/mouse/drag/resist.h>
 
 
-/* Recompute a maximized-on-one-axis client's resistance state
- * for the current motion event, live */
+/* Recompute a maximized-on-one-axis client's resistance state for the
+ * current motion event, live */
 void drag_resist_axis_update(uint32_t drag_dist_w, uint32_t drag_dist_h,
         uint32_t resistance)
 {
@@ -63,9 +63,9 @@ void drag_resist_axis_update(uint32_t drag_dist_w, uint32_t drag_dist_h,
 }
 
 
-/* Settle a maximize-locked axis's final state once a resize
- * drag ends, for whichever case drag_resist_axis_update's live
- * sync could not already handle */
+/* Settle a maximize-locked axis's final state once a resize drag ends,
+ * for whichever case drag_resist_axis_update's live sync could not
+ * already handle */
 void drag_resist_axis_finalize(bool finalize_resize)
 {
     if (!finalize_resize || s_drag.is_solid_drag) {

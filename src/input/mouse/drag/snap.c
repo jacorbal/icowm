@@ -37,6 +37,23 @@
 
 
 /**
+ * @brief What a snap walk carries across the windows it considers
+ *
+ * The best delta found so far on each axis, which is why a snap cannot
+ * be worked out one window at a time and thrown away.
+ */
+struct s_drag_snap_ctx_s {
+    int32_t left;           /**< Dragged window's left edge */
+    int32_t top;            /**< Its top edge */
+    int32_t right;          /**< Its right edge */
+    int32_t bottom;         /**< Its bottom edge */
+    int32_t snap_window;    /**< Snap distance in force */
+    int32_t delta_x;        /**< Best horizontal delta so far */
+    int32_t delta_y;        /**< Best vertical delta so far */
+};
+
+
+/**
  * @brief Return the absolute value of a signed 32-bit integer
  *
  * @param value Signed value to take the absolute value of
@@ -54,8 +71,8 @@ static int32_t s_drag_abs_i32(int32_t value)
 /**
  * @brief Select the delta with the smaller absolute magnitude
  *
- * Compares two deltas and returns the one whose absolute value
- * is smaller, preserving its original sign.
+ * Compares two deltas and returns the one whose absolute value is
+ * smaller, preserving its original sign.
  *
  * @param current   Current best delta
  * @param candidate Candidate delta to compare
@@ -101,30 +118,13 @@ static bool s_drag_ranges_close(int32_t start_a, int32_t end_a,
 
 
 /**
- * @brief What a snap walk carries across the windows it considers
- *
- * The best delta found so far on each axis, which is why a snap cannot
- * be worked out one window at a time and thrown away.
- */
-struct s_drag_snap_ctx_s {
-    int32_t left;           /**< Dragged window's left edge */
-    int32_t top;            /**< Its top edge */
-    int32_t right;          /**< Its right edge */
-    int32_t bottom;         /**< Its bottom edge */
-    int32_t snap_window;    /**< Snap distance in force */
-    int32_t delta_x;        /**< Best horizontal delta so far */
-    int32_t delta_y;        /**< Best vertical delta so far */
-};
-
-
-/**
  * @brief Consider one window as something to snap a move against
  *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_drag_snap_ctx_s this walk carries
  *
- * @note The dragged window itself, and anything hidden or iconified,
- *       is passed over: none of them is an edge the user can see
+ * @note The dragged window itself, and anything hidden or iconified, is
+ *       passed over: none of them is an edge the user can see
  * @note Complexity: @e O(1)
  */
 static void s_drag_snap_move_visit(client_td *client, void *data)
@@ -178,8 +178,8 @@ static void s_drag_snap_move_visit(client_td *client, void *data)
  *
  * The same walk as @a s_drag_snap_move_visit, except that a resize
  * moves only the edge being dragged: which one that is decides whether
- * a candidate's edges are compared against this window's near side
- * or its far one.
+ * a candidate's edges are compared against this window's near side or
+ * its far one.
  *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_drag_snap_ctx_s this walk carries
@@ -243,52 +243,50 @@ static void s_drag_snap_resize_visit(client_td *client, void *data)
  *        monitor on one axis
  *
  * Checks a single window edge position, @p point, on this axis
- * (left/right for @p horizontal, top/bottom otherwise) against
- * every monitor's near @e and far work-area edge on @p desktop,
- * individually: a two-monitor surface has an edge not just at
- * the two ends of the combined span, but also at the boundary
- * between the two, and a panel or taskbar present on only one
- * monitor's edge reduces that one monitor's work area
- * without touching a neighboring, panel-free monitor's full
- * extent (see @a desktop_update_workarea's doc comment,
- * desktop.h, for how @c monitor_workareas itself is computed).  A
- * monitor only ever counts as a candidate at all when @p cross_near/
- * @p cross_far, the window's span on the @e other axis,
- * genuinely overlaps that monitor's work area on that same other
- * axis (via @a s_drag_ranges_close, the exact same overlap test
- * window-against-window snapping already uses just above in this
- * file): without this, a window sitting entirely on one monitor
- * could otherwise snap to a neighboring monitor's unrelated
- * panel height, one it is nowhere near lining up with at all.
- * Whichever single candidate, across every monitor's near and
- * far edge together, lands closest to @p current wins, the exact
- * same "closest wins" rule window-against-window snapping already
- * follows in this same file; a move drag calls this once per edge
- * (@p point being its near edge, then its far edge in a
- * separate call) and keeps whichever of the two results is itself
- * closer, since both edges move together, while a resize drag calls
- * this only once, for whichever single edge the anchor lets move at
- * all.
+ * (left/right for @p horizontal, top/bottom otherwise) against every
+ * monitor's near @e and far work-area edge on @p desktop, individually:
+ * a two-monitor surface has an edge not just at the two ends of the
+ * combined span, but also at the boundary between the two, and a panel
+ * or taskbar present on only one monitor's edge reduces that one
+ * monitor's work area without touching a neighboring, panel-free
+ * monitor's full extent (see @a desktop_update_workarea's comment in
+ * @c desktop.h for how @c monitor_workareas itself is computed).
+ *
+ * A monitor only ever counts as a candidate at all when @p cross_near
+ * or @p cross_far, the window's span on the @e other axis, genuinely
+ * overlaps that monitor's work area on that same other axis (via
+ * @a s_drag_ranges_close, the exact same overlap test
+ * window-against-window snapping already uses just above in this file):
+ * without this, a window sitting entirely on one monitor could
+ * otherwise snap to a neighboring monitor's unrelated panel height, one
+ * it is nowhere near lining up with at all.  Whichever single
+ * candidate, across every monitor's near and far edge together, lands
+ * closest to @p current wins, the exact same "closest wins" rule
+ * window-against-window snapping already follows in this same file;
+ * a move drag calls this once per edge (@p point being its near edge,
+ * then its far edge in a separate call) and keeps whichever of the two
+ * results is itself closer, since both edges move together, while
+ * a resize drag calls this only once, for whichever single edge the
+ * anchor lets move at all.
  *
  * @param desktop    Desktop whose @c monitor_workareas to check;
- *                    a @c NULL value or one with no monitors detected
- *                    leaves @p current untouched
- * @param current    Best delta found so far, also this call's
- *                    return value if nothing here beats it
- * @param point      The window's edge position to check, on
- *                    this axis
+ *                   a @c NULL value or one with no monitors detected
+ *                   leaves @p current untouched
+ * @param current    Best delta found so far, also this call's return
+ *                   value if nothing here beats it
+ * @param point      The window's edge position to check, on this axis
  * @param cross_near The window's near edge on the @e other axis
- *                    (top for @p horizontal, left otherwise)
+ *                   (top for @p horizontal, left otherwise)
  * @param cross_far  The window's far edge on the @e other axis
- *                    (bottom for @p horizontal, right otherwise)
+ *                   (bottom for @p horizontal, right otherwise)
  * @param snap       Maximum allowed gap for @p cross_near and
- *                    @p cross_far to still count as overlapping a
- *                    monitor's work area on that other axis
+ *                   @p cross_far to still count as overlapping
+ *                   a monitor's work area on that other axis
  * @param horizontal @c true to check every monitor's work area
- *                    left/right edges, @c false for top/bottom
+ *                   left/right edges, @c false for top/bottom
  *
- * @return The closest delta across @p current and every monitor's
- *         near and far work-area edge on this axis
+ * @return The closest delta across @p current and every monitor's near
+ *         and far work-area edge on this axis
  *
  * @note Complexity: @e O(m), where @e m is @p desktop's surface's
  *       monitor count
@@ -354,9 +352,9 @@ void drag_snap_move(int32_t *restrict x, int32_t *restrict y,
          * 'abs(delta) <= snap_window' below is what decides whether
          * a candidate actually applies, so starting exactly at
          * 'snap_window' would make that check pass on the untouched
-         * initial value alone whenever no real candidate ever beat
-         * it, applying a spurious snap of exactly the snap distance
-         * with no nearby window at all responsible for it. */
+         * initial value alone whenever no real candidate ever beat it,
+         * applying a spurious snap of exactly the snap distance with no
+         * nearby window at all responsible for it. */
         int32_t dx = snap_window + 1;
         int32_t dy = dx;
 
@@ -435,10 +433,9 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
      * corner or side the user grabbed: 'is_anchor_right' means the LEFT
      * edge is the one being dragged (the right edge stays put), and
      * symmetrically for 'is_anchor_bottom' and the top edge.  Every
-     * delta and snap check below has to target whichever edge that
-     * is, not
-     * always assume it is the right/bottom edge the way a
-     * left-edge-fixed resize would. */
+     * delta and snap check below has to target whichever edge that is,
+     * not always assume it is the right/bottom edge the way
+     * a left-edge-fixed resize would. */
     if (snap_window > 0 && s_drag.desktop != NULL &&
             stacking_count(s_drag.desktop) > 0u) {
         struct s_drag_snap_ctx_s snap_ctx;
@@ -459,11 +456,13 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
         d_horiz = snap_ctx.delta_x;
         d_vert = snap_ctx.delta_y;
 
-        LOGGER_TRACE("Resize snap candidates (x=%d, y=%d, right=%d," \
-                " bottom=%d, anchor-right=%d, anchor-bottom=%d," \
+        LOGGER_TRACE("Resize snap candidates (x=%d, y=%d," \
+                " right=%d, bottom=%d," \
+                " anchor-right=%d, anchor-bottom=%d," \
                 " d-horiz=%d, d-vert=%d, snap-window=%d)",
                 *x, *y, right, bottom,
-                (int) s_drag.is_anchor_right, (int) s_drag.is_anchor_bottom,
+                (int) s_drag.is_anchor_right,
+                (int) s_drag.is_anchor_bottom,
                 d_horiz, d_vert, snap_window);
 
         if (s_drag_abs_i32(d_horiz) <= snap_window) {
@@ -492,10 +491,9 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
          * 'd_horiz'/'d_vert' above for why.  Checks only whichever
          * single edge the anchor actually lets move, unlike the move
          * drag's two calls per axis in 'drag_snap_move': see
-         * 's_drag_monitor_edge_delta''s doc comment for the
-         * fuller reasoning behind checking every monitor's near
-         * and far edge together, not just the combined surface's
-         * two ends. */
+         * 's_drag_monitor_edge_delta''s doc comment for the fuller
+         * reasoning behind checking every monitor's near and far edge
+         * together, not just the combined surface's two ends. */
         int32_t d_screen_h = snap_screen + 1;
         int32_t d_screen_v = d_screen_h;
 
@@ -526,5 +524,5 @@ void drag_snap_resize(int32_t *restrict x, int32_t *restrict y,
                         (int32_t) *height + d_screen_v);
             }
         }
-    }
+    } /* ! if (snap_screen) */
 }

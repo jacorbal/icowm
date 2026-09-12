@@ -53,6 +53,7 @@
 #include <input/mouse/event.h>
 #include <input/mouse/internal.h>
 
+
 /* State for double-click detection on titlebars.  A double-click on the
  * titlebar drag area (i.e., not on a button) toggles shade/unshade. */
 static xcb_timestamp_t s_last_titlebar_press_time = 0;

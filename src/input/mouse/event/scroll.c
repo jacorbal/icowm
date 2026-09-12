@@ -24,10 +24,10 @@
 #include <adt/list.h>
 
 /* Policy includes */
-#include <cmds/client/focus.h>
 #include <policy/focus.h>
 
 /* Command includes */
+#include <cmds/client/focus.h>
 #include <cmds/client/maximize.h>
 #include <cmds/client/state.h>
 
@@ -44,10 +44,11 @@
 
 /* Input includes */
 #include <input/mouse/bind.h>
+#include <input/mouse/event.h>
 
 /* Local includes */
-#include <input/mouse/event.h>
 #include <input/mouse/internal.h>
+
 
 /**
  * @brief Scroll north on a client's titlebar.  Maximize it,

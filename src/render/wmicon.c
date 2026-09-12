@@ -33,26 +33,6 @@
 
 
 /**
- * @brief Icon dimensions above this (in either axis) are rejected
- *        rather than allocated for
- *
- * A well-behaved application never publishes an icon anywhere near this
- * large, so a value past it is far more likely a corrupt or hostile
- * property than a legitimate icon.
- */
-#define WMICON_MAX_SIDE (512u)
-
-/**
- * @brief Standard X RENDER filter name requested for scaling
- *
- * Smooths out both directions (a small source icon scaled up, or
- * a large one scaled down) far better than the nearest-neighbor
- * sampling used by default.
- */
-#define WMICON_FILTER_NAME "bilinear"
-
-
-/**
  * @brief Cached picture-format query, reused across calls
  *
  * @a xcb_render_util_query_formats is a genuine round trip to the
@@ -215,8 +195,8 @@ static void s_icon_scale_apply(xcb_connection_t *connection,
     transform.matrix33 = s_double_to_fixed(1.0);
     xcb_render_set_picture_transform(connection, picture, transform);
     xcb_render_set_picture_filter(connection, picture,
-            (uint16_t) (sizeof(WMICON_FILTER_NAME) - 1u),
-            WMICON_FILTER_NAME, 0u, NULL);
+            (uint16_t) (sizeof(RENDER_WMICON_FILTER_NAME) - 1u),
+            RENDER_WMICON_FILTER_NAME, 0u, NULL);
 }
 
 
@@ -271,8 +251,8 @@ static xcb_render_picture_t s_build_icon_picture(
     uint32_t *premultiplied;
     struct dimensions_s dest_dim;
 
-    if (width == 0u || height == 0u || width > WMICON_MAX_SIDE ||
-            height > WMICON_MAX_SIDE || draw_size == 0u) {
+    if (width == 0u || height == 0u || width > RENDER_WMICON_MAX_SIDE ||
+            height > RENDER_WMICON_MAX_SIDE || draw_size == 0u) {
         return XCB_NONE;
     }
 
@@ -413,8 +393,8 @@ static s_icccm_icon_td s_build_icccm_icon_picture(
             xcb_get_geometry(connection, hints.icon_pixmap), NULL);
     if (pixmap_geom == NULL || pixmap_geom->width == 0u ||
             pixmap_geom->height == 0u ||
-            pixmap_geom->width > WMICON_MAX_SIDE ||
-            pixmap_geom->height > WMICON_MAX_SIDE) {
+            pixmap_geom->width > RENDER_WMICON_MAX_SIDE ||
+            pixmap_geom->height > RENDER_WMICON_MAX_SIDE) {
         free(pixmap_geom);
         return result;
     }
@@ -835,8 +815,8 @@ void wmicon_draw_at(xcb_connection_t *connection,
         iter = xcb_ewmh_get_wm_icon_iterator(&reply);
         while (iter.rem > 0u) {
             if (iter.width > 0u && iter.height > 0u &&
-                    iter.width <= WMICON_MAX_SIDE &&
-                    iter.height <= WMICON_MAX_SIDE) {
+                    iter.width <= RENDER_WMICON_MAX_SIDE &&
+                    iter.height <= RENDER_WMICON_MAX_SIDE) {
                 int64_t dw = (iter.width > draw_size)
                     ? (int64_t) (iter.width - draw_size)
                     : (int64_t) (draw_size - iter.width);

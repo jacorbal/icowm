@@ -68,6 +68,26 @@
 
 
 /**
+ * @brief Icon dimensions above this (in either axis) are rejected
+ *        rather than allocated for
+ *
+ * A well-behaved application never publishes an icon anywhere near this
+ * large, so a value past it is far more likely a corrupt or hostile
+ * property than a legitimate icon.
+ */
+#define RENDER_WMICON_MAX_SIDE (512u)
+
+/**
+ * @brief Standard X RENDER filter name requested for scaling
+ *
+ * Smooths out both directions (a small source icon scaled up, or
+ * a large one scaled down) far better than the nearest-neighbor
+ * sampling used by default.
+ */
+#define RENDER_WMICON_FILTER_NAME "bilinear"
+
+
+/**
  * @brief One client's cached icon state, an already built @c Picture or
  *        a confirmed absence of one
  *

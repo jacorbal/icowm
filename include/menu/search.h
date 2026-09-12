@@ -29,10 +29,22 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* ADT includes */
+/* Default initial values */
+#include <defs/search.h>
 
 /* Project includes */
 #include <types/handles.h>
+
+
+/**
+ * @brief Pixel Y where the first result row starts
+ *
+ * The top padding, the query bar, and a second padding strip reserved
+ * for the up-scroll indicator, the same reasoning
+ * @c WM_CYCLE_MENU_PAD_Y reserves around @c cycle/draw.c's own menu
+ */
+#define MENU_SEARCH_ROWS_TOP \
+    (WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT + WM_SEARCH_PAD_Y)
 
 
 /* Public interface */

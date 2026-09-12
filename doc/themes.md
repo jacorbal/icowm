@@ -1,4 +1,4 @@
-# IcoWM Theme Reference (`themes/<name>.json`)
+# IcoWM Theming Reference
 
 Description of every field a theme file may set, its type, accepted
 values, and built-in default value, covering the visual appearance of

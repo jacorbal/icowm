@@ -32,6 +32,12 @@
 
 
 /**
+ * @brief Exit status of a child that never managed to execute anything
+ */
+#define SPAWN_EXIT_NOEXEC (127)
+
+
+/**
  * @brief What a spawned command needs from its launcher
  *
  * Every field is optional: a zeroed structure asks for a plain launch,

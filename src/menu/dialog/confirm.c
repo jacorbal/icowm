@@ -106,10 +106,6 @@ static struct timespec s_confirm_timeout_due;
  *  first paint so that one always happens */
 static int s_confirm_timeout_last_shown = -1;
 
-/** Vertical gap, in pixels, between the prompt and the countdown
- *  line beneath it, when a timeout is running */
-#define DIALOG_CONFIRM_TIMEOUT_LINE_GAP (6)
-
 
 /**
  * @brief Compute layout geometry for the confirm dialog

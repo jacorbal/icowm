@@ -61,17 +61,6 @@
 
 
 /**
- * @brief Pixel Y where the first result row starts
- *
- * The top padding, the query bar, and a second padding strip reserved
- * for the up-scroll indicator, the same reasoning
- * @c WM_CYCLE_MENU_PAD_Y reserves around @c cycle/draw.c's own menu
- */
-#define S_SEARCH_ROWS_TOP \
-    (WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT + WM_SEARCH_PAD_Y)
-
-
-/**
  * @brief One matched entry ready to be drawn
  *
  * Its client, the desktop it lives on, and its pre-rendered name/hints
@@ -400,7 +389,7 @@ static void s_search_compute_geometry(void)
     }
     s_search.visible_rows = visible_rows;
 
-    s_search.height = (uint16_t) (S_SEARCH_ROWS_TOP +
+    s_search.height = (uint16_t) (MENU_SEARCH_ROWS_TOP +
             s_search.visible_rows * WM_SEARCH_ROW_HEIGHT +
             WM_SEARCH_PAD_Y);
 }
@@ -443,7 +432,7 @@ static int s_search_row_at_y(int16_t y)
     unsigned int rel_row;
     int idx;
 
-    if (y < S_SEARCH_ROWS_TOP) {
+    if (y < MENU_SEARCH_ROWS_TOP) {
         return -1;
     }
 
@@ -451,7 +440,7 @@ static int s_search_row_at_y(int16_t y)
      * first row: the subtraction cannot go negative from here, and
      * a signed one would let the optimizer assume as much on its own,
      * which is what '-Wstrict-overflow' reports on */
-    rel_row = ((unsigned int) y - (unsigned int) S_SEARCH_ROWS_TOP) /
+    rel_row = ((unsigned int) y - (unsigned int) MENU_SEARCH_ROWS_TOP) /
         (unsigned int) WM_SEARCH_ROW_HEIGHT;
     if (s_search.visible_rows < 0 ||
             rel_row >= (unsigned int) s_search.visible_rows) {
@@ -564,7 +553,7 @@ static void s_search_draw_row(xcb_connection_t *connection,
         const config_td *cfg, int i)
 {
     const s_search_result_td *r = &s_search.results[i];
-    int16_t row_y = (int16_t) (S_SEARCH_ROWS_TOP +
+    int16_t row_y = (int16_t) (MENU_SEARCH_ROWS_TOP +
             (i - s_search.scroll_offset) * WM_SEARCH_ROW_HEIGHT);
     int16_t text_x = (int16_t) WM_SEARCH_PAD_X;
     int16_t safe_right = (int16_t) (WM_SEARCH_WIDTH - WM_SEARCH_PAD_X -
@@ -1074,7 +1063,7 @@ void search_draw(xcb_connection_t *connection, const config_td *cfg)
      * entries exist beyond the visible rows on that side */
     if (s_search.result_count > s_search.visible_rows) {
         int16_t up_y = (int16_t) (WM_SEARCH_PAD_Y + WM_SEARCH_BAR_HEIGHT);
-        int16_t down_y = (int16_t) (S_SEARCH_ROWS_TOP +
+        int16_t down_y = (int16_t) (MENU_SEARCH_ROWS_TOP +
                 s_search.visible_rows * WM_SEARCH_ROW_HEIGHT);
 
         (void) text_renderer_use_font(connection,

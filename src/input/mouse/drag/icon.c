@@ -72,10 +72,9 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
     s_drag.client_start.dim.h = 0;
     s_drag.client_cur.pos = icon_pos;
     /* Icon drags are always solid, regardless of 'windows.solid-drag':
-     * moving just the small icon window live is cheap enough on its
-     * own that the outline machinery would add complexity for no
-     * real benefit here; see 'drag_end''s comment on this same
-     * exclusion. */
+     * moving just the small icon window live is cheap enough on its own
+     * that the outline machinery would add complexity for no real
+     * benefit here; see 'drag_end''s comment on this same exclusion. */
     s_drag.is_solid_drag = true;
     s_drag.screen_w = screen_dim.w;
     s_drag.screen_h = screen_dim.h;
@@ -90,8 +89,8 @@ void drag_icon_start(xcb_connection_t *connection, xcb_window_t root,
     client->properties.operation = CLIENT_OPERATION_MOVING;
     client->is_icon_mapped = true;
     /* Repainted at once, and forced: the icon has just become the
-     * picked-up one, and waiting for the next render pass would show
-     * it unselected for a frame first. */
+     * picked-up one, and waiting for the next render pass would show it
+     * unselected for a frame first. */
     ri_render_client_icon(client, true, true, true);
 
     grab_cookie = xcb_grab_pointer(connection,

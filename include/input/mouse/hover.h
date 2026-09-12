@@ -25,6 +25,12 @@
 #include <types/handles.h>
 
 
+/**
+ * @brief How often @a s_hover_window, while set, gets re-evaluated
+ */
+#define MOUSE_HOVER_POLL_INTERVAL_MS (100)
+
+
 /* Public interface */
 /**
  * @brief Clear the tracked resize-cursor poll target if it currently

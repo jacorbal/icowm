@@ -38,24 +38,6 @@
 
 
 /**
- * @brief Rec. 601 luma weights, in thousandths
- *
- * Chosen over the WCAG relative luminance the contrast figures behind
- * the tone-shift bounds were measured with, because that one needs the
- * sRGB gamma decoded first and this one is a weighted sum that stays
- * in integer arithmetic.  Both agree on which side of the middle any
- * ordinary background sits, which is all this is asked for.
- */
-#define S_LUMA_WEIGHT_RED (299u)
-#define S_LUMA_WEIGHT_GREEN (587u)
-#define S_LUMA_WEIGHT_BLUE (114u)
-#define S_LUMA_DIVISOR (1000u)
-
-/** Luma at or above which a background counts as light */
-#define S_LUMA_MIDPOINT (128u)
-
-
-/**
  * @brief One screen's cached mesh tile and the state it was built from
  *
  * Every field but @c tile is what the tile was built against, compared
@@ -102,9 +84,10 @@ static uint32_t s_luma_rec601(uint32_t color)
     const uint32_t green = (color >> 8) & 0xFFu;
     const uint32_t blue = color & 0xFFu;
 
-    return (S_LUMA_WEIGHT_RED * red +
-            S_LUMA_WEIGHT_GREEN * green +
-            S_LUMA_WEIGHT_BLUE * blue) / S_LUMA_DIVISOR;
+    return (RENDER_VIEWPORT_LUMA_WEIGHT_RED * red +
+            RENDER_VIEWPORT_LUMA_WEIGHT_GREEN * green +
+            RENDER_VIEWPORT_LUMA_WEIGHT_BLUE * blue) /
+                RENDER_VIEWPORT_LUMA_DIVISOR;
 }
 
 
@@ -185,7 +168,7 @@ uint32_t viewport_mesh_color_from_background(uint32_t background,
         uint32_t tone_shift)
 {
     const bool is_darker = (s_luma_rec601(background) >=
-            S_LUMA_MIDPOINT);
+            RENDER_VIEWPORT_LUMA_MIDPOINT);
     uint32_t red;
     uint32_t green;
     uint32_t blue;

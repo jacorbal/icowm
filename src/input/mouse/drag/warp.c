@@ -121,9 +121,9 @@ static desktop_td *s_warp_target_desktop(surface_td *surface,
  * desktop happened to be left on would break the movement in two.
  *
  * Applied after the switch has settled, so that
- * @a scmd_surface_viewport_set acts on the desktop that is now
- * current and translates its own clients along with the origin, which
- * writing the origin straight into the desktop would not do.
+ * @a scmd_surface_viewport_set acts on the desktop that is now current
+ * and translates its own clients along with the origin, which writing
+ * the origin straight into the desktop would not do.
  *
  * @param surface   Surface whose current desktop was just changed
  * @param old_page  Page the desktop just left was showing
@@ -131,8 +131,8 @@ static desktop_td *s_warp_target_desktop(surface_td *surface,
  *
  * @note A no-op on a viewport with a single page, where there is no
  *       edge to arrive by
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the desktop entered
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       desktop entered
  */
 static void s_warp_enter_page(surface_td *surface,
         struct position_s old_page, enum compass_direction_e direction)
@@ -294,8 +294,8 @@ static void s_warp_move_family(desktop_td *old_desktop,
 
                 free(siblings);
             }
-        }
-    }
+        } /* ! if (!top) */
+    } /* ! if (!old_desktop) */
 }
 
 
@@ -314,17 +314,16 @@ static void s_warp_pointer_target(int16_t *out_x, int16_t *out_y)
     int16_t new_root_y;
     bool is_horizontal;
 
-    /* Reposition the pointer to the opposite edge, one pixel in from
-     * it rather than exactly on it, so the very next motion notify
-     * does not immediately re-arm another warp back the way it just
-     * came from, on whichever one of the two axes 'warp_direction'
-     * actually warped along; the other axis' pointer coordinate
-     * passes through unchanged.  'opposite_edge' clamps to INT16_MAX
-     * before the final cast: 'screen_w'/'screen_h' (uint32_t, no
-     * compile-time bound) are not guaranteed to fit
-     * int16_t on an extreme multi-monitor surface, and this pointer
-     * position is sent to the X server as one, via 'xcb_warp_pointer'
-     * below. */
+    /* Reposition the pointer to the opposite edge, one pixel in from it
+     * rather than exactly on it, so the very next motion notify does
+     * not immediately re-arm another warp back the way it just came
+     * from, on whichever one of the two axes 'warp_direction' actually
+     * warped along; the other axis' pointer coordinate passes through
+     * unchanged.  'opposite_edge' clamps to INT16_MAX before the final
+     * cast: 'screen_w'/'screen_h' (uint32_t, no compile-time bound) are
+     * not guaranteed to fit int16_t on an extreme multi-monitor
+     * surface, and this pointer position is sent to the X server as
+     * one, via 'xcb_warp_pointer' below. */
     is_horizontal = (s_drag.warp_direction == COMPASS_EAST ||
             s_drag.warp_direction == COMPASS_WEST);
 
@@ -392,17 +391,16 @@ static void s_warp_move_dragged(xcb_connection_t *connection,
      * old spot rather than following the pointer to the new one).  The
      * axis 'warp_direction' did not warp along shifts by exactly zero
      * here, since 'new_root_x' and 'new_root_y' above already equal
-     * 'last_root_x' and 'last_root_y' on that axis, so this same
-     * pair of assignments is correct
-     * unconditionally, without needing its 'is_horizontal' branch
-     * too.
+     * 'last_root_x' and 'last_root_y' on that axis, so this same pair
+     * of assignments is correct unconditionally, without needing its
+     * 'is_horizontal' branch too.
      *
      * A window drag whose 'is_move_x_locked'/'is_move_y_locked' pins
      * one axis to 'client_start.pos' (a client maximized on just that
-     * one axis; see 'drag_start''s comment, drag.c) must keep that
-     * same axis pinned here too, exactly like 's_drag_update_move'
-     * already does on every real motion notify: the pointer reaching a
-     * warp-eligible screen edge is entirely about 'root_x'/'root_y',
+     * one axis; see 'drag_start''s comment, drag.c) must keep that same
+     * axis pinned here too, exactly like 's_drag_update_move' already
+     * does on every real motion notify: the pointer reaching
+     * a warp-eligible screen edge is entirely about 'root_x'/'root_y',
      * independent of the dragged client's own, possibly-locked,
      * position, so a locked axis must not silently move just because
      * this fires instead of an ordinary motion update.  An icon drag
@@ -441,16 +439,15 @@ static void s_warp_move_dragged(xcb_connection_t *connection,
         } else {
             /* Same reasoning as the geometry overlay just below.  Left
              * untouched here, the outline would stay drawn wherever it
-             * was right before the warp, on the old desktop's
-             * edge, until whatever real motion notify happens to come
-             * next, rather than following the pointer across
-             * immediately.  Width/height stay 'client_start.dim.w'/
-             * '.h' (never 'client_cur.dim.w'/'.h'), the same as
-             * 'drag_update''s MOVING branch, since this whole
-             * function only ever runs for a plain move, never
-             * a resize (see the early 'CLIENT_OPERATION_MOVING' guard
-             * above), so the size itself never actually changes here
-             * at all. */
+             * was right before the warp, on the old desktop's edge,
+             * until whatever real motion notify happens to come next,
+             * rather than following the pointer across immediately.
+             * Width/height stay 'client_start.dim.w'/ '.h' (never
+             * 'client_cur.dim.w'/'.h'), the same as 'drag_update''s
+             * MOVING branch, since this whole function only ever runs
+             * for a plain move, never a resize (see the early
+             * 'CLIENT_OPERATION_MOVING' guard above), so the size
+             * itself never actually changes here at all. */
             drag_outline_move(connection, (struct geometry_s) {
                         { new_window_x, s_drag.client_cur.pos.y },
                         { s_drag.client_start.dim.w,
@@ -484,8 +481,8 @@ static void s_warp_move_dragged(xcb_connection_t *connection,
 
 /* Track whether the pointer is held against a warp-eligible screen
  * edge, and schedule (or keep, or cancel) the pending desktop-warp
- * countdown accordingly; see the header's doc comment for the
- * full reasoning */
+ * countdown accordingly; see the header's doc comment for the full
+ * reasoning */
 void drag_warp_edge_check(int16_t root_x, int16_t root_y)
 {
     surface_td *surface;
@@ -513,9 +510,9 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
     at_top = root_y <= 0;
     at_bottom = (int32_t) root_y >= (int32_t) s_drag.screen_h - 1;
 
-    /* A screen corner holds two edges at once; the horizontal one
-     * wins, matching whichever edge this same check already
-     * preferred before a vertical one existed at all. */
+    /* A screen corner holds two edges at once; the horizontal one wins,
+     * matching whichever edge this same check already preferred before
+     * a vertical one existed at all. */
     if (at_left) {
         direction = COMPASS_WEST;
     } else if (at_right) {
@@ -532,18 +529,18 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
     if (surface->config->base.viewport.pan_on_edge_drag &&
             scmd_surface_viewport_pan_available(surface, direction)) {
         /* The current desktop's viewport still has room to pan toward
-         * this same edge; that takes priority over a desktop switch
-         * for as long as it does (see 'pan_on_edge_drag' in
+         * this same edge; that takes priority over a desktop switch for
+         * as long as it does (see 'pan_on_edge_drag' in
          * config/desktops.h), so this defers to 'drag_pan_edge_check'
-         * (drag/pan.h) entirely rather than arming a warp underneath
+         * ('drag/pan.h') entirely rather than arming a warp underneath
          * it too. */
         s_drag.is_warp_pending = false;
         return;
     }
 
     if (s_drag.is_warp_pending && s_drag.warp_direction == direction) {
-        /* Same edge still held: let the existing countdown keep
-         * running rather than restarting it on every motion event. */
+        /* Same edge still held: let the existing countdown keep running
+         * rather than restarting it on every motion event. */
         return;
     }
 
@@ -552,16 +549,16 @@ void drag_warp_edge_check(int16_t root_x, int16_t root_y)
     if (clock_gettime(CLOCK_MONOTONIC, &s_drag.warp_due) == 0) {
         clock_add_ms(&s_drag.warp_due, WM_DESKTOP_WARP_DELAY_MS);
     } else {
-        /* Could not read the clock to schedule the countdown; safer
-         * to not warp at all than to warp immediately on every edge
+        /* Could not read the clock to schedule the countdown; safer to
+         * not warp at all than to warp immediately on every edge
          * touch. */
         s_drag.is_warp_pending = false;
     }
 }
 
 
-/* Milliseconds until a pointer held against a warp-eligible screen
- * edge is due to switch desktops */
+/* Milliseconds until a pointer held against a warp-eligible screen edge
+ * is due to switch desktops */
 int drag_warp_ms_remaining(void)
 {
     if (!s_drag.is_warp_pending) {
@@ -616,12 +613,11 @@ void drag_warp_tick(xcb_connection_t *connection)
     if (surface->config->base.viewport.pan_on_edge_drag &&
             scmd_surface_viewport_pan_available(surface,
                 s_drag.warp_direction)) {
-        /* Live re-check, same reasoning as 'drag_warp_edge_check':
-         * the viewport may have gained room to pan this same edge
-         * since this warp was armed (a keyboard shortcut moving it
+        /* Live re-check, same reasoning as 'drag_warp_edge_check': the
+         * viewport may have gained room to pan this same edge since
+         * this warp was armed (a keyboard shortcut moving it
          * mid-countdown, say), in which case that takes priority over
-         * a desktop switch now just as it would have from the
-         * start. */
+         * a desktop switch now just as it would have from the start. */
         return;
     }
 
@@ -635,8 +631,8 @@ void drag_warp_tick(xcb_connection_t *connection)
         return;
     }
 
-    /* Read before the switch, since it is the page being left that
-     * says which row or column the movement was travelling along */
+    /* Read before the switch, since it is the page being left that says
+     * which row or column the movement was travelling along */
     old_page.x = 0;
     old_page.y = 0;
     if (old_desktop != NULL) {
@@ -659,11 +655,11 @@ void drag_warp_tick(xcb_connection_t *connection)
 
     s_warp_enter_page(surface, old_page, s_drag.warp_direction);
 
-    /* Same desktop-switch notification a normal (non-warp) switch
-     * shows (see 's_show_desktop_overlay' in cmds/surface.c, whose
-     * thin wrapper over this same call this mirrors).  Without it, a
-     * warp is the one way to switch desktops that never shows which
-     * one just became active. */
+    /* Same desktop-switch notification a normal (non-warp) switch shows
+     * (see 's_show_desktop_overlay' in cmds/surface.c, whose thin
+     * wrapper over this same call this mirrors).  Without it, a warp is
+     * the one way to switch desktops that never shows which one just
+     * became active. */
     notify_desktop_show(xcb_connection_get(), surface,
             surface->desktop_cur, new_desktop->name,
             NOTIFY_DESKTOP_CAUSE_SWITCH, surface->config);
@@ -683,15 +679,15 @@ void drag_warp_tick(xcb_connection_t *connection)
      * exact same root position already recorded, and 'last_root_x'/
      * 'last_root_y' above already match the very position this warp
      * just placed the pointer at, so the synthetic 'MotionNotify'
-     * 'xcb_warp_pointer' generates for it never reaches that
-     * function's edge re-checks at all.  Without running them here
-     * instead, a pointer left resting against the physical edge right
-     * after the warp (the common case: the same edge hold that armed
-     * this warp in the first place) would leave both
-     * 'is_warp_pending' and 'is_pan_pending' stuck false until an
-     * actual further pointer movement happened to arrive, silently
-     * stalling the drag right at the desktop boundary rather than
-     * continuing to pan or warp again on the new desktop. */
+     * 'xcb_warp_pointer' generates for it never reaches that function's
+     * edge re-checks at all.  Without running them here instead,
+     * a pointer left resting against the physical edge right after the
+     * warp (the common case: the same edge hold that armed this warp in
+     * the first place) would leave both 'is_warp_pending' and
+     * 'is_pan_pending' stuck false until an actual further pointer
+     * movement happened to arrive, silently stalling the drag right at
+     * the desktop boundary rather than continuing to pan or warp again
+     * on the new desktop. */
     drag_warp_edge_check(new_root_x, new_root_y);
     drag_pan_edge_check(new_root_x, new_root_y);
 }

@@ -83,8 +83,8 @@
  * @param surface   Surface to pan
  * @param direction Compass direction to pan toward
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the current desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       current desktop
  */
 static void s_pan_apply(surface_td *surface,
         enum compass_direction_e direction)
@@ -115,17 +115,17 @@ static void s_pan_apply(surface_td *surface,
  * @c cmds/surface.c, skips any client holding @c CLIENT_FLAG_STICKY),
  * so shifting the drag's own cached position here would only make it
  * visually snap on the next @c MotionNotify instead.  The dragged
- * client itself is also the one client that same translate walk
- * always skips regardless of stickiness (@a
- * scmd_surface_viewport_drag_exclude having named it for the whole
- * drag's duration), so every bit of its own repositioning below is
- * this function's job alone rather than shared with that walk.
+ * client itself is also the one client that same translate walk always
+ * skips regardless of stickiness (@a scmd_surface_viewport_drag_exclude
+ * having named it for the whole drag's duration), so every bit of its
+ * own repositioning below is this function's job alone rather than
+ * shared with that walk.
  *
  * @param connection XCB connection
  * @param is_icon    Whether an icon window is being dragged
  * @param delta      The pointer's own effective delta for this tick,
- *                   already clamped to the physical screen by @a
- *                   s_pan_pointer_target, not the raw viewport step
+ *                   already clamped to the physical screen by
+ *                   @a s_pan_pointer_target, not the raw viewport step
  *                   @a s_pan_apply just moved every other client by
  *
  * @note Complexity: @e O(1)
@@ -252,9 +252,9 @@ static void s_pan_move_dragged(xcb_connection_t *connection,
 }
 
 
-/* Track whether the pointer is held against a pan-eligible screen
- * edge, and schedule (or keep, or cancel) the pending viewport-pan
- * countdown accordingly */
+/* Track whether the pointer is held against a pan-eligible screen edge,
+ * and schedule (or keep, or cancel) the pending viewport-pan countdown
+ * accordingly */
 void drag_pan_edge_check(int16_t root_x, int16_t root_y)
 {
     surface_td *surface;
@@ -281,9 +281,9 @@ void drag_pan_edge_check(int16_t root_x, int16_t root_y)
     at_top = root_y <= 0;
     at_bottom = (int32_t) root_y >= (int32_t) s_drag.screen_h - 1;
 
-    /* A screen corner holds two edges at once; the horizontal one
-     * wins, matching whichever edge 'drag_warp_edge_check' (drag/
-     * warp.c) already preferred before this file existed. */
+    /* A screen corner holds two edges at once; the horizontal one wins,
+     * matching whichever edge 'drag_warp_edge_check' ('drag/warp.c')
+     * already preferred before this file existed. */
     if (at_left) {
         direction = COMPASS_WEST;
     } else if (at_right) {
@@ -303,8 +303,8 @@ void drag_pan_edge_check(int16_t root_x, int16_t root_y)
     }
 
     if (s_drag.is_pan_pending && s_drag.pan_direction == direction) {
-        /* Same edge still held: let the existing countdown keep
-         * running rather than restarting it on every motion event. */
+        /* Same edge still held: let the existing countdown keep running
+         * rather than restarting it on every motion event. */
         return;
     }
 
@@ -336,19 +336,17 @@ int drag_pan_ms_remaining(void)
 /**
  * @brief Work out where the pointer lands after a pan delta
  *
- * Keeps the pointer glued to whatever it is dragging across a
- * viewport pan, the same way @a s_warp_pointer_target (@c drag/
- * warp.c) keeps it glued across a desktop warp, except the pointer
- * here always moves by the exact same @p delta the dragged client
- * itself just moved by, rather than jumping to the opposite screen
- * edge: a pan stays on the one same desktop, so there is no
- * "opposite edge" of a different desktop to land near in the first
- * place.
+ * Keeps the pointer glued to whatever it is dragging across a viewport
+ * pan, the same way @a s_warp_pointer_target (@c drag/warp.c) keeps it
+ * glued across a desktop warp, except the pointer here always moves by
+ * the exact same @p delta the dragged client itself just moved by,
+ * rather than jumping to the opposite screen edge: a pan stays on the
+ * one same desktop, so there is no "opposite edge" of a different
+ * desktop to land near in the first place.
  *
- * @param delta  Pixel delta the pan just applied to the dragged
- *               client
- * @param out_x  Receives the root X the pointer warps to
- * @param out_y  Receives the root Y the same
+ * @param delta Pixel delta the pan just applied to the dragged client
+ * @param out_x Receives the root X the pointer warps to
+ * @param out_y Receives the root Y the same
  *
  * @note Complexity: @e O(1)
  */
@@ -361,7 +359,7 @@ static void s_pan_pointer_target(struct position_s delta,
     int32_t new_y;
 
     /* Clamped to at most 'INT16_MAX', matching 's_warp_pointer_target'
-     * (drag/warp.c): 'screen_w'/'screen_h' (uint32_t, no compile-time
+     * ('drag/warp.c'): 'screen_w'/'screen_h' (uint32_t, no compile-time
      * bound) are not guaranteed to fit int16_t on an extreme
      * multi-monitor surface, and this pointer position is sent to the
      * X server as one, via 'xcb_warp_pointer' below. */

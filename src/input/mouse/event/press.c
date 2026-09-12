@@ -124,9 +124,6 @@ static bool s_mouse_near_edge(const client_td *client,
 }
 
 
-/* Overlay dismissal */
-
-
 /* Icon click handling */
 
 /**
@@ -411,7 +408,7 @@ static void s_mouse_handle_root_press(wm_td *wm,
  * frame's window ID alone would not have matched anything.
  *
  * @param connection  Unused; kept only so this matches the signature
- *                     shape of the other handlers around it
+ *                    shape of the other handlers around it
  * @param surfaces    Singly-linked list of @c surface_td pointers
  * @param event_win   The @p event field from the triggering XCB event
  * @param child_win   The @p child field from the triggering XCB event
@@ -621,8 +618,10 @@ void mouse_handle_press(wm_td *wm, xcb_connection_t *connection,
                     client->frame == 0 &&
                     window == client->window &&
                     s_mouse_near_edge(client,
-                        (struct position_s) { event->root_x,
-                            event->root_y })) {
+                        (struct position_s) {
+                            event->root_x,
+                            event->root_y
+                        })) {
                 s_mouse_show_wincmenu_at_click(connection, surface,
                         desktop, client, event, config);
                 return;

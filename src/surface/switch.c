@@ -222,7 +222,7 @@ static void s_surface_layout_shrink_after(surface_td *surface,
  *
  * @see @a s_surface_desktop_evacuate's comment
  */
-#define SWITCH_EVACUATE_MAX_CLIENTS (256)
+#define S_SWITCH_EVACUATE_MAX_CLIENTS (256)
 
 
 /**
@@ -260,7 +260,7 @@ static void s_client_evacuate_visit(client_td *client, void *data)
  * @brief Move every client still on @p from_desktop to @p to_desktop,
  *        updating EWMH @c _NET_WM_DESKTOP along the way
  *
- * Gathers up to @c SWITCH_EVACUATE_MAX_CLIENTS clients before moving
+ * Gathers up to @c S_SWITCH_EVACUATE_MAX_CLIENTS clients before moving
  * any of them, rather than repeatedly taking whichever client the
  * desktop holds first: moving one takes it off @p from_desktop, so
  * a walk that moved as it went would be reading a set it was itself
@@ -289,7 +289,7 @@ static void s_client_evacuate_visit(client_td *client, void *data)
 static void s_surface_desktop_evacuate(desktop_td *from_desktop,
         desktop_td *to_desktop)
 {
-    client_td *clients[SWITCH_EVACUATE_MAX_CLIENTS];
+    client_td *clients[S_SWITCH_EVACUATE_MAX_CLIENTS];
     struct s_evacuate_ctx_s evacuate_ctx;
     bool made_progress;
 

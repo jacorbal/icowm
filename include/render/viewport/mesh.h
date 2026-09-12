@@ -28,6 +28,25 @@
 
 
 /**
+ * @brief Rec. 601 luma weights, in thousandths
+ *
+ * Chosen over the WCAG relative luminance the contrast figures behind
+ * the tone-shift bounds were measured with, because that one needs the
+ * sRGB gamma decoded first and this one is a weighted sum that stays
+ * in integer arithmetic.  Both agree on which side of the middle any
+ * ordinary background sits, which is all this is asked for.
+ */
+#define RENDER_VIEWPORT_LUMA_WEIGHT_RED (299u)
+#define RENDER_VIEWPORT_LUMA_WEIGHT_GREEN (587u)
+#define RENDER_VIEWPORT_LUMA_WEIGHT_BLUE (114u)
+
+#define RENDER_VIEWPORT_LUMA_DIVISOR (1000u)
+
+/** Luma at or above which a background counts as light */
+#define RENDER_VIEWPORT_LUMA_MIDPOINT (128u)
+
+
+/**
  * @brief Derive the mesh dot color from the desktop background color
  *
  * Applied per channel.  A background whose Rec. 601 (BT.601 / CCIR 601)

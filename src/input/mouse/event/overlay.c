@@ -52,6 +52,7 @@
 #include <input/mouse/event.h>
 #include <input/mouse/internal.h>
 
+
 /**
  * @brief Handle a button press on one already-open context menu type
  *        (window menu, root menu, or window list), forward the click if
