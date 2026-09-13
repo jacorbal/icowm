@@ -521,13 +521,28 @@ uint16_t menu_draw_measure(const char *text)
  *
  * @note Complexity: @e O(1)
  */
+/**
+ * @brief Recording stand-in for @a menu_draw_label
+ *
+ * Remembers only the most recent call's own position and text: the
+ * last one made while drawing a dialog with an active footer is
+ * always that footer's own status/scroll-hint line, since nothing
+ * else is drawn after it.
+ *
+ * @note Complexity: @e O(1)
+ */
+static struct position_s s_last_label_pos;
+static char s_last_label_text[256];
+
 void menu_draw_label(xcb_connection_t *connection, xcb_window_t window,
         struct position_s pos, const char *text)
 {
     (void) connection;
     (void) window;
-    (void) pos;
-    (void) text;
+
+    s_last_label_pos = pos;
+    (void) snprintf(s_last_label_text, sizeof(s_last_label_text),
+            "%s", text);
 }
 
 
@@ -666,6 +681,8 @@ static void s_reset(void)
     s_call_create_window = 0;
     s_last_create_window_w = 0u;
     s_last_create_window_h = 0u;
+    memset(&s_last_label_pos, 0, sizeof(s_last_label_pos));
+    s_last_label_text[0] = '\0';
     s_call_map_window = 0;
     s_call_grab_keyboard = 0;
     s_call_ungrab_keyboard = 0;
@@ -1203,6 +1220,21 @@ static void s_test_scroll_widens_dialog_for_footer(void)
     TAP_OK(s_last_create_window_w >= footer_w,
             "a scrolling dialog is widened to fit its own footer's"
             " status/scroll-hint line");
+
+    /* The footer status line is always the very last thing a dialog
+     * with scrolling active draws, so the most recent menu_draw_label
+     * call recorded above is that line's own position and text; its
+     * own drawn width, from that position, has to still land inside
+     * the dialog actually created, not merely be no wider than it in
+     * the abstract, or it would spill past the right edge exactly
+     * the way it did before this line was centered on its own width
+     * instead of drawn from the message content's centered
+     * position. */
+    TAP_OK((uint32_t) s_last_label_pos.x +
+                menu_draw_measure(s_last_label_text) <=
+                s_last_create_window_w,
+            "the footer's own drawn position keeps its whole text"
+            " within the dialog actually created");
 }
 
 
@@ -1424,7 +1456,7 @@ static void s_test_show_pairs_while_open_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(78);
+    TAP_PLAN(79);
 
     s_test_show_creates_and_maps_window();
     s_test_show_while_open_is_noop();

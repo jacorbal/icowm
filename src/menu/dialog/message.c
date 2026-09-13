@@ -663,13 +663,14 @@ static void s_message_draw(xcb_connection_t *connection,
     (void) text_renderer_use_font(connection,
             config->theme.dialog.label.font);
     text_renderer_set_color(fg_nor, bg_win);
-    /* No lines are drawn where the offset has outrun the count,
-     * rather than letting an unsigned subtraction wrap into a span
-     * reaching past the lines that exist.  The two are kept in step
-     * everywhere they are set, so this is a floor under the
-     * arithmetic and not a case anything is expected to hit; the
-     * button below is drawn regardless, since a dialog that cannot be
-     * dismissed would be the worse failure of the two. */
+
+    /* No lines are drawn where the offset has outrun the count, rather
+     * than letting an unsigned subtraction wrap into a span reaching
+     * past the lines that exist.  The two are kept in step everywhere
+     * they are set, so this is a floor under the arithmetic and not
+     * a case anything is expected to hit; the button below is drawn
+     * regardless, since a dialog that cannot be dismissed would be the
+     * worse failure of the two. */
     shown = (lo->scroll_offset < lo->line_count)
         ? (uint8_t) (lo->line_count - lo->scroll_offset) : 0u;
 
@@ -709,6 +710,10 @@ static void s_message_draw(xcb_connection_t *connection,
      * "more above/below" status/scroll-hint line itself. */
     if (lo->line_count > lo->visible_lines) {
         char status[DIALOG_MSG_LINE_MAX_LENGTH];
+        uint16_t status_w;
+        int16_t status_x;
+        uint16_t label_pad_x =
+            (uint16_t) config->theme.dialog.label.padding.horizontal;
         int16_t row_step = (int16_t) (lo->line_height +
                 (int16_t) DIALOG_MSG_LINE_GAP);
         int16_t separator_row_y = (int16_t) (lo->msg_y +
@@ -738,8 +743,22 @@ static void s_message_draw(xcb_connection_t *connection,
                 (unsigned int) lo->scroll_offset + shown,
                 (unsigned int) lo->line_count,
                 _(STR_DIALOG_MSG_SCROLL_HINT));
+
+        /* Centered on its own width within the dialog, the same way
+         * 'lo->msg_x' centers the message content, rather than drawn
+         * from 'lo->msg_x' itself: that position centers the message
+         * content's own width, which is exactly what left this status
+         * line, often the wider of the two, run straight past the
+         * dialog's right edge whenever it alone was what widened the
+         * dialog to fit in the first place. */
+        status_w = menu_draw_measure(status);
+        status_x = (int16_t) ((lo->w > status_w)
+                ? (lo->w - status_w) / 2u : label_pad_x);
+        if (status_x < (int16_t) label_pad_x) {
+            status_x = (int16_t) label_pad_x;
+        }
         menu_draw_label(connection, s_message_window,
-                (struct position_s) { lo->msg_x, status_y }, status);
+                (struct position_s) { status_x, status_y }, status);
     }
 
     /* OK label: font, and therefore width, depends on whether the
