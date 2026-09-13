@@ -68,7 +68,11 @@
 /* Project includes */
 #include <client.h>
 #include <config.h>
+#include <i18n.h>
 #include <surface.h>
+
+/* Default includes */
+#include <defs/uistr.h>
 
 /* Local includes */
 #include <harness/tap.h>
@@ -88,6 +92,8 @@ static uint32_t s_next_xid = 1u;
 
 /** Recording stand-ins' own call counters, reset by s_reset */
 static int s_call_create_window;
+static uint16_t s_last_create_window_w;
+static uint16_t s_last_create_window_h;
 static int s_call_map_window;
 static int s_call_grab_keyboard;
 static int s_call_ungrab_keyboard;
@@ -127,8 +133,6 @@ xcb_void_cookie_t xcb_create_window(xcb_connection_t *c, uint8_t depth,
     (void) parent;
     (void) x;
     (void) y;
-    (void) width;
-    (void) height;
     (void) border_width;
     (void) klass;
     (void) visual;
@@ -136,6 +140,8 @@ xcb_void_cookie_t xcb_create_window(xcb_connection_t *c, uint8_t depth,
     (void) value_list;
 
     s_call_create_window++;
+    s_last_create_window_w = width;
+    s_last_create_window_h = height;
     memset(&cookie, 0, sizeof(cookie));
     return cookie;
 }
@@ -658,6 +664,8 @@ static void s_reset(void)
     }
 
     s_call_create_window = 0;
+    s_last_create_window_w = 0u;
+    s_last_create_window_h = 0u;
     s_call_map_window = 0;
     s_call_grab_keyboard = 0;
     s_call_ungrab_keyboard = 0;
@@ -1154,6 +1162,50 @@ static void s_test_scroll_clamped_and_noop_when_fits(void)
 }
 
 
+/* A dialog tall enough to need scrolling is also made wide enough to
+ * fit the footer's own status/scroll-hint line, not just its message
+ * content, since that line is drawn at its own width with no
+ * wrapping of its own */
+static void s_test_scroll_widens_dialog_for_footer(void)
+{
+    char tall_message[2000];
+    size_t pos = 0u;
+    int line;
+    uint16_t footer_w;
+
+    s_reset();
+    /* Same tiny monitor and 40-line message as the scrolling test
+     * above, guaranteeing scrolling kicks in here too */
+    s_stub_monitor.w = 1000u;
+    s_stub_monitor.h = 200u;
+
+    tall_message[0] = '\0';
+    for (line = 0; line < 40; ++line) {
+        int written = snprintf(tall_message + pos,
+                sizeof(tall_message) - pos, "Line number %d\n", line);
+
+        if (written > 0) {
+            pos += (size_t) written;
+        }
+    }
+
+    menu_message_dialog_show(s_fake_connection, &s_surface, &s_config,
+            tall_message, MENU_MSG_LEVEL_NONE);
+
+    /* "99-99/99: " (10 characters) plus the translated scroll hint
+     * itself, at this file's fixed 10px/character stand-in, with no
+     * label padding configured here.  Every content line ("Line
+     * number NN") measures far short of that on its own, so this
+     * only passes if the footer's own width was actually folded into
+     * the dialog's, not just the message content above it. */
+    footer_w = (uint16_t) ((10u +
+                strlen(_(STR_DIALOG_MSG_SCROLL_HINT))) * 10u);
+    TAP_OK(s_last_create_window_w >= footer_w,
+            "a scrolling dialog is widened to fit its own footer's"
+            " status/scroll-hint line");
+}
+
+
 /* scroll() is a no-op (never repaints, never crashes) once the whole
  * message already fits without scrolling, and also a safe no-op with
  * no dialog open at all */
@@ -1372,7 +1424,7 @@ static void s_test_show_pairs_while_open_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(77);
+    TAP_PLAN(78);
 
     s_test_show_creates_and_maps_window();
     s_test_show_while_open_is_noop();
@@ -1392,6 +1444,7 @@ int main(void)
     s_test_wrap_overlong_word_own_line();
     s_test_empty_message_is_safe();
     s_test_scroll_clamped_and_noop_when_fits();
+    s_test_scroll_widens_dialog_for_footer();
     s_test_scroll_noop_cases();
     s_test_show_pairs_null_guards();
     s_test_show_pairs_basic_rows();

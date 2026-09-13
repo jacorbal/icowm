@@ -388,6 +388,7 @@ static void s_message_compute_layout(xcb_connection_t *connection,
     uint16_t label_pad_x;
     uint16_t extra_lines_h;
     uint16_t reserved_h;
+    uint16_t natural_h;
     uint16_t max_h;
     monitor_td monitor;
 
@@ -480,10 +481,40 @@ static void s_message_compute_layout(xcb_connection_t *connection,
             layout->btn.dim.h +
             DIALOG_PAD_BOTTOM);
 
+    /* Resolved here, ahead of 'layout->w' below, rather than only once
+     * height is already being clamped further down: whether scrolling
+     * will happen at all has to be known before the width is settled
+     * on, since the status line 's_message_draw' adds below the
+     * message once it does ("N-M/L: Up/Down; PgUp/PgDown; scroll
+     * wheel") is drawn at its own natural width, uncapped, wrapped by
+     * nothing, and previously never once counted toward how wide the
+     * dialog itself was made; a dialog whose content alone stayed
+     * under that status line's own width had that line run straight
+     * past its right edge the moment scrolling actually kicked in. */
+    natural_h = dlgutil_u16max(DIALOG_MIN_H,
+            (uint16_t) (reserved_h + extra_lines_h));
+    monitor = dlgutil_resolve_monitor(connection, surface);
+    max_h = (uint16_t) ((monitor.h * 70u) / 100u);
+    if (max_h > 0u && natural_h > max_h) {
+        char status_probe[DIALOG_MSG_LINE_MAX_LENGTH];
+
+        /* "99-99/99: " stands in for the real counts
+         * 's_message_draw' formats in their place, each of the three
+         * always at most two digits wide, DIALOG_MSG_MAX_LINES itself
+         * never reaching three; measuring the real ones here would
+         * need 'visible_lines' worked out first, which itself needs
+         * the height this same block exists to settle, so a fixed,
+         * always-at-least-as-wide stand-in is used instead. */
+        (void) snprintf(status_probe, sizeof(status_probe),
+                "99-99/99: %s", _(STR_DIALOG_MSG_SCROLL_HINT));
+        msg_span_w = dlgutil_u16max(msg_span_w,
+                (uint16_t) (menu_draw_measure(status_probe) +
+                        (label_pad_x * 2u)));
+    }
+
     layout->w = dlgutil_u16max(DIALOG_MIN_W,
             dlgutil_u16max(msg_span_w, ok_span_w));
-    layout->h = dlgutil_u16max(DIALOG_MIN_H,
-            (uint16_t) (reserved_h + extra_lines_h));
+    layout->h = natural_h;
 
     /* Cap the dialog to a fraction of its target monitor's height, well
      * short of covering it edge to edge, and scroll whatever does not
@@ -491,8 +522,6 @@ static void s_message_compute_layout(xcb_connection_t *connection,
      * how 'scroll_offset' and the three-row footer (a blank spacer,
      * a separator rule, and the status/ scroll-hint line itself) it
      * reserves when active are used. */
-    monitor = dlgutil_resolve_monitor(connection, surface);
-    max_h = (uint16_t) ((monitor.h * 70u) / 100u);
     if (max_h > 0u && layout->h > max_h) {
         uint16_t avail_lines_h;
         uint16_t avail_lines;
