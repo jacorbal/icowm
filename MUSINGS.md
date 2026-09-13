@@ -20,7 +20,7 @@ the measure of thrice and half hours *per diem*, were perchance as
 offerings to the sacred art of creation of this first draft begetting,
 whereupon each keystroke on its faithful keys didst become a whisper in
 the dead of night, each line, a tremor, a reverberation of my restless
-spirit, weaving Time’s tapestry in tranquil musing and silent reverie.
+spirit, weaving Time's tapestry in tranquil musing and silent reverie.
 I craft, therefore I evolve.
 
 > Verily, 'tis not the province of us, the noble artificers of code, to
