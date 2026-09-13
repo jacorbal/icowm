@@ -261,6 +261,13 @@ void session_run_hook(const session_td *session, enum session_hook_e hook)
 }
 
 
+/** Link-only stand-in for surface_action_randr_snapshot_begin
+ *  (surface/actions/randr.c) */
+void surface_action_randr_snapshot_begin(void)
+{
+}
+
+
 /** Link-only stand-in for surface_action_apply_randr_profiles
  *  (surface/actions/randr.c) */
 bool surface_action_apply_randr_profiles(surface_td *surface,

@@ -29,17 +29,14 @@
 /* Types includes */
 #include <types/pair.h>
 
-/* Rules includes */
-#include <rules.h>
-
 /* Input includes */
 #include <input/kbd/bind.h>
 #include <input/mouse/bind.h>
 
-/* Configuration includes */
-#include <config/memguard.h>
+/* Control includes */
+#include <cctl/sn.h>
 
-/* Command includes */
+/* Commands includes */
 #include <cmds/surface.h>
 
 /* Default initial values */
@@ -56,13 +53,14 @@
 #include <render/viewport/mesh.h>
 
 /* Project includes */
-#include <cctl/sn.h>
 #include <client.h>
 #include <config.h>
+#include <config/memguard.h>
 #include <desktop.h>
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
+#include <rules.h>
 #include <session.h>
 #include <surface.h>
 #include <systray.h>
@@ -101,28 +99,22 @@ static void s_client_reload_apply(const struct s_reload_ctx_s *ctx,
 {
         client_theme_layout_resync(client,
                 desktop->client_active_id == client->id);
-        /* 'client_theme_layout_resync' above only marks
-         * 'c' outdated (which is what actually makes
-         * the render pass repaint its border and
-         * titlebar, see 'desktop_render_clients') when
-         * the border width or titlebar height
-         * numerically changed; a reload that only
-         * changed a color or font, with every dimension
-         * unchanged, would otherwise never repaint
-         * anything already on screen even though
-         * 'client->config->theme' itself already points
-         * at the freshly reloaded values. */
+        /* 'client_theme_layout_resync' above only marks 'c' outdated
+         * (which is what actually makes the render pass repaint its
+         * border and titlebar, see 'desktop_render_clients') when the
+         * border width or titlebar height numerically changed; a reload
+         * that only changed a color or font, with every dimension
+         * unchanged, would otherwise never repaint anything already on
+         * screen even though 'client->config->theme' itself already
+         * points at the freshly reloaded values. */
         wm_request_client_redraw(client);
 
-        /* An icon left sitting exactly where this same
-         * reload has just moved the tray is never
-         * otherwise revisited
-         * on its own: nothing else here (or anywhere
-         * else) re-checks an already-placed icon's
-         * position against the tray's, only a fresh
-         * 'place_icon_apply' call or a drag ever does
-         * (see 'place_icon_avoid_systray_overlap''s
-         * comment). */
+        /* An icon left sitting exactly where this same reload has just
+         * moved the tray is never otherwise revisited on its own:
+         * nothing else here (or anywhere else) re-checks an
+         * already-placed icon's position against the tray's, only
+         * a fresh 'place_icon_apply' call or a drag ever does (see
+         * 'place_icon_avoid_systray_overlap''s comment). */
         if (ctx->is_tray_visible && client->is_icon_mapped &&
                 client->icon_window != 0u) {
             int16_t icon_x = client->icon_pos.x;
@@ -179,12 +171,12 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
 
     /* A surface-wide setting, unlike the per-desktop 'background'/
      * 'desktops' array entries below, so this runs for every desktop
-     * still on 'ctx->surface' regardless of whether its own index
-     * still has a matching entry in the just-reloaded config: a
-     * desktop panned to a page a shrunk viewport no longer has is
-     * pulled back to the nearest one that still exists, translating
-     * whichever clients were left stranded off it back into view,
-     * the same as an ordinary pan already would. */
+     * still on 'ctx->surface' regardless of whether its own index still
+     * has a matching entry in the just-reloaded config: a desktop
+     * panned to a page a shrunk viewport no longer has is pulled back
+     * to the nearest one that still exists, translating whichever
+     * clients were left stranded off it back into view, the same as an
+     * ordinary pan already would. */
     scmd_surface_viewport_reclamp(ctx->surface, desktop);
 
     ctx->index++;
@@ -193,58 +185,56 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
         return;
     }
 
-        /* A desktop that set its 'background-color' in the
-         * just-reloaded 'config.json' keeps it; one that did not
-         * (still holding 'WM_DESKTOP_BG_COLOR_UNSET', the same
-         * sentinel every entry starts with) falls back to the
-         * just-reloaded theme's 'desktop.color.background'
-         * instead, mirroring 'desktop_init''s fallback
-         * exactly.  Assigning the sentinel value itself as though
-         * it were a real color renders as black, its low 24 bits
-         * are all zero: only the top byte, some other flag, is
-         * actually set. */
-        if (!desktop->background.is_image &&
-                !desktop->background.use_root_pixmap) {
-            uint32_t new_color =
-                ctx->config_base->screens[ctx->surface->id]
-                .desktops[this_index].settings.background.color;
+    /* A desktop that set its 'background-color' in the just-reloaded
+     * 'config.json' keeps it; one that did not (still holding
+     * 'WM_DESKTOP_BG_COLOR_UNSET', the same sentinel every entry starts
+     * with) falls back to the just-reloaded theme's
+     * 'desktop.color.background' instead, mirroring 'desktop_init''s
+     * fallback exactly.  Assigning the sentinel value itself as though
+     * it were a real color renders as black, its low 24 bits are all
+     * zero: only the top byte, some other flag, is
+     * actually set. */
+    if (!desktop->background.is_image &&
+            !desktop->background.use_root_pixmap) {
+        uint32_t new_color =
+            ctx->config_base->screens[ctx->surface->id]
+            .desktops[this_index].settings.background.color;
 
-            desktop->background.bg.color =
-                (new_color == WM_DESKTOP_BG_COLOR_UNSET)
-                ? wm_get_config()->theme.desktop.color.background
-                : new_color;
-        }
+        desktop->background.bg.color =
+            (new_color == WM_DESKTOP_BG_COLOR_UNSET)
+            ? wm_get_config()->theme.desktop.color.background
+            : new_color;
+    }
 
-        /* The just-reloaded 'config.json' may have switched the mesh
-         * off, resized it, or restyled it, and the background color
-         * resolved just above is what its dots are derived from, so
-         * whichever tile is cached was built against stale inputs */
-        viewport_mesh_cache_invalidate();
+    /* The just-reloaded 'config.json' may have switched the mesh off,
+     * resized it, or restyled it, and the background color resolved
+     * just above is what its dots are derived from, so whichever tile
+     * is cached was built against stale inputs */
+    viewport_mesh_cache_invalidate();
 
-        /* Resize every already-decorated client's frame to match
-         * whatever 'window.titlebar.height' and border width the
-         * just-reloaded theme now specifies.  'client->config' is
-         * a shared pointer into 'wm_config(wm)' that 'config_load'
-         * above already updated in place, so colors, fonts, and
-         * button lists all take effect on their own the next time
-         * each client repaints; only the cached
-         * 'title_height'/'frame_extents' (and the frame size that
-         * has to match them) need this explicit resync, since
-         * nothing else re-derives those from the theme on its own
-         * once a client is already mapped. */
-        if (desktop->clients != NULL) {
-            void *elem;
+    /* Resize every already-decorated client's frame to match whatever
+     * 'window.titlebar.height' and border width the just-reloaded theme
+     * now specifies.  'client->config' is a shared pointer into
+     * 'wm_config(wm)' that 'config_load' above already updated in
+     * place, so colors, fonts, and button lists all take effect on
+     * their own the next time each client repaints; only the cached
+     * 'title_height'/'frame_extents' (and the frame size that has to
+     * match them) need this explicit resync, since nothing else
+     * re-derives those from the theme on its own
+     * once a client is already mapped. */
+    if (desktop->clients != NULL) {
+        void *elem;
 
-            ohtbl_foreach(desktop->clients, elem) {
-                client_td *const client = (client_td *) elem;
+        ohtbl_foreach(desktop->clients, elem) {
+            client_td *const client = (client_td *) elem;
 
-                if (client != NULL) {
-                    s_client_reload_apply(ctx, desktop, client);
-                }
+            if (client != NULL) {
+                s_client_reload_apply(ctx, desktop, client);
             }
         }
+    }
 
-        desktop->is_outdated = true;
+    desktop->is_outdated = true;
 }
 
 
@@ -279,8 +269,8 @@ static void s_resync_after_reload(const wm_td *wm)
          * loop below, rather than once per icon inside it.  This is
          * a synchronous round trip to the X server, as
          * 'systray_get_geometry''s comment notes, and every icon on
-         * this same surface
-         * shares the identical tray rectangle regardless. */
+         * this same surface shares the identical tray rectangle
+         * regardless. */
         bool tray_visible = systray_get_geometry(s, &tray);
 
         if (s->id >= cb->screen_count) {
@@ -354,8 +344,8 @@ int wm_action_config_reload(const wm_td *wm)
     config_missing_theme_reset();
     /* Same two entirely separate paths 'wm_start' chooses between
      * ('config/memguard.h'); a reload takes the same one it started
-     * with, since 'wm_restricted_memory_mib(wm)' never changes for
-     * the life of the process. */
+     * with, since 'wm_restricted_memory_mib(wm)' never changes for the
+     * life of the process. */
     load_result = (wm_restricted_memory_mib(wm) > 0u)
         ? config_load_memguard(config, config_dir_prefix)
         : config_load(config, config_dir_prefix);
@@ -375,34 +365,43 @@ int wm_action_config_reload(const wm_td *wm)
      * load, offering a chance to revert it (see 'dialog_rrsafe_ show')
      * before 's_resync_after_reload' below, so any surface or client
      * resync there already reflects the new screen geometry if RandR
-     * itself just changed it.  Every surface still gets its
-     * profiles applied even when more than one changes, but only the
-     * first one to actually change is snapshotted and offered the
-     * confirm dialog: 'menu_confirm_dialog' allows only one instance
-     * open at a time, and 'surface_action_revert_randr_profiles' itself
-     * remembers only the single most recent snapshot, so a second
-     * surface changing in the same reload has no dialog of its own to
-     * revert through regardless. */
+     * itself just changed it.  Every surface's own changes are
+     * snapshotted, not only the first surface to actually change any:
+     * 'surface_action_randr_snapshot_begin' clears the slate once,
+     * ahead of the whole loop, and every 'surface_action_apply_randr_
+     * profiles' call below appends to that same snapshot rather than
+     * starting a fresh one of its own, so the one dialog shown, after
+     * every surface has had its own profiles applied, its cancel (or
+     * the countdown elapsing) reverts every surface that changed, not
+     * only whichever happened to be first. */
     if (wm_surfaces(wm) != NULL) {
-        bool dialog_shown = false;
+        bool any_changed = false;
+        surface_td *first_changed = NULL;
+
+        surface_action_randr_snapshot_begin();
 
         for (list_item_td *node = list_head(wm_surfaces(wm));
                 node != NULL; node = list_next(node)) {
             surface_td *const s = (surface_td *) list_data(node);
-            bool changed = surface_action_apply_randr_profiles(s,
-                    !dialog_shown);
+            bool changed = surface_action_apply_randr_profiles(s, true);
 
-            if (changed && !dialog_shown) {
-                dialog_rrsafe_show(wm_connection(wm), s, config);
-                dialog_shown = true;
+            if (changed) {
+                any_changed = true;
+                if (first_changed == NULL) {
+                    first_changed = s;
+                }
             }
+        }
+
+        if (any_changed) {
+            dialog_rrsafe_show(wm_connection(wm), first_changed, config);
         }
     }
 
     /* Re-establish keyboard/mouse binding grabs from the just-reloaded
-     * configuration's bindings: 'config_load' above already
-     * refreshed that in-memory data (it loads 'bindings.json' too, not
-     * just 'config.json'), but the X server grabs 'keyboard_load' and
+     * configuration's bindings: 'config_load' above already refreshed
+     * that in-memory data (it loads 'bindings.json' too, not just
+     * 'config.json'), but the X server grabs 'keyboard_load' and
      * 'mouse_load' set up at startup are a separate, one-time action
      * that nothing was re-running on reload, so a changed binding had
      * no actual effect until the window manager was restarted.
@@ -430,11 +429,12 @@ int wm_action_config_reload(const wm_td *wm)
     if (wm_session(wm) != NULL) {
         (void) session_load(wm_session(wm), config_dir_prefix);
     }
+
     /* A root menu on screen shares each submenu's 'items' array and
-     * child state with the entries 'rootmenu_menu_json_load' frees
-     * just below, so it has to go first.  Activating an entry closes
-     * the menu already, which leaves a reload over IPC as the one way
-     * to reach this with one still up */
+     * child state with the entries 'rootmenu_menu_json_load' frees just
+     * below, so it has to go first.  Activating an entry closes the
+     * menu already, which leaves a reload over IPC as the one way to
+     * reach this with one still up */
     rootmenu_close();
     rootmenu_menu_json_load(config_dir_prefix);
 

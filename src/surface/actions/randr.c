@@ -49,6 +49,12 @@
  *        that afterward
  */
 struct surface_randr_snapshot_s {
+    surface_td *surface;            /**< Surface this CRTC belongs to;
+                                         entries for different surfaces
+                                         may sit side by side in the
+                                         same array, one config reload
+                                         being free to touch more than
+                                         one */
     xcb_randr_crtc_t crtc;
     xcb_randr_mode_t prior_mode;    /**< @c XCB_NONE means this CRTC was
                                          off (driving nothing) before;
@@ -61,28 +67,38 @@ struct surface_randr_snapshot_s {
 };
 
 /** Every CRTC @a surface_action_apply_randr_profiles actually changed
- *  during its most recent snapshotting call, in application order */
+ *  since the last @a surface_action_randr_snapshot_begin, across every
+ *  surface a single config reload called it for, in application order;
+ *  entries belonging to the same surface stay contiguous, since every
+ *  one of a surface's own CRTCs is snapshotted in a single call before
+ *  the next surface's own call ever runs */
 static struct surface_randr_snapshot_s
     s_randr_snapshot[CONFIG_RANDR_MAX_OUTPUTS];
 
 /** Number of valid entries in @a s_randr_snapshot */
 static uint32_t s_randr_snapshot_count = 0u;
 
-/** Whichever output was RandR's primary immediately before that same
- *  call, only meaningful when @a s_randr_snapshot_primary_known */
-static xcb_randr_output_t s_randr_snapshot_prior_primary =
-    (xcb_randr_output_t) XCB_NONE;
+/**
+ * @brief One surface's primary output, as it was immediately before
+ *        @a surface_action_apply_randr_profiles changed it
+ */
+struct surface_randr_primary_snapshot_s {
+    surface_td *surface;
+    xcb_randr_output_t prior_primary;
+};
 
-/** Whether @a s_randr_snapshot_prior_primary was actually captured (a
- *  failed query leaves it unusable, so reverting must not touch primary
- *  status rather than restore a value it never really had) */
-static bool s_randr_snapshot_primary_known = false;
+/**
+ * @brief Every surface whose primary output
+ *        @a surface_action_apply_randr_profiles actually changed since
+ *        the last @a surface_action_randr_snapshot_begin; capped the
+ *        same way @a s_randr_snapshot's own surfaces are bounded, one
+ *        entry per surface rather than per CRTC
+ */
+static struct surface_randr_primary_snapshot_s
+    s_randr_primary_snapshot[CONFIG_MAX_SCREENS];
 
-/** Surface @a s_randr_snapshot belongs to, so
- *  @a surface_action_revert_randr_profiles' (which takes no parameters
- *  of its own, called as it is straight from a dialog's cancel
- *  callback) knows which one's connection to revert on */
-static surface_td *s_randr_snapshot_surface = NULL;
+/** Number of valid entries in @a s_randr_primary_snapshot */
+static uint32_t s_randr_primary_snapshot_count = 0u;
 
 
 /**
@@ -273,6 +289,7 @@ static xcb_randr_mode_t s_surface_randr_find_mode(
  *
  * @param take_snapshot  Whether snapshotting is active for this call
  *                       to @a surface_action_apply_randr_profiles at
+ * @param surface        Surface @p crtc belongs to
  * @param crtc           all CRTC being changed
  * @param output_id      Output it drives
  * @param prior_mode     Its mode immediately before the change,
@@ -286,9 +303,9 @@ static xcb_randr_mode_t s_surface_randr_find_mode(
  * @note Complexity: @e O(1)
  */
 static void s_surface_randr_snapshot_save(bool take_snapshot,
-        xcb_randr_crtc_t crtc, xcb_randr_output_t output_id,
-        xcb_randr_mode_t prior_mode, int16_t prior_x, int16_t prior_y,
-        uint16_t prior_rotation)
+        surface_td *surface, xcb_randr_crtc_t crtc,
+        xcb_randr_output_t output_id, xcb_randr_mode_t prior_mode,
+        int16_t prior_x, int16_t prior_y, uint16_t prior_rotation)
 {
     struct surface_randr_snapshot_s *slot;
 
@@ -299,6 +316,7 @@ static void s_surface_randr_snapshot_save(bool take_snapshot,
     }
 
     slot = &s_randr_snapshot[s_randr_snapshot_count];
+    slot->surface = surface;
     slot->crtc = crtc;
     slot->output_id = output_id;
     slot->prior_mode = prior_mode;
@@ -350,7 +368,7 @@ static bool s_surface_randr_blank_crtc(surface_td *surface,
         ci_reply = xcb_randr_get_crtc_info_reply(xcb_connection_get(),
                 ci_cookie, NULL);
         if (ci_reply != NULL) {
-            s_surface_randr_snapshot_save(true, crtc, output_id,
+            s_surface_randr_snapshot_save(true, surface, crtc, output_id,
                     ci_reply->mode, ci_reply->x, ci_reply->y,
                     ci_reply->rotation);
         }
@@ -556,12 +574,12 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
          * what 'surface_action_revert_randr_profiles' needs to put
          * back. */
         if (prior_crtc != (xcb_randr_crtc_t) XCB_NONE && ci_reply != NULL) {
-            s_surface_randr_snapshot_save(take_snapshot, crtc, output_id,
-                    ci_reply->mode, ci_reply->x, ci_reply->y,
+            s_surface_randr_snapshot_save(take_snapshot, surface, crtc,
+                    output_id, ci_reply->mode, ci_reply->x, ci_reply->y,
                     ci_reply->rotation);
         } else {
-            s_surface_randr_snapshot_save(take_snapshot, crtc, output_id,
-                    (xcb_randr_mode_t) XCB_NONE, 0, 0,
+            s_surface_randr_snapshot_save(take_snapshot, surface, crtc,
+                    output_id, (xcb_randr_mode_t) XCB_NONE, 0, 0,
                     (uint16_t) XCB_RANDR_ROTATION_ROTATE_0);
         }
     }
@@ -607,6 +625,15 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
 }
 
 
+/* Clear every RandR snapshot from a previous config reload, so the one
+ * about to start accumulates only its own surfaces' changes */
+void surface_action_randr_snapshot_begin(void)
+{
+    s_randr_snapshot_count = 0u;
+    s_randr_primary_snapshot_count = 0u;
+}
+
+
 /* Apply every configured RandR output profile that matches
  * a currently-connected output */
 bool surface_action_apply_randr_profiles(surface_td *surface,
@@ -620,16 +647,6 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
     xcb_generic_error_t *primary_error = NULL;
     xcb_randr_output_t current_primary;
     bool any_changed = false;
-
-    /* Reset unconditionally, ahead of every early return below, so
-     * a failed or skipped call never leaves a stale snapshot around for
-     * 'surface_action_revert_randr_profiles' to act on later as though
-     * it belonged to a change that never actually happened. */
-    if (take_snapshot) {
-        s_randr_snapshot_count = 0u;
-        s_randr_snapshot_primary_known = false;
-        s_randr_snapshot_surface = surface;
-    }
 
     if (surface == NULL || xcb_connection_get() == NULL ||
             surface->screen == NULL || surface->config == NULL ||
@@ -670,9 +687,14 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
         ? primary_reply->output : (xcb_randr_output_t) XCB_NONE;
     free(primary_reply);
 
-    if (take_snapshot) {
-        s_randr_snapshot_prior_primary = current_primary;
-        s_randr_snapshot_primary_known = true;
+    if (take_snapshot &&
+            s_randr_primary_snapshot_count <
+                    (uint32_t) CONFIG_MAX_SCREENS) {
+        s_randr_primary_snapshot[s_randr_primary_snapshot_count].surface
+            = surface;
+        s_randr_primary_snapshot[s_randr_primary_snapshot_count]
+            .prior_primary = current_primary;
+        ++s_randr_primary_snapshot_count;
     }
 
     for (uint32_t i = 0u; i < surface->config->randr.output_count; ++i) {
@@ -725,96 +747,126 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
 }
 
 
-/* Undo the most recent snapshotting call of
- * 'surface_action_apply_randr_profiles' */
+/* Undo every snapshot taken since the most recent
+ * 'surface_action_randr_snapshot_begin', across every surface a single
+ * config reload touched, not only the first */
 void surface_action_revert_randr_profiles(void)
 {
-    surface_td *const surface = s_randr_snapshot_surface;
-    xcb_randr_get_screen_resources_current_cookie_t res_cookie;
-    xcb_randr_get_screen_resources_current_reply_t *res_reply;
-    xcb_generic_error_t *res_error = NULL;
+    uint32_t i = 0u;
 
-    /* Both checked, not just the CRTC snapshot count: a reload whose
-     * only actual change was which output is primary (no CRTC touched
-     * at all) would otherwise leave this function returning immediately
-     * without ever reaching the primary-output revert near the bottom,
-     * silently leaving that one change stuck. */
-    if (surface == NULL || xcb_connection_get() == NULL ||
+    if (xcb_connection_get() == NULL ||
             (s_randr_snapshot_count == 0u &&
-             !s_randr_snapshot_primary_known)) {
+             s_randr_primary_snapshot_count == 0u)) {
         s_randr_snapshot_count = 0u;
-        s_randr_snapshot_primary_known = false;
-        s_randr_snapshot_surface = NULL;
+        s_randr_primary_snapshot_count = 0u;
         return;
     }
 
-    /* The 'config-timestamp' 'xcb_randr_set_crtc_config' itself
-     * requires (its second time argument) has to be one the server
-     * actually issued, not 'XCB_CURRENT_TIME': the same reasoning
-     * 's_surface_randr_apply_profile' and 's_surface_randr_blank_crtc'
-     * already follow, both using a screen-resources reply's
-     * 'config_timestamp' rather than that constant. */
-    res_cookie = xcb_randr_get_screen_resources_current(
-            xcb_connection_get(), surface->screen->root);
-    res_reply = xcb_randr_get_screen_resources_current_reply(
-            xcb_connection_get(), res_cookie, &res_error);
-    if (res_reply == NULL) {
-        xcb_reply_log_error(res_error, "the XRandR screen resources");
-        LOGGER_WARNING("XRandR: failed to query screen resources on" \
-                " surface %u; cannot revert output profiles",
-                surface->id);
-        s_randr_snapshot_count = 0u;
-        s_randr_snapshot_primary_known = false;
-        s_randr_snapshot_surface = NULL;
-        return;
-    }
+    /* 's_randr_snapshot' entries for the same surface are always
+     * contiguous, one surface's own call to 'surface_action_apply_
+     * randr_profiles' saving every one of its own CRTCs before the next
+     * surface's own call ever runs, so a single forward pass grouping
+     * consecutive same-surface entries into one run is enough; there is
+     * no need to sort or otherwise regroup them. */
+    while (i < s_randr_snapshot_count) {
+        surface_td *const surface = s_randr_snapshot[i].surface;
+        xcb_randr_get_screen_resources_current_cookie_t res_cookie;
+        xcb_randr_get_screen_resources_current_reply_t *res_reply;
+        xcb_generic_error_t *res_error = NULL;
+        uint32_t run_end = i;
 
-    for (uint32_t i = 0u; i < s_randr_snapshot_count; ++i) {
-        const struct surface_randr_snapshot_s *snap =
-            &s_randr_snapshot[i];
-        xcb_randr_set_crtc_config_cookie_t cfg_cookie;
-        xcb_randr_set_crtc_config_reply_t *cfg_reply;
-        bool was_off = snap->prior_mode == (xcb_randr_mode_t) XCB_NONE;
-
-        cfg_cookie = xcb_randr_set_crtc_config(xcb_connection_get(),
-                snap->crtc, XCB_CURRENT_TIME,
-                res_reply->config_timestamp,
-                (was_off) ? 0 : snap->prior_x,
-                (was_off) ? 0 : snap->prior_y,
-                (was_off)
-                    ? (xcb_randr_mode_t) XCB_NONE
-                    : snap->prior_mode,
-                (was_off)
-                    ? (uint16_t) XCB_RANDR_ROTATION_ROTATE_0
-                    : snap->prior_rotation,
-                (was_off) ? 0u : 1u,
-                (was_off) ? NULL : &snap->output_id);
-        cfg_reply = xcb_randr_set_crtc_config_reply(xcb_connection_get(),
-                cfg_cookie, NULL);
-
-        if (cfg_reply == NULL ||
-                cfg_reply->status != XCB_RANDR_SET_CONFIG_SUCCESS) {
-            LOGGER_WARNING("XRandR: failed to revert CRTC %u on" \
-                    " surface %u to its prior state",
-                    (unsigned int) snap->crtc, surface->id);
-        } else {
-            LOGGER_NOTICE("XRandR: reverted CRTC %u on surface %u" \
-                    " to its prior state", (unsigned int) snap->crtc,
-                    surface->id);
+        while (run_end < s_randr_snapshot_count &&
+                s_randr_snapshot[run_end].surface == surface) {
+            ++run_end;
         }
-        free(cfg_reply);
-    }
-    free(res_reply);
 
-    if (s_randr_snapshot_primary_known) {
+        if (surface == NULL || surface->screen == NULL) {
+            i = run_end;
+            continue;
+        }
+
+        /* The 'config-timestamp' 'xcb_randr_set_crtc_config' itself
+         * requires (its second time argument) has to be one the server
+         * actually issued, not 'XCB_CURRENT_TIME': the same reasoning
+         * 's_surface_randr_apply_profile' and
+         * 's_surface_randr_blank_crtc' already follow, both using
+         * a screen-resources reply's 'config_timestamp' rather than
+         * that constant. Fetched once per surface, not once per CRTC,
+         * since every CRTC in this run shares the same one. */
+        res_cookie = xcb_randr_get_screen_resources_current(
+                xcb_connection_get(), surface->screen->root);
+        res_reply = xcb_randr_get_screen_resources_current_reply(
+                xcb_connection_get(), res_cookie, &res_error);
+        if (res_reply == NULL) {
+            xcb_reply_log_error(res_error, "the XRandR screen" \
+                    " resources");
+            LOGGER_WARNING("XRandR: failed to query screen resources" \
+                    " on surface %u; cannot revert its output" \
+                    " profiles", surface->id);
+            i = run_end;
+            continue;
+        }
+
+        for (; i < run_end; ++i) {
+            const struct surface_randr_snapshot_s *snap =
+                &s_randr_snapshot[i];
+            xcb_randr_set_crtc_config_cookie_t cfg_cookie;
+            xcb_randr_set_crtc_config_reply_t *cfg_reply;
+            bool was_off =
+                snap->prior_mode == (xcb_randr_mode_t) XCB_NONE;
+
+            cfg_cookie = xcb_randr_set_crtc_config(xcb_connection_get(),
+                    snap->crtc, XCB_CURRENT_TIME,
+                    res_reply->config_timestamp,
+                    (was_off) ? 0 : snap->prior_x,
+                    (was_off) ? 0 : snap->prior_y,
+                    (was_off)
+                        ? (xcb_randr_mode_t) XCB_NONE
+                        : snap->prior_mode,
+                    (was_off)
+                        ? (uint16_t) XCB_RANDR_ROTATION_ROTATE_0
+                        : snap->prior_rotation,
+                    (was_off) ? 0u : 1u,
+                    (was_off) ? NULL : &snap->output_id);
+            cfg_reply = xcb_randr_set_crtc_config_reply(
+                    xcb_connection_get(), cfg_cookie, NULL);
+
+            if (cfg_reply == NULL ||
+                    cfg_reply->status != XCB_RANDR_SET_CONFIG_SUCCESS) {
+                LOGGER_WARNING("XRandR: failed to revert CRTC %u on" \
+                        " surface %u to its prior state",
+                        (unsigned int) snap->crtc, surface->id);
+            } else {
+                LOGGER_NOTICE("XRandR: reverted CRTC %u on surface" \
+                        " %u to its prior state",
+                        (unsigned int) snap->crtc, surface->id);
+            }
+            free(cfg_reply);
+        }
+        free(res_reply);
+
+        surface_refresh_monitors(surface);
+        surface->is_outdated = true;
+    }
+
+    for (uint32_t p = 0u; p < s_randr_primary_snapshot_count; ++p) {
+        surface_td *const surface = s_randr_primary_snapshot[p].surface;
+
+        if (surface == NULL || surface->screen == NULL) {
+            continue;
+        }
+
         xcb_randr_set_output_primary(xcb_connection_get(),
-                surface->screen->root, s_randr_snapshot_prior_primary);
+                surface->screen->root,
+                s_randr_primary_snapshot[p].prior_primary);
+
+        /* Applied again even for a surface a CRTC run above already
+         * refreshed: harmless, and simpler than tracking which surfaces
+         * the loop above already touched to skip a repeat. */
+        surface_refresh_monitors(surface);
+        surface->is_outdated = true;
     }
 
     s_randr_snapshot_count = 0u;
-    s_randr_snapshot_primary_known = false;
-    s_randr_snapshot_surface = NULL;
-
-    surface_refresh_monitors(surface);
-    surface->is_outdated = true;
+    s_randr_primary_snapshot_count = 0u;
 }

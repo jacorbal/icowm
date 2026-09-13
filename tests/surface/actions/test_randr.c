@@ -225,13 +225,15 @@ static void s_test_apply_randr_disabled_refused(void)
 }
 
 
-/* Taking a snapshot ('take_snapshot' true) still resets any prior
- * snapshot bookkeeping before the guard chain even runs, so a second,
- * failing apply call leaves nothing stale for a later revert to act
- * on; confirmed indirectly here by observing that a subsequent revert
- * call (with the same, connectionless setup) is itself a safe no-op
- * rather than dereferencing something left over */
-static void s_test_apply_failed_snapshot_leaves_revert_safe(void)
+/* A snapshotting apply call that fails its own guard chain never
+ * reaches the code that would add anything to the snapshot in the
+ * first place, so a subsequent revert call still finds nothing to
+ * act on and stays a safe no-op; resetting any snapshot left over
+ * from an earlier reload is 'surface_action_randr_snapshot_begin''s
+ * own job now, not something an individual apply call does on its
+ * own, so this only confirms the failure path itself adds nothing
+ * new, not that it clears anything old */
+static void s_test_apply_failed_call_adds_nothing_to_snapshot(void)
 {
     surface_td *surface = s_make_surface(true);
     bool result;
@@ -251,6 +253,23 @@ static void s_test_apply_failed_snapshot_leaves_revert_safe(void)
             " does not crash");
 
     s_free_surface(surface);
+}
+
+
+/* Beginning a new snapshot is always safe to call, whether or not
+ * anything was ever actually snapshotted before it; a revert right
+ * after still finds nothing to act on either way */
+static void s_test_snapshot_begin_then_revert_is_noop(void)
+{
+    s_reset();
+
+    surface_action_randr_snapshot_begin();
+    TAP_OK(true, "beginning a new snapshot does not crash");
+
+    surface_action_revert_randr_profiles();
+    TAP_OK(true,
+            "reverting right after beginning a new, empty snapshot"
+            " does not crash");
 }
 
 
@@ -290,14 +309,15 @@ static void s_test_apply_non_snapshotting_call_also_refused(void)
 
 int main(void)
 {
-    TAP_PLAN(9);
+    TAP_PLAN(11);
 
     s_test_apply_null_surface_refused();
     s_test_apply_no_connection_refused();
     s_test_apply_null_screen_refused();
     s_test_apply_null_config_refused();
     s_test_apply_randr_disabled_refused();
-    s_test_apply_failed_snapshot_leaves_revert_safe();
+    s_test_apply_failed_call_adds_nothing_to_snapshot();
+    s_test_snapshot_begin_then_revert_is_noop();
     s_test_revert_nothing_snapshotted_is_noop();
     s_test_apply_non_snapshotting_call_also_refused();
 

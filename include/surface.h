@@ -99,6 +99,17 @@ struct surface_properties_s {
 typedef struct surface_s surface_td;
 #endif
 
+
+/**
+ * @brief Called once per desktop by @a surface_desktops_walk
+ *
+ * @param desktop Desktop reached by the walk; never @c NULL
+ * @param data    Whatever the caller handed the walk
+ */
+typedef void (*surface_desktop_visitor_fn)(desktop_td *desktop,
+        void *data);
+
+
 /**
  * @brief Structure for a surface in an XCB environment
  *
@@ -734,6 +745,21 @@ int surface_action_desktop_remove(surface_td *surface);
 int surface_action_toggle_strutless_maximize(surface_td *surface);
 
 /**
+ * @brief Clear every RandR snapshot left over from a previous config
+ *        reload
+ *
+ * Called once, by @a wm_action_config_reload itself, before it calls
+ * @a surface_action_apply_randr_profiles for each of its own surfaces
+ * in turn: every one of those calls appends to the same snapshot rather
+ * than resetting it, so a single reload that touches more than one
+ * surface ends up with all of them, not only the first, covered by one
+ * later @a surface_action_revert_randr_profiles call.
+ *
+ * @note Complexity: @e O(1)
+ */
+void surface_action_randr_snapshot_begin(void);
+
+/**
  * @brief Apply every configured RandR output profile that matches
  *        a currently-connected output on this surface
  *
@@ -765,9 +791,12 @@ int surface_action_toggle_strutless_maximize(surface_td *surface);
  * @param surface       Surface whose outputs to apply configured
  *                      profiles to
  * @param take_snapshot Whether to save each changed CRTC's prior state
- *                      first, so a subsequent
+ *                      first, appended to whatever @a surface_action_
+ *                      randr_snapshot_begin last cleared rather than
+ *                      replacing it, so a later
  *                      @a surface_action_revert_randr_profiles call can
- *                      put it back; pass @c false for a startup or
+ *                      put every one of them back, not only this
+ *                      surface's own; pass @c false for a startup or
  *                      hotplug call, where there is nothing to revert
  *                      to (the newly-applied state @e is the intended
  *                      one), and @c true only when the caller means to
@@ -796,18 +825,23 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
         bool take_snapshot);
 
 /**
- * @brief Undo the most recent snapshotting
- *        @a surface_action_apply_randr_profiles call
+ * @brief Undo every snapshotting @a surface_action_apply_randr_
+ *        profiles call since the most recent
+ *        @a surface_action_randr_snapshot_begin
  *
- * Restores every CRTC that call actually changed to exactly the state
- * it captured first (mode, position, rotation, or off if it was off),
- * and RandR's primary output to whichever one held it before, then
- * clears the snapshot.  A safe, cheap no-op if nothing is currently
- * snapshotted, including when the surface it belonged to no longer has
- * a usable connection.
+ * Restores every CRTC any of those calls actually changed to exactly
+ * the state it captured first (mode, position, rotation, or off if it
+ * was off), and each touched surface's own RandR primary output to
+ * whichever one held it before, then clears the snapshot.  Every
+ * surface a single config reload touched is covered, not only the
+ * first, one surface's own screen resources failing to resolve never
+ * blocking another's from still being reverted.  A safe, cheap no-op if
+ * nothing is currently snapshotted, including when a surface it
+ * belonged to no longer has a usable connection.
  *
- * @note Complexity: @e O(s), where @e s is the number of CRTCs the
- *       snapshotted call actually changed
+ * @note Complexity: @e O(s), where @e s is the number of CRTCs
+ *       snapshotted across every surface since the last
+ *       @a surface_action_randr_snapshot_begin
  */
 void surface_action_revert_randr_profiles(void);
 
@@ -914,15 +948,6 @@ void surface_clients_reflow(surface_td *surface);
  * @note Complexity: @e O(1)
  */
 #define surface_height(s) ((s) ? (s)->properties.dim.h : 0)
-
-/**
- * @brief Called once per desktop by @a surface_desktops_walk
- *
- * @param desktop Desktop reached by the walk; never @c NULL
- * @param data    Whatever the caller handed the walk
- */
-typedef void (*surface_desktop_visitor_fn)(desktop_td *desktop,
-        void *data);
 
 /**
  * @brief Visit every desktop a surface holds, in order
