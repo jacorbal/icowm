@@ -11,15 +11,15 @@
                 "layout": {
                     "orientation": "horizontal",
                     "corner": "top-left",
-                    "rows": 2,
-                    "columns": 2
+                    "rows": 1,
+                    "columns": 4
                 },
                 "viewport": {
-                    "columns": 1,
-                    "rows": 1
+                    "rows": 1,
+                    "columns": 1
                 },
                 "settings": [
-                    { "-background-color": "#5f7187", "name": "" },
+                    { "-background-color": "#5f7187", "name": "Desktop 0" },
                     { "background-color": "#85648d", "name": "Desktop 1" },
                     { "background-color": "#4d767d", "name": "Desktop 2" },
                     { "background-color": "#936459", "name": "Desktop 3" },

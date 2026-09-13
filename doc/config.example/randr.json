@@ -2,13 +2,13 @@
      "is-enabled": false,
 
      "outputs": [
-         {
+     {
          "name": "HDMI-1",
          "is-enabled": true,
          "is-primary": true,
          "resolution": { "w": 1920, "h": 1080 },
          "position": { "x": 0, "y": 0 },
          "rotation": "normal"
-         }
+     }
      ]
  }
