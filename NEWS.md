@@ -37,12 +37,14 @@ What each release brought, newest first.
 
 ### September 13, 2026
 
+- **FIXED.**  Unshade client on `_NET_ACTIVE_WINDOW` activate
 - **FIXED.**  The example `gmrun` launcher rule in the docs, which
   matched on the window title and so never actually fired; it now
   matches on the instance name instead
 
 ### September 12, 2026
 
+- **FIXED.**  Recover clients on any page a viewport shrink removes
 - **FIXED.**  The same flicker once more in the position/size label
   shown while dragging or resizing a window, or dragging an icon
 - **FIXED.**  The same flicker in the system tray's clock/battery text
