@@ -30,16 +30,21 @@ EWMH Compliance
 - [`+`] `_NET_NUMBER_OF_DESKTOPS` (1.3)
 - [`+`] `_NET_DESKTOP_GEOMETRY` (1.3)
 
-    IcoWM doesn't support large desktops, so this always matches the
-    screen size, and a pager's request to change it is ignored, which
-    the specification allows a window manager that has no larger desktop
-    to give.
+    Reports the screen size multiplied by the configured viewport's
+    columns and rows (1x1 when none is configured, matching the screen
+    size exactly only then), not a fixed size IcoWM cannot
+    exceed.  A pager's request to change it is still ignored, which the
+    specification allows a window manager whose desktop size is set by
+    its own configuration, not by a pager, to give.
 
 - [`+`] `_NET_DESKTOP_VIEWPORT` (1.3)
 
-    IcoWM doesn't support large desktops, so these are always (0,0), one
-    pair per desktop as the specification asks; a pager's request to
-    scroll the viewport is ignored, there being nowhere to scroll to.
+    One pair per desktop, each the pixel origin that desktop's viewport
+    is currently panned to, non-zero once it has actually panned away
+    from its top-left page. A pager's request to move it is honored,
+    (@a scmd_surface_viewport_set, @c cmds/surface.c), translating every
+    non-sticky client on the current desktop by the resulting delta and
+    clamping the requested origin to the pannable area.
 
 - [`+`] `_NET_CURRENT_DESKTOP` (1.3)
 - [`+`] `_NET_DESKTOP_NAMES` (1.3)
@@ -215,8 +220,8 @@ EWMH Compliance
 - [`-`] `_NET_WM_OPAQUE_REGION` (1.5)
 
     IcoWM never draws an ARGB, alpha-channel window of its own; every
-    window it creates uses the parent visual's opaque depth, which a
-    compositor already treats as fully opaque with no hint needed, so
+    window it creates uses the parent visual's opaque depth, which
+    a compositor already treats as fully opaque with no hint needed, so
     there is no per-window region left to describe.
 
 - [`/`] `_NET_WM_BYPASS_COMPOSITOR` (1.5)
@@ -415,7 +420,7 @@ was individually confirmed by reading its handling code.
 
     Sent after a move/resize so a client can recompute its absolute
     screen position even when its size does not itself change
-    (`src/cmds/client/geom.c`).
+    (`src/client/geom.c`).
 
 - [`+`] `WM_CHANGE_STATE` (2.0)
 

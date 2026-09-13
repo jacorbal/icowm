@@ -28,34 +28,14 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Initial definitions */
+#include <defs/dialog.h>
+
 /* Type includes */
 #include <types/pair.h>
 
 /* Project includes */
 #include <surface.h>
-
-
-/* Shared layout constants */
-/** Bottom padding below buttons (pixels) */
-#define DIALOG_PAD_BOTTOM (8u)
-
-/** Minimum dialog width (pixels) */
-#define DIALOG_MIN_W (220u)
-
-/** Minimum dialog height (pixels) */
-#define DIALOG_MIN_H (90u)
-
-/** Minimum button width (pixels) */
-#define DIALOG_BTN_MIN_W (60u)
-
-/** Prompt baseline position from dialog top (pixels) */
-#define DIALOG_PROMPT_BASELINE_Y (22u)
-
-/** Vertical gap between prompt baseline and button top (pixels) */
-#define DIALOG_PROMPT_TO_BTN_GAP (34u)
-
-/** Maximum text length for dialogs (prompt + level prefix) */
-#define DIALOG_TEXT_MAX_LEN (256u)
 
 
 /**
