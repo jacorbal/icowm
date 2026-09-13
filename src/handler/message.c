@@ -29,11 +29,13 @@
 
 /* Utils includes */
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
 
 /* Command includes */
 #include <cmds/client/flags.h>
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
+#include <cmds/client/state.h>
 #include <cmds/client/visibility.h>
 #include <cmds/surface.h>
 
@@ -43,6 +45,9 @@
 /* Render includes */
 #include <render/outdate.h>
 
+/* Control includes  */
+#include <cctl/sn.h>
+
 /* Definition includes */
 #include <defs/ewmh.h>
 
@@ -50,14 +55,14 @@
 #include <client.h>
 #include <desktop.h>
 #include <handler.h>
-#include <handler/internal.h>
 #include <logger.h>
 #include <lookup.h>
-#include <cctl/sn.h>
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
-#include <utils/xcb/connection.h>
+
+/* Local includes */
+#include <handler/internal.h>
 
 
 /**
@@ -334,6 +339,13 @@ void handler_client_message(wm_td *wm, xcb_client_message_event_t *event)
                 ccmd_client_restore(client);
             } else if (client->properties.flags & CLIENT_FLAG_HIDDEN) {
                 ccmd_client_unhide(client);
+            }
+
+            /* Activating a client is expected to bring the whole window
+             * back into view, not just raise and focus whatever sliver
+             * of it a shaded titlebar still shows. */
+            if (client_is_shaded(client)) {
+                ccmd_client_unshade(client);
             }
 
             if (desktop != NULL) {

@@ -122,6 +122,7 @@ static unsigned int s_call_desktop_move = 0u;
 static unsigned int s_call_surface_switch = 0u;
 static unsigned int s_call_ccmd_restore = 0u;
 static unsigned int s_call_ccmd_unhide = 0u;
+static unsigned int s_call_ccmd_unshade = 0u;
 static unsigned int s_call_focus_apply = 0u;
 static unsigned int s_call_ccmd_close = 0u;
 static unsigned int s_call_change_property = 0u;
@@ -385,6 +386,15 @@ void ccmd_client_unhide(client_td *client)
 }
 
 
+/** Link-only stand-in for ccmd_client_unshade */
+void ccmd_client_unshade(client_td *client)
+{
+    (void) client;
+
+    s_call_ccmd_unshade++;
+}
+
+
 /** Link-only stand-in for focus_apply */
 void focus_apply(list_td *surfaces, surface_td *surface,
         desktop_td *desktop, client_td *client,
@@ -540,6 +550,7 @@ static void s_test_reset_state(void)
     s_call_surface_switch = 0u;
     s_call_ccmd_restore = 0u;
     s_call_ccmd_unhide = 0u;
+    s_call_ccmd_unshade = 0u;
     s_call_focus_apply = 0u;
     s_call_ccmd_close = 0u;
     s_call_change_property = 0u;
@@ -1216,6 +1227,51 @@ static void s_test_active_window_hidden_unhides(void)
 }
 
 
+/* _NET_ACTIVE_WINDOW: a shaded, non-iconified, non-hidden client is
+ * unshaded so the whole window comes back into view, not left rolled
+ * up under its own titlebar after being raised and focused */
+static void s_test_active_window_shaded_unshades(void)
+{
+    xcb_ewmh_connection_t ewmh;
+    list_td *surfaces;
+    config_td config;
+    client_td client;
+    surface_td surface;
+    desktop_td desktop;
+    xcb_client_message_event_t event;
+    wm_td wm;
+
+    s_test_reset_state();
+    memset(&ewmh, 0, sizeof(ewmh));
+    ewmh._NET_ACTIVE_WINDOW = (xcb_atom_t) 200;
+    surfaces = list_init(NULL);
+    memset(&config, 0, sizeof(config));
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    s_test_build_wm(&wm, &ewmh, surfaces, &config);
+    s_test_build_client(&client, 0x500);
+    client.properties.flags = (uint16_t) CLIENT_FLAG_SHADED;
+    client.properties.state = 0u;
+    desktop.id = 0;
+    surface.desktop_cur = 0;
+    s_lookup_surface_out = &surface;
+    s_lookup_desktop_out = &desktop;
+    s_lookup_current_desktop_result = &desktop;
+    s_lookup_result = &client;
+    s_test_build_event(&event, 0x500, ewmh._NET_ACTIVE_WINDOW);
+    event.data.data32[0] = (uint32_t) WM_SOURCE_USER;
+
+    handler_client_message(&wm, &event);
+
+    TAP_OK(s_call_ccmd_unshade == 1u,
+            "activating a shaded client unshades it exactly once");
+    TAP_OK(s_call_ccmd_restore == 0u && s_call_ccmd_unhide == 0u,
+            "unshading it never also calls restore or unhide");
+
+    list_destroy(surfaces);
+}
+
+
 /* _NET_CLOSE_WINDOW for a managed client closes it */
 static void s_test_close_window_with_client(void)
 {
@@ -1711,7 +1767,7 @@ static void s_test_wm_change_state_non_iconic_ignored(void)
 
 int main(void)
 {
-    TAP_PLAN(49);
+    TAP_PLAN(51);
 
     s_test_null_wm();
     s_test_null_event();
@@ -1730,6 +1786,7 @@ int main(void)
     s_test_active_window_visible_switches_desktop();
     s_test_active_window_iconified_restores();
     s_test_active_window_hidden_unhides();
+    s_test_active_window_shaded_unshades();
     s_test_close_window_with_client();
     s_test_close_window_no_client();
     s_test_wm_desktop_dispatch();
