@@ -34,15 +34,15 @@
  * still has more of @p client's geometry left to settle first (see
  * @a ccmd_client_unfullscreen, @c cmds/client/state.c) can fold this
  * into a single geometry it only then applies and announces once,
- * rather than applying this and, moments later, a corrected version
- * of it a second time.
+ * rather than applying this and, moments later, a corrected version of
+ * it a second time.
  *
  * @param client Client to compute fresh maximized geometry for
  *
  * @return Whether @p client is maximized on at least one axis, and so
  *         had @c layout.geometry.cur actually written; @c false for
- *         a null @p client, one maximized on neither axis, or one
- *         whose workarea failed to resolve, none of which touch it
+ *         a null @p client, one maximized on neither axis, or one whose
+ *         workarea failed to resolve, none of which touch it
  *
  * @note Complexity: @e O(1)
  *
@@ -110,15 +110,14 @@ void ccmd_client_maximize_vert(client_td *client);
  * For a caller that has already applied the correct un-maximized
  * geometry itself (a mouse-drag resize crossing the resistance
  * threshold on a maximized axis, live, on the very same motion event;
- * see @c drag_update, input/mouse/drag.c), unlike
+ * see @a drag_update, in @c input/mouse/drag.c), unlike
  * @a ccmd_client_maximize_horz / @a _vert's demote branch, which always
  * restores geometry from @c layout.geometry.old itself as part of the
  * same call.
  *
  * @param client Client whose axis just stopped being maximized
  * @param dir    @c 1 for horizontal, @c 2 for vertical; matches
- *               @a ccmd_client_maximize_horz/@c _vert's axis
- *               numbering
+ *               @a ccmd_client_maximize_horz/@c _vert's axis numbering
  *
  * @note Complexity: @e O(1)
  */
@@ -133,17 +132,15 @@ void ccmd_client_demote_axis_state(client_td *client, int dir);
  * For a caller whose drag has already re-frozen that axis back
  * at its maximized geometry itself (a mouse-drag resize dragged back
  * under the resistance threshold before release, live, on the very
- * same motion event; see @c drag_update, input/mouse/drag.c): the
+ * same motion event; see @c drag_update, @c input/mouse/drag.c): the
  * live, reversible half of the same mechanism
  * @a ccmd_client_demote_axis_state's comment describes, restoring
- * @c MAXIMIZED
- * itself rather than @c NORMAL when the other axis is already
- * maximized on its own, @c MAXIMIZED_HORZ/@c _VERT otherwise.
+ * @c MAXIMIZED itself rather than @c NORMAL when the other axis is
+ * already maximized on its own, @c MAXIMIZED_HORZ / @c _VERT otherwise.
  *
  * @param client Client whose axis just became maximized again
  * @param dir    @c 1 for horizontal, @c 2 for vertical; matches
- *               @c ccmd_client_maximize_horz/@c _vert's axis
- *               numbering
+ *               @c ccmd_client_maximize_horz/@c _vert's axis numbering
  *
  * @note Complexity: @e O(1)
  */

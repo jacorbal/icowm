@@ -27,7 +27,6 @@
 
 /* Default initial values */
 #include <defs/uistr.h>
-#include <i18n.h>
 
 /* Util includes */
 #include <utils/safe/safestr.h>
@@ -38,6 +37,7 @@
 /* Project includes */
 #include <client.h>
 #include <config.h>
+#include <i18n.h>
 #include <render/text.h>
 #include <surface.h>
 
@@ -56,7 +56,10 @@
  */
 typedef char s_message_line_td[DIALOG_MSG_LINE_MAX_LENGTH];
 
-/** Internal layout record for the message dialog */
+
+/**
+ * @brief Internal layout record for the message dialog
+ */
 typedef struct {
     char *raw_message;          /**< Prefix + caller's text, before
                                      wrapping; allocated to exactly what
@@ -352,13 +355,13 @@ static s_message_line_td *s_message_wrap_text(const char *raw,
  * The "OK" button always renders in @c button.selected.font (it has no
  * unselected state to switch to), so its width and label position are
  * measured directly in that font, avoiding the same off-center risk
- * @c s_confirm_compute_layout (@c menu/dialog/confirm.c) guards against
+ * @a s_confirm_compute_layout (@c menu/dialog/confirm.c) guards against
  * for the two-button confirm dialog.
  *
  * Caps @p layout->h to 70% of @p surface's resolved target monitor (see
- * @c dlgutil_resolve_monitor) and computes how many message lines fit
+ * @a dlgutil_resolve_monitor) and computes how many message lines fit
  * within that cap into @p layout->visible_lines, scrolling the rest
- * instead of growing past it; see @c s_message_draw for how that
+ * instead of growing past it; see @a s_message_draw for how that
  * scrolling is actually drawn.
  *
  * @param connection XCB connection, needed to measure the label text

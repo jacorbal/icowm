@@ -102,7 +102,7 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
  * A drag in progress already repositions @p client (or leaves it
  * deliberately parked off screen, for an outline drag) through its
  * own logic in @c input/mouse/drag/pan.c, so folding it into the
- * ordinary translate walk too (@c s_viewport_translate_visit, this
+ * ordinary translate walk too (@a s_viewport_translate_visit, this
  * file) would fight that logic instead of cooperating with it: an
  * outline drag in particular parks the real window off screen for
  * the whole drag and must never have that parking spot silently
@@ -208,6 +208,52 @@ void scmd_surface_viewport_pan_step(surface_td *surface,
  */
 void scmd_surface_viewport_set(surface_td *surface,
         int32_t x, int32_t y);
+
+/**
+ * @brief Re-clamp a desktop's own current viewport origin, and every
+ *        client on it, against its surface's presently configured
+ *        viewport size
+ *
+ * Two separate corrections, since a shrunk viewport can leave a
+ * desktop wrong in either way independently of the other:
+ *
+ * First, @p desktop's own @c viewport_origin is passed straight back
+ * into the same clamp @a scmd_surface_viewport_set itself applies to
+ * a requested one, rather than a fresh @p x, @p y of its own: a
+ * desktop whose origin still fits the pannable area is left exactly
+ * as it was, and one that no longer does (a configuration reload
+ * having just shrunk the surface's viewport out from under it) is
+ * pulled back to the nearest still-valid origin, translating every
+ * non-sticky client on it by the resulting delta the same way an
+ * ordinary pan would.  This alone only fixes the page @p desktop
+ * itself was showing.
+ *
+ * Second, every client on @p desktop is individually clamped back
+ * within the canvas the same way @a scmd_surface_viewport_center_on_
+ * client already clamps a single one on demand
+ * (@c s_viewport_clamp_client_to_canvas): a client left parked on
+ * some other page that the shrink also removed, one @p desktop was
+ * never actually showing and so the first correction above never
+ * touches, would otherwise stay stranded past the canvas' new,
+ * smaller edge with no page left for it to belong to at all.
+ *
+ * Unlike @a scmd_surface_viewport_set, @p desktop is taken directly
+ * rather than resolved through @a lookup_current_desktop, since a
+ * caller re-clamping every desktop on a surface after a reload needs
+ * to reach each one in turn, not only whichever is on screen right
+ * now.
+ *
+ * @param surface Surface @p desktop belongs to, marked outdated when
+ *                its origin actually changes
+ * @param desktop Desktop to re-clamp, origin and clients both
+ *
+ * @note A no-op for a desktop whose origin and every client on it
+ *       already fit
+ * @note Complexity: @e O(n), where @e n is the number of clients on
+ *       @p desktop
+ */
+void scmd_surface_viewport_reclamp(surface_td *surface,
+        desktop_td *desktop);
 
 /**
  * @brief Jump the current desktop's viewport straight to one of its

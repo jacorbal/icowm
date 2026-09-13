@@ -36,15 +36,11 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Default initial values */
+#include <defs/dialog.h>
+
 /* Project includes */
 #include <types/handles.h>
-
-
-/**
- * @brief Vertical gap, in pixels, between the prompt and the countdown
- *        line beneath it, when a timeout is running
- */
-#define DIALOG_CONFIRM_TIMEOUT_LINE_GAP (6)
 
 
 /**

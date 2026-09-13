@@ -22,7 +22,6 @@
 
 /* Default initial values */
 #include <defs/uistr.h>
-#include <i18n.h>
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
@@ -32,6 +31,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <i18n.h>
 #include <surface.h>
 
 /* CMD includes */

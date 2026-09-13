@@ -19,6 +19,15 @@
 /* Type includes */
 #include <types/direction.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
+/* Menu includes */
+#include <menu/notify/desktop.h>
+
+/* Policy includes */
+#include <policy/stacking.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -28,18 +37,9 @@
 #include <surface.h>
 #include <wm.h>
 
-/* Utils includes */
-#include <utils/xcb/connection.h>
-
-/* Menu includes */
-#include <menu/notify/desktop.h>
-
 /* Command includes */
 #include <cmds/client/move.h>
 #include <cmds/client/screen.h>
-
-/* Policy includes */
-#include <policy/stacking.h>
 
 /* Local includes */
 #include <cmds/surface.h>
@@ -146,8 +146,8 @@ static void s_switch_cyclic(surface_td *surface,
     uint32_t old_id;
     bool cycle;
     /* Initialized here, not left to the switch below: that switch
-     * deliberately has no 'default:' so the compiler keeps checking
-     * it covers every direction, which also means it cannot prove to
+     * deliberately has no 'default:' so the compiler keeps checking it
+     * covers every direction, which also means it cannot prove to
      * itself that one of its cases always runs */
     const char *direction_label = "unknown";
 
@@ -797,6 +797,79 @@ void scmd_surface_viewport_set(surface_td *surface,
     origin.x = x;
     origin.y = y;
     s_viewport_apply_origin(surface, desktop, columns, rows, origin);
+}
+
+
+/**
+ * @brief What @a s_viewport_reclamp_visit needs for each client it is
+ *        handed
+ */
+struct s_reclamp_ctx_s {
+    surface_td *surface;         /**< Surface @c desktop belongs to */
+    const desktop_td *desktop;   /**< Desktop being re-clamped */
+};
+
+
+/**
+ * @brief Bring one client back within its desktop's canvas if
+ *        a just-shrunk viewport left it outside
+ *
+ * A @a stacking_walk visitor wrapping @a s_viewport_clamp_client_to_
+ * canvas, called once per client on @a scmd_surface_viewport_reclamp's
+ * own desktop rather than the single one that function's other caller,
+ * @a scmd_surface_viewport_center_on_client, already handles on its
+ * own.
+ *
+ * @param client Client to clamp back into the canvas if needed
+ * @param data   This desktop's own @c s_reclamp_ctx_s
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_viewport_reclamp_visit(client_td *client, void *data)
+{
+    const struct s_reclamp_ctx_s *const ctx = data;
+
+    s_viewport_clamp_client_to_canvas(ctx->surface, ctx->desktop,
+            client);
+}
+
+
+/* Re-clamp a desktop's own current viewport origin against its
+ * surface's presently configured viewport size */
+void scmd_surface_viewport_reclamp(surface_td *surface,
+        desktop_td *desktop)
+{
+    uint32_t columns;
+    uint32_t rows;
+    struct s_reclamp_ctx_s ctx;
+
+    if (surface == NULL || desktop == NULL) {
+        return;
+    }
+
+    surface_viewport_dims(surface, &columns, &rows);
+
+    /* The desktop's own pan position first, so a page it was actually
+     * showing that no longer exists lands back on one that does; only
+     * then, individual clients, since 's_viewport_clamp_client_to_
+     * canvas' below reads this same origin to tell a client's on-
+     * screen position apart from its canvas one, and needs the
+     * corrected value to do that right. */
+    s_viewport_apply_origin(surface, desktop, columns, rows,
+            desktop->viewport_origin);
+
+    /* A client whose own page survives the shrink, even one that was
+     * never the page being shown, is left exactly where it is by
+     * the reclamp above: only the desktop's own pan position moved,
+     * nothing walked every other client on it looking for one now
+     * sitting past the canvas' new, smaller edge.  This walk is that
+     * second pass, the one 's_viewport_clamp_client_to_canvas' was
+     * already written to do for a single client on demand
+     * (@a scmd_surface_viewport_center_on_client), applied here to
+     * every client on the desktop instead. */
+    ctx.surface = surface;
+    ctx.desktop = desktop;
+    stacking_walk(desktop, s_viewport_reclamp_visit, &ctx);
 }
 
 

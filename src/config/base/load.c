@@ -4,11 +4,11 @@
  * @brief Base configuration loading entry point
  *
  * One of the files @c config/base/ is made of;
- * @c config_load_base is the top-level orchestrator, calling into
+ * @a config_load_base is the top-level orchestrator, calling into
  * @c config/base/parse.c's enumeration parsers directly,
- * @c desktops.c's @c ci_config_load_screens and
- * @c ci_config_load_desktop_behavior, and @c systray.c's
- * @c ci_config_load_systray (all declared in @c config/internal.h),
+ * @c desktops.c's @a ci_config_load_screens and
+ * @a ci_config_load_desktop_behavior, and @c systray.c's
+ * @a ci_config_load_systray (all declared in @c config/internal.h),
  * to assemble one fully-loaded @c config_td from @c config.json.
  */
 /*

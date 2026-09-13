@@ -156,6 +156,12 @@
  */
 #define DIALOG_RANDR_CONFIRM_TIMEOUT_SECONDS (10u)
 
+/**
+ * @brief Vertical gap, in pixels, between the prompt and the countdown
+ *        line beneath it, when a timeout is running
+ */
+#define DIALOG_CONFIRM_TIMEOUT_LINE_GAP (6)
+
 /** Maximum bytes read from the @c fortune command's output */
 #define DIALOG_FORTUNE_MAX_LENGTH (1024u)
 

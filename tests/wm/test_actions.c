@@ -272,6 +272,25 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
 }
 
 
+/**
+ * @brief Link-only stand-in for scmd_surface_viewport_reclamp
+ *
+ * Reached only from 's_desktop_reload_visit' (wm/actions.c, static,
+ * unreachable from here except through 'wm_action_config_reload'
+ * itself), which no test in this file drives far enough to call it:
+ * 'config_load' below always fails, and 'surface_desktops_walk' just
+ * below visits nothing, so nothing in the reload path past that point
+ * is exercised here at all, this one line no differently than every
+ * other one already in it.
+ */
+void scmd_surface_viewport_reclamp(surface_td *surface,
+        desktop_td *desktop)
+{
+    (void) surface;
+    (void) desktop;
+}
+
+
 /** Link-only stand-in for surface_desktops_walk (surface/desktops.c) */
 void surface_desktops_walk(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)

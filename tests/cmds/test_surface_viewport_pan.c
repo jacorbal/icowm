@@ -1175,6 +1175,165 @@ static void s_test_set_clamps_and_noops_at_same_origin(void)
 }
 
 
+/* A null surface or desktop is refused outright, walking no client */
+static void s_test_reclamp_null_guards(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 800, 0);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 1u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    scmd_surface_viewport_reclamp(NULL, desktop);
+    scmd_surface_viewport_reclamp(surface, NULL);
+
+    TAP_OK(s_call_stacking_walk == 0,
+            "a null surface or desktop never walks any client");
+
+    free(surface);
+    free(desktop);
+}
+
+
+/* A desktop whose own origin is pulled back to a still-valid page
+ * takes every non-sticky client with it by the resulting delta, the
+ * same as an ordinary pan; a client that lands safely within the
+ * new, smaller canvas from that translation alone is not moved
+ * a second time by the individual per-client pass below */
+static void s_test_reclamp_pulls_back_stranded_page(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 1600, 0);
+    client_td *stranded = s_make_client(-500, 20, false);
+    client_td *clients[1];
+
+    /* The desktop's own origin sits at page index 2 (x = 1600, two
+     * whole screens over), left there from before a reload shrank the
+     * configured viewport down to 2 columns, whose highest valid page
+     * is now index 1 (x = 800).  The client's canvas position (its
+     * screen-relative x plus the origin it is being shown against,
+     * -500 + 1600 = 1100) sits comfortably within the new 2-column,
+     * 1600-wide canvas either way, so only the origin's own
+     * correction ever needs to touch it. */
+    stranded->layout.geometry.cur.dim.w = 100u;
+    stranded->layout.geometry.cur.dim.h = 50u;
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    clients[0] = stranded;
+
+    s_reset();
+    s_stub_clients = clients;
+    s_stub_client_count = 1u;
+
+    scmd_surface_viewport_reclamp(surface, desktop);
+
+    TAP_EQ_INT(desktop->viewport_origin.x, 800,
+            "the origin is pulled back to the nearest page the" \
+            " shrunk viewport still has");
+    TAP_EQ_INT(desktop->viewport_origin.y, 0,
+            "the vertical origin, already valid, is left alone");
+    TAP_EQ_INT(stranded->layout.geometry.cur.pos.x, 300,
+            "a client is translated by the resulting delta, coming" \
+            " back into view along with the origin");
+    TAP_EQ_INT(stranded->layout.geometry.cur.pos.y, 20,
+            "its already-valid vertical position is left alone");
+    TAP_OK(surface->is_outdated,
+            "an origin that actually changes marks the surface" \
+            " outdated");
+
+    free(surface);
+    free(desktop);
+    free(stranded);
+}
+
+
+/* A client left parked on some other page the shrink also removed,
+ * one the desktop was never actually showing and so whose own origin
+ * never needed correcting at all, is still individually pulled back
+ * within the new, smaller canvas */
+static void s_test_reclamp_recovers_client_on_other_vanished_page(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *other_page = s_make_client(1650, 20, false);
+    client_td *clients[1];
+
+    /* The desktop's own origin already sits at page index 0, valid
+     * before and after the shrink alike, so the origin correction
+     * alone (see the test above) would do nothing at all here.  This
+     * client's own canvas position (1650, unaffected by an origin of
+     * zero) belongs to page index 2 of whatever wider viewport used
+     * to be configured, past the new 2-column, 1600-wide canvas'
+     * right edge (0..1599) entirely. */
+    other_page->layout.geometry.cur.dim.w = 100u;
+    other_page->layout.geometry.cur.dim.h = 50u;
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    clients[0] = other_page;
+
+    s_reset();
+    s_stub_clients = clients;
+    s_stub_client_count = 1u;
+
+    scmd_surface_viewport_reclamp(surface, desktop);
+
+    TAP_EQ_INT(desktop->viewport_origin.x, 0,
+            "the origin, already valid, is left exactly where it was");
+    TAP_EQ_INT(other_page->layout.geometry.cur.pos.x, 1599,
+            "a client on a different, now-vanished page is still" \
+            " pulled back within the new, smaller canvas");
+    TAP_EQ_INT(other_page->layout.geometry.cur.pos.y, 20,
+            "its already-valid vertical position is left alone");
+
+    free(surface);
+    free(desktop);
+    free(other_page);
+}
+
+
+/* A desktop whose origin still fits the currently configured viewport
+ * (nothing shrank under it, or it never panned off the first page),
+ * with no client of its own left outside the canvas either, is left
+ * exactly as it is */
+static void s_test_reclamp_still_valid_is_noop(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 800, 0);
+
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 2u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    s_reset();
+    surface->is_outdated = false;
+
+    scmd_surface_viewport_reclamp(surface, desktop);
+
+    TAP_EQ_INT(desktop->viewport_origin.x, 800,
+            "an origin still within the pannable area is left" \
+            " untouched");
+    TAP_OK(!surface->is_outdated,
+            "a still-valid origin never marks the surface outdated");
+
+    free(surface);
+    free(desktop);
+}
+
+
 /* A client already sitting within the desktop's own canvas, but off
  * the currently panned-to page, is left exactly where it is by the
  * defensive clamp: only the viewport itself moves, to bring it into
@@ -1528,7 +1687,7 @@ static void s_test_center_on_client_already_visible_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(90);
+    TAP_PLAN(101);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
@@ -1550,6 +1709,10 @@ int main(void)
     s_test_set_null_surface_or_no_desktop_is_noop();
     s_test_set_moves_to_absolute_origin();
     s_test_set_clamps_and_noops_at_same_origin();
+    s_test_reclamp_null_guards();
+    s_test_reclamp_pulls_back_stranded_page();
+    s_test_reclamp_recovers_client_on_other_vanished_page();
+    s_test_reclamp_still_valid_is_noop();
     s_test_goto_null_surface_or_no_desktop_is_noop();
     s_test_goto_moves_to_correct_page();
     s_test_goto_out_of_range_page_is_noop();

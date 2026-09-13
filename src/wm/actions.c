@@ -36,22 +36,14 @@
 #include <input/kbd/bind.h>
 #include <input/mouse/bind.h>
 
+/* Configuration includes */
+#include <config/memguard.h>
+
+/* Command includes */
+#include <cmds/surface.h>
+
 /* Default initial values */
 #include <defs/icon.h>
-
-/* Project includes */
-#include <cctl/sn.h>
-#include <client.h>
-#include <config.h>
-#include <config/memguard.h>
-#include <desktop.h>
-#include <enact.h>
-#include <logger.h>
-#include <lookup.h>
-#include <session.h>
-#include <surface.h>
-#include <systray.h>
-#include <xsettings.h>
 
 /* Policy includes */
 #include <policy/placement/icon.h>
@@ -62,6 +54,19 @@
 
 /* Render includes */
 #include <render/viewport/mesh.h>
+
+/* Project includes */
+#include <cctl/sn.h>
+#include <client.h>
+#include <config.h>
+#include <desktop.h>
+#include <enact.h>
+#include <logger.h>
+#include <lookup.h>
+#include <session.h>
+#include <surface.h>
+#include <systray.h>
+#include <xsettings.h>
 
 /* Local includes */
 #include <wm.h>
@@ -171,6 +176,16 @@ static void s_desktop_reload_visit(desktop_td *desktop, void *data)
     if (ctx == NULL) {
         return;
     }
+
+    /* A surface-wide setting, unlike the per-desktop 'background'/
+     * 'desktops' array entries below, so this runs for every desktop
+     * still on 'ctx->surface' regardless of whether its own index
+     * still has a matching entry in the just-reloaded config: a
+     * desktop panned to a page a shrunk viewport no longer has is
+     * pulled back to the nearest one that still exists, translating
+     * whichever clients were left stranded off it back into view,
+     * the same as an ordinary pan already would. */
+    scmd_surface_viewport_reclamp(ctx->surface, desktop);
 
     ctx->index++;
     if (this_index >=

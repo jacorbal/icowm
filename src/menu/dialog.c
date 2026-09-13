@@ -19,9 +19,6 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
-/* Initial definitions */
-#include <defs/dialog.h>
-
 /* Type includes */
 #include <types/pair.h>
 
