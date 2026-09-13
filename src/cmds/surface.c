@@ -131,7 +131,7 @@ static void s_show_viewport_overlay_on_move(surface_td *surface,
  *
  * Shared by @a scmd_surface_desktop_switch_north and its three siblings
  * below, which only differ in direction: which of
- * @c surface_desktop_select_north/south/east/west to call, and the log
+ * @a surface_desktop_select_north/south/east/west to call, and the log
  * message's wording.
  *
  * @param surface   Surface to switch
@@ -146,8 +146,8 @@ static void s_switch_cyclic(surface_td *surface,
     uint32_t old_id;
     bool cycle;
     /* Initialized here, not left to the switch below: that switch
-     * deliberately has no 'default:' so the compiler keeps checking it
-     * covers every direction, which also means it cannot prove to
+     * deliberately has no 'default:' so the compiler keeps checking
+     * it covers every direction, which also means it cannot prove to
      * itself that one of its cases always runs */
     const char *direction_label = "unknown";
 
@@ -587,6 +587,94 @@ static void s_viewport_clamp_client_to_canvas(surface_td *surface,
 }
 
 
+/**
+ * @brief Guarantee a client's own recorded position sits within the
+ *        one page @p desktop is actually showing right now, moving it
+ *        back in if not
+ *
+ * Unlike @a s_viewport_clamp_client_to_canvas, whose "at least one
+ * pixel still inside" tolerance only makes sense together with the
+ * pan to that exact page its own caller
+ * (@a scmd_surface_viewport_center_on_client) always follows it with:
+ * a client left with merely one pixel inside the whole, possibly
+ * still multi-page canvas is nowhere near genuinely visible on
+ * whichever page happens to be on screen right now, and nothing calls
+ * this expecting to pan afterward, since a reload may have stranded
+ * clients across several different vanished pages at once and there
+ * is only the one page left to show them all on.
+ *
+ * Screen-relative coordinates are bound directly against one screen's
+ * width and height, with no canvas or viewport-origin arithmetic
+ * needed at all: a client's own recorded position already reads
+ * relative to whichever page is currently on screen, by the same
+ * convention @a s_viewport_translate_visit's own delta shift relies
+ * on, so that screen-relative value is already the one page's own
+ * coordinate space.  The bound itself is the client's whole size, not
+ * a single pixel of it either, for the same reason: a corner just
+ * barely touching the page is no more genuinely visible here than
+ * one just barely touching the whole canvas would be.
+ *
+ * @param desktop Desktop whose currently shown page @p client must
+ *                sit within
+ * @param client  Client whose recorded position is clamped in place
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_viewport_clamp_client_to_current_page(
+        const desktop_td *desktop, client_td *client)
+{
+    int32_t width = (int32_t) client->layout.geometry.cur.dim.w;
+    int32_t height = (int32_t) client->layout.geometry.cur.dim.h;
+    int32_t page_w = (int32_t) desktop->geometry.dim.w;
+    int32_t page_h = (int32_t) desktop->geometry.dim.h;
+    int32_t max_x;
+    int32_t max_y;
+    int32_t clamped_x;
+    int32_t clamped_y;
+    xcb_window_t target;
+
+    /* The whole client, not merely one pixel of it: unlike
+     * 's_viewport_clamp_client_to_canvas', where the "just one pixel"
+     * tolerance is only ever genuinely visible because centering on
+     * a client always pans to its exact page right afterward, nothing
+     * here promises that, so "technically inside" is not enough.
+     * A client wider or taller than the page itself is left flush
+     * against 0 on whichever axis does not fit, rather than clamped
+     * to a negative maximum that would push it off the opposite edge
+     * instead. */
+    max_x = (width < page_w) ? page_w - width : 0;
+    max_y = (height < page_h) ? page_h - height : 0;
+
+    clamped_x = client->layout.geometry.cur.pos.x;
+    clamped_y = client->layout.geometry.cur.pos.y;
+    clamped_x = (clamped_x < 0) ? 0 : clamped_x;
+    clamped_x = (clamped_x > max_x) ? max_x : clamped_x;
+    clamped_y = (clamped_y < 0) ? 0 : clamped_y;
+    clamped_y = (clamped_y > max_y) ? max_y : clamped_y;
+
+    if (clamped_x == client->layout.geometry.cur.pos.x &&
+            clamped_y == client->layout.geometry.cur.pos.y) {
+        return;     /* Already on the current page: nothing to do */
+    }
+
+    LOGGER_WARNING("Client 0x%08x ('%s') sat off desktop %u's" \
+            " currently shown page at %d,%d; clamped back to %d,%d",
+            client->id, client->info.name, desktop->id,
+            client->layout.geometry.cur.pos.x,
+            client->layout.geometry.cur.pos.y, clamped_x, clamped_y);
+
+    client->layout.geometry.cur.pos.x = clamped_x;
+    client->layout.geometry.cur.pos.y = clamped_y;
+    client->layout.geometry.old.pos.x = clamped_x;
+    client->layout.geometry.old.pos.y = clamped_y;
+
+    target = ccmd_target_win(client);
+    ccmd_client_apply_geometry(client, target,
+            (uint16_t) XCB_CONFIG_WINDOW_X | (uint16_t) XCB_CONFIG_WINDOW_Y,
+            clamped_x, clamped_y, 0u, 0u, 0u);
+}
+
+
 /* Switch to another desktop */
 void scmd_surface_desktop_switch(surface_td *surface,
         uint32_t desktop_id)
@@ -805,22 +893,19 @@ void scmd_surface_viewport_set(surface_td *surface,
  *        handed
  */
 struct s_reclamp_ctx_s {
-    surface_td *surface;         /**< Surface @c desktop belongs to */
     const desktop_td *desktop;   /**< Desktop being re-clamped */
 };
 
 
 /**
- * @brief Bring one client back within its desktop's canvas if
- *        a just-shrunk viewport left it outside
+ * @brief Bring one client back onto its desktop's currently shown
+ *        page if a just-shrunk viewport left it off it
  *
  * A @a stacking_walk visitor wrapping @a s_viewport_clamp_client_to_
- * canvas, called once per client on @a scmd_surface_viewport_reclamp's
- * own desktop rather than the single one that function's other caller,
- * @a scmd_surface_viewport_center_on_client, already handles on its
- * own.
+ * current_page, called once per client on
+ * @a scmd_surface_viewport_reclamp's own desktop.
  *
- * @param client Client to clamp back into the canvas if needed
+ * @param client Client to clamp back onto the current page if needed
  * @param data   This desktop's own @c s_reclamp_ctx_s
  *
  * @note Complexity: @e O(1)
@@ -829,8 +914,7 @@ static void s_viewport_reclamp_visit(client_td *client, void *data)
 {
     const struct s_reclamp_ctx_s *const ctx = data;
 
-    s_viewport_clamp_client_to_canvas(ctx->surface, ctx->desktop,
-            client);
+    s_viewport_clamp_client_to_current_page(ctx->desktop, client);
 }
 
 
@@ -851,23 +935,20 @@ void scmd_surface_viewport_reclamp(surface_td *surface,
 
     /* The desktop's own pan position first, so a page it was actually
      * showing that no longer exists lands back on one that does; only
-     * then, individual clients, since 's_viewport_clamp_client_to_
-     * canvas' below reads this same origin to tell a client's on-
-     * screen position apart from its canvas one, and needs the
-     * corrected value to do that right. */
+     * then, individual clients: with the origin already corrected,
+     * every client still on the desktop is clamped onto this one,
+     * now-current page directly, screen-relative coordinates needing
+     * no origin arithmetic of their own to do that (see
+     * 's_viewport_clamp_client_to_current_page''s own comment on
+     * exactly why that, and not 's_viewport_clamp_client_to_canvas',
+     * is the one this needs). */
     s_viewport_apply_origin(surface, desktop, columns, rows,
             desktop->viewport_origin);
 
-    /* A client whose own page survives the shrink, even one that was
-     * never the page being shown, is left exactly where it is by
-     * the reclamp above: only the desktop's own pan position moved,
-     * nothing walked every other client on it looking for one now
-     * sitting past the canvas' new, smaller edge.  This walk is that
-     * second pass, the one 's_viewport_clamp_client_to_canvas' was
-     * already written to do for a single client on demand
-     * (@a scmd_surface_viewport_center_on_client), applied here to
-     * every client on the desktop instead. */
-    ctx.surface = surface;
+    /* A client already sitting on the page now being shown, even one
+     * that was never the page being shown before the reclamp above,
+     * is left exactly where it is: only a client left off it, on some
+     * other page the shrink also removed, is moved. */
     ctx.desktop = desktop;
     stacking_walk(desktop, s_viewport_reclamp_visit, &ctx);
 }

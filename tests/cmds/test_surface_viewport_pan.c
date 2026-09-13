@@ -1258,7 +1258,8 @@ static void s_test_reclamp_pulls_back_stranded_page(void)
 /* A client left parked on some other page the shrink also removed,
  * one the desktop was never actually showing and so whose own origin
  * never needed correcting at all, is still individually pulled back
- * within the new, smaller canvas */
+ * onto the one page actually on screen, not merely left somewhere
+ * else still technically inside a wider canvas */
 static void s_test_reclamp_recovers_client_on_other_vanished_page(void)
 {
     config_td config;
@@ -1270,10 +1271,14 @@ static void s_test_reclamp_recovers_client_on_other_vanished_page(void)
     /* The desktop's own origin already sits at page index 0, valid
      * before and after the shrink alike, so the origin correction
      * alone (see the test above) would do nothing at all here.  This
-     * client's own canvas position (1650, unaffected by an origin of
-     * zero) belongs to page index 2 of whatever wider viewport used
-     * to be configured, past the new 2-column, 1600-wide canvas'
-     * right edge (0..1599) entirely. */
+     * client's own screen-relative position (1650, unaffected by an
+     * origin of zero) belongs to page index 2 of whatever wider
+     * viewport used to be configured, past the single 800-wide page
+     * now on screen entirely, and its whole 100-wide self, not
+     * merely one pixel of it, is pulled back to fit flush against
+     * that page's own right edge (700..799), rather than left mostly
+     * hanging off it the way a bound of merely "some part of it
+     * still inside the wider 1600-wide canvas" (0..1599) would. */
     other_page->layout.geometry.cur.dim.w = 100u;
     other_page->layout.geometry.cur.dim.h = 50u;
     memset(&config, 0, sizeof(config));
@@ -1291,15 +1296,63 @@ static void s_test_reclamp_recovers_client_on_other_vanished_page(void)
 
     TAP_EQ_INT(desktop->viewport_origin.x, 0,
             "the origin, already valid, is left exactly where it was");
-    TAP_EQ_INT(other_page->layout.geometry.cur.pos.x, 1599,
-            "a client on a different, now-vanished page is still" \
-            " pulled back within the new, smaller canvas");
+    TAP_EQ_INT(other_page->layout.geometry.cur.pos.x, 700,
+            "a client on a different, now-vanished page is pulled" \
+            " back, whole, onto the one page actually on screen");
     TAP_EQ_INT(other_page->layout.geometry.cur.pos.y, 20,
             "its already-valid vertical position is left alone");
 
     free(surface);
     free(desktop);
     free(other_page);
+}
+
+
+/* A client wide enough that a mere one-pixel-still-inside tolerance
+ * would leave nearly all of it hanging off the page's edge is pulled
+ * back whole instead: this is the exact case a live reproduction
+ * caught this fix missing on its first attempt, a window seemingly
+ * "clamped" yet still invisible in practice */
+static void s_test_reclamp_pulls_whole_client_not_one_pixel(void)
+{
+    config_td config;
+    surface_td *surface;
+    desktop_td *desktop = s_make_desktop(800u, 600u, 0, 0);
+    client_td *wide = s_make_client(1000, 20, false);
+    client_td *clients[1];
+
+    /* A one-pixel-tolerant clamp would leave this 300-wide client at
+     * x = 799 (page_w - 1), footprint 799..1099, all but a single
+     * column of it past the 800-wide page's own right edge and
+     * nowhere near actually visible.  Pulled back whole instead, it
+     * lands flush against that edge: x = 500 (page_w - width),
+     * footprint 500..800. */
+    wide->layout.geometry.cur.dim.w = 300u;
+    wide->layout.geometry.cur.dim.h = 100u;
+    memset(&config, 0, sizeof(config));
+    config.base.screens[0].viewport.columns = 1u;
+    config.base.screens[0].viewport.rows = 1u;
+    surface = s_make_surface(&config, 0u);
+
+    clients[0] = wide;
+
+    s_reset();
+    s_stub_clients = clients;
+    s_stub_client_count = 1u;
+
+    scmd_surface_viewport_reclamp(surface, desktop);
+
+    TAP_EQ_INT(wide->layout.geometry.cur.pos.x, 500,
+            "the client's whole width is pulled onto the page, not" \
+            " just its leftmost pixel");
+    TAP_OK(wide->layout.geometry.cur.pos.x +
+                (int32_t) wide->layout.geometry.cur.dim.w <= 800,
+            "its right edge actually lands within the page, not" \
+            " past it");
+
+    free(surface);
+    free(desktop);
+    free(wide);
 }
 
 
@@ -1687,7 +1740,7 @@ static void s_test_center_on_client_already_visible_is_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(101);
+    TAP_PLAN(103);
 
     s_test_pan_null_surface();
     s_test_pan_no_desktop_is_noop();
@@ -1712,6 +1765,7 @@ int main(void)
     s_test_reclamp_null_guards();
     s_test_reclamp_pulls_back_stranded_page();
     s_test_reclamp_recovers_client_on_other_vanished_page();
+    s_test_reclamp_pulls_whole_client_not_one_pixel();
     s_test_reclamp_still_valid_is_noop();
     s_test_goto_null_surface_or_no_desktop_is_noop();
     s_test_goto_moves_to_correct_page();

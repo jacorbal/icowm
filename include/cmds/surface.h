@@ -100,13 +100,13 @@ bool scmd_surface_viewport_pan_available(surface_td *surface,
  *        translate walk should leave untouched
  *
  * A drag in progress already repositions @p client (or leaves it
- * deliberately parked off screen, for an outline drag) through its
- * own logic in @c input/mouse/drag/pan.c, so folding it into the
- * ordinary translate walk too (@a s_viewport_translate_visit, this
- * file) would fight that logic instead of cooperating with it: an
- * outline drag in particular parks the real window off screen for
- * the whole drag and must never have that parking spot silently
- * nudged back toward the visible screen by an unrelated pan.
+ * deliberately parked off screen, for an outline drag) through its own
+ * logic in @c input/mouse/drag/pan.c, so folding it into the ordinary
+ * translate walk too (@a s_viewport_translate_visit, this file) would
+ * fight that logic instead of cooperating with it: an outline drag in
+ * particular parks the real window off screen for the whole drag and
+ * must never have that parking spot silently nudged back toward the
+ * visible screen by an unrelated pan.
  *
  * @param client Client to exclude from every future pan's translate
  *               walk until cleared, or @c NULL to clear it
@@ -193,11 +193,11 @@ void scmd_surface_viewport_pan_step(surface_td *surface,
  *        origin, clamped to the pannable area
  *
  * The @c _NET_DESKTOP_VIEWPORT counterpart to
- * @a scmd_surface_viewport_pan_north and its three siblings: those
- * move by exactly one screen in a compass direction, while this jumps
- * straight to whatever @p x, @p y a pager or other external EWMH
- * client asked for, still translating every non-sticky client by the
- * resulting delta the same way.
+ * @a scmd_surface_viewport_pan_north and its three siblings: those move
+ * by exactly one screen in a compass direction, while this jumps
+ * straight to whatever @p x, @p y a pager or other external EWMH client
+ * asked for, still translating every non-sticky client by the resulting
+ * delta the same way.
  *
  * @param surface Pointer to the surface
  * @param x       Requested viewport origin's X coordinate, in pixels
@@ -229,13 +229,20 @@ void scmd_surface_viewport_set(surface_td *surface,
  * itself was showing.
  *
  * Second, every client on @p desktop is individually clamped back
- * within the canvas the same way @a scmd_surface_viewport_center_on_
- * client already clamps a single one on demand
- * (@c s_viewport_clamp_client_to_canvas): a client left parked on
- * some other page that the shrink also removed, one @p desktop was
- * never actually showing and so the first correction above never
- * touches, would otherwise stay stranded past the canvas' new,
- * smaller edge with no page left for it to belong to at all.
+ * onto the page the first correction above just settled on as
+ * current, through @a s_viewport_clamp_client_to_current_page: a
+ * client left parked on some other page that the shrink also removed,
+ * one @p desktop was never actually showing and so the first
+ * correction above never touches, would otherwise stay stranded with
+ * no page left for it to belong to at all.  A single pixel still
+ * inside some far corner of a wider canvas, the tolerance
+ * @a scmd_surface_viewport_center_on_client's own
+ * @a s_viewport_clamp_client_to_canvas allows, is not reused here:
+ * that function's own single pixel is only ever genuinely visible
+ * because centering on a client always pans to its exact page right
+ * afterward, and nothing here can promise the same when a reload may
+ * have stranded clients across several different vanished pages at
+ * once, with only the one page left to show any of them on.
  *
  * Unlike @a scmd_surface_viewport_set, @p desktop is taken directly
  * rather than resolved through @a lookup_current_desktop, since a
