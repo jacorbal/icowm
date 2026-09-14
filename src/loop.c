@@ -26,21 +26,27 @@
 /* Utils includes */
 #include <utils/xcb/connection.h>
 
-/* Project includes */
+/* Control includes */
 #include <cctl/adopt.h>
-#include <logger.h>
-#include <wm.h>
+
+/* WM includes */
 #include <wm/ewmh.h>
 #include <wm/startup/install.h>
 
-/* Local includes */
-#include <loop.h>
+/* Project includes */
+#include <logger.h>
+#include <wm.h>
+
+/* Loop includes */
 #include <loop/context.h>
 #include <loop/dispatch.h>
 #include <loop/pollset.h>
 #include <loop/refresh.h>
 #include <loop/signals.h>
 #include <loop/timers.h>
+
+/* Local includes */
+#include <loop.h>
 
 
 /* Run the main event loop until the window manager is stopped */

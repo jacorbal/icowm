@@ -16,10 +16,6 @@
 #include <stdlib.h>     /* NULL, free, malloc */
 #include <string.h>     /* memcpy */
 
-/* XCB includes */
-
-/* ADT includes */
-
 /* Session includes */
 #include <session.h>
 
@@ -37,14 +33,10 @@
 #include <defs/uistr.h>
 #include <i18n.h>
 
-/* Command includes */
-
 /* Utils includes */
 #include <utils/config/json.h>
 #include <utils/sysmem.h>
-#include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 /* Configuration includes */
 #include <config/memguard.h>
@@ -136,51 +128,6 @@ static void s_desktop_outdate_visit(desktop_td *desktop, void *data)
 
 
 /**
- * @brief Explicitly relinquish every screen's @c WM_Sn manager
- *        selection ahead of destroying its owner window
- *
- * ICCCM §2.8's own account of an orderly shutdown: the selection is
- * released on purpose rather than left for the owner window's
- * destruction to relinquish it as a side effect, the same distinction
- * @a xsettings_shutdown and @a systray_shutdown already draw for their
- * own manager selections.
- *
- * @note No-op if the global window manager instance is @c NULL, its
- *       connection is not established, or it manages no surfaces
- * @note Complexity: @e O(n), where @e n is the number of managed
- *       surfaces
- */
-static void s_wm_release_manager_selections(void)
-{
-    char selection_name[16];
-
-    if (wm == NULL || wm->connection == NULL || wm->surfaces == NULL) {
-        return;
-    }
-
-    for (list_item_td *snode = list_head(wm->surfaces);
-            snode != NULL; snode = list_next(snode)) {
-        const surface_td *const surface =
-            (surface_td *) list_data(snode);
-        xcb_atom_t selection_atom;
-
-        if (surface == NULL) {
-            continue;
-        }
-
-        (void) snprintf(selection_name, sizeof(selection_name),
-                "WM_S%u", surface->id);
-        selection_atom = atom_intern(wm->connection, selection_name,
-                true);
-        if (selection_atom != XCB_ATOM_NONE) {
-            xcb_set_selection_owner(wm->connection, XCB_NONE,
-                    selection_atom, XCB_CURRENT_TIME);
-        }
-    }
-}
-
-
-/**
  * @brief Release every initialized window-manager subsystem
  *
  * Frees only the members that were successfully initialized so it can
@@ -219,8 +166,6 @@ static void s_wm_cleanup(void)
 
     text_renderer_destroy();
     wmicon_renderer_destroy();
-
-    s_wm_release_manager_selections();
 
     if (wm->surfaces != NULL) {
         list_destroy(wm->surfaces);
@@ -261,22 +206,32 @@ static void s_wm_cleanup(void)
     }
 
     if (wm->connection != NULL) {
-        /* 'wm->ewmh_support_win' is deliberately not destroyed with its
-         * own explicit request here: a separate 'xcb_window_destroy'
-         * ahead of 'xcb_disconnect' below would let a replacement
-         * instance, watching for exactly this window's own
-         * 'DestroyNotify' to know this one has stepped aside (see
-         * 'wm_startup_acquire_selection', 'wm/startup/selection.c'),
-         * see it die and race ahead to claim 'SubstructureRedirect' on
-         * root before this connection's own hold on that same mask is
-         * actually released, since the two are otherwise unrelated
-         * requests with no guarantee the server processes them in that
-         * order relative to each other.  Left for 'xcb_disconnect'
-         * itself, the server destroys every resource this connection
-         * ever owned, this window among them, and releases every mask
-         * it held, root's included, as a single atomic teardown, so
-         * a replacement can never see one half done without the
-         * other. */
+        /* Neither 'wm->ewmh_support_win' nor the 'WM_S<n>' manager
+         * selections this surface list once held are released with
+         * their own explicit request here: an 'xcb_window_destroy' and
+         * an 'xcb_set_selection_owner(..., XCB_NONE, ...)', each ahead
+         * of 'xcb_disconnect' below, would let a replacement instance,
+         * watching for exactly that window's own 'DestroyNotify' or
+         * for the selection's ownership to change to know this one has
+         * stepped aside (see 'wm_startup_acquire_selection', 'wm/
+         * startup/selection.c'), see either happen and race ahead to
+         * claim 'SubstructureRedirect' on root before this connection's
+         * own hold on that same mask is actually released, since these
+         * are otherwise unrelated requests with no guarantee the server
+         * processes them in that order relative to each other.
+         *
+         * Left for 'xcb_disconnect' itself, the server destroys every
+         * resource this connection ever owned and releases every
+         * selection it held, the window among the former and each
+         * 'WM_S<n>' among the latter (per ICCCM §2.8, a manager
+         * selection's ownership reverts to none the moment the window
+         * that owned it is destroyed, which an orderly shutdown is
+         * expected to do only once every resource that selection
+         * managed, 'SubstructureRedirect' on root among them for
+         * a window manager, has itself already been let go of),
+         * together with every mask it held, root's included, as
+         * a single atomic teardown, so a replacement can never see any
+         * one of them done without the others. */
         wm->ewmh_support_win = XCB_NONE;
 
         /* Flushed rather than left to 'xcb_disconnect', which makes no
