@@ -39,42 +39,50 @@
 
 /* Command includes */
 
-/* Project includes */
-#include <config/memguard.h>
-#include <client.h>
-#include <desktop.h>
-#include <logger.h>
-#include <lookup.h>
-#include <policy/focus.h>
-#include <loop.h>
-#include <memguard.h>
-#include <wm/startup.h>
-#include <wm/startup/selection.h>
-#include <wm/startup/subscribe.h>
-#include <cctl/sn.h>
-#include <systray.h>
-#include <xsettings.h>
-
 /* Utils includes */
 #include <utils/config/json.h>
 #include <utils/sysmem.h>
 #include <utils/xcb/atom.h>
 #include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
+
+/* Configuration includes */
+#include <config/memguard.h>
 
 /* Menu includes */
 #include <menu/context/rootmenu.h>
 #include <menu/context/winlist.h>
 #include <menu/dialog/message.h>
 
+/* Policy includes */
+#include <policy/focus.h>
+
 /* Input includes */
 #include <input/mouse/cursor.h>
 
-/* Local includes */
+/* Control includes */
+#include <cctl/sn.h>
+
+/* Project includes */
+#include <client.h>
+#include <desktop.h>
+#include <logger.h>
+#include <lookup.h>
+#include <loop.h>
+#include <memguard.h>
+#include <systray.h>
+#include <xsettings.h>
+
+/* WM includes */
 #include <wm/ewmh.h>
-#include <wm.h>
 #include <wm/internal.h>
 #include <wm/shutdown.h>
-#include <utils/xcb/window.h>
+#include <wm/startup.h>
+#include <wm/startup/selection.h>
+#include <wm/startup/subscribe.h>
+
+/* Local includes */
+#include <wm.h>
 
 
 /* Though variable static dost often lurk near,
@@ -134,11 +142,11 @@ static void s_desktop_outdate_visit(desktop_td *desktop, void *data)
  * ICCCM §2.8's own account of an orderly shutdown: the selection is
  * released on purpose rather than left for the owner window's
  * destruction to relinquish it as a side effect, the same distinction
- * @a xsettings_shutdown and @a systray_shutdown already draw for
- * their own manager selections.
+ * @a xsettings_shutdown and @a systray_shutdown already draw for their
+ * own manager selections.
  *
- * @note No-op if the global window manager instance is @c NULL,
- *       its connection is not established, or it manages no surfaces
+ * @note No-op if the global window manager instance is @c NULL, its
+ *       connection is not established, or it manages no surfaces
  * @note Complexity: @e O(n), where @e n is the number of managed
  *       surfaces
  */
@@ -190,8 +198,8 @@ static void s_wm_cleanup(void)
 
     wm_all_clients_unmanage(wm);
 
-    /* The focus order refers to clients and owns none of them, so it
-     * is released once nothing will consult it again */
+    /* The focus order refers to clients and owns none of them, so it is
+     * released once nothing will consult it again */
     focus_order_destroy();
 
     systray_shutdown(wm);
@@ -231,13 +239,13 @@ static void s_wm_cleanup(void)
 
     rootmenu_menu_json_free();
 
-    /* 'winlist_close' is otherwise only ever reached while the menu
-     * is genuinely open, dismissed by the user using it; called
-     * once more here too so its 's_desktop_entries' (winlist.c),
-     * dynamically allocated since it can no longer just sit in
-     * static storage, is not left for a leak checker to flag on a
-     * clean shutdown, the same reasoning 'rootmenu_menu_json_free'
-     * just above already gets applied for. */
+    /* 'winlist_close' is otherwise only ever reached while the menu is
+     * genuinely open, dismissed by the user using it; called once more
+     * here too so its 's_desktop_entries' ('winlist.c'), dynamically
+     * allocated since it can no longer just sit in static storage, is
+     * not left for a leak checker to flag on a clean shutdown, the same
+     * reasoning 'rootmenu_menu_json_free' just above already gets
+     * applied for. */
     winlist_close();
 
     if (wm->config != NULL) {
@@ -253,17 +261,30 @@ static void s_wm_cleanup(void)
     }
 
     if (wm->connection != NULL) {
-        if (wm->ewmh_support_win != XCB_NONE) {
-            xcb_window_destroy(wm->ewmh_support_win);
-            wm->ewmh_support_win = XCB_NONE;
-        }
+        /* 'wm->ewmh_support_win' is deliberately not destroyed with its
+         * own explicit request here: a separate 'xcb_window_destroy'
+         * ahead of 'xcb_disconnect' below would let a replacement
+         * instance, watching for exactly this window's own
+         * 'DestroyNotify' to know this one has stepped aside (see
+         * 'wm_startup_acquire_selection', 'wm/startup/selection.c'),
+         * see it die and race ahead to claim 'SubstructureRedirect' on
+         * root before this connection's own hold on that same mask is
+         * actually released, since the two are otherwise unrelated
+         * requests with no guarantee the server processes them in that
+         * order relative to each other.  Left for 'xcb_disconnect'
+         * itself, the server destroys every resource this connection
+         * ever owned, this window among them, and releases every mask
+         * it held, root's included, as a single atomic teardown, so
+         * a replacement can never see one half done without the
+         * other. */
+        wm->ewmh_support_win = XCB_NONE;
 
-        /* Flushed rather than left to 'xcb_disconnect', which makes
-         * no promise about a request still sitting in the buffer.
+        /* Flushed rather than left to 'xcb_disconnect', which makes no
+         * promise about a request still sitting in the buffer.
          * Everything 'wm_all_clients_unmanage' just did to hand the
          * clients back in a sane state is in that buffer, and one left
-         * unmapped because its map never reached the server is a
-         * window the user cannot get back. */
+         * unmapped because its map never reached the server is a window
+         * the user cannot get back. */
         xcb_flush(wm->connection);
         xcb_disconnect(wm->connection);
         xcb_connection_set(NULL);
@@ -315,8 +336,7 @@ static void s_wm_zero_fields(uint32_t restricted_memory_mib)
  *
  * @return @c 0 on success, or the exit status the caller reports
  *
- * @note Complexity: @e O(1), plus the round trips the EWMH atoms
- *       take
+ * @note Complexity: @e O(1), plus the round trips the EWMH atoms take
  */
 static int s_wm_connect(const char *display_name)
 {
@@ -439,10 +459,10 @@ static int s_wm_load_config(const char *config_dir_prefix)
         (void) session_load(wm->session, wm->config_dir_prefix);
     }
 
-    /* menu.json has no dedicated 'struct' of its own the way rules
+    /* 'menu.json' has no dedicated 'struct' of its own the way rules
      * and session do (nothing else in the window manager needs it
      * outside of the root menu itself), so it is owned by
-     * menu/context/rootmenu.c and loaded directly rather than through
+     * 'menu/context/rootmenu.c' and loaded directly rather than through
      * an 'init' handle here. */
     rootmenu_menu_json_load(wm->config_dir_prefix);
 
@@ -567,14 +587,13 @@ static int s_wm_register(bool replace_requested, bool ipc_disabled)
     (void) wm_startup_subscribe_randr_events(wm);
     (void) wm_startup_sync_init(wm);
 
-    /* Not fatal if it fails, the same reasoning as EWMH root
-     * metadata just below: a working window manager without its
-     * own control socket is still a working window manager, just
-     * one external tools cannot script against for this run.
-     * 'ipc_disabled' skips it outright instead, for anyone who
-     * would rather it never come up at all than have it come up and
-     * be reachable by any other local process running as the same
-     * user. */
+    /* Not fatal if it fails, the same reasoning as EWMH root metadata
+     * just below: a working window manager without its own control
+     * socket is still a working window manager, just one external tools
+     * cannot script against for this run.  'ipc_disabled' skips it
+     * outright instead, for anyone who would rather it never come up at
+     * all than have it come up and be reachable by any other local
+     * process running as the same user. */
     if (ipc_disabled) {
         LOGGER_INFO("IPC control socket disabled ('-s')", L_NARG);
     } else if (ipc_init() != 0) {
@@ -612,22 +631,22 @@ static void s_wm_announce(void)
     }
 
     /* Any JSON file that failed to parse during the load just above
-     * (config.json, bindings.json, a theme file, randr.json, rules.
-     * json, session.json, menu.json) gets a combined warning dialog
-     * here, ahead of restricted-memory mode's announcement right
-     * below: a configuration silently reverted to defaults is more
-     * urgent to know about than which mode is active.
+     * ('config.json', 'bindings.json', a theme file, 'randr.json',
+     * 'rules.json', 'session.json', 'menu.json') gets a combined
+     * warning dialog here, ahead of restricted-memory mode's
+     * announcement right below: a configuration silently reverted to
+     * defaults is more urgent to know about than which mode is active.
      * 'menu_message_dialog_show' only ever shows one dialog at a time,
      * so if this one fires, the one below simply does not, for this
-     * run; nothing else about that mode's announcement is lost by
-     * that, only delayed to whenever it is checked again (another
-     * load or reload). */
+     * run; nothing else about that mode's announcement is lost by that,
+     * only delayed to whenever it is checked again (another load or
+     * reload). */
     wm_json_syntax_errors_warn();
 
-    /* Restricted-memory mode's presence is announced once, right
-     * before entering the main loop, so it is never a silent surprise
-     * to whoever is sitting at the keyboard.  Only the log otherwise
-     * says anything about it. */
+    /* Restricted-memory mode's presence is announced once, right before
+     * entering the main loop, so it is never a silent surprise to
+     * whoever is sitting at the keyboard.  Only the log otherwise says
+     * anything about it. */
     if (wm->restricted_memory_mib > 0u && wm->surfaces != NULL &&
             !list_is_empty(wm->surfaces)) {
         menu_message_dialog_show(wm->connection,
@@ -654,11 +673,11 @@ int wm_start(const char *restrict display_name,
     }
 
     /* Checked before allocating anything at all, so refusing to start
-     * costs as little as possible: restricted-memory mode promises a
-     * ceiling on this process's future usage (see
-     * 'memguard.h'), and that promise is meaningless if the system
-     * does not even have that much memory free right now for this
-     * process to grow into in the first place. */
+     * costs as little as possible: restricted-memory mode promises
+     * a ceiling on this process's future usage (see 'memguard.h'), and
+     * that promise is meaningless if the system does not even have that
+     * much memory free right now for this process to grow into in the
+     * first place. */
     if (restricted_memory_mib > 0u) {
         uint32_t available_mib;
 
@@ -685,15 +704,15 @@ int wm_start(const char *restrict display_name,
 
     s_wm_zero_fields(restricted_memory_mib);
 
-    /* Called this early, before any surface or desktop gets set up,
-     * so every later allocation is already accounted against the
-     * ceiling this mode imposes */
+    /* Called this early, before any surface or desktop gets set up, so
+     * every later allocation is already accounted against the ceiling
+     * this mode imposes */
     memguard_init(wm->restricted_memory_mib);
 
-    /* Short-circuiting on purpose: every phase below assumes the
-     * one before it succeeded, so a failed connection must never
-     * reach the surface creation that dereferences it, and the
-     * status carries the first failure's exit code untouched */
+    /* Short-circuiting on purpose: every phase below assumes the one
+     * before it succeeded, so a failed connection must never reach the
+     * surface creation that dereferences it, and the status carries the
+     * first failure's exit code untouched */
     if ((status = s_wm_connect(display_name)) != 0 ||
             (status = s_wm_load_config(config_dir_prefix)) != 0 ||
             (status = s_wm_create_surfaces()) != 0 ||
@@ -710,8 +729,8 @@ int wm_start(const char *restrict display_name,
 }
 
 
-/* Warn through a message dialog if any JSON file loaded during the
- * last configuration load or reload failed to parse */
+/* Warn through a message dialog if any JSON file loaded during the last
+ * configuration load or reload failed to parse */
 void wm_json_syntax_errors_warn(void)
 {
     uint32_t count;
@@ -742,9 +761,9 @@ void wm_json_syntax_errors_warn(void)
     }
 
     /* The 'count == 1' message above already ends in its
-     * sentence-closing period; the 'count > 1' one does not, since
-     * its file list (built by the loop just above) has no fixed end
-     * to attach one to ahead of time.  Closing it here, only in that
+     * sentence-closing period; the 'count > 1' one does not, since its
+     * file list (built by the loop just above) has no fixed end to
+     * attach one to ahead of time.  Closing it here, only in that
      * second case, keeps whatever gets appended after this point (the
      * missing-theme note below) starting a properly new sentence
      * rather than running directly into the last filename. */
@@ -756,15 +775,15 @@ void wm_json_syntax_errors_warn(void)
         }
     }
 
-    /* A theme file config.json names but that turns out not to exist
-     * at all is never worth a dialog on its own (an ordinary, silent
+    /* A theme file config.json names but that turns out not to exist at
+     * all is never worth a dialog on its own (an ordinary, silent
      * reason to fall back to the built-in default, the same as any
      * other missing file), but is worth mentioning here as an extra
-     * line, since a dialog is already being shown for some other
-     * parse failure regardless.  Deliberately not added when 'count'
-     * itself is 0: this function would not even reach this point in
-     * that case (see the early return above), so this is really just
-     * documenting why nothing needs to special-case that here. */
+     * line, since a dialog is already being shown for some other parse
+     * failure regardless.  Deliberately not added when 'count' itself
+     * is 0: this function would not even reach this point in that case
+     * (see the early return above), so this is really just documenting
+     * why nothing needs to special-case that here. */
     if (offset < sizeof(message)) {
         const char *missing_theme = config_missing_theme_get();
 
@@ -779,10 +798,10 @@ void wm_json_syntax_errors_warn(void)
             wm->config, message, MENU_MSG_LEVEL_WARNING);
 
     /* Cleared once shown, so reopening the root menu (or reloading
-     * configuration) with the same still-broken file does not show
-     * the exact same dialog again on every attempt; a fresh problem,
-     * in this file or another, starts a fresh list of its own the
-     * next time something calls 'json_syntax_errors_reset' before
+     * configuration) with the same still-broken file does not show the
+     * exact same dialog again on every attempt; a fresh problem, in
+     * this file or another, starts a fresh list of its own the next
+     * time something calls 'json_syntax_errors_reset' before
      * loading. */
     json_syntax_errors_reset();
     config_missing_theme_reset();
@@ -844,8 +863,8 @@ bool wm_restart_requested(void)
 }
 
 
-/* Request a coordinated stop, giving managed clients a chance to
- * close first */
+/* Request a coordinated stop, giving managed clients a chance to close
+ * first */
 void wm_request_graceful_stop(void)
 {
     wm_shutdown_begin(wm);
