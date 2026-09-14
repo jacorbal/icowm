@@ -573,6 +573,22 @@ void handler_map_request(const wm_td *wm,
         }
     }
 
+    /* A window opened by a sticky one is stuck with it, the exact same
+     * reasoning as pinning just above and for the same reason:
+     * 'ccmd_client_stick' is a family-wide operation too, so every
+     * member already in the family is stuck together, but one that only
+     * appears afterwards was left out, free to be carried away from its
+     * own parent's fixed screen position the moment the
+     * viewport next pans. */
+    if (!client_is_sticky(client)) {
+        const client_td *const top =
+            ccmd_client_transient_top_parent(client);
+
+        if (top != NULL && top != client && client_is_sticky(top)) {
+            ccmd_client_stick(client);
+        }
+    }
+
     scratchpad_position(client, desktop, surface);
 
     /* Advertise the desktop this client belongs to per EWMH */

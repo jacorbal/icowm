@@ -500,6 +500,14 @@ void ccmd_client_pin(client_td *client)
 }
 
 
+/** Link-only stand-in for ccmd_client_stick; never reached, same
+ *  reason as ccmd_client_pin just above */
+void ccmd_client_stick(client_td *client)
+{
+    (void) client;
+}
+
+
 /** Link-only stand-in for scratchpad_position; never reached, see
  *  client_link_transient's comment above */
 void scratchpad_position(client_td *client, const desktop_td *desktop,
