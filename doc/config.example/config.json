@@ -85,8 +85,8 @@
         },
         "focus": {
             "delay-ms": 250,
-            "focus-new": true,
             "raise": false,
+            "focus-new": true,
             "policy": "click"
         },
         "placement": {

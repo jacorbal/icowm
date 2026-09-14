@@ -33,7 +33,9 @@
 #include <types/handles.h>
 
 
-/** ICCCM @c WM_CHANGE_STATE @c IconicState value */
+/**
+ * @brief ICCCM @c WM_CHANGE_STATE @c IconicState value
+ */
 #define ICCCM_ICONIC_STATE (3)
 
 
@@ -44,13 +46,12 @@
  * Applies geometry and stacking requests directly through XCB, keeping
  * the managed client's cached geometry synchronized when applicable.
  * A request is ignored outright while the window manager itself is
- * actively moving, resizing, or has this same client in fullscreen,
- * and also, for a short grace period afterward, right after the
- * window manager itself shaded, unshaded, or entered or left
- * fullscreen on this same client, as a stale echo of that transition
- * rather than a genuine independent request (see
- * @c WM_SHADE_CONFIGURE_COOLDOWN_MS and
- * @c WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS).
+ * actively moving, resizing, or has this same client in fullscreen, and
+ * also, for a short grace period afterward, right after the window
+ * manager itself shaded, unshaded, or entered or left fullscreen on
+ * this same client, as a stale echo of that transition rather than
+ * a genuine independent request (see @c WM_SHADE_CONFIGURE_COOLDOWN_MS
+ * and @c WM_FULLSCREEN_CONFIGURE_COOLDOWN_MS).
  *
  * @param connection XCB connection
  * @param surfaces   All managed surfaces
@@ -97,8 +98,8 @@ void handler_configure_notify(xcb_connection_t *connection,
  * @param event  Map request event
  *
  * @note Complexity: @e O(g * n), where @e g is the number of grid
- *       positions the placement policy tests and @e n is the number
- *       of clients on the desktop
+ *       positions the placement policy tests and @e n is the number of
+ *       clients on the desktop
  */
 void handler_map_request(const wm_td *wm,
         xcb_map_request_event_t *event);
@@ -267,8 +268,8 @@ void handler_focus_in(xcb_connection_t *connection,
  * @brief Handle a @c FOCUS_OUT event
  *
  * Marks the surface owning the client that lost the real X11 input
- * focus as outdated, so its decoration colors are repainted on the
- * next render pass.
+ * focus as outdated, so its decoration colors are repainted on the next
+ * render pass.
  *
  * @param wm    Window-manager singleton
  * @param event Focus-out event to process
@@ -281,9 +282,9 @@ void handler_focus_out(const wm_td *wm, xcb_focus_out_event_t *event);
 /**
  * @brief Handle a @c COLORMAP_NOTIFY event
  *
- * ICCCM §4.1.8: a client's colormap attribute changed on one of
- * the windows named in its @c WM_COLORMAP_WINDOWS list (or ceased to
- * be installed at all).  Updates the matching cached entry in
+ * ICCCM §4.1.8: a client's colormap attribute changed on one of the
+ * windows named in its @c WM_COLORMAP_WINDOWS list (or ceased to be
+ * installed at all).  Updates the matching cached entry in
  * @c colormap_windows.colormap_ids, and, when the owning client
  * currently holds real input focus, installs the updated colormap
  * immediately rather than waiting for the next focus change.
@@ -293,8 +294,8 @@ void handler_focus_out(const wm_td *wm, xcb_focus_out_event_t *event);
  * @param event      Colormap notify event
  *
  * @note Complexity: @e O(s * d * c), where @e s is the number of
- *       surfaces, @e d the number of desktops per surface, and @e c
- *       the number of clients per desktop
+ *       surfaces, @e d the number of desktops per surface, and @e c the
+ *       number of clients per desktop
  */
 void handler_colormap_notify(xcb_connection_t *connection,
         list_td *surfaces, const xcb_colormap_notify_event_t *event);
@@ -354,21 +355,50 @@ void handler_client_message(wm_td *wm,
         xcb_client_message_event_t *event);
 
 /**
+ * @brief Handle a @c SELECTION_CLEAR event
+ *
+ * Setting a new owner for an @c ICCCM manager selection (@c WM_S<n>)
+ * always sends this to whichever window owned it right before, per the
+ * core X11 protocol itself, regardless of whether that prior owner ever
+ * asked to be told; @a wm_startup_acquire_selection
+ * (@c wm/startup/selection.c) relies on exactly this when @c -r asks it
+ * to replace a still-running window manager.
+ *
+ * A no-op unless @p event names this window manager's own support
+ * window (the same one @c wm/startup/selection.c originally acquired
+ * every managed screen's own selection with, reused since as the
+ * @c _NET_SUPPORTING_ WM_CHECK window too), in which case another
+ * window manager (or another instance of this one, started with @c -r)
+ * has just taken @c WM_S<n> away, and the same coordinated shutdown
+ * a quit request already starts is started here too, so this instance
+ * relinquishes the rest of what it owns instead of continuing to run
+ * underneath whatever just replaced it.
+ *
+ * @param wm    Window manager state
+ * @param event Selection clear event
+ *
+ * @note Complexity: @e O(1), aside from @a wm_shutdown_begin's own cost
+ *       when it is reached
+ */
+void handler_selection_clear(wm_td *wm,
+        const xcb_selection_clear_event_t *event);
+
+/**
  * @brief Handle an X protocol error delivered as an event
  *
  * XCB reports a failed request whose reply was never waited for as
  * a regular event with a response type of @c 0, which is what this
- * receives, reinterpreted as the @c xcb_generic_error_t it actually
- * is.  A @c BadWindow, @c BadDrawable, or @c BadMatch on one of the
- * routine per-window requests the window manager issues constantly
- * (mapping, configuring, reading properties) is logged at DEBUG
- * level, since it is the expected outcome of a client destroying its
- * own window in the gap between the request and the server processing
- * it, and races of that kind cannot be prevented from this side.
+ * receives, reinterpreted as the @c xcb_generic_error_t it actually is.
+ * A @c BadWindow, @c BadDrawable, or @c BadMatch on one of the routine
+ * per-window requests the window manager issues constantly (mapping,
+ * configuring, reading properties) is logged at DEBUG level, since it
+ * is the expected outcome of a client destroying its own window in the
+ * gap between the request and the server processing it, and races of
+ * that kind cannot be prevented from this side.
  *
  * Any other error (@c BadValue, @c BadAlloc, @c BadAccess, or even
- * @c BadWindow/@c BadMatch on a request outside that routine set)
- * is logged at WARNING level instead, so it is not lost among routine
+ * @c BadWindow/@c BadMatch on a request outside that routine set) is
+ * logged at WARNING level instead, so it is not lost among routine
  * traffic, since it is far more likely to be a genuine bug worth
  * noticing.
  *
@@ -386,13 +416,14 @@ void handler_protocol_error(const xcb_generic_event_t *event);
  * delivers as a regular event and never causes this, from an actual
  * connection failure: the socket to the X server itself is gone,
  * something no window manager can recover from, since the window
- * manager is just another client of that same server.  Logging which
- * one occurred is the most the caller can do about it; an
+ * manager is just another client of that same server.
+ *
+ * Logging which one occurred is the most the caller can do about it; an
  * @c XCB_CONN_ERROR in particular, especially right after a client
  * (e.g., a game attempting hardware-accelerated rendering) was seen
- * doing something unusual, is worth checking the system's logs
- * (Xorg's log file, @c dmesg for a GPU driver crash) for, outside
- * of icowm entirely.
+ * doing something unusual, is worth checking the system's logs (Xorg's
+ * log file, @c dmesg for a GPU driver crash) for, outside of icowm
+ * entirely.
  *
  * @param error_code Value returned by @a xcb_connection_has_error
  *

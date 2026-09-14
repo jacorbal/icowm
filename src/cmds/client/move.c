@@ -24,12 +24,12 @@
 /* XCB includes */
 #include <xcb/xcb.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Type includes */
 #include <types/direction.h>
 #include <types/pair.h>
-
-/* Utils includes */
-#include <utils/xcb/connection.h>
 
 /* Project includes */
 #include <client.h>
@@ -178,6 +178,19 @@ void ccmd_client_move(client_td *client, struct position_s pos)
     client->layout.geometry.cur.pos.y = pos.y;
     client->has_rule_position_locked = false;
     wm_request_client_redraw(client);
+
+    /* A move alone never generates a real 'ConfigureNotify' for the
+     * client: the X server only ever reports one to a window when its
+     * own position relative to its immediate parent changes, and here
+     * that parent-relative offset (inside the frame, for a decorated
+     * client, or none at all otherwise) never does, only the frame's
+     * own position on the root does.  Left unsent, the client's own
+     * belief about where it sits on screen goes stale, which every
+     * screen-relative decision it makes on its own (a popup placed off
+     * its titlebar, drag-and-drop target testing against a stale
+     * rectangle) keeps getting wrong until something else, like
+     * a resize, happens to send one after it. */
+    client_send_synthetic_configure_notify(xcb_connection_get(), client);
 }
 
 
@@ -201,7 +214,7 @@ void ccmd_client_center(client_td *client)
      * currently sits on, not its raw dimensions: consistent with every
      * other quick-position command in this project (maximize, smart
      * placement, transient centering, and now the keyboard's own corner
-     * moves in 'ik_handle_move', input/kbd/interact.c), none of which
+     * moves in 'ik_handle_move', 'input/kbd/interact.c'), none of which
      * would tuck a client under a panel or the tray reserving space at
      * that same edge. */
     if (!ccmd_client_resolve_workarea(client, &mx, &my, &sw, &sh) &&
@@ -240,6 +253,11 @@ void ccmd_client_center(client_td *client)
     client->layout.geometry.cur.pos.y = y;
     client->has_rule_position_locked = false;
     wm_request_client_redraw(client);
+
+    /* Same reasoning as 'ccmd_client_move''s identical call: a move
+     * alone never generates a real 'ConfigureNotify' the client could
+     * use to learn its own new screen position. */
+    client_send_synthetic_configure_notify(xcb_connection_get(), client);
 }
 
 
@@ -332,6 +350,11 @@ void ccmd_client_move_to_monitor(client_td *client,
             client->layout.geometry.cur.dim.h, 0u);
     client->has_rule_position_locked = false;
     wm_request_client_redraw(client);
+
+    /* Same reasoning as 'ccmd_client_move''s identical call: a move
+     * alone never generates a real 'ConfigureNotify' the client could
+     * use to learn its own new screen position. */
+    client_send_synthetic_configure_notify(xcb_connection_get(), client);
 }
 
 

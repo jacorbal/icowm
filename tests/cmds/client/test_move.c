@@ -273,6 +273,25 @@ void wm_request_client_redraw(client_td *client)
 }
 
 
+/** Whether @a client_send_synthetic_configure_notify was called at
+ *  all */
+static int s_synthetic_configure_count;
+
+
+/**
+ * @brief Recording stand-in for @a client_send_synthetic_configure_
+ *        notify
+ * @note Complexity: @e O(1)
+ */
+void client_send_synthetic_configure_notify(xcb_connection_t *connection,
+        const client_td *client)
+{
+    (void) connection;
+    (void) client;
+    s_synthetic_configure_count++;
+}
+
+
 /**
  * @brief Link-only stand-in for @a xcb_connection_get
  *
@@ -357,6 +376,7 @@ static void s_reset(void)
     s_direction_neighbor_is_set = false;
     memset(&s_direction_neighbor, 0, sizeof(s_direction_neighbor));
     s_redraw_count = 0;
+    s_synthetic_configure_count = 0;
     s_cw_window = XCB_WINDOW_NONE;
     s_cw_mask = 0u;
     s_cw_count = 0;
@@ -409,6 +429,9 @@ static void s_test_move_plain_client(void)
             "y is updated to the requested position");
     TAP_OK(!client.has_rule_position_locked,
             "the position-locked rule flag is cleared by a move");
+    TAP_EQ_INT(s_synthetic_configure_count, 1,
+            "a genuine move sends the client a synthetic"
+            " ConfigureNotify with its new screen position");
 }
 
 
@@ -529,6 +552,9 @@ static void s_test_center_plain(void)
             "centered y leaves an equal margin above and below");
     TAP_OK(!client.has_rule_position_locked,
             "centering clears the position-locked rule flag too");
+    TAP_EQ_INT(s_synthetic_configure_count, 1,
+            "a genuine centering sends the client a synthetic"
+            " ConfigureNotify with its new screen position");
 }
 
 
@@ -672,6 +698,9 @@ static void s_test_move_to_monitor_same_is_noop(void)
             " is a no-op");
     TAP_EQ_INT(s_redraw_count, 0,
             "and no redraw is requested for a no-op move");
+    TAP_EQ_INT(s_synthetic_configure_count, 0,
+            "and no synthetic ConfigureNotify is sent for a no-op"
+            " move either");
 }
 
 
@@ -710,6 +739,10 @@ static void s_test_move_to_monitor_translates_offset(void)
     TAP_OK(!client.has_rule_position_locked,
             "moving to another monitor clears the position-locked"
             " rule flag");
+    TAP_EQ_INT(s_synthetic_configure_count, 1,
+            "a genuine cross-monitor move sends the client a"
+            " synthetic ConfigureNotify with its new screen"
+            " position");
 }
 
 
@@ -1164,7 +1197,7 @@ static void s_test_apply_geometry_full_mask_is_safe(void)
 
 int main(void)
 {
-    TAP_PLAN(53);
+    TAP_PLAN(57);
 
     s_test_null_client_is_noop();
     s_test_move_plain_client();

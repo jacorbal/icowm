@@ -205,6 +205,7 @@ TEST_BINS = $(O_DIR)/tests/adt/test_cdlist \
     $(O_DIR)/tests/handler/test_map \
     $(O_DIR)/tests/handler/test_message \
     $(O_DIR)/tests/handler/test_randr \
+    $(O_DIR)/tests/handler/test_selection \
     $(O_DIR)/tests/handler/test_sync \
     $(O_DIR)/tests/loop/event/test_input \
     $(O_DIR)/tests/loop/event/test_motion \
@@ -1735,6 +1736,12 @@ $(O_DIR)/tests/handler/test_randr: \
 		$(TESTS_DIR)/handler/test_randr.c \
 		$(S_DIR)/handler/randr.c \
 		$(S_DIR)/wm/instance.c
+	@mkdir -p $(@D)
+	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
+
+$(O_DIR)/tests/handler/test_selection: \
+		$(TESTS_DIR)/handler/test_selection.c \
+		$(S_DIR)/handler/selection.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 

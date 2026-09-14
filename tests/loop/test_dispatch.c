@@ -263,6 +263,17 @@ void handler_client_message(wm_td *wm, xcb_client_message_event_t *event)
 }
 
 
+/** Link-only stand-in for handler_selection_clear (handler.c) */
+void handler_selection_clear(wm_td *wm,
+        const xcb_selection_clear_event_t *event)
+{
+    (void) wm;
+    s_last_called = "handler_selection_clear";
+    s_last_event = (xcb_generic_event_t *) event;
+    s_call_count++;
+}
+
+
 /** Link-only stand-in for handler_mapping_notify (handler.c) */
 void handler_mapping_notify(xcb_key_symbols_t *keysyms, list_td *surfaces,
         xcb_mapping_notify_event_t *event, const config_td *config)
@@ -651,6 +662,13 @@ static void s_test_handler_forwarding_events(void)
     TAP_EQ_STR(s_last_called, "handler_client_message",
             "CLIENT_MESSAGE is routed to handler_client_message");
 
+    event.response_type = XCB_SELECTION_CLEAR;
+    event_ptr = &event;
+    s_reset();
+    loop_dispatch_event(&ctx, &event_ptr);
+    TAP_EQ_STR(s_last_called, "handler_selection_clear",
+            "SELECTION_CLEAR is routed to handler_selection_clear");
+
     event.response_type = XCB_MAPPING_NOTIFY;
     event_ptr = &event;
     s_reset();
@@ -777,7 +795,7 @@ static void s_test_sync_extension_event(void)
 
 int main(void)
 {
-    TAP_PLAN(39);
+    TAP_PLAN(40);
 
     s_test_null_guards();
     s_test_protocol_error();

@@ -21,6 +21,9 @@
 #include <xcb/randr.h>
 #include <xcb/sync.h>
 
+/* Utils includes */
+#include <utils/xcb/connection.h>
+
 /* Input includes */
 #include <input/mouse/event.h>
 
@@ -31,7 +34,6 @@
 /* Local includes */
 #include <loop/dispatch.h>
 #include <loop/event.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -316,6 +318,23 @@ static void s_loop_dispatch_client_message(loop_ctx_td *ctx,
 
 
 /**
+ * @brief Adapt @a handler_selection_clear to the table signature
+ *
+ * @param ctx   Main loop context
+ * @param event Selection-clear event
+ *
+ * @note Complexity: @e O(1), aside from @a wm_shutdown_begin's own
+ *       cost when it is reached
+ */
+static void s_loop_dispatch_selection_clear(loop_ctx_td *ctx,
+        xcb_generic_event_t **event)
+{
+    handler_selection_clear(ctx->wm,
+            (xcb_selection_clear_event_t *) *event);
+}
+
+
+/**
  * @brief Adapt @a handler_mapping_notify to the table signature
  *
  * @param ctx   Main loop context
@@ -428,8 +447,8 @@ static bool s_loop_dispatch_extension(loop_ctx_td *ctx,
  * @brief Every handler, indexed by the event type that reaches it
  *
  * A type nobody handles is left @c NULL, which the dispatcher reports
- * rather than acts on.  Response type @c 0 is not an event type at
- * all but a protocol error, which is why it has an entry of its own.
+ * rather than acts on.  Response type @c 0 is not an event type at all
+ * but a protocol error, which is why it has an entry of its own.
  */
 static const s_loop_dispatch_fn
         s_loop_dispatch_table[LOOP_DISPATCH_TABLE_SIZE] = {
@@ -458,6 +477,7 @@ static const s_loop_dispatch_fn
     [XCB_PROPERTY_NOTIFY] = s_loop_dispatch_property_notify,
     [XCB_COLORMAP_NOTIFY] = s_loop_dispatch_colormap_notify,
     [XCB_CLIENT_MESSAGE] = s_loop_dispatch_client_message,
+    [XCB_SELECTION_CLEAR] = s_loop_dispatch_selection_clear,
     [XCB_MAPPING_NOTIFY] = s_loop_dispatch_mapping_notify
 };
 
