@@ -117,16 +117,26 @@
     ((w)->properties.flags & CLIENT_FLAG_HIDDEN)
 
 /**
+ * @brief Macro that evaluates to whether a client unmapped its own
+ *        window itself, rather than being hidden by any window-manager
+ *        or user action
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_is_withdrawn(w) \
+    ((w)->properties.flags & CLIENT_FLAG_WITHDRAWN)
+
+/**
  * @brief Macro that evaluates to the client focusable flag
  *
  * @c CLIENT_FLAG_FOCUSABLE is cleared for a window whose
- * @c _NET_WM_WINDOW_TYPE marks it as a kind that should never take
- * real keyboard focus (a dock or a notification; see @c client.c).
- * This is a distinct concept from @a client_accepts_input_focus:
- * this one is about the window's @e type, that one is about its
- * ICCCM input model.  A plain @c CLIENT_TYPE_NORMAL window is always
- * focusable by this macro's measure, regardless of what its
- * @c WM_HINTS may say about whether it actually accepts input.
+ * @c _NET_WM_WINDOW_TYPE marks it as a kind that should never take real
+ * keyboard focus (a dock or a notification; see @c client.c).  This is
+ * a distinct concept from @a client_accepts_input_focus: this one is
+ * about the window's @e type, that one is about its ICCCM input model.
+ * A plain @c CLIENT_TYPE_NORMAL window is always focusable by this
+ * macro's measure, regardless of what its @c WM_HINTS may say about
+ * whether it actually accepts input.
  *
  * @note Complexity: @e O(1)
  */
@@ -138,16 +148,15 @@
  *
  * This is the same condition @a ccmd_client_update_allowed_actions uses
  * to decide whether to advertise @c _NET_WM_ACTION_MINIMIZE in the
- * client's @c _NET_WM_ALLOWED_ACTIONS, and it exists so that both
- * sides say the same thing: a window manager that publishes an action
- * as disallowed and then performs it anyway is telling every client
- * on the display something untrue.
+ * client's @c _NET_WM_ALLOWED_ACTIONS, and it exists so that both sides
+ * say the same thing: a window manager that publishes an action as
+ * disallowed and then performs it anyway is telling every client on the
+ * display something untrue.
  *
  * A panel or a dock is what this keeps out in practice.  Such a window
  * is desktop furniture rather than an application.  It has no titlebar
  * to iconify from, it is pinned to every desktop, and an icon standing
- * in for it would represent something the user never asked to put
- * away.
+ * in for it would represent something the user never asked to put away.
  *
  * @note Complexity: @e O(1)
  */
@@ -158,26 +167,25 @@
  *        keyboard focus under its declared ICCCM input model
  *
  * ICCCM §4.1.7 defines three ways a client may end up receiving
- * keyboard focus: a @e Passive client (@c WM_HINTS input field
- * @c true, no @c WM_TAKE_FOCUS) takes it via @c SetInputFocus alone;
- * a @e Locally @e Active or @e Globally @e Active client (registered
+ * keyboard focus: a @e Passive client (@c WM_HINTS input field @c true,
+ * no @c WM_TAKE_FOCUS) takes it via @c SetInputFocus alone; a
+ * @c Locally @e Active or @e Globally @e Active client (registered
  * @c WM_TAKE_FOCUS) additionally or exclusively takes it via that
  * protocol message; a @e No @e Input client (input @c false, no
- * @c WM_TAKE_FOCUS) never takes real keyboard focus at all, by its
- * own explicit declaration.  This macro evaluates true for the
- * first two and false for the third, mirroring Openbox's
- * @c can_focus @c || @c focus_notify check in @c focus_valid_target
+ * @c WM_TAKE_FOCUS) never takes real keyboard focus at all, by its own
+ * explicit declaration.  This macro evaluates true for the first two
+ * and false for the third, mirroring Openbox's
+ * @c can_focus @c || @c focus_notify check in @a focus_valid_target
  * (@c focus.c).
  *
- * This is a distinct concept from @a client_is_focusable.  That one
- * is about the window's @e type (a dock or notification never
- * wants focus, whatever its input model says); this one is about
- * the ICCCM input model any window, dock or not, may declare.  A
- * caller that skips this check before routing a client into
- * @a focus_apply (@c policy/focus.c) risks unfocusing whatever
- * already holds real keyboard focus in favor of a client that can
- * never actually receive it, leaving keyboard input directed
- * nowhere until the user clicks something else by hand.
+ * This is a distinct concept from @a client_is_focusable.  That one is
+ * about the window's @e type (a dock or notification never wants focus,
+ * whatever its input model says); this one is about the ICCCM input
+ * model any window, dock or not, may declare.  A caller that skips this
+ * check before routing a client into @a focus_apply (@c policy/focus.c)
+ * risks unfocusing whatever already holds real keyboard focus in favor
+ * of a client that can never actually receive it, leaving keyboard
+ * input directed nowhere until the user clicks something else by hand.
  *
  * @note Complexity: @e O(1)
  */
@@ -197,9 +205,9 @@
  * @brief Macro that evaluates to whether this client currently holds
  *        real X11 input focus
  *
- * @see @c CLIENT_FLAG_FOCUSED's comment above for why this is
- *      its tracked flag rather than derived from @c desktop->
- *      client_active_id on demand
+ * @see @c CLIENT_FLAG_FOCUSED's comment above for why this is its
+ *      tracked flag rather than derived from
+ *      @c desktop->client_active_id on demand
  *
  * @note Complexity: @e O(1)
  */
@@ -215,8 +223,7 @@
     ((w)->properties.flags & CLIENT_FLAG_PIN)
 
 /**
- * @brief Macro that evaluates to the negation of the client pinned
- *        flag
+ * @brief Macro that evaluates to the negation of the client pinned flag
  *
  * @note Complexity: @e O(1)
  */
@@ -236,8 +243,7 @@
     ((w)->properties.flags & CLIENT_FLAG_STICKY)
 
 /**
- * @brief Macro that evaluates to the negation of the client sticky
- *        flag
+ * @brief Macro that evaluates to the negation of the client sticky flag
  *
  * @note Complexity: @e O(1)
  */
@@ -247,15 +253,14 @@
 /**
  * @brief Macro that evaluates to the client decoration flag
  *
- * Normalized to @c 0 or @c 1, unlike leaving the raw flag bit's
- * numeric value (@c CLIENT_FLAG_DECORATED, not necessarily @c 1)
- * exposed: a caller comparing this against a proper @c bool with
+ * Normalized to @c 0 or @c 1, unlike leaving the raw flag bit's numeric
+ * value (@c CLIENT_FLAG_DECORATED, not necessarily @c 1) exposed:
+ * a caller comparing this against a proper @c bool with
  * @c != or @c ==, as @a ccmd_client_toggle_decorate's callers in
  * @c rules/apply.c and @c handler/focus.c both do, would otherwise
  * mismatch and toggle decoration off by mistake, every single time,
- * whenever the client already happened to be decorated (the common
- * case for an ordinary client) and the caller wanted it to stay that
- * way.
+ * whenever the client already happened to be decorated (the common case
+ * for an ordinary client) and the caller wanted it to stay that way.
  *
  * @note Complexity: @e O(1)
  */
@@ -271,23 +276,22 @@
     ((w)->properties.flags & CLIENT_FLAG_URGENT)
 
 /**
- * @brief Macro that compares two @c user_time values safely across
- *        the 32-bit wraparound X11 timestamps undergo roughly every
+ * @brief Macro that compares two @c user_time values safely across the
+ *        32-bit wraparound X11 timestamps undergo roughly every
  *        49.7 days of continuous X server uptime
  *
  * Nothing breaks server-side at that wraparound; the millisecond
  * counter, defined by the X11 protocol itself as a plain @c CARD32,
- * just wraps back to 0 and keeps counting, ordinary unsigned
- * overflow.  But a naive @c a @c > @c b comparison breaks exactly
- * once per wraparound: right after it, every fresh timestamp is
- * numerically small again, so it would wrongly look older than any
- * timestamp from just before the wraparound.  Subtracting first and
- * reinterpreting the result as signed sidesteps this entirely, the
- * same idiom X11 itself already relies on for its timestamps,
- * as long as the two values being compared are never more than
- * roughly half the 32-bit range (about 24.8 days) apart, which two
- * genuine user-interaction timestamps meaningfully compared against
- * each other never are in practice.
+ * just wraps back to 0 and keeps counting, ordinary unsigned overflow.
+ * But a naive @c a @c > @c b comparison breaks exactly once per
+ * wraparound: right after it, every fresh timestamp is numerically
+ * small again, so it would wrongly look older than any timestamp from
+ * just before the wraparound.  Subtracting first and reinterpreting the
+ * result as signed sidesteps this entirely, the same idiom X11 itself
+ * already relies on for its timestamps, as long as the two values being
+ * compared are never more than roughly half the 32-bit range (about
+ * 24.8 days) apart, which two genuine user-interaction timestamps
+ * meaningfully compared against each other never are in practice.
  *
  * @param a First timestamp
  * @param b Second timestamp
@@ -333,11 +337,11 @@
  * covers most of what should never be maximized.
  *
  * It has no equivalent way to say that it resizes but should not fill
- * the screen, which is what a modal dialog is: it exists to be
- * answered while the window it belongs to stays in view, and taking
- * the whole screen puts that window out of sight.  A modal is
- * therefore not maximizable here even where it resizes freely, which
- * a "save changes?" prompt with a growable text field does.
+ * the screen, which is what a modal dialog is: it exists to be answered
+ * while the window it belongs to stays in view, and taking the whole
+ * screen puts that window out of sight.  A modal is therefore not
+ * maximizable here even where it resizes freely, which a "save
+ * changes?" prompt with a growable text field does.
  *
  * @note Says nothing about resizing, which stays governed by the size
  *       hints alone, those being how a client asks
@@ -489,6 +493,29 @@
             CLIENT_FLAG_HIDDEN, (1 << CLIENT_FLAG_MAX))
 
 /**
+ * @brief Macro that marks a client as having unmapped its own window
+ *        itself
+ *
+ * @param w Pointer to the client structure that withdrew itself
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_mark_withdrawn(w) \
+    safeflg_set(&((w)->properties.flags), \
+            CLIENT_FLAG_WITHDRAWN, (1 << CLIENT_FLAG_MAX))
+
+/**
+ * @brief Macro that clears a client's self-withdrawn mark
+ *
+ * @param w Pointer to the client structure to clear the mark on
+ *
+ * @note Complexity: @e O(1)
+ */
+#define client_clear_withdrawn(w) \
+    safeflg_unset(&((w)->properties.flags), \
+            CLIENT_FLAG_WITHDRAWN, (1 << CLIENT_FLAG_MAX))
+
+/**
  * @brief Macro that sets the focus flag of a client
  *
  * @param w Pointer to the client structure whose focus is to be set
@@ -502,8 +529,7 @@
 /**
  * @brief Macro that clears the focus flag of a client
  *
- * @param w Pointer to the client structure whose focus is to be
- *          cleared
+ * @param w Pointer to the client structure whose focus is to be cleared
  *
  * @note Complexity: @e O(1)
  */
@@ -525,8 +551,7 @@
 /**
  * @brief Macro that clears the shade flag of a client
  *
- * @param w Pointer to the client structure whose shade is to be
- *          cleared
+ * @param w Pointer to the client structure whose shade is to be cleared
  *
  * @note Complexity: @e O(1)
  */
@@ -537,8 +562,7 @@
 /**
  * @brief Macro that toggles the shade flag of a client
  *
- * @param w Pointer to the client structure whose shade is to be
- *          toggled
+ * @param w Pointer to the client structure whose shade is to be toggled
  *
  * @note Complexity: @e O(1)
  */
@@ -560,8 +584,7 @@
 /**
  * @brief Macro that clears the pin flag of a client
  *
- * @param w Pointer to the client structure whose pin is to be
- *          cleared
+ * @param w Pointer to the client structure whose pin is to be cleared
  *
  * @note Complexity: @e O(1)
  */
@@ -572,8 +595,7 @@
 /**
  * @brief Macro that toggles the pin flag of a client
  *
- * @param w Pointer to the client structure whose pin is to be
- *          toggled
+ * @param w Pointer to the client structure whose pin is to be toggled
  *
  * @note Complexity: @e O(1)
  */
@@ -588,8 +610,8 @@
  * @c CLIENT_FLAG_STICKY's comment in @c client/state.h for the full
  * distinction between the two
  *
- * @param w Pointer to the client structure whose sticky flag is to
- *          be set
+ * @param w Pointer to the client structure whose sticky flag is to be
+ *          set
  *
  * @note Complexity: @e O(1)
  */
@@ -600,8 +622,8 @@
 /**
  * @brief Macro that clears the sticky flag of a client
  *
- * @param w Pointer to the client structure whose sticky flag is to
- *          be cleared
+ * @param w Pointer to the client structure whose sticky flag is to be
+ *          cleared
  *
  * @note Complexity: @e O(1)
  */
@@ -612,8 +634,8 @@
 /**
  * @brief Macro that toggles the sticky flag of a client
  *
- * @param w Pointer to the client structure whose sticky flag is to
- *          be toggled
+ * @param w Pointer to the client structure whose sticky flag is to be
+ *          toggled
  *
  * @note Complexity: @e O(1)
  */

@@ -38,13 +38,14 @@
 /* Focus includes */
 #include <policy/focus.h>
 
-
 /* Default initial values */
 #include <defs/ctxmenu.h>
 #include <defs/cycle.h>
 
 /* Utils includes */
 #include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Project includes */
 #include <client.h>
@@ -57,8 +58,6 @@
 #include <menu/draw.h>
 #include <menu/cycle.h>
 #include <menu/internal.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /** Private cycle menu state */
@@ -115,7 +114,14 @@ static void s_cycle_collect(client_td *c, void *data)
     bool want;
     int idx;
 
+    /* 'client_is_withdrawn' excluded alongside the taskbar-skip flag:
+     * a client that unmapped its own window itself (ICCCM §4.1.4) may
+     * never map again at all per ICCCM §4.1.3.1, and offering it here
+     * as though it were genuinely just hidden let selecting it revive
+     * something the application itself no longer expects to be shown,
+     * which it then closes right back again on its own. */
     if (c == NULL || ctx == NULL || !client_is_focusable(c) ||
+            client_is_withdrawn(c) ||
             (c->properties.flags & CLIENT_FLAG_SKIP_TASKBAR)) {
         return;
     }
@@ -552,8 +558,8 @@ void cycle_init(xcb_connection_t *connection,
                 g_cycle_menu.window, 1, &window_type);
     }
 
-    /* Same window-level opacity 'ctxmenu.c''s window publishes,
-     * shared with it via 'config_theme_s.menu.opacity' ('config.h') */
+    /* Same window-level opacity 'ctxmenu.c''s window publishes, shared
+     * with it via 'config_theme_s.menu.opacity' ('config.h') */
     atom_set_window_opacity(connection, g_cycle_menu.window,
             config_theme_opacity_to_raw(cfg->theme.menu.opacity));
 

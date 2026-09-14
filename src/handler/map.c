@@ -21,6 +21,11 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
+/* Utils includes */
+#include <utils/xcb/atom.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
+
 /* Default initial values */
 #include <defs/desktop.h>
 
@@ -43,18 +48,6 @@
 /* Render includes */
 #include <render/outdate.h>
 
-/* Project includes */
-#include <cctl/sn.h>
-#include <client.h>
-#include <desktop.h>
-#include <logger.h>
-#include <memguard.h>
-#include <scratchpad.h>
-#include <surface.h>
-#include <systray.h>
-#include <wm.h>
-#include <wm/shutdown.h>
-
 /* JSON includes */
 #include <cjson/cJSON.h>
 
@@ -72,15 +65,24 @@
 /* IPC includes */
 #include <ipc.h>
 
+/* Control includes */
+#include <cctl/sn.h>
+
 /* Project includes */
+#include <client.h>
+#include <desktop.h>
+#include <logger.h>
 #include <lookup.h>
-#include <utils/xcb/atom.h>
+#include <memguard.h>
+#include <scratchpad.h>
 #include <surface.h>
+#include <surface.h>
+#include <systray.h>
+#include <wm.h>
+#include <wm/shutdown.h>
 
 /* Local includes */
 #include <handler.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**
@@ -193,10 +195,10 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
     /* ICCCM §4.1.2.4: honor 'WM_HINTS' 'initial_state' when
      * 'IconicState', unless a rule already gave an explicit
      * 'apply.iconified' for this client ('s_rules_defer_state_to_map',
-     * rules/apply.c): the rule speaks for the user's own configuration
-     * and so takes precedence over the client's own request either way,
-     * the same as 'has_rule_position_locked' already overrides
-     * a client-initiated move (client.h). */
+     * in 'rules/apply.c'): the rule speaks for the user's own
+     * configuration and so takes precedence over the client's own
+     * request either way, the same as 'has_rule_position_locked'
+     * already overrides a client-initiated move (client.h). */
     want_iconic = client->has_rule_iconified
         ? client->is_rule_iconified
         : client->hints_icccm.hints.is_initial_iconic;
@@ -217,12 +219,12 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
 
         client_unhide(client);
 
-        /* A client mapping while everything is closing is almost
-         * always an application asking whether to save.  Its parent
-         * was already brought over by 'wm_shutdown_begin', so this
-         * only has to cover the dialog itself, which was placed
-         * centered over that parent before any of this ran and could
-         * still belong to another desktop or page of its own. */
+        /* A client mapping while everything is closing is almost always
+         * an application asking whether to save.  Its parent was
+         * already brought over by 'wm_shutdown_begin', so this only has
+         * to cover the dialog itself, which was placed centered over
+         * that parent before any of this ran and could still belong to
+         * another desktop or page of its own. */
         if (wm_shutdown_is_in_progress()) {
             wm_shutdown_gather_client(client);
         }
@@ -420,12 +422,22 @@ void handler_map_request(const wm_td *wm,
     LOGGER_TRACE("Map request event (window=0x%x, parent=0x%x)",
             event->window, event->parent);
 
-    if (lookup_find_client(surfaces,
-                event->window, NULL, NULL) != NULL) {
-        LOGGER_TRACE("Window %#x already managed; mapping directly",
-                event->window);
+    client = lookup_find_client(surfaces, event->window, NULL, NULL);
+    if (client != NULL) {
+        LOGGER_TRACE("Window %#x already managed; re-showing it" \
+                " properly rather than mapping it raw", event->window);
 
-        s_map_unmanaged(connection, event->window);
+        /* A bare 'xcb_map_window' here, this path's previous behavior,
+         * left the client's own bookkeeping (still marked hidden, its
+         * frame and titlebar left hidden from whichever hide put it
+         * there, WM_STATE still whatever it was) entirely stale,
+         * correct only for the window itself becoming visible again,
+         * not for anything this window manager still believed about it.
+         * Harmless, not only correct, when this client was never
+         * actually hidden at all, since every one of
+         * 'ccmd_client_unhide' own steps is already a no-op against
+         * a client that is not. */
+        ccmd_client_unhide(client);
         return;
     }
 
@@ -474,13 +486,13 @@ void handler_map_request(const wm_td *wm,
     }
 
     /* A fallback completion path for a window whose own application
-     * never broadcasts a ("remove:" message) of its own (xterm and
-     * most other classic X11 applications, unlike most GTK and Qt
-     * ones): matched by '_NET_WM_PID' instead, which is independent
-     * of the '_NET_STARTUP_ID' placement lookup just above and of
-     * whether that one found anything at all, so it runs
-     * unconditionally.  See 'cctl_sn_complete_for_pid''s own comment
-     * (cctl/sn.h) for the full reasoning. */
+     * never broadcasts a ("remove:" message) of its own (xterm and most
+     * other classic X11 applications, unlike most GTK and Qt ones):
+     * matched by '_NET_WM_PID' instead, which is independent of the
+     * '_NET_STARTUP_ID' placement lookup just above and of whether that
+     * one found anything at all, so it runs unconditionally.  See
+     * 'cctl_sn_complete_for_pid''s own comment ('cctl/sn.h') for the
+     * full reasoning. */
     (void) cctl_sn_complete_for_pid(connection, surfaces, event->window);
 
     /* Checked before 'client_init' does any of its own (comparatively
@@ -666,14 +678,24 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * and send real input focus right back onto it. */
         client_hide(client);
 
+        /* Distinct from the plain 'client_hide' above: this client
+         * unmapped its own window itself, ICCCM §4.1.4's own account of
+         * a client withdrawing, not a window manager or user action
+         * hiding it, so it must not be offered back to either automatic
+         * discovery (see 'ccmd_client_bring_family',
+         * cmds/client/transient.c) or the cycle menu's own listing
+         * ('menu/cycle.c') the way a client genuinely hidden by a
+         * command is. */
+        client_mark_withdrawn(client);
+
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
             client_focus_fallback(desktop, surface, client);
         }
 
         /* When a managed client withdraws itself (for example, to
-         * a system tray), unmap every WM-created decoration so
-         * later render passes never remap the ghost frame */
+         * a system tray), unmap every WM-created decoration so later
+         * render passes never remap the ghost frame */
         if (client->frame != 0) {
             client->ignore.unmap++;
             xcb_window_hide(client->frame);
@@ -1012,8 +1034,8 @@ void handler_circulate_request(xcb_connection_t *connection,
      * afterward that alone would let a normal-layer client circulate
      * itself above an 'above'-layer one, or a 'below'-layer one above
      * a normal client, since nothing else here re-imposes the layer
-     * ordering 'ccmd_client_layer_above'
-     * and 'ccmd_client_layer_below' otherwise guarantee */
+     * ordering 'ccmd_client_layer_above' and 'ccmd_client_layer_below'
+     * otherwise guarantee */
     ccmd_desktop_enforce_layers(desktop);
 
     wm_request_client_redraw(client);

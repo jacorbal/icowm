@@ -113,19 +113,20 @@ enum window_flags_e {
      *        one it actually belongs to
      *
      * Not to be confused with @c CLIENT_FLAG_STICKY below, a wholly
-     * unrelated, orthogonal concept despite the similar-sounding
-     * name: this one is about @e which @e desktop shows the client
-     * (all of them at once), while @c CLIENT_FLAG_STICKY is about
-     * @e where @e on @e screen the client sits once one is showing
-     * it.  A client may hold either bit, both, or neither; none of
-     * the four combinations implies or excludes any of the others.
-     * The historical EWMH atom for this very flag is even named
+     * unrelated, orthogonal concept despite the similar-sounding name:
+     * this one is about @e which @e desktop shows the client (all of
+     * them at once), while @c CLIENT_FLAG_STICKY is about
+     * @e where-on-screen the client sits once one is showing it.
+     *
+     * A client may hold either bit, both, or neither; none of the four
+     * combinations implies or excludes any of the others.  The
+     * historical EWMH atom for this very flag is even named
      * @c _NET_WM_STATE_STICKY (see @c handler/ewmh.c and
      * @c cmds/client/ewmh.c), a naming collision from a spec written
-     * before this window manager had any notion of viewport panning
-     * to need a second, genuinely @e sticky flag of its own; that
-     * atom name is fixed by the protocol and cannot be changed,
-     * which is exactly why this comment exists.
+     * before this window manager had any notion of viewport panning to
+     * need a second, genuinely @e sticky flag of its own; that atom
+     * name is fixed by the protocol and cannot be changed, which is
+     * exactly why this comment exists.
      *
      * @see @a client_is_pinned below
      */
@@ -142,9 +143,9 @@ enum window_flags_e {
     CLIENT_FLAG_UNRESPONSIVE = 1 << 11, /**< No ping reply received */
 
     /**
-     * @brief Every aspect of this client's presentation and extent
-     *        is entirely policy-controlled, never subject to any
-     *        mutation initiated by a user or script
+     * @brief Every aspect of this client's presentation and extent is
+     *        entirely policy-controlled, never subject to any mutation
+     *        initiated by a user or script
      *
      * Deliberately generic, not tied to any one feature: set once by
      * whichever policy owns a client with this flag (the scratchpad,
@@ -157,10 +158,9 @@ enum window_flags_e {
      * A caller with feature-specific behavior beyond "refuse this
      * mutation entirely" (the scratchpad hiding itself on losing focus,
      * say, rather than merely refusing to be unfocused) still calls
-     * into the owning feature's module directly for that, the same
-     * as before; this flag only ever centralizes the "refuse" half
-     * shared by every such feature, not anything specific to one of
-     * them.
+     * into the owning feature's module directly for that, the same as
+     * before; this flag only ever centralizes the "refuse" half shared
+     * by every such feature, not anything specific to one of them.
      *
      * @see @a client_is_locked's callers
      */
@@ -216,18 +216,17 @@ enum window_flags_e {
      *        which desktop it belongs to
      *
      * Not to be confused with @c CLIENT_FLAG_PIN above, a wholly
-     * unrelated, orthogonal concept despite the similar-sounding
-     * name: pinning is about @e which @e desktop shows the client
-     * (all of them at once, rather than only its own), while this
-     * flag is about @e where @e on @e screen the client sits once
-     * a desktop showing it pans its viewport.  A client may hold
-     * either bit, both, or neither; none of the four combinations
-     * implies or excludes any of the others.  Unlike @c
-     * CLIENT_FLAG_PIN, this one has no EWMH counterpart at all: no
-     * @c _NET_WM_STATE atom describes staying fixed across a viewport
-     * pan, because the specification has no notion of a viewport to
-     * pan in the first place, so this flag is never published to, or
-     * read from, any client property.
+     * unrelated, orthogonal concept despite the similar-sounding name:
+     * pinning is about @e which @e desktop shows the client (all of
+     * them at once, rather than only its own), while this flag is about
+     * @e where @e on @e screen the client sits once a desktop showing
+     * it pans its viewport.  A client may hold either bit, both, or
+     * neither; none of the four combinations implies or excludes any of
+     * the others.  Unlike @c CLIENT_FLAG_PIN, this one has no EWMH
+     * counterpart at all: no @c _NET_WM_STATE atom describes staying
+     * fixed across a viewport pan, because the specification has no
+     * notion of a viewport to pan in the first place, so this flag is
+     * never published to, or read from, any client property.
      *
      * Toggled by @c ACTION_CLIENT_TOGGLE_STICKY (see
      * @a ccmd_client_toggle_stick in @c cmds/client/flags.c).  Read by
@@ -241,7 +240,29 @@ enum window_flags_e {
      */
     CLIENT_FLAG_STICKY = 1 << 15,
 
-    CLIENT_FLAG_MAX = 16,
+    /**
+     * @brief This client unmapped its own window itself (ICCCM §4.1.4),
+     *        rather than being hidden by any window-manager or user
+     *        action
+     *
+     * Distinct from @c CLIENT_FLAG_HIDDEN, which @a client_hide sets
+     * for both cases alike: a client that withdrew itself this way may,
+     * per ICCCM §4.1.3.1, never map again at all, and reviving one that
+     * does not expect to be shown again goes against what its own
+     * application logic assumes, which is exactly what made a hidden
+     * client's automatic discovery (@a ccmd_client_bring_family, in
+     * @c cmds/client/transient.c) and its listing in the cycle menu
+     * (in @c menu/cycle.c) keep reopening one particular GIMP dialog on
+     * every click, each time immediately closed again by GIMP's own
+     * code the moment it noticed. Cleared the moment a client this is
+     * set on maps itself again on its own, at which point whatever
+     * caused it no longer applies (see @c handler/map.c).
+     *
+     * @see @a client_is_withdrawn below
+     */
+    CLIENT_FLAG_WITHDRAWN = 1 << 16,
+
+    CLIENT_FLAG_MAX = 17,
 };
 
 
@@ -292,8 +313,8 @@ enum client_gravity_e {         /* Reference point fixed on resize: */
 
 
 /**
- * @brief Adjust a frame position to keep a gravity anchor fixed
- *        across a size change
+ * @brief Adjust a frame position to keep a gravity anchor fixed across
+ *        a size change
  *
  * Computes the displacement that preserves the anchor point defined by
  * @p gravity after the frame changes from (@p old_w x @p old_h) to

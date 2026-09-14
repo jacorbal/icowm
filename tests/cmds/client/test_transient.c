@@ -1048,6 +1048,74 @@ static void s_test_bring_family_restores_iconified(void)
 }
 
 
+/* A genuinely hidden (not withdrawn) sibling is unhidden */
+static void s_test_bring_family_unhides_hidden(void)
+{
+    surface_td surface;
+    desktop_td *current_desktop;
+    client_td *top;
+    client_td *sibling;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    surface.desktop_cur = 3u;
+    current_desktop = s_make_desktop(3u);
+    top = s_make_client(1u);
+    top->screen_id = 5u;
+    sibling = s_make_client(2u);
+    sibling->desktop_id = 3u;
+    client_hide(sibling);
+    top->transients = cdlist_init(NULL);
+    (void) cdlist_ins_next(top->transients, NULL, sibling);
+    s_set_surface(5u, &surface);
+    s_link_surface_desktop(&surface, 3u, current_desktop);
+
+    ccmd_client_bring_family(top);
+
+    TAP_EQ_INT(s_unhide_log_used, 1,
+            "the hidden sibling is unhidden");
+    TAP_OK(s_unhide_log[0] == sibling, "and it is the right client");
+
+    s_teardown();
+}
+
+
+/* A sibling that withdrew its own window itself (ICCCM §4.1.4) is
+ * left alone entirely, relocation included: reviving one goes
+ * against what its own application logic assumes it can still do */
+static void s_test_bring_family_skips_withdrawn(void)
+{
+    surface_td surface;
+    desktop_td *current_desktop;
+    client_td *top;
+    client_td *sibling;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+    surface.desktop_cur = 3u;
+    current_desktop = s_make_desktop(3u);
+    top = s_make_client(1u);
+    top->screen_id = 5u;
+    sibling = s_make_client(2u);
+    sibling->desktop_id = 7u;   /* deliberately on some other desktop */
+    client_hide(sibling);
+    client_mark_withdrawn(sibling);
+    top->transients = cdlist_init(NULL);
+    (void) cdlist_ins_next(top->transients, NULL, sibling);
+    s_set_surface(5u, &surface);
+    s_link_surface_desktop(&surface, 3u, current_desktop);
+
+    ccmd_client_bring_family(top);
+
+    TAP_EQ_INT(s_move_log_used, 0,
+            "a withdrawn sibling is not relocated either");
+    TAP_EQ_INT(s_unhide_log_used, 0,
+            "and it is not unhidden");
+
+    s_teardown();
+}
+
+
 /* A null client, or one whose top parent's surface cannot be
  * resolved, is a silent no-op */
 static void s_test_bring_family_null_and_unresolved_are_noop(void)
@@ -1071,7 +1139,7 @@ static void s_test_bring_family_null_and_unresolved_are_noop(void)
 
 int main(void)
 {
-    TAP_PLAN(46);
+    TAP_PLAN(50);
 
     s_test_top_parent_null_client();
     s_test_top_parent_no_parent();
@@ -1100,6 +1168,8 @@ int main(void)
     s_test_focus_target_null_client();
     s_test_bring_family_relocates_sibling();
     s_test_bring_family_restores_iconified();
+    s_test_bring_family_unhides_hidden();
+    s_test_bring_family_skips_withdrawn();
     s_test_bring_family_null_and_unresolved_are_noop();
 
     return TAP_DONE();

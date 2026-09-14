@@ -208,8 +208,8 @@ static void s_visit_descendants(client_td *node,
 
 /**
  * @brief @a ccmd_family_fn shared by both
- *        @a ccmd_client_transient_family_snapshot and its
- *        all-desktops counterpart, via @a s_family_snapshot
+ *        @a ccmd_client_transient_family_snapshot and its all-desktops
+ *        counterpart, via @a s_family_snapshot
  *
  * @param candidate Family member found
  * @param ctx       @c struct @a s_family_snapshot_ctx*
@@ -277,8 +277,8 @@ static void s_family_snapshot_visitor(client_td *candidate, void *ctx)
  *         caller's to @c free; @c NULL if @p top or @p count_out is
  *         @c NULL, no match was found, or the allocation itself failed
  *
- * @note Complexity: @e O(f), where @e f is the number of @p top's
- *       own transient descendants at every depth combined
+ * @note Complexity: @e O(f), where @e f is the number of @p top's own
+ *       transient descendants at every depth combined
  */
 static client_td **s_family_snapshot(client_td *top,
         uint32_t desktop_filter, size_t *count_out)
@@ -444,22 +444,20 @@ void ccmd_client_bring_family(client_td *client)
         return;
     }
 
-    /* The desktop actually being looked at right now, not
-     * necessarily 'top''s literal "home" desktop.  A pinned
-     * client stays registered under whichever desktop it was
-     * originally created on forever (pin is achieved purely by
-     * exempting it from the hide/show cycle 'surface_clients_hide'/
-     * '_show', surface/actions/clients.c, runs on every switch,
-     * never by actually moving it between desktops), so using
-     * 'wm_get_client_desktop(top)' here would "bring" a transient
-     * onto a desktop nobody is even looking at whenever 'top' itself
-     * happens to be pinned, leaving that transient mapped (via
-     * 'ccmd_client_focus''s unconditional 'xcb_map_window' on
-     * whatever it redirects to) but still homed on its own original
-     * desktop: visible on every desktop from then on,
-     * indistinguishable from being pinned itself, yet with its
-     * pin indicator never lit, since nothing ever actually pinned
-     * it. */
+    /* The desktop actually being looked at right now, not necessarily
+     * 'top''s literal "home" desktop.  A pinned client stays registered
+     * under whichever desktop it was originally created on forever (pin
+     * is achieved purely by exempting it from the hide/show cycle
+     * 'surface_clients_hide'/ '_show', 'surface/actions/clients.c',
+     * runs on every switch, never by actually moving it between
+     * desktops), so using 'wm_get_client_desktop(top)' here would
+     * "bring" a transient onto a desktop nobody is even looking at
+     * whenever 'top' itself happens to be pinned, leaving that
+     * transient mapped (via 'ccmd_client_focus''s unconditional
+     * 'xcb_map_window' on whatever it redirects to) but still homed on
+     * its own original desktop: visible on every desktop from then on,
+     * indistinguishable from being pinned itself, yet with its pin
+     * indicator never lit, since nothing ever actually pinned it. */
     top_surface = wm_get_surface_by_id(top->screen_id);
     target = (top_surface != NULL)
         ? surface_desktop_get(top_surface, top_surface->desktop_cur)
@@ -475,13 +473,26 @@ void ccmd_client_bring_family(client_td *client)
     }
 
     for (size_t i = 0; i < count; i++) {
-        /* Compares 'desktop_id' directly first, at no cost beyond a
-         * field read on 'siblings[i]' itself: the common case is
-         * already on the right desktop (every desktop-move cascade
-         * in this project works to keep a family together in the
-         * first place), so the one lookup 'wm_get_client_desktop'
-         * genuinely costs is worth paying only when a member truly
-         * needs relocating. */
+        /* A sibling that withdrew its own window itself (ICCCM §4.1.4)
+         * is skipped entirely here, desktop-move included: per ICCCM
+         * §4.1.3.1, one that did may never map again at all, and
+         * reviving it goes against what its own application logic
+         * assumes, which is exactly what turned this loop into
+         * a client's own GIMP color-picker dialog being unhidden here
+         * on every single click anywhere in the application, each time
+         * immediately closed again by GIMP's own code the moment it
+         * noticed. */
+        if (client_is_withdrawn(siblings[i])) {
+            continue;
+        }
+
+        /* Compares 'desktop_id' directly first, at no cost beyond
+         * a field read on 'siblings[i]' itself: the common case is
+         * already on the right desktop (every desktop-move cascade in
+         * this project works to keep a family together in the first
+         * place), so the one lookup 'wm_get_client_desktop' genuinely
+         * costs is worth paying only when a member truly needs
+         * relocating. */
         if (siblings[i]->desktop_id != target->id) {
             desktop_td *const home = wm_get_client_desktop(siblings[i]);
 
@@ -516,7 +527,8 @@ client_td *ccmd_client_focus_target(client_td *client)
     target = client;
     depth = 0;
     while (depth < WM_TRANSIENT_CHAIN_MAX_DEPTH) {
-        client_td *const child = s_client_mapped_transient_child(target);
+        client_td *const child =
+            s_client_mapped_transient_child(target);
 
         if (child == NULL) {
             break;
@@ -539,8 +551,8 @@ void client_link_transient(client_td *client)
         return;
     }
 
-    parent = lookup_find_client(wm_get_surfaces(), client->transient_for,
-            NULL, NULL);
+    parent = lookup_find_client(wm_get_surfaces(),
+            client->transient_for, NULL, NULL);
     if (parent == NULL || parent == client) {
         return;
     }

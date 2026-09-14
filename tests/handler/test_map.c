@@ -446,11 +446,16 @@ void ccmd_client_hide(client_td *client)
 }
 
 
-/** Link-only stand-in for ccmd_client_unhide; never reached, see
- *  ccmd_client_iconify's comment above */
+/** Recording stand-in for ccmd_client_unhide: reached by
+ *  handler_map_request's own already-managed branch, unlike its
+ *  neighbors above */
+static unsigned int s_call_ccmd_unhide = 0u;
+static client_td *s_last_ccmd_unhide_client = NULL;
+
 void ccmd_client_unhide(client_td *client)
 {
-    (void) client;
+    s_call_ccmd_unhide++;
+    s_last_ccmd_unhide_client = client;
 }
 
 
@@ -969,6 +974,8 @@ static void s_test_reset_state(void)
     s_call_ccmd_desktop_enforce_layers = 0u;
     s_call_ccmd_target_win = 0u;
     s_call_map_window = 0u;
+    s_call_ccmd_unhide = 0u;
+    s_last_ccmd_unhide_client = NULL;
     s_call_unmap_window = 0u;
     s_call_destroy_window = 0u;
     s_call_xcb_window_hide = 0u;
@@ -1048,7 +1055,8 @@ static void s_test_map_request_null_guards(void)
 
 
 /* handler_map_request: a window already tracked as a managed client
- * is mapped directly, without going through adoption again */
+ * is properly re-shown (through ccmd_client_unhide), not mapped raw
+ * and left with stale bookkeeping, and never re-enters adoption */
 static void s_test_map_request_already_managed(void)
 {
     wm_td wm;
@@ -1069,9 +1077,13 @@ static void s_test_map_request_already_managed(void)
 
     handler_map_request(&wm, &event);
 
-    TAP_OK(s_call_map_window == 1u,
-            "a window already tracked as a managed client is mapped" \
-            " directly exactly once");
+    TAP_OK(s_call_map_window == 0u,
+            "an already-managed window is no longer mapped raw");
+    TAP_OK(s_call_ccmd_unhide == 1u,
+            "it is instead properly re-shown through" \
+            " ccmd_client_unhide exactly once");
+    TAP_OK(s_last_ccmd_unhide_client == &existing_client,
+            "on the exact client the lookup resolved");
     TAP_OK(s_call_client_init == 0u,
             "an already-managed window never re-enters client_init");
 }
@@ -1627,6 +1639,9 @@ static void s_test_unmap_notify_genuine_withdrawal(void)
             desktop.is_outdated,
             "a genuine self-withdrawal outdates the client," \
             " surface, and desktop directly");
+    TAP_OK(client_is_withdrawn(&client) != 0,
+            "a genuine self-withdrawal marks the client as having" \
+            " unmapped its own window itself");
 }
 
 
@@ -1918,7 +1933,7 @@ static void s_test_destroy_notify_removes_from_desktop(void)
 
 int main(void)
 {
-    TAP_PLAN(63);
+    TAP_PLAN(66);
 
     s_test_map_request_null_guards();
     s_test_map_request_already_managed();

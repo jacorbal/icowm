@@ -732,11 +732,14 @@ static void s_test_unhide_plain_client_clears_state(void)
     s_reset();
     client = s_make_client(40u);
     client_hide(client);
+    client_mark_withdrawn(client);
 
     ccmd_client_unhide(client);
 
     TAP_OK(!client_is_hidden(client),
             "the client is no longer marked hidden");
+    TAP_OK(!client_is_withdrawn(client),
+            "and no longer marked as having withdrawn itself either");
     TAP_EQ_INT((int) s_wm_state_last, 1 /* CCMD_WM_STATE_NORMAL */,
             "the ICCCM normal state is written");
     TAP_EQ_INT(s_make_active_calls, 1,
@@ -804,7 +807,7 @@ static void s_test_unhide_cascades_to_family(void)
 
 int main(void)
 {
-    TAP_PLAN(34);
+    TAP_PLAN(35);
 
     s_test_null_client_is_a_no_op();
     s_test_unmap_decorated_null_client_is_a_no_op();

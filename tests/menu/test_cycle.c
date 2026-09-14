@@ -634,7 +634,7 @@ static client_td s_clients[WM_CYCLE_MENU_MAX_ENTRIES];
 
 
 static client_td *s_make_client(int slot, xcb_window_t id,
-        const char *name, uint16_t flags, uint16_t state)
+        const char *name, uint32_t flags, uint16_t state)
 {
     client_td *c = &s_clients[slot];
 
@@ -743,9 +743,9 @@ static void s_test_init_collects_and_opens(void)
 
 
 /* A client without CLIENT_FLAG_FOCUSABLE, one marked
- * CLIENT_FLAG_SKIP_TASKBAR, and an iconified one when collecting
- * windows (not icons) are all correctly excluded from the collected
- * set */
+ * CLIENT_FLAG_SKIP_TASKBAR, one marked CLIENT_FLAG_WITHDRAWN, and an
+ * iconified one when collecting windows (not icons) are all
+ * correctly excluded from the collected set */
 static void s_test_init_excludes_unwanted_clients(void)
 {
     surface_td surface;
@@ -764,9 +764,11 @@ static void s_test_init_excludes_unwanted_clients(void)
                 CLIENT_FLAG_SKIP_TASKBAR), 0);
     s_focus_order_clients[2] = s_make_client(2, 0x22u, "Iconified",
             CLIENT_FLAG_FOCUSABLE, CLIENT_STATE_ICONIFIED);
-    s_focus_order_clients[3] =
-        s_make_client(3, 0x23u, "Wanted", CLIENT_FLAG_FOCUSABLE, 0);
-    s_focus_order_count = 4;
+    s_focus_order_clients[3] = s_make_client(3, 0x23u, "Withdrawn",
+            CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_WITHDRAWN, 0);
+    s_focus_order_clients[4] =
+        s_make_client(4, 0x24u, "Wanted", CLIENT_FLAG_FOCUSABLE, 0);
+    s_focus_order_count = 5;
 
     cycle_init(s_fake_connection, &surface, &desktop, false, 1, 0,
             &cfg);

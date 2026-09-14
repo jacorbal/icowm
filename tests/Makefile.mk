@@ -529,7 +529,8 @@ $(O_DIR)/tests/cmds/client/test_transient: \
 		$(TESTS_DIR)/cmds/client/test_transient.c \
 		$(S_DIR)/cmds/client/transient.c \
 		$(S_DIR)/adt/cdlist.c \
-		$(S_DIR)/adt/ohtbl.c
+		$(S_DIR)/adt/ohtbl.c \
+		$(S_DIR)/utils/safe/safeflg.c
 	@mkdir -p $(@D)
 	$(CC) $(TEST_CCFLAGS) $^ -o $@ $(TEST_LDFLAGS)
 
