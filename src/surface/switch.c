@@ -36,7 +36,6 @@
 #include <cmds/client/ewmh.h>
 #include <cmds/client/flags.h>
 #include <cmds/client/icon.h>
-#include <cmds/client/maximize.h>
 
 /* Project includes */
 #include <client.h>
@@ -51,6 +50,18 @@
 #include <surface/client.h>
 #include <surface/desktop.h>
 #include <surface/workarea.h>
+
+
+/**
+ * @brief How many clients one desktop can be emptied of in a single
+ *        batch
+ *
+ * A desktop holding more than this is drained one batch at a time
+ * instead of needing an array sized for the worst case up front.
+ *
+ * @see @a s_surface_desktop_evacuate's comment
+ */
+#define S_SWITCH_EVACUATE_MAX_CLIENTS (256)
 
 
 /**
@@ -218,18 +229,6 @@ static void s_surface_layout_shrink_after(surface_td *surface,
 
 
 /**
- * @brief How many clients one desktop can be emptied of in a single
- *        batch
- *
- * A desktop holding more than this is drained one batch at a time
- * instead of needing an array sized for the worst case up front.
- *
- * @see @a s_surface_desktop_evacuate's comment
- */
-#define S_SWITCH_EVACUATE_MAX_CLIENTS (256)
-
-
-/**
  * @brief What @a s_client_evacuate_visit is gathering into
  */
 struct s_evacuate_ctx_s {
@@ -338,68 +337,6 @@ static void s_surface_desktop_evacuate(desktop_td *from_desktop,
         }
     } while (made_progress &&
             evacuate_ctx.count == evacuate_ctx.capacity);
-}
-
-
-/**
- * @brief Re-apply one client's maximized geometry
- *
- * @param client Client reached by the walk
- * @param data   Unused
- *
- * @note Complexity: @e O(1)
- */
-static void s_client_refill_visit(client_td *client, void *data)
-{
-    (void) data;
-
-    if (client != NULL) {
-        ccmd_client_refill_maximized(client);
-    }
-}
-
-
-/**
- * @brief Re-fill every already-maximized client's geometry
- *        across every one of a surface's desktops
- *
- * @a ccmd_client_refill_maximized (cmds/client/geom.c) resolves and
- * applies one client's workarea fresh; run here for every client
- * on every desktop @p surface owns, right after its workarea
- * actually changed (@a surface_action_maximize_toggle_strutless), so an
- * already-maximized window visibly grows or shrinks into the panel-
- * reserved space that mode just set aside or folded back in, rather
- * than silently staying at whatever size it already was until the
- * user happens to un-maximize and re-maximize it by hand.
- *
- * @param surface Surface whose maximized clients should be
- *                re-filled
- *
- * @note No-op if @p surface or its desktop list is @c NULL
- * @note Complexity: @e O(n), where @e n is the total number of
- *       clients across every one of @p surface's desktops
- */
-static void s_surface_refill_maximized_clients(surface_td *surface)
-{
-    cdlist_item_td *dnode;
-    const cdlist_item_td *dinitial;
-
-    if (surface == NULL || surface->desktops == NULL) {
-        return;
-    }
-
-    dnode = cdlist_head(surface->desktops);
-    if (dnode == NULL) {
-        return;
-    }
-
-    dinitial = dnode;
-    do {
-        const desktop_td *const d = (desktop_td *) cdlist_data(dnode);
-
-        stacking_walk(d, s_client_refill_visit, NULL);
-        dnode = cdlist_next(dnode);
-    } while (dnode != NULL && dnode != dinitial);
 }
 
 
@@ -546,19 +483,18 @@ int surface_action_desktop_remove(surface_td *surface)
         surface_client_show_all(surface, surface->desktop_cur);
     } else if (fallback->id == surface->desktop_cur) {
         /* The removed desktop was not the one on screen, but its
-         * fallback already was, so neither branch above ever ran a
-         * 'show' cycle for it: without this, every client (and every
+         * fallback already was, so neither branch above ever ran
+         * a 'show' cycle for it: without this, every client (and every
          * iconified client's icon window) that
-         * 's_surface_desktop_evacuate' just moved onto it stays
-         * exactly as mapped or
-         * unmapped as it was on the desktop just destroyed, which for
-         * anything that was not the surface's current desktop
-         * before this whole operation started means unmapped, i.e.,
-         * invisible, with nothing else left to ever map it.  No further
-         * desktop switch is coming (fallback is already current), and
-         * with only the two desktops involved existing at all, there
-         * may be nowhere left to switch to and back from, even by
-         * hand. */
+         * 's_surface_desktop_evacuate' just moved onto it stays exactly
+         * as mapped or unmapped as it was on the desktop just
+         * destroyed, which for anything that was not the surface's
+         * current desktop before this whole operation started means
+         * unmapped, i.e., invisible, with nothing else left to ever map
+         * it.  No further desktop switch is coming (fallback is already
+         * current), and with only the two desktops involved existing at
+         * all, there may be nowhere left to switch to and back from,
+         * even by hand. */
         surface_client_show_all(surface, surface->desktop_cur);
     }
 
@@ -590,28 +526,23 @@ int surface_action_maximize_toggle_strutless(surface_td *surface)
 
     surface->strutless_maximize = !surface->strutless_maximize;
 
-    /* Recompute every desktop's work area right away.  Struts are
-     * now folded in, or set aside, differently than a moment ago (see
+    /* Recompute every desktop's work area right away.  Struts are now
+     * folded in, or set aside, differently than a moment ago (see
      * 'desktop_update_workarea''s 'ignore_struts' parameter,
      * desktop.h), and nothing else is guaranteed to trigger that
      * recomputation on its own until some unrelated event (a client
      * mapping, an RandR change, and so on) happens to call
-     * 'surface_workarea_refresh_all' next. */
+     * 'surface_workarea_refresh_all' next.  That same call already
+     * grows or shrinks every already-maximized client into whichever
+     * workarea it now resolves to, so the toggle has a visible effect
+     * immediately even on a window that was already maximized before it
+     * ran (see 'surface_workarea_refresh_all''s own comment,
+     * 'surface/workareas.c'). */
     surface_workarea_refresh_all(surface);
 
-    /* Grow or shrink every already-maximized client into whichever
-     * workarea it now resolves to, immediately.  The toggle would
-     * otherwise have no visible effect at all on a window that was
-     * already maximized before it ran, since maximize geometry is
-     * only ever computed once, at the moment a client is actually
-     * maximized, not continuously re-derived from the desktop's
-     * workarea afterward. */
-    s_surface_refill_maximized_clients(surface);
-
-    /* Every desktop needs its redraw, not just 'surface' itself:
-     * see 's_surface_desktop_mark_outdated_all''s comment above
-     * for the identical reasoning already applied to desktop add and
-     * remove. */
+    /* Every desktop needs its redraw, not just 'surface' itself: see
+     * 's_surface_desktop_mark_outdated_all''s comment above for the
+     * identical reasoning already applied to desktop add and remove. */
     s_surface_desktop_mark_outdated_all(surface);
     surface->is_outdated = true;
 

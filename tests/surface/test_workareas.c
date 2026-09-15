@@ -36,6 +36,9 @@
 /* ADT includes */
 #include <adt/cdlist.h>
 
+/* Policy includes */
+#include <policy/stacking.h>
+
 /* Project includes */
 #include <desktop.h>
 #include <harness/tap.h>
@@ -116,6 +119,37 @@ const struct strut_partial_s
 {
     (void) surface;
     return s_stub_systray_strut;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a ccmd_client_refill_maximized
+ *
+ * Reached only through 'stacking_walk' below, which this file's own
+ * desktop objects never actually hold any clients for.
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_refill_maximized(client_td *client)
+{
+    (void) client;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a stacking_walk
+ *
+ * This file's own desktop objects never hold any clients to visit, so
+ * @p visit is never actually called through it.
+ *
+ * @note Complexity: @e O(1)
+ */
+void stacking_walk(const desktop_td *desktop,
+        stacking_visitor_fn visit, void *data)
+{
+    (void) desktop;
+    (void) visit;
+    (void) data;
 }
 
 

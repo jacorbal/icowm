@@ -25,6 +25,12 @@
 /* ADT includes */
 #include <adt/cdlist.h>
 
+/* Policy includes */
+#include <policy/stacking.h>
+
+/* Command includes */
+#include <cmds/client/maximize.h>
+
 /* Project includes */
 #include <desktop.h>
 #include <systray.h>
@@ -61,6 +67,65 @@ static void s_workarea_update_visit(desktop_td *desktop, void *data)
 }
 
 
+/**
+ * @brief Re-apply one client's maximized geometry
+ *
+ * @param client Client reached by the walk
+ * @param data   Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_client_refill_visit(client_td *client, void *data)
+{
+    (void) data;
+
+    if (client != NULL) {
+        ccmd_client_refill_maximized(client);
+    }
+}
+
+
+/**
+ * @brief Re-fill every already-maximized client's geometry across
+ *        every one of a surface's desktops
+ *
+ * @a ccmd_client_refill_maximized (cmds/client/geom.c) resolves and
+ * applies one client's workarea fresh; run here for every client on
+ * every desktop @p surface owns, so an already-maximized window visibly
+ * grows or shrinks to match whatever its workarea just became, rather
+ * than silently staying at whatever size it already was until the user
+ * happens to un-maximize and re-maximize it by hand.
+ *
+ * @param surface Surface whose maximized clients should be re-filled
+ *
+ * @note No-op if @p surface or its desktop list is @c NULL
+ * @note Complexity: @e O(n), where @e n is the total number of clients
+ *       across every one of @p surface's desktops
+ */
+static void s_surface_refill_maximized_clients(surface_td *surface)
+{
+    cdlist_item_td *dnode;
+    const cdlist_item_td *dinitial;
+
+    if (surface == NULL || surface->desktops == NULL) {
+        return;
+    }
+
+    dnode = cdlist_head(surface->desktops);
+    if (dnode == NULL) {
+        return;
+    }
+
+    dinitial = dnode;
+    do {
+        const desktop_td *const d = (desktop_td *) cdlist_data(dnode);
+
+        stacking_walk(d, s_client_refill_visit, NULL);
+        dnode = cdlist_next(dnode);
+    } while (dnode != NULL && dnode != dinitial);
+}
+
+
 /* Recompute the work area for every desktop on a surface */
 void surface_workarea_refresh_all(surface_td *surface)
 {
@@ -73,10 +138,17 @@ void surface_workarea_refresh_all(surface_td *surface)
 
     /* Every path that recomputes a surface's work areas (an XRandR
      * resolution change, a dock or panel appearing or disappearing, and
-     * every other one) needs to reach this too: without it, the
-     * scratchpad stayed positioned against whatever work area was in
-     * effect when it was last placed, however that later changed, until
-     * the underlying process happened to exit
-     * on its own. */
+     * every other one) needs to reach both of these too, so neither
+     * caller has to remember to trigger them separately:
+     *
+     * - without the first, an already-maximized window kept whatever
+     *   size it had when it was maximized, however its workarea later
+     *   changed, until the user happened to un-maximize and re-maximize
+     *   it by hand;
+     * - without the second, the scratchpad stayed positioned against
+     *   whatever work area was in effect when it was last placed,
+     *   however that later changed, until the underlying process
+     *   happened to exit on its own. */
+    s_surface_refill_maximized_clients(surface);
     scratchpad_reposition(surface);
 }
