@@ -121,7 +121,7 @@ void scratchpad_position(client_td *client,
  * @brief Reposition the current scratchpad client, if its desktop
  *        belongs to the given surface
  *
- * Called from @a surface_refresh_workareas (@c surface/workareas.c)
+ * Called from @a surface_workarea_refresh_all (@c surface/workareas.c)
  * itself, right after that function recomputes every desktop's work
  * area on @p surface, so every path already reaching that function (an
  * XRandR resolution change, a dock or panel appearing or disappearing,

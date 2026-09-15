@@ -39,6 +39,7 @@
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/desktop.h>
 
 /* Local includes */
 #include <wm.h>
@@ -362,7 +363,7 @@ static void s_wm_sync_workarea(surface_td *surface)
     workarea_ctx.out = workareas;
     workarea_ctx.capacity = surface->desktop_count;
     workarea_ctx.count = 0u;
-    surface_desktops_walk(surface, s_workarea_collect_visit,
+    surface_desktop_walk_all(surface, s_workarea_collect_visit,
             &workarea_ctx);
 
     /* One geometry per desktop, as many as '_NET_NUMBER_OF_DESKTOPS'
@@ -442,7 +443,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
         return;
     }
 
-    surface_desktops_walk(surface, s_client_count_visit,
+    surface_desktop_walk_all(surface, s_client_count_visit,
             &total_clients);
 
     if (total_clients == 0u) {
@@ -464,7 +465,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
     client_ctx.out = client_list;
     client_ctx.capacity = total_clients;
     client_ctx.count = 0u;
-    surface_desktops_walk(surface, s_client_list_visit, &client_ctx);
+    surface_desktop_walk_all(surface, s_client_list_visit, &client_ctx);
     idx = client_ctx.count;
 
     xcb_ewmh_set_client_list(ewmh,
@@ -475,7 +476,7 @@ static void s_wm_sync_client_lists(surface_td *surface)
     stack_ctx.out = stacking_list;
     stack_ctx.capacity = total_clients;
     stack_ctx.count = &idx;
-    surface_desktops_walk(surface,
+    surface_desktop_walk_all(surface,
             s_stacking_collect_visit, &stack_ctx);
 
     xcb_ewmh_set_client_list_stacking(ewmh,
@@ -510,7 +511,7 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     names_len = 0u;
     measure_ctx.total = &names_len;
     measure_ctx.index = 0u;
-    surface_desktops_walk(surface, s_desktop_name_measure_visit,
+    surface_desktop_walk_all(surface, s_desktop_name_measure_visit,
             &measure_ctx);
 
     if (names_len == 0u || names_len > UINT32_MAX) {
@@ -527,7 +528,7 @@ static void s_wm_sync_desktop_names(surface_td *surface)
     write_ctx.capacity = names_len;
     write_ctx.offset = &offset;
     write_ctx.index = 0u;
-    surface_desktops_walk(surface, s_desktop_name_write_visit,
+    surface_desktop_walk_all(surface, s_desktop_name_write_visit,
             &write_ctx);
 
     if (offset > 0u) {

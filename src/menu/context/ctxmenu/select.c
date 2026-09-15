@@ -92,22 +92,8 @@ bool ctxmenu_entry_activate(ctxmenu_state_td *state, int idx,
 }
 
 
-/**
- * @brief Move a menu's selection one step in a direction, skipping
- *        separators, labels, and disabled entries
- *
- * Shared by the Up and Down arrow handling in
- * @a ctxmenu_handle_keypress, which only differ in @p step's sign and
- * where an initially-unselected state (@c selected @c < @c 0) starts
- * scanning from; everything else (wrapping around either end of the
- * entry list, skipping unselectable entries, repainting once a valid
- * one is found) is identical between the two.
- *
- * @param state Menu state whose selection to move
- * @param step  @c +1 to move down/forward, @c -1 to move up/backward
- *
- * @note Complexity: @e O(n), where @e n is @c state->entry_count
- */
+/* Move a menu's selection one step in a direction, skipping separators,
+ * labels, and disabled entries */
 void ctxmenu_selection_move(ctxmenu_state_td *state, int step)
 {
     int prev_sel = state->selected;

@@ -33,6 +33,19 @@
 /* Menu includes */
 #include <menu/context/wincmenu.h>
 
+/* Render includes */
+#include <render/outdate.h>
+
+/* Enact includes */
+#include <enact/client.h>
+
+/* Surface includes */
+#include <surface/viewport.h>
+
+/* Default initial values */
+#include <defs/client.h>
+#include <defs/input.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -40,13 +53,8 @@
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
-#include <render/outdate.h>
 #include <surface.h>
 #include <wm.h>
-
-/* Default initial values */
-#include <defs/client.h>
-#include <defs/input.h>
 
 /* Local includes */
 #include <input/mouse/drag.h>
@@ -61,8 +69,8 @@ static xcb_window_t s_last_titlebar_press_win = XCB_NONE;
 
 
 /**
- * @brief Mark a client, its desktop, and its surface as
- *        outdated together
+ * @brief Mark a client, its desktop, and its surface as outdated
+ *        together
  *
  * Shared by every titlebar-click and scroll case in
  * @c s_mouse_hit_titlebar_buttons that changes the client's state and
@@ -85,8 +93,8 @@ static void s_mark_outdated(client_td *client, desktop_td *desktop,
 
 
 /**
- * @brief Look up which titlebar button, if any, a client's button
- *        list has at a given frame-relative X position
+ * @brief Look up which titlebar button, if any, a client's button list
+ *        has at a given frame-relative X position
  */
 static bool s_titlebar_button_at(
         const struct titlebar_button_layout_s *entries, uint8_t count,
@@ -316,37 +324,6 @@ static bool s_mouse_hit_titlebar_buttons(xcb_connection_t *connection,
 
 
 /* Titlebar interaction (buttons + drag + double-click) */
-
-/**
- * @brief Handle a click on the client titlebar
- *
- * Delegates to @a s_mouse_hit_titlebar_buttons first.
- * If no button was hit:
- *
- * - Left-click starts a move drag, or toggles shade on double-click.
- * - Right-click opens the window context menu.
- *
- * A single left-click that starts a move drag hands the pointer off
- * to an active grab of its own (see @c drag_start); the caller must
- * return immediately once that happens instead of falling through to
- * its own border-resize check and @c xcb_allow_events call, the same
- * way the alt-click move binding in @c mouse_handle_press does.  Every
- * other outcome here (a button hit, the double-click shade toggle,
- * lower, the context menu, or a no-op click on a maximized/fullscreen
- * client) never grabs the pointer, so the caller's usual fallthrough
- * is exactly what those still need.
- *
- * @param connection Active XCB connection
- * @param surfaces   Full surface list (for context menu)
- * @param event      Incoming button-press event
- * @param client     Client whose titlebar was clicked
- * @param desktop    Desktop owning @p client
- * @param surface    Current surface
- * @param config     Active configuration
- *
- * @return @c true when the click just started a move drag, @c false
- *         otherwise
- */
 bool im_press_titlebar(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         client_td *client, desktop_td *desktop, surface_td *surface,

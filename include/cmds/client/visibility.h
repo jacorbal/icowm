@@ -62,13 +62,13 @@ void ccmd_client_unhide(client_td *client);
  * (iconifying, hiding for another desktop, sending it elsewhere) shares
  * this exact same two-step shape: increment @c client->ignore.unmap by
  * however many @c UnmapNotify events the unmap below is about to
- * generate, THEN issue the unmap itself, so @a handler_unmap_notify (in
- * @c handler/map.c) correctly recognizes this as
- * a window-manager-initiated unmap rather than the client withdrawing
- * itself.  Two events always arrive for @p target itself (its
- * @c StructureNotify plus its parent's @c SubstructureNotify); one
- * further event arrives for the titlebar, if present, via the frame's
- * @c SubstructureNotify.
+ * generate, THEN issue the unmap itself, so
+ * @a handler_window_unmap_notify (in @c handler/map.c) correctly
+ * recognizes this as a window-manager-initiated unmap rather than the
+ * client withdrawing itself.  Two events always arrive for @p target
+ * itself (its @c StructureNotify plus its parent's
+ * @c SubstructureNotify); one further event arrives for the titlebar,
+ * if present, via the frame's @c SubstructureNotify.
  *
  * A caller whose @p target can differ from @p client->window (the
  * frame, when decorated, rather than the bare content window) and that

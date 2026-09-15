@@ -24,10 +24,11 @@
 
 /* Local includes */
 #include <handler.h>
+#include <handler/error.h>
 
 
 /* Describe an 'xcb_connection_has_error' return value */
-const char *handler_connection_error_string(int error_code)
+const char *handler_error_connection_str(int error_code)
 {
     switch (error_code) {
         case XCB_CONN_ERROR:
@@ -58,7 +59,7 @@ const char *handler_connection_error_string(int error_code)
 
 
 /* Handle an X protocol error delivered as a response type 0 event */
-void handler_protocol_error(const xcb_generic_event_t *event)
+void handler_error_protocol(const xcb_generic_event_t *event)
 {
     static const uint8_t s_routine_target_ops[] = {
         2u,  /* X_ChangeWindowAttributes */

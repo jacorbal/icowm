@@ -44,6 +44,8 @@
 #include <harness/tap.h>
 #include <logger.h>
 #include <surface.h>
+#include <systray/handle.h>
+#include <systray/icon.h>
 #include <systray/internal.h>
 #include <wm.h>
 

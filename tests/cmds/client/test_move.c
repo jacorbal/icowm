@@ -65,6 +65,7 @@
 #include <harness/tap.h>
 #include <logger.h>
 #include <surface.h>
+#include <types/direction.h>
 #include <types/pair.h>
 
 

@@ -27,6 +27,7 @@
 
 /* Local includes */
 #include <surface.h>
+#include <surface/viewport.h>
 
 
 /* Read the configured viewport size for a surface's screen */

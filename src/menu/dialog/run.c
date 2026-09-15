@@ -37,6 +37,7 @@
 #include <i18n.h>
 #include <render/text.h>
 #include <surface.h>
+#include <surface/desktop.h>
 
 /* Menu includes */
 #include <menu/dialog/info.h>

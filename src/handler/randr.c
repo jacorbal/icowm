@@ -32,11 +32,18 @@
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/action.h>
+#include <surface/client.h>
+#include <surface/desktop.h>
+#include <surface/monitor.h>
+#include <surface/workarea.h>
 #include <systray.h>
+#include <systray/handle.h>
 #include <wm.h>
 
 /* Local includes */
 #include <handler.h>
+#include <handler/randr.h>
 
 
 /**
@@ -95,11 +102,11 @@ static void s_handler_randr_refresh_surface(surface_td *surface)
         return;
     }
 
-    surface_refresh_monitors(surface);
-    surface_refresh_workareas(surface);
-    surface_clients_reflow(surface);
+    surface_monitor_refresh_all(surface);
+    surface_workarea_refresh_all(surface);
+    surface_client_reflow_all(surface);
     wm_outdate_surface(surface);
-    surface_desktops_walk(surface, s_desktop_outdate_visit, NULL);
+    surface_desktop_walk_all(surface, s_desktop_outdate_visit, NULL);
 }
 
 
@@ -143,7 +150,7 @@ static void s_randr_notify_apply(list_td *surfaces,
         if (event->subCode == XCB_RANDR_NOTIFY_OUTPUT_CHANGE) {
             for (list_item_td *node = list_head(surfaces);
                     node != NULL; node = list_next(node)) {
-                (void) surface_action_apply_randr_profiles(
+                (void) surface_action_randr_apply_profiles(
                         (surface_td *) list_data(node), false);
             }
         }

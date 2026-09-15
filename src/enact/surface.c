@@ -21,6 +21,7 @@
 
 /* Project includes */
 #include <surface.h>
+#include <surface/action.h>
 #include <wm.h>
 
 /* JSON includes */
@@ -37,10 +38,17 @@
 
 /* Local includes */
 #include <enact.h>
+#include <enact/surface.h>
 
 
-/* 'action_surface_e' */
-
+/**
+ * @brief Broadcast that the surface's current desktop just changed
+ *
+ * @param surface Surface whose current desktop just changed;
+ *                must not be null
+ *
+ * @note Complexity: @e O(1)
+ */
 static void s_broadcast_desktop_switched(const surface_td *surface)
 {
     cJSON *const fields = cJSON_CreateObject();
@@ -60,22 +68,23 @@ static void s_broadcast_desktop_switched(const surface_td *surface)
  *        changes
  *
  * @c keyboard_load (@c input/kbd/bind.c) only grabs the desktop-cycle
- * and go-to-desktop-@e N keys when at least one managed surface
+ * and @c go-to-desktop-@e N keys when at least one managed surface
  * currently has more than one desktop, decided fresh every time it
  * runs.  Nothing else re-runs it after @a surface_action_desktop_add
  * or @a surface_action_desktop_remove change a surface's desktop
  * count, so without this, those grabs could silently drift out of
- * sync with the desktop count they were meant to reflect: stuck in
- * whichever state happened to be true the last time some unrelated
- * event (a keyboard mapping change, a RandR change, a configuration
- * reload) last triggered a refresh, e.g., correctly ungrabbed while
- * every desktop but one was removed, then never regrabbed once new
- * ones were added back, silently leaving every desktop-switch key
- * combination unresponsive until the next unrelated refresh happens
- * to fall due.
+ * sync with the desktop count they were meant to reflect.
  *
- * @note No-op if @a wm_get_keysyms (@c wm.h) has nothing to return
- *       yet, the same guard @a wm_action_config_reload (wm/actions.c)
+ * Stuck in whichever state happened to be true the last time some
+ * unrelated event (a keyboard mapping change, a RandR change,
+ * a configuration reload) last triggered a refresh, e.g., correctly
+ * ungrabbed while every desktop but one was removed, then never
+ * regrabbed once new ones were added back, silently leaving every
+ * desktop-switch key combination unresponsive until the next unrelated
+ * refresh happens to fall due.
+ *
+ * @note No-op if @a wm_get_keysyms (@c wm.h) has nothing to return yet,
+ *       the same guard @a wm_action_config_reload (in @c wm/actions.c)
  *       already applies to its @c keyboard_load call
  * @note Complexity: same as @a keyboard_load itself
  */
@@ -97,8 +106,8 @@ void enact_surface_desktop_switch(surface_td *surface,
 }
 
 
-/* Switch the surface to the desktop north of the current one, in
- * cyclic order */
+/* Switch the surface to the desktop north of the current one, in cyclic
+ * order */
 void enact_surface_desktop_switch_north(surface_td *surface)
 {
     scmd_surface_desktop_switch_north(surface);
@@ -106,8 +115,8 @@ void enact_surface_desktop_switch_north(surface_td *surface)
 }
 
 
-/* Switch the surface to the desktop south of the current one, in
- * cyclic order */
+/* Switch the surface to the desktop south of the current one, in cyclic
+ * order */
 void enact_surface_desktop_switch_south(surface_td *surface)
 {
     scmd_surface_desktop_switch_south(surface);
@@ -115,8 +124,8 @@ void enact_surface_desktop_switch_south(surface_td *surface)
 }
 
 
-/* Switch the surface to the desktop east of the current one, in
- * cyclic order */
+/* Switch the surface to the desktop east of the current one, in cyclic
+ * order */
 void enact_surface_desktop_switch_east(surface_td *surface)
 {
     scmd_surface_desktop_switch_east(surface);
@@ -124,8 +133,8 @@ void enact_surface_desktop_switch_east(surface_td *surface)
 }
 
 
-/* Switch the surface to the desktop west of the current one, in
- * cyclic order */
+/* Switch the surface to the desktop west of the current one, in cyclic
+ * order */
 void enact_surface_desktop_switch_west(surface_td *surface)
 {
     scmd_surface_desktop_switch_west(surface);
@@ -156,7 +165,7 @@ void enact_surface_desktop_remove(surface_td *surface)
 /* Toggle whether panel/tray struts are set aside on this surface */
 void enact_surface_toggle_strutless_maximize(surface_td *surface)
 {
-    if (surface_action_toggle_strutless_maximize(surface) == 0) {
+    if (surface_action_maximize_toggle_strutless(surface) == 0) {
         s_broadcast_desktop_switched(surface);
     }
 }

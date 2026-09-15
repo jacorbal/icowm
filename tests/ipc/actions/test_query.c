@@ -4,7 +4,7 @@
  * @brief Test battery for the read-only IPC query commands
  *
  * Unlike the other files in this directory, query.c's own real
- * dependencies (surface_desktops_walk, surface_desktop_get,
+ * dependencies (surface_desktop_walk_all, surface_desktop_get,
  * lookup_current_desktop) are cheap, deterministic, and X-free, so
  * this file links every one of them for real rather than stubbing
  * them: src/surface/desktops.c, src/lookup.c, and the real adt/list,
@@ -61,7 +61,7 @@ list_td *wm_surfaces(const wm_td *wm)
 /** Link-only stand-in for desktop_destroy (desktop.c): only reached
  *  from surface_desktop_rem, a function this file never calls; the
  *  linker still needs a definition for it since it is referenced
- *  from the same translation unit as surface_desktops_walk, the one
+ *  from the same translation unit as surface_desktop_walk_all, the one
  *  function here actually under test */
 void desktop_destroy(desktop_td *desktop)
 {

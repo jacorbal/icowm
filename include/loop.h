@@ -60,7 +60,7 @@
  * Installs signal handlers, allocates key symbols, grabs configured
  * bindings, scans pre-existing windows, performs an initial full
  * render, then blocks on @c poll() and drains XCB events until
- * @p wm->is_running becomes @c false.
+ * @c wm->is_running becomes @c false.
  *
  * @param wm Window manager state
  *

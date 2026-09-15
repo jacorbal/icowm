@@ -20,6 +20,7 @@
 /* Project includes */
 #include <client.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <wm.h>
 
 /* Local includes */

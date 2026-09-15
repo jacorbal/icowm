@@ -18,6 +18,15 @@
  *       verifiable first implementation (vid.
  *       @c _NET_SYSTEM_TRAY_VISUAL in the specification)
  *
+ * Holds the core lifecycle and query functions.  Event routing, an
+ * icon's own resize/map requests, and the clock widget are each split
+ * into their own sibling header instead, @c systray/handle.h,
+ * @c systray/icon.h, and @c systray/clock.h, so a file that only needs
+ * one of those does not also pull in, and rebuild against, every other
+ * one declared alongside it.
+ *
+ * @see @c systray/handle.h, @c systray/icon.h, @c systray/clock.h
+ *
  * @defgroup systray System tray
  * @ingroup surface
  */
@@ -47,23 +56,6 @@
 
 /* Default initial values */
 #include <defs/systray.h> /* WM_SYSTRAY_MAX_ICONS */
-
-
-/**
- * XEMBED opcode sent to a newly docked icon (@c XEMBED_EMBEDDED_NOTIFY)
- */
-#define SYSTRAY_XEMBED_EMBEDDED_NOTIFY (0u)
-
-/**
- * @c _NET_SYSTEM_TRAY_OPCODE opcode requesting an icon be docked
- */
-#define SYSTRAY_OPCODE_REQUEST_DOCK (0u)
-
-/**
- * @c XEMBED_MAPPED bit of the @c flags field in @c _XEMBED_INFO,
- * signaling that the icon wants to be shown
- */
-#define SYSTRAY_XEMBED_MAPPED (1u << 0)
 
 
 /**
@@ -210,121 +202,6 @@ bool systray_get_geometry(const surface_td *surface,
         struct geometry_s *restrict out_tray);
 
 /**
- * @brief Query whether @p window is a currently docked icon, and if
- *        so, force it back to the tray's configured icon size
- *
- * Meant to be called from the @c ConfigureRequest handler for any
- * window not otherwise recognized as a managed client: a docked
- * icon's resize attempt on itself reaches the window manager as a
- * @c ConfigureRequest only because the tray window now sets
- * @c XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT; without this function
- * actively overriding it back to @p theme.systray.pixmap.size, that
- * redirect alone would just let the request through unchanged, which
- * is no better than not redirecting at all.
- *
- * @param window Window to test
- *
- * @return Status of the operation
- * @retval  true if @p window was a docked icon (its size was just
- *               forced back, and the caller should treat the request as
- *               fully handled)
- * @retval false otherwise (the caller should fall through to its normal
- *               handling)
- *
- * @note Complexity: @e O(n), where @e n is the number of docked icons
- */
-bool systray_icon_size_enforce(xcb_window_t window);
-
-/**
- * @brief Query whether @p window is a currently docked icon, and if
- *        so, grant or refuse its own request to map itself
- *
- * Meant to be called from the @c MapRequest handler for any window
- * not otherwise recognized as a managed client: a docked icon calling
- * @c XMapWindow on itself, rather than waiting for the embedder as
- * @c XEMBED intends, reaches the window manager as a @c MapRequest
- * only because the tray window now sets
- * @c XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT.  Without this function,
- * that redirect would leave the request unrecognized, the icon window
- * would fall through to the normal top-level adoption path, and end
- * up managed as a brand-new decorated client instead of staying
- * a plain docked icon.  The request is honored or refused according
- * to the icon's own @c _XEMBED_INFO, the same authority
- * @a systray_handle_property_notify already defers to.
- *
- * @param window Window to test
- *
- * @return Status of the operation
- * @retval  true if @p window was a docked icon (its map request was
- *               just granted or refused, and the caller should treat
- *               the request as fully handled)
- * @retval false otherwise (the caller should fall through to its normal
- *               handling)
- *
- * @note Complexity: @e O(n), where @e n is the number of docked icons
- */
-bool systray_icon_map_request(xcb_window_t window);
-
-/**
- * @brief Handle a @c ClientMessage addressed to the tray window
- *
- * Recognizes @c _NET_SYSTEM_TRAY_OPCODE messages with the
- * @c SYSTEM_TRAY_REQUEST_DOCK opcode and docks the requested icon
- * window.  Other opcodes (balloon messages) are acknowledged as
- * ignored.
- *
- * @param wm    Window manager state
- * @param event Incoming @c ClientMessage event
- *
- * @note Events for a window other than the tray's are ignored
- * @note Complexity: @e O(1)
- */
-void systray_handle_client_message(wm_td *wm,
-        const xcb_client_message_event_t *event);
-
-/**
- * @brief Handle a docked icon window being destroyed
- *
- * Removes @p window from the tray's icon list, if present, and reflows
- * the remaining icons.  A no-op if @p window is not currently docked.
- *
- * @param wm     Window manager state
- * @param window Destroyed window
- *
- * @note Complexity: @e O(n), where @e n is the number of docked icons
- */
-void systray_handle_destroy(wm_td *wm, xcb_window_t window);
-
-/**
- * @brief Handle a property change on a docked icon window
- *
- * Only @c _XEMBED_INFO is of interest: when its @c XEMBED_MAPPED flag
- * bit changes after the icon was already docked, the icon is shown or
- * hidden to match.  A no-op for any other property, or for a window
- * that is not currently docked.
- *
- * @param wm    Window manager state
- * @param event Incoming @c PropertyNotify event
- *
- * @note Complexity: @e O(n), where @e n is the number of docked icons
- */
-void systray_handle_property_notify(const wm_td *wm,
-        const xcb_property_notify_event_t *event);
-
-/**
- * @brief Reposition the tray dock window for its surface's current size
- *
- * Called after a surface resize (e.g., an XRandR screen-change) so the
- * tray stays pinned to its configured corner.
- *
- * @param wm Window manager state
- *
- * @note Complexity: @e O(1)
- */
-void systray_handle_surface_resize(wm_td *wm);
-
-
-/**
  * @brief React to a configuration reload
  *
  * Reconciles the live tray with the just-reloaded
@@ -395,44 +272,6 @@ void systray_restack(void);
  * @note Complexity: @e O(n), where @e n is the number of docked icons
  */
 void systray_layout_reflow(void);
-
-/**
- * @brief How many milliseconds until the systray clock needs its next
- *        redraw
- *
- * Meant for the main event loop's @p poll timeout.  Call this once per
- * iteration and use the result to shorten the timeout when it is
- * smaller, the same way the info popup and desktop-switch notification
- * already do, so the clock's displayed text advances promptly at each
- * wall-clock second instead of only when some unrelated X event happens
- * to wake the loop up.
- *
- * @return Milliseconds until next redraw
- * @retval  0 when a redraw is due right now
- * @retval -1 when the clock is disabled or the tray does not currently
- *            own the systray selection (nothing to redraw)
- * @retval  n with @c (n > 0), a small positive number of milliseconds
- *            until next redraw
- *
- * @note Complexity: @e O(1)
- */
-int systray_clock_ms_remaining(void);
-
-/**
- * @brief Redraw the systray clock if the wall-clock second has changed
- *        since it was last drawn
- *
- * Call this once per main-loop iteration, after @p poll returns,
- * regardless of whether it returned due to an X event or a timeout.
- *
- * @note A no-op when the clock is disabled, the tray does not own the
- *       systray selection, or less than a second has passed since the
- *       last redraw
- * @note Complexity: @e O(1) plus whatever the tray's reflow costs
- *       when a redraw actually happens (seek its complexity note,
- *       if thou wouldst know)
- */
-void systray_clock_tick(void);
 
 
 #endif  /* ! SYSTRAY_H */

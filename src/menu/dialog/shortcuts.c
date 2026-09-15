@@ -29,6 +29,7 @@
 #include <config.h>
 #include <i18n.h>
 #include <surface.h>
+#include <surface/viewport.h>
 
 /* Local includes */
 #include <menu/dialog/shortcuts.h>

@@ -31,6 +31,12 @@
 #include <cmds/client/maximize.h>
 #include <cmds/client/state.h>
 
+/* Render includes */
+#include <render/outdate.h>
+
+/* Enact includes */
+#include <enact/surface.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -38,7 +44,6 @@
 #include <enact.h>
 #include <logger.h>
 #include <lookup.h>
-#include <render/outdate.h>
 #include <surface.h>
 #include <wm.h>
 
@@ -58,8 +63,8 @@
  * exactly as focused, either side of the change.
  *
  * @param client  Client whose titlebar the scroll landed on
- * @param desktop Desktop owning @p client, or @c NULL
- * @param surface Surface owning @p desktop, or @c NULL
+ * @param desktop Desktop owning @p client; may be null
+ * @param surface Surface owning @p desktop; may be null
  *
  * @note Complexity: @e O(1)
  */
@@ -89,8 +94,8 @@ static void s_scroll_titlebar_maximize(client_td *client,
  * not either.
  *
  * @param client  Client whose titlebar the scroll landed on
- * @param desktop Desktop owning @p client, or @c NULL
- * @param surface Surface owning @p desktop, or @c NULL
+ * @param desktop Desktop owning @p client; may be null
+ * @param surface Surface owning @p desktop; may be null
  *
  * @note Complexity: @e O(1)
  */
@@ -111,8 +116,8 @@ static void s_scroll_titlebar_restore(client_td *client,
 
 
 /**
- * @brief Scroll west on a client's titlebar (the exact same
- *        gesture @c DESKTOP_PREV always was).  Shade it
+ * @brief Scroll west on a client's titlebar (the exact same gesture
+ *        @c DESKTOP_PREV always was); shade it
  *
  * Sends the client to the end of both orders the desktop keeps, the
  * stacking one and the focus one, and lets losing focus follow from
@@ -120,8 +125,8 @@ static void s_scroll_titlebar_restore(client_td *client,
  * not the one holding focus keeps whatever had it.
  *
  * @param client  Client whose titlebar the scroll landed on
- * @param desktop Desktop owning @p client, or @c NULL
- * @param surface Surface owning @p desktop, or @c NULL
+ * @param desktop Desktop owning @p client; may be null
+ * @param surface Surface owning @p desktop; may be null
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       @p desktop
@@ -176,16 +181,16 @@ static void s_scroll_titlebar_shade(client_td *client,
 
 
 /**
- * @brief Scroll east on a client's titlebar (the exact same
- *        gesture @c DESKTOP_NEXT always was).  Unshade it
+ * @brief Scroll east on a client's titlebar (the exact same gesture
+ *        @c DESKTOP_NEXT always was); unshade it
  *
  * Regains focus only when @p client was the one actually holding it
  * before being shaded; unshading an already-inactive client leaves
  * whichever other client currently has real focus untouched.
  *
  * @param client   Client whose titlebar the scroll landed on
- * @param desktop  Desktop owning @p client, or @c NULL
- * @param surface  Surface owning @p desktop, or @c NULL
+ * @param desktop  Desktop owning @p client; may be null
+ * @param surface  Surface owning @p desktop; may be null
  * @param surfaces Full surface list, passed through to @c focus_apply
  * @param config   Active configuration, passed through to
  *                 @c focus_apply
@@ -260,31 +265,8 @@ static bool s_scroll_on_titlebar(const client_td *client,
 }
 
 
-/**
- * @brief Handle a scroll-wheel event matched to a @c DESKTOP_NORTH /
- *        @c _SOUTH / @c _EAST / @c _WEST binding
- *
- * When the scroll is over a client's titlebar: @c DESKTOP_WEST (the
- * exact same gesture @c DESKTOP_PREV always was) shades the window,
- * transferring focus away from it; @c DESKTOP_EAST (the exact same
- * gesture @c DESKTOP_NEXT always was) unshades it, regaining focus;
- * @c DESKTOP_NORTH maximizes it, only when not already fully
- * maximized; @c DESKTOP_SOUTH restores it from fully maximized, only
- * when it currently is.  Maximizing or restoring never moves focus
- * away the way shading does: the client stays exactly as
- * interactable, and exactly as focused, either side of that one
- * change.  When the scroll is over the root or over a client's
- * content area, the desktop switch happens right away,
- * synchronously, in whichever of the four directions was scrolled.
- *
- * @param connection Active XCB connection
- * @param surfaces   Full surface list
- * @param event      Incoming button-press event
- * @param client     Client under the pointer, or @c NULL
- * @param desktop    Desktop owning @p client, or @c NULL
- * @param type       One of the four @c MOUSEBIND_DESKTOP_* values
- * @param config     Active configuration
- */
+/* Handle a scroll-wheel event matched to a 'DESKTOP_NORTH' / '_SOUTH' /
+ * '_EAST' / '_WEST' binding */
 void im_press_scroll_binding(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         client_td *client, desktop_td *desktop,
@@ -313,11 +295,10 @@ void im_press_scroll_binding(xcb_connection_t *connection,
             case MOUSEBIND_MOVE:
             case MOUSEBIND_RESIZE:
             case MOUSEBIND_LOWER:
-                /* Never actually reached, listed here anyway so
-                 * this switch stays exhaustive under
-                 * '-Wswitch-enum'; see the equivalent list further
-                 * down in this same function for the fuller
-                 * reasoning. */
+                /* Never actually reached, listed here anyway so this
+                 * switch stays exhaustive under '-Wswitch-enum'; see
+                 * the equivalent list further down in this same
+                 * function for the fuller reasoning. */
                 break;
             }
 
@@ -352,16 +333,16 @@ void im_press_scroll_binding(xcb_connection_t *connection,
         case MOUSEBIND_MOVE:
         case MOUSEBIND_RESIZE:
         case MOUSEBIND_LOWER:
-            /* Never actually reached: this whole function is only
-             * ever called for one of the four desktop-scroll types
-             * above, gated by its caller (see 'type ==
-             * MOUSEBIND_DESKTOP_NORTH || ...' just before the call
-             * to 'im_press_scroll_binding').  Listed here
-             * anyway, one per value rather than a catch-all
-             * 'default', purely so this switch stays exhaustive
-             * under '-Wswitch-enum' the same way every other switch
-             * on a keybind/mousebind type in this project already
-             * does. */
+            /* Never actually reached: this whole function is only ever
+             * called for one of the four desktop-scroll types
+             * above, gated by its caller.
+             * See 'type == MOUSEBIND_DESKTOP_NORTH || ...' just before
+             * the call to 'im_press_scroll_binding'.
+             *
+             * Listed here anyway, one per value rather than a catch-all
+             * 'default', purely so this switch stays exhaustive under
+             * '-Wswitch-enum' the same way every other switch on
+             * a keybind/mousebind type in this project already does. */
             break;
         }
     }

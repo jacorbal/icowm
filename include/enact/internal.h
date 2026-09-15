@@ -1,7 +1,7 @@
 /**
  * @file enact/internal.h
  *
- * @brief Private declarations shared across the enact/ modules
+ * @brief Private declarations shared across the @c enact modules
  *
  * @c enact.c was split by domain into @c enact/client.c,
  * @c enact/desktop.c, and @c enact/surface.c (@c enact.c itself keeps

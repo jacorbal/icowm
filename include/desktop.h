@@ -462,7 +462,7 @@ int desktop_action_client_send_back(desktop_td *desktop,
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       desktop
  */
-int desktop_action_clients_iconify_all(desktop_td *desktop);
+int desktop_action_client_iconify_all(desktop_td *desktop);
 
 /**
  * @brief Restore every iconified client on the current desktop
@@ -480,7 +480,7 @@ int desktop_action_clients_iconify_all(desktop_td *desktop);
  * @note Complexity: @e O(n), where @e n is the number of clients on the
  *       desktop
  */
-int desktop_action_clients_deiconify_all(desktop_td *desktop);
+int desktop_action_client_deiconify_all(desktop_td *desktop);
 
 /**
  * @brief Launch a new process
@@ -588,7 +588,7 @@ int desktop_action_process_launch_with_class(desktop_td *desktop,
  *                       folded in, only @p config_desktop's
  *                       @p margins (the surface's "full surface"
  *                       distraction-free toggle; see
- *                       @a surface_action_toggle_strutless_maximize,
+ *                       @a surface_action_maximize_toggle_strutless,
  *                       surface.h): a deliberate, static reservation
  *                       stays honored even then, only the dynamic
  *                       presence of a panel or the tray is set aside

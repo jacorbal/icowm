@@ -90,10 +90,10 @@ xcb_connection_t *xcb_connection_get(void)
 }
 
 
-/** Link-only stand-in for handler_protocol_error (handler.c) */
-void handler_protocol_error(const xcb_generic_event_t *event)
+/** Link-only stand-in for handler_error_protocol (handler.c) */
+void handler_error_protocol(const xcb_generic_event_t *event)
 {
-    s_last_called = "handler_protocol_error";
+    s_last_called = "handler_error_protocol";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
 }
@@ -168,48 +168,48 @@ void handler_configure_request(xcb_connection_t *connection,
 }
 
 
-/** Link-only stand-in for handler_map_request (handler.c) */
-void handler_map_request(const wm_td *wm, xcb_map_request_event_t *event)
+/** Link-only stand-in for handler_window_map_request (handler.c) */
+void handler_window_map_request(const wm_td *wm, xcb_map_request_event_t *event)
 {
     (void) wm;
-    s_last_called = "handler_map_request";
+    s_last_called = "handler_window_map_request";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
 }
 
 
-/** Link-only stand-in for handler_map_notify (handler.c) */
-void handler_map_notify(xcb_connection_t *connection, list_td *surfaces,
+/** Link-only stand-in for handler_window_map_notify (handler.c) */
+void handler_window_map_notify(xcb_connection_t *connection, list_td *surfaces,
         xcb_map_notify_event_t *event)
 {
     (void) connection;
     (void) surfaces;
-    s_last_called = "handler_map_notify";
+    s_last_called = "handler_window_map_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
 }
 
 
-/** Link-only stand-in for handler_unmap_notify (handler.c) */
-void handler_unmap_notify(xcb_connection_t *connection, list_td *surfaces,
+/** Link-only stand-in for handler_window_unmap_notify (handler.c) */
+void handler_window_unmap_notify(xcb_connection_t *connection, list_td *surfaces,
         xcb_unmap_notify_event_t *event)
 {
     (void) connection;
     (void) surfaces;
-    s_last_called = "handler_unmap_notify";
+    s_last_called = "handler_window_unmap_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
 }
 
 
-/** Link-only stand-in for handler_destroy_notify (handler.c) */
-void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
+/** Link-only stand-in for handler_window_destroy_notify (handler.c) */
+void handler_window_destroy_notify(wm_td *wm, xcb_connection_t *connection,
         list_td *surfaces, xcb_destroy_notify_event_t *event)
 {
     (void) wm;
     (void) connection;
     (void) surfaces;
-    s_last_called = "handler_destroy_notify";
+    s_last_called = "handler_window_destroy_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
 }
@@ -253,11 +253,11 @@ void handler_expose(xcb_connection_t *connection, list_td *surfaces,
 }
 
 
-/** Link-only stand-in for handler_client_message (handler.c) */
-void handler_client_message(wm_td *wm, xcb_client_message_event_t *event)
+/** Link-only stand-in for handler_message_client (handler.c) */
+void handler_message_client(wm_td *wm, xcb_client_message_event_t *event)
 {
     (void) wm;
-    s_last_called = "handler_client_message";
+    s_last_called = "handler_message_client";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
 }
@@ -287,37 +287,37 @@ void handler_mapping_notify(xcb_key_symbols_t *keysyms, list_td *surfaces,
 }
 
 
-/** Link-only stand-in for handler_gravity_notify (handler.c) */
-void handler_gravity_notify(xcb_connection_t *connection, list_td *surfaces,
+/** Link-only stand-in for handler_window_gravity_notify (handler.c) */
+void handler_window_gravity_notify(xcb_connection_t *connection, list_td *surfaces,
         xcb_gravity_notify_event_t *event)
 {
     (void) connection;
     (void) surfaces;
-    s_last_called = "handler_gravity_notify";
+    s_last_called = "handler_window_gravity_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
 }
 
 
-/** Link-only stand-in for handler_circulate_notify (handler.c) */
-void handler_circulate_notify(xcb_connection_t *connection,
+/** Link-only stand-in for handler_window_circulate_notify (handler.c) */
+void handler_window_circulate_notify(xcb_connection_t *connection,
         list_td *surfaces, xcb_circulate_notify_event_t *event)
 {
     (void) connection;
     (void) surfaces;
-    s_last_called = "handler_circulate_notify";
+    s_last_called = "handler_window_circulate_notify";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
 }
 
 
-/** Link-only stand-in for handler_circulate_request (handler.c) */
-void handler_circulate_request(xcb_connection_t *connection,
+/** Link-only stand-in for handler_window_circulate_request (handler.c) */
+void handler_window_circulate_request(xcb_connection_t *connection,
         list_td *surfaces, xcb_circulate_request_event_t *event)
 {
     (void) connection;
     (void) surfaces;
-    s_last_called = "handler_circulate_request";
+    s_last_called = "handler_window_circulate_request";
     s_last_event = (xcb_generic_event_t *) event;
     s_call_count++;
 }
@@ -439,7 +439,7 @@ static void s_test_null_guards(void)
 
 
 /* Response type 0 (a protocol error, not a real event type) is routed
- * to handler_protocol_error, the table's own explicit [0] entry */
+ * to handler_error_protocol, the table's own explicit [0] entry */
 static void s_test_protocol_error(void)
 {
     loop_ctx_td ctx = s_make_ctx();
@@ -452,8 +452,8 @@ static void s_test_protocol_error(void)
     s_reset();
     loop_dispatch_event(&ctx, &event_ptr);
 
-    TAP_EQ_STR(s_last_called, "handler_protocol_error",
-            "response_type 0 is routed to handler_protocol_error");
+    TAP_EQ_STR(s_last_called, "handler_error_protocol",
+            "response_type 0 is routed to handler_error_protocol");
     TAP_EQ_INT(s_call_count, 1,
             "exactly one adapter is reached per dispatched event");
 }
@@ -580,29 +580,29 @@ static void s_test_handler_forwarding_events(void)
     event_ptr = &event;
     s_reset();
     loop_dispatch_event(&ctx, &event_ptr);
-    TAP_EQ_STR(s_last_called, "handler_destroy_notify",
-            "DESTROY_NOTIFY is routed to handler_destroy_notify");
+    TAP_EQ_STR(s_last_called, "handler_window_destroy_notify",
+            "DESTROY_NOTIFY is routed to handler_window_destroy_notify");
 
     event.response_type = XCB_UNMAP_NOTIFY;
     event_ptr = &event;
     s_reset();
     loop_dispatch_event(&ctx, &event_ptr);
-    TAP_EQ_STR(s_last_called, "handler_unmap_notify",
-            "UNMAP_NOTIFY is routed to handler_unmap_notify");
+    TAP_EQ_STR(s_last_called, "handler_window_unmap_notify",
+            "UNMAP_NOTIFY is routed to handler_window_unmap_notify");
 
     event.response_type = XCB_MAP_NOTIFY;
     event_ptr = &event;
     s_reset();
     loop_dispatch_event(&ctx, &event_ptr);
-    TAP_EQ_STR(s_last_called, "handler_map_notify",
-            "MAP_NOTIFY is routed to handler_map_notify");
+    TAP_EQ_STR(s_last_called, "handler_window_map_notify",
+            "MAP_NOTIFY is routed to handler_window_map_notify");
 
     event.response_type = XCB_MAP_REQUEST;
     event_ptr = &event;
     s_reset();
     loop_dispatch_event(&ctx, &event_ptr);
-    TAP_EQ_STR(s_last_called, "handler_map_request",
-            "MAP_REQUEST is routed to handler_map_request");
+    TAP_EQ_STR(s_last_called, "handler_window_map_request",
+            "MAP_REQUEST is routed to handler_window_map_request");
 
     event.response_type = XCB_CONFIGURE_NOTIFY;
     event_ptr = &event;
@@ -623,23 +623,23 @@ static void s_test_handler_forwarding_events(void)
     event_ptr = &event;
     s_reset();
     loop_dispatch_event(&ctx, &event_ptr);
-    TAP_EQ_STR(s_last_called, "handler_gravity_notify",
-            "GRAVITY_NOTIFY is routed to handler_gravity_notify");
+    TAP_EQ_STR(s_last_called, "handler_window_gravity_notify",
+            "GRAVITY_NOTIFY is routed to handler_window_gravity_notify");
 
     event.response_type = XCB_CIRCULATE_NOTIFY;
     event_ptr = &event;
     s_reset();
     loop_dispatch_event(&ctx, &event_ptr);
-    TAP_EQ_STR(s_last_called, "handler_circulate_notify",
-            "CIRCULATE_NOTIFY is routed to handler_circulate_notify");
+    TAP_EQ_STR(s_last_called, "handler_window_circulate_notify",
+            "CIRCULATE_NOTIFY is routed to handler_window_circulate_notify");
 
     event.response_type = XCB_CIRCULATE_REQUEST;
     event_ptr = &event;
     s_reset();
     loop_dispatch_event(&ctx, &event_ptr);
-    TAP_EQ_STR(s_last_called, "handler_circulate_request",
+    TAP_EQ_STR(s_last_called, "handler_window_circulate_request",
             "CIRCULATE_REQUEST is routed to"
-            " handler_circulate_request");
+            " handler_window_circulate_request");
 
     event.response_type = XCB_PROPERTY_NOTIFY;
     event_ptr = &event;
@@ -659,8 +659,8 @@ static void s_test_handler_forwarding_events(void)
     event_ptr = &event;
     s_reset();
     loop_dispatch_event(&ctx, &event_ptr);
-    TAP_EQ_STR(s_last_called, "handler_client_message",
-            "CLIENT_MESSAGE is routed to handler_client_message");
+    TAP_EQ_STR(s_last_called, "handler_message_client",
+            "CLIENT_MESSAGE is routed to handler_message_client");
 
     event.response_type = XCB_SELECTION_CLEAR;
     event_ptr = &event;

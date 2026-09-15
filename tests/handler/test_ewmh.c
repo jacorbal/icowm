@@ -4,7 +4,7 @@
  * @brief Unit tests for @c handler/ewmh.c
  *
  * Covers all 8 public @c hi_handle_net_* sub-handlers that
- * @a handler_client_message (handler/message.c, see
+ * @a handler_message_client (handler/message.c, see
  * tests/handler/test_message.c) dispatches to for a specific EWMH
  * atom, exercised entirely through synthetic
  * @c xcb_client_message_event_t structs, hand-built @c client_td/
@@ -550,8 +550,8 @@ void stacking_walk(const desktop_td *desktop, stacking_visitor_fn visit,
 }
 
 
-/** Link-only stand-in for surface_clients_show */
-void surface_clients_show(surface_td *surface, uint32_t desktop_id)
+/** Link-only stand-in for surface_client_show_all */
+void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
     (void) desktop_id;
@@ -560,8 +560,8 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 }
 
 
-/** Link-only stand-in for surface_clients_hide */
-void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
+/** Link-only stand-in for surface_client_hide_all */
+void surface_client_hide_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
     (void) desktop_id;

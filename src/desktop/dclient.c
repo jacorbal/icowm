@@ -40,6 +40,7 @@
 /* Project includes */
 #include <client.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <logger.h>
 #include <cctl/sn.h>
 #include <wm.h>
@@ -576,7 +577,7 @@ int desktop_action_client_send_back(desktop_td *desktop,
 
 
 /* Iconify all clients on the desktop */
-int desktop_action_clients_iconify_all(desktop_td *desktop)
+int desktop_action_client_iconify_all(desktop_td *desktop)
 {
     void *elem;
 
@@ -598,7 +599,7 @@ int desktop_action_clients_iconify_all(desktop_td *desktop)
 
 
 /* Restore every iconified client on the desktop */
-int desktop_action_clients_deiconify_all(desktop_td *desktop)
+int desktop_action_client_deiconify_all(desktop_td *desktop)
 {
     void *elem;
 

@@ -39,6 +39,7 @@
 
 /* Local includes */
 #include <systray/battery.h>
+#include <systray/clock.h>
 #include <systray/internal.h>
 
 

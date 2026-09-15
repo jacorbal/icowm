@@ -31,6 +31,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
+#include <surface/viewport.h>
 #include <wm.h>
 
 /* Local includes */

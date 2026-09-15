@@ -8,12 +8,13 @@
  * hand, the same way @c test_lookup.c already does, rather than going
  * through @c surface_init/@c desktop_init (both need a live XCB
  * connection to build one at all): only the fields @c surface_desktop_
- * north/@c south/@c east/@c west and @c surface_desktop_row_col
- * themselves actually read are populated.  Every grid shape exercised
- * here (orientation, corner, and the deliberate gap cases) was first
- * hand-verified in isolation before being written as a C assertion,
- * matching how this whole feature was originally designed; see the
- * per-test comments for what each one checks and why.
+ * north/@c south/@c east/@c west and, through @c surface_desktop_label,
+ * the row/column math itself, actually read are populated.  Every grid
+ * shape exercised here (orientation, corner, and the deliberate gap
+ * cases) was first hand-verified in isolation before being written as
+ * a C assertion, matching how this whole feature was originally
+ * designed; see the per-test comments for what each one checks and
+ * why.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -34,6 +35,7 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <surface.h>
+#include <surface/desktop.h>
 
 
 static void s_destroy_desktop(void *data)
@@ -198,20 +200,18 @@ static void s_test_top_right_corner(void)
     surface_td *surface = s_make_surface(6,
             CONFIG_DESKTOP_ORIENTATION_HORIZONTAL,
             CONFIG_DESKTOP_CORNER_TOP_RIGHT, 2, 3, false);
-    uint32_t row = 999u;
-    uint32_t col = 999u;
+    char label[64];
 
     s_tap_desktop_id(surface_desktop_west(surface, 0, false), 1,
             "top-right corner: west from 0 reaches 1 (IDs advance"
             " leftward from the top-right start)");
     s_tap_desktop_id(surface_desktop_south(surface, 0, false), 3,
             "top-right corner: south from 0 reaches 3");
-    TAP_OK(surface_desktop_row_col(surface, 0, &row, &col),
-            "top-right corner: row_col succeeds for desktop 0");
-    TAP_EQ_INT((int) row, 0, "top-right corner: desktop 0 is row 0");
-    TAP_EQ_INT((int) col, 2,
-            "top-right corner: desktop 0 is column 2 (rightmost),"
-            " not column 0");
+    surface_desktop_label(surface, 0, NULL, false, false, label,
+            sizeof(label));
+    TAP_EQ_STR(label, "[0 (0, 2)]",
+            "top-right corner: desktop 0 is row 0, column 2"
+            " (rightmost), not column 0");
 
     s_destroy_surface(surface);
 }

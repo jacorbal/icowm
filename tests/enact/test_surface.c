@@ -54,6 +54,7 @@
 #include <cmds/surface.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/surface.h>
 #include <input/kbd/bind.h>
 #include <ipc.h>
 #include <surface.h>
@@ -254,10 +255,10 @@ int surface_action_desktop_remove(surface_td *surface)
 
 
 /** Test-controlled stand-in for
- *  @a surface_action_toggle_strutless_maximize (surface.c)
+ *  @a surface_action_maximize_toggle_strutless (surface.c)
  *  @note Complexity: @e O(1)
  */
-int surface_action_toggle_strutless_maximize(surface_td *surface)
+int surface_action_maximize_toggle_strutless(surface_td *surface)
 {
     (void) surface;
     s_call_action_toggle_strutless++;
@@ -631,7 +632,7 @@ static void s_test_toggle_strutless_success_broadcasts_only(void)
 
     enact_surface_toggle_strutless_maximize(surface);
     TAP_EQ_INT(s_call_action_toggle_strutless, 1,
-            "surface_action_toggle_strutless_maximize is called"
+            "surface_action_maximize_toggle_strutless is called"
             " exactly once");
     TAP_EQ_INT(s_call_broadcast, 1,
             "a successful toggle broadcasts the desktop-switched"

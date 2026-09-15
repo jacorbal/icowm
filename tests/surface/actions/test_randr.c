@@ -5,8 +5,8 @@
  *        output-profile application and reversion
  *        (surface/actions/randr.c)
  *
- * The two public entry points, 'surface_action_apply_randr_profiles'
- * and 'surface_action_revert_randr_profiles', both begin with a chain
+ * The two public entry points, 'surface_action_randr_apply_profiles'
+ * and 'surface_action_randr_revert_profiles', both begin with a chain
  * of guards ('surface' null, no live connection, no screen, no
  * config, RandR disabled, no snapshot yet to revert) that this file
  * exercises directly, entirely without a live X server: every
@@ -24,7 +24,7 @@
  * rather than testing this file's own logic.  'logger_msg' and
  * 'xcb_reply_log_error' are link-only stand-ins, reached only past
  * the guards this file deliberately never gets past.
- * 'surface_refresh_monitors' is a link-only stand-in for the same
+ * 'surface_monitor_refresh_all' is a link-only stand-in for the same
  * reason.  The real 'libxcb-randr' is linked directly rather than
  * stubbed, since none of its functions are ever actually called
  * while every guard above keeps returning early first.
@@ -52,6 +52,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
+#include <surface/action.h>
 #include <utils/xcb/reply.h>
 
 /* Local includes */
@@ -100,12 +101,12 @@ void xcb_reply_log_error(xcb_generic_error_t *error, const char *what)
 }
 
 
-/** Link-only stand-in for @a surface_refresh_monitors (surface/
+/** Link-only stand-in for @a surface_monitor_refresh_all (surface/
  *  monitors.c): reached only once at least one profile actually
  *  changed something, which never happens with no live connection
  *  @note Complexity: @e O(1)
  */
-void surface_refresh_monitors(surface_td *surface)
+void surface_monitor_refresh_all(surface_td *surface)
 {
     (void) surface;
 }
@@ -146,7 +147,7 @@ static void s_test_apply_null_surface_refused(void)
 
     s_reset();
 
-    result = surface_action_apply_randr_profiles(NULL, true);
+    result = surface_action_randr_apply_profiles(NULL, true);
     TAP_OK(!result, "a null surface is refused outright by apply");
 }
 
@@ -161,7 +162,7 @@ static void s_test_apply_no_connection_refused(void)
 
     s_reset();
 
-    result = surface_action_apply_randr_profiles(surface, true);
+    result = surface_action_randr_apply_profiles(surface, true);
     TAP_OK(!result,
             "no live X connection is refused by apply, even with"
             " a fully-formed, RandR-enabled surface");
@@ -180,7 +181,7 @@ static void s_test_apply_null_screen_refused(void)
     free(surface->screen);
     surface->screen = NULL;
 
-    result = surface_action_apply_randr_profiles(surface, true);
+    result = surface_action_randr_apply_profiles(surface, true);
     TAP_OK(!result, "a surface with no XCB screen is refused by apply");
 
     free(surface->config);
@@ -198,7 +199,7 @@ static void s_test_apply_null_config_refused(void)
     free(surface->config);
     surface->config = NULL;
 
-    result = surface_action_apply_randr_profiles(surface, true);
+    result = surface_action_randr_apply_profiles(surface, true);
     TAP_OK(!result, "a surface with no config at all is refused by"
             " apply");
 
@@ -216,7 +217,7 @@ static void s_test_apply_randr_disabled_refused(void)
 
     s_reset();
 
-    result = surface_action_apply_randr_profiles(surface, true);
+    result = surface_action_randr_apply_profiles(surface, true);
     TAP_OK(!result,
             "config.randr.is_enabled being false refuses the call"
             " outright");
@@ -240,14 +241,14 @@ static void s_test_apply_failed_call_adds_nothing_to_snapshot(void)
 
     s_reset();
 
-    result = surface_action_apply_randr_profiles(surface, true);
+    result = surface_action_randr_apply_profiles(surface, true);
     TAP_OK(!result,
             "a failed, snapshotting apply call still reports failure");
 
     /* A revert right after a failed apply must not crash, and must
      * not attempt any real XCB call either, since there is still no
      * live connection */
-    surface_action_revert_randr_profiles();
+    surface_action_randr_revert_profiles();
     TAP_OK(true,
             "reverting right after a failed snapshotting apply call"
             " does not crash");
@@ -266,7 +267,7 @@ static void s_test_snapshot_begin_then_revert_is_noop(void)
     surface_action_randr_snapshot_begin();
     TAP_OK(true, "beginning a new snapshot does not crash");
 
-    surface_action_revert_randr_profiles();
+    surface_action_randr_revert_profiles();
     TAP_OK(true,
             "reverting right after beginning a new, empty snapshot"
             " does not crash");
@@ -279,7 +280,7 @@ static void s_test_revert_nothing_snapshotted_is_noop(void)
 {
     s_reset();
 
-    surface_action_revert_randr_profiles();
+    surface_action_randr_revert_profiles();
     TAP_OK(true,
             "reverting with no snapshot at all recorded yet does not"
             " crash");
@@ -298,7 +299,7 @@ static void s_test_apply_non_snapshotting_call_also_refused(void)
 
     s_reset();
 
-    result = surface_action_apply_randr_profiles(surface, false);
+    result = surface_action_randr_apply_profiles(surface, false);
     TAP_OK(!result,
             "a non-snapshotting apply call is refused by the same"
             " connectionless guard as a snapshotting one");

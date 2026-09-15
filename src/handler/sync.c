@@ -36,6 +36,7 @@
 
 /* Local includes */
 #include <handler.h>
+#include <handler/sync.h>
 
 
 /**

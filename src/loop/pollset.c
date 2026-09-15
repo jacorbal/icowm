@@ -58,7 +58,7 @@ bool loop_pollset_wait(const loop_ctx_td *ctx, int timeout_ms)
     if (conn_error != 0) {
         LOGGER_ERROR("X connection error detected (%s);" \
                 " requesting shutdown",
-                handler_connection_error_string(conn_error));
+                handler_error_connection_str(conn_error));
         wm_request_stop();
         return false;
     }

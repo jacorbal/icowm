@@ -20,6 +20,7 @@
 
 /* Local includes */
 #include <handler.h>
+#include <handler/selection.h>
 #include <wm/shutdown.h>
 
 

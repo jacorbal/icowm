@@ -13,8 +13,8 @@
  * exercised for real too, needing no stand-in of their own.
  *
  * Every other collaborator (lookup_surface_for_root, surface_resize,
- * surface_refresh_monitors/_workareas, surface_clients_reflow,
- * surface_action_apply_randr_profiles, systray_handle_surface_resize,
+ * surface_monitor_refresh_all/_workareas, surface_client_reflow_all,
+ * surface_action_randr_apply_profiles, systray_handle_surface_resize,
  * keyboard_load) is cross-module and a link-only stand-in below,
  * recording what it was called with so each branch's real effect can
  * be checked without needing any of those modules' own, much larger
@@ -48,7 +48,7 @@
 #include <wm/internal.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/randr.h>
 #include <harness/tap.h>
 
 
@@ -118,8 +118,8 @@ void surface_resize(surface_td *surface, uint32_t width, uint32_t height)
 }
 
 
-/** Link-only stand-in for surface_refresh_monitors */
-void surface_refresh_monitors(surface_td *surface)
+/** Link-only stand-in for surface_monitor_refresh_all */
+void surface_monitor_refresh_all(surface_td *surface)
 {
     (void) surface;
 
@@ -127,8 +127,8 @@ void surface_refresh_monitors(surface_td *surface)
 }
 
 
-/** Link-only stand-in for surface_refresh_workareas */
-void surface_refresh_workareas(surface_td *surface)
+/** Link-only stand-in for surface_workarea_refresh_all */
+void surface_workarea_refresh_all(surface_td *surface)
 {
     (void) surface;
 
@@ -136,8 +136,8 @@ void surface_refresh_workareas(surface_td *surface)
 }
 
 
-/** Link-only stand-in for surface_clients_reflow */
-void surface_clients_reflow(surface_td *surface)
+/** Link-only stand-in for surface_client_reflow_all */
+void surface_client_reflow_all(surface_td *surface)
 {
     (void) surface;
 
@@ -145,8 +145,8 @@ void surface_clients_reflow(surface_td *surface)
 }
 
 
-/** Link-only stand-in for surface_action_apply_randr_profiles */
-bool surface_action_apply_randr_profiles(surface_td *surface,
+/** Link-only stand-in for surface_action_randr_apply_profiles */
+bool surface_action_randr_apply_profiles(surface_td *surface,
         bool force)
 {
     (void) surface;
@@ -158,10 +158,10 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
 }
 
 
-/** Link-only stand-in for surface_desktops_walk: no test in this file
+/** Link-only stand-in for surface_desktop_walk_all: no test in this file
  *  gives a surface any desktops, so the walk is always a no-op; kept
  *  only so the translation unit links */
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)
 {
     (void) surface;

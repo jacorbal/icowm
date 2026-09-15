@@ -88,7 +88,7 @@
 #include <utils/xcb/pixmap.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/expose.h>
 #include <harness/tap.h>
 
 

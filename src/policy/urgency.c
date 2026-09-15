@@ -37,6 +37,7 @@
 #include <render/icon.h>
 #include <render/surface.h>
 #include <surface.h>
+#include <surface/desktop.h>
 
 /* Local includes */
 #include <policy/urgency.h>
@@ -156,7 +157,7 @@ static bool s_any_client_urgent(list_td *surfaces)
             continue;
         }
 
-        surface_desktops_walk(surface, s_urgent_search_visit,
+        surface_desktop_walk_all(surface, s_urgent_search_visit,
                 &is_any_urgent);
         if (is_any_urgent) {
             return true;

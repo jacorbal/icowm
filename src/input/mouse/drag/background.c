@@ -34,9 +34,12 @@
 #include <cmds/surface.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/desktop.h>
+#include <surface/viewport.h>
 
 /* Local includes */
 #include <input/mouse/cursor.h>

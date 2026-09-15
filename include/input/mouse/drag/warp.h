@@ -91,8 +91,8 @@ int drag_warp_ms_remaining(void);
  *       @a drag_warp_edge_check's own note), if the viewport gained
  *       room to pan the held edge after the warp was armed
  * @note Complexity: @e O(n), where @e n is the number of clients on
- *       either desktop involved (from @a surface_clients_hide /
- *       @a surface_clients_show)
+ *       either desktop involved (from @a surface_client_hide_all /
+ *       @a surface_client_show_all)
  */
 void drag_warp_tick(xcb_connection_t *connection);
 

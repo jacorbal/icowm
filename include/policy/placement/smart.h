@@ -40,11 +40,42 @@
 /* Public interface */
 /**
  * @brief Find a non-overlapping smart position for a newly mapped
- *        client
+ *        client, centered inside the largest genuinely free area found
+ *        on the current desktop
  *
- * Searches the current desktop from top-left to bottom-right using
- * a fixed grid step and returns the first position whose rectangle does
- * not overlap any currently visible client.
+ * Tests a bounded set of candidate top-left corners (the workarea
+ * center, its four corners, every edge of every visible client already
+ * on the desktop, and, when @c systray.avoid-overlap applies (see
+ * below), every edge of the tray too), grows the real free rectangle
+ * anchored at each one with @a placement_free_rect_grow, and keeps the
+ * largest.  The client lands centered inside that free rectangle.  The
+ * breathing room around it comes from how much real free space exists
+ * there, not from any fixed margin.  Falls back to whichever candidate
+ * has the least overlap when the desktop is too full for any candidate
+ * to fit the client at all.
+ *
+ * The systray, not a real client, is treated as one more obstacle
+ * alongside every visible client above, and its edges are tested as
+ * candidate anchors the same way every client's edges already are, when
+ * @c systray.avoid-overlap is @c true and @c systray.reserve-space is
+ * @c false (see either one's comment in @c config.h).  Both matter
+ * equally, since testing the tray's edges as candidates without also
+ * shrinking against the tray itself would let a candidate anchored
+ * right at its corner overlap it outright, and shrinking against it
+ * without testing its edges as candidates would leave real free space
+ * sitting right next to the tray untested, unable to ever be found
+ * (this second half is the easier one to overlook.
+ *
+ * A corner that is otherwise a genuinely productive candidate, workarea
+ * (0, 0) with the tray docked there by default, collapses to zero free
+ * area once the tray shrinks against it, and nothing replaced it as
+ * a candidate anchored at the tray's edge instead, until this).
+ * Fetched fresh from @a systray_get_geometry for this one placement
+ * decision, then passed to every @a placement_free_rect_grow /
+ * @a placement_score_window_pos call the same way @p desktop's clients
+ * already are.  Affects placement scoring only, nothing about the tray
+ * becoming movable, iconifiable, or otherwise actable on the way a real
+ * window is.
  *
  * @param wm      Pointer to the window manager singleton
  * @param surface Pointer to the surface where the client will appear

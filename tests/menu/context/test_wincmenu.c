@@ -17,7 +17,7 @@
  * file-static callback closure ('s_cb_move', 's_cb_resize',
  * 's_cb_send_action', etc.) that is never invoked here, since no
  * test in this file activates a built entry, only inspects it.
- * 'surface_desktops_walk', 'surface_monitor_for_point' and
+ * 'surface_desktop_walk_all', 'surface_monitor_for_point' and
  * 'surface_viewport_has_room', by contrast, are test-controlled:
  * 'wincmenu_show' calls all three directly while deciding the "Send
  * to desktop"/"Send to monitor" submenus and the Sticky entry, so
@@ -338,14 +338,14 @@ surface_td *wm_get_surface_by_id(uint32_t surface_id)
 }
 
 
-/** Test-controlled stand-in for @a surface_desktops_walk, walking a
+/** Test-controlled stand-in for @a surface_desktop_walk_all, walking a
  *  small fixed array registered by @a s_set_desktops instead of a
  *  real 'cdlist_td' */
 #define MAX_TEST_DESKTOPS (4)
 static desktop_td *s_desktops[MAX_TEST_DESKTOPS];
 static int s_desktop_count;
 
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)
 {
     (void) surface;

@@ -176,7 +176,7 @@ static void s_ccmd_client_iconify_one(client_td *client)
         ccmd_client_ensure_icon_window(client, icon_h_out);
     }
 
-    /* Account for the 'UnmapNotify' events that 'handler_unmap_notify'
+    /* Account for the 'UnmapNotify' events that 'handler_window_unmap_notify'
      * must skip, the same reasoning as 'ccmd_client_hide''s identical
      * comment: two events arrive for the unmapped target
      * ('SubstructureNotify' on parent + 'StructureNotify' on target)
@@ -185,7 +185,7 @@ static void s_ccmd_client_iconify_one(client_td *client)
      * window is also unmapped explicitly below, producing two more
      * events for 'client->window'.  Without this, an iconified
      * decorated client's content-window 'UnmapNotify' reaches
-     * 'handler_unmap_notify' with 'ignore_unmap' still zero, which that
+     * 'handler_window_unmap_notify' with 'ignore_unmap' still zero, which that
      * handler reads as the client withdrawing itself rather than the
      * window manager iconifying it. */
     ccmd_client_unmap_decorated(client, target);
@@ -343,7 +343,7 @@ static void s_ccmd_client_hide_one(client_td *client)
 
     target = ccmd_target_win(client);
 
-    /* Account for the 'UnmapNotify' events that 'handler_unmap_notify'
+    /* Account for the 'UnmapNotify' events that 'handler_window_unmap_notify'
      * must skip.  Two events arrive for the unmapped target
      * ('SubstructureNotify' on parent + 'StructureNotify' on target)
      * and one additional event for the titlebar via the frame's

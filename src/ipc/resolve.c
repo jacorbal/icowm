@@ -28,6 +28,7 @@
 #include <desktop.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/desktop.h>
 #include <wm.h>
 
 /* Local includes */

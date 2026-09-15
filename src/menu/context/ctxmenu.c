@@ -35,6 +35,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <surface.h>
+#include <surface/desktop.h>
 
 /* Local includes */
 #include <menu/context/ctxmenu.h>

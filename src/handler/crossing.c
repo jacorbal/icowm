@@ -33,12 +33,14 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <lookup.h>
 #include <surface.h>
 #include <wm.h>
 
 /* Local includes */
 #include <handler.h>
+#include <handler/leave.h>
 
 
 /* Handle a 'LEAVE_NOTIFY' event */

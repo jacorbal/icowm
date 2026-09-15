@@ -36,6 +36,7 @@
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
+#include <surface/monitor.h>
 #include <wm.h>
 
 /* Local includes */

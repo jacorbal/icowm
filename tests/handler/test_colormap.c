@@ -11,7 +11,7 @@
  * instead exercised end to end by driving the public entry point over
  * a real list_td of surfaces, each with a real cdlist_td of desktops
  * (src/adt/list.c, src/adt/cdlist.c, src/surface/desktops.c's
- * surface_desktops_walk are all linked for real, being small,
+ * surface_desktop_walk_all are all linked for real, being small,
  * side-effect-free leaf data-structure code, the same rationale
  * already used for cdlist.c in tests/input/mouse/event/test_press.c),
  * and each desktop's clients kept in a real ohtbl_td (src/adt/ohtbl.c,
@@ -58,7 +58,7 @@
 #include <surface.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/colormap.h>
 #include <harness/tap.h>
 
 

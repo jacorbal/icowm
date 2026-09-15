@@ -102,7 +102,7 @@ void wm_shutdown_gather_client(client_td *client);
 /**
  * @brief Whether a coordinated shutdown is under way
  *
- * Read by @a handler_map_notify so that a client mapping while
+ * Read by @a handler_window_map_notify so that a client mapping while
  * everything is closing, a "save your work?" dialog above all, is
  * brought to the desktop and viewport page being looked at instead of
  * appearing wherever its parent used to be.

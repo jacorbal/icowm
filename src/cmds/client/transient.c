@@ -32,6 +32,7 @@
 #include <desktop.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -68,7 +69,7 @@ struct s_family_snapshot_ctx {
  * pointers @p client's direct children actually are.
  *
  * The @c CLIENT_FLAG_HIDDEN check specifically matters for a client in
- * the middle of closing: @a handler_unmap_notify in @c handler/map.c
+ * the middle of closing: @a handler_window_unmap_notify in @c handler/map.c
  * marks a withdrawing client hidden before it ever calls
  * @a client_focus_fallback, and a fallback landing back on this child's
  * parent must not find this same closing child here and redirect focus
@@ -448,7 +449,7 @@ void ccmd_client_bring_family(client_td *client)
      * 'top''s literal "home" desktop.  A pinned client stays registered
      * under whichever desktop it was originally created on forever (pin
      * is achieved purely by exempting it from the hide/show cycle
-     * 'surface_clients_hide'/ '_show', 'surface/actions/clients.c',
+     * 'surface_client_hide_all'/ '_show', 'surface/actions/client.c',
      * runs on every switch, never by actually moving it between
      * desktops), so using 'wm_get_client_desktop(top)' here would
      * "bring" a transient onto a desktop nobody is even looking at

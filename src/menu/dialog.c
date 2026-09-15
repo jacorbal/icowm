@@ -24,6 +24,7 @@
 
 /* Project includes */
 #include <surface.h>
+#include <surface/monitor.h>
 
 /* Local includes */
 #include <menu/dialog.h>

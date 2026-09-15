@@ -21,7 +21,7 @@
  * never reach either.
  *
  * wm_action_rearrange itself calls exactly two functions:
- * lookup_current_desktop (lookup.c) and enact_desktop_clients_rearrange
+ * lookup_current_desktop (lookup.c) and enact_desktop_client_rearrange_all
  * (enact.c); both are recording stand-ins here, letting every scenario
  * assert directly on whether, and with which desktop, the rearrange
  * actually happened, rather than reimplementing placement policy by
@@ -32,7 +32,7 @@
  * opaque handle stood in for through the wm_* accessors used in
  * tests/rules/test_apply.c: wm_action_rearrange never touches any of
  * 'wm_s''s own fields (it only ever forwards the pointer, unread, to
- * enact_desktop_clients_rearrange, itself a stand-in here), so any
+ * enact_desktop_client_rearrange_all, itself a stand-in here), so any
  * distinguishable non-null pointer would do equally well; a real
  * 'struct wm_s' is used anyway since wm/internal.h is already a
  * legitimate include for anything under tests/wm/, matching
@@ -69,7 +69,7 @@
  *  each scenario before calling wm_action_rearrange */
 static desktop_td *s_stub_current_desktop = NULL;
 
-/** Number of times enact_desktop_clients_rearrange was actually
+/** Number of times enact_desktop_client_rearrange_all was actually
  *  reached, and the arguments of its most recent call; what every
  *  scenario below asserts on */
 static int s_rearrange_call_count = 0;
@@ -103,10 +103,10 @@ desktop_td *lookup_current_desktop(surface_td *surface)
 }
 
 
-/** Link-only stand-in for enact_desktop_clients_rearrange (enact.c):
+/** Link-only stand-in for enact_desktop_client_rearrange_all (enact.c):
  *  records that it was reached, and with what, instead of actually
  *  touching any client */
-void enact_desktop_clients_rearrange(const wm_td *wm, surface_td *surface,
+void enact_desktop_client_rearrange_all(const wm_td *wm, surface_td *surface,
         const desktop_td *desktop)
 {
     ++s_rearrange_call_count;
@@ -268,9 +268,9 @@ void surface_action_randr_snapshot_begin(void)
 }
 
 
-/** Link-only stand-in for surface_action_apply_randr_profiles
+/** Link-only stand-in for surface_action_randr_apply_profiles
  *  (surface/actions/randr.c) */
-bool surface_action_apply_randr_profiles(surface_td *surface,
+bool surface_action_randr_apply_profiles(surface_td *surface,
         bool take_snapshot)
 {
     (void) surface;
@@ -285,7 +285,7 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
  * Reached only from 's_desktop_reload_visit' (wm/actions.c, static,
  * unreachable from here except through 'wm_action_config_reload'
  * itself), which no test in this file drives far enough to call it:
- * 'config_load' below always fails, and 'surface_desktops_walk' just
+ * 'config_load' below always fails, and 'surface_desktop_walk_all' just
  * below visits nothing, so nothing in the reload path past that point
  * is exercised here at all, this one line no differently than every
  * other one already in it.
@@ -298,8 +298,8 @@ void scmd_surface_viewport_reclamp(surface_td *surface,
 }
 
 
-/** Link-only stand-in for surface_desktops_walk (surface/desktops.c) */
-void surface_desktops_walk(const surface_td *surface,
+/** Link-only stand-in for surface_desktop_walk_all (surface/desktops.c) */
+void surface_desktop_walk_all(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)
 {
     (void) surface;
@@ -308,9 +308,9 @@ void surface_desktops_walk(const surface_td *surface,
 }
 
 
-/** Link-only stand-in for surface_refresh_workareas
+/** Link-only stand-in for surface_workarea_refresh_all
  *  (surface/workareas.c) */
-void surface_refresh_workareas(surface_td *surface)
+void surface_workarea_refresh_all(surface_td *surface)
 {
     (void) surface;
 }
@@ -444,7 +444,7 @@ xcb_void_cookie_t xcb_configure_window(xcb_connection_t *c,
  * @brief Build a minimal, real 'struct wm_s' on the stack
  *
  * wm_action_rearrange never reads any of its fields, only forwards the
- * pointer itself straight through to enact_desktop_clients_rearrange
+ * pointer itself straight through to enact_desktop_client_rearrange_all
  * (a stand-in here), so leaving every field zeroed is enough
  */
 static wm_td s_make_wm(void)
@@ -471,7 +471,7 @@ static surface_td s_make_surface(uint32_t id)
 
 
 /* A null surface is refused outright: neither lookup_current_desktop
- * nor enact_desktop_clients_rearrange is ever reached */
+ * nor enact_desktop_client_rearrange_all is ever reached */
 static void s_test_null_surface_is_refused(void)
 {
     wm_td wm = s_make_wm();
@@ -480,8 +480,8 @@ static void s_test_null_surface_is_refused(void)
     wm_action_rearrange(&wm, NULL);
 
     TAP_EQ_INT(s_rearrange_call_count, 0,
-            "a null surface never reaches enact_desktop_clients_"
-            "rearrange");
+            "a null surface never reaches"
+            " enact_desktop_client_rearrange_all");
 }
 
 
@@ -498,13 +498,13 @@ static void s_test_surface_with_no_current_desktop_is_a_no_op(void)
     wm_action_rearrange(&wm, &surface);
 
     TAP_EQ_INT(s_rearrange_call_count, 0,
-            "no current desktop never reaches enact_desktop_clients_"
-            "rearrange");
+            "no current desktop never reaches"
+            " enact_desktop_client_rearrange_all");
 }
 
 
 /* The ordinary case: a surface with a real current desktop reaches
- * enact_desktop_clients_rearrange exactly once, with the exact same
+ * enact_desktop_client_rearrange_all exactly once, with the exact same
  * wm, surface, and desktop pointers wm_action_rearrange itself
  * received or looked up */
 static void s_test_rearrange_dispatches_with_exact_arguments(void)
@@ -522,7 +522,7 @@ static void s_test_rearrange_dispatches_with_exact_arguments(void)
 
     TAP_EQ_INT(s_rearrange_call_count, 1,
             "a surface with a current desktop reaches"
-            " enact_desktop_clients_rearrange exactly once");
+            " enact_desktop_client_rearrange_all exactly once");
     TAP_OK(s_rearrange_last_wm == &wm,
             "the exact wm pointer wm_action_rearrange received is"
             " forwarded unchanged");
@@ -560,7 +560,7 @@ static void s_test_repeated_calls_reflect_the_latest_surface(void)
 
     TAP_EQ_INT(s_rearrange_call_count, 2,
             "two rearrange calls on two distinct surfaces both reach"
-            " enact_desktop_clients_rearrange");
+            " enact_desktop_client_rearrange_all");
     TAP_OK(s_rearrange_last_surface == &surface_b,
             "the most recent call's surface is the second surface,"
             " not the first");

@@ -38,6 +38,7 @@
 #include <lookup.h>
 #include <rules.h>
 #include <surface.h>
+#include <surface/workarea.h>
 #include <wm.h>
 
 /* Local includes */
@@ -79,7 +80,7 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
     }
 
     /* ReparentWindow on an already-mapped window generates an
-     * 'UnmapNotify'.  Absorb it so handler_unmap_notify does not
+     * 'UnmapNotify'.  Absorb it so handler_window_unmap_notify does not
      * wrongly unmap the new frame. */
     if (client->frame != 0) {
         client->ignore.unmap++;
@@ -98,7 +99,7 @@ static void s_adopt_one_window(const wm_td *wm, surface_td *surface,
     }
 
     /* Apply the same rules a client mapped after this window manager
-     * started would already get ('handler_map_notify',
+     * started would already get ('handler_window_map_notify',
      * 'handler/map.c'): without this, a rule assigning a desktop,
      * geometry, layer, or flag to some client only ever took effect for
      * one launched fresh, silently skipping any window still open from
@@ -215,7 +216,7 @@ static void s_adopt_scan_surface(const wm_td *wm, surface_td *surface)
     }
 
     free(cookies);
-    surface_refresh_workareas(surface);
+    surface_workarea_refresh_all(surface);
     free(qt_reply);
 }
 

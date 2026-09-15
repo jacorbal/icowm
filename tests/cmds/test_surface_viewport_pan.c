@@ -162,21 +162,21 @@ int surface_desktop_select_west(surface_td *surface, bool cycle)
  *  exercised here
  *  @note Complexity: @e O(1)
  */
-void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
+void surface_client_hide_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
     (void) desktop_id;
 }
 
 
-void surface_clients_show(surface_td *surface, uint32_t desktop_id)
+void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
     (void) desktop_id;
 }
 
 
-void surface_clients_pinned_transfer_all(surface_td *surface,
+void surface_client_pinned_transfer_all(surface_td *surface,
         uint32_t to_id)
 {
     (void) surface;

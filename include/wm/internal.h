@@ -148,7 +148,7 @@ uint32_t wm_for_each_client(const wm_td *wm,
  * @note Complexity: @e O(n), where @e n is the total number of
  *       clients across every desktop of every managed surface
  */
-void wm_all_clients_unmanage(const wm_td *wm);
+void wm_client_unmanage_all(const wm_td *wm);
 
 
 #endif  /* ! WM_INTERNAL_H */

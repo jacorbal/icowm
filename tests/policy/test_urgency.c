@@ -53,7 +53,7 @@
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktops_walk
+ * @brief Link-only stand-in for @a surface_desktop_walk_all
  *
  * Walks the surface's own list here rather than linking
  * @c surface/desktops.c, which would bring a desktop's whole teardown
@@ -66,7 +66,7 @@
  * @note Complexity: @e O(n), where @e n is the number of desktops on
  *       @p surface
  */
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)
 {
     cdlist_item_td *node;

@@ -27,6 +27,7 @@
 #include <config.h>
 #include <render/text.h>
 #include <surface.h>
+#include <surface/viewport.h>
 #include <wm.h>
 
 /* Utils includes */

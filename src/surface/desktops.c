@@ -51,6 +51,7 @@
 
 /* Local includes */
 #include <surface.h>
+#include <surface/desktop.h>
 
 
 /**
@@ -279,9 +280,34 @@ static desktop_td *s_surface_desktop_direction(surface_td *surface,
 }
 
 
-/* Get a desktop's row/column position in its surface's configured
- * layout */
-bool surface_desktop_row_col(const surface_td *surface,
+/**
+ * @brief Get a desktop's row/column position in its surface's
+ *        configured layout
+ *
+ * Always the same reading order the flat desktop list itself already
+ * had before layout existed at all when no @c topology.screens.desktops
+ * layout is configured (the common case, still the default): @c row
+ * @c 0, @c col @c desktop_id.  With one configured, the position
+ * @p desktop_id's @c orientation/@c corner combination actually places
+ * it at, which is not simply @c row @c 0, @c col @c desktop_id once @c
+ * corner is anything other than top-left, nor once @c orientation is
+ * vertical.
+ *
+ * @param surface    Pointer to the surface structure
+ * @param desktop_id ID of the desktop to locate
+ * @param row_out    Resulting row, updated in place only on a
+ *                   @c true return
+ * @param col_out    Resulting column, updated in place only on a
+ *                   @c true return
+ *
+ * @return @c false if @p surface, its configuration, or either
+ *         output pointer is unavailable
+ *
+ * @note Complexity: @e O(1)
+ *
+ * @see @a s_layout_row_col
+ */
+static bool surface_desktop_row_col(const surface_td *surface,
         uint32_t desktop_id, uint32_t *row_out, uint32_t *col_out)
 {
     const struct config_desktop_layout_s *layout;
@@ -601,7 +627,7 @@ int surface_desktop_select(surface_td *surface, uint32_t desktop_id)
 
 
 /* Visit every desktop a surface holds, in order */
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)
 {
     cdlist_item_td *node;

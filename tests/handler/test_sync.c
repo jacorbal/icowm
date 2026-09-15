@@ -54,7 +54,7 @@
 #include <wm/internal.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/sync.h>
 #include <harness/tap.h>
 
 

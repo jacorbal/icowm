@@ -72,19 +72,18 @@ void ccmd_clear_wm_state(client_td *client);
  *        holds, read straight off its fields, in one single XCB
  *        write
  *
- * Openbox's real answer to keeping @c _NET_WM_STATE in sync
- * (confirmed directly against its source, @c client_change_state in
- * @c client.c): rebuild the whole list from scratch every time, from
- * whichever of the client's boolean fields are true right now,
- * rather than reading the property back first to add or remove one
- * specific atom.  See the full reasoning in @c cmds/client/ewmh.c,
- * right above the implementation, for exactly how each atom maps to
- * @p client's fields.
+ * Openbox's real answer to keeping @c _NET_WM_STATE in sync (confirmed
+ * directly against its source, @c client_change_state in @c client.c):
+ * rebuild the whole list from scratch every time, from whichever of the
+ * client's boolean fields are true right now, rather than reading the
+ * property back first to add or remove one specific atom.  See the full
+ * reasoning in @c cmds/client/ewmh.c, right above the implementation,
+ * for exactly how each atom maps to @p client's fields.
  *
  * @param client Client whose current state to republish
  *
- * @note A null @p client or one with no @c ewmh connection is a
- *       silent no-op
+ * @note A null @p client or one with no @c ewmh connection is a silent
+ *       no-op
  * @note Complexity: @e O(1)
  */
 void ccmd_client_sync_states(client_td *client);
@@ -130,11 +129,11 @@ void ccmd_publish_frame_extents(client_td *client,
  * pagers and taskbars learn which desktop @p client now belongs to,
  * the single place every desktop-move path shares for it instead of
  * each writing the property by hand.  A pinned client publishes the
- * EWMH "all desktops" sentinel regardless of @p desktop_id, since
- * its registration under one particular desktop is bookkeeping this
- * window manager needs, not something an external tool watching
- * this property should ever see change.  No-op when @p client or
- * its @c ewmh connection is null.
+ * EWMH "all desktops" sentinel regardless of @p desktop_id, since its
+ * registration under one particular desktop is bookkeeping this window
+ * manager needs, not something an external tool watching this property
+ * should ever see change.  No-op when @p client or its @c ewmh
+ * connection is null.
  *
  * @param client     Pointer to the client
  * @param desktop_id Desktop @p client now belongs to
@@ -146,18 +145,18 @@ void ccmd_publish_wm_desktop(client_td *client, uint32_t desktop_id);
 /**
  * @brief Send a @c _NET_WM_PING probe to a client
  *
- * Builds and sends the @c WM_PROTOCOLS @c ClientMessage EWMH §4.6
- * (and ICCCM §4.2.8, the same envelope @c WM_DELETE_WINDOW and
+ * Builds and sends the @c WM_PROTOCOLS @c ClientMessage EWMH §4.6 (and
+ * ICCCM §4.2.8, the same envelope @c WM_DELETE_WINDOW and
  * @c WM_TAKE_FOCUS already use) describes, and marks the ping as
- * outstanding on @p client so @c policy/ping.h's periodic scan
- * knows to start counting toward @c WM_EWMH_PING_TIMEOUT_SECONDS.
- * A no-op when @p client does not advertise @c _NET_WM_PING
- * support.
+ * outstanding on @p client so @c policy/ping.h's periodic scan knows to
+ * start counting toward @c WM_EWMH_PING_TIMEOUT_SECONDS.
  *
  * @param client Client to probe
  *
- * @note A null @p client or one with no @c ewmh connection is a
- *       silent no-op
+ * @note A no-op when @p client does not advertise @c _NET_WM_PING
+ *       support
+ * @note A null @p client or one with no @c ewmh connection is also
+ *       a silent no-op
  * @note Complexity: @e O(1)
  */
 void ccmd_client_ping_send(client_td *client);

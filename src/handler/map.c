@@ -79,12 +79,16 @@
 #include <memguard.h>
 #include <scratchpad.h>
 #include <surface.h>
-#include <surface.h>
+#include <surface/desktop.h>
+#include <surface/workarea.h>
 #include <systray.h>
+#include <systray/handle.h>
+#include <systray/icon.h>
 #include <wm.h>
 
 /* Local includes */
 #include <handler.h>
+#include <handler/window.h>
 
 
 /**
@@ -381,7 +385,7 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
 /**
  * @brief Map a window without adopting it under window manager control
  *
- * Shared by every early-return path in @c handler_map_request below
+ * Shared by every early-return path in @c handler_window_map_request below
  * that declines to manage the window (an unresolvable surface or
  * current desktop, @c client_init itself failing, or the client failing
  * to be added to its desktop).  The requesting application gets its
@@ -401,7 +405,7 @@ static void s_map_unmanaged(xcb_connection_t *connection,
 
 
 /* Handle a 'MAP_REQUEST' event */
-void handler_map_request(const wm_td *wm,
+void handler_window_map_request(const wm_td *wm,
         xcb_map_request_event_t *event)
 {
     surface_td *surface;
@@ -594,7 +598,7 @@ void handler_map_request(const wm_td *wm,
     }
 
     /* Refresh work area in case the new client declares struts */
-    surface_refresh_workareas(surface);
+    surface_workarea_refresh_all(surface);
 
     /* Apply map-time rules before placement so explicit rule geometry
      * can lock the client position and exempt it from policy
@@ -643,7 +647,7 @@ void handler_map_request(const wm_td *wm,
 
 
 /* Handle an 'UNMAP_NOTIFY' event */
-void handler_unmap_notify(xcb_connection_t *connection,
+void handler_window_unmap_notify(xcb_connection_t *connection,
         list_td *surfaces, xcb_unmap_notify_event_t *event)
 {
     client_td *client;
@@ -750,7 +754,7 @@ void handler_unmap_notify(xcb_connection_t *connection,
 
 
 /* Handle a 'DESTROY_NOTIFY' event */
-void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
+void handler_window_destroy_notify(wm_td *wm, xcb_connection_t *connection,
         list_td *surfaces, xcb_destroy_notify_event_t *event)
 {
     client_td *client;
@@ -797,7 +801,7 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
     if (desktop != NULL) {
         desktop_action_client_rem(desktop, client);
         /* Refresh work area in case the removed client had struts */
-        surface_refresh_workareas(surface);
+        surface_workarea_refresh_all(surface);
     }
 
     /* Falls back AFTER 'client' is already removed from 'desktop', not
@@ -868,7 +872,7 @@ void handler_destroy_notify(wm_td *wm, xcb_connection_t *connection,
 
 
 /* Handle a 'MAP_NOTIFY' event */
-void handler_map_notify(xcb_connection_t *connection,
+void handler_window_map_notify(xcb_connection_t *connection,
         list_td *surfaces, xcb_map_notify_event_t *event)
 {
     client_td *client;
@@ -937,7 +941,7 @@ void handler_map_notify(xcb_connection_t *connection,
 
 
 /* Handle a 'GRAVITY_NOTIFY' event */
-void handler_gravity_notify(xcb_connection_t *connection,
+void handler_window_gravity_notify(xcb_connection_t *connection,
         list_td *surfaces, xcb_gravity_notify_event_t *event)
 {
     client_td *client;
@@ -973,7 +977,7 @@ void handler_gravity_notify(xcb_connection_t *connection,
 
 
 /* Handle a 'CIRCULATE_NOTIFY' event */
-void handler_circulate_notify(xcb_connection_t *connection,
+void handler_window_circulate_notify(xcb_connection_t *connection,
         list_td *surfaces, xcb_circulate_notify_event_t *event)
 {
     surface_td *surface;
@@ -997,7 +1001,7 @@ void handler_circulate_notify(xcb_connection_t *connection,
 
 
 /* Handle a 'CIRCULATE_REQUEST' event (ICCCM §4.1.7) */
-void handler_circulate_request(xcb_connection_t *connection,
+void handler_window_circulate_request(xcb_connection_t *connection,
         list_td *surfaces, xcb_circulate_request_event_t *event)
 {
     client_td *client;

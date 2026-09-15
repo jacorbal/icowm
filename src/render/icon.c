@@ -56,37 +56,7 @@
 #include <render/wmicon.h>
 
 
-/**
- * @brief Render the icon window for an iconified client
- *
- * Applies icon window attributes (background, border color and width,
- * stacking), optionally draws the client's @c _NET_WM_ICON image,
- * optionally draws a caption label, and optionally draws the
- * pinned/state-hint indicators.  Called from @p desktop_render_clients
- * for clients that are both hidden and iconified.
- *
- * The pixmap, the caption and the hint indicators are drawn into an
- * off-screen buffer first and copied onto the icon window in a single
- * request only once every one of them is already on it, rather than
- * drawn straight onto the icon window across several separate requests
- * the way this function used to: an urgent client's attention blink
- * repaints its icon on every phase change, and each of those used to
- * show the icon blank for the moment between the old clear and the last
- * of the old draw calls.
- *
- * @param client     The iconified client to render; its theme and
- *                   connection are what this draws with
- * @param is_current @c true when the client's desktop is the one
- *                   currently visible
- * @param force      Render even when nothing about the icon changed
- *                   since its last one
- *
- * @note No-op when @p client has no icon window or is not icon-mapped
- * @note Complexity: @e O(1)
- *
- * @see @a ri_icon_hints_draw and @p theme.icon.show-hints, also
- *      @p theme.icon.show-pixmaps
- */
+/* * Render the icon window for an iconified client */
 void ri_render_client_icon(client_td *client, bool is_current,
         bool force, bool restack)
 {

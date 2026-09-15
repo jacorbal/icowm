@@ -24,7 +24,9 @@
 #include <client.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/desktop.h>
 #include <surface.h>
+#include <surface/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -156,7 +158,7 @@ cJSON *ipc_action_iconify_all(const wm_td *wm, const cJSON *args)
         return error;
     }
 
-    enact_desktop_clients_iconify_all(desktop);
+    enact_desktop_client_iconify_all(desktop);
     return ipc_response_ok();
 }
 
@@ -172,7 +174,7 @@ cJSON *ipc_action_deiconify_all(const wm_td *wm, const cJSON *args)
         return error;
     }
 
-    enact_desktop_clients_deiconify_all(desktop);
+    enact_desktop_client_deiconify_all(desktop);
     return ipc_response_ok();
 }
 
@@ -188,6 +190,6 @@ cJSON *ipc_action_rearrange(const wm_td *wm, const cJSON *args)
         return error;
     }
 
-    enact_desktop_clients_rearrange(wm, surface, desktop);
+    enact_desktop_client_rearrange_all(wm, surface, desktop);
     return ipc_response_ok();
 }

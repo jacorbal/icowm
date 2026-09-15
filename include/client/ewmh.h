@@ -52,7 +52,7 @@ struct client_hints_ewmh_s {
      * states from the outset, distinct from
      * @p hints_icccm.hints.is_initial_iconic (ICCCM @c WM_HINTS,
      * not EWMH) though serving the exact same role:
-     * @a handler_map_request consults this once the newly mapped
+     * @a handler_window_map_request consults this once the newly mapped
      * client's frame/decoration already exist, the same way it
      * already consults @p hints_icccm.hints.is_initial_iconic for
      * @c IconicState.  A client requesting both maximized axes at

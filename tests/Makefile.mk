@@ -634,13 +634,13 @@ $(O_DIR)/tests/surface/test_desktop_grid: \
 # than a hand-written stand-in for its own functions: surface/
 # monitors.c as a whole (the only actual dependency of the one
 # function this file tests, surface_monitor_direction) also compiles
-# surface_refresh_monitors alongside it in the same translation unit,
+# surface_monitor_refresh_all alongside it in the same translation unit,
 # and that one genuinely calls into RandR.  Its own reply structs are
 # XCB-protocol-generated, not something safe to reconstruct a stand-in
 # for by hand the way this project's own, much simpler functions
 # (like atom_name, stood in for below) are; linking the real library
 # instead is the safer choice, even though this test itself never
-# actually calls surface_refresh_monitors, or triggers a real RandR
+# actually calls surface_monitor_refresh_all, or triggers a real RandR
 # round trip, at all.
 $(O_DIR)/tests/surface/test_monitor_direction: \
 		$(TESTS_DIR)/surface/test_monitor_direction.c \
@@ -695,9 +695,10 @@ $(O_DIR)/tests/render/viewport/test_mesh: \
 # own further dependencies regardless of which functions this test
 # actually calls; every one of those is stood in for link-only in
 # the test file itself, none genuinely reached at runtime, except
-# 'adt/cdlist.c' itself (real, exercised by 'enact_desktop_clients_
-# rearrange', a function this test never calls but whose own
-# dependencies still need resolving) and 'logger.c'/'safestr.c'
+# 'adt/cdlist.c' itself (real, exercised by
+# 'enact_desktop_client_rearrange_all', a function this test never
+# calls but whose own dependencies still need resolving) and
+# 'logger.c'/'safestr.c'
 # (real, for the same reason 'test_desktop_add_remove' above already
 # needs them).
 $(O_DIR)/tests/enact/test_send_to_desktop: \

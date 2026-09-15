@@ -27,19 +27,17 @@
 /* ADT includes */
 #include <adt/list.h>
 
-/* Project includes */
-#include <client.h>
-#include <logger.h>
-#include <policy/focus.h>
-#include <scratchpad.h>
-#include <surface.h>
-#include <wm.h>
+/* Utils includes */
+#include <utils/xcb/connection.h>
 
 /* JSON includes */
 #include <cjson/cJSON.h>
 
 /* IPC includes */
 #include <ipc.h>
+
+/* Policy includes */
+#include <policy/focus.h>
 
 /* Command includes */
 #include <cmds/client/flags.h>
@@ -50,13 +48,23 @@
 #include <cmds/client/move.h>
 #include <cmds/client/resize.h>
 #include <cmds/client/state.h>
-#include <cmds/surface.h>
 #include <cmds/client/visibility.h>
+#include <cmds/surface.h>
+
+/* Project includes */
+#include <client.h>
+#include <logger.h>
+#include <scratchpad.h>
+#include <surface.h>
+#include <surface/desktop.h>
+#include <wm.h>
 
 /* Local includes */
 #include <enact.h>
+#include <enact/client.h>
+#include <enact/desktop.h>
+#include <enact/surface.h>
 #include <enact/internal.h>
-#include <utils/xcb/connection.h>
 
 
 /**
@@ -139,7 +147,7 @@ static void s_enact_client_send_to_desktop(client_td *client,
     enact_surface_desktop_switch(surface, target_desktop->id);
 
     /* 'enact_surface_desktop_switch' just above, via its
-     * 'surface_clients_show', already restored real input focus on
+     * 'surface_client_show_all', already restored real input focus on
      * its, to whichever client this target desktop's
      * 'client_active_id' still remembered from some earlier,
      * unrelated visit, not this client, freshly arrived on it as

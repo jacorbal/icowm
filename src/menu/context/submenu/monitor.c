@@ -24,7 +24,9 @@
 #include <client.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <surface.h>
+#include <surface/monitor.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>

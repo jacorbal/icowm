@@ -48,7 +48,7 @@
 #include <wm/internal.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/leave.h>
 #include <harness/tap.h>
 
 

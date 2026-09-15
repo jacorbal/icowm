@@ -67,7 +67,7 @@ static void s_loop_dispatch_ignore(loop_ctx_td *ctx,
 
 
 /**
- * @brief Adapt @a handler_protocol_error to the table signature
+ * @brief Adapt @a handler_error_protocol to the table signature
  *
  * @param ctx   Main loop context, unused
  * @param event Event received with response type @c 0
@@ -79,7 +79,7 @@ static void s_loop_dispatch_protocol_error(loop_ctx_td *ctx,
 {
     (void) ctx;
 
-    handler_protocol_error(*event);
+    handler_error_protocol(*event);
 }
 
 
@@ -184,7 +184,7 @@ static void s_loop_dispatch_configure_request(loop_ctx_td *ctx,
 
 
 /**
- * @brief Adapt @a handler_map_request to the table signature
+ * @brief Adapt @a handler_window_map_request to the table signature
  *
  * @param ctx   Main loop context
  * @param event Map-request event
@@ -194,12 +194,12 @@ static void s_loop_dispatch_configure_request(loop_ctx_td *ctx,
 static void s_loop_dispatch_map_request(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_map_request(ctx->wm, (xcb_map_request_event_t *) *event);
+    handler_window_map_request(ctx->wm, (xcb_map_request_event_t *) *event);
 }
 
 
 /**
- * @brief Adapt @a handler_map_notify to the table signature
+ * @brief Adapt @a handler_window_map_notify to the table signature
  *
  * @param ctx   Main loop context
  * @param event Map-notify event
@@ -210,13 +210,13 @@ static void s_loop_dispatch_map_request(loop_ctx_td *ctx,
 static void s_loop_dispatch_map_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_map_notify(xcb_connection_get(), ctx->surfaces,
+    handler_window_map_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_map_notify_event_t *) *event);
 }
 
 
 /**
- * @brief Adapt @a handler_unmap_notify to the table signature
+ * @brief Adapt @a handler_window_unmap_notify to the table signature
  *
  * @param ctx   Main loop context
  * @param event Unmap-notify event
@@ -227,13 +227,13 @@ static void s_loop_dispatch_map_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_unmap_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_unmap_notify(xcb_connection_get(), ctx->surfaces,
+    handler_window_unmap_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_unmap_notify_event_t *) *event);
 }
 
 
 /**
- * @brief Adapt @a handler_destroy_notify to the table signature
+ * @brief Adapt @a handler_window_destroy_notify to the table signature
  *
  * @param ctx   Main loop context
  * @param event Destroy-notify event
@@ -244,7 +244,7 @@ static void s_loop_dispatch_unmap_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_destroy_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_destroy_notify(ctx->wm, xcb_connection_get(), ctx->surfaces,
+    handler_window_destroy_notify(ctx->wm, xcb_connection_get(), ctx->surfaces,
             (xcb_destroy_notify_event_t *) *event);
 }
 
@@ -301,7 +301,7 @@ static void s_loop_dispatch_expose(loop_ctx_td *ctx,
 
 
 /**
- * @brief Adapt @a handler_client_message to the table signature
+ * @brief Adapt @a handler_message_client to the table signature
  *
  * @param ctx   Main loop context
  * @param event Client-message event
@@ -312,7 +312,7 @@ static void s_loop_dispatch_expose(loop_ctx_td *ctx,
 static void s_loop_dispatch_client_message(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_client_message(ctx->wm,
+    handler_message_client(ctx->wm,
             (xcb_client_message_event_t *) *event);
 }
 
@@ -352,7 +352,7 @@ static void s_loop_dispatch_mapping_notify(loop_ctx_td *ctx,
 
 
 /**
- * @brief Adapt @a handler_gravity_notify to the table signature
+ * @brief Adapt @a handler_window_gravity_notify to the table signature
  *
  * @param ctx   Main loop context
  * @param event Gravity-notify event
@@ -363,13 +363,13 @@ static void s_loop_dispatch_mapping_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_gravity_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_gravity_notify(xcb_connection_get(), ctx->surfaces,
+    handler_window_gravity_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_gravity_notify_event_t *) *event);
 }
 
 
 /**
- * @brief Adapt @a handler_circulate_notify to the table signature
+ * @brief Adapt @a handler_window_circulate_notify to the table signature
  *
  * @param ctx   Main loop context
  * @param event Circulate-notify event
@@ -380,13 +380,13 @@ static void s_loop_dispatch_gravity_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_circulate_notify(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_circulate_notify(xcb_connection_get(), ctx->surfaces,
+    handler_window_circulate_notify(xcb_connection_get(), ctx->surfaces,
             (xcb_circulate_notify_event_t *) *event);
 }
 
 
 /**
- * @brief Adapt @a handler_circulate_request to the table signature
+ * @brief Adapt @a handler_window_circulate_request to the table signature
  *
  * @param ctx   Main loop context
  * @param event Circulate-request event
@@ -397,7 +397,7 @@ static void s_loop_dispatch_circulate_notify(loop_ctx_td *ctx,
 static void s_loop_dispatch_circulate_request(loop_ctx_td *ctx,
         xcb_generic_event_t **event)
 {
-    handler_circulate_request(xcb_connection_get(), ctx->surfaces,
+    handler_window_circulate_request(xcb_connection_get(), ctx->surfaces,
             (xcb_circulate_request_event_t *) *event);
 }
 

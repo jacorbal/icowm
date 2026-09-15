@@ -501,22 +501,7 @@ static bool s_glyph_shared_ready(xcb_connection_t *connection)
 }
 
 
-/**
- * @brief Decode the next UTF-8 codepoint from @p text
- *
- * Malformed sequences are treated permissively: an invalid leading byte
- * is returned as its Latin-1 codepoint rather than rejecting the whole
- * string, since this draws UI text, not untrusted input, and
- * a best-effort result reads better than nothing at all.
- *
- * @param text   Null-terminated UTF-8 string
- * @param index  Byte offset to start decoding from; advanced past the
- *               consumed bytes on return
- *
- * @return The decoded codepoint, or 0 at the end of the string
- *
- * @note Complexity: @e O(1)
- */
+/* Decode the next UTF-8 codepoint from @p text */
 uint32_t glyph_utf8_next(const char *text, size_t *index)
 {
     unsigned char b0;

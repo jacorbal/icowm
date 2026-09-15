@@ -27,7 +27,7 @@
 #include <xcb/xcb.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/selection.h>
 #include <harness/tap.h>
 #include <logger.h>
 #include <wm.h>

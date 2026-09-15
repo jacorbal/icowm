@@ -39,6 +39,7 @@
 
 /* Local includes */
 #include <surface.h>
+#include <surface/monitor.h>
 
 
 /**
@@ -50,7 +51,7 @@
  *
  * @param surface Pointer to the surface to fall back
  */
-static void s_surface_monitors_fallback(surface_td *surface)
+static void s_surface_monitor_fallback(surface_td *surface)
 {
     surface->monitors[0].x = 0;
     surface->monitors[0].y = 0;
@@ -104,7 +105,7 @@ static bool s_surface_output_is_used(const config_td *config,
 
 
 /* Refresh the surface's list of physical monitors */
-void surface_refresh_monitors(surface_td *surface)
+void surface_monitor_refresh_all(surface_td *surface)
 {
     xcb_randr_get_monitors_cookie_t cookie;
     xcb_randr_get_monitors_reply_t *reply;
@@ -124,7 +125,7 @@ void surface_refresh_monitors(surface_td *surface)
         xcb_reply_log_error(error, "the XRandR monitor list");
         LOGGER_NOTICE("Failed to query RandR monitors for surface" \
                 " %u; treating it as one monitor", surface->id);
-        s_surface_monitors_fallback(surface);
+        s_surface_monitor_fallback(surface);
         return;
     }
 
@@ -166,7 +167,7 @@ void surface_refresh_monitors(surface_td *surface)
     if (surface->monitor_count == 0u) {
         LOGGER_NOTICE("RandR reported no monitors for surface %u;" \
                 " treating it as one monitor", surface->id);
-        s_surface_monitors_fallback(surface);
+        s_surface_monitor_fallback(surface);
         return;
     }
 
@@ -219,7 +220,7 @@ monitor_td surface_monitor_for_point(const surface_td *surface,
 
 
 /* Get the surface's primary monitor, if RandR flagged one */
-monitor_td surface_primary_monitor(const surface_td *surface)
+monitor_td surface_monitor_primary(const surface_td *surface)
 {
     monitor_td fallback = {.x = 0, .y = 0, .w = 0u, .h = 0u};
 

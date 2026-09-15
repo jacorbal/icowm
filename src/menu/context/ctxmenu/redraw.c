@@ -214,24 +214,7 @@ static void s_draw_entry(const ctxmenu_state_td *state, int idx)
 }
 
 
-/**
- * @brief Repaint only the given one or two entry indices, not the whole
- *        menu
- *
- * @c s_draw_entry already paints its row's full background before its
- * label (see its body), so redrawing just the row(s) that actually
- * changed selection is self-contained.  No separate clear step is
- * needed first, and nothing else in the menu window is touched.
- * A single deselect (e.g., the pointer leaving every entry) passes
- * @c -1 for @p idx_b.
- *
- * @param state Menu state the entries belong to
- * @param idx_a First index to redraw, or @c -1 for none
- * @param idx_b Second index to redraw, or @c -1 for none; skipped if
- *              equal to @p idx_a
- *
- * @note Complexity: @e O(1)
- */
+/* Repaint only the given one or two entry indices, not the whole menu */
 void ctxmenu_redraw_entries(const ctxmenu_state_td *state,
         int idx_a, int idx_b)
 {

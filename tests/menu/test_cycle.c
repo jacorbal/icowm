@@ -743,7 +743,7 @@ static void s_test_init_collects_and_opens(void)
 
 
 /* A client without CLIENT_FLAG_FOCUSABLE, one marked
- * CLIENT_FLAG_SKIP_TASKBAR, one marked CLIENT_FLAG_WITHDRAWN, and an
+ * CLIENT_FLAG_SKIP_TASKBAR, one transient for another window, and an
  * iconified one when collecting windows (not icons) are all
  * correctly excluded from the collected set */
 static void s_test_init_excludes_unwanted_clients(void)
@@ -764,8 +764,9 @@ static void s_test_init_excludes_unwanted_clients(void)
                 CLIENT_FLAG_SKIP_TASKBAR), 0);
     s_focus_order_clients[2] = s_make_client(2, 0x22u, "Iconified",
             CLIENT_FLAG_FOCUSABLE, CLIENT_STATE_ICONIFIED);
-    s_focus_order_clients[3] = s_make_client(3, 0x23u, "Withdrawn",
-            CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_WITHDRAWN, 0);
+    s_focus_order_clients[3] = s_make_client(3, 0x23u, "Transient",
+            CLIENT_FLAG_FOCUSABLE, 0);
+    s_focus_order_clients[3]->transient_for = (xcb_window_t) 1;
     s_focus_order_clients[4] =
         s_make_client(4, 0x24u, "Wanted", CLIENT_FLAG_FOCUSABLE, 0);
     s_focus_order_count = 5;

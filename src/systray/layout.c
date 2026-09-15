@@ -43,6 +43,9 @@
 
 /* Project includes */
 #include <client.h>
+#include <surface/desktop.h>
+#include <surface/monitor.h>
+#include <surface/workarea.h>
 #include <desktop.h>
 #include <logger.h>
 #include <render/text.h>
@@ -143,7 +146,7 @@ static xcb_window_t s_systray_fullscreen_target_find(void)
  *
  * @see @a systray_below_window
  */
-static void s_systray_icons_push_below(void)
+static void s_systray_icon_push_below_all(void)
 {
     list_td *surfaces;
 
@@ -308,7 +311,7 @@ static bool s_systray_strut_update(struct geometry_s geom,
  * - Under @c CONFIG_SYSTRAY_MONITOR_SURFACE (the default), returns
  *   @p s_tray.surface's combined dimensions, exactly the previous,
  *   always-whole-surface behavior, treated as one virtual monitor
- *   spanning it (the same fallback @a s_surface_monitors_fallback uses
+ *   spanning it (the same fallback @a s_surface_monitor_fallback uses
  *   when RandR itself cannot supply a real monitor list).
  * 
  * - Under @c CONFIG_SYSTRAY_MONITOR_PRIMARY, returns whichever monitor
@@ -327,7 +330,7 @@ static monitor_td s_systray_anchor_rect(void)
         .h = s_tray.surface->properties.dim.h};
 
     if (s_tray.monitor.anchor == CONFIG_SYSTRAY_MONITOR_PRIMARY) {
-        return surface_primary_monitor(s_tray.surface);
+        return surface_monitor_primary(s_tray.surface);
     }
 
     if (s_tray.monitor.anchor == CONFIG_SYSTRAY_MONITOR_INDEX) {
@@ -368,7 +371,7 @@ void systray_layout_restack(void)
         s_tray.stacked_against = XCB_WINDOW_NONE;
         s_tray.stacked_layer = s_tray.layer;
         s_tray.is_stacking_known = true;
-        s_systray_icons_push_below();
+        s_systray_icon_push_below_all();
         return;
     }
 
@@ -635,6 +638,6 @@ void systray_layout_reflow(void)
      * reasoning 'wm_action_config_reload' already applies to a changed
      * 'desktops.margins' (see its comment in 'wm/actions.c'). */
     if (is_strut_changed) {
-        surface_refresh_workareas(s_tray.surface);
+        surface_workarea_refresh_all(s_tray.surface);
     }
 }

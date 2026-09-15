@@ -67,7 +67,7 @@ void place_window_apply(const wm_td *wm,
  * pace on from wherever this policy last placed one, whichever policy
  * is actually configured.  Meant for callers wanting a predictable,
  * non-overlapping spread across several clients in a row (see
- * @a enact_desktop_clients_rearrange), and not for placing a single
+ * @a enact_desktop_client_rearrange_all), and not for placing a single
  * newly mapped client, which @a place_window_apply is for.
  *
  * @param wm      Window manager instance

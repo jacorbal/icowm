@@ -18,6 +18,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <surface.h>
 #include <wm.h>
 

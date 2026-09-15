@@ -32,7 +32,10 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
+#include <enact/desktop.h>
 #include <surface.h>
+#include <surface/desktop.h>
 
 /* Menu includes */
 #include <menu/context/ctxmenu.h>
@@ -202,7 +205,7 @@ int ctxmenu_submenu_desktop_build(surface_td *surface,
     desk_ctx.count = 0u;
     desk_ctx.index = 0u;
     desk_ctx.is_pinned = is_pinned;
-    surface_desktops_walk(surface, s_desktop_entry_visit, &desk_ctx);
+    surface_desktop_walk_all(surface, s_desktop_entry_visit, &desk_ctx);
     n = (int) desk_ctx.count;
 
     /* Separates the numbered-desktop entries above from the pin/unpin

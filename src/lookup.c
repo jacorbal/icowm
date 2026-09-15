@@ -25,6 +25,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <surface.h>
+#include <surface/desktop.h>
 
 /* Local includes */
 #include <lookup.h>

@@ -1,8 +1,8 @@
 /**
  * @file cmds/client/flags.h
  *
- * @brief Functions on a client's pin, sticky, opacity, border,
- *        urgency, and allowed-actions flags
+ * @brief Functions on a client's pin, sticky, opacity, border, urgency,
+ *        and allowed-actions flags
  *
  * @defgroup cmds Client, desktop, and surface commands
  * @ingroup enact
@@ -63,7 +63,7 @@ void ccmd_client_toggle_pin(client_td *client);
  *
  * Not to be confused with @a ccmd_client_pin above; see
  * @c CLIENT_FLAG_STICKY's comment in @c client/state.h for the full
- * distinction between the two
+ * distinction between the two.
  *
  * @param client Window to stick
  *
@@ -88,11 +88,10 @@ void ccmd_client_unstick(client_td *client);
  * @param client Window to toggle sticky state
  *
  * @note No-op on a locked client
- * @note No-op on a surface whose configured viewport is a single
- *       screen
+ * @note No-op on a surface whose configured viewport is a single screen
  * @note Nothing to actually toggle on a viewport that can never pan:
- *       the flag holds a client still while everything else moves,
- *       and nothing moves there
+ *       the flag holds a client still while everything else moves, and
+ *       nothing moves there
  * @note Complexity: @e O(1)
  */
 void ccmd_client_toggle_stick(client_td *client);
@@ -102,9 +101,9 @@ void ccmd_client_toggle_stick(client_td *client);
  *
  * Sets @c opacity_override.is_set_active/@c .active, so this one
  * client's active-state opacity stops following the theme's
- * @p window.active.opacity until unset (there is currently no way
- * to unset it once a rule has set it; see @c rules_apply_s's
- * doc comment, rules/internal.h).
+ * @p window.active.opacity until unset (there is currently no way to
+ * unset it once a rule has set it; see @c rules_apply_s's comment,
+ * @c rules/internal.h).
  *
  * @param client  Window whose active-state opacity to override
  * @param percent New opacity, @c 0 to @c 100
@@ -132,18 +131,16 @@ void ccmd_client_set_opacity_inactive(client_td *client,
 /**
  * @brief Override the client's border color and width
  *
- * Sets @c border_override.is_set/@c .color/@c .width together, so
- * this one client's border stops following the theme's
- * @p window.active/@p .inactive.border until unset (there is
- * currently no way to unset it once set; see
- * @a scratchpad_notice_client_created in @c scratchpad.c for the
- * one existing caller).  Deliberately narrow, the same as
- * @a ccmd_client_apply_geometry: only the state itself, nothing
- * about re-applying the
- * border to the actual window right away, which stays each caller's
- * own concern (a caller wanting that immediately, rather than
- * waiting for the next natural render pass a focus
- * change already triggers, still has to make that call itself).
+ * Sets @c border_override.is_set/@c .color/@c .width together, so this
+ * one client's border stops following the theme's @p window.active /
+ * @p .inactive.border until unset (there is currently no way to unset
+ * it once set; see @a scratchpad_notice_client_created in
+ * @c scratchpad.c for the one existing caller).  Deliberately narrow,
+ * the same as @a ccmd_client_apply_geometry: only the state itself,
+ * nothing about re-applying the border to the actual window right away,
+ * which stays each caller's own concern (a caller wanting that
+ * immediately, rather than waiting for the next natural render pass
+ * a focus change already triggers, still has to make that call itself).
  *
  * @param client Window whose border to override
  * @param color  New border color, an @c 0xRRGGBB-style packed value

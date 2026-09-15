@@ -34,8 +34,11 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
+#include <enact/desktop.h>
 #include <logger.h>
 #include <surface.h>
+#include <surface/desktop.h>
 #include <wm.h>
 
 /* Utils includes */

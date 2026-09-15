@@ -3,7 +3,7 @@
  *
  * @brief Unit tests for @c handler/message.c
  *
- * Covers @a handler_client_message, exercised entirely through
+ * Covers @a handler_message_client, exercised entirely through
  * synthetic @c xcb_client_message_event_t structs built by hand, a
  * hand-built @c wm_td (via the transparent @c struct wm_s from
  * include/wm/internal.h, linking the tiny real accessor leaf file
@@ -28,7 +28,7 @@
  * @c hi_handle_net_* handler (each gets its own test file when
  * handler/ewmh.c is tested) - here only "was the right one called,
  * with the right client/surface/desktop resolved" is checked, which is
- * everything @c handler_client_message itself is responsible for.
+ * everything @c handler_message_client itself is responsible for.
  */
 /*
  * Copyright (c) 2026, J. A. Corbal.
@@ -84,7 +84,7 @@
 #include <wm/internal.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/message.h>
 #include <handler/internal.h>
 #include <harness/tap.h>
 
@@ -621,7 +621,7 @@ static void s_test_null_wm(void)
     s_test_reset_state();
     memset(&event, 0, sizeof(event));
 
-    handler_client_message(NULL, &event);
+    handler_message_client(NULL, &event);
 
     TAP_OK(s_call_cctl_sn == 0u,
             "a null wm triggers no further dispatch work at all");
@@ -642,7 +642,7 @@ static void s_test_null_event(void)
     memset(&config, 0, sizeof(config));
     s_test_build_wm(&wm, &ewmh, surfaces, &config);
 
-    handler_client_message(&wm, NULL);
+    handler_message_client(&wm, NULL);
 
     TAP_OK(s_call_cctl_sn == 0u,
             "a null event triggers no further dispatch work at all");
@@ -665,7 +665,7 @@ static void s_test_null_ewmh(void)
     s_test_build_wm(&wm, NULL, surfaces, &config);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 5000);
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_cctl_sn == 0u,
             "a null EWMH connection triggers no further dispatch" \
@@ -692,7 +692,7 @@ static void s_test_cctl_sn_always_offered_first(void)
     s_test_build_wm(&wm, &ewmh, surfaces, &config);
     s_test_build_event(&event, 0x100, (xcb_atom_t) 424242);
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_cctl_sn == 1u,
             "every client message is offered to the startup-" \
@@ -721,7 +721,7 @@ static void s_test_systray_owned_window(void)
     s_test_build_event(&event, 0x100, ewmh._NET_WM_STATE);
     s_systray_owns_window_result = true;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_systray_handle_message == 1u,
             "a systray-owned window's message is handed to the" \
@@ -753,7 +753,7 @@ static void s_test_wm_state_no_client(void)
     s_test_build_event(&event, 0x100, ewmh._NET_WM_STATE);
     s_lookup_result = NULL;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_wm_state == 0u,
             "an unmanaged window's _NET_WM_STATE message calls no" \
@@ -790,7 +790,7 @@ static void s_test_wm_state_with_client(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_wm_state == 1u,
             "a managed window's _NET_WM_STATE message calls the" \
@@ -829,7 +829,7 @@ static void s_test_restack_window_with_client(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_restack_window == 1u,
             "_NET_RESTACK_WINDOW with a matching client calls the" \
@@ -859,7 +859,7 @@ static void s_test_restack_window_no_client(void)
     s_test_build_event(&event, 0x999, (xcb_atom_t) 9001);
     s_lookup_result = NULL;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_restack_window == 0u,
             "_NET_RESTACK_WINDOW for an unmanaged window calls no" \
@@ -894,7 +894,7 @@ static void s_test_fullscreen_monitors_dispatch(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_fullscreen_monitors == 1u,
             "_NET_WM_FULLSCREEN_MONITORS dispatches to its handler" \
@@ -929,7 +929,7 @@ static void s_test_wm_moveresize_dispatch(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_moveresize == 1u,
             "_NET_WM_MOVERESIZE dispatches to its handler exactly" \
@@ -978,7 +978,7 @@ static void s_test_active_window_urged_not_activated(void)
     event.data.data32[1] = 10u; /* asked_at, matches client's own */
     event.data.data32[2] = XCB_WINDOW_NONE; /* asker has no active */
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_ccmd_urge == 1u,
             "an older, program-sourced _NET_ACTIVE_WINDOW request" \
@@ -1027,7 +1027,7 @@ static void s_test_active_window_user_source_bypasses_urge(void)
     s_test_build_event(&event, 0x500, ewmh._NET_ACTIVE_WINDOW);
     event.data.data32[0] = (uint32_t) WM_SOURCE_USER;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_ccmd_urge == 0u,
             "a WM_SOURCE_USER _NET_ACTIVE_WINDOW request is never" \
@@ -1077,7 +1077,7 @@ static void s_test_active_window_hidden_moves_desktop(void)
     s_test_build_event(&event, 0x500, ewmh._NET_ACTIVE_WINDOW);
     event.data.data32[0] = (uint32_t) WM_SOURCE_USER;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_desktop_move == 1u,
             "a hidden client requesting activation from a" \
@@ -1125,7 +1125,7 @@ static void s_test_active_window_visible_switches_desktop(void)
     s_test_build_event(&event, 0x500, ewmh._NET_ACTIVE_WINDOW);
     event.data.data32[0] = (uint32_t) WM_SOURCE_USER;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_surface_switch >= 1u,
             "a visible client requesting activation from a" \
@@ -1170,7 +1170,7 @@ static void s_test_active_window_iconified_restores(void)
     s_test_build_event(&event, 0x500, ewmh._NET_ACTIVE_WINDOW);
     event.data.data32[0] = (uint32_t) WM_SOURCE_USER;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_ccmd_restore == 1u,
             "activating an iconified client restores it exactly" \
@@ -1215,7 +1215,7 @@ static void s_test_active_window_hidden_unhides(void)
     s_test_build_event(&event, 0x500, ewmh._NET_ACTIVE_WINDOW);
     event.data.data32[0] = (uint32_t) WM_SOURCE_USER;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_ccmd_unhide == 1u,
             "activating a hidden, non-iconified client unhides it" \
@@ -1261,7 +1261,7 @@ static void s_test_active_window_shaded_unshades(void)
     s_test_build_event(&event, 0x500, ewmh._NET_ACTIVE_WINDOW);
     event.data.data32[0] = (uint32_t) WM_SOURCE_USER;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_ccmd_unshade == 1u,
             "activating a shaded client unshades it exactly once");
@@ -1298,7 +1298,7 @@ static void s_test_close_window_with_client(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_ccmd_close == 1u,
             "_NET_CLOSE_WINDOW for a managed client closes it" \
@@ -1326,7 +1326,7 @@ static void s_test_close_window_no_client(void)
     s_test_build_event(&event, 0x999, ewmh._NET_CLOSE_WINDOW);
     s_lookup_result = NULL;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_ccmd_close == 0u,
             "_NET_CLOSE_WINDOW for an unmanaged window closes" \
@@ -1362,7 +1362,7 @@ static void s_test_wm_desktop_dispatch(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_wm_desktop == 1u,
             "_NET_WM_DESKTOP dispatches to its handler exactly once");
@@ -1390,7 +1390,7 @@ static void s_test_current_desktop_dispatch(void)
     s_test_build_event(&event, 0x1, ewmh._NET_CURRENT_DESKTOP);
     s_lookup_result = NULL;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_current_desktop == 1u,
             "_NET_CURRENT_DESKTOP dispatches to its handler exactly" \
@@ -1419,7 +1419,7 @@ static void s_test_desktop_viewport_dispatch(void)
     s_test_build_event(&event, 0x1, ewmh._NET_DESKTOP_VIEWPORT);
     s_lookup_result = NULL;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_desktop_viewport == 1u,
             "_NET_DESKTOP_VIEWPORT dispatches to its handler exactly" \
@@ -1455,7 +1455,7 @@ static void s_test_moveresize_window_dispatch(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_moveresize_window == 1u,
             "_NET_MOVERESIZE_WINDOW dispatches to its handler" \
@@ -1497,7 +1497,7 @@ static void s_test_request_frame_extents_replies(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_change_property == 1u,
             "_NET_REQUEST_FRAME_EXTENTS replies with a property" \
@@ -1529,7 +1529,7 @@ static void s_test_request_frame_extents_no_client(void)
     s_test_build_event(&event, 0x999, ewmh._NET_REQUEST_FRAME_EXTENTS);
     s_lookup_result = NULL;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_change_property == 0u,
             "_NET_REQUEST_FRAME_EXTENTS for an unmanaged window" \
@@ -1570,7 +1570,7 @@ static void s_test_showing_desktop_walks_all_surfaces(void)
     s_test_build_event(&event, 0x1, ewmh._NET_SHOWING_DESKTOP);
     event.data.data32[0] = 1u;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_hi_showing_desktop == 2u,
             "_NET_SHOWING_DESKTOP applies to every surface in the" \
@@ -1617,7 +1617,7 @@ static void s_test_wm_ping_pong_updates_client(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_EQ_INT((int) client.hints_ewmh.ping.last_reply, 12345,
             "a _NET_WM_PING pong records the reply timestamp it" \
@@ -1675,7 +1675,7 @@ static void s_test_wm_ping_pong_responsive_does_not_outdate(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_EQ_INT((int) client.hints_ewmh.ping.last_reply, 54321,
             "the reply timestamp is still recorded");
@@ -1716,7 +1716,7 @@ static void s_test_wm_change_state_iconic(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_ccmd_iconify == 1u,
             "WM_CHANGE_STATE to IconicState iconifies the matching" \
@@ -1755,7 +1755,7 @@ static void s_test_wm_change_state_non_iconic_ignored(void)
     s_lookup_surface_out = &surface;
     s_lookup_desktop_out = &desktop;
 
-    handler_client_message(&wm, &event);
+    handler_message_client(&wm, &event);
 
     TAP_OK(s_call_ccmd_iconify == 0u,
             "WM_CHANGE_STATE with a non-iconic state value" \

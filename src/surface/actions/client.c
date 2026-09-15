@@ -1,5 +1,5 @@
 /**
- * @file surface/actions/clients.c
+ * @file surface/actions/client.c
  *
  * @brief Client show/hide, pinned transfer, and reflow for a surface
  *
@@ -48,6 +48,9 @@
 
 /* Surface includes */
 #include <surface.h>
+#include <surface/client.h>
+#include <surface/desktop.h>
+#include <surface/monitor.h>
 
 
 /**
@@ -109,7 +112,7 @@ static void s_client_hide_visit(client_td *client, void *data)
          * incrementing 'ignore_unmap' would leave the counter positive.
          * That residual count would then silently absorb the next
          * genuine 'UnmapNotify' (e.g., the app self-unmapping to go to
-         * the system tray), preventing 'handler_unmap_notify' from
+         * the system tray), preventing 'handler_window_unmap_notify' from
          * setting 'CLIENT_FLAG_HIDDEN' and breaking the systray restore
          * path in 'handler_message'. */
         if (!(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
@@ -237,7 +240,7 @@ static void s_client_restack_visit(client_td *client, void *data)
 /**
  * @brief Gather one client if it is pinned
  *
- * Shared by @a surface_clients_pinned_transfer_all's counting pass
+ * Shared by @a surface_client_pinned_transfer_all's counting pass
  * (@c out left @c NULL, nothing to write yet, @c count just accumulates
  * a total) and its filling pass (@c out pointing at a freshly, exactly
  * sized allocation).
@@ -373,7 +376,7 @@ static void s_client_reflow_visit(client_td *client, void *data)
 
 
 /* Unmap all non-pinned clients on the specified desktop */
-void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
+void surface_client_hide_all(surface_td *surface, uint32_t desktop_id)
 {
     const desktop_td *desktop;
 
@@ -392,7 +395,7 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 
 /* Map all visible (non-hidden, non-iconified) clients on the specified
  * desktop */
-void surface_clients_show(surface_td *surface, uint32_t desktop_id)
+void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
 {
     desktop_td *desktop;
     struct s_restack_ctx_s restack_ctx;
@@ -473,7 +476,7 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 
 /* Move all pinned clients from every other desktop to the target
  * desktop */
-void surface_clients_pinned_transfer_all(surface_td *surface,
+void surface_client_pinned_transfer_all(surface_td *surface,
         uint32_t to_id)
 {
     cdlist_item_td *dnode;
@@ -570,7 +573,7 @@ void surface_clients_pinned_transfer_all(surface_td *surface,
                     /* Preserve focus: if this pinned client was the
                      * active window on the source desktop, make it
                      * active on the destination desktop so
-                     * 'surface_clients_show' restores input focus to
+                     * 'surface_client_show_all' restores input focus to
                      * it.
                      *
                      * Nothing is done to the focus order, and nothing
@@ -595,7 +598,7 @@ void surface_clients_pinned_transfer_all(surface_td *surface,
 
 
 /* Reposition clients that no longer overlap any known monitor */
-void surface_clients_reflow(surface_td *surface)
+void surface_client_reflow_all(surface_td *surface)
 {
     struct s_reflow_ctx_s reflow_ctx;
     cdlist_item_td *dnode;

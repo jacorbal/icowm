@@ -35,6 +35,7 @@
 #include <i18n.h>
 #include <monitor.h>
 #include <surface.h>
+#include <surface/monitor.h>
 
 /* Local includes */
 #include <menu/dialog/inspect.h>

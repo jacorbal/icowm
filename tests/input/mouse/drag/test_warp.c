@@ -10,7 +10,7 @@
  * requests that move the pointer and windows
  * (@c xcb_warp_pointer, @c xcb_configure_window, @a enact_client_move),
  * and the desktop-switch chrome (@a notify_desktop_show,
- * @a surface_clients_hide, @a surface_clients_show).  None of that is
+ * @a surface_client_hide_all, @a surface_client_show_all).  None of that is
  * needed to exercise this file's real target: the edge-detection and
  * countdown bookkeeping in @a drag_warp_edge_check and
  * @a drag_warp_ms_remaining, and the early-exit guards at the top of
@@ -230,11 +230,11 @@ desktop_td *surface_desktop_west(surface_td *surface,
 
 
 /**
- * @brief Recording stand-in for @a surface_clients_hide
+ * @brief Recording stand-in for @a surface_client_hide_all
  *
  * @note Complexity: @e O(1)
  */
-void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
+void surface_client_hide_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
     (void) desktop_id;
@@ -243,11 +243,11 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 
 
 /**
- * @brief Recording stand-in for @a surface_clients_show
+ * @brief Recording stand-in for @a surface_client_show_all
  *
  * @note Complexity: @e O(1)
  */
-void surface_clients_show(surface_td *surface, uint32_t desktop_id)
+void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
     (void) desktop_id;

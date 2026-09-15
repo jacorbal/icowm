@@ -55,10 +55,13 @@
 #include <client.h>
 #include <desktop.h>
 #include <handler.h>
+#include <handler/message.h>
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/desktop.h>
 #include <systray.h>
+#include <systray/handle.h>
 #include <wm.h>
 
 /* Local includes */
@@ -70,7 +73,7 @@
  *        found, forward it to a per-message handler
  *
  * Shared by every @c _NET_* client-message case in
- * @a handler_client_message below whose handler takes the same
+ * @a handler_message_client below whose handler takes the same
  * @p (wm, event, client, surface, desktop) shape.  Only the target
  * atom and the handler function differ between them.
  *
@@ -103,7 +106,7 @@ static void s_dispatch_to_client_handler(wm_td *wm,
 
 
 /* Dispatch a 'ClientMessage' event to the appropriate handler */
-void handler_client_message(wm_td *wm, xcb_client_message_event_t *event)
+void handler_message_client(wm_td *wm, xcb_client_message_event_t *event)
 {
     client_td *client;
     surface_td *surface;

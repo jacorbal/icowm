@@ -13,8 +13,8 @@
  * registered beforehand, so every branch of the switch logic itself
  * (already switched away, selection failure, selection success) runs
  * without a real desktop list ever needing to exist.
- * 'surface_clients_hide', 'surface_clients_show', and
- * 'surface_clients_pinned_transfer_all' are call-counting stand-ins,
+ * 'surface_client_hide_all', 'surface_client_show_all', and
+ * 'surface_client_pinned_transfer_all' are call-counting stand-ins,
  * letting each scenario assert on the exact hide/show/transfer
  * sequence the function under test is documented to follow.
  * 'xcb_connection_get' is a test-controlled stand-in too, since
@@ -305,11 +305,11 @@ static uint32_t s_last_show_id;
 static int s_call_pinned_transfer;
 static uint32_t s_last_pinned_transfer_id;
 
-/** Call-counting stand-in for @a surface_clients_hide (surface/
+/** Call-counting stand-in for @a surface_client_hide_all (surface/
  *  actions/clients.c)
  *  @note Complexity: @e O(1)
  */
-void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
+void surface_client_hide_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
 
@@ -318,11 +318,11 @@ void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
 }
 
 
-/** Call-counting stand-in for @a surface_clients_show (surface/
+/** Call-counting stand-in for @a surface_client_show_all (surface/
  *  actions/clients.c)
  *  @note Complexity: @e O(1)
  */
-void surface_clients_show(surface_td *surface, uint32_t desktop_id)
+void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
 
@@ -331,11 +331,11 @@ void surface_clients_show(surface_td *surface, uint32_t desktop_id)
 }
 
 
-/** Call-counting stand-in for @a surface_clients_pinned_transfer_all
+/** Call-counting stand-in for @a surface_client_pinned_transfer_all
  *  (surface/actions/clients.c)
  *  @note Complexity: @e O(1)
  */
-void surface_clients_pinned_transfer_all(surface_td *surface,
+void surface_client_pinned_transfer_all(surface_td *surface,
         uint32_t to_id)
 {
     (void) surface;

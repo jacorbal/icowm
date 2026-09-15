@@ -162,7 +162,7 @@
     "Automatically selecting '%.255s' in %d second(s)"
 
 /* RandR output-profile confirm dialog ('src/menu/dialog/ rrsafe.c'),
- * shown after 'surface_action_apply_randr_profiles' is called from
+ * shown after 'surface_action_randr_apply_profiles' is called from
  * a configuration reload (see 'wm_action_config_reload'), never at
  * startup or on a hotplug 'OUTPUT_CHANGE' */
 #define STR_DIALOG_RANDR_CONFIRM_PROMPT \

@@ -49,6 +49,7 @@
 #include <harness/tap.h>
 #include <memguard.h>
 #include <surface.h>
+#include <surface/action.h>
 
 
 /** Link-only stand-in for desktop_init (desktop.c): builds a
@@ -157,30 +158,30 @@ void ccmd_client_relocate_icon_if_taken(client_td *client)
 }
 
 
-/** Link-only stand-in for surface_clients_hide (surface/actions/
+/** Link-only stand-in for surface_client_hide_all (surface/actions/
  *  clients.c): only ever called on the desktop being switched away
  *  from when the desktop being removed was the current one, a case
  *  this file's own tests deliberately avoid (see each test's own
  *  comment on why 'desktop_cur' is kept away from the one removed) */
-void surface_clients_hide(surface_td *surface, uint32_t desktop_id)
+void surface_client_hide_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
     (void) desktop_id;
 }
 
 
-/** Link-only stand-in for surface_clients_show (surface/actions/
- *  clients.c); see surface_clients_hide's own comment just above */
-void surface_clients_show(surface_td *surface, uint32_t desktop_id)
+/** Link-only stand-in for surface_client_show_all (surface/actions/
+ *  clients.c); see surface_client_hide_all's own comment just above */
+void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
 {
     (void) surface;
     (void) desktop_id;
 }
 
 
-/** Link-only stand-in for surface_refresh_workareas (surface/
+/** Link-only stand-in for surface_workarea_refresh_all (surface/
  *  workareas.c): this file never reads a desktop's own work area */
-void surface_refresh_workareas(surface_td *surface)
+void surface_workarea_refresh_all(surface_td *surface)
 {
     (void) surface;
 }
@@ -237,7 +238,7 @@ static void s_destroy_desktop(void *data)
  * 'desktop_cur' is deliberately always 0, and every test in this
  * file only ever removes the highest-numbered desktop while
  * 'desktop_count' is well above 1: 0 is never the one being
- * removed, so 'surface_clients_hide'/'_show' (stood in for above)
+ * removed, so 'surface_client_hide_all'/'_show' (stood in for above)
  * are never actually reached, keeping every test here focused
  * purely on the resulting grid shape.
  */

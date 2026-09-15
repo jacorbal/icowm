@@ -458,7 +458,7 @@ void wm_request_graceful_stop(void);
  * Sets the running flag to @c false exactly like @a wm_request_stop,
  * asking nothing of any managed client, since every one of them is
  * meant to survive this: @a wm_stop's own teardown already hands each
- * one back to bare X rather than closing it (@a wm_all_clients_unmanage,
+ * one back to bare X rather than closing it (@a wm_client_unmanage_all,
  * @c wm/clients.c), and it is @c main itself that, once that teardown
  * finishes, re-executes this very binary instead of letting the
  * process end.  The freshly re-exec'd instance's own startup scan
@@ -503,7 +503,7 @@ bool wm_restart_requested(void);
  * @retval  1 Failed to perform the operation
  *
  * @note Reloads @p config->randr from @c randr.json but does not call
- *       @a surface_action_apply_randr_profiles; an edited profile
+ *       @a surface_action_randr_apply_profiles; an edited profile
  *       takes effect at the next call to that function (startup, or
  *       the matching output's next @c XCB_RANDR_NOTIFY_OUTPUT_CHANGE),
  *       not from this reload alone
@@ -516,7 +516,7 @@ int wm_action_config_reload(const wm_td *wm);
  * @brief Rearrange every visible window on the given surface's
  *        current desktop
  *
- * A thin wrapper around @a enact_desktop_clients_rearrange.
+ * A thin wrapper around @a enact_desktop_client_rearrange_all.
  *
  * @param wm      Window manager instance
  * @param surface Surface whose current desktop to rearrange

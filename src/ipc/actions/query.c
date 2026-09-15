@@ -30,6 +30,7 @@
 #include <desktop.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -189,7 +190,7 @@ cJSON *ipc_action_list_desktops(const wm_td *wm, const cJSON *args)
         }
         desktop_ctx.array = array;
         desktop_ctx.surface = surface;
-        surface_desktops_walk(surface, s_desktop_summary_visit,
+        surface_desktop_walk_all(surface, s_desktop_summary_visit,
                 &desktop_ctx);
     }
 
@@ -221,7 +222,7 @@ cJSON *ipc_action_list_clients(const wm_td *wm, const cJSON *args)
         }
         client_ctx.array = array;
         client_ctx.surface = surface;
-        surface_desktops_walk(surface, s_client_summary_visit,
+        surface_desktop_walk_all(surface, s_client_summary_visit,
                 &client_ctx);
     }
 

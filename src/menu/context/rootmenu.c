@@ -34,6 +34,7 @@
 /* Project includes */
 #include <config.h>
 #include <enact.h>
+#include <enact/surface.h>
 #include <i18n.h>
 #include <logger.h>
 #include <surface.h>

@@ -6,7 +6,7 @@
  * One of the files @c surface/actions/ is made of; everything here
  * revolves around the RandR extension itself (output lookup, CRTC
  * allocation, mode matching, profile snapshot/apply/ revert), as
- * opposed to @c surface/actions/clients.c's client show/hide/reflow
+ * opposed to @c surface/actions/client.c's client show/hide/reflow
  * concerns, which never touch RandR directly.
  */
 /*
@@ -40,12 +40,14 @@
 
 /* Local includes */
 #include <surface.h>
+#include <surface/action.h>
+#include <surface/monitor.h>
 
 
 /**
  * @brief One CRTC's state, as it was immediately before
- *        @a surface_action_apply_randr_profiles changed it, so
- *        @a surface_action_revert_randr_profiles can restore exactly
+ *        @a surface_action_randr_apply_profiles changed it, so
+ *        @a surface_action_randr_revert_profiles can restore exactly
  *        that afterward
  */
 struct surface_randr_snapshot_s {
@@ -66,7 +68,7 @@ struct surface_randr_snapshot_s {
     uint16_t prior_rotation;
 };
 
-/** Every CRTC @a surface_action_apply_randr_profiles actually changed
+/** Every CRTC @a surface_action_randr_apply_profiles actually changed
  *  since the last @a surface_action_randr_snapshot_begin, across every
  *  surface a single config reload called it for, in application order;
  *  entries belonging to the same surface stay contiguous, since every
@@ -80,7 +82,7 @@ static uint32_t s_randr_snapshot_count = 0u;
 
 /**
  * @brief One surface's primary output, as it was immediately before
- *        @a surface_action_apply_randr_profiles changed it
+ *        @a surface_action_randr_apply_profiles changed it
  */
 struct surface_randr_primary_snapshot_s {
     surface_td *surface;
@@ -89,7 +91,7 @@ struct surface_randr_primary_snapshot_s {
 
 /**
  * @brief Every surface whose primary output
- *        @a surface_action_apply_randr_profiles actually changed since
+ *        @a surface_action_randr_apply_profiles actually changed since
  *        the last @a surface_action_randr_snapshot_begin; capped the
  *        same way @a s_randr_snapshot's own surfaces are bounded, one
  *        entry per surface rather than per CRTC
@@ -105,7 +107,7 @@ static uint32_t s_randr_primary_snapshot_count = 0u;
  * @brief Find the RandR output whose name matches a configured
  *        profile's, among those the screen currently reports
  *
- * Unlike the RandR 1.5 monitor list (@a surface_refresh_monitors
+ * Unlike the RandR 1.5 monitor list (@a surface_monitor_refresh_all
  * itself), where each entry's name is an X atom, the older per-output
  * API used here returns its name as plain bytes directly.
  *
@@ -288,7 +290,7 @@ static xcb_randr_mode_t s_surface_randr_find_mode(
  * individually.
  *
  * @param take_snapshot  Whether snapshotting is active for this call
- *                       to @a surface_action_apply_randr_profiles at
+ *                       to @a surface_action_randr_apply_profiles at
  * @param surface        Surface @p crtc belongs to
  * @param crtc           all CRTC being changed
  * @param output_id      Output it drives
@@ -343,7 +345,7 @@ static void s_surface_randr_snapshot_save(bool take_snapshot,
  * @param output_id     Output @p crtc drives, for the snapshot only
  * @param name          Output name, for logging only
  * @param take_snapshot Whether to save this CRTC's state first,
- *                      so @a surface_action_revert_randr_profiles can
+ *                      so @a surface_action_randr_revert_profiles can
  *                      turn it back on exactly as it was
  *
  * @note Complexity: @e O(1)
@@ -457,7 +459,7 @@ static int16_t s_surface_randr_clamp_position(int32_t value,
  *                        so that a profile asking to be primary only
  *                        issues the request where it is not already
  * @param take_snapshot   Whether to save the CRTC's prior state first,
- *                        so @a surface_action_revert_randr_profiles can
+ *                        so @a surface_action_randr_revert_profiles can
  *                        put it back exactly as it was
  *
  * @note Complexity: @e O(c), where @e c is the number of CRTCs
@@ -571,7 +573,7 @@ static bool s_surface_randr_apply_profile(surface_td *surface,
         /* Saved from 'ci_reply' (this CRTC's real prior state) when it
          * already had one, or as "was off" when it did not (a freshly
          * claimed CRTC, 'prior_crtc == XCB_NONE').  Either way exactly
-         * what 'surface_action_revert_randr_profiles' needs to put
+         * what 'surface_action_randr_revert_profiles' needs to put
          * back. */
         if (prior_crtc != (xcb_randr_crtc_t) XCB_NONE && ci_reply != NULL) {
             s_surface_randr_snapshot_save(take_snapshot, surface, crtc,
@@ -636,7 +638,7 @@ void surface_action_randr_snapshot_begin(void)
 
 /* Apply every configured RandR output profile that matches
  * a currently-connected output */
-bool surface_action_apply_randr_profiles(surface_td *surface,
+bool surface_action_randr_apply_profiles(surface_td *surface,
         bool take_snapshot)
 {
     xcb_randr_get_screen_resources_current_cookie_t res_cookie;
@@ -735,7 +737,7 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
     free(res_reply);
 
     if (any_changed) {
-        surface_refresh_monitors(surface);
+        surface_monitor_refresh_all(surface);
         surface->is_outdated = true;
     } else {
         LOGGER_DEBUG("XRandR: every configured output profile on" \
@@ -750,7 +752,7 @@ bool surface_action_apply_randr_profiles(surface_td *surface,
 /* Undo every snapshot taken since the most recent
  * 'surface_action_randr_snapshot_begin', across every surface a single
  * config reload touched, not only the first */
-void surface_action_revert_randr_profiles(void)
+void surface_action_randr_revert_profiles(void)
 {
     uint32_t i = 0u;
 
@@ -845,7 +847,7 @@ void surface_action_revert_randr_profiles(void)
         }
         free(res_reply);
 
-        surface_refresh_monitors(surface);
+        surface_monitor_refresh_all(surface);
         surface->is_outdated = true;
     }
 
@@ -863,7 +865,7 @@ void surface_action_revert_randr_profiles(void)
         /* Applied again even for a surface a CRTC run above already
          * refreshed: harmless, and simpler than tracking which surfaces
          * the loop above already touched to skip a repeat. */
-        surface_refresh_monitors(surface);
+        surface_monitor_refresh_all(surface);
         surface->is_outdated = true;
     }
 

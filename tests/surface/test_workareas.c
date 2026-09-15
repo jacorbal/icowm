@@ -4,10 +4,10 @@
  * @brief Test battery for per-desktop work-area recomputation
  *        (surface/workareas.c)
  *
- * 'surface_refresh_workareas' walks every desktop on a surface and
+ * 'surface_workarea_refresh_all' walks every desktop on a surface and
  * calls 'desktop_update_workarea' once per desktop, then always
  * finishes with 'scratchpad_reposition'; this file links the real
- * source under test directly.  'surface_desktops_walk' is a link-only
+ * source under test directly.  'surface_desktop_walk_all' is a link-only
  * stand-in walking a real 'cdlist_td' this file builds itself,
  * exactly the way the real one (surface/desktops.c) would, so the
  * static visitor 's_workarea_update_visit' still runs for real
@@ -40,16 +40,17 @@
 #include <desktop.h>
 #include <harness/tap.h>
 #include <surface.h>
+#include <surface/workarea.h>
 
 
-/** Link-only stand-in for @a surface_desktops_walk (surface/
+/** Link-only stand-in for @a surface_desktop_walk_all (surface/
  *  desktops.c): walks a real 'cdlist_td' this file builds itself, so
  *  the real, static 's_workarea_update_visit' (surface/workareas.c)
  *  still runs through the function pointer handed to it
  *  @note Complexity: @e O(n), where @e n is the number of desktops on
  *        @p surface
  */
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)
 {
     cdlist_item_td *node;
@@ -163,7 +164,7 @@ static void s_test_null_surface_is_noop(void)
 {
     s_reset();
 
-    surface_refresh_workareas(NULL);
+    surface_workarea_refresh_all(NULL);
     TAP_EQ_INT(s_call_update_workarea, 0,
             "a null surface never visits any desktop");
     TAP_EQ_INT(s_call_reposition, 0,
@@ -181,7 +182,7 @@ static void s_test_empty_desktop_list_still_repositions(void)
     memset(&surface, 0, sizeof(surface));
     surface.desktops = cdlist_init(NULL);
 
-    surface_refresh_workareas(&surface);
+    surface_workarea_refresh_all(&surface);
     TAP_EQ_INT(s_call_update_workarea, 0,
             "an empty desktop list visits no desktop");
     TAP_EQ_INT(s_call_reposition, 1,
@@ -214,7 +215,7 @@ static void s_test_single_desktop_visited_with_config(void)
     surface.strutless_maximize = false;
     s_stub_systray_strut = &strut;
 
-    surface_refresh_workareas(&surface);
+    surface_workarea_refresh_all(&surface);
     TAP_EQ_INT(s_call_update_workarea, 1,
             "a single desktop is visited exactly once");
     TAP_OK(s_visited_desktops[0] == &desktop,
@@ -248,7 +249,7 @@ static void s_test_null_config_forwards_null_config_desktop(void)
     (void) cdlist_ins_next(surface.desktops, NULL, &desktop);
     surface.config = NULL;
 
-    surface_refresh_workareas(&surface);
+    surface_workarea_refresh_all(&surface);
     TAP_EQ_INT(s_call_update_workarea, 1,
             "the desktop is still visited even with no config at all");
     TAP_NULL(s_visited_config_desktops[0],
@@ -273,7 +274,7 @@ static void s_test_strutless_maximize_forwards_ignore_struts(void)
     (void) cdlist_ins_next(surface.desktops, NULL, &desktop);
     surface.strutless_maximize = true;
 
-    surface_refresh_workareas(&surface);
+    surface_workarea_refresh_all(&surface);
     TAP_OK(s_visited_ignore_struts[0],
             "strutless_maximize true is forwarded as ignore_struts"
             " true");
@@ -297,7 +298,7 @@ static void s_test_null_systray_strut_forwarded_as_null(void)
     (void) cdlist_ins_next(surface.desktops, NULL, &desktop);
     s_stub_systray_strut = NULL;
 
-    surface_refresh_workareas(&surface);
+    surface_workarea_refresh_all(&surface);
     TAP_NULL(s_visited_systray_struts[0],
             "no systray reservation is forwarded as a null strut,"
             " unchanged");
@@ -330,7 +331,7 @@ static void s_test_multiple_desktops_all_visited_then_repositioned(void)
     (void) cdlist_ins_next(surface.desktops, NULL, &desktop_b);
     (void) cdlist_ins_next(surface.desktops, NULL, &desktop_a);
 
-    surface_refresh_workareas(&surface);
+    surface_workarea_refresh_all(&surface);
     TAP_EQ_INT(s_call_update_workarea, 3,
             "every desktop on the surface's list is visited");
     TAP_OK(s_visited_desktops[0] == &desktop_a,

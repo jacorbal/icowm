@@ -988,9 +988,9 @@ static void s_test_destroy_idempotent_and_null_safe(void)
 /* Candidate collection / eligibility filter */
 
 /* A non-focusable client, one flagged CLIENT_FLAG_SKIP_TASKBAR, and
- * one that withdrew itself (ICCCM section 4.1.4) are all left out of
- * the collected candidates; only the ordinary one is offered as
- * a result */
+ * one that is transient for another window are all left out of the
+ * collected candidates; only the ordinary one is offered as a
+ * result */
 static void s_test_collect_filters_ineligible_clients(void)
 {
     surface_td surface;
@@ -1009,8 +1009,9 @@ static void s_test_collect_filters_ineligible_clients(void)
     s_owned_clients[s_owned_clients_used++] = clients[1];
     clients[2] = s_make_client(3u, "skip-taskbar",
             CLIENT_FLAG_SKIP_TASKBAR, 0);
-    clients[3] = s_make_client(4u, "withdrawn",
-            CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_WITHDRAWN, 0);
+    clients[3] = s_make_client(4u, "transient", CLIENT_FLAG_FOCUSABLE,
+            0);
+    clients[3]->transient_for = (xcb_window_t) 1;
     s_make_surface_one_desktop(&surface, desktop, clients, 4, 1024u, 768u);
     s_make_config(&cfg);
 
@@ -1024,10 +1025,10 @@ static void s_test_collect_filters_ineligible_clients(void)
     s_teardown();
 }
 
-/* A surface whose only client withdrew itself (ICCCM section 4.1.4)
- * never opens the widget at all, with no eligible candidate left to
+/* A surface whose only client is transient for another window never
+ * opens the widget at all, with no eligible candidate left to
  * offer */
-static void s_test_collect_withdrawn_only_never_opens(void)
+static void s_test_collect_transient_only_never_opens(void)
 {
     surface_td surface;
     desktop_td *desktop;
@@ -1036,15 +1037,16 @@ static void s_test_collect_withdrawn_only_never_opens(void)
 
     s_reset();
     desktop = s_make_desktop(0u, "one");
-    clients[0] = s_make_client(1u, "withdrawn",
-            CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_WITHDRAWN, 0);
+    clients[0] = s_make_client(1u, "transient", CLIENT_FLAG_FOCUSABLE,
+            0);
+    clients[0]->transient_for = (xcb_window_t) 2;
     s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
     s_make_config(&cfg);
 
     search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
 
     TAP_OK(!search_is_open(),
-            "a withdrawn client alone leaves no eligible candidate,"
+            "a transient client alone leaves no eligible candidate,"
             " so the widget never opens");
 
     search_destroy(s_connection_stub);
@@ -2504,7 +2506,7 @@ int main(void)
     s_test_destroy_idempotent_and_null_safe();
 
     s_test_collect_filters_ineligible_clients();
-    s_test_collect_withdrawn_only_never_opens();
+    s_test_collect_transient_only_never_opens();
     s_test_collect_spans_every_desktop();
 
     s_test_empty_query_matches_all_in_stack_order();

@@ -15,7 +15,7 @@
  * however a given test asks, so every one of 'surface_init''s own
  * cleanup paths (a failed desktop, a failed insert, both needing to
  * unwind everything allocated before them) is reachable directly.
- * 'surface_refresh_monitors', 'xcb_connection_get', 'xcb_screen_
+ * 'surface_monitor_refresh_all', 'xcb_connection_get', 'xcb_screen_
  * allowed_depths_iterator', 'xcb_depth_visuals_iterator', and
  * 'logger_msg' are link-only stand-ins: none of their own branches
  * are what this file means to exercise, 'surface_init''s own control
@@ -199,10 +199,10 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 
 
 /**
- * @brief Link-only stand-in for @a surface_refresh_monitors
+ * @brief Link-only stand-in for @a surface_monitor_refresh_all
  * @note Complexity: @e O(1)
  */
-void surface_refresh_monitors(surface_td *surface)
+void surface_monitor_refresh_all(surface_td *surface)
 {
     (void) surface;
 }

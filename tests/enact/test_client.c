@@ -55,6 +55,7 @@
 #include <client.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <harness/tap.h>
 #include <ipc.h>
 #include <policy/focus.h>

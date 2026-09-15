@@ -35,7 +35,7 @@
  * @brief Per-output RandR profile configuration
  *
  * Stores the user-defined settings for a single physical output,
- * applied via @a surface_action_apply_randr_profiles at startup and
+ * applied via @a surface_action_randr_apply_profiles at startup and
  * whenever that output is (re)connected.
  *
  * @see @c surface.h
@@ -76,7 +76,7 @@ struct config_randr_output_s {
      *   that should never receive windows.
      *
      * @see @a surface_action-apply_randr_profiles and
-     *      @a surface_refresh_monitors
+     *      @a surface_monitor_refresh_all
      */
     bool is_enabled;
 
@@ -100,7 +100,7 @@ struct config_randr_output_s {
  *
  * @note One instance per @c config_td, shared by every managed X
  *       screen (@c surface_td), not scoped per-screen
- * @note Matching in @a surface_action_apply_randr_profiles is by
+ * @note Matching in @a surface_action_randr_apply_profiles is by
  *       @a config_randr_output_s.name alone, queried independently
  *       against the RandR resources of each screen
  * @note On a multi-GPU setup with two X screens exposing an output of

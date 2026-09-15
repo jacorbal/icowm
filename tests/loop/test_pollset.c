@@ -16,7 +16,7 @@
  * back real pipe file descriptors this file opens itself, so the
  * poll() call inside loop_pollset_wait genuinely blocks on, and
  * genuinely reports readiness for, real kernel descriptors instead of
- * fabricated ones. handler_connection_error_string and
+ * fabricated ones. handler_error_connection_str and
  * wm_request_stop are link-only stand-ins too, wm_request_stop's
  * real body being wm.c's own singleton-mutating logic, already
  * covered on its own terms in tests/wm/test_lifecycle.c, not
@@ -120,9 +120,9 @@ int xcb_get_file_descriptor(xcb_connection_t *c)
 }
 
 
-/** Link-only stand-in for handler_connection_error_string
+/** Link-only stand-in for handler_error_connection_str
  *  (handler.c) */
-const char *handler_connection_error_string(int error_code)
+const char *handler_error_connection_str(int error_code)
 {
     (void) error_code;
     return "stand-in connection error";

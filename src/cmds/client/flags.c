@@ -38,6 +38,9 @@
 /* Windows & icons policy includes */
 #include <policy/placement/window.h>
 
+/* Surface includes */
+#include <surface/viewport.h>
+
 /* Utils includes */
 #include <utils/geom.h>
 #include <utils/xcb/connection.h>
@@ -133,7 +136,7 @@ static void s_ccmd_client_unpin_one(client_td *client)
         target = ccmd_target_win(client);
 
         /* Account for the 'UnmapNotify' events that
-         * 'handler_unmap_notify' must skip.  Two events arrive for the
+         * 'handler_window_unmap_notify' must skip.  Two events arrive for the
          * unmapped target
          * ('SubstructureNotify' on parent + 'StructureNotify' on
          * target) and one additional event for the titlebar via the

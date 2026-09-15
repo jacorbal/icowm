@@ -107,7 +107,7 @@ struct config_bindings_s {
              * root menu's entry reach it until a user opts in
              * with their binding here.
              *
-             * @see @a surface_action_toggle_strutless_maximize
+             * @see @a surface_action_maximize_toggle_strutless
              *      (surface.h)
              */
             char toggle_strutless_maximize[CONFIG_MAX_LENGTH_BINDING];

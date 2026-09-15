@@ -3,7 +3,7 @@
  *
  * @brief Test battery for moving every pinned client to one desktop
  *
- * Exercises 'surface_clients_pinned_transfer_all' (surface/actions/
+ * Exercises 'surface_client_pinned_transfer_all' (surface/actions/
  * clients.c) linked against the real stacking order (policy/
  * stacking.c) and the real per-desktop client lookup (desktop/
  * dfind.c), so a pinned client is only ever seen by the function
@@ -45,12 +45,13 @@
 #include <harness/tap.h>
 #include <policy/stacking.h>
 #include <surface.h>
+#include <surface/client.h>
 
 
 /**
  * @brief Link-only stand-in for @a ccmd_client_unmap_decorated
  *
- * Reached only by 'surface_clients_hide', which nothing here calls.
+ * Reached only by 'surface_client_hide_all', which nothing here calls.
  *
  * @note Complexity: @e O(1)
  */
@@ -64,7 +65,7 @@ void ccmd_client_unmap_decorated(client_td *client, xcb_window_t target)
 /**
  * @brief Link-only stand-in for @a ccmd_desktop_enforce_layers
  *
- * Reached only by 'surface_clients_show', which nothing here calls.
+ * Reached only by 'surface_client_show_all', which nothing here calls.
  *
  * @note Complexity: @e O(1)
  */
@@ -77,7 +78,7 @@ void ccmd_desktop_enforce_layers(desktop_td *desktop)
 /**
  * @brief Link-only stand-in for @a client_focus_fallback
  *
- * Reached only by 'surface_clients_show', which nothing here calls.
+ * Reached only by 'surface_client_show_all', which nothing here calls.
  *
  * @note Complexity: @e O(1)
  */
@@ -93,7 +94,7 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
 /**
  * @brief Link-only stand-in for @a surface_monitor_for_point
  *
- * Reached only by 'surface_clients_reflow', which nothing here calls.
+ * Reached only by 'surface_client_reflow_all', which nothing here calls.
  *
  * @note Complexity: @e O(1)
  */
@@ -113,7 +114,7 @@ monitor_td surface_monitor_for_point(const surface_td *surface,
 /**
  * @brief Link-only stand-in for @a systray_below_window
  *
- * Reached only by 'surface_clients_show', which nothing here calls.
+ * Reached only by 'surface_client_show_all', which nothing here calls.
  *
  * @note Complexity: @e O(1)
  */
@@ -430,7 +431,7 @@ static void s_test_no_drop_past_old_fixed_cap(void)
     cdlist_ins_next(surface.desktops, NULL, to_desktop);
     surface.desktop_count = 2u;
 
-    surface_clients_pinned_transfer_all(&surface, 1u);
+    surface_client_pinned_transfer_all(&surface, 1u);
 
     TAP_EQ_INT(s_move_log_used, 40,
             "all 40 pinned clients are moved, none dropped past 32");
@@ -481,7 +482,7 @@ static void s_test_single_pinned_client(void)
     cdlist_ins_next(surface.desktops, NULL, to_desktop);
     surface.desktop_count = 2u;
 
-    surface_clients_pinned_transfer_all(&surface, 1u);
+    surface_client_pinned_transfer_all(&surface, 1u);
 
     TAP_EQ_INT(s_move_log_used, 1,
             "a single pinned client is still moved (counting pass with"
@@ -516,7 +517,7 @@ static void s_test_no_pinned_clients_is_a_no_op(void)
     cdlist_ins_next(surface.desktops, NULL, to_desktop);
     surface.desktop_count = 2u;
 
-    surface_clients_pinned_transfer_all(&surface, 1u);
+    surface_client_pinned_transfer_all(&surface, 1u);
 
     TAP_EQ_INT(s_move_log_used, 0,
             "a desktop with nothing pinned on it triggers no move");
@@ -552,7 +553,7 @@ static void s_test_unpinned_clients_never_move(void)
     cdlist_ins_next(surface.desktops, NULL, to_desktop);
     surface.desktop_count = 2u;
 
-    surface_clients_pinned_transfer_all(&surface, 1u);
+    surface_client_pinned_transfer_all(&surface, 1u);
 
     TAP_EQ_INT(s_move_log_used, 1, "only the pinned client is moved");
     TAP_OK(s_move_log_used == 1 && s_move_log[0] == pinned,
@@ -590,7 +591,7 @@ static void s_test_active_client_focus_follows(void)
     cdlist_ins_next(surface.desktops, NULL, to_desktop);
     surface.desktop_count = 2u;
 
-    surface_clients_pinned_transfer_all(&surface, 1u);
+    surface_client_pinned_transfer_all(&surface, 1u);
 
     TAP_EQ_INT((long) to_desktop->client_active_id, (long) active->id,
             "the previously active pinned client is active on the"
@@ -643,7 +644,7 @@ static void s_test_relative_order_is_preserved(void)
     cdlist_ins_next(surface.desktops, NULL, to_desktop);
     surface.desktop_count = 2u;
 
-    surface_clients_pinned_transfer_all(&surface, 1u);
+    surface_client_pinned_transfer_all(&surface, 1u);
 
     TAP_EQ_INT(s_send_back_log_used, 3, "all three are sent to back");
     TAP_OK(s_send_back_log_used == 3 && s_send_back_log[0] == top &&
@@ -680,7 +681,7 @@ static void s_test_target_desktop_is_never_its_own_source(void)
     cdlist_ins_next(surface.desktops, NULL, to_desktop);
     surface.desktop_count = 2u;
 
-    surface_clients_pinned_transfer_all(&surface, 1u);
+    surface_client_pinned_transfer_all(&surface, 1u);
 
     TAP_EQ_INT(s_move_log_used, 0,
             "a pinned client already on the target desktop is never"
@@ -709,7 +710,7 @@ static void s_test_unknown_target_is_a_no_op(void)
     cdlist_ins_next(surface.desktops, NULL, from_desktop);
     surface.desktop_count = 1u;
 
-    surface_clients_pinned_transfer_all(&surface, 99u);
+    surface_client_pinned_transfer_all(&surface, 99u);
 
     TAP_EQ_INT(s_move_log_used, 0,
             "an unresolvable target desktop ID moves nothing, and does"
@@ -754,7 +755,7 @@ static void s_test_multiple_source_desktops(void)
     cdlist_ins_next(surface.desktops, NULL, target);
     surface.desktop_count = 3u;
 
-    surface_clients_pinned_transfer_all(&surface, 2u);
+    surface_client_pinned_transfer_all(&surface, 2u);
 
     TAP_EQ_INT(s_move_log_used, 41,
             "every pinned client from both source desktops (35 plus"

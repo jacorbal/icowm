@@ -28,7 +28,7 @@
  *
  * wm.c's own translation unit is linked for real and reaches, through
  * the functions above, exactly three external symbols:
- * lookup_find_client (lookup.c), surface_desktops_walk
+ * lookup_find_client (lookup.c), surface_desktop_walk_all
  * (surface/desktops.c), and desktop_mark_outdated (desktop.c); each is
  * a small, controllable stand-in below rather than the real
  * implementation, letting every scenario assert on wm.c's own
@@ -116,7 +116,7 @@ client_td *lookup_find_client(list_td *surfaces, xcb_window_t window,
 }
 
 
-/* Recording state for the surface_desktops_walk stand-in */
+/* Recording state for the surface_desktop_walk_all stand-in */
 static int s_walk_call_count;
 static const surface_td *s_walk_last_surface;
 static surface_desktop_visitor_fn s_walk_last_visitor;
@@ -128,12 +128,12 @@ static void *s_walk_last_data;
 static desktop_td **s_walk_desktops;
 static uint32_t s_walk_desktop_count;
 
-/** Link-only stand-in for surface_desktops_walk (surface/desktops.c):
+/** Link-only stand-in for surface_desktop_walk_all (surface/desktops.c):
  *  records every call, and, when a scenario populated
  *  's_walk_desktops', actually invokes the visitor on each of them,
  *  exactly the real function's own contract, without requiring a real
  *  cdlist */
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)
 {
     s_walk_call_count++;
@@ -542,8 +542,8 @@ void wm_ewmh_sync(wm_td *wm_instance)
 }
 
 
-/** Link-only stand-in for wm_all_clients_unmanage (wm/clients.c) */
-void wm_all_clients_unmanage(const wm_td *wm_instance)
+/** Link-only stand-in for wm_client_unmanage_all (wm/clients.c) */
+void wm_client_unmanage_all(const wm_td *wm_instance)
 {
     (void) wm_instance;
 }
@@ -958,7 +958,7 @@ static void s_test_plain_field_accessors(void)
 
 
 /* wm_get_desktop_surface walks every surface's desktops (through the
- * surface_desktops_walk stand-in) and returns whichever surface's own
+ * surface_desktop_walk_all stand-in) and returns whichever surface's own
  * walk actually contains the target desktop */
 static void s_test_get_desktop_surface_finds_owner(void)
 {
@@ -1068,7 +1068,7 @@ static void s_test_request_client_redraw_marks_owner_chain(void)
 
 
 /* wm_request_full_redraw marks every surface, and every desktop of
- * every surface (through the surface_desktops_walk stand-in actually
+ * every surface (through the surface_desktop_walk_all stand-in actually
  * invoking desktop_mark_outdated), outdated */
 static void s_test_request_full_redraw_marks_everything(void)
 {
@@ -1106,7 +1106,7 @@ static void s_test_request_full_redraw_marks_everything(void)
             "wm_request_full_redraw's per-surface walk marks every"
             " desktop outdated through desktop_mark_outdated");
     TAP_EQ_INT(s_walk_call_count, 2,
-            "surface_desktops_walk is invoked exactly once per"
+            "surface_desktop_walk_all is invoked exactly once per"
             " surface");
 
     list_destroy(surfaces);

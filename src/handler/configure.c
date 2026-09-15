@@ -44,10 +44,12 @@
 #include <logger.h>
 #include <surface.h>
 #include <systray.h>
+#include <systray/icon.h>
 #include <lookup.h>
 
 /* Local includes */
 #include <handler.h>
+#include <handler/configure.h>
 
 
 /**

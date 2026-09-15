@@ -63,6 +63,13 @@
 /* Default initial values */
 #include <defs/client.h>
 
+/* Enact includes */
+#include <enact/client.h>
+
+/* Command includes */
+#include <cmds/client/maximize.h>
+#include <cmds/client/state.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -73,10 +80,6 @@
 #include <surface.h>
 #include <wm.h>
 
-/* CMD includes */
-#include <cmds/client/maximize.h>
-#include <cmds/client/state.h>
-
 /* Local includes */
 #include <input/mouse/bind.h>
 #include <input/mouse/bounds.h>
@@ -86,8 +89,6 @@
 #include <input/mouse/event.h>
 #include <input/mouse/internal.h>
 
-
-/* Small utilities */
 
 /**
  * @brief Check whether a pointer position is near the edge of a client
@@ -442,32 +443,8 @@ static client_td *s_mouse_find_event_client(xcb_connection_t *connection,
 }
 
 
-/* Public event handlers */
-/**
- * @brief Keep a pinned client's active-window state consistent across
- *        every desktop on its surface
- *
- * @a focus_apply only updates @a client_active_id on the one @p desktop
- * passed to it.  For an ordinary client that is enough, but a pinned
- * one (visible on every desktop; see @a client_is_pinned) is expected
- * to keep showing as the active window no matter which desktop the user
- * switches to next.  Without this,
- * @a surface_clients_pinned_transfer_all's "was this pinned client
- * active on the desktop being switched away from" check (see
- * surface/actions.c) would only see the single desktop @a focus_apply
- * touched, silently dropping the active-window highlight the next time
- * the user switches through any other desktop first.  A no-op for
- * a non-pinned @p client, or when either @p surface or @p client is
- * null.
- *
- * @param surface Surface whose desktops are kept in sync
- * @param desktop The one desktop @c focus_apply already updated,
- *                skipped here to avoid redundant work
- * @param client  The client that just received focus
- *
- * @note Complexity: @e O(d), where @e d is the number of desktops on
- *       @p surface
- */
+/* Keep a pinned client's active-window state consistent across every
+ * desktop on its surface */
 void im_sync_pinned_active(surface_td *surface,
         const desktop_td *desktop, const client_td *client)
 {
@@ -498,18 +475,7 @@ void im_sync_pinned_active(surface_td *surface,
 }
 
 
-/**
- * @brief Allow pointer events and flush the XCB connection
- *
- * This idiom appears at almost every return point inside
- * @c mouse_handle_press.  Centralizing it removes the repetition and
- * makes each call site self-documenting.
- *
- * @param connection Active XCB connection
- * @param mode       @c XCB_ALLOW_ASYNC_POINTER or
- *                   @c XCB_ALLOW_REPLAY_POINTER
- * @param time       Event timestamp
- */
+/* Allow pointer events and flush the XCB connection */
 void im_allow_and_flush(xcb_connection_t *connection,
         uint8_t mode, xcb_timestamp_t time)
 {

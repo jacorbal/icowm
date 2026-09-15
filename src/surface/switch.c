@@ -47,6 +47,10 @@
 
 /* Local includes */
 #include <surface.h>
+#include <surface/action.h>
+#include <surface/client.h>
+#include <surface/desktop.h>
+#include <surface/workarea.h>
 
 
 /**
@@ -77,7 +81,7 @@
  * @note Complexity: @e O(n), where @e n is the total number of clients
  *       across every one of @p surface's desktops
  */
-static void s_surface_mark_all_desktops_outdated(surface_td *surface)
+static void s_surface_desktop_mark_outdated_all(surface_td *surface)
 {
     cdlist_item_td *node;
     const cdlist_item_td *initial;
@@ -362,7 +366,7 @@ static void s_client_refill_visit(client_td *client, void *data)
  * @a ccmd_client_refill_maximized (cmds/client/geom.c) resolves and
  * applies one client's workarea fresh; run here for every client
  * on every desktop @p surface owns, right after its workarea
- * actually changed (@a surface_action_toggle_strutless_maximize), so an
+ * actually changed (@a surface_action_maximize_toggle_strutless), so an
  * already-maximized window visibly grows or shrinks into the panel-
  * reserved space that mode just set aside or folded back in, rather
  * than silently staying at whatever size it already was until the
@@ -460,7 +464,7 @@ int surface_action_desktop_add(surface_td *surface)
         return 1;
     }
 
-    s_surface_mark_all_desktops_outdated(surface);
+    s_surface_desktop_mark_outdated_all(surface);
     surface->is_outdated = true;
 
     return 0;
@@ -519,7 +523,7 @@ int surface_action_desktop_remove(surface_td *surface)
 
     was_current = (desktop->id == surface->desktop_cur);
     if (was_current) {
-        surface_clients_hide(surface, surface->desktop_cur);
+        surface_client_hide_all(surface, surface->desktop_cur);
     }
 
     s_surface_desktop_evacuate(desktop, fallback);
@@ -539,7 +543,7 @@ int surface_action_desktop_remove(surface_td *surface)
      * dangling reference to a desktop that no longer exists. */
     if (was_current) {
         surface->desktop_cur = fallback->id;
-        surface_clients_show(surface, surface->desktop_cur);
+        surface_client_show_all(surface, surface->desktop_cur);
     } else if (fallback->id == surface->desktop_cur) {
         /* The removed desktop was not the one on screen, but its
          * fallback already was, so neither branch above ever ran a
@@ -555,7 +559,7 @@ int surface_action_desktop_remove(surface_td *surface)
          * with only the two desktops involved existing at all, there
          * may be nowhere left to switch to and back from, even by
          * hand. */
-        surface_clients_show(surface, surface->desktop_cur);
+        surface_client_show_all(surface, surface->desktop_cur);
     }
 
     if (surface_desktop_rem(surface, desktop->id) != 0) {
@@ -566,7 +570,7 @@ int surface_action_desktop_remove(surface_td *surface)
 
     s_surface_layout_shrink_after(surface, surface->desktop_count);
 
-    s_surface_mark_all_desktops_outdated(surface);
+    s_surface_desktop_mark_outdated_all(surface);
     surface->is_outdated = true;
 
     return 0;
@@ -574,7 +578,7 @@ int surface_action_desktop_remove(surface_td *surface)
 
 
 /* Toggle strutless-maximization mode */
-int surface_action_toggle_strutless_maximize(surface_td *surface)
+int surface_action_maximize_toggle_strutless(surface_td *surface)
 {
     if (surface == NULL) {
         LOGGER_ERROR("Invalid surface pointer", L_NARG);
@@ -592,8 +596,8 @@ int surface_action_toggle_strutless_maximize(surface_td *surface)
      * desktop.h), and nothing else is guaranteed to trigger that
      * recomputation on its own until some unrelated event (a client
      * mapping, an RandR change, and so on) happens to call
-     * 'surface_refresh_workareas' next. */
-    surface_refresh_workareas(surface);
+     * 'surface_workarea_refresh_all' next. */
+    surface_workarea_refresh_all(surface);
 
     /* Grow or shrink every already-maximized client into whichever
      * workarea it now resolves to, immediately.  The toggle would
@@ -605,10 +609,10 @@ int surface_action_toggle_strutless_maximize(surface_td *surface)
     s_surface_refill_maximized_clients(surface);
 
     /* Every desktop needs its redraw, not just 'surface' itself:
-     * see 's_surface_mark_all_desktops_outdated''s comment above
+     * see 's_surface_desktop_mark_outdated_all''s comment above
      * for the identical reasoning already applied to desktop add and
      * remove. */
-    s_surface_mark_all_desktops_outdated(surface);
+    s_surface_desktop_mark_outdated_all(surface);
     surface->is_outdated = true;
 
     return 0;

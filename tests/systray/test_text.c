@@ -31,6 +31,7 @@
 /* Local includes */
 #include <surface.h>
 #include <harness/tap.h>
+#include <systray/clock.h>
 #include <systray/internal.h>
 
 

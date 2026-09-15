@@ -115,7 +115,7 @@ client_td *client_group_transient_anchor(const client_td *client);
  * @a ccmd_client_focus itself (in @c cmds/client/focus.c): that
  * function is also reached from purely automatic focus restoration
  * having nothing to do with someone actually interacting with a client
- * right now (@a surface_clients_show's "restore whichever client was
+ * right now (@a surface_client_show_all's "restore whichever client was
  * last active" step on every desktop switch foremost among them), and
  * calling this there too dragged a transient family across onto
  * whatever desktop merely happened to be switched to, chasing every

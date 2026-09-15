@@ -1271,7 +1271,7 @@ static void s_test_iconify_all_reaches_every_client(void)
     (void) desktop_action_client_add(&s_desktop_a, &first);
     (void) desktop_action_client_add(&s_desktop_a, &second);
 
-    rc = desktop_action_clients_iconify_all(&s_desktop_a);
+    rc = desktop_action_client_iconify_all(&s_desktop_a);
 
     TAP_EQ_INT(rc, 0, "iconifying all clients reports success");
     TAP_EQ_INT(s_call_enact_iconify, 2,
@@ -1289,7 +1289,7 @@ static void s_test_iconify_all_null_guard(void)
 
     s_reset();
 
-    rc = desktop_action_clients_iconify_all(NULL);
+    rc = desktop_action_client_iconify_all(NULL);
     TAP_EQ_INT(rc, -1, "iconifying all clients on a NULL desktop" \
             " fails");
 
@@ -1313,7 +1313,7 @@ static void s_test_deiconify_all_restores_only_iconified(void)
     (void) desktop_action_client_add(&s_desktop_a, &iconified);
     (void) desktop_action_client_add(&s_desktop_a, &normal);
 
-    rc = desktop_action_clients_deiconify_all(&s_desktop_a);
+    rc = desktop_action_client_deiconify_all(&s_desktop_a);
 
     TAP_EQ_INT(rc, 0, "restoring all iconified clients reports" \
             " success");
@@ -1335,7 +1335,7 @@ static void s_test_deiconify_all_null_guard(void)
 
     s_reset();
 
-    rc = desktop_action_clients_deiconify_all(NULL);
+    rc = desktop_action_client_deiconify_all(NULL);
     TAP_EQ_INT(rc, -1, "restoring all clients on a NULL desktop" \
             " fails");
 

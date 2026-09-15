@@ -46,6 +46,8 @@
 #include <wm.h>
 
 /* Local includes */
+#include <systray/handle.h>
+#include <systray/icon.h>
 #include <systray/internal.h>
 
 

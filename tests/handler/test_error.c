@@ -5,8 +5,8 @@
  *        string table and the response-type-zero protocol error
  *        classifier
  *
- * Both public entry points, handler_connection_error_string and
- * handler_protocol_error, are pure functions of their input: the
+ * Both public entry points, handler_error_connection_str and
+ * handler_error_protocol, are pure functions of their input: the
  * first is a plain switch over an int with no side effects at all,
  * and the second only ever reads the xcb_generic_error_t reinterpreted
  * from its xcb_generic_event_t pointer and calls logger_msg, which is
@@ -38,7 +38,7 @@
 #include <logger.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/error.h>
 #include <harness/tap.h>
 
 
@@ -68,7 +68,7 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 
 /**
  * @brief Build a raw event carrying one 'xcb_generic_error_t' worth
- *        of fields, the same layout 'handler_protocol_error' itself
+ *        of fields, the same layout 'handler_error_protocol' itself
  *        reinterprets its argument as
  */
 static xcb_generic_event_t *s_build_error_event(
@@ -95,53 +95,53 @@ int main(void)
 
     TAP_PLAN(20);
 
-    /* handler_connection_error_string: every named case plus the
+    /* handler_error_connection_str: every named case plus the
      * default fallback */
-    TAP_EQ_STR(handler_connection_error_string(XCB_CONN_ERROR),
+    TAP_EQ_STR(handler_error_connection_str(XCB_CONN_ERROR),
             "XCB_CONN_ERROR (socket, pipe, or other stream error;" \
             " most likely the X server itself is gone)",
             "XCB_CONN_ERROR has its own description");
-    TAP_EQ_STR(handler_connection_error_string(
+    TAP_EQ_STR(handler_error_connection_str(
                 XCB_CONN_CLOSED_EXT_NOTSUPPORTED),
             "XCB_CONN_CLOSED_EXT_NOTSUPPORTED (a required X extension" \
             " is not supported)",
             "XCB_CONN_CLOSED_EXT_NOTSUPPORTED has its own description");
-    TAP_EQ_STR(handler_connection_error_string(
+    TAP_EQ_STR(handler_error_connection_str(
                 XCB_CONN_CLOSED_MEM_INSUFFICIENT),
             "XCB_CONN_CLOSED_MEM_INSUFFICIENT (out of memory)",
             "XCB_CONN_CLOSED_MEM_INSUFFICIENT has its own description");
-    TAP_EQ_STR(handler_connection_error_string(
+    TAP_EQ_STR(handler_error_connection_str(
                 XCB_CONN_CLOSED_REQ_LEN_EXCEED),
             "XCB_CONN_CLOSED_REQ_LEN_EXCEED (a request exceeded the" \
             " server's maximum length)",
             "XCB_CONN_CLOSED_REQ_LEN_EXCEED has its own description");
-    TAP_EQ_STR(handler_connection_error_string(
+    TAP_EQ_STR(handler_error_connection_str(
                 XCB_CONN_CLOSED_PARSE_ERR),
             "XCB_CONN_CLOSED_PARSE_ERR (error parsing the display name)",
             "XCB_CONN_CLOSED_PARSE_ERR has its own description");
-    TAP_EQ_STR(handler_connection_error_string(
+    TAP_EQ_STR(handler_error_connection_str(
                 XCB_CONN_CLOSED_INVALID_SCREEN),
             "XCB_CONN_CLOSED_INVALID_SCREEN (the server has no screen" \
             " matching the display)",
             "XCB_CONN_CLOSED_INVALID_SCREEN has its own description");
-    TAP_EQ_STR(handler_connection_error_string(
+    TAP_EQ_STR(handler_error_connection_str(
                 XCB_CONN_CLOSED_FDPASSING_FAILED),
             "XCB_CONN_CLOSED_FDPASSING_FAILED (file descriptor" \
             " passing failed)",
             "XCB_CONN_CLOSED_FDPASSING_FAILED has its own description");
-    TAP_EQ_STR(handler_connection_error_string(999999),
+    TAP_EQ_STR(handler_error_connection_str(999999),
             "unknown XCB connection error code",
             "an unrecognized code falls back to the default case");
-    TAP_EQ_STR(handler_connection_error_string(0),
+    TAP_EQ_STR(handler_error_connection_str(0),
             "unknown XCB connection error code",
             "zero is not one of the named codes either");
 
-    /* handler_protocol_error: a routine target op (X_MapWindow == 8)
+    /* handler_error_protocol: a routine target op (X_MapWindow == 8)
      * with a BadWindow (3) is logged at DEBUG, since a client
      * destroying its own window between the request and the server
      * processing it is the expected outcome, not a bug */
     s_logger_calls = 0;
-    handler_protocol_error(s_build_error_event(&raw, 3u, 8u, 0u,
+    handler_error_protocol(s_build_error_event(&raw, 3u, 8u, 0u,
                 0x1234u));
     TAP_EQ_INT(s_logger_calls, 1, "protocol_error logs exactly once" \
             " for a routine BadWindow");
@@ -150,14 +150,14 @@ int main(void)
 
     /* Same routine op, BadDrawable (9), still DEBUG */
     s_logger_calls = 0;
-    handler_protocol_error(s_build_error_event(&raw, 9u, 8u, 0u,
+    handler_error_protocol(s_build_error_event(&raw, 9u, 8u, 0u,
                 0x1234u));
     TAP_EQ_INT((int) s_logger_last_level, (int) LOG_DEBUG,
             "routine op + BadDrawable logs at DEBUG");
 
     /* Same routine op, BadMatch (8), still DEBUG */
     s_logger_calls = 0;
-    handler_protocol_error(s_build_error_event(&raw, 8u, 8u, 0u,
+    handler_error_protocol(s_build_error_event(&raw, 8u, 8u, 0u,
                 0x1234u));
     TAP_EQ_INT((int) s_logger_last_level, (int) LOG_DEBUG,
             "routine op + BadMatch logs at DEBUG");
@@ -165,7 +165,7 @@ int main(void)
     /* Routine op (X_ConfigureWindow == 12), but a different error
      * code (BadValue == 2): not a vanished-resource error, so WARNING */
     s_logger_calls = 0;
-    handler_protocol_error(s_build_error_event(&raw, 2u, 12u, 0u,
+    handler_error_protocol(s_build_error_event(&raw, 2u, 12u, 0u,
                 0x5678u));
     TAP_EQ_INT((int) s_logger_last_level, (int) LOG_WARNING,
             "routine op + BadValue logs at WARNING, not DEBUG");
@@ -175,7 +175,7 @@ int main(void)
      * of the routine per-window ones this window manager issues
      * constantly */
     s_logger_calls = 0;
-    handler_protocol_error(s_build_error_event(&raw, 3u, 99u, 0u,
+    handler_error_protocol(s_build_error_event(&raw, 3u, 99u, 0u,
                 0x9999u));
     TAP_EQ_INT((int) s_logger_last_level, (int) LOG_WARNING,
             "BadWindow on a non-routine op logs at WARNING");
@@ -183,17 +183,17 @@ int main(void)
     /* Every remaining routine op in the table is reached, at least
      * one representative from each end of the list */
     s_logger_calls = 0;
-    handler_protocol_error(s_build_error_event(&raw, 3u, 2u, 0u, 0u));
+    handler_error_protocol(s_build_error_event(&raw, 3u, 2u, 0u, 0u));
     TAP_EQ_INT((int) s_logger_last_level, (int) LOG_DEBUG,
             "X_ChangeWindowAttributes (2) is a routine op");
 
     s_logger_calls = 0;
-    handler_protocol_error(s_build_error_event(&raw, 3u, 42u, 0u, 0u));
+    handler_error_protocol(s_build_error_event(&raw, 3u, 42u, 0u, 0u));
     TAP_EQ_INT((int) s_logger_last_level, (int) LOG_DEBUG,
             "X_SetInputFocus (42) is a routine op");
 
     s_logger_calls = 0;
-    handler_protocol_error(s_build_error_event(&raw, 3u, 20u, 0u, 0u));
+    handler_error_protocol(s_build_error_event(&raw, 3u, 20u, 0u, 0u));
     TAP_EQ_INT((int) s_logger_last_level, (int) LOG_DEBUG,
             "X_GetProperty (20) is a routine op");
 
@@ -201,13 +201,13 @@ int main(void)
      * op is still WARNING, since only BadWindow/BadDrawable/BadMatch
      * count as a vanished-resource echo */
     s_logger_calls = 0;
-    handler_protocol_error(s_build_error_event(&raw, 11u, 4u, 0u, 0u));
+    handler_error_protocol(s_build_error_event(&raw, 11u, 4u, 0u, 0u));
     TAP_EQ_INT((int) s_logger_last_level, (int) LOG_WARNING,
             "BadAlloc on a routine op still logs at WARNING");
 
     /* Exactly one call is made per invocation, regardless of branch */
     TAP_EQ_INT(s_logger_calls, 1,
-            "handler_protocol_error logs exactly once per call");
+            "handler_error_protocol logs exactly once per call");
 
     return TAP_DONE();
 }

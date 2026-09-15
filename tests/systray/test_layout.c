@@ -409,13 +409,13 @@ desktop_td *surface_desktop_get(surface_td *surface,
     return s_desktop_get_stub;
 }
 
-monitor_td surface_primary_monitor(const surface_td *surface)
+monitor_td surface_monitor_primary(const surface_td *surface)
 {
     (void) surface;
     return s_primary_monitor_stub;
 }
 
-void surface_refresh_workareas(surface_td *surface)
+void surface_workarea_refresh_all(surface_td *surface)
 {
     (void) surface;
     s_refresh_workareas_calls++;
@@ -560,7 +560,7 @@ static void s_test_restack_below_layer(void)
     s_reset_stub_state();
     s_reset_tray_minimal(&surface);
     s_tray.layer = CONFIG_SYSTRAY_LAYER_BELOW;
-    s_surfaces_stub = NULL; /* s_systray_icons_push_below: no surfaces */
+    s_surfaces_stub = NULL; /* s_systray_icon_push_below_all: no surfaces */
 
     systray_layout_restack();
 
@@ -766,7 +766,7 @@ static void s_test_restack_above_already_settled(void)
 
 
 /* Monitor anchor CONFIG_SYSTRAY_MONITOR_PRIMARY: the tray docks
- * against whatever 'surface_primary_monitor' reports, not the whole
+ * against whatever 'surface_monitor_primary' reports, not the whole
  * combined surface */
 static void s_test_reflow_anchor_primary_monitor(void)
 {
@@ -1047,7 +1047,7 @@ static void s_test_reflow_icon_positions(void)
 }
 
 /* The strut is (re)published on every reflow that leaves the tray
- * visible, and 'surface_refresh_workareas' runs only when that strut
+ * visible, and 'surface_workarea_refresh_all' runs only when that strut
  * actually changed from what it was before */
 static void s_test_reflow_strut_change_triggers_workarea_refresh(void)
 {

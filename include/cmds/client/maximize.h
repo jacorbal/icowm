@@ -58,7 +58,7 @@ bool ccmd_client_refill_maximized_geometry(client_td *client);
  * right immediately after actually maximizing it: anything that later
  * changes what its workarea resolves to (a panel mapped or unmapped,
  * @c desktops.margins reloaded, or the surface's strutless-maximization
- * mode toggled through @a surface_action_toggle_strutless_maximize in
+ * mode toggled through @a surface_action_maximize_toggle_strutless in
  * @c surface.h) leaves it still filling wherever the old workarea was,
  * not the new one, until something re-applies its maximize geometry
  * from scratch.

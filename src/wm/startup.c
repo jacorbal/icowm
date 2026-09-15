@@ -35,6 +35,7 @@
 /* Project includes */
 #include <logger.h>
 #include <surface.h>
+#include <surface/action.h>
 #include <wm.h>
 
 /* Local includes */
@@ -159,7 +160,7 @@ int wm_startup_randr_init(wm_td *wm)
          * matching an output already connected at startup; a profile
          * for one that connects later is instead applied when
          * 'handler_randr_event' sees its 'OUTPUT_CHANGE' */
-        (void) surface_action_apply_randr_profiles(surface, false);
+        (void) surface_action_randr_apply_profiles(surface, false);
     }
 
     return 0;

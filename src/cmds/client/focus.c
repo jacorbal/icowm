@@ -47,18 +47,24 @@
 #include <utils/xcb/connection.h>
 #include <utils/xcb/window.h>
 
+/* Render includes */
+#include <render/outdate.h>
+
+/* Policy includes */
+#include <policy/focus.h>
+
+/* Control includes */
+#include <cctl/kill.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
-#include <policy/focus.h>
 #include <ipc.h>
 #include <lookup.h>
-#include <render/outdate.h>
 #include <systray.h>
 #include <wm.h>
-#include <cctl/kill.h>
 
-/* Command includes */
+/* Commands includes */
 #include <cmds/client/ewmh.h>
 #include <cmds/client/flags.h>
 #include <cmds/client/maximize.h>
@@ -91,18 +97,16 @@ struct s_fallback_ctx_s {
  *
  * Shared by both passes @a client_focus_fallback itself makes over
  * @p desktop's stacking list: mapped and visible (not hidden or
- * iconified; shaded is fine, @a ccmd_client_focus below already
- * targets a shaded client's frame instead of its unmapped
- * content), able to take real focus by window type and by its
- * declared ICCCM input model, not explicitly opted out via
- * @a client_has_no_focus_fallback, and not skipping the taskbar
- * unless it is modal, urgent, or a dialog (which need the user's
- * attention regardless of that flag).
+ * iconified; shaded is fine, @a ccmd_client_focus below already targets
+ * a shaded client's frame instead of its unmapped content), able to
+ * take real focus by window type and by its declared ICCCM input model,
+ * not explicitly opted out via @a client_has_no_focus_fallback, and not
+ * skipping the taskbar unless it is modal, urgent, or a dialog (which
+ * need the user's attention regardless of that flag).
  *
  * @param candidate Client being considered as a fallback target
  * @param data      Pointer to the @c s_fallback_ctx_s this search
- *                  carries, naming the client that must never be
- *                  chosen
+ *                  carries, naming the client that must never be chosen
  *
  * @return @c true if @p candidate is a valid fallback target
  *
@@ -173,19 +177,19 @@ static void s_ccmd_client_restore_one(client_td *client)
     xcb_atom_t icon_geom_atom;
 
     /* Restoring means two different things depending on where the
-     * client is, and the iconified case has to be settled first.  A
-     * client sitting as an icon is restored by bringing it back,
+     * client is, and the iconified case has to be settled first.
+     * A client sitting as an icon is restored by bringing it back,
      * whatever geometry state it may also hold; only a client already
      * on the desktop is restored by leaving that geometry state.
      *
      * Testing full screen ahead of this, as this function once did,
      * left an iconified full screen client merely losing its full
-     * screen bit and staying an icon, since that bit now survives
-     * being iconified where before it did not. */
+     * screen bit and staying an icon, since that bit now survives being
+     * iconified where before it did not. */
     if (!client_is_iconified(client)) {
-        /* Outermost state first, so one restore undoes one thing:
-         * full screen over a maximized window comes back maximized,
-         * and a second restore takes that away in turn. */
+        /* Outermost state first, so one restore undoes one thing: full
+         * screen over a maximized window comes back maximized, and
+         * a second restore takes that away in turn. */
         if (client_is_fullscreen(client)) {
             ccmd_client_unfullscreen(client);
         } else if (client_is_maximized(client)) {
@@ -478,8 +482,8 @@ void ccmd_client_restore(client_td *client)
      * 'client_is_focusable') redirects through
      * 'ccmd_client_focus_target' to whichever transient dialog should
      * actually end up focused, as 'ccmd_client_focus''s comment
-     * describes, which only finds that dialog if it
-     * is already mapped by the time this reaches that step. */
+     * describes, which only finds that dialog if it is already mapped
+     * by the time this reaches that step. */
     siblings = ccmd_client_transient_family_snapshot_anywhere(top,
             &count);
     if (siblings != NULL) {
@@ -497,8 +501,8 @@ void ccmd_client_restore(client_td *client)
                  * 's_ccmd_client_iconify_visit''s own comment,
                  * cmds/client/visibility.c), so restoring the family
                  * has to look for this too, not only for a sibling
-                 * genuinely iconified: left unhidden, a dialog that
-                 * was open when its application was minimized stayed
+                 * genuinely iconified: left unhidden, a dialog that was
+                 * open when its application was minimized stayed
                  * invisible, unreachable, yet still holding on to
                  * whatever it held before, once the application it
                  * belonged to was restored. */
@@ -528,9 +532,9 @@ void ccmd_client_focus(client_td *client)
      * 'focus_apply' (in 'policy/focus.c'): this function is also
      * reached from purely automatic, internal focus restoration that
      * has nothing to do with someone actually interacting with 'client'
-     * right now (foremost 'surface_clients_show''s "restore whichever
-     * client was last active on this desktop" step,
-     * surface/actions/clients.c, which runs on every single desktop
+     * right now (foremost 'surface_client_show_all''s "restore
+     * whichever client was last active on this desktop" step,
+     * 'surface/actions/client.c', which runs on every single desktop
      * switch).  Calling it unconditionally here dragged a transient
      * family across onto whatever desktop merely happened to be
      * switched to, the moment its pinned parent's 'client_active_id'
@@ -591,11 +595,12 @@ void ccmd_client_focus(client_td *client)
      * to its titlebar) stands in for it instead.  Without this,
      * a shaded client could never legitimately hold real input focus at
      * all: 's_client_focus_fallback_valid' (this same file) and
-     * 'surface_clients_show' (surface/actions/clients.c) both relied on
-     * simply excluding a shaded client from ever being offered here,
-     * over actually making this call safe for one, which left nothing
-     * to give a desktop's keyboard focus anywhere valid once its only
-     * client was shaded and the desktop was left and returned to. */
+     * 'surface_client_show_all' ('surface/actions/client.c') both
+     * relied on simply excluding a shaded client from ever being
+     * offered here, over actually making this call safe for one, which
+     * left nothing to give a desktop's keyboard focus anywhere valid
+     * once its only client was shaded and the desktop was left and
+     * returned to. */
     if (client->hints_icccm.hints.accepts_input) {
         xcb_window_t focus_win = (client_is_shaded(client) &&
                 client->frame != 0) ? client->frame : client->window;
@@ -604,13 +609,12 @@ void ccmd_client_focus(client_td *client)
     }
 
     /* ICCCM §4.1.8/§2.8: colormap focus follows input focus here, the
-     * common policy most window managers implement.  Only the
-     * explicit 'WM_COLORMAP_WINDOWS' case is covered, the one
+     * common policy most window managers implement.  Only the explicit
+     * 'WM_COLORMAP_WINDOWS' case is covered, the one
      * 'client_props_refresh_colormap_windows' in 'client/props.c'
-     * populates this
-     * from, caching each window's colormap attribute there
-     * already, so nothing here needs a round trip of its own); a
-     * client that omits it but still uses a non-default colormap on
+     * populates this from, caching each window's colormap attribute
+     * there already, so nothing here needs a round trip of its own);
+     * a client that omits it but still uses a non-default colormap on
      * its top-level window falls back to whatever is already
      * installed. */
     for (uint32_t i = 0u; i < client->colormap_windows.count; ++i) {
@@ -634,8 +638,8 @@ void ccmd_client_focus(client_td *client)
      * 'CurrentTime' there, so sending it one leaves it with nothing
      * valid to answer with.  A Locally or Globally Active client handed
      * 'CurrentTime' may simply decline to take focus, which looks from
-     * the outside like a titlebar
-     * that lights up while the keyboard goes elsewhere. */
+     * the outside like a titlebar that lights up while the keyboard
+     * goes elsewhere. */
     if (client->hints_icccm.protocols.has_take_focus &&
             ewmh != NULL) {
         xcb_client_message_event_t ev;

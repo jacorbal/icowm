@@ -34,11 +34,13 @@
  */
 static volatile sig_atomic_t s_stop_signal_received = 0;
 
+
 /**
  * @brief Flag written by @c SIGCONT (VT resume) to re-establish input
  *        grabs
  */
 static volatile sig_atomic_t s_resume_signal_received = 0;
+
 
 /**
  * @brief Flag written by the @c SIGHUP handler to request
@@ -46,36 +48,21 @@ static volatile sig_atomic_t s_resume_signal_received = 0;
  */
 static volatile sig_atomic_t s_reload_signal_received = 0;
 
+
 /**
  * @brief Flag written by @c SIGCHLD so the main loop can reap children
  */
 static volatile sig_atomic_t s_child_reap_requested = 0;
 
 
-/**
- * @brief Signal handler for termination signals
- *
- * Records the signal number; the actual shutdown is handled from the
- * normal execution context in the main loop via
- * @c wm_startup_requested_stop.
- *
- * @param signum Number of the received signal
- */
+/* Signal handler for termination signals */
 void wm_startup_handle_signal(int signum)
 {
     s_stop_signal_received = signum;
 }
 
 
-/**
- * @brief Signal handler for @c SIGHUP (configuration reload)
- *
- * Sets a flag consumed by @c wm_startup_requested_reload.  The actual
- * reload is deferred to the main loop so that it runs in a safe context
- * without async-signal-safety constraints.
- *
- * @param signum Number of the received signal (always @c SIGHUP)
- */
+/* Signal handler for 'SIGHUP' (configuration reload) */
 void wm_startup_handle_reload(int signum)
 {
     (void) signum;
@@ -83,15 +70,7 @@ void wm_startup_handle_reload(int signum)
 }
 
 
-/**
- * @brief Signal handler for @c SIGCONT (VT resume)
- *
- * Sets a flag consumed by @a wm_startup_requested_resume so that the
- * main loop can re-establish keyboard and mouse grabs after returning
- * from a virtual-terminal switch.
- *
- * @param signum Number of the received signal (always @c SIGCONT)
- */
+/* Signal handler for'SIGCONT' (VT resume) */
 void wm_startup_handle_resume(int signum)
 {
     (void) signum;
@@ -99,14 +78,7 @@ void wm_startup_handle_resume(int signum)
 }
 
 
-/**
- * @brief Signal handler for @c SIGCHLD
- *
- * Defers child reaping to the main loop so @c waitpid is only called in
- * normal execution context.
- *
- * @param signum Number of the received signal (always @c SIGCHLD)
- */
+/* Signal handler for 'SIGCHLD' */
 void wm_startup_handle_child(int signum)
 {
     (void) signum;
@@ -114,29 +86,7 @@ void wm_startup_handle_child(int signum)
 }
 
 
-/**
- * @brief Async-signal-safe handler for fatal signals
- *
- * See @a wm_startup_install_crash_handlers in @c wm/startup/install.h
- * for the full reasoning: this cannot recover and keep running, only
- * make sure dying is not silent.  Every operation here is restricted to
- * what POSIX guarantees is safe from within a signal handler.
- * The @c write syscall directly to standard error, a hand-rolled
- * digit-by-digit conversion of the signal number (never @c snprintf or
- * similar, which are not on the guaranteed-safe list), @c sigaction to
- * restore the signal's default disposition, and @c raise to re-deliver
- * it so the process actually terminates through the normal mechanism
- * afterward.
- *
- * @a logger_emergency_flush is called too, which is the one thing here
- * that touches the logger at all.  It goes nowhere near that module's
- * ordinary buffered, allocating path: it writes the pending messages
- * out with @c write and returns, leaving the buffer as it found it.
- * Without it the messages leading up to a crash die with the process,
- * which are the ones worth reading afterwards.
- *
- * @param signum Number of the received fatal signal
- */
+/* Async-signal-safe handler for fatal signals */
 void wm_startup_handle_crash(int signum)
 {
     static const char s_prefix[] = "icowm: fatal signal ";
@@ -153,9 +103,9 @@ void wm_startup_handle_crash(int signum)
     /* Every 'write' result below is deliberately unchecked: this
      * handler is already on its way to re-raising 'signum' with its
      * default disposition right after, terminating the process either
-     * way, so there is no meaningful recovery available if
-     * any one of them fails too.  Each captured in a real variable
-     * rather than cast to 'void' directly on the call, since GCC's own
+     * way, so there is no meaningful recovery available if any one of
+     * them fails too.  Each captured in a real variable rather than
+     * cast to 'void' directly on the call, since GCC's own
      * 'warn_unused_result' on 'write' does not treat a bare '(void)'
      * cast as acknowledging it. */
     write_result = write(STDERR_FILENO, s_prefix, sizeof(s_prefix) - 1u);

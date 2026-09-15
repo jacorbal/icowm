@@ -28,6 +28,7 @@
 #include <client.h>
 #include <config.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <logger.h>
 #include <render/surface.h>
 #include <utils/geom.h>

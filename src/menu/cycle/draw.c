@@ -312,14 +312,13 @@ static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
     } else if (client != NULL &&
             ((client_is_decorated(client) && client->frame != 0) ||
              client_is_fullscreen(client))) {
-        /* No border for a decorated client's frame (it already
-         * has its themed border painted elsewhere), and none for
-         * a fullscreen client either: applying the normal window
-         * border width here would paint a real, visible border over
-         * fullscreen content (e.g., mpv, undecorated from the start),
-         * the exact same reasoning 'ccmd_client_focus' in
-         * 'cmds/client/focus.c' already applies for a plain focus
-         * change. */
+        /* No border for a decorated client's frame (it already has its
+         * themed border painted elsewhere), and none for a fullscreen
+         * client either: applying the normal window border width here
+         * would paint a real, visible border over fullscreen content
+         * (e.g., mpv, undecorated from the start), the exact same
+         * reasoning 'ccmd_client_focus' in 'cmds/client/focus.c'
+         * already applies for a plain focus change. */
         border_width = 0u;
     } else {
         border_width = config->theme.window.active.border.width;
@@ -329,28 +328,7 @@ static uint32_t s_mi_cycle_preview_border_width(const client_td *client,
 }
 
 
-/**
- * @brief Resolve the X window used as the visual target for cycle
- *        preview
- *
- * Determines which X window should be used to represent a client during
- * cycle preview operations.  The function accounts for icon menu mode,
- * hidden clients, and window decorations to select the appropriate
- * drawable target.
- *
- * @param client       Pointer to the client to evaluate
- * @param is_icon_menu Whether the cycle preview is operating in icon
- *                     menu mode
- *
- * @return The X window ID to use as preview target, or
- *         @c XCB_WINDOW_NONE if no valid target is available
- *
- * @note Returns @c XCB_WINDOW_NONE if @p client is null, hidden, or
- *       lacks a valid drawable target
- * @note Prefers @p client->icon_window in icon menu mode when available
- * @note Uses the frame window when the client is decorated
- * @note Complexity: @e O(1)
- */
+/* Resolve the X window used as the visual target for cycle preview */
 xcb_window_t mi_cycle_preview_target(const client_td *client,
         bool is_icon_menu)
 {
@@ -422,7 +400,8 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
 
     if (connection == NULL || config == NULL ||
             g_cycle_menu.window == XCB_WINDOW_NONE ||
-            g_cycle_menu.surface == NULL || g_cycle_menu.desktop == NULL ||
+            g_cycle_menu.surface == NULL ||
+            g_cycle_menu.desktop == NULL ||
             g_cycle_menu.selected < 0 ||
             g_cycle_menu.selected >= g_cycle_menu.count) {
         return;
@@ -441,9 +420,9 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
      * (e.g., re-called for an 'Expose' on the menu window itself, or
      * navigating with only one client in the cycle, which always
      * "changes" the index back to the same single entry).  Nothing
-     * about the preview differs from what is already applied, so
-     * skip repeating every border/background/stacking request below
-     * for no visible change. */
+     * about the preview differs from what is already applied, so skip
+     * repeating every border/background/stacking request below for no
+     * visible change. */
     if (previous == selected) {
         return;
     }
@@ -473,17 +452,16 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
                     previous_border);
 
             if (g_cycle_menu.is_icon_menu) {
-                /* Full render (stacking below the tray, colors,
-                 * pixmap, caption, and hint indicators all included)
-                 * via the same shared function every other place a
-                 * deselected icon needs repainting already uses (see
-                 * 's_cycle_repaint_icon' in menu/cycle.c), rather
+                /* Full render (stacking below the tray, colors, pixmap,
+                 * caption, and hint indicators all included) via the
+                 * same shared function every other place a deselected
+                 * icon needs repainting already uses (see
+                 * 's_cycle_repaint_icon' in 'menu/cycle.c'), rather
                  * than a separate, duplicated implementation of the
-                 * same thing.  That duplication is exactly how this
-                 * one and that other one drifted out of sync in the
-                 * first place
-                 * (this one never learned to omit the pixmap for a
-                 * newly *selected* icon, below). */
+                 * same thing.  That duplication is exactly how this one
+                 * and that other one drifted out of sync in the first
+                 * place (this one never learned to omit the pixmap for
+                 * a newly *selected* icon, below). */
                 ri_render_client_icon(previous, true, true, true);
             } /* ! if (g_cycle_menu.is_icon_menu) */
         } /* ! if (previous_target) */
@@ -499,37 +477,37 @@ void mi_cycle_preview_apply(xcb_connection_t *connection,
     if (g_cycle_menu.is_icon_menu) {
         /* Same "selected" render every other place a newly selected
          * icon needs it already uses (see 's_cycle_repaint_icon' in
-         * menu/cycle.c): active colors, caption, and hint indicators
-         * all included, deliberately just the pixmap left out,
-         * rather than this function's separate, previously
-         * duplicated implementation, which (unlike that shared one)
-         * never learned to omit the pixmap here at all.
+         * 'menu/cycle.c'): active colors, caption, and hint indicators
+         * all included, deliberately just the pixmap left out, rather
+         * than this function's separate, previously duplicated
+         * implementation, which (unlike that shared one) never learned
+         * to omit the pixmap here at all.
          *
-         * 'restack' is false: the explicit 'xcb_window_stack_below'
-         * two lines down already puts it exactly where it needs to
-         * be, below the cycle menu's own floating window rather than
-         * merely below the tray, so restacking it below the tray
-         * here first would be work this immediately throws away. */
+         * 'restack' is false: the explicit 'xcb_window_stack_below' two
+         * lines down already puts it exactly where it needs to be,
+         * below the cycle menu's own floating window rather than merely
+         * below the tray, so restacking it below the tray here first
+         * would be work this immediately throws away. */
         ri_render_client_icon(selected, true, true, false);
     }
 
     xcb_window_stack_below(selected_target, g_cycle_menu.window);
 
     /* The cycle-selection outline itself: a separate overlay (see
-     * render/outline.h), never the target's native border width,
-     * so switching selection never shifts the target by however many
+     * render/outline.h), never the target's native border width, so
+     * switching selection never shifts the target by however many
      * pixels 'theme.cycle.border.width' happens to be.  Created once,
      * the first time a selection is applied after 'cycle_init', then
      * simply moved to each new selection's rectangle afterward;
      * 'cycle_destroy' is the one place these 4 windows are ever
-     * destroyed.  Deliberately placed here, after 'selected_target'
-     * has already been stacked below the menu just above: 'stack
-     * below sibling' inserts immediately below that sibling, pushing
-     * whatever was already immediately below it one step further
-     * away, so whichever of these two calls runs last ends up on
-     * top of the other.  Outlining a target only to have that same
-     * target's stacking request immediately bury the outline
-     * behind it again defeats the whole point of drawing one. */
+     * destroyed.  Deliberately placed here, after 'selected_target' has
+     * already been stacked below the menu just above: 'stack below
+     * sibling' inserts immediately below that sibling, pushing whatever
+     * was already immediately below it one step further away, so
+     * whichever of these two calls runs last ends up on top of the
+     * other.  Outlining a target only to have that same target's
+     * stacking request immediately bury the outline behind it again
+     * defeats the whole point of drawing one. */
     if (g_cycle_menu.outline_windows[0] == XCB_WINDOW_NONE) {
         render_outline_show(connection,
                 g_cycle_menu.surface->screen->root,
@@ -570,11 +548,11 @@ void cycle_draw(xcb_connection_t *connection, const config_td *config)
     (void) text_renderer_use_font(connection,
             config->theme.menu.unselected.font);
 
-    /* A scroll shift changes every row actually shown, so
-     * it still needs the full loop below.  Otherwise selection moved
-     * between two rows already on screen, and only those two actually
-     * changed which color/text they show, for repainting the rest would
-     * be identical to what is already there. */
+    /* A scroll shift changes every row actually shown, so it still
+     * needs the full loop below.  Otherwise selection moved between two
+     * rows already on screen, and only those two actually changed which
+     * color/text they show, for repainting the rest would be identical
+     * to what is already there. */
     need_full_repaint = !g_cycle_menu.has_drawn_once ||
         g_cycle_menu.last_drawn_scroll_offset != g_cycle_menu.scroll_offset;
 

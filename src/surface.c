@@ -40,6 +40,8 @@
 
 /* Local includes */
 #include <surface.h>
+#include <surface/desktop.h>
+#include <surface/monitor.h>
 
 
 /**
@@ -172,7 +174,7 @@ surface_td *surface_init(xcb_connection_t *connection,
     /* Discover this surface's physical monitors, now that its
      * combined dimensions (the RandR-unavailable fallback) are
      * known */
-    surface_refresh_monitors(surface);
+    surface_monitor_refresh_all(surface);
 
     /* Handle desktops */
     LOGGER_DEBUG("Setting up all %u desktops", desktop_count);

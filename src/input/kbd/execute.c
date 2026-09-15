@@ -57,10 +57,14 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
+#include <enact/desktop.h>
+#include <enact/surface.h>
 #include <logger.h>
 #include <lookup.h>
 #include <scratchpad.h>
 #include <surface.h>
+#include <surface/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -523,21 +527,21 @@ void ik_execute_binding(wm_td *wm, enum wm_keybind_type_e btype,
 
         case KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL:
             if (surface != NULL) {
-                enact_desktop_clients_iconify_all(
+                enact_desktop_client_iconify_all(
                         lookup_current_desktop(surface));
             }
             return;
 
         case KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL:
             if (surface != NULL) {
-                enact_desktop_clients_deiconify_all(
+                enact_desktop_client_deiconify_all(
                         lookup_current_desktop(surface));
             }
             return;
 
         case KEYBIND_DESKTOP_CLIENTS_REARRANGE:
             if (surface != NULL) {
-                enact_desktop_clients_rearrange(wm, surface,
+                enact_desktop_client_rearrange_all(wm, surface,
                         lookup_current_desktop(surface));
             }
             return;

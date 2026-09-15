@@ -41,6 +41,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <i18n.h>
 #include <surface.h>
 

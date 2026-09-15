@@ -639,21 +639,21 @@ void enact_desktop_show(desktop_td *desktop, bool show)
 }
 
 
-void enact_desktop_clients_iconify_all(desktop_td *desktop)
+void enact_desktop_client_iconify_all(desktop_td *desktop)
 {
     (void) desktop;
     s_call_enact_desktop_clients_iconify_all++;
 }
 
 
-void enact_desktop_clients_deiconify_all(desktop_td *desktop)
+void enact_desktop_client_deiconify_all(desktop_td *desktop)
 {
     (void) desktop;
     s_call_enact_desktop_clients_deiconify_all++;
 }
 
 
-void enact_desktop_clients_rearrange(const wm_td *wm, surface_td *surface,
+void enact_desktop_client_rearrange_all(const wm_td *wm, surface_td *surface,
         const desktop_td *desktop)
 {
     (void) wm;
@@ -1106,13 +1106,13 @@ static void s_test_desktop_clients_iconify_deiconify_rearrange(void)
 
     TAP_EQ_INT(s_call_enact_desktop_clients_iconify_all, 1,
             "KEYBIND_DESKTOP_CLIENTS_ICONIFY_ALL reaches" \
-            " enact_desktop_clients_iconify_all exactly once");
+            " enact_desktop_client_iconify_all exactly once");
     TAP_EQ_INT(s_call_enact_desktop_clients_deiconify_all, 1,
             "KEYBIND_DESKTOP_CLIENTS_DEICONIFY_ALL reaches" \
-            " enact_desktop_clients_deiconify_all exactly once");
+            " enact_desktop_client_deiconify_all exactly once");
     TAP_EQ_INT(s_call_enact_desktop_clients_rearrange, 1,
             "KEYBIND_DESKTOP_CLIENTS_REARRANGE reaches" \
-            " enact_desktop_clients_rearrange exactly once");
+            " enact_desktop_client_rearrange_all exactly once");
 }
 
 

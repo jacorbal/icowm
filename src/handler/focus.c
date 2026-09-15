@@ -55,11 +55,14 @@
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/workarea.h>
 #include <systray.h>
+#include <systray/handle.h>
 #include <wm.h>
 
 /* Local includes */
 #include <handler.h>
+#include <handler/focus.h>
 
 
 /* Handle a 'PROPERTY_NOTIFY' event */
@@ -123,7 +126,7 @@ void handler_property_notify(const wm_td *wm,
 
     /* Before the managed-client lookup below, and unconditionally, for
      * the same reason 'systray_handle_destroy' is in
-     * 'handler_destroy_notify': a docked systray icon is never
+     * 'handler_window_destroy_notify': a docked systray icon is never
      * a managed client, so that lookup would never find one for it.
      * The property actually changes on the icon's own window, not on
      * the tray window, since 'systray_protocol_dock' sets
@@ -348,7 +351,7 @@ void handler_property_notify(const wm_td *wm,
                 (int32_t) strut.bottom;
         }
 
-        surface_refresh_workareas(surface);
+        surface_workarea_refresh_all(surface);
 
         wm_outdate_surface(surface);
         wm_outdate_desktop(desktop);

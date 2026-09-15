@@ -4,7 +4,7 @@
  * @brief EWMH client-message sub-handlers
  *
  * Implements the per-message handler functions that are called from
- * @a handler_client_message in @c handler/message.c when a
+ * @a handler_message_client in @c handler/message.c when a
  * @c CLIENT_MESSAGE event arrives for a specific EWMH atom.
  *
  * Separated from @c handler/message.c to keep that file focused on
@@ -65,6 +65,8 @@
 #include <logger.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/client.h>
+#include <surface/desktop.h>
 #include <wm.h>
 
 
@@ -408,7 +410,7 @@ static void s_hi_handle_net_wm_desktop_one(client_td *client,
             : client->window;
 
         /* Account for the 'UnmapNotify' events so
-         * 'handler_unmap_notify' does not treat this WM-initiated unmap
+         * 'handler_window_unmap_notify' does not treat this WM-initiated unmap
          * as a client self-close and set 'CLIENT_FLAG_HIDDEN'.  Two
          * events arrive for the unmapped target ('SubstructureNotify'
          * on parent + 'StructureNotify' on target) and one additional
@@ -764,13 +766,13 @@ void hi_handle_net_showing_desktop(surface_td *surface, bool show)
     if (!show && surface->is_showing_desktop) {
         stacking_walk(desktop, s_client_unhide_visit,
                 &changed_hidden_state);
-        surface_clients_show(surface, surface->desktop_cur);
+        surface_client_show_all(surface, surface->desktop_cur);
     } else if (show) {
         /* Unmap the windows first, then mark them hidden.
-         * 'surface_clients_hide' skips clients that already have
+         * 'surface_client_hide_all' skips clients that already have
          * 'CLIENT_FLAG_HIDDEN' set, so the flag must be applied only
          * after the unmap call. */
-        surface_clients_hide(surface, surface->desktop_cur);
+        surface_client_hide_all(surface, surface->desktop_cur);
         stacking_walk(desktop, s_client_hide_visit,
                 &changed_hidden_state);
 

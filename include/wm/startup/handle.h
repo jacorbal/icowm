@@ -84,6 +84,19 @@ void wm_startup_handle_child(int signum);
  * for the full reasoning: this cannot recover and keep running, only
  * make sure dying is not silent.  Every operation here is restricted to
  * what POSIX guarantees is safe from within a signal handler.
+ * The @c write syscall directly to standard error, a hand-rolled
+ * digit-by-digit conversion of the signal number (never @c snprintf or
+ * similar, which are not on the guaranteed-safe list), @c sigaction to
+ * restore the signal's default disposition, and @c raise to re-deliver
+ * it so the process actually terminates through the normal mechanism
+ * afterward.
+ *
+ * @a logger_emergency_flush is called too, which is the one thing here
+ * that touches the logger at all.  It goes nowhere near that module's
+ * ordinary buffered, allocating path: it writes the pending messages
+ * out with @c write and returns, leaving the buffer as it found it.
+ * Without it the messages leading up to a crash die with the process,
+ * which are the ones worth reading afterwards.
  *
  * @param signum Number of the received fatal signal
  *

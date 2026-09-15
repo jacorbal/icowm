@@ -1342,7 +1342,7 @@ static void s_test_render_one_client_does_not_map_when_not_current(
     TAP_EQ_INT(s_window_show_calls, 0,
             "when this desktop is not the one currently shown, no"
             " window is (re-)mapped at all, so a prior explicit"
-            " surface_clients_hide is never raced against");
+            " surface_client_hide_all is never raced against");
 }
 
 static void s_test_render_one_client_hides_mapped_icon_when_current(

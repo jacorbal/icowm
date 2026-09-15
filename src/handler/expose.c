@@ -61,6 +61,7 @@
 
 /* Local includes */
 #include <handler.h>
+#include <handler/expose.h>
 
 
 /* Handle an 'EXPOSE' event for decoration repaints */

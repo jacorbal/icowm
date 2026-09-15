@@ -51,9 +51,13 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
+#include <enact/surface.h>
 #include <i18n.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/desktop.h>
+#include <surface/viewport.h>
 
 /* Policy includes */
 #include <policy/focus.h>

@@ -29,7 +29,7 @@
  * respectively.  'atom_intern' is a recording stand-in answering a
  * fixed, recognizable, distinct atom per name so a test can tell
  * exactly which of the several one-off atoms wm_ewmh_init interns
- * ended up in the supported-atoms list.  'surface_desktops_walk',
+ * ended up in the supported-atoms list.  'surface_desktop_walk_all',
  * 'stacking_walk', and 'stacking_count' are test-controlled stand-ins
  * that actually walk a plain array of desktop_td/client_td pointers a
  * test registers beforehand (rather than the real cdlist/ohtbl
@@ -607,25 +607,25 @@ xcb_void_cookie_t xcb_ewmh_set_client_list_stacking(
 
 
 /** Fixed array of desktops a test registers, and how many are valid,
- *  for @a surface_desktops_walk and @a surface_desktop_get to walk
+ *  for @a surface_desktop_walk_all and @a surface_desktop_get to walk
  *  or search through */
 static desktop_td *s_walk_desktops[8];
 static int s_walk_desktop_count;
 
 
 /**
- * @brief Test-controlled stand-in for @a surface_desktops_walk
+ * @brief Test-controlled stand-in for @a surface_desktop_walk_all
  *
  * Actually invokes @p visit once per desktop a test registered
  * through @a s_set_walk_desktops, exactly as the real
- * surface_desktops_walk (surface.c) does over its own cdlist, so that
+ * surface_desktop_walk_all (surface.c) does over its own cdlist, so that
  * wm/ewmh.c's own per-desktop visitor functions are genuinely
  * exercised rather than merely proven reachable
  *
  * @note Complexity: @e O(n), where @e n is the number of registered
  *       desktops
  */
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         void (*visit)(desktop_td *desktop, void *data), void *data)
 {
     int i;

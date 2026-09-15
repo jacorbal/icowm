@@ -28,6 +28,7 @@
 /* Project includes */
 #include <desktop.h>
 #include <logger.h>
+#include <surface/desktop.h>
 
 /* Local includes */
 #include <render/outdate.h>

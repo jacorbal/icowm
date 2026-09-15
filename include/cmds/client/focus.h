@@ -19,8 +19,10 @@
 #define CMDS_CCMD_FOCUS_H
 
 
-/* Project includes */
+/* Types includes */
 #include <types/handles.h>
+
+/* Project includes */
 #include <desktop.h>
 
 
@@ -79,13 +81,13 @@ void ccmd_client_focus(client_td *client);
  *
  * Held in one place because a window arriving back on screen does all
  * four wherever it arrives from, and doing three of them is what left
- * a window still wearing the active border after another had taken
- * the focus from it.  An undecorated window is where that shows.  Its
- * border is an attribute written only when focus changes, whereas a
- * decorated one is repainted from its focus state on the next
- * pass and quietly corrects itself.
+ * a window still wearing the active border after another had taken the
+ * focus from it.  An undecorated window is where that shows.  Its
+ * border is an attribute written only when focus changes, whereas
+ * a decorated one is repainted from its focus state on the next pass
+ * and quietly corrects itself.
  *
- * @param client Client to make active; may be @c NULL
+ * @param client Client to make active; may be null
  *
  * @note A client that cannot take focus is left alone entirely,
  *       stacking order included: it was never going to hold the
@@ -97,54 +99,49 @@ void ccmd_client_make_active(client_td *client);
 
 /**
  * @brief Transfer input focus away from a client that is leaving the
- *        current visible focus chain (closed, iconified, hidden, or
- *        no longer the desktop's remembered active client), to
- *        the most recently used other visible, focusable client on
- *        the same desktop
+ *        current visible focus chain (closed, iconified, hidden, or no
+ *        longer the desktop's remembered active client), to the most
+ *        recently used other visible, focusable client on the same
+ *        desktop
  *
- * Searches @p desktop's stacking order from the top down for the
- * first client that is not @p exclude, not hidden, not shaded, not
- * iconified, focusable, not flagged @c CLIENT_FLAG_NO_FOCUS_FALLBACK
- * (the scratchpad; see @a client_set_no_focus_fallback), and not
- * flagged @c CLIENT_FLAG_SKIP_TASKBAR unless it is modal, urgent, or
- * a dialog (each already important enough on its own to reach for
- * regardless, the same three exceptions @c CLIENT_TYPE_DIALOG,
- * @a client_is_modal, and @a client_is_urgent already carve out
- * elsewhere for the identical reasoning).
+ * Searches @p desktop's stacking order from the top down for the first
+ * client that is not @p exclude, not hidden, not shaded, not iconified,
+ * focusable, not flagged @c CLIENT_FLAG_NO_FOCUS_FALLBACK (the
+ * scratchpad; see @a client_set_no_focus_fallback), and not flagged
+ * @c CLIENT_FLAG_SKIP_TASKBAR unless it is modal, urgent, or a dialog
+ * (each already important enough on its own to reach for regardless,
+ * the same three exceptions @c CLIENT_TYPE_DIALOG, @a client_is_modal,
+ * and @a client_is_urgent already carve out elsewhere for the identical
+ * reasoning).
  *
- * Run twice, not once: a first pass over that same search restricted
- * to clients sharing @p exclude's @c WM_CLIENT_LEADER (ICCCM
- * §4.1.2.5) takes precedence over an equally-recent but unrelated
- * window, the same group-awareness @a place_window_apply
- * (policy/placement/window.c) already applies when placing a new
- * sibling window, and the same reasoning Openbox's
- * @c focus_valid_target (focus.c) weighs group membership for.
- * A second, plain pass with no group restriction runs only when the
- * first finds nothing, so a client with no group-mates left visible
- * falls back exactly as it always did.
+ * Run twice, not once: a first pass over that same search restricted to
+ * clients sharing @p exclude's @c WM_CLIENT_LEADER (ICCCM §4.1.2.5)
+ * takes precedence over an equally-recent but unrelated window, the
+ * same group-awareness @a place_window_apply
+ * (@c policy/placement/window.c) already applies when placing a new
+ * sibling window.  A second, plain pass with no group restriction runs
+ * only when the first finds nothing, so a client with no group-mates
+ * left visible falls back exactly as it always did.
  *
- * The winner, if any, is given real focus through
- * @a ccmd_client_focus itself, not a raw @c xcb_set_input_focus, so
- * urgency
- * clearing, the ICCCM input model, @c WM_TAKE_FOCUS, and every other
- * side effect real focus already carries apply here exactly as they
- * do anywhere else focus is granted.  Relinquishes focus to
- * @c PointerRoot instead when no candidate qualifies, so the desktop is
- * never left with stale keyboard focus on a client no longer meant
- * to hold it.
+ * The winner, if any, is given real focus through @a ccmd_client_focus
+ * itself, not a raw @c xcb_set_input_focus, so urgency clearing, the
+ * ICCCM input model, @c WM_TAKE_FOCUS, and every other side effect real
+ * focus already carries apply here exactly as they do anywhere else
+ * focus is granted.  Relinquishes focus to @c PointerRoot instead when
+ * no candidate qualifies, so the desktop is never left with stale
+ * keyboard focus on a client no longer meant to hold it.
  *
- * Deliberately never falls back onto a client that merely happens to
- * be visible without anyone having actually focused it themselves,
- * e.g., a pinned window on loan from whichever desktop it actually
- * got focused on: callers that only want a fallback under that
- * narrower condition already gate the call on their own desktop's
- * remembered active client having been genuinely set (see
- * @c surface_clients_show's two-block split,
- * surface/actions/clients.c, for exactly this distinction).
+ * Deliberately never falls back onto a client that merely happens to be
+ * visible without anyone having actually focused it themselves, e.g.,
+ * a pinned window on loan from whichever desktop it actually got
+ * focused on: callers that only want a fallback under that narrower
+ * condition already gate the call on their own desktop's remembered
+ * active client having been genuinely set (see
+ * @c surface_client_show_all's two-block split,
+ * @c surface/actions/client.c, for exactly this distinction).
  *
- * @param desktop Desktop whose stacking order is searched, and
- *                whose @c client_active_id and @c is_focus_dirty
- *                are updated
+ * @param desktop Desktop whose stacking order is searched, and whose
+ *                @c client_active_id and @c is_focus_dirty are updated
  * @param surface Surface @p desktop belongs to, marked outdated
  * @param exclude Client to exclude from the search (the one losing
  *                focus); may be null.  Unfocused in place when no
@@ -171,16 +168,16 @@ void ccmd_client_unfocus(client_td *client);
  *
  * Thin wrapper resolving @p client's surface and desktop before
  * deferring to @a client_focus_fallback itself; a no-op unless
- * @p client is genuinely that desktop's current active client,
- * since some other, already-unfocused client being hidden or
- * iconified has no focus of its own to hand off in the first place.
+ * @p client is genuinely that desktop's current active client, since
+ * some other, already-unfocused client being hidden or iconified has no
+ * focus of its own to hand off in the first place.
  *
- * Note that the desktop resolved is the one @p client lives on and
- * not whichever is showing, the two being different whenever a client
- * loses focus while the user is looking elsewhere.
+ * Note that the desktop resolved is the one @p client lives on and not
+ * whichever is showing, the two being different whenever a client loses
+ * focus while the user is looking elsewhere.
  *
- * @param client Client that is being hidden or iconified.  Unfocused
- *               in place when no replacement candidate is found
+ * @param client Client that is being hidden or iconified.  Unfocused in
+ *               place when no replacement candidate is found
  *
  * @note Complexity: @e O(n), where @e n is the number of clients on
  *       that desktop

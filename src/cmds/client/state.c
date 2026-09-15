@@ -311,7 +311,7 @@ static void s_ccmd_decorate_remove(client_td *client, int32_t bw)
         }
 
         /* Reparenting generates a synthetic 'UnmapNotify' for the
-         * content window.  Absorb it so 'handler_unmap_notify' does not
+         * content window.  Absorb it so 'handler_window_unmap_notify' does not
          * mistake the event for a voluntary hide and does not steal
          * focus from the window. */
         client->ignore.unmap += 2u;
@@ -646,8 +646,8 @@ void ccmd_client_shade(client_td *client)
      * window=content') and the content window's 'StructureNotify'
      * ('event=content, window=content').  Both carry 'event->window ==
      * client->window', so both reach the fall-through branch of
-     * 'handler_unmap_notify'; only one 'ignore_unmap' token would leave
-     * a second event unguarded, causing 'handler_unmap_notify' to
+     * 'handler_window_unmap_notify'; only one 'ignore_unmap' token would leave
+     * a second event unguarded, causing 'handler_window_unmap_notify' to
      * wrongly unmap the frame and titlebar and make the shaded titlebar
      * disappear. */
     client->ignore.unmap += 2u;

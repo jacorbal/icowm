@@ -19,6 +19,7 @@
 
 /* Project includes */
 #include <surface.h>
+#include <types/direction.h>
 
 
 /* Public interface */

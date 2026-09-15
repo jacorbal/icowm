@@ -41,6 +41,8 @@
 #include <wm.h>
 
 /* Local includes */
+#include <systray/handle.h>
+#include <systray/icon.h>
 #include <systray/internal.h>
 
 
@@ -159,7 +161,7 @@ static void s_systray_config_apply(const wm_td *wm)
  *
  * @see @a systray_protocol_dock in @c systray/protocol.c
  */
-static void s_systray_icons_resize(void)
+static void s_systray_icon_resize_all(void)
 {
     for (uint16_t i = 0u; i < s_tray.icon_count; ++i) {
         xcb_window_t icon = s_tray.icons[i].window;
@@ -456,7 +458,7 @@ void systray_reload(const wm_td *wm)
      * while momentarily disabled is still correct the next time the
      * tray is shown again, without needing every application to re-dock
      * itself. */
-    s_systray_icons_resize();
+    s_systray_icon_resize_all();
 
     if (was_active && !should_be_enabled) {
         LOGGER_INFO("Systray disabled by configuration reload;" \

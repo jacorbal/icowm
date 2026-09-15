@@ -32,6 +32,8 @@
 
 /* Local includes */
 #include <surface.h>
+#include <surface/desktop.h>
+#include <surface/workarea.h>
 
 
 /**
@@ -60,14 +62,14 @@ static void s_workarea_update_visit(desktop_td *desktop, void *data)
 
 
 /* Recompute the work area for every desktop on a surface */
-void surface_refresh_workareas(surface_td *surface)
+void surface_workarea_refresh_all(surface_td *surface)
 {
 
     if (surface == NULL) {
         return;
     }
 
-    surface_desktops_walk(surface, s_workarea_update_visit, surface);
+    surface_desktop_walk_all(surface, s_workarea_update_visit, surface);
 
     /* Every path that recomputes a surface's work areas (an XRandR
      * resolution change, a dock or panel appearing or disappearing, and

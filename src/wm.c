@@ -62,6 +62,7 @@
 #include <lookup.h>
 #include <loop.h>
 #include <memguard.h>
+#include <surface/desktop.h>
 #include <systray.h>
 #include <xsettings.h>
 
@@ -143,7 +144,7 @@ static void s_wm_cleanup(void)
         return;
     }
 
-    wm_all_clients_unmanage(wm);
+    wm_client_unmanage_all(wm);
 
     /* The focus order refers to clients and owns none of them, so it is
      * released once nothing will consult it again */
@@ -236,7 +237,7 @@ static void s_wm_cleanup(void)
 
         /* Flushed rather than left to 'xcb_disconnect', which makes no
          * promise about a request still sitting in the buffer.
-         * Everything 'wm_all_clients_unmanage' just did to hand the
+         * Everything 'wm_client_unmanage_all' just did to hand the
          * clients back in a sane state is in that buffer, and one left
          * unmapped because its map never reached the server is a window
          * the user cannot get back. */
@@ -890,7 +891,7 @@ surface_td *wm_get_desktop_surface(const desktop_td *desktop)
         }
         found_ctx.wanted = desktop;
         found_ctx.is_found = false;
-        surface_desktops_walk(surface, s_desktop_match_visit,
+        surface_desktop_walk_all(surface, s_desktop_match_visit,
                 &found_ctx);
         if (found_ctx.is_found) {
             return surface;
@@ -968,7 +969,7 @@ void wm_request_full_redraw(void)
 
         surface->is_outdated = true;
 
-        surface_desktops_walk(surface, s_desktop_outdate_visit, NULL);
+        surface_desktop_walk_all(surface, s_desktop_outdate_visit, NULL);
     } /* ! for (snode) */
 }
 

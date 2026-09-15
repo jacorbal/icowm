@@ -3,16 +3,16 @@
  *
  * @brief Unit tests for @c handler/map.c
  *
- * Covers @c handler_map_notify, @c handler_gravity_notify,
- * @c handler_circulate_notify, @c handler_circulate_request,
- * @c handler_unmap_notify, and @c handler_destroy_notify in full,
- * plus @c handler_map_request narrowed to its guard clauses and
+ * Covers @c handler_window_map_notify, @c handler_window_gravity_notify,
+ * @c handler_window_circulate_notify, @c handler_window_circulate_request,
+ * @c handler_window_unmap_notify, and @c handler_window_destroy_notify in full,
+ * plus @c handler_window_map_request narrowed to its guard clauses and
  * early-return "unmanaged" paths, all exercised through synthetic
  * XCB event structs and hand-built @c client_td/@c surface_td/
  * @c desktop_td/@c wm_td fixtures.  No live X connection is ever
  * needed.
  *
- * @c handler_map_request's deep body, from the point it decides to
+ * @c handler_window_map_request's deep body, from the point it decides to
  * actually adopt a window (the @c client_init call onward through
  * @c desktop_action_client_add, @c client_link_transient,
  * @c scratchpad_position, @c rules_apply, @c place_window_apply,
@@ -28,12 +28,12 @@
  * for @c rules_apply); turning every one of them into a link-only
  * stand-in here would only prove that this file's stand-ins call each
  * other in the order the source dictates, not that
- * @c handler_map_request's own logic is correct, while the guard
+ * @c handler_window_map_request's own logic is correct, while the guard
  * clauses and early "leave it unmanaged" returns tested below are
  * exactly the part of this function's own responsibility that does
  * not depend on any of those twenty collaborators' real behavior.
  *
- * @c handler_destroy_notify and @c handler_unmap_notify are each
+ * @c handler_window_destroy_notify and @c handler_window_unmap_notify are each
  * tested to the same depth as every other handler file in this
  * family: every guard clause, both branches of every conditional, and
  * every collaborator call this function's own body is responsible
@@ -107,7 +107,7 @@
 #include <wm/internal.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/window.h>
 #include <harness/tap.h>
 
 
@@ -271,7 +271,7 @@ void memguard_warn_client_cap(xcb_connection_t *connection,
 
 
 /** Link-only stand-in for client_init; never returns a real client in
- *  this file's narrowed scope, so handler_map_request's body always
+ *  this file's narrowed scope, so handler_window_map_request's body always
  *  takes the "left unmanaged" early return right after this call */
 client_td *client_init(xcb_connection_t *connection,
         xcb_ewmh_connection_t *ewmh, xcb_window_t window,
@@ -446,21 +446,16 @@ void ccmd_client_hide(client_td *client)
 }
 
 
-/** Recording stand-in for ccmd_client_unhide: reached by
- *  handler_map_request's own already-managed branch, unlike its
- *  neighbors above */
-static unsigned int s_call_ccmd_unhide = 0u;
-static client_td *s_last_ccmd_unhide_client = NULL;
-
+/** Link-only stand-in for ccmd_client_unhide; never reached, see
+ *  ccmd_client_iconify's comment above */
 void ccmd_client_unhide(client_td *client)
 {
-    s_call_ccmd_unhide++;
-    s_last_ccmd_unhide_client = client;
+    (void) client;
 }
 
 
 /** Link-only stand-in for surface_desktop_get; used by
- *  handler_map_request's own body for a real, reachable branch (the
+ *  handler_window_map_request's own body for a real, reachable branch (the
  *  startup-notification origin desktop lookup), unlike the
  *  s_map_finish-only collaborators above */
 desktop_td *surface_desktop_get(surface_td *surface,
@@ -666,8 +661,8 @@ void place_manual_cancel_client(xcb_connection_t *connection,
 }
 
 
-/** Link-only stand-in for surface_refresh_workareas */
-void surface_refresh_workareas(surface_td *surface)
+/** Link-only stand-in for surface_workarea_refresh_all */
+void surface_workarea_refresh_all(surface_td *surface)
 {
     (void) surface;
 
@@ -982,8 +977,6 @@ static void s_test_reset_state(void)
     s_call_ccmd_desktop_enforce_layers = 0u;
     s_call_ccmd_target_win = 0u;
     s_call_map_window = 0u;
-    s_call_ccmd_unhide = 0u;
-    s_last_ccmd_unhide_client = NULL;
     s_call_unmap_window = 0u;
     s_call_destroy_window = 0u;
     s_call_xcb_window_hide = 0u;
@@ -1036,7 +1029,7 @@ static void s_test_build_wm(wm_td *wm, xcb_ewmh_connection_t *ewmh,
 }
 
 
-/* handler_map_request: a null wm or event is a no-op that never even
+/* handler_window_map_request: a null wm or event is a no-op that never even
  * reaches the already-managed lookup */
 static void s_test_map_request_null_guards(void)
 {
@@ -1053,8 +1046,8 @@ static void s_test_map_request_null_guards(void)
     event.window = 0x100;
     event.parent = 0x1;
 
-    handler_map_request(NULL, &event);
-    handler_map_request(&wm, NULL);
+    handler_window_map_request(NULL, &event);
+    handler_window_map_request(&wm, NULL);
 
     TAP_OK(s_call_lookup_find_client == 0u,
             "a null wm or event never reaches the already-managed" \
@@ -1062,9 +1055,8 @@ static void s_test_map_request_null_guards(void)
 }
 
 
-/* handler_map_request: a window already tracked as a managed client
- * is properly re-shown (through ccmd_client_unhide), not mapped raw
- * and left with stale bookkeeping, and never re-enters adoption */
+/* handler_window_map_request: a window already tracked as a managed client
+ * is mapped directly, without going through adoption again */
 static void s_test_map_request_already_managed(void)
 {
     wm_td wm;
@@ -1083,21 +1075,17 @@ static void s_test_map_request_already_managed(void)
     event.parent = 0x1;
     s_lookup_find_client_result = &existing_client;
 
-    handler_map_request(&wm, &event);
+    handler_window_map_request(&wm, &event);
 
-    TAP_OK(s_call_map_window == 0u,
-            "an already-managed window is no longer mapped raw");
-    TAP_OK(s_call_ccmd_unhide == 1u,
-            "it is instead properly re-shown through" \
-            " ccmd_client_unhide exactly once");
-    TAP_OK(s_last_ccmd_unhide_client == &existing_client,
-            "on the exact client the lookup resolved");
+    TAP_OK(s_call_map_window == 1u,
+            "a window already tracked as a managed client is mapped" \
+            " directly exactly once");
     TAP_OK(s_call_client_init == 0u,
             "an already-managed window never re-enters client_init");
 }
 
 
-/* handler_map_request: a docked systray icon is left to the systray
+/* handler_window_map_request: a docked systray icon is left to the systray
  * subsystem instead of being adopted as a top-level client */
 static void s_test_map_request_systray_icon(void)
 {
@@ -1116,7 +1104,7 @@ static void s_test_map_request_systray_icon(void)
     s_lookup_find_client_result = NULL;
     s_systray_icon_map_request_result = true;
 
-    handler_map_request(&wm, &event);
+    handler_window_map_request(&wm, &event);
 
     TAP_OK(s_call_client_init == 0u,
             "a docked systray icon is never adopted as a top-level" \
@@ -1124,7 +1112,7 @@ static void s_test_map_request_systray_icon(void)
 }
 
 
-/* handler_map_request: no resolvable surface at all (empty surface
+/* handler_window_map_request: no resolvable surface at all (empty surface
  * list too) leaves the window entirely unmapped and unmanaged */
 static void s_test_map_request_no_surface(void)
 {
@@ -1147,7 +1135,7 @@ static void s_test_map_request_no_surface(void)
     s_systray_icon_map_request_result = false;
     s_lookup_surface_for_root_result = NULL;
 
-    handler_map_request(&wm, &event);
+    handler_window_map_request(&wm, &event);
 
     TAP_OK(s_call_map_window == 0u,
             "a window with no resolvable surface and an empty" \
@@ -1160,7 +1148,7 @@ static void s_test_map_request_no_surface(void)
 }
 
 
-/* handler_map_request: a resolvable surface with no current desktop
+/* handler_window_map_request: a resolvable surface with no current desktop
  * maps the window as unmanaged (visible, but untracked) */
 static void s_test_map_request_no_current_desktop(void)
 {
@@ -1183,7 +1171,7 @@ static void s_test_map_request_no_current_desktop(void)
     s_lookup_surface_for_root_result = &surface;
     s_lookup_current_desktop_result = NULL;
 
-    handler_map_request(&wm, &event);
+    handler_window_map_request(&wm, &event);
 
     TAP_OK(s_call_map_window == 1u,
             "a resolvable surface with no current desktop maps the" \
@@ -1194,19 +1182,19 @@ static void s_test_map_request_no_current_desktop(void)
 }
 
 
-/* handler_map_notify: a null event is a no-op */
+/* handler_window_map_notify: a null event is a no-op */
 static void s_test_map_notify_null_event(void)
 {
     s_test_reset_state();
 
-    handler_map_notify((xcb_connection_t *) 0x1234, NULL, NULL);
+    handler_window_map_notify((xcb_connection_t *) 0x1234, NULL, NULL);
 
     TAP_OK(s_call_lookup_find_client == 0u,
             "a null event never reaches the client lookup");
 }
 
 
-/* handler_map_notify: an override-redirect window (tooltips, menus)
+/* handler_window_map_notify: an override-redirect window (tooltips, menus)
  * is ignored outright */
 static void s_test_map_notify_override_redirect_ignored(void)
 {
@@ -1217,7 +1205,7 @@ static void s_test_map_notify_override_redirect_ignored(void)
     event.window = 0x100;
     event.override_redirect = 1;
 
-    handler_map_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_map_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_lookup_find_client == 0u,
             "an override-redirect window never even reaches the" \
@@ -1225,7 +1213,7 @@ static void s_test_map_notify_override_redirect_ignored(void)
 }
 
 
-/* handler_map_notify: an unresolvable window is a no-op past the
+/* handler_window_map_notify: an unresolvable window is a no-op past the
  * lookup */
 static void s_test_map_notify_unresolvable(void)
 {
@@ -1236,14 +1224,14 @@ static void s_test_map_notify_unresolvable(void)
     event.window = 0x100;
     s_lookup_find_client_result = NULL;
 
-    handler_map_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_map_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_wm_request_client_redraw == 0u,
             "an unresolvable window never requests a redraw");
 }
 
 
-/* handler_map_notify: a resolved, decorated client whose own window
+/* handler_window_map_notify: a resolved, decorated client whose own window
  * mapped gets redrawn, re-synced with a synthetic ConfigureNotify,
  * and its cursor re-asserted */
 static void s_test_map_notify_decorated_client(void)
@@ -1259,7 +1247,7 @@ static void s_test_map_notify_decorated_client(void)
     event.window = 0x100;
     s_lookup_find_client_result = &client;
 
-    handler_map_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_map_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_wm_request_client_redraw == 1u,
             "a resolved client is redrawn exactly once");
@@ -1275,7 +1263,7 @@ static void s_test_map_notify_decorated_client(void)
 }
 
 
-/* handler_map_notify: a resolved but undecorated client's own window
+/* handler_window_map_notify: a resolved but undecorated client's own window
  * mapping never sends a synthetic ConfigureNotify (only decorated
  * clients need the re-sync) */
 static void s_test_map_notify_undecorated_client_no_resync(void)
@@ -1291,7 +1279,7 @@ static void s_test_map_notify_undecorated_client_no_resync(void)
     event.window = 0x100;
     s_lookup_find_client_result = &client;
 
-    handler_map_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_map_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_client_send_synthetic_configure_notify == 0u,
             "an undecorated client's own window mapping sends no" \
@@ -1299,19 +1287,19 @@ static void s_test_map_notify_undecorated_client_no_resync(void)
 }
 
 
-/* handler_gravity_notify: a null event is a no-op */
+/* handler_window_gravity_notify: a null event is a no-op */
 static void s_test_gravity_notify_null_event(void)
 {
     s_test_reset_state();
 
-    handler_gravity_notify((xcb_connection_t *) 0x1234, NULL, NULL);
+    handler_window_gravity_notify((xcb_connection_t *) 0x1234, NULL, NULL);
 
     TAP_OK(s_call_lookup_find_client == 0u,
             "a null event never reaches the client lookup");
 }
 
 
-/* handler_gravity_notify: an unresolvable window is a no-op */
+/* handler_window_gravity_notify: an unresolvable window is a no-op */
 static void s_test_gravity_notify_unresolvable(void)
 {
     xcb_gravity_notify_event_t event;
@@ -1321,7 +1309,7 @@ static void s_test_gravity_notify_unresolvable(void)
     event.window = 0x100;
     s_lookup_find_client_result = NULL;
 
-    handler_gravity_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_gravity_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_client_decoration_layout_sync == 0u,
             "an unresolvable window never re-syncs any decoration" \
@@ -1329,7 +1317,7 @@ static void s_test_gravity_notify_unresolvable(void)
 }
 
 
-/* handler_gravity_notify: a resolved client has its cached position
+/* handler_window_gravity_notify: a resolved client has its cached position
  * updated and its decoration re-synced */
 static void s_test_gravity_notify_updates_position(void)
 {
@@ -1344,7 +1332,7 @@ static void s_test_gravity_notify_updates_position(void)
     event.y = -7;
     s_lookup_find_client_result = &client;
 
-    handler_gravity_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_gravity_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_EQ_INT((int) client.layout.geometry.cur.pos.x, 42,
             "the frame's new X position is cached on the client");
@@ -1358,7 +1346,7 @@ static void s_test_gravity_notify_updates_position(void)
 }
 
 
-/* handler_gravity_notify: a decorated, framed client also gets a
+/* handler_window_gravity_notify: a decorated, framed client also gets a
  * synthetic ConfigureNotify; an undecorated one does not */
 static void s_test_gravity_notify_decorated_resync(void)
 {
@@ -1373,7 +1361,7 @@ static void s_test_gravity_notify_decorated_resync(void)
     event.window = 0x100;
     s_lookup_find_client_result = &client;
 
-    handler_gravity_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_gravity_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_client_send_synthetic_configure_notify == 1u,
             "a decorated, framed client receives a synthetic" \
@@ -1385,7 +1373,7 @@ static void s_test_gravity_notify_decorated_resync(void)
     client.properties.flags = 0u;
     s_lookup_find_client_result = &client;
 
-    handler_gravity_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_gravity_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_client_send_synthetic_configure_notify == 0u,
             "an undecorated, framed client receives no synthetic" \
@@ -1393,19 +1381,19 @@ static void s_test_gravity_notify_decorated_resync(void)
 }
 
 
-/* handler_circulate_notify: a null event is a no-op */
+/* handler_window_circulate_notify: a null event is a no-op */
 static void s_test_circulate_notify_null_event(void)
 {
     s_test_reset_state();
 
-    handler_circulate_notify((xcb_connection_t *) 0x1234, NULL, NULL);
+    handler_window_circulate_notify((xcb_connection_t *) 0x1234, NULL, NULL);
 
     TAP_OK(s_call_lookup_surface_for_root == 0u,
             "a null event never reaches the surface lookup");
 }
 
 
-/* handler_circulate_notify: a resolved root outdates its surface */
+/* handler_window_circulate_notify: a resolved root outdates its surface */
 static void s_test_circulate_notify_outdates_surface(void)
 {
     surface_td surface;
@@ -1418,26 +1406,26 @@ static void s_test_circulate_notify_outdates_surface(void)
     event.event = 0x1;
     s_lookup_surface_for_root_result = &surface;
 
-    handler_circulate_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_circulate_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(surface.is_outdated,
             "a resolved circulate-notify root outdates its surface");
 }
 
 
-/* handler_circulate_request: a null event is a no-op */
+/* handler_window_circulate_request: a null event is a no-op */
 static void s_test_circulate_request_null_event(void)
 {
     s_test_reset_state();
 
-    handler_circulate_request((xcb_connection_t *) 0x1234, NULL, NULL);
+    handler_window_circulate_request((xcb_connection_t *) 0x1234, NULL, NULL);
 
     TAP_OK(s_call_lookup_find_client == 0u,
             "a null event never reaches the client lookup");
 }
 
 
-/* handler_circulate_request: an unresolvable window is a no-op */
+/* handler_window_circulate_request: an unresolvable window is a no-op */
 static void s_test_circulate_request_unresolvable(void)
 {
     xcb_circulate_request_event_t event;
@@ -1447,7 +1435,7 @@ static void s_test_circulate_request_unresolvable(void)
     event.window = 0x100;
     s_lookup_find_client_result = NULL;
 
-    handler_circulate_request((xcb_connection_t *) 0x1234, NULL,
+    handler_window_circulate_request((xcb_connection_t *) 0x1234, NULL,
             &event);
 
     TAP_OK(s_call_configure_window == 0u,
@@ -1455,7 +1443,7 @@ static void s_test_circulate_request_unresolvable(void)
 }
 
 
-/* handler_circulate_request: placing on top asks for
+/* handler_window_circulate_request: placing on top asks for
  * XCB_STACK_MODE_ABOVE, and layer ordering is re-enforced afterward */
 static void s_test_circulate_request_place_on_top(void)
 {
@@ -1472,7 +1460,7 @@ static void s_test_circulate_request_place_on_top(void)
     s_lookup_find_client_result = &client;
     s_lookup_find_client_desktop_out = &desktop;
 
-    handler_circulate_request((xcb_connection_t *) 0x1234, NULL,
+    handler_window_circulate_request((xcb_connection_t *) 0x1234, NULL,
             &event);
 
     TAP_EQ_INT((int) s_last_configure_window_stack_mode,
@@ -1489,7 +1477,7 @@ static void s_test_circulate_request_place_on_top(void)
 }
 
 
-/* handler_circulate_request: placing on the bottom asks for
+/* handler_window_circulate_request: placing on the bottom asks for
  * XCB_STACK_MODE_BELOW */
 static void s_test_circulate_request_place_on_bottom(void)
 {
@@ -1506,7 +1494,7 @@ static void s_test_circulate_request_place_on_bottom(void)
     s_lookup_find_client_result = &client;
     s_lookup_find_client_desktop_out = &desktop;
 
-    handler_circulate_request((xcb_connection_t *) 0x1234, NULL,
+    handler_window_circulate_request((xcb_connection_t *) 0x1234, NULL,
             &event);
 
     TAP_EQ_INT((int) s_last_configure_window_stack_mode,
@@ -1515,19 +1503,19 @@ static void s_test_circulate_request_place_on_bottom(void)
 }
 
 
-/* handler_unmap_notify: a null event is a no-op */
+/* handler_window_unmap_notify: a null event is a no-op */
 static void s_test_unmap_notify_null_event(void)
 {
     s_test_reset_state();
 
-    handler_unmap_notify((xcb_connection_t *) 0x1234, NULL, NULL);
+    handler_window_unmap_notify((xcb_connection_t *) 0x1234, NULL, NULL);
 
     TAP_OK(s_call_lookup_find_client == 0u,
             "a null event never reaches the client lookup");
 }
 
 
-/* handler_unmap_notify: an unresolvable window is a no-op */
+/* handler_window_unmap_notify: an unresolvable window is a no-op */
 static void s_test_unmap_notify_unresolvable(void)
 {
     xcb_unmap_notify_event_t event;
@@ -1537,14 +1525,14 @@ static void s_test_unmap_notify_unresolvable(void)
     event.window = 0x100;
     s_lookup_find_client_result = NULL;
 
-    handler_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_ccmd_set_wm_state == 0u,
             "an unresolvable window never publishes any WM_STATE");
 }
 
 
-/* handler_unmap_notify: an unmap of a resolved client's non-primary
+/* handler_window_unmap_notify: an unmap of a resolved client's non-primary
  * window (e.g., a stray decoration unmap event) decrements the ignore
  * counter without withdrawing the client, when the counter was
  * already positive, and is a silent no-op past that when it was not */
@@ -1560,7 +1548,7 @@ static void s_test_unmap_notify_non_primary_window(void)
     event.window = 0x999; /* Not client.window */
     s_lookup_find_client_result = &client;
 
-    handler_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_EQ_INT((int) client.ignore.unmap, 1,
             "an unmap of a non-primary window decrements a positive" \
@@ -1571,7 +1559,7 @@ static void s_test_unmap_notify_non_primary_window(void)
 }
 
 
-/* handler_unmap_notify: an ignored unmap of the primary window (the
+/* handler_window_unmap_notify: an ignored unmap of the primary window (the
  * window manager's own synthetic unmap) is swallowed without
  * withdrawing the client */
 static void s_test_unmap_notify_ignored_primary(void)
@@ -1586,7 +1574,7 @@ static void s_test_unmap_notify_ignored_primary(void)
     event.window = 0x100;
     s_lookup_find_client_result = &client;
 
-    handler_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_EQ_INT((int) client.ignore.unmap, 0,
             "a self-inflicted unmap of the primary window consumes" \
@@ -1597,7 +1585,7 @@ static void s_test_unmap_notify_ignored_primary(void)
 }
 
 
-/* handler_unmap_notify: a genuine self-withdrawal of the primary
+/* handler_window_unmap_notify: a genuine self-withdrawal of the primary
  * window hides the client, falls back focus when it was active,
  * hides its decorations, resets its state, and withdraws it via
  * EWMH */
@@ -1622,7 +1610,7 @@ static void s_test_unmap_notify_genuine_withdrawal(void)
     s_lookup_find_client_surface_out = &surface;
     s_lookup_find_client_desktop_out = &desktop;
 
-    handler_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_client_focus_fallback == 1u,
             "withdrawing the currently active client falls back" \
@@ -1647,47 +1635,12 @@ static void s_test_unmap_notify_genuine_withdrawal(void)
             desktop.is_outdated,
             "a genuine self-withdrawal outdates the client," \
             " surface, and desktop directly");
-    TAP_OK(client_is_withdrawn(&client) != 0,
-            "a genuine self-withdrawal marks the client as having" \
-            " unmapped its own window itself");
 }
 
 
-/* handler_unmap_notify: a client withdrawing while it still has a
- * mapped icon box (left behind by WM_CHANGE_STATE or
- * _NET_WM_STATE_HIDDEN reaching ccmd_client_iconify before this same
- * client's own withdrawal did) has that icon box hidden too, not
- * left behind as an orphan */
-static void s_test_unmap_notify_withdrawal_hides_orphan_icon(void)
-{
-    client_td client;
-    surface_td surface;
-    desktop_td desktop;
-    xcb_unmap_notify_event_t event;
-
-    s_test_reset_state();
-    s_test_build_client(&client, 0x100);
-    client.icon_window = 0x400;
-    client.is_icon_mapped = true;
-    memset(&surface, 0, sizeof(surface));
-    memset(&desktop, 0, sizeof(desktop));
-    memset(&event, 0, sizeof(event));
-    event.window = 0x100;
-    s_lookup_find_client_result = &client;
-    s_lookup_find_client_surface_out = &surface;
-    s_lookup_find_client_desktop_out = &desktop;
-
-    handler_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
-
-    TAP_OK(s_call_xcb_window_hide == 1u,
-            "the orphaned icon box is hidden, no frame or titlebar" \
-            " here to also hide");
-    TAP_OK(!client.is_icon_mapped,
-            "the client no longer considers its icon box mapped");
-}
 
 
-/* handler_unmap_notify: withdrawing a client that was not the active
+/* handler_window_unmap_notify: withdrawing a client that was not the active
  * one on its desktop never triggers a focus fallback */
 static void s_test_unmap_notify_withdrawal_not_active(void)
 {
@@ -1709,7 +1662,7 @@ static void s_test_unmap_notify_withdrawal_not_active(void)
     s_lookup_find_client_surface_out = &surface;
     s_lookup_find_client_desktop_out = &desktop;
 
-    handler_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
+    handler_window_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
 
     TAP_OK(s_call_client_focus_fallback == 0u,
             "withdrawing a client that was not the desktop's active" \
@@ -1717,7 +1670,7 @@ static void s_test_unmap_notify_withdrawal_not_active(void)
 }
 
 
-/* handler_destroy_notify: a null event is a no-op past
+/* handler_window_destroy_notify: a null event is a no-op past
  * systray_handle_destroy, which unconditionally still runs */
 static void s_test_destroy_notify_null_event(void)
 {
@@ -1730,7 +1683,7 @@ static void s_test_destroy_notify_null_event(void)
     memset(&config, 0, sizeof(config));
     s_test_build_wm(&wm, &ewmh, &config);
 
-    handler_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
+    handler_window_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
             NULL);
 
     TAP_OK(s_call_lookup_find_client == 0u,
@@ -1738,7 +1691,7 @@ static void s_test_destroy_notify_null_event(void)
 }
 
 
-/* handler_destroy_notify: systray_handle_destroy runs unconditionally
+/* handler_window_destroy_notify: systray_handle_destroy runs unconditionally
  * before the managed-client lookup, so a destroyed docked icon (never
  * a managed client) still gets cleaned out of the tray */
 static void s_test_destroy_notify_always_notifies_systray(void)
@@ -1756,7 +1709,7 @@ static void s_test_destroy_notify_always_notifies_systray(void)
     event.window = 0x100;
     s_lookup_find_client_result = NULL;
 
-    handler_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
+    handler_window_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
             &event);
 
     TAP_OK(s_call_systray_handle_destroy == 1u,
@@ -1768,7 +1721,7 @@ static void s_test_destroy_notify_always_notifies_systray(void)
 }
 
 
-/* handler_destroy_notify: a destroy of a resolved client's non-primary
+/* handler_window_destroy_notify: a destroy of a resolved client's non-primary
  * window (e.g., a stray child) is a no-op past the lookup */
 static void s_test_destroy_notify_non_primary_window(void)
 {
@@ -1787,7 +1740,7 @@ static void s_test_destroy_notify_non_primary_window(void)
     event.window = 0x999; /* Not client.window */
     s_lookup_find_client_result = &client;
 
-    handler_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
+    handler_window_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
             &event);
 
     TAP_OK(s_call_client_destroy == 0u,
@@ -1796,7 +1749,7 @@ static void s_test_destroy_notify_non_primary_window(void)
 }
 
 
-/* handler_destroy_notify: an active drag on the destroyed client is
+/* handler_window_destroy_notify: an active drag on the destroyed client is
  * cancelled first */
 static void s_test_destroy_notify_cancels_active_drag(void)
 {
@@ -1820,7 +1773,7 @@ static void s_test_destroy_notify_cancels_active_drag(void)
     s_drag_is_active_result = true;
     s_drag_client_result = &client;
 
-    handler_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
+    handler_window_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
             &event);
 
     TAP_OK(s_call_drag_cancel == 1u,
@@ -1829,7 +1782,7 @@ static void s_test_destroy_notify_cancels_active_drag(void)
 }
 
 
-/* handler_destroy_notify: an active drag on a DIFFERENT client is left
+/* handler_window_destroy_notify: an active drag on a DIFFERENT client is left
  * alone */
 static void s_test_destroy_notify_leaves_unrelated_drag(void)
 {
@@ -1855,7 +1808,7 @@ static void s_test_destroy_notify_leaves_unrelated_drag(void)
     s_drag_is_active_result = true;
     s_drag_client_result = &other_client;
 
-    handler_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
+    handler_window_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
             &event);
 
     TAP_OK(s_call_drag_cancel == 0u,
@@ -1864,7 +1817,7 @@ static void s_test_destroy_notify_leaves_unrelated_drag(void)
 }
 
 
-/* handler_destroy_notify: destroying the content window destroys the
+/* handler_window_destroy_notify: destroying the content window destroys the
  * now-orphaned frame for real and increments the ignore counter to
  * swallow its own resulting UnmapNotify.  Only this content-window
  * branch is reachable at all: the guard clause a few lines above in
@@ -1905,7 +1858,7 @@ static void s_test_destroy_notify_frame_vs_content(void)
     s_lookup_find_client_surface_out = &surface;
     s_lookup_find_client_desktop_out = &desktop;
 
-    handler_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
+    handler_window_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
             &event);
 
     TAP_EQ_INT((int) client.frame, 0,
@@ -1923,7 +1876,7 @@ static void s_test_destroy_notify_frame_vs_content(void)
 }
 
 
-/* handler_destroy_notify: removing a client from a resolved desktop
+/* handler_window_destroy_notify: removing a client from a resolved desktop
  * refreshes the surface's work areas, and falls back focus only when
  * that client was the desktop's active one */
 static void s_test_destroy_notify_removes_from_desktop(void)
@@ -1950,7 +1903,7 @@ static void s_test_destroy_notify_removes_from_desktop(void)
     s_lookup_find_client_surface_out = &surface;
     s_lookup_find_client_desktop_out = &desktop;
 
-    handler_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
+    handler_window_destroy_notify(&wm, (xcb_connection_t *) 0x1234, NULL,
             &event);
 
     TAP_OK(s_call_desktop_action_client_rem == 1u,
@@ -1975,7 +1928,7 @@ static void s_test_destroy_notify_removes_from_desktop(void)
 
 int main(void)
 {
-    TAP_PLAN(68);
+    TAP_PLAN(63);
 
     s_test_map_request_null_guards();
     s_test_map_request_already_managed();
@@ -2002,7 +1955,6 @@ int main(void)
     s_test_unmap_notify_non_primary_window();
     s_test_unmap_notify_ignored_primary();
     s_test_unmap_notify_genuine_withdrawal();
-    s_test_unmap_notify_withdrawal_hides_orphan_icon();
     s_test_unmap_notify_withdrawal_not_active();
     s_test_destroy_notify_null_event();
     s_test_destroy_notify_always_notifies_systray();

@@ -58,11 +58,15 @@
 #include <config/memguard.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/desktop.h>
 #include <logger.h>
 #include <lookup.h>
 #include <rules.h>
 #include <session.h>
 #include <surface.h>
+#include <surface/action.h>
+#include <surface/desktop.h>
+#include <surface/workarea.h>
 #include <systray.h>
 #include <xsettings.h>
 
@@ -283,7 +287,7 @@ static void s_resync_after_reload(const wm_td *wm)
         reload_ctx.tray = &tray;
         reload_ctx.is_tray_visible = tray_visible;
         reload_ctx.index = 0u;
-        surface_desktops_walk(s, s_desktop_reload_visit,
+        surface_desktop_walk_all(s, s_desktop_reload_visit,
                 &reload_ctx);
 
         s->is_outdated = true;
@@ -298,9 +302,9 @@ static void s_resync_after_reload(const wm_td *wm)
          * invisible until one of those unrelated triggers happened to
          * fire, e.g., by switching desktops (switching away and back
          * hides and shows clients, an unmap/map pair that reaches
-         * 'surface_refresh_workareas' as a side effect of something
+         * 'surface_workarea_refresh_all' as a side effect of something
          * else entirely). */
-        surface_refresh_workareas(s);
+        surface_workarea_refresh_all(s);
     }
 }
 
@@ -319,7 +323,7 @@ void wm_action_rearrange(const wm_td *wm, surface_td *surface)
         return;
     }
 
-    enact_desktop_clients_rearrange(wm, surface, desktop);
+    enact_desktop_client_rearrange_all(wm, surface, desktop);
 }
 
 
@@ -383,7 +387,7 @@ int wm_action_config_reload(const wm_td *wm)
         for (list_item_td *node = list_head(wm_surfaces(wm));
                 node != NULL; node = list_next(node)) {
             surface_td *const s = (surface_td *) list_data(node);
-            bool changed = surface_action_apply_randr_profiles(s, true);
+            bool changed = surface_action_randr_apply_profiles(s, true);
 
             if (changed) {
                 any_changed = true;

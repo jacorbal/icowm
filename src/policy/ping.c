@@ -34,6 +34,7 @@
 #include <cmds/client/ewmh.h>
 #include <desktop.h>
 #include <surface.h>
+#include <surface/desktop.h>
 
 /* Local includes */
 #include <policy/ping.h>
@@ -116,7 +117,7 @@ static bool s_ping_any_supported(list_td *surfaces)
             continue;
         }
 
-        surface_desktops_walk(surface, s_ping_supported_visit,
+        surface_desktop_walk_all(surface, s_ping_supported_visit,
                 &has_supported);
         if (has_supported) {
             return true;
@@ -202,7 +203,7 @@ static void s_ping_probe_round(list_td *surfaces)
             continue;
         }
 
-        surface_desktops_walk(surface, s_ping_probe_visit, NULL);
+        surface_desktop_walk_all(surface, s_ping_probe_visit, NULL);
     } /* ! for (snode) */
 }
 

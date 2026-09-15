@@ -367,7 +367,7 @@ static void s_desktop_render_client_visit(client_td *client, void *data)
  * currently displayed on its surface, only geometry/stacking is updated
  * so that a stale full-render pass (triggered by an unrelated
  * @p is_outdated flag, e.g., after moving/resizing a client) cannot
- * undo an explicit @a surface_clients_hide and make a client reappear
+ * undo an explicit @a surface_client_hide_all and make a client reappear
  * on top of the desktop the user actually switched to.
  *
  * @param desktop    Pointer to the desktop to draw
@@ -418,33 +418,8 @@ static int s_desktop_render_clients(desktop_td *desktop, bool is_current)
 }
 
 
-/**
- * @brief Render, position, and decorate a single already-non-hidden
- *        client during a stacking-order render pass
- *
- * Applies the client's border width (only when it actually changed, to
- * avoid needless server round trips), maps or unmaps its
- * frame/titlebar/content window as appropriate for whether @p desktop
- * is the surface's currently displayed one, and either reconfigures its
- * full geometry and decoration (when @c is_outdated) or, more cheaply,
- * only refreshes focus-sensitive decoration colors (when only
- * @p desktop's @c is_focus_dirty changed).  See the caller's own
- * stacking-order iteration for how this fits into a full render pass.
- *
- * Public (not @c static) so @c policy/urgency.c can repaint one
- * specific urgent client directly on its own blink-phase change,
- * without forcing a full-desktop @c desktop_render_full pass (and every
- * other client on it repainting along with it) just to update one
- * client's titlebar colors.
- *
- * @param desktop    Desktop the client belongs to
- * @param client     Client to render; assumed non-@c NULL and not
- *                   currently hidden
- * @param is_current Whether @p desktop is the surface's currently
- *                   displayed desktop
- *
- * @note Complexity: @e O(1)
- */
+/* Render, position, and decorate a single already-non-hidden client
+ * during a stacking-order render pass */
 void desktop_render_one_client(desktop_td *desktop,
         client_td *client, bool is_current)
 {
@@ -538,12 +513,12 @@ void desktop_render_one_client(desktop_td *desktop,
      *
      * If that pass unconditionally mapped clients on a desktop that is
      * not currently shown, it could race with (and undo) an explicit
-     * 'surface_clients_hide' issued by a desktop switch, making
+     * 'surface_client_hide_all' issued by a desktop switch, making
      * a client reappear on top of the desktop the user just switched
      * to.
      *
      * Visibility of non-current desktops must be governed solely by
-     * 'surface_clients_hide'/'surface_clients_show' */
+     * 'surface_client_hide_all'/'surface_client_show_all' */
     if (is_current) {
         if (client->icon_window != 0 && client->is_icon_mapped) {
             xcb_window_hide(client->icon_window);

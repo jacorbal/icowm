@@ -46,9 +46,12 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
+#include <enact/surface.h>
 #include <logger.h>
 #include <memguard.h>
 #include <surface.h>
+#include <surface/desktop.h>
 #include <wm.h>
 
 /* Render includes */
@@ -964,7 +967,7 @@ static void s_winlist_build_desktop_submenus(surface_td *surface,
     submenu_ctx.cur_did = cur_did;
     submenu_ctx.entry_count = n;
     submenu_ctx.index = 0u;
-    surface_desktops_walk(surface, s_desktop_submenu_visit,
+    surface_desktop_walk_all(surface, s_desktop_submenu_visit,
             &submenu_ctx);
     n = submenu_ctx.entry_count;
 

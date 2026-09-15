@@ -27,6 +27,7 @@
 /* Project includes */
 #include <client.h>
 #include <surface.h>
+#include <surface/monitor.h>
 #include <wm.h>
 
 /* Local includes */

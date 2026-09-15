@@ -151,8 +151,8 @@ bool rules_apply(const wm_td *wm, client_td *client, surface_td **surface,
 }
 
 
-/** Link-only stand-in for surface_refresh_workareas (surface.c) */
-void surface_refresh_workareas(surface_td *surface)
+/** Link-only stand-in for surface_workarea_refresh_all (surface.c) */
+void surface_workarea_refresh_all(surface_td *surface)
 {
     (void) surface;
 }

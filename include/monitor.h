@@ -3,18 +3,18 @@
  *
  * @brief Physical monitor rectangle type
  *
- * @p monitor_td is deliberately its type, not a @c typedef or reuse
- * of @p (struct geometry_s) (in @c types/pair.h).  The two happen to
+ * @c monitor_td is deliberately its type, not a @c typedef or reuse
+ * of @c (struct geometry_s) (in @c types/pair.h).  The two happen to
  * hold the same four numbers, but a monitor and an arbitrary rectangle
  * (a window's geometry, a work area, a clipped intersection) are not
  * the same thing, and sharing one type between them lets either be
  * passed where the other was meant without the compiler ever noticing.
  * Keeping them distinct also means the many far more common consumers
- * of @p geometry_s (windows, work areas, menus, ...) never need to pull
+ * of @c geometry_s (windows, work areas, menus, ...) never need to pull
  * in this header at all, and this header never needs to pull in
  * @c types/pair.h.
  *
- * @note The duplication of @p ({ x, y, w, h }) this creates is
+ * @note The duplication of @c ({ x, y, w, h }) this creates is
  *       intentional
  *
  * @see @c types/pair.h's file comment for the project's established

@@ -45,6 +45,7 @@
 #include <cmds/client/visibility.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/desktop.h>
 #include <handler/internal.h>
 #include <harness/tap.h>
 #include <ipc.h>
@@ -252,18 +253,18 @@ int desktop_action_client_send_back(desktop_td *desktop,
 }
 
 
-/** Link-only stand-in for desktop_action_clients_iconify_all
+/** Link-only stand-in for desktop_action_client_iconify_all
  *  (desktop.c) */
-int desktop_action_clients_iconify_all(desktop_td *desktop)
+int desktop_action_client_iconify_all(desktop_td *desktop)
 {
     (void) desktop;
     return 0;
 }
 
 
-/** Link-only stand-in for desktop_action_clients_deiconify_all
+/** Link-only stand-in for desktop_action_client_deiconify_all
  *  (desktop.c) */
-int desktop_action_clients_deiconify_all(desktop_td *desktop)
+int desktop_action_client_deiconify_all(desktop_td *desktop)
 {
     (void) desktop;
     return 0;

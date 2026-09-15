@@ -26,6 +26,7 @@
 #include <logger.h>
 #include <render/text.h>
 #include <surface.h>
+#include <surface/desktop.h>
 #include <utils/safe/safestr.h>
 
 

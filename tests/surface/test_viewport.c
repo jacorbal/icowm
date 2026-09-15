@@ -31,6 +31,7 @@
 /* Project includes */
 #include <config.h>
 #include <surface.h>
+#include <surface/viewport.h>
 
 /* Harness includes */
 #include "harness/tap.h"

@@ -56,6 +56,7 @@
 #include <config.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <cctl/launch.h>
 #include <lookup.h>
 #include <surface.h>

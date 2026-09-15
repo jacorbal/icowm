@@ -192,40 +192,8 @@ static void s_free_rect_shrink_visit(client_td *client, void *data)
 }
 
 
-/**
- * @brief Grow the largest obstacle-free rectangle whose top-left
- *        corner sits at a given point, extending right and down
- *
- * Starts from the full box between the corner and the placement
- * bounds, then repeatedly shrinks it on whichever side loses less
- * area whenever a visible client (or, when @p tray_rect is not
- * @c NULL, the systray) intrudes, until nothing intrudes or the box
- * collapses.  Repeating the whole scan (bounded by the client count
- * on @p desktop, plus one more for @p tray_rect) instead of stopping
- * after one pass catches an obstacle that only starts to intrude once
- * an earlier shrink has already pulled a boundary toward it.
- *
- * @param desktop     Desktop whose clients are checked against
- * @param skip_client Client to ignore (the one being placed)
- * @param x0          Corner X coordinate the rectangle grows from
- * @param y0          Corner Y coordinate the rectangle grows from
- * @param bound_x     Right placement bound the rectangle cannot
- *                    cross
- * @param bound_y     Bottom placement bound the rectangle cannot
- *                    cross
- * @param tray_rect   The systray's current on-screen rectangle to also
- *                    avoid, or @c NULL to skip it (@c systray.
- *                    avoid-overlap is @c false, or has no effect while
- *                    @c systray.reserve-space is @c true
- * @param out_w       Receives the free width found, or 0 if the
- *                    corner itself sits inside another obstacle
- * @param out_h       Receives the free height found, or 0 likewise
- *
- * @note Complexity: @e O(n^2) worst case, where @e n is the number
- *       of clients on @p desktop
- *
- * @see @a place_window_smart
- */
+/* Grow the largest obstacle-free rectangle whose top-left corner sits
+ * at a given point, extending right and down */
 void placement_free_rect_grow(const desktop_td *desktop,
         const client_td *skip_client,
         int32_t x0, int32_t y0, int32_t bound_x, int32_t bound_y,
@@ -303,39 +271,8 @@ void placement_free_rect_grow(const desktop_td *desktop,
 }
 
 
-/**
- * @brief Score a candidate window position against existing clients
- *        and, optionally, the systray
- *
- * The overlap penalty itself (@a place_overlap_score,
- * @c policy/placement/score.h) is shared with
- * @c place_icon_apply's @c CONFIG_ICON_PLACEMENT_SMART search.
- * Only the tie-breaker below, and the optional systray penalty, are
- * specific to window placement.  A small distance-to-center penalty
- * breaks ties in favor of the workarea center, staying much smaller
- * than any overlap penalty so it only matters when two positions have
- * equal overlap cost.
- *
- * @param desktop     Desktop whose clients are inspected
- * @param skip_client Client to ignore (the one being placed)
- * @param x           Candidate left coordinate
- * @param y           Candidate top coordinate
- * @param fw          Candidate width
- * @param fh          Candidate height
- * @param tray_rect   The systray's current on-screen rectangle to
- *                    add the same per-pixel overlap penalty as an
- *                    ordinary window for, or @c NULL to skip it
- *                    (@c systray.avoid-overlap is @c false, or has
- *                    no effect while @c systray.reserve-space is
- *                    @c true; see @a place_window_smart)
- * @param center_x    X coordinate of the workarea center
- * @param center_y    Y coordinate of the workarea center
- *
- * @return Aggregate cost; lower is better; 0 means a perfect position
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       @p desktop
- */
+/* Score a candidate window position against existing clients and,
+ * optionally, the systray */
 uint64_t placement_score_window_pos(const desktop_td *desktop,
         const client_td *skip_client,
         int32_t x, int32_t y, uint32_t fw, uint32_t fh,

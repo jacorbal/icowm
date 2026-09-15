@@ -24,19 +24,17 @@
 /* ADT includes */
 #include <adt/cdlist.h>
 
-/* Project includes */
-#include <client.h>
-#include <desktop.h>
-#include <policy/stacking.h>
-#include <logger.h>
-#include <surface.h>
-#include <wm.h>
-
 /* JSON includes */
 #include <cjson/cJSON.h>
 
+/* Utils includes */
+#include <utils/xcb/window.h>
+
 /* IPC includes */
 #include <ipc.h>
+
+/* Policy includes */
+#include <policy/stacking.h>
 
 /* Command includes */
 #include <cmds/client/ewmh.h>
@@ -55,10 +53,17 @@
 /* Handler includes */
 #include <handler/internal.h>
 
+/* Project includes */
+#include <client.h>
+#include <desktop.h>
+#include <logger.h>
+#include <surface.h>
+#include <wm.h>
+
 /* Local includes */
 #include <enact.h>
+#include <enact/desktop.h>
 #include <enact/internal.h>
-#include <utils/xcb/window.h>
 
 
 /**
@@ -159,8 +164,8 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * that redirect walk would otherwise still find 'client' sitting
      * in 'desktop->clients' at the moment of the search, even though
      * it is already on its way to 'target'; the same reasoning
-     * behind the matching reorder in 'handler_destroy_notify' and
-     * 'handler_unmap_notify' (handler/map.c).  The remove-add-
+     * behind the matching reorder in 'handler_window_destroy_notify' and
+     * 'handler_window_unmap_notify' (handler/map.c).  The remove-add-
      * rollback-record sequence itself comes straight from
      * 'desktop_action_client_move' (desktop/dclient.c) rather than
      * being reimplemented here, so it stays the one place that
@@ -189,24 +194,23 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
         return;
     }
 
-    /* Remembered here as 'target''s active client, the same
-     * memory 'surface_clients_show' (surface/actions/clients.c)
-     * reads back whenever this desktop next becomes visible, so a
-     * client just sent here is what greets a user arriving later,
-     * exactly as if it had always been the thing they cared about
-     * on this desktop, rather than something they have to go hunt
-     * for.  Left unset for a genuinely unfocusable client (the same
-     * gate 'surface_clients_show' itself re-checks on the read side
+    /* Remembered here as 'target''s active client, the same memory
+     * 'surface_client_show_all' ('surface/actions/client.c') reads back
+     * whenever this desktop next becomes visible, so a client just sent
+     * here is what greets a user arriving later, exactly as if it had
+     * always been the thing they cared about on this desktop, rather
+     * than something they have to go hunt for.  Left unset for
+     * a genuinely unfocusable client (the same gate
+     * 'surface_client_show_all' itself re-checks on the read side
      * regardless, gracefully falling through to
-     * 'client_focus_fallback''s guess if this one somehow no
-     * longer qualifies
-     * by the time it is actually read), so it never becomes the
-     * remembered target only to be silently skipped over later.
+     * 'client_focus_fallback''s guess if this one somehow no longer
+     * qualifies by the time it is actually read), so it never becomes
+     * the remembered target only to be silently skipped over later.
      * Deliberately unconditional otherwise, overwriting whatever
-     * 'target' already remembered even when it was not empty.  A
-     * client someone just deliberately placed here is a reasonable
-     * thing to consider more relevant on arrival than whatever was
-     * last active before it showed up, matching how a freshly opened
+     * 'target' already remembered even when it was not empty.  A client
+     * someone just deliberately placed here is a reasonable thing to
+     * consider more relevant on arrival than whatever was last active
+     * before it showed up, matching how a freshly opened
      * window already becomes a desktop's new active client. */
     if (client_is_focusable(client)) {
         target->client_active_id = client->id;
@@ -225,23 +229,23 @@ static void s_enact_desktop_client_send_one(desktop_td *desktop,
      * and its own published desktop can differ. */
     ccmd_publish_wm_desktop(client, target->id);
 
-    /* If 'client' was the source desktop's active client, hand
-     * focus there off to whatever else on that desktop qualifies,
-     * the same way closing, hiding, or iconifying the active client
-     * already does everywhere else in this project (see
-     * 's_client_focus_fallback''s comment); without this,
-     * the source desktop's 'client_active_id' was left pointing at a
-     * client no longer even in its list, and because the client
-     * is unmapped above when it was visible, the X server's real
-     * keyboard focus was left on a now-unmapped window instead of
-     * transferring to another visible one, rather than silently
-     * doing nothing as an already-inactive client being sent away
-     * correctly does. */
+    /* If 'client' was the source desktop's active client, hand focus
+     * there off to whatever else on that desktop qualifies, the same
+     * way closing, hiding, or iconifying the active client already does
+     * everywhere else in this project (see 's_client_focus_fallback''s
+     * comment); without this, the source desktop's 'client_active_id'
+     * was left pointing at a client no longer even in its list, and
+     * because the client is unmapped above when it was visible, the
+     * X server's real keyboard focus was left on a now-unmapped window
+     * instead of transferring to another visible one, rather than
+     * silently doing nothing as an already-inactive client being sent
+     * away correctly does. */
     if (desktop->client_active_id == client->id) {
         client_focus_fallback(desktop, surface, client);
     }
 
-    enact_broadcast_client_event(client, IPC_EVENT_CLIENT_DESKTOP_CHANGED);
+    enact_broadcast_client_event(client,
+            IPC_EVENT_CLIENT_DESKTOP_CHANGED);
 }
 
 
@@ -265,11 +269,11 @@ struct s_rearrange_ctx_s {
  * @brief Place one client afresh while rearranging a desktop
  *
  * Every client goes through the same general-purpose placement engine
- * a newly mapped window does, not a rearrange-only routine, so a
- * transient dialog among them is re-centered over its parent per
+ * a newly mapped window does, not a rearrange-only routine, so
+ * a transient dialog among them is re-centered over its parent per
  * ICCCM §4.1.2.6 rather than moved by the configured policy.  That
- * parent can live on another surface, which is why this needs the
- * whole @c wm_td rather than a desktop.
+ * parent can live on another surface, which is why this needs the whole
+ * @c wm_td rather than a desktop.
  *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_rearrange_ctx_s this walk carries
@@ -294,13 +298,13 @@ static void s_desktop_rearrange_visit(client_td *client, void *data)
      * left alone.  'place_window_apply' below places into the visible
      * workarea, which is only ever the page currently panned to, so
      * rearranging without this check would haul every window on the
-     * whole canvas onto that one page and there would be no way to
-     * put them back.  A sticky client is reported as belonging to no
-     * page at all, since it is on screen from every origin, so it
-     * fails this test and is rearranged along with the rest, which is
-     * what it should be.  Both page lookups report false on a 1x1
-     * viewport too, where the question does not arise and every
-     * client on the desktop is rearranged as before. */
+     * whole canvas onto that one page and there would be no way to put
+     * them back.  A sticky client is reported as belonging to no page
+     * at all, since it is on screen from every origin, so it fails this
+     * test and is rearranged along with the rest, which is what it
+     * should be.  Both page lookups report false on a 1x1 viewport too,
+     * where the question does not arise and every client on the desktop
+     * is rearranged as before. */
     if (scmd_surface_viewport_client_page(rearrange_ctx->surface,
                 rearrange_ctx->desktop, client, &client_col,
                 &client_row) &&
@@ -320,8 +324,7 @@ static void s_desktop_rearrange_visit(client_td *client, void *data)
 }
 
 
-/* 'action_desktop_e' */
-
+/* Set the desktop's background color */
 void enact_desktop_set_background(desktop_td *desktop, uint32_t color)
 {
     surface_td *surface;
@@ -372,29 +375,8 @@ void enact_desktop_show(desktop_td *desktop, bool show)
 }
 
 
-/**
- * @brief Send the client to another desktop, taking its whole
- *        transient family with it
- *
- * The desktop-move counterpart to @a ccmd_client_iconify's
- * transient-family cascade (see its comment, cmds/client/
- * visibility.c, for the full reasoning).  Redirects to the family's
- * top-most ancestor first, moving it exactly as this function always
- * has, then moves every other member of that same family too, so a
- * "save changes?" prompt (or any other transient dialog) never ends
- * up left behind on the old desktop, stranded apart from the parent
- * window it belongs to and cannot meaningfully be used without.  A
- * client with no transient relatives at all is unaffected.  Its
- * top parent is itself, and no sibling scan finds anything else to
- * move alongside it.
- *
- * @param desktop Client's current desktop
- * @param client  Window to move
- * @param target  Desktop to move it to
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the top parent's desktop
- */
+/* Send the client to another desktop, taking its whole transient family
+ * with it */
 void enact_desktop_client_send(const desktop_td *desktop,
         client_td *client, desktop_td *target)
 {
@@ -461,7 +443,7 @@ void enact_desktop_client_send_back(desktop_td *desktop,
 
 /* Re-apply the configured placement policy to every client on the
  * desktop */
-void enact_desktop_clients_rearrange(const wm_td *wm,
+void enact_desktop_client_rearrange_all(const wm_td *wm,
         surface_td *surface, const desktop_td *desktop)
 {
     struct s_rearrange_ctx_s rearrange_ctx;
@@ -495,24 +477,24 @@ void enact_desktop_clients_rearrange(const wm_td *wm,
 
 
 /* Iconify every client on the desktop */
-void enact_desktop_clients_iconify_all(desktop_td *desktop)
+void enact_desktop_client_iconify_all(desktop_td *desktop)
 {
     if (desktop == NULL) {
         return;
     }
 
-    desktop_action_clients_iconify_all(desktop);
+    desktop_action_client_iconify_all(desktop);
 }
 
 
 /* Restore every iconified client on the desktop */
-void enact_desktop_clients_deiconify_all(desktop_td *desktop)
+void enact_desktop_client_deiconify_all(desktop_td *desktop)
 {
     if (desktop == NULL) {
         return;
     }
 
-    desktop_action_clients_deiconify_all(desktop);
+    desktop_action_client_deiconify_all(desktop);
 }
 
 

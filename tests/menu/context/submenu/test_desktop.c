@@ -4,7 +4,7 @@
  * @brief Test battery for the shared "Send to desktop" context menu
  *        submenu (menu/context/submenu/desktop.c)
  *
- * 'surface_desktops_walk' is test-controlled, walking a small fixture
+ * 'surface_desktop_walk_all' is test-controlled, walking a small fixture
  * array instead of a real circular desktop list, so a scenario can
  * hand 'ctxmenu_submenu_desktop_build' exactly the desktops it wants
  * to see enumerated.  'surface_desktop_label' is also test-controlled,
@@ -73,17 +73,17 @@ void enact_client_toggle_pin(client_td *client)
 }
 
 
-/** Test-controlled desktop fixture list 'surface_desktops_walk' below
+/** Test-controlled desktop fixture list 'surface_desktop_walk_all' below
  *  walks, in order, instead of a real circular desktop list
  * @note Complexity: @e O(1) */
 #define MAX_TEST_DESKTOPS (4)
 static desktop_td *s_desktops[MAX_TEST_DESKTOPS];
 static int s_desktop_count;
 
-/** Test-controlled stand-in for @a surface_desktops_walk, walking the
+/** Test-controlled stand-in for @a surface_desktop_walk_all, walking the
  *  fixture list above instead of a real surface's own desktops
  * @note Complexity: @e O(n), where @e n is @c s_desktop_count */
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         void (*visit)(desktop_td *desktop, void *data), void *data)
 {
     (void) surface;

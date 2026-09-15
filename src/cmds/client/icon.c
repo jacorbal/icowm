@@ -115,7 +115,7 @@ static void s_icon_overlap_visit(client_td *client, void *data)
  * Checked against @a client_is_iconified rather than @c is_icon_mapped.
  * The latter only reflects whether a desktop's icons are currently
  * mapped on screen right now (@c false for every client on a desktop
- * that is not the one currently shown, @a surface_clients_hide, in
+ * that is not the one currently shown, @a surface_client_hide_all, in
  * @c surface/actions.c, clears it precisely for that reason), so
  * relying on it here would report every slot on a non-current desktop
  * as free regardless of how many icons already actually occupy it.

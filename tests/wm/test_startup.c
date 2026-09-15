@@ -64,7 +64,7 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
 
 
 /**
- * @brief Link-only stand-in for surface_action_apply_randr_profiles
+ * @brief Link-only stand-in for surface_action_randr_apply_profiles
  *
  * Referenced unconditionally in wm_startup_randr_init's body, past
  * the guard clause this file actually exercises; a real call applies
@@ -79,7 +79,7 @@ int logger_msg(enum logger_level_e level, const char *restrict prefix,
  *
  * @note Complexity: O(1)
  */
-bool surface_action_apply_randr_profiles(surface_td *surface, bool force)
+bool surface_action_randr_apply_profiles(surface_td *surface, bool force)
 {
     (void) surface;
     (void) force;

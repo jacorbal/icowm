@@ -42,8 +42,12 @@
 #include <client.h>
 #include <desktop.h>
 #include <enact.h>
+#include <enact/client.h>
 #include <lookup.h>
 #include <surface.h>
+#include <surface/client.h>
+#include <surface/desktop.h>
+#include <surface/viewport.h>
 #include <wm.h>
 
 /* Utils includes */
@@ -197,7 +201,7 @@ static void s_warp_move_family(desktop_td *old_desktop,
          * on that desktop: left stale like this, exactly like it
          * already is whenever a desktop's active client simply
          * closes while some other desktop is the one currently
-         * shown, is precisely what tells 'surface_clients_show'
+         * shown, is precisely what tells 'surface_client_show_all'
          * (surface/actions.c) to have 'client_focus_fallback' guess
          * a reasonable replacement once the user switches back,
          * rather than relinquishing focus outright the way a
@@ -218,7 +222,7 @@ static void s_warp_move_family(desktop_td *old_desktop,
     new_desktop->is_focus_dirty = true;
 
     /* And said in the focus order too, which is what
-     * 'surface_clients_show' consults when the switch below settles:
+     * 'surface_client_show_all' consults when the switch below settles:
      * it works out a desktop's focus by walking that order rather
      * than reading 'client_active_id', so a client that had only just
      * been added here would sit at the far end of it, as the least
@@ -649,8 +653,8 @@ void drag_warp_tick(xcb_connection_t *connection)
     s_warp_move_family(old_desktop, new_desktop);
 
     surface->desktop_cur = new_desktop->id;
-    surface_clients_hide(surface, old_desktop_id);
-    surface_clients_show(surface, new_desktop->id);
+    surface_client_hide_all(surface, old_desktop_id);
+    surface_client_show_all(surface, new_desktop->id);
     surface->is_outdated = true;
 
     s_warp_enter_page(surface, old_page, s_drag.warp_direction);

@@ -181,11 +181,11 @@ void enact_desktop_client_send_back(desktop_td *desktop, client_td *client)
 
 
 /**
- * @brief Controllable stand-in for enact_desktop_clients_iconify_all
+ * @brief Controllable stand-in for enact_desktop_client_iconify_all
  *
  * @note Complexity: @e O(1)
  */
-void enact_desktop_clients_iconify_all(desktop_td *desktop)
+void enact_desktop_client_iconify_all(desktop_td *desktop)
 {
     (void) desktop;
     s_call_iconify_all++;
@@ -193,11 +193,11 @@ void enact_desktop_clients_iconify_all(desktop_td *desktop)
 
 
 /**
- * @brief Controllable stand-in for enact_desktop_clients_deiconify_all
+ * @brief Controllable stand-in for enact_desktop_client_deiconify_all
  *
  * @note Complexity: @e O(1)
  */
-void enact_desktop_clients_deiconify_all(desktop_td *desktop)
+void enact_desktop_client_deiconify_all(desktop_td *desktop)
 {
     (void) desktop;
     s_call_deiconify_all++;
@@ -205,11 +205,11 @@ void enact_desktop_clients_deiconify_all(desktop_td *desktop)
 
 
 /**
- * @brief Controllable stand-in for enact_desktop_clients_rearrange
+ * @brief Controllable stand-in for enact_desktop_client_rearrange_all
  *
  * @note Complexity: @e O(1)
  */
-void enact_desktop_clients_rearrange(const wm_td *wm, surface_td *surface,
+void enact_desktop_client_rearrange_all(const wm_td *wm, surface_td *surface,
         const desktop_td *desktop)
 {
     (void) wm;
@@ -566,13 +566,13 @@ static void s_test_iconify_and_deiconify_all_ok(void)
 
     resp = ipc_action_iconify_all(s_wm, args);
     TAP_EQ_INT(s_call_iconify_all, 1,
-            "iconify_all calls enact_desktop_clients_iconify_all"
+            "iconify_all calls enact_desktop_client_iconify_all"
             " exactly once");
     cJSON_Delete(resp);
 
     resp = ipc_action_deiconify_all(s_wm, args);
     TAP_EQ_INT(s_call_deiconify_all, 1,
-            "deiconify_all calls enact_desktop_clients_deiconify_all"
+            "deiconify_all calls enact_desktop_client_deiconify_all"
             " exactly once");
     cJSON_Delete(resp);
 
@@ -596,7 +596,7 @@ static void s_test_rearrange_ok(void)
     TAP_OK(ok_field != NULL && cJSON_IsTrue(ok_field),
             "a resolvable desktop: ok: true");
     TAP_EQ_INT(s_call_rearrange, 1,
-            "enact_desktop_clients_rearrange is called exactly once");
+            "enact_desktop_client_rearrange_all is called exactly once");
 
     cJSON_Delete(args);
     cJSON_Delete(resp);
@@ -621,7 +621,7 @@ static void s_test_rearrange_no_surface_is_error(void)
     TAP_OK(ok_field != NULL && !cJSON_IsTrue(ok_field),
             "no resolvable surface: an error response");
     TAP_EQ_INT(s_call_rearrange, 0,
-            "enact_desktop_clients_rearrange is never called on that"
+            "enact_desktop_client_rearrange_all is never called on that"
             " error path");
 
     cJSON_Delete(args);

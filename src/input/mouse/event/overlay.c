@@ -99,24 +99,8 @@ static void s_mouse_handle_open_ctxmenu_click(xcb_connection_t *connection,
 }
 
 
-/**
- * @brief Close any open overlay (popup, dialogs, cycle menu, menus)
- *        when a mouse button is pressed elsewhere
- *
- * Checks each overlay in priority order.  For the popup, processing
- * continues so the click can reach its target client.  For all other
- * overlays the event is fully consumed and the caller must return.
- *
- * @param connection Active XCB connection
- * @param surfaces   Surface list (for root lookup)
- * @param event      Incoming button-press event
- * @param config     Active configuration (passed to cycle confirm)
- *
- * @return Status of the operation
- * @retval  true when an overlay was open and the event was consumed;
- *               the caller must return without further processing;
- * @retval false when no overlay was open (or only the popup was closed)
- */
+/* Close any open overlay (popup, dialogs, cycle menu, menus) when
+ * a mouse button is pressed elsewhere */
 bool im_press_close_overlays(xcb_connection_t *connection,
         list_td *surfaces, xcb_button_press_event_t *event,
         const config_td *config)

@@ -34,6 +34,10 @@
 /* Default initial values */
 #include <defs/placement.h>
 
+/* Surface includes */
+#include <surface/desktop.h>
+#include <surface/monitor.h>
+
 /* Project includes */
 #include <client.h>
 #include <config.h>
@@ -91,7 +95,7 @@ static monitor_td s_reference_monitor(const wm_td *wm,
     monitor_td result = {.x = 0, .y = 0, .w = 0u, .h = 0u};
 
     if (monitor_policy == CONFIG_PLACEMENT_MONITOR_PRIMARY) {
-        return surface_primary_monitor(surface);
+        return surface_monitor_primary(surface);
     }
 
     if (monitor_policy == CONFIG_PLACEMENT_MONITOR_INDEX) {
@@ -151,25 +155,8 @@ static monitor_td s_reference_monitor(const wm_td *wm,
 }
 
 
-/**
- * @brief Clip a workarea rectangle down to whichever physical monitor
- *        it overlaps, on a surface with more than one
- *
- * Falls back to leaving @p out_wa and @p out_screen unclipped (copies
- * of @p wa and @p screen) on a single-monitor surface, or when the
- * intersection against @p monitor is empty (e.g., a monitor entirely
- * covered by a strut): in either case the caller's unclipped rectangle
- * is already the right answer, not an error.
- *
- * @param surface    Surface the clip is against
- * @param wa         Workarea rectangle to clip
- * @param screen     Screen dimensions to clip alongside @p wa
- * @param monitor    Physical monitor to clip against
- * @param out_wa     Receives the clipped workarea
- * @param out_screen Receives the clipped screen dimensions
- *
- * @note Complexity: @e O(1)
- */
+/* Clip a workarea rectangle down to whichever physical monitor it
+ * overlaps, on a surface with more than one */
 void placement_clip_to_monitor(const surface_td *surface,
         const struct geometry_s *wa, const struct dimensions_s *screen,
         monitor_td monitor,
@@ -198,42 +185,9 @@ void placement_clip_to_monitor(const surface_td *surface,
 }
 
 
-/**
- * @brief Resolve the monitor a placement decision should target,
- *        preferring a related client's monitor over the configured
- *        policy when one is found
- *
- * A dialog should appear next to the window it belongs with, and
- * a fresh window from an application already running elsewhere should
- * appear next to that application, not wherever the pointer or the
- * primary monitor happens to be instead.
- *
- * Checked in order, a specific transient parent first (or, for a client
- * transient for the whole group per ICCCM §4.1.2.6, the resolved
- * anchor, then any currently-mapped sibling sharing the same group
- * leader on this same desktop.  Falls through to @a s_reference_monitor
- * unchanged whenever neither search finds a candidate, or the candidate
- * found resolves to a degenerate (zero-area) monitor.
- *
- * @param wm             Window manager state, for the pointer query
- *                       @a s_reference_monitor falls back to
- * @param surface        Surface to resolve a monitor on
- * @param client         Client being placed, or @c NULL to skip both
- *                       searches and go straight to the configured
- *                       policy
- * @param monitor_policy Fallback strategy when no related client is
- *                       found
- * @param monitor_index  Explicit monitor index @p monitor_policy falls
- *                       back to when it is
- *                       @c CONFIG_PLACEMENT_MONITOR_INDEX
- *
- * @return The resolved monitor's geometry
- *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       this desktop
- *
- * @see @a client_group_transient_anchor in @c cmds/client/transient.c
- */
+/* Resolve the monitor a placement decision should target, preferring
+ * a related client's monitor over the configured policy when one is
+ * found */
 monitor_td placement_reference_monitor(const wm_td *wm,
         surface_td *surface, const client_td *client,
         enum config_placement_monitor_e monitor_policy,
@@ -285,23 +239,8 @@ monitor_td placement_reference_monitor(const wm_td *wm,
 }
 
 
-/**
- * @brief Resolve the workarea and monitor-clipped bounds a placement
- *        calculation needs
- *
- * Shared by @a place_window_apply and @a place_window_apply_cascade so
- * both compute the exact same workarea and monitor bounds for a given
- * client.
- *
- * @param wm         Window manager instance
- * @param surface    Surface the client lives on
- * @param client     Client being placed
- * @param out_wa     Resolved workarea, unclipped to any single monitor
- * @param out_mon_wa Workarea, clipped to the reference monitor
- * @param out_mon_sz Screen dimensions, clipped to the reference monitor
- *
- * @note Complexity: @e O(1)
- */
+/* Resolve the workarea and monitor-clipped bounds a placement
+ * calculation needs */
 void placement_workarea(const wm_td *wm, surface_td *surface,
         const client_td *client,
         struct geometry_s *out_wa, struct geometry_s *out_mon_wa,

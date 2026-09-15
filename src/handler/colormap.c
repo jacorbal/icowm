@@ -29,9 +29,11 @@
 #include <desktop.h>
 #include <logger.h>
 #include <surface.h>
+#include <surface/desktop.h>
 
 /* Local includes */
 #include <handler.h>
+#include <handler/colormap.h>
 
 
 /**
@@ -163,7 +165,7 @@ void handler_colormap_notify(xcb_connection_t *connection,
             continue;
         }
 
-        surface_desktops_walk(surface, s_colormap_update_visit, &ctx);
+        surface_desktop_walk_all(surface, s_colormap_update_visit, &ctx);
         if (ctx.is_done) {
             return;
         }

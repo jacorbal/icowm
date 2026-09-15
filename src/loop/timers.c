@@ -48,6 +48,7 @@
 #include <memguard.h>
 #include <surface.h>
 #include <systray.h>
+#include <systray/clock.h>
 #include <wm.h>
 #include <wm/shutdown.h>
 

@@ -8,7 +8,7 @@
  * below as a controllable, call-recording stand-in: libxcb itself is
  * deliberately never linked here, so the linker resolves every one
  * of those symbols against this file's own definitions instead.
- * surface_desktop_get, surface_primary_monitor,
+ * surface_desktop_get, surface_monitor_primary,
  * surface_monitor_for_point, and lookup_find_client (all real
  * modules with XCB-dependent implementations elsewhere) are stubbed
  * the same way.  s_score_window_pos, s_place_apply_gravity, and
@@ -200,7 +200,7 @@ desktop_td *surface_desktop_get(surface_td *surface, uint32_t desktop_id)
 
 static monitor_td s_primary_monitor;
 
-monitor_td surface_primary_monitor(const surface_td *surface)
+monitor_td surface_monitor_primary(const surface_td *surface)
 {
     (void) surface;
     return s_primary_monitor;

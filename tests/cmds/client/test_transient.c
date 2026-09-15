@@ -1080,13 +1080,14 @@ static void s_test_bring_family_unhides_hidden(void)
 }
 
 
-/* A sibling that withdrew its own window itself (ICCCM §4.1.4) is
- * left alone entirely, relocation included: reviving one goes
- * against what its own application logic assumes it can still do */
-static void s_test_bring_family_skips_withdrawn(void)
+/* A transient sibling is still relocated to the desktop being shown,
+ * the same as any other family member, but never revealed: a dialog
+ * is not something automatic discovery brings back on its own */
+static void s_test_bring_family_relocates_but_skips_transient(void)
 {
     surface_td surface;
     desktop_td *current_desktop;
+    desktop_td *home_desktop;
     client_td *top;
     client_td *sibling;
 
@@ -1094,23 +1095,26 @@ static void s_test_bring_family_skips_withdrawn(void)
     memset(&surface, 0, sizeof(surface));
     surface.desktop_cur = 3u;
     current_desktop = s_make_desktop(3u);
+    home_desktop = s_make_desktop(7u);
     top = s_make_client(1u);
     top->screen_id = 5u;
     sibling = s_make_client(2u);
     sibling->desktop_id = 7u;   /* deliberately on some other desktop */
+    sibling->transient_for = (xcb_window_t) 1;
     client_hide(sibling);
-    client_mark_withdrawn(sibling);
     top->transients = cdlist_init(NULL);
     (void) cdlist_ins_next(top->transients, NULL, sibling);
     s_set_surface(5u, &surface);
     s_link_surface_desktop(&surface, 3u, current_desktop);
+    s_set_client_home(sibling, home_desktop);
 
     ccmd_client_bring_family(top);
 
-    TAP_EQ_INT(s_move_log_used, 0,
-            "a withdrawn sibling is not relocated either");
+    TAP_EQ_INT(s_move_log_used, 1,
+            "a transient sibling is still relocated like the rest of"
+            " the family");
     TAP_EQ_INT(s_unhide_log_used, 0,
-            "and it is not unhidden");
+            "but it is not unhidden");
 
     s_teardown();
 }
@@ -1169,7 +1173,7 @@ int main(void)
     s_test_bring_family_relocates_sibling();
     s_test_bring_family_restores_iconified();
     s_test_bring_family_unhides_hidden();
-    s_test_bring_family_skips_withdrawn();
+    s_test_bring_family_relocates_but_skips_transient();
     s_test_bring_family_null_and_unresolved_are_noop();
 
     return TAP_DONE();

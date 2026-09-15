@@ -32,6 +32,7 @@
 #include <harness/tap.h>
 #include <monitor.h>
 #include <surface.h>
+#include <surface/monitor.h>
 #include <types/direction.h>
 
 

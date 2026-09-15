@@ -72,7 +72,7 @@
 #include <systray.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/configure.h>
 #include <harness/tap.h>
 #include <render/client/decoration.h>
 

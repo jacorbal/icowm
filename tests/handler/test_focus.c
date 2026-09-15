@@ -78,7 +78,9 @@
 #include <cmds/client/state.h>
 
 /* Local includes */
-#include <handler.h>
+#include <handler/focus.h>
+#include <handler/mapping.h>
+#include <handler/property.h>
 #include <harness/tap.h>
 
 
@@ -455,8 +457,8 @@ uint8_t xcb_ewmh_get_wm_strut_reply(xcb_ewmh_connection_t *ewmh,
 }
 
 
-/** Link-only stand-in for surface_refresh_workareas */
-void surface_refresh_workareas(surface_td *surface)
+/** Link-only stand-in for surface_workarea_refresh_all */
+void surface_workarea_refresh_all(surface_td *surface)
 {
     (void) surface;
 }

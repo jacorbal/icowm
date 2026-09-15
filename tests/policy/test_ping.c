@@ -9,7 +9,7 @@
  * own, so this file's tests run as one continuous narrative in
  * a fixed order (see main), exactly the same constraint
  * tests/policy/test_urgency.c already documents for its own sibling
- * module.  'surface_desktops_walk' is a link-only stand-in walking
+ * module.  'surface_desktop_walk_all' is a link-only stand-in walking
  * a surface's real cdlist of desktops directly, the same pattern
  * test_urgency.c already uses, so both the "any client support
  * _NET_WM_PING" scan and the actual per-round probe walk run for
@@ -52,13 +52,13 @@
 #include <policy/ping.h>
 
 
-/** Link-only stand-in for @a surface_desktops_walk (surface/
+/** Link-only stand-in for @a surface_desktop_walk_all (surface/
  *  desktops.c): walks a real 'cdlist_td' this file builds itself,
  *  the same pattern tests/policy/test_urgency.c already uses
  *  @note Complexity: @e O(n), where @e n is the number of desktops on
  *        @p surface
  */
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)
 {
     cdlist_item_td *node;

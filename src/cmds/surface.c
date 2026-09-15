@@ -35,6 +35,9 @@
 #include <lookup.h>
 #include <scratchpad.h>
 #include <surface.h>
+#include <surface/client.h>
+#include <surface/desktop.h>
+#include <surface/viewport.h>
 #include <wm.h>
 
 /* Command includes */
@@ -176,7 +179,7 @@ static void s_switch_cyclic(surface_td *surface,
     LOGGER_DEBUG("Switching to the desktop %s of the current one" \
             " on surface %u", direction_label, surface->id);
 
-    surface_clients_hide(surface, old_id);
+    surface_client_hide_all(surface, old_id);
     switch (direction) {
     case COMPASS_NORTH:
         surface_desktop_select_north(surface, cycle);
@@ -193,14 +196,14 @@ static void s_switch_cyclic(surface_td *surface,
     }
 
     if (surface->desktop_cur != old_id) {
-        surface_clients_pinned_transfer_all(surface,
+        surface_client_pinned_transfer_all(surface,
                 surface->desktop_cur);
-        surface_clients_show(surface, surface->desktop_cur);
+        surface_client_show_all(surface, surface->desktop_cur);
         s_show_desktop_overlay(surface, NOTIFY_DESKTOP_CAUSE_SWITCH);
         surface->is_outdated = true;
     } else {
         /* No switch happened; restore visibility */
-        surface_clients_show(surface, old_id);
+        surface_client_show_all(surface, old_id);
     }
 }
 
@@ -693,13 +696,13 @@ void scmd_surface_desktop_switch(surface_td *surface,
     LOGGER_DEBUG("Switching desktop: %u to %u on surface %u",
             old_id, desktop_id, surface->id);
 
-    surface_clients_hide(surface, old_id);
+    surface_client_hide_all(surface, old_id);
     if (surface_desktop_select(surface, desktop_id) != 0) {
-        surface_clients_show(surface, old_id);
+        surface_client_show_all(surface, old_id);
         return;
     }
-    surface_clients_pinned_transfer_all(surface, desktop_id);
-    surface_clients_show(surface, desktop_id);
+    surface_client_pinned_transfer_all(surface, desktop_id);
+    surface_client_show_all(surface, desktop_id);
 
     s_show_desktop_overlay(surface, NOTIFY_DESKTOP_CAUSE_SWITCH);
 

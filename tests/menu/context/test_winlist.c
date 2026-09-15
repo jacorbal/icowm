@@ -393,14 +393,14 @@ void surface_desktop_label(const surface_td *surface,
 
 
 /**
- * @brief Link-only stand-in for @a surface_desktops_walk
+ * @brief Link-only stand-in for @a surface_desktop_walk_all
  *
  * Reached only by the multi-desktop submenu path, which a
  * single-desktop surface never takes.
  *
  * @note Complexity: @e O(1)
  */
-void surface_desktops_walk(const surface_td *surface,
+void surface_desktop_walk_all(const surface_td *surface,
         surface_desktop_visitor_fn visit, void *data)
 {
     (void) surface;
@@ -729,27 +729,27 @@ static void s_test_skip_taskbar_client_is_omitted(void)
 }
 
 
-/* A client that withdrew itself (ICCCM section 4.1.4) is left out of
+/* A client that is transient for another window is left out of
  * the window list menu entirely, the same as one flagged
  * CLIENT_FLAG_SKIP_TASKBAR */
-static void s_test_withdrawn_client_is_omitted(void)
+static void s_test_transient_client_is_omitted(void)
 {
     surface_td surface;
     desktop_td *desktop;
     client_td *ordinary;
-    client_td *withdrawn;
+    client_td *transient;
     int command_count;
-    bool withdrawn_seen;
+    bool transient_seen;
 
     s_reset();
     memset(&surface, 0, sizeof(surface));
 
     desktop = s_make_desktop(0u);
     ordinary = s_make_client(400u, 0u, XCB_WINDOW_NONE);
-    withdrawn = s_make_client(401u, 0u, XCB_WINDOW_NONE);
-    withdrawn->properties.flags |= CLIENT_FLAG_WITHDRAWN;
+    transient = s_make_client(401u, 0u, XCB_WINDOW_NONE);
+    transient->transient_for = (xcb_window_t) 1;
     ohtbl_insert(desktop->clients, ordinary);
-    ohtbl_insert(desktop->clients, withdrawn);
+    ohtbl_insert(desktop->clients, transient);
 
     surface.desktops = cdlist_init(NULL);
     cdlist_ins_next(surface.desktops, NULL, desktop);
@@ -760,11 +760,11 @@ static void s_test_withdrawn_client_is_omitted(void)
             (struct position_s) { 0, 0 }, &(config_td) { 0 });
 
     command_count = 0;
-    withdrawn_seen = false;
+    transient_seen = false;
     for (int i = 0; i < s_captured_state->entry_count; ++i) {
         if (s_captured_state->entries[i].icon_window ==
-                withdrawn->window) {
-            withdrawn_seen = true;
+                transient->window) {
+            transient_seen = true;
         }
         if (s_captured_state->entries[i].type == CTXMENU_COMMAND &&
                 s_captured_state->entries[i].icon_window !=
@@ -774,8 +774,8 @@ static void s_test_withdrawn_client_is_omitted(void)
     }
     TAP_EQ_INT(command_count, 1,
             "only the ordinary client is listed");
-    TAP_OK(!withdrawn_seen,
-            "the withdrawn client never appears at all");
+    TAP_OK(!transient_seen,
+            "the transient client never appears at all");
 
     cdlist_destroy(surface.desktops);
     s_teardown();
@@ -826,10 +826,10 @@ static void s_test_pinned_client_pulled_from_other_desktop(void)
 }
 
 
-/* A pinned client stored on another desktop that also withdrew itself
- * (ICCCM section 4.1.4) is left out of this desktop's listing too,
+/* A pinned client stored on another desktop that is also transient
+ * for another window is left out of this desktop's listing too,
  * pinned or not */
-static void s_test_withdrawn_pinned_client_from_other_desktop_omitted(
+static void s_test_transient_pinned_client_from_other_desktop_omitted(
         void)
 {
     surface_td surface;
@@ -844,7 +844,8 @@ static void s_test_withdrawn_pinned_client_from_other_desktop_omitted(
     shown_desktop = s_make_desktop(0u);
     other_desktop = s_make_desktop(1u);
     pinned = s_make_client(500u, 1u, XCB_WINDOW_NONE);
-    pinned->properties.flags |= CLIENT_FLAG_PIN | CLIENT_FLAG_WITHDRAWN;
+    pinned->properties.flags |= CLIENT_FLAG_PIN;
+    pinned->transient_for = (xcb_window_t) 1;
     ohtbl_insert(other_desktop->clients, pinned);
 
     surface.desktops = cdlist_init(NULL);
@@ -863,7 +864,7 @@ static void s_test_withdrawn_pinned_client_from_other_desktop_omitted(
         }
     }
     TAP_OK(!pinned_seen,
-            "a withdrawn client stored on another desktop never shows"
+            "a transient client stored on another desktop never shows"
             " up here, even while pinned");
 
     cdlist_destroy(surface.desktops);
@@ -911,9 +912,9 @@ int main(void)
     s_test_small_group_collapses_to_one_submenu();
     s_test_ungrouped_clients_listed_singly();
     s_test_skip_taskbar_client_is_omitted();
-    s_test_withdrawn_client_is_omitted();
+    s_test_transient_client_is_omitted();
     s_test_pinned_client_pulled_from_other_desktop();
-    s_test_withdrawn_pinned_client_from_other_desktop_omitted();
+    s_test_transient_pinned_client_from_other_desktop_omitted();
     s_test_empty_desktop_shows_placeholder();
 
     return TAP_DONE();

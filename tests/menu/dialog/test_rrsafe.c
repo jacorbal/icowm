@@ -9,7 +9,7 @@
  * 'menu_confirm_dialog_show' is a recording stand-in below rather than
  * the real confirm.c, which has its own test battery
  * (tests/menu/dialog/test_confirm.c) already exercising that machinery
- * directly.  'surface_action_revert_randr_profiles' is likewise a
+ * directly.  'surface_action_randr_revert_profiles' is likewise a
  * recording stand-in: it lives in surface.c, a whole other module this
  * file has no reason to link just to observe that rrsafe.c's own
  * cancel callback reaches it.
@@ -122,10 +122,10 @@ void menu_confirm_dialog_show(xcb_connection_t *connection,
 
 
 /**
- * @brief Link-only stand-in for @a surface_action_revert_randr_profiles
+ * @brief Link-only stand-in for @a surface_action_randr_revert_profiles
  * @note Complexity: @e O(1)
  */
-void surface_action_revert_randr_profiles(void)
+void surface_action_randr_revert_profiles(void)
 {
     s_call_revert_randr++;
 }

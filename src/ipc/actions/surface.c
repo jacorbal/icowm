@@ -21,6 +21,7 @@
 /* Project includes */
 #include <desktop.h>
 #include <enact.h>
+#include <enact/surface.h>
 #include <memguard.h>
 #include <surface.h>
 #include <wm.h>
