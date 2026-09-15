@@ -542,7 +542,7 @@ void wm_ewmh_sync(wm_td *wm_instance)
 }
 
 
-/** Link-only stand-in for wm_client_unmanage_all (wm/clients.c) */
+/** Link-only stand-in for wm_client_unmanage_all (wm/client.c) */
 void wm_client_unmanage_all(const wm_td *wm_instance)
 {
     (void) wm_instance;

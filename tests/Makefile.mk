@@ -338,7 +338,7 @@ $(O_DIR)/tests/ipc/test_readable: $(TESTS_DIR)/ipc/test_readable.c \
 
 $(O_DIR)/tests/wm/test_clients: $(TESTS_DIR)/wm/test_clients.c \
 		$(S_DIR)/surface/desktops.c \
-		$(S_DIR)/wm/clients.c \
+		$(S_DIR)/wm/client.c \
 		$(S_DIR)/wm/instance.c \
 		$(S_DIR)/cmds/client/ewmh.c \
 		$(S_DIR)/policy/stacking.c \
@@ -667,7 +667,7 @@ $(O_DIR)/tests/surface/test_desktop_add_remove: \
 
 $(O_DIR)/tests/surface/test_pinned_transfer: \
 		$(TESTS_DIR)/surface/test_pinned_transfer.c \
-		$(S_DIR)/surface/actions/clients.c \
+		$(S_DIR)/surface/actions/client.c \
 		$(S_DIR)/policy/stacking.c \
 		$(S_DIR)/desktop/dfind.c \
 		$(S_DIR)/adt/cdlist.c \

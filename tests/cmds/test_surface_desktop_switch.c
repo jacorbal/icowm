@@ -332,7 +332,7 @@ void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
 
 
 /** Call-counting stand-in for @a surface_client_pinned_transfer_all
- *  (surface/actions/clients.c)
+ *  (surface/actions/client.c)
  *  @note Complexity: @e O(1)
  */
 void surface_client_pinned_transfer_all(surface_td *surface,

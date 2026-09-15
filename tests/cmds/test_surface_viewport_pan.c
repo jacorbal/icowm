@@ -158,7 +158,7 @@ int surface_desktop_select_west(surface_td *surface, bool cycle)
 
 
 /** Link-only stand-ins for the three client-visibility primitives
- *  (surface/actions/clients.c): unreachable from any panning path
+ *  (surface/actions/client.c): unreachable from any panning path
  *  exercised here
  *  @note Complexity: @e O(1)
  */

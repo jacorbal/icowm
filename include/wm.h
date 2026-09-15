@@ -459,7 +459,7 @@ void wm_request_graceful_stop(void);
  * asking nothing of any managed client, since every one of them is
  * meant to survive this: @a wm_stop's own teardown already hands each
  * one back to bare X rather than closing it (@a wm_client_unmanage_all,
- * @c wm/clients.c), and it is @c main itself that, once that teardown
+ * @c wm/client.c), and it is @c main itself that, once that teardown
  * finishes, re-executes this very binary instead of letting the
  * process end.  The freshly re-exec'd instance's own startup scan
  * (@a cctl_adopt_scan, @c cctl/adopt.h) then picks every one of those
