@@ -56,9 +56,32 @@ void ccmd_client_kill(client_td *client);
 /**
  * @brief Restore the client to its original state
  *
+ * Where "original" depends on where the client currently sits.  An
+ * iconified client is restored by bringing it back onto the desktop,
+ * its own icon box destroyed and its saved geometry re-applied, but
+ * whatever maximized or full screen bit it held before being iconified
+ * is left exactly as it was; only the iconified state itself is undone.
+ *
+ * A client already on the desktop is restored one layer at a time
+ * instead, outermost first: full screen over a maximized window comes
+ * back maximized, and a second restore takes that away in turn.  This
+ * relies on @a ccmd_client_maximize (and @a ccmd_client_maximize_horz /
+ * @a _vert) already being their own toggle, each one demoting
+ * a client already holding the exact state being asked for back to
+ * normal instead of re-applying it; restore simply calls whichever one
+ * matches the outermost state currently held, rather than needing an
+ * "undo maximize" of its own.
+ *
+ * The client's whole transient family is brought along too: every other
+ * member still iconified is restored first, and a transient sibling
+ * left merely hidden, not iconified, when the family went down together
+ * is unhidden the same way, before @p client's own top parent is
+ * finally restored last.
+ *
  * @param client Window to restore
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(f), where @e f is the number of @p client's
+ *       own transient descendants at every depth combined
  */
 void ccmd_client_restore(client_td *client);
 

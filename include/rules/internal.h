@@ -212,7 +212,6 @@ struct rules_s {
 };
 
 
-/* Match engine (implemented in 'rules/match.c') */
 /**
  * @brief Test whether a rule's timing constraint is satisfied
  *

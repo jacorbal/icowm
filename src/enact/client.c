@@ -39,6 +39,9 @@
 /* Policy includes */
 #include <policy/focus.h>
 
+/* Surface includes */
+#include <surface/desktop.h>
+
 /* Command includes */
 #include <cmds/client/flags.h>
 #include <cmds/client/focus.h>
@@ -56,7 +59,6 @@
 #include <logger.h>
 #include <scratchpad.h>
 #include <surface.h>
-#include <surface/desktop.h>
 #include <wm.h>
 
 /* Local includes */
@@ -72,14 +74,12 @@
  *        a given compass direction, following it there
  *
  * @param client    Client to move
- * @param surfaces  Full surface list, passed through to
- *                  @c focus_apply
- * @param config    Active configuration, passed through to
- *                  @c focus_apply
+ * @param surfaces  Full surface list, passed through to @c focus_apply
+ * @param config    Active configuration, passed through to @c focus_apply
  * @param direction Compass direction to move the client in
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's top parent's desktop (see
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       client's top parent's desktop (see
  *       @a enact_desktop_client_send's comment)
  */
 static void s_enact_client_send_to_desktop(client_td *client,
@@ -112,15 +112,15 @@ static void s_enact_client_send_to_desktop(client_td *client,
     cycle = (surface->config != NULL)
         ? surface->config->desktops.wrap_at_bounds : true;
 
-    /* No different desktop to move to at all: either genuinely
-     * only one exists (restricted-memory mode is always locked to
-     * exactly one; see 'surface_action_desktop_add''s doc
-     * comment, surface/switch.c), wrapping is disabled and this is
-     * already the edgemost one that way, or (north/south only, on a
-     * surface with no 'topology.screens.desktops' layout configured
-     * at all) there is no second row or column to move to in the
-     * first place; is a silent no-op, the same as every other
-      keybind here that finds nothing to act on. */
+    /* No different desktop to move to at all: either genuinely only one
+     * exists (restricted-memory mode is always locked to exactly one;
+     * see 'surface_action_desktop_add''s doc comment, in
+     * 'surface/switch.c'), wrapping is disabled and this is already the
+     * edgemost one that way, or (north/south only, on a surface with no
+     * 'topology.screens.desktops' layout configured at all) there is no
+     * second row or column to move to in the first place; is a silent
+     * no-op, the same as every other keybind here that finds nothing to
+     * act on. */
     switch (direction) {
     case COMPASS_NORTH:
         target_desktop = surface_desktop_north(surface,
@@ -148,18 +148,17 @@ static void s_enact_client_send_to_desktop(client_td *client,
 
     /* 'enact_surface_desktop_switch' just above, via its
      * 'surface_client_show_all', already restored real input focus on
-     * its, to whichever client this target desktop's
-     * 'client_active_id' still remembered from some earlier,
-     * unrelated visit, not this client, freshly arrived on it as
-     * of the very call before this one.  Explicitly re-applied here,
-     * after the fact, rather than trying to somehow suppress that
-     * automatic restore instead: 'client' becomes this desktop's
-     * newly active one, genuinely focused, and raised above whatever
-     * else that restore just raised in front of it (any client
-     * already there before this one arrived stays exactly where it
-     * was, simply no longer topmost), matching a plain click or any
-     * other deliberate focus request landing on it right after the
-     * move, not a stale leftover from before. */
+     * its, to whichever client this target desktop's 'client_active_id'
+     * still remembered from some earlier, unrelated visit, not this
+     * client, freshly arrived on it as of the very call before this
+     * one.  Explicitly re-applied here, after the fact, rather than
+     * trying to somehow suppress that automatic restore instead:
+     * 'client' becomes this desktop's newly active one, genuinely
+     * focused, and raised above whatever else that restore just raised
+     * in front of it (any client already there before this one arrived
+     * stays exactly where it was, simply no longer topmost), matching
+     * a plain click or any other deliberate focus request landing on it
+     * right after the move, not a stale leftover from before. */
     focus_apply(surfaces, surface, target_desktop, client, true, config);
 }
 
@@ -243,7 +242,8 @@ void enact_client_resize(client_td *client, struct geometry_s geom)
 
 /* Resize the client to a specific frame geometry immediately,
  * bypassing any in-flight sync throttling */
-void enact_client_resize_force(client_td *client, struct geometry_s geom)
+void enact_client_resize_force(client_td *client,
+        struct geometry_s geom)
 {
     ccmd_client_resize_force(client, geom);
     if (client != NULL) {
@@ -566,17 +566,17 @@ void enact_client_toggle_pin(client_td *client)
 }
 
 
-/* Set the client's sticky mode.  No IPC event to broadcast here,
- * unlike its pin counterpart above: every bit of the IPC_EVENT_* mask
- * is already in use, with none free for a new sticky pair */
+/* Set the client's sticky mode.  No IPC event to broadcast here, unlike
+ * its pin counterpart above: every bit of the IPC_EVENT_* mask is
+ * already in use, with none free for a new sticky pair */
 void enact_client_stick(client_td *client)
 {
     ccmd_client_stick(client);
 }
 
 
-/* Remove the client's sticky mode.  Same reasoning as its setter
- * above for why there is no IPC event to broadcast */
+/* Remove the client's sticky mode.  Same reasoning as its setter above
+ * for why there is no IPC event to broadcast */
 void enact_client_unstick(client_td *client)
 {
     ccmd_client_unstick(client);
@@ -736,8 +736,9 @@ void enact_client_toggle_decorate(client_td *client)
 {
     ccmd_client_toggle_decorate(client);
     if (client != NULL) {
-        enact_broadcast_client_event(client, client_is_decorated(client)
-                ? IPC_EVENT_DECORATION_SET
-                : IPC_EVENT_DECORATION_CLEARED);
+        enact_broadcast_client_event(client,
+                client_is_decorated(client)
+                    ? IPC_EVENT_DECORATION_SET
+                    : IPC_EVENT_DECORATION_CLEARED);
     }
 }

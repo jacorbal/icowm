@@ -5,9 +5,9 @@
  *        client, one typed function per action
  *
  * Split out of @c enact.h, alongside @c enact/desktop.h and
- * @c enact/surface.h, so a file that only needs client actions does
- * not also pull in, and rebuild against, every desktop and surface
- * action declared alongside it.
+ * @c enact/surface.h, so a file that only needs client actions does not
+ * also pull in, and rebuild against, every desktop and surface action
+ * declared alongside it.
  *
  * Each @a enact_client_* function below is the single place in the
  * whole project where its corresponding action actually happens.
@@ -17,8 +17,7 @@
  * into one of the @c cmds/client/ headers itself.  Searching for an
  * action's enum name always leads back to exactly one function here.
  *
- * @see @c action.h
- * @see @c enact.h
+ * @see @c action.h and @c enact.h
  *
  * @defgroup enact_client Client action execution
  * @ingroup enact
@@ -65,9 +64,15 @@ void enact_client_kill(client_td *client);
 /**
  * @brief Restore the client to its normal state
  *
+ * @a ccmd_client_restore (@c cmds/client/focus.h) carries the full
+ * reasoning: what "restore" undoes depends on whether @p client is
+ * currently iconified or already on the desktop, and its whole
+ * transient family is brought along too.
+ *
  * @param client Client to restore
  *
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(f), where @e f is the number of @p client's
+ *       own transient descendants at every depth combined
  */
 void enact_client_restore(client_td *client);
 
@@ -111,7 +116,8 @@ void enact_client_resize(client_td *client, struct geometry_s geom);
  *
  * @note Complexity: @e O(1)
  */
-void enact_client_resize_force(client_td *client, struct geometry_s geom);
+void enact_client_resize_force(client_td *client,
+        struct geometry_s geom);
 
 /**
  * @brief Move the client to a specific position
@@ -137,10 +143,9 @@ void enact_client_center(client_td *client);
  *        its surface
  *
  * A no-op on a surface with one monitor or none, or when no monitor
- * lies to the north at all.  See
- * @a ccmd_client_move_to_monitor_north in @c cmds/client/geom.h for
- * the fuller
- * reasoning, including why this never wraps around either.
+ * lies to the north at all.  See @a ccmd_client_move_to_monitor_north
+ * in @c cmds/client/geom.h for the fuller reasoning, including why this
+ * never wraps around either.
  *
  * @param client Client to move
  *
@@ -191,23 +196,23 @@ void enact_client_move_monitor_west(client_td *client);
  * @brief Carry the client to the desktop north of the current one,
  *        following it there
  *
- * A silent no-op when there is no different desktop to move to at
- * all (only one exists, wrapping is disabled and this is already
- * the topmost row, or no @c topology.screens.desktops layout is
- * configured at all, so there is no second row in the first place);
- * see @c s_enact_client_send_to_desktop's comment, enact/
- * client.c, for the fuller reasoning.
+ * A silent no-op when there is no different desktop to move to at all
+ * (only one exists, wrapping is disabled and this is already the
+ * topmost row, or no @c topology.screens.desktops layout is configured
+ * at all, so there is no second row in the first place); see
+ * @a s_enact_client_send_to_desktop's comment in @c enact/client.c, for
+ * the fuller reasoning.
  *
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
  *                 so this client, not whichever one the target
- *                 desktop's switch just restored on its own,
- *                 ends up genuinely focused there
+ *                 desktop's switch just restored on its own, ends up
+ *                 genuinely focused there
  * @param config   Active configuration, passed through to
  *                 @c focus_apply
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's top parent's desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       client's top parent's desktop
  */
 void enact_client_send_to_desktop_north(client_td *client,
         list_td *surfaces, const config_td *config);
@@ -216,23 +221,23 @@ void enact_client_send_to_desktop_north(client_td *client,
  * @brief Carry the client to the desktop south of the current one,
  *        following it there
  *
- * A silent no-op when there is no different desktop to move to at
- * all (only one exists, wrapping is disabled and this is already
- * the bottommost row, or no @c topology.screens.desktops layout is
- * configured at all, so there is no second row in the first place);
- * see @c s_enact_client_send_to_desktop's comment, enact/
- * client.c, for the fuller reasoning.
+ * A silent no-op when there is no different desktop to move to at all
+ * (only one exists, wrapping is disabled and this is already the
+ * bottommost row, or no @c topology.screens.desktops layout is
+ * configured at all, so there is no second row in the first place); see
+ * @a s_enact_client_send_to_desktop's comment in @c enact/client.c, for
+ * the fuller reasoning.
  *
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
  *                 so this client, not whichever one the target
- *                 desktop's switch just restored on its own,
- *                 ends up genuinely focused there
+ *                 desktop's switch just restored on its own, ends up
+ *                 genuinely focused there
  * @param config   Active configuration, passed through to
  *                 @c focus_apply
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's top parent's desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       client's top parent's desktop
  */
 void enact_client_send_to_desktop_south(client_td *client,
         list_td *surfaces, const config_td *config);
@@ -241,23 +246,21 @@ void enact_client_send_to_desktop_south(client_td *client,
  * @brief Carry the client to the desktop east of the current one,
  *        following it there
  *
- * A silent no-op when there is no different desktop to move to at
- * all (only one exists, or wrapping is disabled and this is already
- * the eastmost one in its row).  See
- * @a s_enact_client_send_to_desktop in @c enact/client.c for the
- * fuller
- * reasoning.
+ * A silent no-op when there is no different desktop to move to at all
+ * (only one exists, or wrapping is disabled and this is already the
+ * eastmost one in its row).  See @a s_enact_client_send_to_desktop in
+ * @c enact/client.c for the fuller reasoning.
  *
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
  *                 so this client, not whichever one the target
- *                 desktop's switch just restored on its own,
- *                 ends up genuinely focused there
+ *                 desktop's switch just restored on its own, ends up
+ *                 genuinely focused there
  * @param config   Active configuration, passed through to
  *                 @c focus_apply
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's top parent's desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       client's top parent's desktop
  */
 void enact_client_send_to_desktop_east(client_td *client,
         list_td *surfaces, const config_td *config);
@@ -266,23 +269,21 @@ void enact_client_send_to_desktop_east(client_td *client,
  * @brief Carry the client to the desktop west of the current one,
  *        following it there
  *
- * A silent no-op when there is no different desktop to move to at
- * all (only one exists, or wrapping is disabled and this is already
- * the westmost one in its row).  See
- * @a s_enact_client_send_to_desktop in @c enact/client.c for the
- * fuller
- * reasoning.
+ * A silent no-op when there is no different desktop to move to at all
+ * (only one exists, or wrapping is disabled and this is already the
+ * westmost one in its row).  See @a s_enact_client_send_to_desktop in
+ * @c enact/client.c for the fuller reasoning.
  *
  * @param client   Client to move
  * @param surfaces Full surface list, passed through to @c focus_apply
  *                 so this client, not whichever one the target
- *                 desktop's switch just restored on its own,
- *                 ends up genuinely focused there
+ *                 desktop's switch just restored on its own, ends up
+ *                 genuinely focused there
  * @param config   Active configuration, passed through to
  *                 @c focus_apply
  *
- * @note Complexity: @e O(n), where @e n is the number of clients on
- *       the client's top parent's desktop
+ * @note Complexity: @e O(n), where @e n is the number of clients on the
+ *       client's top parent's desktop
  */
 void enact_client_send_to_desktop_west(client_td *client,
         list_td *surfaces, const config_td *config);
@@ -444,14 +445,16 @@ void enact_client_toggle_pin(client_td *client);
  *
  * Not to be confused with @a enact_client_pin above; see
  * @c CLIENT_FLAG_STICKY's comment in @c client/state.h for the full
- * distinction between the two
+ * distinction between the two.
  *
  * @param client Client to stick
  *
  * @note Does not broadcast an IPC event the way the pin, shade, and
- *       fullscreen setters above do; see @a enact_client_toggle_stick
- *       below for why
+ *       fullscreen setters above do
  * @note Complexity: @e O(1)
+ *
+ * @see @a enact_client_toggle_stick below to know why doesn't broadcast
+ *      an IPC event
  */
 void enact_client_stick(client_td *client);
 
@@ -460,9 +463,11 @@ void enact_client_stick(client_td *client);
  *
  * @param client Client to unstick
  *
- * @note Does not broadcast an IPC event; see @a enact_client_toggle_stick
- *       below for why
+ * @note Does not broadcast an IPC event
  * @note Complexity: @e O(1)
+ *
+ * @see @a enact_client_toggle_stick below to know what does not
+ *      broadcast an IPC event
  */
 void enact_client_unstick(client_td *client);
 
@@ -477,8 +482,8 @@ void enact_client_unstick(client_td *client);
  *
  * @note Does not broadcast an IPC event the way the pin, shade, and
  *       fullscreen toggles above do: every bit of the 32-bit
- *       @c IPC_EVENT_* mask (@c ipc.h) is already spoken for, with
- *       none free for a new @c IPC_EVENT_STICK_SET/@c _CLEARED pair
+ *       @c IPC_EVENT_* mask (@c ipc.h) is already spoken for, with none
+ *       free for a new @c IPC_EVENT_STICK_SET/@c _CLEARED pair
  * @note Complexity: @e O(1)
  */
 void enact_client_toggle_stick(client_td *client);
