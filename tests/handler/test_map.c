@@ -1653,6 +1653,40 @@ static void s_test_unmap_notify_genuine_withdrawal(void)
 }
 
 
+/* handler_unmap_notify: a client withdrawing while it still has a
+ * mapped icon box (left behind by WM_CHANGE_STATE or
+ * _NET_WM_STATE_HIDDEN reaching ccmd_client_iconify before this same
+ * client's own withdrawal did) has that icon box hidden too, not
+ * left behind as an orphan */
+static void s_test_unmap_notify_withdrawal_hides_orphan_icon(void)
+{
+    client_td client;
+    surface_td surface;
+    desktop_td desktop;
+    xcb_unmap_notify_event_t event;
+
+    s_test_reset_state();
+    s_test_build_client(&client, 0x100);
+    client.icon_window = 0x400;
+    client.is_icon_mapped = true;
+    memset(&surface, 0, sizeof(surface));
+    memset(&desktop, 0, sizeof(desktop));
+    memset(&event, 0, sizeof(event));
+    event.window = 0x100;
+    s_lookup_find_client_result = &client;
+    s_lookup_find_client_surface_out = &surface;
+    s_lookup_find_client_desktop_out = &desktop;
+
+    handler_unmap_notify((xcb_connection_t *) 0x1234, NULL, &event);
+
+    TAP_OK(s_call_xcb_window_hide == 1u,
+            "the orphaned icon box is hidden, no frame or titlebar" \
+            " here to also hide");
+    TAP_OK(!client.is_icon_mapped,
+            "the client no longer considers its icon box mapped");
+}
+
+
 /* handler_unmap_notify: withdrawing a client that was not the active
  * one on its desktop never triggers a focus fallback */
 static void s_test_unmap_notify_withdrawal_not_active(void)
@@ -1941,7 +1975,7 @@ static void s_test_destroy_notify_removes_from_desktop(void)
 
 int main(void)
 {
-    TAP_PLAN(66);
+    TAP_PLAN(68);
 
     s_test_map_request_null_guards();
     s_test_map_request_already_managed();
@@ -1968,6 +2002,7 @@ int main(void)
     s_test_unmap_notify_non_primary_window();
     s_test_unmap_notify_ignored_primary();
     s_test_unmap_notify_genuine_withdrawal();
+    s_test_unmap_notify_withdrawal_hides_orphan_icon();
     s_test_unmap_notify_withdrawal_not_active();
     s_test_destroy_notify_null_event();
     s_test_destroy_notify_always_notifies_systray();

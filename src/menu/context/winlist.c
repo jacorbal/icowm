@@ -612,6 +612,7 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
     if (desktop->clients != NULL) {
         ohtbl_foreach(desktop->clients, client) {
             if (client == NULL ||
+                    client_is_transient(client) ||
                     (client->properties.flags &
                         CLIENT_FLAG_SKIP_TASKBAR) ||
                     (!client_is_pinned(client) &&
@@ -633,7 +634,9 @@ static void s_build_desktop_entries(surface_td *surface, uint32_t did,
                 if (home_desktop != NULL && home_desktop != desktop &&
                         home_desktop->clients != NULL) {
                     ohtbl_foreach(home_desktop->clients, client) {
-                        if (client == NULL || !client_is_pinned(client) ||
+                        if (client == NULL ||
+                                !client_is_pinned(client) ||
+                                client_is_transient(client) ||
                                 (client->properties.flags &
                                     CLIENT_FLAG_SKIP_TASKBAR)) {
                             continue;

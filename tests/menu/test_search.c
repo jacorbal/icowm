@@ -662,15 +662,14 @@ static desktop_td *s_make_desktop(uint32_t id, const char *name)
  *  taskbar-visible client with no extra state needs neither, only its
  *  @p name */
 static client_td *s_make_client(uint32_t id, const char *name,
-        uint16_t flags, uint16_t state)
+        uint32_t flags, uint16_t state)
 {
     client_td *client = calloc(1, sizeof(*client));
 
     client->id = (xcb_window_t) id;
     client->window = (xcb_window_t) id;
     client->info.name = (char *) name;
-    client->properties.flags =
-        (uint16_t) (CLIENT_FLAG_FOCUSABLE | flags);
+    client->properties.flags = CLIENT_FLAG_FOCUSABLE | flags;
     client->properties.state = state;
     s_owned_clients[s_owned_clients_used] = client;
     s_owned_clients_used++;
@@ -988,14 +987,15 @@ static void s_test_destroy_idempotent_and_null_safe(void)
 
 /* Candidate collection / eligibility filter */
 
-/* A non-focusable client, and one flagged CLIENT_FLAG_SKIP_TASKBAR,
- * are both left out of the collected candidates; only the ordinary
- * one is offered as a result */
+/* A non-focusable client, one flagged CLIENT_FLAG_SKIP_TASKBAR, and
+ * one that withdrew itself (ICCCM section 4.1.4) are all left out of
+ * the collected candidates; only the ordinary one is offered as
+ * a result */
 static void s_test_collect_filters_ineligible_clients(void)
 {
     surface_td surface;
     desktop_td *desktop;
-    client_td *clients[3];
+    client_td *clients[4];
     config_td cfg;
 
     s_reset();
@@ -1009,13 +1009,43 @@ static void s_test_collect_filters_ineligible_clients(void)
     s_owned_clients[s_owned_clients_used++] = clients[1];
     clients[2] = s_make_client(3u, "skip-taskbar",
             CLIENT_FLAG_SKIP_TASKBAR, 0);
-    s_make_surface_one_desktop(&surface, desktop, clients, 3, 1024u, 768u);
+    clients[3] = s_make_client(4u, "withdrawn",
+            CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_WITHDRAWN, 0);
+    s_make_surface_one_desktop(&surface, desktop, clients, 4, 1024u, 768u);
     s_make_config(&cfg);
 
     search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
 
     TAP_OK(search_is_open(),
             "at least one eligible candidate still opens the widget");
+
+    search_destroy(s_connection_stub);
+    cdlist_destroy(surface.desktops);
+    s_teardown();
+}
+
+/* A surface whose only client withdrew itself (ICCCM section 4.1.4)
+ * never opens the widget at all, with no eligible candidate left to
+ * offer */
+static void s_test_collect_withdrawn_only_never_opens(void)
+{
+    surface_td surface;
+    desktop_td *desktop;
+    client_td *clients[1];
+    config_td cfg;
+
+    s_reset();
+    desktop = s_make_desktop(0u, "one");
+    clients[0] = s_make_client(1u, "withdrawn",
+            CLIENT_FLAG_FOCUSABLE | CLIENT_FLAG_WITHDRAWN, 0);
+    s_make_surface_one_desktop(&surface, desktop, clients, 1, 1024u, 768u);
+    s_make_config(&cfg);
+
+    search_init((list_td *) NULL, s_connection_stub, &surface, &cfg);
+
+    TAP_OK(!search_is_open(),
+            "a withdrawn client alone leaves no eligible candidate,"
+            " so the widget never opens");
 
     search_destroy(s_connection_stub);
     cdlist_destroy(surface.desktops);
@@ -2462,7 +2492,7 @@ static void s_test_single_desktop_surface_paints_without_crash(void)
 
 int main(void)
 {
-    TAP_PLAN(101);
+    TAP_PLAN(102);
 
     s_test_init_rejects_null_args();
     s_test_init_empty_candidates_shows_dialog();
@@ -2474,6 +2504,7 @@ int main(void)
     s_test_destroy_idempotent_and_null_safe();
 
     s_test_collect_filters_ineligible_clients();
+    s_test_collect_withdrawn_only_never_opens();
     s_test_collect_spans_every_desktop();
 
     s_test_empty_query_matches_all_in_stack_order();

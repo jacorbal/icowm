@@ -28,23 +28,31 @@
 
 /* Utils includes */
 #include <utils/safe/safestr.h>
+#include <utils/xcb/connection.h>
+#include <utils/xcb/window.h>
 
 /* Default initial values */
 #include <defs/icon.h>
 #include <defs/search.h>
 #include <defs/uistr.h>
 
+/* Render includes */
+#include <render/text.h>
+#include <render/wmicon.h>
+
+/* Policy includes */
+#include <policy/stacking.h>
+
+/* Commands includes */
+#include <cmds/surface.h>
+
 /* Project includes */
 #include <client.h>
-#include <cmds/surface.h>
 #include <config.h>
 #include <desktop.h>
-#include <policy/stacking.h>
 #include <enact.h>
 #include <i18n.h>
 #include <lookup.h>
-#include <render/text.h>
-#include <render/wmicon.h>
 #include <surface.h>
 
 /* Policy includes */
@@ -56,8 +64,6 @@
 
 /* Local includes */
 #include <menu/search.h>
-#include <utils/xcb/connection.h>
-#include <utils/xcb/window.h>
 
 
 /**
@@ -254,6 +260,7 @@ static void s_search_candidate_visit(client_td *client, void *data)
 
     if (client == NULL || desktop == NULL ||
             !client_is_focusable(client) ||
+            client_is_transient(client) ||
             (client->properties.flags & CLIENT_FLAG_SKIP_TASKBAR) ||
             s_search.candidate_count >= WM_SEARCH_MAX_ENTRIES) {
         return;

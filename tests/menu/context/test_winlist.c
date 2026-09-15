@@ -729,6 +729,59 @@ static void s_test_skip_taskbar_client_is_omitted(void)
 }
 
 
+/* A client that withdrew itself (ICCCM section 4.1.4) is left out of
+ * the window list menu entirely, the same as one flagged
+ * CLIENT_FLAG_SKIP_TASKBAR */
+static void s_test_withdrawn_client_is_omitted(void)
+{
+    surface_td surface;
+    desktop_td *desktop;
+    client_td *ordinary;
+    client_td *withdrawn;
+    int command_count;
+    bool withdrawn_seen;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+
+    desktop = s_make_desktop(0u);
+    ordinary = s_make_client(400u, 0u, XCB_WINDOW_NONE);
+    withdrawn = s_make_client(401u, 0u, XCB_WINDOW_NONE);
+    withdrawn->properties.flags |= CLIENT_FLAG_WITHDRAWN;
+    ohtbl_insert(desktop->clients, ordinary);
+    ohtbl_insert(desktop->clients, withdrawn);
+
+    surface.desktops = cdlist_init(NULL);
+    cdlist_ins_next(surface.desktops, NULL, desktop);
+    surface.desktop_count = 1u;
+    surface.desktop_cur = 0u;
+
+    winlist_show((xcb_connection_t *) 1, &surface,
+            (struct position_s) { 0, 0 }, &(config_td) { 0 });
+
+    command_count = 0;
+    withdrawn_seen = false;
+    for (int i = 0; i < s_captured_state->entry_count; ++i) {
+        if (s_captured_state->entries[i].icon_window ==
+                withdrawn->window) {
+            withdrawn_seen = true;
+        }
+        if (s_captured_state->entries[i].type == CTXMENU_COMMAND &&
+                s_captured_state->entries[i].icon_window !=
+                    XCB_WINDOW_NONE) {
+            command_count++;
+        }
+    }
+    TAP_EQ_INT(command_count, 1,
+            "only the ordinary client is listed");
+    TAP_OK(!withdrawn_seen,
+            "the withdrawn client never appears at all");
+
+    cdlist_destroy(surface.desktops);
+    s_teardown();
+}
+
+
 /* A pinned client physically stored on another desktop is still
  * pulled into this one's listing, the same way it visually follows
  * every desktop switch */
@@ -773,6 +826,51 @@ static void s_test_pinned_client_pulled_from_other_desktop(void)
 }
 
 
+/* A pinned client stored on another desktop that also withdrew itself
+ * (ICCCM section 4.1.4) is left out of this desktop's listing too,
+ * pinned or not */
+static void s_test_withdrawn_pinned_client_from_other_desktop_omitted(
+        void)
+{
+    surface_td surface;
+    desktop_td *shown_desktop;
+    desktop_td *other_desktop;
+    client_td *pinned;
+    bool pinned_seen;
+
+    s_reset();
+    memset(&surface, 0, sizeof(surface));
+
+    shown_desktop = s_make_desktop(0u);
+    other_desktop = s_make_desktop(1u);
+    pinned = s_make_client(500u, 1u, XCB_WINDOW_NONE);
+    pinned->properties.flags |= CLIENT_FLAG_PIN | CLIENT_FLAG_WITHDRAWN;
+    ohtbl_insert(other_desktop->clients, pinned);
+
+    surface.desktops = cdlist_init(NULL);
+    cdlist_ins_next(surface.desktops, NULL, shown_desktop);
+    cdlist_ins_next(surface.desktops, NULL, other_desktop);
+    surface.desktop_count = 1u;
+    surface.desktop_cur = 0u;
+
+    winlist_show((xcb_connection_t *) 1, &surface,
+            (struct position_s) { 0, 0 }, &(config_td) { 0 });
+
+    pinned_seen = false;
+    for (int i = 0; i < s_captured_state->entry_count; ++i) {
+        if (s_captured_state->entries[i].icon_window == pinned->window) {
+            pinned_seen = true;
+        }
+    }
+    TAP_OK(!pinned_seen,
+            "a withdrawn client stored on another desktop never shows"
+            " up here, even while pinned");
+
+    cdlist_destroy(surface.desktops);
+    s_teardown();
+}
+
+
 /* An empty desktop still opens the menu, with a single non-clickable
  * placeholder entry rather than an empty or malformed one */
 static void s_test_empty_desktop_shows_placeholder(void)
@@ -807,13 +905,15 @@ static void s_test_empty_desktop_shows_placeholder(void)
 
 int main(void)
 {
-    TAP_PLAN(10);
+    TAP_PLAN(13);
 
     s_test_no_drop_past_appgroup_cap();
     s_test_small_group_collapses_to_one_submenu();
     s_test_ungrouped_clients_listed_singly();
     s_test_skip_taskbar_client_is_omitted();
+    s_test_withdrawn_client_is_omitted();
     s_test_pinned_client_pulled_from_other_desktop();
+    s_test_withdrawn_pinned_client_from_other_desktop_omitted();
     s_test_empty_desktop_shows_placeholder();
 
     return TAP_DONE();

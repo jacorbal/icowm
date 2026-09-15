@@ -30,6 +30,7 @@
 /* Local includes */
 #include <client/state.h>
 
+
 /**
  * @brief Macro that evaluates to the client iconify state
  *
@@ -117,14 +118,13 @@
     ((w)->properties.flags & CLIENT_FLAG_HIDDEN)
 
 /**
- * @brief Macro that evaluates to whether a client unmapped its own
- *        window itself, rather than being hidden by any window-manager
- *        or user action
+ * @brief Macro that evaluates to whether a client is transient for
+ *        another window (ICCCM §4.1.2.6, @c WM_TRANSIENT_FOR)
  *
  * @note Complexity: @e O(1)
  */
-#define client_is_withdrawn(w) \
-    ((w)->properties.flags & CLIENT_FLAG_WITHDRAWN)
+#define client_is_transient(w) \
+    ((w)->transient_for != XCB_WINDOW_NONE)
 
 /**
  * @brief Macro that evaluates to the client focusable flag
@@ -491,29 +491,6 @@
 #define client_toggle_hide(w) \
     safeflg_toggle(&((w)->properties.flags), \
             CLIENT_FLAG_HIDDEN, (1 << CLIENT_FLAG_MAX))
-
-/**
- * @brief Macro that marks a client as having unmapped its own window
- *        itself
- *
- * @param w Pointer to the client structure that withdrew itself
- *
- * @note Complexity: @e O(1)
- */
-#define client_mark_withdrawn(w) \
-    safeflg_set(&((w)->properties.flags), \
-            CLIENT_FLAG_WITHDRAWN, (1 << CLIENT_FLAG_MAX))
-
-/**
- * @brief Macro that clears a client's self-withdrawn mark
- *
- * @param w Pointer to the client structure to clear the mark on
- *
- * @note Complexity: @e O(1)
- */
-#define client_clear_withdrawn(w) \
-    safeflg_unset(&((w)->properties.flags), \
-            CLIENT_FLAG_WITHDRAWN, (1 << CLIENT_FLAG_MAX))
 
 /**
  * @brief Macro that sets the focus flag of a client

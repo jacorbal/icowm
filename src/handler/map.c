@@ -68,6 +68,9 @@
 /* Control includes */
 #include <cctl/sn.h>
 
+/* WM includes */
+#include <wm/shutdown.h>
+
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
@@ -79,7 +82,6 @@
 #include <surface.h>
 #include <systray.h>
 #include <wm.h>
-#include <wm/shutdown.h>
 
 /* Local includes */
 #include <handler.h>
@@ -195,10 +197,10 @@ static void s_map_finish(const wm_td *wm, surface_td *surface,
     /* ICCCM §4.1.2.4: honor 'WM_HINTS' 'initial_state' when
      * 'IconicState', unless a rule already gave an explicit
      * 'apply.iconified' for this client ('s_rules_defer_state_to_map',
-     * in 'rules/apply.c'): the rule speaks for the user's own
-     * configuration and so takes precedence over the client's own
-     * request either way, the same as 'has_rule_position_locked'
-     * already overrides a client-initiated move (client.h). */
+     * in 'rules/apply.c'): the rule speaks for the user's configuration
+     * and so takes precedence over the client's own request either way,
+     * the same as 'has_rule_position_locked' already overrides
+     * a client-initiated move ('client.h'). */
     want_iconic = client->has_rule_iconified
         ? client->is_rule_iconified
         : client->hints_icccm.hints.is_initial_iconic;
@@ -424,20 +426,10 @@ void handler_map_request(const wm_td *wm,
 
     client = lookup_find_client(surfaces, event->window, NULL, NULL);
     if (client != NULL) {
-        LOGGER_TRACE("Window %#x already managed; re-showing it" \
-                " properly rather than mapping it raw", event->window);
+        LOGGER_TRACE("Window %#x already managed; mapping directly",
+                event->window);
 
-        /* A bare 'xcb_map_window' here, this path's previous behavior,
-         * left the client's own bookkeeping (still marked hidden, its
-         * frame and titlebar left hidden from whichever hide put it
-         * there, WM_STATE still whatever it was) entirely stale,
-         * correct only for the window itself becoming visible again,
-         * not for anything this window manager still believed about it.
-         * Harmless, not only correct, when this client was never
-         * actually hidden at all, since every one of
-         * 'ccmd_client_unhide' own steps is already a no-op against
-         * a client that is not. */
-        ccmd_client_unhide(client);
+        s_map_unmanaged(connection, event->window);
         return;
     }
 
@@ -694,16 +686,6 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * and send real input focus right back onto it. */
         client_hide(client);
 
-        /* Distinct from the plain 'client_hide' above: this client
-         * unmapped its own window itself, ICCCM §4.1.4's own account of
-         * a client withdrawing, not a window manager or user action
-         * hiding it, so it must not be offered back to either automatic
-         * discovery (see 'ccmd_client_bring_family',
-         * cmds/client/transient.c) or the cycle menu's own listing
-         * ('menu/cycle.c') the way a client genuinely hidden by a
-         * command is. */
-        client_mark_withdrawn(client);
-
         if (desktop != NULL &&
                 desktop->client_active_id == client->id) {
             client_focus_fallback(desktop, surface, client);
@@ -726,11 +708,13 @@ void handler_unmap_notify(xcb_connection_t *connection,
          * had only its '_NET_WM_STATE_FULLSCREEN' atom stripped from
          * the property below, with nothing here ever touching
          * 'properties.state' itself, silently leaving the two
-         * disagreeing with each other from then on.  Reset to plain
-         * normal specifically, not iconified: 'client_hide' just above
-         * already marks 'CLIENT_FLAG_HIDDEN', which alone is enough for
-         * 'ccmd_client_sync_states' ('cmds/client/ewmh.c') to correctly
-         * still publish '_NET_WM_STATE_HIDDEN' below; claiming
+         * disagreeing with each other from then on.
+         *
+         * Reset to plain normal specifically, not iconified:
+         * 'client_hide' just above already marks 'CLIENT_FLAG_HIDDEN',
+         * which alone is enough for 'ccmd_client_sync_states'
+         * ('cmds/client/ewmh.c') to correctly still publish
+         * '_NET_WM_STATE_HIDDEN' below; claiming
          * 'CLIENT_STATE_ICONIFIED' here instead would make
          * 'client_is_iconified' true for a client the window manager
          * itself never actually iconified, with consequences well

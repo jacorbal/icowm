@@ -114,14 +114,12 @@ static void s_cycle_collect(client_td *c, void *data)
     bool want;
     int idx;
 
-    /* 'client_is_withdrawn' excluded alongside the taskbar-skip flag:
-     * a client that unmapped its own window itself (ICCCM §4.1.4) may
-     * never map again at all per ICCCM §4.1.3.1, and offering it here
-     * as though it were genuinely just hidden let selecting it revive
-     * something the application itself no longer expects to be shown,
-     * which it then closes right back again on its own. */
+    /* A transient window (a dialog) is never offered in the cycle
+     * menu, the same as one flagged 'CLIENT_FLAG_SKIP_TASKBAR': it is
+     * not a top-level application window a user expects to switch to
+     * this way. */
     if (c == NULL || ctx == NULL || !client_is_focusable(c) ||
-            client_is_withdrawn(c) ||
+            client_is_transient(c) ||
             (c->properties.flags & CLIENT_FLAG_SKIP_TASKBAR)) {
         return;
     }

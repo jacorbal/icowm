@@ -54,10 +54,13 @@
  *
  * @note Complexity: @e O(1)
  */
+static int s_ensure_icon_window_calls;
+
 void ccmd_client_ensure_icon_window(client_td *client, uint16_t icon_h)
 {
     (void) client;
     (void) icon_h;
+    s_ensure_icon_window_calls++;
 }
 
 
@@ -435,6 +438,7 @@ static void s_reset(void)
     s_set_wm_state_calls = 0;
     s_owner_surface = NULL;
     s_redraw_calls = 0;
+    s_ensure_icon_window_calls = 0;
 }
 
 
@@ -579,6 +583,30 @@ static void s_test_iconify_plain_client_sets_state(void)
     TAP_EQ_INT(s_focus_fallback_calls, 1,
             "focus falls back to another client once");
     TAP_EQ_INT(s_redraw_calls, 1, "a redraw is requested once");
+
+    s_teardown();
+}
+
+
+/* A client that already withdrew itself (ICCCM section 4.1.4) is
+ * downgraded to a plain hide instead when asked to iconify: no icon
+ * box created for a window that may never map again at all */
+static void s_test_iconify_withdrawn_downgrades_to_hide(void)
+{
+    client_td *client;
+
+    s_reset();
+    client = s_make_client(13u);
+    client_mark_withdrawn(client);
+
+    ccmd_client_iconify(client);
+
+    TAP_OK(!client_is_iconified(client),
+            "the client is never actually marked iconified");
+    TAP_OK(client_is_hidden(client) != 0,
+            "it ends up plainly hidden instead");
+    TAP_EQ_INT(s_ensure_icon_window_calls, 0,
+            "no icon box is ever created for it");
 
     s_teardown();
 }
@@ -807,7 +835,7 @@ static void s_test_unhide_cascades_to_family(void)
 
 int main(void)
 {
-    TAP_PLAN(35);
+    TAP_PLAN(38);
 
     s_test_null_client_is_a_no_op();
     s_test_unmap_decorated_null_client_is_a_no_op();
@@ -816,6 +844,7 @@ int main(void)
     s_test_iconify_locked_is_a_no_op();
     s_test_iconify_non_focusable_is_a_no_op();
     s_test_iconify_plain_client_sets_state();
+    s_test_iconify_withdrawn_downgrades_to_hide();
     s_test_iconify_already_iconified_stays_iconified();
     s_test_iconify_cascades_to_family();
     s_test_iconify_cascade_skips_locked_and_done();

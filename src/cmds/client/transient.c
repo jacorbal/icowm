@@ -473,19 +473,6 @@ void ccmd_client_bring_family(client_td *client)
     }
 
     for (size_t i = 0; i < count; i++) {
-        /* A sibling that withdrew its own window itself (ICCCM §4.1.4)
-         * is skipped entirely here, desktop-move included: per ICCCM
-         * §4.1.3.1, one that did may never map again at all, and
-         * reviving it goes against what its own application logic
-         * assumes, which is exactly what turned this loop into
-         * a client's own GIMP color-picker dialog being unhidden here
-         * on every single click anywhere in the application, each time
-         * immediately closed again by GIMP's own code the moment it
-         * noticed. */
-        if (client_is_withdrawn(siblings[i])) {
-            continue;
-        }
-
         /* Compares 'desktop_id' directly first, at no cost beyond
          * a field read on 'siblings[i]' itself: the common case is
          * already on the right desktop (every desktop-move cascade in
@@ -500,6 +487,18 @@ void ccmd_client_bring_family(client_td *client)
                 (void) desktop_action_client_move(home, target,
                         siblings[i]);
             }
+        }
+
+        /* A transient sibling is never revealed here: a dialog stays
+         * out of automatic discovery the same way it stays out of the
+         * taskbar and the cycle menu (see 'ccmd_client_iconify''s own
+         * comment, cmds/client/visibility.c), which is exactly what
+         * turned this loop into a client's own GIMP color-picker
+         * dialog being unhidden on every single click anywhere in the
+         * application, each time immediately closed again by GIMP's
+         * own code the moment it noticed. */
+        if (client_is_transient(siblings[i])) {
+            continue;
         }
 
         if (client_is_iconified(siblings[i])) {

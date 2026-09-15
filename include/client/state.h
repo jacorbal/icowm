@@ -240,29 +240,7 @@ enum window_flags_e {
      */
     CLIENT_FLAG_STICKY = 1 << 15,
 
-    /**
-     * @brief This client unmapped its own window itself (ICCCM §4.1.4),
-     *        rather than being hidden by any window-manager or user
-     *        action
-     *
-     * Distinct from @c CLIENT_FLAG_HIDDEN, which @a client_hide sets
-     * for both cases alike: a client that withdrew itself this way may,
-     * per ICCCM §4.1.3.1, never map again at all, and reviving one that
-     * does not expect to be shown again goes against what its own
-     * application logic assumes, which is exactly what made a hidden
-     * client's automatic discovery (@a ccmd_client_bring_family, in
-     * @c cmds/client/transient.c) and its listing in the cycle menu
-     * (in @c menu/cycle.c) keep reopening one particular GIMP dialog on
-     * every click, each time immediately closed again by GIMP's own
-     * code the moment it noticed. Cleared the moment a client this is
-     * set on maps itself again on its own, at which point whatever
-     * caused it no longer applies (see @c handler/map.c).
-     *
-     * @see @a client_is_withdrawn below
-     */
-    CLIENT_FLAG_WITHDRAWN = 1 << 16,
-
-    CLIENT_FLAG_MAX = 17,
+    CLIENT_FLAG_MAX = 16,
 };
 
 

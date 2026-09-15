@@ -273,24 +273,6 @@ static void s_ccmd_client_iconify_one(client_td *client)
 
 
 /**
- * @brief Iconify one transient family member
- *
- * @param member Family member to act on
- * @param ctx    Unused
- *
- * @note Complexity: @e O(1)
- */
-static void s_ccmd_client_iconify_visit(client_td *member, void *ctx)
-{
-    (void) ctx;
-
-    if (!client_is_iconified(member) && !client_is_locked(member)) {
-        s_ccmd_client_iconify_one(member);
-    }
-}
-
-
-/**
  * @brief Whether hiding @p client would still do anything
  *
  * A plain hidden client (no icon, nothing mapped at all) has nothing
@@ -381,6 +363,38 @@ static void s_ccmd_client_hide_one(client_td *client)
 
 
 /**
+ * @brief Iconify one transient family member
+ *
+ * @param member Family member to act on
+ * @param ctx    Unused
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_iconify_visit(client_td *member, void *ctx)
+{
+    (void) ctx;
+
+    if (client_is_locked(member)) {
+        return;
+    }
+
+    /* Same reasoning as 'ccmd_client_iconify''s own check just below:
+     * a transient family member is hidden along with the rest of the
+     * family, never iconified into a real icon box of its own. */
+    if (client_is_transient(member)) {
+        if (!client_is_hidden(member)) {
+            s_ccmd_client_hide_one(member);
+        }
+        return;
+    }
+
+    if (!client_is_iconified(member)) {
+        s_ccmd_client_iconify_one(member);
+    }
+}
+
+
+/**
  * @brief Hide one transient family member
  *
  * @param member Family member to act on
@@ -428,13 +442,6 @@ static void s_ccmd_client_unhide_one(client_td *client)
     }
 
     client_unhide(client);
-
-    /* Whatever kept 'ccmd_client_bring_family' and the cycle menu from
-     * offering this client back no longer applies once it is genuinely
-     * visible again, whether that came from this same unhide or from
-     * the client mapping itself back on its own ('handler_map_request',
-     * in 'handler/map.c') */
-    client_clear_withdrawn(client);
 
     ccmd_set_wm_state(client, CCMD_WM_STATE_NORMAL, XCB_NONE);
     ccmd_client_sync_states(client);
@@ -492,13 +499,35 @@ void ccmd_client_iconify(client_td *client)
      * display it will not do this to, by leaving
      * '_NET_WM_ACTION_MINIMIZE' out of that window's
      * '_NET_WM_ALLOWED_ACTIONS' (see
-     * 'ccmd_client_update_allowed_actions').  A panel is what this
-     * keeps out in practice, and it is refused here rather than at each
-     * of the several callers so that every route in, the titlebar
-     * button, the key binding, the window menu, the IPC command and the
-     * iconify-all action alike, obeys the same rule. */
+     * 'ccmd_client_update_allowed_actions').
+     *
+     * A panel is what this keeps out in practice, and it is refused
+     * here rather than at each of the several callers so that every
+     * route in, the titlebar button, the key binding, the window menu,
+     * the IPC command and the iconify-all action alike, obeys the same
+     * rule. */
     if (client == NULL || client_is_locked(client) ||
             !client_is_iconifiable(client)) {
+        return;
+    }
+
+    /* A transient window is never iconified into a real icon box: it
+     * stays out of the taskbar, the search menu, and the window list
+     * the exact same way, all four for the same reason, a dialog is
+     * not a top-level application window a user expects to restore
+     * from an icon, a taskbar row, or a search result.
+     *
+     * Downgraded to a plain hide instead of refused outright, so the
+     * two routes that can still reach here for a transient window,
+     * 'WM_CHANGE_STATE' (handler/message.c) and '_NET_WM_STATE_HIDDEN'
+     * (handler/ewmh.c), still leave it hidden the way each asked,
+     * just without the icon box neither of them actually wants.
+     *
+     * Checked once here, the one place every route that could reach
+     * 's_ccmd_client_iconify_one' passes through, rather than at each
+     * of those two message handlers individually. */
+    if (client_is_transient(client)) {
+        ccmd_client_hide(client);
         return;
     }
 
