@@ -34,6 +34,8 @@
 #include <cmds/client/ewmh.h>
 #include <cmds/client/focus.h>
 #include <cmds/client/layer.h>
+#include <cmds/client/maximize.h>
+#include <cmds/client/move.h>
 #include <cmds/client/state.h>
 #include <cmds/client/visibility.h>
 
@@ -112,9 +114,9 @@ static void s_client_hide_visit(client_td *client, void *data)
          * incrementing 'ignore_unmap' would leave the counter positive.
          * That residual count would then silently absorb the next
          * genuine 'UnmapNotify' (e.g., the app self-unmapping to go to
-         * the system tray), preventing 'handler_window_unmap_notify' from
-         * setting 'CLIENT_FLAG_HIDDEN' and breaking the systray restore
-         * path in 'handler_message'. */
+         * the system tray), preventing 'handler_window_unmap_notify'
+         * from setting 'CLIENT_FLAG_HIDDEN' and breaking the systray
+         * restore path in 'handler_message'. */
         if (!(client->properties.flags & CLIENT_FLAG_HIDDEN) &&
                 !client_is_iconified(client)) {
             xcb_window_t target =
@@ -274,6 +276,13 @@ static void s_client_pinned_visit(client_td *client, void *data)
 /**
  * @brief Bring one client back onto a monitor after a layout change
  *
+ * A client left maximized on either axis has that axis' geometry
+ * refolded fresh against the target monitor's own workarea
+ * (@a ccmd_client_refill_maximized_geometry), the same way
+ * @a ccmd_client_move_to_monitor already does when a client is moved
+ * there on purpose: a maximized client landing on a smaller monitor
+ * than the one it lost must not keep that monitor's now-stale size.
+ *
  * @param client Client reached by the walk
  * @param data   Pointer to the @c s_reflow_ctx_s this walk carries
  *
@@ -343,6 +352,7 @@ static void s_client_reflow_visit(client_td *client, void *data)
                  : 1u);
             int32_t new_x = cx;
             int32_t new_y = cy;
+            uint16_t mask;
 
             /* Clamp horizontally, within the resolved
              * monitor rather than the whole combined
@@ -362,13 +372,38 @@ static void s_client_reflow_visit(client_td *client, void *data)
                 new_y = my1 - margin;
             }
 
-            if (new_x != cx || new_y != cy) {
-                xcb_window_move(target, new_x, new_y);
+            client->layout.geometry.cur.pos.x = new_x;
+            client->layout.geometry.cur.pos.y = new_y;
 
-                client->layout.geometry.cur.pos.x = new_x;
-                client->layout.geometry.cur.pos.y = new_y;
+            /* A maximized axis (full, or just one) is refolded fresh
+             * against the target monitor's own workarea, resolved from
+             * the position just written above, rather than left at
+             * whatever size it filled on the monitor the client just
+             * lost; a non-maximized client leaves this call a no-op and
+             * keeps the clamped position/size computed above
+             * instead. */
+            mask = (uint16_t) XCB_CONFIG_WINDOW_X |
+                (uint16_t) XCB_CONFIG_WINDOW_Y;
+            if (ccmd_client_refill_maximized_geometry(client)) {
+                mask |= (uint16_t) XCB_CONFIG_WINDOW_WIDTH |
+                    (uint16_t) XCB_CONFIG_WINDOW_HEIGHT;
+            }
+            ccmd_client_apply_geometry(client, target, mask,
+                    client->layout.geometry.cur.pos.x,
+                    client->layout.geometry.cur.pos.y,
+                    client->layout.geometry.cur.dim.w,
+                    client->layout.geometry.cur.dim.h, 0u);
+
+            if (new_x != cx || new_y != cy ||
+                    client_is_maximized_any(client)) {
                 client->is_outdated = true;
                 desktop->is_outdated = true;
+
+                /* A move or resize alone never generates a real
+                 * 'ConfigureNotify' the client could use to learn its
+                 * own new geometry. */
+                client_send_synthetic_configure_notify(
+                        xcb_connection_get(), client);
             }
         } /* ! if (!still_on_a_monitor) */
     } /* ! if (!client) */
@@ -419,8 +454,7 @@ void surface_client_show_all(surface_td *surface, uint32_t desktop_id)
      * (rather than 'PointerRoot' or a genuine client) leaves every
      * keyboard shortcut dead, since 'None' delivers key events nowhere
      * at all, until something else happens to reassert real focus on
-     * returning to whichever
-     * desktop still has a client on it. */
+     * returning to whichever desktop still has a client on it. */
     stacking_walk(desktop, s_client_show_visit, surface);
 
     /* Restore Z-order: iterate from head (bottom) to tail (top),

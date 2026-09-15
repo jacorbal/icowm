@@ -4,7 +4,7 @@
  * @brief Test battery for moving every pinned client to one desktop
  *
  * Exercises 'surface_client_pinned_transfer_all' (surface/actions/
- * clients.c) linked against the real stacking order (policy/
+ * client.c) linked against the real stacking order (policy/
  * stacking.c) and the real per-desktop client lookup (desktop/
  * dfind.c), so a pinned client is only ever seen by the function
  * under test the same way it would be in the real program: through
@@ -46,6 +46,45 @@
 #include <policy/stacking.h>
 #include <surface.h>
 #include <surface/client.h>
+
+
+/**
+ * @brief Link-only stand-in for @a ccmd_client_apply_geometry
+ *
+ * Reached only by 'surface_client_reflow_all', which nothing here
+ * calls.
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_apply_geometry(client_td *client,
+        xcb_window_t target, uint16_t mask,
+        int32_t x, int32_t y, uint32_t w, uint32_t h,
+        uint32_t border_width)
+{
+    (void) client;
+    (void) target;
+    (void) mask;
+    (void) x;
+    (void) y;
+    (void) w;
+    (void) h;
+    (void) border_width;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a ccmd_client_refill_maximized_geometry
+ *
+ * Reached only by 'surface_client_reflow_all', which nothing here
+ * calls.
+ *
+ * @note Complexity: @e O(1)
+ */
+bool ccmd_client_refill_maximized_geometry(client_td *client)
+{
+    (void) client;
+    return false;
+}
 
 
 /**
@@ -92,6 +131,22 @@ void client_focus_fallback(desktop_td *desktop, surface_td *surface,
 
 
 /**
+ * @brief Link-only stand-in for @a client_send_synthetic_configure_notify
+ *
+ * Reached only by 'surface_client_reflow_all', which nothing here
+ * calls.
+ *
+ * @note Complexity: @e O(1)
+ */
+void client_send_synthetic_configure_notify(
+        xcb_connection_t *connection, const client_td *client)
+{
+    (void) connection;
+    (void) client;
+}
+
+
+/**
  * @brief Link-only stand-in for @a surface_monitor_for_point
  *
  * Reached only by 'surface_client_reflow_all', which nothing here calls.
@@ -121,6 +176,20 @@ monitor_td surface_monitor_for_point(const surface_td *surface,
 xcb_window_t systray_below_window(void)
 {
     return XCB_WINDOW_NONE;
+}
+
+
+/**
+ * @brief Link-only stand-in for @a xcb_connection_get
+ *
+ * Reached only by 'surface_client_reflow_all', which nothing here
+ * calls.
+ *
+ * @note Complexity: @e O(1)
+ */
+xcb_connection_t *xcb_connection_get(void)
+{
+    return NULL;
 }
 
 
