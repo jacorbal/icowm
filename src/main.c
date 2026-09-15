@@ -350,9 +350,9 @@ int main(int argc, char *const argv[])
     bool replace_requested = false;
     long mib;
 #ifdef COMPACT
-    /* A COMPACT build enables restricted-memory mode on its own, at
-     * the minimum ceiling, unless '-M' below overrides it with a
-     * higher one; a non-COMPACT build stays off unless '-M' is given
+    /* A COMPACT build enables restricted-memory mode on its own, at the
+     * minimum ceiling, unless '-M' below overrides it with a higher
+     * one; a non-COMPACT build stays off unless '-M' is given
      * explicitly. */
     uint32_t restricted_memory_mib = MEMGUARD_MIN_CEILING_MIB;
 #else
@@ -365,11 +365,12 @@ int main(int argc, char *const argv[])
         return 2;
     }
 
-    /* GUI text translation, set up unconditionally, this early,
-     * so nothing later ever needs to reason about whether it has
-     * run yet: -h/-v themselves are deliberately never translated
-     * (see i18n.h), but every dialog wm_start can reach further
-     * down already needs it ready. */
+    /* GUI text translation, set up unconditionally, this early, so
+     * nothing later ever needs to reason about whether it has run yet:
+     * '-h'/'-v' themselves are deliberately never translated (see
+     * 'i18n.h'), but every dialog wm_start can reach further down
+     * already needs it
+     * ready. */
     i18n_init();
 
     /* Generate a random seed (windows are in a hash table and the seeds
@@ -518,9 +519,9 @@ int main(int argc, char *const argv[])
         return 1;
     }
 
-    /* Stop everything.  Neither result changes what happens next,
-     * since the process is on its way out either way, so both are
-     * discarded deliberately rather than by omission. */
+    /* Stop everything.  Neither result changes what happens next, since
+     * the process is on its way out either way, so both are discarded
+     * deliberately rather than by omission. */
     (void) wm_stop();
     LOGGER_INFO("Shutting down window manager", L_NARG);
     (void) logger_stop();
@@ -529,13 +530,13 @@ int main(int argc, char *const argv[])
     s_deallocate_buffers(&log_filename, &display_name, &config_dir);
 
     /* A restart asked for through IPC ('restart_wm') is not really an
-     * exit: every managed client was already handed back to bare X
-     * moments ago, by 'wm_stop' itself, still open, so re-executing
-     * this very binary lets the fresh instance's own startup scan
-     * pick every one of them right back up.  'argv' is passed through
-     * exactly as received: 'getopt' only ever reorders it, never
-     * frees or rewrites any of the strings it points to, so it is
-     * still exactly what this process itself was started with. */
+     * exit: every managed client was already handed back to bare
+     * X moments ago, by 'wm_stop' itself, still open, so re-executing
+     * this very binary lets the fresh instance's own startup scan pick
+     * every one of them right back up.  'argv' is passed through
+     * exactly as received: 'getopt' only ever reorders it, never frees
+     * or rewrites any of the strings it points to, so it is still
+     * exactly what this process itself was started with. */
     if (wm_restart_requested()) {
         execvp(argv[0], argv);
 
