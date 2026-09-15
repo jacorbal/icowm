@@ -33,30 +33,34 @@
 #include <defs/desktop.h>
 #include <defs/icon.h>
 
-/* Windows & icons policy includes */
-#include <policy/placement/window.h>
-
 /* Utils includes */
 #include <utils/geom.h>
 #include <utils/xcb/connection.h>
 #include <utils/xcb/window.h>
+
+/* Windows & icons policy includes */
+#include <policy/placement/window.h>
+
+/* Render includes */
+#include <render/outdate.h>
 
 /* Project includes */
 #include <client.h>
 #include <desktop.h>
 #include <ipc.h>
 #include <lookup.h>
-#include <render/outdate.h>
 #include <systray.h>
 #include <wm.h>
 
-/* Local includes */
+/* Command includes */
 #include <cmds/client/ewmh.h>
 #include <cmds/client/focus.h>
 #include <cmds/client/icon.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
+
+/* Local includes */
 #include <cmds/client/visibility.h>
 
 
@@ -508,26 +512,6 @@ void ccmd_client_iconify(client_td *client)
      * rule. */
     if (client == NULL || client_is_locked(client) ||
             !client_is_iconifiable(client)) {
-        return;
-    }
-
-    /* A transient window is never iconified into a real icon box: it
-     * stays out of the taskbar, the search menu, and the window list
-     * the exact same way, all four for the same reason, a dialog is
-     * not a top-level application window a user expects to restore
-     * from an icon, a taskbar row, or a search result.
-     *
-     * Downgraded to a plain hide instead of refused outright, so the
-     * two routes that can still reach here for a transient window,
-     * 'WM_CHANGE_STATE' (handler/message.c) and '_NET_WM_STATE_HIDDEN'
-     * (handler/ewmh.c), still leave it hidden the way each asked,
-     * just without the icon box neither of them actually wants.
-     *
-     * Checked once here, the one place every route that could reach
-     * 's_ccmd_client_iconify_one' passes through, rather than at each
-     * of those two message handlers individually. */
-    if (client_is_transient(client)) {
-        ccmd_client_hide(client);
         return;
     }
 

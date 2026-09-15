@@ -588,25 +588,34 @@ static void s_test_iconify_plain_client_sets_state(void)
 }
 
 
-/* A client that already withdrew itself (ICCCM section 4.1.4) is
- * downgraded to a plain hide instead when asked to iconify: no icon
- * box created for a window that may never map again at all */
-static void s_test_iconify_withdrawn_downgrades_to_hide(void)
+/* Asking to iconify a transient dialog directly still iconifies its
+ * whole family, its top parent getting the real icon box, the dialog
+ * itself only hidden: iconifying is a request to minimize the
+ * application, not just the one window it happened to be asked
+ * through */
+static void s_test_iconify_transient_iconifies_top_parent(void)
 {
-    client_td *client;
+    client_td *top;
+    client_td *dialog;
 
     s_reset();
-    client = s_make_client(13u);
-    client_mark_withdrawn(client);
+    top = s_make_client(13u);
+    dialog = s_make_client(14u);
+    dialog->transient_for = (xcb_window_t) 1;
+    s_top_parent_override = top;
+    s_siblings[0] = dialog;
+    s_siblings_used = 1;
 
-    ccmd_client_iconify(client);
+    ccmd_client_iconify(dialog);
 
-    TAP_OK(!client_is_iconified(client),
-            "the client is never actually marked iconified");
-    TAP_OK(client_is_hidden(client) != 0,
+    TAP_OK(client_is_iconified(top) != 0,
+            "the top parent ends up genuinely iconified");
+    TAP_OK(!client_is_iconified(dialog),
+            "the requesting dialog itself is never marked iconified");
+    TAP_OK(client_is_hidden(dialog) != 0,
             "it ends up plainly hidden instead");
-    TAP_EQ_INT(s_ensure_icon_window_calls, 0,
-            "no icon box is ever created for it");
+    TAP_EQ_INT(s_ensure_icon_window_calls, 1,
+            "an icon box is created for the top parent alone");
 
     s_teardown();
 }
@@ -660,6 +669,42 @@ static void s_test_iconify_cascades_to_family(void)
             "the requesting dialog itself ends up iconified too");
     TAP_OK(client_is_iconified(sibling) != 0,
             "and so does its unrelated sibling in the same family");
+
+    s_teardown();
+}
+
+
+/* A transient sibling in the cascade is hidden along with the rest of
+ * the family, never iconified into a real icon box of its own */
+static void s_test_iconify_cascade_hides_transient_sibling(void)
+{
+    client_td *top;
+    client_td *dialog;
+    client_td *transient_sibling;
+
+    s_reset();
+    top = s_make_client(26u);
+    dialog = s_make_client(27u);
+    transient_sibling = s_make_client(28u);
+    transient_sibling->transient_for = (xcb_window_t) 1;
+    s_top_parent_override = top;
+    s_siblings[0] = dialog;
+    s_siblings[1] = transient_sibling;
+    s_siblings_used = 2;
+
+    ccmd_client_iconify(dialog);
+
+    TAP_OK(client_is_iconified(top) != 0,
+            "the top parent still ends up iconified");
+    TAP_OK(!client_is_iconified(transient_sibling),
+            "its transient sibling is never actually marked" \
+            " iconified");
+    TAP_OK(client_is_hidden(transient_sibling) != 0,
+            "it ends up plainly hidden instead");
+    TAP_EQ_INT(s_ensure_icon_window_calls, 2,
+            "an icon box is created for the top parent and the"
+            " requesting dialog, both genuinely iconified, but none"
+            " for the transient sibling");
 
     s_teardown();
 }
@@ -760,14 +805,11 @@ static void s_test_unhide_plain_client_clears_state(void)
     s_reset();
     client = s_make_client(40u);
     client_hide(client);
-    client_mark_withdrawn(client);
 
     ccmd_client_unhide(client);
 
     TAP_OK(!client_is_hidden(client),
             "the client is no longer marked hidden");
-    TAP_OK(!client_is_withdrawn(client),
-            "and no longer marked as having withdrawn itself either");
     TAP_EQ_INT((int) s_wm_state_last, 1 /* CCMD_WM_STATE_NORMAL */,
             "the ICCCM normal state is written");
     TAP_EQ_INT(s_make_active_calls, 1,
@@ -835,7 +877,7 @@ static void s_test_unhide_cascades_to_family(void)
 
 int main(void)
 {
-    TAP_PLAN(38);
+    TAP_PLAN(42);
 
     s_test_null_client_is_a_no_op();
     s_test_unmap_decorated_null_client_is_a_no_op();
@@ -844,9 +886,10 @@ int main(void)
     s_test_iconify_locked_is_a_no_op();
     s_test_iconify_non_focusable_is_a_no_op();
     s_test_iconify_plain_client_sets_state();
-    s_test_iconify_withdrawn_downgrades_to_hide();
+    s_test_iconify_transient_iconifies_top_parent();
     s_test_iconify_already_iconified_stays_iconified();
     s_test_iconify_cascades_to_family();
+    s_test_iconify_cascade_hides_transient_sibling();
     s_test_iconify_cascade_skips_locked_and_done();
     s_test_hide_plain_client_sets_state();
     s_test_hide_cascades_to_family();

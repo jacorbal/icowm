@@ -58,15 +58,17 @@
 #include <wm.h>
 #include <cctl/kill.h>
 
-/* Local includes */
+/* Command includes */
 #include <cmds/client/ewmh.h>
 #include <cmds/client/flags.h>
-#include <cmds/client/focus.h>
 #include <cmds/client/maximize.h>
 #include <cmds/client/screen.h>
 #include <cmds/client/state.h>
 #include <cmds/client/transient.h>
 #include <cmds/client/visibility.h>
+
+/* Local includes */
+#include <cmds/client/focus.h>
 
 
 /**
@@ -482,9 +484,25 @@ void ccmd_client_restore(client_td *client)
             &count);
     if (siblings != NULL) {
         for (size_t i = 0; i < count; i++) {
-            if (client_is_iconified(siblings[i]) &&
-                    !client_is_locked(siblings[i])) {
+            if (client_is_locked(siblings[i])) {
+                continue;
+            }
+
+            if (client_is_iconified(siblings[i])) {
                 s_ccmd_client_restore_one(siblings[i]);
+            } else if (client_is_transient(siblings[i]) &&
+                    client_is_hidden(siblings[i])) {
+                /* A transient sibling is hidden, not iconified, when
+                 * the family goes down together (see
+                 * 's_ccmd_client_iconify_visit''s own comment,
+                 * cmds/client/visibility.c), so restoring the family
+                 * has to look for this too, not only for a sibling
+                 * genuinely iconified: left unhidden, a dialog that
+                 * was open when its application was minimized stayed
+                 * invisible, unreachable, yet still holding on to
+                 * whatever it held before, once the application it
+                 * belonged to was restored. */
+                ccmd_client_unhide(siblings[i]);
             }
         }
 

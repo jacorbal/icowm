@@ -246,6 +246,14 @@ client_td **ccmd_client_transient_family_snapshot_anywhere(
 }
 
 
+/** Link-only stand-in for @a ccmd_client_unhide; never reached, same
+ *  reason as the two functions just above */
+void ccmd_client_unhide(client_td *client)
+{
+    (void) client;
+}
+
+
 /**
  * @brief Recording stand-in for @a client_theme_layout_resync
  * @note Complexity: @e O(1)
