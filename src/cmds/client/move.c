@@ -147,15 +147,23 @@ void ccmd_client_apply_geometry(client_td *client,
 }
 
 
-/* Move the client to a new position */
-void ccmd_client_move(client_td *client, struct position_s pos)
+/**
+ * @brief Apply a client's new position, without announcing it
+ *
+ * Everything @a ccmd_client_move does except the synthetic
+ * 'ConfigureNotify' at the end; shared with @a ccmd_client_move_track,
+ * which is deliberately silent about every intermediate step of a
+ * drag still in progress.
+ *
+ * @param client Client to move
+ * @param pos    Requested new position
+ *
+ * @note Complexity: @e O(1)
+ */
+static void s_ccmd_client_move_apply(client_td *client,
+        struct position_s pos)
 {
     xcb_window_t target;
-
-    if (client == NULL || client_is_maximized(client) ||
-            client_is_fullscreen(client)) {
-        return;
-    }
 
     /* A client maximized on just one axis keeps that axis pinned to
      * the workarea edge it already fills; only the other, still-free
@@ -179,6 +187,18 @@ void ccmd_client_move(client_td *client, struct position_s pos)
     client->layout.geometry.cur.pos.y = pos.y;
     client->has_rule_position_locked = false;
     wm_request_client_redraw(client);
+}
+
+
+/* Move the client to a new position */
+void ccmd_client_move(client_td *client, struct position_s pos)
+{
+    if (client == NULL || client_is_maximized(client) ||
+            client_is_fullscreen(client)) {
+        return;
+    }
+
+    s_ccmd_client_move_apply(client, pos);
 
     /* A move alone never generates a real 'ConfigureNotify' for the
      * client: the X server only ever reports one to a window when its
@@ -192,6 +212,18 @@ void ccmd_client_move(client_td *client, struct position_s pos)
      * rectangle) keeps getting wrong until something else, like
      * a resize, happens to send one after it. */
     client_send_synthetic_configure_notify(xcb_connection_get(), client);
+}
+
+
+/* Move the client to a new position, without announcing it */
+void ccmd_client_move_track(client_td *client, struct position_s pos)
+{
+    if (client == NULL || client_is_maximized(client) ||
+            client_is_fullscreen(client)) {
+        return;
+    }
+
+    s_ccmd_client_move_apply(client, pos);
 }
 
 

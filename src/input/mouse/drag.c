@@ -51,6 +51,7 @@
 
 /* Project includes */
 #include <client.h>
+#include <cmds/client/move.h>
 #include <cmds/stage.h>
 #include <desktop.h>
 #include <enact.h>
@@ -271,7 +272,17 @@ static void s_drag_update_move(xcb_connection_t *connection,
     s_drag.client_cur.pos.x = new_x;
     s_drag.client_cur.pos.y = new_y;
     if (s_drag.is_solid_drag) {
-        enact_client_move(client,
+        /* Quiet during the drag itself, on purpose: a compositing
+         * client (Chromium, Electron) treats the synthetic
+         * 'ConfigureNotify' 'ccmd_client_move' always ends with as
+         * a cue to recomposite its own buffer even when only the
+         * position changed, seen as a brief flicker of its content on
+         * every single step of what should be one smooth drag.
+         * 'drag_end' below calls 'enact_client_move' once more, with
+         * the drag's own final position, the moment it actually ends,
+         * so the client's belief about where it sits on screen is
+         * never left stale, only quiet while still moving. */
+        ccmd_client_move_track(client,
                 (struct position_s) { new_x, new_y });
     } else {
         drag_outline_move(connection, (struct geometry_s) {
@@ -1005,9 +1016,15 @@ void drag_end(xcb_connection_t *connection,
          * whole thing only applies to an actual client window drag. */
         if (s_drag.drag_window == XCB_WINDOW_NONE) {
             if (s_drag.is_solid_drag) {
-                /* Already fully applied live, one 'enact_client_move'/
-                 * 'enact_client_resize' per 'drag_update' along the
-                 * way; a resize alone gets one more here, to finalize
+                /* Already fully applied live, one
+                 * 'ccmd_client_move_track'/'enact_client_resize' per
+                 * 'drag_update' along the way.  A move alone still
+                 * gets one more 'enact_client_move' here, deliberately
+                 * withheld from every one of those live calls (see
+                 * 'ccmd_client_move_track''s own comment), so the
+                 * client finally learns its settled screen position
+                 * now that the drag has actually stopped moving it.
+                 * A resize alone gets one more here too, to finalize
                  * whatever that last live call left off at (e.g.,
                  * snapping fully onto the size-hint grid a client
                  * with 'WM_NORMAL_HINTS' increments declares, which
@@ -1018,6 +1035,9 @@ void drag_end(xcb_connection_t *connection,
                             (struct geometry_s) {
                                 s_drag.client->layout.geometry.cur.pos,
                                 { final_w, final_h } });
+                } else {
+                    enact_client_move(s_drag.client,
+                            s_drag.client->layout.geometry.cur.pos);
                 }
             } else {
                 /* An outline drag never touched the real window until

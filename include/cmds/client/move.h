@@ -73,6 +73,28 @@ void ccmd_client_apply_geometry(client_td *client,
 void ccmd_client_move(client_td *client, struct position_s pos);
 
 /**
+ * @brief Move the client to a new position, without announcing it
+ *
+ * Applies the exact same geometry @a ccmd_client_move does, but skips
+ * the synthetic 'ConfigureNotify' that function always ends with.
+ * Meant for one intermediate step of a drag still in progress: a
+ * compositing client (Chromium, Electron) treats every 'ConfigureNotify'
+ * as a cue to recomposite its own buffer even when only the position
+ * changed, seen as a brief flicker of its content on every single step
+ * of what should be one smooth drag.  The drag itself is expected to
+ * call @a ccmd_client_move once more, with the drag's own final
+ * position, the moment it ends, so the client's belief about where it
+ * sits on screen is never actually left stale, only quiet while the
+ * drag is still moving.
+ *
+ * @param client Window to move
+ * @param pos    New position
+ *
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_move_track(client_td *client, struct position_s pos);
+
+/**
  * @brief Center the client on its current screen
  *
  * @param client Window to center

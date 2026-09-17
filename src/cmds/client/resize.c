@@ -119,8 +119,21 @@ static void s_ccmd_resize_configure(client_td *client,
     /* Use 'exposures=1' so the X server generates an 'Expose' event and
      * the client redraws the newly exposed area immediately after
      * a non-interactive (keyboard or programmatic) resize, rather than
-     * leaving stale content until the next user-triggered redraw */
-    xcb_clear_area(xcb_connection_get(), 1, client->window, 0, 0, 0, 0);
+     * leaving stale content until the next user-triggered redraw.
+     *
+     * Skipped for a client already using '_NET_WM_SYNC_REQUEST':
+     * that protocol already tells it exactly when to redraw, via the
+     * sync request this same call chain sends further down in
+     * 'ccmd_client_resize', so forcing a clear here on top of that,
+     * every single step of an interactive resize, only blanks
+     * a compositing client's (Chromium, Electron) own content out
+     * from under it a moment before it repaints on its own, seen as
+     * a brief flicker on every step rather than a smooth resize. */
+    if (!client->hints_ewmh.sync.is_supported ||
+            !wm_sync_is_available()) {
+        xcb_clear_area(xcb_connection_get(), 1, client->window,
+                0, 0, 0, 0);
+    }
 
     /* Mark the client's desktop as outdated so the frame decoration
      * (titlebar background, text, border grips) is repainted on the

@@ -452,6 +452,10 @@ static void s_test_resize_unsynced_applies_immediately(void)
     TAP_EQ_INT(s_send_event_count, 0,
             "no sync request is ever sent for an unsynchronized"
             " client");
+    TAP_EQ_INT(s_clear_area_count, 1,
+            "an unsynchronized client still gets the forced"
+            " clear_area, since it has no sync request of its own"
+            " to tell it when to redraw instead");
 }
 
 
@@ -474,6 +478,9 @@ static void s_test_resize_sync_supported_but_unavailable(void)
             " itself is unavailable");
     TAP_EQ_INT(s_send_event_count, 0,
             "no sync request is sent without a live sync subsystem");
+    TAP_EQ_INT(s_clear_area_count, 1,
+            "genuinely unsynchronized either way, so it still gets"
+            " the forced clear_area too");
 }
 
 
@@ -504,6 +511,11 @@ static void s_test_resize_synced_dispatches_immediately(void)
             " acknowledgement");
     TAP_EQ_INT((long) client.hints_ewmh.sync.value, 1,
             "the local shadow sync counter is incremented once");
+    TAP_EQ_INT(s_clear_area_count, 0,
+            "no forced clear_area for a synchronized client: its"
+            " own sync request already tells it when to redraw,"
+            " and forcing one too would blank a compositing"
+            " client's content out from under it for nothing");
 }
 
 
@@ -788,7 +800,7 @@ static void s_test_resize_accounts_for_frame_extents(void)
 
 int main(void)
 {
-    TAP_PLAN(45);
+    TAP_PLAN(48);
 
     s_test_null_client_is_noop();
     s_test_resize_fullscreen_refused();

@@ -107,12 +107,14 @@ static int s_pan_edge_check_calls;
 static int s_icon_height_calls;
 
 static int s_enact_move_calls;
+static int s_track_move_calls;
 static int s_enact_resize_calls;
 static int s_enact_resize_force_calls;
 static int s_enact_restore_calls;
 static struct geometry_s s_enact_resize_last_geom;
 static struct geometry_s s_enact_resize_force_last_geom;
 static struct position_s s_enact_move_last_pos;
+static struct position_s s_track_move_last_pos;
 
 static int s_focus_apply_calls;
 static int s_systray_get_geometry_calls;
@@ -467,6 +469,19 @@ void enact_client_move(client_td *client, struct position_s pos)
 
 
 /**
+ * @brief Recording stand-in for @a ccmd_client_move_track
+ * @note Complexity: @e O(1)
+ */
+void ccmd_client_move_track(client_td *client, struct position_s pos)
+{
+    (void) client;
+
+    s_track_move_calls++;
+    s_track_move_last_pos = pos;
+}
+
+
+/**
  * @brief Recording stand-in for @a scmd_stage_viewport_drag_exclude
  * @note Complexity: @e O(1)
  */
@@ -703,6 +718,7 @@ static void s_reset(void)
     s_icon_height_calls = 0;
 
     s_enact_move_calls = 0;
+    s_track_move_calls = 0;
     s_enact_resize_calls = 0;
     s_enact_resize_force_calls = 0;
     s_enact_restore_calls = 0;
@@ -1159,7 +1175,9 @@ static void s_test_update_skips_duplicate_position(void)
 
 /* drag_update dispatches to the move path for a plain window move,
  * applying the pointer displacement on top of the drag's starting
- * geometry and calling enact_client_move for a solid drag */
+ * geometry and calling ccmd_client_move_track, not enact_client_move,
+ * for a solid drag: quiet on purpose for every intermediate step, see
+ * ccmd_client_move_track's own comment for why */
 static void s_test_update_move_dispatches_to_move_path(void)
 {
     client_td client;
@@ -1181,12 +1199,15 @@ static void s_test_update_move_dispatches_to_move_path(void)
 
     drag_update((xcb_connection_t *) 1, root_pos);
 
-    TAP_EQ_INT(s_enact_move_calls, 1,
-            "solid move drag: enact_client_move is called once");
-    TAP_EQ_INT(s_enact_move_last_pos.x, 110,
+    TAP_EQ_INT(s_enact_move_calls, 0,
+            "solid move drag: enact_client_move is never called for"
+            " an intermediate step");
+    TAP_EQ_INT(s_track_move_calls, 1,
+            "ccmd_client_move_track is called once instead");
+    TAP_EQ_INT(s_track_move_last_pos.x, 110,
             "moved position X is the start position plus the pointer"
             " displacement (10 here)");
-    TAP_EQ_INT(s_enact_move_last_pos.y, 210,
+    TAP_EQ_INT(s_track_move_last_pos.y, 210,
             "moved position Y likewise (10 here)");
     TAP_EQ_INT(s_outline_move_calls, 0,
             "a solid drag never goes through the outline path");
@@ -1336,9 +1357,11 @@ static void s_test_end_no_active_drag_is_noop(void)
 }
 
 
-/* drag_end for a plain solid move finalizes nothing further (already
- * applied live by drag_update along the way), hides the overlay,
- * ungrabs the pointer and resets every drag field back to idle */
+/* drag_end for a plain solid move issues one final enact_client_move,
+ * the one call withheld from every live drag_update step along the
+ * way (see ccmd_client_move_track's own comment), then hides the
+ * overlay, ungrabs the pointer and resets every drag field back to
+ * idle */
 static void s_test_end_move_resets_state(void)
 {
     client_td client;
@@ -1347,6 +1370,8 @@ static void s_test_end_move_resets_state(void)
     s_reset();
     s_make_client(&client);
     client.properties.operation = (uint16_t) CLIENT_OPERATION_MOVING;
+    client.layout.geometry.cur.pos.x = 123;
+    client.layout.geometry.cur.pos.y = 456;
     s_drag.is_active = true;
     s_drag.client = &client;
     s_drag.desktop = NULL;
@@ -1355,6 +1380,14 @@ static void s_test_end_move_resets_state(void)
     s_drag.is_solid_drag = true;
 
     drag_end((xcb_connection_t *) 1, NULL, NULL, root_pos);
+
+    TAP_EQ_INT(s_enact_move_calls, 1,
+            "solid move: exactly one finalizing enact_client_move"
+            " call happens");
+    TAP_EQ_INT(s_enact_move_last_pos.x, 123,
+            "at the client's own already-live-updated position X");
+    TAP_EQ_INT(s_enact_move_last_pos.y, 456,
+            "at the client's own already-live-updated position Y");
 
     TAP_OK(!s_drag.is_active, "drag ends: is_active reset to false");
     TAP_OK(s_drag.operation == CLIENT_OPERATION_IDLE,
@@ -1678,7 +1711,7 @@ static void s_test_client_returns_attached_client(void)
 
 int main(void)
 {
-    TAP_PLAN(118);
+    TAP_PLAN(122);
 
     s_test_start_null_guards_are_noop();
     s_test_start_move_success_populates_state();
