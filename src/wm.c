@@ -84,7 +84,7 @@
  * In shadows of scope, few e'er call thee their,
  * Thy global existence, to none dost bring fear,
  * A sentinel watching, though thou art alone. */
-static wm_td *wm = NULL;        /**< Singleton window manager instance */
+/*static*/ wm_td *wm = NULL;    /**< Singleton window manager instance */
 
 
 /** Whether the last stop requested was a restart rather than an exit */

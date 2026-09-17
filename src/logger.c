@@ -33,10 +33,13 @@
 #include <logger.h>
 
 
+/* Yet another variable of global existence, and 'yadda yadda'... */
 static logger_td *logger = NULL;    /**< Pointer to the singleton
                                          instance of the logger */
 
-/** Synchronize logger shared state */
+/**
+ * @brief Synchronize logger shared state
+ */
 static pthread_mutex_t logger_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
