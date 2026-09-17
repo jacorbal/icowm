@@ -443,9 +443,9 @@ struct config_base_s {
      * and 'topology' (this same struct's 'screens' above) */
     struct {
         uint32_t pan_step;  /**< Keyboard pan step in pixels; mouse
-                              *  dragging on the desktop background
-                              *  moves by the exact drag delta
-                              *  instead, never by this */
+                                 dragging on the desktop background
+                                 moves by the exact drag delta instead,
+                                 never by this */
 
         /**
          * @brief Whether panning also moves the desktop icons, rather

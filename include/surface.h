@@ -206,7 +206,9 @@ struct surface_s {
  *
  * @note The caller takes ownership of the returned surface and
  *       releases it with @a surface_destroy
- * @note Complexity: @e O(1)
+ * @note Complexity: @e O(d + n), where @e d is @p desktop_count and
+ *       @e n is the number of monitors @a surface_monitor_refresh_all
+ *       discovers
  */
 surface_td *surface_init(xcb_connection_t *connection,
         uint32_t surface_id, uint32_t desktop_count,

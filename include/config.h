@@ -5,9 +5,9 @@
  *
  * The default configuration is taken from the configuration files on
  * the default configuration base directory.  This directory depends on
- * the environment variables: @c XDG_CONFIG_HOME/ICOWM_NAME_PROG if the
- * variable @c XDG_CONFIG_HOME is set, otherwise it will default to the
- * classic @c ($HOME/.ICOWM_NAME_PROG).
+ * the environment variables: @c XDG_CONFIG_HOME/PROJECT_NAME_PROG if
+ * the variable @c XDG_CONFIG_HOME is set, otherwise it will default to
+ * the classic @c HOME/.PROJECT_NAME_PROG.
  *
  * @defgroup config Configuration loading
  * @ingroup wm
